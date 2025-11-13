@@ -1,15 +1,19 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // CoCalc libraries
 // React Libraries
-import { React, useState } from "@cocalc/frontend/app-framework";
-import { to_json } from "@cocalc/util/misc";
-import { Col, Row } from "antd";
-import { Button, ButtonGroup } from "../../antd-bootstrap";
-import { ErrorDisplay, Icon, Tip } from "../../components";
+import { Button, Col, Row, Space } from "antd";
+import { useState } from "react";
+import { useIntl } from "react-intl";
+
+import { Icon, Tip } from "@cocalc/frontend/components";
+import ShowError from "@cocalc/frontend/components/error";
+import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
+import { labels } from "@cocalc/frontend/i18n";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { CourseActions } from "../actions";
 import { BigTime } from "../common";
 import { LastCopyInfo } from "../store";
@@ -20,10 +24,12 @@ interface StudentHandoutInfoProps {
   title: string;
 }
 
-export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
-  props: StudentHandoutInfoProps
-) => {
-  const { actions, info, title } = props;
+export function StudentHandoutInfo({
+  actions,
+  info,
+  title,
+}: StudentHandoutInfoProps) {
+  const intl = useIntl();
 
   const [recopy, setRecopy] = useState<boolean>(false);
 
@@ -51,26 +57,26 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
     if (recopy) {
       const v: any[] = [];
       v.push(
+        <Button key="copy_cancel" onClick={() => setRecopy(false)}>
+          {intl.formatMessage(labels.cancel)}
+        </Button>,
+      );
+      v.push(
         <Button
           key="copy_confirm"
-          bsStyle="danger"
+          danger
           onClick={() => {
             setRecopy(false);
             return copy();
           }}
         >
           <Icon name="share-square" /> Yes, {name.toLowerCase()} again
-        </Button>
+        </Button>,
       );
-      v.push(
-        <Button key="copy_cancel" onClick={() => setRecopy(false)}>
-          Cancel
-        </Button>
-      );
-      return v;
+      return <Space wrap>{v}</Space>;
     } else {
       return (
-        <Button key="copy" bsStyle="warning" onClick={() => setRecopy(true)}>
+        <Button type="dashed" key="copy" onClick={() => setRecopy(true)}>
           <Tip title={name} tip={<span>{copy_tip}</span>}>
             <Icon name="share-square" /> {name}...
           </Tip>
@@ -81,37 +87,37 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
 
   function render_open_recopy(name, open, copy, copy_tip, open_tip) {
     return (
-      <ButtonGroup key="open_recopy">
+      <Space key="open_recopy">
         {render_open_recopy_confirm(name, copy, copy_tip)}
         <Button key="open" onClick={open}>
           <Tip title="Open Folder" tip={open_tip}>
             <Icon name="folder-open" /> Open directory...
           </Tip>
         </Button>
-      </ButtonGroup>
+      </Space>
     );
   }
 
   function render_open_copying(open, stop) {
     return (
-      <ButtonGroup key="open_copying">
-        <Button key="copy" bsStyle="success" disabled={true}>
+      <Space key="open_copying">
+        <Button key="copy" type="primary" disabled={true}>
           <Icon name="cocalc-ring" spin /> Working...
         </Button>
-        <Button key="stop" bsStyle="danger" onClick={stop}>
+        <Button key="stop" danger onClick={stop}>
           <Icon name="times" />
         </Button>
         <Button key="open" onClick={open}>
           <Icon name="folder-open" /> Open
         </Button>
-      </ButtonGroup>
+      </Space>
     );
   }
 
   function render_copy(name, copy, copy_tip) {
     return (
       <Tip key="copy" title={name} tip={copy_tip}>
-        <Button onClick={copy} bsStyle={"primary"}>
+        <Button onClick={copy} type="primary">
           <Icon name="share-square" /> {name}
         </Button>
       </Tip>
@@ -120,18 +126,22 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
 
   function render_error(name, error) {
     if (typeof error !== "string") {
-      error = to_json(error);
+      error = `${error}`;
+    }
+    if (error.includes("[object Object]")) {
+      // already too late to know the actual error -- it got mangled/reported incorrectly
+      error = "";
     }
     if (error.indexOf("No such file or directory") !== -1) {
-      error = `Somebody may have moved the folder that should have contained the handout.\n${error}`;
+      error = `Somebody may have moved the folder that should have contained the handout -- \n${error}`;
     } else {
-      error = `Try to ${name.toLowerCase()} again:\n` + error;
+      error = `Try to ${name.toLowerCase()} again -- \n${error}`;
     }
     return (
-      <ErrorDisplay
+      <ShowError
         key="error"
         error={error}
-        style={{ maxHeight: "140px", overflow: "auto" }}
+        style={{ marginTop: "5px", maxHeight: "140px", overflow: "auto" }}
       />
     );
   }
@@ -145,7 +155,7 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
     }
     const v: any[] = [];
     if (enable_copy) {
-      if (obj.start) {
+      if (webapp_client.server_time() - (obj.start ?? 0) < COPY_TIMEOUT_MS) {
         v.push(render_open_copying(do_open, do_stop));
       } else if (obj.time) {
         v.push(render_open_recopy(name, do_open, do_copy, copy_tip, open_tip));
@@ -183,7 +193,7 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
                 info,
                 true,
                 "Copy the handout from your project to this student's project.",
-                "Open the student's copy of this handout directly in their project.  You will be able to see them type, chat with them, answer questions, etc."
+                "Open the student's copy of this handout directly in their project.  You will be able to see them type, chat with them, answer questions, etc.",
               )}
             </Col>
           </Row>
@@ -191,4 +201,4 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
       </Row>
     </div>
   );
-};
+}

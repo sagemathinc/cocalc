@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -13,8 +13,7 @@ import { DEFAULT_QUOTAS, PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Tip } from "../components/tip";
 import { Icon } from "../components/icon";
 import { Gap } from "../components/gap";
-const { Panel } = require("react-bootstrap"); // since the typescript declarations are our of sync with our crappy old version.
-
+import { Panel } from "@cocalc/frontend/antd-bootstrap";
 import { render_project_quota } from "./util";
 
 export class ProjectQuotaFreeTable extends Component {
@@ -29,7 +28,7 @@ export class ProjectQuotaFreeTable extends Component {
 
   public render(): Rendered {
     return (
-      <Panel header={this.render_header()} bsStyle="info">
+      <Panel header={this.render_header()}>
         <Gap />
         <div style={{ marginBottom: "5px", marginLeft: "10px" }}>
           <Tip

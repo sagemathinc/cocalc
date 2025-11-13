@@ -1,27 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
- */
-
-/*
- * decaffeinate suggestions:
- * DS001: Remove Babel/TypeScript constructor workaround
- * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { EventEmitter } from "events";
-
 import { callback } from "awaiting";
 import { callback2 } from "@cocalc/util/async-utils";
-
 import { close, len } from "@cocalc/util/misc";
-
 import { PostgreSQL, QueryOptions, QueryResult } from "./types";
-
+import { getPoolClient } from "@cocalc/database/pool";
 import { ChangeEvent, Changes } from "./changefeed";
 
 const { all_results } = require("../postgres-base");
@@ -362,23 +349,53 @@ export class ProjectAndUserTracker extends EventEmitter {
       throw Error("do_register MUST NOT be called twice at once!");
     this.do_register_lock = true;
     try {
+      // Register this account, which starts by getting ALL of their projects.
+      // 2021-05-10: it's possible that a single user has a really large number of projects, so
+      // we get the projects in batches to reduce the load on the database.
+      // We must have *all* projects, since this is used frequently in
+      //     database/postgres-user-queries.coffee
+      // when deciding how to route listen/notify events to users.  Search for
+      //   "# Check that this is a project we have read access to"
+      // E.g., without all projects, changefeeds would just fail to update,
+      // which, e.g., makes it so projects appear to not start.
       // Register this account
-      let projects: QueryResult[];
+      const client = await getPoolClient();
+      let projects: QueryResult[] = [];
+      const batchSize = 2000;
       try {
-        // 2021-05-10: one user has a really large number of projects, which causes the hub to crash
-        // TODO: fix this ORDER BY .. LIMIT .. part properly
-        projects = await query(this.db, {
-          query:
-            "SELECT project_id, json_agg(o) as users FROM (SELECT project_id, jsonb_object_keys(users) AS o FROM projects WHERE users ? $1::TEXT ORDER BY last_edited DESC LIMIT 10000) s group by s.project_id",
-          params: [account_id],
-        });
+        // Start a transaction
+        await client.query("BEGIN");
+        // Declare a cursor
+        await client.query(
+          `
+   DECLARE project_cursor CURSOR FOR SELECT project_id, json_agg(o) as users
+      FROM (SELECT project_id, jsonb_object_keys(users) AS o FROM projects
+     WHERE users ? $1::TEXT) AS s group by s.project_id`,
+          [account_id],
+        );
+        // Fetch rows in batches
+        while (true) {
+          const batchResult = await client.query(
+            `FETCH ${batchSize} FROM project_cursor`,
+          );
+          projects = projects.concat(batchResult.rows);
+          if (batchResult.rows.length < batchSize) {
+            break; // No more rows to fetch
+          }
+        }
+        // Close the cursor and end the transaction
+        await client.query("CLOSE project_cursor");
+        await client.query("COMMIT");
       } catch (err) {
+        // If an error occurs, roll back the transaction
+        await client.query("ROLLBACK");
         const e = `error registering '${account_id}' -- err=${err}`;
         dbg(e);
         this.handle_error(e); // it is game over.
         return;
+      } finally {
+        client.release();
       }
-
       // we care about this account_id
       this.accounts[account_id] = true;
 

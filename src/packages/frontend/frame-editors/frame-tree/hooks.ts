@@ -1,8 +1,8 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
-import { React, redux } from "../../app-framework";
+import { redux } from "../../app-framework";
 import { DEFAULT_FONT_SIZE } from "@cocalc/util/db-schema/defaults";
 
 // this doesn't react to font size changes. maybe at some point we want to...
@@ -24,18 +24,14 @@ export function baseFontSize() {
 //    transform: `scale(${scaling})`,
 //    transformOrigin: "center 0", // or "0 0"
 //  }
+// And yet, I'm using zoom and testing it on safari, firefox and chrome
+// and it works well now-a-days.
+
 export function use_font_size_scaling(font_size: number): number {
-  const [font_size_prev, set_font_size_prev] =
-    React.useState<number>(DEFAULT_FONT_SIZE);
-  const [scaling, set_scaling] = React.useState<number>(1);
+  return getScale(font_size);
+}
 
-  if (font_size != font_size_prev) {
-    set_font_size_prev(font_size);
-  } else {
-    return scaling;
-  }
-
+export function getScale(fontSize: number): number {
   const base = baseFontSize();
-  set_scaling((font_size != null ? font_size : base) / base);
-  return scaling;
+  return (fontSize != null ? fontSize : base) / base;
 }

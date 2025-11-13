@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button } from "antd";
@@ -22,7 +22,7 @@ export interface StoreConf {
 }
 
 interface Props {
-  conf: StoreConf;
+  conf?: StoreConf;
 }
 
 const STYLE: React.CSSProperties = {
@@ -37,11 +37,16 @@ export function LinkToStore(props: Props) {
 
   const router = useRouter();
 
-  const params = Object.entries(conf)
-    .map(([key, value]) => `${key}=${value}`)
-    .join("&");
+  const params =
+    conf != null
+      ? Object.entries(conf)
+          .map(([key, value]) => `${key}=${value}`)
+          .join("&")
+      : "";
 
   const url = `/store/site-license?${params}`;
+
+  const label = conf != null ? "Select" : `Store`;
 
   return (
     <div style={STYLE}>
@@ -51,7 +56,7 @@ export function LinkToStore(props: Props) {
         onClick={() => router.push(url)}
         icon={<Icon name="shopping-cart" />}
       >
-        Select
+        {label}
       </Button>
     </div>
   );

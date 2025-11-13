@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { PauseCircleOutlined, QuestionCircleOutlined } from "@ant-design/icons";
@@ -18,25 +18,24 @@ import {
 } from "antd";
 import humanizeList from "humanize-list";
 import * as immutable from "immutable";
-
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, TimeElapsed, Tip } from "@cocalc/frontend/components";
 import { FLYOUT_PADDING } from "@cocalc/frontend/project/page/flyouts/consts";
-import type { Channel } from "@cocalc/comm/websocket/types";
 import {
   Process,
   Processes,
-  ProjectInfoCmds,
   Signal,
   State,
-} from "@cocalc/comm/project-info/types";
+} from "@cocalc/util/types/project-info/types";
 import { AlertType, ComponentName } from "@cocalc/comm/project-status/types";
 import { plural, seconds2hms, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { CGroupInfo, DUState } from "./types";
 import { filename, warning_color_disk, warning_color_pct } from "./utils";
 import { useProjectContext } from "../context";
+import ShowError from "@cocalc/frontend/components/error";
+import { useState } from "react";
 
 interface AboutContentProps {
   proc?: Process;
@@ -228,14 +227,14 @@ interface CGroupTipProps {
 const CGroupTip: React.FC<CGroupTipProps> = React.memo(
   (props: CGroupTipProps) => {
     const { children, type, cg_info, disk_usage } = props;
-    function render_text(): JSX.Element {
+    function render_text(): React.JSX.Element {
       switch (type) {
         case "mem":
           return (
             <span>
               Current memory usage of the project's container:{" "}
-              <code>{cg_info.mem_rss.toFixed(0)}MiB</code> of a maximum of{" "}
-              <code>{cg_info.mem_tot.toFixed(0)}MiB</code>. This might diverge
+              <code>{cg_info.mem_rss.toFixed(0)} MiB</code> of a maximum of{" "}
+              <code>{cg_info.mem_tot.toFixed(0)} MiB</code>. This might diverge
               from the processes individual usages and this value also includes
               the in-memory <code>/tmp</code> directory. The remaining free
               memory is usually shared with other projects on the underlying
@@ -246,8 +245,8 @@ const CGroupTip: React.FC<CGroupTipProps> = React.memo(
           return (
             <span>
               Currently, the files stored in this project use{" "}
-              <code>{disk_usage.usage.toFixed(0)}MiB</code> of a maximum of{" "}
-              <code>{disk_usage.total.toFixed(0)}MiB</code>. Please be aware
+              <code>{disk_usage.usage.toFixed(0)} MiB</code> of a maximum of{" "}
+              <code>{disk_usage.total.toFixed(0)} MiB</code>. Please be aware
               that a project might not work properly if that limit is reached.
             </span>
           );
@@ -389,7 +388,7 @@ export const CGroup: React.FC<CGroupProps> = React.memo(
     } as const;
 
     const alert_style: CSS = {
-      backgroundColor: COLORS.ATND_BG_RED_L,
+      backgroundColor: COLORS.ANTD_BG_RED_L,
       borderColor: COLORS.ANTD_RED_WARN,
     } as const;
 
@@ -540,7 +539,6 @@ export const CoCalcFile: React.FC<CoCalcFileProps> = React.memo(
 );
 
 interface SignalButtonsProps {
-  chan: Channel | null;
   pid?: number;
   selected?: number[];
   set_selected?: Function;
@@ -548,12 +546,12 @@ interface SignalButtonsProps {
   disabled?: boolean;
   processes: Processes;
   small?: boolean;
+  project_actions;
 }
 
 export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
   (props: SignalButtonsProps) => {
     const {
-      chan,
       selected: selected_user,
       set_selected,
       loading,
@@ -561,7 +559,9 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       pid,
       processes,
       small = false,
+      project_actions,
     } = props;
+    const [error, setError] = useState<string>("");
 
     // we don't let users send signals to processes classified as "project" or "ssh daemon"
     const dont_kill = ["project", "sshd"];
@@ -604,15 +604,16 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       return "";
     }
 
-    function onConfirm(signal: Signal) {
-      if (chan == null) return;
-      const payload: ProjectInfoCmds = {
-        cmd: "signal",
-        signal,
-        pids: selected,
-      };
-      chan.write(payload);
-      set_selected?.([]);
+    async function onConfirm(signal: Signal) {
+      try {
+        setError("");
+        set_selected?.([]);
+        await project_actions
+          .projectApi()
+          .system.signal({ signal, pids: selected });
+      } catch (err) {
+        setError(`${err}`);
+      }
     }
 
     function render_signal(signal: Signal) {
@@ -674,6 +675,11 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       ) : (
         <Form.Item label="Send signal:">
           <Space>{btns}</Space>
+          <ShowError
+            error={error}
+            setError={setError}
+            style={{ margin: "15px 0" }}
+          />
         </Form.Item>
       );
     }

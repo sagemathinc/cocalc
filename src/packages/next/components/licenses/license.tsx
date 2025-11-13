@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert, Popover, Progress } from "antd";
@@ -242,7 +242,7 @@ export function Quota({ quota, upgrades }: { quota?: any; upgrades?: any }) {
 }
 
 export function DateRange({ activates, expires, info }) {
-  const isExpired = expires && expires < new Date().valueOf();
+  const isExpired = expires && expires < Date.now();
   const sub = info?.purchased?.subscription;
   if (sub && sub != "no") {
     return (

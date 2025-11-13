@@ -1,11 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Client, Pool, PoolClient } from "pg";
 import { syncSchema } from "@cocalc/database/postgres/schema";
-
 import {
   pgdatabase as database,
   pghost as host,
@@ -41,6 +40,13 @@ export default function getPool(cacheTime?: CacheTime): Pool {
       max: process.env.PGDATABASE == TEST ? 2 : undefined,
       ssl,
     });
+
+    pool.on("error", (err: Error) => {
+      L.debug("WARNING: Unexpected error on idle client in PG pool", {
+        err: err.message,
+        stack: err.stack,
+      });
+    });
     const end = pool.end.bind(pool);
     pool.end = async () => {
       pool = undefined;
@@ -50,6 +56,10 @@ export default function getPool(cacheTime?: CacheTime): Pool {
   return pool;
 }
 
+// CRITICAL -- the caller *must* call client.release on the client
+// that is returned from getTransactionClient()!  E.g., for unit testing
+// if you don't do this  you exhaust the limit of 2 on the pool size,
+// (see above) and everything hangs!
 export async function getTransactionClient(): Promise<PoolClient> {
   const client = await getPoolClient();
   try {
@@ -96,6 +106,12 @@ export async function initEphemeralDatabase({
     statement_timeout: STATEMENT_TIMEOUT_MS,
     ssl,
   });
+  db.on("error", (err: Error) => {
+    L.debug("WARNING: Unexpected error on idle client in PG pool", {
+      err: err.message,
+      stack: err.stack,
+    });
+  });
   const { rows } = await db.query(
     "SELECT COUNT(*) AS count FROM pg_catalog.pg_database WHERE datname = $1",
     [TEST],
@@ -117,6 +133,12 @@ export async function initEphemeralDatabase({
 
 async function dropAllData() {
   const pool = getPool();
+  pool.on("error", (err: Error) => {
+    L.debug("WARNING: Unexpected error on idle client in PG pool", {
+      err: err.message,
+      stack: err.stack,
+    });
+  });
   if (pool?.["options"]?.database != TEST) {
     // safety check!
     throw Error(

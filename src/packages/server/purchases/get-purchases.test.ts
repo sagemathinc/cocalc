@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import createAccount from "@cocalc/server/accounts/create-account";
@@ -22,7 +22,8 @@ describe("creates and get purchases using various options", () => {
   const account_id = uuid();
 
   it("gets purchases for an account that doesn't exist yet (fine, there aren't any)", async () => {
-    expect(await getPurchases({ account_id })).toEqual([]);
+    const { purchases } = await getPurchases({ account_id });
+    expect(purchases).toEqual([]);
   });
 
   it("creates account and a purchase and gets it", async () => {
@@ -40,7 +41,7 @@ describe("creates and get purchases using various options", () => {
       client: null,
       cost: -100,
     });
-    const p = await getPurchases({ account_id });
+    const { purchases: p } = await getPurchases({ account_id });
     expect(p.length).toBe(1);
     expect(p[0].cost).toBe(-100);
   });
@@ -52,7 +53,10 @@ describe("creates and get purchases using various options", () => {
       "UPDATE accounts SET email_address=$1 WHERE account_id=$2",
       [email_address, account_id],
     );
-    const p = await getPurchases({ account_id, includeName: true });
+    const { purchases: p } = await getPurchases({
+      account_id,
+      includeName: true,
+    });
     expect(p.length).toBe(1);
     expect(p[0].email_address).toBe(email_address);
     expect(p[0].first_name).toBe("Test");
@@ -74,19 +78,17 @@ describe("creates and get purchases using various options", () => {
       purchase_id,
     ]);
 
-    const p = await getPurchases({ account_id, noCache: true });
+    const { purchases: p } = await getPurchases({ account_id });
     expect(p.length).toBe(2); // also counts above purchase
-    const p_cutoff = await getPurchases({
+    const { purchases: p_cutoff } = await getPurchases({
       account_id,
       cutoff: dayjs().subtract(2, "month").toDate(),
-      noCache: true,
     });
     expect(p_cutoff.length).toBe(2);
 
-    const p_cutoff2 = await getPurchases({
+    const { purchases: p_cutoff2 } = await getPurchases({
       account_id,
       cutoff: dayjs().subtract(1, "week").toDate(),
-      noCache: true,
     });
     expect(p_cutoff2.length).toBe(1);
   });

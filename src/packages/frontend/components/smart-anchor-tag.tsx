@@ -17,12 +17,21 @@ import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { redux } from "@cocalc/frontend/app-framework";
 import { A, Icon, IconName } from "@cocalc/frontend/components";
 import { file_associations } from "@cocalc/frontend/file-associations";
-import { isCoCalcURL, parseCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
+import {
+  isCoCalcURL,
+  parseCoCalcURL,
+  removeOrigin,
+} from "@cocalc/frontend/lib/cocalc-urls";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { filename_extension, path_split } from "@cocalc/util/misc";
+import {
+  containingPath,
+  filename_extension,
+  path_split,
+} from "@cocalc/util/misc";
 import { TITLE as SERVERS_TITLE } from "../project/servers";
 import { alert_message } from "@cocalc/frontend/alerts";
+import { load_target as globalLoadTarget } from "@cocalc/frontend/history";
 
 interface Options {
   project_id: string;
@@ -43,16 +52,13 @@ export default function SmartAnchorTag({
 }: Options) {
   // compare logic here with frontend/misc/process-links/generic.ts
   let body;
-  if (
-    isCoCalcURL(href) && // TODO: dumb heuristic, like in /process-links/generic.ts
-    (href?.includes("/projects/") || href?.endsWith("/settings"))
-  ) {
+  if (isCoCalcURL(href)) {
     body = (
       <CoCalcURL project_id={project_id} href={href} title={title}>
         {children}
       </CoCalcURL>
     );
-  } else if (href?.includes("://")) {
+  } else if (href?.includes("://") || href?.startsWith("mailto:")) {
     body = (
       <NonCoCalcURL href={href} title={title}>
         {children}
@@ -110,7 +116,7 @@ function CoCalcURL({ href, title, children, project_id }) {
           project_id,
           decodeURI(target),
           !((e as any)?.which === 2 || e?.ctrlKey || e?.metaKey),
-          fragmentId
+          fragmentId,
         );
       } catch (err) {
         // loadTarget could fail, e.g., if the project_id is mangled.
@@ -123,7 +129,7 @@ function CoCalcURL({ href, title, children, project_id }) {
     } else if (page) {
       // opening a different top level page, e.g., all projects or account settings or something.
       e.preventDefault();
-      redux.getActions("page").set_active_tab(page);
+      globalLoadTarget(removeOrigin(href));
       return;
     }
     // fall back to default.
@@ -345,28 +351,35 @@ function InternalRelativeLink({ project_id, path, href, title, children }) {
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        const url = new URL("http://dummy/" + href);
+
+        if (!project_id) {
+          // link is being opened outside of any specific project, e.g.,
+          // opening /settings outside of a project will open cocalc-wide
+          // settings for the user, not project settings.  E.g.,
+          // this could happen in the messages panel.
+          globalLoadTarget(href);
+          return;
+        }
+
+        const dir = containingPath(path);
+        const url = new URL("http://dummy/" + join(dir, href));
         const fragmentId = Fragment.decode(url.hash);
         const hrefPlain = url.pathname.slice(1);
         let target;
-        if (!hrefPlain) {
+        if (href.startsWith("#") || !hrefPlain) {
           // within the same file
           target = join("files", path);
         } else {
           // different file in the same project, with link being relative
           // to current path.
-          target = join(
-            "files",
-            path ? path_split(path).head : "",
-            decodeURI(hrefPlain)
-          );
+          target = join("files", decodeURI(hrefPlain));
         }
         loadTarget(
           "projects",
           project_id,
           target,
           !((e as any).which === 2 || e.ctrlKey || e.metaKey),
-          fragmentId
+          fragmentId,
         );
       }}
       title={title}
@@ -381,7 +394,7 @@ function loadTarget(
   project_id: string,
   target: string,
   switchTo: boolean,
-  fragmentId?: FragmentId
+  fragmentId?: FragmentId,
 ): void {
   if (!is_valid_uuid_string(project_id)) {
     throw Error(`invalid project id ${project_id}`);

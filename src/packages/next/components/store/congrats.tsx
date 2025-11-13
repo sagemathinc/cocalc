@@ -22,6 +22,8 @@ import useAPI from "lib/hooks/api";
 import bella from "public/shopping/bella.png";
 import TimeAgo from "timeago-react";
 
+import type { JSX } from "react";
+
 export default function Congrats() {
   const purchases = useAPI("/shopping/cart/recent-purchases", {
     recent: "2 day",
@@ -47,9 +49,9 @@ export default function Congrats() {
       type="info"
       message={
         <>
-          Browse your <A href="/billing/receipts">invoices, receipts</A> and{" "}
-          <A href="/billing/subscriptions">subscriptions</A> on the{" "}
-          <A href="/billing">billing page</A>, or visit the{" "}
+          Browse your <A href="/settings/payments">invoices</A>,{" "}
+          <A href="/settings/purchases">receipts</A> and{" "}
+          <A href="/settings/subscriptions">subscriptions</A>, or visit the{" "}
           <A href="/vouchers">voucher center</A>.
         </>
       }
@@ -67,60 +69,72 @@ export default function Congrats() {
         <ul>
           {purchases.result.length > 0 && (
             <li style={{ marginBottom: "15px" }}>
-              You are a manager for each of the licenses you purchased.{" "}
-              <A href="/licenses/managed">You can see your managed licenses</A>,
-              add other people as managers, edit the title and description of
-              each license, and see how a license is being used.
-            </li>
-          )}
-          {purchases.result.length > 0 && (
-            <li style={{ marginBottom: "15px" }}>
-              You can{" "}
-              <A href="https://doc.cocalc.com/project-settings.html#project-add-license">
-                apply a license to projects
-              </A>
-              ,{" "}
-              <A href="https://doc.cocalc.com/teaching-upgrade-course.html#install-course-license">
-                courses
-              </A>
-              , or directly share the license code, as{" "}
-              <A href="https://doc.cocalc.com/licenses.html">explained here</A>.
-              It's time to make your <SiteName /> projects much, much better.
+              <b>Licenses:</b> You are a manager for each of the licenses you
+              purchased.{" "}
+              <A href="/settings/licenses">You manage your licenses</A>, add
+              other people as managers, edit the title, description and every
+              property of each license, and{" "}
+              <A href="/licenses/how-used">see how a license is being used</A>.
+              <ul>
+                <li style={{ marginBottom: "15px" }}>
+                  You can{" "}
+                  <A href="https://doc.cocalc.com/project-settings.html#project-add-license">
+                    apply a license to projects
+                  </A>
+                  ,{" "}
+                  <A href="https://doc.cocalc.com/teaching-upgrade-course.html#install-course-license">
+                    courses
+                  </A>
+                  , or directly share the license code, as{" "}
+                  <A href="https://doc.cocalc.com/licenses.html">
+                    explained here
+                  </A>
+                  . It's time to make your <SiteName /> projects much, much
+                  better.
+                </li>
+              </ul>
             </li>
           )}
           {vouchers.result.length > 0 && (
             <li style={{ marginBottom: "15px" }}>
-              You can{" "}
+              <b>Vouchers:</b> You can{" "}
               <A href="/vouchers/created">
                 browse all the vouchers you have created
               </A>
               , and everything else involving vouchers at the{" "}
               <A href="/vouchers">vouchers center</A>.
+              <ul>
+                <li style={{ marginBottom: "15px" }}>
+                  If you're interested in{" "}
+                  <A href="/store/vouchers">purchasing</A>,{" "}
+                  <A href="/redeem">redeeming</A>, or checking on the{" "}
+                  <A href="/vouchers/created">status of your vouchers</A>, visit
+                  the <A href="/vouchers">Voucher Center</A> or the{" "}
+                  <A href="https://doc.cocalc.com/vouchers.html">
+                    voucher docs
+                  </A>
+                  .
+                </li>
+              </ul>
             </li>
           )}
           {purchases.result.length > 0 ? (
             <li style={{ marginBottom: "15px" }}>
-              You can <A href="/billing/receipts">download your receipt</A> and{" "}
-              <A href="/billing/subscriptions">
+              <b>Payments:</b> You can{" "}
+              <A href="/settings/purchases">download your receipt</A> and{" "}
+              <A href="/settings/subscriptions">
                 check on the status of any subscriptions.
               </A>
             </li>
           ) : (
             <li style={{ marginBottom: "15px" }}>
-              You can <A href="/billing/receipts">download your receipt</A>.
+              <b>Payments:</b> You can{" "}
+              <A href="/settings/purchases">download your receipt</A>.
             </li>
           )}
-          <li style={{ marginBottom: "15px" }}>
-            If you're interested in <A href="/store/vouchers">purchasing</A>,{" "}
-            <A href="/redeem">redeeming</A>, or checking on the{" "}
-            <A href="/vouchers/created">status of your vouchers</A>, visit the{" "}
-            <A href="/vouchers">Voucher Center</A> or the{" "}
-            <A href="https://doc.cocalc.com/vouchers.html">voucher docs</A>.
-          </li>
           <li>
-            If you have questions,{" "}
-            <A href="/support/new">create a support ticket</A>. Your request
-            will be more highly prioritized.
+            <b>Support:</b> If you have questions,{" "}
+            <A href="/support/new">create a support ticket</A>.
           </li>
         </ul>
         {billingInfo}
@@ -130,7 +144,7 @@ export default function Congrats() {
 
   function renderAutomaticallyApplied(): JSX.Element {
     const appliedProjects = purchases.result.filter(
-      (x) => x.project_id != null
+      (x) => x.project_id != null,
     );
     const numApplied = appliedProjects.length;
     if (numApplied == 0) return <></>;
@@ -164,6 +178,8 @@ export default function Congrats() {
     );
   }
 
+  const licenses = purchases.result.filter((x) => x.purchased.license_id);
+
   return (
     <>
       <div style={{ float: "right" }}>
@@ -177,21 +193,20 @@ export default function Congrats() {
           />{" "}
           Order Complete!
         </h1>
-        {purchases.result.length > 0 && (
+        {licenses.length > 0 && (
           <Card
             style={{ margin: "15px auto", maxWidth: "700px" }}
             title={
               <>
                 <Icon name="key" style={{ marginRight: "15px" }} />
                 Congrats! You recently ordered{" "}
-                {purchases.result.length >= 2 ? "these" : "this"}{" "}
-                {purchases.result.length} <SiteName />{" "}
-                {plural(purchases.result.length, "license")}
+                {licenses.length >= 2 ? "these" : "this"} {licenses.length}{" "}
+                <SiteName /> {plural(licenses.length, "license")}.
               </>
             }
           >
             <ul>
-              {purchases.result.map((item) => (
+              {licenses.map((item) => (
                 <li key={item.purchased.license_id}>
                   <License
                     key={item.purchased.license_id}
@@ -215,7 +230,7 @@ export default function Congrats() {
             }
             style={{ margin: "15px auto", maxWidth: "700px" }}
           >
-            You can download the corresponding voucher codes via the{" "}
+            You can download and track your voucher codes via the{" "}
             {plural(vouchers.result.length, "link")} below.
             <br />
             <br />

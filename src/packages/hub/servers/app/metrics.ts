@@ -4,7 +4,7 @@ Express middleware for recording metrics about response time to requests.
 
 import { dirname } from "path";
 import { Router } from "express";
-const { get, new_histogram } = require("@cocalc/hub/metrics-recorder");
+import { get, new_histogram } from "@cocalc/server/metrics/metrics-recorder";
 import { join } from "path";
 import basePath from "@cocalc/backend/base-path";
 import getPool from "@cocalc/database/pool";
@@ -27,17 +27,8 @@ function metrics(req, res, next) {
     if (!req.path) {
       return;
     }
-    const pathSplit = req.path.split("/");
-    // for API paths, we want to have data for each endpoint
-    const path_tail = pathSplit.slice(pathSplit.length - 3);
-    const is_api = path_tail[0] === "api" && path_tail[1] === "v1";
-    let path;
-    if (is_api) {
-      path = path_tail.join("/");
-    } else {
-      // for regular paths, we ignore the file
-      path = dirname(req.path).split("/").slice(0, 2).join("/");
-    }
+    // for regular paths, we ignore the file
+    const path = dirname(req.path).split("/").slice(0, 2).join("/");
     resFinished({
       path,
       method: req.method,
@@ -52,8 +43,8 @@ export function setupInstrumentation(router: Router) {
 }
 
 async function isEnabled(pool): Promise<boolean> {
-  const {rows} = await pool.query(
-    "SELECT value FROM server_settings WHERE name='prometheus_metrics'"
+  const { rows } = await pool.query(
+    "SELECT value FROM server_settings WHERE name='prometheus_metrics'",
   );
   const enabled = rows.length > 0 && rows[0].value == "yes";
   log.info("isEnabled", enabled);

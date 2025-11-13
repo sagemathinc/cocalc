@@ -13,22 +13,28 @@ interface Options {
   app: Application;
 }
 
+const logger = getLogger("http:server");
 export default function init({ cert, key, app }: Options) {
-  const winston = getLogger("init-http-server");
+  let httpServer;
   if (key || cert) {
     if (!key || !cert) {
       throw Error("specify *both* key and cert or neither");
     }
-    winston.info("Creating HTTPS server...");
-    return httpsCreateServer(
+    logger.info("Creating HTTPS server...");
+    httpServer = httpsCreateServer(
       {
         cert: readFileSync(cert),
         key: readFileSync(key),
       },
-      app
+      app,
     );
   } else {
-    winston.info("Creating HTTP server...");
-    return httpCreateServer(app);
+    logger.info("Creating HTTP server...");
+    httpServer = httpCreateServer(app);
   }
+  httpServer.on("error", (err) => {
+    logger.error(`WARNING -- hub http server error: ${err.stack || err}`);
+  });
+
+  return httpServer;
 }

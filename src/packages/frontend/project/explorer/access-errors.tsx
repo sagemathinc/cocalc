@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { ErrorDisplay } from "@cocalc/frontend/components";
@@ -10,7 +10,7 @@ interface Props {
   is_logged_in: boolean;
 }
 
-export function AccessErrors({ is_logged_in }: Props): JSX.Element {
+export function AccessErrors({ is_logged_in }: Props): React.JSX.Element {
   if (is_logged_in) {
     return (
       <ErrorDisplay

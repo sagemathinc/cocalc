@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -76,8 +76,11 @@ class ClientNoChangefeed extends EventEmitter {
     return this.client.is_compute_server();
   }
 
-  public async touch_project(project_id: string): Promise<void> {
-    await this.client.touch_project(project_id);
+  public async touch_project(
+    project_id: string,
+    compute_server_id?: number,
+  ): Promise<void> {
+    await this.client.touch_project(project_id, compute_server_id);
   }
 
   public is_connected(): boolean {

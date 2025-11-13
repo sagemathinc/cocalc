@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* Compute project quotas based on:
@@ -37,17 +37,16 @@ costs add).
 // TODO: relative path just needed in manage-*
 
 import { isEmpty } from "lodash";
-import { DEFAULT_QUOTAS, upgrades } from "../upgrade-spec";
-
-import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
-import { VMS } from "@cocalc/util/upgrades/dedicated";
 import {
   LicenseIdleTimeouts,
   LicenseIdleTimeoutsKeysOrdered,
-} from "../consts/site-license";
-import { deep_copy, len, test_valid_jsonpatch } from "../misc";
-import { SiteLicenseQuota } from "../types/site-licenses";
+} from "@cocalc/util/consts/site-license";
 import type { ProjectQuota as PayAsYouGoQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import { GPU, SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import { DEFAULT_QUOTAS, upgrades } from "@cocalc/util/upgrade-spec";
+import { VMS } from "@cocalc/util/upgrades/dedicated";
+import { deep_copy, len, test_valid_jsonpatch } from "../misc";
 import { DEDICATED_VM_ONPREM_MACHINE } from "./consts";
 
 const MAX_UPGRADES = upgrades.max_per_project;
@@ -107,10 +106,11 @@ interface QuotaBase {
   };
 }
 
-// additional fields of the quota result, which are used for onprem (cocalc-cloud) applications
+// additional fields of the quota result, which are used for onprem (cocalc-onprem) applications
 interface QuotaOnPrem {
   ext_rw?: boolean;
   patch?: { [key: string]: string | object }[];
+  gpu?: GPU | boolean;
 }
 
 // the resulting quota is a combination of the base quota and the onprem specific one
@@ -148,6 +148,7 @@ export interface Upgrades {
   ephemeral_disk: number;
   ext_rw?: number;
   patch?: Patch;
+  gpu?: GPU;
 }
 
 // this is onprem specific only!
@@ -262,6 +263,7 @@ const ZERO_QUOTA: RQuota = {
   dedicated_vm: false,
   dedicated_disks: [] as DedicatedDisk[],
   pay_as_you_go: null,
+  gpu: false,
 } as const;
 
 // base quota + calculated default quotas is the quota object each project gets by default
@@ -280,6 +282,7 @@ const BASE_QUOTAS: RQuota = {
   dedicated_vm: false,
   dedicated_disks: [] as DedicatedDisk[],
   pay_as_you_go: null,
+  gpu: false,
 } as const;
 
 // sanitize the overcommitment ratio or discard it
@@ -329,7 +332,7 @@ function calcDefaultQuotas(site_settings?: SiteSettingsQuotas): Quota {
 }
 
 export function isSiteLicenseQuotaSetting(
-  slq?: QuotaSetting
+  slq?: QuotaSetting,
 ): slq is SiteLicenseQuotaSetting {
   return slq != null && (slq as SiteLicenseQuotaSetting).quota != null;
 }
@@ -353,7 +356,7 @@ function isSettingsQuota(slq?: QuotaSetting): slq is Upgrades {
 }
 
 function select_dedicated_vm(
-  site_licenses: SiteLicenses
+  site_licenses: SiteLicenses,
 ): { id: string; vm: DedicatedVM } | null {
   // if there is a dedicated_vm upgrade, pick the first one
   for (const [id, val] of Object.entries(site_licenses)) {
@@ -473,7 +476,7 @@ export function licenseToGroupKey(val: QuotaSetting): string {
 // * disks: orthogonal to VMs, more than one per project is possible
 function selectMatchingLicenses(
   site_licenses: SiteLicenses,
-  filterGroup?: string
+  filterGroup?: string,
 ):
   | {
       groupKey: string;
@@ -538,9 +541,20 @@ function extract_patches(site_licenses: SiteLicenses): Patch {
   return patch;
 }
 
+function extract_gpu(site_licenses: SiteLicenses): QuotaOnPrem["gpu"] {
+  let gpu: QuotaOnPrem["gpu"] = false;
+  for (const val of Object.values(site_licenses)) {
+    if (val == null) continue;
+    if (isSiteLicenseQuotaSetting(val) && val.quota.gpu != null) {
+      gpu = val.quota.gpu;
+    }
+  }
+  return gpu;
+}
+
 function selectSiteLicenses(
   site_licenses: SiteLicenses,
-  reasons?: Reasons
+  reasons?: Reasons,
 ): {
   site_licenses: SiteLicenses;
   dedicated_disks?: DedicatedDisk[];
@@ -548,11 +562,13 @@ function selectSiteLicenses(
   dedicated_vm_license?: QuotaSetting;
   ext_rw: boolean;
   patch: Patch;
+  gpu: QuotaOnPrem["gpu"];
 } {
   // this "extracts" all dedicated disk upgrades from the site_licenses map
   const dedicated_disks = select_dedicated_disks(site_licenses);
   const ext_rw = extract_ext_rw(site_licenses);
   const patch = extract_patches(site_licenses);
+  const gpu = extract_gpu(site_licenses);
   // and here we extract the dedicated VM quota
   const dedicated_vm = select_dedicated_vm(site_licenses);
   // if there is a dedicated VM, we ignore all site licenses.
@@ -577,6 +593,7 @@ function selectSiteLicenses(
       dedicated_vm_license: site_licenses[id],
       ext_rw,
       patch,
+      gpu,
     };
   }
 
@@ -601,14 +618,14 @@ function selectSiteLicenses(
     });
   }
 
-  return { site_licenses: all, dedicated_disks, ext_rw, patch };
+  return { site_licenses: all, dedicated_disks, ext_rw, patch, gpu };
 }
 
 // idle_timeouts aren't added up. All are assumed to have the *same* idle_timeout
 // so we just take the first one. @see selectSiteLicense.
 // the basic unit is seconds!
 function calcSiteLicenseQuotaIdleTimeout(
-  site_licenses?: SiteLicenseQuotaSetting[]
+  site_licenses?: SiteLicenseQuotaSetting[],
 ): number {
   if (site_licenses == null || site_licenses.length === 0) return 0;
   const sl = site_licenses[0];
@@ -640,6 +657,7 @@ function upgrade2quota(up: Partial<Upgrades>): RQuota {
     ext_rw: false,
     pay_as_you_go: null,
     patch: [],
+    gpu: false,
   };
 }
 
@@ -661,6 +679,7 @@ function license2quota(q: Partial<SiteLicenseQuota>): RQuota {
     pay_as_you_go: null,
     ext_rw: !!q.ext_rw,
     patch: q.patch ? loadPatch(q.patch) : [],
+    gpu: q.gpu ?? false,
   };
 }
 
@@ -707,7 +726,7 @@ function max_quotas(q1: RQuota, q2: RQuota): RQuota {
 // still, max upgrades cap those hardcoded minimums
 function ensure_minimum<T extends Quota | RQuota>(
   quota: T,
-  max_upgrades?: RQuota
+  max_upgrades?: RQuota,
 ): T {
   // ensure minimum cpu are met
   cap_lower_bound(quota, "cpu_request", MIN_POSSIBLE_CPU, max_upgrades);
@@ -726,13 +745,13 @@ function ensure_minimum<T extends Quota | RQuota>(
 function calc_oc(
   quota: RQuota,
   site_settings?: SiteSettingsQuotas,
-  max_upgrades?: RQuota
+  max_upgrades?: RQuota,
 ) {
   function ocfun(
     quota,
     ratio,
     limit: "cpu_limit" | "memory_limit",
-    request: "memory_request" | "cpu_request"
+    request: "memory_request" | "cpu_request",
   ): void {
     ratio = sanitize_overcommit(ratio);
     if (ratio != null) {
@@ -807,28 +826,28 @@ function quota_v2(opts: OptsV2): Quota {
   const users_sum = sum_quotas(
     ...Object.values(users)
       .filter((v: { upgrades?: Upgrades }) => v?.upgrades != null)
-      .map((v: { upgrades: Upgrades }) => upgrade2quota(v.upgrades))
+      .map((v: { upgrades: Upgrades }) => upgrade2quota(v.upgrades)),
   );
 
   // v1 of licenses, encoding upgrades directly
   const license_upgrades_sum = sum_quotas(
-    ...Object.values(site_licenses).filter(isSettingsQuota).map(upgrade2quota)
+    ...Object.values(site_licenses).filter(isSettingsQuota).map(upgrade2quota),
   );
 
   // those site licenses, which have a {quota : ...} set
   const site_license_quota_settings = Object.values(site_licenses).filter(
-    isSiteLicenseQuotaSetting
+    isSiteLicenseQuotaSetting,
   );
 
   // v2 of licenses, indirectly via {quota: {…}} objects, introducing yet another schema.
   const license_quota_sum = sum_quotas(
     ...site_license_quota_settings.map((l: SiteLicenseQuotaSetting) =>
-      license2quota(l.quota)
-    )
+      license2quota(l.quota),
+    ),
   );
 
   license_quota_sum.idle_timeout = calcSiteLicenseQuotaIdleTimeout(
-    site_license_quota_settings
+    site_license_quota_settings,
   );
 
   // the main idea is old upgrades and licenses quotas only complement each other – not add up.
@@ -845,15 +864,15 @@ function quota_v2(opts: OptsV2): Quota {
               quota,
               contribs: sum_quotas(users_sum, license_upgrades_sum),
               max_upgrades,
-            })
+            }),
           ),
-          min_quotas(license_quota_sum, max_upgrades)
+          min_quotas(license_quota_sum, max_upgrades),
         ),
         site_settings,
-        max_upgrades
-      )
+        max_upgrades,
+      ),
     ),
-    max_upgrades
+    max_upgrades,
   );
 }
 
@@ -881,14 +900,14 @@ export function quota(
     quota: PayAsYouGoQuota;
     account_id: string;
     purchase_id: number;
-  }
+  },
 ): Quota {
   const { quota } = quota_with_reasons(
     settings_arg,
     users_arg,
     site_licenses,
     site_settings,
-    pay_as_you_go
+    pay_as_you_go,
   );
   return quota;
 }
@@ -902,7 +921,7 @@ export function quota_with_reasons(
     quota: PayAsYouGoQuota;
     account_id: string;
     purchase_id: number;
-  }
+  },
 ): { quota: Quota; reasons: { [key: string]: string } } {
   // as a precaution (and also since we indeed ARE modifying licenses) we make deep copies of all arguments.
   // tests to catch this are in postgres/site-license/hook.test.ts
@@ -917,11 +936,11 @@ export function quota_with_reasons(
   }
   // we want to make sure the arguments can't be modified
   const settings: Readonly<Settings> = Object.freeze(
-    settings_arg == null ? {} : settings_arg
+    settings_arg == null ? {} : settings_arg,
   );
 
   const users: Readonly<Users> = Object.freeze(
-    users_arg == null ? {} : users_arg
+    users_arg == null ? {} : users_arg,
   );
 
   site_settings = Object.freeze(site_settings);
@@ -951,6 +970,7 @@ export function quota_with_reasons(
     dedicated_vm_license = null,
     ext_rw = false,
     patch = [],
+    gpu = false,
   } = selectSiteLicenses(site_licenses, reasons);
 
   site_licenses = Object.freeze(site_licenses_selected);
@@ -962,7 +982,7 @@ export function quota_with_reasons(
       member_host: true,
     };
     if (dedicated_vm.machine === DEDICATED_VM_ONPREM_MACHINE) {
-      // for cocalc cloud, quotas are taken from that license (and only that license)
+      // for cocalc onprem, quotas are taken from that license (and only that license)
       if (isSiteLicenseQuotaSetting(dedicated_vm_license)) {
         const dvlq = dedicated_vm_license.quota;
         Object.assign(dedicated_quota, {
@@ -1012,7 +1032,7 @@ export function quota_with_reasons(
     quota = op_quotas(
       quota as RQuota,
       upgrade2quota(pay_as_you_go.quota),
-      "max"
+      "max",
     );
   }
 
@@ -1028,6 +1048,7 @@ export function quota_with_reasons(
   total_quota.dedicated_disks = dedicated_disks;
   if (ext_rw === true) total_quota.ext_rw = true;
   if (patch.length > 0) total_quota.patch = patch;
+  if (typeof gpu === "object") total_quota.gpu = gpu;
 
   if (pay_as_you_go != null) {
     // do this after any other processing or it would just go away, e.g., when min'ing with max's
@@ -1040,18 +1061,21 @@ export function quota_with_reasons(
 // Compute the contribution to quota coming from the quota field of the site licenses.
 // This is max'd with the quota computed using settings, the rest of the licenses, etc.
 // The given licenses might be a subset of all, because e.g. it's sort of cheating
-// to combine memory upgades of member hosting with preempt hosting, or add a small
+// to combine memory upgrades of member hosting with preempt hosting, or add a small
 // always_running license on top of a cheaper but larger member hosting license.
 // @see select_site_licenses
 //
 // this is only used by webapp, not this quota function, and also not tested
 export function site_license_quota(
   site_licenses: SiteLicenses,
-  max_upgrades_param?: Upgrades
+  max_upgrades_param?: Upgrades,
 ): Quota {
   // we filter here as well, b/c this function is used elsewhere
-  const { site_licenses: site_licenses_selected, dedicated_vm = false } =
-    selectSiteLicenses(site_licenses);
+  const {
+    site_licenses: site_licenses_selected,
+    dedicated_vm = false,
+    gpu = false,
+  } = selectSiteLicenses(site_licenses);
   site_licenses = Object.freeze(site_licenses_selected);
   // a fallback, should take site settings into account here as well
   const max_upgrades: Upgrades = max_upgrades_param ?? MAX_UPGRADES;
@@ -1071,6 +1095,7 @@ export function site_license_quota(
     dedicated_vm: false,
     dedicated_disks: [],
     pay_as_you_go: null,
+    gpu: false,
   };
 
   for (const license of Object.values(site_licenses)) {
@@ -1113,10 +1138,14 @@ export function site_license_quota(
   // remember: this function is for the front-end
   // if there is a dedicated VM, all other licenses are ignored and we set some quotas
   // to avoid warnings and the red banner, that's all.
-  if (dedicated_vm != null) {
+  if (dedicated_vm) {
     total_quota.dedicated_vm = dedicated_vm;
     total_quota.member_host = true;
     total_quota.network = true;
+  }
+
+  if (typeof gpu === "object") {
+    total_quota.gpu = gpu;
   }
 
   const ret = limit_quota(total_quota, max_upgrades);
@@ -1147,6 +1176,7 @@ const IGNORED_KEYS = [
   "dedicated_vm",
   "patch",
   "pay_as_you_go",
+  "gpu",
 ] as const;
 
 function limit_quota(total_quota: RQuota, max_upgrades: Upgrades): Quota {
@@ -1170,7 +1200,7 @@ function cap_lower_bound(
   quota: Quota,
   name: keyof Quota,
   MIN_SPEC,
-  max_upgrades?: RQuota
+  max_upgrades?: RQuota,
 ): void {
   const val = quota[name];
   if (typeof val === "number") {

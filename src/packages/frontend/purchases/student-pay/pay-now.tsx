@@ -1,14 +1,21 @@
-import { Alert, Button, Divider, Modal, Spin } from "antd";
-import { useEffect, useState } from "react";
+import { Alert, Button, Divider, Modal, Space, Spin } from "antd";
+import { useEffect, useRef, useState } from "react";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import dayjs from "dayjs";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { zIndexPayAsGo } from "../zindex";
 import Cost, { getCost } from "./cost";
 import { isPurchaseAllowed, studentPay } from "../api";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { redux } from "@cocalc/frontend/app-framework";
 import PayLink from "./pay-link";
+import Transfer from "./transfer";
+import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
+import type { LineItem } from "@cocalc/util/stripe/types";
+import { currency } from "@cocalc/util/misc";
+import { decimalSubtract } from "@cocalc/util/stripe/calc";
+import Payments from "@cocalc/frontend/purchases/payments";
+import { STUDENT_PAY } from "@cocalc/util/db-schema/purchases";
+import ShowError from "@cocalc/frontend/components/error";
 
 interface Props {
   when: dayjs.Dayjs;
@@ -25,27 +32,39 @@ export default function PayNow({
   open,
   setOpen,
 }: Props) {
-  const [purchasing, setPurchasing] = useState<boolean>(false);
-  const [allowed, setAllowed] = useState<boolean | null>(null);
   const [reason, setReason] = useState<string | undefined | null>(null);
   const [error, setError] = useState<string>("");
-  const update = async (addBalance = false) => {
+  const [lineItems, setLineItems] = useState<LineItem[] | null>(null);
+  const [place, setPlace] = useState<"checkout" | "processing" | "congrats">(
+    "checkout",
+  );
+  const [disabled, setDisabled] = useState<boolean>(false);
+  const numPaymentsRef = useRef<number | null>(null);
+
+  const update = async () => {
     const cost = getCost(purchaseInfo);
     try {
-      let { allowed, reason } = await isPurchaseAllowed("license", cost);
-      if (open && addBalance) {
-        if (!allowed) {
-          await webapp_client.purchases_client.quotaModal({
-            service: "license",
-            reason,
-            allowed,
-            cost,
-          });
-        }
-        ({ allowed, reason } = await isPurchaseAllowed("license", cost));
+      const { chargeAmount = 0 } = await isPurchaseAllowed("license", cost);
+      const lineItems: LineItem[] = [
+        {
+          description: `Course fee for project "${redux.getStore("projects").get_title(project_id)}"`,
+          amount: cost,
+        },
+      ];
+      if (chargeAmount < cost) {
+        lineItems.push({
+          description: "Apply account balance toward course fee.",
+          amount: -decimalSubtract(cost, chargeAmount),
+        });
       }
-      setAllowed(allowed);
-      setReason(reason);
+      setLineItems(lineItems);
+      if (cost < chargeAmount) {
+        setReason(
+          `NOTE: There is a minimum charge of ${currency(chargeAmount)}.`,
+        );
+      } else {
+        setReason(null);
+      }
     } catch (err) {
       setError(`${err}`);
     }
@@ -53,87 +72,98 @@ export default function PayNow({
   useEffect(() => {
     update();
   }, [purchaseInfo]);
-  const completePurchase = async () => {
-    try {
-      setPurchasing(true);
-      await studentPay(project_id);
-    } catch (err) {
-      setError(`${err}`);
-    } finally {
-      setPurchasing(false);
-    }
-  };
 
   return (
     <Modal
       closable={setOpen != null}
       open={open}
       zIndex={zIndexPayAsGo - 1}
-      destroyOnClose
+      width={800}
+      destroyOnHidden
       footer={null}
       onOk={() => setOpen?.(false)}
       onCancel={() => setOpen?.(false)}
       title={
         <>
-          <Icon name="credit-card" style={{ marginRight: "10px" }} /> Pay the
-          course fee to upgrade this project
+          <Icon name="credit-card" style={{ marginRight: "10px" }} />
+          Pay the course fee to access this project
         </>
       }
     >
-      {error && (
-        <Alert
-          closable
-          type="error"
-          message={error}
-          onClose={() => setError("")}
-        />
-      )}
+      <ShowError error={error} setError={setError} />
       Due: <TimeAgo date={when} />
       <div style={{ textAlign: "center", fontSize: "15pt" }}>
-        <Cost purchaseInfo={purchaseInfo} />
+        Course Fee: <Cost purchaseInfo={purchaseInfo} />
       </div>
       <Divider />
-      {allowed == null && <Spin />}
-      {allowed != null && (
+      {place == "processing" && (
+        <div>
+          When all open payments below are processed, you will be able to access
+          your course project.
+          <Payments
+            purpose={STUDENT_PAY}
+            numPaymentsRef={numPaymentsRef}
+            limit={5}
+          />
+        </div>
+      )}
+      {place == "checkout" && lineItems == null && <Spin />}
+      {place == "checkout" && lineItems != null && (
         <>
           <div style={{ textAlign: "center" }}>
-            {allowed && (
-              <div>
-                <Button
-                  disabled={purchasing}
-                  size="large"
-                  type="primary"
-                  onClick={completePurchase}
-                >
-                  Complete Purchase... {purchasing && <Spin />}
-                </Button>
-                <Alert
-                  showIcon
-                  style={{ marginTop: "15px " }}
-                  type="success"
-                  message="You have enough credit to complete this purchase."
-                />
-              </div>
-            )}
-            {!allowed && (
-              <Button size="large" onClick={() => update(true)} type="primary">
-                <Icon name="credit-card" /> Add Credit to Your Account...
-              </Button>
-            )}
+            <StripePayment
+              disabled={disabled}
+              lineItems={lineItems}
+              description={`Course fee for project "${redux.getStore("projects").get_title(project_id)}"`}
+              purpose={STUDENT_PAY}
+              metadata={{ project_id }}
+              onFinished={async (total) => {
+                if (!total) {
+                  // user is paying entirely using their credit on file, so we need to get
+                  // the purchase to happen via the API. Otherwise, they paid and metadata
+                  // got setup so when that payment intent is processed, their item gets
+                  // allocated.
+                  try {
+                    setError("");
+                    setDisabled(true);
+                    await studentPay(project_id);
+                  } catch (err) {
+                    setError(`${err}`);
+                    return;
+                  } finally {
+                    setDisabled(false);
+                  }
+                  setPlace("congrats");
+                  return;
+                }
+                setPlace("processing");
+              }}
+            />
           </div>
-          {!allowed && reason && (
+          {reason && (
             <Alert
               style={{ marginTop: "15px" }}
               type="warning"
               showIcon
-              message="Add Credit"
               description={reason}
             />
           )}
         </>
       )}
-      <hr />
-      <div style={{ float: "right" }}>
+      {/* Show this just in case the user started to pay with a slow/bad method, then
+          refreshed their browser and then tried to pay agian.  They will clearly see
+          the pending student payment. */}
+      {place != "processing" && (
+        <Payments
+          purpose={STUDENT_PAY}
+          numPaymentsRef={numPaymentsRef}
+          limit={5}
+        />
+      )}
+      <Divider>Other Options</Divider>
+      <Space direction="vertical">
+        <PayLink project_id={project_id} />
+        <Transfer project_id={project_id} />
         <Button
           onClick={() => {
             const actions = redux.getActions("page");
@@ -144,8 +174,7 @@ export default function PayNow({
         >
           Close Project
         </Button>
-      </div>
-      <PayLink project_id={project_id} />
+      </Space>
     </Modal>
   );
 }

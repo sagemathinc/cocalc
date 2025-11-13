@@ -1,38 +1,56 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Checkbox, Input } from "antd";
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { Alert, Button, Checkbox, Divider, Input } from "antd";
+import { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import {
   GoogleReCaptchaProvider,
   useGoogleReCaptcha,
 } from "react-google-recaptcha-v3";
+import { debounce } from "lodash";
+
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import {
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  MIN_PASSWORD_STRENGTH,
+} from "@cocalc/util/auth";
+import {
+  CONTACT_TAG,
+  CONTACT_THESE_TAGS,
+} from "@cocalc/util/db-schema/accounts";
+import {
   is_valid_email_address as isValidEmailAddress,
   len,
+  plural,
+  smallIntegerToEnglishWord,
 } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { Strategy } from "@cocalc/util/types/sso";
+import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
-import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 import AuthPageContainer from "./fragments/auth-page-container";
+import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
+import Tags from "./tags";
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
 
 interface SignUpProps {
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
   requiresToken?: boolean; // will be determined by API call if not given.
-  onSuccess?: (opts?: {}) => void; // if given, call after sign up *succeeds*.
+  onSuccess?: () => void; // if given, call after sign up *succeeds*.
   has_site_license?: boolean;
   publicPathId?: string;
   showSignIn?: boolean;
   signInAction?: () => void; // if given, replaces the default sign-in link behavior.
+  requireTags: boolean;
 }
 
 export default function SignUp(props: SignUpProps) {
@@ -58,6 +76,7 @@ function SignUp0({
   publicPathId,
   signInAction,
   showSignIn,
+  requireTags,
 }: SignUpProps) {
   const {
     anonymousSignup,
@@ -66,13 +85,21 @@ function SignUp0({
     emailSignup,
     accountCreationInstructions,
     reCaptchaKey,
+    onCoCalcCom,
   } = useCustomize();
+  const [tags, setTags] = useState<Set<string>>(new Set());
+  const [signupReason, setSignupReason] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [registrationToken, setRegistrationToken] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
   const [signingUp, setSigningUp] = useState<boolean>(false);
+  const [passwordStrength, setPasswordStrength] = useState<{
+    score: number;
+    help?: string;
+  }>({ score: 0 });
+  const [checkingPassword, setCheckingPassword] = useState<boolean>(false);
   const [issues, setIssues] = useState<{
     email?: string;
     password?: string;
@@ -81,9 +108,13 @@ function SignUp0({
     reCaptcha?: string;
   }>({});
 
+  const minTags = requireTags ? 1 : 0;
+  const showContact = CONTACT_THESE_TAGS.some((t) => tags.has(t));
+  const requestContact = tags.has(CONTACT_TAG) && showContact;
+
   const submittable = useRef<boolean>(false);
   const { executeRecaptcha } = useGoogleReCaptcha();
-  const { strategies } = useCustomize();
+  const { strategies, supportVideoCall } = useCustomize();
 
   // Sometimes the user if this component knows requiresToken and sometimes they don't.
   // If they don't, we have to make an API call to figure it out.
@@ -101,6 +132,23 @@ function SignUp0({
     }
   }, []);
 
+  // Debounced password strength checking with reuse-in-flight protection
+  const debouncedCheckPassword = useCallback(
+    debounce((password: string) => {
+      checkPasswordStrengthReuseInFlight(password);
+    }, 100),
+    [],
+  );
+
+  useEffect(() => {
+    if (!password) {
+      setPasswordStrength({ score: 0 });
+      return;
+    }
+
+    debouncedCheckPassword(password);
+  }, [password, debouncedCheckPassword]);
+
   // based on email: if user has to sign up via SSO, this will tell which strategy to use.
   const requiredSSO = useRequiredSSO(strategies, email);
 
@@ -108,14 +156,22 @@ function SignUp0({
     return <Loading />;
   }
 
+  // number of tags except for the one name "CONTACT_TAG"
+  const tagsSize = tags.size - (requestContact ? 1 : 0);
+  const needsTags = !minimal && onCoCalcCom && tagsSize < minTags;
+  const what = "role";
+
   submittable.current = !!(
     requiredSSO == null &&
     (!requiresToken2 || registrationToken) &&
     email &&
     isValidEmailAddress(email) &&
     password &&
+    password.length >= MIN_PASSWORD_LENGTH &&
+    passwordStrength.score > MIN_PASSWORD_STRENGTH &&
     firstName?.trim() &&
-    lastName?.trim()
+    lastName?.trim() &&
+    !needsTags
   );
 
   async function signUp() {
@@ -141,11 +197,13 @@ function SignUp0({
         registrationToken,
         reCaptchaToken,
         publicPathId,
+        tags: Array.from(tags),
+        signupReason,
       });
       if (result.issues && len(result.issues) > 0) {
         setIssues(result.issues);
       } else {
-        onSuccess?.({});
+        onSuccess?.();
       }
     } catch (err) {
       setIssues({ error: `${err}` });
@@ -153,6 +211,31 @@ function SignUp0({
       setSigningUp(false);
     }
   }
+
+  async function checkPasswordStrength(password: string) {
+    if (!password || password.length < MIN_PASSWORD_LENGTH) {
+      setPasswordStrength({ score: 0 });
+      return;
+    }
+
+    setCheckingPassword(true);
+    try {
+      const result = await apiPost("/auth/password-strength", { password });
+      setPasswordStrength(result);
+    } catch (err) {
+      // If the API fails, fall back to basic length check
+      setPasswordStrength({
+        score: password.length >= MIN_PASSWORD_LENGTH ? 1 : 0,
+      });
+    } finally {
+      setCheckingPassword(false);
+    }
+  }
+
+  // Wrap the function to prevent concurrent calls
+  const checkPasswordStrengthReuseInFlight = reuseInFlight(
+    checkPasswordStrength,
+  );
 
   if (!emailSignup && strategies.length == 0) {
     return (
@@ -184,38 +267,50 @@ function SignUp0({
   }
 
   function renderFooter() {
-    return (!minimal || showSignIn) && (
-      <>
-        <div>
-          Already have an account? {
-            signInAction
-              ? <a onClick={signInAction}>Sign In</a>
-              : <A href="/auth/sign-in">Sign In</A>
-          } {anonymousSignup && (
-            <>
-              or <A href="/auth/try"> try {siteName} without creating an account. </A>
-            </>
-          )}
-        </div>
-      </>
+    return (
+      (!minimal || showSignIn) && (
+        <>
+          <div>
+            Already have an account?{" "}
+            {signInAction ? (
+              <a onClick={signInAction}>Sign In</a>
+            ) : (
+              <A href="/auth/sign-in">Sign In</A>
+            )}{" "}
+            {anonymousSignup && (
+              <>
+                or{" "}
+                <A href="/auth/try">
+                  {" "}
+                  try {siteName} without creating an account.{" "}
+                </A>
+              </>
+            )}
+          </div>
+        </>
+      )
     );
   }
 
   function renderError() {
-    return issues.error && (
-      <Alert style={LINE} type="error" showIcon message={issues.error}/>
+    return (
+      issues.error && (
+        <Alert style={LINE} type="error" showIcon message={issues.error} />
+      )
     );
   }
 
   function renderSubtitle() {
-    return <>
-      <h4 style={{ color: "#666", marginBottom: "35px" }}>
-        Start collaborating for free today.
-      </h4>
-      {accountCreationInstructions && (
-        <Markdown value={accountCreationInstructions}/>
-      )}
-    </>;
+    return (
+      <>
+        <h4 style={{ color: COLORS.GRAY_M, marginBottom: "35px" }}>
+          Start collaborating for free today.
+        </h4>
+        {accountCreationInstructions && (
+          <Markdown value={accountCreationInstructions} />
+        )}
+      </>
+    );
   }
 
   return (
@@ -226,15 +321,36 @@ function SignUp0({
       minimal={minimal}
       title={`Create a free account with ${siteName}`}
     >
-      <div>
+      <Paragraph>
         By creating an account, you agree to the{" "}
         <A external={true} href="/policies/terms">
           Terms of Service
         </A>
         .
-      </div>
+      </Paragraph>
+      {onCoCalcCom && supportVideoCall ? (
+        <Paragraph>
+          Do you need more information how {siteName} can be useful for you?{" "}
+          <A href={supportVideoCall}>Book a video call</A> and we'll help you
+          decide.
+        </Paragraph>
+      ) : undefined}
+      <Divider />
+      {!minimal && onCoCalcCom ? (
+        <Tags
+          setTags={setTags}
+          signupReason={signupReason}
+          setSignupReason={setSignupReason}
+          tags={tags}
+          minTags={minTags}
+          what={what}
+          style={{ width: "880px", maxWidth: "100%", marginTop: "20px" }}
+          contact={showContact}
+          warning={needsTags}
+        />
+      ) : undefined}
       <form>
-        {issues.reCaptcha && (
+        {issues.reCaptcha ? (
           <Alert
             style={LINE}
             type="error"
@@ -242,8 +358,7 @@ function SignUp0({
             message={issues.reCaptcha}
             description={<>You may have to contact the site administrator.</>}
           />
-        )}
-
+        ) : undefined}
         {issues.registrationToken && (
           <Alert
             style={LINE}
@@ -276,7 +391,7 @@ function SignUp0({
           strategies={strategies}
           hideSSO={requiredSSO != null}
         />
-        <RequiredSSO strategy={requiredSSO}/>
+        <RequiredSSO strategy={requiredSSO} />
         {issues.email && (
           <Alert
             style={LINE}
@@ -302,11 +417,21 @@ function SignUp0({
               autoComplete="new-password"
               onChange={(e) => setPassword(e.target.value)}
               onPressEnter={signUp}
+              maxLength={MAX_PASSWORD_LENGTH}
             />
+            {password && password.length >= MIN_PASSWORD_LENGTH && (
+              <div style={{ marginTop: "8px" }}>
+                <PasswordStrengthIndicator
+                  score={passwordStrength.score}
+                  help={passwordStrength.help}
+                  checking={checkingPassword}
+                />
+              </div>
+            )}
           </div>
         )}
         {issues.password && (
-          <Alert style={LINE} type="error" showIcon message={issues.email}/>
+          <Alert style={LINE} type="error" showIcon message={issues.password} />
         )}
         {requiredSSO == null && (
           <div style={LINE}>
@@ -339,26 +464,42 @@ function SignUp0({
           size="large"
           disabled={!submittable.current || signingUp}
           type="primary"
-          style={{ width: "100%", marginTop: "15px" }}
+          style={{
+            width: "100%",
+            marginTop: "15px",
+            color:
+              !submittable.current || signingUp
+                ? COLORS.ANTD_RED_WARN
+                : undefined,
+          }}
           onClick={signUp}
         >
-          {requiresToken2 && !registrationToken
+          {needsTags && tagsSize < minTags
+            ? `Select at least ${smallIntegerToEnglishWord(minTags)} ${plural(
+                minTags,
+                what,
+              )}`
+            : requiresToken2 && !registrationToken
             ? "Enter the secret registration token"
             : !email
-              ? "How will you sign in?"
-              : requiredSSO != null
-                ? "You must sign up via SSO"
-                : !password || password.length < 6
-                  ? "Choose password with at least 6 characters"
-                  : !firstName?.trim()
-                    ? "Enter your first name above"
-                    : !lastName?.trim()
-                      ? "Enter your last name above"
-                      : !isValidEmailAddress(email)
-                        ? "Enter a valid email address above"
-                        : signingUp
-                          ? ""
-                          : "Sign Up!"}
+            ? "How will you sign in?"
+            : !isValidEmailAddress(email)
+            ? "Enter a valid email address above"
+            : requiredSSO != null
+            ? "You must sign up via SSO"
+            : !password || password.length < MIN_PASSWORD_LENGTH
+            ? `Choose password with at least ${MIN_PASSWORD_LENGTH} characters`
+            : password &&
+              password.length >= MIN_PASSWORD_LENGTH &&
+              passwordStrength.score <= MIN_PASSWORD_STRENGTH
+            ? "Make your password more complex"
+            : !firstName?.trim()
+            ? "Enter your first name above"
+            : !lastName?.trim()
+            ? "Enter your last name above"
+            : signingUp
+            ? ""
+            : "Sign Up!"}
           {signingUp && (
             <span style={{ marginLeft: "15px" }}>
               <Loading>Signing Up...</Loading>
@@ -415,8 +556,9 @@ function EmailOrSSO(props: EmailOrSSOProps) {
         </p>
       </div>
       {renderSSO()}
-      {emailSignup && (
+      {emailSignup ? (
         <p>
+          <p>Email address</p>
           <Input
             style={{ fontSize: "12pt" }}
             placeholder="Email address"
@@ -426,7 +568,7 @@ function EmailOrSSO(props: EmailOrSSOProps) {
             onPressEnter={signUp}
           />
         </p>
-      )}
+      ) : undefined}
     </div>
   );
 }
@@ -452,5 +594,117 @@ export function TermsCheckbox({
       </A>
       .
     </Checkbox>
+  );
+}
+
+interface PasswordStrengthIndicatorProps {
+  score: number;
+  help?: string;
+  checking: boolean;
+}
+
+function PasswordStrengthIndicator({
+  score,
+  help,
+  checking,
+}: PasswordStrengthIndicatorProps) {
+  if (checking) {
+    return (
+      <div style={{ fontSize: "12px", color: COLORS.GRAY_M }}>
+        Checking password strength...
+      </div>
+    );
+  }
+
+  const getStrengthColor = (score: number): string => {
+    switch (score) {
+      case 0:
+      case 1:
+        return COLORS.ANTD_RED_WARN;
+      case 2:
+        return COLORS.ORANGE_WARN;
+      case 3:
+        return COLORS.ANTD_YELL_M;
+      case 4:
+        return COLORS.BS_GREEN;
+      default:
+        return COLORS.GRAY_M;
+    }
+  };
+
+  const getStrengthLabel = (score: number): string => {
+    switch (score) {
+      case 0:
+        return "Very weak";
+      case 1:
+        return "Weak";
+      case 2:
+        return "Fair";
+      case 3:
+        return "Good";
+      case 4:
+        return "Strong";
+      default:
+        return "Unknown";
+    }
+  };
+
+  const getStrengthWidth = (score: number): string => {
+    return `${Math.max(10, (score + 1) * 20)}%`;
+  };
+
+  return (
+    <div style={{ fontSize: "12px" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          marginBottom: "4px",
+        }}
+      >
+        <span style={{ marginRight: "8px", minWidth: "80px" }}>
+          Password strength:{" "}
+        </span>
+        <div
+          style={{
+            flex: 1,
+            height: "6px",
+            backgroundColor: COLORS.GRAY_LL,
+            borderRadius: "3px",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: getStrengthWidth(score),
+              backgroundColor: getStrengthColor(score),
+              transition: "width 0.3s ease, background-color 0.3s ease",
+            }}
+          />
+        </div>
+        <span
+          style={{
+            marginLeft: "8px",
+            color: getStrengthColor(score),
+            fontWeight: "500",
+            minWidth: "60px",
+          }}
+        >
+          {getStrengthLabel(score)}
+        </span>
+      </div>
+      {help && (
+        <div
+          style={{
+            color: COLORS.GRAY_D,
+            fontSize: "11px",
+            marginTop: "2px",
+          }}
+        >
+          {help}
+        </div>
+      )}
+    </div>
   );
 }

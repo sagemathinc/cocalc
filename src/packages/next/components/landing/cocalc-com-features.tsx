@@ -1,12 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button, Col, Grid, Row } from "antd";
 import { join } from "path";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
+
 import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
+import { DOC_AI } from "@cocalc/util/consts/ui";
 import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
 import DemoCell from "components/demo-cell";
@@ -35,6 +37,7 @@ export function CoCalcComFeatures() {
     sandboxProjectId,
     jupyterApiEnabled,
     shareServer = false,
+    onCoCalcCom,
   } = useCustomize();
   const width = Grid.useBreakpoint();
 
@@ -50,13 +53,18 @@ export function CoCalcComFeatures() {
     return (
       <Info
         level={LANDING_HEADER_LEVEL}
-        title="Collaborate using your favorite tools"
+        title="Realtime Collaboration Using Your Favorite Tools"
         icon="users"
         image={RTC}
         anchor="a-realtimesync"
         alt={"Two browser windows editing the same Jupyter notebook"}
         style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
         belowWide={true}
+        icons={[
+          { icon: "jupyter", link: "/features/jupyter-notebook" },
+          { icon: "tex", title: "LaTeX", link: "/features/latex-editor" },
+          { icon: "slides", title: "Whiteboard", link: "/features/whiteboard" },
+        ]}
       >
         <Paragraph>
           With {siteName}, you can easily collaborate with colleagues, students,
@@ -67,11 +75,16 @@ export function CoCalcComFeatures() {
           , <A href={"/features/latex-editor"}>LaTeX files</A>,{" "}
           <A href="/features/sage">SageMath Worksheets</A>,{" "}
           <A href={"/features/whiteboard"}>Computational Whiteboards</A>, and
-          much more.
+          much more. We have an{" "}
+          <A href={"https://doc.cocalc.com/why.html#open-world-approach"}>
+            open world approach
+          </A>{" "}
+          giving users as much flexibility in choosing software and hardware as
+          possible.
         </Paragraph>
 
         <Paragraph>
-          Everyone's code runs in the same per-project environment, which
+          You and your collaborators use the same per-project environment, which
           provides consistent results, synchronized file changes, and automatic
           revision history so that you can go back in time when you need to
           discover what changed and when. {renderShareServer()}
@@ -96,6 +109,19 @@ export function CoCalcComFeatures() {
         anchor="a-teaching"
         alt={"Two browser windows editing the same Jupyter notebook"}
         style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
+        icons={[
+          {
+            icon: "users",
+            title: "Course Management",
+            link: "https://doc.cocalc.com/teaching-instructors.html",
+          },
+          {
+            icon: "graduation-cap",
+            title: "nbgrader",
+            link: "https://doc.cocalc.com/teaching-nbgrader.html",
+          },
+          { icon: "slides", title: "Slides", link: "/features/whiteboard" },
+        ]}
       >
         <Paragraph>
           You can think of {siteName} as{" "}
@@ -108,7 +134,7 @@ export function CoCalcComFeatures() {
           to deal with multiple versions of the same file. There is even support
           for{" "}
           <A href={"https://doc.cocalc.com/teaching-nbgrader.html"}>
-            automated grading via NBGrader
+            automated grading via nbgrader
           </A>
           .
         </Paragraph>
@@ -207,7 +233,7 @@ export function CoCalcComFeatures() {
     return (
       <Info
         level={LANDING_HEADER_LEVEL}
-        title="And much more …"
+        title="Much More …"
         icon="wrench"
         anchor="more"
         style={{ backgroundColor: COLORS.YELL_LLL }}
@@ -436,10 +462,7 @@ export function CoCalcComFeatures() {
             >
               <Paragraph style={{ color: txtCol }}>
                 It is very easy to run {siteName} on your own computer or
-                cluster.
-              </Paragraph>
-              <Paragraph style={{ color: txtCol }}>
-                There are three options available:
+                cluster. The available options are:
                 <ol>
                   <li>
                     Make your computer available in a {siteName} project via an{" "}
@@ -452,23 +475,10 @@ export function CoCalcComFeatures() {
                     .
                   </li>
                   <li>
-                    Run your own {siteName} server easily via{" "}
-                    <A
-                      style={link}
-                      href="https://github.com/sagemathinc/cocalc-docker#readme"
-                    >
-                      <strong>cocalc-docker</strong>
-                    </A>{" "}
-                    for a small group.
-                  </li>
-                  <li>
                     Deploy a highly scalable variant of {siteName} on your{" "}
                     <strong>Kubernetes cluster</strong> via{" "}
-                    <A
-                      style={link}
-                      href="https://doc.cocalc.com/cocalc-cloud.html"
-                    >
-                      <strong>cocalc-cloud</strong>
+                    <A style={link} href="https://onprem.cocalc.com/">
+                      <strong>CoCalc OnPrem</strong>
                     </A>
                     .
                   </li>
@@ -523,11 +533,11 @@ export function CoCalcComFeatures() {
   }
 
   function renderChatGPT() {
-    if (!openaiEnabled) return;
+    if (!openaiEnabled || !onCoCalcCom) return;
     return (
       <Info
         level={LANDING_HEADER_LEVEL}
-        title="Extensive ChatGPT Integration"
+        title="Extensive Generative AI Integration"
         icon="robot"
         imageComponent={<ChatGPTHelp size="large" tag={"index"} />}
         anchor="a-realtimesync"
@@ -535,12 +545,11 @@ export function CoCalcComFeatures() {
         style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
       >
         <Paragraph>
-          <A href={"https://doc.cocalc.com/chatgpt.html"}>ChatGPT</A> is highly
+          A wide range of{" "}
+          <A href={DOC_AI}>Generative AI Large Language Models</A> are highly
           integrated into {siteName}. This helps you{" "}
-          <A href={"https://doc.cocalc.com/chatgpt.html#jupyter-notebooks"}>
-            fix errors
-          </A>
-          , generate code or LaTeX snippets, summarize documents, and much more.
+          <A href={`${DOC_AI}#jupyter-notebooks`}>fix errors</A>, generate code
+          or LaTeX snippets, summarize documents, and much more.
         </Paragraph>
       </Info>
     );
@@ -558,6 +567,14 @@ export function CoCalcComFeatures() {
         anchor="a-realtimesync"
         alt={"Two browser windows editing the same Jupyter notebook"}
         style={{ backgroundColor: COLORS.YELL_LLL }}
+        icons={[
+          { icon: "julia", link: "/features/julia" },
+          { icon: "linux", link: "/features/linux" },
+          { icon: "python", link: "/features/python" },
+          { icon: "r", link: "/features/r-statistical-software" },
+          { icon: "sagemath", title: "SageMath", link: "/features/sage" },
+          { icon: "octave", link: "/features/octave" },
+        ]}
       >
         <Paragraph>
           {siteName} supports many{" "}
@@ -583,30 +600,5 @@ export function CoCalcComFeatures() {
       {renderTestimonials()}
       {renderAvailableProducts()}
     </>
-  );
-}
-
-export function Hero() {
-  return (
-    <Info.Heading
-      level={2}
-      textStyle={{ color: "white" }}
-      style={{
-        backgroundColor: COLORS.BLUE_D,
-        paddingBottom: "30px",
-        marginTop: "30px",
-        paddingTop: "30px",
-      }}
-    >
-      Realtime collaborative{" "}
-      <A href="/features/jupyter-notebook" style={{ color: "white" }}>
-        Jupyter notebooks
-      </A>
-      ,{" "}
-      <A href="/features/latex-editor" style={{ color: "white" }}>
-        LaTeX
-      </A>
-      , Markdown, and Linux with GPUs
-    </Info.Heading>
   );
 }

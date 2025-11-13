@@ -1,27 +1,26 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell: ignore descr prio dont
+
 // help users selecting a kernel
-import { IS_MOBILE } from "@cocalc/frontend/feature";
 import type { TabsProps } from "antd";
 import {
   Alert,
   Button,
   Card,
   Checkbox,
-  Col,
   Descriptions,
   Popover,
-  Row,
   Spin,
   Tabs,
+  Tooltip,
   Typography,
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
-import { useImages } from "@cocalc/frontend/compute/images-hook";
-
+import { FormattedMessage, useIntl } from "react-intl";
 import {
   CSS,
   React,
@@ -30,14 +29,19 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { useAppContext } from "@cocalc/frontend/app/context";
 import {
   A,
   Icon,
+  isIconName,
   Markdown,
   Paragraph,
   Text,
 } from "@cocalc/frontend/components";
+import { useImages } from "@cocalc/frontend/compute/images-hook";
 import { SiteName } from "@cocalc/frontend/customize";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { labels } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
 import { Kernel as KernelType } from "@cocalc/jupyter/util/misc";
 import * as misc from "@cocalc/util/misc";
@@ -69,8 +73,9 @@ interface KernelSelectorProps {
 }
 
 export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
-  (props: KernelSelectorProps) => {
-    const { actions } = props;
+  ({ actions }: KernelSelectorProps) => {
+    const intl = useIntl();
+
     const editor_settings = useTypedRedux("account", "editor_settings");
 
     const redux_kernel: undefined | string = useRedux([actions.name, "kernel"]);
@@ -137,9 +142,10 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       const priority: number = kernels_by_name
         ?.get(name)
         ?.getIn(["metadata", "cocalc", "priority"]) as number;
-      return (
+      const key = `kernel-${lang}-${name}`;
+      const btn = (
         <Button
-          key={`kernel-${lang}-${name}`}
+          key={key}
           onClick={() => {
             actions.select_kernel(name);
             track("jupyter", {
@@ -148,7 +154,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
               how: "click-button-in-dialog",
             });
           }}
-          style={{ marginBottom: "5px", height: "35px" }}
+          style={{ height: "35px" }}
         >
           <Logo
             kernel={name}
@@ -158,6 +164,15 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           {kernel_name(name) || name}
           <KernelStar priority={priority} />
         </Button>
+      );
+      const cocalc = kernels_by_name?.getIn([name, "metadata", "cocalc"]);
+      if (cocalc == null) {
+        return btn;
+      }
+      return (
+        <Tooltip key={key} color="white" title={render_suggested_link(cocalc)}>
+          {btn}
+        </Tooltip>
       );
     }
 
@@ -188,7 +203,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           const label = render_kernel_button(name);
 
           entries.push(
-            <Descriptions.Item key={lang} label={label}>
+            <Descriptions.Item key={`${name}-${lang}`} label={label}>
               <div>{render_suggested_link(cocalc)}</div>
             </Descriptions.Item>,
           );
@@ -340,12 +355,31 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
       return (
         <Descriptions bordered column={1} style={SELECTION_STYLE}>
-          <Descriptions.Item label={"Quick select"}>
-            <div>
-              Your most recently selected kernel {render_kernel_button(name)}
+          <Descriptions.Item
+            label={
+              <FormattedMessage
+                id="jupyter.select-kernel.quick-select.label"
+                defaultMessage={"Quick select"}
+              />
+            }
+          >
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <FormattedMessage
+                id="jupyter.select-kernel.quick-select.text"
+                defaultMessage={"Your most recently selected kernel"}
+                description={"Kernel in a Jupyter Notebook"}
+              />{" "}
+              <div style={{ width: "15px" }} /> {render_kernel_button(name)}
             </div>
           </Descriptions.Item>
-          <Descriptions.Item label={"Make default"}>
+          <Descriptions.Item
+            label={
+              <FormattedMessage
+                id="jupyter.select-kernel.make-default.label"
+                defaultMessage={"Make default"}
+              />
+            }
+          >
             <Checkbox
               checked={!ask_jupyter_kernel}
               onChange={(e) => {
@@ -356,12 +390,23 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
                 dont_ask_again_click(e.target.checked);
               }}
             >
-              Do not ask again. Instead, default to your most recent selection.
+              <FormattedMessage
+                id="jupyter.select-kernel.make-default.text"
+                defaultMessage={
+                  "Do not ask again. Instead, default to your most recent selection."
+                }
+                description={"Kernel in a Jupyter Notebook"}
+              />
             </Checkbox>
             <div>
               <Typography.Text type="secondary">
-                You can always change the kernel by clicking on the kernel
-                selector at the top right.
+                <FormattedMessage
+                  id="jupyter.select-kernel.make-default.info"
+                  defaultMessage={
+                    "You can always change the kernel by clicking on the kernel selector at the top right."
+                  }
+                  description={"Kernel in a Jupyter Notebook"}
+                />
               </Typography.Text>
             </div>
           </Descriptions.Item>
@@ -381,35 +426,72 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           msg = (
             <>
               Your notebook kernel <code>"{kernel}"</code> does not exist on{" "}
-              <SiteName />.
+              {actions.getComputeServerIdSync() ? (
+                "this compute server"
+              ) : (
+                <>
+                  the <SiteName /> Home Base environment
+                </>
+              )}
+              .
             </>
           );
         } else {
-          msg = <>This notebook has no kernel.</>;
+          msg = (
+            <FormattedMessage
+              id="jupyter.select-kernel.header.no-kernel"
+              defaultMessage={"This notebook has no kernel."}
+              description={"Kernel in a Jupyter Notebook"}
+            />
+          );
         }
         return (
           <Paragraph>
-            <Text strong>{msg}</Text> A working kernel is required in order to
-            evaluate the code in the notebook. Please select one for the
-            programming language you want to work with. Otherwise{" "}
-            <Button
-              size="small"
-              type={no_kernel ? "primary" : "default"}
-              onClick={() => actions.select_kernel("")}
-            >
-              continue without a kernel
-            </Button>
-            .
+            <Text strong>{msg}</Text>{" "}
+            <FormattedMessage
+              id="jupyter.select-kernel.header.no-kernel-explanation"
+              defaultMessage={
+                "A working kernel is required in order to evaluate the code in the notebook. Please select one for the programming language you want to work with. Otherwise <Button>continue without a kernel</Button>."
+              }
+              description={"Kernel in a Jupyter Notebook"}
+              values={{
+                Button: (ch) => (
+                  <Button
+                    size="small"
+                    type={no_kernel ? "primary" : "default"}
+                    onClick={() => actions.select_kernel("")}
+                  >
+                    {ch}
+                  </Button>
+                ),
+              }}
+            />
           </Paragraph>
         );
       } else {
         const name = kernel_name(kernel);
         const current =
-          name != null ? `The currently selected kernel is "${name}".` : "";
+          name != null
+            ? intl.formatMessage(
+                {
+                  id: "jupyter.select-kernel.header.current",
+                  defaultMessage: `The currently selected kernel is "{name}".`,
+                  description: "Kernel in a Jupyter Notebook",
+                },
+                { name },
+              )
+            : "";
 
         return (
           <Paragraph>
-            <Text strong>Select a new kernel.</Text> {current}
+            <Text strong>
+              <FormattedMessage
+                id="jupyter.select-kernel.header.message"
+                defaultMessage={"Select a new kernel."}
+                description={"Kernel in a Jupyter Notebook"}
+              />
+            </Text>{" "}
+            {current}
           </Paragraph>
         );
       }
@@ -424,7 +506,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
         <Descriptions
           bordered
           column={1}
-          style={{ backgroundColor: COLORS.ATND_BG_RED_M }}
+          style={{ backgroundColor: COLORS.ANTD_BG_RED_M }}
         >
           <Descriptions.Item label={"Unknown Kernel"}>
             A similar kernel might be {render_kernel_button(closestKernelName)}.
@@ -437,22 +519,38 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       return (
         <div style={{ color: COLORS.GRAY, paddingBottom: "2em" }}>
           <Paragraph>
-            <Text strong>Note:</Text> You can always change the selected kernel
-            later in the Kernel menu or by clicking on the kernel status logo in
-            the top right.
+            <FormattedMessage
+              id="jupyter.select_kernel.footer"
+              defaultMessage="<strong>Note:</strong> You can always change the selected kernel later in the Kernel menu or by clicking on the kernel status logo in the top left."
+              description="Jupyter kernel selector, bottom."
+              values={{
+                strong: (c) => <Text strong>{c}</Text>,
+              }}
+            />
           </Paragraph>
         </div>
       );
     }
 
-    function render_close_button(): Rendered | undefined {
+    function renderCloseButton(): Rendered | undefined {
       if (kernel == null || kernel_info == null) return;
       return (
         <Button
-          style={{ float: "right", marginTop: "10px" }}
+          style={{ marginRight: "5px" }}
           onClick={() => actions.hide_select_kernel()}
         >
           Close
+        </Button>
+      );
+    }
+
+    function renderRefreshButton(): Rendered | undefined {
+      if (kernel == null || kernel_info == null) return;
+      return (
+        <Button
+          onClick={() => actions.fetch_jupyter_kernels({ noCache: true })}
+        >
+          <Icon name="refresh" /> Refresh
         </Button>
       );
     }
@@ -478,12 +576,15 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
     function render_head(): Rendered {
       return (
-        <Row justify="space-between">
-          <Col flex={1}>
-            <h3>Select a Kernel</h3>
-          </Col>
-          <Col flex={"auto"}>{render_close_button()}</Col>
-        </Row>
+        <div>
+          <div
+            style={{ float: "right", display: "flex", alignItems: "center" }}
+          >
+            {renderCloseButton()}
+            {renderRefreshButton()}
+          </div>
+          <h3>{intl.formatMessage(labels.select_a_kernel)}</h3>
+        </div>
       );
     }
 
@@ -500,7 +601,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     if (IS_MOBILE) {
       /*
 NOTE: I tried viewing this on mobile and it is so HORRIBLE!
-Something about the CSS and Typography componnets are just truly
+Something about the CSS and Typography components are just truly
 a horrific disaster.  This one component though is maybe usable.
 */
       return (
@@ -511,7 +612,10 @@ a horrific disaster.  This one component though is maybe usable.
           }}
           className={"smc-vfill"}
         >
-          {render_close_button()}
+          <div style={{ float: "right" }}>
+            {renderCloseButton()}
+            {renderRefreshButton()}
+          </div>
           {render_select_all()}
         </div>
       );
@@ -535,6 +639,7 @@ a horrific disaster.  This one component though is maybe usable.
 );
 
 function ComputeServerInfo() {
+  const { formatIntl } = useAppContext();
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
   const [IMAGES, ImagesError] = useImages();
@@ -579,8 +684,13 @@ function ComputeServerInfo() {
 
     const label = (
       <div style={{ ...ALL_LANGS_LABEL_STYLE, textAlign: "center" }}>
-        <Icon name={image.icon} style={{ fontSize: "24pt" }} />
-        <br /> {image.label}
+        {isIconName(image.icon) && (
+          <>
+            <Icon name={image.icon} style={{ fontSize: "24pt" }} />
+            <br />
+          </>
+        )}{" "}
+        {image.label}
       </div>
     );
 
@@ -603,7 +713,7 @@ function ComputeServerInfo() {
         </Text>{" "}
         and configure this notebook to connect to one of its kernels. This is
         useful if you want to get access to a{" "}
-        <Text strong>GPU accellerator</Text>, run a kernel that is{" "}
+        <Text strong>GPU accelerator</Text>, run a kernel that is{" "}
         <Text strong>not available locally</Text>, or if you want to make use of{" "}
         <Text strong>a much more powerful machine</Text>.
       </Paragraph>
@@ -617,9 +727,9 @@ function ComputeServerInfo() {
         message={
           <>
             To get started, open the{" "}
-            <Button onClick={() => actions?.set_active_tab("servers")}>
+            <Button onClick={() => actions?.showComputeServers()}>
               <Icon name={FIXED_PROJECT_TABS.servers.icon} />{" "}
-              {FIXED_PROJECT_TABS.servers.label}
+              {formatIntl(FIXED_PROJECT_TABS.servers.label)}
             </Button>{" "}
             panel and instantiate and start your compute machine. Then, select
             the machine for this notebook, and pick one of the available kernels

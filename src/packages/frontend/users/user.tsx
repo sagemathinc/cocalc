@@ -1,16 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-//TODO: Make useable without passing in user_map
-
-import { Component, redux } from "../app-framework";
-import { Gap, TimeAgo, Tip } from "../components";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Gap, TimeAgo, Tip } from "@cocalc/frontend/components";
 import { is_valid_uuid_string, trunc_middle } from "@cocalc/util/misc";
 import { UserMap } from "./types";
 import { actions } from "./actions";
-import { Avatar } from "../account/avatar/avatar";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 
 interface Props {
   account_id: string;
@@ -19,54 +17,40 @@ interface Props {
   show_original?: boolean;
   name?: string;
   show_avatar?: boolean; // if true, show an avatar to the left of the user
+  avatarSize?: number; // in pixels
+  style?;
+  addonAfter?;
+  trunc?: number;
 }
 
-export class User extends Component<Props> {
-  shouldComponentUpdate(nextProps) {
-    if (this.props.account_id !== nextProps.account_id) {
-      return true;
-    }
-    const n =
-      nextProps.user_map != null
-        ? nextProps.user_map.get(this.props.account_id)
-        : undefined;
-    if (n == null) {
-      return true; // don't know anything about user yet, so just update.
-    }
-    if (
-      !n.equals(
-        this.props.user_map != null
-          ? this.props.user_map.get(this.props.account_id)
-          : undefined
-      )
-    ) {
-      return true; // something about the user changed in the user_map, so updated.
-    }
-    if (this.props.last_active !== nextProps.last_active) {
-      return true; // last active time changed, so update
-    }
-    if (this.props.show_original !== nextProps.show_original) {
-      return true;
-    }
-    if (this.props.name !== nextProps.name) {
-      return true;
-    }
-    // same so don't update
-    return false;
+// We have to split the component into two like this because
+// it's expensive to invoke the useTypedRedux hook, and we can
+// have a large number of names, in general.
+export function User(props: Props) {
+  if (props.user_map != null) {
+    return <User_map_given {...props} />;
+  } else {
+    return <User_nomap {...props} />;
   }
+}
 
-  render_last_active() {
-    if (this.props.last_active) {
+function User_nomap(props: Props) {
+  const user_map = useTypedRedux("users", "user_map");
+  return <User_map_given {...props} user_map={user_map} />;
+}
+
+function User_map_given(props: Props) {
+  function render_last_active() {
+    if (props.last_active) {
       return (
-        <span>
-          {" "}
-          (<TimeAgo date={this.props.last_active} />)
+        <span style={{ margin: "0 5px" }}>
+          (<TimeAgo date={props.last_active} />)
         </span>
       );
     }
   }
 
-  render_original(info) {
+  function render_original(info) {
     let full_name;
     if (info.first_name && info.last_name) {
       full_name = info.first_name + " " + info.last_name;
@@ -78,25 +62,25 @@ export class User extends Component<Props> {
       full_name = "No Name";
     }
 
-    if (this.props.show_original && full_name !== this.props.name) {
+    if (props.show_original && full_name !== props.name) {
       return (
         <Tip
           placement="top"
           title="User Name"
           tip="The name this user has given their account."
         >
-          <span style={{ color: "#666" }}> ({full_name})</span>
+          <span style={{ color: "#666", marginLeft: "5px" }}>
+            ({full_name})
+          </span>
         </Tip>
       );
     }
   }
 
-  name(info) {
+  function name(info) {
     const x = trunc_middle(
-      this.props.name != null
-        ? this.props.name
-        : `${info.first_name} ${info.last_name}`,
-      50
+      props.name != null ? props.name : `${info.first_name} ${info.last_name}`,
+      props.trunc ?? 50,
     ).trim();
     if (x) {
       return x;
@@ -104,35 +88,50 @@ export class User extends Component<Props> {
     return "No Name";
   }
 
-  render() {
-    const user_map =
-      this.props.user_map ?? redux.getStore("users").get("user_map");
-    if (user_map == null || user_map.size === 0) {
-      return <span>Loading...</span>;
-    }
-    let info = user_map?.get(this.props.account_id);
-    if (info == null) {
-      if (!is_valid_uuid_string(this.props.account_id)) {
-        return <span>Unknown User {this.props.account_id}</span>;
-      }
-      actions.fetch_non_collaborator(this.props.account_id);
-      return <span>Loading...</span>;
-    } else {
-      info = info.toJS();
-      const n = this.name(info);
+  const { addonAfter, style } = props;
+
+  const user_map = props.user_map;
+  if (user_map == null) {
+    return <span style={style}>Loading...{addonAfter}</span>;
+  }
+  let info = user_map?.get(props.account_id);
+  if (info == null) {
+    if (!is_valid_uuid_string(props.account_id)) {
       return (
-        <span>
-          {this.props.show_avatar && (
+        <span style={style}>
+          Unknown User {props.account_id}
+          {addonAfter}
+        </span>
+      );
+    }
+    actions.fetch_non_collaborator(props.account_id);
+    return <span style={style}>Loading...{addonAfter}</span>;
+  } else {
+    info = info.toJS();
+    const n = name(info);
+    return (
+      <span style={{ ...style, display: "inline-block" }}>
+        <span style={{ display: "flex", alignItems: "center" }}>
+          {props.show_avatar && (
             <>
-              <Avatar account_id={this.props.account_id} first_name={n} />
+              <Avatar
+                account_id={props.account_id}
+                first_name={n}
+                size={props.avatarSize}
+                no_tooltip={
+                  true /* the tooltip just shows the name which is annoying/redundant since we are showing the name here anyways */
+                }
+                no_loading
+              />
               <Gap />
             </>
           )}
           {n}
-          {this.render_original(info)}
-          {this.render_last_active()}
+          {render_original(info)}
+          {render_last_active()}
+          {addonAfter}
         </span>
-      );
-    }
+      </span>
+    );
   }
 }

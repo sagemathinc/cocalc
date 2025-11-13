@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { useState } from "react";
@@ -18,8 +18,6 @@ import { useRouter } from "next/router";
 import apiPost from "lib/api/post";
 import useIsMounted from "lib/hooks/mounted";
 import Loading from "components/share/loading";
-import Project from "components/project/link";
-import License from "components/licenses/license";
 import type { CreatedItem } from "@cocalc/server/vouchers/redeem";
 import { currency } from "@cocalc/util/misc";
 
@@ -40,18 +38,16 @@ export default function Redeem({ customize, id }: Props) {
   const router = useRouter();
   const [createdItems, setCreatedItems] = useState<CreatedItem[] | null>(null);
 
-  // optional project_id to automatically apply all the licenses we get on redeeming the voucher
-  const { project_id } = router.query;
-
   async function redeemCode() {
     try {
       setError("");
       setState("redeeming");
       // This api call tells the backend, "create requested vouchers from everything in my
       // shopping cart that is not a subscription."
+      const v = code.split("/");
+      const c = v[v.length - 1]?.trim();
       const createdItems = await apiPost("/vouchers/redeem", {
-        code: code.trim(),
-        project_id,
+        code: c,
       });
       if (!isMounted.current) return;
       setCreatedItems(createdItems);
@@ -87,8 +83,8 @@ export default function Redeem({ customize, id }: Props) {
             {profile == null && <Loading />}
             {profile != null && !profile.account_id && !signedIn && (
               <Card>
-                <div style={{ fontSize: "75px", textAlign: "center" }} >
-                  <Icon name="gift2"/>
+                <div style={{ fontSize: "75px", textAlign: "center" }}>
+                  <Icon name="gift2" />
                 </div>
                 <InPlaceSignInOrUp
                   title="Redeem Voucher"
@@ -153,48 +149,7 @@ export default function Redeem({ customize, id }: Props) {
                       }
                       type="success"
                       description={
-                        <DisplayCreatedItems
-                          createdItems={createdItems}
-                          project_id={project_id}
-                        />
-                      }
-                    />
-                  )}
-                  {project_id && (
-                    <Alert
-                      showIcon
-                      style={{ marginTop: "30px" }}
-                      type={
-                        {
-                          input: "info",
-                          redeeming: "warning",
-                          redeemed: "success",
-                        }[state] as "info" | "warning" | "success"
-                      }
-                      message={
-                        <div style={{ maxWidth: "340px" }}>
-                          {state == "input" && (
-                            <>
-                              The license provided by this voucher will be
-                              automatically applied to your project{" "}
-                              <Project project_id={project_id} />.
-                            </>
-                          )}
-                          {state == "redeeming" && (
-                            <>
-                              Redeeming the voucher and applying the license it
-                              to your project{" "}
-                              <Project project_id={project_id} />
-                              ...
-                            </>
-                          )}
-                          {state == "redeemed" && createdItems != null && (
-                            <DisplayCreatedItems
-                              createdItems={createdItems}
-                              project_id={project_id}
-                            />
-                          )}
-                        </div>
+                        <DisplayCreatedItems createdItems={createdItems} />
                       }
                     />
                   )}
@@ -226,11 +181,7 @@ export default function Redeem({ customize, id }: Props) {
                     <p>
                       When you redeem a voucher code,{" "}
                       <A href="/settings/purchases" external>
-                        money
-                      </A>{" "}
-                      or{" "}
-                      <A href="/settings/licenses" external>
-                        licenses
+                        credit
                       </A>{" "}
                       will be added to your account
                       {profile?.email_address != null ? (
@@ -244,32 +195,15 @@ export default function Redeem({ customize, id }: Props) {
                       Once you redeem a voucher code, you can use the
                       corresponding{" "}
                       <A href="/settings/purchases" external>
-                        money
+                        credit
                       </A>{" "}
-                      to make purchases, or the{" "}
-                      <A href="/settings/licenses" external>
-                        licenses
-                      </A>{" "}
-                      to{" "}
-                      <A href="https://doc.cocalc.com/add-lic-project.html">
-                        upgrade your projects.
-                      </A>{" "}
-                      If a license doesn't fit your needs, you can{" "}
-                      <A href="/settings/licenses" external>
-                        easily edit it here
-                      </A>{" "}
-                      including receiving a prorated refund so you can buy
-                      something else, or paying a little more for a more
-                      powerful license.
+                      to make purchases.
                     </p>
                     <p>
                       You can browse{" "}
                       <A href="/vouchers/redeemed">
                         all vouchers you have already redeemed.
                       </A>{" "}
-                      If in a project's settings you click "Redeem Voucher" and
-                      enter a voucher code you already redeemed, then the
-                      corresponding licenses will get added to that project.
                     </p>
                     <p>
                       If you have any questions,{" "}
@@ -297,45 +231,28 @@ export default function Redeem({ customize, id }: Props) {
   );
 }
 
-function DisplayCreatedItems({ createdItems, project_id }) {
+function DisplayCreatedItems({ createdItems }) {
   if (createdItems == null) {
     return null;
   }
   return (
     <ol>
       {createdItems.map((item, n) => (
-        <DisplayCreatedItem item={item} project_id={project_id} key={n} />
+        <DisplayCreatedItem item={item} key={n} />
       ))}
     </ol>
   );
 }
 
-function DisplayCreatedItem({ item, project_id }) {
+function DisplayCreatedItem({ item }) {
   if (item.type == "cash") {
     return (
       <li>
         {currency(item.amount)} was credited{" "}
-        <A href="/settings/purchases" external>
+        <A href={`/settings/purchases#id=${item.purchase_id}`} external>
           to your account
         </A>{" "}
-        (transaction id: {item.purchase_id})
-      </li>
-    );
-  } else if (item.type == "license") {
-    return (
-      <li>
-        The following license <License license_id={item.license_id} /> was added{" "}
-        <A href="/settings/licenses" external>
-          to your licenses
-        </A>
-        .
-        {!!project_id && (
-          <>
-            {" "}
-            This license was applied to the project{" "}
-            <Project project_id={project_id} />.
-          </>
-        )}
+        (Id: {item.purchase_id})
       </li>
     );
   } else {

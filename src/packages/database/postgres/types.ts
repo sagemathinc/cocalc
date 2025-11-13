@@ -1,12 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { EventEmitter } from "events";
 import { Client } from "pg";
 
 import { PassportStrategyDB } from "@cocalc/database/settings/auth-sso-types";
+import { ProjectState, ProjectStatus } from "@cocalc/util/db-schema/projects";
 import {
   CB,
   CBDB,
@@ -50,6 +51,17 @@ export interface QueryOptions<T = UntypedQueryResult> {
 export interface AsyncQueryOptions<T = UntypedQueryResult>
   extends Omit<QueryOptions<T>, "cb"> {}
 
+export interface UserQueryOptions {
+  client_id?: string; // if given, uses to control number of queries at once by one client.
+  priority?: number; // (NOT IMPLEMENTED) priority for this query (an integer [-10,...,19] like in UNIX)
+  account_id?: string;
+  project_id?: string;
+  query?: object;
+  options?: object[];
+  changes?: undefined; // id of change feed
+  cb?: CB<{ action?: "close" }>;
+}
+
 export interface ChangefeedOptions {
   table: string; // Name of the table
   select: { [field: string]: any }; // Map from field names to postgres data types. These must
@@ -64,7 +76,6 @@ export interface DeletePassportOpts {
   account_id: string;
   strategy: string; // our name of the strategy
   id: string;
-  cb?: CB;
 }
 
 export interface PassportExistsOpts {
@@ -100,6 +111,8 @@ export interface PostgreSQL extends EventEmitter {
   _stop_listening(table: string, select: QuerySelect, watch: string[]);
 
   _query(opts: QueryOptions): void;
+
+  user_query(opts: UserQueryOptions): void;
 
   _client(): Client | undefined;
   _clients: Client[] | undefined;
@@ -189,15 +202,15 @@ export interface PostgreSQL extends EventEmitter {
   set_server_setting(opts: { name: string; value: string; cb: CB }): void;
   server_settings_synctable(): any; // returns a table
 
-  create_account(opts: {
+  create_sso_account(opts: {
     first_name?: string; // invalid name will throw Error
     last_name?: string; // invalid name will throw Error
     created_by?: string;
     email_address?: string;
     password_hash?: string;
-    passport_strategy?: any;
-    passport_id?: string;
-    passport_profile?: any;
+    passport_strategy: any;
+    passport_id: string;
+    passport_profile: any;
     usage_intent?: string;
     cb: CB;
   }): void;
@@ -222,19 +235,11 @@ export interface PostgreSQL extends EventEmitter {
 
   get_remember_me(opts: { hash: string; cb: CB });
 
-  save_remember_me(opts: {
-    account_id: string;
-    hash: string;
-    value: string;
-    ttl: number;
-    cb: CB;
-  });
-
   passport_exists(opts: PassportExistsOpts): Promise<string | undefined>;
 
   create_passport(opts: CreatePassportOpts): Promise<string>;
 
-  delete_passport(opts: DeletePassportOpts): void;
+  delete_passport(opts: DeletePassportOpts): Promise<void>;
 
   set_passport_settings(
     db: PostgreSQL,
@@ -302,7 +307,7 @@ export interface PostgreSQL extends EventEmitter {
     order_by?: any;
     where_function?: Function;
     idle_timeout_s?: number;
-    cb: CB;
+    cb?: CB;
   });
 
   projects_that_need_to_be_started(): Promise<string[]>;
@@ -316,4 +321,94 @@ export interface PostgreSQL extends EventEmitter {
       email_address: string;
     }>;
   }): Promise<void>;
+
+  user_query_cancel_changefeed(opts: { id: any; cb?: CB }): void;
+
+  save_blob(opts: {
+    uuid: string;
+    blob?: Buffer;
+    ttl?: number;
+    project_id?: string;
+    cb: CB;
+  }): void;
+
+  set_project_state(opts: {
+    project_id: string;
+    state: ProjectState;
+    time?: Date;
+    error?: any;
+    ip?: string;
+    cb: CB;
+  }): void;
+
+  set_project_status(opts: { project_id: string; status: ProjectStatus }): void;
+
+  touch(opts: {
+    project_id?: string;
+    account_id: string;
+    action?: string;
+    path?: string;
+    cb: CB;
+  });
+
+  get_project_extra_env(opts: { project_id: string; cb: CB }): void;
+
+  projectControl?: (project_id: string) => Project;
+
+  ensure_connection_to_project?: (project_id: string, cb?: CB) => Promise<void>;
+
+  get_blob(opts: {
+    uuid: string;
+    save_in_db?: boolean;
+    touch?: boolean;
+    cb: CB;
+  }): void;
+
+  import_patches(opts: { patches: string[]; string_id?: string; cb?: CB });
+  delete_blob(opts: { uuid: string; cb?: CB });
+
+  adminAlert?: (opts: {
+    subject: string;
+    body?: string;
+  }) => Promise<number | undefined>;
+
+  archivePatches(opts: {
+    string_id: string;
+    compress?: string;
+    level?: number;
+    cutoff?: Date;
+    cb?: CB;
+  });
+
+  when_sent_project_invite(opts: { project_id: string; to: string; cb?: CB });
+
+  sent_project_invite(opts: {
+    project_id: string;
+    to: string;
+    error?: string;
+    cb?: CB;
+  });
+
+  account_creation_actions(opts: {
+    email_address: string;
+    action?: any;
+    ttl?: number;
+    cb: CB;
+  });
+
+  log_client_error(opts: {
+    event: string;
+    error: string;
+    account_id?: string;
+    cb?: CB;
+  });
+
+  webapp_error(opts: object);
+
+  set_project_settings(opts: { project_id: string; settings: object; cb?: CB });
+  
+  uncaught_exception: (err:any) => void;
 }
+
+// This is an extension of BaseProject in projects/control/base.ts
+type Project = EventEmitter & {};

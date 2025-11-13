@@ -1,11 +1,11 @@
 /*
 Where Data is Stored:
 
-We centralize here determination of all directories on the filesystem
+We centralize here determination of all directories on the file system
 where data is stored for any of the components of CoCalc, run in any way.
 
 All information here must be determinable when this module is initialized,
-e.g., from environment variables or heuristics involving the filesystem.
+e.g., from environment variables or heuristics involving the file system.
 In particular, nothing here can be impacted by command line flags
 or content of a database.
 */
@@ -26,8 +26,10 @@ const DEFINITION = `CoCalc Environment Variables:
 
 import { join, resolve } from "path";
 import { ConnectionOptions } from "node:tls";
-import { readFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import { isEmpty } from "lodash";
+import basePath from "@cocalc/backend/base-path";
+import port from "@cocalc/backend/port";
 
 function determineRootFromPath(): string {
   const cur = __dirname;
@@ -47,7 +49,7 @@ interface CoCalcSSLEnvConfig extends Dict<string> {
   SMC_DB_SSL_CA_FILE?: string;
   SMC_DB_SSL_CLIENT_CERT_FILE?: string;
   SMC_DB_SSL_CLIENT_KEY_FILE?: string;
-  SMC_DB_SSL_CLIENT_KEY_PASSPHRASE?:string;
+  SMC_DB_SSL_CLIENT_KEY_PASSPHRASE?: string;
 }
 
 // This interface is used to specify environment variables to be passed to the "psql" command for
@@ -75,11 +77,14 @@ export interface PsqlSSLEnvConfig {
 // We extend the existing ConnectionOptions interface to include certificate file paths, since these
 // are used when connecting to Postgres outside of Node (e.g., for raw psql queries).
 //
-export type SSLConfig = ConnectionOptions & {
-  caFile?: string;
-  clientCertFile?: string;
-  clientKeyFile?: string;
-} | boolean | undefined;
+export type SSLConfig =
+  | (ConnectionOptions & {
+      caFile?: string;
+      clientCertFile?: string;
+      clientKeyFile?: string;
+    })
+  | boolean
+  | undefined;
 
 /**
  * Converts an environment-variable-driven SSLEnvConfig into a superset of the SSL context expected
@@ -87,7 +92,9 @@ export type SSLConfig = ConnectionOptions & {
  *
  * @param env
  */
-export const sslConfigFromCoCalcEnv = (env: CoCalcSSLEnvConfig = process.env): SSLConfig => {
+export function sslConfigFromCoCalcEnv(
+  env: CoCalcSSLEnvConfig = process.env,
+): SSLConfig {
   const sslConfig: SSLConfig = {};
 
   if (env.SMC_DB_SSL_CA_FILE) {
@@ -101,7 +108,7 @@ export const sslConfigFromCoCalcEnv = (env: CoCalcSSLEnvConfig = process.env): S
   }
 
   if (env.SMC_DB_SSL_CLIENT_KEY_FILE) {
-    sslConfig.clientKeyFile = env.SMC_DB_SSL_CLIENT_KEY_FILE
+    sslConfig.clientKeyFile = env.SMC_DB_SSL_CLIENT_KEY_FILE;
     sslConfig.key = readFileSync(env.SMC_DB_SSL_CLIENT_KEY_FILE);
   }
 
@@ -109,7 +116,9 @@ export const sslConfigFromCoCalcEnv = (env: CoCalcSSLEnvConfig = process.env): S
     sslConfig.passphrase = env.SMC_DB_SSL_CLIENT_KEY_PASSPHRASE;
   }
 
-  return isEmpty(sslConfig) ? (env.SMC_DB_SSL?.toLowerCase() === "true") : sslConfig;
+  return isEmpty(sslConfig)
+    ? env.SMC_DB_SSL?.toLowerCase() === "true"
+    : sslConfig;
 }
 
 /**
@@ -122,7 +131,7 @@ export const sslConfigFromCoCalcEnv = (env: CoCalcSSLEnvConfig = process.env): S
  *
  * @param config
  */
-export const sslConfigToPsqlEnv = (config: SSLConfig): PsqlSSLEnvConfig => {
+export function sslConfigToPsqlEnv(config: SSLConfig): PsqlSSLEnvConfig {
   if (!config) {
     return {};
   } else if (config === true) {
@@ -162,18 +171,122 @@ export const sslConfigToPsqlEnv = (config: SSLConfig): PsqlSSLEnvConfig => {
 
 export const root: string = process.env.COCALC_ROOT ?? determineRootFromPath();
 export const data: string = process.env.DATA ?? join(root, "data");
+
+// Database Config
 export const pguser: string = process.env.PGUSER ?? "smc";
 export const pgdata: string = process.env.PGDATA ?? join(data, "postgres");
 export const pghost: string = process.env.PGHOST ?? join(pgdata, "socket");
 export const pgssl = sslConfigFromCoCalcEnv();
 export const pgdatabase: string =
   process.env.SMC_DB ?? process.env.PGDATABASE ?? "smc";
+
+// Database healthchecks
+export const pgConcurrentWarn: number = parseInt(
+  process.env.COCALC_HEALTH_PG_CONCURRENT_WARN ?? "300",
+);
+
+// Hub server configuration
+export const hubHostname: string =
+  process.env.COCALC_HUB_HOSTNAME ?? "127.0.0.1";
+export const agentPort: number = parseInt(process.env.COCALC_AGENT_PORT ?? "0");
+
 export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
+
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
+
+// Where the sqlite database files used for sync are stored.
+// The idea is there is one very fast *ephemeral* directory
+// which is used for actively open sqlite database. Optionally,
+// data is copied to a file in archive, and on close it is
+// copied to backup file.
+// When opening the sqlite database, the newer of local and archive is
+// used.  The backup is ignored in all cases (backup exists ONLY for
+// you to make an offline copy or bup archive from or something).
+export const syncFiles = {
+  // Persistent local storage of streams and kv's as sqlite3 files
+  local: process.env.COCALC_SYNC ?? join(data, "sync"),
+
+  // OPTIONAL:  Archived storage of streams and kv
+  // This could be a gcsfuse mountpoint.
+  archive: process.env.COCALC_SYNC_ARCHIVE ?? "",
+  archiveInterval: parseInt(
+    process.env.COCALC_SYNC_ARCHIVE_INTERVAL ?? "30000",
+  ),
+
+  // OPTIONAL: When storage is closed, a backup is written here:
+  // This backup is *NOT* used in any way except as a backup; in particular,
+  // it won't be used even if archive and path were both gone.
+  backup: process.env.COCALC_SYNC_BACKUP ?? "",
+};
+
+// if the directory secrets doesn't exist, create it (sync, during this load):
+if (!existsSync(secrets)) {
+  try {
+    // Mode '0o700' allows read/write/execute only for the owner
+    mkdirSync(secrets, { recursive: true, mode: 0o700 });
+  } catch {
+    // non-fatal, e.g., maybe user doesn't even have write access to the secrets path
+  }
+}
+
 export const logs: string = process.env.LOGS ?? join(data, "logs");
-export const blobstore: "disk" | "sqlite" =
-  (process.env.COCALC_JUPYTER_BLOBSTORE_IMPL as any) ?? "sqlite";
+
+// CONAT server and password
+export let conatServer =
+  process.env.CONAT_SERVER ??
+  `http://localhost:${port}${basePath.length > 1 ? basePath : ""}`;
+if (conatServer.split("//").length > 2) {
+  // i make this mistake too much
+  throw Error(
+    `env variable CONAT_SERVER invalid -- too many /s' --'${process.env.CONAT_SERVER}'`,
+  );
+}
+
+export function setConatServer(server: string) {
+  conatServer = server;
+}
+
+// Password used by hub (not users or projects) to connect to a Conat server:
+export let conatPassword = "";
+export const conatPasswordPath = join(secrets, "conat-password");
+try {
+  conatPassword = readFileSync(conatPasswordPath).toString().trim();
+} catch {}
+export function setConatPassword(password: string) {
+  conatPassword = password;
+}
+
+export let conatSocketioCount = parseInt(
+  process.env.CONAT_SOCKETIO_COUNT ?? "1",
+);
+
+// number of persist servers (if configured to run)
+export let conatPersistCount = parseInt(process.env.CONAT_PERSIST_COUNT ?? "1");
+
+// number of api servers (if configured to run). The only reason to increase this
+// is for testing and development.  One is fine for a small server, and for kubernetes
+// we these in separate pods.
+export let conatApiCount = parseInt(process.env.CONAT_API_COUNT ?? "1");
+
+// number of changefeed servers to run in process.  The only reason to increase this
+// is for testing and development.
+export let conatChangefeedServerCount = parseInt(
+  process.env.CONAT_CHANGEFEED_SERVER_COUNT ?? "1",
+);
+
+// if configured, will create a socketio cluster using
+// the cluster adapter, listening on the given port.
+export let conatClusterPort = parseInt(process.env.CONAT_CLUSTER_PORT ?? "0");
+// if set, a simple http server will be started listening on conatClusterHealthPort
+// which returns an error only if the socketio server is not "healthy".
+export let conatClusterHealthPort = parseInt(
+  process.env.CONAT_CLUSTER_HEALTH_PORT ?? "0",
+);
+
+export const conatClusterName = process.env.CONAT_CLUSTER_NAME;
+
+// API keys
 
 export let apiKey: string = process.env.API_KEY ?? "";
 export let apiServer: string = process.env.API_SERVER ?? "";
@@ -200,11 +313,6 @@ function sanityChecks() {
   if (!projects.includes("[project_id]")) {
     throw Error(
       `${DEFINITION}\n\nenv variable PROJECTS must contain "[project_id]" but it is "${process.env.PROJECTS}"`,
-    );
-  }
-  if ((blobstore as any) != "sqlite" && (blobstore as any) != "disk") {
-    throw Error(
-      "If set, COCALC_JUPYTER_BLOBSTORE_IMPL must be 'sqlite' or 'disk'",
     );
   }
   checkApiServer(apiServer);

@@ -44,7 +44,7 @@ export const LICENSE_ACTIVATION_RULES = (
 export const LICENSE_INFORMATION = (
   <div style={{ maxWidth: "450px" }}>
     <p>
-      A license is a set of upgrades that can be applied to a project. Check the{" "}
+      A license upgrades a project. Check the{" "}
       <A href={"https://doc.cocalc.com/licenses.html"}>
         site-license documentation
       </A>{" "}

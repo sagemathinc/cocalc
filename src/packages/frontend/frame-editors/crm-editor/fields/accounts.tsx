@@ -1,7 +1,4 @@
-import { useCallback, useState } from "react";
-import { render } from "./register";
-import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import {
+import { useCallback, useState } from "react";import {
   Alert,
   Button,
   Input,
@@ -11,6 +8,12 @@ import {
   SelectProps,
   Space,
 } from "antd";
+import { useIntl } from "react-intl";
+
+import { labels } from "@cocalc/frontend/i18n";
+import { render } from "./register";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+
 import {
   user_search,
   User,
@@ -21,6 +24,7 @@ import { CloseOutlined } from "@ant-design/icons";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components";
 import { AVATAR_SIZE } from "./account";
+
 
 render({ type: "accounts" }, ({ field, obj, spec, viewOnly }) => {
   if (spec.type != "accounts") throw Error("bug");
@@ -192,6 +196,7 @@ function Users({
   users: User[];
   addAccounts: (account_ids: string[]) => void;
 }) {
+  const intl = useIntl()
   const [selected, setSelected] = useState<string[]>([]);
   if (users.length == 0) {
     return <div>No results</div>;
@@ -234,7 +239,7 @@ function Users({
             addAccounts([]);
           }}
         >
-          Cancel
+          {intl.formatMessage(labels.cancel)}
         </Button>
       </Space>
       <Select

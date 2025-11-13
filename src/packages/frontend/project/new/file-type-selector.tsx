@@ -1,18 +1,24 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Row, Tag } from "antd";
+import { Col, Flex, Modal, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import type { ReactNode } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { Available } from "@cocalc/comm/project-configuration";
+import { CSS } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, isIconName } from "@cocalc/frontend/components/icon";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import { labels } from "@cocalc/frontend/i18n";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { Ext } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
+import { AIGenerateDocumentButton } from "../page/home-page/ai-generate-document";
 import { DELAY_SHOW_MS, NEW_FILETYPE_ICONS } from "./consts";
 import { JupyterNotebookButtons } from "./jupyter-buttons";
 import { NewFileButton } from "./new-file-button";
@@ -37,6 +43,7 @@ interface Props {
   selectedExt?: string;
   filename: string;
   makeNewFilename?: (ext: string) => void;
+  filenameChanged?: boolean;
 }
 
 // Use Rows and Cols to append more buttons to this class.
@@ -52,7 +59,11 @@ export function FileTypeSelector({
   children,
   filename,
   makeNewFilename,
+  filenameChanged,
 }: Props) {
+  const { project_id } = useProjectContext();
+  const intl = useIntl();
+
   if (!create_file) {
     return null;
   }
@@ -86,6 +97,9 @@ export function FileTypeSelector({
 
     return (
       <>
+        <Section color="blue" icon="jupyter" isFlyout={isFlyout}>
+          Popular Documents
+        </Section>
         <Row gutter={gutter} style={newRowStyle}>
           <JupyterNotebookButtons
             mode={mode}
@@ -95,11 +109,13 @@ export function FileTypeSelector({
             btnActive={btnActive}
             grid={[sm, md]}
             filename={filename}
+            filenameChanged={filenameChanged}
             makeNewFilename={() => makeNewFilename?.("ipynb")}
+            after={
+              /* Those come after the main button, then the additional jupyter notebooks – to avoid jumpyness */
+              [renderLaTeX(), renderQuarto(), renderMD()]
+            }
           />
-          {renderSageWS()}
-          {renderLaTeX()}
-          {renderRMD()}
         </Row>
       </>
     );
@@ -117,12 +133,16 @@ export function FileTypeSelector({
           <Col sm={sm} md={md}>
             <Tip
               delayShow={DELAY_SHOW_MS}
-              title="Linux Terminal"
+              title={intl.formatMessage(labels.linux_terminal)}
               icon={NEW_FILETYPE_ICONS.term}
-              tip="Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more."
+              tip={intl.formatMessage({
+                id: "new.file-type-selector.linux.tooltip",
+                defaultMessage:
+                  "Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more.",
+              })}
             >
               <NewFileButton
-                name="Linux Terminal"
+                name={intl.formatMessage(labels.linux_terminal)}
                 on_click={create_file}
                 ext="term"
                 size={btnSize}
@@ -134,12 +154,16 @@ export function FileTypeSelector({
             <Col sm={sm} md={md}>
               <Tip
                 delayShow={DELAY_SHOW_MS}
-                title="Graphical X11 Desktop"
+                title={intl.formatMessage(labels.x11_desktop)}
                 icon={NEW_FILETYPE_ICONS.x11}
-                tip="Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser."
+                tip={intl.formatMessage({
+                  id: "new.file-type-selector.x11.tooltip",
+                  defaultMessage:
+                    "Create an X11 desktop for running graphical applications. CoCalc lets you collaboratively run any graphical Linux application in your browser.",
+                })}
               >
                 <NewFileButton
-                  name="Graphical X11 Desktop"
+                  name={intl.formatMessage(labels.x11_desktop)}
                   on_click={create_file}
                   ext="x11"
                   size={btnSize}
@@ -152,16 +176,26 @@ export function FileTypeSelector({
             <Col sm={sm} md={md}>
               <Tip
                 delayShow={DELAY_SHOW_MS}
-                title={"Create New Folder"}
+                title={intl.formatMessage({
+                  id: "new.file-type-selector.folder.title",
+                  defaultMessage: "Create New Folder",
+                })}
                 placement="left"
                 icon={NEW_FILETYPE_ICONS["/"]}
-                tip={
-                  "Create a folder (subdirectory) in which to store and organize your files.  CoCalc provides a full featured filesystem.  You can also type a path in the input box above that ends with a forward slash / and press enter."
-                }
+                tip={intl.formatMessage({
+                  id: "new.file-type-selector.folder.tooltip",
+                  defaultMessage:
+                    "Create a folder (subdirectory) in which to store and organize your files.  CoCalc provides a full featured filesystem.  You can also type a path in the input box above that ends with a forward slash / and press enter.",
+                })}
               >
                 <NewFileButton
                   ext="/"
-                  name={"New Folder"}
+                  name={intl.formatMessage({
+                    id: "project.new.file-type-selector.new.label",
+                    defaultMessage: "New Folder",
+                    description:
+                      "short label of a button to create a new folder in a file-system",
+                  })}
                   on_click={create_folder}
                   size={btnSize}
                   active={btnActive("/")}
@@ -193,17 +227,14 @@ export function FileTypeSelector({
                 delayShow={DELAY_SHOW_MS}
                 title={"Create a Compute Server"}
                 placement="left"
-                icon={"servers"}
+                icon={"cloud"}
                 tip={"Affordable GPUs and high-end dedicated virtual machines."}
               >
                 <NewFileButton
                   name={"Compute Server: GPUs and VM's"}
                   icon="servers"
                   on_click={() => {
-                    projectActions?.setState({ create_compute_server: true });
-                    projectActions?.set_active_tab("servers", {
-                      change_history: true,
-                    });
+                    projectActions?.setServerTab("compute-servers");
                   }}
                   size={btnSize}
                 />
@@ -215,12 +246,10 @@ export function FileTypeSelector({
             <Col sm={doubleSm} md={doubleMd}>
               <NewFileButton
                 size={btnSize}
-                name={`Jupyter, VS Code, Pluto...`}
+                name={`JupyterLab, VS Code, Pluto, R IDE, etc....`}
                 ext="server"
                 on_click={() => {
-                  projectActions.set_active_tab("servers", {
-                    change_history: true,
-                  });
+                  projectActions?.setServerTab("notebooks");
                 }}
                 active={false}
               />
@@ -234,10 +263,17 @@ export function FileTypeSelector({
   function renderTeachingSocial() {
     if (disabledFeatures?.course && disabledFeatures?.chat) return;
 
+    const label = intl.formatMessage({
+      id: "project.new.file-type-selector.course.label",
+      defaultMessage: "Manage a Course",
+      description:
+        "short label on a button to create a course management environment",
+    });
+
     return (
       <>
         <Section color="purple" icon="graduation-cap" isFlyout={isFlyout}>
-          Teaching and Social
+          Teaching and Chat
         </Section>
 
         <Row gutter={gutter} style={newRowStyle}>
@@ -245,24 +281,28 @@ export function FileTypeSelector({
             <Col sm={doubleSm} md={doubleMd}>
               <Tip
                 delayShow={DELAY_SHOW_MS}
-                title="Manage a Course"
+                title={label}
                 placement="bottom"
                 icon={NEW_FILETYPE_ICONS.course}
                 tip={
-                  <>
-                    If you are a teacher, click here to create a new course. You
-                    can add students and assignments to, and use to
-                    automatically create projects for everybody, send
-                    assignments to students, collect them, grade them, etc. See{" "}
-                    <A href="https://doc.cocalc.com/teaching-instructors.html">
-                      the docs
-                    </A>
-                    .
-                  </>
+                  <FormattedMessage
+                    id="project.new.file-type-selector.course.tooltip"
+                    defaultMessage={`If you are a teacher, click here to create a new course.
+                    You can add students and assignments to, and use to automatically create projects for everybody,
+                    send assignments to students, collect them, grade them, etc.
+                    See <A>documentation</A> to learn more.`}
+                    values={{
+                      A: (c) => (
+                        <A href="https://doc.cocalc.com/teaching-instructors.html">
+                          {c}
+                        </A>
+                      ),
+                    }}
+                  />
                 }
               >
                 <NewFileButton
-                  name="Manage a Course"
+                  name={label}
                   on_click={create_file}
                   ext="course"
                   size={btnSize}
@@ -275,19 +315,28 @@ export function FileTypeSelector({
             <Col sm={doubleSm} md={doubleMd}>
               <Tip
                 delayShow={DELAY_SHOW_MS}
-                title="Create a Chatroom"
+                title={intl.formatMessage({
+                  id: "project.new.file-type-selector.chatroom.title",
+                  defaultMessage: "Create a Chatroom",
+                })}
                 placement="bottom"
                 icon={NEW_FILETYPE_ICONS["sage-chat"]}
                 tip={
-                  <>
-                    Create a chatroom for chatting with collaborators on this
-                    project. You can also embed and run computations in chat
-                    messages.
-                  </>
+                  <FormattedMessage
+                    id="project.new.file-type-selector.chatroom.tooltip"
+                    defaultMessage={`Create a chatroom for chatting with collaborators on this project.
+                      You can also embed and run computations in chat messages.
+                      See <A>documentation</A> to learn more.`}
+                    values={{
+                      A: (c) => (
+                        <A href="https://doc.cocalc.com/chat.html">{c}</A>
+                      ),
+                    }}
+                  />
                 }
               >
                 <NewFileButton
-                  name={"Chatroom"}
+                  name={intl.formatMessage(labels.chatroom)}
                   on_click={create_file}
                   ext="sage-chat"
                   size={btnSize}
@@ -323,102 +372,217 @@ export function FileTypeSelector({
   function renderSageWS() {
     if (!availableFeatures.sage) return;
 
+    function handleClick(ext) {
+      Modal.confirm({
+        width: 500,
+        icon: <Icon name="exclamation-circle" />,
+        title: intl.formatMessage({
+          id: "project.new.file-type-selector.sagews.modal.title",
+          defaultMessage:
+            "SageMath Worksheets are *DEPRECATED* and MAY NOT WORK AT ALL",
+        }),
+        content: intl.formatMessage({
+          id: "project.new.file-type-selector.sagews.modal.content",
+          defaultMessage:
+            "Instead, create a Jupyter Notebook and use a SageMath Kernel.  You can also convert existing SageMath Worksheets to Jupyter Notebooks by opening the worksheet and clicking 'Jupyter'.",
+        }),
+        okText: intl.formatMessage({
+          id: "project.new.file-type-selector.sagews.modal.ok",
+          defaultMessage: "Create SageMath Worksheet Anyways",
+        }),
+        onOk: (close) => {
+          create_file(ext);
+          close();
+        },
+        closable: true,
+      });
+    }
+
     return (
       <Col sm={sm} md={md}>
         <Tip
           delayShow={DELAY_SHOW_MS}
           icon={NEW_FILETYPE_ICONS.sagews}
-          title="SageMath Worksheet"
-          tip="Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
+          title={intl.formatMessage(labels.sagemath_worksheet)}
+          tip={intl.formatMessage({
+            id: "new.file-type-selector.sagews.tooltip",
+            defaultMessage:
+              "Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.",
+          })}
         >
           <NewFileButton
-            name="SageMath Worksheet"
-            on_click={create_file}
+            name={intl.formatMessage(labels.sagemath_worksheet)}
+            on_click={handleClick}
             ext="sagews"
             size={btnSize}
             active={btnActive("sagews")}
           />
-        </Tip>{" "}
+        </Tip>
       </Col>
     );
   }
 
-  function renderRMD() {
-    if (!availableFeatures.rmd) return;
-
-    return (
-      <Col sm={sm} md={md}>
-        <Tip
-          delayShow={DELAY_SHOW_MS}
-          title="RMarkdown File"
-          icon={NEW_FILETYPE_ICONS.rmd}
-          tip="RMarkdown document with real-time preview."
-        >
-          <NewFileButton
-            name="RMarkdown"
-            on_click={create_file}
-            ext="rmd"
-            size={btnSize}
-            active={btnActive("rmd")}
+  function addAiDocGenerate(btn: React.JSX.Element, ext: Ext) {
+    if (isFlyout) {
+      return (
+        <Col sm={sm} md={md} key={`with-ai-${ext}`}>
+          <Flex align="flex-start" vertical={false} gap={"5px"}>
+            <Flex flex={"1 1 auto"}>{btn}</Flex>
+            <Flex flex={"0 0 auto"}>
+              <AIGenerateDocumentButton
+                project_id={project_id}
+                mode="flyout"
+                ext={ext}
+                filename={filenameChanged ? filename : undefined}
+              />
+            </Flex>
+          </Flex>
+        </Col>
+      );
+    } else {
+      return (
+        <Col sm={sm} md={md} key={`with-ai-${ext}`}>
+          {btn}
+          <AIGenerateDocumentButton
+            project_id={project_id}
+            mode="full"
+            ext={ext}
+            filename={filenameChanged ? filename : undefined}
           />
-        </Tip>
-      </Col>
+        </Col>
+      );
+    }
+  }
+
+  function renderQuarto() {
+    if (mode !== "flyout") return null;
+    if (!availableFeatures.qmd) return null;
+
+    const btn = (
+      <Tip
+        key="quarto-button"
+        delayShow={DELAY_SHOW_MS}
+        title="Quarto File"
+        icon={NEW_FILETYPE_ICONS.qmd}
+        tip="Quarto document with real-time preview."
+        style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
+      >
+        <NewFileButton
+          name="Quarto"
+          on_click={create_file}
+          ext="qmd"
+          size={btnSize}
+          active={btnActive("qmd")}
+        />
+      </Tip>
     );
+
+    return addAiDocGenerate(btn, "qmd");
   }
 
   function renderLaTeX() {
-    if (!availableFeatures.latex) return;
+    if (!availableFeatures.latex) return null;
 
-    return (
-      <Col sm={sm} md={md}>
-        <Tip
-          delayShow={DELAY_SHOW_MS}
-          title="LaTeX Document"
-          icon={NEW_FILETYPE_ICONS.tex}
-          tip="Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python and Sage code."
-        >
-          <NewFileButton
-            name="LaTeX Document"
-            on_click={create_file}
-            ext="tex"
-            size={btnSize}
-            active={btnActive("tex")}
-          />
-        </Tip>
-      </Col>
+    const btn = (
+      <Tip
+        key="latex-button"
+        delayShow={DELAY_SHOW_MS}
+        title={intl.formatMessage(labels.latex_document)}
+        icon={NEW_FILETYPE_ICONS.tex}
+        tip={intl.formatMessage({
+          id: "new.file-type-selector.latex.tooltip",
+          defaultMessage:
+            "Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python, R and Sage code.",
+        })}
+        style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
+      >
+        <NewFileButton
+          name={intl.formatMessage(labels.latex_document)}
+          on_click={create_file}
+          ext="tex"
+          size={btnSize}
+          active={btnActive("tex")}
+        />
+      </Tip>
     );
+    return addAiDocGenerate(btn, "tex");
+  }
+
+  function renderMD() {
+    const btn = (
+      <Tip
+        key="markdown-button"
+        delayShow={DELAY_SHOW_MS}
+        title="Computational Markdown Document"
+        icon={NEW_FILETYPE_ICONS.md}
+        tip={intl.formatMessage({
+          id: "new.file-type-selector.markdown.tooltip",
+          defaultMessage:
+            "Create a rich editable text document backed by markdown and Jupyter code that contains mathematical formulas, lists, headings, images and run code.",
+        })}
+        style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
+      >
+        <NewFileButton
+          name="Markdown"
+          on_click={create_file}
+          ext="md"
+          size={btnSize}
+          active={btnActive("md")}
+        />
+      </Tip>
+    );
+
+    return addAiDocGenerate(btn, "md");
   }
 
   function renderMarkdown() {
     if (disabledFeatures?.md) return;
 
+    const labelSlides = intl.formatMessage({
+      id: "new.file-type-selector.slides.title",
+      defaultMessage: "Slides",
+      description: "Short label on a button to create a new slideshow file",
+    });
+
     return (
       <>
         <Section color="green" icon="markdown" isFlyout={isFlyout}>
-          Markdown
+          Miscellaneous Documents
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
-          <Col sm={sm} md={md}>
-            <Tip
-              delayShow={DELAY_SHOW_MS}
-              title="Computational Markdown Document"
-              icon={NEW_FILETYPE_ICONS.md}
-              tip="Create a rich editable text document backed by markdown and Jupyter code that contains mathematical formulas, lists, headings, images and run code."
-            >
-              <NewFileButton
-                name="Markdown"
-                on_click={create_file}
-                ext="md"
-                size={btnSize}
-                active={btnActive("md")}
-              />
-            </Tip>
-          </Col>
+          {availableFeatures.rmd &&
+            addAiDocGenerate(
+              <Tip
+                delayShow={DELAY_SHOW_MS}
+                title="RMarkdown File"
+                icon={NEW_FILETYPE_ICONS.rmd}
+                tip="RMarkdown document with real-time preview."
+                style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
+              >
+                <NewFileButton
+                  name="RMarkdown"
+                  on_click={create_file}
+                  ext="rmd"
+                  size={btnSize}
+                  active={btnActive("rmd")}
+                />
+              </Tip>,
+              "rmd",
+            )}
           <Col sm={sm} md={md}>
             <Tip
               icon={NEW_FILETYPE_ICONS.board}
-              title="Computational Whiteboard"
-              tip="Create a computational whiteboard with mathematical formulas, lists, headings, images and Jupyter code cells."
+              title={intl.formatMessage({
+                id: "new.file-type-selector.whiteboard.title",
+                defaultMessage: "Computational Whiteboard",
+                description:
+                  "Short label on a button to create a new whiteboard file",
+              })}
+              tip={intl.formatMessage({
+                id: "new.file-type-selector.whiteboard.tooltip",
+                defaultMessage:
+                  "Create a computational whiteboard with mathematical formulas, lists, headings, images and Jupyter code cells.",
+              })}
             >
               <NewFileButton
                 name="Whiteboard"
@@ -434,11 +598,15 @@ export function FileTypeSelector({
             <Tip
               delayShow={DELAY_SHOW_MS}
               icon={NEW_FILETYPE_ICONS.slides}
-              title="Slides"
-              tip="Create a slideshow presentation with mathematical formulas, lists, headings, images and code cells."
+              title={labelSlides}
+              tip={intl.formatMessage({
+                id: "new.file-type-selector.slides.tooltip",
+                defaultMessage:
+                  "Create a slideshow presentation with mathematical formulas, lists, headings, images and code cells.",
+              })}
             >
               <NewFileButton
-                name="Slides"
+                name={labelSlides}
                 on_click={create_file}
                 ext="slides"
                 size={btnSize}
@@ -446,16 +614,42 @@ export function FileTypeSelector({
               />
             </Tip>
           </Col>
+          {renderSageWS()}
+        </Row>
+      </>
+    );
+  }
 
-          <Col sm={sm} md={md}>
+  function renderUtilities() {
+    const labelTaskList = intl.formatMessage({
+      id: "new.file-type-selector.tasks.label",
+      defaultMessage: "Task List",
+    });
+
+    const labelStopWatchTimer = intl.formatMessage({
+      id: "project.new.file-type-selector.timers.label",
+      defaultMessage: "Stopwatch and Timer",
+    });
+
+    return (
+      <>
+        <Section color="yellow" icon="wrench" isFlyout={isFlyout}>
+          Utilities
+        </Section>
+        <Row gutter={gutter} style={newRowStyle}>
+          <Col sm={doubleSm} md={doubleMd}>
             <Tip
               delayShow={DELAY_SHOW_MS}
-              title="Task List"
+              title={labelTaskList}
               icon={NEW_FILETYPE_ICONS.tasks}
-              tip="Create a task list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.  Run code."
+              tip={intl.formatMessage({
+                id: "new.file-type-selector.tasks.tooltip",
+                defaultMessage:
+                  "Create a task list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.  Run code.",
+              })}
             >
               <NewFileButton
-                name="Task List"
+                name={labelTaskList}
                 on_click={create_file}
                 ext="tasks"
                 size={btnSize}
@@ -463,6 +657,28 @@ export function FileTypeSelector({
               />
             </Tip>
           </Col>
+          {!disabledFeatures?.timers && (
+            <Col sm={doubleSm} md={doubleMd}>
+              <Tip
+                delayShow={DELAY_SHOW_MS}
+                title={labelStopWatchTimer}
+                icon={NEW_FILETYPE_ICONS.time}
+                tip={intl.formatMessage({
+                  id: "project.new.file-type-selector.timers.tooltip",
+                  defaultMessage:
+                    "Create collaborative stopwatches and timers to keep track of how long it takes to do something.",
+                })}
+              >
+                <NewFileButton
+                  name={labelStopWatchTimer}
+                  on_click={create_file}
+                  ext="time"
+                  size={btnSize}
+                  active={btnActive("time")}
+                />
+              </Tip>
+            </Col>
+          )}
         </Row>
       </>
     );
@@ -472,9 +688,10 @@ export function FileTypeSelector({
     <div>
       {renderJupyterNotebook()}
       {renderLinux()}
-      {renderServers()}
-      {renderTeachingSocial()}
       {renderMarkdown()}
+      {renderTeachingSocial()}
+      {renderServers()}
+      {renderUtilities()}
     </div>
   );
 }
@@ -488,8 +705,8 @@ function Section({
 }: {
   children;
   color;
-  icon;
-  style?;
+  icon: string;
+  style?: CSS;
   isFlyout: boolean;
 }) {
   return (
@@ -500,7 +717,7 @@ function Section({
       }}
     >
       <Tag
-        icon={<Icon name={icon} />}
+        icon={isIconName(icon) && <Icon name={icon} />}
         color={color}
         style={{ fontSize: "11pt" }}
       >

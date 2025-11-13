@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -10,7 +10,6 @@ This is used by everybody involved in using jupyter -- the project, the browser 
 */
 
 import { List, Map, OrderedMap, Set } from "immutable";
-
 import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 import { KernelSpec } from "@cocalc/jupyter/ipynb/parse";
 import {
@@ -28,6 +27,7 @@ import { Syntax } from "@cocalc/util/code-formatter";
 import { startswith } from "@cocalc/util/misc";
 import { Store } from "@cocalc/util/redux/Store";
 import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
+import { cloneDeep } from "lodash";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -71,7 +71,6 @@ export interface JupyterStoreState {
   find_and_replace: any;
   has_uncommitted_changes?: boolean;
   has_unsaved_changes?: boolean;
-  insert_image: string; // id of a markdown cell
   introspect: any;
   kernel_error?: string;
   kernel_info?: any;
@@ -101,9 +100,9 @@ export interface JupyterStoreState {
   start_time: any;
   toolbar?: boolean;
   widgetModelIdState: Map<string, string>; // model_id --> '' (=supported), 'loading' (definitely loading), '(widget module).(widget name)' (=if NOT supported), undefined (=not known yet)
-  // computeServerId -- gets optionally set on the frontend (useful for react)
-  computeServerId?: number;
-  requestedComputeServerId?: number;
+  // run progress = Percent (0-100) of runnable cells that have been run since the last
+  // kernel restart. (Thus markdown and empty cells are excluded.)
+  runProgress?: number;
 }
 
 export const initial_jupyter_store_state: {
@@ -118,19 +117,19 @@ export const initial_jupyter_store_state: {
 
 export class JupyterStore extends Store<JupyterStoreState> {
   // manipulated in jupyter/project-actions.ts
-  public _more_output: any;
+  _more_output: { [id: string]: any } = {};
 
   // immutable List
-  public get_cell_list = (): List<string> => {
+  get_cell_list = (): List<string> => {
     return this.get("cell_list") ?? List();
   };
 
   // string[]
-  public get_cell_ids_list(): string[] {
+  get_cell_ids_list(): string[] {
     return this.get_cell_list().toJS();
   }
 
-  public get_cell_type(id: string): "markdown" | "code" | "raw" {
+  get_cell_type(id: string): "markdown" | "code" | "raw" {
     // NOTE: default cell_type is "code", which is common, to save space.
     // TODO: We use unsafe_getIn because maybe the cell type isn't spelled out yet, or our typescript isn't good enough.
     const type = this.unsafe_getIn(["cells", id, "cell_type"], "code");
@@ -140,7 +139,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return type;
   }
 
-  public get_cell_index(id: string): number {
+  get_cell_index(id: string): number {
     const cell_list = this.get("cell_list");
     if (cell_list == null) {
       // truly fatal
@@ -159,7 +158,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   // the notebook (so there is no such cell) or there
   // is no cell with the given id; in particular,
   // we do NOT wrap around.
-  public get_cell_id(delta = 0, id: string): string | undefined {
+  get_cell_id(delta = 0, id: string): string | undefined {
     let i: number;
     try {
       i = this.get_cell_index(id);
@@ -222,25 +221,29 @@ export class JupyterStore extends Store<JupyterStoreState> {
       }
     }
 
+    // export_to_ipynb mutates its input... mostly not a problem, since
+    // we're toJS'ing most of it, but be careful with more_output.
     return export_to_ipynb({
-      cells: this.get("cells"),
-      cell_list,
-      metadata: this.get("metadata"), // custom metadata
+      cells: this.get("cells").toJS(),
+      cell_list: cell_list.toJS(),
+      metadata: this.get("metadata")?.toJS(), // custom metadata
       kernelspec: this.get_kernel_info(this.get("kernel")),
       language_info: this.get_language_info(),
       blob_store,
-      more_output,
+      more_output: cloneDeep(more_output),
     });
   };
 
-  public get_language_info(): object | undefined {
+  get_language_info(): object | undefined {
     for (const key of ["backend_kernel_info", "metadata"]) {
       const language_info = this.unsafe_getIn([key, "language_info"]);
-      if (language_info != null) return language_info;
+      if (language_info != null) {
+        return language_info;
+      }
     }
   }
 
-  public get_cm_mode() {
+  get_cm_mode() {
     let metadata_immutable = this.get("backend_kernel_info");
     if (metadata_immutable == null) {
       metadata_immutable = this.get("metadata");
@@ -338,11 +341,11 @@ export class JupyterStore extends Store<JupyterStoreState> {
           if (x === "truncated") {
             text = "WARNING: some intermediate output was truncated.\n";
           } else {
-            text = `WARNING: ${output[x]} intermediate output ${
+            text = `WARNING: at least ${output[x]} intermediate output ${
               output[x] > 1 ? "messages were" : "message was"
             } ${x}.\n`;
           }
-          const warn = [{ text: text, name: "stderr" }];
+          const warn = [{ text, name: "stderr" }];
           if (messages.length > 0) {
             messages = warn.concat(messages).concat(warn);
           } else {
@@ -374,19 +377,13 @@ export class JupyterStore extends Store<JupyterStoreState> {
     return get_kernel_selection(kernels);
   };
 
-  get_raw_link = (path: any) => {
-    return this.redux
-      .getProjectStore(this.get("project_id"))
-      .get_raw_link(path);
-  };
-
   // NOTE: defaults for these happen to be true if not given (due to bad
   // choice of name by some extension author).
-  public is_cell_editable(id: string): boolean {
+  is_cell_editable = (id: string): boolean => {
     return this.get_cell_metadata_flag(id, "editable", true);
-  }
+  };
 
-  public is_cell_deletable(id: string): boolean {
+  is_cell_deletable = (id: string): boolean => {
     if (!this.is_cell_editable(id)) {
       // I've decided that if a cell is not editable, then it is
       // automatically not deletable.  Relevant facts:
@@ -398,26 +395,26 @@ export class JupyterStore extends Store<JupyterStoreState> {
       return false;
     }
     return this.get_cell_metadata_flag(id, "deletable", true);
-  }
+  };
 
-  public get_cell_metadata_flag(
+  get_cell_metadata_flag = (
     id: string,
     key: string,
     default_value: boolean = false,
-  ): boolean {
+  ): boolean => {
     return this.unsafe_getIn(["cells", id, "metadata", key], default_value);
-  }
+  };
 
   // canonicalize the language of the kernel
-  public get_kernel_language(): string | undefined {
+  get_kernel_language = (): string | undefined => {
     return canonical_language(
       this.get("kernel"),
       this.getIn(["kernel_info", "language"]),
     );
-  }
+  };
 
   // map the kernel language to the syntax of a language we know
-  public get_kernel_syntax(): Syntax | undefined {
+  get_kernel_syntax = (): Syntax | undefined => {
     let lang = this.get_kernel_language();
     if (!lang) return undefined;
     lang = lang.toLowerCase();
@@ -433,14 +430,15 @@ export class JupyterStore extends Store<JupyterStoreState> {
       case "javascript":
         return "JavaScript";
     }
-  }
+  };
 
-  public async jupyter_kernel_key(): Promise<string> {
+  jupyter_kernel_key = async (): Promise<string> => {
     const project_id = this.get("project_id");
     const projects_store = this.redux.getStore("projects");
     const customize = this.redux.getStore("customize");
-    const computeServerId =
-      this.redux.getActions(this.name)?.getComputeServerId() ?? 0;
+    const computeServerId = await this.redux
+      .getActions(this.name)
+      ?.getComputeServerId();
     if (customize == null) {
       // the customize store doesn't exist, e.g., in a compute server.
       // In that case no need for a complicated jupyter kernel key as
@@ -456,5 +454,5 @@ export class JupyterStore extends Store<JupyterStoreState> {
     const key = [project_id, `${computeServerId}`, compute_image].join("::");
     // console.log("jupyter store / jupyter_kernel_key", key);
     return key;
-  }
+  };
 }

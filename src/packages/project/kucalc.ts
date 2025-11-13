@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -262,7 +262,7 @@ export function prometheus_metrics(project_id): string {
       `# TYPE ${P}_running_processes_total gauge`,
       `${P}_running_processes_total{${labels}} ${cs.processes?.count ?? 0}`,
       `# HELP ${P}_oom_kills_total`,
-      `# TYPE ${P}_oom_kills_total counter `,
+      `# TYPE ${P}_oom_kills_total counter`,
       `${P}_oom_kills_total{${labels}} ${cs.oom_kills ?? 0}`,
     ].join("\n") + "\n" // makes sure the response ends with a newline!
   );

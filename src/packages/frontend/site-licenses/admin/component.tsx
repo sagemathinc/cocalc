@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -204,7 +204,7 @@ export const SiteLicenses: React.FC<{}> = () => {
     set_exporting(false);
   }
 
-  function render_export(): JSX.Element {
+  function render_export(): React.JSX.Element {
     return (
       <span>
         <Button disabled={show_export} onClick={() => set_show_export(true)}>

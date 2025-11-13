@@ -1,31 +1,29 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React from "react";
-import { shallow, render } from "enzyme";
+// ansi.test.tsx
+import { render, screen } from "@testing-library/react";
 import { Ansi } from "../ansi";
 
-describe("basic hello world", () => {
-  const wrapper = shallow(<Ansi>Hello World</Ansi>);
-
-  it("checks the output", () => {
-    expect(wrapper.find("span").text()).toBe("Hello World");
+describe("Ansi component", () => {
+  it("renders plain text", () => {
+    render(<Ansi>Hello World</Ansi>);
+    const span = screen.getByText("Hello World");
+    expect(span.tagName).toBe("SPAN");
   });
-});
 
-describe("render something with actual ANSI codes", () => {
-  const wrapper = shallow(<Ansi>{"\u001b[34mhello world"}</Ansi>);
-
-  it("checks for the ANSI output", () => {
-    expect(wrapper.contains(<Ansi>hello world</Ansi>));
+  it("renders text with ANSI codes", () => {
+    render(<Ansi>{"\u001b[34mhello world"}</Ansi>);
+    const span = screen.getByText("hello world");
+    expect(span).toBeInTheDocument();
+    expect(span.tagName).toBe("SPAN");
   });
-});
 
-describe("check that rendered text is a span of blue", () => {
-  const wrapper = render(<Ansi>{"\u001b[34mhello world"}</Ansi>);
-  expect(wrapper.html()).toEqual(
-    '<span style="color:rgb(0, 0, 187)">hello world</span>'
-  );
+  it("applies correct style for ANSI color", () => {
+    render(<Ansi>{"\u001b[34mhello world"}</Ansi>);
+    const span = screen.getByText("hello world");
+    expect(span).toHaveStyle("color: rgb(0, 0, 187)");
+  });
 });

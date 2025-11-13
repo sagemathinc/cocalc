@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* Showing what is currently happening to the user
@@ -20,9 +20,9 @@ export class ActivityActions {
     this.actions = actions;
   }
 
-  public set_activity(
-    opts: { id: number; desc?: string } | { id?: number; desc: string }
-  ): number {
+  set_activity = (
+    opts: { id: number; desc?: string } | { id?: number; desc: string },
+  ): number => {
     if (this.actions.is_closed()) return -1;
     if (opts.id == null) {
       this.activity_id += 1;
@@ -41,14 +41,14 @@ export class ActivityActions {
     }
     this.actions.setState({ activity });
     return opts.id;
-  }
+  };
 
-  public clear_activity(id?: number): void {
+  clear_activity = (id?: number): void => {
     if (this.actions.is_closed()) return;
     if (id != null) {
       this.set_activity({ id }); // clears for this id since desc not provided
     } else {
       this.actions.setState({ activity: Map() }); // clear all activity
     }
-  }
+  };
 }

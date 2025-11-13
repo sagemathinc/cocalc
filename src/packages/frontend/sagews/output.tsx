@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -22,7 +22,7 @@ export default function CellOutput({ output, flags }: Props) {
     return <span />;
   }
 
-  function renderOutputMesg(elts: JSX.Element[], mesg: object): void {
+  function renderOutputMesg(elts: React.JSX.Element[], mesg: object): void {
     for (const type in mesg) {
       let value: any = mesg[type];
       let f = RENDERERS[type];
@@ -34,8 +34,8 @@ export default function CellOutput({ output, flags }: Props) {
     }
   }
 
-  function renderOutput(): JSX.Element[] {
-    const elts: JSX.Element[] = [];
+  function renderOutput(): React.JSX.Element[] {
+    const elts: React.JSX.Element[] = [];
     for (const mesg of processMessages(output)) {
       renderOutputMesg(elts, mesg);
     }

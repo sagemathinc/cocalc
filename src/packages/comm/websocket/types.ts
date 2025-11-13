@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -11,7 +11,7 @@ between the frontend app and the project.
 import type {
   NBGraderAPIOptions,
   RunNotebookOptions,
-} from "@cocalc/jupyter/nbgrader/types";
+} from "@cocalc/util/jupyter/nbgrader-types";
 import type { Channel } from "@cocalc/sync/client/types";
 import type { Options } from "@cocalc/util/code-formatter";
 export type { Channel };
@@ -142,23 +142,6 @@ interface MesgX11Channel {
   display: number;
 }
 
-interface MesgSynctableChannel {
-  cmd: "synctable_channel";
-  query: any;
-  options: any[];
-}
-
-interface MesgSyncdocCall {
-  cmd: "syncdoc_call";
-  path: string;
-  mesg: any;
-}
-
-interface MesgSymmetricChannel {
-  cmd: "symmetric_channel";
-  name: string;
-}
-
 interface MesgRealpath {
   cmd: "realpath";
   path: string;
@@ -200,6 +183,11 @@ interface MesgSyncFS {
 
 interface MesgComputeServerSyncRegister {
   cmd: "compute_server_sync_register";
+  opts: { compute_server_id: number };
+}
+
+interface MesgComputeServerComputeRegister {
+  cmd: "compute_server_compute_register";
   opts: { compute_server_id: number };
 }
 
@@ -249,9 +237,6 @@ export type Mesg =
   | MesgLeanChannel
   | MesgQuery
   | MesgX11Channel
-  | MesgSynctableChannel
-  | MesgSyncdocCall
-  | MesgSymmetricChannel
   | MesgRealpath
   | MesgNBGrader
   | MesgJupyterNbconvert
@@ -260,6 +245,7 @@ export type Mesg =
   | MesgComputeFilesystemCache
   | MesgSyncFS
   | MesgComputeServerSyncRegister
+  | MesgComputeServerComputeRegister
   | MesgComputeServerSyncRequest
   | MesgCopyFromProjectToComputeServer
   | MesgCopyFromComputeServerToProject;

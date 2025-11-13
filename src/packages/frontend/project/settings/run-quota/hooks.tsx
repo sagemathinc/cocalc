@@ -1,18 +1,21 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Map, List } from "immutable";
+// cSpell: ignore dval
+
+import { List, Map } from "immutable";
 import { fromPairs, isEqual } from "lodash";
 
+import { ProjectStatus } from "@cocalc/comm/project-status/types";
 import {
+  TypedMap,
   useEffect,
   useMemo,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { ProjectStatus } from "@cocalc/comm/project-status/types";
 import {
   KUCALC_COCALC_COM,
   KUCALC_DISABLED,
@@ -20,20 +23,21 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { round1, seconds2hms, server_time } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { GPU } from "@cocalc/util/types/site-licenses";
 import {
+  Upgrades,
   quota2upgrade_key,
   upgrade2quota_key,
-  Upgrades,
 } from "@cocalc/util/upgrades/quota";
 import { IdleTimeoutPct, PercentBar, renderBoolean } from "./components";
 import {
-  booleanValueStr,
   CurrentUsage,
   DisplayQuota,
   MAX_UPGRADES,
   PARAMS,
-  renderValueUnit,
   Usage,
+  booleanValueStr,
+  renderValueUnit,
 } from "./misc";
 
 export function useRunQuota(
@@ -53,7 +57,14 @@ export function useRunQuota(
     } else {
       return rq
         .map((val, key) => {
-          if (typeof val !== "number") {
+          if (key === "gpu") {
+            const v = val as boolean | TypedMap<GPU>;
+            if (typeof v === "boolean") {
+              return v ? 1 : null;
+            } else {
+              return v?.get("num", 0);
+            }
+          } else if (typeof val !== "number") {
             return val;
           } else if (key == "idle_timeout") {
             return seconds2hms(val, false, false);
@@ -120,9 +131,9 @@ export function useCurrentUsage({
   const last_edited: Date | undefined = project_map
     ?.get(project_id)
     ?.get("last_edited");
-  const runQuota: Map<string, number | List<object>> | undefined = project_map
-    ?.get(project_id)
-    ?.get("run_quota");
+  const runQuota:
+    | Map<string, number | Map<string, number | string> | List<object>>
+    | undefined = project_map?.get(project_id)?.get("run_quota");
 
   const [currentUsage, setCurrentUsage] = useState<CurrentUsage>({});
 
@@ -134,7 +145,7 @@ export function useCurrentUsage({
 
   function memory(usage) {
     if (runQuota == null) return;
-    // this also displays the "dedicated memory" amount, past of entire limite
+    // this also displays the "dedicated memory" amount, past of entire limit
     const mem_req = runQuota.get("memory_request"); // mb
     const mem_limit = runQuota.get("memory_limit"); // mb
     const { mem_rss } = usage;
@@ -171,7 +182,7 @@ export function useCurrentUsage({
     return;
   }
 
-  function whenWillProjectStopp() {
+  function whenWillProjectStop() {
     if (last_edited == null) return;
     const always_running = runQuota?.get("always_running") ?? false;
     if (always_running) return; // not applicable
@@ -213,7 +224,7 @@ export function useCurrentUsage({
           const key = upgrade2quota_key(name);
           switch (name) {
             case "mintime":
-              return [key, whenWillProjectStopp()];
+              return [key, whenWillProjectStop()];
             case "disk_quota":
               return [key, disk(usage)];
             case "memory_request":
@@ -233,6 +244,14 @@ export function useCurrentUsage({
               const p = runQuota?.get(key);
               const x = List.isList(p) ? p?.size : "N/A";
               return [key, { display: `${x}`, element: <>{x}</> }];
+            case "gpu":
+              const gpu = runQuota?.get(key);
+              if (!gpu) return [key, { display: "N/A", element: <>N/A</> }];
+              const num = Map.isMap(gpu) ? gpu.get("num", 1) : 1;
+              return [
+                key,
+                { display: `${num}`, element: <>{JSON.stringify(num)}</> },
+              ];
             default:
               return [key, { display: name, element: <>{name}</> }];
           }
@@ -258,9 +277,9 @@ export function useDisplayedFields(): string[] {
     // we have to make a copy, because we might modify it below
     const fields: string[] = [...PROJECT_UPGRADES.field_order];
 
-    // on kucalc on-prem, we add ext_rw and patch
+    // on kucalc on-prem, we add ext_rw, patch and gpu
     if (kucalc === KUCALC_ON_PREMISES) {
-      fields.push(...["ext_rw", "patch"]);
+      fields.push(...["ext_rw", "patch", "gpu"]);
     }
 
     return fields.filter((key: keyof Upgrades) => {

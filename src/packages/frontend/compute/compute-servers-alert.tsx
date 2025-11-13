@@ -17,14 +17,15 @@ export default function ComputeServersAlert({ project_id }) {
       type="success"
       showIcon
       icon={<Icon name="servers" />}
-      message={<>Dedicated Compute Servers</>}
+      message={<>Compute Servers</>}
       description={
         <>
-          You can also run Jupyter notebooks, terminals, and commercial software
-          on dedicated VM's where you have root permissions. These are charged
-          by the second and have up to{" "}
+          You can also easily use a dedicated server where you have full admin
+          root permissions and nearly unlimited resources. These are charged by
+          the second and have up to{" "}
           <strong>
-            11,776GB of RAM, 416 vCPUs, 65TB of disk space, and GPUs.{" "}
+            416 vCPUs, 65TB of disk space, 11TB of RAM and high end GPUs
+            including 8x NVIDIA H100s.{" "}
           </strong>
           <br />
           Click the{" "}

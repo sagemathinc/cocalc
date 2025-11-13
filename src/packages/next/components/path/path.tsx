@@ -1,45 +1,50 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useEffect, useState } from "react";
 import {
   Alert,
   Avatar as AntdAvatar,
   Button,
   Divider,
+  Flex,
   Space,
   Tooltip,
+  QRCode,
 } from "antd";
 import Link from "next/link";
-import PathContents from "components/share/path-contents";
-import PathActions from "components/share/path-actions";
-import LinkedPath from "components/share/linked-path";
-import Loading from "components/share/loading";
-import License from "components/share/license";
-import ProjectLink from "components/share/project-link";
-import useCounter from "lib/share/counter";
-import { Layout } from "components/share/layout";
-import { Customize } from "lib/share/customize";
-import type { CustomizeType } from "lib/customize";
-import { getTitle } from "lib/share/util";
-import SanitizedMarkdown from "components/misc/sanitized-markdown";
-import Badge from "components/misc/badge";
+import { useRouter } from "next/router";
+import { join } from "path";
+import { useEffect, useState } from "react";
+import basePath from "lib/base-path";
 import { Icon } from "@cocalc/frontend/components/icon";
 import {
-  SHARE_AUTHENTICATED_ICON,
   SHARE_AUTHENTICATED_EXPLANATION,
+  SHARE_AUTHENTICATED_ICON,
 } from "@cocalc/util/consts/ui";
-import apiPost from "lib/api/post";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
-import { useRouter } from "next/router";
-import type { PathContents as PathContentsType } from "lib/share/get-contents";
-import Avatar from "components/share/proxy/avatar";
 import A from "components/misc/A";
-import { join } from "path";
+import Badge from "components/misc/badge";
+import SanitizedMarkdown from "components/misc/sanitized-markdown";
+import { Layout } from "components/share/layout";
+import License from "components/share/license";
+import LinkedPath from "components/share/linked-path";
+import Loading from "components/share/loading";
+import PathActions from "components/share/path-actions";
+import PathContents from "components/share/path-contents";
+import ProjectLink from "components/share/project-link";
+import Avatar from "components/share/proxy/avatar";
+import apiPost from "lib/api/post";
+import type { CustomizeType } from "lib/customize";
+import useCounter from "lib/share/counter";
+import { Customize } from "lib/share/customize";
+import type { PathContents as PathContentsType } from "lib/share/get-contents";
+import { getTitle } from "lib/share/util";
 
-interface Props {
+import { SocialMediaShareLinks } from "components/landing/social-media-share-links";
+
+export interface PublicPathProps {
   id: string;
   path: string;
   url: string;
@@ -67,6 +72,10 @@ interface Props {
   // doesn't use the names. See https://github.com/sagemathinc/cocalc/issues/6115
   redirect?: string;
   jupyter_api: boolean;
+  created: string | null; // ISO 8601 string
+  last_edited: string | null; // ISO 8601 string
+  ogUrl?: string; // Open Graph URL for social media sharing
+  ogImage?: string; // Open Graph image for social media sharing
 }
 
 export default function PublicPath({
@@ -94,7 +103,8 @@ export default function PublicPath({
   projectAvatarImage,
   redirect,
   jupyter_api,
-}: Props) {
+  ogUrl,
+}: PublicPathProps) {
   useCounter(id);
   const [numStars, setNumStars] = useState<number>(stars);
 
@@ -104,6 +114,11 @@ export default function PublicPath({
   useEffect(() => {
     setIsStarred(isStarred0);
   }, [isStarred0]);
+
+  const [qrcode, setQrcode] = useState<string>("");
+  useEffect(() => {
+    setQrcode(location.href);
+  }, []);
 
   const [signingUp, setSigningUp] = useState<boolean>(false);
   const router = useRouter();
@@ -141,23 +156,21 @@ export default function PublicPath({
     if (disabled) {
       return (
         <>
-          <Icon name="lock" /> Private (only visible to collaborators on the
-          project)
+          <Icon name="lock" /> private
         </>
       );
     }
     if (unlisted) {
       return (
         <>
-          <Icon name="eye-slash" /> Unlisted (only visible to those who know the
-          link)
+          <Icon name="eye-slash" /> unlisted
         </>
       );
     }
     if (authenticated) {
       return (
         <>
-          <Icon name={SHARE_AUTHENTICATED_ICON} /> Authenticated (
+          <Icon name={SHARE_AUTHENTICATED_ICON} /> authenticated (
           {SHARE_AUTHENTICATED_EXPLANATION})
         </>
       );
@@ -166,11 +179,7 @@ export default function PublicPath({
 
   function visibility() {
     if (unlisted || disabled || authenticated) {
-      return (
-        <div>
-          <b>Visibility:</b> {visibility_explanation()}
-        </div>
-      );
+      return <div>{visibility_explanation()}</div>;
     }
   }
 
@@ -230,10 +239,10 @@ export default function PublicPath({
     }
     return (
       <div>
-        <A href="/stars" style={{ marginRight: "10px" }}>
-          Your stars...
-        </A>
-        {btn}
+        <Space.Compact>
+          {btn}
+          <Button href={join(basePath, "stars")}>...</Button>
+        </Space.Compact>
       </div>
     );
   }
@@ -282,7 +291,6 @@ export default function PublicPath({
     }
     return (
       <div>
-        <b>Project:</b>{" "}
         <ProjectLink project_id={project_id} title={projectTitle} />
         <br />
       </div>
@@ -314,7 +322,6 @@ export default function PublicPath({
 
     return (
       <div>
-        <b>Path: </b>
         <LinkedPath
           path={path}
           relativePath={relativePath}
@@ -335,8 +342,13 @@ export default function PublicPath({
             <AntdAvatar
               shape="square"
               size={160}
-              icon={<img src={projectAvatarImage} />}
-              style={{ float: "left", margin: "10px" }}
+              icon={
+                <img
+                  src={projectAvatarImage}
+                  alt={`Avatar for ${projectTitle}.`}
+                />
+              }
+              style={{ float: "left", margin: "20px" }}
             />
           ) : undefined
         }
@@ -382,11 +394,16 @@ export default function PublicPath({
           />
           <Space
             style={{
+              marginTop: "-30px",
               float: "right",
               justifyContent: "flex-end",
             }}
             direction="vertical"
           >
+            <Flex>
+              <div style={{ flex: 1 }} />
+              {qrcode && <QRCode value={qrcode} size={110} color="#5a687d" />}
+            </Flex>
             <div style={{ float: "right" }}>{renderStar()}</div>
           </Space>
           {signingUp && (
@@ -421,7 +438,7 @@ export default function PublicPath({
           {renderPathLink()}
           {counter && (
             <>
-              <b>Views:</b> <Badge count={counter} />
+              <Badge count={counter} /> views
               <br />
             </>
           )}
@@ -434,11 +451,18 @@ export default function PublicPath({
           {visibility()}
           {compute_image && (
             <>
-              <b>Image:</b> {compute_image}
+              {compute_image}
               <br />
             </>
           )}
         </div>
+        {ogUrl && (
+          <SocialMediaShareLinks
+            title={getTitle({ path, relativePath })}
+            url={ogUrl}
+            showText
+          />
+        )}
         <Divider />
         {error != null && (
           <Alert

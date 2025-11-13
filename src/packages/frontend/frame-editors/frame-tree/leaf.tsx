@@ -1,26 +1,28 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+import { Map, Set } from "immutable";
 
 import {
   CSS,
   React,
   Rendered,
-  useEffect,
   useRedux,
-  useState,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { ErrorDisplay, Loading } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
-import { Map, Set } from "immutable";
-
 import { AccountState } from "@cocalc/frontend/account/types";
 import { Actions } from "../code-editor/actions";
-import { EditorDescription, EditorState, NodeDesc } from "./types";
-
+import {
+  EditorComponentProps,
+  EditorDescription,
+  EditorState,
+  NodeDesc,
+} from "./types";
 import DeletedFile from "@cocalc/frontend/project/deleted-file";
-import { webapp_client } from "../../webapp-client";
 
 const ERROR_STYLE: CSS = {
   maxWidth: "100%",
@@ -39,7 +41,7 @@ interface Props {
   derived_file_types: Set<string>;
   desc: NodeDesc;
   editor_actions: Actions;
-  editor_settings?: AccountState["editor_settings"];
+  editor_settings: AccountState["editor_settings"];
   editor_state: EditorState;
   font_size: number;
   is_fullscreen: boolean;
@@ -56,7 +58,7 @@ interface Props {
   terminal?: Map<string, any>;
   // is_visible: true if the entire frame tree is visible (i.e., the tab is shown);
   // knowing this can be critical for rendering certain types of editors, e.g.,
-  // see https://github.com/sagemathinc/cocalc/issues/5133 where xterm.js would get
+  // se https://github.com/sagemathinc/cocalc/issues/5133 where xterm.js would get
   // randomly rendered wrong if it was initialized when the div was in the DOM,
   // but hidden.
   is_visible: boolean;
@@ -110,37 +112,30 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
     const read_only: boolean | undefined = useRedux(name, "read_only");
     const cursors: Map<string, any> | undefined = useRedux(name, "cursors");
 
+    const recentlyDeletedPaths: Map<string, number> | undefined = useTypedRedux(
+      { project_id },
+      "recentlyDeletedPaths",
+    );
+
     const value: string | undefined = useRedux(name, "value");
     const misspelled_words: Set<string> | undefined = useRedux(
       name,
-      "misspelled_words"
+      "misspelled_words",
     );
     const complete: Map<string, any> | undefined = useRedux(name, "complete");
     const is_loaded: boolean | undefined = useRedux(name, "is_loaded");
     const error: string | undefined = useRedux(name, "error");
     const gutter_markers: Map<string, any> | undefined = useRedux(
       name,
-      "gutter_markers"
+      "gutter_markers",
     );
 
-    const [isDeleted, setIsDeleted] = useState<boolean>(false);
-
-    useEffect(() => {
-      const p = desc.get("path");
-      if (p == null) return;
-      if (webapp_client.file_client.is_deleted(p, project_id)) {
-        setIsDeleted(true);
-      }
-    }, [desc.get("path")]);
-
-    if (isDeleted) {
+    if (recentlyDeletedPaths?.get(path)) {
       return (
         <DeletedFile
           project_id={project_id}
           path={path}
-          onOpen={() => {
-            setIsDeleted(false);
-          }}
+          time={recentlyDeletedPaths.get(path)!}
         />
       );
     }
@@ -148,46 +143,47 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
     function render_leaf(): Rendered {
       if (!is_loaded) return <Loading theme="medium" />;
       if (TheComponent == null) throw Error("component must not be null");
-      return (
-        <TheComponent
-          id={desc.get("id")}
-          name={props.name}
-          actions={actions}
-          editor_actions={editor_actions}
-          mode={spec.mode}
-          read_only={desc.get("read_only", read_only || is_public)}
-          is_public={is_public}
-          font_size={desc.get("font_size", font_size)}
-          path={path}
-          fullscreen_style={spec.fullscreen_style}
-          project_id={project_id}
-          editor_state={editor_state.get(desc.get("id"), Map())}
-          is_current={desc.get("id") === active_id}
-          cursors={cursors}
-          value={value}
-          misspelled_words={misspelled_words}
-          is_fullscreen={is_fullscreen}
-          reload={reload}
-          resize={resize}
-          reload_images={!!spec.reload_images}
-          gutters={spec.gutters != null ? spec.gutters : []}
-          gutter_markers={gutter_markers}
-          editor_settings={editor_settings}
-          terminal={terminal}
-          settings={settings}
-          status={status}
-          complete={complete && complete.get(desc.get("id"))}
-          derived_file_types={derived_file_types}
-          local_view_state={local_view_state}
-          desc={desc}
-          available_features={available_features}
-          is_subframe={is_subframe}
-          is_visible={is_visible}
-          tab_is_visible={tab_is_visible}
-          placeholder={placeholder}
-          onFocus={() => actions.set_active_id(desc.get("id"), true)}
-        />
-      );
+
+      const componentProps: EditorComponentProps = {
+        id: desc.get("id"),
+        actions,
+        available_features,
+        complete: complete && complete.get(desc.get("id")),
+        cursors,
+        derived_file_types: derived_file_types,
+        desc,
+        editor_actions,
+        editor_settings,
+        editor_state: editor_state.get(desc.get("id"), Map()),
+        font_size: desc.get("font_size", font_size),
+        fullscreen_style: spec.fullscreen_style,
+        gutter_markers,
+        gutters: spec.gutters != null ? spec.gutters : [],
+        is_current: desc.get("id") === active_id,
+        is_fullscreen,
+        is_public,
+        is_subframe,
+        is_visible,
+        local_view_state,
+        misspelled_words,
+        mode: spec.mode,
+        name: props.name,
+        onFocus: () => actions.set_active_id(desc.get("id"), true),
+        path,
+        placeholder,
+        project_id,
+        read_only: desc.get("read_only", read_only || is_public),
+        reload_images: !!spec.reload_images,
+        reload,
+        resize,
+        settings,
+        status,
+        tab_is_visible,
+        terminal,
+        value,
+      };
+
+      return <TheComponent {...componentProps} />;
     }
 
     function render_error(): Rendered {
@@ -220,5 +216,5 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
         {render_leaf()}
       </div>
     );
-  }
+  },
 );

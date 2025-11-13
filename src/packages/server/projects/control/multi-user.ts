@@ -31,6 +31,7 @@ import {
   mkdir,
   setupDataPath,
   stopProjectProcesses,
+  writeSecretToken,
 } from "./util";
 import {
   BaseProject,
@@ -41,6 +42,10 @@ import {
 } from "./base";
 import getLogger from "@cocalc/backend/logger";
 import { getUid } from "@cocalc/backend/misc";
+import {
+  deleteProjectSecretToken,
+  getProjectSecretToken,
+} from "./secret-token";
 
 const winston = getLogger("project-control:multi-user");
 
@@ -71,7 +76,7 @@ class Project extends BaseProject {
     const status = await getStatus(this.HOME);
     // TODO: don't include secret token in log message.
     winston.debug(
-      `got status of ${this.project_id} = ${JSON.stringify(status)}`
+      `got status of ${this.project_id} = ${JSON.stringify(status)}`,
     );
     this.saveStatusToDatabase(status);
     return status;
@@ -107,6 +112,14 @@ class Project extends BaseProject {
       // Setup files
       await setupDataPath(HOME, this.uid);
 
+      await writeSecretToken(
+        HOME,
+        await getProjectSecretToken(this.project_id),
+        this.uid,
+      );
+
+      await this.touch(undefined, { noStart: true });
+
       // Fork and launch project server daemon
       await launchProjectDaemon(env, this.uid);
 
@@ -116,7 +129,7 @@ class Project extends BaseProject {
             return false;
           }
           const status = await this.status();
-          return !!status.secret_token && !!status["hub-server.port"];
+          return !!status["hub-server.port"];
         },
         maxTime: MAX_START_TIME_MS,
       });
@@ -143,6 +156,7 @@ class Project extends BaseProject {
         until: async () => !(await isProjectRunning(this.HOME)),
         maxTime: MAX_STOP_TIME_MS,
       });
+      await deleteProjectSecretToken(this.project_id);
     } finally {
       this.stateChanging = undefined;
       // ensure state valid in database
@@ -155,7 +169,7 @@ class Project extends BaseProject {
     await copyPath(
       opts,
       this.project_id,
-      opts.target_project_id ? getUid(opts.target_project_id) : undefined
+      opts.target_project_id ? getUid(opts.target_project_id) : undefined,
     );
     return "";
   }

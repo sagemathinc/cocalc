@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Components related to toggling the way output is displayed.
@@ -13,10 +13,9 @@ import { Button, Tooltip } from "antd";
 const SCROLLED_STYLE: React.CSSProperties = {
   fontSize: "inherit",
   padding: 0,
-  display: "flex", // flex used to move output prompt to bottom.
-  flexDirection: "column",
   height: "auto",
-  cursor: "pointer",
+  display: "flex",
+  flexDirection: "column",
 } as const;
 
 const NORMAL_STYLE: React.CSSProperties = {
@@ -32,8 +31,10 @@ interface OutputToggleProps {
 }
 
 export const OutputToggle: React.FC<OutputToggleProps> = React.memo(
-  (props: OutputToggleProps) => {
-    const { actions, id, scrolled, children } = props;
+  ({ actions, id, scrolled, children }: OutputToggleProps) => {
+    if (actions == null) {
+      return null;
+    }
 
     function toggle_scrolled() {
       actions?.toggle_output(id, "scrolled");
@@ -43,20 +44,35 @@ export const OutputToggle: React.FC<OutputToggleProps> = React.memo(
       actions?.toggle_output(id, "collapsed");
     }
 
+    const btn = (
+      <Button
+        type="text"
+        style={scrolled ? SCROLLED_STYLE : NORMAL_STYLE}
+        onClick={toggle_scrolled}
+        onDoubleClick={collapse_output}
+      >
+        {children}
+        <span style={{ flex: 1 }} />
+      </Button>
+    );
+
     return (
-      <Tooltip title="Click to toggle whether large output is scrolled. Double click to hide.">
-        <Button
-          type="text"
-          style={scrolled ? SCROLLED_STYLE : NORMAL_STYLE}
-          onClick={toggle_scrolled}
-          onDoubleClick={collapse_output}
-        >
-          {children}
-          <div style={{ flex: 1 }} /> {/* use up all space */}
-        </Button>
+      <Tooltip
+        title={
+          <>
+            Click{" "}
+            <a onClick={toggle_scrolled}>
+              to {scrolled ? "show" : "hide"} large output
+            </a>
+            .<br />
+            Double click <a onClick={collapse_output}>to hide</a>.
+          </>
+        }
+      >
+        {btn}
       </Tooltip>
     );
-  }
+  },
 );
 
 interface CollapsedOutputProps {
@@ -65,8 +81,14 @@ interface CollapsedOutputProps {
 }
 
 export const CollapsedOutput: React.FC<CollapsedOutputProps> = React.memo(
-  (props: CollapsedOutputProps) => {
-    const { actions, id } = props;
+  ({ actions, id }: CollapsedOutputProps) => {
+    if (actions == null) {
+      return (
+        <div style={{ textAlign: "center", width: "100%", color: "#666" }}>
+          (Output Hidden)
+        </div>
+      );
+    }
 
     function show_output() {
       actions?.toggle_output(id, "collapsed");
@@ -85,5 +107,5 @@ export const CollapsedOutput: React.FC<CollapsedOutputProps> = React.memo(
         </Button>
       </div>
     );
-  }
+  },
 );

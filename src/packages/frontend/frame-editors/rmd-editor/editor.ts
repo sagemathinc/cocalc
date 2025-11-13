@@ -1,126 +1,174 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Top-level react component for editing R markdown documents
 */
 
-import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
 import { set } from "@cocalc/util/misc";
-import { derive_rmd_output_filename } from "./utils";
-import { EditorDescription } from "../frame-tree/types";
-import { createEditor } from "../frame-tree/editor";
+
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
-import { SETTINGS_SPEC } from "../settings/editor";
+import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { IFrameHTML } from "../html-editor/iframe-html";
-import { PDFJS } from "../latex-editor/pdfjs";
 import { pdfjsCommands } from "../latex-editor/editor";
+import { PDFJS } from "../latex-editor/pdfjs";
+import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
+import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
+
 import { BuildLog } from "./build-log";
+import { derive_rmd_output_filename } from "./utils";
+
+const cm: EditorDescription = {
+  type: "cm",
+  short: "Code",
+  name: "Source Code",
+  icon: "code",
+  component: CodemirrorEditor,
+  commands: set([
+    "help",
+    "format_action",
+    "chatgpt",
+    "print",
+    "decrease_font_size",
+    "increase_font_size",
+    "save",
+    "time_travel",
+    "replace",
+    "find",
+    "goto_line",
+    "cut",
+    "paste",
+    "copy",
+    "undo",
+    "redo",
+    "format",
+    "build",
+    "force_build",
+    "stop_build",
+    "build_on_save",
+    "settings",
+  ]),
+  buttons: set([
+    "format-ai_formula",
+    "decrease_font_size",
+    "increase_font_size",
+    "build",
+    "force_build",
+    "build_on_save",
+  ]),
+} as const;
+
+const iframe: EditorDescription = {
+  type: "preview-html",
+  short: "HTML",
+  name: "HTML (Converted)",
+  icon: "compass",
+  component: IFrameHTML,
+  mode: "rmd",
+  path(path) {
+    return derive_rmd_output_filename(path, "html");
+  },
+  commands: set([
+    "print",
+    "save",
+    "time_travel",
+    "reload",
+    "decrease_font_size",
+    "increase_font_size",
+    "build",
+    "force_build",
+    "stop_build",
+  ]),
+  buttons: set([
+    "reload",
+    "decrease_font_size",
+    "increase_font_size",
+    "build",
+    "force_build",
+  ]),
+} as const;
+
+// By default, only html is generated. This viewer is still there in case the user explicitly tells RMarkdown to generate a PDF
+
+const pdfjs_canvas: EditorDescription = {
+  type: "pdfjs-canvas",
+  short: "PDF",
+  name: "PDF (Converted)",
+  icon: "file-pdf",
+  component: PDFJS,
+  mode: "rmd",
+  commands: pdfjsCommands,
+  buttons: set([
+    "decrease_font_size",
+    "increase_font_size",
+    "zoom_page_width",
+    "zoom_page_height",
+    "set_zoom",
+    "build",
+    "force_build",
+  ]),
+  renderer: "canvas",
+  path(path) {
+    return derive_rmd_output_filename(path, "pdf");
+  },
+} as const;
+
+const markdown: EditorDescription = {
+  type: "markdown-rendered",
+  short: "Markdown",
+  name: "Markdown (only rendered)",
+  icon: "eye",
+  component: RenderedMarkdown,
+  reload_images: true,
+  commands: set([
+    "print",
+    "decrease_font_size",
+    "increase_font_size",
+    "reload",
+    "build",
+    "force_build",
+    "stop_build",
+  ]),
+  buttons: set([
+    "decrease_font_size",
+    "increase_font_size",
+    "reload",
+    "build",
+    "force_build",
+  ]),
+} as const;
+
+const build: EditorDescription = {
+  type: "rmd-build",
+  short: "Build Log",
+  name: "Build Log",
+  icon: "gears",
+  component: BuildLog,
+  commands: set([
+    "build",
+    "force_build",
+    "stop_build",
+    "decrease_font_size",
+    "increase_font_size",
+  ]),
+  buttons: set(["build", "force_build", "stop_build"]),
+} as const;
 
 const EDITOR_SPEC = {
-  cm: {
-    short: "Code",
-    name: "Source Code",
-    icon: "code",
-    component: CodemirrorEditor,
-    commands: set([
-      "help",
-      "format_action",
-      "chatgpt",
-      "print",
-      "decrease_font_size",
-      "increase_font_size",
-      "save",
-      "time_travel",
-      "replace",
-      "find",
-      "goto_line",
-      "cut",
-      "paste",
-      "copy",
-      "undo",
-      "redo",
-      "format",
-      "build",
-    ]),
-  } as EditorDescription,
-
-  iframe: {
-    short: "HTML",
-    name: "HTML (Converted)",
-    icon: "compass",
-    component: IFrameHTML,
-    mode: "rmd",
-    path(path) {
-      return derive_rmd_output_filename(path, "html");
-    },
-    commands: set([
-      "print",
-      "save",
-      "time_travel",
-      "reload",
-      "decrease_font_size",
-      "increase_font_size",
-    ]),
-    buttons: set(["reload", "decrease_font_size", "increase_font_size"]),
-  } as EditorDescription,
-
-  // By default, only html is generated. This viewer is still there in case the user explicitly tells RMarkdown to generate a PDF
-
-  pdfjs_canvas: {
-    short: "PDF",
-    name: "PDF (Converted)",
-    icon: "file-pdf",
-    component: PDFJS,
-    mode: "rmd",
-    commands: pdfjsCommands,
-    buttons: set([
-      "decrease_font_size",
-      "increase_font_size",
-      "zoom_page_width",
-      "zoom_page_height",
-      "set_zoom",
-    ]),
-    renderer: "canvas",
-    path(path) {
-      return derive_rmd_output_filename(path, "pdf");
-    },
-  } as EditorDescription,
-
-  markdown: {
-    short: "Markdown",
-    name: "Markdown (only rendered)",
-    icon: "eye",
-    component: RenderedMarkdown,
-    reload_images: true,
-    commands: set([
-      "print",
-      "decrease_font_size",
-      "increase_font_size",
-      "reload",
-    ]),
-    buttons: set(["decrease_font_size", "increase_font_size", "reload"]),
-  } as EditorDescription,
-
-  build: {
-    short: "Build Log",
-    name: "Build Log",
-    icon: "gears",
-    component: BuildLog,
-    commands: set(["build", "decrease_font_size", "increase_font_size"]),
-    buttons: set(["build"]),
-  } as EditorDescription,
-
+  cm,
+  iframe,
+  pdfjs_canvas,
+  markdown,
+  build,
   terminal,
-
   time_travel,
-
   settings: SETTINGS_SPEC,
-};
+} as const;
 
 export const Editor = createEditor({
   format_bar: true,

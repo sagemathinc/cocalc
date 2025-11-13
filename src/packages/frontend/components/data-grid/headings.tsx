@@ -81,8 +81,10 @@ export function ColumnHeading({
 
 function ResizeHandle({ setWidth, width, ignoreClick }) {
   const [pos, setPos] = useState<any>(undefined);
+  const nodeRef = useRef<any>({});
   return (
     <Draggable
+      nodeRef={nodeRef}
       onMouseDown={ignoreClick}
       position={pos}
       axis="x"
@@ -95,7 +97,7 @@ function ResizeHandle({ setWidth, width, ignoreClick }) {
         setWidth(width + data.deltaX);
       }}
     >
-      <span className="cocalc-data-grid-column-resizer"></span>
+      <span ref={nodeRef} className="cocalc-data-grid-column-resizer"></span>
     </Draggable>
   );
 }

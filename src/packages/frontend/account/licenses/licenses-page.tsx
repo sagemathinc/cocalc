@@ -1,10 +1,8 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { React } from "@cocalc/frontend/app-framework";
-import { Footer } from "@cocalc/frontend/customize";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { DOC_LICENSE_URL } from "../../billing/data";
 import { ManagedLicenses } from "./managed-licenses";
@@ -12,20 +10,23 @@ import { ProjectsWithLicenses } from "./projects-with-licenses";
 import Next from "@cocalc/frontend/components/next";
 import { A } from "@cocalc/frontend/components/A";
 
-export const LicensesPage: React.FC = () => {
+export function LicensesPage() {
   return (
-    <div>
+    <div style={{ margin: "auto" }}>
       <div style={{ fontSize: "12pt" }}>
         <h3>About</h3>
         <A href={DOC_LICENSE_URL}>Licenses</A> allow you to automatically
         upgrade projects whenever they start up, so that they have more memory,
-        better hosting, run faster, etc.
+        run faster, etc.
       </div>
       <br />
       <div>
-        <BuyLicenseForProject />
+        <BuyLicenseForProject noVoucher />
       </div>
+      <ManagedLicenses />
+      <ProjectsWithLicenses />
       <div>
+        {/* kind of outdated */}
         <h3>Links</h3>
         <ul style={{ fontSize: "12pt" }}>
           <li>
@@ -45,12 +46,6 @@ export const LicensesPage: React.FC = () => {
           </li>
         </ul>
       </div>
-      <br />
-      <ManagedLicenses />
-      <br />
-      <ProjectsWithLicenses />
-      <br />
-      <Footer />
     </div>
   );
-};
+}

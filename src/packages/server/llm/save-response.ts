@@ -2,12 +2,12 @@ import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { ChatGPTLogEntry } from "@cocalc/util/db-schema/openai";
+import { LLMLogEntry } from "@cocalc/util/db-schema/llm";
 
 const log = getLogger("llm:save-response");
 
 // time, id is set by the database, and expire in the saveResponse function
-type SaveResponseProps = Omit<ChatGPTLogEntry, "time" | "id" | "expire">;
+type SaveResponseProps = Omit<LLMLogEntry, "time" | "id" | "expire">;
 
 // Save the response to the database.
 
@@ -29,7 +29,7 @@ export async function saveResponse({
   total_time_s,
   total_tokens,
 }: SaveResponseProps) {
-  const expire: ChatGPTLogEntry["expire"] = await getExpiration(account_id);
+  const expire: LLMLogEntry["expire"] = await getExpiration(account_id);
   const pool = getPool();
   try {
     await pool.query(

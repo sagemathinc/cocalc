@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { getServerSettings } from "@cocalc/database/settings";
@@ -11,7 +11,7 @@ export async function getQuotaSiteSettings(): Promise<
   SiteSettingsQuotas | undefined
 > {
   const allSettings = await getServerSettings();
-  // default_quotas and max_upgrades only play a role for cocalc-cloud
+  // default_quotas and max_upgrades only play a role for cocalc-onprem
   // it's fine to pass down "undefined" to the quota calculation function
   if (allSettings.kucalc === KUCALC_ON_PREMISES) {
     return {

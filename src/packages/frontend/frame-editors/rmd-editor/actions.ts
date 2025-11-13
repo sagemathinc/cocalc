@@ -1,34 +1,45 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 R Markdown Editor Actions
 */
 
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { debounce } from "lodash";
+// cSpell:ignore rnorm
+
 import { Set } from "immutable";
-import { Actions as MarkdownActions } from "../markdown-editor/actions";
-import { convert } from "./rmd-converter";
-import { markdown_to_html_frontmatter } from "../../markdown";
-import { FrameTree } from "../frame-tree/types";
-import { redux } from "../../app-framework";
-import { ExecOutput } from "../generic/client";
+import { debounce } from "lodash";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import { markdown_to_html_frontmatter } from "@cocalc/frontend/markdown";
+import { open_new_tab } from "@cocalc/frontend/misc";
 import { path_split } from "@cocalc/util/misc";
-import { derive_rmd_output_filename } from "./utils";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
-import { open_new_tab } from "@cocalc/frontend/misc";
+import { FrameTree } from "../frame-tree/types";
+import { exec, ExecOutput } from "../generic/client";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+import { Actions as MarkdownActions } from "../markdown-editor/actions";
+import { convert } from "./rmd-converter";
+import { derive_rmd_output_filename } from "./utils";
 const HELP_URL = "https://doc.cocalc.com/frame-editor.html#edit-rmd";
 
-const MINIMAL = `# Title
+const MINIMAL = `---
+title: "Title"
+output:
+  html_document:
+    toc: true
+---
+
+## Title
 
 \`\`\`{r}
-summary(c(1,2,3))
+summary(rnorm(100))
 \`\`\`
 `;
 
@@ -55,12 +66,13 @@ output: html_document
 `;
 
 export class Actions extends MarkdownActions {
-  private _last_rmd_hash: string | null = null;
+  private _last_rmd_hash: number | undefined = undefined;
   private is_building: boolean = false;
-  private run_rmd_converter: Function;
+  public run_rmd_converter: Function;
 
   _init2(): void {
     super._init2(); // that's the one in markdown-editor/actions.ts
+    this.build = this.build.bind(this);
     // one extra thing after markdown.
     this._syncstring.once("ready", () => {
       this._init_rmd_converter();
@@ -73,7 +85,7 @@ export class Actions extends MarkdownActions {
     );
   }
 
-  private do_implicit_builds(): boolean {
+  private do_build_on_save(): boolean {
     const account: any = this.redux.getStore("account");
     if (account != null) {
       return !!account.getIn(["editor_settings", "build_on_save"]);
@@ -84,35 +96,42 @@ export class Actions extends MarkdownActions {
   _init_rmd_converter(): void {
     // one build takes min. a few seconds up to a minute or more
     this.run_rmd_converter = debounce(
-      async (hash?) => await this._run_rmd_converter(hash),
+      async (hash?: number) => await this._run_rmd_converter(hash),
       5 * 1000,
       { leading: true, trailing: false },
     );
 
     const do_build = reuseInFlight(async () => {
-      if (!this.do_implicit_builds()) return;
+      if (!this.do_build_on_save()) return;
       if (this._syncstring == null) return;
       const hash = this._syncstring.hash_of_saved_version();
       if (this._last_rmd_hash != hash) {
         this._last_rmd_hash = hash;
-        await this.run_rmd_converter();
+        await this.run_rmd_converter(hash);
       }
     });
 
     this._syncstring.on("save-to-disk", do_build);
     this._syncstring.on("after-change", do_build);
-    this.run_rmd_converter();
+    // Initial run with current hash if available
+    const initial_hash = this._syncstring.hash_of_saved_version();
+    this.run_rmd_converter(initial_hash);
   }
 
-  async build(id?: string): Promise<void> {
+  async build(id?: string, force: boolean = false): Promise<void> {
     if (id) {
       const cm = this._get_cm(id);
       if (cm) {
         cm.focus();
       }
     }
+    // initiating a build. if one is running & forced, we stop the build
     if (this.is_building) {
-      return;
+      if (force) {
+        await this.stop_build("");
+      } else {
+        return;
+      }
     }
     this.is_building = true;
     try {
@@ -123,10 +142,60 @@ export class Actions extends MarkdownActions {
         return;
       }
       await (actions as BaseActions<CodeEditorState>).save(false);
-      await this.run_rmd_converter(Date.now());
+      // For force builds, bypass the debounced function to ensure immediate execution
+      if (force) {
+        await this._run_rmd_converter(Date.now());
+      } else {
+        await this.run_rmd_converter(Date.now());
+      }
     } finally {
       this.is_building = false;
     }
+  }
+
+  // supports the "Force Rebuild" button.
+  async force_build(id: string): Promise<void> {
+    await this.build(id, true);
+  }
+
+  // This stops the current RMD build process and resets the state.
+  async stop_build(_id: string): Promise<void> {
+    const job_info = this.store.get("job_info")?.toJS() as
+      | ExecuteCodeOutputAsync
+      | undefined;
+
+    if (
+      job_info &&
+      job_info.type === "async" &&
+      job_info.status === "running" &&
+      typeof job_info.pid === "number"
+    ) {
+      try {
+        // Kill the process using the same approach as LaTeX editor
+        await exec(
+          {
+            project_id: this.project_id,
+            // negative PID, to kill the entire process group
+            command: `kill -9 -${job_info.pid}`,
+            // bash:true is necessary. kill + array does not work.
+            bash: true,
+            err_on_exit: false,
+          },
+          this.path,
+        );
+      } catch (err) {
+        // likely "No such process", we just ignore it
+      } finally {
+        // Update the job status to killed
+        const updated_job_info: ExecuteCodeOutputAsync = {
+          ...job_info,
+          status: "killed",
+        };
+        this.setState({ job_info: updated_job_info });
+      }
+    }
+    this.set_status("");
+    this.setState({ building: false });
   }
 
   async _check_produced_files(): Promise<void> {
@@ -172,9 +241,20 @@ export class Actions extends MarkdownActions {
 
   private set_log(output?: ExecOutput | undefined): void {
     this.setState({
-      build_err: output?.stderr.trim(),
-      build_log: output?.stdout.trim(),
+      build_err: output?.stderr?.trim(),
+      build_log: output?.stdout?.trim(),
       build_exit: output?.exit_code,
+      job_info: output?.type === "async" ? output : undefined,
+    });
+  }
+
+  private set_job_info(job_info: ExecuteCodeOutputAsync): void {
+    if (!job_info) return;
+    this.setState({
+      build_log: job_info.stdout?.trim() ?? "",
+      build_err: job_info.stderr?.trim() ?? "",
+      build_exit: job_info.exit_code,
+      job_info,
     });
   }
 
@@ -205,7 +285,8 @@ export class Actions extends MarkdownActions {
         this.project_id,
         this.path,
         frontmatter,
-        hash || this._last_rmd_hash,
+        hash || this._last_rmd_hash || Date.now(),
+        this.set_job_info.bind(this),
       );
       this.set_log(output);
       if (output == null || output.exit_code != 0) {

@@ -1,12 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Saving blobs to hub
-CoCalc: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
-Copyright 2015, SageMath, Inc., GPL v3.
 */
 
 import { getLogger } from "@cocalc/backend/logger";

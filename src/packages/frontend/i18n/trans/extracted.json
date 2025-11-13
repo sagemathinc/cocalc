@@ -1,0 +1,1519 @@
+{
+  "UNIQUE_ID_IS_MISSING": {
+    "defaultMessage": "unique id missing",
+    "description": "This is just an internal message to trigger ID collisions. If you hit this, your i18n message has no ID. Please consult the README in this directory for more information. The usual pattern is something like [dir].[subdir/filename].[section].[label|message|...]. Messages in this file however are prefixed with their purpose."
+  },
+  "account.account-button.confirm.ok": {
+    "defaultMessage": "Yes, sign out"
+  },
+  "account.account-button.confirm.title": {
+    "defaultMessage": "Sign out of your account?"
+  },
+  "account.account_page.translation.info.content": {
+    "defaultMessage": "We're excited to start offering our application in multiple languages! Here's what you need to know: <ul> <li><b>Work in Progress</b>: Our translation effort is just beginning. Many parts of the application are not yet translated.</li> <li><b>Gradual Improvement</b>: We're continuously working to expand our language coverage. You'll see more content translated over time.</li> <li><b>Your Help is Welcome</b>: We value our community's input. If you're fluent in multiple languages and would like to contribute to our translation efforts, we'd love to hear from you!</li> <li><b>Contact Us</b>: To learn more about contributing to translations or to report any issues, please reach out to our support team.</li> </ul> Thank you for your patience and understanding as we work to make our application accessible to a global audience!",
+    "description": "Content of translation information modal"
+  },
+  "account.account_page.translation.info.label": {
+    "defaultMessage": "Translation Info...",
+    "description": "Label of translation information modal in dropdown"
+  },
+  "account.account_page.translation.info.title": {
+    "defaultMessage": "Translation Information",
+    "description": "Title of translation information modal"
+  },
+  "account.account_preferences.title": {
+    "defaultMessage": "Account Preferences"
+  },
+  "account.editor-settings-autosave-interval.label": {
+    "defaultMessage": "Autosave interval"
+  },
+  "account.editor-settings.color-schemes.label": {
+    "defaultMessage": "Editor color scheme"
+  },
+  "account.editor-settings.font-size.label": {
+    "defaultMessage": "Default global font size"
+  },
+  "account.editor-settings.indent-size.label": {
+    "defaultMessage": "Indent size"
+  },
+  "account.editor-settings.title": {
+    "defaultMessage": "Editor"
+  },
+  "account.settings.created.label": {
+    "defaultMessage": "Created"
+  },
+  "account.settings.email_address.button_label": {
+    "defaultMessage": "{type, select, anonymous {Sign up using an email address and password} have_email {Change email address} other {Set email address and password}}"
+  },
+  "account.settings.email_address.new_email_address_label": {
+    "defaultMessage": "New email address"
+  },
+  "account.settings.email_address.password_label": {
+    "defaultMessage": "{have_email, select, true {Current password} other {Choose a password}}"
+  },
+  "account.settings.unlisted.label": {
+    "defaultMessage": "Unlisted: you can only be found by an exact email address match"
+  },
+  "account.settings.username.info": {
+    "defaultMessage": "Setting a username provides optional nicer URL's for shared public documents. Your username can be between 1 and 39 characters, contain upper and lower case letters, numbers, and dashes. {br} WARNING: If you change your username, existing links using the previous username will no longer work (automatic redirects are not implemented), so change with caution."
+  },
+  "account.settings.username.label": {
+    "defaultMessage": "Username (optional)"
+  },
+  "account.sign-out.button.ok": {
+    "defaultMessage": "Yes, sign out{everywhere, select, true { everywhere} other {}}"
+  },
+  "account.sign-out.button.title": {
+    "defaultMessage": "Are you sure you want to sign {account} out {everywhere, select, true {on all web browsers? Every web browser will have to reauthenticate before using this account again.} other {on this web browser?} } {is_anonymous, select, true {Everything you have done using this TEMPORARY ACCOUNT will be immediately deleted! If you would like to save your work to a new account, click cancel and sign up below.} other {} }",
+    "description": "Sign out/Sign out everyhwere button in account settings"
+  },
+  "account.sign_out.body.sign_in": {
+    "defaultMessage": "Sign in to your account...",
+    "description": "Sign in button, if not signed in"
+  },
+  "account.sign_out.body.sign_out": {
+    "defaultMessage": "Sign out{everywhere, select, true { everywhere} other {}}...",
+    "description": "Sign out button, if signed in"
+  },
+  "accountaccount.account_preferences.subtitle": {
+    "defaultMessage": "Adjust account preferences below. <A>Visit your account configuration for more...</A>"
+  },
+  "ai-generate-document.loading_kernels.error_message": {
+    "defaultMessage": "Unable to load Jupyter kernels. Make sure the project is running and Jupyter is installed."
+  },
+  "ai-generate-document.modal.title": {
+    "defaultMessage": "Generate a {docName} Document using AI"
+  },
+  "chat.input.placeholder": {
+    "defaultMessage": "Type a new message ({have_llm, select, true {chat with AI or } other {}}notify a collaborator by typing @)..."
+  },
+  "chatroom.chat_input.preview_button.label": {
+    "defaultMessage": "Preview"
+  },
+  "chatroom.chat_input.send_button.label": {
+    "defaultMessage": "Send"
+  },
+  "chatroom.chat_input.send_button.tooltip": {
+    "defaultMessage": "Send message (shift+enter)"
+  },
+  "chatroom.scroll_bottom.label": {
+    "defaultMessage": "Newest"
+  },
+  "chatroom.scroll_bottom.tooltip.tip": {
+    "defaultMessage": "Scrolls the chat to the bottom showing the newest messages"
+  },
+  "chatroom.scroll_bottom.tooltip.title": {
+    "defaultMessage": "Newest Messages"
+  },
+  "command.format.ai_formula.button": {
+    "defaultMessage": "Formula"
+  },
+  "command.format.ai_formula.label": {
+    "defaultMessage": "AI Generated Formula"
+  },
+  "command.format.ai_formula.title": {
+    "defaultMessage": "Insert AI generated formula."
+  },
+  "command.format.display_equation.button": {
+    "defaultMessage": "Display"
+  },
+  "command.format.display_equation.label": {
+    "defaultMessage": "Displayed Equation"
+  },
+  "command.format.display_equation.title": {
+    "defaultMessage": "Insert display LaTeX math equation"
+  },
+  "command.format.equation.button": {
+    "defaultMessage": "Math"
+  },
+  "command.format.equation.label": {
+    "defaultMessage": "Inline Equation"
+  },
+  "command.format.equation.title": {
+    "defaultMessage": "Insert inline LaTeX math equation"
+  },
+  "command.generic.build.label": {
+    "defaultMessage": "Build"
+  },
+  "command.generic.build.title": {
+    "defaultMessage": "Build the document.{br}To enable or disable automatic builds, click on the 'Build on Save' button or menu entry."
+  },
+  "command.generic.build_on_save.label": {
+    "defaultMessage": "Build on Save {enabled, select, true {(Enabled)} other {(Disabled)}}"
+  },
+  "command.generic.build_on_save.title": {
+    "defaultMessage": "Toggle automatic build on file save."
+  },
+  "command.generic.chatgpt.label": {
+    "defaultMessage": "AI Assistant"
+  },
+  "command.generic.chatgpt.title": {
+    "defaultMessage": "Ask an Artificial Intelligence Assistant (e.g., ChatGPT) for help on what you're doing."
+  },
+  "command.generic.close.button": {
+    "defaultMessage": "Close"
+  },
+  "command.generic.close.label": {
+    "defaultMessage": "Close Frame"
+  },
+  "command.generic.close.title": {
+    "defaultMessage": "Close this frame. To restore the default layout, select the application menu entry 'Default Layout'."
+  },
+  "command.generic.decrease_font_size.button": {
+    "defaultMessage": "Smaller"
+  },
+  "command.generic.decrease_font_size.label": {
+    "defaultMessage": "Zoom Out"
+  },
+  "command.generic.decrease_font_size.title": {
+    "defaultMessage": "Decrease Font Size"
+  },
+  "command.generic.edit_init_script.label": {
+    "defaultMessage": "Initialization Script"
+  },
+  "command.generic.edit_init_script.title": {
+    "defaultMessage": "Edit the initialization script that is run when this starts"
+  },
+  "command.generic.force_build.label": {
+    "defaultMessage": "Force Build"
+  },
+  "command.generic.force_build.title": {
+    "defaultMessage": "Force rebuild entire project."
+  },
+  "command.generic.increase_font_size.button": {
+    "defaultMessage": "Bigger"
+  },
+  "command.generic.increase_font_size.label": {
+    "defaultMessage": "Zoom In"
+  },
+  "command.generic.increase_font_size.title": {
+    "defaultMessage": "Increase Font Size"
+  },
+  "command.generic.maximize.label": {
+    "defaultMessage": "{is_full, select, true {Demaximize Frame} other {Maximize Frame}}",
+    "description": "Depending on is_full, say maximize or de-maximize frame."
+  },
+  "command.generic.maximize.title": {
+    "defaultMessage": "Toggle whether or not this frame is maximized"
+  },
+  "command.generic.open.label": {
+    "defaultMessage": "Open File",
+    "description": "Label on menu item"
+  },
+  "command.generic.open.title": {
+    "defaultMessage": "Open a file",
+    "description": "Tooltip on menu item"
+  },
+  "command.generic.open_recent.label": {
+    "defaultMessage": "Open Recent",
+    "description": "Label on menu item"
+  },
+  "command.generic.open_recent.title": {
+    "defaultMessage": "Open a file that was recently opened",
+    "description": "Tooltip on menu item"
+  },
+  "command.generic.reset_local_view_state.button": {
+    "defaultMessage": "Default"
+  },
+  "command.generic.reset_local_view_state.label": {
+    "defaultMessage": "Default Layout"
+  },
+  "command.generic.reset_local_view_state.title": {
+    "defaultMessage": "Reset the layout of all frames to the default"
+  },
+  "command.generic.show_table_of_contents.button": {
+    "defaultMessage": "Contents"
+  },
+  "command.generic.show_table_of_contents.title": {
+    "defaultMessage": "Show the Table of Contents"
+  },
+  "command.generic.split_col.label": {
+    "defaultMessage": "Split Right",
+    "description": "Split a frame vertically"
+  },
+  "command.generic.split_row.title": {
+    "defaultMessage": "Split frame horizontally into two rows"
+  },
+  "command.generic.stop_build.label": {
+    "defaultMessage": "Stop"
+  },
+  "command.generic.stop_build.title": {
+    "defaultMessage": "Stop all running jobs."
+  },
+  "command.generic.sync.label": {
+    "defaultMessage": "Synchronize Views",
+    "description": "Synchronize the LaTeX source view with the PDF output"
+  },
+  "command.generic.sync.title": {
+    "defaultMessage": "Synchronize the LaTeX source view with the PDF output."
+  },
+  "command.generic.word_count.title": {
+    "defaultMessage": "Show information about the number of words in this document.",
+    "description": "Tooltip for 'Word Count'"
+  },
+  "command.generic.zoom_page_height.label": {
+    "defaultMessage": "Zoom to Height"
+  },
+  "command.generic.zoom_page_height.title": {
+    "defaultMessage": "Zoom to page height"
+  },
+  "command.generic.zoom_page_width.label": {
+    "defaultMessage": "Zoom to Width"
+  },
+  "command.generic.zoom_page_width.title": {
+    "defaultMessage": "Zoom to page width"
+  },
+  "commands.generic.toggle_button_bar.confirm.description": {
+    "defaultMessage": "The menu toolbar is a customizable bar of shortcuts to menu items. <ul> <li> Everything in the menu toolbar is always available in the menus above. </li> <li> Show the toolbar by selecting 'View → Show Menu Toolbar'. </li> <li> Toggle buttons by clicking the icon next to any top level menu item. </li> <li> Hide only this frame's toolbar: 'View → Menu Toolbar → Remove All Buttons'. </li> </ul>"
+  },
+  "commands.generic.toggle_button_bar.confirm.ok": {
+    "defaultMessage": "Hide Menu Toolbar"
+  },
+  "commands.generic.toggle_button_bar.confirm.title": {
+    "defaultMessage": "Hide Menu Toolbar For All Editors"
+  },
+  "commands.generic.toggle_button_bar.label": {
+    "defaultMessage": "{show, select, true {Hide} other {Show}} Menu Toolbar..."
+  },
+  "commands.generic.toggle_button_bar.title": {
+    "defaultMessage": "Toggle whether or not the menu toolbar is displayed for all editors."
+  },
+  "editor.build_control_and_log.title": {
+    "defaultMessage": "Build Control and Log"
+  },
+  "editor.build_control_and_log.title.short": {
+    "defaultMessage": "Build"
+  },
+  "editor.editor_settings": {
+    "defaultMessage": "Editor Settings",
+    "description": "The name of the editor settings frame"
+  },
+  "editor.errors_and_warning.title": {
+    "defaultMessage": "Errors and Warnings"
+  },
+  "editor.errors_and_warning.title.short": {
+    "defaultMessage": "Errors"
+  },
+  "editor.latex.cm.title": {
+    "defaultMessage": "LaTeX Source Code"
+  },
+  "editor.latex.cm.title.short": {
+    "defaultMessage": "Source"
+  },
+  "editor.latex.command.print.label": {
+    "defaultMessage": "Print LaTeX Source"
+  },
+  "editor.latex.command.print.tooltip": {
+    "defaultMessage": "Print the source code of this document. Use Print from the PDF Preview frame to print the rendered document."
+  },
+  "editor.latex.pdf_embed.title": {
+    "defaultMessage": "PDF - Native"
+  },
+  "editor.latex.pdf_embed.title.short": {
+    "defaultMessage": "PDF (native)"
+  },
+  "editor.pdfjs_canvas.title": {
+    "defaultMessage": "PDF - Preview"
+  },
+  "editor.pdfjs_canvas.title.short": {
+    "defaultMessage": "PDF (preview)"
+  },
+  "editor.snippets.label": {
+    "defaultMessage": "Snippets"
+  },
+  "editor.snippets.tooltip": {
+    "defaultMessage": "Open a panel containing code snippets."
+  },
+  "editor.table_of_contents.name": {
+    "defaultMessage": "Table of Contents"
+  },
+  "editor.table_of_contents.short": {
+    "defaultMessage": "Content",
+    "description": "Short for Table of Contents"
+  },
+  "editor.terminal.cmd.help.title": {
+    "defaultMessage": "Show documentation for using the Linux Terminal in CoCalc."
+  },
+  "frame_editors.frame_tree.title_bar.close": {
+    "defaultMessage": "Close this frame",
+    "description": "Click this X button to close the frame"
+  },
+  "frame_editors.frame_tree.title_bar.maximize": {
+    "defaultMessage": "Show only this frame",
+    "description": "Maximize this frame to show only this one"
+  },
+  "frame_editors.frame_tree.title_bar.minimize": {
+    "defaultMessage": "Show all frames",
+    "description": "Minimize this frame to show all frames"
+  },
+  "i18n.localization.lang.chinese": {
+    "defaultMessage": "Chinese"
+  },
+  "i18n.localization.lang.english": {
+    "defaultMessage": "English"
+  },
+  "i18n.localization.lang.french": {
+    "defaultMessage": "French"
+  },
+  "i18n.localization.lang.german": {
+    "defaultMessage": "German"
+  },
+  "i18n.localization.lang.hebrew": {
+    "defaultMessage": "Hebrew"
+  },
+  "i18n.localization.lang.italian": {
+    "defaultMessage": "Italian"
+  },
+  "i18n.localization.lang.japanese": {
+    "defaultMessage": "Japanese"
+  },
+  "i18n.localization.lang.korean": {
+    "defaultMessage": "Korean"
+  },
+  "i18n.localization.lang.polish": {
+    "defaultMessage": "Polish"
+  },
+  "i18n.localization.lang.portuguese": {
+    "defaultMessage": "Portuguese"
+  },
+  "i18n.localization.lang.russian": {
+    "defaultMessage": "Russian"
+  },
+  "i18n.localization.lang.spanish": {
+    "defaultMessage": "Spanish"
+  },
+  "i18n.localization.lang.turkish": {
+    "defaultMessage": "Turkish"
+  },
+  "jupyter.cell-buttonbar-menu.copy-cell": {
+    "defaultMessage": "Copy Cell",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.cell-buttonbar-menu.copy-clipboard": {
+    "defaultMessage": "Copy to Clipboard"
+  },
+  "jupyter.cell-buttonbar-menu.cut-cell": {
+    "defaultMessage": "Cut Cell",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.cell-buttonbar-menu.delete-cell": {
+    "defaultMessage": "Delete Cell",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.cell-buttonbar-menu.duplicate": {
+    "defaultMessage": "Duplicate Cell",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.cell-buttonbar-menu.merge-above": {
+    "defaultMessage": "Merge with Cell Above",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.cell-buttonbar-menu.merge-below": {
+    "defaultMessage": "Merge with Cell Below",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.cell-buttonbar-menu.move-cell-down": {
+    "defaultMessage": "Move Cell Down",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.cell-buttonbar-menu.move-cell-up": {
+    "defaultMessage": "Move Cell Up",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.cell-buttonbar-menu.paste-cell-above": {
+    "defaultMessage": "Paste Cell Above",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.cell-buttonbar-menu.paste-cell-below": {
+    "defaultMessage": "Paste Cell Below",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.cell-buttonbar-menu.paste-clipboard": {
+    "defaultMessage": "Paste from Clipboard"
+  },
+  "jupyter.cell-buttonbar-menu.split-cell": {
+    "defaultMessage": "Split Cell at Cursor",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.cell-buttonbr.format-button.label": {
+    "defaultMessage": "Format",
+    "description": "Code cell in a Jupyter Notebook"
+  },
+  "jupyter.cell-buttonbr.format-button.tooltip": {
+    "defaultMessage": "Format this code to look nice",
+    "description": "Code cell in a Jupyter Notebook"
+  },
+  "jupyter.commands.cell_toolbar_attachments.label": {
+    "defaultMessage": "Attachments toolbar"
+  },
+  "jupyter.commands.cell_toolbar_attachments.menu": {
+    "defaultMessage": "Attachments"
+  },
+  "jupyter.commands.cell_toolbar_create_assignment.label": {
+    "defaultMessage": "Create Assignment Using NBgrader",
+    "description": "Do not translate 'NBGrader'"
+  },
+  "jupyter.commands.cell_toolbar_create_assignment.menu": {
+    "defaultMessage": "Create assignment (nbgrader)",
+    "description": "Do not translate 'nbgrader'"
+  },
+  "jupyter.commands.cell_toolbar_metadata.label": {
+    "defaultMessage": "Edit custom metadata toolbar"
+  },
+  "jupyter.commands.cell_toolbar_metadata.menu": {
+    "defaultMessage": "Metadata"
+  },
+  "jupyter.commands.cell_toolbar_none": {
+    "defaultMessage": "No cell toolbar",
+    "description": "Jupyter Notebook cell toolbar 'None' hides the toolbar"
+  },
+  "jupyter.commands.cell_toolbar_none_menu": {
+    "defaultMessage": "None",
+    "description": "Jupyter Notebook cell toolbar 'None' hides the toolbar"
+  },
+  "jupyter.commands.cell_toolbar_slideshow.label": {
+    "defaultMessage": "Slideshow toolbar"
+  },
+  "jupyter.commands.cell_toolbar_slideshow.menu": {
+    "defaultMessage": "Slideshow"
+  },
+  "jupyter.commands.cell_toolbar_tags.label": {
+    "defaultMessage": "Edit cell tags toolbar"
+  },
+  "jupyter.commands.cell_toolbar_tags.menu": {
+    "defaultMessage": "Tags"
+  },
+  "jupyter.commands.cell_type.menu": {
+    "defaultMessage": "Cell Type",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.cells_collapse.menu": {
+    "defaultMessage": "Collapse",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.cells_expand.menu": {
+    "defaultMessage": "Expand",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.cells_protect.menu": {
+    "defaultMessage": "Protect",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.cells_unlock.menu": {
+    "defaultMessage": "Remove Protection",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.cells_unlock.menu.button": {
+    "defaultMessage": "Unlock",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.change_cell_to_code.label": {
+    "defaultMessage": "Change Cell to Code"
+  },
+  "jupyter.commands.change_cell_to_heading_1.label": {
+    "defaultMessage": "Change Markdown to Heading 1"
+  },
+  "jupyter.commands.change_cell_to_heading_2.label": {
+    "defaultMessage": "Change Markdown to Heading 2"
+  },
+  "jupyter.commands.change_cell_to_heading_3.label": {
+    "defaultMessage": "Change Markdown to Heading 3"
+  },
+  "jupyter.commands.change_cell_to_heading_4.label": {
+    "defaultMessage": "Change Markdown to Heading 4"
+  },
+  "jupyter.commands.change_cell_to_heading_5.label": {
+    "defaultMessage": "Change Markdown to Heading 5"
+  },
+  "jupyter.commands.change_cell_to_heading_6.label": {
+    "defaultMessage": "Change Markdown to Heading 6"
+  },
+  "jupyter.commands.change_cell_to_markdown.label": {
+    "defaultMessage": "Change Cell to Markdown",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.commands.change_cell_to_row.label": {
+    "defaultMessage": "Change Cell to Raw",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.commands.change_kernel": {
+    "defaultMessage": "Change Kernel...",
+    "description": "Change the Kernel in the Jupyter Notebook"
+  },
+  "jupyter.commands.change_kernel_title": {
+    "defaultMessage": "Select from any of the available kernels.",
+    "description": "Tooltip description for changing the Kernel in the Jupyter Notebook"
+  },
+  "jupyter.commands.clear_all_cells_output.label": {
+    "defaultMessage": "Clear All Cell Outputs"
+  },
+  "jupyter.commands.clear_all_cells_output.tooltip": {
+    "defaultMessage": "Clear the output of all cells in the notebook"
+  },
+  "jupyter.commands.clear_cells_output.label": {
+    "defaultMessage": "Clear Output of Selected Cells"
+  },
+  "jupyter.commands.clear_cells_output.tooltip": {
+    "defaultMessage": "Clear the output of the selected cells"
+  },
+  "jupyter.commands.clear_output.menu": {
+    "defaultMessage": "Clear Output",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.close_and_halt.menu": {
+    "defaultMessage": "Close and halt",
+    "description": "Close and halt the Kernel and Jupyter Notebook"
+  },
+  "jupyter.commands.copy_cells.label": {
+    "defaultMessage": "Copy Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.custom_kernel.menu.menu": {
+    "defaultMessage": "How to Create a Custom Kernel..."
+  },
+  "jupyter.commands.custom_kernel.menu.tooltip": {
+    "defaultMessage": "Show tutorial for how to create your own custom Jupyter kernel and use it here."
+  },
+  "jupyter.commands.cut_cells.label": {
+    "defaultMessage": "Cut Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.delete_all_blank_code_cells.label": {
+    "defaultMessage": "Delete All Blank Code Cells"
+  },
+  "jupyter.commands.delete_cells.label": {
+    "defaultMessage": "Delete Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.delete_cells.menu": {
+    "defaultMessage": "Delete Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.deselect_all_cells.menu": {
+    "defaultMessage": "Deselect All Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.download_as_html": {
+    "defaultMessage": "Save and Export As HTML"
+  },
+  "jupyter.commands.download_as_pdf": {
+    "defaultMessage": "Save and Export As PDF"
+  },
+  "jupyter.commands.duplicate_notebook.menu": {
+    "defaultMessage": "Make a copy..."
+  },
+  "jupyter.commands.edit_keyboard_shortcuts.button": {
+    "defaultMessage": "Commands"
+  },
+  "jupyter.commands.edit_keyboard_shortcuts.label": {
+    "defaultMessage": "All Keyboard Shortcuts and Commands..."
+  },
+  "jupyter.commands.enter_command_mode": {
+    "defaultMessage": "Enter command mode"
+  },
+  "jupyter.commands.enter_edit_mode": {
+    "defaultMessage": "Enter edit mode"
+  },
+  "jupyter.commands.export.menu": {
+    "defaultMessage": "Save and Export..."
+  },
+  "jupyter.commands.find_and_replace.label": {
+    "defaultMessage": "Find and Replace"
+  },
+  "jupyter.commands.format_cells.menu": {
+    "defaultMessage": "Format Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.format_cells.menu.button": {
+    "defaultMessage": "Format",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.halt_kernel_menu.menu": {
+    "defaultMessage": "Halt kernel...",
+    "description": "Halting a Kernel of a Jupyter Notebook"
+  },
+  "jupyter.commands.hide_code_folding.menu": {
+    "defaultMessage": "Disable Code Folding"
+  },
+  "jupyter.commands.hide_header.menu": {
+    "defaultMessage": "Hide header"
+  },
+  "jupyter.commands.insert_cell_above": {
+    "defaultMessage": "Insert Cell Above"
+  },
+  "jupyter.commands.insert_cell_below": {
+    "defaultMessage": "Insert Cell Below"
+  },
+  "jupyter.commands.insert_cells.menu": {
+    "defaultMessage": "Insert Cell",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.interrupt_kernel": {
+    "defaultMessage": "Interrupt Kernel (Stop)",
+    "description": "In a Jupyter Notebook, interrupt the running kernel"
+  },
+  "jupyter.commands.merge_cell_above.menu": {
+    "defaultMessage": "Merge Cell Above",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.merge_cell_below.menu": {
+    "defaultMessage": "Merge Cell Below",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.merge_cells.menu": {
+    "defaultMessage": "Merge Selected Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.move_cells.menu": {
+    "defaultMessage": "Move Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.move_cells_down.menu": {
+    "defaultMessage": "Move Selected Cells Down",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.move_cells_up.menu": {
+    "defaultMessage": "Move Selected Cells Up",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.move_cursor_down.menu": {
+    "defaultMessage": "Move cursor down"
+  },
+  "jupyter.commands.move_cursor_up.menu": {
+    "defaultMessage": "Move cursor up"
+  },
+  "jupyter.commands.nbconvert_slides.label": {
+    "defaultMessage": "Slideshow server via nbconvert",
+    "description": "do not translate 'nbconvert'"
+  },
+  "jupyter.commands.nbgrader_assign.button": {
+    "defaultMessage": "Generate"
+  },
+  "jupyter.commands.nbgrader_assign.menu": {
+    "defaultMessage": "Generate student version..."
+  },
+  "jupyter.commands.nbgrader_assign.tooltip": {
+    "defaultMessage": "Generate the student version of this document, which strips out the extra instructor tests and cells."
+  },
+  "jupyter.commands.paste_cells.menu": {
+    "defaultMessage": "Paste Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.paste_cells_above.menu": {
+    "defaultMessage": "Paste Cells Above",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.paste_cells_below.menu": {
+    "defaultMessage": "Paste Cells Below",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.paste_cells_replace.menu": {
+    "defaultMessage": "Paste Cells and Replace",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.refresh_kernels": {
+    "defaultMessage": "Refresh Kernel List",
+    "description": "Reload list of all Kernels for Jupyter Notebooks"
+  },
+  "jupyter.commands.refresh_kernels.tooltip": {
+    "defaultMessage": "Reload list of all available Kernels for running Jupyter Notebooks"
+  },
+  "jupyter.commands.restart_kernel.button": {
+    "defaultMessage": "Kernel",
+    "description": "Restart Kernel of a Jupyter Notebook"
+  },
+  "jupyter.commands.restart_kernel.label": {
+    "defaultMessage": "Restart Kernel...",
+    "description": "Restart Kernel of a Jupyter Notebook"
+  },
+  "jupyter.commands.restart_kernel_clear_noconf.menu": {
+    "defaultMessage": "Restart kernel and clear output",
+    "description": "Restart Kernel of a Jupyter Notebook and clear all output"
+  },
+  "jupyter.commands.restart_kernel_clear_output.menu": {
+    "defaultMessage": "Restart Kernel and Clear All Outputs..."
+  },
+  "jupyter.commands.restart_kernel_noconf.menu": {
+    "defaultMessage": "Restart kernel",
+    "description": "Restart Kernel of a Jupyter Notebook"
+  },
+  "jupyter.commands.restart_kernel_run_all_cells": {
+    "defaultMessage": "Restart and Run All Cells..."
+  },
+  "jupyter.commands.restart_kernel_run_all_cells.button": {
+    "defaultMessage": "Run all..."
+  },
+  "jupyter.commands.restart_kernel_run_all_cells_menu": {
+    "defaultMessage": "Run all..."
+  },
+  "jupyter.commands.restart_kernel_run_all_cells_noconf": {
+    "defaultMessage": "Restart Kernel and Run All Cells"
+  },
+  "jupyter.commands.restart_kernel_run_all_cells_noconf_button": {
+    "defaultMessage": "Run All"
+  },
+  "jupyter.commands.restart_kernel_run_all_cells_without_halting": {
+    "defaultMessage": "Restart and Run All (do not stop on errors)..."
+  },
+  "jupyter.commands.run_all_cells.menu": {
+    "defaultMessage": "Run All Cells",
+    "description": "Run all cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.run_all_cells_above.menu": {
+    "defaultMessage": "Run All Above Selected Cell",
+    "description": "Run all cells above selected cell in a Jupyter Notebook"
+  },
+  "jupyter.commands.run_all_cells_below.menu": {
+    "defaultMessage": "Run Selected Cell and All Below",
+    "description": "Run selected cell and all cells below selected cell in a Jupyter Notebook"
+  },
+  "jupyter.commands.run_cell": {
+    "defaultMessage": "Run Selected Cells and Do Not Advance",
+    "description": "In a Jupyter Notebook"
+  },
+  "jupyter.commands.run_cell_and_insert_below": {
+    "defaultMessage": "Run Selected Cells and Insert Below",
+    "description": "In a Jupyter Notebook"
+  },
+  "jupyter.commands.run_cell_and_insert_below_title": {
+    "defaultMessage": "Run all cells that are currently selected. Insert a new cell after the last one.",
+    "description": "In a Jupyter Notebook"
+  },
+  "jupyter.commands.run_cell_and_select_next": {
+    "defaultMessage": "Run Selected Cells",
+    "description": "In a Jupyter Notebook"
+  },
+  "jupyter.commands.run_cell_title": {
+    "defaultMessage": "Run all cells that are currently selected. Do not move the selection.",
+    "description": "In a Jupyter Notebook"
+  },
+  "jupyter.commands.run_current_cell": {
+    "defaultMessage": "Run Current Cell"
+  },
+  "jupyter.commands.scroll_cell_visible.menu": {
+    "defaultMessage": "Scroll Selected Cell Into View",
+    "description": "Cell in a Jupyter Notebook"
+  },
+  "jupyter.commands.scroll_notebook_down.menu": {
+    "defaultMessage": "Scroll Notebook Down",
+    "description": "A Jupyter Notebook"
+  },
+  "jupyter.commands.scroll_notebook_up.menu": {
+    "defaultMessage": "Scroll Notebook Up",
+    "description": "A Jupyter Notebook"
+  },
+  "jupyter.commands.select_all_cells.menu": {
+    "defaultMessage": "Select All Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.select_cells.menu": {
+    "defaultMessage": "Select Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.select_next_cell.menu": {
+    "defaultMessage": "Select Next Cell",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.select_previous_cell.menu": {
+    "defaultMessage": "Select Previous Cell",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.show_all_line_numbers.menu": {
+    "defaultMessage": "Show Line Numbers for All Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.show_code_folding.menu": {
+    "defaultMessage": "Enable Code Folding"
+  },
+  "jupyter.commands.show_header.menu": {
+    "defaultMessage": "Show header"
+  },
+  "jupyter.commands.shutdown_kernel.body": {
+    "defaultMessage": "Do you want to shutdown the current kernel? All variable values will be lost.",
+    "description": "In a Jupyter Notebook"
+  },
+  "jupyter.commands.shutdown_kernel.button": {
+    "defaultMessage": "Off",
+    "description": "In a Jupyter Notebook, turn the running kernel off"
+  },
+  "jupyter.commands.shutdown_kernel.label.continue": {
+    "defaultMessage": "Continue running",
+    "description": "Continue running the Kernel of a Jupyter Notebook"
+  },
+  "jupyter.commands.shutdown_kernel.label.shutdown": {
+    "defaultMessage": "Shutdown",
+    "description": "Shutting down a Kernel of a Jupyter Notebook"
+  },
+  "jupyter.commands.shutdown_kernel.menu": {
+    "defaultMessage": "Shutdown kernel",
+    "description": "Kernel of a Jupyter Notebook"
+  },
+  "jupyter.commands.shutdown_kernel.menu.dots": {
+    "defaultMessage": "Shutdown Kernel...",
+    "description": "In a Jupyter Notebook, turn the running kernel off"
+  },
+  "jupyter.commands.shutdown_kernel.title": {
+    "defaultMessage": "Shutdown kernel?",
+    "description": "In a Jupyter Notebook"
+  },
+  "jupyter.commands.split_and_merge.menu": {
+    "defaultMessage": "Split and Merge",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.toggle_all_line_numbers": {
+    "defaultMessage": "Toggle Line Numbers of All Cells"
+  },
+  "jupyter.commands.toggle_cell_line_numbers": {
+    "defaultMessage": "Toggle Line Numbers of Selected Cells"
+  },
+  "jupyter.commands.validate.body": {
+    "defaultMessage": "Validating the notebook will restart the kernel and run all cells in order, even those with errors. This will ensure that all output is exactly what results from running all cells in order.",
+    "description": "Validate a Jupyter Notebook"
+  },
+  "jupyter.commands.validate.label": {
+    "defaultMessage": "Validate",
+    "description": "Validate a Jupyter Notebook"
+  },
+  "jupyter.commands.validate.title": {
+    "defaultMessage": "Validate notebook?",
+    "description": "Validate a Jupyter Notebook"
+  },
+  "jupyter.commands.validate.tooltip": {
+    "defaultMessage": "Restart Jupyter Notebook and run all cells to validate that it works.",
+    "description": "Validate a Jupyter Notebook"
+  },
+  "jupyter.commands.view_toolbars.menu": {
+    "defaultMessage": "Cell Toolbar",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.view_toolbars.menu.button": {
+    "defaultMessage": "Toolbars"
+  },
+  "jupyter.editor.browser_actions.close_and_halt.body": {
+    "defaultMessage": "Are you sure you want to close this file and halt the kernel? All variable state will be lost."
+  },
+  "jupyter.editor.browser_actions.close_and_halt.label": {
+    "defaultMessage": "Close and halt"
+  },
+  "jupyter.editor.browser_actions.trust.body": {
+    "defaultMessage": "A trusted Jupyter notebook may execute hidden Javascript code or carry out other attacks via malicious HTML. Selecting trust below, or evaluating any cell, will disable the code that strips dangerous HTML from this notebook. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects. Also, in many cases we still do not execute Javascript in HTML, even if the notebook is trusted.)"
+  },
+  "jupyter.editor.browser_actions.trust.title": {
+    "defaultMessage": "Trust this Notebook?",
+    "description": "For a specific Jupyter Notebook"
+  },
+  "jupyter.editor.confirm_halt_kernel.body": {
+    "defaultMessage": "Do you want to kill the running kernel? All variable values will be lost. The kernel will only start if you try to evaluate some code."
+  },
+  "jupyter.editor.confirm_halt_kernel.continue": {
+    "defaultMessage": "Continue running"
+  },
+  "jupyter.editor.confirm_halt_kernel.halt": {
+    "defaultMessage": "Halt"
+  },
+  "jupyter.editor.confirm_halt_kernel.title": {
+    "defaultMessage": "Halt kernel?"
+  },
+  "jupyter.editor.confirm_restart.body": {
+    "defaultMessage": "Do you want to restart the kernel? All variable values will be lost."
+  },
+  "jupyter.editor.confirm_restart.continue_label": {
+    "defaultMessage": "Continue running",
+    "description": "Continue working with the Jupyter Notebook, not restarting Kernel"
+  },
+  "jupyter.editor.confirm_restart.label": {
+    "defaultMessage": "Restart"
+  },
+  "jupyter.editor.confirm_restart.title": {
+    "defaultMessage": "Restart kernel?"
+  },
+  "jupyter.editor.console_label": {
+    "defaultMessage": "Jupyter Console"
+  },
+  "jupyter.editor.console_title": {
+    "defaultMessage": "Open the Jupyter command line console connected to the running kernel."
+  },
+  "jupyter.editor.introspect.short": {
+    "defaultMessage": "Introspect"
+  },
+  "jupyter.editor.introspect.title": {
+    "defaultMessage": "Introspection"
+  },
+  "jupyter.editor.raw_json_editor.short": {
+    "defaultMessage": "JSON edit"
+  },
+  "jupyter.editor.raw_json_editor.title": {
+    "defaultMessage": "Raw JSON editor"
+  },
+  "jupyter.editor.raw_json_view.short": {
+    "defaultMessage": "JSON view"
+  },
+  "jupyter.editor.raw_json_view.title": {
+    "defaultMessage": "Raw JSON viewer"
+  },
+  "jupyter.editor.restart_and_run_all.body": {
+    "defaultMessage": "Are you sure you want to restart the kernel and run the notebook? All variable state and output will be reset, though past output is available in TimeTravel.",
+    "description": "For a Jupyter Notebook"
+  },
+  "jupyter.editor.restart_and_run_all.nostop": {
+    "defaultMessage": "Run all (do not stop on errors)",
+    "description": "In a Jupyter Notebook, running all cells after a restart"
+  },
+  "jupyter.editor.restart_and_run_all.stop": {
+    "defaultMessage": "Run all (stop on first error)",
+    "description": "In a Jupyter Notebook, running all cells after a restart"
+  },
+  "jupyter.editor.restart_and_run_all.title": {
+    "defaultMessage": "Restart kernel and run notebook",
+    "description": "For a Jupyter Notebook"
+  },
+  "jupyter.editor.restart_and_run_all_no_halt.body": {
+    "defaultMessage": "Are you sure you want to restart the kernel and re-execute all cells? All variable state and output will be reset, though past output is available in TimeTravel.",
+    "description": "Description for restarting a Jupyter Notebook"
+  },
+  "jupyter.editor.restart_and_run_all_no_halt.label": {
+    "defaultMessage": "Restart and run all",
+    "description": "Button label for restarting a Jupyter Notebook"
+  },
+  "jupyter.editor.restart_and_run_all_no_halt.title": {
+    "defaultMessage": "Restart kernel and run all cells (do not stop on errors)",
+    "description": "Description for restarting a Jupyter Notebook"
+  },
+  "jupyter.editor.run_all_cells.label": {
+    "defaultMessage": "Run All Cells",
+    "description": "Run all cells in a Jupyter Notebook "
+  },
+  "jupyter.editor.run_selected_cells.label": {
+    "defaultMessage": "Run Selected Cells",
+    "description": "Run selected cells in a Jupyter Notebook"
+  },
+  "jupyter.llm.cell-tool.actions.bugfix.descr": {
+    "defaultMessage": "Describe the problem of that cell in order to get a bugfixed version."
+  },
+  "jupyter.llm.cell-tool.actions.bugfix.label": {
+    "defaultMessage": "Fix Bugs"
+  },
+  "jupyter.llm.cell-tool.actions.document.descr": {
+    "defaultMessage": "Add documentation"
+  },
+  "jupyter.llm.cell-tool.actions.document.label": {
+    "defaultMessage": "Document"
+  },
+  "jupyter.llm.cell-tool.actions.explain.descr": {
+    "defaultMessage": "Gain some insight into the code in that cell."
+  },
+  "jupyter.llm.cell-tool.actions.explain.label": {
+    "defaultMessage": "Explain"
+  },
+  "jupyter.llm.cell-tool.actions.improve.descr": {
+    "defaultMessage": "Improve the code in that cell."
+  },
+  "jupyter.llm.cell-tool.actions.improve.label": {
+    "defaultMessage": "Improve"
+  },
+  "jupyter.llm.cell-tool.actions.modify.descr": {
+    "defaultMessage": "Modify the code in the cell"
+  },
+  "jupyter.llm.cell-tool.actions.modify.label": {
+    "defaultMessage": "Modify"
+  },
+  "jupyter.llm.cell-tool.actions.translate.descr": {
+    "defaultMessage": "Translate the code in that cell to another language using AI."
+  },
+  "jupyter.llm.cell-tool.actions.translate.label": {
+    "defaultMessage": "Translate"
+  },
+  "jupyter.llm.cell-tool.assistant.title": {
+    "defaultMessage": "Use AI assistant on this cell"
+  },
+  "jupyter.llm.cell-tool.explanation.bugfix": {
+    "defaultMessage": "Explain the problem of the code in the cell and the selected language model will attempt to fix it. Usually, it will tell you if it found a problem and explain it to you."
+  },
+  "jupyter.llm.cell-tool.explanation.document": {
+    "defaultMessage": "The language model will add documentation lines to the code in the cell."
+  },
+  "jupyter.llm.cell-tool.explanation.explain": {
+    "defaultMessage": "The code in the cell will be sent to the selected language model. It will explain the code to you in plain language."
+  },
+  "jupyter.llm.cell-tool.explanation.improve": {
+    "defaultMessage": "The selected language model will analyze the code and suggest improvements. Beware, that the results are not guaranteed to be correct, nor could cause subtle problmes – review them carefully."
+  },
+  "jupyter.llm.cell-tool.explanation.modify": {
+    "defaultMessage": "The language model will modify the code according to the given instructions. Pick one of the templates and modify it, or come up with some instructions of your own!"
+  },
+  "jupyter.llm.cell-tool.explanation.translate": {
+    "defaultMessage": "The language model will attempt to translate the code in the cell to another programming language. The result might not work at all – but if you're more familiar with the selected target language, you might find it easier to understand what's going on!"
+  },
+  "jupyter.select-kernel.header.current": {
+    "defaultMessage": "The currently selected kernel is \"{name}\".",
+    "description": "Kernel in a Jupyter Notebook"
+  },
+  "jupyter.select-kernel.header.message": {
+    "defaultMessage": "Select a new kernel.",
+    "description": "Kernel in a Jupyter Notebook"
+  },
+  "jupyter.select-kernel.header.no-kernel": {
+    "defaultMessage": "This notebook has no kernel.",
+    "description": "Kernel in a Jupyter Notebook"
+  },
+  "jupyter.select-kernel.header.no-kernel-explanation": {
+    "defaultMessage": "A working kernel is required in order to evaluate the code in the notebook. Please select one for the programming language you want to work with. Otherwise <Button>continue without a kernel</Button>.",
+    "description": "Kernel in a Jupyter Notebook"
+  },
+  "jupyter.select-kernel.make-default.info": {
+    "defaultMessage": "You can always change the kernel by clicking on the kernel selector at the top right.",
+    "description": "Kernel in a Jupyter Notebook"
+  },
+  "jupyter.select-kernel.make-default.label": {
+    "defaultMessage": "Make default"
+  },
+  "jupyter.select-kernel.make-default.text": {
+    "defaultMessage": "Do not ask again. Instead, default to your most recent selection.",
+    "description": "Kernel in a Jupyter Notebook"
+  },
+  "jupyter.select-kernel.quick-select.label": {
+    "defaultMessage": "Quick select"
+  },
+  "jupyter.select-kernel.quick-select.text": {
+    "defaultMessage": "Your most recently selected kernel",
+    "description": "Kernel in a Jupyter Notebook"
+  },
+  "jupyter.select-kernel.title": {
+    "defaultMessage": "Select a Kernel"
+  },
+  "jupyter.select_kernel.footer": {
+    "defaultMessage": "<strong>Note:</strong> You can always change the selected kernel later in the Kernel menu or by clicking on the kernel status logo in the top left.",
+    "description": "Jupyter kernel selector, bottom."
+  },
+  "labels.acconut.password": {
+    "defaultMessage": "Password",
+    "description": "The label of the password field"
+  },
+  "labels.acconut.password.change": {
+    "defaultMessage": "Change Password",
+    "description": "Button label for changing the password"
+  },
+  "labels.acconut.password.forgot": {
+    "defaultMessage": "Forgot Password?",
+    "description": "Label on link to reset password"
+  },
+  "labels.account": {
+    "defaultMessage": "Account",
+    "description": "Title/button for showing the 'Account' settings."
+  },
+  "labels.account.first_name": {
+    "defaultMessage": "First name",
+    "description": "Label for Account/First name:"
+  },
+  "labels.account.language_tooltip": {
+    "defaultMessage": "Change the language of the user interface.",
+    "description": "Tooltip text of dropdown to change the UI language"
+  },
+  "labels.account.last_name": {
+    "defaultMessage": "Last name",
+    "description": "Label for Account/Last name:"
+  },
+  "labels.admin": {
+    "defaultMessage": "Admin"
+  },
+  "labels.ai_generate_label": {
+    "defaultMessage": "Help me write...",
+    "description": "Label on the menu enty to open the AI Assistant for generating documents"
+  },
+  "labels.ai_generate_title": {
+    "defaultMessage": "Create a new file with the help of AI",
+    "description": "Tooltip on the menu enty to open the AI Assistant for generating documents"
+  },
+  "labels.assistant": {
+    "defaultMessage": "Assistant",
+    "description": "The button to engage with the AI Assistant dialog"
+  },
+  "labels.button.cancel": {
+    "defaultMessage": "Cancel",
+    "description": "'Cancel' button on all those small confirmation modals (other one is 'Ok' or 'Yes')"
+  },
+  "labels.clear": {
+    "defaultMessage": "Clear",
+    "description": "Clean or clear something out, such that it empty"
+  },
+  "labels.cloud_file_system": {
+    "defaultMessage": "Cloud File Systems"
+  },
+  "labels.code_folding": {
+    "defaultMessage": "Code Folding",
+    "description": "Hide sections in a source code file"
+  },
+  "labels.copy": {
+    "defaultMessage": "Copy"
+  },
+  "labels.create_project": {
+    "defaultMessage": "Create Project...",
+    "description": "Label on buttons to open dialog to create a project, with 3 dots"
+  },
+  "labels.cut": {
+    "defaultMessage": "Cut"
+  },
+  "labels.email_address": {
+    "defaultMessage": "Email address",
+    "description": "e.g. a label in a form for the email address field"
+  },
+  "labels.frame-editors.title-bar.save_label": {
+    "defaultMessage": "{type, select, is_public {Public} read_only {Readonly} other {Save}}",
+    "description": "Frame editor's title bar 'Save' button"
+  },
+  "labels.help": {
+    "defaultMessage": "Help",
+    "description": "Help entry in a menu or label on a button"
+  },
+  "labels.insert": {
+    "defaultMessage": "Insert"
+  },
+  "labels.latex_document": {
+    "defaultMessage": "LaTeX Document",
+    "description": "Indicating a LaTeX Documents on a button label or frame title"
+  },
+  "labels.licenses": {
+    "defaultMessage": "Licenses",
+    "description": "A license is part of a subscription or a one-time purchase to upgrade projects"
+  },
+  "labels.line_numbers": {
+    "defaultMessage": "Line Numbers",
+    "description": "Show or toggle line numbers in a code file"
+  },
+  "labels.linux_terminal": {
+    "defaultMessage": "Linux Terminal",
+    "description": "On a label or frame title describing a Linux Terminal"
+  },
+  "labels.new.file": {
+    "defaultMessage": "New",
+    "description": "Create new file button '+ New'"
+  },
+  "labels.new_dots": {
+    "defaultMessage": "New..."
+  },
+  "labels.notifications": {
+    "defaultMessage": "Notifications"
+  },
+  "labels.paste": {
+    "defaultMessage": "Paste"
+  },
+  "labels.preferences": {
+    "defaultMessage": "Preferences"
+  },
+  "labels.print": {
+    "defaultMessage": "Print"
+  },
+  "labels.project.settings.restart-project.confirm.explanation": {
+    "defaultMessage": "Restarting the project server will terminate all processes in the project, update the project code, and start the project running again. Running <a>compute servers</a> are not affected. It takes a few seconds, and can fix some issues in case things are not working properly. You'll not lose any files, but you have to start your notebooks and worksheets again."
+  },
+  "labels.project.settings.restart-project.confirm.ok": {
+    "defaultMessage": "Yes, {task} project"
+  },
+  "labels.project.settings.stop-project.label": {
+    "defaultMessage": "Stop{short, select, true {} other { Project}}…"
+  },
+  "labels.project.settings.stop-project.ok": {
+    "defaultMessage": "Yes, stop project"
+  },
+  "labels.projects": {
+    "defaultMessage": "Projects",
+    "description": "Label for a collection of projects, label on a button, title, etc."
+  },
+  "labels.published_files": {
+    "defaultMessage": "Published"
+  },
+  "labels.purchases": {
+    "defaultMessage": "Purchases"
+  },
+  "labels.redo": {
+    "defaultMessage": "Redo"
+  },
+  "labels.refresh": {
+    "defaultMessage": "Refresh"
+  },
+  "labels.reload": {
+    "defaultMessage": "Reload"
+  },
+  "labels.reload_title": {
+    "defaultMessage": "Reload this document"
+  },
+  "labels.restart": {
+    "defaultMessage": "Restart",
+    "description": "Label on a button to restart a job, or Jupyter Notebook kernel, etc."
+  },
+  "labels.sagemath_worksheet": {
+    "defaultMessage": "SageMath Worksheet",
+    "description": "A SageMath Worksheet label on a button or frame title"
+  },
+  "labels.save": {
+    "defaultMessage": "Save",
+    "description": "In the context of saving files, in a menu or on a button"
+  },
+  "labels.save_title": {
+    "defaultMessage": "Save this file to disk",
+    "description": "In the context of saving files, this is the tooltip on a menu item or on a button"
+  },
+  "labels.settings": {
+    "defaultMessage": "Settings",
+    "description": "On a button to show project settings"
+  },
+  "labels.slideshow": {
+    "defaultMessage": "Slideshow"
+  },
+  "labels.snippets": {
+    "defaultMessage": "Snippets",
+    "description": "Short label for opening the 'Snippets' frame"
+  },
+  "labels.split_frame_horizontally.title": {
+    "defaultMessage": "Split Down",
+    "description": "Split a frame horizontally"
+  },
+  "labels.split_frame_vertically.title": {
+    "defaultMessage": "Split frame vertically into two columns"
+  },
+  "labels.ssh_keys": {
+    "defaultMessage": "SSH Keys"
+  },
+  "labels.statements": {
+    "defaultMessage": "Statements",
+    "description": "Billing statements"
+  },
+  "labels.stop": {
+    "defaultMessage": "Stop",
+    "description": "Label on a button to stop an ongoing process"
+  },
+  "labels.subscriptons": {
+    "defaultMessage": "Subscriptions"
+  },
+  "labels.support": {
+    "defaultMessage": "Support"
+  },
+  "labels.terminal": {
+    "defaultMessage": "Terminal",
+    "description": "Title of the Linux Terminal frame"
+  },
+  "labels.timetravel": {
+    "defaultMessage": "TimeTravel",
+    "description": "Open the 'TimeTravel' history of the current document. It records all changes of that file over time."
+  },
+  "labels.timetravel_title": {
+    "defaultMessage": "Show complete editing history of this document"
+  },
+  "labels.undo": {
+    "defaultMessage": "Undo"
+  },
+  "labels.upgrades": {
+    "defaultMessage": "Upgrades",
+    "description": "Upgrades for specific projects"
+  },
+  "labels.upload": {
+    "defaultMessage": "Upload",
+    "description": "Label on such buttons, where a file upload can be initiated"
+  },
+  "labels.validate": {
+    "defaultMessage": "Validate"
+  },
+  "labels.word_count": {
+    "defaultMessage": "Word Count",
+    "description": "Tool to count words in a document"
+  },
+  "labels.zoom_in": {
+    "defaultMessage": "Zoom in"
+  },
+  "labels.zoom_out": {
+    "defaultMessage": "Zoom out"
+  },
+  "menu.generic.close_and_halt.label": {
+    "defaultMessage": "Close and Halt...",
+    "description": "Close and halt the editor for Jupyter, a server, etc."
+  },
+  "menu.generic.compress.label": {
+    "defaultMessage": "Compress File"
+  },
+  "menu.generic.copy_file.label": {
+    "defaultMessage": "Copy File"
+  },
+  "menu.generic.copy_file.tooltip": {
+    "defaultMessage": "Copy this file to another directory or project"
+  },
+  "menu.generic.delete.label": {
+    "defaultMessage": "Delete File"
+  },
+  "menu.generic.delete.tooltip": {
+    "defaultMessage": "Delete this file"
+  },
+  "menu.generic.download.label": {
+    "defaultMessage": "Download File"
+  },
+  "menu.generic.download.tooltip": {
+    "defaultMessage": "Download this file"
+  },
+  "menu.generic.duplicate.label": {
+    "defaultMessage": "Duplicate File"
+  },
+  "menu.generic.edit.label": {
+    "defaultMessage": "Edit"
+  },
+  "menu.generic.file.label": {
+    "defaultMessage": "File"
+  },
+  "menu.generic.format.label": {
+    "defaultMessage": "Format"
+  },
+  "menu.generic.go.label": {
+    "defaultMessage": "Go"
+  },
+  "menu.generic.halt_jupyter.button": {
+    "defaultMessage": "Halt",
+    "description": "Halt Jupyter kernel and close the notebook editor"
+  },
+  "menu.generic.halt_jupyter.title": {
+    "defaultMessage": "Halt the running Jupyter kernel and close this notebook."
+  },
+  "menu.generic.help.label": {
+    "defaultMessage": "Help"
+  },
+  "menu.generic.insert.label": {
+    "defaultMessage": "Insert"
+  },
+  "menu.generic.kernel.label": {
+    "defaultMessage": "Kernel",
+    "description": "Button label or menu entry for the 'Jupyter Kernel'. Keep its name 'Kernel' in all languages."
+  },
+  "menu.generic.kick_other_users_out.button": {
+    "defaultMessage": "Resize"
+  },
+  "menu.generic.kick_other_users_out.label": {
+    "defaultMessage": "Force Resize"
+  },
+  "menu.generic.kick_other_users_out.title": {
+    "defaultMessage": "Kick all other users out from this document. It will close in all other browsers."
+  },
+  "menu.generic.move_file.label": {
+    "defaultMessage": "Move File"
+  },
+  "menu.generic.move_file.tooltip": {
+    "defaultMessage": "Move this file to another directory"
+  },
+  "menu.generic.new_file.label": {
+    "defaultMessage": "New File"
+  },
+  "menu.generic.open_file.label": {
+    "defaultMessage": "Open..."
+  },
+  "menu.generic.print.tooltip": {
+    "defaultMessage": "Show a printable version of this document in a popup window."
+  },
+  "menu.generic.publish_file.button": {
+    "defaultMessage": "Publish"
+  },
+  "menu.generic.publish_file.label": {
+    "defaultMessage": "Publish File"
+  },
+  "menu.generic.publish_file.tooltip": {
+    "defaultMessage": "Make this file available to be easily copies by other people, either publicly or for people who know the link."
+  },
+  "menu.generic.rename.label": {
+    "defaultMessage": "Rename File"
+  },
+  "menu.generic.run.label": {
+    "defaultMessage": "Run"
+  },
+  "menu.generic.split.button": {
+    "defaultMessage": "Split",
+    "description": "Split a frame horizontally or vertically (short single word on button)"
+  },
+  "menu.generic.view.label": {
+    "defaultMessage": "View"
+  },
+  "new.file-type-page.header.description": {
+    "defaultMessage": "What would you like to create? Documents can be simultaneously edited by multiple people, maintain a full <A>TimeTravel history</A> of edits, and support evaluation of code."
+  },
+  "new.file-type-page.header.intro": {
+    "defaultMessage": "Name your file, folder or paste in a link. End name with / to make a folder."
+  },
+  "new.file-type-selector.folder.tooltip": {
+    "defaultMessage": "Create a folder (subdirectory) in which to store and organize your files. CoCalc provides a full featured filesystem. You can also type a path in the input box above that ends with a forward slash / and press enter."
+  },
+  "new.file-type-selector.latex.tooltip": {
+    "defaultMessage": "Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python, R and Sage code."
+  },
+  "new.file-type-selector.linux.tooltip": {
+    "defaultMessage": "Create a command line Linux terminal. CoCalc includes a full Linux environment. Run command line software, vim, emacs and more."
+  },
+  "new.file-type-selector.markdown.tooltip": {
+    "defaultMessage": "Create a rich editable text document backed by markdown and Jupyter code that contains mathematical formulas, lists, headings, images and run code."
+  },
+  "new.file-type-selector.sagews.tooltip": {
+    "defaultMessage": "Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems. Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
+  },
+  "new.file-type-selector.x11.tooltip": {
+    "defaultMessage": "Create an X11 desktop for running graphical applications. CoCalc lets you collaboratively run any graphical Linux application in your browser."
+  },
+  "page.flyouts.licenses.upgrades_explanation": {
+    "defaultMessage": "<p>This project is using the following resource quotas when running. You can add more resources by adding licenses or applying upgrades.</p>"
+  },
+  "page.help.label": {
+    "defaultMessage": "Help"
+  },
+  "page.sign_in.label": {
+    "defaultMessage": "Sign in"
+  },
+  "project.new-file-page.title": {
+    "defaultMessage": "Create or {upload} New File or <folder>Folder</folder>"
+  },
+  "project.new-file-page.title.modal.title": {
+    "defaultMessage": "Create New Folder"
+  },
+  "project.page.file-tab.search_file.label": {
+    "defaultMessage": "Find"
+  },
+  "project.page.flyout.log.title": {
+    "defaultMessage": "Recent Files"
+  },
+  "project.page.flyout.new_file.title": {
+    "defaultMessage": "Create New File or Folder"
+  },
+  "project.page.flyout.settings.title": {
+    "defaultMessage": "Status and Settings"
+  },
+  "project.settings.stop-project.explanation": {
+    "defaultMessage": "Stopping the project server will kill all processes. After stopping a project, it will not start until you or a collaborator restarts the project."
+  },
+  "projects.filename-search.placeholder": {
+    "defaultMessage": "Search for filenames you edited..."
+  },
+  "projects.load-all.label": {
+    "defaultMessage": "Show all projects..."
+  },
+  "projects.search.placeholder": {
+    "defaultMessage": "Search for projects (use /re/ for regexp)..."
+  },
+  "purchases.automatic-payments-warning.description": {
+    "defaultMessage": "Automatic payments are much <b>more convenient</b>, will <b>save you time</b>, and <b>ensure subscriptions don't get canceled</b> by accident."
+  },
+  "purchases.automatic-payments-warning.title": {
+    "defaultMessage": "Automatic payments are NOT required to have a subscription"
+  },
+  "purchases.automatic-payments.are-enabled": {
+    "defaultMessage": "Automatic Payments are Enabled"
+  },
+  "purchases.automatic-payments.card-on-file.message": {
+    "defaultMessage": "You have a credit card on file. Please click \"Update\" below to enter a new payment method and switch to the new automatic payments systems. After that you can easily cancel or enable automatic payments at any time."
+  },
+  "purchases.automatic-payments.enable-automatic-payments.label": {
+    "defaultMessage": "Enable Automatic Payments"
+  },
+  "purchases.automatic-payments.enable-automatic-payments.message": {
+    "defaultMessage": "Would you like to enable automatic payments? You will automatically be charged for any subscriptions, etc., once per month. {warning} You can disable automatic payments at any time, and you can resume a canceled subscription easily later."
+  },
+  "purchases.automatic-payments.have-automatic-payments.message": {
+    "defaultMessage": "You have automatic payments enabled. Would you like to disable them? {warning} You can reenable automatic payments at any time, and you can resume a canceled subscription easily later."
+  },
+  "purchases.automatic-payments.update-required": {
+    "defaultMessage": "Automatic Payments: Update Required"
+  },
+  "purchases.subscriptions.cancel-end.description": {
+    "defaultMessage": "The license will still be valid until the subscription period ends. You can always restart the subscription or edit the license to change the subscription price."
+  }
+}

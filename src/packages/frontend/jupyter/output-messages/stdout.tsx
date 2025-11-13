@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -22,6 +22,12 @@ export const Stdout: React.FC<StdoutProps> = ({ message }: StdoutProps) => {
     value = `${value}`;
   }
   if (is_ansi(value)) {
+    // NOTE: even if is_ansi returns true, it might not still be valid ansi,
+    // and the ansi renderer *CAN* crash when fed strings it doesn't like.
+    // A user reported a crash when doing some encryption work and printing
+    // crazy mangled XOR'd strings to the output.  This also crashes JupyterLab.
+    // Here we catch that crash using an error boundary and fallback to the
+    // usual rendering.
     return (
       <div style={STDOUT_STYLE}>
         <Ansi>{value}</Ansi>

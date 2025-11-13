@@ -1,20 +1,17 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 declare let DEBUG;
 
 import { Alert, Table } from "antd";
-
 import { ProjectActions, useState } from "@cocalc/frontend/app-framework";
 import { Loading, Paragraph } from "@cocalc/frontend/components";
-import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
-import type { Channel } from "@cocalc/comm/websocket/types";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
-} from "@cocalc/comm/project-info/types";
+} from "@cocalc/util/types/project-info/types";
 import { field_cmp } from "@cocalc/util/misc";
 import {
   AboutContent,
@@ -28,13 +25,12 @@ import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
 interface Props {
   wrap?: Function;
   cg_info: CGroupInfo;
-  chan: Channel | null;
-  render_disconnected: () => JSX.Element | undefined;
+  render_disconnected: () => React.JSX.Element | undefined;
   disconnected: boolean;
   disk_usage: DUState;
-  error: JSX.Element | null;
+  error: React.JSX.Element | null;
   status: string;
-  info: ProjectInfoType | undefined;
+  info: ProjectInfoType | null;
   loading: boolean;
   modal: string | Process | undefined;
   project_actions: ProjectActions | undefined;
@@ -49,12 +45,11 @@ interface Props {
   show_explanation: boolean;
   show_long_loading: boolean;
   start_ts: number | undefined;
-  sync: WSProjectInfo | null;
-  render_cocalc: (proc: ProcessRow) => JSX.Element | undefined;
+  render_cocalc: (proc: ProcessRow) => React.JSX.Element | undefined;
   onCellProps;
 }
 
-export function Flyout(_: Readonly<Props>): JSX.Element {
+export function Flyout(_: Readonly<Props>): React.JSX.Element {
   const {
     wrap,
     cg_info,
@@ -63,6 +58,7 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
     error,
     info,
     loading,
+    project_actions,
     project_state,
     project_status,
     status,
@@ -70,8 +66,6 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
     ptree,
     start_ts,
     onCellProps,
-    sync,
-    chan,
   } = _;
 
   const projectIsRunning = project_state === "running";
@@ -95,8 +89,8 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
             pid={procRow.pid}
             loading={loading}
             processes={info.processes}
-            chan={chan}
             small={true}
+            project_actions={project_actions}
           />
         }
       />
@@ -200,9 +194,6 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
           "no timestamp"
         )}{" "}
         <br />
-        Connections sync=<code>{`${sync != null}`}</code> chan=
-        <code>{`${chan != null}`}</code>
-        <br />
         Status: <code>{status}</code>
       </Paragraph>
     );
@@ -225,11 +216,6 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
         {render_general_status()}
       </div>
     );
-  }
-
-  function renderError() {
-    if (error == null) return;
-    return <Alert message={error} type="error" />;
   }
 
   function notRunning() {
@@ -258,7 +244,7 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
       }}
     >
       {notRunning()}
-      {renderError()}
+      {error}
       {body()}
     </div>
   );

@@ -1,7 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+import { Button, Space } from "antd";
+import { useIntl } from "react-intl";
 
 import { React } from "@cocalc/frontend/app-framework";
 import {
@@ -13,7 +16,6 @@ import { file_associations } from "@cocalc/frontend/file-associations";
 import { EXTs } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { keys } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Button } from "antd";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { file_options } = require("@cocalc/frontend/editor");
@@ -43,17 +45,26 @@ function makeList(mode: "project" | "flyout") {
 export function NewFileDropdown({
   create_file,
   mode = "project",
-  title = "More file types...",
   showDown = true,
+  title,
   button = true,
   cacheKey = "",
 }: Props) {
+  const intl = useIntl();
+
+  title ??= intl.formatMessage({
+    id: "project.new.new-file-dropdown.label",
+    defaultMessage: "More File Types...",
+    description:
+      "Label on a button to create one of several additional file types",
+  });
+
   // TODO maybe filter by configuration.get("main", {disabled_ext: undefined}) ?
   const items = React.useMemo((): MenuItems => {
     const list = makeList(mode);
     const extensions: (string | { type: "divider" })[] = [];
     const file_types_so_far = {};
-    for (const ext of list) {
+    for (let ext of list) {
       if (typeof ext !== "string") {
         extensions.push({ type: "divider" });
         continue;
@@ -63,6 +74,9 @@ export function NewFileDropdown({
         continue;
       }
       const data = file_associations[ext];
+      if (data.ext != null) {
+        ext = data.ext;
+      }
       if (data.exclude_from_menu) continue;
       if (data.name != undefined && !file_types_so_far[data.name]) {
         file_types_so_far[data.name] = true;
@@ -76,6 +90,7 @@ export function NewFileDropdown({
     if (typeof ext !== "string") {
       return ext;
     }
+
     const data =
       ext === "/"
         ? {
@@ -83,6 +98,7 @@ export function NewFileDropdown({
             icon: "folder-open",
           }
         : file_options("x." + ext);
+
     const text = (
       <>
         <span style={{ width: "25px", display: "inline-block" }}>
@@ -111,7 +127,7 @@ export function NewFileDropdown({
           className={"pull-right dropdown-splitbutton-left"}
           style={{ marginRight: "5px" }}
         >
-          <Button.Group>
+          <Space.Compact>
             <Button size="large" onClick={() => create_file()}>
               <span>
                 <Icon name="file" /> {title}
@@ -119,7 +135,7 @@ export function NewFileDropdown({
             </Button>
 
             <DropdownMenu size="large" button={button} items={items} />
-          </Button.Group>
+          </Space.Compact>
         </span>
       );
     case "flyout":

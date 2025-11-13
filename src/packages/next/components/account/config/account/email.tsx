@@ -1,22 +1,23 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert, Button, Input, Space } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type JSX } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import { Paragraph, Text, Title } from "components/misc";
 import SaveButton from "components/misc/save-button";
 import Timestamp from "components/misc/timestamp";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
+import { useCustomize } from "lib/customize";
 import useAPI from "lib/hooks/api";
 import useDatabase from "lib/hooks/database";
 import register from "../register";
-import { useCustomize } from "lib/customize";
 
 interface Data {
   email_address?: string;
@@ -107,7 +108,7 @@ export function ChangeEmailAddress(props: Props) {
           />
           <SaveButton
             disabled={
-              password.length < 6 ||
+              password.length < MIN_PASSWORD_LENGTH ||
               !isValidEmailAddress(edited.email_address ?? "") ||
               lastSuccess == password + (edited.email_address ?? "")
             }
@@ -121,7 +122,7 @@ export function ChangeEmailAddress(props: Props) {
               });
               setLastSuccess(password + email_address);
             }}
-            isValid={() => password.length >= 6}
+            isValid={() => password.length >= MIN_PASSWORD_LENGTH}
           />
           {lastSuccess == password + edited.email_address && (
             <Alert
@@ -168,7 +169,7 @@ const EmailVerification: React.FC<VeryProps> = (props: VeryProps) => {
         return new Date(when);
       } catch (err) {
         console.warn(
-          `Error converting verified email time: ${when} – considering it as verified, though.`
+          `Error converting verified email time: ${when} – considering it as verified, though.`,
         );
         return true;
       }
@@ -179,9 +180,7 @@ const EmailVerification: React.FC<VeryProps> = (props: VeryProps) => {
   async function sendVerificationEmail() {
     setEmailSent(true);
     try {
-      apiPost("/accounts/send-verification-email", {
-        email_address: account?.email_address,
-      });
+      apiPost("/accounts/send-verification-email", {});
       setEmailSentSuccess(true);
     } catch (err) {
       setEmailSentError(`${err}`);

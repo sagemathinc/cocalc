@@ -4,6 +4,9 @@ in a modal on demand when you try to use a specific service and don't
 have sufficient quota.
 */
 
+import { Alert, Button, Card, InputNumber, Space, Spin } from "antd";
+import { useEffect, useState } from "react";
+
 import { SettingBox } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
@@ -12,16 +15,14 @@ import {
   serviceToDisplay,
 } from "@cocalc/util/db-schema/purchase-quotas";
 import getChargeAmount from "@cocalc/util/purchases/charge-amount";
-import { Alert, Button, Card, InputNumber, Space, Spin } from "antd";
-import { useEffect, useState } from "react";
 import Quotas, {
   PRESETS,
+  PRESETS_LLM,
   Preset,
   QUOTA_LIMIT_ICON_NAME,
   STEP,
 } from "./all-quotas-config";
 import Balance from "./balance";
-import MinBalance from "./min-balance";
 import ServiceTag from "./service";
 
 interface Props {
@@ -52,10 +53,18 @@ export default function QuotaConfig({
     setQuotas(await webapp_client.purchases_client.getQuotas());
   };
 
+  const update = async () => {
+    try {
+      await updateQuotas();
+      await updateAllowed();
+    } catch (err) {
+      setError(`${err}`);
+    }
+  };
+
   useEffect(() => {
-    updateQuotas();
-    updateAllowed();
-  }, []);
+    update();
+  }, [cost]);
 
   const saveServiceQuota = async () => {
     if (inputValue == null) {
@@ -65,7 +74,7 @@ export default function QuotaConfig({
       setError("");
       await webapp_client.purchases_client.setQuota(service, inputValue);
       setSavedValue(inputValue);
-      await updateAllowed();
+      await update();
     } catch (err) {
       setError(`${err}`);
     }
@@ -73,6 +82,8 @@ export default function QuotaConfig({
   if (saveRef != null) {
     saveRef.current = saveServiceQuota;
   }
+
+  const presets = QUOTA_SPEC[service]?.category === "ai" ? PRESETS_LLM : PRESETS;
 
   return (
     <div>
@@ -111,16 +122,18 @@ export default function QuotaConfig({
                 Save{savedValue == inputValue ? "d" : ""}
               </Button>
               <div style={{ marginLeft: "15px" }}>
-                {PRESETS.filter((amount) => amount > 0).map((amount) => (
-                  <Preset
-                    key={amount}
-                    index={0}
-                    amount={amount}
-                    handleQuotaChange={(_, amount) => {
-                      setInputValue(amount);
-                    }}
-                  />
-                ))}
+                {presets
+                  .filter((amount) => amount > 0)
+                  .map((amount) => (
+                    <Preset
+                      key={amount}
+                      index={0}
+                      amount={amount}
+                      handleQuotaChange={(_, amount) => {
+                        setInputValue(amount);
+                      }}
+                    />
+                  ))}
               </div>
             </Space>
           )}
@@ -129,7 +142,7 @@ export default function QuotaConfig({
       )}
       <div style={{ marginTop: "15px", textAlign: "center" }}>
         <Balance
-          balance={balance}
+          defaultAdd
           style={{ width: "100%", marginBottom: "15px" }}
           cost={
             quotas == null || cost == null || balance == null
@@ -141,20 +154,19 @@ export default function QuotaConfig({
                   minPayment: 0,
                 }).amountDue
           }
-          refresh={updateAllowed}
+          refresh={update}
         />
-        <MinBalance minBalance={quotas?.minBalance} />
         {!showAll && (
           <div style={{ marginTop: "15px", textAlign: "center" }}>
             <Button type="link" onClick={() => setShowAll(true)}>
-              (show all limits...)
+              View your spending limits...
             </Button>
           </div>
         )}
         {showAll && (
           <SettingBox
             icon={QUOTA_LIMIT_ICON_NAME}
-            title="Quota limits"
+            title="Spending limits"
             style={{ marginTop: "30px" }}
           >
             <Quotas />

@@ -1,11 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert, Button, Flex, Input, Space, Tooltip } from "antd";
 import immutable from "immutable";
 import { debounce } from "lodash";
+import { FormattedMessage, useIntl } from "react-intl";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
@@ -23,6 +24,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, Loading, TimeAgo } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { labels } from "@cocalc/frontend/i18n";
 import { LogEntry } from "@cocalc/frontend/project/history/log-entry";
 import {
   EventRecordMap,
@@ -45,12 +47,13 @@ import {
   FLYOUT_EXTRA_WIDTH_PX,
   FLYOUT_PADDING,
 } from "./consts";
-import { FileListItem, fileItemStyle } from "./file-list-item";
+import { FileListItem } from "./file-list-item";
 import {
   FlyoutLogDeduplicate,
   FlyoutLogMode,
   getFlyoutLogFilter,
 } from "./state";
+import { fileItemStyle } from "./utils";
 
 interface OpenedFile {
   filename: string;
@@ -108,7 +111,7 @@ function deriveFiles(
     .toJS() as any;
 }
 
-// TOOD: refactor project/history/types.ts and add type tests to clean this up
+// TODO: refactor project/history/types.ts and add type tests to clean this up
 
 const PROJECT_EVENTS = [
   "project_start_requested",
@@ -219,7 +222,7 @@ function deriveHistory(
 interface Props {
   project_id: string;
   max?: number;
-  wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
+  wrap: (list: React.JSX.Element, style?: CSS) => React.JSX.Element;
   flyoutWidth: number;
 }
 
@@ -228,7 +231,8 @@ export function LogFlyout({
   project_id,
   wrap,
   flyoutWidth,
-}: Props): JSX.Element {
+}: Props): React.JSX.Element {
+  const intl = useIntl();
   const actions = useActions({ project_id });
   const mode: FlyoutLogMode = useTypedRedux({ project_id }, "flyout_log_mode");
   const logFilter = useTypedRedux({ project_id }, "flyout_log_filter");
@@ -256,7 +260,7 @@ export function LogFlyout({
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
-  const [scollIdxHide, setScrollIdxHide] = useState<boolean>(false);
+  const [scrollIdxHide, setScrollIdxHide] = useState<boolean>(false);
 
   // restore the logFilter from local storage (mode is similar, restored in the LogHeader)
   useEffect(() => {
@@ -354,7 +358,7 @@ export function LogFlyout({
         extra2={renderFileItemExtra2(entry)}
         itemStyle={fileItemStyle(time?.getTime())}
         multiline={true}
-        selected={!scollIdxHide && index === scrollIdx}
+        selected={!scrollIdxHide && index === scrollIdx}
         onClick={(e) => {
           track("open-file", {
             project_id,
@@ -380,7 +384,7 @@ export function LogFlyout({
   }
 
   function renderHistoryItem(index: number, entry: any) {
-    const highlight = !scollIdxHide && index === scrollIdx;
+    const highlight = !scrollIdxHide && index === scrollIdx;
     const bgStyle = {
       ...fileItemStyle(entry.time?.getTime()),
       ...(highlight ? { background: COLORS.BLUE_LL } : {}),
@@ -453,7 +457,7 @@ export function LogFlyout({
     }
   }
 
-  function list(): JSX.Element {
+  function list(): React.JSX.Element {
     return (
       <Virtuoso
         ref={virtuosoRef}
@@ -492,7 +496,11 @@ export function LogFlyout({
             actions?.project_log_load_all();
           }}
         >
-          Load older log entries...
+          <FormattedMessage
+            id="page.flyouts.log.show_all.label"
+            description={"Show older activities in the list"}
+            defaultMessage={"Load older log entries..."}
+          />
         </Button>
       </div>
     );
@@ -506,17 +514,27 @@ export function LogFlyout({
         active={!deduplicate}
         bsSize="xsmall"
         title={
-          <>
-            If enabled, the list contains duplicate entries. By default, only
-            the most recent open file activity is shown.
-          </>
+          <FormattedMessage
+            id="page.flyouts.log.deduplicate.tooltip"
+            description={"The list of activities is deduplicated"}
+            defaultMessage={
+              "If enabled, the list contains duplicate entries. By default, only the most recent open file activity is shown."
+            }
+          />
         }
         onClick={(e) => {
           e.stopPropagation();
           actions?.setFlyoutLogDeduplicate(!deduplicate);
         }}
       >
-        <Icon name={icon} /> Show all
+        <Icon name={icon} />{" "}
+        <FormattedMessage
+          id="page.flyouts.log.deduplicate.label"
+          description={
+            "Show all activities in the list, which are maybe deduplicated"
+          }
+          defaultMessage={"Show all"}
+        />
       </BSButton>
     );
   }
@@ -621,10 +639,14 @@ export function LogFlyout({
                 onClick={() => actions?.resetFlyoutLogFilter()}
                 icon={<Icon name="close-circle-filled" />}
               >
-                Reset
+                {intl.formatMessage(labels.reset)}
               </Button>
             </Tooltip>
-            All activies are filtered!
+            <FormattedMessage
+              id="page.flyouts.log.filter_message"
+              description={"The list of activities is filtered"}
+              defaultMessage={"All activities are filtered!"}
+            />
           </>
         }
       />

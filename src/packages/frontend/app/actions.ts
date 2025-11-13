@@ -1,26 +1,29 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { redux, Actions } from "../app-framework";
-import { set_window_title } from "../browser";
-import { update_params, set_url } from "../history";
-import { disconnect_from_project } from "../project/websocket/connect";
-import { session_manager } from "../session";
-import { PageState } from "./store";
+import { Actions, redux } from "@cocalc/frontend/app-framework";
+import { set_window_title } from "@cocalc/frontend/browser";
+import { set_url, update_params } from "@cocalc/frontend/history";
+import { labels } from "@cocalc/frontend/i18n";
+import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import {
   exitFullscreen,
   isFullscreen,
   requestFullscreen,
 } from "@cocalc/frontend/misc/fullscreen";
+import { disconnect_from_project } from "@cocalc/frontend/project/websocket/connect";
+import { session_manager } from "@cocalc/frontend/session";
 import { once } from "@cocalc/util/async-utils";
+import { PageState } from "./store";
 
 export class PageActions extends Actions<PageState> {
   private session_manager?: any;
   private active_key_handler?: any;
   private suppress_key_handlers: boolean = false;
   private popconfirmIsOpen: boolean = false;
+  private settingsModalIsOpen: boolean = false;
 
   /* Expects a func which takes a browser keydown event
      Only allows one keyhandler to be active at a time.
@@ -150,18 +153,21 @@ export class PageActions extends Actions<PageState> {
       redux.getProjectActions(key)?.show();
     }
 
+    const intl = await getIntl();
+
     switch (key) {
       case "projects":
         if (change_history) {
           set_url("/projects");
         }
-        set_window_title("Projects");
+        set_window_title(intl.formatMessage(labels.projects));
         return;
       case "account":
+      case "settings":
         if (change_history) {
           redux.getActions("account").push_state();
         }
-        set_window_title("Account");
+        set_window_title(intl.formatMessage(labels.account));
         return;
       case "file-use": // this doesn't actually get used currently
         if (change_history) {
@@ -173,13 +179,13 @@ export class PageActions extends Actions<PageState> {
         if (change_history) {
           set_url("/admin");
         }
-        set_window_title("Admin");
+        set_window_title(intl.formatMessage(labels.admin));
         return;
       case "notifications":
         if (change_history) {
           set_url("/notifications");
         }
-        set_window_title("Notifications");
+        set_window_title(intl.formatMessage(labels.messages_title));
         return;
       case undefined:
         return;
@@ -258,11 +264,9 @@ export class PageActions extends Actions<PageState> {
     this.setState({ ping, avgping });
   }
 
-  set_connection_status(connection_status, time: Date) {
-    if (time > (redux.getStore("page").get("last_status_time") ?? 0)) {
-      this.setState({ connection_status, last_status_time: time });
-    }
-  }
+  set_connection_status = (connection_status, time: Date) => {
+    this.setState({ connection_status, last_status_time: time });
+  };
 
   set_connection_quality(connection_quality) {
     this.setState({ connection_quality });
@@ -416,6 +420,27 @@ export class PageActions extends Actions<PageState> {
       this.popconfirmIsOpen = false;
       // trigger a change, so other code has a chance to get the lock
       this.setState({ popconfirm: { open: false } });
+    }
+  };
+
+  settings = async (name) => {
+    if (!name) {
+      this.setState({ settingsModal: "" });
+      this.settingsModalIsOpen = false;
+      return;
+    }
+    const store = redux.getStore("page");
+    while (this.settingsModalIsOpen) {
+      await once(store, "change");
+    }
+    try {
+      this.settingsModalIsOpen = true;
+      this.setState({ settingsModal: name });
+      while (store.get("settingsModal")) {
+        await once(store, "change");
+      }
+    } finally {
+      this.settingsModalIsOpen = false;
     }
   };
 }

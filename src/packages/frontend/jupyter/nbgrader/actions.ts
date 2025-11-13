@@ -1,13 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 import { delay } from "awaiting";
 import * as immutable from "immutable";
 
 import { STUDENT_SUBDIR } from "@cocalc/frontend/course/assignments/consts";
+import { jupyter, labels } from "@cocalc/frontend/i18n";
+import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import { close, path_split } from "@cocalc/util/misc";
-
 import { JupyterActions } from "../browser-actions";
 import { clear_hidden_tests } from "./clear-hidden-tests";
 import { clear_mark_regions } from "./clear-mark-regions";
@@ -115,20 +116,23 @@ export class NBGraderActions {
   }
 
   public async confirm_validate(frame_actions): Promise<void> {
+    const intl = await getIntl();
+    const validate = intl.formatMessage(labels.validate);
     const choice = await this.jupyter_actions.confirm_dialog({
-      title: "Validate notebook?",
-      body: "Validating the notebook will restart the kernel and run all cells in order, even those with errors.  This will ensure that all output is exactly what results from running all cells in order.",
+      title: intl.formatMessage(jupyter.commands.validate_title),
+      body: intl.formatMessage(jupyter.commands.validate_body),
       choices: [
-        { title: "Cancel" },
-        { title: "Validate", style: "danger", default: true },
+        { title: intl.formatMessage(labels.cancel) },
+        { title: validate, style: "danger", default: true },
       ],
     });
-    if (choice === "Validate") {
+    if (choice === validate) {
       await this.validate(frame_actions);
     }
   }
 
   public async confirm_assign(): Promise<void> {
+    const intl = await getIntl();
     const path = this.jupyter_actions.store.get("path");
     let { head, tail } = path_split(path);
     if (head == "") {
@@ -141,25 +145,38 @@ export class NBGraderActions {
       ["metadata", "nbgrader", "cocalc_minimal_stubs"],
       false,
     );
-    const MINIMAL_STUBS = "Generate with minimal stubs";
+    const MINIMAL_STUBS = intl.formatMessage(
+      jupyter.editor.nbgrader_minimal_stubs,
+    );
+    const title = jupyter.editor.nbgrader_create_title;
+    const body = intl.formatMessage(jupyter.editor.nbgrader_create_body, {
+      target,
+      STUDENT_SUBDIR,
+    });
+
+    const cancel = intl.formatMessage(labels.cancel);
     const choice = await this.jupyter_actions.confirm_dialog({
-      title: "Generate Student Version of Notebook",
-      body: `Generating the student version of the notebook will create a new Jupyter notebook "${target}" that is ready to distribute to your students.  This process locks cells and writes metadata so parts of the notebook can't be accidentally edited or deleted; it removes solutions, and replaces them with code or text stubs saying (for example) "YOUR ANSWER HERE"; and it clears all outputs. Once done, you can easily inspect the resulting notebook to make sure everything looks right.   (This is analogous to 'nbgrader assign'.)  The CoCalc course management system will *only* copy the ${STUDENT_SUBDIR} subdirectory that contains this generated notebook to students.`,
+      title: intl.formatMessage(title, {
+        full: true,
+      }),
+      body,
       choices: [
-        { title: "Cancel" },
+        { title: cancel },
         {
-          title: "Generate student version",
-          style: !minimal_stubs ? "success" : undefined,
+          title: intl.formatMessage(title, {
+            full: false,
+          }),
+          style: !minimal_stubs ? "primary" : undefined,
           default: !minimal_stubs,
         },
         {
           title: MINIMAL_STUBS,
-          style: minimal_stubs ? "success" : undefined,
+          style: minimal_stubs ? "primary" : undefined,
           default: minimal_stubs,
         },
       ],
     });
-    if (choice === "Cancel") return;
+    if (choice === cancel) return;
     minimal_stubs = choice == MINIMAL_STUBS;
     this.set_global_metadata({ cocalc_minimal_stubs: minimal_stubs });
     this.ensure_grade_ids_are_unique(); // non-unique ids lead to pain later
@@ -174,12 +191,6 @@ export class NBGraderActions {
     // filename, and modify by applying the assign transformations.
     const project_id = this.jupyter_actions.store.get("project_id");
     const project_actions = this.redux.getProjectActions(project_id);
-    // Be sure to explicitly undelete the student file, just in case it
-    // was manually deleted.  This is the right thing to do since generating
-    // the student version is explicitly, and doesn't require any confirmation.
-    const store = this.redux.getProjectStore(project_id);
-    const listings = store.get_listings();
-    await listings.undelete(filename);
     await project_actions.open_file({ path: filename, foreground: true });
     let actions = this.redux.getEditorActions(project_id, filename);
     while (actions == null) {
@@ -196,14 +207,19 @@ export class NBGraderActions {
     // The complicated map/filter thing below is just to grab
     // only the {type:?,id:?} parts of all the records.
     actions.jupyter_actions.syncdb.emit("change", "all");
-    await actions.jupyter_actions.save();
+
+    // Apply all the transformations.
     await actions.jupyter_actions.nbgrader_actions.apply_assign_transformations(
       minimal_stubs,
     );
+    // now save to disk
     await actions.jupyter_actions.save();
   }
 
-  public apply_assign_transformations(minimal_stubs: boolean = false): void {
+  // public because above we call this... on a different object!
+  public apply_assign_transformations = (
+    minimal_stubs: boolean = false,
+  ): void => {
     /* see https://nbgrader.readthedocs.io/en/stable/command_line_tools/nbgrader-assign.html
     Of which, we do:
 
@@ -239,8 +255,7 @@ export class NBGraderActions {
     this.assign_save_checksums(); // step 5
     // log("lock readonly cells");
     this.assign_lock_readonly_cells(); // step 2 -- needs to be last, since it stops cells from being editable!
-    this.jupyter_actions.save_asap();
-  }
+  };
 
   // merge in metadata to the global (not local to a cell) nbgrader
   // metadata for this notebook.  This is something I invented for

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -18,7 +18,8 @@ import Stripe from "stripe";
 import { getServerSettings } from "@cocalc/database/settings";
 
 // See https://stripe.com/docs/api/versioning
-const apiVersion = "2022-11-15";
+//const apiVersion = "2025-02-24.acacia";
+const apiVersion = "2024-12-18.acacia" as any;
 
 interface StripeWithPublishableKey extends Stripe {
   publishable_key: string;
@@ -28,19 +29,19 @@ let stripe: StripeWithPublishableKey | undefined = undefined;
 let key: string = "";
 let last: number = 0;
 export async function getConn(): Promise<StripeWithPublishableKey> {
-  if (stripe != null && new Date().valueOf() - last <= 1000 * 60) {
+  if (stripe != null && Date.now() - last <= 1000 * 60) {
     return stripe;
   }
   const { stripe_publishable_key, stripe_secret_key } =
     await getServerSettings();
   if (!stripe_publishable_key) {
     throw Error(
-      "stripe publishable key is not set -- billing functionality not available"
+      "stripe publishable key is not set -- billing functionality not available",
     );
   }
   if (!stripe_secret_key) {
     throw Error(
-      "stripe secret key is not set -- billing functionality not available"
+      "stripe secret key is not set -- billing functionality not available",
     );
   }
   if (stripe == null || key != stripe_publishable_key + stripe_secret_key) {
@@ -49,7 +50,7 @@ export async function getConn(): Promise<StripeWithPublishableKey> {
       apiVersion,
     }) as StripeWithPublishableKey;
     stripe.publishable_key = stripe_publishable_key;
-    last = new Date().valueOf();
+    last = Date.now();
   }
   return stripe;
 }

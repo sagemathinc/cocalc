@@ -1,9 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { IconName } from "@cocalc/frontend/components/icon";
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { capitalize } from "@cocalc/util/misc";
 import { register as registerSearch } from "./search/entries";
 
@@ -12,7 +13,7 @@ export const components: { [main: string]: { [sub: string]: Function } } = {};
 interface Options {
   path: string;
   title?: string;
-  icon?: IconName;
+  icon?: IconName | "ai";
   desc?: string;
   Component: Function;
   danger?: boolean;
@@ -21,7 +22,7 @@ interface Options {
 
 interface Entry {
   title: string;
-  icon?: IconName;
+  icon?: IconName | "ai";
   desc?: string;
   danger?: boolean;
 }

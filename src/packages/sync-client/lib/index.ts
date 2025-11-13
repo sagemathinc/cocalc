@@ -57,9 +57,6 @@ export default class Client extends EventEmitter implements AppClient {
 
     this.project_client = bind_methods(new ProjectClient());
     this.sync_client = bind_methods(new SyncClient(this));
-    this.synctable_project = this.sync_client.synctable_project.bind(
-      this.sync_client,
-    );
   }
 
   client_id = () => {
@@ -153,7 +150,7 @@ export default class Client extends EventEmitter implements AppClient {
     }
   });
 
-  touch_project = (project_id: string) => {
+  touch_project = (project_id: string, _compute_server_id?: number) => {
     this._touchProject(project_id);
   };
 }

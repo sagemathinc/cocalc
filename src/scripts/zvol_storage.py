@@ -119,12 +119,11 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None):
         signal.signal(signal.SIGALRM, handle)
         signal.alarm(timeout)
     try:
-        out = Popen(
-            s,
-            stdin=PIPE,
-            stdout=PIPE,
-            stderr=PIPE,
-            shell=not isinstance(s, list))
+        out = Popen(s,
+                    stdin=PIPE,
+                    stdout=PIPE,
+                    stderr=PIPE,
+                    shell=not isinstance(s, list))
         x = out.stdout.read() + out.stderr.read()
         e = out.wait(
         )  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
@@ -160,14 +159,14 @@ def filesystem_exists(fs):
 
 def filesystem_size_b(fs):
     """
-    Return the size of the filesystem in bytes.
+    Return the size of the file system in bytes.
     """
     return int(cmd("sudo /sbin/zfs get volsize -Hp %s" % fs).split()[2])
 
 
 def filesystem_size(fs):
     """
-    Return the size of the filesystem as a human-readable string returned by ZFS.
+    Return the size of the file system as a human-readable string returned by ZFS.
     """
     return cmd("sudo /sbin/zfs get volsize -H %s" % fs).split()[2]
 
@@ -187,13 +186,12 @@ def newest_snapshot(fs):
 
 
 def snapshots(filesystem):
-    w = cmd(
-        [
-            'sudo', 'zfs', 'list', '-r', '-t', 'snapshot', '-o', 'name', '-s',
-            'creation', filesystem
-        ],
-        verbose=1,
-        ignore_errors=True)
+    w = cmd([
+        'sudo', 'zfs', 'list', '-r', '-t', 'snapshot', '-o', 'name', '-s',
+        'creation', filesystem
+    ],
+            verbose=1,
+            ignore_errors=True)
     if 'dataset does not exist' in w or 'no datasets available' in w:
         return []
     else:
@@ -216,6 +214,7 @@ def mount(mountpoint, fs):
 
 
 class Stream(object):
+
     def __init__(self, project, path):
         self.project = project
         self.path = path
@@ -229,9 +228,9 @@ class Stream(object):
 
     def __eq__(self, other):
         return (self.end, self.start) == (other.end, other.start)
-    
+
     def __ne__(self, other):
-        return not(self  == other)
+        return not (self == other)
 
     def size_mb(self):
         return int(os.path.getsize(self.path) / 1e6)
@@ -294,6 +293,7 @@ def optimal_stream_sequence(v):
 
 
 class Project(object):
+
     def __init__(self,
                  project_id,
                  pool,
@@ -330,9 +330,10 @@ class Project(object):
         return "Project(%s)" % project_id
 
     def _log(self, funcname, **kwds):
+
         def f(mesg=''):
-            log("%s(project_id=%s,%s): %s" % (funcname, self.project_id, kwds,
-                                              mesg))
+            log("%s(project_id=%s,%s): %s" %
+                (funcname, self.project_id, kwds, mesg))
 
         f()
         return f
@@ -370,8 +371,8 @@ class Project(object):
         cmd("sudo /sbin/zfs set compression=lz4 %s" % self.project_pool)
         cmd("sudo /sbin/zfs set dedup=off %s" %
             self.project_pool)  # dedup (even locally) may be evil!
-        cmd("sudo /bin/chown %s:%s %s" % (self.uid, self.uid,
-                                          self.project_mnt))
+        cmd("sudo /bin/chown %s:%s %s" %
+            (self.uid, self.uid, self.project_mnt))
         cmd("sudo /bin/chmod og-rwx %s" % self.project_mnt)
 
         #os.chown(self.project_mnt, self.uid, self.uid)
@@ -383,8 +384,8 @@ class Project(object):
         self.export_pool()
 
     def project_pool_is_imported(self):
-        s = cmd(
-            "sudo /sbin/zpool list %s" % self.project_pool, ignore_errors=True)
+        s = cmd("sudo /sbin/zpool list %s" % self.project_pool,
+                ignore_errors=True)
         if 'no such pool' in s:
             return False
         elif 'ONLINE' in s:
@@ -443,9 +444,8 @@ class Project(object):
         log = self._log("umount")
         log("exporting project pool")
         self.kill()
-        e = cmd(
-            "sudo /sbin/zpool export %s" % self.project_pool,
-            ignore_errors=True)
+        e = cmd("sudo /sbin/zpool export %s" % self.project_pool,
+                ignore_errors=True)
         if e and 'no such pool' not in e:
             raise RuntimeError(e)
         if self._is_new:
@@ -516,7 +516,9 @@ class Project(object):
                     # this must be the last step in the optimal sequence, or we would have exited
                     # in the above if.  So there is nothing to apply.
                     return
-                elif streams[apply_starting_with].start < newest_snap and streams[apply_starting_with].end > newest_snap:
+                elif streams[
+                        apply_starting_with].start < newest_snap and streams[
+                            apply_starting_with].end > newest_snap:
                     rollback_to -= 1
                     newest_snap = snaps[rollback_to - 1]
                 else:
@@ -537,8 +539,8 @@ class Project(object):
         elif rollback_to < len(snaps):
             log("rollback the image file system -- removing %s snapshots" %
                 (len(snaps[rollback_to - 1:])))
-            cmd("sudo /sbin/zfs rollback -r %s@%s" % (self.zvol_fs,
-                                                      snaps[rollback_to - 1]))
+            cmd("sudo /sbin/zfs rollback -r %s@%s" %
+                (self.zvol_fs, snaps[rollback_to - 1]))
 
         log("now applying %s incoming streams" % len(streams))
         for stream in streams:
@@ -553,9 +555,8 @@ class Project(object):
         end = now()
 
         log("snapshotting image filesystem %s" % end)
-        e = cmd(
-            "sudo /sbin/zfs snapshot %s@%s" % (self.zvol_fs, end),
-            ignore_errors=True)
+        e = cmd("sudo /sbin/zfs snapshot %s@%s" % (self.zvol_fs, end),
+                ignore_errors=True)
         if e:
             if 'dataset does not exist' in e:
                 # not mounted -- nothing to do
@@ -656,16 +657,15 @@ class Project(object):
         # never shrink, which would *destroy the pool horribly!*
         new_size = int(math.ceil(float(amount[:-1]) + float(size[:-1])))
         cmd("sudo /sbin/zfs set volsize=%sG %s" % (new_size, self.zvol_fs))
-        e = cmd(
-            "sudo /sbin/zpool online -e %s %s" % (self.project_pool,
-                                                  self.zvol_dev),
-            ignore_errors=True)
+        e = cmd("sudo /sbin/zpool online -e %s %s" %
+                (self.project_pool, self.zvol_dev),
+                ignore_errors=True)
         if 'ERROR' not in e:
             return
         if 'no such device in pool' in e:
             # sometimes the zvol_dev is required and sometimes the actual device name; I don't know how to tell which.
-            cmd("sudo /sbin/zpool online -e %s %s" % (self.project_pool,
-                                                      self.zvol_device_name()))
+            cmd("sudo /sbin/zpool online -e %s %s" %
+                (self.project_pool, self.zvol_device_name()))
         else:
             raise RuntimeError(e)
 
@@ -719,9 +719,9 @@ class Project(object):
 
         - delete -- boolean (default: False); if true, deletes any files on target not here. DANGEROUS!
         """
-        cmd("rsync -axH %s %s/ %s:%s/" % ('--delete'
-                                          if delete else '', self.stream_path,
-                                          target, self.stream_path))
+        cmd("rsync -axH %s %s/ %s:%s/" %
+            ('--delete' if delete else '', self.stream_path, target,
+             self.stream_path))
 
     def destroy_zvol_fs(self):
         """
@@ -730,8 +730,8 @@ class Project(object):
         log = self._log("destroy_zvol_fs")
         if self.project_pool_is_imported():
             self.export_pool()
-        e = cmd(
-            "sudo /sbin/zfs destroy -r %s" % self.zvol_fs, ignore_errors=True)
+        e = cmd("sudo /sbin/zfs destroy -r %s" % self.zvol_fs,
+                ignore_errors=True)
         if e and 'dataset does not exist' not in e:
             raise RuntimeError(e)
 
@@ -775,11 +775,11 @@ class Project(object):
 
         log("rsync'ing over updated template... (this should take about a minute the first time)"
             )
-        cmd("rsync -axHL --delete %s/ /%s/" % (SAGEMATHCLOUD_TEMPLATE,
-                                               self.sagemathcloud_template_fs))
+        cmd("rsync -axHL --delete %s/ /%s/" %
+            (SAGEMATHCLOUD_TEMPLATE, self.sagemathcloud_template_fs))
         log("taking a snapshot of the template")
-        cmd("sudo /sbin/zfs snapshot %s@%s" % (self.sagemathcloud_template_fs,
-                                               now()))
+        cmd("sudo /sbin/zfs snapshot %s@%s" %
+            (self.sagemathcloud_template_fs, now()))
 
     def newest_sagemathcloud_template_snapshot(self):
         log = self._log('newest_sagemathcloud_template_snapshot')
@@ -823,11 +823,11 @@ class Project(object):
             cmd("sudo /sbin/zfs clone %s@%s %s" %
                 (self.sagemathcloud_template_fs, snap, self.sagemathcloud_fs))
             cmd("sudo /sbin/zfs set quota=256M %s" % self.sagemathcloud_fs)
-            cmd("sudo /bin/chown -R %s. /%s" % (self.username,
-                                                self.sagemathcloud_fs))
+            cmd("sudo /bin/chown -R %s. /%s" %
+                (self.username, self.sagemathcloud_fs))
         log('create the symlink')
-        cmd("sudo /bin/ln -sf /%s %s/.sagemathcloud" % (self.sagemathcloud_fs,
-                                                        self.project_mnt))
+        cmd("sudo /bin/ln -sf /%s %s/.sagemathcloud" %
+            (self.sagemathcloud_fs, self.project_mnt))
 
     def destroy_sagemathcloud_fs(self):
         log = self._log('destroy_sagemathcloud_fs')
@@ -868,16 +868,15 @@ class Project(object):
         try:
             log('temporary ssh')
             cmd("sudo /bin/cp -r /home/salvus/.ssh %s/" % self.project_mnt)
-            cmd("sudo /bin/chown -R %s %s/.ssh" % (self.username,
-                                                   self.project_mnt))
+            cmd("sudo /bin/chown -R %s %s/.ssh" %
+                (self.username, self.project_mnt))
             src = "/projects/%s" % self.project_id
 
             def get_quota():
                 log('get quota')
                 try:
-                    a = cmd(
-                        "ssh %s 'df -h %s'" % (host, src),
-                        timeout=timeout).splitlines()[1].split()
+                    a = cmd("ssh %s 'df -h %s'" % (host, src),
+                            timeout=timeout).splitlines()[1].split()
                     quota = a[1]
                     mountpoint = a[5]
                     if mountpoint != src:
@@ -894,8 +893,8 @@ class Project(object):
             if q == 0:
                 # try to mount
                 cmd('ssh %s "sudo zfs set mountpoint=/projects/%s projects/%s; sudo zfs mount projects/%s"'
-                    % (host, self.project_id, self.project_id,
-                       self.project_id),
+                    %
+                    (host, self.project_id, self.project_id, self.project_id),
                     timeout=timeout,
                     ignore_errors=True)
                 we_mounted_it = True
@@ -941,11 +940,10 @@ if __name__ == "__main__":
 
     parser.add_argument("project_id", help="project id", type=str)
 
-    parser.add_argument(
-        "--pool",
-        help="ZFS pool (default:'storage')",
-        default="storage",
-        type=str)
+    parser.add_argument("--pool",
+                        help="ZFS pool (default:'storage')",
+                        default="storage",
+                        type=str)
     parser.add_argument(
         "--mnt",
         help="mountpoint for the project (default:'/projects/[project_id]')",
@@ -964,12 +962,12 @@ if __name__ == "__main__":
         type=str)
 
     parser_create = subparsers.add_parser('create', help='create filesystem')
-    parser_create.add_argument(
-        "--quota",
-        dest="quota",
-        help="disk quota (default: '%s')" % DEFAULT_QUOTA,
-        type=str,
-        default=DEFAULT_QUOTA)
+    parser_create.add_argument("--quota",
+                               dest="quota",
+                               help="disk quota (default: '%s')" %
+                               DEFAULT_QUOTA,
+                               type=str,
+                               default=DEFAULT_QUOTA)
     parser_create.set_defaults(
         func=lambda args: project.create(quota=args.quota))
 
@@ -983,8 +981,8 @@ if __name__ == "__main__":
     )
     parser_import_pool.set_defaults(func=lambda args: project.import_pool())
 
-    parser_export_pool = subparsers.add_parser(
-        'export_pool', help='export the zpool')
+    parser_export_pool = subparsers.add_parser('export_pool',
+                                               help='export the zpool')
     parser_export_pool.set_defaults(func=lambda args: project.export_pool())
 
     parser_recv_streams = subparsers.add_parser(
@@ -1002,24 +1000,24 @@ if __name__ == "__main__":
     parser_sagemathcloud = subparsers.add_parser(
         'sagemathcloud',
         help=
-        'control the ~/.sagemathcloud filesystem (give either --create, --destroy or both)'
+        'control the ~/.sagemathcloud file system (give either --create, --destroy or both)'
     )
     parser_sagemathcloud.add_argument(
         "--create",
-        help="if given, create the .sagemathcloud filesystem",
+        help="if given, create the .sagemathcloud file system",
         default=False,
         action="store_const",
         const=True)
     parser_sagemathcloud.add_argument(
         "--destroy",
-        help="if given, destroy the .sagemathcloud filesystem",
+        help="if given, destroy the .sagemathcloud file system",
         default=False,
         action="store_const",
         const=True)
     parser_sagemathcloud.add_argument(
         "--update",
         help=
-        "if given, update the .sagemathcloud filesystem in place using rsync from newest template (so no need to killall)",
+        "if given, update the .sagemathcloud file system in place using rsync from newest template (so no need to killall)",
         default=False,
         action="store_const",
         const=True)
@@ -1057,12 +1055,12 @@ if __name__ == "__main__":
         help="memory quota in gigabytes (default: '%s')" % DEFAULT_MEMORY_G,
         type=int,
         default=DEFAULT_MEMORY_G)
-    parser_cgroup.add_argument(
-        "--cpu_shares",
-        dest="cpu_shares",
-        help="share of the cpu (default: '%s')" % DEFAULT_CPU_SHARES,
-        type=int,
-        default=DEFAULT_CPU_SHARES)
+    parser_cgroup.add_argument("--cpu_shares",
+                               dest="cpu_shares",
+                               help="share of the cpu (default: '%s')" %
+                               DEFAULT_CPU_SHARES,
+                               type=int,
+                               default=DEFAULT_CPU_SHARES)
     parser_cgroup.add_argument(
         "--core_quota",
         dest="core_quota",
@@ -1070,12 +1068,14 @@ if __name__ == "__main__":
         DEFAULT_CORE_QUOTA,
         type=float,
         default=DEFAULT_CORE_QUOTA)
-    parser_cgroup.set_defaults(func=lambda args: project.cgroup(
-                    memory_G=args.memory_G, cpu_shares=args.cpu_shares, core_quota=args.core_quota))
+    parser_cgroup.set_defaults(
+        func=lambda args: project.cgroup(memory_G=args.memory_G,
+                                         cpu_shares=args.cpu_shares,
+                                         core_quota=args.core_quota))
 
     parser_destroy_sagemathcloud_fs = subparsers.add_parser(
         'destroy_sagemathcloud_fs',
-        help='destroy the ~/.sagemathcloud filesystem')
+        help='destroy the ~/.sagemathcloud file system')
     parser_destroy_sagemathcloud_fs.set_defaults(
         func=lambda args: project.destroy_sagemathcloud_fs())
 
@@ -1153,8 +1153,10 @@ if __name__ == "__main__":
     parser_destroy_snapshot_of_pool = subparsers.add_parser(
         'destroy_snapshot_of_pool',
         help='destroy a snapshot of the project pool')
-    parser_destroy_snapshot_of_pool.add_argument(
-        "--name", dest="name", help="name of snapshot", type=str)
+    parser_destroy_snapshot_of_pool.add_argument("--name",
+                                                 dest="name",
+                                                 help="name of snapshot",
+                                                 type=str)
     parser_destroy_snapshot_of_pool.set_defaults(
         func=lambda args: project.destroy_snapshot_of_pool(args.name))
 
@@ -1164,21 +1166,23 @@ if __name__ == "__main__":
     parser_snapshots.set_defaults(
         func=lambda args: print_json(project.snapshots()))
 
-    parser_increase_quota = subparsers.add_parser(
-        'increase_quota', help='increase quota')
-    parser_increase_quota.add_argument(
-        "--amount",
-        dest="amount",
-        help="amount (default: '5G')",
-        type=str,
-        default='5G')
+    parser_increase_quota = subparsers.add_parser('increase_quota',
+                                                  help='increase quota')
+    parser_increase_quota.add_argument("--amount",
+                                       dest="amount",
+                                       help="amount (default: '5G')",
+                                       type=str,
+                                       default='5G')
     parser_increase_quota.set_defaults(
         func=lambda args: project.increase_quota(amount=args.amount))
 
-    parser_migrate_from = subparsers.add_parser(
-        'migrate_from', help='get content from')
-    parser_migrate_from.add_argument(
-        "--host", dest="host", help="required hostname", type=str, default='')
+    parser_migrate_from = subparsers.add_parser('migrate_from',
+                                                help='get content from')
+    parser_migrate_from.add_argument("--host",
+                                     dest="host",
+                                     help="required hostname",
+                                     type=str,
+                                     default='')
     parser_migrate_from.set_defaults(
         func=lambda args: project.migrate_from(host=args.host))
 
@@ -1191,11 +1195,10 @@ if __name__ == "__main__":
                                               args.project_id)
 
     t0 = time.time()
-    project = Project(
-        project_id=args.project_id,
-        mnt=args.mnt,
-        pool=args.pool,
-        login_shell=args.login_shell,
-        stream_path=args.stream_path)
+    project = Project(project_id=args.project_id,
+                      mnt=args.mnt,
+                      pool=args.pool,
+                      login_shell=args.login_shell,
+                      stream_path=args.stream_path)
     args.func(args)
     log("total time: %s seconds" % (time.time() - t0))

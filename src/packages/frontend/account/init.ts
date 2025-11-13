@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { deep_copy } from "@cocalc/util/misc";
@@ -13,6 +13,7 @@ import { init_dark_mode } from "./dark-mode";
 import { reset_password_key } from "../client/password-reset";
 import { hasRememberMe } from "@cocalc/frontend/misc/remember-me";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { once } from "@cocalc/util/async-utils";
 
 export function init(redux) {
   // Register account store
@@ -43,22 +44,29 @@ export function init(redux) {
   actions.setState({ reset_key: reset_password_key() });
 
   // Login status
-  webapp_client.on("signed_in", function (mesg) {
+  webapp_client.on("signed_in", async (mesg) => {
     if (mesg?.api_key) {
       // wait for sign in to finish and cookie to get set, then redirect
       setTimeout(() => {
         window.location.href = `https://authenticated?api_key=${mesg.api_key}`;
       }, 2000);
     }
+    const table = redux.getTable("account")._table;
+    if (table != "connected") {
+      // not fully signed in until the account table is connected, so that we know
+      // email address, etc.  If we don't set this, the UI thinks the user is anonymous
+      // for a second, which is disconcerting.
+      await once(table, "connected");
+    }
     redux.getActions("account").set_user_type("signed_in");
   });
 
   webapp_client.on("signed_out", () =>
-    redux.getActions("account").set_user_type("public")
+    redux.getActions("account").set_user_type("public"),
   );
 
   webapp_client.on("remember_me_failed", () =>
-    redux.getActions("account").set_user_type("public")
+    redux.getActions("account").set_user_type("public"),
   );
 
   // Autosave interval

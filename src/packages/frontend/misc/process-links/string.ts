@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -14,7 +14,8 @@ share server.
 TODO: this is NOT used anywhere yet.
 */
 
-import $ from "cheerio";
+import { load } from "cheerio";
+
 import processLinks from "./generic";
 
 interface Options {
@@ -25,8 +26,9 @@ interface Options {
 
 export default function processLinksString(
   html: string,
-  opts: Options
+  opts: Options,
 ): string {
+  const $ = load("");
   const elt = $(`<div>${html}</div>`);
   processLinks(elt, { ...opts, $ });
   return elt.html() ?? "";

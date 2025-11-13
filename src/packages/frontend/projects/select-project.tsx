@@ -1,19 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Component for selecting a project.
 
 import { Checkbox, Select } from "antd";
-import {
-  CSS,
-  redux,
-  React,
-  useMemo,
-  useState,
-  useTypedRedux,
-} from "../app-framework";
+import { CSS, redux, useMemo, useState, useTypedRedux } from "../app-framework";
 import { webapp_client } from "../webapp-client";
 import { Loading } from "../components";
 
@@ -28,18 +21,18 @@ interface Props {
   style?: CSS;
 }
 
-export const SelectProject: React.FC<Props> = ({
+export function SelectProject({
   exclude,
   at_top,
   onChange,
   value,
   defaultValue,
   style,
-}) => {
+}: Props) {
   const project_map = useTypedRedux("projects", "project_map");
   const all_projects_have_been_loaded = useTypedRedux(
     "projects",
-    "all_projects_have_been_loaded"
+    "all_projects_have_been_loaded",
   );
 
   // include deleted projects in the selector
@@ -106,7 +99,7 @@ export const SelectProject: React.FC<Props> = ({
       }
     }
     return data.concat(others);
-  }, [project_map, exclude, at_top, include_deleted, include_hidden]);
+  }, [project_map, exclude, at_top, include_deleted, include_hidden, value]);
 
   if (data == null) {
     return <Loading />;
@@ -116,6 +109,7 @@ export const SelectProject: React.FC<Props> = ({
     <div style={style}>
       <div style={{ display: "flex", flexDirection: "row" }}>
         <Select
+          allowClear
           style={{ marginRight: "15px", flex: 1 }}
           showSearch={true}
           placeholder={"Select a project..."}
@@ -164,4 +158,4 @@ export const SelectProject: React.FC<Props> = ({
       </div>
     </div>
   );
-};
+}

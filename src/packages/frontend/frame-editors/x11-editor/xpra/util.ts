@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -23,7 +23,7 @@
 
 import forge from "node-forge";
 import { CHUNK_SZ, DEFAULT_DPI } from "./constants";
-import * as lz4 from "@cocalc/xpra-lz4";
+import { uncompressBlock } from "@rinsuki/lz4-ts";
 
 export function ord(s: string): number {
   return s.charCodeAt(0);
@@ -131,14 +131,14 @@ export function arraybufferBase64(uintArray, skip = 10400): string {
     for (let i = 0, len = uintArray.length; i < len; i += skip) {
       s += String.fromCharCode.apply(
         null,
-        uintArray.subarray(i, Math.min(i + skip, len))
+        uintArray.subarray(i, Math.min(i + skip, len)),
       );
     }
   } else {
     for (let i = 0, len = uintArray.length; i < len; i += skip) {
       s += String.fromCharCode.apply(
         null,
-        uintArray.slice(i, Math.min(i + skip, len))
+        uintArray.slice(i, Math.min(i + skip, len)),
       );
     }
   }
@@ -150,13 +150,14 @@ export function arraybufferBase64(uintArray, skip = 10400): string {
 // at the start of the stream
 export function lz4decode(data) {
   const d = data.subarray(0, 4);
+  // window.x = { data, calcUncompressedLen, uncompressBlock };
 
   // output buffer length is stored as little endian
   const length = d[0] | (d[1] << 8) | (d[2] << 16) | (d[3] << 24);
 
   // decode the LZ4 block
   const inflated = new Uint8Array(length);
-  const uncompressedSize = lz4.decodeBlock(data, inflated, 4);
+  const uncompressedSize = uncompressBlock(data.slice(4), inflated);
   return { uncompressedSize, inflated };
 }
 
@@ -186,7 +187,7 @@ export function xorString(str1: string, str2: string): string {
 
   for (let i = 0; i < str1.length; i++) {
     result += String.fromCharCode(
-      str1[i].charCodeAt(0) ^ str2[i].charCodeAt(0)
+      str1[i].charCodeAt(0) ^ str2[i].charCodeAt(0),
     );
   }
 
@@ -246,7 +247,7 @@ export function generateSalt(saltDigest: string, serverSalt: string): string {
 export function generateDigest(
   digest: string,
   password: string,
-  salt: string
+  salt: string,
 ): string | null {
   if (digest.startsWith("hmac")) {
     let hash = "md5";
@@ -255,7 +256,7 @@ export function generateDigest(
     }
 
     const hmac = forge.hmac.create();
-    hmac.start(hash, password);
+    hmac.start(hash as any, password);
     hmac.update(salt);
 
     return hmac.digest().toHex();

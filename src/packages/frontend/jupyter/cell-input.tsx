@@ -1,38 +1,33 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 React component that describes the input of a cell
 */
+
 import { Map } from "immutable";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Tooltip } from "antd";
-import { React, Rendered } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
-import CopyButton from "@cocalc/frontend/components/copy-button";
-import PasteButton from "@cocalc/frontend/components/paste-button";
+import { useCallback, useEffect, useRef } from "react";
+import { React, Rendered, redux } from "@cocalc/frontend/app-framework";
+import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
+import { LLMTools } from "@cocalc/jupyter/types";
+import { CellType } from "@cocalc/util/jupyter/types";
 import { filename_extension, startswith } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
+import { CellButtonBar } from "./cell-buttonbar";
 import { CellHiddenPart } from "./cell-hidden-part";
-import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
+import { Position } from "./insert-cell/types";
 import { InputPrompt } from "./prompt/input";
-import { get_blob_url } from "./server-urls";
-import { delay } from "awaiting";
-import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 
 function attachmentTransform(
-  project_id: string | undefined,
   cell: Map<string, any>,
   href?: string,
 ): string | undefined {
@@ -43,12 +38,6 @@ function attachmentTransform(
   const data = cell.getIn(["attachments", name]) as any;
   let ext = filename_extension(name);
   switch (data?.get("type")) {
-    case "sha1":
-      const sha1 = data.get("value");
-      if (project_id == null) {
-        return href; // can't do anything.
-      }
-      return get_blob_url(project_id, ext, sha1);
     case "base64":
       if (ext === "jpg") {
         ext = "jpeg";
@@ -73,17 +62,32 @@ export interface CellInputProps {
   cell_toolbar?: string;
   trust?: boolean;
   is_readonly: boolean;
+  input_is_readonly: boolean;
   is_scrolling?: boolean;
   id: string;
   index: number;
-  chatgpt?;
+  llmTools?: LLMTools;
   computeServerId?: number;
+  setShowAICellGen?: (show: Position) => void;
+  dragHandle?: React.JSX.Element;
 }
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
   (props) => {
-    const [formatting, setFormatting] = useState<boolean>(false);
     const frameActions = useNotebookFrameActions();
+
+    // NOTE: These two flags are primarily used to enable/disable tools in course projects
+    const projectsStore = redux.getStore("projects");
+    const haveAIGenerateCell: boolean =
+      props.llmTools != null &&
+      projectsStore.hasLanguageModelEnabled(props.project_id, "generate-cell");
+    const haveLLMCellTools: boolean =
+      props.llmTools != null &&
+      projectsStore.hasLanguageModelEnabled(
+        props.project_id,
+        "jupyter-cell-llm",
+      );
+
     function render_input_prompt(type: string): Rendered {
       return (
         <HiddenXS>
@@ -96,23 +100,21 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             end={props.cell.get("end")}
             actions={props.actions}
             id={props.id}
+            dragHandle={props.dragHandle}
+            read_only={props.input_is_readonly}
           />
         </HiddenXS>
       );
     }
 
-    function handle_upload_click(): void {
-      if (props.actions == null) {
+    function handle_md_double_click(): void {
+      if (props.input_is_readonly) {
         return;
       }
-      props.actions.insert_image(props.id);
-    }
-
-    function handle_md_double_click(): void {
       frameActions.current?.switch_md_cell_to_edit(props.cell.get("id"));
     }
 
-    function options(type: "code" | "markdown" | "raw"): Map<string, any> {
+    function options(type: CellType): Map<string, any> {
       let opt: Map<string, any>;
       switch (type) {
         case "code":
@@ -128,7 +130,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           opt = opt.set("foldGutter", false);
           break;
       }
-      if (props.is_readonly) {
+      if (props.input_is_readonly) {
         opt = opt.set("readOnly", true);
       }
       if (props.cell.get("line_numbers") != null) {
@@ -137,7 +139,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       return opt;
     }
 
-    function render_codemirror(type: "code" | "markdown" | "raw"): Rendered {
+    function render_codemirror(type: CellType): Rendered {
       let value = props.cell.get("input");
       if (typeof value != "string") {
         // E.g., if it is null or a weird object.  This shouldn't happen, but typescript doesn't
@@ -147,13 +149,23 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       }
       return (
         <CodeMirror
+          actions={
+            props.is_readonly || props.input_is_readonly
+              ? undefined
+              : props.actions
+            /* Do NOT pass in actions when read only, since having any actions *defines*
+            not read only for the codemirror editor; also, it will get created with
+            potentially the same id as a normal cell, hence get linked to it, and
+            then changing it, changes the original cell... causing timetravel
+            to "instantly revert". */
+          }
           complete={props.complete}
           getValueRef={getValueRef}
           value={value}
           options={options(type)}
-          actions={props.actions}
           id={props.cell.get("id")}
           is_focused={props.is_focused}
+          is_current={props.is_current}
           font_size={props.font_size}
           cursors={props.cell.get("cursors")}
           is_scrolling={props.is_scrolling}
@@ -166,50 +178,18 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           unregisterEditor={() => {
             frameActions.current?.unregister_input_editor(props.cell.get("id"));
           }}
+          setShowAICellGen={
+            haveAIGenerateCell ? props.setShowAICellGen : undefined
+          }
         />
       );
     }
 
-    function render_markdown_edit_button(): Rendered {
-      if (
-        !props.is_current ||
-        props.actions == null ||
-        props.cell.getIn(["metadata", "editable"]) === false
-      ) {
-        return;
-      }
-      return (
-        <Button.Group
-          style={{
-            position: "absolute",
-            right: 0,
-            top: "-20px",
-          }}
-        >
-          <Button
-            style={{ color: "#666", fontSize: "11px" }}
-            size="small"
-            type="text"
-            onClick={handle_md_double_click}
-          >
-            <Icon name="edit" /> Edit
-          </Button>
-          <Button
-            style={{ color: "#666", fontSize: "11px" }}
-            size="small"
-            type="text"
-            onClick={handle_upload_click}
-          >
-            <Icon name="image" />
-          </Button>
-        </Button.Group>
-      );
-    }
-
     const fileContext = useFileContext();
+
     const urlTransform = useCallback(
       (url, tag?) => {
-        const url1 = attachmentTransform(props.project_id, props.cell, url);
+        const url1 = attachmentTransform(props.cell, url);
         if (url1 != null && url1 != url) {
           return url1;
         }
@@ -226,16 +206,21 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         value = "";
       }
       value = value.trim();
+      if (props.actions?.processRenderedMarkdown != null) {
+        value = props.actions.processRenderedMarkdown({ value, id: props.id });
+      }
       return (
         <div
           onDoubleClick={handle_md_double_click}
           style={{ width: "100%", wordWrap: "break-word", overflow: "auto" }}
           className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md"
         >
-          {render_markdown_edit_button()}
           <MostlyStaticMarkdown
             value={value}
             onChange={(value) => {
+              if (props.input_is_readonly) {
+                return;
+              }
               // user checked a checkbox.
               props.actions?.set_cell_input(props.id, value, true);
             }}
@@ -274,8 +259,13 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
 
     function renderMarkdownEdit() {
       const cmOptions = options("markdown").toJS();
+      if (cmOptions?.readOnly) {
+        // see https://github.com/sagemathinc/cocalc/issues/7777
+        return render_markdown();
+      }
       return (
         <MarkdownInput
+          fontSize={props.font_size}
           enableMentions={true}
           cacheId={`${props.id}${frameActions.current?.frame_id}`}
           value={props.cell.get("input") ?? ""}
@@ -355,7 +345,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           modeSwitchStyle={{ marginRight: "32px" }}
           editBarStyle={{
             paddingRight:
-              "160px" /* ugly hack for now; bigger than default due to mode switch shift to accomodate cell number. */,
+              "160px" /* ugly hack for now; bigger than default due to mode switch shift to accommodate cell number. */,
           }}
         />
       );
@@ -370,7 +360,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         case "markdown":
           if (props.is_markdown_edit) {
             return renderMarkdownEdit();
-            //return render_codemirror(type);
           } else {
             return render_markdown();
           }
@@ -391,102 +380,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       }
     }
 
-    function renderCodeBar() {
-      if (fileContext.disableExtraButtons) return null;
-      const input = props.cell.get("input")?.trim();
-      return (
-        <div
-          style={{
-            position: "absolute",
-            right: "2px",
-            top: "-20px",
-          }}
-          className="hidden-xs"
-        >
-          <div
-            style={{
-              display: "flex",
-              color: COLORS.GRAY_M,
-              fontSize: "11px",
-            }}
-          >
-            {props.is_current && props.computeServerId ? (
-              <ComputeServerPrompt id={props.computeServerId} />
-            ) : null}
-            {props.cell.get("start") != null && (
-              <div style={{ marginTop: "5px" }}>
-                <CellTiming
-                  start={props.cell.get("start")}
-                  end={props.cell.get("end")}
-                />
-              </div>
-            )}
-            {props.chatgpt != null && (
-              <props.chatgpt.ChatGPTExplain
-                id={props.id}
-                actions={props.actions}
-              />
-            )}
-            {/* Should only show formatter button if there is a way to format this code. */}
-            {!props.is_readonly && props.actions != null && (
-              <Tooltip title="Format this code to look nice" placement="top">
-                <Button
-                  disabled={formatting}
-                  type="text"
-                  size="small"
-                  style={{ fontSize: "11px", color: COLORS.GRAY_M }}
-                  onClick={async () => {
-                    // kind of a hack: clicking on this button makes this cell
-                    // the selected one
-                    try {
-                      setFormatting(true);
-                      await delay(1);
-                      await frameActions.current?.format_selected_cells();
-                    } finally {
-                      setFormatting(false);
-                    }
-                  }}
-                >
-                  <Icon
-                    name={formatting ? "spinner" : "sitemap"}
-                    spin={formatting}
-                  />{" "}
-                  Format
-                </Button>
-              </Tooltip>
-            )}
-            {input ? (
-              <CopyButton
-                size="small"
-                value={props.cell.get("input") ?? ""}
-                style={{ fontSize: "11px", color: COLORS.GRAY_M }}
-              />
-            ) : (
-              <PasteButton
-                style={{ fontSize: "11px", color: COLORS.GRAY_M }}
-                paste={(text) =>
-                  frameActions.current?.set_cell_input(props.id, text)
-                }
-              />
-            )}
-            {input && (
-              <div
-                style={{
-                  marginLeft: "3px",
-                  padding: "4px",
-                  borderLeft: "1px solid #ccc",
-                  borderTop: "1px solid #ccc",
-                }}
-              >
-                {props.index + 1}
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    function render_hidden(): JSX.Element {
+    function render_hidden(): React.JSX.Element {
       return (
         <CellHiddenPart
           title={
@@ -496,11 +390,33 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       );
     }
 
+    const cell_type = props.cell.get("cell_type") || "code";
+
+    function render_cell_buttonbar() {
+      if (fileContext.disableExtraButtons) {
+        return;
+      }
+      return (
+        <CellButtonBar
+          id={props.id}
+          cell_type={cell_type}
+          index={props.index}
+          actions={props.actions}
+          cell={props.cell}
+          is_current={props.is_current}
+          is_readonly={props.is_readonly}
+          input_is_readonly={props.input_is_readonly}
+          computeServerId={props.computeServerId}
+          llmTools={props.llmTools}
+          haveLLMCellTools={haveLLMCellTools}
+        />
+      );
+    }
+
     if (props.cell.getIn(["metadata", "jupyter", "source_hidden"])) {
       return render_hidden();
     }
 
-    const type = props.cell.get("cell_type") || "code";
     return (
       <FileContext.Provider
         value={{
@@ -509,6 +425,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         }}
       >
         <div>
+          {render_cell_buttonbar()}
           {render_cell_toolbar()}
           <div
             style={{
@@ -518,9 +435,8 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             }}
             cocalc-test="cell-input"
           >
-            {render_input_prompt(type)}
-            {render_input_value(type)}
-            {type == "code" && renderCodeBar()}
+            {render_input_prompt(cell_type)}
+            {render_input_value(cell_type)}
           </div>
         </div>
       </FileContext.Provider>
@@ -550,42 +466,14 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       next.font_size !== cur.font_size ||
       next.complete !== cur.complete ||
       next.is_readonly !== cur.is_readonly ||
+      next.input_is_readonly !== cur.input_is_readonly ||
       next.is_scrolling !== cur.is_scrolling ||
       next.cell_toolbar !== cur.cell_toolbar ||
+      (next.llmTools?.model ?? "") !== (cur.llmTools?.model ?? "") ||
       next.index !== cur.index ||
       next.computeServerId != cur.computeServerId ||
+      next.dragHandle !== cur.dragHandle ||
       (next.cell_toolbar === "slideshow" &&
         next.cell.get("slide") !== cur.cell.get("slide"))
     ),
 );
-
-function ComputeServerPrompt({ id }) {
-  return (
-    <Tooltip
-      title={
-        <>
-          This cell will run on <ComputeServer id={id} />.
-        </>
-      }
-    >
-      <div
-        style={{
-          fontSize: "11px",
-          margin: "5px 15px 0 0",
-        }}
-      >
-        <ComputeServer
-          id={id}
-          titleOnly
-          style={{
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-            textOverflow: "ellipsis",
-            display: "inline-block",
-            maxWidth: "125px",
-          }}
-        />
-      </div>
-    </Tooltip>
-  );
-}

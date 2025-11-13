@@ -20,12 +20,13 @@ The following are the custom_fields that we actually use:
   - cocalc_created: date when cocalc account was created (UTC timestamp)
   - cocalc_last_active: date when cocalc account was last active (UTC timestamp)
   - stripe_customer_id: if they interacted with our payment system, they will have a stripe id
-  - cocalc_tags: if they entered tags when creating their account
   - cocalc_notes: if we typed in notes about them via our CRM
   - cocalc_purchase_timestamp: the most recent timestamp where we updated information about their spend, based on daily statements
   - cocalc_balance: their balance at cocalc_purchase_timestamp, from the most recent daily statement
   - cocalc_last_month_spend: amount they spent during the last 30 days, according to daily statements only
   - cocalc_last_year_spend: the total amount they have spent during the last year, according to monthly statements
+  - cocalc_tags: zero or more of 'personal' or 'student' or 'instructor' or 'professional', separated by comma (no space, in alphabetical order)
+    these can be easily customized in the CRM.
 
 RATE LIMITS:
 
@@ -56,7 +57,7 @@ const log = logger.debug.bind(logger);
 
 export async function sync(
   account_ids: string[],
-  delayMs: number = 1000, // wait this long after handling each account_id
+  delayMs: number = 250, // wait this long after handling each account_id
   maxDelayMs: number = 1000 * 60 * 15, // exponential backoff up to this long.
 ): Promise<{
   update: number;
@@ -72,7 +73,7 @@ export async function sync(
     "accounts",
   );
   const { rows } = await cocalc.query(
-    "SELECT account_id AS cocalc_account_id, salesloft_id, created AS cocalc_created, last_active AS cocalc_last_active, stripe_customer_id, tags AS cocalc_tags, notes AS cocalc_notes, email_address, first_name, last_name FROM accounts WHERE account_id=ANY($1) AND email_address IS NOT NULL",
+    "SELECT account_id AS cocalc_account_id, salesloft_id, created AS cocalc_created, last_active AS cocalc_last_active, stripe_customer_id, tags AS cocalc_tags, notes AS cocalc_notes, email_address, first_name, last_name, sign_up_usage_intent FROM accounts WHERE account_id=ANY($1) AND email_address IS NOT NULL",
     [account_ids],
   );
   log("got ", rows.length, " records with an email address");
@@ -156,18 +157,21 @@ function toSalesloft({
   stripe_customer_id,
   cocalc_tags,
   cocalc_notes,
+  sign_up_usage_intent,
 }) {
   const data = {
     first_name,
     last_name,
     email_address,
+    tags: cocalc_tags,
     custom_fields: {
       cocalc_account_id,
       cocalc_created,
       cocalc_last_active,
       stripe_customer_id,
-      cocalc_tags,
+      cocalc_tags: cocalc_tags ? cocalc_tags.sort().join(",") : undefined,
       cocalc_notes,
+      sign_up_usage_intent,
     },
   };
   // TODO: this is because the custom fields must be explicitly manually

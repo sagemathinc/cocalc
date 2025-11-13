@@ -1,4 +1,4 @@
-import { Divider, InputNumber, Space, Spin, Tag, Tooltip } from "antd";
+import { Divider, InputNumber, Spin, Tag, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
 import { currency } from "@cocalc/util/misc";
@@ -15,7 +15,7 @@ const DEFAULT_AMOUNT = 10;
 interface Props {
   balance?: number; // current account balance
   minAmount?: number; // minimal amount that user must add
-  paymentAmount: number;
+  paymentAmount?: number | null;
   totalCost?: number; // optional exact amount of the entire purchase -- just results in another preset tag
   setPaymentAmount: (paymentAmount: number) => void;
 }
@@ -30,7 +30,11 @@ export default function PaymentConfig({
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
   const updateMinPayment = () => {
     (async () => {
-      setMinPayment(await api.getMinimumPayment());
+      const minPayment = await api.getMinimumPayment();
+      setMinPayment(minPayment);
+      if (paymentAmount != null && paymentAmount < minPayment) {
+        setPaymentAmount(minPayment);
+      }
     })();
   };
   useEffect(() => {
@@ -44,16 +48,24 @@ export default function PaymentConfig({
   return (
     <div>
       <div style={{ textAlign: "center" }}>
-        <MoneyStatistic title={"Current Balance"} value={balance} />
+        <MoneyStatistic title={"Current Balance"} value={balance} roundDown />
       </div>
       <Divider plain orientation="left">
-        Enter amount in US dollars{" "}
+        Amount in US dollars{" "}
         {minAmount > 0 ? ` (at least ${currency(minAmount)})` : ""}
         <Tooltip
           zIndex={zIndexTip}
-          title={`If you enter more than ${currency(
-            minAmount,
-          )}, your account will be credited.  Credit can be used to purchase anything on our site.  These credits are nonrefundable, but do not expire.`}
+          title={
+            <>
+              {minAmount
+                ? `If you enter more than ${currency(
+                    minAmount,
+                  )}, your account will be credited. `
+                : "Your account will be credited. "}
+              Credit can be used to purchase anything on our site. Credits are
+              nonrefundable, but <b>do not expire</b>.
+            </>
+          }
         >
           <Icon name="question-circle" style={{ marginLeft: "30px" }} />
         </Tooltip>
@@ -94,6 +106,11 @@ export default function PaymentConfig({
                 $20
               </Preset>
             )}
+            {50 >= Math.max(minAmount, minPayment) && (
+              <Preset amount={50} setPaymentAmount={setPaymentAmount}>
+                $50
+              </Preset>
+            )}
             {100 >= Math.max(minAmount, minPayment) && (
               <Preset amount={100} setPaymentAmount={setPaymentAmount}>
                 $100
@@ -101,20 +118,17 @@ export default function PaymentConfig({
             )}
           </div>
         )}
-        <Space>
-          <InputNumber
-            min={Math.max(minAmount, minPayment)}
-            max={MAX_COST}
-            precision={2} // for two decimal places
-            step={5}
-            value={paymentAmount}
-            onChange={setPaymentAmount}
-            addonAfter="$"
-          />
-        </Space>
-        <div style={{ color: "#888", marginTop: "8px" }}>
-          (amount excludes applicable taxes)
-        </div>
+        <InputNumber
+          style={{ maxWidth: "200px" }}
+          size="large"
+          min={Math.max(minAmount, minPayment)}
+          max={MAX_COST}
+          precision={2} // for two decimal places
+          step={5}
+          value={paymentAmount}
+          onChange={setPaymentAmount}
+          addonBefore="$"
+        />
       </div>
     </div>
   );

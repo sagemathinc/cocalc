@@ -1,14 +1,20 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { List, Map } from "immutable";
-import { trunc_middle } from "@cocalc/util/misc";
-import { sanitize_html_safe } from "@cocalc/frontend/misc";
+
 import { Well } from "@cocalc/frontend/antd-bootstrap";
 import { TimeAgo } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { sanitize_html_safe } from "@cocalc/frontend/misc";
+import {
+  isLanguageModelService,
+  service2model,
+} from "@cocalc/util/db-schema/llm-utils";
+import { isValidUUID, trunc_middle } from "@cocalc/util/misc";
+import { LLMModelName } from "../components/llm-name";
 
 export function HistoryTitle() {
   return (
@@ -43,18 +49,30 @@ export function History({ history, user_map }: HistoryProps) {
   if (history == null || user_map == null) {
     return null;
   }
+
+  function renderAuthor(author_id: string): React.JSX.Element | null {
+    if (user_map == null) {
+      return null;
+    }
+    if (isValidUUID(author_id) && user_map.get(author_id) != null) {
+      const first_name = user_map.getIn([author_id, "first_name"]);
+      const last_name = user_map.getIn([author_id, "last_name"]);
+      return <>{trunc_middle(`${first_name} ${last_name}`, 20)}</>;
+    } else if (isLanguageModelService(author_id)) {
+      return <LLMModelName model={service2model(author_id)} size={14} />;
+    } else {
+      return <>Unknown author</>;
+    }
+  }
+
   // convert to javascript from immutable, and remove current version.
   const historyList = history.toJS().slice(1);
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const index in historyList) {
-    const objects = historyList[index];
-    const value = sanitize_html_safe(objects.content);
-    const author = trunc_middle(
-      user_map.getIn([objects.author_id, "first_name"]) +
-        " " +
-        user_map.getIn([objects.author_id, "last_name"]),
-      20
-    );
+    const message = historyList[index];
+    const { content, author_id, date } = message;
+    const value = sanitize_html_safe(content);
+    const author = renderAuthor(author_id);
     v.push(
       <Well key={index} style={{ marginBottom: "0px" }}>
         <div style={{ marginBottom: "-10px", wordWrap: "break-word" }}>
@@ -62,10 +80,10 @@ export function History({ history, user_map }: HistoryProps) {
         </div>
         <div className="small">
           {value.trim() == "" ? "Message deleted " : "Last edit "}
-          <TimeAgo date={new Date(objects.date)} />
-          {" by " + author}
+          <TimeAgo date={new Date(date)} />
+          {author ? <> by {author}</> : undefined}
         </div>
-      </Well>
+      </Well>,
     );
   }
   return <div>{v}</div>;

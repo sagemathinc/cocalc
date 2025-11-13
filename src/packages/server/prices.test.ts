@@ -1,15 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // test product ID and pricing
 
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
-import type {
-  PurchaseInfo,
-  PurchaseInfoQuota,
-} from "@cocalc/util/licenses/purchase/types";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { round2 } from "@cocalc/util/misc";
 import {
@@ -29,8 +26,10 @@ const isUTC = new Date().getTimezoneOffset() === 0;
 describe("product id and compute cost", () => {
   // This test I think hardcodes that the online_discount is 0.75, so
   // (since it isn't!) we set it back to run this test.
+  // @ts-ignore
   COSTS.online_discount = 0.75;
-  const info1: Omit<PurchaseInfoQuota, "quantity"> = {
+  const info1 = {
+    version: "1",
     type: "quota",
     user: "academic",
     upgrade: "custom",
@@ -51,11 +50,6 @@ describe("product id and compute cost", () => {
     const cost = compute_cost({ ...info1, quantity });
     const cexp = round2(base * quantity);
     expect(round2(cost.cost)).toEqual(cexp);
-    expect(
-      Math.abs(
-        round2(cost.discounted_cost) - round2(COSTS.online_discount * cexp)
-      )
-    ).toBeLessThan(0.01);
   });
 
   it.each([
@@ -68,7 +62,7 @@ describe("product id and compute cost", () => {
     [7, 12737, 100],
     [8, 14329, 5],
     [9, 15921, 10],
-    [10, 17500, 1],
+    [10, 17600, 1],
     [15, 25500, 1],
   ])("compute price days %p → price %p", (days, price, quantity) => {
     price /= 100;
@@ -76,14 +70,15 @@ describe("product id and compute cost", () => {
       ...info1,
       quantity,
       end: endOfDay(
-        new Date((info1.start as Date).getTime() + days * ONE_DAY_MS)
+        new Date((info1.start as Date).getTime() + days * ONE_DAY_MS),
       ),
     };
+    // @ts-ignore
     info2.cost = compute_cost(info2);
     // console.log(days, info2, Math.round(info2.cost.cost_per_unit * 10000));
     const unit_amount = unitAmount(info2);
 
-    expect(unit_amount).toEqual(Math.round(price));
+    expect(unit_amount).toEqual(Math.ceil(price));
   });
 
   it("specific start/end date", () => {
@@ -93,8 +88,9 @@ describe("product id and compute cost", () => {
       start: new Date("2022-04-28T10:08:10.072Z"),
       end: new Date("2022-05-05T10:08:10.072Z"),
     };
+    // @ts-ignore
     info2.cost = compute_cost(info2);
-    expect(unitAmount(info2)).toEqual(111);
+    expect(unitAmount(info2)).toEqual(112);
   });
 });
 
@@ -129,25 +125,25 @@ describe("roundToMidnight", () => {
 
   it("am/side=start", () => {
     expect(roundToMidnight(am, "start")).toEqual(
-      new Date("2022-04-04T00:00:00.000Z")
+      new Date("2022-04-04T00:00:00.000Z"),
     );
   });
 
   it("am/side=end", () => {
     expect(roundToMidnight(am, "end")).toEqual(
-      new Date("2022-04-03T23:59:59.999Z")
+      new Date("2022-04-03T23:59:59.999Z"),
     );
   });
 
   it("pm/side=start", () => {
     expect(roundToMidnight(pm, "start")).toEqual(
-      new Date("2022-04-05T00:00:00.000Z")
+      new Date("2022-04-05T00:00:00.000Z"),
     );
   });
 
   it("pm/side=end", () => {
     expect(roundToMidnight(pm, "end")).toEqual(
-      new Date("2022-04-04T23:59:59.999Z")
+      new Date("2022-04-04T23:59:59.999Z"),
     );
   });
 });
@@ -156,6 +152,7 @@ describe("dedicated disk", () => {
   it("calculates subscription price of one disk", () => {
     const start = startOfDay(new Date());
     const purchaseInfo: PurchaseInfo = {
+      version: "1",
       type: "disk",
       start,
       end: dayjs(start).add(30, "days").add(12, "hours").toDate(), // adding exact amount of time to make test well defined
@@ -174,8 +171,8 @@ describe("dedicated disk", () => {
       cost_per_unit: 8,
       cost_sub_month: 8,
       cost_sub_year: 96,
-      discounted_cost: 8,
       period: "monthly",
+      quantity: 1,
     });
   });
 });

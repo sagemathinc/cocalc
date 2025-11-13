@@ -1,13 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Monitor connection-related events from webapp_client and use them to set some
 // state in the page store.
 
 import { delay } from "awaiting";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -16,8 +15,8 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { SITE_NAME } from "@cocalc/util/theme";
 import { ConnectionStatus } from "./store";
 
-const DISCONNECTED_STATE_DELAY_MS = 5000;
-const CONNECTING_STATE_DELAY_MS = 3000;
+const DISCONNECTED_STATE_DELAY_MS = 10000;
+const CONNECTING_STATE_DELAY_MS = 5000;
 
 import { isMobile } from "../feature";
 
@@ -105,7 +104,7 @@ export function init_connection(): void {
       actions.set_connection_status("connecting", date);
     }
 
-    const attempt = webapp_client.hub_client.get_num_attempts();
+    const attempt = webapp_client.conat_client.numConnectionAttempts;
     async function reconnect(msg) {
       // reset recent disconnects, and hope that after the reconnection the situation will be better
       recent_disconnects.length = 0; // see https://stackoverflow.com/questions/1232040/how-do-i-empty-an-array-in-javascript
@@ -116,7 +115,7 @@ export function init_connection(): void {
       if (!recent_wakeup_from_standby()) {
         alert_message(msg);
       }
-      webapp_client.hub_client.fix_connection();
+      webapp_client.conat_client.reconnect();
       // Wait a half second, then remove one extra reconnect added by the call in the above line.
       await delay(500);
       recent_disconnects.pop();

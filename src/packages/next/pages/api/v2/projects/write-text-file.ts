@@ -4,6 +4,7 @@ import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 import { isValidUUID } from "@cocalc/util/misc";
 import callProject from "@cocalc/server/projects/call";
+import { OkStatus } from "lib/api/status";
 
 export default async function handle(req, res) {
   const account_id = await getAccountId(req);
@@ -23,7 +24,7 @@ export default async function handle(req, res) {
         content,
       },
     });
-    res.json({ status: "ok" });
+    res.json(OkStatus);
   } catch (err) {
     res.json({ error: err.message });
   }

@@ -1,6 +1,6 @@
 #########################################################################
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+# License: MS-RSL – see LICENSE.md for details
 #########################################################################
 
 ###
@@ -8,16 +8,20 @@ PostgreSQL -- implementation of queries needed for storage and managing blobs,
 including backups, integration with google cloud storage, etc.
 
 COPYRIGHT : (c) 2017 SageMath, Inc.
-LICENSE   : AGPLv3
+LICENSE   : MS-RSL
 ###
 
 # Bucket used for cheaper longterm storage of blobs (outside of PostgreSQL).
 # NOTE: We should add this to site configuration, and have it get read once when first
 # needed and cached.  Also it would be editable in admin account settings.
-# If this env variable begins with a / it is assumed to be a path in the filesystem,
+# If this env variable begins with a / it is assumed to be a path in the file system,
 # e.g., a remote mount (in practice, we are using gcsfuse to mount gcloud buckets).
 # If it is gs:// then it is a google cloud storage bucket.
-COCALC_BLOB_STORE = process.env.COCALC_BLOB_STORE
+# 2025-01-10: noticed rarely this variable is not set, at least not initially after startup.
+# Hardcoding the path, which has never changed anyways.
+# Maybe https://github.com/nodejs/help/issues/3618
+COCALC_BLOB_STORE_FALLBACK = "/blobs"
+COCALC_BLOB_STORE = String(process.env.COCALC_BLOB_STORE ? COCALC_BLOB_STORE_FALLBACK)
 
 async   = require('async')
 zlib    = require('zlib')
@@ -30,6 +34,7 @@ required = defaults.required
 
 {expire_time, one_result, all_results} = require('./postgres-base')
 {delete_patches} = require('./postgres/delete-patches')
+blobs = require('./postgres/blobs')
 
 {filesystem_bucket} = require('./filesystem-bucket')
 
@@ -45,7 +50,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             ttl        : 0         # object in blobstore will have *at least* this ttl in seconds;
                                    # if there is already something in blobstore with longer ttl, we leave it;
                                    # infinite ttl = 0.
-            project_id : required  # the id of the project that is saving the blob
+            project_id : undefined  # the id of the project that is saving the blob
+            account_id : undefined  # the id of the user that is saving the blob
             check      : false     # if true, will give error if misc_node.uuidsha1(opts.blob) != opts.uuid
             compress   : undefined # optional compression to use: 'gzip', 'zlib'; only used if blob not already in db.
             level      : -1        # compression level (if compressed) -- see https://github.com/expressjs/compression#level
@@ -98,6 +104,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             id         : opts.uuid
                             blob       : '\\x'+opts.blob.toString('hex')
                             project_id : opts.project_id
+                            account_id : opts.account_id
                             count      : 0
                             size       : opts.blob.length
                             created    : new Date()
@@ -112,6 +119,29 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         uuid   : opts.uuid
                         cb     : (err, _ttl) =>
                             ttl = _ttl; cb(err)
+            (cb) =>
+                # double check that the blob definitely exists and has correct expire
+                # See discussion at https://github.com/sagemathinc/cocalc/issues/7715
+                # The problem is that maybe with VERY low probability somehow we extend
+                # the blob ttl at the same time that we're deleting blobs and the extend
+                # is too late and does an empty update.
+                @_query
+                    query : 'SELECT expire FROM blobs'
+                    where : "id = $::UUID" : opts.uuid
+                    cb    : (err, x) =>
+                        if err
+                            cb(err)
+                            return
+                        # some consistency checks
+                        rows = x?.rows
+                        if rows.length == 0
+                            cb("blob got removed while saving it")
+                            return
+                        if !opts.ttl and rows[0].expire
+                            cb("blob should have infinite ttl but it has expire set")
+                            return
+                        cb()
+
         ], (err) => opts.cb(err, ttl))
 
     # Used internally by save_blob to possibly extend the expire time of a blob.
@@ -185,8 +215,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb()
                 else if x.gcloud
                     if not COCALC_BLOB_STORE?
-                        cb("no blob store configured -- set the COCALC_BLOB_STORE env variable")
-                        return
+                        # see comment https://github.com/sagemathinc/cocalc/pull/8110
+                        COCALC_BLOB_STORE = COCALC_BLOB_STORE_FALLBACK
                     # blob not available locally, but should be in a Google cloud storage bucket -- try to get it
                     # NOTE: we now ignore the actual content of x.gcloud -- we don't support spreading blobs
                     # across multiple buckets... as it isn't needed because buckets are infinite, and it
@@ -244,8 +274,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     blob_store: (bucket) =>
         if not bucket
             bucket = COCALC_BLOB_STORE
-        # Filesystem -- could be a big NFS volume, remotely mounted gcsfuse, or just
-        # a single big local filesystem -- etc. -- we don't care.
+        # File system -- could be a big NFS volume, remotely mounted gcsfuse, or just
+        # a single big local file system -- etc. -- we don't care.
         return filesystem_bucket(name: bucket)
 
     # Uploads the blob with given sha1 uuid to gcloud storage, if it hasn't already
@@ -265,9 +295,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             opts.cb?("uuid is invalid")
             return
         if not opts.bucket
-            dbg("invalid bucket")
-            opts.cb?("no blob store configured -- set the COCALC_BLOB_STORE env variable")
-            return
+            opts.bucket = COCALC_BLOB_STORE_FALLBACK
         locals =
             x: undefined
         async.series([
@@ -621,7 +649,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 f = (string_id, cb) =>
                     i += 1
                     console.log("*** #{i}/#{syncstrings.length}: archiving string #{string_id} ***")
-                    @archive_patches
+                    @archivePatches
                         string_id : string_id
                         cb        : (err) ->
                             if err or not opts.delay
@@ -639,178 +667,23 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 opts.cb?()
         )
 
-    # Offlines and archives the patch, unless the string is active very recently, in
-    # which case this is a no-op.
-    #
-    # TODO: this ignores all syncstrings marked as "huge:true", because the patches are too large.
-    #       come up with a better strategy (incremental?) to generate the blobs to avoid the problem.
-    archive_patches: (opts) =>
-        opts = defaults opts,
-            string_id : required
-            compress  : 'zlib'
-            level     : -1   # the default
-            cutoff    : misc.minutes_ago(30)  # never touch anything this new
-            cb        : undefined
-        dbg = @_dbg("archive_patches(string_id='#{opts.string_id}')")
-        syncstring = patches = blob_uuid = project_id = last_active = huge = undefined
-        where = {"string_id = $::CHAR(40)" : opts.string_id}
-        async.series([
-            (cb) =>
-                dbg("get syncstring info")
-                @_query
-                    query : "SELECT project_id, archived, last_active, huge FROM syncstrings"
-                    where : where
-                    cb    : one_result (err, x) =>
-                        if err
-                            cb(err)
-                        else if not x?
-                            cb("no such syncstring with id '#{opts.string_id}'")
-                        else if x.archived
-                            cb("string_id='#{opts.string_id}' already archived as blob id '#{x.archived}'")
-                        else
-                            project_id = x.project_id
-                            last_active = x.last_active
-                            huge = !!x.huge
-                            dbg("got last_active=#{last_active} project_id=#{project_id} huge=#{huge}")
-                            cb()
-            (cb) =>
-                if last_active? and last_active >= opts.cutoff
-                    dbg("excluding due to cutoff")
-                    cb(); return
-                if huge
-                    dbg("excluding due to being huge")
-                    cb(); return
-                dbg("get patches")
-                @export_patches
-                    string_id : opts.string_id
-                    cb        : (err, x) =>
-                        patches = x
-                        cb(err)
-            (cb) =>
-                if last_active? and last_active >= opts.cutoff
-                    cb(); return
-                if huge
-                    cb(); return
-                dbg("create blob from patches")
-                try
-                    blob = Buffer.from(JSON.stringify(patches))
-                catch err
-                    # TODO: This *will* happen if the total length of all patches is too big.
-                    # need to break patches up...
-                    # This is not exactly the end of the world as the entire point of all this is to
-                    # just save some space in the database...
-                    dbg('error creating blob, marking syncstring as being "huge": ' + err)
-                    huge = true
-                    @_query
-                        query : "UPDATE syncstrings"
-                        set   : {huge : true}
-                        where : where
-                        cb    : (err) =>
-                            cb(err)
-                            return
-                if not huge
-                    dbg('save blob')
-                    blob_uuid = misc_node.uuidsha1(blob)
-                    @save_blob
-                        uuid       : blob_uuid
-                        blob       : blob
-                        project_id : project_id
-                        compress   : opts.compress
-                        level      : opts.level
-                        cb         : cb
-            (cb) =>
-                if last_active? and last_active >= opts.cutoff
-                    cb(); return
-                if huge
-                    cb(); return
-                dbg("update syncstring to indicate patches have been archived in a blob")
-                @_query
-                    query : "UPDATE syncstrings"
-                    set   : {archived : blob_uuid}
-                    where : where
-                    cb    : cb
-            (cb) =>
-                if last_active? and last_active >= opts.cutoff
-                    cb(); return
-                if huge
-                    cb(); return
-                dbg("actually deleting patches")
-                delete_patches(db:@, string_id: opts.string_id, cb:cb)
-        ], (err) => opts.cb?(err))
-
-    unarchive_patches: (opts) =>
-        opts = defaults opts,
-            string_id : required
-            cb        : undefined
-        dbg = @_dbg("unarchive_patches(string_id='#{opts.string_id}')")
-        where = {"string_id = $::CHAR(40)" : opts.string_id}
-        @_query
-            query : "SELECT archived FROM syncstrings"
-            where : where
-            cb    : one_result 'archived', (err, blob_uuid) =>
-                if err or not blob_uuid?
-                    opts.cb?(err)
-                    return
-                blob = undefined
-                async.series([
-                    #(cb) =>
-                        # For testing only!
-                    #    setTimeout(cb, 7000)
-                    (cb) =>
-                        dbg("download blob")
-                        @get_blob
-                            uuid : blob_uuid
-                            cb   : (err, x) =>
-                                if err
-                                    cb(err)
-                                else if not x?
-                                    cb("blob is gone")
-                                else
-                                    blob = x
-                                    cb(err)
-                    (cb) =>
-                        dbg("extract blob")
-                        try
-                            patches = JSON.parse(blob)
-                        catch e
-                            cb("corrupt patches blob -- #{e}")
-                            return
-                        @import_patches
-                            patches : patches
-                            cb      : cb
-                    (cb) =>
-                        async.parallel([
-                            (cb) =>
-                                dbg("update syncstring to indicate that patches are now available")
-                                @_query
-                                    query : "UPDATE syncstrings SET archived=NULL"
-                                    where : where
-                                    cb    : cb
-                            (cb) =>
-                                dbg('delete blob, which is no longer needed')
-                                @delete_blob
-                                    uuid : blob_uuid
-                                    cb   : cb
-                        ], cb)
-                ], (err) => opts.cb?(err))
+    archivePatches: (opts) =>
+        try
+            await blobs.archivePatches({db:@, ...opts})
+            opts.cb?()
+        catch err
+            opts.cb?(err)
 
     ###
-    Export/import of syncstring history and info.  Right now used mainly for debugging
-    purposes, but will obviously be useful for a user-facing feature involving import
-    and export (and copying) of complete edit history.
+    Export/import of syncstring history and info.
     ###
     export_patches: (opts) =>
-        opts = defaults opts,
-            string_id : required
-            cb        : required   # cb(err, array)
-        @_query
-            query : "SELECT * FROM patches"
-            where : {"string_id = $::CHAR(40)" : opts.string_id}
-            cb    : all_results (err, patches) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, patches)
+        try
+            patches = await blobs.exportPatches(opts.string_id);
+            opts.cb(undefined, patches)
+            return patches
+        catch err
+            opts.cb(err)
 
     import_patches: (opts) =>
         opts = defaults opts,

@@ -1,19 +1,16 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { plural, capitalize } from "@cocalc/util/misc";
-
 import { Component, Rendered } from "../app-framework";
 import { Tip } from "../components/tip";
 import { Icon } from "../components/icon";
 import { Gap } from "../components/gap";
 import { r_join } from "../components/r_join";
-import { Button } from "react-bootstrap";
-const { Panel } = require("react-bootstrap"); // since the typescript declarations are our of sync with our crappy old version.
-
+import { Button, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { PeriodName } from "./types";
 
 interface Props {
@@ -63,7 +60,7 @@ export class PlanInfo extends Component<Props> {
         result.push(
           <Button key={i} bsStyle={this.props.selected ? "primary" : undefined}>
             {this.render_cost(prices[i], this.props.periods[i])}
-          </Button>
+          </Button>,
         );
       }
       return result;
@@ -122,7 +119,6 @@ export class PlanInfo extends Component<Props> {
       <Panel
         style={style}
         header={this.render_plan_name(plan_data)}
-        bsStyle={this.props.selected ? "primary" : "info"}
         onClick={() =>
           this.props.on_click != null ? this.props.on_click() : undefined
         }
@@ -134,8 +130,8 @@ export class PlanInfo extends Component<Props> {
             this.render_plan_info_line(
               name,
               benefits[name] != null ? benefits[name] : 0,
-              params[name]
-            )
+              params[name],
+            ),
           )}
         <Gap />
 

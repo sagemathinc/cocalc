@@ -19,7 +19,14 @@ export default function SelectComputeServerForFileExplorer({
   size,
   noLabel,
 }: Props) {
+  const compute_servers_enabled = useTypedRedux(
+    "customize",
+    "compute_servers_enabled",
+  );
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
+  if (!compute_servers_enabled) {
+    return null;
+  }
 
   return (
     <SelectServer

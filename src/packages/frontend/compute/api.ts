@@ -1,22 +1,32 @@
 import api from "@cocalc/frontend/client/api";
 import type {
   Action,
-  Configuration,
   Cloud,
+  ComputeServerTemplate,
+  ComputeServerUserInfo,
+  Configuration,
   Images,
   GoogleCloudImages,
 } from "@cocalc/util/db-schema/compute-servers";
 import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import type { HyperstackPriceData } from "@cocalc/util/compute/cloud/hyperstack/pricing";
+import type {
+  ConfigurationTemplate,
+  ConfigurationTemplates,
+} from "@cocalc/util/compute/templates";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import TTL from "@isaacs/ttlcache";
 
 export async function createServer(opts: {
   project_id: string;
   title?: string;
   color?: string;
-  idle_timeout?: number;
   autorestart?: boolean;
   cloud?: Cloud;
   configuration?: Configuration;
+  notes?: string;
+  course_project_id?: string;
+  course_server_id?: number;
 }): Promise<number> {
   return await api("compute/create-server", opts);
 }
@@ -28,12 +38,43 @@ export async function computeServerAction(opts: {
   await api("compute/compute-server-action", opts);
 }
 
+// Get servers across potentially different projects by their global unique id.
+// Use the fields parameter to restrict to a much smaller subset of information
+// about each server (e.g., just the state field).  Caller must be a collaborator
+// on each project containing the servers.
+// If you give an id of a server that doesn't exist, it'll just be excluded in the result.
+// Similarly, if you give a field that doesn't exist, it is excluded.
+// The order of the returned servers and count probably will NOT match that in
+// ids, so you should include 'id' in fields.
+export async function getServersById(opts: {
+  ids: number[];
+  fields?: string[];
+}): Promise<Partial<ComputeServerUserInfo>[]> {
+  return await api("compute/get-servers-by-id", opts);
+}
+
+export async function getServers(opts: {
+  id?: number;
+  project_id: string;
+}): Promise<ComputeServerUserInfo[]> {
+  return await api("compute/get-servers", opts);
+}
+
 export async function getServerState(id: number) {
-  await api("compute/get-server-state", { id });
+  return await api("compute/get-server-state", { id });
+}
+
+export async function getSerialPortOutput(id: number) {
+  return await api("compute/get-serial-port-output", { id });
 }
 
 export async function deleteServer(id: number) {
-  await api("compute/delete-server", { id });
+  return await api("compute/delete-server", { id });
+}
+
+export async function isDnsAvailable(dns: string) {
+  const { isAvailable } = await api("compute/is-dns-available", { dns });
+  return isAvailable;
 }
 
 export async function undeleteServer(id: number) {
@@ -50,16 +91,53 @@ export async function setServerTitle(opts: { id: number; title: string }) {
   return await api("compute/set-server-title", opts);
 }
 
-// server must be off
 export async function setServerConfiguration(opts: {
   id: number;
-  configuration;
+  configuration: Partial<Configuration>;
 }) {
   return await api("compute/set-server-configuration", opts);
 }
 
+// only for admins!
+export async function setTemplate(opts: {
+  id: number;
+  template: ComputeServerTemplate;
+}) {
+  return await api("compute/set-template", opts);
+}
+
+// 5-minute client side ttl cache of all and specific template, since
+// templates change rarely.
+
+const templatesCache = new TTL({ ttl: 60 * 1000 * 5 });
+
+export async function getTemplate(id: number): Promise<ConfigurationTemplate> {
+  if (templatesCache.has(id)) {
+    return templatesCache.get(id)!;
+  }
+  const x = await api("compute/get-template", { id });
+  templatesCache.set(id, x);
+  return x;
+}
+
+export async function getTemplates(): Promise<ConfigurationTemplates> {
+  if (templatesCache.has("templates")) {
+    return templatesCache.get("templates")!;
+  }
+  const x = await api("compute/get-templates");
+  templatesCache.set("templates", x);
+  return x;
+}
+
 export async function setServerCloud(opts: { id: number; cloud: string }) {
   return await api("compute/set-server-cloud", opts);
+}
+
+export async function setServerOwner(opts: {
+  id: number;
+  new_account_id: string;
+}) {
+  return await api("compute/set-server-owner", opts);
 }
 
 // Cache for 12 hours
@@ -78,6 +156,43 @@ export const getGoogleCloudPriceData = reuseInFlight(
       throw Error("bug");
     }
     return googleCloudPriceData;
+  },
+);
+
+import { useState, useEffect } from "react";
+export function useGoogleCloudPriceData() {
+  const [priceData, setPriceData] = useState<null | GoogleCloudData>(null);
+  const [error, setError] = useState<string>("");
+  useEffect(() => {
+    (async () => {
+      try {
+        setError("");
+        setPriceData(await getGoogleCloudPriceData());
+      } catch (err) {
+        setError(`${err}`);
+      }
+    })();
+  }, []);
+  return [priceData, error];
+}
+
+// Cache for 5 minutes -- cache less since this includes realtime
+// information about GPU availability.
+let hyperstackPriceData: HyperstackPriceData | null = null;
+let hyperstackPriceDataExpire: number = 0;
+export const getHyperstackPriceData = reuseInFlight(
+  async (): Promise<HyperstackPriceData> => {
+    if (
+      hyperstackPriceData == null ||
+      Date.now() >= hyperstackPriceDataExpire
+    ) {
+      hyperstackPriceData = await api("compute/get-hyperstack-pricing-data");
+      hyperstackPriceDataExpire = Date.now() + 1000 * 60 * 5; // 5 minute cache
+    }
+    if (hyperstackPriceData == null) {
+      throw Error("bug");
+    }
+    return hyperstackPriceData;
   },
 );
 
@@ -102,13 +217,21 @@ export async function deleteApiKey(opts: { id }): Promise<string> {
 }
 
 // Get the project log entries directly for just one compute server
-export async function getLog(opts: { id }) {
+export async function getLog(opts: { id; type: "activity" | "files" }) {
   return await api("compute/get-log", opts);
 }
 
-export const getTitle = reuseInFlight(async (opts: { id: number }) => {
-  return await api("compute/get-server-title", opts);
-});
+export const getTitle = reuseInFlight(
+  async (opts: {
+    id: number;
+  }): Promise<{
+    title: string;
+    color: string;
+    project_specific_id: number;
+  }> => {
+    return await api("compute/get-server-title", opts);
+  },
+);
 
 // Setting a detailed state component for a compute server
 export async function setDetailedState(opts: {
@@ -156,14 +279,18 @@ async function getImagesFor({
 }: {
   cloud: string;
   endpoint: string;
-  // reload -- if true, reloads data from external resource; only admins can do this.
   reload?: boolean;
 }): Promise<any> {
   if (!reload && cacheHas(cloud)) {
     return cacheGet(cloud);
   }
+
   try {
-    const images = await api(endpoint, reload ? { ttl: 0 } : undefined);
+    const images = await api(
+      endpoint,
+      // admin reload forces fetch data from github and/or google cloud - normal users just have their cache ignored above
+      reload ? { noCache: true } : undefined,
+    );
     cacheSet(cloud, images);
     return images;
   } catch (err) {

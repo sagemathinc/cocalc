@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // info button inside the editor when editing a file. links you back to the file listing with the action prompted
@@ -23,7 +23,7 @@ interface Props {
   mode?: "explorer" | "flyout";
 }
 
-export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
+const EditorFileInfoDropdown: React.FC<Props> = React.memo(
   (props: Props) => {
     const {
       filename,
@@ -55,25 +55,24 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
         actions.set_active_tab("new", { new_ext });
         return;
       }
-      for (const action in file_actions) {
-        const v = file_actions[action];
-        if (v?.name == name) {
+      for (const key in file_actions) {
+        if (key === name) {
           actions.show_file_action_panel({
             path: filename,
-            action,
+            action: key,
           });
           break;
         }
       }
     }
 
-    function render_menu_item(name: string, icon: IconName): MenuItems[0] {
+    function render_menu_item(key: string, icon: IconName): MenuItems[0] {
       return {
-        key: name,
-        onClick: () => handle_click(name),
+        key,
+        onClick: () => handle_click(key),
         label: (
           <>
-            <Icon name={icon} style={{ width: "25px" }} /> {capitalize(name)}
+            <Icon name={icon} style={{ width: "25px" }} /> {capitalize(key)}
           </>
         ),
       };
@@ -94,16 +93,16 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
         }
         // create a map from name to icon
         items = {};
-        for (const k in file_actions) {
-          const { name, icon, hideFlyout } = file_actions[k];
+        for (const key in file_actions) {
+          const { icon, hideFlyout } = file_actions[key];
           if (mode === "flyout" && hideFlyout) continue;
-          items[name] = icon;
+          items[key] = icon;
         }
       }
 
-      for (let name in items) {
-        const icon = items[name];
-        v.push(render_menu_item(name, icon));
+      for (let key in items) {
+        const icon = items[key];
+        v.push(render_menu_item(key, icon));
       }
       return v;
     }

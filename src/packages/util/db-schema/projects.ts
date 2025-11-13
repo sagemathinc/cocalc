@@ -1,15 +1,28 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { deep_copy } from "../misc";
-import { DEFAULT_QUOTAS } from "../upgrade-spec";
+import { State } from "@cocalc/util/compute-states";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { deep_copy } from "@cocalc/util/misc";
+import {
+  ExecuteCodeOptions,
+  ExecuteCodeOptionsAsyncGet,
+  ExecuteCodeOutput,
+} from "@cocalc/util/types/execute-code";
+import { DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
+
+import { NOTES } from "./crm";
 import { FALLBACK_COMPUTE_IMAGE } from "./defaults";
 import { SCHEMA as schema } from "./index";
 import { Table } from "./types";
-import { State } from "../compute-states";
-import { NOTES } from "./crm";
+
+export const MAX_FILENAME_SEARCH_RESULTS = 100;
+
+const PROJECTS_LIMIT = 300;
+const PROJECTS_CUTOFF = "6 weeks";
+const THROTTLE_CHANGES = 1000;
 
 Table({
   name: "projects",
@@ -39,12 +52,15 @@ Table({
 
     user_query: {
       get: {
-        pg_where: ["last_edited >= NOW() - interval '21 days'", "projects"],
-        pg_where_load: ["last_edited >= NOW() - interval '2 days'", "projects"],
-        options: [{ limit: 100, order_by: "-last_edited" }],
-        options_load: [{ limit: 15, order_by: "-last_edited" }],
+        pg_where: [
+          `last_edited >= NOW() - interval '${PROJECTS_CUTOFF}'`,
+          "projects",
+        ],
+        pg_where_load: ["last_edited >= NOW() - interval '7 days'", "projects"],
+        options: [{ limit: PROJECTS_LIMIT, order_by: "-last_edited" }],
+        options_load: [{ limit: 50, order_by: "-last_edited" }],
         pg_changefeed: "projects",
-        throttle_changes: 2000,
+        throttle_changes: THROTTLE_CHANGES,
         fields: {
           project_id: null,
           name: null,
@@ -59,6 +75,8 @@ Table({
           run_quota: null,
           site_license: null,
           status: null,
+          // security model is anybody with access to the project should be allowed to know this token.
+          secret_token: null,
           state: null,
           last_edited: null,
           last_active: null,
@@ -72,6 +90,7 @@ Table({
           avatar_image_tiny: null,
           // do NOT add avatar_image_full here or it will get included in changefeeds, which we don't want.
           // instead it gets its own virtual table.
+          color: null,
           pay_as_you_go_quotas: null,
         },
       },
@@ -95,6 +114,7 @@ Table({
           sandbox: true,
           avatar_image_tiny: true,
           avatar_image_full: true,
+          color: true,
         },
         required_fields: {
           project_id: true,
@@ -104,7 +124,7 @@ Table({
             old_val,
             new_val,
             account_id,
-            cb
+            cb,
           );
         },
 
@@ -113,7 +133,7 @@ Table({
             old_val,
             new_val,
             account_id,
-            cb
+            cb,
           );
         },
       },
@@ -315,12 +335,23 @@ Table({
       desc: "A visual image associated with the project.  Could be 150kb.  NOT include as part of changefeed of projects, since potentially big (e.g., 200kb x 1000 projects = 200MB!).",
       render: { type: "image" },
     },
+    color: {
+      title: "Color",
+      type: "string",
+      desc: "Optional color associated with the project, used for visual identification (e.g., border color in project list).",
+      render: { type: "text" },
+    },
     pay_as_you_go_quotas: {
       type: "map",
       desc: "Pay as you go quotas that users set so that when they run this project, it gets upgraded to at least what is specified here, and user gets billed later for what is used.  Any changes to this table could result in money being spent, so should only be done via the api.  This is a map from the account_id of the user that set the quota to the value of the quota spec (which is purchase-quotas.ProjectQuota).",
       render: { type: "json", editable: false },
     },
     notes: NOTES,
+    secret_token: {
+      type: "string",
+      pg_type: "VARCHAR(256)",
+      desc: "Random ephemeral secret token used temporarily by project to authenticate with hub.",
+    },
   },
 });
 
@@ -340,8 +371,10 @@ if (
   throw Error("make typescript happy");
 }
 schema.projects_all.user_query.get.options = [];
+schema.projects_all.user_query.get.options_load = [];
 schema.projects_all.virtual = "projects";
 schema.projects_all.user_query.get.pg_where = ["projects"];
+schema.projects_all.user_query.get.pg_where_load = ["projects"];
 
 // Table that provides extended read info about a single project
 // but *ONLY* for admin.
@@ -490,7 +523,7 @@ Table({
           _old_value,
           new_val,
           account_id,
-          cb
+          cb,
         ): Promise<void> {
           try {
             // to delete an entry, pretend to set the datastore = {delete: [name]}
@@ -498,7 +531,7 @@ Table({
               await db.project_datastore_del(
                 account_id,
                 new_val.project_id,
-                new_val.addons.datastore.delete
+                new_val.addons.datastore.delete,
               );
               cb(undefined);
             } else {
@@ -508,7 +541,7 @@ Table({
               const res = await db.project_datastore_set(
                 account_id,
                 new_val.project_id,
-                new_val.addons.datastore
+                new_val.addons.datastore,
               );
               cb(undefined, res);
             }
@@ -531,7 +564,7 @@ Table({
             // check if opts.query.addons === null ?!
             const data = await db.project_datastore_get(
               opts.account_id,
-              opts.query.project_id
+              opts.query.project_id,
             );
             cb(undefined, data);
           } catch (err) {
@@ -555,7 +588,6 @@ export interface ProjectStatus {
   "sage_server.pid"?: number; // pid of sage server process
   start_ts?: number; // timestamp, when project server started
   session_id?: string; // unique identifyer
-  secret_token?: string; // long random secret token that is needed to communicate with local_hub
   version?: number; // version number of project code
   disk_MB?: number; // MB of used disk
   installed?: boolean; // whether code is installed
@@ -606,20 +638,24 @@ Table({
   },
 });
 
-import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 export type Datastore = boolean | string[] | undefined;
+
 // in the future, we might want to extend this to include custom environmment variables
 export interface EnvVarsRecord {
   inherit?: boolean;
 }
 export type EnvVars = EnvVarsRecord | undefined;
+
 export interface StudentProjectFunctionality {
   disableActions?: boolean;
   disableJupyterToggleReadonly?: boolean;
   disableJupyterClassicServer?: boolean;
   disableJupyterClassicMode?: boolean;
   disableJupyterLabServer?: boolean;
+  disableRServer?: boolean;
   disableVSCodeServer?: boolean;
+  disableLibrary?: boolean;
+  disableNetworkWarningBanner?: boolean;
   disablePlutoServer?: boolean;
   disableTerminals?: boolean;
   disableUploads?: boolean;
@@ -637,9 +673,95 @@ export interface CourseInfo {
   path: string; // path to the .course file in project_id
   pay?: string; // iso timestamp or ""
   paid?: string; // iso timestamp with *when* they paid.
+  purchase_id?: number; // id of purchase record in purchases table.
   payInfo?: PurchaseInfo;
   email_address?: string;
   datastore: Datastore;
   student_project_functionality?: StudentProjectFunctionality;
   envvars?: EnvVars;
+}
+
+type ExecOptsCommon = {
+  project_id: string;
+  cb?: Function; // if given use a callback interface *instead* of async.
+};
+
+export type ExecOptsBlocking = ExecOptsCommon & {
+  compute_server_id?: number; // if true, run on the compute server (if available)
+  filesystem?: boolean; // run in fileserver container on compute server; otherwise, runs on main compute container.
+  path?: string;
+  command: string;
+  args?: string[];
+  timeout?: number;
+  max_output?: number;
+  bash?: boolean;
+  aggregate?: string | number | { value: string | number };
+  err_on_exit?: boolean;
+  env?: { [key: string]: string }; // custom environment variables.
+  async_call?: ExecuteCodeOptions["async_call"];
+};
+
+export type ExecOptsAsync = ExecOptsCommon & {
+  async_get?: ExecuteCodeOptionsAsyncGet["async_get"];
+  async_stats?: ExecuteCodeOptionsAsyncGet["async_stats"];
+  async_await?: ExecuteCodeOptionsAsyncGet["async_await"];
+};
+
+export type ExecOpts = ExecOptsBlocking | ExecOptsAsync;
+
+export function isExecOptsBlocking(opts: unknown): opts is ExecOptsBlocking {
+  return (
+    typeof opts === "object" &&
+    typeof (opts as any).project_id === "string" &&
+    typeof (opts as any).command === "string"
+  );
+}
+
+export type ExecOutput = ExecuteCodeOutput & {
+  time: number; // time in ms, from user point of view.
+};
+
+export interface CreateProjectOptions {
+  account_id?: string;
+  title?: string;
+  description?: string;
+  // (optional) image ID
+  image?: string;
+  // (optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license
+  license?: string;
+  public_path_id?: string; // may imply use of a license
+  // noPool = do not allow using the pool (e.g., need this when creating projects to put in the pool);
+  // not a real issue since when creating for pool account_id is null, and then we wouldn't use the pool...
+  noPool?: boolean;
+  // start running the moment the project is created -- uses more resources, but possibly better user experience
+  start?: boolean;
+
+  // admins can specify the project_id - nobody else can -- useful for debugging.
+  project_id?: string;
+}
+
+interface BaseCopyOptions {
+  target_project_id?: string;
+  target_path?: string; // path into project; if not given, defaults to source path above.
+  overwrite_newer?: boolean; // if true, newer files in target are copied over (otherwise, uses rsync's --update)
+  delete_missing?: boolean; // if true, delete files in dest path not in source, **including** newer files
+  backup?: boolean; // make backup files
+  timeout?: number; // in **seconds**, not milliseconds
+  bwlimit?: number;
+  wait_until_done?: boolean; // by default, wait until done. false only gives the ID to query the status later
+  scheduled?: string | Date; // kucalc only: string (parseable by new Date()), or a Date
+  public?: boolean; // kucalc only: if true, may use the share server files rather than start the source project running
+  exclude?: string[]; // options passed to rsync via --exclude
+}
+export interface UserCopyOptions extends BaseCopyOptions {
+  account_id?: string;
+  src_project_id: string;
+  src_path: string;
+  // simulate copy taking at least this long -- useful for dev/debugging.
+  debug_delay_ms?: number;
+}
+
+// for copying files within and between projects
+export interface CopyOptions extends BaseCopyOptions {
+  path: string;
 }

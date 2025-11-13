@@ -9,19 +9,26 @@
 import getPool from "@cocalc/database/pool";
 import getAccountId from "@cocalc/database/pool/account/get";
 import setPassword from "@cocalc/database/pool/account/set-password";
+import passwordStrength from "@cocalc/server/auth/password-strength";
+import { MIN_PASSWORD_LENGTH, MIN_PASSWORD_STRENGTH } from "@cocalc/util/auth";
 
 export default async function redeemPasswordReset(
   password: string,
-  passwordResetId: string
+  passwordResetId: string,
 ): Promise<string> {
-  if (password.length < 6) {
+  if (password.length < MIN_PASSWORD_LENGTH) {
     // won't happen in practice because frontend UI prevents this...
     throw Error("password is too short");
   }
+  const { score, help } = passwordStrength(password);
+  if (score <= MIN_PASSWORD_STRENGTH) {
+    throw Error(help ? help : "password is too weak");
+  }
+
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT email_address FROM password_reset WHERE expire > NOW() AND id=$1::UUID",
-    [passwordResetId]
+    [passwordResetId],
   );
   if (rows.length == 0) {
     throw Error("Password reset no longer valid.");

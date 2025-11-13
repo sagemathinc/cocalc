@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -9,7 +9,7 @@ Component that shows rendered HTML.
 
 import { delay } from "awaiting";
 import { throttle } from "lodash";
-import { React, ReactDOM } from "../../app-framework";
+import { useRef, useEffect } from "react";
 import { MAX_WIDTH } from "../options";
 import { EditorState } from "../frame-tree/types";
 import HTML from "@cocalc/frontend/components/html-ssr";
@@ -31,17 +31,17 @@ export default function SanitizedPreview({
   editor_state,
 }: Props) {
   const fileContext = useFileContext();
-  const scrollRef = React.useRef(null);
+  const scrollRef = useRef<any>(null);
 
   function on_scroll(): void {
-    const elt = ReactDOM.findDOMNode(scrollRef.current);
+    const elt = scrollRef.current;
     if (elt == null) return;
 
     const scroll = $(elt).scrollTop();
     actions.save_editor_state(id, { scroll });
   }
 
-  React.useEffect(function () {
+  useEffect(function () {
     for (const wait of [0, 200, 500]) {
       restore_scroll(wait);
     }
@@ -53,7 +53,7 @@ export default function SanitizedPreview({
     }
     const scroll: number | undefined = editor_state.get("scroll");
     if (scroll !== undefined) {
-      $(ReactDOM.findDOMNode(scrollRef.current)).scrollTop(scroll);
+      $(scrollRef.current).scrollTop(scroll);
     }
   }
 

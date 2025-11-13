@@ -11,6 +11,7 @@ interface Props {
   setError?;
   onChange?;
   style?;
+  onPressEnter?;
 }
 
 export default function Title({
@@ -20,6 +21,7 @@ export default function Title({
   setError,
   onChange,
   style,
+  onPressEnter,
 }: Props) {
   const titleRef = useRef<any>(null);
   const [saving, setSaving] = useState<boolean>(false);
@@ -69,7 +71,10 @@ export default function Title({
       style={{ width: "275px", ...style }}
       value={newTitle}
       onChange={(e) => setNewTitle(e.target.value)}
-      onPressEnter={handleSave}
+      onPressEnter={() => {
+        handleSave();
+        onPressEnter?.();
+      }}
       onFocus={() => {
         isFocusedRef.current = true;
       }}
@@ -85,4 +90,3 @@ export default function Title({
     />
   );
 }
-

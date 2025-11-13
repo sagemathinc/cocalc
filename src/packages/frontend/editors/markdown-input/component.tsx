@@ -1,39 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Markdown editor
 */
 
-// Note -- the old file upload used .chat-images for everything,
-// rather than a directory for each file.
-const AUX_FILE_EXT = "upload";
-
-import { alert_message } from "@cocalc/frontend/alerts";
-import {
-  ReactDOM,
-  redux,
-  useRedux,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
-import { A } from "@cocalc/frontend/components";
-import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { Dropzone, FileUploadWrapper } from "@cocalc/frontend/file-upload";
-import { Cursors, CursorsType } from "@cocalc/frontend/jupyter/cursors";
-import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import { useProjectHasInternetAccess } from "@cocalc/frontend/project/settings/has-internet-access-hook";
-import {
-  aux_file,
-  len,
-  path_split,
-  trunc,
-  trunc_middle,
-} from "@cocalc/util/misc";
 import * as CodeMirror from "codemirror";
 import { debounce, isEqual } from "lodash";
-import { join } from "path";
 import {
   CSSProperties,
   MutableRefObject,
@@ -45,10 +20,21 @@ import {
   useRef,
   useState,
 } from "react";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { SubmitMentionsRef } from "@cocalc/frontend/chat/types";
+import { A } from "@cocalc/frontend/components";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { Dropzone, BlobUpload } from "@cocalc/frontend/file-upload";
+import { Cursors, CursorsType } from "@cocalc/frontend/jupyter/cursors";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { useProjectHasInternetAccess } from "@cocalc/frontend/project/settings/has-internet-access-hook";
+import { len, trunc, trunc_middle } from "@cocalc/util/misc";
 import { Complete, Item } from "./complete";
-import { mentionableUsers } from "./mentionable-users";
+import { useMentionableUsers } from "./mentionable-users";
 import { submit_mentions } from "./mentions";
 import { EditorFunctions } from "./multimode";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 type EventHandlerFunction = (cm: CodeMirror.Editor) => void;
 
@@ -57,13 +43,15 @@ import "@cocalc/frontend/codemirror/init";
 
 export const BLURED_STYLE: CSSProperties = {
   border: "1px solid rgb(204,204,204)", // focused will be rgb(112, 178, 230);
-};
+  borderRadius: "5px",
+} as const;
 
 export const FOCUSED_STYLE: CSSProperties = {
   outline: "none !important",
   boxShadow: "0px 0px 5px  #719ECE",
+  borderRadius: "5px",
   border: "1px solid #719ECE",
-};
+} as const;
 
 const PADDING_TOP = 6;
 
@@ -81,9 +69,7 @@ interface Props {
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   enableMentions?: boolean;
-  chatGPT?: boolean;
-  vertexAI?: boolean;
-  submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>;
+  submitMentionsRef?: SubmitMentionsRef;
   style?: CSSProperties;
   onShiftEnter?: (value: string) => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
   onEscape?: () => void;
@@ -122,50 +108,49 @@ interface Props {
 
 export function MarkdownInput(props: Props) {
   const {
-    project_id,
-    path,
-    value,
-    enableUpload,
-    onUploadStart,
-    onUploadEnd,
-    enableMentions,
-    chatGPT,
-    vertexAI,
-    submitMentionsRef,
-    style,
-    onChange,
-    saveDebounceMs,
-    getValueRef,
-    onShiftEnter,
-    onEscape,
-    onBlur,
-    onFocus,
-    placeholder,
-    height,
-    instructionsStyle,
-    extraHelp,
-    hideHelp,
-    fontSize,
     autoFocus,
     cmOptions,
-    selectionRef,
-    onUndo,
+    compact,
+    cursors,
+    dirtyRef,
+    divRef,
+    enableMentions,
+    enableUpload,
+    extraHelp,
+    fontSize,
+    getValueRef,
+    height,
+    hideHelp,
+    instructionsStyle,
+    isFocused,
+    onBlur,
+    onChange,
+    onCursorBottom,
+    onCursors,
+    onCursorTop,
+    onEscape,
+    onFocus,
     onRedo,
     onSave,
-    onCursors,
-    cursors,
-    divRef,
-    onCursorTop,
-    onCursorBottom,
-    isFocused,
-    registerEditor,
-    unregisterEditor,
+    onShiftEnter,
+    onUndo,
+    onUploadEnd,
+    onUploadStart,
+    path,
+    placeholder,
+    project_id,
     refresh,
-    compact,
-    dirtyRef,
+    registerEditor,
+    saveDebounceMs,
+    selectionRef,
+    style,
+    submitMentionsRef,
+    unregisterEditor,
+    value,
   } = props;
-  const cm = useRef<CodeMirror.Editor>();
-  const textarea_ref = useRef<HTMLTextAreaElement>(null);
+  const { actions, isVisible } = useFrameContext();
+  const cm = useRef<CodeMirror.Editor | undefined>(undefined);
+  const textarea_ref = useRef<HTMLTextAreaElement | null>(null);
   const editor_settings = useRedux(["account", "editor_settings"]);
   const options = useMemo(() => {
     return {
@@ -198,7 +183,9 @@ export function MarkdownInput(props: Props) {
     cursor: EventHandlerFunction;
     change: EventHandlerFunction;
     from: { line: number; ch: number };
-  }>();
+  } | undefined>(undefined);
+
+  const mentionableUsers = useMentionableUsers();
 
   const focus = useCallback(() => {
     if (isFocusedRef.current) return; // already focused
@@ -230,7 +217,7 @@ export function MarkdownInput(props: Props) {
 
   useEffect(() => {
     // initialize the codemirror editor
-    const node = ReactDOM.findDOMNode(textarea_ref.current);
+    const node = textarea_ref.current;
     if (node == null) {
       // maybe unmounted right as this happened.
       return;
@@ -285,6 +272,12 @@ export function MarkdownInput(props: Props) {
 
     cm.current = CodeMirror.fromTextArea(node, {
       ...options,
+      // dragDrop=false: instead of useless codemirror dnd, we upload file and make link.
+      // Note that for the md editor or other full code editors, we DO want dragDrop true,
+      // since, e.g., you can select some text, then drag it around, which is useful. For
+      // a simple chat message or tiny bit of markdown (like this is for), that's not so
+      // useful and drag-n-drop file upload is way better.
+      dragDrop: false,
       // IMPORTANT: there is a useEffect involving options below
       // where the following four properties must be explicitly excluded!
       inputStyle: "contenteditable" as "contenteditable", // needed for spellcheck to work!
@@ -354,10 +347,10 @@ export function MarkdownInput(props: Props) {
     if (onSave != null) {
       // This funny cocalc_actions is just how this is setup
       // elsewhere in cocalc... Basically the global
-      //    CodeMirror.commands.ave
-      // is set to use this.
+      //    CodeMirror.commands.save
+      // is set to use this at the bottom of src/packages/frontend/frame-editors/code-editor/codemirror-editor.tsx
       // @ts-ignore
-      cm.current.cocalc_actions = { explicit_save: onSave };
+      cm.current.cocalc_actions = { save: onSave };
     }
 
     if (enableUpload) {
@@ -375,15 +368,25 @@ export function MarkdownInput(props: Props) {
     e.setAttribute("style", s);
 
     if (enableMentions) {
-      cm.current.on("change", (_cm, changeObj) => {
+      cm.current.on("change", (cm, changeObj) => {
         if (changeObj.text[0] == "@") {
-          show_mentions();
+          const before = cm
+            .getLine(changeObj.to.line)
+            .slice(changeObj.to.ch - 1, changeObj.to.ch)
+            ?.trim();
+          // If previous character is whitespace or nothing, then activate mentions:
+          if (!before || before == "(" || before == "[") {
+            show_mentions();
+          }
         }
       });
     }
 
     if (submitMentionsRef != null) {
-      submitMentionsRef.current = (fragmentId?: FragmentId) => {
+      submitMentionsRef.current = (
+        fragmentId?: FragmentId,
+        onlyValue = false,
+      ) => {
         if (project_id == null || path == null) {
           throw Error(
             "project_id and path must be set if enableMentions is set.",
@@ -425,7 +428,9 @@ export function MarkdownInput(props: Props) {
           mentions.push({ account_id, description, fragment_id });
         }
         const value = doc.getValue();
-        submit_mentions(project_id, path, mentions);
+        if (!onlyValue) {
+          submit_mentions(project_id, path, mentions);
+        }
         return value;
       };
     }
@@ -566,15 +571,13 @@ export function MarkdownInput(props: Props) {
     // console.log("upload_sending", file);
     if (current_uploads_ref.current == null) {
       current_uploads_ref.current = { [file.name]: true };
-      if (onUploadStart != null) {
-        onUploadStart();
-      }
+      onUploadStart?.();
     } else {
       current_uploads_ref.current[file.name] = true;
     }
     if (cm.current == null) return;
     const input = cm.current.getValue();
-    const s = upload_temp_link(path, file);
+    const s = upload_temp_link(file);
     if (input.indexOf(s) != -1) {
       // already have link.
       return;
@@ -583,27 +586,23 @@ export function MarkdownInput(props: Props) {
     saveValue();
   }
 
-  function upload_complete(file: {
-    type: string;
-    name: string;
-    status: string;
-  }): void {
+  function upload_complete(file): void {
     if (path == null) {
       throw Error("path must be set if enableUploads is set.");
     }
+    const filename = file.name ?? file.upload.filename;
 
     if (current_uploads_ref.current != null) {
-      delete current_uploads_ref.current[file.name];
+      delete current_uploads_ref.current[filename];
       if (len(current_uploads_ref.current) == 0) {
         current_uploads_ref.current = null;
-        if (onUploadEnd != null) {
-          onUploadEnd();
-        }
+        onUploadEnd?.();
       }
     }
+
     if (cm.current == null) return;
     const input = cm.current.getValue();
-    const s0 = upload_temp_link(path, file);
+    const s0 = upload_temp_link(file);
     let s1: string;
     if (file.status == "error") {
       s1 = "";
@@ -612,45 +611,14 @@ export function MarkdownInput(props: Props) {
       // users can cancel files when they are being uploaded.
       s1 = "";
     } else {
-      s1 = upload_link(path, file);
+      s1 = upload_link(file);
     }
     const newValue = input.replace(s0, s1);
     setValueNoJump(newValue);
     saveValue();
   }
 
-  function upload_removed(file: { name: string; type: string }): void {
-    if (cm.current == null) return;
-    if (project_id == null || path == null) {
-      throw Error("project_id and path must be set if enableUploads is set.");
-    }
-    if (!current_uploads_ref.current?.[file.name]) {
-      // it actually succeeded if this is not set -- it was removed
-      // via upload_complete above.
-      return;
-    }
-    delete current_uploads_ref.current[file.name];
-    if (onUploadEnd != null) {
-      onUploadEnd();
-    }
-
-    const input = cm.current.getValue();
-    const s = upload_link(path, file);
-    if (input.indexOf(s) == -1) {
-      // not there anymore; maybe user already submitted -- do nothing further.
-      return;
-    }
-    const newValue = input.replace(s, "");
-    setValueNoJump(newValue);
-    saveValue();
-    // delete from project itself
-    const target = join(aux_file(path, AUX_FILE_EXT), file.name);
-    // console.log("deleting target", target, { paths: [target] });
-    redux.getProjectActions(project_id).delete_files({ paths: [target] });
-  }
-
   function handle_paste_event(_, e): void {
-    // console.log("handle_paste_event", e);
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -668,7 +636,7 @@ export function MarkdownInput(props: Props) {
     }
   }
 
-  function render_mention_email(): JSX.Element | undefined {
+  function render_mention_email(): React.JSX.Element | undefined {
     if (project_id == null) {
       throw Error("project_id and path must be set if enableMentions is set.");
     }
@@ -730,7 +698,7 @@ export function MarkdownInput(props: Props) {
     // appears like with github... Emoticons: {emoticons}.
   }
 
-  function render_mention_instructions(): JSX.Element | undefined {
+  function render_mention_instructions(): React.JSX.Element | undefined {
     if (!enableMentions) return;
     return (
       <>
@@ -741,7 +709,7 @@ export function MarkdownInput(props: Props) {
     );
   }
 
-  function render_upload_instructions(): JSX.Element | undefined {
+  function render_upload_instructions(): React.JSX.Element | undefined {
     if (!enableUpload) return;
     const text = IS_MOBILE ? (
       <a>Tap here to upload images.</a>
@@ -781,7 +749,7 @@ export function MarkdownInput(props: Props) {
     if (project_id == null) {
       throw Error("project_id and path must be set if enableMentions is set.");
     }
-    const v = mentionableUsers(project_id, undefined, chatGPT, vertexAI);
+    const v = mentionableUsers(undefined, { avatarLLMSize: 16 });
     if (v.length == 0) {
       // nobody to mention (e.g., admin doesn't have this)
       return;
@@ -842,6 +810,13 @@ export function MarkdownInput(props: Props) {
     }
   }
 
+  // make sure that mentions is closed if we switch to another tab.
+  useEffect(() => {
+    if (mentions && !isVisible) {
+      close_mentions();
+    }
+  }, [isVisible]);
+
   function render_mentions_popup() {
     if (mentions == null || mentions_offset == null) return;
 
@@ -857,7 +832,6 @@ export function MarkdownInput(props: Props) {
         close_mentions();
         return;
       }
-      items.push(mentions[0]); // ensure at least one
     }
 
     return (
@@ -892,7 +866,7 @@ export function MarkdownInput(props: Props) {
 
   const showInstructions = !!value?.trim();
 
-  let body: JSX.Element = (
+  let body: React.JSX.Element = (
     <div style={{ height: showInstructions ? "calc(100% - 22px)" : "100%" }}>
       {showInstructions ? render_instructions() : undefined}
       <div
@@ -922,49 +896,40 @@ export function MarkdownInput(props: Props) {
     const event_handlers = {
       complete: upload_complete,
       sending: upload_sending,
-      removedfile: upload_removed,
+      error: (_, message) => {
+        actions?.set_error(`${message}`);
+      },
     };
     if (project_id == null || path == null) {
       throw Error("project_id and path must be set if enableUploads is set.");
     }
     body = (
-      <FileUploadWrapper
+      <BlobUpload
+        show_upload={false}
         project_id={project_id}
-        dest_path={aux_file(path, AUX_FILE_EXT)}
         event_handlers={event_handlers}
         style={{ height: "100%", width: "100%" }}
         dropzone_ref={dropzone_ref}
         close_preview_ref={upload_close_preview_ref}
       >
         {body}
-      </FileUploadWrapper>
+      </BlobUpload>
     );
   }
 
   return body;
 }
 
-function upload_target(path: string, file: { name: string }): string {
-  // path to our upload target, but relative to path.
-  return join(path_split(aux_file(path, AUX_FILE_EXT)).tail, file.name);
+function upload_temp_link(file): string {
+  return `[Uploading...]\(${file.name ?? file.upload?.filename ?? ""}\)`;
 }
 
-function upload_temp_link(path: string, file: { name: string }): string {
-  return `[Uploading...]\(${upload_target(path, file)}\)`;
-}
-
-function upload_link(
-  path: string,
-  file: { name: string; type: string },
-): string {
-  const target = upload_target(path, file);
-  if (file.type.indexOf("image") !== -1) {
-    return `<img src=\"${target}\" style="max-width:100%" />`;
+function upload_link(file): string {
+  const { url, dataURL, height, upload } = file;
+  if (!height && !dataURL?.startsWith("data:image")) {
+    return `[${upload.filename ? upload.filename : "file"}](${url})`;
   } else {
-    // We use an a tag instead of [${file.name}](${target}) because for
-    // some files (e.g,. word doc files) our markdown renderer inexplicably
-    // does NOT render them as links!?  a tags work though.
-    return `<a href=\"${target}\">${file.name}</a>`;
+    return `![](${url})`;
   }
 }
 

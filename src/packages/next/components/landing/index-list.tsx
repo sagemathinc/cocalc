@@ -1,9 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Avatar, Layout, List } from "antd";
+import { Avatar, Flex, Layout, List } from "antd";
 import { ReactNode, isValidElement, useMemo } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
@@ -12,22 +12,29 @@ import Image, { StaticImageData } from "components/landing/image";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
-import useCustomize from "lib/use-customize";
+import useCustomize, { CustomizeType } from "lib/use-customize";
 
 export interface Item {
-  link: string;
+  link: string | ((customize: CustomizeType) => string | undefined);
+  linkText?: ReactNode;
   title: ReactNode;
   logo: IconName | StaticImageData;
   logoBackground?: string; // #color
   image?: StaticImageData;
   imageWidth?: string;
-  description: ReactNode;
+  description: ReactNode | ((customize: CustomizeType) => ReactNode);
   shareServer?: boolean; // only show if the share server is enabled
   landingPages?: boolean; // only show if landing pages are enabled.
-  hide?: (CustomizeType) => boolean; // if returns true, then this item will be hidden.
+  hide?: (customize: CustomizeType) => boolean; // if returns true, then this item will be hidden.
 }
 
 export type DataSource = Item[];
+
+// replaces the description attribute by {description: ReactNode}
+type ItemProcessed = Omit<Item, "description" | "link"> & {
+  description: ReactNode;
+  link: string;
+};
 
 interface Props {
   title: ReactNode;
@@ -40,13 +47,27 @@ interface Props {
 export default function IndexList({ title, description, dataSource }: Props) {
   const customize = useCustomize();
   const { shareServer, landingPages } = customize;
-  const filtedDataSource = useMemo(() => {
-    return dataSource.filter((item) => {
-      if (item.shareServer && !shareServer) return false;
-      if (item.landingPages && !landingPages) return false;
-      if (item.hide?.(customize)) return false;
-      return true;
-    });
+  const filteredDataSource: ItemProcessed[] = useMemo(() => {
+    return dataSource
+      .filter((item) => {
+        if (item.shareServer && !shareServer) return false;
+        if (item.landingPages && !landingPages) return false;
+        if (item.hide?.(customize)) return false;
+        return true;
+      })
+      .map((item) => {
+        return {
+          ...item,
+          description:
+            typeof item.description === "function"
+              ? item.description(customize)
+              : item.description,
+          link:
+            typeof item.link === "function"
+              ? item.link(customize) ?? ""
+              : item.link,
+        };
+      });
   }, [shareServer, landingPages, dataSource]);
   return (
     <Layout.Content
@@ -73,16 +94,16 @@ export default function IndexList({ title, description, dataSource }: Props) {
           {title}
         </Title>
         <Paragraph style={{ fontSize: "13pt" }}>{description}</Paragraph>
-        <DataList dataSource={filtedDataSource} />
+        <DataList dataSource={filteredDataSource} />
       </Paragraph>
     </Layout.Content>
   );
 }
 
-function DataList({ dataSource }: { dataSource: Item[] }) {
-  function renderItem(item): ReactNode {
+function DataList({ dataSource }: { dataSource: ItemProcessed[] }) {
+  function renderItem(item: ItemProcessed): ReactNode {
     const icon = (
-      <div style={{ marginTop: "2.5px" }}>
+      <div>
         {isValidElement(item.logo) ? (
           item.logo
         ) : typeof item.logo === "string" ? (
@@ -92,7 +113,8 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
         )}
       </div>
     );
-    const extra = item.image && (
+
+    const extra = item.image ? (
       <div
         className="cc-hidden-mobile"
         style={{ width: item.imageWidth ?? "275px" }}
@@ -104,16 +126,16 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
           />
         </A>
       </div>
-    );
+    ) : undefined;
+
     return (
-      <List.Item key={item.link} extra={extra}>
+      <List.Item key={item.link} extra={extra} style={{ marginTop: "16px" }}>
         <List.Item.Meta
           avatar={
-            item.logo && (
+            item.logo ? (
               <A href={item.link} alt={item.title + " logo "}>
                 <Avatar
                   style={{
-                    marginTop: "20px",
                     backgroundColor: item.logoBackground,
                   }}
                   alt={item.title + " logo "}
@@ -122,12 +144,23 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
                   icon={icon}
                 />
               </A>
-            )
+            ) : undefined
           }
           title={
-            <A href={item.link} style={{ fontSize: "16pt" }}>
-              {item.title}
-            </A>
+            item.link ? (
+              item.linkText ? (
+                <Flex vertical>
+                  <div style={{ fontSize: "16pt" }}>{item.title}</div>
+                  <A href={item.link}>{item.linkText}</A>
+                </Flex>
+              ) : (
+                <A href={item.link} style={{ fontSize: "16pt" }}>
+                  {item.title}
+                </A>
+              )
+            ) : (
+              item.title
+            )
           }
           description={
             <Paragraph style={{ color: COLORS.GRAY, fontSize: "12pt" }}>

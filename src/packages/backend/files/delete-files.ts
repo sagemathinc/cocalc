@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { getHome } from "./util";
@@ -33,7 +33,7 @@ export async function delete_files(
   //    - that results in weird race conditions that can make files immediately
   //      reappear after deletion
   //    - we MUST make deletion detection fully work based entirely on what happens
-  //      on the filesystem, e.g., due to git checkout and people using the terminal
+  //      on the file system, e.g., due to git checkout and people using the terminal
   log.debug("extra = ", extra);
   await rimraf(paths.concat(extra), { maxRetries: 2 });
 }

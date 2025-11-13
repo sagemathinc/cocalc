@@ -14,14 +14,15 @@ export interface KernelSpec {
   name: string;
 }
 
-interface Parsed {
+export interface CoCalcJupyter {
   cellList: string[];
   cells: { [id: string]: object };
-  cmOptions: { [field: string]: any };
+  cmOptions?: { [field: string]: any };
+  metadata?;
   kernelspec: KernelSpec;
 }
 
-export default function parse(content: string): Parsed {
+export default function parse(content: string): CoCalcJupyter {
   const ipynb = JSON.parse(content);
   const importer = new IPynbImporter();
   importer.import({
@@ -47,7 +48,7 @@ export default function parse(content: string): Parsed {
   return { cells, cellList, cmOptions, kernelspec };
 }
 
-function getMode(ipynb): string {
+export function getMode(ipynb): string {
   return (
     ipynb.metadata?.language_info?.codemirror_mode ??
     ipynb.metadata?.language_info?.name ??
@@ -56,7 +57,9 @@ function getMode(ipynb): string {
   );
 }
 
-function getCMOptions(mode: string | { name: string } | undefined | null) {
+export function getCMOptions(
+  mode: string | { name: string } | undefined | null,
+) {
   if (mode == null) {
     mode = { name: "python" };
   }

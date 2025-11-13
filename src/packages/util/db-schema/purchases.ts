@@ -3,7 +3,6 @@ Purchases
 
 NOTES:
 
-
 - cost is by definition how much the thing costs the customer, e.g., -10 means a credit of $10.
 - amount is by definition the negative of cost.
 
@@ -16,8 +15,32 @@ import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import * as computeServers from "./compute-servers";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
+import { LanguageServiceCore } from "./llm-utils";
 import type { CourseInfo } from "./projects";
 import { Table } from "./types";
+import type { LineItem } from "@cocalc/util/stripe/types";
+
+// various specific payment purposes
+
+// buying items in the shopping cart
+export const SHOPPING_CART_CHECKOUT = "shopping-cart-checkout";
+
+// automatic balance top up
+export const AUTO_CREDIT = "auto-credit";
+
+// paying for a class
+export const STUDENT_PAY = "student-pay";
+
+// month-to-month payment for active subscription
+export const SUBSCRIPTION_RENEWAL = "subscription-renewal";
+
+// resuming a canceled subscription that has expired:
+export const RESUME_SUBSCRIPTION = "resume-subscription";
+
+// for paying a statement the purpose is `statement-${statement_id}`
+// (Maybe we should be usig metadata for this though?)
+
+
 
 export type Reason =
   | "duplicate"
@@ -30,81 +53,27 @@ export type Reason =
 // monthly quota on each one in purchase-quotas.
 // The service names for openai are of the form "openai-[model name]"
 
-export type LLMService =
-  | "openai-gpt-4"
-  | "openai-gpt-4-32k"
-  | "openai-gpt-3.5-turbo"
-  | "openai-gpt-3.5-turbo-16k"
-  | "openai-text-embedding-ada-002"
-  | "google-text-bison-001"
-  | "google-chat-bison-001"
-  | "google-embedding-gecko-001"
-  | "google-gemini-pro";
-
+// todo: why is this "compute"? makes no sense.
 export type ComputeService =
   | "credit"
+  | "auto-credit"
   | "refund"
   | "project-upgrade"
   | "compute-server"
   | "compute-server-network-usage"
+  | "compute-server-storage"
   | "license"
   | "voucher"
   | "edit-license";
 
-export type Service = LLMService | ComputeService;
+export type Service = LanguageServiceCore | ComputeService;
 
-export interface OpenaiGPT4 {
-  type: "openai-gpt-4";
+export interface LLMDescription {
+  type: LanguageServiceCore;
   prompt_tokens: number;
   completion_tokens: number;
-}
-
-export interface OpenaiGPT4_32k {
-  type: "openai-gpt-4-32k";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface OpenaiGPT35 {
-  type: "openai-gpt-3.5-turbo";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface GoogleTextBison {
-  type: "google-text-bison-001";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface GoogleChatBison {
-  type: "google-chat-bison-001";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface GoogleEmbeddingGecko {
-  type: "google-embedding-gecko-001";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface GoogleGeminiPro {
-  type: "google-gemini-pro";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface OpenaiGPT35_16k {
-  type: "openai-gpt-3.5-turbo-16k";
-  prompt_tokens: number;
-  completion_tokens: number;
-}
-
-export interface OpenaiTextEmbeddingsAda002 {
-  type: "openai-text-embedding-ada-002";
-  prompt_tokens: number;
-  completion_tokens: number;
+  amount?: number; // appears in purchses/close.ts
+  last_updated?: number; // also in purchases/close.ts, a timestamp (Date.valueOf())
 }
 
 export interface ProjectUpgrade {
@@ -135,9 +104,44 @@ export interface ComputeServer {
 
 export interface ComputeServerNetworkUsage {
   type: "compute-server-network-usage";
+  cost?: number;
   compute_server_id: number;
   amount: number; // amount of data used in GB
-  last_updated: number;
+  last_updated?: number;
+}
+
+// describes how the charges for GCS for a period time break down
+// into components.  Of course there is much more detail than this
+// in billing data, e.g., exactly how much of each kind of network.
+// But at least this breakdown is probably helpful as a start to
+// better understand charges.
+export interface GoogleCloudStorageBucketCost {
+  network: number;
+  storage: number;
+  classA: number;
+  classB: number;
+  autoclass: number;
+  other: number;
+}
+
+// This is used to support cloud file systems; however, it's generic
+// enough it could be for any bucket storage.
+export interface ComputeServerStorage {
+  type: "compute-server-storage";
+  cloud: "google-cloud"; // only google-cloud currently supported
+  bucket: string; // SUPER important -- the name of the bucket
+  cloud_filesystem_id: number;
+  // once the purchase is done and finalized, we put the final cost here:
+  cost?: number;
+  // this is a breakdown of the cost, which is cloud-specific
+  cost_breakdown?: GoogleCloudStorageBucketCost;
+  // filesystem the bucket is used for.
+  // an estimated cost for the given period of time -- we try to make this
+  // based on collected metrics, and it may or may not be close to the
+  // actual cost.
+  estimated_cost?: { min: number; max: number };
+  // when the estimated cost was set.
+  last_updated?: number;
 }
 
 export interface License {
@@ -146,6 +150,10 @@ export interface License {
   license_id: string;
   item?; // item in shopping cart
   course?: CourseInfo;
+  // if this license was bought using credit that was added, then record the id of that transaction here.
+  // it's mainly "psychological", but often money is added specifically to buy a license, and it is good
+  // to keep track of that flow.
+  credit_id?: number;
 }
 
 export interface Voucher {
@@ -154,6 +162,7 @@ export interface Voucher {
   cost: number; // per voucher
   title: string;
   voucher_id: number;
+  credit_id?: number;
 }
 
 export interface EditLicense {
@@ -167,6 +176,15 @@ export interface EditLicense {
 export interface Credit {
   type: "credit";
   voucher_code?: string; // if credit is the result of redeeming a voucher code
+  line_items?: LineItem[];
+  description?: string;
+  purpose?: string;
+}
+
+export interface AutoCredit {
+  type: "auto-credit";
+  line_items?: LineItem[];
+  description?: string;
 }
 
 export interface Refund {
@@ -178,18 +196,11 @@ export interface Refund {
 }
 
 export type Description =
-  | OpenaiGPT4
-  | OpenaiGPT4_32k
-  | OpenaiGPT35
-  | OpenaiGPT35_16k
-  | OpenaiTextEmbeddingsAda002
-  | GoogleTextBison
-  | GoogleChatBison
-  | GoogleEmbeddingGecko
-  | GoogleGeminiPro
+  | LLMDescription
   | ProjectUpgrade
   | ComputeServer
   | ComputeServerNetworkUsage
+  | ComputeServerStorage
   | Credit
   | Refund
   | License
@@ -207,6 +218,7 @@ export function getAmountStyle(amount: number) {
   return {
     fontWeight: "bold",
     color: amount >= 0 ? "#126bc5" : "#414042",
+    whiteSpace: "nowrap",
   } as const;
 }
 
@@ -223,6 +235,7 @@ export interface Purchase {
   service: Service;
   description: Description;
   invoice_id?: string;
+  payment_intent_id?: string;
   project_id?: string;
   tag?: string;
   day_statement_id?: number;
@@ -244,7 +257,7 @@ Table({
     },
     pending: {
       type: "boolean",
-      desc: "If true, then this transaction is considered pending, which means that for a few days it doesn't count against the user's quotas for the purposes of deciding whether or not a purchase is allowed.  This is needed so we can charge a user for their subscriptions, then collect the money from them, without all of the running pay-as-you-go project upgrades suddenly breaking (etc.).",
+      desc: "**DEPRECATED** -- not used anywhere; do NOT use!  If true, then this transaction is considered pending, which means that for a few days it doesn't count against the user's quotas for the purposes of deciding whether or not a purchase is allowed.  This is needed so we can charge a user for their subscriptions, then collect the money from them, without all of the running pay-as-you-go project upgrades suddenly breaking (etc.).",
     },
     cost_per_hour: {
       title: "Cost Per Hour",
@@ -269,8 +282,8 @@ Table({
       desc: "When the purchase stops being active.  For metered purchases, it's when the purchase finished being charged, in which case the cost field should be equal to the length of the period times the cost_per_hour.",
     },
     invoice_id: {
-      title: "Invoice Id",
-      desc: "The id of the stripe invoice that was sent that included this item.  Legacy: if paid via a payment intent, this will be the id of a payment intent instead, and it will start with pi_.",
+      title: "Stripe Invoice Id or Payment Intent Id",
+      desc: "The id of the stripe invoice that was sent that included this item.  If paid via a payment intent, this will be the id of a payment intent instead, and it will start with pi_.",
       type: "string",
     },
     project_id: {
@@ -317,6 +330,12 @@ Table({
     desc: "Purchase Log",
     primary_key: "id",
     pg_indexes: ["account_id", "time", "project_id"],
+    pg_unique_indexes: [
+      // having two entries with same invoice_id or id would be very bad, since that
+      // would mean user got money twice for one payment!
+      // Existence of this unique index is assumed in src/packages/server/purchases/stripe/process-payment-intents.ts
+      "invoice_id",
+    ],
     user_query: {
       get: {
         pg_where: [{ "account_id = $::UUID": "account_id" }],

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -654,16 +654,6 @@ h5
 h6
   font-size: 110%
   color: inherit
-
-/* Important: for display math in Sage Worksheets.
-   See https://github.com/sagemathinc/cocalc/issues/136
-   NOTE: I did try putting
-         styles: {'background-color':'inherit !important'}
-   in the mathjax config section of last.coffee, but
-   that did nothing.  So we're just going with this below. */
-
-.MathJax_SVG_Display
-  background-color : inherit !important
 
 
 /* The overflow:hidden is needed for Firefox. */

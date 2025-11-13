@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Layout } from "antd";
@@ -14,7 +14,7 @@ import LaTeX from "components/landing/latex";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
+import ComputeServerInfographic from "public/features/running-compute-server.png";
 import juliaScreenshot from "public/features/julia-jupyter.png";
 import juliaLogo from "public/features/julia-logo.svg";
 import sageScreenshot from "public/features/sage-worksheet.png";
@@ -22,7 +22,7 @@ import apiScreenshot from "/public/features/api-screenshot.png";
 import ChatGptInChatroom from "/public/features/chatgpt-fix-code.png";
 import teachingScreenshot from "/public/features/cocalc-course-assignments-2019.png";
 import JupyterTF from "/public/features/cocalc-jupyter2-20170508.png";
-import LatexEditorImage from "/public/features/cocalc-latex-editor-2019.png";
+import LatexEditorImage from "public/features/latex-editor-main-20251003.png";
 import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
 import RJupyter from "/public/features/cocalc-r-jupyter.png";
 import linuxShellScript from "/public/features/cocalc-shell-script-run.png";
@@ -102,18 +102,19 @@ const dataSource = [
   },
   {
     link: "/features/ai",
-    title: <>AI Assistance</>,
+    title: <>AI Assistant</>,
     logoBackground: "white",
     logo: <AIAvatar size={64} />,
     image: ChatGptInChatroom,
     description: (
       <>
-        CoCalc extensively integrates with AI language models like{" "}
-        <A href="https://openai.com/">OpenAI's ChatGPT</A> and{" "}
+        CoCalc extensively integrates with AI language models, including{" "}
+        <A href="https://openai.com/">OpenAI's ChatGPT</A>,{" "}
         <A href="https://deepmind.google/technologies/gemini/">
           Google's Gemini
         </A>
-        . It participates in a{" "}
+        ,<A href="https://www.anthropic.com/claude">Anthropic's Claude</A>, and{" "}
+        <A href="https://mistral.ai/">Mistral</A>. It participates in a{" "}
         <A href={"https://doc.cocalc.com/chat.html"}>Chatroom</A> as a bot,
         helps you understand your code, deciphers error messages in{" "}
         <A href={"/features/jupyter-notebook"}>Jupyter notebooks</A> or

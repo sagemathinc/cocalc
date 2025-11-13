@@ -10,36 +10,27 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "npx tsc --build",
-    "tsc": "npx tsc --watch --pretty --preserveWatchOutput",
-    "test": "npx jest ./dist",
+    "build": "../node_modules/.bin/tsc --build",
+    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
+    "test": "pnpm exec jest --forceExit",
+    "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "realtime synchronization"
-  ],
+  "keywords": ["cocalc", "realtime synchronization"],
   "license": "SEE LICENSE.md",
   "dependencies": {
+    "@cocalc/conat": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/debug": "^4.1.12",
-    "@types/lodash": "^4.14.202",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
-    "debug": "^4.3.4",
     "events": "3.3.0",
     "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
-    "sha1": "^1.1.1"
+    "lru-cache": "^7.18.3"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync",
   "repository": {
@@ -47,7 +38,8 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14",
-    "ts-jest": "^29.0.3"
+    "ts-jest": "^29.2.3"
   }
 }

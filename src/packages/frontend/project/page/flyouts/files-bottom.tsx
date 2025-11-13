@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { CaretRightOutlined } from "@ant-design/icons";
@@ -444,7 +444,7 @@ export function FilesBottom({
       expandIcon={({ isActive }) => (
         <CaretRightOutlined rotate={isActive ? 90 : 0} />
       )}
-      destroyInactivePanel={true}
+      destroyOnHidden={true}
       style={{
         ...style,
         flex: "0 0 auto",

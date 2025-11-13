@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Row, Col } from "antd";
@@ -8,7 +8,7 @@ import { ReactNode } from "react";
 
 import A from "components/misc/A";
 import Code from "./code";
-import { CSS, Paragraph } from "components/misc";
+import { CSS, Paragraph, Title } from "components/misc";
 import { MAX_WIDTH_LANDING } from "lib/config";
 
 export const STYLE_PITCH: CSS = {
@@ -20,15 +20,23 @@ interface Props {
   col1: ReactNode;
   col2: ReactNode;
   ext?: string;
+  style?: CSS;
+  title?: ReactNode;
 }
 
 export default function Pitch(props: Props) {
-  const { col1, col2, ext } = props;
+  const { col1, col2, ext, style, title } = props;
   return (
-    <div style={STYLE_PITCH}>
+    <div style={{ ...STYLE_PITCH, ...style }}>
+      {title ? (
+        <Title level={2} style={{ textAlign: "center", ...style }}>
+          {title}
+        </Title>
+      ) : undefined}
       <Row
         gutter={20}
         style={{ maxWidth: MAX_WIDTH_LANDING, margin: "0 auto" }}
+        align="top"
       >
         <Col lg={12}>{col1}</Col>
         <Col lg={12}>{col2}</Col>

@@ -1,10 +1,17 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Kernel display
 
+import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
+import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
+import ComputeServer from "@cocalc/frontend/compute/inline";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { AlertLevel, BackendState, Usage } from "@cocalc/jupyter/types";
+import { capitalize, closest_kernel_match, rpad_html } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import {
   Button,
   Popconfirm,
@@ -15,18 +22,12 @@ import {
 } from "antd";
 import * as immutable from "immutable";
 import { ReactNode, useEffect } from "react";
-import ComputeServer from "@cocalc/frontend/compute/inline";
-import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
-import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
-import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { capitalize, closest_kernel_match, rpad_html } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
-import { PROJECT_INFO_TITLE } from "../project/info";
+import { FormattedMessage, useIntl } from "react-intl";
+import ProgressEstimate from "../components/progress-estimate";
+import { labels } from "../i18n";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
-import { AlertLevel, BackendState, Usage } from "@cocalc/jupyter/types";
 import { ALERT_COLS } from "./usage";
-import ProgressEstimate from "../components/progress-estimate";
 
 const KERNEL_NAME_STYLE: CSS = {
   margin: "0px 5px",
@@ -54,7 +55,7 @@ const KERNEL_ERROR_STYLE: CSS = {
   margin: "5px",
   color: "white",
   padding: "5px",
-  backgroundColor: COLORS.ATND_BG_RED_M,
+  backgroundColor: COLORS.ANTD_BG_RED_M,
 } as const;
 
 const BACKEND_STATE_STYLE: CSS = {
@@ -88,6 +89,7 @@ export function Kernel({
   computeServerId,
   is_fullscreen,
 }: KernelProps) {
+  const intl = useIntl();
   const name = actions.name;
 
   // redux section
@@ -98,6 +100,7 @@ export function Kernel({
   // no redux_kernel or empty string (!) means there is no kernel
   const kernel: string | null = !redux_kernel ? null : redux_kernel;
   const kernels: undefined | immutable.List<any> = useRedux([name, "kernels"]);
+  const runProgress = useRedux([name, "runProgress"]);
   const project_id: string = useRedux([name, "project_id"]);
   const kernel_info: undefined | immutable.Map<string, any> = useRedux([
     name,
@@ -128,7 +131,7 @@ export function Kernel({
     if (project_id == null) {
       return;
     }
-    return <Logo kernel={kernel} kernel_info_known={kernel_info != null} />;
+    return <Logo kernel={kernel} />;
   }
 
   // this renders the name of the kernel, if known, or a button to change to a similar but known one
@@ -247,13 +250,23 @@ export function Kernel({
             borderRight: "1px solid gray",
           }}
         >
-          <Tooltip title={"Notebook is not trusted"}>
+          <Tooltip
+            title={intl.formatMessage({
+              id: "jupyter.status.trust.no.tooltip",
+              defaultMessage: "Notebook is not trusted",
+              description: "The Jupyter Notebook content is not trusted",
+            })}
+          >
             <Button
               danger
               onClick={() => actions.trust_notebook()}
               size="small"
             >
-              Not Trusted
+              {intl.formatMessage({
+                id: "jupyter.status.trust.no",
+                defaultMessage: "Not Trusted",
+                description: "Jupyter Notebook content is not trusted",
+              })}
             </Button>
           </Tooltip>
         </div>
@@ -265,14 +278,17 @@ export function Kernel({
     if (kernel === null) {
       return (
         <>
-          No kernel{" "}
-          <Tooltip title={"Select a kernel"}>
+          {intl.formatMessage({
+            id: "jupyter.status.no_kernel",
+            defaultMessage: "No kernel",
+          })}{" "}
+          <Tooltip title={intl.formatMessage(labels.select_a_kernel)}>
             <a
               onClick={() => {
                 actions.show_select_kernel("user request");
               }}
             >
-              (select...)
+              (`${intl.formatMessage(labels.select)}...`)
             </a>
           </Tooltip>
         </>
@@ -285,7 +301,12 @@ export function Kernel({
           return (
             <>
               Kernel is busy{" "}
-              <Tooltip title={"Interrupt the running computation"}>
+              <Tooltip
+                title={intl.formatMessage({
+                  id: "jupyter.status.interrupt_tooltip",
+                  defaultMessage: "Interrupt the running computation",
+                })}
+              >
                 <a
                   onClick={() => {
                     // using actions rather than frame actions, since I want
@@ -299,20 +320,24 @@ export function Kernel({
             </>
           );
         case "idle":
+          const tooltip = intl.formatMessage({
+            id: "jupyter.status.halt_idle_tooltip",
+            defaultMessage:
+              "Terminate the kernel process? All variable state will be lost.",
+            description: "Terminating the kernel of a Jupyter Notebook",
+          });
           return (
             <>
               Kernel is idle{" "}
               <Popconfirm
-                title={
-                  "Terminal the kernel process? All variable state will be lost."
-                }
+                title={tooltip}
                 onConfirm={() => {
                   actions.shutdown();
                 }}
-                okText={"Halt"}
-                cancelText={"Cancel"}
+                okText={intl.formatMessage(labels.halt)}
+                cancelText={intl.formatMessage(labels.cancel)}
               >
-                <Tooltip title={"Terminate the kernel process"}>
+                <Tooltip title={tooltip}>
                   <a>(halt...)</a>
                 </Tooltip>
               </Popconfirm>
@@ -320,7 +345,11 @@ export function Kernel({
           );
       }
     } else if (backendIsStarting) {
-      return "Kernel is starting";
+      return intl.formatMessage({
+        id: "jupyter.status.backend_starting",
+        defaultMessage: "Kernel is starting",
+        description: "The kernel of a Jupyter Notebook is starting",
+      });
     }
     return (
       <>
@@ -335,7 +364,7 @@ export function Kernel({
     );
   }
 
-  function get_kernel_name(): JSX.Element {
+  function get_kernel_name(): React.JSX.Element {
     if (kernel_info != null) {
       const name = kernel_info.get(
         "display_name",
@@ -389,30 +418,37 @@ export function Kernel({
     const kernel_tip = kernelState();
 
     const usage_tip = computeServerId ? null : (
-      <>
+      <FormattedMessage
+        id="jupyter.status.usage_tip"
+        defaultMessage={`
         <p>
           This shows this kernel's resource usage. The memory limit is
-          determined by the remaining "free" memory of this project. Open the "
-          {PROJECT_INFO_TITLE}" tab see all activities of this project.
+          determined by the remaining "free" memory of this project.
+          Open the "{processes}" tab see all activities of this project.
         </p>
         <p>
-          <Typography.Text type="secondary">
+          <secondary>
             Keep in mind that "shared memory" could compete with other projects
-            on the same machine and hence you might not be able to use all of
-            it.
-          </Typography.Text>
+            on the same machine and hence you might not be able to use all of it.
+          </secondary>
         </p>
         <p>
-          <Typography.Text type="secondary">
-            You can clear all cpu and memory usage by{" "}
-            <em>restarting your kernel</em>. Learn more about{" "}
-            <A href={"https://doc.cocalc.com/howto/low-memory.html"}>
-              Low Memory
-            </A>{" "}
-            mitigations.
-          </Typography.Text>
-        </p>
-      </>
+          <secondary>
+            You can clear all cpu and memory usage by <em>restarting your kernel</em>.
+            Learn more about <A>Low Memory</A> mitigations.
+          </secondary>
+        </p>`}
+        values={{
+          processes: intl.formatMessage(labels.project_info_title),
+          em: (ch) => <em>{ch}</em>,
+          A: (ch) => (
+            <A href={"https://doc.cocalc.com/howto/low-memory.html"}>{ch}</A>
+          ),
+          secondary: (ch) => (
+            <Typography.Text type="secondary">{ch}</Typography.Text>
+          ),
+        }}
+      />
     );
 
     const description = kernel_info?.getIn([
@@ -470,6 +506,7 @@ export function Kernel({
     const style: CSS = {
       display: "flex",
       borderLeft: `1px solid ${COLORS.GRAY}`,
+      cursor: "pointer",
     };
     const pstyle: CSS = {
       margin: "2px",
@@ -511,6 +548,31 @@ export function Kernel({
 
     return (
       <div style={style}>
+        {runProgress != null && (
+          <Tooltip
+            title={
+              <>
+                Percent of code cells that have been run since the kernel
+                started.
+              </>
+            }
+          >
+            <div style={usage_style}>
+              {is_fullscreen ? (
+                <span style={{ marginRight: "5px" }}>Code</span>
+              ) : (
+                ""
+              )}
+              <Progress
+                style={pstyle}
+                showInfo={false}
+                percent={runProgress}
+                size="small"
+                trailColor="white"
+              />
+            </div>
+          </Tooltip>
+        )}
         <div style={usage_style}>
           {is_fullscreen ? <span style={{ marginRight: "5px" }}>CPU</span> : ""}
           <Progress

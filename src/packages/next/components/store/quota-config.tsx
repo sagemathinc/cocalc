@@ -1,25 +1,59 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import {
+  Alert,
+  Button,
+  Col,
+  Divider,
+  Flex,
+  Form,
+  Radio,
+  Row,
+  Space,
+  Tabs,
+  Typography,
+} from "antd";
+import { useEffect, useRef, useState, type JSX } from "react";
+
+import { HelpIcon } from "@cocalc/frontend/components/help-icon";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { displaySiteLicense } from "@cocalc/util/consts/site-license";
-import { plural } from "@cocalc/util/misc";
+import { plural, unreachable } from "@cocalc/util/misc";
 import {
   BOOST,
   DISK_DEFAULT_GB,
-  MAX_RAM_GB,
+  MAX_DISK_GB,
+  MIN_DISK_GB,
   REGULAR,
 } from "@cocalc/util/upgrades/consts";
-import { Col, Divider, Form, Radio, Row, Space, Tabs, Typography } from "antd";
+import type { LicenseSource } from "@cocalc/util/upgrades/shopping";
+
+import PricingItem, { Line } from "components/landing/pricing-item";
+import { CSS, Paragraph } from "components/misc";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
-import { PRESETS, Preset, Presets } from "./quota-config-presets";
+import {
+  COURSE,
+  SITE_LICENSE,
+  PRESET_MATCH_FIELDS,
+  Preset,
+  PresetConfig,
+} from "./quota-config-presets";
 
 const { Text } = Typography;
 
-const EXPERT_CONFIG = "Expert configuration";
+const EXPERT_CONFIG = "Expert Configuration";
+const listFormat = new Intl.ListFormat("en");
+
+const RAM_HIGH_WARN_THRESHOLD = 10;
+const RAM_LOW_WARN_THRESHOLD = 1;
+const MEM_MIN_RECOMMEND = 2;
+const CPU_HIGH_WARN_THRESHOLD = 3;
+
+const WARNING_BOX: CSS = { marginTop: "10px", marginBottom: "10px" };
 
 interface Props {
   showExplanations: boolean;
@@ -30,10 +64,11 @@ interface Props {
   // boost doesn't define any of the below, that's only for site-license
   configMode?: "preset" | "expert";
   setConfigMode?: (mode: "preset" | "expert") => void;
-  preset?: Presets | null;
-  setPreset?: (preset: Presets | null) => void;
+  preset?: Preset | null;
+  setPreset?: (preset: Preset | null) => void;
   presetAdjusted?: boolean;
   setPresetAdjusted?: (adjusted: boolean) => void;
+  source: LicenseSource;
 }
 
 export const QuotaConfig: React.FC<Props> = (props: Props) => {
@@ -49,38 +84,114 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     setPreset,
     presetAdjusted,
     setPresetAdjusted,
+    source,
   } = props;
+
+  const presetsRef = useRef<HTMLDivElement>(null);
+  const [isClient, setIsClient] = useState(false);
+  const [narrow, setNarrow] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    const observer = new ResizeObserver((entries) => {
+      if (isClient && entries[0].contentRect.width < 600) {
+        setNarrow(true);
+      } else {
+        setNarrow(false);
+      }
+    });
+
+    if (presetsRef.current) {
+      observer.observe(presetsRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [presetsRef.current]);
+
+  const ramVal = Form.useWatch("ram", form);
+  const cpuVal = Form.useWatch("cpu", form);
 
   function title() {
     if (boost) {
       return "Booster";
     } else {
-      return "Quota upgrades";
+      switch (source) {
+        case "site-license":
+          return "Quota Upgrades";
+        case "course":
+          return "Project Upgrades";
+        default:
+          unreachable(source);
+      }
     }
   }
 
   const PARAMS = boost ? BOOST : REGULAR;
 
   function explainRam() {
-    if (!showExplanations) return;
     return (
       <>
-        This quota limits the total amount of memory a project can use. Note
-        that RAM may be limited, if many other users are using the same host –
-        though member hosting significantly reduces competition for RAM. We
-        recommend at least 2G! Beyond the overall maximum of {MAX_RAM_GB}G, we
-        also offer{" "}
-        <A href={"/store/dedicated?type=vm"}>dedicated virtual machines</A> with
-        larger memory options.
+        {renderRamInfo()}
+        {showExplanations ? (
+          <>
+            This quota limits the total amount of memory a project can use. Note
+            that RAM may be limited, if many other users are using the same host
+            – though member hosting significantly reduces competition for RAM.
+            We recommend at least {MEM_MIN_RECOMMEND}G!
+          </>
+        ) : undefined}
       </>
     );
   }
 
   /**
-   * When a quota is changed, we warn the user that the preset was adjusted. (the text updates, though, since it rerenders every time). Explanation in the details could make no sense, though – that's why this is added.
+   * When a quota is changed, we warn the user that the preset was adjusted.
+   * (the text updates, though, since it rerenders every time). Explanation in
+   * the details could make no sense, though – that's why this is added.
    */
   function presetWasAdjusted() {
     setPresetAdjusted?.(true);
+  }
+
+  function renderRamInfo() {
+    if (ramVal >= RAM_HIGH_WARN_THRESHOLD) {
+      return (
+        <Alert
+          style={WARNING_BOX}
+          type="warning"
+          message="Consider using a compute server?"
+          description={
+            <>
+              You selected a RAM quota of {ramVal}G. If your use-case involves a
+              lot of RAM, consider using a{" "}
+              <A href="https://doc.cocalc.com/compute_server.html">
+                compute server.
+              </A>
+            </>
+          }
+        />
+      );
+    } else if (!boost && ramVal <= RAM_LOW_WARN_THRESHOLD) {
+      return (
+        <Alert
+          style={WARNING_BOX}
+          type="warning"
+          message="Low memory"
+          description={
+            <>
+              Your choice of {ramVal}G of RAM is beyond our recommendation of at
+              least {MEM_MIN_RECOMMEND}G. You will not be able to run several
+              notebooks at once, use SageMath or Julia effectively, etc.
+            </>
+          }
+        />
+      );
+    }
   }
 
   function ram() {
@@ -100,10 +211,55 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             presetWasAdjusted();
             onChange();
           }}
-          units={"G RAM"}
-          presets={boost ? [0, 2, 4, 8, 10] : [1, 2, 4, 8, 16]}
+          units={"GB RAM"}
+          presets={boost ? [0, 2, 4, 8, 10] : [4, 8, 16]}
         />
       </Form.Item>
+    );
+  }
+
+  function renderCpuInfo() {
+    if (cpuVal >= CPU_HIGH_WARN_THRESHOLD) {
+      return (
+        <Alert
+          style={WARNING_BOX}
+          type="warning"
+          message="Consider using a compute server?"
+          description={
+            <>
+              You selected a CPU quota of {cpuVal} vCPU cores is high. If your
+              use-case involves harnessing a lot of CPU power, consider using a{" "}
+              <A href="https://doc.cocalc.com/compute_server.html">
+                compute server
+              </A>{" "}
+              or{" "}
+              <A href={"/store/dedicated?type=vm"}>
+                dedicated virtual machines
+              </A>
+              . This will not only give you many more CPU cores, but also a far
+              superior experience!
+            </>
+          }
+        />
+      );
+    }
+  }
+
+  function renderCpuExtra() {
+    return (
+      <>
+        {renderCpuInfo()}
+        {showExplanations ? (
+          <>
+            <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
+              Google Cloud vCPUs.
+            </A>{" "}
+            To keep prices low, these vCPUs may be shared with other projects,
+            though member hosting very significantly reduces competition for
+            CPUs.
+          </>
+        ) : undefined}
+      </>
     );
   }
 
@@ -113,22 +269,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         label="Shared CPUs"
         name="cpu"
         initialValue={PARAMS.cpu.dflt}
-        extra={
-          showExplanations ? (
-            <>
-              <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
-                Google Cloud vCPUs.
-              </A>{" "}
-              To keep prices low, these vCPUs may be shared with other
-              projects, though member hosting very significantly reduces
-              competition for CPUs. We also offer{" "}
-              <A href={"/store/dedicated?type=vm"}>
-                dedicated virtual machines
-              </A>{" "}
-              with more CPU options.
-            </>
-          ) : undefined
-        }
+        extra={renderCpuExtra()}
       >
         <IntegerSlider
           disabled={disabled}
@@ -146,8 +287,29 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function generateDiskPresets(min: number, max: number): number[] {
+    if (min >= max) return [min];
+
+    const range = max - min;
+    const presets = [min]; // Always include minimum
+
+    //  Create 3-4 evenly spaced values
+    const step = Math.ceil(range / 4);
+    let current = min + step;
+    while (current < max) {
+      presets.push(current);
+      current += step;
+    }
+
+    presets.push(max); // Always include maximum
+    return [...new Set(presets)].sort((a, b) => a - b); // Remove duplicates and sort
+  }
+
   function disk() {
-    // 2022-06: price increase "version 2": minimum disk we sell (also the free quota) is 3gb, not 1gb
+    // Generate dynamic presets based on MIN_DISK_GB and MAX_DISK_GB
+    const presets = boost
+      ? [0, ...generateDiskPresets(MIN_DISK_GB, PARAMS.disk.max).slice(0, 3)] // For boost, include 0 and limit to 3 additional values
+      : generateDiskPresets(MIN_DISK_GB, MAX_DISK_GB);
     return (
       <Form.Item
         label="Disk space"
@@ -159,8 +321,12 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
               Extra disk space lets you store a larger number of files.
               Snapshots and file edit history is included at no additional
               charge. Each project receives at least {DISK_DEFAULT_GB}G of
-              storage space. We also offer much larger{" "}
-              <A href={"/store/dedicated?type=disk"}>dedicated disks</A>.
+              storage space. We also offer MUCH larger disks (and CPU and
+              memory) via{" "}
+              <A href="https://doc.cocalc.com/compute_server.html">
+                compute server
+              </A>
+              .
             </>
           ) : undefined
         }
@@ -175,40 +341,15 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             onChange();
           }}
           units={"G Disk"}
-          presets={
-            boost ? [0, 3, 6, PARAMS.disk.max] : [3, 5, 10, PARAMS.disk.max]
-          }
+          presets={presets}
         />
       </Form.Item>
     );
   }
 
-  function infoText() {
-    if (preset == null) {
-      return (
-        <Text type="danger">
-          Currently, no preset selection is active. Select a preset above to
-          reset your recent changes.
-        </Text>
-      );
-    }
-
-    const cpuValue = form.getFieldValue("cpu");
-    const ramValue = form.getFieldValue("ram");
-    const diskValue = form.getFieldValue("disk");
-    const memberValue = form.getFieldValue("member");
-    const uptimeValue = form.getFieldValue("uptime");
-
-    if (
-      cpuValue == null ||
-      ramValue == null ||
-      diskValue == null ||
-      memberValue == null ||
-      uptimeValue == null
-    )
-      return;
-
-    const presetData: Preset = PRESETS[preset];
+  function presetIsAdjusted() {
+    if (preset == null) return;
+    const presetData: PresetConfig = SITE_LICENSE[preset];
     if (presetData == null) {
       return (
         <div>
@@ -216,82 +357,56 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         </div>
       );
     }
-    const { name, descr, details } = presetData;
 
-    function presetDescription() {
-      if (!descr) {
-        return "";
-      } else {
-        return <>{descr}. It</>;
-      }
+    const quotaConfig: Record<string, string> = form.getFieldsValue(
+      Object.keys(PRESET_MATCH_FIELDS),
+    );
+    const invalidConfigValues = Object.keys(quotaConfig).filter(
+      (field) => quotaConfig[field] == null,
+    );
+    if (invalidConfigValues.length) {
+      return;
     }
 
-    function renderDetails() {
-      if (details) {
-        return details;
-      }
-    }
+    const presetDiff = Object.keys(PRESET_MATCH_FIELDS).reduce(
+      (diff, presetField) => {
+        if (presetData[presetField] !== quotaConfig[presetField]) {
+          diff.push(PRESET_MATCH_FIELDS[presetField]);
+        }
 
-    function renderProvides() {
-      const basic = (
-        <>
-          provides up to{" "}
-          <Text strong>
-            {cpuValue} CPU {plural(cpuValue, "core")}
-          </Text>
-          , <Text strong>{ramValue}G memory</Text>, and{" "}
-          <Text strong>{diskValue}G disk space</Text> for each project.
-        </>
-      );
+        return diff;
+      },
+      [] as string[],
+    );
 
-      const mh =
-        memberValue === false ? (
-          <Text strong>member hosting is disabled</Text>
-        ) : null;
-
-      const ut =
-        uptimeValue !== "short" ? (
-          <>
-            {mh != null ? " and" : ""} the project's{" "}
-            <Text strong>
-              idle timeout is {displaySiteLicense(uptimeValue)}
-            </Text>
-          </>
-        ) : null;
-
-      const any = mh != null || ut != null;
-
-      return (
-        <>
-          {basic} {any ? "Additionally, " : ""}
-          {mh}
-          {ut}
-          {any ? "." : ""}
-        </>
-      );
-    }
-
-    function presetIsAdjusted() {
-      if (!presetAdjusted) return;
-      return (
-        <Typography style={{ marginBottom: "10px" }}>
-          <Text type="warning">
-            The preset has been adjusted and parts of the description might no
-            longer be applicable. If you select another one, your modifications
-            will be reset.
-          </Text>
-        </Typography>
-      );
-    }
-
+    if (!presetAdjusted || !presetDiff.length) return;
     return (
-      <>
-        {presetIsAdjusted()}
-        <Typography>
-          Preset <Text strong>"{name}"</Text> {presetDescription()}{" "}
-          {renderProvides()} {renderDetails()}
-        </Typography>
-      </>
+      <Alert
+        type="warning"
+        style={{ marginBottom: "20px" }}
+        message={
+          <>
+            The currently configured license differs from the selected preset in{" "}
+            <strong>{listFormat.format(presetDiff)}</strong>. By clicking any of
+            the presets below, you reconfigure your license configuration to
+            match the original preset.
+          </>
+        }
+      />
+    );
+  }
+
+  function renderIdleTimeoutWithHelp(text?: string) {
+    return (
+      <HelpIcon title="Idle Timeout" extra={text || "idle timeout"}>
+        The idle timeout determines how long your project stays running after
+        you stop using it. For example, if you work in your project for 2 hours,
+        it will keep running during that time. When you close your browser or
+        stop working, the project will automatically shut down after the idle
+        timeout period. Don't worry - your files are always saved and you can
+        restart the project anytime to continue your work exactly where you left
+        off.
+      </HelpIcon>
     );
   }
 
@@ -299,57 +414,242 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     if (!showExplanations) return null;
     return (
       <Text type="secondary">
-        After selecting a preset, feel free to fine tune the selection in the "
-        {EXPERT_CONFIG}" or change the "Member hosting" or the "Idle timeout"
-        configuration below. Subsequent preset selections will reset your
-        adjustments.
+        {preset == null ? (
+          <>After selecting a preset, feel free to</>
+        ) : (
+          <>
+            Selected preset <strong>"{SITE_LICENSE[preset]?.name}"</strong>. You
+            can
+          </>
+        )}{" "}
+        fine tune the selection in the "{EXPERT_CONFIG}" tab. Subsequent preset
+        selections will reset your adjustments.
       </Text>
     );
   }
 
-  function presetExtra() {
+  function renderNoPresetWarning() {
+    if (preset != null) return;
     return (
-      <Space direction="vertical">
-        <div></div>
-        <div>{infoText()}</div>
-        {presetsCommon()}
-      </Space>
+      <Text type="danger">
+        Currently, no preset selection is active. Select a preset above to reset
+        your recent changes.
+      </Text>
     );
   }
 
-  function onPresetChange(newVal) {
-    const val = newVal.target.value;
-    if (val == null || setPreset == null) return;
-    setPreset(val);
-    setPresetAdjusted?.(false);
-    const preset = PRESETS[val];
-    if (preset != null) {
-      const { cpu, ram, disk, uptime = "short", member = true } = preset;
-      form.setFieldsValue({ uptime, member, cpu, ram, disk });
+  function renderCoursePresets() {
+    const p = preset != null ? COURSE[preset] : undefined;
+    let presetInfo: JSX.Element | undefined = undefined;
+    if (p != null) {
+      const { name, cpu, disk, ram, uptime, note, details } = p;
+      const basic = (
+        <>
+          Each student project will be outfitted with up to{" "}
+          <Text strong>
+            {cpu} {plural(cpu, "vCPU")}
+          </Text>
+          , <Text strong>{ram} GB memory</Text>, and{" "}
+          <Text strong>{disk} GB disk space</Text> with an{" "}
+          <Text strong>
+            {renderIdleTimeoutWithHelp()} of {displaySiteLicense(uptime)}
+          </Text>
+          .
+        </>
+      );
+      presetInfo = (
+        <>
+          <Paragraph>
+            <strong>{name}:</strong> {note} {basic}
+          </Paragraph>
+          <Paragraph type="secondary">{details}</Paragraph>
+        </>
+      );
     }
-    onChange();
-  }
 
-  function presets() {
     return (
       <>
-        <Form.Item label="Presets" shouldUpdate={true} extra={presetExtra()}>
-          <Radio.Group onChange={onPresetChange} value={preset}>
-            <Space size={[5, 5]} wrap>
-              {Object.keys(PRESETS).map((p) => {
-                const presetData = PRESETS[p];
+        <Form.Item label="Presets">
+          <Radio.Group
+            size="large"
+            value={preset}
+            onChange={(e) => onPresetChange(COURSE, e.target.value)}
+          >
+            <Space direction="vertical">
+              {(Object.keys(COURSE) as Array<Preset>).map((p) => {
+                const { name, icon, descr } = COURSE[p];
                 return (
-                  <Radio.Button key={p} value={p}>
-                    <Icon name={presetData.icon ?? "arrow-up"} />{" "}
-                    {presetData.name}
-                  </Radio.Button>
+                  <Radio key={p} value={p}>
+                    <span>
+                      <Icon name={icon ?? "arrow-up"} />{" "}
+                      <strong>{name}:</strong> {descr}
+                    </span>
+                  </Radio>
                 );
               })}
             </Space>
           </Radio.Group>
         </Form.Item>
+        <Form.Item label={null}>{presetInfo}</Form.Item>
       </>
     );
+  }
+
+  function renderPresetsNarrow() {
+    const p = preset != null ? SITE_LICENSE[preset] : undefined;
+    let presetInfo: JSX.Element | undefined = undefined;
+    if (p != null) {
+      const { name, cpu, disk, ram, uptime, note } = p;
+      const basic = (
+        <>
+          provides up to{" "}
+          <Text strong>
+            {cpu} {plural(cpu, "vCPU")}
+          </Text>
+          , <Text strong>{ram} GB memory</Text>, and{" "}
+          <Text strong>{disk} GB disk space</Text> for each project.
+        </>
+      );
+      const ut = (
+        <>
+          the project's{" "}
+          <Text strong>
+            {renderIdleTimeoutWithHelp()} is {displaySiteLicense(uptime)}
+          </Text>
+        </>
+      );
+      presetInfo = (
+        <Paragraph>
+          <strong>{name}</strong> {basic} Additionally, {ut}. {note}
+        </Paragraph>
+      );
+    }
+
+    return (
+      <>
+        <Form.Item label="Preset">
+          <Radio.Group
+            size="large"
+            value={preset}
+            onChange={(e) => onPresetChange(SITE_LICENSE, e.target.value)}
+          >
+            <Space direction="vertical">
+              {(Object.keys(SITE_LICENSE) as Array<Preset>).map((p) => {
+                const { name, icon, descr } = SITE_LICENSE[p];
+                return (
+                  <Radio key={p} value={p}>
+                    <span>
+                      <Icon name={icon ?? "arrow-up"} />{" "}
+                      <strong>{name}:</strong> {descr}
+                    </span>
+                  </Radio>
+                );
+              })}
+            </Space>
+          </Radio.Group>
+        </Form.Item>
+        {presetInfo}
+      </>
+    );
+  }
+
+  function renderPresetPanels() {
+    if (narrow) return renderPresetsNarrow();
+
+    const panels = (Object.keys(SITE_LICENSE) as Array<Preset>).map(
+      (p, idx) => {
+        const { name, icon, cpu, ram, disk, uptime, expect, descr, note } =
+          SITE_LICENSE[p];
+        const active = preset === p;
+        return (
+          <PricingItem
+            key={idx}
+            title={name}
+            icon={icon}
+            style={{ flex: 1 }}
+            active={active}
+            onClick={() => onPresetChange(SITE_LICENSE, p)}
+          >
+            <Paragraph>
+              <strong>{name}</strong> {descr}.
+            </Paragraph>
+            <Divider />
+            <Line amount={cpu} desc={"CPU"} indent={false} />
+            <Line amount={ram} desc={"RAM"} indent={false} />
+            <Line amount={disk} desc={"Disk space"} indent={false} />
+            <Line
+              amount={displaySiteLicense(uptime)}
+              desc={renderIdleTimeoutWithHelp("Idle timeout")}
+              indent={false}
+            />
+            <Divider />
+            <Paragraph>
+              <Text type="secondary">
+                In each project, you will be able to:
+              </Text>
+              <ul>
+                {expect.map((what, idx) => (
+                  <li key={idx}>{what}</li>
+                ))}
+              </ul>
+            </Paragraph>
+            {active && note != null ? (
+              <>
+                <Divider />
+                <Paragraph type="secondary">{note}</Paragraph>
+              </>
+            ) : undefined}
+            <Paragraph style={{ marginTop: "20px", textAlign: "center" }}>
+              <Button
+                onClick={() => onPresetChange(SITE_LICENSE, p)}
+                size="large"
+                type={active ? "primary" : undefined}
+              >
+                {name}
+              </Button>
+            </Paragraph>
+          </PricingItem>
+        );
+      },
+    );
+    return (
+      <Flex
+        style={{ width: "100%" }}
+        justify={"space-between"}
+        align={"flex-start"}
+        gap="10px"
+      >
+        {panels}
+      </Flex>
+    );
+  }
+
+  function presetExtra() {
+    return (
+      <Space ref={presetsRef} direction="vertical">
+        <div>
+          {presetIsAdjusted()}
+          {renderPresetPanels()}
+          {renderNoPresetWarning()}
+        </div>
+        {presetsCommon()}
+      </Space>
+    );
+  }
+
+  function onPresetChange(
+    preset: { [key: string]: PresetConfig },
+    val: Preset,
+  ) {
+    if (val == null || setPreset == null) return;
+    setPreset(val);
+    setPresetAdjusted?.(false);
+    const presetData = preset[val];
+    if (presetData != null) {
+      const { cpu, ram, disk, uptime = "short", member = true } = presetData;
+      form.setFieldsValue({ uptime, member, cpu, ram, disk });
+    }
+    onChange();
   }
 
   function detailed() {
@@ -370,9 +670,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             <Col xs={16} offset={6} style={{ marginBottom: "20px" }}>
               <Text type="secondary">
                 Configure the quotas you want to add on top of your existing
-                license. E.g. if your license provides a limit of 2G of RAM and
-                you add a matching boost license with 3G of RAM, you'll end up
-                with a total quota limit of 5G of RAM.
+                license. E.g. if your license provides a limit of 2 GB of RAM
+                and you add a matching boost license with 3 GB of RAM, you'll
+                end up with a total quota limit of 5 GB of RAM.
               </Text>
             </Col>
           </Row>
@@ -380,38 +680,45 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         </>
       );
     } else {
-      return (
-        <Tabs
-          activeKey={configMode}
-          onChange={setConfigMode}
-          type="card"
-          tabPosition="top"
-          size="middle"
-          centered={true}
-          items={[
-            {
-              key: "preset",
-              label: (
-                <span>
-                  <Icon name="lightbulb" />
-                  Quota presets
-                </span>
-              ),
-              children: presets(),
-            },
-            {
-              key: "expert",
-              label: (
-                <span>
-                  <Icon name="wrench" />
-                  {EXPERT_CONFIG}
-                </span>
-              ),
-              children: detailed(),
-            },
-          ]}
-        />
-      );
+      switch (source) {
+        case "site-license":
+          return (
+            <Tabs
+              activeKey={configMode}
+              onChange={setConfigMode}
+              type="card"
+              tabPosition="top"
+              size="middle"
+              centered={true}
+              items={[
+                {
+                  key: "preset",
+                  label: (
+                    <span>
+                      <Icon name="gears" style={{ marginRight: "5px" }} />
+                      Presets
+                    </span>
+                  ),
+                  children: presetExtra(),
+                },
+                {
+                  key: "expert",
+                  label: (
+                    <span>
+                      <Icon name="wrench" style={{ marginRight: "5px" }} />
+                      {EXPERT_CONFIG}
+                    </span>
+                  ),
+                  children: detailed(),
+                },
+              ]}
+            />
+          );
+        case "course":
+          return renderCoursePresets();
+        default:
+          unreachable(source);
+      }
     }
   }
 

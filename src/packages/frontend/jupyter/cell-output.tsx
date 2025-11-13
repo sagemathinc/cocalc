@@ -1,20 +1,21 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 React component that describes the output of a cell
 */
 
-import React from "react";
+import { Alert } from "antd";
 import type { Map as ImmutableMap } from "immutable";
+import React from "react";
+import { LLMTools } from "@cocalc/jupyter/types";
+import type { JupyterActions } from "./browser-actions";
+import { CellHiddenPart } from "./cell-hidden-part";
+import { CollapsedOutput, OutputToggle } from "./cell-output-toggle";
 import { CellOutputMessages } from "./output-messages/message";
 import { OutputPrompt } from "./prompt/output";
-import { OutputToggle, CollapsedOutput } from "./cell-output-toggle";
-import { CellHiddenPart } from "./cell-hidden-part";
-import type { JupyterActions } from "./browser-actions";
-import { Alert } from "antd";
 
 interface CellOutputProps {
   actions?: JupyterActions;
@@ -29,7 +30,8 @@ interface CellOutputProps {
   hidePrompt?: boolean;
   style?: React.CSSProperties;
   divRef?;
-  chatgpt?;
+  llmTools?: LLMTools;
+  isDragging?: boolean;
 }
 
 export function CellOutput({
@@ -45,7 +47,8 @@ export function CellOutput({
   hidePrompt,
   divRef,
   style,
-  chatgpt,
+  llmTools,
+  isDragging,
 }: CellOutputProps) {
   const minHeight = complete ? "60vh" : undefined;
 
@@ -77,8 +80,17 @@ export function CellOutput({
         ...style,
       }}
       cocalc-test="cell-output"
+      className={
+        "cocalc-output-div" /* used by stable unsafe html for clipping */
+      }
     >
-      {!hidePrompt && <ControlColumn cell={cell} actions={actions} id={id} />}
+      {!hidePrompt && (
+        <ControlColumn
+          cell={cell}
+          actions={actions}
+          id={id}
+        />
+      )}
       <OutputColumn
         cell={cell}
         actions={actions}
@@ -88,10 +100,24 @@ export function CellOutput({
         directory={directory}
         name={name}
         trust={trust}
-        chatgpt={chatgpt}
+        llmTools={llmTools}
+        isDragging={isDragging}
       />
     </div>
   );
+}
+
+interface OutputColumnProps {
+  cell: ImmutableMap<string, any>;
+  id: string;
+  actions?: JupyterActions;
+  more_output?: ImmutableMap<string, any>;
+  project_id?: string;
+  directory?: string;
+  name?: string;
+  trust?: boolean;
+  llmTools?;
+  isDragging?: boolean;
 }
 
 function OutputColumn({
@@ -103,8 +129,15 @@ function OutputColumn({
   directory,
   name,
   trust,
-  chatgpt,
-}) {
+  llmTools,
+  isDragging,
+}: OutputColumnProps) {
+  if (isDragging) {
+    // stable html + dragging breaks badly since you end up with two copies
+    // of the same thing, etc.  Also, not carrying the output makes seeing
+    // what is going on more manageable.
+    return null;
+  }
   if (cell.get("collapsed")) {
     return <CollapsedOutput actions={actions} id={id} />;
   }
@@ -130,7 +163,7 @@ function OutputColumn({
   }
   return (
     <CellOutputMessages
-      scrolled={cell.get("scrolled", true)}
+      scrolled={cell.get("scrolled")}
       output={output}
       project_id={project_id}
       directory={directory}
@@ -138,7 +171,7 @@ function OutputColumn({
       name={name}
       trust={trust}
       id={id}
-      chatgpt={chatgpt}
+      llmTools={llmTools}
     />
   );
 }
@@ -179,7 +212,11 @@ function ControlColumn({ actions, cell, id }) {
   }
   if (actions != null) {
     return (
-      <OutputToggle actions={actions} id={id} scrolled={cell.get("scrolled", true)}>
+      <OutputToggle
+        actions={actions}
+        id={id}
+        scrolled={cell.get("scrolled")}
+      >
         {prompt}
       </OutputToggle>
     );

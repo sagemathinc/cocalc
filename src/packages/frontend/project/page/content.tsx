@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -15,21 +15,17 @@ or Loading... if the file is still being loaded.
 */
 
 import { Map } from "immutable";
-import { useEffect, useMemo, useRef } from "react";
+import { debounce } from "lodash";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import Draggable from "react-draggable";
 
-import {
-  React,
-  ReactDOM,
-  redux,
-  useForceUpdate,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { React, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { KioskModeBanner } from "@cocalc/frontend/app/kiosk-mode-banner";
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import SideChat from "@cocalc/frontend/chat/side-chat";
 import { Loading } from "@cocalc/frontend/components";
-import KaTeXAndMathJaxV2 from "@cocalc/frontend/components/math/katex-and-mathjax2";
+import KaTeX from "@cocalc/frontend/components/math/katex";
+import getMermaid from "@cocalc/frontend/editors/slate/elements/code-block/get-mermaid";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 import {
@@ -41,7 +37,6 @@ import { Explorer } from "@cocalc/frontend/project/explorer";
 import { ProjectLog } from "@cocalc/frontend/project/history";
 import { ProjectInfo } from "@cocalc/frontend/project/info";
 import { ProjectNew } from "@cocalc/frontend/project/new";
-import { log_file_open } from "@cocalc/frontend/project/open-file";
 import { ProjectSearch } from "@cocalc/frontend/project/search/search";
 import { ProjectServers } from "@cocalc/frontend/project/servers";
 import { ProjectSettings } from "@cocalc/frontend/project/settings";
@@ -60,7 +55,7 @@ import getUrlTransform from "./url-transform";
 const DEFAULT_CHAT_WIDTH = IS_MOBILE ? 0.5 : 0.3;
 
 const MAIN_STYLE: React.CSSProperties = {
-  overflowX: "hidden",
+  overflowX: "auto",
   flex: "1 1 auto",
   height: 0,
   position: "relative",
@@ -73,12 +68,38 @@ interface Props {
 
 export const Content: React.FC<Props> = (props: Props) => {
   const { tab_name, is_visible } = props;
+  const { setContentSize } = useProjectContext();
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const debouncedMeasure = useCallback(
+    debounce((entries: ResizeObserverEntry[]) => {
+      if (entries.length > 0) {
+        const { width, height } = entries[0].contentRect;
+        setContentSize({ width, height });
+      }
+    }, 10),
+    [setContentSize],
+  );
+
+  useEffect(() => {
+    if (!contentRef.current) return;
+
+    const resizeObserver = new ResizeObserver(debouncedMeasure);
+    resizeObserver.observe(contentRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      debouncedMeasure.cancel();
+    };
+  }, [debouncedMeasure]);
+
   // The className below is so we always make this div the remaining height.
   // The overflowY is hidden for editors (which don't scroll), but auto
   // otherwise, since some tabs (e.g., settings) *do* need to scroll. See
   // https://github.com/sagemathinc/cocalc/pull/4708.
   return (
     <div
+      ref={contentRef}
       style={{
         ...MAIN_STYLE,
         ...(!is_visible ? { display: "none" } : undefined),
@@ -104,6 +125,10 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
     useTypedRedux({ project_id }, "open_files") ?? Map<string, any>();
   const fullscreen = useTypedRedux("page", "fullscreen");
   const jupyterApiEnabled = useTypedRedux("customize", "jupyter_api_enabled");
+  const recentlyDeletedPaths: Map<string, number> | undefined = useTypedRedux(
+    { project_id },
+    "recentlyDeletedPaths",
+  );
 
   const path = useMemo(() => {
     if (tab_name.startsWith("editor-")) {
@@ -141,15 +166,15 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
     case "log":
       return <ProjectLog project_id={project_id} />;
     case "search":
-      return <ProjectSearch project_id={project_id} />;
+      return <ProjectSearch />;
     case "servers":
-      return <ProjectServers project_id={project_id} />;
+      return <ProjectServers />;
     case "settings":
       return <ProjectSettings project_id={project_id} />;
     case "info":
       return <ProjectInfo project_id={project_id} />;
     case "users":
-      return <ProjectCollaboratorsPage project_id={project_id} />;
+      return <ProjectCollaboratorsPage />;
     case "upgrades":
       return <ProjectLicenses project_id={project_id} />;
     default:
@@ -161,7 +186,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           urlTransform: getUrlTransform({ project_id, path }),
           AnchorTagComponent: getAnchorTagComponent({ project_id, path }),
           noSanitize: true, // TODO: temporary for backward compat for now; will make it user-configurable on a per file basis later.
-          MathComponent: KaTeXAndMathJaxV2,
+          MathComponent: KaTeX,
           jupyterApiEnabled,
           hasLanguageModel: redux
             ?.getStore("projects")
@@ -173,6 +198,8 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           project_id,
           path,
           is_visible,
+          client: webapp_client,
+          getMermaid,
         };
         return (
           <FileContext.Provider value={value}>
@@ -186,6 +213,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
                 DEFAULT_CHAT_WIDTH
               }
               component={open_files.getIn([path, "component"]) ?? {}}
+              deleted={recentlyDeletedPaths?.get(path)}
             />
           </FileContext.Provider>
         );
@@ -235,27 +263,23 @@ interface EditorContentProps {
   chat_width: number;
   chatState?: ChatState;
   component: { Editor?; redux_name?: string };
+  // if deleted, when
+  deleted?: number;
 }
 
-const EditorContent: React.FC<EditorContentProps> = (
-  props: EditorContentProps,
-) => {
-  const { project_id, path, chat_width, is_visible, chatState, component } =
-    props;
-  const editor_container_ref = useRef(null);
-  const force_update = useForceUpdate();
+const EditorContent: React.FC<EditorContentProps> = ({
+  deleted,
+  project_id,
+  path,
+  chat_width,
+  is_visible,
+  chatState,
+  component,
+}: EditorContentProps) => {
+  const editor_container_ref = useRef<any>(null);
 
-  if (webapp_client.file_client.is_deleted(path, project_id)) {
-    return (
-      <DeletedFile
-        project_id={project_id}
-        path={path}
-        onOpen={() => {
-          log_file_open(project_id, path);
-          force_update();
-        }}
-      />
-    );
+  if (deleted) {
+    return <DeletedFile project_id={project_id} path={path} time={deleted} />;
   }
 
   // Render this here, since it is used in multiple places below.
@@ -268,7 +292,7 @@ const EditorContent: React.FC<EditorContentProps> = (
     />
   );
 
-  let content: JSX.Element;
+  let content: React.JSX.Element;
   if (chatState == "external") {
     // 2-column layout with chat
     content = (
@@ -333,7 +357,7 @@ interface DragBarProps {
 
 const DragBar: React.FC<DragBarProps> = (props: DragBarProps) => {
   const { project_id, path, editor_container_ref } = props;
-
+  const nodeRef = useRef<any>({});
   const draggable_ref = useRef<any>(null);
 
   const reset = () => {
@@ -347,13 +371,13 @@ const DragBar: React.FC<DragBarProps> = (props: DragBarProps) => {
     if (draggable_ref.current?.state != null) {
       draggable_ref.current.state.x = 0;
     }
-    $(ReactDOM.findDOMNode(draggable_ref.current)).css("transform", "");
+    $(draggable_ref.current).css("transform", "");
   };
 
   const handle_drag_bar_stop = (_, ui) => {
     const clientX = ui.node.offsetLeft + ui.x + $(ui.node).width() + 2;
     drag_stop_iframe_enable();
-    const elt = $(ReactDOM.findDOMNode(editor_container_ref.current));
+    const elt = $(editor_container_ref.current);
     const offset = elt.offset();
     if (offset == null) return;
     const elt_width = elt.width();
@@ -365,6 +389,7 @@ const DragBar: React.FC<DragBarProps> = (props: DragBarProps) => {
 
   return (
     <Draggable
+      nodeRef={nodeRef}
       position={{ x: 0, y: 0 }}
       ref={draggable_ref}
       axis="x"
@@ -373,6 +398,7 @@ const DragBar: React.FC<DragBarProps> = (props: DragBarProps) => {
       defaultClassNameDragging={"cc-vertical-drag-bar-dragging"}
     >
       <div
+        ref={nodeRef}
         className="cc-vertical-drag-bar"
         style={IS_TOUCH ? { width: "12px" } : undefined}
       >

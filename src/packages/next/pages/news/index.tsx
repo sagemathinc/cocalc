@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import {
@@ -31,13 +31,13 @@ import Header from "components/landing/header";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { News } from "components/news/news";
-import type { NewsWithFuture } from "components/news/types";
+import type { NewsWithStatus } from "components/news/types";
 import { MAX_WIDTH } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
 import withCustomize from "lib/with-customize";
 import { GetServerSidePropsContext } from "next";
-import Image from "next/image";
+import Image from "components/landing/image";
 import { useRouter } from "next/router";
 import jsonfeedIcon from "public/jsonfeed.png";
 import rssIcon from "public/rss.svg";
@@ -52,7 +52,7 @@ function isChannelAll(s?: string): s is ChannelAll {
 }
 interface Props {
   customize: CustomizeType;
-  news: NewsWithFuture[];
+  news: NewsWithStatus[];
   offset: number;
   tag?: string; // used for searching for a tag, used on /news/[id] standalone pages
   channel?: string; // a channel to filter by
@@ -74,7 +74,7 @@ export default function AllNews(props: Props) {
   const isAdmin = profile?.is_admin;
 
   const [channel, setChannel] = useState<ChannelAll>(
-    isChannelAll(initChannel) ? initChannel : "all"
+    isChannelAll(initChannel) ? initChannel : "all",
   );
   const [search, setSearchState] = useState<string>(initSearch ?? "");
 
@@ -130,7 +130,7 @@ export default function AllNews(props: Props) {
             onChange={(e) => setChannel(e.target.value)}
           >
             <Radio.Button value="all">Show All</Radio.Button>
-            {CHANNELS.map((c) => (
+            {CHANNELS.filter((c) => c !== "event").map((c) => (
               <Tooltip key={c} title={CHANNELS_DESCRIPTIONS[c]}>
                 <Radio.Button key={c} value={c}>
                   <Icon name={CHANNELS_ICONS[c] as IconName} /> {capitalize(c)}
@@ -155,8 +155,8 @@ export default function AllNews(props: Props) {
 
   function renderNews() {
     const rendered = news
-      // only admins see future and hidden news
-      .filter((n) => isAdmin || (!n.future && !n.hide))
+      // only admins see future, hidden, and expired news
+      .filter((n) => isAdmin || (!n.future && !n.hide && !n.expired))
       .filter((n) => channel === "all" || n.channel == channel)
       .filter((n) => {
         if (search === "") return true;
@@ -195,7 +195,7 @@ export default function AllNews(props: Props) {
     return (
       <Alert
         banner={true}
-        type="error"
+        type="warning"
         message={
           <>
             Admin only: <A href="/news/edit/new">Create News Item</A>
@@ -235,7 +235,7 @@ export default function AllNews(props: Props) {
           <Paragraph>
             <div style={{ float: "right" }}>{renderSlicer("small")}</div>
             Recent news about {siteName}. You can also subscribe via{" "}
-            {/* This is intentonally a regular link, to "break out" of next.js */}
+            {/* This is intentionally a regular link, to "break out" of next.js */}
             <A href="/news/rss.xml" external>
               <Image src={rssIcon} width={16} height={16} alt="RSS Feed" /> RSS
               Feed
@@ -339,7 +339,7 @@ export default function AllNews(props: Props) {
     <Customize value={customize}>
       <Head title={`${siteName} News`} />
       <Layout>
-        <Header />
+        <Header page="news" />
         <Layout.Content
           style={{
             backgroundColor: "white",

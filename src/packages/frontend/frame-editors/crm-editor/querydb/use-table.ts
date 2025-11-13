@@ -53,7 +53,7 @@ export function useTable({
         },
       };
 
-      lastSaveRef.current = new Date().valueOf();
+      lastSaveRef.current = Date.now();
       try {
         setSaving(true);
         setError("");
@@ -77,7 +77,7 @@ export function useTable({
   const refreshRef = useRef<(x?) => Promise<void>>(async () => {});
   const { val: counter, inc: incCounter } = useCounter();
   useEffect(() => {
-    if (new Date().valueOf() - lastSaveRef.current < 1000) {
+    if (Date.now() - lastSaveRef.current < 1000) {
       // we don't increment the counter immediately after saving... since often the save
       // changes this which undoes setting to null in the UI.
       return;
@@ -136,7 +136,7 @@ export function useTable({
         const x = { id: "" };
         const q = getQuery(query, hiddenFields, search);
         const options = ([{ limit: limit ?? DEFAULT_LIMIT }] as any[]).concat(
-          sortOptions(sortFields)
+          sortOptions(sortFields),
         );
         setLoading(true);
         webapp_client.query_client.query({
@@ -187,7 +187,7 @@ export function useTable({
         };
       },
     },
-    [disconnectCounter, sortFields, hiddenFields, limit, search]
+    [disconnectCounter, sortFields, hiddenFields, limit, search],
   );
 
   const refresh = incDisconnectCounter;

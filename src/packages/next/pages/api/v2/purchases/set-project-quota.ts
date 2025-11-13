@@ -1,6 +1,7 @@
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 import setProjectQuota from "@cocalc/server/purchases/set-project-quota";
+import { OkStatus } from "lib/api/status";
 
 export default async function handle(req, res) {
   try {
@@ -18,5 +19,5 @@ async function get(req) {
   }
   const { project_id, quota } = getParams(req);
   await setProjectQuota({ account_id, project_id, quota });
-  return { status: "ok" };
+  return OkStatus;
 }

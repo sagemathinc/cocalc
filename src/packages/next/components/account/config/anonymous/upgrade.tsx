@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert, Button, Input, Space } from "antd";
@@ -8,6 +8,7 @@ import { delay } from "awaiting";
 import { CSSProperties, useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import { TermsCheckbox } from "components/auth/sign-up";
 import SSO from "components/auth/sso";
@@ -100,7 +101,9 @@ function EmailPassword() {
         {/* change height of button to match input boxes */}
         <Button
           type="primary"
-          disabled={success || !email_address || password.length < 6}
+          disabled={
+            success || !email_address || password.length < MIN_PASSWORD_LENGTH
+          }
           style={{ height: "35px" }}
           onClick={setEmailAndPassword}
         >
@@ -111,8 +114,8 @@ function EmailPassword() {
           ) : email_address.length > 0 &&
             !isValidEmailAddress(email_address) ? (
             "Enter valid email"
-          ) : password.length > 0 && password.length < 6 ? (
-            "At least 6 characters"
+          ) : password.length > 0 && password.length < MIN_PASSWORD_LENGTH ? (
+            `At least ${MIN_PASSWORD_LENGTH} characters`
           ) : (
             <>
               <Icon name="check" style={{ marginRight: "5px" }} /> Save

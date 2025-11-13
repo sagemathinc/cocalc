@@ -1,16 +1,53 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Default settings to customize a given site, typically a private install of CoCalc.
 
 import jsonic from "jsonic";
+import { isEqual } from "lodash";
+import { LOCALE } from "@cocalc/util/consts/locale";
 import { is_valid_email_address } from "@cocalc/util/misc";
+import {
+  DEFAULT_MODEL,
+  LLMServicesAvailable,
+  USER_SELECTABLE_LANGUAGE_MODELS,
+  getDefaultLLM,
+  isValidModel,
+} from "./llm-utils";
+export const ALWAYS_ALLOWED_TIMETRAVEL = 10;
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
 export type RowType = "header" | "setting";
+
+// for filtering, exact matches
+export const TAGS = [
+  "Commercialization",
+  "OpenAI",
+  "Jupyter",
+  "Email",
+  "Logo",
+  "Version",
+  "Conat",
+  "Stripe",
+  "captcha",
+  "Zendesk",
+  "GitHub",
+  "Pay as you Go",
+  "Compute Servers",
+  "Google Cloud",
+  "Hyperstack",
+  "AI LLM",
+  "Theme",
+  "On-Prem",
+  "I18N",
+  "Security",
+  "Support",
+] as const;
+
+export type Tag = (typeof TAGS)[number];
 
 export type SiteSettingsKeys =
   | "theming"
@@ -22,10 +59,21 @@ export type SiteSettingsKeys =
   | "logo_rectangular"
   | "splash_image"
   | "index_info_html"
+  | "index_tagline"
   | "imprint"
   | "policies"
+  | "support"
+  | "support_video_call"
   | "openai_enabled"
   | "google_vertexai_enabled"
+  | "mistral_enabled"
+  | "anthropic_enabled"
+  | "ollama_enabled"
+  | "custom_openai_enabled"
+  | "selectable_llms"
+  | "default_llm"
+  | "user_defined_llm"
+  | "llm_default_quota"
   | "neural_search_enabled"
   | "jupyter_api_enabled"
   | "organization_name"
@@ -36,8 +84,13 @@ export type SiteSettingsKeys =
   | "commercial"
   | "max_trial_projects"
   | "nonfree_countries"
+  | "limit_free_project_uptime"
+  | "require_license_to_create_project"
+  | "unlicensed_project_collaborator_limit"
+  | "unlicensed_project_timetravel_limit"
   | "google_analytics"
   | "kucalc"
+  | "i18n"
   | "dns"
   | "datastore"
   | "ssh_gateway"
@@ -45,6 +98,7 @@ export type SiteSettingsKeys =
   | "ssh_gateway_fingerprint"
   | "versions"
   | "version_min_project"
+  | "version_min_compute_server"
   | "version_compute_server_min_project"
   | "version_min_browser"
   | "version_recommended_browser"
@@ -66,7 +120,12 @@ export type SiteSettingsKeys =
   | "compute_servers_google-cloud_enabled"
   | "compute_servers_onprem_enabled"
   | "compute_servers_dns_enabled"
-  | "compute_servers_dns";
+  | "compute_servers_dns"
+  | "compute_servers_hyperstack_enabled"
+  | "cloud_filesystems_enabled"
+  | "insecure_test_mode"
+  | "samesite_remember_me"
+  | "user_tracking";
 
 //| "compute_servers_lambda-cloud_enabled"
 
@@ -90,13 +149,14 @@ export interface Config {
   // this optional function derives the actual value of this setting from current value or from a global (unprocessed) setting.
   readonly to_val?: ToValFunc<ToVal>;
   // this optional function derives the visual representation for the admin (fallback: to_val)
-  readonly to_display?: (val: string) => string;
+  readonly to_display?: (val: string | string[]) => string;
   readonly hint?: (val: string) => string; // markdown
   readonly type?: RowType;
   readonly clearable?: boolean; // default false
   readonly multiline?: number;
   readonly cocalc_only?: boolean; // only for use on cocalc.com (or subdomains)
   readonly help?: string; // markdown formatted help text
+  readonly tags?: Readonly<Tag[]>; // tags for filtering
 }
 
 export type SiteSettings = Record<SiteSettingsKeys, Config>;
@@ -147,6 +207,55 @@ export const onlyNonnegFloat = (val) =>
 export const onlyPosFloat = (val) =>
   ((v) => onlyFloats(v) && v > 0)(toFloat(val));
 
+export function to_list_of_locale(val?: string, fallbackAll = true): string[] {
+  if (!val?.trim()) {
+    return fallbackAll ? [...LOCALE] : [];
+  }
+  const list = val
+    .split(",")
+    .map((s) => s.trim())
+    .filter((v) => LOCALE.includes(v as any));
+  return list;
+}
+
+export function to_list_of_llms(val?: string, fallbackAll = true): string[] {
+  if (!val?.trim())
+    return fallbackAll ? [...USER_SELECTABLE_LANGUAGE_MODELS] : [];
+  return val
+    .split(",")
+    .map((s) => s.trim())
+    .filter((v) => USER_SELECTABLE_LANGUAGE_MODELS.includes(v as any));
+}
+export const is_list_of_llms = (val: string) =>
+  val
+    .split(",")
+    .map((s) => s.trim())
+    .every((s) => USER_SELECTABLE_LANGUAGE_MODELS.includes(s as any));
+
+export const to_default_llm: ToValFunc<ToVal> = (val: string, conf) => {
+  if (isValidModel(val)) return val;
+
+  if (conf == null) {
+    return DEFAULT_MODEL;
+  }
+
+  // FYI, conf are the raw values
+  const selectable_llms = to_list_of_llms(conf.selectable_llms);
+  const filter: LLMServicesAvailable = {
+    openai: to_bool(conf.openai_enabled),
+    google: to_bool(conf.google_vertexai_enabled),
+    ollama: to_bool(conf.ollama_enabled),
+    mistralai: to_bool(conf.mistral_enabled),
+    anthropic: to_bool(conf.anthropic_enabled),
+    custom_openai: to_bool(conf.custom_openai_enabled),
+    user: conf.kucalc !== KUCALC_COCALC_COM,
+  } as const;
+  const ollama = from_json((conf as any)?.ollama);
+  const custom_openai = from_json((conf as any)?.custom_openai);
+
+  return getDefaultLLM(selectable_llms, filter, ollama, custom_openai);
+};
+
 export const from_json = (conf): Mapping => {
   try {
     if (conf !== null) {
@@ -155,6 +264,7 @@ export const from_json = (conf): Mapping => {
   } catch (_) {}
   return {};
 };
+
 export const parsableJson = (conf): boolean => {
   try {
     jsonic(conf ?? "{}");
@@ -259,8 +369,8 @@ const organization_email_desc = `How to contact your organization (fallback: '${
 export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
   dns: {
-    name: "Domain name",
-    desc: "DNS for your server, e.g. `cocalc.universe.edu`.  Does NOT include the basePath.  It optionally can start with `http://` (for non SSL) and end in a `:number` for a port.  This is mainly used for password resets and invitation and sign up emails, since they need to know a link to the site.",
+    name: "External Domain Name",
+    desc: "DNS for your server, e.g. `cocalc.universe.edu`.  **Do NOT include the basePath or the https:// prefix.**  It optionally can start with `http://` (for non SSL) and end in a `:number` for a port.  This is used for password resets, invitation, sign up emails and also for external compute servers connecting back, since they need to know a link to the site.",
     default: "",
     to_val: to_trimmed_str,
     //valid: valid_dns_name,
@@ -271,6 +381,7 @@ export const site_settings_conf: SiteSettings = {
     default: "yes",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Theme"],
   },
   site_name: {
     name: "Site name",
@@ -278,6 +389,7 @@ export const site_settings_conf: SiteSettings = {
     default: "Open CoCalc",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   site_description: {
     name: "Site description",
@@ -285,6 +397,7 @@ export const site_settings_conf: SiteSettings = {
     default: "Collaborative Calculation",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   help_email: {
     name: help_email_name,
@@ -293,6 +406,7 @@ export const site_settings_conf: SiteSettings = {
     valid: is_valid_email_address,
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme", "Email", "Support"],
   },
   terms_of_service_url: {
     name: "Terms of Service URL",
@@ -300,6 +414,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   terms_of_service: {
     name: "ToS information",
@@ -307,6 +422,7 @@ export const site_settings_conf: SiteSettings = {
     default: "You agree to the <em>Terms of Service</em>.",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   account_creation_email_instructions: {
     name: "Account creation",
@@ -314,6 +430,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   organization_name: {
     name: "Organization name",
@@ -321,6 +438,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   organization_email: {
     name: "Contact email address",
@@ -329,6 +447,7 @@ export const site_settings_conf: SiteSettings = {
     clearable: true,
     valid: is_valid_email_address,
     show: show_theming_vars,
+    tags: ["Theme", "Email"],
   },
   organization_url: {
     name: "Organization website",
@@ -336,6 +455,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   logo_square: {
     name: "Logo (square)",
@@ -343,6 +463,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Logo", "Theme"],
   },
   logo_rectangular: {
     name: "Logo (rectangular)",
@@ -350,6 +471,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Logo", "Theme"],
   },
   splash_image: {
     name: "Index page picture",
@@ -357,6 +479,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    tags: ["Theme"],
   },
   index_info_html: {
     name: "Index page info",
@@ -365,6 +488,15 @@ export const site_settings_conf: SiteSettings = {
     clearable: true,
     show: show_theming_vars,
     multiline: 5,
+    tags: ["Theme"],
+  },
+  index_tagline: {
+    name: "Index page tagline",
+    desc: "If set, this replaces the large tagline in blue on the index page. (HTML/MD)",
+    default: "",
+    clearable: true,
+    show: show_theming_vars,
+    tags: ["Theme"],
   },
   imprint: {
     name: "Imprint page",
@@ -373,6 +505,7 @@ export const site_settings_conf: SiteSettings = {
     clearable: true,
     show: show_theming_vars,
     multiline: 5,
+    tags: ["Theme"],
   },
   policies: {
     name: "Policies page",
@@ -381,6 +514,24 @@ export const site_settings_conf: SiteSettings = {
     clearable: true,
     show: show_theming_vars,
     multiline: 5,
+    tags: ["Theme"],
+  },
+  support: {
+    name: "Support page (on-prem only)",
+    desc: "If set, shown instead of the generic support pages – HTML/Markdown.",
+    default: "",
+    clearable: true,
+    show: (conf) => show_theming_vars(conf) && not_cocalc_com(conf),
+    multiline: 5,
+    tags: ["Theme"],
+  },
+  support_video_call: {
+    name: "Video Call for Support",
+    desc: "Link to a form to book a video call.",
+    default: "https://calendly.com/cocalc/discovery?back=1",
+    clearable: true,
+    show: (conf) => show_theming_vars(conf) && only_cocalc_com(conf),
+    tags: ["Theme"],
   },
   // ============== END THEMING ============
 
@@ -389,13 +540,23 @@ export const site_settings_conf: SiteSettings = {
     desc: "",
     default: "",
     type: "header",
+    tags: ["Version"],
   },
   version_min_project: {
     name: "Required project version",
-    desc: "Minimal version required by projects (if project older, will be force restarted).",
+    desc: "Minimal version required by projects (if older, will terminate).",
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
+    tags: ["Version"],
+  },
+  version_min_compute_server: {
+    name: "Required compute server version",
+    desc: "Minimal version required by compute server (if older, will terminate).",
+    default: "0",
+    valid: only_nonneg_int,
+    show: () => true,
+    tags: ["Version"],
   },
   version_min_browser: {
     name: "Required browser version",
@@ -403,6 +564,7 @@ export const site_settings_conf: SiteSettings = {
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
+    tags: ["Version"],
   },
   version_recommended_browser: {
     name: "Recommended version",
@@ -410,12 +572,28 @@ export const site_settings_conf: SiteSettings = {
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
+    tags: ["Version"],
   },
   kucalc: {
     name: "KuCalc UI",
     desc: `Configure which UI elements to show in order to match the Kubernetes backend. '${KUCALC_COCALC_COM}' for cocalc.com production site, '${KUCALC_ON_PREMISES}' for on-premises Kubernetes, or '${KUCALC_DISABLED}' for Docker`,
     default: KUCALC_DISABLED,
     valid: KUCALC_VALID_VALS,
+    tags: ["On-Prem"],
+  },
+  i18n: {
+    name: "Internationalization",
+    desc: "Select, which languages the frontend should offer for users to translate to. Only 'English', no dropdown will be shown. No selection, all available translations are available (default).",
+    default: "",
+    valid: LOCALE,
+    to_val: (v) => to_list_of_locale(v), // note: we store this as a comma separated list
+    to_display: (val: string | string[]) => {
+      const list = Array.isArray(val) ? val : to_list_of_locale(val);
+      return isEqual(list, LOCALE)
+        ? "All translations are available."
+        : list.join(", ");
+    },
+    tags: ["I18N"],
   },
   google_analytics: {
     name: "Google Analytics",
@@ -430,6 +608,7 @@ export const site_settings_conf: SiteSettings = {
     valid: only_booleans,
     to_val: commercial_to_val,
     show: only_cocalc_com,
+    tags: ["Commercialization"],
   },
   max_trial_projects: {
     name: "Maximum Trial Projects",
@@ -438,6 +617,7 @@ export const site_settings_conf: SiteSettings = {
     to_val: to_int,
     valid: only_nonneg_int,
     show: only_cocalc_com,
+    tags: ["Commercialization"],
   },
   nonfree_countries: {
     name: "Nonfree Countries",
@@ -445,6 +625,46 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     to_val: split_strings,
     show: only_cocalc_com,
+    tags: ["Commercialization"],
+  },
+  limit_free_project_uptime: {
+    name: "Limit Free Project Uptime",
+    desc: "If this number of minutes is >0, then projects running for longer than that must have a license applied, or some upgrade, etc. This exposes a countdown timer in the trial banner. (0 means disabled)",
+    default: "0",
+    to_val: to_int,
+    valid: only_nonneg_int,
+    show: only_cocalc_com,
+    to_display: (val) => `${val} minutes`,
+    tags: ["Commercialization"],
+  },
+  require_license_to_create_project: {
+    name: "Require License to Create Project",
+    desc: "If yes the 'New Project' creation form on the projects page requires the user to enter a valid license.  This has no other impact and only impacts the frontend UI.  Users can circumvent this via the API or a course.",
+    default: "no",
+    valid: only_booleans,
+    show: only_cocalc_com,
+    to_val: to_bool,
+    tags: ["Commercialization"],
+  },
+  unlicensed_project_collaborator_limit: {
+    name: "Require License to Add Unlimited Collaborators to Projects",
+    desc: "If this number is positive, then projects without a valid license can have at most this many total collaborators. E.g., set this to 3 to allow up to a total of 3 users of a an unlicensed project.",
+    default: "0",
+    to_val: to_int,
+    valid: only_nonneg_int,
+    show: only_cocalc_com,
+    to_display: (val) => `${val} users`,
+    tags: ["Commercialization"],
+  },
+  unlicensed_project_timetravel_limit: {
+    name: "Require License to View Unlimited TimeTravel History",
+    desc: `If this number is positive, then in projects without some upgrade can only view this many days of TimeTravel history.  Set this to 7 to allow up to one week of history.  NOTE: Users are always allowed to view at least ${ALWAYS_ALLOWED_TIMETRAVEL} revisions, even if the revisions are older than this, in order to recover from possible data loss.`,
+    default: "0",
+    to_val: to_int,
+    valid: only_nonneg_int,
+    show: only_cocalc_com,
+    to_display: (val) => `${val} days`,
+    tags: ["Commercialization"],
   },
   datastore: {
     name: "Datastore",
@@ -460,6 +680,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     show: only_onprem,
     type: "header",
+    tags: ["On-Prem"],
   },
   default_quotas: {
     name: "Default Quotas",
@@ -470,6 +691,7 @@ export const site_settings_conf: SiteSettings = {
     to_val: from_json,
     to_display: displayJson,
     valid: parsableJson,
+    tags: ["On-Prem"],
   },
   max_upgrades: {
     name: "Maximum Quota Upgrades",
@@ -480,6 +702,7 @@ export const site_settings_conf: SiteSettings = {
     to_val: from_json,
     to_display: displayJson,
     valid: parsableJson,
+    tags: ["On-Prem"],
   },
   ssh_gateway: {
     name: "SSH Gateway",
@@ -516,6 +739,7 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Email"],
   },
   verify_emails: {
     name: "Verify email addresses",
@@ -524,6 +748,7 @@ export const site_settings_conf: SiteSettings = {
     show: is_email_enabled,
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Email"],
   },
   email_signup: {
     name: "Allow email signup",
@@ -583,24 +808,98 @@ export const site_settings_conf: SiteSettings = {
   },
   openai_enabled: {
     name: "OpenAI ChatGPT UI",
-    desc: "Controls visibility of UI elements related to ChatGPT integration.  You must **also set your OpenAI API key** below for this functionality to work.",
+    desc: "Controls visibility of UI elements related to OpenAI ChatGPT integration.  You must **also set your OpenAI API key** below for this functionality to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["OpenAI", "AI LLM"],
   },
   google_vertexai_enabled: {
-    name: "Google Gemini Generative AI UI",
+    name: "Google Generative AI UI",
     desc: "Controls visibility of UI elements related to Google's **Gemini Generative AI** integration.  You must **also set your Gemini Generative AI API key** below for this functionality to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["AI LLM"],
+  },
+  mistral_enabled: {
+    name: "Mistral AI UI",
+    desc: "Controls visibility of UI elements related to Mistral AI integration.  You must **also set your Mistral API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["AI LLM"],
+  },
+  anthropic_enabled: {
+    name: "Anthropic AI UI",
+    desc: "Controls visibility of UI elements related to Anthropic AI integration.  You must **also set your Anthropic API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["AI LLM"],
+  },
+  ollama_enabled: {
+    name: "Ollama LLM UI",
+    desc: "Controls visibility of UI elements related to Ollama integration.  To make this actually work, configure the list of API/model endpoints in the Ollama configuration.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["AI LLM"],
+  },
+  custom_openai_enabled: {
+    name: "Custom OpenAI LLM UI",
+    desc: "Controls visibility of UI elements related to Custom OpenAI integration.  To make this actually work, configure the list of API/model endpoints in the Custom OpenAI configuration.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["AI LLM"],
+  },
+  selectable_llms: {
+    name: "User Selectable LLMs",
+    desc: "If this is empty, all available LLMs by enabled services will be selectable by your users. If you select one or more, only those LLMs will be shown. This does not affect the availibiltiy of Ollama models.",
+    default: "",
+    valid: is_list_of_llms,
+    to_val: (v) => to_list_of_llms(v), // note: we store this as a comma separated list of model strings
+    to_display: (val: string | string[]) => {
+      const list = Array.isArray(val) ? val : to_list_of_llms(val);
+      return isEqual(list, USER_SELECTABLE_LANGUAGE_MODELS)
+        ? "All LLMs of enabled services will be selectable"
+        : list.join(", ");
+    },
+    tags: ["AI LLM"],
+  },
+  default_llm: {
+    name: "Default LLM",
+    desc: "If user has never selected an LLM, this one will be the fallback choice. If it is not available or not in the list of selectable LLMs, a heuristic will pick a fallback.",
+    default: "",
+    to_val: to_default_llm,
+    valid: USER_SELECTABLE_LANGUAGE_MODELS, // ATTN: This is not true. It's actually the list selectable_llms (which has this list as a constant) + all ollama + custom_llm. This is a special case in the Admin UI.
+    tags: ["AI LLM"],
+  },
+  user_defined_llm: {
+    name: "User Defined LLM",
+    desc: "If enabled, users are allowed to configure and run their own LLMs (their API keys, etc.)",
+    default: "no",
+    to_val: to_bool,
+    valid: only_booleans,
+    tags: ["AI LLM"],
+  },
+  llm_default_quota: {
+    name: "Default Quota for LLMs",
+    desc: "We do not want to send users messages about LLM usage, if they didn't bother to set their quotas to >0. This is the default quota for LLMs. Integer val >=0",
+    default: "10",
+    to_val: to_int,
+    valid: only_nonneg_int,
+    show: only_commercial,
+    tags: ["AI LLM"],
   },
   neural_search_enabled: {
-    name: "OpenAI Neural Search UI",
+    name: "DEPRECATED - OpenAI Neural Search UI",
     desc: "Controls visibility of UI elements related to Neural Search integration.  You must **also set your OpenAI API key** below and fully configure the **Qdrant vector database** for neural search to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["OpenAI"],
   },
   jupyter_api_enabled: {
     name: "Jupyter API",
@@ -608,6 +907,7 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Jupyter"],
   },
   compute_servers_enabled: {
     name: "Enable Compute Servers",
@@ -615,6 +915,18 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Compute Servers"],
+  },
+  cloud_filesystems_enabled: {
+    name: "Enable Cloud File Systems",
+    desc: "CoCalc Cloud File Systems are scalable distributed POSIX shared file systems with fast local caching built using [JuiceFS](https://juicefs.com/), [KeyDB](https://docs.keydb.dev/) and [Google Cloud Storage](https://cloud.google.com/storage).  You must enable the following API's in the Google Cloud project: [Storage Transfer API](https://console.cloud.google.com/apis/library/storagetransfer.googleapis.com), [Identity and Access Management (IAM) API](https://console.cloud.google.com/apis/library/iam.googleapis.com), [Cloud Resource Manger API](https://console.cloud.google.com/apis/library/cloudresourcemanager.googleapis.com).",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    show: (conf) =>
+      to_bool(conf.compute_servers_enabled) &&
+      to_bool(conf["compute_servers_google-cloud_enabled"]),
+    tags: ["Compute Servers"],
   },
   version_compute_server_min_project: {
     name: "Required project version for compute server",
@@ -622,6 +934,7 @@ export const site_settings_conf: SiteSettings = {
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
+    tags: ["Compute Servers"],
   },
   "compute_servers_google-cloud_enabled": {
     name: "Enable Compute Servers - Google Cloud",
@@ -629,13 +942,23 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Compute Servers"],
   },
   compute_servers_onprem_enabled: {
-    name: "Enable Compute Servers - On Prem",
-    desc: "Whether or not to include on prem compute servers.  Right now, these are VM's that must be manually managed by a user and involve copy/paste, but someday they will be much more automated.",
+    name: "Enable Compute Servers - Self Hosted",
+    desc: "Whether or not to allow self hosted compute servers.  These are VM's that must be manually managed by a user.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Compute Servers"],
+  },
+  compute_servers_hyperstack_enabled: {
+    name: "Enable Compute Servers - Hyperstack Cloud",
+    desc: "Whether or not to include [Hyperstack cloud](https://www.hyperstack.cloud/) compute servers.  You must also configure an API key below.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["Compute Servers"],
   },
   //   "compute_servers_lambda-cloud_enabled": {
   //     name: "Enable Compute Servers - Lambda Cloud",
@@ -643,6 +966,7 @@ export const site_settings_conf: SiteSettings = {
   //     default: "no",
   //     valid: only_booleans,
   //     to_val: to_bool,
+  //     tags: ["Compute Servers"],
   //   },
   compute_servers_dns_enabled: {
     name: "Enable Compute Servers - Cloudflare DNS",
@@ -650,6 +974,7 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Compute Servers"],
   },
   compute_servers_dns: {
     name: "Compute Servers: Domain name",
@@ -660,5 +985,28 @@ export const site_settings_conf: SiteSettings = {
     show: (conf) =>
       to_bool(conf.compute_servers_enabled) &&
       to_bool(conf.compute_servers_dns_enabled),
+    tags: ["Compute Servers"],
+  },
+  insecure_test_mode: {
+    name: "Insecure Test Mode",
+    desc: "Put this server in a highly insecure test mode that is suitable for evaluating CoCalc, but **CANNOT BE USED IN PRODUCTION**.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["Security"],
+  },
+  samesite_remember_me: {
+    name: "sameSite setting for remember_me authentication cookie",
+    desc: "The [sameSite setting](https://expressjs.com/en/resources/middleware/cookie-session.html) for the remember_me authentication token, which can be one of 'strict', 'lax', or 'none'.  The default is 'strict', which is the safest choice, as it is a useful line of defense against certain attacks.  Using 'none' is **extremely** insecure, just begging to be hacked; using 'lax' might be OK.  The non-strict options are supported since they are needed for certain development work; they could also be useful in on-prem settings.",
+    default: "strict",
+    valid: ["strict", "lax", "none"],
+    to_val: (x) => `${x}`,
+    tags: ["Security"],
+  },
+  user_tracking: {
+    name: "User Tracking",
+    desc: "If enabled, then information about what users do in the frontend browser gets temporarily recorded in the user_tracking table of the database.",
+    default: "no",
+    valid: only_booleans,
   },
 } as const;

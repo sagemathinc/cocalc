@@ -1,26 +1,34 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Focused codemirror editor, which you can interactively type into.
 
 declare const $: any;
 
-import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
-
-import LRU from "lru-cache";
 import { delay } from "awaiting";
-import { React, useRef, usePrevious } from "../app-framework";
-import * as underscore from "underscore";
+import CodeMirror from "codemirror";
 import { Map as ImmutableMap } from "immutable";
+import { debounce } from "lodash";
+import LRU from "lru-cache";
+import {
+  CSSProperties,
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
+import { React, usePrevious, useRef } from "@cocalc/frontend/app-framework";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { COLORS } from "@cocalc/util/theme";
+import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
-import CodeMirror from "codemirror";
-import { CSSProperties, MutableRefObject, useEffect, useState } from "react";
-
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-import { EditorFunctions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { Position } from "./insert-cell/types";
+import { is_whitespace } from "@cocalc/util/misc";
+import { initFold, saveFold } from "@cocalc/frontend/codemirror/util";
 
 // We cache a little info about each Codemirror editor we make here,
 // so we can restore it when we make the same one again.  Due to
@@ -35,7 +43,7 @@ const cache = new LRU<string, CachedInfo>({ max: 1000 });
 const STYLE: React.CSSProperties = {
   width: "100%",
   overflow: "hidden",
-  border: "1px solid #cfcfcf",
+  border: `1px solid ${COLORS.GRAY_L}`,
   borderRadius: "5px",
   padding: "5px",
   lineHeight: "1.21429em",
@@ -56,13 +64,13 @@ export interface Actions extends CompleteActions {
   introspect_at_pos: (
     code: string,
     level: 0 | 1,
-    pos: { ch: number; line: number }
+    pos: { ch: number; line: number },
   ) => Promise<void>;
   complete: (
     code: string,
     pos?: { line: number; ch: number } | number,
     id?: string,
-    offset?: any
+    offset?: any,
   ) => Promise<boolean>;
   save: () => Promise<void>;
 }
@@ -70,7 +78,7 @@ export interface Actions extends CompleteActions {
 interface CodeMirrorEditorProps {
   actions: Actions; // e.g., JupyterActions from "./browser-actions".
   id: string;
-  options: ImmutableMap<any, any>;
+  options: ImmutableMap<string, any>;
   value: string;
   set_click_coords?: Function; // TODO: type
   font_size?: number; // font_size not explicitly used, but it is critical
@@ -80,6 +88,7 @@ interface CodeMirrorEditorProps {
   set_last_cursor?: Function; // TODO: type
   last_cursor?: any;
   is_focused?: boolean;
+  is_current?: boolean;
   is_scrolling?: boolean;
   complete?: ImmutableMap<any, any>;
   style?: CSSProperties;
@@ -92,6 +101,7 @@ interface CodeMirrorEditorProps {
   refresh?: any; // if this changes, then cm.refresh() is called.
   getValueRef?: MutableRefObject<() => string>;
   canvasScale?: number;
+  setShowAICellGen?: (show: Position) => void;
 }
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
@@ -106,6 +116,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   set_last_cursor,
   last_cursor,
   is_focused,
+  is_current,
   is_scrolling,
   complete,
   style,
@@ -118,6 +129,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   refresh,
   getValueRef,
   canvasScale,
+  setShowAICellGen,
 }: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
@@ -125,21 +137,28 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   const cm_is_focused = useRef<boolean>(false);
   const vim_mode = useRef<boolean>(false);
   const cm_ref = React.createRef<HTMLTextAreaElement>();
-
+  const [cmValue, setCmValue] = useState<string>(value);
+  const handleChange = useCallback(() => {
+    setCmValue(cm.current?.getValue());
+  }, []);
   const key = useRef<string | null>(null);
-
   const prev_options = usePrevious(options);
-
   const frameActions = useNotebookFrameActions();
+  const ignoreNextValue = useRef<boolean>(false);
 
   useEffect(() => {
     if (frameActions.current?.frame_id != null) {
-      key.current = `${frameActions.current.frame_id}${id}`;
+      key.current = `${(actions as any)?.path}${
+        frameActions.current.frame_id
+      }${id}`;
     }
     init_codemirror(options, value);
 
     return () => {
       if (cm.current != null) {
+        if (key.current != null) {
+          saveFold(cm.current, key.current);
+        }
         cm_save();
         cm_destroy();
       }
@@ -165,6 +184,18 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }, [font_size, is_scrolling]);
 
   useEffect(() => {
+    if (ignoreNextValue.current) {
+      // See https://github.com/sagemathinc/cocalc/issues/7330
+      // What happened in 7330 is that when you enter text,
+      // then IMMEDIATELY PASTE, the cell got reset
+      // undoing the paste.  This was because we saved out
+      // the state right *before* the paste so the undo history
+      // had a checkpoint before then. But in order to hook
+      // into all that, we have to use the CodeMirror
+      // "beforeChange" hook, which just makes things complicated.
+      ignoreNextValue.current = false;
+      return;
+    }
     if (cm.current != null) {
       cm.current.setValueNoJump(value);
     }
@@ -194,13 +225,38 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     }
   }, [is_focused]);
 
+  const [placeHolderOffset, setPlaceHolderOffset] = useState<number>(
+    options.get("lineNumbers") ? 30 : 0,
+  );
+
+  useEffect(() => {
+    if (!is_current || cmValue) {
+      return;
+    }
+    if (options.get("lineNumbers")) {
+      // account for line numbers if enabled.  Must wait until after
+      // codemirror renders to see what we got.
+      // That said, this only matters when the only line
+      // number is "1" (since there can be at most 1 line in order for
+      // cmValue=''), so this number is always 30 in practice.
+      setPlaceHolderOffset(30);
+      setTimeout(() => {
+        setPlaceHolderOffset(
+          ($(cm.current?.getGutterElement()).width() ?? 29) + 1,
+        );
+      }, 0);
+    } else {
+      setPlaceHolderOffset(0);
+    }
+  }, [is_current, cmValue, options]);
+
   // This is an attempt to make code editing somewhat work at non 100% scale
   // for the whiteboard.  It's only used there, and is a miracle it partly
   // works at all...  I wonder if CodeMirror 6 would be better?
   const [containerHeight, setContainerHeight] = useState<string | undefined>(
-    undefined
+    undefined,
   );
-  const innerDivRef = useRef<any>();
+  const innerDivRef = useRef<any>(undefined);
   useEffect(() => {
     if (canvasScale == null || canvasScale <= 1) return;
     // Used to support embedding cells in a css scaled div, e.g., which
@@ -236,6 +292,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       cm.current.save = null;
       if (cm_change.current != null) {
         cm.current.off("change", cm_change.current);
+        cm.current.off("change", handleChange);
         cm.current.off("focus", cm_focus);
         cm.current.off("blur", cm_blur);
         cm_change.current = null;
@@ -281,7 +338,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }
 
   function cm_cursor(): void {
-    if (cm.current == null || actions == null) {
+    if (cm.current == null || actions == null || !cm_is_focused.current) {
       return;
     }
     const sel = cm.current.listSelections();
@@ -310,7 +367,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           cell_list_div.scrollTop(
             scroll -
               (cell_list_top - cm.current.cursorCoords(true, "window").top) -
-              20
+              20,
           );
         }
       }
@@ -361,14 +418,23 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     ) {
       cm_save();
     }
-    actions.undo();
+    if (frameActions.current) {
+      // prefer this, because can update selection
+      frameActions.current.undo();
+    } else {
+      actions.undo();
+    }
   }
 
   function cm_redo(): void {
     if (cm.current == null || actions == null) {
       return;
     }
-    actions.redo();
+    if (frameActions.current) {
+      frameActions.current.redo();
+    } else {
+      actions.redo();
+    }
   }
 
   function shift_tab_key(): void {
@@ -492,7 +558,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   function whitespace_before_cursor(): boolean {
     if (cm.current == null) return false;
     const cur = cm.current.getCursor();
-    return cur.ch === 0 || /\s/.test(cm.current.getLine(cur.line)[cur.ch - 1]);
+    return is_whitespace(cm.current.getLine(cur.line).slice(0, cur.ch));
   }
 
   async function tab_nothing_selected(): Promise<void> {
@@ -525,7 +591,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           top,
           left,
           gutter,
-        }
+        },
       );
       if (!show_dialog) {
         frameActions.current?.set_mode("edit");
@@ -553,7 +619,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   // NOTE: init_codemirror is VERY expensive, e.g., on the order of 10's of ms.
   function init_codemirror(
     options: ImmutableMap<string, any>,
-    value: string
+    value: string,
   ): void {
     if (cm.current != null) return;
     const node = cm_ref.current;
@@ -573,14 +639,11 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       options0.extraKeys["PageDown"] = page_down_key;
       options0.extraKeys["Cmd-/"] = "toggleComment";
       options0.extraKeys["Ctrl-/"] = "toggleComment";
-      options0.extraKeys["Ctrl-Enter"] = () => {}; // ignore control+enter, since there's a shortcut
-      /*
-      Disabled for now since fold state isn't preserved.
-      if (options0.foldGutter) {
-        options0.extraKeys["Ctrl-Q"] = cm => cm.foldCodeSelectionAware();
-        options0.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
-      }
-      */
+      // ignore shift+enter, control+enter, alt+enter and meta+enter since there's a shortcut
+      options0.extraKeys["Shift-Enter"] = () => {};
+      options0.extraKeys["Ctrl-Enter"] = () => {};
+      options0.extraKeys["Alt-Enter"] = () => {};
+      options0.extraKeys["Cmd-Enter"] = () => {};
     } else {
       options0.readOnly = true;
     }
@@ -601,7 +664,18 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       getValueRef.current = cm.current.getValue.bind(cm.current);
     }
 
-    cm.current.save = () => actions.save();
+    cm.current.save = () => {
+      // before saving to disk, also make sure the latest version of
+      // the contents of the codemirror is in the notebook.  E.g., a user
+      // often types something then immediately "control+s", which must
+      // include what they *just* typed.
+      cm_save();
+      actions.save();
+    };
+
+    // needed for vim support -- see src/packages/frontend/frame-editors/code-editor/codemirror-editor.tsx
+    cm.current.cocalc_actions = { save: cm.current.save };
+
     if (actions != null && options0.keyMap === "vim") {
       vim_mode.current = true;
       cm.current.on("vim-mode-change", async (obj) => {
@@ -638,11 +712,16 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           .setSelections(info.sel, undefined, { scroll: false });
       }
     }
-    cm_change.current = underscore.debounce(cm_save, SAVE_DEBOUNCE_MS);
+
+    cm_change.current = debounce(cm_save, SAVE_DEBOUNCE_MS);
+
     cm.current.on("change", cm_change.current);
+    cm.current.on("change", handleChange);
     cm.current.on("beforeChange", (_, changeObj) => {
       if (changeObj.origin == "paste") {
-        // See https://github.com/sagemathinc/cocalc/issues/5110
+        // See https://github.com/sagemathinc/cocalc/issues/5110 and
+        // https://github.com/sagemathinc/cocalc/issues/7330
+        ignoreNextValue.current = true;
         cm_save();
       }
     });
@@ -689,6 +768,17 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     if (is_focused) {
       focus_cm();
     }
+
+    if (key.current != null) {
+      initFold(cm.current, key.current);
+      const save = () => {
+        if (cm.current != null && key.current != null) {
+          saveFold(cm.current, key.current);
+        }
+      };
+      cm.current.on("fold", save);
+      cm.current.on("unfold", save);
+    }
   }
 
   function focus_cm(): void {
@@ -709,8 +799,49 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     }
   }
 
+  function renderPlaceholder() {
+    if (!is_current || cmValue || !setShowAICellGen) {
+      return;
+    }
+    return (
+      <div style={{ position: "relative" }}>
+        <div
+          style={{
+            position: "absolute",
+            color: "#bfbfbf",
+            zIndex: 1,
+            left: 10 + placeHolderOffset,
+            top: setShowAICellGen == null ? "7.5px" : "2.5px",
+            marginLeft: "-5px",
+            paddingLeft: "5px",
+            overflow: "hidden",
+            display: "flex",
+          }}
+          onClick={focus_cm}
+        >
+          <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 20px" }}>
+            Enter code{setShowAICellGen == null ? "..." : " or "}
+          </div>
+          <a
+            style={{
+              marginTop: "6px",
+              opacity: 0.5,
+              fontSize: "inherit",
+            }}
+            onClick={() => {
+              setShowAICellGen("replace");
+            }}
+          >
+            generate using AI...
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ width: "100%", overflow: "hidden" }}>
+      {renderPlaceholder()}
       {render_cursors()}
       <div
         ref={innerDivRef}

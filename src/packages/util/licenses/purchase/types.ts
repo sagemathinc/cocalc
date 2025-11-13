@@ -1,3 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+import type { Uptime } from "@cocalc/util/consts/site-license";
+import type { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import type {
+  CustomDescription,
+  LicenseSource,
+  Period,
+} from "@cocalc/util/upgrades/shopping";
+
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "max" | "custom";
 export type Subscription = "no" | "monthly" | "yearly";
@@ -13,14 +26,15 @@ export type CustomUpgrades =
 export interface Cost {
   cost: number;
   cost_per_unit: number;
-  discounted_cost: number;
   cost_per_project_per_month: number;
   cost_sub_month: number;
   cost_sub_year: number;
+  quantity: number;
   // if buying a subscription, the cost for the first period
   // may be less than cost_sub_month / cost_sub_year, depending
   // on the closing statement date of the user.
   cost_sub_first_period?: number;
+  period: Period;
 }
 
 export type CostInput =
@@ -32,7 +46,6 @@ export type CostInput =
 
 export interface CostInputPeriod extends Cost {
   input: CostInput;
-  period: Period;
 }
 
 export interface StartEndDates {
@@ -45,14 +58,9 @@ export interface StartEndDatesWithStrings {
   end: Date | string;
 }
 
-/*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
- */
-
-import type { Uptime } from "@cocalc/util/consts/site-license";
-import type { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
-import type { CustomDescription, Period } from "../../upgrades/shopping";
+interface Version {
+  version: string; // it's just a string with no special interpretation.
+}
 
 interface PurchaseInfoQuota0 {
   type: "quota";
@@ -77,9 +85,12 @@ interface PurchaseInfoQuota0 {
   run_limit?: number;
 }
 
+type PurchseInfoSource = { source?: LicenseSource };
+
 export type PurchaseInfoQuota = PurchaseInfoQuota0 &
   CustomDescription &
-  StartEndDates;
+  StartEndDates &
+  PurchseInfoSource;
 
 export type PurchaseInfoVoucher = {
   type: "vouchers";
@@ -108,11 +119,13 @@ export type PurchaseInfoDisk = {
   payment_method?: string;
 };
 
-export type PurchaseInfo =
-  | PurchaseInfoQuota
-  | (PurchaseInfoVoucher & CustomDescription)
-  | (PurchaseInfoVM & StartEndDates & CustomDescription)
-  | (PurchaseInfoDisk & StartEndDates & CustomDescription);
+export type PurchaseInfo = Version &
+  (
+    | PurchaseInfoQuota
+    | (PurchaseInfoVoucher & CustomDescription)
+    | (PurchaseInfoVM & StartEndDates & CustomDescription)
+    | (PurchaseInfoDisk & StartEndDates & CustomDescription)
+  );
 
 // stripe's metadata can only handle string or number values.
 export type ProductMetadataQuota = Record<

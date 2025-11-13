@@ -1,63 +1,74 @@
 import { client_db } from "@cocalc/util/schema";
-import { alert_message } from "../../alerts";
-import { webapp_client } from "../../webapp-client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { len, trunc_middle } from "@cocalc/util/misc";
+import { redux } from "@cocalc/frontend/app-framework";
 import { open_new_tab } from "../../misc/open-browser-tab";
-import { redux } from "../../app-framework";
+import { getSideChatActions } from "@cocalc/frontend/frame-editors/generic/chat";
 
 const VIDEO_CHAT_SERVER = "https://meet.jit.si";
 const VIDEO_UPDATE_INTERVAL_MS = 30 * 1000;
 
 // Create pop-up window for video chat
-function video_window(url: string) {
-  return open_new_tab(url, true);
+function videoWindow(url: string) {
+  return open_new_tab(url, true, { noopener: false });
 }
 
-const video_windows = {};
+const videoWindows = {};
 
 export class VideoChat {
-  private video_interval_id: any;
+  private intervalId?: any;
   private project_id: string;
   private path: string;
-  private account_id: string;
 
-  constructor(project_id: string, path: string, account_id: string) {
+  constructor({ project_id, path }: { project_id: string; path: string }) {
     this.project_id = project_id;
     this.path = path;
-    this.account_id = account_id;
   }
 
-  public we_are_chatting(): boolean {
-    const timestamp: Date | undefined = this.get_users()?.[this.account_id];
+  close = () => {
+    // this.closeVideoChatWindow();
+    delete this.intervalId;
+  };
+
+  weAreChatting = (): boolean => {
+    const { account_id } = webapp_client;
+    if (account_id == null) {
+      return false;
+    }
+    const timestamp: Date | undefined = this.getUsers()?.[account_id];
     return (
       timestamp != null &&
       webapp_client.server_time().valueOf() - timestamp.valueOf() <=
         VIDEO_UPDATE_INTERVAL_MS
     );
-  }
+  };
 
-  public num_users_chatting(): number {
-    return len(this.get_users());
-  }
+  numUsersChatting = (): number => {
+    return len(this.getUsers());
+  };
 
-  public get_user_name(): string | undefined {
+  getUserName = (): string | undefined => {
     const users = redux.getStore("users");
-    return users.get_name(this.account_id);
-  }
+    const { account_id } = webapp_client;
+    if (account_id == null) {
+      return;
+    }
+    return users?.get_name(account_id);
+  };
 
-  public get_user_names(): string[] {
+  getUserNames = (): string[] => {
     const users = redux.getStore("users");
     const v: string[] = [];
-    for (const account_id in this.get_users()) {
+    for (const account_id in this.getUsers()) {
       const name = users.get_name(account_id)?.trim();
       if (name) {
         v.push(trunc_middle(name, 25));
       }
     }
     return v;
-  }
+  };
 
-  private get_users(): { [account_id: string]: Date } {
+  private getUsers = (): { [account_id: string]: Date } => {
     // Users is a map {account_id:timestamp of last chat file marking}
     return (
       redux.getStore("file_use")?.get_video_chat_users({
@@ -66,86 +77,96 @@ export class VideoChat {
         ttl: 1.3 * VIDEO_UPDATE_INTERVAL_MS,
       }) ?? {}
     );
-  }
+  };
 
-  public stop_chatting() {
-    this.close_video_chat_window();
-  }
+  stopChatting = () => {
+    this.closeVideoChatWindow();
+  };
 
-  public start_chatting() {
+  startChatting = () => {
+    this.openVideoChatWindow();
     redux.getActions("file_use")?.mark_file(this.project_id, this.path, "chat");
-    this.open_video_chat_window();
-  }
+    const sideChatActions =
+      getSideChatActions({
+        project_id: this.project_id,
+        path: this.path,
+      }) ??
+      redux.getEditorActions(this.project_id, this.path)?.getChatActions();
+    sideChatActions?.sendChat({
+      input: `[${this.getUserName()} joined Video Chat](${this.url()})`,
+    });
+    setTimeout(() => sideChatActions?.scrollToBottom(), 100);
+    setTimeout(() => sideChatActions?.scrollToBottom(), 1000);
+  };
 
   // The canonical secret chatroom id.
-  private chatroom_id(): string {
+  private chatroomId = (): string => {
     const secret_token = redux
       .getStore("projects")
-      .getIn(["project_map", this.project_id, "status", "secret_token"]);
-    if (!secret_token) {
-      alert_message({
-        type: "error",
-        message: "You MUST be a project collaborator -- video chat will fail.",
-      });
-    }
+      .getIn(["project_map", this.project_id, "secret_token"]);
     return client_db.sha1(secret_token, this.path);
-  }
+  };
 
-  public url(): string {
-    const room_id = this.chatroom_id();
+  url = (): string => {
+    const room_id = this.chatroomId();
     return `${VIDEO_CHAT_SERVER}/${room_id}`;
-  }
+  };
 
   // Open the video chat window, if it isn't already opened
-  public open_video_chat_window(): void {
-    const room_id = this.chatroom_id();
-    if (video_windows[room_id]) {
+  private openVideoChatWindow = (): void => {
+    const room_id = this.chatroomId();
+    if (videoWindows[room_id]) {
       return;
     }
 
-    const chat_window_is_open = () => {
+    const chatWindowIsOpen = () => {
       return redux
         .getActions("file_use")
         ?.mark_file(this.project_id, this.path, "video", 0);
     };
 
-    chat_window_is_open();
-    this.video_interval_id = setInterval(
-      chat_window_is_open,
-      VIDEO_UPDATE_INTERVAL_MS * 0.8
+    chatWindowIsOpen();
+    this.intervalId = setInterval(
+      chatWindowIsOpen,
+      VIDEO_UPDATE_INTERVAL_MS * 0.8,
     );
 
     //const title = `CoCalc Video Chat: ${trunc_middle(this.path, 30)}`;
-    const w = video_window(this.url());
+    const w = videoWindow(this.url());
     // https://github.com/sagemathinc/cocalc/issues/3648
     if (w == null) {
       return;
     }
-    video_windows[room_id] = w;
+    videoWindows[room_id] = w;
     // disabled -- see https://github.com/sagemathinc/cocalc/issues/1899
     //w.addEventListener "unload", =>
     //    @close_video_chat_window()
     // workaround for https://github.com/sagemathinc/cocalc/issues/1899
-    const poll_window = setInterval(() => {
+    const pollWindow = setInterval(() => {
       if (w.closed !== false) {
         // != is required for compatibility with Opera
-        clearInterval(poll_window);
-        this.close_video_chat_window();
+        clearInterval(pollWindow);
+        this.closeVideoChatWindow();
       }
     }, 1000);
-  }
+  };
 
   // User wants to close the video chat window, but not via just clicking the
   // close button on the popup window
-  public close_video_chat_window(): void {
-    const room_id = this.chatroom_id();
-    const w = video_windows[room_id];
-    if (!w) return;
+  private closeVideoChatWindow = (): void => {
+    const room_id = this.chatroomId();
+    const w = videoWindows[room_id];
+    if (!w) {
+      return;
+    }
     redux
       .getActions("file_use")
       ?.mark_file(this.project_id, this.path, "video", 0, true, new Date(0));
-    clearInterval(this.video_interval_id);
-    delete video_windows[room_id];
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      delete this.intervalId;
+    }
+    delete videoWindows[room_id];
     w.close();
-  }
+  };
 }

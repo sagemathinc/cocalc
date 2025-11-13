@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -21,16 +21,19 @@ interface SyncTex {
 function exec_synctex(
   project_id: string,
   path: string,
-  args: string[]
+  args: string[],
 ): Promise<ExecOutput> {
-  return exec({
-    timeout: 5,
-    command: "synctex",
-    args,
-    project_id,
+  return exec(
+    {
+      timeout: 5,
+      command: "synctex",
+      args,
+      project_id,
+      path,
+      err_on_exit: true,
+    },
     path,
-    err_on_exit: true,
-  });
+  );
 }
 
 export async function pdf_to_tex(opts: {
@@ -73,15 +76,13 @@ export async function tex_to_pdf(opts: {
   dir: string; // directory that contains the synctex file
   knitr: boolean;
   source_dir: string;
+  compute_server_id?: number;
 }): Promise<SyncTex> {
   if (opts.knitr) {
     opts.tex_path = change_filename_extension(opts.tex_path, "Rnw");
   }
-  // TODO: obviously this should happen once -- not constantly
-  // Use "available_feature.homeDirectory" instead!
-  const HOME = await (
-    await project_api(opts.project_id)
-  ).eval_code("process.env.HOME");
+  const projectAPI = await project_api(opts.project_id);
+  const HOME = await projectAPI.getHomeDirectory(opts.compute_server_id);
   const output = await exec_synctex(opts.project_id, opts.dir, [
     "view",
     "-i",

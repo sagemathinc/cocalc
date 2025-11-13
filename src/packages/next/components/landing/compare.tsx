@@ -1,10 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert, Table } from "antd";
-import { ReactNode } from "react";
+import { ReactNode, type JSX } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";

@@ -1,9 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Layout } from "antd";
+import { Button, Layout, Tooltip } from "antd";
 import Link from "next/link";
 import { join } from "path";
 
@@ -14,6 +14,7 @@ import { COLORS } from "@cocalc/util/theme";
 import AccountNavTab from "components/account/navtab";
 import Analytics from "components/analytics";
 import DemoCell from "components/demo-cell";
+import LiveDemo from "components/landing/live-demo";
 import Logo from "components/logo";
 import A from "components/misc/A";
 import ChatGPTHelp from "components/openai/chatgpt-help";
@@ -21,7 +22,9 @@ import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
 import SubNav, { Page, SubPage } from "./sub-nav";
 
-const GAP = "4%";
+const GAP = "3%";
+
+const SHOW_AI_CHAT: Readonly<string[]> = ["ai"] as const;
 
 export const LinkStyle: React.CSSProperties = {
   color: "white",
@@ -48,16 +51,13 @@ interface Props {
 export default function Header(props: Props) {
   const { page, subPage, softwareEnv, runnableTag } = props;
   const {
-    isCommercial,
-    anonymousSignup,
     siteName,
     termsOfServiceURL,
-    shareServer,
-    landingPages,
     account,
     onCoCalcCom,
     openaiEnabled,
     jupyterApiEnabled,
+    enabledPages,
   } = useCustomize();
 
   if (basePath == null) return null;
@@ -68,32 +68,19 @@ export default function Header(props: Props) {
         <span
           style={{
             float: "right",
-            right: 15,
-            top: 25,
-            color: "white",
-            backgroundColor: COLORS.BLUE_D,
-            outline: `1px solid ${COLORS.BLUE_DD}`,
-            padding: "2px 8px",
-            borderRadius: "5px",
-            width: "100px", // CRITICAL -- this is to prevent flicker -- see https://github.com/sagemathinc/cocalc/issues/6504
+            width: "150px", // CRITICAL -- this is to prevent flicker -- see https://github.com/sagemathinc/cocalc/issues/6504
           }}
         >
-          <A
-            type="primary"
-            size="large"
-            href="/support/new?type=question&subject=&body=&title=Ask%20Us%20Anything!"
-            title="Ask a question"
-            style={{
-              color: "white",
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              gap: "10px",
-            }}
-          >
-            <Icon style={{ fontSize: "20px" }} name="question-circle" />{" "}
-            <div>Contact</div>
-          </A>
+          {true || account ? (
+            <LiveDemo context="header" btnType="primary" />
+          ) : (
+            <Button
+              type="primary"
+              href="/support/new?type=question&subject=&body=&title=Ask%20Us%20Anything!"
+            >
+              <Icon name="question-circle" /> Contact
+            </Button>
+          )}
         </span>
       );
     }
@@ -136,40 +123,34 @@ export default function Header(props: Props) {
           </div>
         </A>
         {account && (
-          <a
-            style={LinkStyle}
-            href={join(basePath, "projects")}
-            title={"View your projects"}
+          <Tooltip title={"Browse all of your projects"}>
+            <a style={LinkStyle} href={join(basePath, "projects")}>
+              Your Projects
+            </a>
+          </Tooltip>
+        )}
+        {enabledPages?.store && (
+          <A href="/store" style={page === "store" ? SelectedStyle : LinkStyle}>
+            Store
+          </A>
+        )}
+        {enabledPages?.features && (
+          <A
+            href="/features/"
+            style={page === "features" ? SelectedStyle : LinkStyle}
           >
-            Your Projects
-          </a>
+            Features
+          </A>
         )}
-        {landingPages && (
-          <>
-            {isCommercial && (
-              <A
-                href="/store"
-                style={page == "store" ? SelectedStyle : LinkStyle}
-              >
-                Store
-              </A>
-            )}
-            <A
-              href="/features/"
-              style={page == "features" ? SelectedStyle : LinkStyle}
-            >
-              Features
-            </A>
-            {/* <A
-              href="/software"
-              style={page == "software" ? SelectedStyle : LinkStyle}
-            >
-              Software
-            </A>
-            */}
-          </>
-        )}
-        {!landingPages && termsOfServiceURL && (
+        {/* supportedRoutes?.software && (
+          <A
+            href="/software"
+            style={page == "software" ? SelectedStyle : LinkStyle}
+          >
+            Software
+          </A>
+        )*/}
+        {enabledPages?.legal && (
           <A
             style={LinkStyle}
             href={termsOfServiceURL}
@@ -178,51 +159,75 @@ export default function Header(props: Props) {
             Legal
           </A>
         )}
-        <A
-          style={page == "info" ? SelectedStyle : LinkStyle}
-          href="/info"
-          title="Documentation and links to resources for learning more about CoCalc"
-        >
-          Docs
-        </A>
-        {shareServer && (
+        {enabledPages?.info && (
+          <A
+            style={page === "info" ? SelectedStyle : LinkStyle}
+            href="/info"
+            title="Documentation and links to resources for learning more about CoCalc"
+          >
+            Docs
+          </A>
+        )}
+        {enabledPages?.share && (
           <Link
             href={"/share/public_paths/page/1"}
-            style={page == "share" ? SelectedStyle : LinkStyle}
+            style={page === "share" ? SelectedStyle : LinkStyle}
             title="View files that people have published."
           >
             Share
           </Link>
         )}
-        <A
-          style={page == "support" ? SelectedStyle : LinkStyle}
-          href="/support"
-          title="Create and view support tickets"
-        >
-          Support
-        </A>{" "}
-        <A
-          style={page == "news" ? SelectedStyle : LinkStyle}
-          href="/news"
-          title={`News about ${siteName}`}
-        >
-          News
-        </A>{" "}
+        {enabledPages?.support && (
+          <A
+            style={page === "support" ? SelectedStyle : LinkStyle}
+            href="/support"
+            title="Create and view support tickets"
+          >
+            Support
+          </A>
+        )}
+        {enabledPages?.news && (
+          <A
+            style={page === "news" ? SelectedStyle : LinkStyle}
+            href="/news"
+            title={`News about ${siteName}`}
+          >
+            News
+          </A>
+        )}
+        {enabledPages?.about.index && (
+          <A
+            style={page === "about" ? SelectedStyle : LinkStyle}
+            href="/about"
+            title={`About ${siteName}`}
+          >
+            About
+          </A>
+        )}
+        {enabledPages?.policies.index && (
+          <A
+            style={page === "policies" ? SelectedStyle : LinkStyle}
+            href="/policies"
+            title={`Policies of ${siteName}`}
+          >
+            Policies
+          </A>
+        )}
         {account ? (
           <AccountNavTab
-            style={page == "account" ? SelectedStyle : LinkStyle}
+            style={page === "account" ? SelectedStyle : LinkStyle}
           />
         ) : (
           <>
             <A
-              style={page == "sign-up" ? SelectedStyle : LinkStyle}
+              style={page === "sign-up" ? SelectedStyle : LinkStyle}
               href="/auth/sign-up"
               title={`Sign up for a ${siteName} account.`}
             >
               Sign Up
             </A>
             <A
-              style={page == "sign-in" ? SelectedStyle : LinkStyle}
+              style={page === "sign-in" ? SelectedStyle : LinkStyle}
               href="/auth/sign-in"
               title={`Sign in to ${siteName} or create an account.`}
             >
@@ -230,9 +235,9 @@ export default function Header(props: Props) {
             </A>
           </>
         )}
-        {!account && anonymousSignup && (
+        {enabledPages?.auth.try && (
           <A
-            style={page == "try" ? SelectedStyle : LinkStyle}
+            style={page === "try" ? SelectedStyle : LinkStyle}
             href={"/auth/try"}
             title={`Try ${siteName} immediately without creating an account.`}
           >
@@ -241,7 +246,11 @@ export default function Header(props: Props) {
         )}{" "}
       </Layout.Header>
       <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
-      {openaiEnabled && page == "features" && (
+      {openaiEnabled &&
+      onCoCalcCom &&
+      page === "features" &&
+      typeof subPage === "string" &&
+      SHOW_AI_CHAT.includes(subPage) ? (
         <div style={{ width: "700px", maxWidth: "100%", margin: "15px auto" }}>
           <ChatGPTHelp
             size="large"
@@ -249,10 +258,10 @@ export default function Header(props: Props) {
             tag={`features-${subPage}`}
           />
         </div>
-      )}
-      {jupyterApiEnabled && onCoCalcCom && runnableTag && (
+      ) : undefined}
+      {jupyterApiEnabled && onCoCalcCom && runnableTag ? (
         <DemoCell tag={runnableTag} />
-      )}
+      ) : undefined}
     </>
   );
 }

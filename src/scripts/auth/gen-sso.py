@@ -145,7 +145,7 @@ saml20fn = join(curdir, "saml-idp-local.pem")
 
 if exists(saml20fn):
     print("Generating SAML 2.0 SSO strategy")
-    saml20cert: str = open(saml20fn, "r").read()
+    saml20cert: str = open(saml20fn, "r").read().strip()
     saml20: Entry = {
         "strategy": "saml20",
         "conf": {
@@ -160,6 +160,7 @@ if exists(saml20fn):
                 "full_name": "displayName",
                 "emails": "email",
                 "id": "email",
+                # "_sep": "->", # uncomment this to test _sep, no need to change the values above
             },
             "issuer": "https://cocalc.com",
             "cert": saml20cert

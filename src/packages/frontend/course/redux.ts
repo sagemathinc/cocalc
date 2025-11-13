@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // standard non-CoCalc libraries
@@ -22,7 +22,7 @@ export function init_redux(
   course_filename: string,
   redux: AppRedux,
   course_project_id: string,
-  the_redux_name?: string
+  the_redux_name?: string,
 ): string {
   if (the_redux_name == null) {
     the_redux_name = redux_name(course_project_id, course_filename);
@@ -61,18 +61,18 @@ export function init_redux(
   const store: CourseStore = redux.createStore(
     the_redux_name,
     CourseStore as any,
-    initial_store_state
+    initial_store_state,
   ) as CourseStore;
 
   const actions: CourseActions = redux.createActions(
     the_redux_name,
-    CourseActions
+    CourseActions,
   );
   actions.syncdb = syncdbs[the_redux_name] = create_sync_db(
     redux,
     actions,
     store,
-    course_filename
+    course_filename,
   );
 
   return the_redux_name;
@@ -82,7 +82,7 @@ export function remove_redux(
   course_filename: string,
   redux: AppRedux,
   course_project_id: string,
-  the_redux_name?: string
+  the_redux_name?: string,
 ) {
   if (the_redux_name == null) {
     the_redux_name = redux_name(course_project_id, course_filename);
@@ -98,7 +98,7 @@ export function remove_redux(
     .getStore("projects")
     .removeListener(
       "change",
-      actions.handle_projects_store_update.bind(actions)
+      actions.handle_projects_store_update.bind(actions),
     );
 
   // Remove the store and actions.

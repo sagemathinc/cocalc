@@ -1,16 +1,16 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import ShowError from "@cocalc/frontend/components/error";
 import { AccessErrors } from "./access-errors";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 interface Props {
   error: any;
   path: string;
   quotas: any;
-  is_commercial: boolean;
   is_logged_in: boolean;
 }
 
@@ -18,9 +18,9 @@ export function FetchDirectoryErrors({
   error,
   path,
   quotas,
-  is_commercial,
   is_logged_in,
-}: Props): JSX.Element {
+}: Props): React.JSX.Element {
+  const is_commercial = useTypedRedux("customize", "is_commercial");
   switch (error) {
     case "not_public":
       return <AccessErrors is_logged_in={is_logged_in} />;
@@ -33,10 +33,7 @@ export function FetchDirectoryErrors({
       );
     case "not_a_dir":
       return (
-        <ShowError
-          message="Not a folder"
-          error={`${path} is not a folder.`}
-        />
+        <ShowError message="Not a folder" error={`${path} is not a folder.`} />
       );
     case "not_running":
       // This shouldn't happen, but due to maybe a slight race condition in the backend it can.
@@ -51,13 +48,16 @@ export function FetchDirectoryErrors({
     default:
       if (
         error === "no_instance" ||
-        (is_commercial && quotas && !quotas.member_host)
+        (is_commercial &&
+          quotas &&
+          !quotas.member_host &&
+          !`${error}`.includes("EACCES"))
       ) {
-        // the second part of the or is to blame it on the free servers...
+        // the second part of the or is to blame it on the free servers, unless EACCESS = read permission error -- see https://github.com/sagemathinc/cocalc/issues/4100
         return (
           <ShowError
             message="Project unavailable"
-            error={`This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $14/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n${
+            error={`This project seems to not be responding.\n\n${
               !(quotas != undefined ? quotas.member_host : undefined)
                 ? error
                 : undefined

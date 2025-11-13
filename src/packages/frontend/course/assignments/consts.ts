@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 export const STUDENT_SUBDIR = "student";
@@ -16,4 +16,32 @@ export const NBGRADER_MAX_OUTPUT_PER_CELL: number = 500000;
 export const NBGRADER_MAX_OUTPUT: number = 4000000;
 
 // filename of the peer grading guide
-export const PEER_GRADING_GUIDE_FN = "GRADING-GUIDE.md";
+export const PEER_GRADING_GUIDE_FILENAME = "GRADING-GUIDE.md";
+
+// Everything from GRADING_GUIDELINES_GRADE_MARKER to GRADING_GUIDELINES_COMMENT_MARKER
+// is parsed as a numerical grade, if possible.  i18n's don't mess this up!  Also,
+// changing this would break outstanding assignments, so change with caution.
+// A fix
+// would be to store these strings somewhere when pushing the assignment out, so that
+// the same ones are used when collecting and parsing.    But that will take a few hours
+// more work, and it is only necessary if we decide to change these. Whoever decides
+// to change these has to do that work.
+export const PEER_GRADING_GUIDELINES_GRADE_MARKER =
+  "OVERALL GRADE (a single number):";
+export const PEER_GRADING_GUIDELINES_COMMENT_MARKER =
+  "COMMENTS ABOUT GRADE (student will see, but not who made them):";
+
+export const PEER_GRADING_DEFAULT_GUIDELINES = `
+Put your final overall score below after "${PEER_GRADING_GUIDELINES_GRADE_MARKER}"
+
+
+INSTRUCTOR: REPLACE THIS WITH INSTRUCTIONS FOR STUDENTS
+
+
+${PEER_GRADING_GUIDELINES_GRADE_MARKER}
+
+
+
+${PEER_GRADING_GUIDELINES_COMMENT_MARKER}
+
+`;

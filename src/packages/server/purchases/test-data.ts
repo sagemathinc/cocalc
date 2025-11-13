@@ -26,6 +26,12 @@ export const license0 = {
   description: "xxxx",
 } as const;
 
+const license1 = {
+  ...license0,
+  range: undefined,
+  period: "monthly",
+} as const;
+
 export async function createTestAccount(account_id: string) {
   await createAccount({
     email: `${uuid()}@test.com`,
@@ -33,20 +39,26 @@ export async function createTestAccount(account_id: string) {
     firstName: "Test",
     lastName: "User",
     account_id,
+    // important -- otherwise every time we call createTestAccount, a project gets created and is running,
+    // and these do NOT get cleaned up ever.
+    noFirstProject: true,
   });
 }
 
 export async function createTestSubscription(account_id: string) {
   const cost = 10; // cost is technically arbitrary and not related to actual cost of prorated license so making this up should be fine.
-  const info = getPurchaseInfo(license0);
+  const info = getPurchaseInfo(license1);
+  if (info.type != "quota") {
+    throw Error("bug");
+  }
   const license_id = await createLicense(account_id, info);
   const subscription_id = await createSubscription(
     {
       account_id,
       cost,
       interval: "month",
-      current_period_start: dayjs().toDate(),
-      current_period_end: dayjs().add(1, "month").toDate(),
+      current_period_start: info.start!,
+      current_period_end: info.end!,
       status: "active",
       metadata: { type: "license", license_id },
       latest_purchase_id: 0,

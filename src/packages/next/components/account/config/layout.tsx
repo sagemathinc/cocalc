@@ -1,17 +1,21 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert, Divider, Layout, Space } from "antd";
 import { join } from "path";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import Avatar from "components/account/avatar";
 import Config from "components/account/config";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
+import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
+import SiteName from "components/share/site-name";
 import basePath from "lib/base-path";
 import useIsBrowser from "lib/hooks/is-browser";
 import useProfile from "lib/hooks/profile";
@@ -20,9 +24,7 @@ import Anonymous from "./anonymous";
 import ConfigMenu from "./menu";
 import { menu } from "./register";
 import Search from "./search/component";
-import { Paragraph, Text, Title } from "components/misc";
-import { COLORS } from "@cocalc/util/theme";
-import SiteName from "components/share/site-name";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 
 const { Content, Sider } = Layout;
 
@@ -36,7 +38,9 @@ export default function ConfigLayout({ page }: Props) {
   const profile = useProfile({ noCache: true });
   if (!profile) {
     return (
-      <div style={{ textAlign: "center", minHeight: "400px", paddingTop: "100px" }}>
+      <div
+        style={{ textAlign: "center", minHeight: "400px", paddingTop: "100px" }}
+      >
         <Loading large />
       </div>
     );
@@ -67,6 +71,21 @@ export default function ConfigLayout({ page }: Props) {
 
   const [main, sub] = page;
   const info = menu[main]?.[sub];
+
+  function renderIcon() {
+    const { icon } = info;
+    if (icon === "ai") {
+      return (
+        <AIAvatar
+          size={22}
+          style={{ position: "relative", top: "-12px", paddingRight: "15px" }}
+        />
+      );
+    } else {
+      return <Icon name={icon} style={{ marginRight: "5px" }} />;
+    }
+  }
+
   const content = (
     <Content
       style={{
@@ -74,7 +93,7 @@ export default function ConfigLayout({ page }: Props) {
         margin: 0,
         minHeight: 500,
         ...(info?.danger
-          ? { color: "#ff4d4f", backgroundColor: COLORS.ATND_BG_RED_L }
+          ? { color: "#ff4d4f", backgroundColor: COLORS.ANTD_BG_RED_L }
           : undefined),
       }}
     >
@@ -92,8 +111,7 @@ export default function ConfigLayout({ page }: Props) {
       {info && (
         <>
           <Title level={2}>
-            <Icon name={info.icon} style={{ marginRight: "5px" }} />{" "}
-            {capitalize(main)} - {info.title}
+            {renderIcon()} {capitalize(main)} - {info.title}
           </Title>
           <Paragraph type="secondary">{info.desc}</Paragraph>
           <Divider />
@@ -120,6 +138,7 @@ export default function ConfigLayout({ page }: Props) {
       <Config main={main} sub={sub} />
     </Content>
   );
+
   return (
     <Layout>
       <Sider width={"30ex"} breakpoint="sm" collapsedWidth="0">

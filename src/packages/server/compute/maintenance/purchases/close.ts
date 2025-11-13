@@ -8,6 +8,7 @@ import getPool, {
 import getLogger from "@cocalc/backend/logger";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import type { ComputeServer } from "@cocalc/util/db-schema/compute-servers";
+import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { cloneDeep } from "lodash";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { MIN_NETWORK_CLOSE_DELAY_MS } from "./manage-purchases";
@@ -145,7 +146,7 @@ export async function closeAndContinuePurchase({
 }
 
 // Close the given network purchase, then create a new one
-// if the compue server is currently running.  If not, don't
+// if the compute server is currently running.  If not, don't
 // create new one.  Close and create are done together as a single
 // transaction.
 export async function closeAndPossiblyContinueNetworkPurchase({
@@ -178,9 +179,19 @@ export async function closeAndPossiblyContinueNetworkPurchase({
   }
 
   // go slightly back in time so that the network usage data is likely
-  // to be all there by now, hopefully (any that isn't we are just giving
-  // away for free).
-  const end = new Date(Date.now() - 2 * MIN_NETWORK_CLOSE_DELAY_MS);
+  // to be all there by now, hopefully (any that isn't we just miss
+  // in the statement).  We are now going to do the actual cost calculation
+  // 2 days later using bigquery export, so nothing is missed.
+  // However, we want to end on an hour boundary, since Google cloud billing export
+  // is on hour boundaries. So go forward in time a little more.
+  let end = new Date(Date.now() - 2 * MIN_NETWORK_CLOSE_DELAY_MS);
+  end.setSeconds(0);
+  if (end.getMinutes() !== 0) {
+    let milliseconds_to_next_hour = (60 - end.getMinutes()) * 60 * 1000;
+    end = new Date(end.getTime() + milliseconds_to_next_hour);
+    end.setMinutes(0);
+  }
+
   const newPurchase = cloneDeep(purchase);
   if (newPurchase.description.type != "compute-server-network-usage") {
     throw Error("bug");
@@ -216,6 +227,9 @@ export async function closeAndPossiblyContinueNetworkPurchase({
   // Very important to do this as atomic transaction so we
   // don't end up with two simultaneous purchases, or purchase_id
   // wrong in the compute server record!
+  // The net result is that the purchase is closed because period_end
+  // is set.  However the actual costs are NOT set until 2 days from now,
+  // due to google cloud billing lag (we have to get the true network costs).
 
   const client = await getTransactionClient();
   try {
@@ -232,11 +246,14 @@ export async function closeAndPossiblyContinueNetworkPurchase({
     }
     // close existing purchase;
     logger.debug("closeAndContinueNetworkPurchase -- closing old purchase");
-    purchase.cost = Math.max(0.001, network.cost);
     purchase.period_end = end;
+    // we set cost and cost_so_far to NULL partly due to the fact we're rolling
+    // this out onto a production system with half done transactions that might
+    // have cost_so_far set, and want to be clear that they shouldn't be set
+    // on close anymore.  After a few days setting these to NULL should not be needed.
     await client.query(
-      "UPDATE purchases SET cost=$1, period_end=$2, cost_so_far=$3 WHERE id=$4",
-      [purchase.cost, purchase.period_end, purchase.cost_so_far, purchase.id],
+      "UPDATE purchases SET cost=NULL, period_end=$1, cost_so_far=NULL WHERE id=$2",
+      [purchase.period_end, purchase.id],
     );
     await client.query("COMMIT");
     return purchase_id;
@@ -250,4 +267,108 @@ export async function closeAndPossiblyContinueNetworkPurchase({
   } finally {
     client.release();
   }
+}
+
+export async function closeAndContinueCloudStoragePurchase({
+  purchase,
+}: {
+  purchase: Purchase;
+}) {
+  logger.debug("closeAndContinueCloudStoragePurchase", purchase);
+  if (purchase.cost != null || purchase.period_end != null) {
+    logger.debug(
+      "closeAndContinueCloudStoragePurchase: WARNING -- can't close and continue purchase because it is already closed",
+    );
+    return;
+  }
+  if (purchase.description?.type != "compute-server-storage") {
+    logger.debug(
+      "closeAndContinueCloudStoragePurchase: WARNING -- wrong kind of purchase",
+    );
+    return;
+  }
+
+  const now = new Date();
+
+  const cloudFilesystem = await getCloudFilesystem(
+    purchase.description.cloud_filesystem_id,
+  );
+  if (cloudFilesystem == null) {
+    logger.debug(
+      "closeAndContinueCloudStoragePurchase: filesystem no longer exists, so just end current purchase",
+    );
+
+    const pool = getPool();
+    await pool.query("UPDATE purchases SET period_end=$1 WHERE id=$2", [
+      now,
+      purchase.id,
+    ]);
+
+    return;
+  }
+
+  // File system does exist, so make new purchase too.
+  // round time down to nearest hour since Google cloud does
+  // purchase logging by hour intervals.
+  now.setSeconds(0);
+  now.setMinutes(0);
+  const newPurchase = cloneDeep(purchase);
+  newPurchase.time = now;
+  newPurchase.period_start = now;
+  // the file system might have moded, so update project.   The project doesn't actually
+  // impact pricing or billing at all, so it's not crucial to handle this right when the
+  // filesystem moves.
+  newPurchase.project_id = cloudFilesystem.project_id;
+
+  logger.debug(
+    "closeAndContinueCloudStoragePurchase -- creating newPurchase=",
+    newPurchase,
+    "as a single atomic transaction",
+  );
+
+  // Very important to do this as atomic transaction so we
+  // don't end up with two simultaneous purchases, or purchase_id
+  // wrong in the cloud file system record.
+
+  const client = await getTransactionClient();
+  try {
+    logger.debug(
+      "closeAndContinueCloudStoragePurchase -- creating new purchase",
+    );
+    const new_purchase_id = await createPurchase({ ...newPurchase, client });
+    await client.query(
+      "UPDATE cloud_filesystems SET purchase_id=$1 WHERE id=$2",
+      [new_purchase_id, purchase.description.cloud_filesystem_id],
+    );
+
+    logger.debug(
+      "closeAndContinueCloudStoragePurchase -- set period_end for old purchase",
+    );
+    await client.query("UPDATE purchases SET period_end=$1 WHERE id=$2", [
+      now,
+      purchase.id,
+    ]);
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    logger.debug(
+      "closeAndContinueCloudStoragePurchase -- ERROR, rolling back",
+      err,
+    );
+    delete purchase.period_end;
+    delete purchase.cost;
+  } finally {
+    client.release();
+  }
+}
+
+async function getCloudFilesystem(
+  id: number,
+): Promise<undefined | CloudFilesystem> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT * FROM cloud_filesystems WHERE id=$1",
+    [id],
+  );
+  return rows[0];
 }

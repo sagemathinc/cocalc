@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button, Popover, Tooltip } from "antd";
@@ -25,12 +25,15 @@ import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import computeHash from "@cocalc/util/jupyter-api/compute-hash";
 import { path_split, plural } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import api from "./api";
 import { getFromCache, saveToCache } from "./cache";
 import getKernel from "./get-kernel";
 import { kernelDisplayName, kernelLanguage } from "./kernel-info";
 import Output from "./output";
 import SelectKernel from "./select-kernel";
+
+// ATTN[i18n]: it's tempting to translate this, but it is a dependency of next (vouchers/notes → slate/code-block → buttons)
 
 export type RunFunction = () => Promise<void>;
 type RunRef = MutableRefObject<RunFunction | null>;
@@ -82,15 +85,16 @@ export default function RunButton({
   setInfo,
 }: Props) {
   const mode = infoToMode(info);
-  const noRun = NO_RUN.has(mode);
 
   const {
+    disableMarkdownCodebar,
     jupyterApiEnabled,
     project_id,
     path: filename,
     is_visible,
     /*hasOpenAI, */
   } = useFileContext();
+  const noRun = NO_RUN.has(mode) || disableMarkdownCodebar;
   const path = project_id && filename ? path_split(filename).head : undefined;
   const [running, setRunning] = useState<boolean>(false);
   const outputMessagesRef = useRef<object[] | null>(null);
@@ -137,8 +141,9 @@ export default function RunButton({
       setOutput == null ||
       running ||
       !info.trim()
-    )
+    ) {
       return;
+    }
     const { output: messages, kernel: usedKernel } = getFromCache({
       input,
       history,
@@ -234,7 +239,7 @@ export default function RunButton({
       let resp;
       try {
         if (!kernel) {
-          setOutput({ error: "Select a kernel" });
+          setOutput({ error: "Select a Kernel" });
           return;
         }
         resp = await api("execute", {
@@ -298,7 +303,7 @@ export default function RunButton({
           }}
         >
           <Icon
-            style={running ? { color: "#389e0d" } : undefined}
+            style={running ? { color: COLORS.RUN } : undefined}
             name={running ? "cocalc-ring" : "step-forward"}
             spin={running}
           />
@@ -405,7 +410,7 @@ export default function RunButton({
                     }}
                   >
                     <Icon
-                      style={running ? { color: "#389e0d" } : undefined}
+                      style={running ? { color: COLORS.RUN } : undefined}
                       name={running ? "cocalc-ring" : "step-forward"}
                       spin={running}
                     />

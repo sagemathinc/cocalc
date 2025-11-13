@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -17,6 +17,7 @@ import { EditorDescription } from "../frame-tree/types";
 import { Paragraph, Title } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Loading } from "@cocalc/frontend/components/loading";
+import { editor, labels } from "@cocalc/frontend/i18n";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { SpellCheck } from "./spell-check";
 
@@ -48,7 +49,7 @@ export class Settings extends Component<Props, {}> {
               value={value}
               available={af.get("spellcheck")}
               set={(value) => this.props.actions.set_settings({ [key]: value })}
-            />
+            />,
           );
           return;
         default:
@@ -61,7 +62,7 @@ export class Settings extends Component<Props, {}> {
       v.push(
         <Paragraph>
           This editor currently has no configurable settings.
-        </Paragraph>
+        </Paragraph>,
       );
     }
     return v;
@@ -92,11 +93,12 @@ export class Settings extends Component<Props, {}> {
   }
 }
 
-export const SETTINGS_SPEC = {
-  short: "Settings",
-  name: "Editor Settings",
+export const SETTINGS_SPEC: EditorDescription = {
+  type: "settings",
+  short: labels.settings,
+  name: editor.editor_settings,
   icon: "wrench",
   commands: {},
-  component: Settings,
+  component: Settings as any, // TODO: Component incompatible with type, rewrite to React.FC
   hide_public: true,
-} as EditorDescription;
+} as const;

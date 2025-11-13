@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { List } from "immutable";
@@ -16,6 +16,7 @@ export interface StoreState {
   state: "edit" | "running";
   status: string;
   query: string;
+  limit: number;
   result: List<User>;
 }
 
@@ -24,6 +25,7 @@ export const initial_state: StoreState = {
   state: "edit",
   status: "",
   query: "",
+  limit: 25,
   result: List([]),
 };
 
@@ -32,5 +34,5 @@ export class AdminUsersStore extends Store<StoreState> {}
 export const store = redux.createStore(
   "admin-users",
   AdminUsersStore,
-  initial_state
+  initial_state,
 );

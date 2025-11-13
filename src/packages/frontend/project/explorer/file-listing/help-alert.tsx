@@ -1,11 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import React from "react";
-
-const { Alert } = require("react-bootstrap");
+import { Alert } from "@cocalc/frontend/antd-bootstrap";
 
 const help_alert_error_syle: React.CSSProperties = {
   marginTop: "10px",

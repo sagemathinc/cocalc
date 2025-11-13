@@ -1,17 +1,18 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Synchronized table that tracks server settings.
 */
 
+import { isEmpty } from "lodash";
 import { once } from "@cocalc/util/async-utils";
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
+import { AllSiteSettings } from "@cocalc/util/db-schema/types";
 import { startswith } from "@cocalc/util/misc";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "@cocalc/util/schema";
-import { isEmpty } from "lodash";
 import { database } from "./database";
 
 // Returns:
@@ -22,16 +23,20 @@ import { database } from "./database";
 //   - table: the table, so you can watch for on change events...
 // These get automatically updated when the database changes.
 
-interface ServerSettings {
-  all: object;
+export interface ServerSettingsDynamic {
+  all: AllSiteSettings;
   pub: object;
-  version: object;
+  version: {
+    version_min_browser?: number;
+    version_recommended_browser?: number;
+    version_min_project?: number;
+  };
   table: any;
 }
 
-let serverSettings: ServerSettings | undefined = undefined;
+let serverSettings: ServerSettingsDynamic | undefined = undefined;
 
-export default async function getServerSettings(): Promise<ServerSettings> {
+export default async function getServerSettings(): Promise<ServerSettingsDynamic> {
   if (serverSettings != null) {
     return serverSettings;
   }
@@ -82,7 +87,11 @@ export default async function getServerSettings(): Promise<ServerSettings> {
               ? spec.to_val(spec.default, allRaw)
               : spec.default;
           // we don't bother to set empty strings or empty arrays
-          if (fallbackVal === "" || isEmpty(fallbackVal)) continue;
+          if (
+            (typeof fallbackVal === "string" && fallbackVal === "") ||
+            (Array.isArray(fallbackVal) && isEmpty(fallbackVal))
+          )
+            continue;
           all[field] = fallbackVal;
           // site-settings end up in the "pub" object as well
           // while "all" is the one we keep to us, contains secrets
@@ -92,6 +101,9 @@ export default async function getServerSettings(): Promise<ServerSettings> {
         }
       }
     }
+
+    // Since we want to tell users about the estimated LLM interaction price, we have to send the markup as well.
+    pub["_llm_markup"] = all.pay_as_you_go_openai_markup_percentage;
 
     // PRECAUTION: never make the required version bigger than version_recommended_browser. Very important
     // not to stupidly completely eliminate all cocalc users by a typo...

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { useInterval } from "react-interval-hook";
@@ -16,7 +16,7 @@ import { Loading } from "@cocalc/frontend/components";
 import { cmp } from "@cocalc/util/misc";
 import { Avatar } from "./avatar";
 
-// How frequently all UsersViewing componenents are completely updated.
+// How frequently all UsersViewing components are completely updated.
 // This is only needed to ensure that faces fade out; any newly added faces
 // will still be displayed instantly.  Also, updating more frequently updates
 // the line positions in the tooltip.
@@ -126,7 +126,7 @@ export function UsersViewing(props: Readonly<Props>) {
     }
     v.sort((a, b) => cmp(b.activity.last_used, a.activity.last_used));
     let i = 0;
-    const r: JSX.Element[] = [];
+    const r: React.JSX.Element[] = [];
     for (const { account_id, activity } of v) {
       // only show other users
       if (account_id !== our_account_id) {

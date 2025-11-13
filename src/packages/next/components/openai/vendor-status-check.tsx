@@ -1,9 +1,18 @@
-import { Vendor } from "@cocalc/util/db-schema/openai";
+import {
+  LLMServiceName,
+  getLLMServiceStatusCheckMD,
+} from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
 import A from "components/misc/A";
 
-export function VendorStatusCheck({ vendor }: { vendor: Vendor }): JSX.Element {
-  switch (vendor) {
+import type { JSX } from "react";
+
+export function LLMServiceStatusCheck({
+  service,
+}: {
+  service: LLMServiceName;
+}): JSX.Element {
+  switch (service) {
     case "openai":
       return (
         <>
@@ -11,6 +20,7 @@ export function VendorStatusCheck({ vendor }: { vendor: Vendor }): JSX.Element {
           <A href="https://downdetector.com/status/openai/">downdetector</A>.
         </>
       );
+
     case "google":
       return (
         <>
@@ -21,8 +31,45 @@ export function VendorStatusCheck({ vendor }: { vendor: Vendor }): JSX.Element {
           .
         </>
       );
+
+    case "ollama":
+      return (
+        <>
+          This Ollama based API endpoint does not have a status page. If you are
+          experiencing issues you have to check with the API service directly or
+          try again later.
+        </>
+      );
+
+    case "custom_openai":
+      return (
+        <>
+          This Custom OpenAI API endpoint does not have a status page. If you
+          are experiencing issues you have to check with the API service
+          directly or try again later.
+        </>
+      );
+
+    case "mistralai":
+      return (
+        <>
+          This Mistral based API endpoint does not have a status page. If you
+          are experiencing issues, use another model or try again later.
+        </>
+      );
+
+    case "anthropic":
+      return (
+        <>
+          Anthropic <A href="https://status.anthropic.com/">status</A>.
+        </>
+      );
+
+    case "user":
+      return <>{getLLMServiceStatusCheckMD("user")}</>;
+
     default:
-      unreachable(vendor);
+      unreachable(service);
   }
   return <></>;
 }

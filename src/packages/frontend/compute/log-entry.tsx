@@ -1,9 +1,12 @@
-import type { ComputeServerEvent } from "@cocalc/util/compute/log";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { capitalize, plural } from "@cocalc/util/misc";
-import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, isIconName } from "@cocalc/frontend/components";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
+import type { ComputeServerEvent } from "@cocalc/util/compute/log";
+import {
+  STATE_INFO,
+  spendLimitPeriod,
+} from "@cocalc/util/db-schema/compute-servers";
+import { capitalize, currency, plural } from "@cocalc/util/misc";
 
 export default function LogEntry({
   project_id,
@@ -43,7 +46,7 @@ export default function LogEntry({
       return (
         <>
           <span style={{ color }}>
-            <Icon name={icon} /> {capitalize(event.state)}
+            {isIconName(icon) && <Icon name={icon} />} {capitalize(event.state)}
           </span>{" "}
           {cs}
           {tag}
@@ -56,6 +59,47 @@ export default function LogEntry({
           {plural(Object.keys(event.changes).length, "change")} -{" "}
           {changeString(event.changes)}
           {tag}
+        </>
+      );
+    case "automatic-shutdown":
+      // DEPRECATED: for backward compatibility only...
+      return (
+        <>
+          {cs} - Automatic{" "}
+          {capitalize(event.automatic_shutdown?.action ?? "Stop")} {tag}
+        </>
+      );
+
+    case "health-check-failure":
+      return (
+        <>
+          {cs} - Health check failure{" "}
+          {capitalize(event.healthCheck?.action ?? "Stop")} {tag}
+        </>
+      );
+
+    case "idle-timeout":
+      return (
+        <>
+          {cs} - Idle Timeout Shutdown (inactive for at least{" "}
+          {event.idle_timeout} {plural(event.idle_timeout, "minute")}) {tag}
+        </>
+      );
+
+    case "shutdown-time":
+      return (
+        <>
+          {cs} - Schedule Shutdown -- shutting down due to a prescheduled daily
+          shutdown time {tag}
+        </>
+      );
+    case "spend-limit":
+      return (
+        <>
+          {cs} - Spend Limit Shutdown (total spend during the last{" "}
+          {spendLimitPeriod(event.spendLimit?.hours)} hit{" "}
+          {currency(event.total)} which exceeded limit of{" "}
+          {currency(event.spendLimit?.dollars)}) {tag}
         </>
       );
     default:

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import type { Request, Response } from "express";
@@ -10,9 +10,7 @@ import getParams from "lib/api/get-params";
 
 export default async function handle(req: Request, res: Response) {
   try {
-    const params = getParams(req, {
-      allowGet: true,
-    });
+    const params = getParams(req);
 
     res.setHeader("Content-Type", "application/json");
     res.setHeader("Cache-Control", "public, max-age=3600");

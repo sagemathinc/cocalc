@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Space } from "antd";
@@ -58,7 +58,7 @@ interface EditBooleanProps {
 
 export default function useEditTable<T extends object>(
   query: object,
-  options?: Options
+  options?: Options,
 ) {
   const { loading, value } = useDatabase(query);
   const [original, setOriginal] = useState<T | undefined>(undefined);
@@ -125,7 +125,7 @@ export default function useEditTable<T extends object>(
         <Checkbox
           defaultValue={get(
             SCHEMA[keys(query)[0]].user_query?.get?.fields,
-            path
+            path,
           )}
           checked={get(edited, path)}
           onChange={(checked) => {
@@ -167,7 +167,7 @@ export default function useEditTable<T extends object>(
         <IntegerSlider
           defaultValue={get(
             SCHEMA[keys(query)[0]].user_query?.get?.fields,
-            path
+            path,
           )}
           initialValue={get(edited, path)}
           onChange={(value) => {
@@ -190,6 +190,7 @@ export default function useEditTable<T extends object>(
       icon,
       options,
       style,
+      defaultValue,
     }: {
       path: string;
       title?: string;
@@ -197,15 +198,16 @@ export default function useEditTable<T extends object>(
       icon?: IconName;
       options: { [value: string]: ReactNode } | string[];
       style?: CSSProperties;
+      defaultValue?: string;
     }) => (
       <Space direction="vertical">
         <Heading path={path} title={title} icon={icon} desc={desc} />
         <SelectWithDefault
           style={style}
-          defaultValue={get(
-            SCHEMA[keys(query)[0]].user_query?.get?.fields,
-            path
-          )}
+          defaultValue={
+            defaultValue ??
+            get(SCHEMA[keys(query)[0]].user_query?.get?.fields, path)
+          }
           initialValue={get(edited, path)}
           onChange={(value) => {
             setEdited(value, path);

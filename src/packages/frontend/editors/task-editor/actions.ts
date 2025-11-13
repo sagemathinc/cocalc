@@ -1,18 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Task Actions
 */
 
-const LAST_EDITED_THRESH_S = 30;
-const TASKS_HELP_URL = "https://doc.cocalc.com/tasks.html";
-
 import { fromJS, Map } from "immutable";
 import { throttle } from "lodash";
-import { delay } from "awaiting";
 import {
   close,
   copy_with,
@@ -26,6 +22,7 @@ import { create_key_handler } from "./keyboard";
 import { toggle_checkbox } from "./desc-rendering";
 import { Actions } from "../../app-framework";
 import {
+  Align,
   HashtagState,
   Headings,
   HeadingsDir,
@@ -36,30 +33,37 @@ import {
   TaskMap,
   TaskState,
 } from "./types";
-import { TaskStore } from "./store";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { webapp_client } from "../../webapp-client";
-import type { Actions as TaskFrameActions } from "@cocalc/frontend/frame-editors/task-editor/actions";
+import type {
+  Actions as TaskFrameActions,
+  Store as TaskStore,
+} from "@cocalc/frontend/frame-editors/task-editor/actions";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
+
+const LAST_EDITED_THRESH_S = 30;
+const TASKS_HELP_URL = "https://doc.cocalc.com/tasks.html";
 
 export class TaskActions extends Actions<TaskState> {
   public syncdb: SyncDB;
   private project_id: string;
   private path: string;
   private truePath: string;
-  private store: TaskStore;
+  public store: TaskStore;
   _update_visible: Function;
   private is_closed: boolean = false;
   private key_handler?: (any) => void;
   private set_save_status?: () => void;
   private frameId: string;
   private frameActions: TaskFrameActions;
+  private virtuosoRef?;
 
   public _init(
     project_id: string,
     path: string,
     syncdb: SyncDB,
     store: TaskStore,
-    truePath: string // because above path is auxpath for each frame.
+    truePath: string, // because above path is auxpath for each frame.
   ): void {
     this._update_visible = throttle(this.__update_visible, 500);
     this.project_id = project_id;
@@ -115,7 +119,9 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public disable_key_handler(): void {
-    if (this.key_handler == null || this.redux == null) return;
+    if (this.key_handler == null || this.redux == null) {
+      return;
+    }
     this.frameActions.erase_active_key_handler(this.key_handler);
     delete this.key_handler;
   }
@@ -136,7 +142,7 @@ export class TaskActions extends Actions<TaskState> {
       local_task_state,
       view,
       counts,
-      current_task_id
+      current_task_id,
     );
 
     if (obj.visible.size == 0 && view.get("search")?.trim().length == 0) {
@@ -148,7 +154,7 @@ export class TaskActions extends Actions<TaskState> {
         local_task_state,
         view,
         counts,
-        current_task_id
+        current_task_id,
       );
     }
 
@@ -229,6 +235,21 @@ export class TaskActions extends Actions<TaskState> {
     }
   }
 
+  clearAllFilters = (obj?) => {
+    this.set_local_view_state(
+      {
+        show_deleted: false,
+        show_done: false,
+        show_max: false,
+        selected_hashtags: {},
+        search: "",
+        ...obj,
+      },
+      false,
+    );
+    this.__update_visible();
+  };
+
   public async save(): Promise<void> {
     if (this.is_closed) {
       return;
@@ -297,7 +318,7 @@ export class TaskActions extends Actions<TaskState> {
     task_id?: string,
     obj?: object,
     setState: boolean = false,
-    save: boolean = true // make new commit to syncdb state
+    save: boolean = true, // make new commit to syncdb state
   ): void {
     if (obj == null || this.is_closed) {
       return;
@@ -318,7 +339,7 @@ export class TaskActions extends Actions<TaskState> {
     ) {
       const last_edited =
         this.store.getIn(["tasks", task_id, "last_edited"]) ?? 0;
-      const now = new Date().valueOf();
+      const now = Date.now();
       if (now - last_edited >= LAST_EDITED_THRESH_S * 1000) {
         obj["last_edited"] = now;
       }
@@ -334,7 +355,7 @@ export class TaskActions extends Actions<TaskState> {
       // **immediately**; this would happen
       // eventually as a result of the syncdb set above.
       let tasks = this.store.get("tasks") ?? fromJS({});
-      task = tasks.get(task_id) ?? fromJS({ task_id }) as any;
+      task = tasks.get(task_id) ?? (fromJS({ task_id }) as any);
       if (task == null) throw Error("bug");
       for (let k in obj) {
         const v = obj[k];
@@ -405,7 +426,7 @@ export class TaskActions extends Actions<TaskState> {
     const pos_j = tasks.getIn([visible.get(j), "position"]);
     this.set_task(task_id, { position: pos_j }, true);
     this.set_task(visible.get(j), { position: pos_i }, true);
-    this.scroll_into_view();
+    this.scrollIntoView();
   }
 
   public time_travel(): void {
@@ -419,11 +440,14 @@ export class TaskActions extends Actions<TaskState> {
     window.open(TASKS_HELP_URL, "_blank")?.focus();
   }
 
-  public set_current_task(task_id: string): void {
-    if (this.getFrameData("current_task_id") == task_id) return;
+  set_current_task = (task_id: string): void => {
+    if (this.getFrameData("current_task_id") == task_id) {
+      return;
+    }
     this.setFrameData({ current_task_id: task_id });
-    this.scroll_into_view();
-  }
+    this.scrollIntoView();
+    this.setFragment(task_id);
+  };
 
   public set_current_task_delta(delta: number): void {
     const task_id = this.getFrameData("current_task_id");
@@ -492,7 +516,7 @@ export class TaskActions extends Actions<TaskState> {
       this.set_task(
         task_id,
         { done: !this.store.getIn(["tasks", task_id, "done"]) },
-        true
+        true,
       );
     }
   }
@@ -509,7 +533,16 @@ export class TaskActions extends Actions<TaskState> {
     this.set_local_task_state(task_id, { editing_desc: false });
   }
 
-  public edit_desc(task_id: string | undefined): void {
+  isEditing = () => {
+    const task_id = this.getFrameData("current_task_id");
+    return !!this.getFrameData("local_task_state")?.getIn([
+      task_id,
+      "editing_desc",
+    ]);
+  };
+
+  // null=unselect all.
+  public edit_desc(task_id: string | undefined | null): void {
     // close any that were currently in edit state before opening new one
     const local = this.getFrameData("local_task_state") ?? fromJS({});
     for (const [id, state] of local) {
@@ -517,13 +550,18 @@ export class TaskActions extends Actions<TaskState> {
         this.stop_editing_desc(id);
       }
     }
-
-    this.set_local_task_state(task_id, { editing_desc: true });
+    if (task_id !== null) {
+      this.set_local_task_state(task_id, { editing_desc: true });
+    }
+    this.disable_key_handler();
+    setTimeout(() => {
+      this.disable_key_handler();
+    }, 1);
   }
 
   public set_due_date(
     task_id: string | undefined,
-    date: number | undefined
+    date: number | undefined,
   ): void {
     this.set_task(task_id, { due_date: date });
   }
@@ -531,7 +569,7 @@ export class TaskActions extends Actions<TaskState> {
   public set_desc(
     task_id: string | undefined,
     desc: string,
-    save: boolean = true
+    save: boolean = true,
   ): void {
     this.set_task(task_id, { desc }, false, save);
   }
@@ -604,7 +642,7 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   // Move task that was at position old_index to now be at
-  // position new_index
+  // position new_index.   NOTE: This is NOT a swap.
   public reorder_tasks(old_index: number, new_index: number): void {
     if (old_index === new_index) {
       return;
@@ -642,18 +680,60 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public blur_find_box(): void {
-    this.enable_key_handler();
     this.setFrameData({ focus_find_box: false });
   }
 
-  async scroll_into_view(): Promise<void> {
-    await delay(50);
-    this.setFrameData({ scroll_into_view: true });
-  }
+  setVirtuosoRef = (virtuosoRef) => {
+    this.virtuosoRef = virtuosoRef;
+  };
 
-  public scroll_into_view_done(): void {
-    this.setFrameData({ scroll_into_view: false });
-  }
+  // scroll the current_task_id into view, possibly changing filters
+  // in order to make it visibile, if necessary.
+  scrollIntoView = async (align: Align = "view") => {
+    if (this.virtuosoRef?.current == null) {
+      return;
+    }
+    const current_task_id = this.getFrameData("current_task_id");
+    if (current_task_id == null) {
+      return;
+    }
+    let visible = this.getFrameData("visible");
+    if (visible == null) {
+      return;
+    }
+    // Figure out the index of current_task_id.
+    let index = visible.indexOf(current_task_id);
+    if (index === -1) {
+      const task = this.store.getIn(["tasks", current_task_id]);
+      if (task == null) {
+        // no such task anywhere, not even in trash, etc
+        return;
+      }
+      if (
+        this.getFrameData("search_desc")?.trim() ||
+        task.get("deleted") ||
+        task.get("done")
+      ) {
+        // active search -- try clearing it.
+        this.clearAllFilters({
+          show_deleted: !!task.get("deleted"),
+          show_done: !!task.get("done"),
+        });
+        visible = this.getFrameData("visible");
+        index = visible.indexOf(current_task_id);
+        if (index == -1) {
+          return;
+        }
+      } else {
+        return;
+      }
+    }
+    if (align == "start" || align == "center" || align == "end") {
+      this.virtuosoRef.current.scrollToIndex({ index, align });
+    } else {
+      this.virtuosoRef.current.scrollIntoView({ index });
+    }
+  };
 
   public set_show_max(show_max: number): void {
     this.set_local_view_state({ show_max }, false);
@@ -669,7 +749,7 @@ export class TaskActions extends Actions<TaskState> {
   public toggle_desc_checkbox(
     task_id: string,
     index: number,
-    checked: boolean
+    checked: boolean,
   ): void {
     let desc = this.store.getIn(["tasks", task_id, "desc"]);
     if (desc == null) {
@@ -683,10 +763,7 @@ export class TaskActions extends Actions<TaskState> {
     this.disable_key_handler();
   }
 
-  public async show(): Promise<void> {
-    await delay(1);
-    this.enable_key_handler();
-  }
+  public async show(): Promise<void> {}
 
   chatgptGetText(scope: "cell" | "all", current_id?): string {
     if (scope == "all") {
@@ -738,6 +815,14 @@ export class TaskActions extends Actions<TaskState> {
       .getProjectActions(this.project_id)
       .open_file({ path, foreground: true });
   }
+
+  setFragment = (id?) => {
+    if (!id) {
+      Fragment.clear();
+    } else {
+      Fragment.set({ id });
+    }
+  };
 }
 
 function getPositions(tasks): number[] {

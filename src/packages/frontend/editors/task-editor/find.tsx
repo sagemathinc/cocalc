@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -44,7 +44,7 @@ export function Find({
         ref={inputRef}
         allowClear
         value={local_view_state.get("search") ?? ""}
-        placeholder={"Search for tasks..."}
+        placeholder={"Filter tasks..."}
         onChange={(e) =>
           actions.set_local_view_state({
             search: e.target.value,
@@ -56,6 +56,7 @@ export function Find({
           if (evt.which === 27) {
             actions.set_local_view_state({ search: "" });
             inputRef.current?.blur();
+            actions.enable_key_handler();
             return false;
           }
         }}

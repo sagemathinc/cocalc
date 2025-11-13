@@ -1,6 +1,6 @@
 #########################################################################
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+# License: MS-RSL – see LICENSE.md for details
 #########################################################################
 
 # PostgreSQL -- basic queries and database interface
@@ -42,14 +42,16 @@ winston      = require('@cocalc/backend/logger').getLogger('postgres')
 { primaryKey, primaryKeys } = require('./postgres/schema/table')
 
 misc_node = require('@cocalc/backend/misc_node')
-data = require("@cocalc/backend/data")
+{ sslConfigToPsqlEnv, pghost, pgdatabase, pguser, pgssl } = require("@cocalc/backend/data")
+
+{ recordConnected, recordDisconnected } = require("./postgres/record-connect-error")
 
 {defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
 
 {SCHEMA, client_db} = require('@cocalc/util/schema')
 
-metrics = require('./metrics')
+metrics = require('@cocalc/backend/metrics')
 
 exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created', 'env']
 exports.PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
@@ -61,10 +63,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 
         super()
         opts = defaults opts,
-            host            : data.pghost       # DEPRECATED: or 'hostname:port' or 'host1,host2,...' (multiple hosts) -- TODO -- :port only works for one host.
-            database        : data.pgdatabase
-            user            : data.pguser
-            ssl             : data.pgssl
+            host            : pghost       # DEPRECATED: or 'hostname:port' or 'host1,host2,...' (multiple hosts) -- TODO -- :port only works for one host.
+            database        : pgdatabase
+            user            : pguser
+            ssl             : pgssl
             debug           : exports.DEBUG
             connect         : true
             password        : undefined
@@ -190,6 +192,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 if not err
                     @_state = 'connected'
                     @emit('connect')
+                    recordConnected()
 
     disconnect: () =>
         if @_clients?
@@ -279,6 +282,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                             # already started connecting
                             return
                         @emit('disconnect')
+                        recordDisconnected()
                         dbg("error -- #{err}")
                         @disconnect()
                         @connect()  # start trying to reconnect
@@ -354,6 +358,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                 mesg = "Failed to connect to database -- #{err}"
                 dbg(mesg)
                 console.warn(mesg)  # make it clear for interactive users with debugging off -- common mistake with env not setup right.
+                # If we're unable to connect (or all clients fail), we are disconnected. This tells postgres/record-connect-error.ts about this problem.
+                # See https://github.com/sagemathinc/cocalc/issues/5997 for some logs related to that.
+                @emit('disconnect')
+                recordDisconnected()
                 cb?(err)
             else
                 @_clients = locals.clients
@@ -390,11 +398,11 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     _init_metrics: =>
         # initialize metrics
         try
-            @query_time_histogram = metrics.newHistogram('db_query_ms_histogram', 'db queries'
+            @query_time_histogram = metrics.newHistogram('db', 'query_ms_histogram', 'db queries'
                 buckets : [1, 5, 10, 20, 50, 100, 200, 500, 1000, 5000, 10000]
                 labels: ['table']
             )
-            @concurrent_counter = metrics.newCounter('db_concurrent_total',
+            @concurrent_counter = metrics.newCounter('db', 'concurrent_total',
                 'Concurrent queries (started and finished)',
                 ['state']
             )
@@ -671,7 +679,10 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
                     if typeof(cond) != 'string'
                         opts.cb?("each condition must be a string but '#{cond}' isn't")
                         return
-                    if not param?  # *IGNORE* where conditions where value is explicitly undefined
+                    if not param?
+                        # *IGNORE* where conditions where value is explicitly undefined
+                        # Note that in SQL NULL is not a value and there is no way to use it in placeholder
+                        # anyways, so this can never work.
                         continue
                     if cond.indexOf('$') == -1
                         # where condition is missing it's $ parameter -- default to equality
@@ -850,7 +861,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         dbg = @_dbg("_ensure_database_exists")
         dbg("ensure database '#{@_database}' exists")
         args = ['--user', @_user, '--host', @_host.split(',')[0], '--port', @_port, '--list', '--tuples-only']
-        sslEnv = data.sslConfigToPsqlEnv(@_ssl)
+        sslEnv = sslConfigToPsqlEnv(@_ssl)
         dbg("psql #{args.join(' ')}")
         misc_node.execute_code
             command : 'psql'
@@ -1037,7 +1048,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         if opts.table
             tables = [opts.table]
         else
-            tables = (k for k, v of SCHEMA when v.fields?.expire? and not v.virtual)
+            tables = (k for k, v of SCHEMA when v.fields?.expire?.type == 'timestamp' and not v.virtual)
         async.map(tables, f, opts.cb)
 
     # count number of entries in a table

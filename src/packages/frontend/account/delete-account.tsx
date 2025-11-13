@@ -1,11 +1,19 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Component, React, Rendered, rtypes } from "../app-framework";
-import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
-import { ErrorDisplay, Icon, A } from "../components";
+import { Alert, Button, Input } from "antd";
+import { FormattedMessage, useIntl } from "react-intl";
+
+import {
+  React,
+  Rendered,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { ErrorDisplay, Icon } from "@cocalc/frontend/components";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 
 interface Props {
   initial_click: () => void;
@@ -17,6 +25,8 @@ interface Props {
 }
 
 export function DeleteAccount(props: Props) {
+  const intl = useIntl();
+
   return (
     <div>
       <div style={{ height: "26px" }}>
@@ -26,7 +36,12 @@ export function DeleteAccount(props: Props) {
           style={props.style}
           onClick={props.initial_click}
         >
-          <Icon name="trash" /> Delete Account...
+          <Icon name="trash" />{" "}
+          {intl.formatMessage({
+            id: "account.delete-account.button",
+            defaultMessage: "Delete Account",
+          })}
+          ...
         </Button>
       </div>
       {props.show_confirmation ? (
@@ -46,93 +61,94 @@ interface ConfProps {
   required_text: string;
 }
 
-interface ReduxConfProps {
-  account_deletion_error?: string;
-}
-
-interface State {
-  confirmation_text: string;
-}
-
 // Concious choice to make them actually click the confirm delete button.
-class DeleteAccountConfirmation extends Component<
-  ConfProps & ReduxConfProps,
-  State
-> {
-  constructor(props, state) {
-    super(props, state);
-    // State is lost on re-render from cancel. But this is what we want.
-    this.state = { confirmation_text: "" };
-  }
+function DeleteAccountConfirmation({
+  confirm_click,
+  cancel_click,
+  required_text,
+}: ConfProps) {
+  const intl = useIntl();
 
-  static reduxProps() {
-    return {
-      account: {
-        account_deletion_error: rtypes.string,
-      },
-    };
-  }
+  const account_deletion_error = useTypedRedux(
+    "account",
+    "account_deletion_error",
+  );
 
-  private render_error(): Rendered {
-    if (this.props.account_deletion_error == null) {
+  // State is lost on re-render from cancel. But this is what we want.
+  const [confirmation_text, set_confirmation_text] = useState<string>("");
+
+  function render_error(): Rendered {
+    if (account_deletion_error == null) {
       return;
     }
-    return <ErrorDisplay error={this.props.account_deletion_error} />;
+    return <ErrorDisplay error={account_deletion_error} />;
   }
 
-  public render(): Rendered {
-    return (
-      <Well
-        style={{
-          marginTop: "26px",
-          textAlign: "center",
-          fontSize: "15pt",
-          backgroundColor: "darkred",
-          color: "white",
-        }}
-      >
-        Are you sure you want to DELETE YOUR ACCOUNT?
-        <br />
-        You will <span style={{ fontWeight: "bold" }}>immediately</span> lose
-        access to <span style={{ fontWeight: "bold" }}>all</span> of your
-        projects, and any subscriptions will be canceled.
-        <br />
-        <hr style={{ marginTop: "10px", marginBottom: "10px" }} />
-        Do NOT delete your account if you are a current student in a course on
-        CoCalc!{" "}
-        <A href="https://github.com/sagemathinc/cocalc/issues/3243">Why?</A>
-        <hr style={{ marginTop: "10px", marginBottom: "10px" }} />
-        To DELETE YOUR ACCOUNT, enter "{this.props.required_text}" below:
-        <br />
-        <input
-          autoFocus
-          value={this.state.confirmation_text}
-          placeholder="Full name"
-          type="text"
-          onChange={(e) => {
-            this.setState({ confirmation_text: (e.target as any).value });
-          }}
-          style={{
-            marginTop: "1ex",
-            padding: "5px",
-            color: "black",
-            width: "90%",
-          }}
+  return (
+    <Alert
+      showIcon
+      type="warning"
+      style={{
+        marginTop: "26px",
+      }}
+      message={
+        <FormattedMessage
+          id="account.delete-account.alert.message"
+          defaultMessage={"Are you sure you want to DELETE YOUR ACCOUNT?"}
         />
-        <ButtonToolbar style={{ textAlign: "center", marginTop: "15px" }}>
-          <Button
-            disabled={this.state.confirmation_text !== this.props.required_text}
-            bsStyle="danger"
-            onClick={() => this.props.confirm_click()}
-          >
-            <Icon name="trash" /> Yes, DELETE MY ACCOUNT
-          </Button>
-          <Button bsStyle="primary" onClick={this.props.cancel_click}>
-            Cancel
-          </Button>
-        </ButtonToolbar>
-        {this.render_error()}
-      </Well>
-    );
-  }
+      }
+      description={
+        <div>
+          <br />
+          <FormattedMessage
+            id="account.delete-account.alert.description"
+            defaultMessage={`You will <b>immediately</b> lose access to <b>all</b> of your projects,
+            any subscriptions will be canceled, and all unspent credit will be lost.
+            {br}
+            {hr}
+            To DELETE YOUR ACCOUNT, first enter "{required_text}" below:`}
+            values={{
+              required_text: required_text,
+              br: <br />,
+              hr: <hr style={{ marginTop: "10px", marginBottom: "10px" }} />,
+            }}
+          />
+          <br />
+          <Input
+            autoFocus
+            value={confirmation_text}
+            placeholder="Full name"
+            type="text"
+            onChange={(e) => {
+              set_confirmation_text((e.target as any).value);
+            }}
+            style={{
+              margin: "15px",
+              width: "90%",
+            }}
+          />
+          <div style={{ display: "flex" }}>
+            <Button
+              type="primary"
+              onClick={cancel_click}
+              style={{ marginRight: "15px" }}
+            >
+              <CancelText />
+            </Button>
+            <Button
+              disabled={confirmation_text !== required_text}
+              onClick={() => confirm_click()}
+            >
+              <Icon name="trash" />{" "}
+              {intl.formatMessage({
+                id: "account.delete-account.confirmation",
+                defaultMessage: "Yes, DELETE MY ACCOUNT",
+              })}
+            </Button>
+          </div>
+          {render_error()}
+        </div>
+      }
+    />
+  );
 }

@@ -1,11 +1,19 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Table } from "./types";
 import { minutes_ago } from "../misc";
 import { SCHEMA as schema } from "./index";
+
+// Helper function to normalize dates for comparison
+function getTime(date: any): number {
+  if (!date) return 0;
+  if (date instanceof Date) return date.getTime();
+  if (typeof date === "string") return new Date(date).getTime();
+  return 0;
+}
 
 /* TODO: for postgres rewrite after done we MIGHT completely redo file_use to eliminate
 the id field, use project_id, path as a compound primary key, and maybe put users in
@@ -92,10 +100,14 @@ Table({
           // Otherwise we touch the project just for seeing notifications or opening
           // the file, which is confusing and wastes a lot of resources.
           const x = obj.users != null ? obj.users[account_id] : undefined;
-          const recent = minutes_ago(3);
+          // edit/chat/open fields may be strings or Date objects depending on how they're processed
+          const recentTime = minutes_ago(3).getTime();
+
           if (
             x != null &&
-            (x.edit >= recent || x.chat >= recent || x.open >= recent)
+            (getTime(x.edit) >= recentTime ||
+              getTime(x.chat) >= recentTime ||
+              getTime(x.open) >= recentTime)
           ) {
             db.touch({ project_id: obj.project_id, account_id });
             // Also log that this particular file is being used/accessed; this

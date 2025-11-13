@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import {
@@ -222,7 +222,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  // these are commands which have at least one file or directory as their argument or operate related to the filesystem (e.g. cd)
+  // these are commands which have at least one file or directory as their argument or operate related to the file system (e.g. cd)
   function render_file_commands() {
     return (
       <>

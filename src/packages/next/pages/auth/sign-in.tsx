@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Layout } from "antd";
@@ -15,7 +15,7 @@ import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
 export default function Home({ customize }) {
-  const { siteName } = customize;
+  const { siteName = "CoCalc" } = customize ?? {};
   const router = useRouter();
   return (
     <Customize value={customize}>
@@ -23,7 +23,7 @@ export default function Home({ customize }) {
       <Layout>
         <Header page="sign-in" />
         <Layout.Content style={{ backgroundColor: "white" }}>
-          <SignIn onSuccess={() => router.push("/")} />
+          <SignIn onSuccess={() => router.push("/app?sign-in")} />
           <Footer />
         </Layout.Content>
       </Layout>

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -15,20 +15,20 @@ Sign in works as follows:
    client is that user and tell user they are now authenticated.
    If not, send an error back.
 */
+import { Request, Response } from "express";
 
 import getPool from "@cocalc/database/pool";
-import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
-import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import { recordFail, signInCheck } from "@cocalc/server/auth/throttle";
-import Cookies from "cookies";
 import getParams from "lib/api/get-params";
 import { verify } from "password-hash";
-import { Request, Response } from "express";
-// import reCaptcha from "@cocalc/server/auth/recaptcha";
+import { MAX_PASSWORD_LENGTH } from "@cocalc/util/auth";
+import setSignInCookies from "@cocalc/server/auth/set-sign-in-cookies";
 
 export default async function signIn(req: Request, res: Response) {
   let { email, password } = getParams(req);
+
   email = email.toLowerCase().trim();
+
   const check: string | undefined = await signInCheck(email, req.ip);
   if (check) {
     res.json({ error: check });
@@ -53,17 +53,28 @@ export default async function signIn(req: Request, res: Response) {
 
 export async function getAccount(
   email_address: string,
-  password: string
+  password: string,
 ): Promise<string> {
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    throw new Error(
+      `The password must be shorter than ${MAX_PASSWORD_LENGTH} characters.`,
+    );
+  }
+
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT account_id, password_hash FROM accounts WHERE email_address=$1",
-    [email_address]
+    "SELECT account_id, password_hash, banned FROM accounts WHERE email_address=$1",
+    [email_address],
   );
   if (rows.length == 0) {
     throw Error(`no account with email address '${email_address}'`);
   }
-  const { account_id, password_hash } = rows[0];
+  const { account_id, password_hash, banned } = rows[0];
+  if (banned) {
+    throw Error(
+      `'${email_address}' is banned -- if you think this is a mistake, please email help@cocalc.com and explain.`,
+    );
+  }
   if (!verify(password, password_hash)) {
     throw Error(`password for '${email_address}' is incorrect`);
   }
@@ -71,18 +82,14 @@ export async function getAccount(
 }
 
 export async function signUserIn(req, res, account_id: string): Promise<void> {
-  let value, ttl_s;
   try {
-    ({ value, ttl_s } = await createRememberMeCookie(account_id));
+    await setSignInCookies({
+      req,
+      res,
+      account_id,
+    });
   } catch (err) {
-    res.json({ error: `Problem creating session cookie -- ${err.message}.` });
-    return;
-  }
-  try {
-    const cookies = new Cookies(req, res, { maxAge: ttl_s * 1000 });
-    cookies.set(REMEMBER_ME_COOKIE_NAME, value);
-  } catch (err) {
-    res.json({ error: `Problem setting cookie -- ${err.message}.` });
+    res.json({ error: `Problem setting auth cookies -- ${err}` });
     return;
   }
   res.json({ account_id });

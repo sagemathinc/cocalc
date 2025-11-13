@@ -1,8 +1,9 @@
 import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-servers";
-import debug from "debug";
 import { DNS_COST_PER_HOUR } from "@cocalc/util/compute/dns";
 
-const log = debug("cocalc:util:compute-cost");
+// import debug from "debug";
+//const log = debug("cocalc:util:compute-cost");
+const log = (..._args) => {};
 
 // copy-pasted from my @cocalc/gcloud-pricing-calculator package to help with sanity in code below.
 
@@ -23,18 +24,88 @@ interface ZoneData {
   gpus: boolean; // if true, has gpus
 }
 
+export interface BucketPricing {
+  Standard?: number;
+  Nearline?: number;
+  Coldline?: number;
+  Archive?: number;
+}
+
+export type GoogleWorldLocations =
+  | "APAC"
+  | "Europe"
+  | "Middle East"
+  | "North America"
+  | "South Africa"
+  | "South America";
+
+interface GoogleWorldPrices {
+  APAC: number;
+  Europe: number;
+  "Middle East": number;
+  "North America": number;
+  "South Africa": number;
+  "South America": number;
+}
+
 export interface GoogleCloudData {
   machineTypes: { [machineType: string]: PriceData };
   disks: {
     "pd-standard": { prices: { [zone: string]: number } };
     "pd-ssd": { prices: { [zone: string]: number } };
     "pd-balanced": { prices: { [zone: string]: number } };
+    "hyperdisk-balanced-capacity": { prices: { [zone: string]: number } };
+    "hyperdisk-balanced-iops": { prices: { [zone: string]: number } };
+    "hyperdisk-balanced-throughput": { prices: { [zone: string]: number } };
   };
   accelerators: { [acceleratorType: string]: PriceData };
   zones: { [zone: string]: ZoneData };
   // markup percentage: optionally include markup to always increase price by this amount,
   // e.g., if markup is 42, then price will be multiplied by 1.42.
   markup?: number;
+  storage: {
+    atRest: {
+      dualRegions: { [region: string]: BucketPricing };
+      multiRegions: {
+        asia: BucketPricing;
+        eu: BucketPricing;
+        us: BucketPricing;
+      };
+      regions: {
+        [region: string]: BucketPricing;
+      };
+    };
+    dataTransferInsideGoogleCloud: {
+      APAC: GoogleWorldPrices;
+      Europe: GoogleWorldPrices;
+      "Middle East": GoogleWorldPrices;
+      "North America": GoogleWorldPrices;
+      "South Africa": GoogleWorldPrices;
+      "South America": GoogleWorldPrices;
+    };
+    dataTransferOutsideGoogleCloud: {
+      worldwide: number;
+      china: number;
+      australia: number;
+    };
+    interRegionReplication: {
+      asia: number;
+      eu: number;
+      us: number;
+    };
+    retrieval: {
+      standard: number;
+      nearline: number;
+      coldline: number;
+      archive: number;
+    };
+    singleRegionOperations: {
+      standard: { classA1000: number; classB1000: number };
+      nearline: { classA1000: number; classB1000: number };
+      coldline: { classA1000: number; classB1000: number };
+      archive: { classA1000: number; classB1000: number };
+    };
+  };
 }
 
 interface Options {
@@ -95,24 +166,83 @@ export function computeInstanceCost({ configuration, priceData }) {
   const cost =
     data[configuration.spot ? "spot" : "prices"]?.[configuration.region];
   if (cost == null) {
+    if (configuration.spot && Object.keys(data["spot"]).length == 0) {
+      throw Error(
+        `spot instance pricing for ${configuration.machineType} is not available`,
+      );
+    }
     throw Error(
-      `unable to determine cost since region pricing for machine type ${configuration.machineType} is unknown. Select a different region.`,
+      `unable to determine cost since machine type ${configuration.machineType} is not available in the region '${configuration.region}'. Select a different region.`,
     );
   }
   return markup({ cost, priceData });
 }
 
 // Compute the total cost of disk for this configuration, including any markup.
-export function computeDiskCost({ configuration, priceData }: Options): number {
-  const diskType = configuration.diskType ?? "pd-standard";
-  const diskCostPerGB = priceData.disks[diskType]?.prices[configuration.region];
-  log("disk cost per GB per hour", { diskCostPerGB });
-  if (diskCostPerGB == null) {
+
+// for now this is the only thing we support
+export const DEFAULT_HYPERDISK_BALANCED_IOPS = 3000;
+export const DEFAULT_HYPERDISK_BALANCED_THROUGHPUT = 140;
+
+export function hyperdiskCostParams({ region, priceData }): {
+  capacity: number;
+  iops: number;
+  throughput: number;
+} {
+  const diskType = "hyperdisk-balanced";
+  const capacity =
+    priceData.disks["hyperdisk-balanced-capacity"]?.prices[region];
+  if (!capacity) {
     throw Error(
-      `unable to determine cost since disk cost in region ${configuration.region} is unknown. Select a different region.`,
+      `Unable to determine ${diskType} capacity pricing in ${region}. Select a different region.`,
     );
   }
-  const cost = diskCostPerGB * (configuration.diskSizeGb ?? 10);
+  const iops = priceData.disks["hyperdisk-balanced-iops"]?.prices[region];
+  if (!iops) {
+    throw Error(
+      `Unable to determine ${diskType} iops pricing in ${region}. Select a different region.`,
+    );
+  }
+  const throughput =
+    priceData.disks["hyperdisk-balanced-throughput"]?.prices[region];
+  if (!throughput) {
+    throw Error(
+      `Unable to determine ${diskType} throughput pricing in ${region}. Select a different region.`,
+    );
+  }
+  return { capacity, iops, throughput };
+}
+
+export function computeDiskCost({ configuration, priceData }: Options): number {
+  const diskType = configuration.diskType ?? "pd-standard";
+  let cost;
+  if (diskType == "hyperdisk-balanced") {
+    // per hour pricing for hyperdisks is NOT "per GB". The pricing is per hour, but the
+    // formula is not as simple as "per GB", so we compute the cost per hour via
+    // the more complicated formula here.
+    const { capacity, iops, throughput } = hyperdiskCostParams({
+      priceData,
+      region: configuration.region,
+    });
+    cost =
+      (configuration.diskSizeGb ?? 10) * capacity +
+      (configuration.hyperdiskBalancedIops ?? DEFAULT_HYPERDISK_BALANCED_IOPS) *
+        iops +
+      (configuration.hyperdiskBalancedThroughput ??
+        DEFAULT_HYPERDISK_BALANCED_THROUGHPUT) *
+        throughput;
+  } else {
+    // per hour pricing for the rest of the disks is just "per GB" via the formula here.
+    const diskCostPerGB =
+      priceData.disks[diskType]?.prices[configuration.region];
+    log("disk cost per GB per hour", { diskCostPerGB });
+    if (!diskCostPerGB) {
+      throw Error(
+        `unable to determine cost since disk cost in region ${configuration.region} is unknown. Select a different region.`,
+      );
+    }
+    cost = diskCostPerGB * (configuration.diskSizeGb ?? 10);
+  }
   return markup({ cost, priceData });
 }
 

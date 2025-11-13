@@ -28,7 +28,7 @@ import { getSubscription } from "./api";
 import { CSSProperties, useEffect, useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
 import { currency } from "@cocalc/util/misc";
-import { SubscriptionStatus } from "./subscriptions";
+import { SubscriptionStatus } from "./subscriptions-util";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Library for working with JSON messages for Salvus.
@@ -112,8 +112,8 @@ function message(obj) {
     if (opts.event != null) {
       throw Error(
         `ValueError: must not define 'event' when calling message creation function (opts=${JSON.stringify(
-          opts
-        )}, obj=${JSON.stringify(obj)})`
+          opts,
+        )}, obj=${JSON.stringify(obj)})`,
       );
     }
     return defaults(opts, obj, false, strict);
@@ -239,49 +239,6 @@ message({
 }); // if set, eval scope contains an object cell that refers to the cell in the worksheet with this id.
 
 //###########################################
-// Information about accounts
-//############################################
-
-API(
-  message2({
-    event: "get_usernames",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      account_ids: {
-        init: required,
-        desc: "list of account_ids",
-      },
-    },
-    desc: `\
-Get first and last names for a list of account ids.
-
-Note: Options for the \`get_usernames\` API message must be sent as JSON object.
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
-    -d '{"account_ids":["cc3cb7f1-14f6-4a18-a803-5034af8c0004","9b896055-920a-413c-9172-dfb4007a8e7f"]}' \\
-    https://cocalc.com/api/v1/get_usernames
-  ==>  {"event":"usernames",
-        "id":"32b485a8-f214-4fda-a622-4dbfe0db2b9c",
-        "usernames": {
-           "cc3cb7f1-14f6-4a18-a803-5034af8c0004":{"first_name":"John","last_name":"Smith"},
-           "9b896055-920a-413c-9172-dfb4007a8e7f":{"first_name":"Jane","last_name":"Doe"}}}
-\`\`\`\
-`,
-  })
-);
-
-message({
-  event: "usernames",
-  id: undefined,
-  usernames: required,
-});
-
-//###########################################
 // Account Management
 //############################################
 
@@ -356,7 +313,7 @@ Attempting to create the same account a second time results in an error:
        "reason":{"email_address":"This e-mail address is already taken."}}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 message({
@@ -423,12 +380,6 @@ message({
   get_api_key: undefined,
 }); // same as for create_account
 
-message({
-  id: undefined,
-  event: "sign_in_using_auth_token",
-  auth_token: required,
-});
-
 // hub --> client
 message({
   id: undefined,
@@ -471,250 +422,6 @@ message({
 message({
   event: "signed_out",
   id: undefined,
-});
-
-// client --> hub
-API(
-  message2({
-    event: "change_password",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      account_id: {
-        init: required,
-        desc: "account id of the account whose password is being changed",
-      },
-      old_password: {
-        init: "",
-        desc: "",
-      },
-      new_password: {
-        init: required,
-        desc: "must be between 6 and 64 characters in length",
-      },
-    },
-    desc: `\
-Given account_id and old password for an account, set a new password.
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d account_id=... \\
-    -d old_password=... \\
-    -d new_password=... \\
-    https://cocalc.com/api/v1/change_password
-  ==> {"event":"changed_password","id":"41ff89c3-348e-4361-ad1d-372b55e1544a"}
-\`\`\`\
-`,
-  })
-);
-
-message({
-  event: "send_verification_email",
-  id: undefined,
-  account_id: required,
-  only_verify: undefined,
-}); // usually true, if false the full "welcome" email is sent
-
-// hub --> client
-// if error is true, that means the password was not changed; would
-// happen if password is wrong (message:'invalid password').
-message({
-  event: "changed_password",
-  id: undefined,
-  error: undefined,
-});
-
-// client --> hub: "please send a password reset email"
-message2({
-  event: "forgot_password",
-  fields: {
-    id: {
-      init: undefined,
-      desc: "A unique UUID for the query",
-    },
-    email_address: {
-      init: required,
-      desc: "email address for account requesting password reset",
-    },
-  },
-  desc: `\
-Given the email address of an existing account, send password reset email.
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d email_address=... \\
-    https://cocalc.com/api/v1/forgot_password
-  ==> {"event":"forgot_password_response",
-       "id":"26ed294b-922b-47e1-8f3f-1e54d8c8e558",
-       "error":false}
-\`\`\`\
-`,
-});
-
-// hub --> client  "a password reset email was sent, or there was an error"
-message({
-  event: "forgot_password_response",
-  id: undefined,
-  error: false,
-});
-
-// client --> hub: "reset a password using this id code that was sent in a password reset email"
-message2({
-  event: "reset_forgot_password",
-  fields: {
-    id: {
-      init: undefined,
-      desc: "A unique UUID for the query",
-    },
-    reset_code: {
-      init: required,
-      desc: "id code that was sent in a password reset email",
-    },
-    new_password: {
-      init: required,
-      desc: "must be between 6 and 64 characters in length",
-    },
-  },
-  desc: `\
-Reset password, given reset code.
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d reset_code=35a0eea6-370a-45c3-ab2f-3210df68748f \\
-    -d new_password=qjqhddfsfj \\
-    https://cocalc.com/api/v1/reset_forgot_password
-  ==> {"event":"reset_forgot_password_response","id":"85bd6027-644d-4859-9e17-5e835bd47570","error":false}
-\`\`\`\
-`,
-});
-
-message({
-  event: "reset_forgot_password_response",
-  id: undefined,
-  error: false,
-});
-
-// client --> hub
-API(
-  message2({
-    event: "change_email_address",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      account_id: {
-        init: required,
-        desc: "account_id for account whose email address is changed",
-      },
-      old_email_address: {
-        init: "",
-        desc: "ignored -- deprecated",
-      },
-      new_email_address: {
-        init: required,
-        desc: "",
-      },
-      password: {
-        init: "",
-        desc: "",
-      },
-    },
-    desc: `\
-Given the \`account_id\` for an account, set a new email address.
-
-Examples:
-
-Successful change of email address.
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
-    -d password=secret_password \\
-    -d new_email_address=new@email.com \\
-    https://cocalc.com/api/v1/change_email_address
-  ==> {"event":"changed_email_address",
-       "id":"8f68f6c4-9851-4b88-bd65-37cb983298e3",
-       "error":false}
-\`\`\`
-
-Fails if new email address is already in use.
-
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
-    -d password=secret_password \\
-    -d new_email_address=used@email.com \\
-    https://cocalc.com/api/v1/change_email_address
-  ==> {"event":"changed_email_address",
-       "id":"4501f022-a57c-4aaf-9cd8-af0eb05ebfce",
-       "error":"email_already_taken"}
-\`\`\`
-
-**Note:** \`account_id\` and \`password\` must match the \`id\` of the current login.\
-`,
-  })
-);
-
-// hub --> client
-message({
-  event: "changed_email_address",
-  id: undefined,
-  error: false, // some other error
-  ttl: undefined,
-}); // if user is trying to change password too often, this is time to wait
-
-// Unlink a passport auth for this account.
-// client --> hub
-message2({
-  event: "unlink_passport",
-  fields: {
-    strategy: {
-      init: required,
-      desc: "passport strategy",
-    },
-    id: {
-      init: required,
-      desc: "numeric id for user and passport strategy",
-    },
-  },
-  desc: `\
-Unlink a passport auth for the account.
-
-Strategies are defined in the database and may be viewed at [/auth/strategies](https://cocalc.com/auth/strategies).
-
-Example:
-
-Get passport id for some strategy for current user.
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -H "Content-Type: application/json" \\
-    -d '{"query":{"accounts":{"account_id":"e6993694-820d-4f78-bcc9-10a8e336a88d","passports":null}}}' \\
-    https://cocalc.com/api/v1/query
-  ==> {"query":{"accounts":{"account_id":"e6993694-820d-4f78-bcc9-10a8e336a88d",
-                            "passports":{"facebook-14159265358":{"id":"14159265358",...}}}},
-       "multi_response":false,
-       "event":"query",
-       "id":"a2554ec8-665b-495b-b0e2-8e248b54eb94"}
-\`\`\`
-
-Unlink passport for that strategy and id.
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d strategy=facebook \\
-    -d id=14159265358 \\
-    https://cocalc.com/api/v1/unlink_passport
-  ==> {"event":"success",
-       "id":"14159265358"}
-\`\`\`
-
-Note that success is returned regardless of whether or not passport was linked
-for the given strategy and id before issuing the API command.\
-`,
 });
 
 message({
@@ -933,7 +640,7 @@ Notes:
 - If the project is stopped or archived, this API call will cause it to be started. Starting the project can take
   several seconds. In this case, the call may return a timeout error and will need to be repeated. \
 `,
-  })
+  }),
 );
 
 // project --> client
@@ -943,6 +650,13 @@ message({
   stdout: required,
   stderr: required,
   exit_code: required,
+  type: undefined,
+  job_id: undefined,
+  start: undefined,
+  status: undefined,
+  elapsed_s: undefined,
+  pid: undefined,
+  stats: undefined,
 });
 
 //#####################################################################
@@ -1038,7 +752,7 @@ Read a text file.
        "content":"hello"}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 // hub --> client
@@ -1107,7 +821,7 @@ Create a text file.
     https://cocalc.com/api/v1/write_text_file_to_project
 \`\`\`\
 `,
-  })
+  }),
 );
 
 // The file_written_to_project message is sent by a project_server to
@@ -1122,216 +836,6 @@ message({
 // Managing multiple projects
 //###########################################
 
-// client --> hub
-API(
-  message2({
-    event: "create_project",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      title: {
-        init: "",
-        desc: "project title",
-      },
-      description: {
-        init: "",
-        desc: "project description",
-      },
-      image: {
-        init: undefined,
-        desc: "(optional) image ID",
-      },
-      license: {
-        init: undefined,
-        desc: "(optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license",
-      },
-      start: {
-        init: false,
-        desc: "start running the moment the project is created -- uses more resources, but possibly better user experience",
-      },
-      noPool: {
-        init: false,
-        desc: "if true, never get project from pool, e.g., useful when creating hundreds of projects for students in a class, since they aren't immediately going to use their project",
-      },
-    },
-    desc: `\
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d title='MY NEW PROJECT' \\
-    -d description='sample project' \\
-    https://cocalc.com/api/v1/create_project
-  == > {"event":"project_created",
-        "id":"0b4df293-d518-45d0-8a3c-4281e501b85e",
-        "project_id":"07897899-6bbb-4fbc-80a7-3586c43348d1"}
-\`\`\`\
-`,
-  })
-);
-
-// hub --> client
-message({
-  event: "project_created",
-  id: required,
-  project_id: required,
-});
-
-//# search ---------------------------
-
-// client --> hub
-API(
-  message2({
-    event: "user_search",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      query: {
-        init: required,
-        desc: "comma separated list of email addresses or strings such as 'foo bar'",
-      },
-      admin: {
-        init: false,
-        desc: "if true and user is an admin, includes email addresses in result, and does more permissive search",
-      },
-      active: {
-        init: "",
-        desc: "only include users active for this interval of time",
-      },
-      limit: {
-        init: 20,
-        desc: "maximum number of results returned",
-      },
-    },
-    desc: `\
-There are two possible item types in the query list: email addresses
-and strings that are not email addresses. An email query item will return
-account id, first name, last name, and email address for the unique
-account with that email address, if there is one. A string query item
-will return account id, first name, and last name for all matching
-accounts.
-
-We do not reveal email addresses of users queried by name to non admins.
-
-String query matches first and last names that start with the given string.
-If a string query item consists of two strings separated by space,
-the search will return accounts in which the first name begins with one
-of the two strings and the last name begins with the other.
-String and email queries may be mixed in the list for a single
-user_search call. Searches are case-insensitive.
-
-Note: there is a hard limit of 50 returned items in the results.
-
-Examples:
-
-Search for account by email.
-\`\`\`
-  curl -u : \\
-    -d query=jd@m.local \\
-    https://cocalc.com/api/v1/user_search
-  ==> {"event":"user_search_results",
-       "id":"3818fa50-b892-4167-b9d9-d22d521b36af",
-       "results":[{"account_id":"96c523b8-321e-41a3-9523-39fde95dc71d",
-                   "first_name":"John",
-                   "last_name":"Doe",
-                   "email_address":"jd@m.local"}
-\`\`\`
-
-Search for at most 3 accounts where first and last name begin with 'foo' or 'bar'.
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d 'query=foo bar'\\
-    -d limit=3 \\
-    https://cocalc.com/api/v1/user_search
-  ==> {"event":"user_search_results",
-       "id":"fd9b025b-25d0-4e27-97f4-2c080bb07155",
-       "results":[{"account_id":"1a842a67-eed3-405d-a222-2f23a33f675e",
-                   "first_name":"foo",
-                   "last_name":"bar"},
-                  {"account_id":"0e9418a7-af6a-4004-970a-32fafe733f29",
-                   "first_name":"bar123",
-                   "last_name":"fooxyz"},
-                  {"account_id":"93f8131c-6c21-401a-897d-d4abd9c6c225",
-                   "first_name":"Foo",
-                   "last_name":"Bar"}]}
-\`\`\`
-
-The same result as the last example above would be returned with a
-search string of 'bar foo'.
-A name of "Xfoo YBar" would not match.
-
-Note that email addresses are not returned for string search items.
-
-Email and string search types may be mixed in a single query:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d 'query=foo bar,jd@m.local' \\
-    -d limit=4 \\
-    https://cocalc.com/api/v1/user_search
-\`\`\`\
-`,
-  })
-);
-
-API(
-  message2({
-    event: "add_license_to_project",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the message",
-      },
-      project_id: {
-        init: required,
-        desc: "project_id",
-      },
-      license_id: {
-        init: required,
-        desc: "id of a license",
-      },
-    },
-    desc: `\
-Add a license to a project.
-
-Example:
-\`\`\`
-   example not available yet
-\`\`\`\
-`,
-  })
-);
-
-API(
-  message2({
-    event: "remove_license_from_project",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the message",
-      },
-      project_id: {
-        init: required,
-        desc: "project_id",
-      },
-      license_id: {
-        init: required,
-        desc: "id of a license",
-      },
-    },
-    desc: `\
-Remove a license from a project.
-
-Example:
-\`\`\`
-   example not available yet
-\`\`\`\
-`,
-  })
-);
-
 // hub --> client
 message({
   event: "user_search_results",
@@ -1345,244 +849,6 @@ message({
   id: undefined,
   users: required,
 }); // list of {account_id:?, first_name:?, last_name:?, mode:?, state:?}
-
-API(
-  message2({
-    event: "invite_collaborator",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      project_id: {
-        init: required,
-        desc: "project_id of project into which user is invited",
-      },
-      account_id: {
-        init: required,
-        desc: "account_id of invited user",
-      },
-      title: {
-        init: undefined,
-        desc: "Title of the project",
-      },
-      link2proj: {
-        init: undefined,
-        desc: "The full URL link to the project",
-      },
-      replyto: {
-        init: undefined,
-        desc: "Email address of user who is inviting someone",
-      },
-      replyto_name: {
-        init: undefined,
-        desc: "Name of user who is inviting someone",
-      },
-      email: {
-        init: undefined,
-        desc: "Body of email user is sending (plain text or HTML)",
-      },
-      subject: {
-        init: undefined,
-        desc: "Subject line of invitation email",
-      },
-    },
-    desc: `\
-Invite a user who already has a CoCalc account to
-become a collaborator on a project. You must be owner
-or collaborator on the target project.  The user
-will receive an email notification.
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
-    -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
-    https://cocalc.com/api/v1/invite_collaborator
-  ==> {"event":"success",
-       "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
-\`\`\`\
-`,
-  })
-);
-
-API(
-  message2({
-    event: "add_collaborator",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      project_id: {
-        init: undefined,
-        desc: "project_id of project to add user to (can be an array to add multiple users to multiple projects); isn't needed if token_id is specified",
-      },
-      account_id: {
-        init: required,
-        desc: "account_id of user (can be an array to add multiple users to multiple projects)",
-      },
-      token_id: {
-        init: undefined,
-        desc: "project_invite_token that is needed in case the user **making the request** is not already a project collab",
-      },
-    },
-    desc: `\
-Directly add a user to a CoCalc project.
-You must be owner or collaborator on the target project or provide,
-an optional valid token_id (the token determines the project).
-The user is NOT notified via email that they were added, and there
-is no confirmation process.  (Eventually, there will be
-an accept process, or this endpoint will only work
-with a notion of "managed accounts".)
-
-You can optionally add multiple user to multiple projects by padding
-an array of strings for project_id and account_id.  The arrays
-must have the same length.
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
-    -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
-    https://cocalc.com/api/v1/add_collaborator
-  ==> {"event":"success",
-       "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
-\`\`\`\
-`,
-  })
-);
-
-API(
-  message2({
-    event: "remove_collaborator",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      project_id: {
-        init: required,
-        desc: "project_id of project from which user is removed",
-      },
-      account_id: {
-        init: required,
-        desc: "account_id of removed user",
-      },
-    },
-    desc: `\
-Remove a user from a CoCalc project.
-You must be owner or collaborator on the target project.
-The project owner cannot be removed.
-The user is NOT notified via email that they were removed.
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d account_id=99ebde5c-58f8-4e29-b6e4-b55b8fd71a1b \\
-    -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
-    https://cocalc.com/api/v1/remove_collaborator
-  ==> {"event":"success",
-       "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
-\`\`\`\
-`,
-  })
-);
-
-// DANGER -- can be used to spam people.
-API(
-  message2({
-    event: "invite_noncloud_collaborators",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      project_id: {
-        init: required,
-        desc: "project_id of project into which users are invited",
-      },
-      to: {
-        init: required,
-        desc: "comma- or semicolon-delimited string of email addresses",
-      },
-      email: {
-        init: required,
-        desc: "body of the email to be sent, may include HTML markup",
-      },
-      title: {
-        init: required,
-        desc: "string that will be used for project title in the email",
-      },
-      link2proj: {
-        init: required,
-        desc: "URL for the target project",
-      },
-      replyto: {
-        init: undefined,
-        desc: "Reply-To email address",
-      },
-      replyto_name: {
-        init: undefined,
-        desc: "Reply-To name",
-      },
-      subject: {
-        init: undefined,
-        desc: "email Subject",
-      },
-    },
-    desc: `\
-Invite users who do not already have a CoCalc account
-to join a project.
-An invitation email is sent to each user in the \`to\`
-option.
-Invitation is not sent if there is already a CoCalc
-account with the given email address.
-You must be owner or collaborator on the target project.
-
-Limitations:
-- Total length of the request message must be less than or equal to 1024 characters.
-- Length of each email address must be less than 128 characters.
-
-
-Example:
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d project_id=18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
-    -d to=someone@m.local \\
-    -d 'email=Please sign up and join this project.' \\
-    -d 'title=Class Project' \\
-    -d link2proj=https://cocalc.com/projects/18955da4-4bfa-4afa-910c-7f2358c05eb8 \\
-    https://cocalc.com/api/v1/invite_noncloud_collaborators
-  ==>  {"event":"invite_noncloud_collaborators_resp",
-        "id":"39d7203d-89b1-4145-8a7a-59e41d5682a3",
-        "mesg":"Invited someone@m.local to collaborate on a project."}
-\`\`\`
-
-Email sent by the previous example:
-
-\`\`\`
-To: someone@m.local
-From: CoCalc <invites@cocalc.com
-Reply-To: help@cocalc.com
-Subject: CoCalc Invitation
-
-Please sign up and join this project.<br/><br/>\\n<b>
-To accept the invitation, please sign up at\\n
-<a href='https://cocalc.com'>https://cocalc.com</a>\\n
-using exactly the email address 'someone@m.local'.\\n
-Then go to <a href='https://cocalc.com/projects/18955da4-4bfa-4afa-910c-7f2358c05eb8'>
-the project 'Team Project'</a>.</b><br/>
-\`\`\`\
-`,
-  })
-);
-
-message({
-  event: "invite_noncloud_collaborators_resp",
-  id: undefined,
-  mesg: required,
-});
 
 /*
 Send/receive the current webapp code version number.
@@ -1615,23 +881,6 @@ message({
   ttl: undefined, // ttl in seconds of the blob if saved; 0=infinite
   error: undefined,
 }); // if not saving, a message explaining why.
-
-// remove the ttls from blobs in the blobstore.
-// client --> hub
-message({
-  event: "remove_blob_ttls",
-  id: undefined,
-  uuids: required,
-}); // list of sha1 hashes of blobs stored in the blobstore
-
-// DEPRECATED -- used by bup_server
-message({
-  event: "storage",
-  action: required, // open, save, snapshot, latest_snapshot, close
-  project_id: undefined,
-  param: undefined,
-  id: undefined,
-});
 
 message({
   event: "projects_running_on_server",
@@ -1751,7 +1000,7 @@ Folder \`A\` will be created in target project if it does not exist already.
        "id":"45d851ac-5ea0-4aea-9997-99a06c054a60"}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 message({
@@ -1813,7 +1062,7 @@ There might also be an \`"error"\`!
 
 **Note:** You need to have read/write access to the associated src/target project.
 `,
-  })
+  }),
 );
 
 message({
@@ -1837,28 +1086,12 @@ You need to have read/write access to the associated src/target project.
 
 **Note:** This will only remove entries which are *scheduled* and not yet completed.
 `,
-  })
+  }),
 );
 
 //############################################
 // Admin Functionality
 //############################################
-
-// client --> hub;  will result in an error if the user is not in the admin group.
-message({
-  event: "project_set_quotas",
-  id: undefined,
-  project_id: required, // the id of the project's id to set.
-  memory: undefined, // RAM in megabytes
-  memory_request: undefined, // RAM in megabytes
-  cpu_shares: undefined, // fair sharing with everybody is 256, not 1 !!!
-  cores: undefined, // integer max number of cores user can use (>=1)
-  disk_quota: undefined, // disk quota in megabytes
-  mintime: undefined, // time in **seconds** until idle projects are terminated
-  network: undefined, // 1 or 0; if 1, full access to outside network
-  member_host: undefined, // 1 or 0; if 1, project will be run on a members-only machine
-  always_running: undefined, // 1 or 0: if 1, project kept running.
-});
 
 /*
 Printing Files
@@ -1929,7 +1162,7 @@ Using JSON format to provide request id:
   ==> {"event":"pong","id":"8ec4ac73-2595-42d2-ad47-0b9641043b46","now":"2017-05-24T17:15:59.288Z"}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 message({
@@ -1937,79 +1170,6 @@ message({
   id: undefined,
   now: undefined,
 }); // timestamp
-
-API(
-  message2({
-    event: "copy_public_path_between_projects",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      src_project_id: {
-        init: required,
-        desc: "id of source project",
-      },
-      src_path: {
-        init: required,
-        desc: "relative path of directory or file in the source project",
-      },
-      target_project_id: {
-        init: required,
-        desc: "id of target project",
-      },
-      target_path: {
-        init: undefined,
-        desc: "defaults to src_path",
-      },
-      overwrite_newer: {
-        init: false,
-        desc: "overwrite newer versions of file at destination (destructive)",
-      },
-      delete_missing: {
-        init: false,
-        desc: "delete files in dest that are missing from source (destructive)",
-      },
-      backup: {
-        init: false,
-        desc: "make ~ backup files instead of overwriting changed files",
-      },
-      timeout: {
-        init: undefined,
-        desc: "how long to wait for the copy to complete before reporting error (though it could still succeed)",
-      },
-      exclude: {
-        init: undefined,
-        desc: "array of rsync patterns to exclude; each item in this string[] array is passed as a --exclude option to rsync",
-      },
-    },
-    desc: `\
-Copy a file or directory from a public project to a target project.
-
-**Note:** the \`timeout\` option is passed to a call to the \`rsync\` command.
-If no data is transferred for the specified number of seconds, then
-the copy terminates. The default is 0, which means no timeout.
-
-**Note:** You need to have write access to the target project.
-
-Example:
-
-Copy public file \`PUBLIC/doc.txt\` from source project to private file
-\`A/sample.txt\` in target project.
-
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d src_project_id=e49e86aa-192f-410b-8269-4b89fd934fba \\
-    -d src_path=PUBLIC/doc.txt \\
-    -d target_project_id=2aae4347-214d-4fd1-809c-b327150442d8 \\
-    -d target_path=A/sample.txt \\
-    https://cocalc.com/api/v1/copy_public_path_between_projects
-  ==> {"event":"success",
-       "id":"45d851ac-5ea0-4aea-9997-99a06c054a60"}
-\`\`\`\
-`,
-  })
-);
 
 API(
   message2({
@@ -2049,7 +1209,7 @@ via the API and is intended for use by CoCalc support only:
   "time":"2017-07-06T02:32:41.176Z"}]
 \`\`\`\
 `,
-  })
+  }),
 );
 
 message({
@@ -2086,7 +1246,7 @@ API(
   message({
     event: "stripe_get_customer",
     id: undefined,
-  })
+  }),
 );
 
 API(
@@ -2095,7 +1255,7 @@ API(
     id: undefined,
     customer: undefined, // if user already has a stripe customer account, info about it.
     stripe_publishable_key: undefined,
-  })
+  }),
 ); // if stripe is configured for this SMC instance, this is the public API key.
 
 // card
@@ -2104,7 +1264,7 @@ API(
     event: "stripe_create_source",
     id: undefined,
     token: required,
-  })
+  }),
 );
 
 API(
@@ -2112,7 +1272,7 @@ API(
     event: "stripe_delete_source",
     card_id: required,
     id: undefined,
-  })
+  }),
 );
 
 API(
@@ -2120,7 +1280,7 @@ API(
     event: "stripe_set_default_source",
     card_id: required,
     id: undefined,
-  })
+  }),
 );
 
 API(
@@ -2129,7 +1289,7 @@ API(
     card_id: required,
     info: required, // see https://stripe.com/docs/api/node#update_card, except we don't allow changing metadata
     id: undefined,
-  })
+  }),
 );
 
 // subscriptions to plans
@@ -2139,7 +1299,7 @@ API(
     event: "stripe_plans",
     id: undefined,
     plans: required,
-  })
+  }),
 ); // [{name:'Basic', projects:1, description:'...', price:'$10/month', trial_period:'30 days', ...}, ...]
 
 // Create a subscription to a plan
@@ -2150,7 +1310,7 @@ API(
     plan: required, // name of plan
     quantity: 1,
     coupon_id: undefined,
-  })
+  }),
 );
 
 // Delete a subscription to a plan
@@ -2160,7 +1320,7 @@ API(
     id: undefined,
     subscription_id: required,
     at_period_end: true,
-  })
+  }),
 );
 
 // Modify a subscription to a plan, e.g., change which projects plan applies to.
@@ -2173,7 +1333,7 @@ API(
     projects: undefined, // change associated projects from what they were to new list
     plan: undefined, // change plan to this
     coupon_id: undefined,
-  })
+  }),
 ); // apply a coupon to this subscription
 
 API(
@@ -2183,7 +1343,7 @@ API(
     limit: undefined, // between 1 and 100 (default: 10)
     ending_before: undefined, // see https://stripe.com/docs/api/node#list_charges
     starting_after: undefined,
-  })
+  }),
 );
 
 message({
@@ -2197,7 +1357,7 @@ API(
     event: "stripe_get_coupon",
     id: undefined,
     coupon_id: required,
-  })
+  }),
 );
 
 message({
@@ -2214,7 +1374,7 @@ API(
     limit: undefined, // between 1 and 100 (default: 10)
     ending_before: undefined, // see https://stripe.com/docs/api/node#list_charges
     starting_after: undefined,
-  })
+  }),
 );
 
 message({
@@ -2231,7 +1391,7 @@ API(
     limit: undefined, // between 1 and 100 (default: 10)
     ending_before: undefined, // see https://stripe.com/docs/api/node#list_customer_invoices
     starting_after: undefined,
-  })
+  }),
 );
 
 message({
@@ -2248,159 +1408,6 @@ message({
   amount: undefined, // currently in US dollars  (if amount or desc not given, then only creates customer, not invoice)
   description: undefined,
 });
-
-/*
-Support Tickets → right now going through Zendesk
-*/
-
-// client → hub
-API(
-  message2({
-    event: "create_support_ticket",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      username: {
-        init: undefined,
-        desc: "name on the ticket",
-      },
-      email_address: {
-        init: required,
-        desc: "if there is no email_address in the account, there cannot be a ticket!",
-      },
-      subject: {
-        init: required,
-        desc: "like an email subject",
-      },
-      body: {
-        init: required,
-        desc: "html or md formatted text",
-      },
-      tags: {
-        init: undefined,
-        desc: "a list of tags, like `['member']`",
-      },
-      account_id: {
-        init: undefined,
-        desc: "account_id for the ticket",
-      },
-      location: {
-        init: undefined,
-        desc: "from the URL, to know what the requester is talking about",
-      },
-      info: {
-        init: undefined,
-        desc: "additional data dict, like browser/OS",
-      },
-    },
-    desc: `\
-Open a CoCalc support ticket.
-
-Notes:
-
-- If \`account_id\` is not provided, the ticket will be created, but ticket
-info will not be returned by \`get_support_tickets\`.
-
-- If \`username\` is not provided, \`email_address\` is used for the name on the ticket.
-
-- \`location\` is used to provide a path to a specific project or file, for example
-  \`\`\`
-  /project/a17037cb-a083-4519-b3c1-38512af603a6/files/notebook.ipynb\`
-  \`\`\`
-
-If present, the \`location\` string will be expanded to a complete URL and
-appended to the body of the ticket.
-
-- The \`info\` dict can be used to provide additional metadata, for example
-  \`\`\`
-  {"user_agent":"Mozilla/5.0 ... Chrome/58.0.3029.96 Safari/537.36"}
-  \`\`\`
-
-- If the ticket concerns a CoCalc course, the project id of the course can be included in the \`info\` dict, for example,
-  \`\`\`
-  {"course":"0c7ae00c-ea43-4981-b454-90d4a8b1ac47"}
-  \`\`\`
-
-  In that case, the course project_id will be expanded to a URL and appended to the body of the ticket.
-
-- If \`tags\` or \`info\` are provided, options must be sent as a JSON object.
-
-Example:
-
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: -H "Content-Type: application/json" \\
-    -d '{"email_address":"jd@example.com", \\
-         "subject":"package xyz", \\
-         "account_id":"291f43c1-deae-431c-b763-712307fa6859", \\
-         "body":"please install package xyz for use with Python3", \\
-         "tags":["member"], \\
-         "location":"/projects/0010abe1-9283-4b42-b403-fa4fc1e3be57/worksheet.sagews", \\
-         "info":{"user_agent":"Mozilla/5.0","course":"cc8f1243-d573-4562-9aab-c15a3872d683"}}' \\
-    https://cocalc.com/api/v1/create_support_ticket
-  ==> {"event":"support_ticket_url",
-       "id":"abd649bf-ea2d-4952-b925-e44c6903945e",
-       "url":"https://sagemathcloud.zendesk.com/requests/0123"}
-\`\`\`\
-`,
-  })
-);
-
-message({
-  // client ← hub
-  event: "support_ticket_url",
-  id: undefined,
-  url: required,
-});
-
-// client → hub
-API(
-  message2({
-    event: "get_support_tickets",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-    },
-    desc: `\
-Fetch information on support tickets for the user making the request.
-See the example for details on what is returned.
-
-Notes:
-
-- There may be a delay of several minutes between the time a support ticket
-is created with a given \`account_id\` and the time that ticket is
-available to the account owner via \`get_support_tickets\`.
-- Field \`account_id\` is not required because it is implicit from the request.
-- Archived tickets are not returned.
-
-Example:
-
-\`\`\`
-curl -u sk_abcdefQWERTY090900000000:  -X POST \\
-    https://cocalc.com/api/v1/get_support_tickets
-  ==> {"event":"support_tickets",
-       "id":"58bfd6f4-fd63-4602-82b8-676d92f8b0b8",
-       "tickets":[{"id":1234,
-                   "subject":"package xyz",
-                   "description":"package xyz\\n\\nhttps://cocalc.com/projects/0010abe1-9283-4b42-b403-fa4fc1e3be57/worksheet.sagews\\n\\nCourse: https://cocalc.com/projects/cc8f1243-d573-4562-9aab-c15a3872d683",
-                   "created_at":"2017-07-05T14:28:38Z",
-                   "updated_at":"2017-07-05T14:29:29Z",
-                   "status":"open",
-                   "url":"https://sagemathcloud.zendesk.com/requests/0123"}]}
-\`\`\`\
-`,
-  })
-);
-
-message({
-  // client ← hub
-  event: "support_tickets",
-  id: undefined,
-  tickets: required,
-}); // json-list
 
 /*
 Queries directly to the database (sort of like Facebook's GraphQL)
@@ -2670,7 +1677,7 @@ Within directory 'db-schema':
         { id: "uuid", event: "query", response: "..." },
       ],
     ],
-  })
+  }),
 );
 
 message({
@@ -2750,65 +1757,12 @@ only obtain an auth token for accounts that have a password.
 
 You can now use the auth token to craft a URL like this:
 
-    https://cocalc.com/app?auth_token=BQokikJOvBiI2HlWgH4olfQ2
+    https://cocalc.com/auth/impersonate?auth_token=BQokikJOvBiI2HlWgH4olfQ2
 
 and provide that to a user.  When they visit that URL, they will be temporarily signed in as that user.\
 `,
-  })
+  }),
 );
-
-// hub --> client
-message({
-  event: "user_auth_token",
-  id: undefined,
-  auth_token: required,
-}); // 24 character string
-
-/*
-* Not fully implemented yet
-* client --> hub
-API message2
-    event        : 'revoke_auth_token'
-    fields:
-        id:
-           init  : undefined
-           desc  : 'A unique UUID for the query'
-        auth_token:
-           init  : required
-           desc  : 'an authentication token obtained using user_auth (24 character string)'
-    desc         : """
-Example:
-
-Revoke a temporary authentication token for an account.
-```
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -d auth_token=BQokikJOvBiI2HlWgH4olfQ2 \\
-    https://cocalc.com/api/v1/revoke_auth_token
-  ==> {"event":"success","id":"9e8b68ac-08e8-432a-a853-398042fae8c9"}
-```
-"""
-*/
-
-// client --> hub
-message2({
-  event: "metrics",
-  fields: {
-    metrics: {
-      init: required,
-      desc: "object containing the metrics",
-    },
-  },
-});
-
-message2({
-  event: "start_metrics",
-  fields: {
-    interval_s: {
-      init: required,
-      desc: "tells client that it should submit metrics to the hub every interval_s seconds",
-    },
-  },
-});
 
 // Info about available upgrades for a given user
 API(
@@ -2854,25 +1808,7 @@ Example:
      "network":372}}
 \`\`\`\
 `,
-  })
-);
-
-// client --> hub
-API(
-  message2({
-    event: "touch_project",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-      project_id: {
-        init: required,
-        desc: "id of project to touch",
-      },
-    },
-    desc: "Mark this project as being actively used by the user sending this message.  This keeps the project from idle timing out, among other things.",
-  })
+  }),
 );
 
 // client --> hub
@@ -2890,7 +1826,7 @@ API(
       },
     },
     desc: "Disconnect the hub that gets this message from the project.   This is used entirely for internal debugging and development.",
-  })
+  }),
 );
 
 // client <-- hub
@@ -2961,23 +1897,6 @@ message({
 });
 
 // client --> hub
-API(
-  message({
-    event: "get_syncdoc_history",
-    id: undefined,
-    string_id: required,
-    patches: undefined,
-  })
-);
-
-// hub --> client
-message({
-  event: "syncdoc_history",
-  id: undefined,
-  history: required,
-});
-
-// client --> hub
 // It's an error if user is not signed in, since
 // then we don't know who to track.
 message({
@@ -2987,36 +1906,13 @@ message({
   value: required, // map -- additional info about that event
 });
 
-// Client <--> hub.
-// Enables admins (and only admins!) to generate and get a password reset
-// for another user.  The response message contains a password reset link,
-// though without the site part of the url (the client should fill that in).
-// This makes it possible for admins to reset passwords of users, even if
-// email is not setup, e.g., for cocalc-docker, and also deals with the
-// possibility that users have no email address, or broken email, or they
-// can't receive email due to crazy spam filtering.
-// Non-admins always get back an error.  The reset expires after **8 hours**.
-message({
-  event: "admin_reset_password",
-  id: undefined,
-  email_address: required,
-  link: undefined,
-});
-
-message({
-  event: "admin_ban_user",
-  id: undefined,
-  account_id: required,
-  ban: required, // if true ban; if false, unban
-});
-
 // Request to purchase a license (either via stripe or a quote)
 API(
   message({
     event: "purchase_license",
     id: undefined,
     info: required, // import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
-  })
+  }),
 );
 
 message({
@@ -3037,7 +1933,7 @@ API(
     model: undefined,
     tag: undefined,
     stream: undefined, // if true, instead sends many little chatgpt_response messages with the last text value undefined.
-  })
+  }),
 );
 
 message({
@@ -3058,7 +1954,7 @@ API(
     limit: required,
     selector: undefined,
     offset: undefined,
-  })
+  }),
 );
 
 message({
@@ -3075,7 +1971,7 @@ API(
     path: required,
     data: required,
     id: undefined,
-  })
+  }),
 );
 
 message({
@@ -3092,7 +1988,7 @@ API(
     project_id: required,
     path: required,
     data: required,
-  })
+  }),
 );
 
 message({
@@ -3114,7 +2010,7 @@ API(
     tag: undefined,
     pool: undefined, // {size?: number; timeout_s?: number;}
     limits: undefined, // see packages/jupyter/nbgrader/jupyter-run.ts
-  })
+  }),
 );
 
 message({
@@ -3131,7 +2027,7 @@ API(
     id: undefined,
     project_id: undefined,
     kernels: undefined, // response is same message but with this filled in with array of data giving available kernels
-  })
+  }),
 );
 
 API(
@@ -3140,5 +2036,5 @@ API(
     id: undefined,
     project_id: undefined,
     kernels: undefined, // response is same message but with this filled in with array of data giving available kernels
-  })
+  }),
 );

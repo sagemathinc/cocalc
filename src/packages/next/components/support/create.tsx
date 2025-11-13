@@ -10,13 +10,17 @@ import {
 } from "antd";
 import { useRouter } from "next/router";
 import { ReactNode, useRef, useState } from "react";
-import CodeMirror from "components/share/codemirror";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
+import ChatGPTHelp from "components/openai/chatgpt-help";
+import CodeMirror from "components/share/codemirror";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
+import { VideoItem } from "components/videos";
 import apiPost from "lib/api/post";
 import { MAX_WIDTH } from "lib/config";
 import { useCustomize } from "lib/customize";
@@ -24,8 +28,6 @@ import getBrowserInfo from "./browser-info";
 import RecentFiles from "./recent-files";
 import { Type } from "./tickets";
 import { NoZendesk } from "./util";
-import { Paragraph, Title } from "components/misc";
-import ChatGPTHelp from "components/openai/chatgpt-help";
 
 const CHATGPT_DISABLED = true;
 const MIN_BODY_LENGTH = 16;
@@ -38,17 +40,30 @@ function VSpace({ children }) {
   );
 }
 
-export type Type = "problem" | "question" | "task" | "purchase";
+export type Type = "problem" | "question" | "task" | "purchase" | "chat";
 
 function stringToType(s?: any): Type {
-  if (s == "problem" || s == "question" || s == "task" || s == "purchase")
+  if (
+    s === "problem" ||
+    s === "question" ||
+    s === "task" ||
+    s === "purchase" ||
+    s === "chat"
+  )
     return s;
   return "problem"; // default;
 }
 
 export default function Create() {
-  const { contactEmail, zendesk, account, openaiEnabled, siteName } =
-    useCustomize();
+  const {
+    account,
+    onCoCalcCom,
+    helpEmail,
+    openaiEnabled,
+    siteName,
+    zendesk,
+    supportVideoCall,
+  } = useCustomize();
   const router = useRouter();
   // The URL the user was viewing when they requested support.
   // This could easily be blank, but if it is set it can be useful.
@@ -61,6 +76,7 @@ export default function Create() {
   const [body, setBody] = useState<string>(
     router.query.body ? `${router.query.body}` : "",
   );
+  const required = router.query.required ? `${router.query.required}` : "";
   const [subject, setSubject] = useState<string>(
     router.query.subject ? `${router.query.subject}` : "",
   );
@@ -71,6 +87,10 @@ export default function Create() {
 
   const showExtra = router.query.hideExtra != "true";
 
+  // hasRequired means "has the required information", which
+  // means that body does NOT have required in it!
+  const hasRequired = !required || !body.includes(required);
+
   const submittable = useRef<boolean>(false);
   submittable.current = !!(
     !submitting &&
@@ -78,7 +98,8 @@ export default function Create() {
     !success &&
     isValidEmailAddress(email) &&
     subject &&
-    (body ?? "").length >= MIN_BODY_LENGTH
+    (body ?? "").length >= MIN_BODY_LENGTH &&
+    hasRequired
   );
 
   if (!zendesk) {
@@ -118,6 +139,61 @@ export default function Create() {
     );
   }
 
+  function renderChat() {
+    if (type === "chat" && supportVideoCall) {
+      return (
+        <Alert
+          type="info"
+          showIcon={false}
+          description={
+            <Paragraph style={{ fontSize: "16px" }}>
+              Please describe what you want to discuss in the{" "}
+              <A href={supportVideoCall}>video chat</A>. We will then contact
+              you to confirm the time.
+            </Paragraph>
+          }
+          message={
+            <Title level={2}>
+              <Icon name="video-camera" /> You can{" "}
+              <A href={supportVideoCall}>book a video chat</A> with us.
+            </Title>
+          }
+        />
+      );
+    } else {
+      return (
+        <>
+          <b>
+            <Status
+              done={body && body.length >= MIN_BODY_LENGTH && hasRequired}
+            />{" "}
+            Description
+          </b>
+          <div
+            style={{
+              marginLeft: "30px",
+              borderLeft: "1px solid lightgrey",
+              paddingLeft: "15px",
+            }}
+          >
+            {type === "problem" && <Problem onChange={setBody} />}
+            {type === "question" && (
+              <Question onChange={setBody} defaultValue={body} />
+            )}
+            {type === "purchase" && (
+              <Purchase
+                onChange={setBody}
+                defaultValue={body}
+                showExtra={showExtra}
+              />
+            )}
+            {type === "task" && <Task onChange={setBody} />}
+          </div>
+        </>
+      );
+    }
+  }
+
   return (
     <Layout.Content style={{ backgroundColor: "white" }}>
       <div
@@ -134,22 +210,37 @@ export default function Create() {
         </Title>
         {showExtra && (
           <>
-            <p style={{ fontSize: "12pt" }}>
-              Create a new support ticket below or{" "}
-              <A href="/support/tickets">
-                check the status of your support tickets
-              </A>
-              .{" "}
-              {contactEmail && (
-                <>
-                  You can also email us directly at{" "}
-                  <A href={`mailto:${contactEmail}`}>{contactEmail}</A>.
-                </>
-              )}
-            </p>
-            {openaiEnabled && !CHATGPT_DISABLED && (
+            <Space>
+              <Space direction="vertical" size="large">
+                <Paragraph style={{ fontSize: "16px" }}>
+                  Create a new support ticket below or{" "}
+                  <A href="/support/tickets">
+                    check the status of your support tickets
+                  </A>
+                  .
+                </Paragraph>
+                {helpEmail ? (
+                  <Paragraph style={{ fontSize: "16px" }}>
+                    You can also email us directly at{" "}
+                    <A href={`mailto:${helpEmail}`}>{helpEmail}</A>.
+                  </Paragraph>
+                ) : undefined}
+                {supportVideoCall ? (
+                  <Paragraph style={{ fontSize: "16px" }}>
+                    Alternatively, feel free to{" "}
+                    <A href={supportVideoCall}>book a video call</A> with us.
+                  </Paragraph>
+                ) : undefined}
+              </Space>
+              <VideoItem
+                width={600}
+                style={{ margin: "15px 0", width: "600px" }}
+                id={"4Ef9sxX59XM"}
+              />
+            </Space>
+            {openaiEnabled && onCoCalcCom && !CHATGPT_DISABLED ? (
               <ChatGPT siteName={siteName} />
-            )}
+            ) : undefined}
             <FAQ />
             <Title level={2}>Create Your Ticket</Title>
             <Instructions />
@@ -206,70 +297,54 @@ export default function Create() {
                   <Type type="purchase" /> I have a question regarding
                   purchasing a product.
                 </Radio>
+                <Radio value={"chat"}>
+                  <Type type="chat" /> I would like to schedule a video chat.
+                </Radio>
               </VSpace>
             </Radio.Group>
             <br />
-            {showExtra && type !== "purchase" && (
+            {showExtra && type !== "purchase" && type != "chat" && (
               <>
                 <Files onChange={setFiles} />
                 <br />
               </>
             )}
-            <b>
-              <Status done={body && body.length >= MIN_BODY_LENGTH} />{" "}
-              Description
-            </b>
-            <div
-              style={{
-                marginLeft: "30px",
-                borderLeft: "1px solid lightgrey",
-                paddingLeft: "15px",
-              }}
-            >
-              {type == "problem" && <Problem onChange={setBody} />}
-              {type == "question" && (
-                <Question onChange={setBody} defaultValue={body} />
-              )}
-              {type == "purchase" && (
-                <Purchase
-                  onChange={setBody}
-                  defaultValue={body}
-                  showExtra={showExtra}
-                />
-              )}
-              {type == "task" && <Task onChange={setBody} />}
-            </div>
+            {renderChat()}
           </VSpace>
-          <p style={{ marginTop: "30px" }}>
-            After submitting this, you'll receive a link, which you should save
-            until you receive a confirmation email. You can also{" "}
-            <A href="/support/tickets">check the status of your tickets here</A>
-            .
-          </p>
 
           <div style={{ textAlign: "center", marginTop: "30px" }}>
-            <Button
-              shape="round"
-              size="large"
-              disabled={!submittable.current}
-              type="primary"
-              onClick={createSupportTicket}
-            >
-              <Icon name="paper-plane" />{" "}
-              {submitting
-                ? "Submitting..."
-                : success
-                ? "Thank you for creating a ticket"
-                : submitError
-                ? "Close the error box to try again"
-                : !isValidEmailAddress(email)
-                ? "Enter Valid Email Address above"
-                : !subject
-                ? "Enter Subject above"
-                : (body ?? "").length < MIN_BODY_LENGTH
-                ? `Describe your ${type} in detail above`
-                : "Create Support Ticket"}
-            </Button>
+            {!hasRequired && (
+              <Alert
+                showIcon
+                style={{ margin: "15px 30px" }}
+                type="error"
+                description={`You must replace the text '${required}' everywhere above with the requested information.`}
+              />
+            )}
+            {type != "chat" && (
+              <Button
+                shape="round"
+                size="large"
+                disabled={!submittable.current}
+                type="primary"
+                onClick={createSupportTicket}
+              >
+                <Icon name="paper-plane" />{" "}
+                {submitting
+                  ? "Submitting..."
+                  : success
+                  ? "Thank you for creating a ticket"
+                  : submitError
+                  ? "Close the error box to try again"
+                  : !isValidEmailAddress(email)
+                  ? "Enter Valid Email Address above"
+                  : !subject
+                  ? "Enter Subject above"
+                  : (body ?? "").length < MIN_BODY_LENGTH
+                  ? `Describe your ${type} in detail above`
+                  : "Create Support Ticket"}
+              </Button>
+            )}
             {submitting && <Loading style={{ fontSize: "32pt" }} />}
             {submitError && (
               <div>
@@ -283,12 +358,12 @@ export default function Create() {
                   style={{ margin: "15px auto", maxWidth: "500px" }}
                 />
                 <br />
-                {contactEmail && (
+                {helpEmail ? (
                   <>
                     If you continue to have problems, email us directly at{" "}
-                    <A href={`mailto:${contactEmail}`}>{contactEmail}</A>.
+                    <A href={`mailto:${helpEmail}`}>{helpEmail}</A>.
                   </>
-                )}
+                ) : undefined}
               </div>
             )}
             {success && (
@@ -307,6 +382,14 @@ export default function Create() {
             )}
           </div>
         </form>
+        {type !== "chat" && (
+          <Paragraph style={{ marginTop: "30px" }}>
+            After submitting this, you'll receive a link, which you should save
+            until you receive a confirmation email. You can also{" "}
+            <A href="/support/tickets">check the status of your tickets here</A>
+            .
+          </Paragraph>
+        )}
       </div>
     </Layout.Content>
   );

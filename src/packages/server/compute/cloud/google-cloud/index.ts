@@ -11,6 +11,7 @@ import getClient, {
   suspendInstance,
   resumeInstance,
   setMetadata,
+  getSerialPortOutput as getSerialPortOutput0,
 } from "./client";
 import getPricingData from "./pricing-data";
 import createInstance from "./create-instance";
@@ -23,7 +24,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getArchitecture, setTested } from "./images";
 import { getInstanceDataTransferOut } from "./monitoring";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { hasDNS, makeDnsChange } from "@cocalc/server/compute/dns";
+import { delay } from "awaiting";
 
 export * from "./validate-configuration";
 export * from "./make-configuration-change";
@@ -56,7 +57,6 @@ export function getStartupParams(server: ComputeServer) {
     project_id: server.project_id,
     gpu: !!configuration.acceleratorType,
     arch: getArchitecture(configuration.machineType),
-    image: configuration.image ?? "python",
   };
 }
 
@@ -109,6 +109,38 @@ export async function start(server: ComputeServer) {
     await startInstance({ name, zone: configuration.zone, wait: true });
   }
   await setData({ id: server.id, data: { name }, cloud: "google-cloud" });
+  await waitForIp({
+    name,
+    zone: configuration.zone,
+    id: server.id,
+    maxTime: 10 * 60 * 1000,
+  });
+}
+
+async function waitForIp({ name, zone, id, maxTime }) {
+  // finally ensure we have ip address -- should not take long at a
+  let d = 3000;
+  const end = Date.now() + maxTime;
+  while (Date.now() < end) {
+    try {
+      const instance = await getInstance({ name, zone });
+      const externalIp = instance?.externalIp;
+      logger.debug("waitForIp: waiting for ip address: got", externalIp);
+      await setData({
+        id,
+        data: instance,
+        cloud: "google-cloud",
+      });
+      if (externalIp) {
+        return;
+      }
+    } catch (err) {
+      logger.debug(`waitForIp: error making api call: ${err}`);
+    }
+    d = Math.min(30000, d * 1.3);
+    await delay(d);
+  }
+  throw Error(`failed to get ip address for id = ${id}`);
 }
 
 export async function reboot(server: ComputeServer) {
@@ -160,37 +192,6 @@ export async function state(server: ComputeServer): Promise<State> {
       logger.debug("WARNING -- issue saving data about instance", err);
     }
   })();
-  if (
-    server.configuration.dns &&
-    (instance.state == "running" || instance.state == "deprovisioned")
-  ) {
-    // We only mess with DNS when the instance is running (in which case we make sure it is properly set),
-    // or the instance is deprovisioned, in which case we delete the DNS.
-    // In all other cases, we just leave it alone.  It turns out if you delete the DNS record
-    // whenever the machine stops, it can often take a very long time after you create the
-    // record for clients to become aware of it again, which is very annoying.
-    // TODO: we may want to change dns records for off machines to point to some special
-    // status page (?).
-    (async () => {
-      try {
-        if (await hasDNS()) {
-          await makeDnsChange({
-            id: server.id,
-            cloud: server.cloud,
-            name: instance.state == "running" ? server.configuration.dns : "",
-          });
-        } else {
-          if (server.configuration.dns) {
-            logger.debug(
-              `WARNING -- not setting dns subdomain ${server.configuration.dns} because cloudflare api token and compute server dns not fully configured.  Please configure it.`,
-            );
-          }
-        }
-      } catch (err) {
-        logger.debug("WARNING -- issue setting dns", err);
-      }
-    })();
-  }
 
   return instance.state;
 }
@@ -261,4 +262,16 @@ export async function setImageTested(server: ComputeServer, tested: boolean) {
     throw Error("must have a google-cloud configuration");
   }
   await setTested(configuration, tested);
+}
+
+export async function getSerialPortOutput(
+  server: ComputeServer,
+): Promise<string> {
+  const { configuration } = server;
+  if (configuration?.cloud != "google-cloud") {
+    throw Error("must have a google-cloud configuration");
+  }
+  const name = await getServerName(server);
+  const { zone } = configuration;
+  return await getSerialPortOutput0({ name, zone });
 }

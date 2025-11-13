@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -25,6 +25,9 @@ import { realpath } from "fs/promises";
 import { promisify } from "util";
 import which from "which";
 const exec = promisify(child_process_exec);
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { getLogger } from "@cocalc/backend/logger";
+const logger = getLogger("configuration");
 
 // we prefix the environment PATH by default bin paths pointing into it in order to pick up locally installed binaries.
 // they can't be set as defaults for projects since this could break it from starting up
@@ -40,7 +43,7 @@ function construct_path(): string {
 
 const PATH = construct_path();
 
-// test if the given utiltiy "name" exists (executable in the PATH)
+// test if the given utility "name" exists (executable in the PATH)
 async function have(name: string): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     which(name, { path: PATH }, function (error, path) {
@@ -177,6 +180,13 @@ async function get_julia(): Promise<boolean> {
   return await have("julia");
 }
 
+// rserver is the name of the executable to start the R IDE Server.
+// In a default Linux installation, it is not in the PATH – therefore add a symlink pointing to it.
+// At the time of writing this, it was here: /usr/lib/rstudio-server/bin/rserver
+async function get_rserver(): Promise<boolean> {
+  return await have("rserver");
+}
+
 // check if we can read that json file.
 // if it exists, show the corresponding button in "Files".
 async function get_library(): Promise<boolean> {
@@ -244,97 +254,140 @@ async function get_homeDirectory(): Promise<string | null> {
 }
 
 // assemble capabilities object
-async function capabilities(): Promise<MainCapabilities> {
-  const sage_info_future = get_sage_info();
-  const hashsums = await get_hashsums();
-  const [
-    formatting,
-    latex,
-    jupyter,
-    spellcheck,
-    html2pdf,
-    pandoc,
-    sshd,
-    library,
-    x11,
-    rmd,
-    qmd,
-    vscode,
-    julia,
-    homeDirectory,
-  ] = await Promise.all([
-    get_formatting(),
-    get_latex(hashsums),
-    get_jupyter(),
-    get_spellcheck(),
-    get_html2pdf(),
-    get_pandoc(),
-    get_sshd(),
-    get_library(),
-    get_x11(),
-    get_rmd(),
-    get_quarto(),
-    get_vscode(),
-    get_julia(),
-    get_homeDirectory(),
-  ]);
-  const caps: MainCapabilities = {
-    jupyter,
-    formatting,
-    hashsums,
-    latex,
-    sage: false,
-    sage_version: undefined,
-    x11,
-    rmd,
-    qmd,
-    jq: await get_jq(), // don't know why, but it doesn't compile when inside the Promise.all
-    spellcheck,
-    library,
-    sshd,
-    html2pdf,
-    pandoc,
-    vscode,
-    julia,
-    homeDirectory,
-  };
-  const sage = await sage_info_future;
-  caps.sage = sage.exists;
-  if (caps.sage) {
-    caps.sage_version = sage.version;
+// no matter what, never run this more than once very this many MS.
+// I have at least one project in production that gets DOS'd due to
+// calls to capabilities, even with the reuseInFlight stuff.
+const SHORT_CAPABILITIES_CACHE_MS = 15000;
+let shortCapabilitiesCache = {
+  time: 0,
+  caps: null as null | MainCapabilities,
+  error: null as any,
+};
+
+const capabilities = reuseInFlight(async (): Promise<MainCapabilities> => {
+  const time = Date.now();
+  if (time - shortCapabilitiesCache.time <= SHORT_CAPABILITIES_CACHE_MS) {
+    if (shortCapabilitiesCache.error != null) {
+      logger.debug("capabilities: using cache for error");
+      throw shortCapabilitiesCache.error;
+    }
+    if (shortCapabilitiesCache.caps != null) {
+      logger.debug("capabilities: using cache for caps");
+      return shortCapabilitiesCache.caps as MainCapabilities;
+    }
+    logger.debug("capabilities: BUG -- want to use cache but no data");
   }
-  return caps;
-}
+  logger.debug("capabilities: running");
+  try {
+    const sage_info_future = get_sage_info();
+    const hashsums = await get_hashsums();
+    const [
+      formatting,
+      latex,
+      jupyter,
+      spellcheck,
+      html2pdf,
+      pandoc,
+      sshd,
+      library,
+      x11,
+      rmd,
+      qmd,
+      vscode,
+      julia,
+      homeDirectory,
+      rserver,
+    ] = await Promise.all([
+      get_formatting(),
+      get_latex(hashsums),
+      get_jupyter(),
+      get_spellcheck(),
+      get_html2pdf(),
+      get_pandoc(),
+      get_sshd(),
+      get_library(),
+      get_x11(),
+      get_rmd(),
+      get_quarto(),
+      get_vscode(),
+      get_julia(),
+      get_homeDirectory(),
+      get_rserver(),
+    ]);
+    const caps: MainCapabilities = {
+      jupyter,
+      rserver,
+      formatting,
+      hashsums,
+      latex,
+      sage: false,
+      sage_version: undefined,
+      x11,
+      rmd,
+      qmd,
+      jq: await get_jq(), // don't know why, but it doesn't compile when inside the Promise.all
+      spellcheck,
+      library,
+      sshd,
+      html2pdf,
+      pandoc,
+      vscode,
+      julia,
+      homeDirectory,
+    };
+    const sage = await sage_info_future;
+    caps.sage = sage.exists;
+    if (caps.sage) {
+      caps.sage_version = sage.version;
+    }
+    logger.debug("capabilities: saving caps");
+    shortCapabilitiesCache.time = time;
+    shortCapabilitiesCache.error = null;
+    shortCapabilitiesCache.caps = caps;
+    return caps as MainCapabilities;
+  } catch (err) {
+    logger.debug("capabilities: saving error", err);
+    shortCapabilitiesCache.time = time;
+    shortCapabilitiesCache.error = err;
+    shortCapabilitiesCache.caps = null;
+    throw err;
+  }
+});
 
 // this is the entry point for the API call
 // "main": everything that's needed throughout the project
 // "x11": additional checks which are queried when an X11 editor opens up
 // TODO similarly, query available "shells" to use for the corresponding code editor button
-export async function get_configuration(
-  aspect: ConfigurationAspect,
-  no_cache = false,
-): Promise<Configuration> {
-  const cached = conf[aspect];
-  if (cached != null && !no_cache) return cached;
-  const t0 = new Date().getTime();
-  const new_conf: any = (async function () {
-    switch (aspect) {
-      case "main":
-        return {
-          timestamp: new Date(),
-          capabilities: await capabilities(),
-        };
-      case "x11":
-        return {
-          timestamp: new Date(),
-          capabilities: await x11_apps(),
-        };
-    }
-  })();
-  new_conf.timing_s = (new Date().getTime() - t0) / 1000;
-  conf[aspect] = await new_conf;
-  return new_conf;
-}
+
+// This is expensive, so put in a reuseInFlight to make it cheap in case a frontend
+// annoyingly calls this dozens of times at once -- https://github.com/sagemathinc/cocalc/issues/7806
+export const get_configuration = reuseInFlight(
+  async (
+    aspect: ConfigurationAspect,
+    no_cache = false,
+  ): Promise<Configuration> => {
+    const cached = conf[aspect];
+    if (cached != null && !no_cache) return cached;
+    const t0 = new Date().getTime();
+    const new_conf: any = (async function () {
+      switch (aspect) {
+        case "main":
+          return {
+            timestamp: new Date(),
+            capabilities: await capabilities(),
+          };
+        case "x11":
+          return {
+            timestamp: new Date(),
+            capabilities: await x11_apps(),
+          };
+      }
+    })();
+    new_conf.timing_s = (new Date().getTime() - t0) / 1000;
+    conf[aspect] = await new_conf;
+    return new_conf;
+  },
+);
 
 // testing: uncomment, and run $ ts-node configuration.ts
 // (async () => {

@@ -1,24 +1,22 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React from "react";
+import { Space, Tooltip } from "antd";
 import * as immutable from "immutable";
-import { HiddenSM, Icon, Gap } from "../../components";
-import { COLORS } from "@cocalc/util/theme";
-import { ComputeImages } from "@cocalc/frontend/custom-software/init";
-import { ProjectActions } from "@cocalc/frontend/project_store";
-import { IS_MOBILE } from "@cocalc/frontend/feature";
-import {
-  Button,
-  ButtonGroup,
-  ButtonToolbar,
-} from "@cocalc/frontend/antd-bootstrap";
-
+import React, { useEffect, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
+import { Gap, Icon } from "@cocalc/frontend/components";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
+import { ComputeImages } from "@cocalc/frontend/custom-software/init";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { labels } from "@cocalc/frontend/i18n";
+import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
 import * as misc from "@cocalc/util/misc";
-import { file_actions } from "@cocalc/frontend/project_store";
+import { COLORS } from "@cocalc/util/theme";
 
 const ROW_INFO_STYLE = {
   color: COLORS.GRAY,
@@ -41,10 +39,9 @@ interface Props {
   project_is_running?: boolean;
 }
 
-import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-
 export const ActionBar: React.FC<Props> = (props: Props) => {
-  const [select_entire_directory, set_select_entire_directory] = React.useState<
+  const intl = useIntl();
+  const [select_entire_directory, set_select_entire_directory] = useState<
     "hidden" | "check" | "clear"
   >("hidden");
   const student_project_functionality = useStudentProjectFunctionality(
@@ -54,14 +51,14 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     return <div></div>;
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     // user changed directory, hide the "select entire directory" button
     if (select_entire_directory !== "hidden") {
       set_select_entire_directory("hidden");
     }
   }, [props.current_path]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (
       props.checked_files.size === props.listing.length &&
       select_entire_directory === "check"
@@ -98,17 +95,26 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_check_all_button(): JSX.Element | undefined {
-    let button_icon, button_text;
+  function render_check_all_button(): React.JSX.Element | undefined {
     if (props.listing.length === 0) {
       return;
     }
+
+    const checked = props.checked_files.size > 0;
+    const button_text = intl.formatMessage(
+      {
+        id: "project.explorer.action-bar.check_all.button",
+        defaultMessage: `{checked, select, true {Uncheck All} other {Check All}}`,
+        description:
+          "For checking all checkboxes to select all files in a listing.",
+      },
+      { checked },
+    );
+
+    let button_icon;
     if (props.checked_files.size === 0) {
       button_icon = "square-o";
-      button_text = "Check All";
     } else {
-      button_text = "Uncheck All";
-
       if (props.checked_files.size >= props.listing.length) {
         button_icon = "check-square-o";
       } else {
@@ -135,7 +141,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_select_entire_directory(): JSX.Element | undefined {
+  function render_select_entire_directory(): React.JSX.Element | undefined {
     switch (select_entire_directory) {
       case "check":
         return (
@@ -152,7 +158,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_currently_selected(): JSX.Element | undefined {
+  function render_currently_selected(): React.JSX.Element | undefined {
     if (props.listing.length === 0) {
       return;
     }
@@ -163,20 +169,37 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     if (checked === 0) {
       return (
         <div style={style}>
-          <span>{`${total} ${misc.plural(total, "item")}`}</span>
+          <span>
+            {total} {intl.formatMessage(labels.item_plural, { total })}
+          </span>
           <div style={{ display: "inline" }}>
             {" "}
-            &mdash; Click checkbox to the left of a file to copy, download, etc.
+            &mdash;{" "}
+            <FormattedMessage
+              id="project.explorer.action-bar.currently_selected.info"
+              defaultMessage={
+                "Click the checkbox to the left of a file to copy, download, etc."
+              }
+            />
           </div>
         </div>
       );
     } else {
       return (
         <div style={style}>
-          <span>{`${checked} of ${total} ${misc.plural(
-            total,
-            "item",
-          )} selected`}</span>
+          <span>
+            {intl.formatMessage(
+              {
+                id: "project.explorer.action-bar.currently_selected.items",
+                defaultMessage: "{checked} of {total} {items} selected",
+              },
+              {
+                checked,
+                total,
+                items: intl.formatMessage(labels.item_plural, { total }),
+              },
+            )}
+          </span>
           <Gap />
           {render_select_entire_directory()}
         </div>
@@ -184,28 +207,28 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_action_button(name: string): JSX.Element {
+  function render_action_button(name: string): React.JSX.Element {
     const disabled =
       isDisabledSnapshots(name) &&
       (props.current_path != null
         ? props.current_path.startsWith(".snapshots")
         : undefined);
     const obj = file_actions[name];
-    const get_basename = () => {
-      return misc.path_split(props.checked_files.first()).tail;
-    };
     const handle_click = (_e: React.MouseEvent) => {
-      props.actions.set_file_action(name, get_basename);
+      props.actions.set_file_action(name);
     };
 
     return (
-      <Button onClick={handle_click} disabled={disabled} key={name}>
-        <Icon name={obj.icon} /> <HiddenSM>{obj.name}...</HiddenSM>
-      </Button>
+      <Tooltip title={intl.formatMessage(obj.name)}>
+        <Button onClick={handle_click} disabled={disabled} key={name}>
+          <Icon name={obj.icon} />
+        </Button>
+        &nbsp;
+      </Tooltip>
     );
   }
 
-  function render_action_buttons(): JSX.Element | undefined {
+  function render_action_buttons(): React.JSX.Element | undefined {
     let action_buttons: (
       | "download"
       | "compress"
@@ -242,13 +265,13 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
       action_buttons = [...ACTION_BUTTONS_MULTI];
     }
     return (
-      <ButtonGroup>
+      <Space.Compact>
         {action_buttons.map((v) => render_action_button(v))}
-      </ButtonGroup>
+      </Space.Compact>
     );
   }
 
-  function render_button_area(): JSX.Element | undefined {
+  function render_button_area(): React.JSX.Element | undefined {
     if (props.checked_files.size === 0) {
       if (
         props.project_id == null ||
@@ -259,7 +282,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
         return;
       }
       return (
-        <ButtonGroup>
+        <Space.Compact>
           <CustomSoftwareInfo
             project_id={props.project_id}
             images={props.images}
@@ -269,7 +292,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
             show_custom_software_reset={!!props.show_custom_software_reset}
             project_is_running={!!props.project_is_running}
           />
-        </ButtonGroup>
+        </Space.Compact>
       );
     } else {
       return render_action_buttons();
@@ -282,9 +305,9 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     <div style={{ flex: "1 0 auto" }}>
       <div style={{ flex: "1 0 auto" }}>
         <ButtonToolbar style={{ whiteSpace: "nowrap", padding: "0" }}>
-          <ButtonGroup>
+          <Space.Compact>
             {props.project_is_running ? render_check_all_button() : undefined}
-          </ButtonGroup>
+          </Space.Compact>
           {render_button_area()}
         </ButtonToolbar>
       </div>
@@ -308,6 +331,7 @@ export const ACTION_BUTTONS_DIR = [
 
 export const ACTION_BUTTONS_FILE = [
   "download",
+  "compress",
   "delete",
   "rename",
   "duplicate",

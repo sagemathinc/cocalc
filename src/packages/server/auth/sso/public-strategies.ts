@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // inherited legacy SSO defintiions – they're special cases, have their custom wrappers, etc.
@@ -54,16 +54,19 @@ export const GoogleStrategyConf: StrategyConf = {
   auth_opts: { scope: "openid email profile" },
   login_info: {
     id: (profile) => profile.id,
-    first_name: (profile) => profile.name.givenName,
-    last_name: (profile) => profile.name.familyName,
-    emails: (profile) => profile.emails.map((x) => x.value as string),
+    first_name: (profile) => profile.name?.givenName ?? "Anonymous",
+    last_name: (profile) => profile.name?.familyName ?? "User",
+    emails: (profile) => profile.emails?.map((x) => x.value as string) ?? [],
   },
 };
 
 // Get these here:
 //      https://github.com/settings/applications/new
 // You must then put them in the database, via
-//   db.set_passport_settings(strategy:'github', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
+//   ~/cocalc/src/packages/server$ node
+//   > db = require('@cocalc/database').db()
+//   db.set_passport_settings({strategy:'github', conf:{clientID:'...',clientSecret:'...'}, cb:console.log})
+//
 
 export const GithubStrategyConf: StrategyConf = {
   name: "github",

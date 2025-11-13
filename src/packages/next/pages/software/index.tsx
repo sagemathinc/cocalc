@@ -1,9 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Layout } from "antd";
+import { Layout, Radio } from "antd";
 
 import {
   LanguageName,
@@ -19,6 +19,8 @@ import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+
+// Images
 import juliaLogo from "public/features/julia-logo.svg";
 import sageScreenshot from "public/features/sage-worksheet.png";
 import executablesScreenshot from "public/software/executables.png";
@@ -56,23 +58,26 @@ const LINKS: { [lang in LanguageName | "executables"]: string } = {
 function renderSoftwareEnvLinks(lang: LanguageName | "executables") {
   return (
     <Paragraph>
-      {SOFTWARE_ENV_NAMES.map((name) => {
-        const type = SOFTWARE_ENV_DEFAULT === name ? "primary" : undefined;
-        const style =
-          SOFTWARE_ENV_DEFAULT === name ? { color: "white" } : undefined;
-        // toLowerCase is necessary for R → r
-        const href = `/software/${lang.toLowerCase()}/${name}`;
-        return (
-          <Button
-            size="small"
-            type={type}
-            style={{ ...style, marginRight: "10px" }}
-            href={href}
-          >
-            {name}
-          </Button>
-        );
-      })}
+      <Radio.Group
+        optionType="button"
+        size="small"
+        value={SOFTWARE_ENV_DEFAULT}
+        buttonStyle="solid"
+      >
+        {SOFTWARE_ENV_NAMES.map((name) => {
+          // toLowerCase is necessary for R → r
+          const href = `/software/${lang.toLowerCase()}/${name}`;
+          return (
+            <Radio.Button
+              key={name}
+              value={name}
+              onClick={() => (window.location.href = href)}
+            >
+              {name}
+            </Radio.Button>
+          );
+        })}
+      </Radio.Group>
     </Paragraph>
   );
 }
@@ -186,10 +191,11 @@ export default function Software({ customize }) {
         <A href="https://en.wikipedia.org/wiki/Ubuntu">
           Ubuntu {SOFTWARE_ENV_DEFAULT}
         </A>
-        , but there are also {SOFTWARE_ENV_NAMES.length - 1} older variants
-        available. Only the newest variant is actively maintained and regularly
-        updated. The older ones are deprected and contain older software for
-        backwards compatibility and historic purposes.
+        , but there are also {SOFTWARE_ENV_NAMES.length - 1} other variants
+        available. The default variant is actively maintained and regularly
+        updated – others are for testing or are deprected. The reason to pick an
+        older environment is backwards compatibility with older software,
+        running an older project of yours, or for historic purposes.
       </p>
     </>
   );

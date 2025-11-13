@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -17,11 +17,13 @@ For on-prem setups, this initializes a few essential configurations automaticall
 
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import passwordHash from "@cocalc/backend/auth/password-hash";
 import { is_valid_email_address } from "@cocalc/util/misc";
 import { query } from "@cocalc/database/postgres/query";
 import registrationTokenQuery from "@cocalc/database/postgres/registration-tokens";
 import getLogger from "@cocalc/backend/logger";
+import createAccount from "@cocalc/server/accounts/create-account";
+import { v4 } from "uuid";
+
 const L = getLogger("server:initial-onprem-setup");
 
 // these are the names of the relevant environment variables
@@ -56,7 +58,7 @@ class Setup {
   }
 
   async isAdmin(
-    email_address
+    email_address,
   ): Promise<{ exists: string | false; isAdmin: boolean }> {
     const account = await query({
       db: this.db,
@@ -107,16 +109,22 @@ class Setup {
 
   async createAdminUser(email_address: string): Promise<string | undefined> {
     const pw = process.env[ADMIN_PW];
-    if (pw == null || pw == "") throw new Error(`Password not set or empty`);
+    if (pw == null || pw == "") {
+      throw new Error(`Password not set or empty`);
+    }
 
     const [first_name, last_name] = this.getAdminName(email_address);
 
-    return await cb2(this.db.create_account, {
-      email_address,
-      password_hash: passwordHash(pw),
-      first_name,
-      last_name,
+    const account_id = v4();
+    await createAccount({
+      email: email_address,
+      password: pw,
+      firstName: first_name,
+      lastName: last_name,
+      account_id,
+      signupReason: "Initial admin user",
     });
+    return account_id;
   }
 
   async setupRegToken() {

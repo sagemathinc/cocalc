@@ -11,14 +11,13 @@ import { useMemo, useRef } from "react";
 import { field_cmp } from "@cocalc/util/misc";
 
 export default function WhiteboardTimeTravel({
-  syncdb,
-  version,
+  doc,
   font_size,
   mainFrameType,
 }) {
   const { id, isFocused, desc, actions } = useFrameContext();
-  const whiteboardDivRef = useRef<HTMLDivElement | null>(null);
-  let elements = syncdb.version(version).get();
+  const whiteboardDivRef = useRef<HTMLDivElement>(null as any);
+  let elements = doc.get();
   // TODO: annoyingly, we need a map also in order to plot edges efficiently...
   let elementsMap: ElementsMap = iMap();
   for (const element of elements) {

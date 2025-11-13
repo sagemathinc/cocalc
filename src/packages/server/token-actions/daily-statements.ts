@@ -8,7 +8,7 @@ export async function disableDailyStatements(account_id: string) {
     "SELECT email_daily_statements FROM accounts WHERE account_id=$1",
     [account_id]
   );
-  let email_daily_statements = rows[0]?.email_daily_statements ?? true;
+  let email_daily_statements = !!rows[0]?.email_daily_statements;
   await pool.query(
     "UPDATE accounts SET email_daily_statements = $1 WHERE account_id=$2",
     [!email_daily_statements, account_id]
@@ -38,7 +38,7 @@ export async function extraInfo(description) {
     "SELECT email_daily_statements FROM accounts WHERE account_id=$1",
     [account_id]
   );
-  let email_daily_statements = rows[0]?.email_daily_statements ?? true;
+  let email_daily_statements = !!rows[0]?.email_daily_statements;
   if (!email_daily_statements) {
     // already disabled
     return {

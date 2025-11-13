@@ -1,21 +1,22 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Manage DB <-> UI integration of available *custom* compute images
 // TODO: also get rid of hardcoded official software images
 
-import { redux, Store, Actions, Table } from "@cocalc/frontend/app-framework";
 import { Map as iMap } from "immutable";
+
+import { redux, Store, Actions, Table } from "@cocalc/frontend/app-framework";
 import { NAME } from "./util";
 import { capitalize } from "@cocalc/util/misc";
 
 // this must match db-schema.compute_images → field type → allowed values
 // "standard" image names are "default", "exp", "ubuntu2020", or a timestamp-string
-// custom iamges are "custom/<image-id>/<tag, usually latest>"
-// the "custom/" string is supposed to be CUSTOM_IMG_PREFIX!
-export type ComputeImageTypes = "default" | "standard" | "custom";
+// custom images are "custom/<image-id>/<tag, usually latest>"
+// the "custom/" string is supposed to be CUSTOM_IMG_PREFIX, only for cocalc.com.
+export type ComputeImageTypes = "standard" | "custom";
 
 // this must be compatible with db-schema.compute_images → field keys
 export type ComputeImageKeys =
@@ -41,7 +42,7 @@ export class ComputeImagesStore extends Store<ComputeImagesState> {}
 
 export function launchcode2display(
   images: ComputeImages,
-  launch: string
+  launch: string,
 ): string | undefined {
   // launch expected to be "csi/some-id/..."
   const id = launch.split("/")[1];
@@ -52,7 +53,7 @@ export function launchcode2display(
 }
 
 export class ComputeImagesActions<
-  ComputeImagesState
+  ComputeImagesState,
 > extends Actions<ComputeImagesState> {}
 
 function id2name(id: string): string {
@@ -62,7 +63,7 @@ function id2name(id: string): string {
 function fallback(
   img: ComputeImage,
   key: ComputeImageKeys,
-  replace: (img: ComputeImage) => string | undefined
+  replace: (img: ComputeImage) => string | undefined,
 ): string {
   const ret = img.get(key);
   if (ret == null || ret.length == 0) {
@@ -143,7 +144,7 @@ class ComputeImagesTable extends Table {
               .set("desc", desc)
               .set("search_str", search_str)
               .set("url", url)
-              .set("display_tag", disp_tag)
+              .set("display_tag", disp_tag),
           );
         })
     );

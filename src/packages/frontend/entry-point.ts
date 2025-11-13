@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -25,8 +25,10 @@ import "./launch/actions";
 
 // Various jquery plugins:
 import "./jquery-plugins";
+import "@ant-design/v5-patch-for-react-19";
 
 // Initialize app stores, actions, etc.
+import { init as initJqueryPlugins } from "./jquery-plugins";
 import { init as initAccount } from "./account";
 import { init as initApp } from "./app/init";
 import { init as initProjects } from "./projects";
@@ -38,6 +40,8 @@ import { init as initMarkdown } from "./markdown/markdown-input/main";
 // only enable iframe comms in minimal kiosk mode
 import { init as initIframeComm } from "./iframe-communication";
 import { init as initCrashBanner } from "./crash-banner";
+import { init as initCustomize } from "./customize";
+import { init as initProjectInviteToken } from "./collaborators/handle-project-invite";
 
 // Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
 // This import of codemirror forces the initial full load of codemirror
@@ -50,6 +54,7 @@ import { init as initLast } from "./last";
 import { render } from "./app/render";
 
 export async function init() {
+  initJqueryPlugins();
   initAccount(redux);
   initApp();
   initProjects();
@@ -60,6 +65,8 @@ export async function init() {
     initNotifications(redux);
   }
   initMarkdown();
+  initCustomize();
+  initProjectInviteToken();
   if (COCALC_MINIMAL) {
     initIframeComm();
   }

@@ -1,33 +1,40 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 import { bind_methods } from "@cocalc/util/misc";
 import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import { alert_message } from "../alerts";
-import { StripeClient } from "./stripe";
 import { ProjectCollaborators } from "./project-collaborators";
-import { SupportTickets } from "./support";
+import { Messages } from "./messages";
 import { QueryClient } from "./query";
 import { TimeClient } from "./time";
 import { AccountClient } from "./account";
 import { ProjectClient } from "./project";
 import { AdminClient } from "./admin";
-import { LLMClient } from "./openai";
+import { LLMClient } from "./llm";
 import { PurchasesClient } from "./purchases";
-import { JupyterClient } from "./jupyter";
 import { SyncClient } from "@cocalc/sync/client/sync-client";
 import { UsersClient } from "./users";
 import { FileClient } from "./file";
 import { TrackingClient } from "./tracking";
-import { HubClient } from "./hub";
+import { ConatClient } from "@cocalc/frontend/conat/client";
 import { IdleClient } from "./idle";
 import { version } from "@cocalc/util/smc-version";
-import { start_metrics } from "../prom-client";
 import { setup_global_cocalc } from "./console";
 import { Query } from "@cocalc/sync/table";
 import debug from "debug";
+import Cookies from "js-cookie";
+import { basePathCookieName } from "@cocalc/util/misc";
+import { ACCOUNT_ID_COOKIE_NAME } from "@cocalc/util/db-schema/accounts";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import type { ConatSyncTableFunction } from "@cocalc/conat/sync/synctable";
+import type {
+  CallConatServiceFunction,
+  CreateConatServiceFunction,
+} from "@cocalc/conat/service";
+import { randomId } from "@cocalc/conat/names";
 
 // This DEBUG variable comes from webpack:
 declare const DEBUG;
@@ -41,14 +48,20 @@ const log = debug("cocalc");
 // all the sync activity logging and everything that calls
 // client.dbg.
 
+export const ACCOUNT_ID_COOKIE = decodeURIComponent(
+  basePathCookieName({
+    basePath: appBasePath,
+    name: ACCOUNT_ID_COOKIE_NAME,
+  }),
+);
+
 export type AsyncCall = (opts: object) => Promise<any>;
 
 export interface WebappClient extends EventEmitter {
   account_id?: string;
-
-  stripe: StripeClient;
+  browser_id: string;
   project_collaborators: ProjectCollaborators;
-  support_tickets: SupportTickets;
+  messages: Messages;
   query_client: QueryClient;
   time_client: TimeClient;
   account_client: AccountClient;
@@ -56,12 +69,11 @@ export interface WebappClient extends EventEmitter {
   admin_client: AdminClient;
   openai_client: LLMClient;
   purchases_client: PurchasesClient;
-  jupyter_client: JupyterClient;
   sync_client: SyncClient;
   users_client: UsersClient;
   file_client: FileClient;
   tracking_client: TrackingClient;
-  hub_client: HubClient;
+  conat_client: ConatClient;
   idle_client: IdleClient;
   client: Client;
 
@@ -72,10 +84,13 @@ export interface WebappClient extends EventEmitter {
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
-  project_websocket: Function;
+  synctable_conat: ConatSyncTableFunction;
+  callConatService: CallConatServiceFunction;
+  createConatService: CreateConatServiceFunction;
+  pubsub_conat: Function;
   prettier: Function;
-  exec: Function; // TODO: rewrite project_actions.ts to not use this at all.
-  touch_project: (project_id: string) => void;
+  exec: Function;
+  touch_project: (project_id: string, compute_server_id?: number) => void;
   ipywidgetsGetBuffer: (
     project_id: string,
     path: string,
@@ -83,7 +98,6 @@ export interface WebappClient extends EventEmitter {
     buffer_path: string,
   ) => Promise<ArrayBuffer>;
   log_error: (any) => void;
-  async_call: AsyncCall;
   user_tracking: Function;
   send: Function;
   call: Function;
@@ -97,9 +111,9 @@ export interface WebappClient extends EventEmitter {
   is_deleted: (filename: string, project_id: string) => boolean;
   set_deleted: Function;
   mark_file: (opts: any) => Promise<void>;
-
   set_connected?: Function;
   version: Function;
+  alert_message: Function;
 }
 
 export const WebappClient = null; // webpack + TS es2020 modules need this
@@ -107,13 +121,13 @@ export const WebappClient = null; // webpack + TS es2020 modules need this
 /*
 Connection events:
    - 'connecting' -- trying to establish a connection
-   - 'connected'  -- succesfully established a connection; data is the protocol as a string
+   - 'connected'  -- successfully established a connection; data is the protocol as a string
    - 'error'      -- called when an error occurs
    - 'output'     -- received some output for stateless execution (not in any session)
    - 'execute_javascript' -- code that server wants client to run (not for a particular session)
    - 'message'    -- emitted when a JSON message is received           on('message', (obj) -> ...)
    - 'data'       -- emitted when raw data (not JSON) is received --   on('data, (id, data) -> )...
-   - 'signed_in'  -- server pushes a succesful sign in to the client (e.g., due to
+   - 'signed_in'  -- server pushes a successful sign in to the client (e.g., due to
                      'remember me' functionality); data is the signed_in message.
    - 'project_list_updated' -- sent whenever the list of projects owned by this user
                      changed; data is empty -- browser could ignore this unless
@@ -124,10 +138,10 @@ Connection events:
 */
 
 class Client extends EventEmitter implements WebappClient {
-  account_id?: string;
-  stripe: StripeClient;
+  account_id: string = Cookies.get(ACCOUNT_ID_COOKIE);
+  browser_id: string = randomId();
   project_collaborators: ProjectCollaborators;
-  support_tickets: SupportTickets;
+  messages: Messages;
   query_client: QueryClient;
   time_client: TimeClient;
   account_client: AccountClient;
@@ -135,27 +149,28 @@ class Client extends EventEmitter implements WebappClient {
   admin_client: AdminClient;
   openai_client: LLMClient;
   purchases_client: PurchasesClient;
-  jupyter_client: JupyterClient;
   sync_client: SyncClient;
   users_client: UsersClient;
   file_client: FileClient;
   tracking_client: TrackingClient;
-  hub_client: HubClient;
+  conat_client: ConatClient;
   idle_client: IdleClient;
   client: Client;
 
   sync_string: Function;
   sync_db: Function;
 
-  server_time: Function;
-  ping_test: Function;
+  server_time: Function; // TODO: make this () => Date and deal with the fallout
   get_username: Function;
   is_signed_in: () => boolean;
   synctable_project: Function;
-  project_websocket: Function;
+  synctable_conat: ConatSyncTableFunction;
+  callConatService: CallConatServiceFunction;
+  createConatService: CreateConatServiceFunction;
+  pubsub_conat: Function;
   prettier: Function;
-  exec: Function; // TODO: rewrite project_actions.ts to not use this at all.
-  touch_project: (project_id: string) => void;
+  exec: Function;
+  touch_project: (project_id: string, compute_server_id?: number) => void;
   ipywidgetsGetBuffer: (
     project_id: string,
     path: string,
@@ -164,7 +179,6 @@ class Client extends EventEmitter implements WebappClient {
   ) => Promise<ArrayBuffer>;
 
   log_error: (any) => void;
-  async_call: AsyncCall;
   user_tracking: Function;
   send: Function;
   call: Function;
@@ -183,7 +197,6 @@ class Client extends EventEmitter implements WebappClient {
 
   constructor() {
     super();
-
     if (DEBUG) {
       this.dbg = this.dbg.bind(this);
     } else {
@@ -191,21 +204,7 @@ class Client extends EventEmitter implements WebappClient {
         return (..._) => {};
       };
     }
-
-    this.hub_client = bind_methods(new HubClient(this));
-    this.is_signed_in = this.hub_client.is_signed_in.bind(this.hub_client);
-    this.is_connected = this.hub_client.is_connected.bind(this.hub_client);
-    this.call = this.hub_client.call.bind(this.hub_client);
-    this.async_call = this.hub_client.async_call.bind(this.hub_client);
-    this.latency = this.hub_client.latency.bind(this.hub_client);
-
-    this.stripe = bind_methods(new StripeClient(this.call.bind(this)));
-    this.project_collaborators = bind_methods(
-      new ProjectCollaborators(this.async_call.bind(this)),
-    );
-    this.support_tickets = bind_methods(
-      new SupportTickets(this.async_call.bind(this)),
-    );
+    this.messages = new Messages();
     this.query_client = bind_methods(new QueryClient(this));
     this.time_client = bind_methods(new TimeClient(this));
     this.account_client = bind_methods(new AccountClient(this));
@@ -215,30 +214,27 @@ class Client extends EventEmitter implements WebappClient {
     this.sync_string = this.sync_client.sync_string;
     this.sync_db = this.sync_client.sync_db;
 
-    this.admin_client = bind_methods(
-      new AdminClient(this.async_call.bind(this)),
-    );
+    this.admin_client = bind_methods(new AdminClient(this));
     this.openai_client = bind_methods(new LLMClient(this));
-    //this.purchases_client = bind_methods(new PurchasesClient(this));
-    this.purchases_client = bind_methods(new PurchasesClient());
-    this.jupyter_client = bind_methods(
-      new JupyterClient(this.async_call.bind(this)),
-    );
-    this.users_client = bind_methods(
-      new UsersClient(this.call.bind(this), this.async_call.bind(this)),
-    );
+    this.purchases_client = bind_methods(new PurchasesClient(this));
+    this.users_client = bind_methods(new UsersClient(this));
     this.tracking_client = bind_methods(new TrackingClient(this));
-    this.file_client = bind_methods(new FileClient(this.async_call.bind(this)));
+    this.conat_client = bind_methods(new ConatClient(this));
+    this.is_signed_in = this.conat_client.is_signed_in.bind(this.conat_client);
+    this.is_connected = this.conat_client.is_connected.bind(this.conat_client);
+    this.file_client = bind_methods(new FileClient());
     this.idle_client = bind_methods(new IdleClient(this));
+    this.project_collaborators = bind_methods(new ProjectCollaborators(this)); // must be after this.conat_client is defined.
 
     // Expose a public API as promised by WebappClient
     this.server_time = this.time_client.server_time.bind(this.time_client);
-    this.ping_test = this.time_client.ping_test.bind(this.time_client);
 
     this.idle_reset = this.idle_client.idle_reset.bind(this.idle_client);
 
     this.exec = this.project_client.exec.bind(this.project_client);
-    this.touch_project = this.project_client.touch.bind(this.project_client);
+    this.touch_project = this.project_client.touch_project.bind(
+      this.project_client,
+    );
     this.ipywidgetsGetBuffer = this.project_client.ipywidgetsGetBuffer.bind(
       this.project_client,
     );
@@ -246,9 +242,10 @@ class Client extends EventEmitter implements WebappClient {
     this.synctable_database = this.sync_client.synctable_database.bind(
       this.sync_client,
     );
-    this.synctable_project = this.sync_client.synctable_project.bind(
-      this.sync_client,
-    );
+    this.synctable_conat = this.conat_client.synctable;
+    this.pubsub_conat = this.conat_client.pubsub;
+    this.callConatService = this.conat_client.callConatService;
+    this.createConatService = this.conat_client.createConatService;
 
     this.query = this.query_client.query.bind(this.query_client);
     this.async_query = this.query_client.query.bind(this.query_client);
@@ -269,19 +266,6 @@ class Client extends EventEmitter implements WebappClient {
     // every open file/table/sync db listens for connect event, which adds up.
     this.setMaxListeners(3000);
 
-    // start pinging -- not used/needed for primus,
-    // but *is* needed for getting information about
-    // server_time skew and showing ping time to user.
-    this.once("connected", async () => {
-      this.time_client.ping(true);
-      // Ping again a few seconds after connecting the first time,
-      // after things have settled down a little (to not throw off
-      // ping time).
-      await delay(5000);
-      this.time_client.ping(); // this will ping periodically
-    });
-
-    this.init_prom_client();
     this.init_global_cocalc();
 
     bind_methods(this);
@@ -290,10 +274,6 @@ class Client extends EventEmitter implements WebappClient {
   private async init_global_cocalc(): Promise<void> {
     await delay(1);
     setup_global_cocalc(this);
-  }
-
-  private init_prom_client(): void {
-    this.on("start_metrics", start_metrics);
   }
 
   public dbg(f): Function {
@@ -337,6 +317,26 @@ class Client extends EventEmitter implements WebappClient {
   public set_deleted(): void {
     throw Error("not implemented for frontend");
   }
+
+  touchOpenFile = async ({
+    project_id,
+    path,
+    setNotDeleted,
+    doctype,
+  }: {
+    project_id: string;
+    path: string;
+    id?: number;
+    doctype?;
+    // if file is deleted, this explicitly undeletes it.
+    setNotDeleted?: boolean;
+  }) => {
+    const x = await this.conat_client.openFiles(project_id);
+    if (setNotDeleted) {
+      x.setNotDeleted(path);
+    }
+    x.touch(path, doctype);
+  };
 }
 
 export const webapp_client = new Client();

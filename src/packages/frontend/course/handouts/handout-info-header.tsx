@@ -1,21 +1,18 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { React } from "@cocalc/frontend/app-framework";
 import { Col, Row } from "antd";
-import { Tip } from "../../components";
+import { Tip } from "@cocalc/frontend/components";
 
 interface StudentHandoutInfoHeaderProps {
   title: string;
 }
 
-export const StudentHandoutInfoHeader: React.FC<
-  StudentHandoutInfoHeaderProps
-> = (props: StudentHandoutInfoHeaderProps) => {
-  const { title } = props;
-
+export function StudentHandoutInfoHeader({
+  title,
+}: StudentHandoutInfoHeaderProps) {
   function render_col(step_number, key, width) {
     const title = "Distribute to Student";
     const tip =
@@ -54,4 +51,4 @@ export const StudentHandoutInfoHeader: React.FC<
       </Row>
     </div>
   );
-};
+}

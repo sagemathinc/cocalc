@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Frame context, so you can type
@@ -13,7 +13,6 @@
 
 import { Map } from "immutable";
 import { createContext, useContext } from "react";
-
 import { useRedux } from "@cocalc/frontend/app-framework/redux-hooks";
 import { DEFAULT_FONT_SIZE } from "@cocalc/util/db-schema/defaults";
 import { Actions } from "../code-editor/actions";

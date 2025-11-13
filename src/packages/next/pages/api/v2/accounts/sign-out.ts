@@ -12,17 +12,27 @@ import {
   deleteAllRememberMe,
 } from "@cocalc/server/auth/remember-me";
 import getParams from "lib/api/get-params";
+import { apiRoute, apiRouteOperation } from "lib/api";
+import { SuccessStatus } from "lib/api/status";
+import {
+  AccountSignOutInputSchema,
+  AccountSignOutOutputSchema,
+} from "lib/api/schema/accounts/sign-out";
+import {
+  ACCOUNT_ID_COOKIE_NAME,
+  REMEMBER_ME_COOKIE_NAME,
+} from "@cocalc/backend/auth/cookie-names";
 
-export default async function handle(req, res) {
+async function handle(req, res) {
   try {
-    await signOut(req);
-    res.json({});
+    await signOut(req, res);
+    res.json(SuccessStatus);
   } catch (err) {
     res.json({ error: err.message });
   }
 }
 
-async function signOut(req): Promise<void> {
+async function signOut(req, res): Promise<void> {
   const { all } = getParams(req);
   if (all) {
     // invalidate all remember me cookies for this account.
@@ -34,4 +44,28 @@ async function signOut(req): Promise<void> {
     if (!hash) return; // not signed in
     await deleteRememberMe(hash);
   }
+  // also delete any security relevant cookies for safety and to avoid confusion.
+  res.clearCookie(REMEMBER_ME_COOKIE_NAME);
+  res.clearCookie(ACCOUNT_ID_COOKIE_NAME);
 }
+
+export default apiRoute({
+  signOut: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Accounts"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: AccountSignOutInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: AccountSignOutOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

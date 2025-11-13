@@ -1,3 +1,4 @@
+import { menu } from "@cocalc/frontend/i18n";
 import { APPLICATION_MENU } from "./const";
 import { addMenus } from "./menus";
 
@@ -5,10 +6,10 @@ addMenus({
   app: {
     label: APPLICATION_MENU,
     pos: -10,
-    groups: ["about", "frame_types", "quit"],
+    groups: ["about", "frame_types", "quit", "settings"],
   },
   file: {
-    label: "File",
+    label: menu.file,
     pos: 0,
     groups: [
       "new-open",
@@ -20,32 +21,39 @@ addMenus({
     ],
   },
   edit: {
-    label: "Edit",
+    label: menu.edit,
     pos: 1,
     groups: ["undo-redo", "find", "copy", "ai", "format", "config"],
   },
   insert: {
-    label: "Insert",
+    label: menu.insert,
     pos: 1.3,
     groups: [],
   },
   format: {
-    label: "Format",
+    label: menu.format,
     pos: 1.5,
     groups: ["code-format"],
   },
   view: {
-    label: "View",
+    label: menu.view,
     pos: 2,
-    groups: ["zoom", "frame-control", "show-frames", "button-bar"],
+    groups: [
+      "zoom",
+      "scroll",
+      "fold",
+      "frame-control",
+      "show-frames",
+      "button-bar",
+    ],
   },
   go: {
-    label: "Go",
+    label: menu.go,
     pos: 3,
     groups: ["action", "build", "scan", "other-users", "get-info"],
   },
   help: {
-    label: "Help",
+    label: menu.help,
     pos: 100,
     groups: ["search-commands", "help-link", "tour"],
   },

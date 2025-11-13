@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -60,11 +60,7 @@ export function isMainConfiguration(
 ): config is MainConfiguration {
   const mconf = <MainConfiguration>config;
   // don't test for disabled_ext, because that's added later
-  return (
-    isMainCapabilities(mconf.capabilities) &&
-    mconf.timestamp != null &&
-    typeof mconf.timestamp == "string"
-  );
+  return isMainCapabilities(mconf.capabilities) && !!mconf.timestamp;
 }
 
 // if prettier exists, this adds all syntaxes to format via prettier
@@ -128,6 +124,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       jupyter_lab: kernelspec && !!jupyter.lab,
       jupyter_notebook: kernelspec && !!jupyter.notebook,
       jupyter: kernelspec,
+      rserver: !!capabilities.rserver,
       sage: !!capabilities.sage,
       latex: !!capabilities.latex,
       rmd: !!capabilities.rmd,
@@ -139,7 +136,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       html2pdf: capabilities.html2pdf ?? true,
       pandoc: capabilities.pandoc ?? true,
       vscode: capabilities.vscode ?? true,
-      julia: !!capabilities.julia ?? true,
+      julia: capabilities.julia ?? true,
       formatting,
       homeDirectory: capabilities.homeDirectory,
     };
@@ -164,11 +161,16 @@ export async function get_configuration(
       aspect,
       no_cache,
     );
-  if (config == null) return prev;
+  if (config == null) {
+    return prev;
+  }
   // console.log("project_actions::init_configuration", aspect, config);
 
   if (aspect == ("main" as ConfigurationAspect)) {
-    if (!isMainConfiguration(config)) return;
+    if (!isMainConfiguration(config)) {
+      console.log("reject", isMainConfiguration(config), config);
+      return;
+    }
     const caps = config.capabilities;
     // TEST x11/latex/sage disabilities
     // caps.x11 = false;
@@ -183,7 +185,9 @@ export async function get_configuration(
       // jupyter.lab = false;
       // TEST no kernelspec → we can't read any kernels → entirely disable jupyter
       // jupyter.kernelspec = false;
-      if (!jupyter.kernelspec) caps.jupyter = false;
+      if (!jupyter.kernelspec) {
+        caps.jupyter = false;
+      }
     }
 
     // disable/hide certain file extensions if certain capabilities are missing

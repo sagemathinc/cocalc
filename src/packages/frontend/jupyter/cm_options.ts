@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -20,7 +20,7 @@ export function cm_options(
   mode?: string | { name: string },
   editor_settings?: any,
   line_numbers?: any,
-  read_only?: any
+  read_only?: any,
 ) {
   if (editor_settings == null) {
     editor_settings = {};
@@ -56,7 +56,6 @@ export function cm_options(
     matchBrackets: editor_settings.match_brackets,
     autoCloseBrackets: editor_settings.auto_close_brackets,
     autoCloseTags: editor_settings.auto_close_xml_tags,
-    foldGutter: editor_settings.code_folding,
     lineWrapping: true,
     readOnly: read_only,
     indentWithTabs: !editor_settings.spaces_instead_of_tabs,
@@ -102,6 +101,14 @@ export function cm_options(
     // python -- what about other languages. See parsing.ts
     // for our approach.
     options.mode.name = "python";
+  }
+
+  if (editor_settings.code_folding) {
+    options.extraKeys["Ctrl-Q"] = (cm) => cm.foldCodeSelectionAware();
+    options.foldGutter = true;
+    options.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
+  } else {
+    options.gutters = ["CodeMirror-linenumbers"];
   }
 
   return options;

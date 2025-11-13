@@ -1,13 +1,15 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Top-level react component, which ties everything together
 */
 
+import { Button, Tooltip } from "antd";
 import * as immutable from "immutable";
+import { useEffect } from "react";
 
 import {
   CSS,
@@ -16,15 +18,21 @@ import {
   Rendered,
   useRedux,
   useRef,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 
 // Support for all the MIME types
 import "./output-messages/mime-types/init-frontend";
-import { Button, Tooltip } from "antd";
+
 // React components that implement parts of the Jupyter notebook.
-import { ErrorDisplay } from "@cocalc/frontend/components";
-import { Loading } from "@cocalc/frontend/components/loading";
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
+import { ErrorDisplay, Icon, Text } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
+import { Loading } from "@cocalc/frontend/components/loading";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
+import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
+import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
+import { syncdbPath } from "@cocalc/util/jupyter/names";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
@@ -34,22 +42,17 @@ import { ConfirmDialog } from "./confirm-dialog";
 import { EditAttachments } from "./edit-attachments";
 import { EditCellMetadata } from "./edit-cell-metadata";
 import { FindAndReplace } from "./find-and-replace";
-import { InsertImage } from "./insert-image";
+import JupyterClassic from "./jupyter-classic";
 import { JupyterContext } from "./jupyter-context";
 import useKernelUsage from "./kernel-usage";
+import KernelWarning from "./kernel-warning";
 import { KeyboardShortcuts } from "./keyboard-shortcuts";
+import * as toolComponents from "./llm";
 import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
-import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
-import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
-import * as chatgpt from "./chatgpt";
-import KernelWarning from "./kernel-warning";
-import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 
 export const ERROR_STYLE: CSS = {
-  whiteSpace: "pre" as "pre",
-  fontFamily: "monospace" as "monospace",
   maxHeight: "30vh",
   overflow: "auto",
 } as const;
@@ -66,6 +69,7 @@ interface Props {
   // opening the file (or refreshing browser), which is nice!
   is_focused?: boolean;
   is_fullscreen?: boolean; // this means fullscreened frame inside the editor!
+  is_visible?: boolean;
   mode: NotebookMode;
   font_size?: number;
 
@@ -87,6 +91,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     is_focused,
     is_fullscreen,
+    is_visible,
     font_size,
     mode,
     cur_id,
@@ -143,6 +148,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   const directory: undefined | string = useRedux([name, "directory"]);
   // const version: undefined | any = useRedux([name, "version"]);
   const about: undefined | boolean = useRedux([name, "about"]);
+  const read_only = useRedux([name, "read_only"]);
   const backend_kernel_info: undefined | immutable.Map<any, any> = useRedux([
     name,
     "backend_kernel_info",
@@ -167,8 +173,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   ]);
   const path: undefined | string = useRedux([name, "path"]);
   const cell_toolbar: undefined | string = useRedux([name, "cell_toolbar"]);
-  // show insert image dialog
-  const insert_image: undefined | string = useRedux([name, "insert_image"]);
   const edit_attachments: undefined | string = useRedux([
     name,
     "edit_attachments",
@@ -182,10 +186,31 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     "check_select_kernel_init",
   ]);
-  const computeServerId = useRedux([name, "computeServerId"]) ?? 0;
-  // this state right here is managed in frontend/compute/select-server.tsx
-  const requestedComputeServerId =
-    useRedux([name, "requestedComputeServerId"]) ?? 0;
+
+  const computeServerId = path
+    ? useTypedRedux({ project_id }, "compute_server_ids")?.get(syncdbPath(path))
+    : undefined;
+
+  useEffect(() => {
+    actions.fetch_jupyter_kernels();
+  }, [computeServerId]);
+
+  // this is confusing: it's here because the "nbviewer" code reuses a subset of components
+  // and this is here to pass down AI tools related functionality to those, which are used by the frontend
+  const [model, setModel] = useLanguageModelSetting(project_id);
+  // ATTN: if you add values here, make sure to check the memoize check functions in the components –
+  // otherwise they will not re-render as expected.
+  const llmEnabled = redux
+    .getStore("projects")
+    .hasLanguageModelEnabled(project_id);
+  // This only checks if we can use the LLM tools at all – detailed checks like "for this project in a course" are by component
+  const llmTools: LLMTools | undefined = llmEnabled
+    ? {
+        model,
+        setModel,
+        toolComponents,
+      }
+    : undefined;
 
   // We use react-virtuoso, which is an amazing library for
   // doing windowing on dynamically sized content... like
@@ -206,6 +231,12 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   );
 
   const { usage, expected_cell_runtime } = useKernelUsage(name);
+
+  const jupyterClassic = useRedux([
+    "account",
+    "editor_settings",
+    "jupyter_classic",
+  ]);
 
   function render_error() {
     if (error) {
@@ -265,6 +296,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return (
       <CellList
         actions={actions}
+        read_only={read_only}
         cell_list={cell_list}
         cell_toolbar={cell_toolbar}
         cells={cells}
@@ -275,6 +307,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         font_size={font_size}
         hook_offset={hook_offset}
         is_focused={is_focused}
+        is_visible={is_visible}
         md_edit_ids={md_edit_ids}
         mode={mode}
         more_output={more_output}
@@ -286,7 +319,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         sel_ids={sel_ids}
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
-        chatgpt={chatgpt}
+        llmTools={llmTools}
         computeServerId={computeServerId}
       />
     );
@@ -312,19 +345,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         nbconvert={nbconvert}
         nbconvert_dialog={nbconvert_dialog}
         backend_kernel_info={backend_kernel_info}
-      />
-    );
-  }
-
-  function render_insert_image() {
-    if (insert_image == null || project_id == null) {
-      return;
-    }
-    return (
-      <InsertImage
-        actions={actions}
-        project_id={project_id}
-        insert_image={insert_image}
       />
     );
   }
@@ -407,7 +427,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
       <>
         {render_about()}
         {render_nbconvert()}
-        {render_insert_image()}
         {render_edit_attachments()}
         {render_edit_cell_metadata()}
         {render_find_and_replace()}
@@ -417,9 +436,14 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  if (jupyterClassic) {
+    return <JupyterClassic project_id={project_id} />;
+  }
+
   if (fatal) {
     return render_fatal();
   }
+
   return (
     <JupyterContext.Provider value={{ kernelspec: kernelspec?.toJS(), trust }}>
       <div
@@ -431,21 +455,22 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         }}
       >
         <ComputeServerDocStatus
-          id={computeServerId}
-          requestedId={requestedComputeServerId}
+          id={computeServerId ?? 0}
           project_id={project_id}
         />
-        <KernelWarning name={name} actions={actions} />
+        {!read_only && <KernelWarning name={name} actions={actions} />}
         {render_error()}
         {render_modals()}
-        <Kernel
-          is_fullscreen={is_fullscreen}
-          actions={actions}
-          usage={usage}
-          expected_cell_runtime={expected_cell_runtime}
-          computeServerId={computeServerId}
-        />
-        {cell_toolbar == "create_assignment" && (
+        {!read_only && (
+          <Kernel
+            is_fullscreen={is_fullscreen}
+            actions={actions}
+            usage={usage}
+            expected_cell_runtime={expected_cell_runtime}
+            computeServerId={computeServerId}
+          />
+        )}
+        {cell_toolbar === "create_assignment" && (
           <div
             style={{
               paddingLeft: "30px",
@@ -453,9 +478,9 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
               borderBottom: "1px solid #ddd",
             }}
           >
-            Toolbar:{" "}
+            <Text strong>nbgrader:</Text>{" "}
             <A href="https://doc.cocalc.com/teaching-nbgrader.html">
-              Create Assignment Using NBGrader
+              <Icon name="book" /> Docs
             </A>
             <Tooltip title="Generate the student version of this document, which strips out the extra instructor tests and cells.">
               <Button
@@ -464,7 +489,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
                   props.actions.nbgrader_actions.confirm_assign();
                 }}
               >
-                NBGrader: Export Student Version...
+                Create Student Version...
               </Button>
             </Tooltip>
             <Button

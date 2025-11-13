@@ -1,16 +1,18 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { List, Map } from "immutable";
 import { reduce } from "lodash";
 
-import { Store } from "@cocalc/util/redux/Store";
 import { store as customizeStore } from "@cocalc/frontend/customize";
 import { make_valid_name } from "@cocalc/util/misc";
+import { Store } from "@cocalc/util/redux/Store";
 import { get_total_upgrades } from "@cocalc/util/upgrades";
-import { AccountState } from "./types";
+import type { AccountState } from "./types";
+
+declare var DEBUG: boolean;
 
 // Define account store
 export class AccountStore extends Store<AccountState> {
@@ -38,7 +40,7 @@ export class AccountStore extends Store<AccountState> {
           this.get("is_logged_in"),
           this.get("email_address"),
           this.get("passports"),
-          this.get("lti_id")
+          this.get("lti_id"),
         );
       },
       dependencies: [
@@ -88,7 +90,7 @@ export class AccountStore extends Store<AccountState> {
   get_color(): string {
     return this.getIn(
       ["profile", "color"],
-      this.get("account_id", "f00").slice(0, 6)
+      this.get("account_id", "f00").slice(0, 6),
     );
   }
 
@@ -104,15 +106,25 @@ export class AccountStore extends Store<AccountState> {
     return this.getIn(["other_settings", "confirm_close"]);
   }
 
-  // Total ugprades this user is paying for (sum of all upgrades from subscriptions)
+  // Total upgrades this user is paying for (sum of all upgrades from subscriptions)
   get_total_upgrades(): { [key: string]: number } | undefined {
     const stripe_data = this.getIn([
       "stripe_customer",
       "subscriptions",
       "data",
     ]);
+    // to fake having upgrades, type this in the console
+    //   cc.redux.getStore('account').fake_upgrades = true
+    if (DEBUG && (this as any).fake_upgrades && !stripe_data) {
+      // fake debugging data
+      return get_total_upgrades({}, true);
+    }
     return stripe_data && get_total_upgrades(stripe_data.toJS());
   }
+
+  hasLegacyUpgrades = () => {
+    return this.getIn(["stripe_customer", "subscriptions", "data"]) != null;
+  };
 
   // uses the total upgrades information to determine, if this is a paying member
   // TODO: this is not used anywhere; but, if it was, it should also take into account
@@ -131,6 +143,10 @@ export class AccountStore extends Store<AccountState> {
     if (!tours) return false;
     return tours.includes(tour) || tours.includes("all");
   }
+
+  showSymbolBarLabels(): boolean {
+    return this.getIn(["other_settings", "show_symbol_bar_labels"], false);
+  }
 }
 
 // A user is anonymous if they have not provided a way to sign
@@ -141,7 +157,7 @@ function is_anonymous(
   is_logged_in: boolean,
   email_address: string | undefined | null,
   passports: Map<string, any> | undefined | null,
-  lti_id: List<string> | undefined | null
+  lti_id: List<string> | undefined | null,
 ): boolean {
   if (!is_logged_in) {
     return false;

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import {
@@ -14,7 +14,7 @@ async function run_in_project(
   project_id: string,
   command: string,
   args?: string[],
-  timeout?: number
+  timeout?: number,
 ): Promise<any> {
   await start_project(project_id, 60);
   return await exec({ project_id, command, args, timeout, err_on_exit: false });
@@ -25,6 +25,8 @@ export type Result = {
   stdout: string;
   stderr: string;
   exit_code: number;
+  timeout?: number;
+  total_time: number;
 };
 
 export async function run_in_all_projects(
@@ -32,22 +34,31 @@ export async function run_in_all_projects(
   command: string,
   args?: string[],
   timeout?: number,
-  log?: Function
+  log?: Function,
 ): Promise<Result[]> {
+  let start = Date.now();
   const task = async (project_id) => {
     let result: Result;
     try {
-      result = await run_in_project(project_id, command, args, timeout);
-      result.project_id = project_id;
+      result = {
+        ...(await run_in_project(project_id, command, args, timeout)),
+        project_id,
+        timeout,
+        total_time: (Date.now() - start) / 1000,
+      };
     } catch (err) {
       result = {
         project_id,
         stdout: "",
-        stderr: err.toString(),
+        stderr: `${err}`,
         exit_code: -1,
+        total_time: (Date.now() - start) / 1000,
+        timeout,
       };
     }
-    if (log != null) log(result);
+    if (log != null) {
+      log(result);
+    }
     return result;
   };
 

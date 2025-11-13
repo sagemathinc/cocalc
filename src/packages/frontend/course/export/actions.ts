@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { replace_all, split } from "@cocalc/util/misc";
@@ -17,27 +17,27 @@ export class ExportActions {
     this.course_actions = course_actions;
   }
 
-  private get_store(): CourseStore {
+  private get_store = (): CourseStore => {
     return this.course_actions.get_store();
-  }
+  };
 
-  private path(ext: string, what: string): string {
+  private path = (ext: string, what: string): string => {
     // make path more likely to be python-readable...
     const path = this.get_store().get("course_filename");
     const p: string = split(replace_all(path, "-", "_")).join("_");
     const i: number = p.lastIndexOf(".");
     return `course-exports/${p.slice(0, i)}/${what}.${ext}`;
-  }
+  };
 
-  private open_file(path: string): void {
+  private open_file = (path: string): void => {
     const project_id = this.get_store().get("course_project_id");
     redux.getProjectActions(project_id).open_file({
       path,
       foreground: true,
     });
-  }
+  };
 
-  private async write_file(path: string, content: string): Promise<void> {
+  private write_file = async (path: string, content: string): Promise<void> => {
     const actions = this.course_actions;
     const id = actions.set_activity({ desc: `Writing ${path}` });
     const project_id = this.get_store().get("course_project_id");
@@ -56,14 +56,14 @@ export class ExportActions {
       if (actions.is_closed()) return;
       actions.set_activity({ id });
     }
-  }
+  };
 
   // newlines and duplicated double-quotes
-  private sanitize_csv_entry(s: string): string {
+  private sanitize_csv_entry = (s: string): string => {
     return s.replace(/\n/g, "\\n").replace(/"/g, '""');
-  }
+  };
 
-  public async to_csv(): Promise<void> {
+  to_csv = async (): Promise<void> => {
     const store = this.get_store();
     const assignments = store.get_sorted_assignments();
     // CSV definition: http://edoceo.com/utilitas/csv-file-format
@@ -133,9 +133,9 @@ export class ExportActions {
       content += line + "\n";
     }
     this.write_file(this.path("csv", "grades"), content);
-  }
+  };
 
-  private export_grades(): object {
+  private export_grades = (): object => {
     const obj: any = {};
     const store = this.get_store();
     const assignments = store.get_sorted_assignments();
@@ -179,26 +179,26 @@ export class ExportActions {
     }
     obj.students = students;
     return obj;
-  }
+  };
 
-  public async to_json(): Promise<void> {
+  to_json = async (): Promise<void> => {
     const obj = this.export_grades();
     this.write_file(
       this.path("json", "grades"),
       JSON.stringify(obj, undefined, 2),
     );
-  }
+  };
 
-  public async to_py(): Promise<void> {
+  to_py = async (): Promise<void> => {
     const obj = this.export_grades();
     let content = "";
     for (const key in obj) {
       content += `${key} = ${JSON.stringify(obj[key], undefined, 2)}\n`;
     }
     this.write_file(this.path("py", "grades"), content);
-  }
+  };
 
-  public async file_use_times(assignment_or_handout_id: string): Promise<void> {
+  file_use_times = async (assignment_or_handout_id: string): Promise<void> => {
     const id = this.course_actions.set_activity({
       desc: "Exporting file use times...",
     });
@@ -239,5 +239,5 @@ export class ExportActions {
     } finally {
       this.course_actions.set_activity({ id });
     }
-  }
+  };
 }

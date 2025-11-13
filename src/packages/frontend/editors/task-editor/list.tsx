@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -8,10 +8,9 @@ List of Tasks -- we use windowing via Virtuoso, so that even task lists with 500
 */
 
 import { List, Set as immutableSet } from "immutable";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { useDebouncedCallback } from "use-debounce";
-
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { TaskActions } from "./actions";
@@ -32,7 +31,6 @@ interface Props {
   current_task_id?: string;
   local_task_state?: LocalTaskStateMap;
   scrollState?: any;
-  scroll_into_view?: boolean;
   font_size: number;
   sortable?: boolean;
   read_only?: boolean;
@@ -45,11 +43,10 @@ export default function TaskList({
   path,
   project_id,
   tasks,
-  visible,
+  visible: visible0,
   current_task_id,
   local_task_state,
   scrollState,
-  scroll_into_view,
   font_size,
   sortable,
   read_only,
@@ -69,6 +66,10 @@ export default function TaskList({
     onScroll: saveScroll,
   });
   const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const [visible, setVisible] = useState<List<string>>(visible0);
+  useEffect(() => {
+    setVisible(visible0);
+  }, [visible0]);
 
   const selectedHashtags: Set<string> = useMemo(() => {
     const X = new Set<string>([]);
@@ -87,23 +88,8 @@ export default function TaskList({
   }, [search_terms]);
 
   useEffect(() => {
-    if (actions && scroll_into_view) {
-      _scroll_into_view();
-      actions.scroll_into_view_done();
-    }
-  }, [scroll_into_view]);
-
-  function _scroll_into_view() {
-    if (current_task_id == null) {
-      return;
-    }
-    // Figure out the index of current_task_id.
-    const index = visible.indexOf(current_task_id);
-    if (index === -1) {
-      return;
-    }
-    virtuosoRef.current?.scrollIntoView({ index });
-  }
+    actions?.setVirtuosoRef(virtuosoRef);
+  }, [actions, virtuosoRef]);
 
   function render_task(task_id, index?) {
     if (index === visible.size) {
@@ -162,9 +148,19 @@ export default function TaskList({
       disabled={!sortable}
       items={visible.toJS()}
       Item={({ id }) => render_task(id)}
-      onDragStop={(oldIndex, newIndex) =>
-        actions?.reorder_tasks(oldIndex, newIndex)
-      }
+      onDragStop={(oldIndex, newIndex) => {
+        // Move task that was at position oldIndex to now be at
+        // position newIndex.  NOTE: This is NOT a swap.
+        if (oldIndex == newIndex) {
+          return;
+        }
+        let visible1 = visible.delete(oldIndex);
+        visible1 = visible1.insert(newIndex, visible.get(oldIndex)!);
+        setVisible(visible1);
+        // must set visible0 (in the store) in next render loop, or the above
+        // gets combined with this and there is flicker.
+        setTimeout(() => actions?.reorder_tasks(oldIndex, newIndex), 1);
+      }}
     >
       <div
         className="smc-vfill"

@@ -1,30 +1,35 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+import type { SizeType } from "antd/lib/config-provider/SizeContext";
+
 import { Map } from "immutable";
+import { IntlShape } from "react-intl";
+
 import {
   TypedMap,
   useEffect,
   useState,
   useWindowDimensions,
-} from "../app-framework";
-import { StudentsMap } from "./store";
-import { AssignmentCopyStep } from "./types";
+} from "@cocalc/frontend/app-framework";
+import { labels } from "@cocalc/frontend/i18n";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import {
+  cmp,
   defaults,
+  merge,
   required,
   search_match,
   search_split,
   separate_file_extension,
-  merge,
-  cmp,
 } from "@cocalc/util/misc";
-import { IconName } from "@cocalc/frontend/components/icon";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { ButtonSize } from "@cocalc/frontend//antd-bootstrap";
-import { SizeType } from "antd/lib/config-provider/SizeContext";
+import { ProjectsStore } from "../projects/store";
+import { UserMap } from "../todo-types";
+import { StudentsMap } from "./store";
+import { AssignmentCopyStep } from "./types";
 
 // Pure functions used in the course manager
 export function STEPS(peer: boolean): AssignmentCopyStep[] {
@@ -43,7 +48,7 @@ export function STEPS(peer: boolean): AssignmentCopyStep[] {
 
 export function previous_step(
   step: AssignmentCopyStep,
-  peer: boolean
+  peer: boolean,
 ): AssignmentCopyStep {
   let prev: AssignmentCopyStep | undefined;
   for (const s of STEPS(peer)) {
@@ -118,7 +123,12 @@ export function step_ready(step: AssignmentCopyStep, n) {
 //    hosting       : string
 //    email_address : string
 // }
-export function parse_students(student_map: StudentsMap, user_map, redux) {
+export function parse_students(
+  student_map: StudentsMap,
+  user_map: UserMap,
+  redux,
+  intl?: IntlShape,
+) {
   const v = immutable_to_list(student_map, "student_id");
   for (const x of v) {
     if (x.account_id != null) {
@@ -139,8 +149,10 @@ export function parse_students(student_map: StudentsMap, user_map, redux) {
         }
       }
     }
-    const { description, state } = projectStatus(x.project_id, redux);
-    x.hosting = description + state;
+    if (intl != null) {
+      const { description, state } = projectStatus(x.project_id, redux, intl);
+      x.hosting = description + state;
+    }
 
     if (x.first_name == null) {
       x.first_name = "";
@@ -165,7 +177,7 @@ export function parse_students(student_map: StudentsMap, user_map, redux) {
 export function immutable_to_list(x: undefined): undefined;
 export function immutable_to_list<T, P>(
   x: Map<string, T>,
-  primary_key: P
+  primary_key: P,
 ): T extends TypedMap<infer S>
   ? S[]
   : T extends Map<string, infer S>
@@ -242,40 +254,75 @@ export function order_list<T extends { deleted: boolean }>(opts: {
   return { list, deleted: x, num_deleted: sorted_deleted.length };
 }
 
-const sort_on_string_field = (field) => (a, b) =>
-  cmp(a[field].toLowerCase(), b[field].toLowerCase());
+const cmp_strings = (a, b, field) => {
+  return cmp(a[field]?.toLowerCase() ?? "", b[field]?.toLowerCase() ?? "");
+};
 
-const sort_on_numerical_field = (field) => (a, b) =>
-  cmp(a[field] * -1, b[field] * -1);
+// first sort by domain, then address at that domain... since there will be many students
+// at same domain, and 'a@b.c' > 'a3@b.c' > 'a2@b.c' is true but not helpful
+const cmp_email = (a, b) => {
+  const v = a.split("@");
+  const w = b.split("@");
+  const c = cmp(v[1], w[1]);
+  if (c) {
+    return c;
+  }
+  return cmp(v[0], w[0]);
+};
 
-export enum StudentField {
-  email = "email",
-  first_name = "first_name",
-  last_name = "last_name",
-  last_active = "last_active",
-  hosting = "hosting",
+const sort_on_string_field = (field, field2) => (a, b) => {
+  const c =
+    field == "email_address"
+      ? cmp_email(a[field], b[field])
+      : cmp_strings(a, b, field);
+  return c != 0 ? c : cmp_strings(a, b, field2);
+};
+
+const sort_on_numerical_field = (field, field2) => (a, b) => {
+  const c = cmp((a[field] ?? 0) * -1, (b[field] ?? 0) * -1);
+  return c != 0 ? c : cmp_strings(a, b, field2);
+};
+
+type StudentField =
+  | "email"
+  | "first_name"
+  | "last_name"
+  | "last_active"
+  | "hosting";
+
+export function pick_student_sorter({
+  column_name,
+  is_descending,
+}: {
+  column_name: StudentField;
+  is_descending?: boolean;
+}) {
+  const cmp = getSorter(column_name);
+  if (is_descending) {
+    return (a, b) => cmp(b, a);
+  }
+  return cmp;
 }
 
-export function pick_student_sorter<T extends { column_name: StudentField }>(
-  sort: T
-) {
-  switch (sort.column_name) {
+function getSorter(column_name) {
+  switch (column_name) {
     case "email":
-      return sort_on_string_field("email_address");
+      return sort_on_string_field("email_address", "last_name");
     case "first_name":
-      return sort_on_string_field("first_name");
-    case "last_name":
-      return sort_on_string_field("last_name");
+      return sort_on_string_field("first_name", "last_name");
     case "last_active":
-      return sort_on_numerical_field("last_active");
+      return sort_on_numerical_field("last_active", "last_name");
     case "hosting":
-      return sort_on_string_field("hosting");
+      return sort_on_string_field("hosting", "email_address");
+    case "last_name":
+    default:
+      return sort_on_string_field("last_name", "first_name");
   }
 }
 
 export function assignment_identifier(
   assignment_id: string,
-  student_id: string
+  student_id: string,
 ): string {
   return assignment_id + student_id;
 }
@@ -294,7 +341,8 @@ interface ProjectStatus {
 
 export function projectStatus(
   project_id: string | undefined,
-  redux
+  redux,
+  intl: IntlShape,
 ): ProjectStatus {
   if (!project_id) {
     return { description: "(not created)", icon: "hourglass-half", state: "" };
@@ -303,26 +351,43 @@ export function projectStatus(
   const state = ` (${store.get_state(project_id)})`;
   const kucalc = redux.getStore("customize").get("kucalc");
   if (kucalc === KUCALC_COCALC_COM) {
-    return projectStatusCoCalcCom({ project_id, state, store });
+    return projectStatusCoCalcCom({ project_id, state, store, intl });
   } else {
+    const tip = intl.formatMessage({
+      id: "course.util.project_status.ready",
+      defaultMessage: "Project exists and is ready.",
+    });
     return {
       icon: "exclamation-triangle",
-      description: "Ready",
-      tip: "Project exists and is ready.",
+      description: intl.formatMessage(labels.ready),
+      tip,
       state,
     };
   }
 }
 
-function projectStatusCoCalcCom(opts): ProjectStatus {
-  const { project_id, state, store } = opts;
+function projectStatusCoCalcCom({
+  project_id,
+  state,
+  store,
+  intl,
+}: {
+  project_id: string;
+  state: string;
+  store: ProjectsStore;
+  intl: IntlShape;
+}): ProjectStatus {
   const upgrades = store.get_total_project_quotas(project_id);
   if (upgrades == null) {
     // user opening the course, but isn't a collaborator on
     // this student project for some reason.  This will get fixed
     // when configure all projects runs.
+    const description = intl.formatMessage({
+      id: "course.util.status-cocalc-com.project_not_available",
+      defaultMessage: "(not available)",
+    });
     return {
-      description: "(not available)",
+      description,
       icon: "question-circle",
       state: "",
     };
@@ -338,29 +403,46 @@ function projectStatusCoCalcCom(opts): ProjectStatus {
   }
   const licenses = store.get_site_license_ids(project_id);
   if (licenses.length > 0) {
+    const description = intl.formatMessage({
+      id: "course.util.status-cocalc-com.licensed.description",
+      defaultMessage: "Licensed",
+    });
+    const tip = intl.formatMessage({
+      id: "course.util.status-cocalc-com.licensed.tooltip",
+      defaultMessage:
+        "Project is properly licensed and should work well. Thank you!",
+    });
+    return { description, icon: "check", state, tip };
+  } else {
+    const description = intl.formatMessage({
+      id: "course.util.status-cocalc-com.free.description",
+      defaultMessage: "Free Trial",
+    });
+    const tip = intl.formatMessage({
+      id: "course.util.status-cocalc-com.free.tooltip",
+      defaultMessage: `Project is a trial project hosted on a free server,
+      so it may be overloaded and will be rebooted frequently.
+      Please upgrade in course configuration.`,
+    });
     return {
-      description: "Licensed",
-      icon: "check",
+      description,
+      icon: "exclamation-triangle",
       state,
-      tip: "Project is properly licensed and should work well. Thank you!",
+      tip,
     };
   }
-  return {
-    description: "Free Trial",
-    icon: "exclamation-triangle",
-    state,
-    tip: "Project is a trial project hosted on a free server, so it may be overloaded and will be rebooted frequently.  Please upgrade in course configuration.",
-  };
 }
 
 // the list of assignments, in particular with peer grading, has a large number of buttons
 // in a single row. We mitigate this by rendering the buttons smaller if the screen is narrower.
-export function useButtonSize(): { bsSize: ButtonSize; antdSize: SizeType } {
-  const [size, setSize] = useState<ButtonSize>("small");
+export function useButtonSize(): SizeType {
+  const [size, setSize] = useState<SizeType>("small");
   const { width } = useWindowDimensions();
   useEffect(() => {
-    const next = width < 1024 ? "xsmall" : "small";
-    if (next != size) setSize(next);
+    const next = width < 1024 ? "small" : "middle";
+    if (next != size) {
+      setSize(next);
+    }
   });
-  return { bsSize: size, antdSize: size === "xsmall" ? "small" : "middle" };
+  return size;
 }

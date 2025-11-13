@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -99,7 +99,10 @@ export default function Task({
   return (
     <Grid
       style={style}
-      onClick={() => actions?.set_current_task(task.get("task_id"))}
+      onClick={() => {
+        actions?.set_current_task(task.get("task_id"));
+        actions?.enable_key_handler();
+      }}
     >
       <Row>
         <Col sm={1}>

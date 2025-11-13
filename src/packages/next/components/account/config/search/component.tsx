@@ -1,13 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Input, List } from "antd";
 import { join } from "path";
 import { useState } from "react";
 
-import { Icon } from "@cocalc/frontend/components/icon";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
 import A from "components/misc/A";
 import { useRouter } from "next/router";
@@ -74,6 +75,22 @@ function SearchResults({
   onClick: Function;
 }) {
   const router = useRouter();
+
+  function renderAvatar(item) {
+    if (item.icon == null) return;
+    const icon: IconName | "ai" = item.icon;
+    if (icon === "ai") {
+      return (
+        <AIAvatar
+          size={22}
+          style={{ position: "relative", top: "-2px", paddingRight: "15px" }}
+        />
+      );
+    } else {
+      return <Icon name={item.icon} style={{ fontSize: "16pt" }} />;
+    }
+  }
+
   return (
     <List
       style={{ marginBottom: "15px" }}
@@ -93,11 +110,7 @@ function SearchResults({
           >
             <List.Item style={{ borderBottom: "1px solid lightgrey" }}>
               <List.Item.Meta
-                avatar={
-                  item.icon ? (
-                    <Icon name={item.icon} style={{ fontSize: "16pt" }} />
-                  ) : undefined
-                }
+                avatar={renderAvatar(item)}
                 title={
                   <>
                     {capitalize(top)} <Icon name="arrow-right" />{" "}

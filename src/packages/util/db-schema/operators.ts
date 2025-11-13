@@ -5,6 +5,7 @@ However, there are significant performance implications
 to using those.  Maybe restrict use of regexp to admins only?
 */
 import LRU from "lru-cache";
+import { unreachable } from "../misc";
 
 // ORDER MATTERS! -- this gets looped over and searches happen -- so
 // the 1-character ops must be after 2-character ops that contain them.
@@ -24,8 +25,11 @@ export const OPERATORS = [
   "LIKE",
   "NOT ILIKE",
   "NOT LIKE",
+  "ANY", // only array
+  "MINLEN", // only array
+  "MAXLEN", // only array
 ] as const;
-export type Operator = typeof OPERATORS[number];
+export type Operator = (typeof OPERATORS)[number];
 
 export function isToOperand(operand: string) {
   switch (`${operand}`.toLowerCase()) {
@@ -97,7 +101,31 @@ export function opToFunction(op: Operator): (a, b) => boolean {
       const f = opToFunction("ILIKE");
       return (a, b) => !f(a, b);
     }
+    case "ANY":
+      return (a, b) => {
+        if (!Array.isArray(b)) {
+          return false;
+        }
+        return b.includes(a);
+      };
+    case "MINLEN":
+      // array b has at least a entries
+      return (a, b) => {
+        if (!Array.isArray(b)) {
+          return false;
+        }
+        return b.length >= a;
+      };
+    case "MAXLEN":
+      // array b has at least a entries
+      return (a, b) => {
+        if (!Array.isArray(b)) {
+          return false;
+        }
+        return b.length <= a;
+      };
     default:
+      unreachable(op);
       throw Error(`operator must be one of '${JSON.stringify(OPERATORS)}'`);
   }
 }
@@ -127,10 +155,10 @@ function likeRegExp(expression: string, caseInsensitive?: boolean): RegExp {
                 default:
                   return `\\${m}`;
               }
-            })
+            }),
       )
       .join("")}$`,
-    caseInsensitive ? "i" : ""
+    caseInsensitive ? "i" : "",
   );
   likeRegExpCache.set(key, re);
   return re;

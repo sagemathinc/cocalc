@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -12,11 +12,10 @@ be in a single namespace somehow...!
 
 import { Button, Card, Col, Input, Row, Space, Tag } from "antd";
 import { useEffect, useMemo, useState } from "react";
-
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
-  A,
   Gap,
   HelpIcon,
   Icon,
@@ -47,10 +46,10 @@ const RESULTS_WELL_STYLE: React.CSSProperties = {
 } as const;
 
 export const ProjectSearchBody: React.FC<{
-  project_id: string;
   mode: "project" | "flyout";
   wrap?: Function;
-}> = ({ project_id, mode = "project", wrap }) => {
+}> = ({ mode = "project", wrap }) => {
+  const { project_id } = useProjectContext();
   const subdirectories = useTypedRedux({ project_id }, "subdirectories");
   const case_sensitive = useTypedRedux({ project_id }, "case_sensitive");
   const hidden_files = useTypedRedux({ project_id }, "hidden_files");
@@ -139,14 +138,8 @@ export const ProjectSearchBody: React.FC<{
                 New
               </Tag>
               <div>
-                <Icon name="robot" /> <b>Neural search</b> using{" "}
-                <A href="https://platform.openai.com/docs/guides/embeddings/what-are-embeddings">
-                  OpenAI Embeddings
-                </A>{" "}
-                and <A href="https://qdrant.tech/">Qdrant</A>: search recently
-                edited files using a neural network similarity algorithm.
-                Indexed file types: jupyter, tasks, chat, whiteboards, and
-                slides.
+                <Icon name="robot" /> <b>Neural search</b>: jupyter, tasks,
+                chat, whiteboards, and slides.
               </div>
             </Checkbox>
           )}
@@ -210,16 +203,7 @@ export const ProjectSearchBody: React.FC<{
               actions?.setState({ neural_search: !neural_search })
             }
           >
-            <Icon name="robot" /> Neural search <Tag color="green">New</Tag>{" "}
-            <HelpIcon title="Neural search">
-              This novel search uses{" "}
-              <A href="https://platform.openai.com/docs/guides/embeddings/what-are-embeddings">
-                OpenAI Embeddings
-              </A>{" "}
-              and <A href="https://qdrant.tech/">Qdrant</A>. It searches
-              recently edited files using a neural network similarity algorithm.
-              Indexed file types: jupyter, tasks, chat, whiteboards, and slides.
-            </HelpIcon>
+            <Icon name="robot" /> Neural search
           </Checkbox>
         )}
       </div>
@@ -294,9 +278,9 @@ function ProjectSearchInput({
       size={small ? "medium" : "large"}
       autoFocus={true}
       value={user_input}
-      placeholder={`Enter your search ${
+      placeholder={`Search contents of files ${
         neural ? "(semantic similarity)" : "(supports regular expressions)"
-      }`}
+      }...`}
       on_change={(value) => actions?.setState({ user_input: value })}
       on_submit={() => actions?.search()}
       on_clear={() =>
@@ -407,7 +391,7 @@ function ProjectSearchOutput({
         </Alert>
       );
     }
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     let i = 0;
     for (const result of search_results) {
       v.push(

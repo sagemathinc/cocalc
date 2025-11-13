@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { StaticImageData } from "next/image";
@@ -22,6 +22,44 @@ export interface Testimonial {
   content: string; // markdown
 }
 export const TESTIMONIALS: Readonly<Testimonial[]> = [
+  {
+    name: "Undergraduate Student",
+    date: "March 2024",
+    content: `CoCalc is likely the best online environment for project-based work, even for undergraduate students like myself. In our class, we have to train large machine learning models on Python notebooks, so we wanted to look for an easy-to-use online solution where we could collaborate and rent powerful compute servers for training. Not only was the setup and documentation easy to follow, the environment and tools that CoCalc provides are top-notch. You can tell that CoCalc was built with care and passion.
+
+A few days in, our group faced a problem with compute servers (completely our own fault, I may add). We contacted support, initially expecting the usual long, drawn-out exchange with support staff to debug our issue. We never expected that the CEO and founder of CoCalc himself would give a practically instantaneous reply with his insights on our issue. In fact, he nailed our issue on the first try, and we have not had a problem since.
+
+CoCalc has been an incredible resource and force multiplier for my undergraduate studies with its ease of use and powerful capabilities. There were some issues due to our relative inexperience with remote platforms and Linux servers, but I believe the amazing support provided by CoCalc wholly negates any concerns we have from now on. I would wholeheartedly recommend this to any student considering CoCalc as an extension of their local environment for studying and practicing machine learning.`,
+  },
+  {
+    name: "John Spitzer",
+    date: "March 2024",
+    content: `
+I have used SageMath for a long time.
+The mathematics community does make an effort to provide open source options unlike the physics community which is only now discovering the attractions of open source.
+
+I have been using CoCalc for some time now and I have noticed a significant improvement in performance over recent times while the pricing is excellent.
+
+My recent work has been done entirely on CoCalc and it all worked fine.
+It is a great development environment.
+All the best and keep up the good work!`,
+  },
+  {
+    name: "Travis",
+    date: "Winter 2024",
+    content: `
+I turned to CoCalc for a few major reasons:
+1. some familiarity with the platform already
+2. instructor/course features
+3. responsive support if needed
+4. transparent pricing
+5. trusted data privacy and handling (avoiding some other platforms for questionable practices)
+
+Setting up the course was straightforward with the website guides, and the message I sent for some advice was promptly replied. Setting up the course was intuitive, from adding students to distributing the handouts. I did not use any grading features for this, as it was a workshop just for learning.
+
+The purchase of computation resources was transparent, intuitive, and easy to navigate. Furthermore, I was pleased with the price and because of the affordability, I was able to keep the project upgraded throughout the entire 3 weeks so that participants could practice in between sessions instead of only during the workshop. This was well received by everyone involved and helped promote self learning.
+`,
+  },
   {
     // https://sagemathcloud.zendesk.com/agent/tickets/13633
     name: "Hugh Thomas",
@@ -51,38 +89,6 @@ All that to say, I feel like I am using only a tiny fraction of the power of CoC
 CoCalc has provided me with a stable, fully equipped, environment in which I've been able to build my programming skills and develop some worthwhile programs for my mathematics community – all for the cost of a cup of coffee each month.  It's been a tremendously valuable resource for me.`,
   },
 
-  {
-    name: "Kiran Kedlaya",
-    image: kiran,
-    date: "March 2017",
-    website: "https://kskedlaya.org/",
-    affiliation: {
-      url: "https://math.ucsd.edu/",
-      name: "Department of Mathematics, University of California, San Diego",
-    },
-    content: `
-I just found out that my CoCalc class got by far the best course evaluations for any course I've taught at UCSD to date (over 85% on the favorable/unfavorable scale), which makes it a sure thing that I'll be teaching this course again (in some form) next year! Many thanks for the backend work on CoCalc, for the course materials, for the guest lecture...`,
-  },
-
-  {
-    name: "Will Conley",
-    image: conley,
-    date: "Fall 2016",
-    website: "https://www.math.ucla.edu/~conley/",
-    affiliation: {
-      url: "https://www.math.ucla.edu/",
-      name: "Department of Mathematics, University of California, Los Angeles",
-    },
-    content: `
-CoCalc provides a user-friendly interface.
-Students don't need to install any software at all.
-They just open up a web browser and go to cocalc.com and that's it.
-
-They just type code directly in, hit shift+enter and it runs, and they can see if it works.
-It provides immediate feedback.
-The course management features work really well.`,
-  },
-
   // https://sagemathcloud.zendesk.com/agent/tickets/13676
   {
     name: "Scott Smith",
@@ -104,6 +110,37 @@ Time travel !!! wow !! I love that.  (I could have used that many many times.  H
 I was pretty sad when mybinder stopped working. [...] I know that CoCalc will be a new and improved replacement for mybinder.  And does not seem like a steep learning curve at all.
 
 The documentation (and support!) is fabulous !!`,
+  },
+
+  {
+    name: "Kiran Kedlaya",
+    image: kiran,
+    date: "March 2017",
+    website: "https://kskedlaya.org/",
+    affiliation: {
+      url: "https://math.ucsd.edu/",
+      name: "Department of Mathematics, University of California, San Diego",
+    },
+    content: `
+I just found out that my CoCalc class got by far the best course evaluations for any course I've taught at UCSD to date (over 85% on the favorable/unfavorable scale), which makes it a sure thing that I'll be teaching this course again (in some form) next year! Many thanks for the backend work on CoCalc, for the course materials, for the guest lecture...`,
+  },
+  {
+    name: "Will Conley",
+    image: conley,
+    date: "Fall 2016",
+    website: "https://www.math.ucla.edu/~conley/",
+    affiliation: {
+      url: "https://www.math.ucla.edu/",
+      name: "Department of Mathematics, University of California, Los Angeles",
+    },
+    content: `
+CoCalc provides a user-friendly interface.
+Students don't need to install any software at all.
+They just open up a web browser and go to cocalc.com and that's it.
+
+They just type code directly in, hit shift+enter and it runs, and they can see if it works.
+It provides immediate feedback.
+The course management features work really well.`,
   },
 ] as const;
 

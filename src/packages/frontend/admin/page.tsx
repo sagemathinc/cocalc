@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Collapse, CollapseProps } from "antd";
@@ -13,6 +13,8 @@ import SiteSettings from "./site-settings";
 import { UsageStatistics } from "./stats/page";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { TestLLMAdmin } from "./llm/admin-llm-test";
 
 const headerStyle = { fontSize: "12pt" } as const;
 
@@ -83,6 +85,16 @@ export function AdminPage() {
       ),
       children: <UsageStatistics />,
     },
+    {
+      key: "llm-testing",
+      label: (
+        <div style={headerStyle}>
+          <AIAvatar size={16} style={{ marginRight: "8px" }} /> Test LLM
+          Integration
+        </div>
+      ),
+      children: <TestLLMAdmin />,
+    },
   ];
 
   return (
@@ -96,7 +108,7 @@ export function AdminPage() {
     >
       <Title level={3}>Administration</Title>
       <Collapse
-        destroyInactivePanel /* so that data is refreshed when they are shown */
+        destroyOnHidden /* so that data is refreshed when they are shown */
         activeKey={activeKey}
         onChange={(activeKey) => {
           setActiveKey(activeKey as string[]);

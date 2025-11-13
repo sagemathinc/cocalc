@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Tooltip } from "antd";
@@ -18,7 +18,7 @@ import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { DEFAULT_COLOR } from "@cocalc/frontend/users/store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { service2model } from "@cocalc/util/db-schema/openai";
+import { service2model } from "@cocalc/util/db-schema/llm-utils";
 import { ensure_bound, startswith, trunc_middle } from "@cocalc/util/misc";
 import { avatar_fontcolor } from "./font-color";
 
@@ -56,7 +56,7 @@ export function Avatar(props) {
     return (
       <LanguageModelVendorAvatar
         model={service2model(props.account_id)}
-        size={props.size}
+        size={props.size ?? 30}
         style={props.style}
       />
     );
@@ -249,8 +249,10 @@ const Avatar0: React.FC<Props> = (props) => {
     return <span style={{ ...style, ...CIRCLE_INNER_STYLE }}>{letter()}</span>;
   }
 
+  const { max_age_s = 600 } = props;
+
   function fade() {
-    if (props.activity == null || !props.max_age_s) {
+    if (props.activity == null || !max_age_s) {
       return 1;
     }
     const { last_used } = props.activity;
@@ -258,14 +260,16 @@ const Avatar0: React.FC<Props> = (props) => {
     return ensure_bound(
       1 -
         (webapp_client.server_time().valueOf() - last_used.valueOf()) /
-          (props.max_age_s * 1000),
+          (max_age_s * 1000),
       0,
       0.85,
     );
   }
 
-  const { size } = props;
-  if (size == null) throw Error("bug");
+  const { size = 30 } = props;
+  if (size == null) {
+    throw Error("bug");
+  }
   const outer_style = {
     height: `${size}px`,
     width: `${size}px`,
@@ -274,15 +278,19 @@ const Avatar0: React.FC<Props> = (props) => {
     opacity: fade(),
   };
 
+  // we put avatars inside <p>'s in some cases so do not use divs here.
   const elt = (
-    <div style={{ display: "inline-block", cursor: "pointer", ...props.style }}>
-      <div
-        style={{ ...outer_style, ...CIRCLE_OUTER_STYLE }}
-        onClick={click_avatar}
-      >
-        {render_inside()}
-      </div>
-    </div>
+    <span
+      style={{
+        display: "inline-block",
+        ...outer_style,
+        ...CIRCLE_OUTER_STYLE,
+        ...props.style,
+      }}
+      onClick={click_avatar}
+    >
+      {render_inside()}
+    </span>
   );
   if (props.no_tooltip) {
     return elt;
@@ -290,5 +298,3 @@ const Avatar0: React.FC<Props> = (props) => {
     return <Tooltip title={render_tooltip_content()}>{elt}</Tooltip>;
   }
 };
-
-Avatar.defaultProps = { size: 30, max_age_s: 600 };

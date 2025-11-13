@@ -3,6 +3,14 @@ import getClient, { waitUntilOperationComplete } from "./client";
 import getLogger from "@cocalc/backend/logger";
 import { supportsStandardNetworkTier } from "./util";
 import { getSourceImage } from "./images";
+import {
+  DEFAULT_HYPERDISK_BALANCED_IOPS,
+  DEFAULT_HYPERDISK_BALANCED_THROUGHPUT,
+} from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import {
+  ensureDefaultFirewallsExists,
+  getDefaultFirewallTags,
+} from "./firewall";
 
 const logger = getLogger("server:compute:google-cloud:create-instance");
 
@@ -33,7 +41,7 @@ export default async function createInstance({
     sourceImage = configuration.sourceImage;
   }
 
-  if (configuration.acceleratorType == "nvidia-tesla-k80") {
+  if ((configuration.acceleratorType as string) == "nvidia-tesla-k80") {
     // it will be deprecated from google cloud soon, and nvidia's recent drivers don't work either.
     throw Error("the nvidia-tesla-k80 GPU is deprecated");
   }
@@ -46,7 +54,7 @@ export default async function createInstance({
 
   const machineType = getFullMachineType(configuration);
 
-  const { networkInterfaces, tags } = getNetworkInterfaces(
+  const { networkInterfaces, tags } = await getNetworkInterfaces(
     configuration,
     client,
   );
@@ -65,6 +73,8 @@ export default async function createInstance({
   }
 
   const schedulingModel = getSchedulingModel(configuration);
+
+  const advancedMachineFeatures = getAdvancedMachineFeatures(configuration);
 
   const maxRunDuration = configuration.maxRunDurationSeconds
     ? {
@@ -92,6 +102,7 @@ export default async function createInstance({
     scheduling,
     guestAccelerators,
     tags,
+    advancedMachineFeatures,
   };
 
   logger.debug("create instance", instanceResource);
@@ -149,14 +160,19 @@ export function getGuestAccelerators(
   ];
 }
 
-function getNetworkInterfaces(configuration, client) {
-  // if externalIp is not set at all, we default to true.
-  // Without it, compute servers do NOT work at all.
+async function getNetworkInterfaces(configuration, client) {
+  // Make sure the default firewalls exist.  Otherwise, ssh/http/vpn, etc., to the
+  // VM won't work.
+  await ensureDefaultFirewallsExists();
 
   const networkTier = supportsStandardNetworkTier(configuration.region)
     ? "STANDARD"
     : "PREMIUM";
   const subnetwork = `projects/${client.googleProjectId}/regions/${configuration.region}/subnetworks/default`;
+
+  // If externalIp is not set at all, we default to true.
+  // **Without externalIp, compute servers do NOT work at all since they
+  // can't connect to the outside world.**
   const networkInterfaces = [
     {
       accessConfigs:
@@ -175,7 +191,7 @@ function getNetworkInterfaces(configuration, client) {
 
   const tags = configuration.externalIp
     ? {
-        items: ["https-server", "http-server"],
+        items: await getDefaultFirewallTags(),
       }
     : undefined;
 
@@ -204,6 +220,7 @@ async function getDisks(
         }/diskTypes/${configuration.diskType ?? "pd-standard"}`,
         labels: {},
         sourceImage,
+        ...getHyperdiskParams(configuration),
       },
       mode: "READ_WRITE",
       type: "PERSISTENT",
@@ -211,6 +228,21 @@ async function getDisks(
   ];
 
   return { disks, diskSizeGb };
+}
+
+function getHyperdiskParams(configuration: GoogleCloudConfiguration) {
+  if (!configuration.diskType?.includes("hyperdisk")) {
+    return undefined;
+  }
+  return {
+    provisionedIops: `${
+      configuration.hyperdiskBalancedIops ?? DEFAULT_HYPERDISK_BALANCED_IOPS
+    }`,
+    provisionedThroughput: `${
+      configuration.hyperdiskBalancedThroughput ??
+      DEFAULT_HYPERDISK_BALANCED_THROUGHPUT
+    }`,
+  };
 }
 
 export function getSchedulingModel(configuration: GoogleCloudConfiguration) {
@@ -238,5 +270,13 @@ export function getSchedulingModel(configuration: GoogleCloudConfiguration) {
       provisioningModel: "STANDARD",
       preemptible: false,
     };
+  }
+}
+
+function getAdvancedMachineFeatures(configuration) {
+  if (configuration.enableNestedVirtualization) {
+    return { enableNestedVirtualization: true };
+  } else {
+    return {};
   }
 }

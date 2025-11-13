@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Not sure where this should go...
@@ -61,6 +61,7 @@ export class AppRedux extends AppReduxBase {
   getActions(name: "admin-users"): types.AdminUsersActions;
   getActions(name: "admin-site-licenses"): types.SiteLicensesActions;
   getActions(name: "mentions"): types.MentionsActions;
+  getActions(name: "messages"): types.MessagesActions;
   getActions(name: "file_use"): types.FileUseActions;
   getActions(name: typeof NEWS): types.NewsActions;
   getActions(name: { project_id: string }): ProjectActions;
@@ -89,6 +90,7 @@ export class AppRedux extends AppReduxBase {
   getStore(name: "admin-users"): types.AdminUsersStore;
   getStore(name: "admin-site-licenses"): types.SiteLicensesStore;
   getStore(name: "mentions"): types.MentionsStore;
+  getStore(name: "messages"): types.MessagesStore;
   getStore(name: "file_use"): types.FileUseStore;
   getStore(name: "customize"): types.CustomizeStore;
   getStore(name: "users"): types.UsersStore;
@@ -208,34 +210,43 @@ export class AppRedux extends AppReduxBase {
     }
     const name = project_redux_name(project_id);
     const store = this.getStore(name);
-    if (store && typeof store.destroy == "function") {
-      store.destroy();
-    }
+    store?.destroy?.();
     this.removeActions(name);
     this.removeStore(name);
   }
 
   // getEditorActions but for whatever editor  -- this is mainly meant to be used
   // from the console when debugging, e.g., smc.redux.currentEditorActions()
-  public currentEditor(): {
-    actions: Actions<any> | undefined;
-    store: Store<any> | undefined;
-  } {
+  public currentEditor = (): {
+    project_id?: string;
+    path?: string;
+    account_id?: string;
+    actions?: Actions<any>;
+    store?: Store<any>;
+  } => {
     const project_id = this.getStore("page").get("active_top_tab");
+    const current: {
+      project_id?: string;
+      path?: string;
+      account_id?: string;
+      actions?: Actions<any>;
+      store?: Store<any>;
+    } = { account_id: this.getStore("account")?.get("account_id") };
     if (!is_valid_uuid_string(project_id)) {
-      return { actions: undefined, store: undefined };
+      return current;
     }
+    current.project_id = project_id;
     const store = this.getProjectStore(project_id);
     const tab = store.get("active_project_tab");
     if (!tab.startsWith("editor-")) {
-      return { actions: undefined, store: undefined };
+      return current;
     }
     const path = tab.slice("editor-".length);
-    return {
-      actions: this.getEditorActions(project_id, path),
-      store: this.getEditorStore(project_id, path),
-    };
-  }
+    current.path = path;
+    current.actions = this.getEditorActions(project_id, path);
+    current.store = this.getEditorStore(project_id, path);
+    return current;
+  };
 }
 
 const computed = (rtype) => {
@@ -337,7 +348,7 @@ function reduxPropsCheck(reduxProps: object) {
 */
 
 function compute_cache_key(data: { [key: string]: any }): string {
-  return json_stable(keys(data).sort());
+  return json_stable(keys(data).sort())!;
 }
 
 rclass = function (x: any) {
@@ -478,13 +489,6 @@ function UNSAFE_NONNULLABLE<T>(arg: T): NonNullable<T> {
   return arg as any;
 }
 export { UNSAFE_NONNULLABLE };
-
-// I'm explicitly disabling using typing with ReactDOM on purpose,
-// because it's basically impossibly to use, and I'll probably get
-// rid of all uses of ReactDOM.findDOMNode anyways.
-//import ReactDOM from "react-dom";
-//export { ReactDOM };
-export const ReactDOM = require("react-dom");
 
 declare var cc;
 if (DEBUG) {

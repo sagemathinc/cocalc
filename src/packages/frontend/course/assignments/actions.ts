@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -8,6 +8,10 @@ Actions involving working with assignments:
   - assigning, collecting, setting feedback, etc.
 */
 
+import { delay, map } from "awaiting";
+import { Map } from "immutable";
+import { debounce } from "lodash";
+import { join } from "path";
 import { redux } from "@cocalc/frontend/app-framework";
 import {
   exec,
@@ -28,16 +32,14 @@ import {
   defaults,
   endswith,
   len,
-  mswalltime,
   path_split,
   peer_grading,
   split,
   trunc,
   uuid,
 } from "@cocalc/util/misc";
-import { delay, map } from "awaiting";
-import { Map } from "immutable";
 import { CourseActions } from "../actions";
+import { COPY_TIMEOUT_MS } from "../consts";
 import { export_assignment } from "../export/export-assignment";
 import { export_student_file_use_times } from "../export/file-use-times";
 import { grading_state } from "../nbgrader/util";
@@ -64,9 +66,14 @@ import {
   NBGRADER_MAX_OUTPUT,
   NBGRADER_MAX_OUTPUT_PER_CELL,
   NBGRADER_TIMEOUT_MS,
-  PEER_GRADING_GUIDE_FN,
+  PEER_GRADING_GUIDE_FILENAME,
+  PEER_GRADING_GUIDELINES_COMMENT_MARKER,
+  PEER_GRADING_GUIDELINES_GRADE_MARKER,
   STUDENT_SUBDIR,
 } from "./consts";
+import { DUE_DATE_FILENAME } from "../common/consts";
+
+const UPDATE_DUE_DATE_FILENAME_DEBOUNCE_MS = 3000;
 
 export class AssignmentsActions {
   private course_actions: CourseActions;
@@ -75,22 +82,55 @@ export class AssignmentsActions {
     this.course_actions = course_actions;
   }
 
-  private get_store(): CourseStore {
+  private get_store = (): CourseStore => {
     return this.course_actions.get_store();
-  }
+  };
 
-  private collect_path(path: string): string {
+  private collect_path = (path: string): string => {
     const store = this.get_store();
     if (store == undefined) {
       throw Error("store must be defined");
     }
     const i = store.get("course_filename").lastIndexOf(".");
     return store.get("course_filename").slice(0, i) + "-collect/" + path;
-  }
+  };
 
-  public async add_assignment(path: string): Promise<void> {
-    // Add an assignment to the course, which is defined by giving a directory in the project.
-    // Where we collect homework that students have done (in teacher project)
+  // slight warning -- this is linear in the number of assignments (so do not overuse)
+  private getAssignmentWithPath = (
+    path: string,
+  ): AssignmentRecord | undefined => {
+    const store = this.get_store();
+    if (store == null) return;
+    return store
+      .get("assignments")
+      .valueSeq()
+      .filter((x) => x.get("path") == path)
+      .get(0);
+  };
+
+  addAssignment = async (path: string | string[]): Promise<void> => {
+    // Add one or more assignment to the course, which is defined by giving a directory in the project.
+    // Where we collect homework that students have done (in teacher project).
+    // If the assignment was previously deleted, this undeletes it.
+    if (typeof path != "string") {
+      // handle case of array of inputs
+      for (const p of path) {
+        await this.addAssignment(p);
+      }
+      return;
+    }
+    const cur = this.getAssignmentWithPath(path);
+    if (cur != null) {
+      // either undelete or nothing to do.
+      if (cur.get("deleted")) {
+        // undelete
+        this.undelete_assignment(cur.get("assignment_id"));
+      } else {
+        // nothing to do
+      }
+      return;
+    }
+
     const collect_path = this.collect_path(path);
     const path_parts = path_split(path);
     // folder that we return graded homework to (in student project)
@@ -119,37 +159,34 @@ export class AssignmentsActions {
       table: "assignments",
       assignment_id: uuid(),
     });
-  }
+  };
 
-  public delete_assignment(assignment_id: string): void {
+  delete_assignment = (assignment_id: string): void => {
     this.course_actions.set({
       deleted: true,
       assignment_id,
       table: "assignments",
     });
-  }
+  };
 
-  public undelete_assignment(assignment_id: string): void {
+  undelete_assignment = (assignment_id: string): void => {
     this.course_actions.set({
       deleted: false,
       assignment_id,
       table: "assignments",
     });
-  }
+  };
 
-  public clear_edited_feedback(
-    assignment_id: string,
-    student_id: string,
-  ): void {
+  clear_edited_feedback = (assignment_id: string, student_id: string): void => {
     const store = this.get_store();
     let active_feedback_edits = store.get("active_feedback_edits");
     active_feedback_edits = active_feedback_edits.delete(
       assignment_identifier(assignment_id, student_id),
     );
     this.course_actions.setState({ active_feedback_edits });
-  }
+  };
 
-  public update_edited_feedback(assignment_id: string, student_id: string) {
+  update_edited_feedback = (assignment_id: string, student_id: string) => {
     const store = this.get_store();
     const key = assignment_identifier(assignment_id, student_id);
     const old_edited_feedback = store.get("active_feedback_edits");
@@ -157,18 +194,18 @@ export class AssignmentsActions {
     this.course_actions.setState({
       active_feedback_edits: new_edited_feedback,
     });
-  }
+  };
 
   // Set a specific grade for a student in an assignment.
   // This overlaps with save_feedback, but is more
   // direct and uses that maybe the user isn't manually editing
   // this.  E.g., nbgrader uses this to automatically set the grade.
-  public set_grade(
+  set_grade = (
     assignment_id: string,
     student_id: string,
     grade: string,
     commit: boolean = true,
-  ): void {
+  ): void => {
     const { assignment } = this.course_actions.resolve({
       assignment_id,
     });
@@ -189,15 +226,15 @@ export class AssignmentsActions {
       },
       commit,
     );
-  }
+  };
 
   // Set a specific comment for a student in an assignment.
-  public set_comment(
+  set_comment = (
     assignment_id: string,
     student_id: string,
     comment: string,
     commit: boolean = true,
-  ): void {
+  ): void => {
     const { assignment } = this.course_actions.resolve({
       assignment_id,
     });
@@ -218,9 +255,9 @@ export class AssignmentsActions {
       },
       commit,
     );
-  }
+  };
 
-  public set_active_assignment_sort(column_name: string): void {
+  set_active_assignment_sort = (column_name: string): void => {
     let is_descending;
     const store = this.get_store();
     const current_column = store.getIn([
@@ -235,35 +272,110 @@ export class AssignmentsActions {
     this.course_actions.setState({
       active_assignment_sort: { column_name, is_descending },
     });
-  }
+  };
 
-  private set_assignment_field(assignment_id: string, name: string, val): void {
+  private set_assignment_field = (
+    assignment_id: string,
+    name: string,
+    val,
+  ): void => {
     this.course_actions.set({
       [name]: val,
       table: "assignments",
       assignment_id,
     });
-  }
+  };
 
-  public set_due_date(
+  set_due_date = async (
     assignment_id: string,
     due_date: Date | string | undefined | null,
-  ): void {
-    if (due_date == null) {
-      this.set_assignment_field(assignment_id, "due_date", null);
+  ): Promise<void> => {
+    const { assignment } = this.course_actions.resolve({
+      assignment_id,
+    });
+    if (assignment == null) {
       return;
     }
+    const prev_due_date = assignment.get("due_date");
+
+    if (!due_date) {
+      // deleting it
+      if (prev_due_date) {
+        // not deleted so delete it
+        this.set_assignment_field(assignment_id, "due_date", null);
+        this.updateDueDateFile(assignment_id);
+      }
+      return;
+    }
+
     if (typeof due_date !== "string") {
       due_date = due_date.toISOString(); // using strings instead of ms for backward compatibility.
     }
+
+    if (prev_due_date == due_date) {
+      // nothing to do.
+      return;
+    }
+
     this.set_assignment_field(assignment_id, "due_date", due_date);
-  }
+    // it changed, so update the file in all student projects that have already been assigned
+    // https://github.com/sagemathinc/cocalc/issues/2929
+    // NOTE: updateDueDate is debounced, so if set_due_date is called a lot, then the
+    // actual update only happens after it stabilizes for a while.  Also, we can be
+    // sure the store has updated the assignment.
+    this.updateDueDateFile(assignment_id);
+  };
 
-  public set_assignment_note(assignment_id: string, note: string): void {
+  private updateDueDateFile = debounce(async (assignment_id: string) => {
+    // important to check actions due to debounce.
+    if (this.course_actions.is_closed()) return;
+    await this.copy_assignment_create_due_date_file(assignment_id);
+    if (this.course_actions.is_closed()) return;
+
+    const desc = `Copying modified ${DUE_DATE_FILENAME} to all students who have already received it`;
+    const short_desc = `copy ${DUE_DATE_FILENAME}`;
+
+    // by default, doesn't create the due file
+    await this.assignment_action_all_students({
+      assignment_id,
+      old_only: true,
+      action: this.writeDueDateFile,
+      step: "assignment",
+      desc,
+      short_desc,
+    });
+  }, UPDATE_DUE_DATE_FILENAME_DEBOUNCE_MS);
+
+  private writeDueDateFile = async (
+    assignment_id: string,
+    student_id: string,
+  ) => {
+    const { student, assignment } = this.course_actions.resolve({
+      assignment_id,
+      student_id,
+    });
+    if (!student || !assignment) return;
+    const content = this.dueDateFileContent(assignment_id);
+    const project_id = student.get("project_id");
+    if (!project_id) return;
+    const path = join(assignment.get("target_path"), DUE_DATE_FILENAME);
+    console.log({
+      project_id,
+      path,
+      content,
+    });
+    await webapp_client.project_client.write_text_file({
+      project_id,
+      path,
+      content,
+    });
+  };
+
+  set_assignment_note = (assignment_id: string, note: string): void => {
     this.set_assignment_field(assignment_id, "note", note);
-  }
+  };
 
-  public set_peer_grade(assignment_id: string, config): void {
+  set_peer_grade = (assignment_id: string, config): void => {
     const store = this.get_store();
     const a = store.get_assignment(assignment_id);
     if (a == null) return;
@@ -274,15 +386,15 @@ export class AssignmentsActions {
       cur[k] = v;
     }
     this.set_assignment_field(assignment_id, "peer_grade", cur);
-  }
+  };
 
-  public set_skip(assignment_id: string, step: string, value: boolean): void {
+  set_skip = (assignment_id: string, step: string, value: boolean): void => {
     this.set_assignment_field(assignment_id, "skip_" + step, value);
-  }
+  };
 
   // Synchronous function that makes the peer grading map for the given
   // assignment, if it hasn't already been made.
-  private update_peer_assignment(assignment_id: string) {
+  private update_peer_assignment = (assignment_id: string) => {
     const { store, assignment } = this.course_actions.resolve({
       assignment_id,
     });
@@ -295,7 +407,7 @@ export class AssignmentsActions {
     const map = peer_grading(store.get_student_ids(), N);
     this.set_peer_grade(assignment_id, { map });
     return map;
-  }
+  };
 
   // Copy the files for the given assignment_id from the given student to the
   // corresponding collection folder.
@@ -305,10 +417,10 @@ export class AssignmentsActions {
   //    assignment.last_collect[student_id] = {time:?, error:err}
   //
   // where time >= now is the current time in milliseconds.
-  private async copy_assignment_from_student(
+  private copy_assignment_from_student = async (
     assignment_id: string,
     student_id: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     if (this.start_copy(assignment_id, student_id, "last_collect")) {
       return;
     }
@@ -335,8 +447,10 @@ export class AssignmentsActions {
       this.course_actions.clear_activity(id);
       return;
     }
-    const target_path =
-      assignment.get("collect_path") + "/" + student.get("student_id");
+    const target_path = join(
+      assignment.get("collect_path"),
+      student.get("student_id"),
+    );
     this.course_actions.set_activity({
       id,
       desc: `Copying assignment from ${student_name}`,
@@ -350,6 +464,7 @@ export class AssignmentsActions {
         overwrite_newer: true,
         backup: true,
         delete_missing: false,
+        timeout: COPY_TIMEOUT_MS,
       });
       // write their name to a file
       const name = store.get_student_name_extra(student_id);
@@ -361,7 +476,7 @@ export class AssignmentsActions {
     } catch (err) {
       finish(err);
     }
-  }
+  };
 
   // Copy the graded files for the given assignment_id back to the student in a -graded folder.
   // If the store is initialized and the student and assignment both exist,
@@ -371,10 +486,10 @@ export class AssignmentsActions {
   //
   // where time >= now is the current time in milliseconds.
 
-  private async return_assignment_to_student(
+  private return_assignment_to_student = async (
     assignment_id: string,
     student_id: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     if (this.start_copy(assignment_id, student_id, "last_return_graded")) {
       return;
     }
@@ -422,7 +537,7 @@ export class AssignmentsActions {
     } else {
       peer_graded = false;
     }
-    src_path += `/${student.get("student_id")}`;
+    src_path = join(src_path, student.get("student_id"));
     let content;
     if (skip_grading && !peer_graded) {
       content =
@@ -446,7 +561,7 @@ export class AssignmentsActions {
       content += `\
 \n\n\n# Peer graded\n\n
 Your assignment was peer graded by other students.
-You can find the comments they made in the folders below.\
+You can find the comments they made above and any directly to your work in the folders below.\
 `;
     }
 
@@ -509,18 +624,19 @@ ${details}
         backup: true,
         delete_missing: false,
         exclude: peer_graded ? ["*GRADER*.txt"] : undefined,
+        timeout: COPY_TIMEOUT_MS,
       });
       finish("");
     } catch (err) {
       finish(err);
     }
-  }
+  };
 
   // Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
-  public async return_assignment_to_all_students(
+  return_assignment_to_all_students = async (
     assignment_id: string,
     new_only: boolean,
-  ): Promise<void> {
+  ): Promise<void> => {
     const id = this.course_actions.set_activity({
       desc:
         "Returning assignments to all students " + new_only
@@ -583,14 +699,14 @@ ${details}
     } else {
       this.course_actions.clear_activity(id);
     }
-  }
+  };
 
-  private finish_copy(
+  private finish_copy = (
     assignment_id: string,
     student_id: string,
     type: LastAssignmentCopyType,
     err: any,
-  ): void {
+  ): void => {
     const obj: SyncDBRecord = {
       table: "assignments",
       assignment_id,
@@ -598,22 +714,23 @@ ${details}
     const a = this.course_actions.get_one(obj);
     if (a == null) return;
     const x = a[type] ? a[type] : {};
-    x[student_id] = { time: mswalltime() };
     if (err) {
-      x[student_id].error = err;
+      x[student_id] = { error: err };
+    } else {
+      x[student_id] = { time: webapp_client.server_time() };
     }
     obj[type] = x;
     this.course_actions.set(obj);
-  }
+  };
 
   // This is called internally before doing any copy/collection operation
   // to ensure that we aren't doing the same thing repeatedly, and that
   // everything is in place to do the operation.
-  private start_copy(
+  private start_copy = (
     assignment_id: string,
     student_id: string,
     type: LastAssignmentCopyType,
-  ): boolean {
+  ): boolean => {
     const obj: SyncDBRecordAssignment = {
       table: "assignments",
       assignment_id,
@@ -627,18 +744,22 @@ ${details}
     if (y.start != null && webapp_client.server_time() - y.start <= 15000) {
       return true; // never retry a copy until at least 15 seconds later.
     }
-    y.start = mswalltime();
+    y.start = webapp_client.server_time();
+    if (y.error) {
+      // clear error when initiating copy
+      y.error = "";
+    }
     x[student_id] = y;
     obj[type] = x;
     this.course_actions.set(obj);
     return false;
-  }
+  };
 
-  private stop_copy(
+  private stop_copy = (
     assignment_id: string,
     student_id: string,
     type: LastAssignmentCopyType,
-  ): void {
+  ): void => {
     const obj: SyncDBRecordAssignment = {
       table: "assignments",
       assignment_id,
@@ -655,7 +776,7 @@ ${details}
       obj[type] = x;
       this.course_actions.set(obj);
     }
-  }
+  };
 
   // Copy the files for the given assignment to the given student. If
   // the student project doesn't exist yet, it will be created.
@@ -667,11 +788,11 @@ ${details}
   //    assignment.last_assignment[student_id] = {time:?, error:err}
   //
   // where time >= now is the current time in milliseconds.
-  private async copy_assignment_to_student(
+  private copy_assignment_to_student = async (
     assignment_id: string,
     student_id: string,
     opts: object,
-  ): Promise<void> {
+  ): Promise<void> => {
     const { overwrite, create_due_date_file } = defaults(opts, {
       overwrite: false,
       create_due_date_file: false,
@@ -731,7 +852,7 @@ ${details}
         id,
         desc: `Copying files to ${student_name}'s project`,
       });
-      await webapp_client.project_client.copy_path_between_projects({
+      const opts = {
         src_project_id: store.get("course_project_id"),
         src_path,
         target_project_id: student_project_id,
@@ -739,6 +860,15 @@ ${details}
         overwrite_newer: !!overwrite, // default is "false"
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
+        timeout: COPY_TIMEOUT_MS,
+      };
+      await webapp_client.project_client.copy_path_between_projects(opts);
+      await this.course_actions.compute.setComputeServerAssociations({
+        student_id,
+        src_path: opts.src_path,
+        target_project_id: opts.target_project_id,
+        target_path: opts.target_path,
+        unit_id: assignment_id,
       });
 
       // successful finish
@@ -747,36 +877,31 @@ ${details}
       // error somewhere along the way
       finish(err);
     }
-  }
+  };
 
-  private assignment_src_path(assignment): string {
+  private assignment_src_path = (assignment): string => {
     let path = assignment.get("path");
     if (assignment.get("has_student_subdir")) {
-      path += "/" + STUDENT_SUBDIR;
+      path = join(path, STUDENT_SUBDIR);
     }
     return path;
-  }
+  };
 
   // this is part of the assignment disribution, should be done only *once*, not for every student
-  private async copy_assignment_create_due_date_file(
+  private copy_assignment_create_due_date_file = async (
     assignment_id: string,
-  ): Promise<void> {
-    const { assignment, store } = this.course_actions.resolve({
+  ): Promise<void> => {
+    const { assignment } = this.course_actions.resolve({
       assignment_id,
     });
     if (!assignment) return;
     // write the due date to a file
-    const due_date = store.get_due_date(assignment_id);
     const src_path = this.assignment_src_path(assignment);
-    const due_date_fn = "DUE_DATE.txt";
-    if (due_date == null) {
-      return;
-    }
     const due_id = this.course_actions.set_activity({
-      desc: `Creating ${due_date_fn} file...`,
+      desc: `Creating ${DUE_DATE_FILENAME} file...`,
     });
-    const content = `This assignment is due\n\n   ${due_date.toLocaleString()}`;
-    const path = src_path + "/" + due_date_fn;
+    const content = this.dueDateFileContent(assignment_id);
+    const path = join(src_path, DUE_DATE_FILENAME);
 
     try {
       await this.write_text_file_to_course_project({
@@ -785,18 +910,27 @@ ${details}
       });
     } catch (err) {
       throw Error(
-        `Problem writing ${due_date_fn} file ('${err}'). Try again...`,
+        `Problem writing ${DUE_DATE_FILENAME} file ('${err}'). Try again...`,
       );
     } finally {
       this.course_actions.clear_activity(due_id);
     }
-  }
+  };
 
-  public async copy_assignment(
+  private dueDateFileContent = (assignment_id) => {
+    const due_date = this.get_store()?.get_due_date(assignment_id);
+    if (due_date) {
+      return `This assignment is due\n\n   ${due_date.toLocaleString()}`;
+    } else {
+      return "No due date has been set.";
+    }
+  };
+
+  copy_assignment = async (
     type: AssignmentCopyType,
     assignment_id: string,
     student_id: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     // type = assigned, collected, graded, peer-assigned, peer-collected
     switch (type) {
       case "assigned":
@@ -825,14 +959,14 @@ ${details}
         );
         return;
     }
-  }
+  };
 
   // Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
-  public async copy_assignment_to_all_students(
+  copy_assignment_to_all_students = async (
     assignment_id: string,
     new_only: boolean,
     overwrite: boolean,
-  ): Promise<void> {
+  ): Promise<void> => {
     const desc = `Copying assignments to all students ${
       new_only ? "who have not already received it" : ""
     }`;
@@ -842,38 +976,38 @@ ${details}
     await this.copy_assignment_create_due_date_file(assignment_id);
     if (this.course_actions.is_closed()) return;
     // by default, doesn't create the due file
-    await this.assignment_action_all_students(
+    await this.assignment_action_all_students({
       assignment_id,
       new_only,
-      this.copy_assignment_to_student,
-      "assignment",
+      action: this.copy_assignment_to_student,
+      step: "assignment",
       desc,
       short_desc,
       overwrite,
-    );
-  }
+    });
+  };
 
   // Copy the given assignment to from all non-deleted students, doing several copies in parallel at once.
-  public async copy_assignment_from_all_students(
+  copy_assignment_from_all_students = async (
     assignment_id: string,
     new_only: boolean,
-  ): Promise<void> {
+  ): Promise<void> => {
     let desc = "Copying assignment from all students";
     if (new_only) {
       desc += " from whom we have not already copied it";
     }
     const short_desc = "copy from student";
-    await this.assignment_action_all_students(
+    await this.assignment_action_all_students({
       assignment_id,
       new_only,
-      this.copy_assignment_from_student,
-      "collect",
+      action: this.copy_assignment_from_student,
+      step: "collect",
       desc,
       short_desc,
-    );
-  }
+    });
+  };
 
-  private async start_all_for_peer_grading(): Promise<void> {
+  private start_all_for_peer_grading = async (): Promise<void> => {
     // On cocalc.com, if the student projects get started specifically
     // for the purposes of copying files to/from them, then they stop
     // around a minute later.  This is very bad for peer grading, since
@@ -888,14 +1022,14 @@ ${details}
     });
     this.course_actions.student_projects.action_all_student_projects("start");
     // We request to start all projects simultaneously, and the system
-    // will start doing that.  I think it's no so much important that
+    // will start doing that.  I think it's not so much important that
     // the projects are actually running, but that they were started
     // before the copy operations started.
-    await delay(15 * 1000);
+    await delay(5 * 1000);
     this.course_actions.clear_activity(id);
-  }
+  };
 
-  public async peer_copy_to_all_students(
+  async peer_copy_to_all_students(
     assignment_id: string,
     new_only: boolean,
   ): Promise<void> {
@@ -909,20 +1043,25 @@ ${details}
     // in parallel, two will launch at about the same time and
     // the *condition* to know if it is done depends on the store,
     // which defers when it gets updated.  Anyway, this line is critical:
-    this.update_peer_assignment(assignment_id);
+    try {
+      this.update_peer_assignment(assignment_id);
+    } catch (err) {
+      this.course_actions.set_error(`${short_desc} -- ${err}`);
+      return;
+    }
     await this.start_all_for_peer_grading();
     // OK, now do the assignment... in parallel.
-    await this.assignment_action_all_students(
+    await this.assignment_action_all_students({
       assignment_id,
       new_only,
-      this.peer_copy_to_student,
-      "peer_assignment",
+      action: this.peer_copy_to_student,
+      step: "peer_assignment",
       desc,
       short_desc,
-    );
+    });
   }
 
-  public async peer_collect_from_all_students(
+  async peer_collect_from_all_students(
     assignment_id: string,
     new_only: boolean,
   ): Promise<void> {
@@ -932,29 +1071,158 @@ ${details}
     }
     const short_desc = "copy peer grading from students";
     await this.start_all_for_peer_grading();
-    await this.assignment_action_all_students(
+    await this.assignment_action_all_students({
       assignment_id,
       new_only,
-      this.peer_collect_from_student,
-      "peer_collect",
+      action: this.peer_collect_from_student,
+      step: "peer_collect",
       desc,
       short_desc,
-    );
+    });
+    await this.peerParseStudentGrading(assignment_id);
   }
 
-  private async assignment_action_all_students(
-    assignment_id: string,
-    new_only: boolean,
+  private peerParseStudentGrading = async (assignment_id: string) => {
+    // For each student do the following:
+    //   If they already have a recorded grade, do nothing further.
+    //   If they do not have a recorded grade, load all of the
+    //   PEER_GRADING_GUIDE_FILENAME files that were collected
+    //   from the students, then create a grade from that (if possible), along
+    //   with a comment that explains how that grade was obtained, without
+    //   saying which student did what.
+    const { store, assignment } = this.course_actions.resolve({
+      assignment_id,
+    });
+    if (assignment == null) {
+      throw Error("no such assignment");
+    }
+    const id = this.course_actions.set_activity({
+      desc: "Parsing peer grading",
+    });
+    const allGrades = assignment.get("grades", Map()).toJS() as {
+      [student_id: string]: string;
+    };
+    const allComments = assignment.get("comments", Map()).toJS() as {
+      [student_id: string]: string;
+    };
+    // compute missing grades
+    for (const student_id of store.get_student_ids()) {
+      if (allGrades[student_id]) {
+        // a grade is already set
+        continue;
+      }
+      // attempt to compute a grade
+      const peer_student_ids: string[] = store.get_peers_that_graded_student(
+        assignment_id,
+        student_id,
+      );
+      const course_project_id = store.get("course_project_id");
+      const grades: number[] = [];
+      let comments: string[] = [];
+      const student_name = store.get_student_name(student_id);
+      this.course_actions.set_activity({
+        id,
+        desc: `Parsing peer grading of ${student_name}`,
+      });
+      for (const peer_student_id of peer_student_ids) {
+        const path = join(
+          `${assignment.get("collect_path")}-peer-grade`,
+          student_id,
+          peer_student_id,
+          PEER_GRADING_GUIDE_FILENAME,
+        );
+        try {
+          const contents = await webapp_client.project_client.read_text_file({
+            project_id: course_project_id,
+            path,
+          });
+          const i = contents.lastIndexOf(PEER_GRADING_GUIDELINES_GRADE_MARKER);
+          if (i == -1) {
+            continue;
+          }
+          let j = contents.lastIndexOf(PEER_GRADING_GUIDELINES_COMMENT_MARKER);
+          if (j == -1) {
+            j = contents.length;
+          }
+          const grade = parseFloat(
+            contents
+              .slice(i + PEER_GRADING_GUIDELINES_GRADE_MARKER.length, j)
+              .trim(),
+          );
+          if (!isFinite(grade) && isNaN(grade)) {
+            continue;
+          }
+          const comment = contents.slice(
+            j + PEER_GRADING_GUIDELINES_COMMENT_MARKER.length,
+          );
+          grades.push(grade);
+          comments.push(comment);
+        } catch (err) {
+          // grade not available for some reason
+          console.warn("issue reading peer grading file", {
+            path,
+            err,
+            student_name,
+          });
+        }
+      }
+      if (grades.length > 0) {
+        const grade = grades.reduce((a, b) => a + b) / grades.length;
+        allGrades[student_id] = `${grade}`;
+        if (!allComments[student_id]) {
+          const studentComments = comments
+            .filter((x) => x.trim())
+            .map((x) => `- ${x.trim()}`)
+            .join("\n\n");
+          allComments[student_id] = `Grades: ${grades.join(", ")}\n\n${
+            studentComments ? "Student Comments:\n" + studentComments : ""
+          }`;
+        }
+      }
+    }
+    // set them in the course data
+    this.course_actions.set(
+      {
+        table: "assignments",
+        assignment_id,
+        grades: allGrades,
+        comments: allComments,
+      },
+      true,
+    );
+    this.course_actions.clear_activity(id);
+  };
+
+  private assignment_action_all_students = async ({
+    assignment_id,
+    new_only,
+    old_only,
+    action,
+    step,
+    desc,
+    short_desc,
+    overwrite,
+  }: {
+    assignment_id: string;
+    // only do the action when it hasn't been done already
+    new_only?: boolean;
+    // only do the action when it HAS been done already
+    old_only?: boolean;
     action: (
       assignment_id: string,
       student_id: string,
       opts: any,
-    ) => Promise<void>,
-    step,
-    desc,
-    short_desc: string,
-    overwrite?: boolean,
-  ): Promise<void> {
+    ) => Promise<void>;
+    step;
+    desc;
+    short_desc: string;
+    overwrite?: boolean;
+  }): Promise<void> => {
+    if (new_only && old_only) {
+      // no matter what, this means the empty set, so nothing to do.
+      // Of course no code shouild actually call this.
+      return;
+    }
     const id = this.course_actions.set_activity({ desc });
     const finish = (err) => {
       this.course_actions.clear_activity(id);
@@ -979,14 +1247,22 @@ ${details}
       ) {
         return;
       }
-      if (
-        new_only &&
-        store.last_copied(step, assignment_id, student_id, true)
-      ) {
+      const alreadyCopied = !!store.last_copied(
+        step,
+        assignment_id,
+        student_id,
+        true,
+      );
+      if (new_only && alreadyCopied) {
+        // only for the ones that haven't already been copied
+        return;
+      }
+      if (old_only && !alreadyCopied) {
+        // only for the ones that *HAVE* already been copied.
         return;
       }
       try {
-        await action.bind(this)(assignment_id, student_id, { overwrite });
+        await action(assignment_id, student_id, { overwrite });
       } catch (err) {
         errors += `\n ${err}`;
       }
@@ -1003,14 +1279,14 @@ ${details}
     } else {
       this.course_actions.clear_activity(id);
     }
-  }
+  };
 
   // Copy the collected folders from some students to the given student for peer grading.
   // Assumes folder is non-empty
-  private async peer_copy_to_student(
+  private peer_copy_to_student = async (
     assignment_id: string,
     student_id: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     if (this.start_copy(assignment_id, student_id, "last_peer_assignment")) {
       return;
     }
@@ -1037,7 +1313,15 @@ ${details}
       desc: `Copying peer grading to ${student_name}`,
     });
 
-    const peer_map = this.update_peer_assignment(assignment_id); // synchronous
+    let peer_map;
+    try {
+      // synchronous, but could fail, e.g., not enough students
+      peer_map = this.update_peer_assignment(assignment_id);
+    } catch (err) {
+      this.course_actions.set_error(`peer copy to student: ${err}`);
+      finish();
+      return;
+    }
 
     if (peer_map == null) {
       finish();
@@ -1053,6 +1337,10 @@ ${details}
     }
 
     const student_project_id = student.get("project_id");
+    if (!student_project_id) {
+      finish();
+      return;
+    }
 
     let guidelines: string = assignment.getIn(
       ["peer_grade", "guidelines"],
@@ -1065,14 +1353,19 @@ ${details}
         guidelines;
     }
 
-    const peer_grading_guidelines_file =
-      assignment.get("collect_path") + `/${PEER_GRADING_GUIDE_FN}`;
-
     const target_base_path = assignment.get("path") + "-peer-grade";
     const f = async (peer_student_id: string) => {
-      if (this.course_actions.is_closed()) return;
-      const src_path = assignment.get("collect_path") + "/" + peer_student_id;
-      const target_path = target_base_path + "/" + peer_student_id;
+      if (this.course_actions.is_closed()) {
+        return;
+      }
+      const src_path = join(assignment.get("collect_path"), peer_student_id);
+      // write instructions file for the student, where they enter the grade,
+      // and also it tells them what to do.
+      await this.write_text_file_to_course_project({
+        path: join(src_path, PEER_GRADING_GUIDE_FILENAME),
+        content: guidelines,
+      });
+      const target_path = join(target_base_path, peer_student_id);
       // In the copy below, we exclude the student's name so that
       // peer grading is anonymous; also, remove original
       // due date to avoid confusion.
@@ -1084,23 +1377,12 @@ ${details}
         target_path,
         overwrite_newer: false,
         delete_missing: false,
-        exclude: ["*STUDENT*.txt", "*DUE_DATE.txt*"],
+        exclude: ["*STUDENT*.txt", "*" + DUE_DATE_FILENAME + "*"],
+        timeout: COPY_TIMEOUT_MS,
       });
     };
 
     try {
-      // write instructions file to the student
-      await this.write_text_file_to_course_project({
-        path: peer_grading_guidelines_file,
-        content: guidelines,
-      });
-      // copy it over
-      await webapp_client.project_client.copy_path_between_projects({
-        src_project_id: store.get("course_project_id"),
-        src_path: peer_grading_guidelines_file,
-        target_project_id: student_project_id,
-        target_path: target_base_path + `/${PEER_GRADING_GUIDE_FN}`,
-      });
       // now copy actual stuff to grade
       await map(peers, store.get_copy_parallel(), f);
       finish();
@@ -1108,14 +1390,14 @@ ${details}
       finish(err);
       return;
     }
-  }
+  };
 
   // Collect all the peer graading of the given student (not the work the student did, but
   // the grading about the student!).
-  private async peer_collect_from_student(
+  private peer_collect_from_student = async (
     assignment_id: string,
     student_id: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     if (this.start_copy(assignment_id, student_id, "last_peer_collect")) {
       return;
     }
@@ -1159,19 +1441,27 @@ ${details}
       if (s == null || s.get("deleted")) return;
 
       const path = assignment.get("path");
-      const src_path = `${path}-peer-grade/${our_student_id}`;
-      const target_path = `${assignment.get(
-        "collect_path",
-      )}-peer-grade/${our_student_id}/${student_id}`;
+      const src_path = join(`${path}-peer-grade`, our_student_id);
+      const target_path = join(
+        `${assignment.get("collect_path")}-peer-grade`,
+        our_student_id,
+        student_id,
+      );
+
+      const src_project_id = s.get("project_id");
+      if (!src_project_id) {
+        return;
+      }
 
       // copy the files over from the student who did the peer grading
       await webapp_client.project_client.copy_path_between_projects({
-        src_project_id: s.get("project_id"),
+        src_project_id,
         src_path,
         target_project_id: store.get("course_project_id"),
         target_path,
         overwrite_newer: false,
         delete_missing: false,
+        timeout: COPY_TIMEOUT_MS,
       });
 
       // write local file identifying the grader
@@ -1195,23 +1485,23 @@ ${details}
     } catch (err) {
       finish(err);
     }
-  }
+  };
 
   // This doesn't really stop it yet, since that's not supported by the backend.
   // It does stop the spinner and let the user try to restart the copy.
-  public stop_copying_assignment(
+  stop_copying_assignment = (
     assignment_id: string,
     student_id: string,
     type: AssignmentCopyType,
-  ): void {
+  ): void => {
     this.stop_copy(assignment_id, student_id, copy_type_to_last(type));
-  }
+  };
 
-  public open_assignment(
+  open_assignment = (
     type: AssignmentCopyType,
     assignment_id: string,
     student_id: string,
-  ): void {
+  ): void => {
     const { store, assignment, student } = this.course_actions.resolve({
       assignment_id,
       student_id,
@@ -1232,7 +1522,7 @@ ${details}
         proj = student_project_id;
         break;
       case "collected": // where collected locally
-        path = assignment.get("collect_path") + "/" + student.get("student_id"); // TODO: refactor
+        path = join(assignment.get("collect_path"), student.get("student_id")); // TODO: refactor
         proj = store.get("course_project_id");
         break;
       case "peer-assigned": // where peer-assigned (in student's project)
@@ -1261,22 +1551,22 @@ ${details}
     }
     // Now open it
     redux.getProjectActions(proj).open_directory(path);
-  }
+  };
 
-  private async write_text_file_to_course_project(opts: {
+  private write_text_file_to_course_project = async (opts: {
     path: string;
     content: string;
-  }): Promise<void> {
+  }): Promise<void> => {
     await webapp_client.project_client.write_text_file({
       project_id: this.get_store().get("course_project_id"),
       path: opts.path,
       content: opts.content,
     });
-  }
+  };
 
   // Update datastore with directory listing of non-hidden content of the assignment.
   // This also sets whether or not there is a STUDENT_SUBDIR directory.
-  public async update_listing(assignment_id: string): Promise<void> {
+  update_listing = async (assignment_id: string): Promise<void> => {
     const { store, assignment } = this.course_actions.resolve({
       assignment_id,
     });
@@ -1321,24 +1611,26 @@ ${details}
       assignment_id,
       table: "assignments",
     });
-  }
+  };
 
   /* Scan all Jupyter notebooks in the top level of either the assignment directory or
      the student/
      subdirectory of it for cells with nbgrader metadata.  If any are found, return
      true; otherwise, return false.
   */
-  private async has_nbgrader_metadata(assignment_id: string): Promise<boolean> {
+  private has_nbgrader_metadata = async (
+    assignment_id: string,
+  ): Promise<boolean> => {
     return len(await this.nbgrader_instructor_ipynb_files(assignment_id)) > 0;
-  }
+  };
 
   // Read in the (stripped) contents of all nbgrader instructor ipynb
   // files for this assignment.  These are:
   //  - Every ipynb file in the assignment directory that has a cell that
   //    contains nbgrader metadata (and isn't mangled).
-  private async nbgrader_instructor_ipynb_files(
+  private nbgrader_instructor_ipynb_files = async (
     assignment_id: string,
-  ): Promise<{ [path: string]: string }> {
+  ): Promise<{ [path: string]: string }> => {
     const { store, assignment } = this.course_actions.resolve({
       assignment_id,
     });
@@ -1371,7 +1663,7 @@ ${details}
 
     const f: (file: string) => Promise<void> = async (file) => {
       if (this.course_actions.is_closed()) return;
-      const fullpath = path != "" ? path + "/" + file : file;
+      const fullpath = path != "" ? join(path, file) : file;
       try {
         const content = await jupyter_strip_notebook(project_id, fullpath);
         const { cells } = JSON.parse(content);
@@ -1388,14 +1680,14 @@ ${details}
 
     await map(to_read, 10, f);
     return result;
-  }
+  };
 
   // Run nbgrader for all students for which this assignment
   // has been collected at least once.
-  public async run_nbgrader_for_all_students(
+  run_nbgrader_for_all_students = async (
     assignment_id: string,
     ungraded_only?: boolean,
-  ): Promise<void> {
+  ): Promise<void> => {
     // console.log("run_nbgrader_for_all_students", assignment_id);
     const instructor_ipynb_files =
       await this.nbgrader_instructor_ipynb_files(assignment_id);
@@ -1440,9 +1732,9 @@ ${details}
     } finally {
       this.nbgrader_set_is_done(assignment_id);
     }
-  }
+  };
 
-  public set_nbgrader_scores_for_all_students({
+  set_nbgrader_scores_for_all_students = ({
     assignment_id,
     force,
     commit,
@@ -1450,7 +1742,7 @@ ${details}
     assignment_id: string;
     force?: boolean;
     commit?: boolean;
-  }): void {
+  }): void => {
     for (const student_id of this.get_store().get_student_ids({
       deleted: false,
     })) {
@@ -1464,9 +1756,9 @@ ${details}
     if (commit) {
       this.course_actions.syncdb.commit();
     }
-  }
+  };
 
-  public set_nbgrader_scores_for_one_student(
+  set_nbgrader_scores_for_one_student = (
     assignment_id: string,
     student_id: string,
     scores: { [filename: string]: NotebookScores | string },
@@ -1474,7 +1766,7 @@ ${details}
       | { [filename: string]: string[] }
       | undefined = undefined,
     commit: boolean = true,
-  ): void {
+  ): void => {
     const assignment_data = this.course_actions.get_one({
       table: "assignments",
       assignment_id,
@@ -1498,16 +1790,16 @@ ${details}
       student_id,
       commit,
     );
-  }
+  };
 
-  public set_specific_nbgrader_score(
+  set_specific_nbgrader_score = (
     assignment_id: string,
     student_id: string,
     filename: string,
     grade_id: string,
     score: number,
     commit: boolean = true,
-  ): void {
+  ): void => {
     const { assignment } = this.course_actions.resolve({
       assignment_id,
     });
@@ -1546,19 +1838,19 @@ ${details}
       student_id,
       commit,
     );
-  }
+  };
 
   // Fill in manual grade if it is blank and there is an nbgrader grade
   // and all the manual nbgrader scores have been filled in.
   // Also, the filled in grade uses a specific format [number]/[total]
   // and if this is maintained and the nbgrader scores change, this
   // the manual grade is updated.
-  public set_grade_using_nbgrader_if_possible(
+  set_grade_using_nbgrader_if_possible = (
     assignment_id: string,
     student_id: string,
     commit: boolean = true,
     force: boolean = false,
-  ): void {
+  ): void => {
     // Check if nbgrader scores are all available.
     const store = this.get_store();
     const scores = store.get_nbgrader_scores(assignment_id, student_id);
@@ -1578,14 +1870,14 @@ ${details}
     if (force || grade == "" || grade.match(/\d+\/\d+/g)) {
       this.set_grade(assignment_id, student_id, `${score}/${points}`, commit);
     }
-  }
+  };
 
-  public async run_nbgrader_for_one_student(
+  run_nbgrader_for_one_student = async (
     assignment_id: string,
     student_id: string,
     instructor_ipynb_files?: { [path: string]: string },
     commit: boolean = true,
-  ): Promise<void> {
+  ): Promise<void> => {
     // console.log("run_nbgrader_for_one_student", assignment_id, student_id);
 
     const { store, assignment, student } = this.course_actions.resolve({
@@ -1621,8 +1913,10 @@ ${details}
       grade_project_id = nbgrader_grade_project;
 
       // grade in the path where we collected their work.
-      student_path =
-        assignment.get("collect_path") + "/" + student.get("student_id");
+      student_path = join(
+        assignment.get("collect_path"),
+        student.get("student_id"),
+      );
 
       this.course_actions.configuration.configure_nbgrader_grade_project(
         grade_project_id,
@@ -1676,12 +1970,11 @@ ${details}
       }
       try {
         // fullpath = where their collected work is.
-        const fullpath =
-          assignment.get("collect_path") +
-          "/" +
-          student.get("student_id") +
-          "/" +
-          file;
+        const fullpath = join(
+          assignment.get("collect_path"),
+          student.get("student_id"),
+          file,
+        );
         const student_ipynb: string = await jupyter_strip_notebook(
           course_project_id,
           fullpath,
@@ -1704,59 +1997,74 @@ ${details}
           this.course_actions.clear_activity(id);
         }
 
-        if (
-          grade_project_id != course_project_id &&
-          grade_project_id != student_project_id
-        ) {
-          // Make a fresh copy of the assignment files to the grade project.
-          // This is necessary because grading the assignment may depend on
-          // data files that are sent as part of the assignment.  Also,
-          // student's might have some code in text files next to the ipynb.
-          await webapp_client.project_client.copy_path_between_projects({
-            src_project_id: course_project_id,
-            src_path: student_path,
-            target_project_id: grade_project_id,
-            target_path: student_path,
-            overwrite_newer: true,
-            delete_missing: true,
-            backup: false,
-          });
-        }
+        let ephemeralGradePath;
+        try {
+          if (
+            grade_project_id != course_project_id &&
+            grade_project_id != student_project_id
+          ) {
+            ephemeralGradePath = true;
+            // Make a fresh copy of the assignment files to the grade project.
+            // This is necessary because grading the assignment may depend on
+            // data files that are sent as part of the assignment.  Also,
+            // student's might have some code in text files next to the ipynb.
+            await webapp_client.project_client.copy_path_between_projects({
+              src_project_id: course_project_id,
+              src_path: student_path,
+              target_project_id: grade_project_id,
+              target_path: student_path,
+              overwrite_newer: true,
+              delete_missing: true,
+              backup: false,
+              timeout: COPY_TIMEOUT_MS,
+            });
+          } else {
+            ephemeralGradePath = false;
+          }
 
-        const opts = {
-          timeout_ms: store.getIn(
-            ["settings", "nbgrader_timeout_ms"],
-            NBGRADER_TIMEOUT_MS,
-          ),
-          cell_timeout_ms: store.getIn(
-            ["settings", "nbgrader_cell_timeout_ms"],
-            NBGRADER_CELL_TIMEOUT_MS,
-          ),
-          max_output: store.getIn(
-            ["settings", "nbgrader_max_output"],
-            NBGRADER_MAX_OUTPUT,
-          ),
-          max_output_per_cell: store.getIn(
-            ["settings", "nbgrader_max_output_per_cell"],
-            NBGRADER_MAX_OUTPUT_PER_CELL,
-          ),
-          student_ipynb,
-          instructor_ipynb,
-          path: student_path,
-          project_id: grade_project_id,
-        };
-        /*console.log(
+          const opts = {
+            timeout_ms: store.getIn(
+              ["settings", "nbgrader_timeout_ms"],
+              NBGRADER_TIMEOUT_MS,
+            ),
+            cell_timeout_ms: store.getIn(
+              ["settings", "nbgrader_cell_timeout_ms"],
+              NBGRADER_CELL_TIMEOUT_MS,
+            ),
+            max_output: store.getIn(
+              ["settings", "nbgrader_max_output"],
+              NBGRADER_MAX_OUTPUT,
+            ),
+            max_output_per_cell: store.getIn(
+              ["settings", "nbgrader_max_output_per_cell"],
+              NBGRADER_MAX_OUTPUT_PER_CELL,
+            ),
+            student_ipynb,
+            instructor_ipynb,
+            path: student_path,
+            project_id: grade_project_id,
+          };
+          /*console.log(
           student_id,
           file,
           "about to launch autograding with input ",
           opts
         );*/
-        const r = await nbgrader(opts);
-        /* console.log(student_id, "autograding finished successfully", {
+          const r = await nbgrader(opts);
+          /* console.log(student_id, "autograding finished successfully", {
           file,
           r,
         });*/
-        result[file] = r;
+          result[file] = r;
+        } finally {
+          if (ephemeralGradePath) {
+            await webapp_client.project_client.exec({
+              project_id: grade_project_id,
+              command: "rm",
+              args: ["-rf", student_path],
+            });
+          }
+        }
 
         if (!nbgrader_grade_project && stop_student_project) {
           const idstop = this.course_actions.set_activity({
@@ -1848,33 +2156,33 @@ ${details}
       nbgrader_score_ids,
       commit,
     );
-  }
+  };
 
-  public autograded_path(
+  autograded_path = (
     assignment: AssignmentRecord,
     student_id: string,
     filename: string,
-  ): string {
+  ): string => {
     return autograded_filename(
-      assignment.get("collect_path") + "/" + student_id + "/" + filename,
+      join(assignment.get("collect_path"), student_id, filename),
     );
-  }
+  };
 
-  private async write_autograded_notebook(
+  private write_autograded_notebook = async (
     assignment: AssignmentRecord,
     student_id: string,
     filename: string,
     content: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     const path = this.autograded_path(assignment, student_id, filename);
     await this.write_text_file_to_course_project({ path, content });
-  }
+  };
 
-  public async open_file_in_collected_assignment(
+  open_file_in_collected_assignment = async (
     assignment_id: string,
     student_id: string,
     file: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     const { assignment, student, store } = this.course_actions.resolve({
       assignment_id,
       student_id,
@@ -1883,36 +2191,35 @@ ${details}
       throw Error("no such student or assignment");
     }
     const course_project_id = store.get("course_project_id");
-    const fullpath =
-      assignment.get("collect_path") +
-      "/" +
-      student.get("student_id") +
-      "/" +
-      file;
+    const fullpath = join(
+      assignment.get("collect_path"),
+      student.get("student_id"),
+      file,
+    );
 
     await redux
       .getProjectActions(course_project_id)
       .open_file({ path: fullpath, foreground: true });
-  }
+  };
 
-  private nbgrader_set_is_running(
+  private nbgrader_set_is_running = (
     assignment_id: string,
     student_id?: string,
-  ): void {
+  ): void => {
     const store = this.get_store();
     let nbgrader_run_info: NBgraderRunInfo = store.get(
       "nbgrader_run_info",
       Map(),
     );
     const key = student_id ? `${assignment_id}-${student_id}` : assignment_id;
-    nbgrader_run_info = nbgrader_run_info.set(key, new Date().valueOf());
+    nbgrader_run_info = nbgrader_run_info.set(key, webapp_client.server_time());
     this.course_actions.setState({ nbgrader_run_info });
-  }
+  };
 
-  private nbgrader_set_is_done(
+  private nbgrader_set_is_done = (
     assignment_id: string,
     student_id?: string,
-  ): void {
+  ): void => {
     const store = this.get_store();
     let nbgrader_run_info: NBgraderRunInfo = store.get(
       "nbgrader_run_info",
@@ -1921,12 +2228,12 @@ ${details}
     const key = student_id ? `${assignment_id}-${student_id}` : assignment_id;
     nbgrader_run_info = nbgrader_run_info.delete(key);
     this.course_actions.setState({ nbgrader_run_info });
-  }
+  };
 
-  public async export_file_use_times(
+  export_file_use_times = async (
     assignment_id: string,
     json_filename: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     // Get the path of the assignment
     const { assignment, store } = this.course_actions.resolve({
       assignment_id,
@@ -1944,9 +2251,9 @@ ${details}
       json_filename,
       store.get_student_name.bind(store),
     );
-  }
+  };
 
-  public async export_collected(assignment_id: string): Promise<void> {
+  export_collected = async (assignment_id: string): Promise<void> => {
     const set_activity = this.course_actions.set_activity.bind(
       this.course_actions,
     );
@@ -1964,7 +2271,7 @@ ${details}
       const i = store.get("course_filename").lastIndexOf(".");
       const base_export_path =
         store.get("course_filename").slice(0, i) + "-export";
-      const export_path = base_export_path + "/" + src_path;
+      const export_path = join(base_export_path, src_path);
 
       const student_name = function (student_id: string): string {
         const v = split(store.get_student_name(student_id));
@@ -1997,5 +2304,5 @@ ${details}
     } finally {
       set_activity({ id });
     }
-  }
+  };
 }

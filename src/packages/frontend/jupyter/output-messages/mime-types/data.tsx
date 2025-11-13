@@ -26,9 +26,11 @@ export const Data: React.FC<DataProps> = React.memo((props) => {
     type = getUntrustedType(kernelspec, types);
   }
   if (type == null) {
-    type = getTypeToRender(types);
+    type = getTypeToRender(kernelspec, types);
   }
-  if (type == null) throw Error("bug");
+  if (type == null) {
+    throw Error("bug");
+  }
   const H = getHandler(type);
   return <H type={type} value={data.get(type)} data={data} {...props} />;
 }, shouldMemoize);
@@ -65,13 +67,26 @@ function getUntrustedType(kernelspec: KernelSpec | undefined, types: string[]) {
       ],
   */
   if (kernelspec.language?.startsWith("sage")) {
-    if (types.includes("text/html") && types.includes("text/latex")) {
+    if (
+      (types.includes("text/html") || types.includes("iframe")) &&
+      types.includes("text/latex")
+    ) {
       return "text/latex";
     }
   }
 }
 
-function getTypeToRender(types: string[]): string {
+function getTypeToRender(kernelspec, types: string[]): string {
+  if (kernelspec?.language?.startsWith("sage")) {
+    // kernelspec might not be defined initially.
+    // special case because sage's text/html is horrible.
+    if (
+      (types.includes("text/html") || types.includes("iframe")) &&
+      types.includes("text/latex")
+    ) {
+      return "text/latex";
+    }
+  }
   // "Best" is just the first one otherwise?  Another heuristic seems to be
   // that text/html is better than image/*.
   const x: { priority: number; type: string }[] = [];
@@ -80,7 +95,9 @@ function getTypeToRender(types: string[]): string {
       x.push({ priority: getPriority(type), type });
     }
   }
-  if (x.length == 0) return "unknown";
+  if (x.length == 0) {
+    return "unknown";
+  }
   x.sort((a, b) => b.priority - a.priority);
   return x[0].type;
 }

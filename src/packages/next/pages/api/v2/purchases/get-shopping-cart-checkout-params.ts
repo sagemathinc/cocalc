@@ -16,6 +16,10 @@ async function get(req) {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  const { ignoreBalance } = getParams(req);
-  return await getShoppingCartCheckoutParams(account_id, { ignoreBalance });
+  const { payment_intent, processing } = getParams(req);
+  return await getShoppingCartCheckoutParams(
+    account_id,
+    payment_intent,
+    processing,
+  );
 }

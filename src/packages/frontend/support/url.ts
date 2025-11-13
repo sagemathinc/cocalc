@@ -8,25 +8,38 @@ export interface Options {
   url?: string;
   subject?: string;
   body?: string;
-  type?: "problem" | "question" | "task" | "purchase";
+  type?: "problem" | "question" | "task" | "purchase" | "chat";
   hideExtra?: boolean;
   context?: string; // additional context
+  required?: string; // if required is a string, then the user MUST change the body of the input so it does not contain the value of this string.
 }
 
 export default function getURL(options: Options = {}) {
   if (!options.url) {
     // do not use window.location.href, since that might have extra params and anchors
     // which mess things up and don't help.
-    options.url = window.location.origin + window.location.pathname;
+    if (typeof window != "undefined") {
+      options.url = window.location.origin + window.location.pathname;
+    } else {
+      // ssr
+      options.url = "";
+    }
   }
-  // Note that this is a 2K limit on URL lengths, so the body had better
-  // not be too large (or it gets truncated).
-  return encodeURI(
-    supportURL +
-      `?hideExtra=${options.hideExtra}&url=${options.url}&type=${
-        options.type ?? ""
-      }&subject=${options.subject ?? ""}&body=${options.body ?? ""}&context=${
-        options.context ?? ""
-      }`
-  );
+
+  const params = {
+    hideExtra: options.hideExtra,
+    url: options.url,
+    type: options.type,
+    subject: options.subject,
+    body: options.body,
+    required: options.required,
+    context: options.context,
+  };
+
+  const queryParams = Object.keys(params)
+    .filter((key) => params[key])
+    .map((key) => `${key}=${encodeURIComponent(params[key] as string)}`)
+    .join("&");
+
+  return `${supportURL}?${queryParams}`;
 }

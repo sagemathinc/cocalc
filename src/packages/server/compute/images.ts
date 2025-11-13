@@ -24,7 +24,7 @@ Here we manage the list of supported compute images and their versions.
      in each cloud that we support.
 */
 
-import { createDatabaseCache } from "@cocalc/server/compute/database-cache";
+import { createDatabaseCachedResource } from "@cocalc/server/compute/database-cache";
 import { getPool } from "@cocalc/database";
 import getLogger from "@cocalc/backend/logger";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
@@ -43,18 +43,19 @@ export const COMPUTE_SERVER_IMAGES = "compute-server-images";
 const TTL_MS = 1000 * 60 * 60;
 
 // Used by everything else in cocalc to get access to the images.
-export const getImages = createDatabaseCache<Images>({
-  TTL_MS,
-  NAME: COMPUTE_SERVER_IMAGES,
+export const { get: getImages } = createDatabaseCachedResource<Images>({
+  ttl: TTL_MS,
+  cloud: "all",
+  key: COMPUTE_SERVER_IMAGES,
   fetchData: fetchImagesFromRemote,
 });
 
 // Update the images object that is stored in the database,
 // and also return it.
 async function fetchImagesFromRemote(): Promise<Images> {
-  logger.debug("fetchImagesFromRemote");
   const db = getPool();
-  const url = await getRemoteUrl(db);
+  const url = `${await getRemoteUrl(db)}?random=${Math.random()}`;
+  logger.debug("fetchImagesFromRemote", { url });
   const response = await fetch(url);
   return await response.json();
 }

@@ -16,11 +16,11 @@ import "./editor/appearance";
 import "./editor/jupyter";
 import "./editor/terminal";
 import "./editor/options";
-import "./editor/keyboard";
 
 import "./system/appearance";
 import "./system/behavior";
 import "./system/listings";
+import "./system/ai";
 
 interface Props {
   main: string;
@@ -28,7 +28,7 @@ interface Props {
 }
 
 export default function Config({ main, sub }: Props) {
-  const C = components[main]?.[sub];
+  const C = components[main]?.[sub] as any;
   if (C != null) {
     return <C />;
   }

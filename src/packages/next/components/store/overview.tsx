@@ -1,8 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Divider } from "antd";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 
@@ -10,6 +11,7 @@ import { Icon, PAYASYOUGO_ICON } from "@cocalc/frontend/components/icon";
 import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
+import { useCustomize } from "lib/customize";
 import {
   OVERVIEW_LARGE_ICON,
   OVERVIEW_STYLE,
@@ -19,6 +21,7 @@ import {
 
 export default function Overview() {
   const router = useRouter();
+  const { supportVideoCall } = useCustomize();
 
   // most likely, user will go to the cart next
   useEffect(() => {
@@ -31,31 +34,42 @@ export default function Overview() {
       <h2 style={{ marginBottom: "30px" }}>
         Welcome to the <SiteName /> Store!
       </h2>
-      <div style={{ fontSize: "13pt" }}>
-        Shop below or explore{" "}
-        <A href="/pricing">available products and pricing</A>.
-      </div>
+      <Paragraph style={{ fontSize: "13pt" }}>
+        Shop below for <A href="/store/site-license">licenses</A> and{" "}
+        <A href="/store/vouchers">vouchers</A> or explore{" "}
+        <A href="/pricing">all available products and pricing</A>.
+      </Paragraph>
+      {supportVideoCall ? (
+        <Paragraph>
+          Not sure what you need?{" "}
+          <A href={supportVideoCall}>Book a video call</A> and we'll help you
+          decide.
+        </Paragraph>
+      ) : undefined}
       <OverviewRow>
-        <Product icon="key" title="Licenses" href="/store/site-license">
-          Buy a license to upgrade projects, remove the warning banner, get
-          internet access, more CPU and memory, etc.
+        <Product icon="key" title="License" href="/store/site-license">
+          Buy a license to upgrade projects, get internet access, more CPU, disk
+          and memory.
         </Product>
+        <Product icon="graduation-cap" title="Course" href="/store/course">
+          Purchase a license for teaching a course.
+        </Product>
+        <Paragraph style={{ textAlign: "center", width: "100%" }}>
+          <Icon name="gift" /> Purchase a <A href={"/vouchers"}>voucher code</A>{" "}
+          to make <SiteName /> credit easily available to somebody else.
+        </Paragraph>
+        <Divider />
         <Product
-          href={"https://doc.cocalc.com/compute_server.html"}
+          href={"/features/compute-server"}
           icon={PAYASYOUGO_ICON}
-          title="Pay As You Go Servers"
+          title="Compute Servers"
         >
-          Run Jupyter Notebooks and Linux Terminals on GPUs and high-powered
-          virtual machines with full admin privileges. Pay only for what you
-          actually use.
+          Run Jupyter Notebooks and Linux Terminals on GPUs and high-powered CPU
+          machines with full admin privileges. Pay as you go.
         </Product>
         <Product href={"/pricing/onprem"} icon="server" title="On-Premises">
-          Run CoCalc on your own machine or cluster in order to keep your data
-          on-site and use compute resources that you already have.
-        </Product>
-        <Product href={"/store/vouchers"} icon="gift" title="Vouchers">
-          Purchase a <A href={"/vouchers"}>voucher code</A> and gift it to
-          someone else.
+          Self-host <SiteName /> on your own compute resources in order to keep
+          your data on-site.
         </Product>
       </OverviewRow>
       <Paragraph style={{ marginTop: "4em" }}>
@@ -63,9 +77,11 @@ export default function Overview() {
         <A href="/store/cart">shopping cart</A> or go straight to{" "}
         <A href="/store/checkout">checkout</A>.
       </Paragraph>
-      <Paragraph>
-        You can also browse your <A href="/billing">billing records</A> or{" "}
-        <A href="/licenses">licenses</A>.
+      <Paragraph style={{ marginBottom: "4em" }}>
+        You can also browse your{" "}
+        <A href="/settings/purchases">purchase history</A>,{" "}
+        <A href="/settings/licenses">licenses</A>, and{" "}
+        <A href="/vouchers/created">vouchers</A>.
       </Paragraph>
     </div>
   );

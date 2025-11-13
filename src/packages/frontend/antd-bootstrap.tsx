@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -14,14 +14,6 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 *at all*, hence this.
 */
 
-// TODO: What we haven't converted yet, but do use in CoCalc:
-export {
-  ControlLabel,
-  Form,
-  FormControl,
-  FormGroup,
-  InputGroup,
-} from "react-bootstrap";
 import {
   Alert as AntdAlert,
   Button as AntdButton,
@@ -30,15 +22,19 @@ import {
   Col as AntdCol,
   Modal as AntdModal,
   Row as AntdRow,
+  Switch as AntdSwitch,
   Tabs as AntdTabs,
   TabsProps as AntdTabsProps,
+  Space,
   Tooltip,
 } from "antd";
-import { MouseEventHandler } from "react";
+import type { MouseEventHandler } from "react";
+
 import { inDarkMode } from "@cocalc/frontend/account/dark-mode";
-import { r_join } from "@cocalc/frontend/components/r_join";
 import { Gap } from "@cocalc/frontend/components/gap";
+import { r_join } from "@cocalc/frontend/components/r_join";
 import { COLORS } from "@cocalc/util/theme";
+import { CSS } from "./app-framework";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
 // only four in antd, and it we can't automatically collapse them down in a meaningful
@@ -51,10 +47,17 @@ export type ButtonStyle =
   | "info"
   | "warning"
   | "danger"
-  | "link";
+  | "link"
+  | "ghost";
 
 const BS_STYLE_TO_TYPE: {
-  [name in ButtonStyle]: "primary" | "default" | "dashed" | "danger" | "link";
+  [name in ButtonStyle]:
+    | "primary"
+    | "default"
+    | "dashed"
+    | "danger"
+    | "link"
+    | "text";
 } = {
   primary: "primary",
   success: "default", // antd doesn't have this so we do it via style below.
@@ -63,6 +66,7 @@ const BS_STYLE_TO_TYPE: {
   warning: "default", // antd doesn't have this so we do it via style below.
   danger: "danger",
   link: "link",
+  ghost: "text",
 };
 
 export type ButtonSize = "large" | "small" | "xsmall";
@@ -72,7 +76,7 @@ function parse_bsStyle(props: {
   style?: React.CSSProperties;
   disabled?: boolean;
 }): {
-  type: "primary" | "default" | "dashed" | "link";
+  type: "primary" | "default" | "dashed" | "link" | "text";
   style: React.CSSProperties;
   danger?: boolean;
   ghost?: boolean;
@@ -132,17 +136,18 @@ export const Button = (props: {
   style?: React.CSSProperties;
   disabled?: boolean;
   onClick?: (e?: any) => void;
-  key?: string;
+  key?;
   children?: any;
   className?: string;
   href?: string;
   target?: string;
-  title?: string | JSX.Element;
+  title?: string | React.JSX.Element;
   tabIndex?: number;
   active?: boolean;
   id?: string;
   autoFocus?: boolean;
   placement?;
+  block?: boolean;
 }) => {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
@@ -175,6 +180,7 @@ export const Button = (props: {
       tabIndex={props.tabIndex}
       id={props.id}
       autoFocus={props.autoFocus}
+      block={props.block}
     >
       <>{props.children}</>
     </AntdButton>
@@ -200,9 +206,9 @@ export function ButtonGroup(props: {
   className?: string;
 }) {
   return (
-    <AntdButton.Group className={props.className} style={props.style}>
+    <Space.Compact className={props.className} style={props.style}>
       {props.children}
-    </AntdButton.Group>
+    </Space.Compact>
   );
 }
 
@@ -256,20 +262,13 @@ export function Well(props: {
   );
 }
 
-export function Checkbox(props: {
-  style?: React.CSSProperties;
-  children?: any;
-  autoFocus?: boolean;
-  checked?: boolean;
-  disabled?: boolean;
-  onChange?: any;
-}) {
+export function Checkbox(props) {
   const style: React.CSSProperties = props.style != null ? props.style : {};
   if (style.fontWeight == null) {
     // Antd checkbox uses the label DOM element, and bootstrap css
     // changes the weight of that DOM element to 700, which is
     // really ugly and conflicts with the antd design style. So
-    // we manualy change it back here.  This will go away if/when
+    // we manually change it back here.  This will go away if/when
     // we no longer include bootstrap css...
     style.fontWeight = 400;
   }
@@ -277,15 +276,55 @@ export function Checkbox(props: {
   // has that margin.
   return (
     <div style={{ margin: "10px 0" }}>
-      <AntdCheckbox
-        autoFocus={props.autoFocus}
-        checked={props.checked}
-        disabled={props.disabled}
-        style={style}
-        onChange={props.onChange}
+      <AntdCheckbox {...{ ...props, style }}>{props.children}</AntdCheckbox>
+    </div>
+  );
+}
+
+export function Switch(props: {
+  checked?: boolean;
+  onChange?: (e: { target: { checked: boolean } }) => void;
+  disabled?: boolean;
+  style?: CSS;
+  labelStyle?: CSS;
+  children?: any;
+}) {
+  // Default font weight for label
+  const labelStyle: CSS = {
+    fontWeight: 400,
+    ...props.labelStyle,
+    cursor: props.disabled ? "default" : "pointer",
+  } as const;
+
+  function handleChange(checked: boolean) {
+    if (props.onChange) {
+      // Call onChange with same signature as Checkbox - event object with target.checked
+      props.onChange({ target: { checked } });
+    }
+  }
+
+  return (
+    <div style={{ margin: "15px 0" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          ...props.style,
+        }}
       >
-        {props.children}
-      </AntdCheckbox>
+        <AntdSwitch
+          checked={props.checked}
+          onChange={handleChange}
+          disabled={props.disabled}
+        />
+        <span
+          onClick={() => !props.disabled && handleChange(!props.checked)}
+          style={labelStyle}
+        >
+          {props.children}
+        </span>
+      </div>
     </div>
   );
 }
@@ -308,9 +347,11 @@ export function Col(props: {
   className?: string;
   onClick?;
   children?: any;
+  push?;
+  pull?;
 }) {
   const props2: any = {};
-  for (const p of ["xs", "sm", "md", "lg"]) {
+  for (const p of ["xs", "sm", "md", "lg", "push", "pull"]) {
     if (props[p] != null) {
       if (props2[p] == null) {
         props2[p] = {};
@@ -334,7 +375,7 @@ export type AntdTabItem = NonNullable<AntdTabsProps["items"]>[number];
 
 interface TabsProps {
   id?: string;
-  key?: string;
+  key?;
   activeKey: string;
   onSelect?: (activeKey: string) => void;
   animation?: boolean;
@@ -364,7 +405,7 @@ export function Tab(props: {
   id?: string;
   key?: string;
   eventKey: string;
-  title: any;
+  title: string | React.JSX.Element;
   children?: any;
   style?: React.CSSProperties;
 }): AntdTabItem {
@@ -411,7 +452,7 @@ interface AlertProps {
   style?: React.CSSProperties;
   banner?: boolean;
   children?: any;
-  icon?: JSX.Element;
+  icon?: React.JSX.Element;
 }
 
 export function Alert(props: AlertProps) {
@@ -439,18 +480,36 @@ export function Alert(props: AlertProps) {
   );
 }
 
+const PANEL_DEFAULT_STYLES: { header: CSS } = {
+  header: { color: COLORS.GRAY_DD, backgroundColor: COLORS.GRAY_LLL },
+} as const;
+
 export function Panel(props: {
-  key?: string;
+  key?;
   style?: React.CSSProperties;
-  header?: any;
+  styles?: {
+    header?: React.CSSProperties;
+    body?: React.CSSProperties;
+  };
+  header?;
   children?: any;
+  onClick?;
+  size?: "small";
 }) {
-  const style = { ...{ marginBottom: "20px" }, ...props.style };
+  const style: CSS = { ...{ marginBottom: "20px" }, ...props.style };
+
+  const styles = {
+    ...PANEL_DEFAULT_STYLES,
+    ...props.styles,
+  };
+
   return (
     <AntdCard
       style={style}
       title={props.header}
-      headStyle={{ color: "#333", backgroundColor: "#f5f5f5" }}
+      styles={styles}
+      onClick={props.onClick}
+      size={props.size}
     >
       {props.children}
     </AntdCard>

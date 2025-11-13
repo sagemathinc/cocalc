@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Copy Operations Provider
@@ -12,6 +12,10 @@ import * as message from "@cocalc/util/message";
 import { one_result } from "@cocalc/database";
 import { is_valid_uuid_string, to_json } from "@cocalc/util/misc";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
+import getLogger from "@cocalc/backend/logger";
+import { delay } from "awaiting";
+
+const log = getLogger("hub:copy-path");
 
 type WhereQueries = ({ [query: string]: string } | string)[];
 
@@ -37,13 +41,13 @@ function sanitize(
   val: number | string,
   deflt: number,
   max: number,
-  name
+  name,
 ): number {
   if (val != null) {
     const o = typeof val == "string" ? parseInt(val) : val;
     if (isNaN(o) || o < 0 || o > max) {
       throw new Error(
-        `ILLEGAL VALUE ${name}='${val}' (must be in [0, ${max}])`
+        `ILLEGAL VALUE ${name}='${val}' (must be in [0, ${max}])`,
       );
     }
     return o;
@@ -119,6 +123,7 @@ export class CopyPath {
   }
 
   async copy(mesg): Promise<void> {
+    log.debug(mesg);
     this.client.touch();
 
     try {
@@ -155,6 +160,13 @@ export class CopyPath {
         scheduled: mesg.scheduled,
         exclude: mesg.exclude,
       });
+
+      // for debugging
+      if (mesg.debug_delay_s) {
+        log.debug(mesg.debug_delay_s, "second delay for debugging...");
+        await delay(mesg.debug_delay_s * 1000);
+        log.debug("done with delay for debugging...");
+      }
 
       // if we're still here, the copy was ok!
       if (copy_id != null) {
@@ -202,7 +214,7 @@ export class CopyPath {
       if (mesg.src_project_id == null && mesg.target_project_id == null) {
         // serious error: this should never happen, actually
         err(
-          `At least one of "src_project_id" or "target_project_id" must be given!`
+          `At least one of "src_project_id" or "target_project_id" must be given!`,
         );
       }
 
@@ -252,7 +264,7 @@ export class CopyPath {
 
       if (status_data == null) {
         this.throw(
-          "Can't find copy operations for given src_project_id/target_project_id"
+          "Can't find copy operations for given src_project_id/target_project_id",
         );
       }
       for (const row of Array.from(status_data.rows)) {
@@ -265,7 +277,7 @@ export class CopyPath {
         message.copy_path_status_response({
           id: mesg.id,
           data: copy_ops,
-        })
+        }),
       );
     } catch (err) {
       this.client.error_to_client({ id: mesg.id, error: err2str(err) });
@@ -298,11 +310,11 @@ export class CopyPath {
         if (x == null) {
           if (mesg.not_yet_done) {
             this.throw(
-              `Copy operation '${mesg.copy_path_id}' either does not exist or already finished`
+              `Copy operation '${mesg.copy_path_id}' either does not exist or already finished`,
             );
           } else {
             this.throw(
-              `Can't find copy operation with ID=${mesg.copy_path_id}`
+              `Can't find copy operation with ID=${mesg.copy_path_id}`,
             );
           }
         } else {
@@ -332,7 +344,7 @@ export class CopyPath {
       // be explicit about what we return
       const data = row_to_copy_op(copy_op);
       this.client.push_to_client(
-        message.copy_path_status_response({ id: mesg.id, data })
+        message.copy_path_status_response({ id: mesg.id, data }),
       );
     } catch (err) {
       this.client.error_to_client({ id: mesg.id, error: err2str(err) });
@@ -362,11 +374,11 @@ export class CopyPath {
           message.copy_path_status_response({
             id: mesg.id,
             data: `copy_path_id = '${mesg.copy_path_id}' deleted`,
-          })
+          }),
         );
       }
     } catch (err) {
-      dbg(`stauts err=${err2str(err)}`);
+      dbg(`status err=${err2str(err)}`);
       this.client.error_to_client({ id: mesg.id, error: err2str(err) });
     }
   }
@@ -385,7 +397,7 @@ export class CopyPath {
     // this.dbg("_read_access")(read_ok);
     if (!read_ok) {
       this.throw(
-        `ACCESS BLOCKED -- No read access to source project -- ${src_project_id}`
+        `ACCESS BLOCKED -- No read access to source project -- ${src_project_id}`,
       );
       return false;
     }
@@ -406,7 +418,7 @@ export class CopyPath {
     // this.dbg("_write_access")(write_ok);
     if (!write_ok) {
       this.throw(
-        `ACCESS BLOCKED -- No write access to target project -- ${target_project_id}`
+        `ACCESS BLOCKED -- No write access to target project -- ${target_project_id}`,
       );
       return false;
     }

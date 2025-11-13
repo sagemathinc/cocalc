@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Map } from "immutable";
@@ -406,7 +406,7 @@ class SiteLicenseHook {
     if (quota == null) return true;
     // there are some exceptions. dedicated disks do work under PAYGO.
     const hasDisk = quota.get("dedicated_disk") != null;
-    // ext_rw and patch are for Cocalc Cloud, adding them just in case...
+    // ext_rw and patch are for CoCalc OnPrem, adding them just in case...
     const hasExtRW = quota.get("ext_rw") === true;
     const hasPatch = quota.get("patch") != null;
     if (hasDisk || hasExtRW || hasPatch) return false;

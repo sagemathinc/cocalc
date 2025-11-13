@@ -1,17 +1,30 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Table } from "./types";
+
+// Note that github has a 10MB limit --
+//   https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files
+// All code in cocalc (frontend, etc.) should use this,
+// rather than copying or defining their own!
+export const MAX_BLOB_SIZE = 10000000;
+
+// some throttling -- note that after a bit, most blobs end up longterm
+// cloud storage and are never accessed.  This is mainly a limit to
+// prevent abuse.
+export const MAX_BLOB_SIZE_PER_PROJECT_PER_DAY = {
+  licensed: 100 * MAX_BLOB_SIZE,
+  unlicensed: 10 * MAX_BLOB_SIZE,
+};
 
 Table({
   name: "blobs",
   fields: {
     id: {
       type: "uuid",
-      desc:
-        "The uuid of this blob, which is a uuid derived from the Sha1 hash of the blob content.",
+      desc: "The uuid of this blob, which is a uuid derived from the Sha1 hash of the blob content.",
     },
     blob: {
       type: "Buffer",
@@ -19,16 +32,23 @@ Table({
     },
     expire: {
       type: "timestamp",
-      desc:
-        "When to expire this blob (when delete_expired is called on the database).",
+      desc: "When to expire this blob (when delete_expired is called on the database).",
     },
     created: {
       type: "timestamp",
       desc: "When the blob was created.",
     },
     project_id: {
+      // I'm not really sure why we record a project associated to the blob, rather
+      // than something else (e.g., account_id)-- update: added that.  However, it's useful for abuse, since
+      // if abuse happened with a project, we could easily delete all corresponding blobs,
+      // and also it's a good tag for throttling.
       type: "string",
-      desc: "The uuid of the project that created the blob.",
+      desc: "The uuid of the project that created the blob, if it is associated to a project.",
+    },
+    account_id: {
+      type: "uuid",
+      desc: "The uuid of the account that created the blob. (Only started recording in late 2024.  Will make it so a user can optionally delete any blobs associated to their account when deleting their account.)",
     },
     last_active: {
       type: "timestamp",
@@ -56,8 +76,7 @@ Table({
     },
   },
   rules: {
-    desc:
-      "Table that stores blobs mainly generated as output of Sage worksheets.",
+    desc: "Table that stores blobs mainly generated as output of Sage worksheets.",
     primary_key: "id",
     // these indices speed up the search been done in 'copy_all_blobs_to_gcloud'
     // less important to make this query fast, but we want to avoid thrashing cache
@@ -97,6 +116,7 @@ Table({
           id: true,
           blob: true,
           project_id: "project_write",
+          account_id: "account_id",
           ttl: 0,
         } as any,
         required_fields: {
@@ -108,14 +128,15 @@ Table({
           database,
           _old_value,
           new_val,
-          _account_id,
-          cb
+          account_id,
+          cb,
         ): Promise<void> {
           database.save_blob({
             uuid: new_val.id,
             blob: new_val.blob,
             ttl: new_val.ttl,
             project_id: new_val.project_id,
+            account_id,
             check: true, // can't trust the user!
             cb,
           });

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -31,9 +31,10 @@ export const SHELLS = {
   ml: "ocaml",
   pl: "perl",
   rb: "ruby",
-};
+} as const;
 
-export const cm = {
+export const cm: EditorDescription = {
+  type: "cm",
   short: "Code",
   name: "Source Code",
   icon: "code",
@@ -56,6 +57,7 @@ export const cm = {
     "terminal",
     "format",
     "auto_indent",
+    "settings",
     //"tour"
   ]),
   customizeCommands: {
@@ -65,13 +67,13 @@ export const cm = {
       },
     },
   },
-} as EditorDescription;
+} as const;
 
 const EDITOR_SPEC = {
   cm,
   terminal,
   time_travel,
-};
+} as const;
 
 export const Editor = createEditor({
   format_bar: false,

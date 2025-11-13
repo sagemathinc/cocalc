@@ -1,13 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Component, Rendered } from "../app-framework";
 const { HelpEmailLink } = require("../customize");
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-const { Panel } = require("react-bootstrap"); // since the typescript declarations are our of sync with our crappy old version.
-
+import { Panel } from "@cocalc/frontend/antd-bootstrap";
 import { render_project_quota } from "./util";
 
 export class ProjectQuotaBoundsTable extends Component {

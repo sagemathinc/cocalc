@@ -1,6 +1,7 @@
-import type {
-  GoogleCloudConfiguration,
-  State,
+import  {
+  type GoogleCloudConfiguration,
+  type State,
+  AUTOMATIC_SHUTDOWN_FIELDS,
 } from "@cocalc/util/db-schema/compute-servers";
 import {
   setMachineType,
@@ -9,6 +10,11 @@ import {
   setAccelerator,
 } from "./client";
 import { getServerName } from "./index";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger(
+  "server:compute:google-cloud:make-configuration-change",
+);
 
 export const SUPPORTED_CHANGES = [
   "ephemeral",
@@ -19,10 +25,20 @@ export const SUPPORTED_CHANGES = [
   "acceleratorCount",
   "test",
   "excludeFromSync",
-  "authToken"
-];
+  "autoRestart",
+  "allowCollaboratorControl",
+  "authToken",
+  "proxy",
+].concat(AUTOMATIC_SHUTDOWN_FIELDS);
 
-export const RUNNING_CHANGES = ["ephemeral", "diskSizeGb"];
+export const RUNNING_CHANGES = [
+  "ephemeral",
+  "diskSizeGb",
+  "autoRestart",
+  "allowCollaboratorControl",
+  "authToken",
+  "proxy",
+].concat(AUTOMATIC_SHUTDOWN_FIELDS);
 
 export async function makeConfigurationChange({
   id,
@@ -35,6 +51,12 @@ export async function makeConfigurationChange({
   currentConfiguration: GoogleCloudConfiguration;
   newConfiguration: GoogleCloudConfiguration;
 }) {
+  logger.debug("makeConfigurationChange", {
+    id,
+    state,
+    currentConfiguration,
+    newConfiguration,
+  });
   if (state == "deprovisioned") {
     // nothing to do since everything happens only when we start
     return;

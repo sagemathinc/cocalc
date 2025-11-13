@@ -4,7 +4,7 @@ import Refresh from "@cocalc/frontend/components/refresh";
 import { getStatements } from "./api";
 import { useEffect, useState } from "react";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
-import { currency } from "@cocalc/util/misc";
+import { currency, round2down } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { PurchasesTable } from "./purchases";
 import EmailDailyStatements from "./email-daily-statements";
@@ -24,9 +24,8 @@ export default function Statements({
   defaultExpandAllRows,
 }: Props) {
   const [statements, setStatements] = useState<Statement[] | null>(null);
-  const [error, setError] = useState<any>("");
+  const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-
   const refresh = async () => {
     try {
       setLoading(true);
@@ -107,23 +106,29 @@ export default function Statements({
       dataIndex: "balance",
       key: "balance",
       align: "right" as "right",
-      render: (balance) => currency(balance, 2),
+      render: (balance) => currency(round2down(balance), 2),
     },
     { title: "ID", dataIndex: "id", key: "id" },
   ];
 
-  if (loading) {
-    return <Spin />;
-  }
+  const adjective = interval == "day" ? "daily" : "monthly";
   return (
     <div style={{ minHeight: "50px" }}>
       {!noRefresh && (
-        <Refresh refresh={refresh} style={{ marginBottom: "8px" }} />
+        <Refresh
+          refresh={refresh}
+          style={{ marginBottom: "8px", float: "right" }}
+        />
       )}
       {interval == "day" && (
         <EmailDailyStatements style={{ marginLeft: "30px" }} />
       )}
       <ShowError error={error} setError={setError} />
+      {loading && (
+        <div style={{ margin: "0 15px" }}>
+          <Spin />
+        </div>
+      )}
       {statements != null && statements?.length > 0 && (
         <Table
           rowKey="id"
@@ -136,9 +141,7 @@ export default function Statements({
             expandedRowRender: (record) => {
               return (
                 <PurchasesTable
-                  filename={`${
-                    interval == "day" ? "daily" : "monthly"
-                  }-statement-${
+                  filename={`${adjective}-statement-${
                     new Date(record.time).toISOString().split("T")[0]
                   }`}
                   day_statement_id={interval == "day" ? record.id : undefined}
@@ -155,7 +158,7 @@ export default function Statements({
         <Alert
           style={{ maxWidth: "500px", margin: "auto", padding: "30px" }}
           type="info"
-          message={`You do not have any ${interval}ly statements yet.`}
+          message={`You do not have any ${adjective} statements yet.`}
           showIcon
         />
       )}

@@ -5,6 +5,7 @@ API key should be enough to allow them.
 
 import { apiCall } from "./call";
 import { siteUrl } from "./urls";
+import { type JupyterApiOptions } from "@cocalc/util/jupyter/api-types";
 
 // Starts a project running.
 export async function start(opts: { project_id: string }) {
@@ -67,7 +68,7 @@ export async function readFile(opts: {
     mesg: { event: "read_file_from_project", ...opts },
   });
   return siteUrl(
-    `blobs/${opts.path}${archive ? `.${archive}` : ""}?uuid=${data_uuid}`
+    `blobs/${opts.path}${archive ? `.${archive}` : ""}?uuid=${data_uuid}`,
   );
 }
 
@@ -101,24 +102,7 @@ export async function readTextFile(opts: {
   });
 }
 
-export async function jupyterExec(opts: {
-  project_id: string;
-  hash?: string; // give either hash *or* kernel, input, history, etc.
-  kernel: string; // jupyter kernel
-  input: string; // input code to execute
-  history?: string[]; // optional history of this conversation as a list of input strings.  Do not include output
-  path?: string; // optional path where execution happens
-  pool?: { size?: number; timeout_s?: number };
-  limits?: {
-    // see packages/jupyter/nbgrader/jupyter-run.ts
-    timeout_ms_per_cell: number;
-    max_output_per_cell: number;
-    max_output: number;
-    total_output: number;
-    timeout_ms?: number;
-    start_time?: number;
-  };
-}): Promise<void> {
+export async function jupyterExec(opts: JupyterApiOptions): Promise<object[]> {
   return (
     await callProject({
       project_id: opts.project_id,

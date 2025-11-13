@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Col, Row } from "antd";
@@ -28,7 +28,7 @@ export function AvailableTools(props: Props) {
   return (
     <Info
       level={LANDING_HEADER_LEVEL}
-      title="Jupyter, SageMath, LateX, and Linux"
+      title="Jupyter, SageMath, LaTeX, and Linux"
       icon="wrench"
       anchor="available-tools"
       style={{ ...style }}

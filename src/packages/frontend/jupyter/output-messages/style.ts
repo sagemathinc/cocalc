@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import type { CSSProperties } from "react";
@@ -38,7 +38,8 @@ export const OUTPUT_STYLE: CSSProperties = {
 
 export const OUTPUT_STYLE_SCROLLED: CSSProperties = {
   ...OUTPUT_STYLE,
-  maxHeight: "24em",
+  // see https://github.com/sagemathinc/cocalc/issues/7293 for something about this:
+  maxHeight: "max(24em,60vh)",
 };
 
 export const INPUT_STYLE: CSSProperties = {

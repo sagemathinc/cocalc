@@ -1,35 +1,48 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Col, Input, InputRef, Modal, Row, Tag } from "antd";
-import { delay } from "awaiting";
+import {
+  Alert,
+  Tag as AntdTag,
+  Button,
+  Col,
+  Input,
+  InputRef,
+  Modal,
+  Row,
+} from "antd";
 import { isEqual } from "lodash";
 import { useEffect, useMemo, useRef, useState } from "react";
-
-import { alert_message } from "@cocalc/frontend/alerts";
 import { Well } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { Gap, Icon, Loading, Paragraph } from "@cocalc/frontend/components";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
+import { TAGS, Tag } from "@cocalc/util/db-schema/site-defaults";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
-import { deep_copy, keys, unreachable } from "@cocalc/util/misc";
+import { deep_copy, keys } from "@cocalc/util/misc";
 import { site_settings_conf } from "@cocalc/util/schema";
 import { RenderRow } from "./render-row";
 import { Data, IsReadonly, State } from "./types";
+import {
+  toCustomOpenAIModel,
+  toOllamaModel,
+} from "@cocalc/util/db-schema/llm-utils";
+import ShowError from "@cocalc/frontend/components/error";
 
-const { CheckableTag } = Tag;
+const { CheckableTag } = AntdTag;
 
 export default function SiteSettings({ close }) {
   const { inc: change } = useCounter();
   const testEmailRef = useRef<InputRef>(null);
-  const [disableTests, setDisableTests] = useState<boolean>(false);
+  const [_, setDisableTests] = useState<boolean>(false);
   const [state, setState] = useState<State>("load");
   const [error, setError] = useState<string>("");
   const [data, setData] = useState<Data | null>(null);
-  const [filter, setFilter] = useState<string>("");
+  const [filterStr, setFilterStr] = useState<string>("");
+  const [filterTag, setFilterTag] = useState<Tag | null>(null);
   const editedRef = useRef<Data | null>(null);
   const savedRef = useRef<Data | null>(null);
   const [isReadonly, setIsReadonly] = useState<IsReadonly | null>(null);
@@ -240,59 +253,6 @@ export default function SiteSettings({ close }) {
     );
   }
 
-  async function sendTestEmail(
-    type: "password_reset" | "invite_email" | "mention" | "verification",
-  ): Promise<void> {
-    const email = testEmailRef.current?.input?.value;
-    if (!email) {
-      alert_message({
-        type: "error",
-        message: "NOT sending test email, since email field is empty",
-      });
-      return;
-    }
-    alert_message({
-      type: "info",
-      message: `sending test email "${type}" to ${email}`,
-    });
-    // saving info
-    await store();
-    setDisableTests(true);
-    // wait 3 secs
-    await delay(3000);
-    switch (type) {
-      case "password_reset":
-        redux.getActions("account").forgot_password(email);
-        break;
-      case "invite_email":
-        alert_message({
-          type: "error",
-          message: "Simulated invite emails are not implemented yet",
-        });
-        break;
-      case "mention":
-        alert_message({
-          type: "error",
-          message: "Simulated mention emails are not implemented yet",
-        });
-        break;
-      case "verification":
-        // The code below "looks good" but it doesn't work ???
-        // const users = await user_search({
-        //   query: email,
-        //   admin: true,
-        //   limit: 1
-        // });
-        // if (users.length == 1) {
-        //   await webapp_client.account_client.send_verification_email(users[0].account_id);
-        // }
-        break;
-      default:
-        unreachable(type);
-    }
-    setDisableTests(false);
-  }
-
   function Tests() {
     return (
       <div style={{ marginBottom: "1rem" }}>
@@ -305,40 +265,6 @@ export default function SiteSettings({ close }) {
           defaultValue={redux.getStore("account").get("email_address")}
           ref={testEmailRef}
         />
-        <Button
-          style={{ marginLeft: "10px" }}
-          size={"small"}
-          disabled={disableTests}
-          onClick={() => sendTestEmail("password_reset")}
-        >
-          Send Test Forgot Password Email
-        </Button>
-        {
-          // commented out since they aren't implemented
-          // <Button
-          //   disabled={disableTests}
-          //   size={"small"}
-          //   onClick={() => sendTestEmail("verification")}
-          // >
-          //   Verify
-          // </Button>
-        }
-        {
-          // <Button
-          //   disabled={disableTests}
-          //   size={"small"}
-          //   onClick={() => sendTestEmail("invite_email")}
-          // >
-          //   Invite
-          // </Button>
-          // <Button
-          //   disabled={disableTests}
-          //   size={"small"}
-          //   onClick={() => sendTestEmail("mention")}
-          // >
-          //   @mention
-          // </Button>
-        }
       </div>
     );
   }
@@ -378,26 +304,51 @@ export default function SiteSettings({ close }) {
     return (
       <>
         {[site_settings_conf, EXTRAS].map((configData) =>
-          keys(configData).map((name) => (
-            <RenderRow
-              filter={filter}
-              key={name}
-              name={name}
-              conf={configData[name]}
-              data={data}
-              update={update}
-              isReadonly={isReadonly}
-              onChangeEntry={onChangeEntry}
-              onJsonEntryChange={onJsonEntryChange}
-              isModified={isModified}
-              isHeader={isHeader(name)}
-              saveSingleSetting={saveSingleSetting}
-            />
-          )),
+          keys(configData).map((name) => {
+            const conf = configData[name];
+
+            // This is a weird special case, where the valid value depends on other values
+            if (name === "default_llm") {
+              const c = site_settings_conf.selectable_llms;
+              const llms = c.to_val?.(data?.selectable_llms ?? c.default) ?? [];
+              const o = EXTRAS.ollama_configuration;
+              const oll = Object.keys(
+                o.to_val?.(data?.ollama_configuration) ?? {},
+              ).map(toOllamaModel);
+              const a = EXTRAS.ollama_configuration;
+              const oaic = data?.custom_openai_configuration;
+              const oai = (
+                oaic != null ? Object.keys(a.to_val?.(oaic) ?? {}) : []
+              ).map(toCustomOpenAIModel);
+              if (Array.isArray(llms)) {
+                conf.valid = [...llms, ...oll, ...oai];
+              }
+            }
+
+            return (
+              <RenderRow
+                filterStr={filterStr}
+                filterTag={filterTag}
+                key={name}
+                name={name}
+                conf={conf}
+                data={data}
+                update={update}
+                isReadonly={isReadonly}
+                onChangeEntry={onChangeEntry}
+                onJsonEntryChange={onJsonEntryChange}
+                isModified={isModified}
+                isHeader={isHeader(name)}
+                saveSingleSetting={saveSingleSetting}
+              />
+            );
+          }),
         )}
       </>
     );
-  }, [state, data, filter]);
+  }, [state, data, filterStr, filterTag]);
+
+  const activeFilter = !filterStr.trim() || filterTag;
 
   return (
     <div>
@@ -422,16 +373,11 @@ export default function SiteSettings({ close }) {
         }}
       >
         <Warning />
-        {error && (
-          <Alert
-            type="error"
-            showIcon
-            closable
-            description={error}
-            onClose={() => setError("")}
-            style={{ margin: "30px auto", maxWidth: "800px" }}
-          />
-        )}
+        <ShowError
+          error={error}
+          setError={setError}
+          style={{ margin: "30px auto", maxWidth: "800px" }}
+        />
         <Row key="filter">
           <Col span={12}>
             <Buttons />
@@ -440,33 +386,20 @@ export default function SiteSettings({ close }) {
             <Input.Search
               style={{ marginBottom: "5px" }}
               allowClear
-              value={filter}
+              value={filterStr}
               placeholder="Filter Site Settings..."
-              onChange={(e) => setFilter(e.target.value)}
+              onChange={(e) => setFilterStr(e.target.value)}
             />
-            {[
-              "openai",
-              "gemini",
-              "jupyter",
-              "email",
-              "logo",
-              "version",
-              "stripe",
-              "captcha",
-              "zendesk",
-              "github",
-              "pay as you go",
-              "compute servers",
-            ].sort().map((name) => (
+            {[...TAGS].sort().map((name) => (
               <CheckableTag
                 key={name}
                 style={{ cursor: "pointer" }}
-                checked={!!filter?.includes(name)}
+                checked={filterTag === name}
                 onChange={(checked) => {
                   if (checked) {
-                    setFilter(name);
+                    setFilterTag(name);
                   } else {
-                    setFilter("");
+                    setFilterTag(null);
                   }
                 }}
               >
@@ -477,15 +410,15 @@ export default function SiteSettings({ close }) {
         </Row>
         {editRows}
         <Gap />
-        {!filter.trim() && <Tests />}
-        {!filter.trim() && <Buttons />}
-        {filter.trim() && (
+        {!activeFilter && <Tests />}
+        {!activeFilter && <Buttons />}
+        {activeFilter ? (
           <Alert
             showIcon
             type="warning"
-            message={`Some items may be hidden by the filter.`}
+            message={`Some items may be hidden by the search filter or a selected tag.`}
           />
-        )}
+        ) : undefined}
       </Well>
     </div>
   );

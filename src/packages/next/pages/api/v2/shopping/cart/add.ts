@@ -8,14 +8,21 @@ or
 - id: to move something back into the cart that was removed
 */
 
-import addToCart, {
-  putBackInCart,
-  buyItAgain,
-} from "@cocalc/server/shopping/cart/add";
-import getAccountId from "lib/account/get-account";
-import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import addToCart, {
+  buyItAgain,
+  putBackInCart,
+} from "@cocalc/server/shopping/cart/add";
+import throttle from "@cocalc/util/api/throttle";
+import getAccountId from "lib/account/get-account";
+import { apiRoute, apiRouteOperation } from "lib/api";
+import getParams from "lib/api/get-params";
+import {
+  ShoppingCartAddInputSchema,
+  ShoppingCartAddOutputSchema,
+} from "lib/api/schema/shopping/cart/add";
+
+async function handle(req, res) {
   try {
     res.json(await add(req));
   } catch (err) {
@@ -29,6 +36,10 @@ async function add(req): Promise<number | undefined> {
   if (account_id == null) {
     throw Error("must be signed in to use shopping cart");
   }
+  throttle({
+    account_id,
+    endpoint: "shopping/cart/add",
+  });
   const { product, description, id, purchased, project_id } = getParams(req);
   if (id != null) {
     if (purchased) {
@@ -44,3 +55,24 @@ async function add(req): Promise<number | undefined> {
   }
   return await addToCart(account_id, product, description, project_id);
 }
+
+export default apiRoute({
+  addCartItem: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Shopping"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: ShoppingCartAddInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: ShoppingCartAddOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

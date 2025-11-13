@@ -1,17 +1,17 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Popover } from "antd";
+import { Alert, Button, Popover } from "antd";
 import { CSSProperties } from "react";
-
 import { Icon, LabeledRow, Markdown } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { Config, RowType } from "@cocalc/util/db-schema/site-defaults";
+import { Config, RowType, Tag } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
 import { Data, IsReadonly } from "./types";
 import { RowEntry } from "./row-entry";
+import { RefreshImagesButton } from "@cocalc/frontend/compute/select-version";
 
 interface RenderRowProps {
   name: string;
@@ -21,7 +21,8 @@ interface RenderRowProps {
   isReadonly: IsReadonly | null;
   onChangeEntry: (name: string, value: string) => void;
   onJsonEntryChange: (name: string, value: string) => void;
-  filter: string;
+  filterStr: string;
+  filterTag: Tag | null;
   isModified: (name: string) => boolean;
   isHeader: boolean;
   saveSingleSetting: (name: string) => void;
@@ -35,17 +36,32 @@ export function RenderRow({
   isReadonly,
   onChangeEntry,
   onJsonEntryChange,
-  filter,
+  filterStr,
+  filterTag,
   isModified,
   isHeader,
   saveSingleSetting,
 }: RenderRowProps) {
   if (data == null) return null;
-  if (filter) {
-    // dumb
-    const x = JSON.stringify(conf).toLowerCase().replace(/-/g, " ");
-    const f = filter.toLowerCase();
-    if (!x.includes(f)) {
+
+  // if tags are used, we're strictly filtering by them
+  if (filterTag) {
+    if (!conf.tags) return null;
+    if (!conf.tags.includes(filterTag)) {
+      return null;
+    }
+  }
+  // otherwise we're (additionally) filtering by the search string
+  if (filterStr) {
+    const { tags, name: title, desc } = conf;
+    const f = filterStr.toLowerCase();
+    const match_any_tag = tags && tags.includes(f as any);
+    const x = [name, title, desc]
+      .join(" ")
+      .toLowerCase()
+      .replace(/-/g, " ")
+      .replace(/_/g, " ");
+    if (!x.includes(f) && !match_any_tag) {
       return null;
     }
   }
@@ -58,6 +74,7 @@ export function RenderRow({
   if (typeof conf.show == "function" && !conf.show(data)) {
     return null;
   }
+
   const rawValue = data[name] ?? conf.default;
   const rowType: RowType = conf.type ?? "setting";
 
@@ -76,7 +93,7 @@ export function RenderRow({
     <div style={{ paddingRight: "15px" }}>
       <strong>{conf.name}</strong> <RowHelp help={conf.help} />
       <br />
-      <StaticMarkdown style={{ color: "#666" }} value={conf.desc} />
+      <StaticMarkdown style={{ color: COLORS.GRAY_M }} value={conf.desc} />
     </div>
   );
 
@@ -99,9 +116,6 @@ export function RenderRow({
     return (
       <Button
         type={modified ? "primary" : "default"}
-        style={{
-          backgroundColor: modified ? COLORS.BS_GREEN_BGRND : undefined,
-        }}
         disabled={!modified}
         size="middle"
         icon={<Icon name="save" />}
@@ -133,6 +147,17 @@ export function RenderRow({
         clearable={conf.clearable}
         update={update}
       />
+      {name == "compute_servers_images_spec_url" && (
+        <div>
+          <RefreshImagesButton />
+          <Alert
+            showIcon
+            style={{ margin: "15px" }}
+            type="info"
+            message="Click the above button after updating the images spec URL to clear the cache."
+          />
+        </div>
+      )}
     </LabeledRow>
   );
 }

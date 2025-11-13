@@ -4,20 +4,22 @@ single license.  It doesn't manage actually coordinating purchases, showing pric
 or anything like that.
 */
 
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
 import {
   Alert,
   DatePicker,
   InputNumber,
-  Switch,
   Select,
+  Switch,
   Table,
   Tag,
 } from "antd";
 import dayjs from "dayjs";
-import { MAX } from "@cocalc/util/licenses/purchase/consts";
 import { useMemo, useState } from "react";
+
+import { MAX } from "@cocalc/util/licenses/purchase/consts";
+import { MIN_DISK_GB } from "@cocalc/util/upgrades/consts";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
 
 type Field =
   | "start"
@@ -37,6 +39,8 @@ interface Props {
   disabledFields?: Set<Field>;
   hiddenFields?: Set<Field>;
   noCancel?: boolean;
+  minDiskGb?: number;
+  minRamGb?: number;
 }
 
 const END_PRESETS: {
@@ -62,16 +66,18 @@ export default function LicenseEditor({
   hiddenFields,
   cellStyle,
   noCancel,
+  minDiskGb = MIN_DISK_GB,
+  minRamGb = 4,
 }: Props) {
   if (info.type == "vouchers") {
     return <Alert type="error" message="Editing vouchers is not allowed." />;
   }
 
   const [start, setStart] = useState<dayjs.Dayjs | undefined>(
-    info.start ? dayjs(info.start) : undefined
+    info.start ? dayjs(info.start) : undefined,
   );
   const [end, setEnd] = useState<dayjs.Dayjs | undefined>(
-    info.end ? dayjs(info.end) : undefined
+    info.end ? dayjs(info.end) : undefined,
   );
   const columns = [
     {
@@ -114,14 +120,13 @@ export default function LicenseEditor({
           return (
             <Tag
               key={label}
-              style={{ cursor: "pointer", marginTop:'5px' }}
+              style={{ cursor: "pointer", marginTop: "5px" }}
               color={color ?? "blue"}
               onClick={() => {
                 const now = dayjs();
                 const end = (
                   start === undefined || now.diff(start) > 0 ? now : start
                 ).add(number, interval);
-                console.log("end = ", end.toDate());
                 handleFieldChange("end")(end);
               }}
             >
@@ -173,9 +178,7 @@ export default function LicenseEditor({
           />
           {isSubscription && (
             <div style={{ color: "#666", marginTop: "15px" }}>
-              Editing the end date of a subscription license is not allowed: it
-              is always set to your Closing Date, which can be adjusted in
-              Subscriptions.
+              Subscription Start and End dates cannot be edited.
             </div>
           )}
           {endPresets}
@@ -205,7 +208,7 @@ export default function LicenseEditor({
             value: (
               <InputNumber
                 disabled={disabledFields?.has("custom_ram")}
-                min={1}
+                min={minRamGb}
                 max={MAX.ram}
                 step={1}
                 value={info.custom_ram}
@@ -220,7 +223,7 @@ export default function LicenseEditor({
             value: (
               <InputNumber
                 disabled={disabledFields?.has("custom_disk")}
-                min={3}
+                min={Math.min(info.custom_disk || minDiskGb, minDiskGb)}
                 max={MAX.disk}
                 step={1}
                 value={info.custom_disk}

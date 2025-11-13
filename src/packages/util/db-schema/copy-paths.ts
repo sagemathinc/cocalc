@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Table } from "./types";
@@ -88,7 +88,7 @@ Table({
     },
     expire: {
       type: "timestamp",
-      desc: "expire after 1 month",
+      desc: "delete this row after this date, if not null",
     },
   },
   rules: {

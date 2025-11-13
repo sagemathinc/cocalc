@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -14,9 +14,17 @@ To add another one, define a new entry in SPEC:
   use process.env so that the env can influence command line options.
 */
 
+import { exec } from "node:child_process";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { NamedServerName } from "@cocalc/util/types/servers";
 
-type CommandFunction = (ip: string, port: number, basePath: string) => string;
+type CommandFunction = (
+  ip: string,
+  port: number,
+  basePath: string,
+) => Promise<string>;
 
 // Disables JupyterLab RTC since it is still very buggy, unfortunately.
 /*
@@ -52,10 +60,55 @@ const JUPYTERLAB_DATA =
 const JUPYTERLAB_MSGS =
   process.env.COCALC_JUPYTER_LAB_iopub_msg_rate_limit ?? 50;
 
+async function rserver(_ip: string, port: number, basePath: string) {
+  // tmp: this is used to write a small config file and then use it
+  const tmp = join(process.env.TMP ?? "/tmp", "rserver");
+  await mkdir(tmp, { recursive: true });
+  const home = process.env.HOME ?? "/home/user";
+  // ATTN: by trial and error I learned this must be in the home dir (not tmp) – otherwise silent crash
+  // Also, that dir name has a length limit (unknown), does not work for nested dev-in-project
+  const data = join(home, ".config", "rserver");
+  const data_db = join(data, "db");
+  // This creates the tmp dir, and the data dir, and the data/db dir
+  await mkdir(data_db, { recursive: true });
+  const db_conf = join(tmp, "db.conf");
+  await writeFile(db_conf, `provider=sqlite\ndirectory=${data_db}`);
+
+  // ATTN: it's tempting to add --www-address=${ip} \
+  // to tell it where to listen to, but for some reason that doesn't work. Hence $ip is ignored.
+  // The default is 0.0.0.0, which works (and it's fine, because we proxy it anyway).
+
+  // Check, if the user $USER exists in /etc/passwd using grep. If not, call the user "user".
+  // Just process.env.USER does not work in development, i.e. when the "random id" user does not exist.
+  const user = await new Promise<string>((resolve) => {
+    const name = process.env.USER ?? "user";
+    exec(`grep "^${name}:" /etc/passwd`, (err) => {
+      resolve(err ? "user" : name);
+    });
+  });
+
+  // watch out, this will be prefixed with #!/bin/sh and piped into stdout/stderr files
+  // part from that, rserver must be in the $PATH
+  // see note at project/configuration::get_rserver
+  return [
+    `rserver`,
+    `--server-daemonize=0`,
+    `--auth-none=1`,
+    `--auth-encrypt-password=0`,
+    `--server-user=${user}`,
+    `--database-config-file="${db_conf}"`,
+    `--server-data-dir="${data}"`,
+    `--server-working-dir="${process.env.HOME}"`,
+    `--www-port=${port}`,
+    `--www-root-path="${basePath}/"`, // www-root-path needs the trailing slash and it must be "server", not "port"
+    `--server-pid-file="${join(tmp, "rserver.pid")}"`,
+  ].join(" ");
+}
+
 const SPEC: { [name in NamedServerName]: CommandFunction } = {
-  code: (ip: string, port: number) =>
+  code: async (ip: string, port: number) =>
     `code-server --bind-addr=${ip}:${port} --auth=none`,
-  jupyter: (ip: string, port: number, basePath: string) =>
+  jupyter: async (ip: string, port: number, basePath: string) =>
     [
       `jupyter notebook`,
       `--port-retries=0`,
@@ -68,7 +121,7 @@ const SPEC: { [name in NamedServerName]: CommandFunction } = {
       `--NotebookApp.mathjax_url=/cdn/mathjax/MathJax.js`,
       `--NotebookApp.base_url=${basePath} --ip=${ip} --port=${port}`,
     ].join(" "),
-  jupyterlab: (ip: string, port: number, basePath: string) =>
+  jupyterlab: async (ip: string, port: number, basePath: string) =>
     [
       "jupyter lab",
       `--port-retries=0`, // don't try another port, only the one we specified will work
@@ -87,8 +140,9 @@ const SPEC: { [name in NamedServerName]: CommandFunction } = {
       `--port=${port}`,
       `${JUPYTERLAB_RTC ? "--collaborative" : ""}`,
     ].join(" "),
-  pluto: (ip: string, port: number) =>
+  pluto: async (ip: string, port: number) =>
     `echo 'import Pluto; Pluto.run(launch_browser=false, require_secret_for_access=false, host="${ip}", port=${port})' | julia`,
+  rserver,
 } as const;
 
 export default function getSpec(name: NamedServerName): CommandFunction {

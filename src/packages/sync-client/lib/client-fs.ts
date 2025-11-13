@@ -7,6 +7,7 @@ import { exists, stat } from "fs";
 import fs from "node:fs";
 import type { CB } from "@cocalc/util/types/callback";
 import { Watcher } from "@cocalc/backend/watcher";
+
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("sync-client:client-fs");
@@ -155,9 +156,9 @@ export class FileSystemClient {
             new Error(
               `file '${path}' size (=${
                 size / 1000000
-              }MB) too large (must be at most ${
+              } MB) too large (must be at most ${
                 opts.maxsize_MB
-              }MB); try opening it in a Terminal with vim instead or click Help in the upper right to open a support request`,
+              } MB); try opening it in a Terminal with vim instead or click Help in the upper right to create a support request.`,
             ),
           );
           return;
@@ -211,16 +212,15 @@ export class FileSystemClient {
 
   watch_file = ({
     path: relPath,
-    interval = 1500, // polling interval in ms
-    debounce = 500, // don't fire until at least this many ms after the file has REMAINED UNCHANGED
+    // don't fire until at least this many ms after the file has REMAINED UNCHANGED
+    debounce,
   }: {
     path: string;
-    interval?: number;
     debounce?: number;
   }): Watcher => {
     const path = join(this.home, relPath);
-    logger.debug("watching file", path);
-    return new Watcher(path, interval, debounce);
+    logger.debug("watching file", { path, debounce });
+    return new Watcher(path, { debounce });
   };
 
   is_deleted = (_path: string, _project_id: string) => {

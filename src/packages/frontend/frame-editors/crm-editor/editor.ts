@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { createEditor } from "../frame-tree/editor";
@@ -11,22 +11,28 @@ import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/e
 import TableEditor from "./table-editor";
 import Users from "./users";
 
+const tables: EditorDescription = {
+  type: "crm-tables",
+  short: "Tables",
+  name: "Tables",
+  icon: "database",
+  component: TableEditor,
+  commands: set(["save", "undo", "redo"]),
+} as const;
+
+const account: EditorDescription = {
+  type: "crm-account",
+  short: "Users",
+  name: "User Search",
+  icon: "users",
+  component: Users,
+} as const;
+
 const EDITOR_SPEC = {
-  tables: {
-    short: "Tables",
-    name: "Tables",
-    icon: "database",
-    component: TableEditor,
-    commands: set(["save", "undo", "redo"]),
-  },
-  account: {
-    short: "Users",
-    name: "User Search",
-    icon: "users",
-    component: Users,
-  },
+  tables,
+  account,
   time_travel,
-} as { [name: string]: EditorDescription };
+} as const;
 
 export const Editor = createEditor({
   format_bar: false,

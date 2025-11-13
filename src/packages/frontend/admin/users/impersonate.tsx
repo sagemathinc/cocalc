@@ -1,14 +1,17 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Component, Rendered } from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/components";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { Alert, Card } from "antd";
 import { join } from "path";
+
+import { Rendered, useEffect, useState } from "@cocalc/frontend/app-framework";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { Alert } from "antd";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { CopyToClipBoard } from "@cocalc/frontend/components";
+import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
 
 interface Props {
   account_id: string;
@@ -16,83 +19,102 @@ interface Props {
   last_name: string;
 }
 
-interface State {
-  auth_token?: string;
-  err?: string;
-}
+export function Impersonate({ first_name, last_name, account_id }: Props) {
+  const [auth_token, set_auth_token] = useState<string | null>(null);
+  const [err, set_err] = useState<string | null>(null);
+  const [extraWarning, setExtraWarning] = useState<boolean>(false);
+  const { locale } = useLocalizationCtx();
 
-export class Impersonate extends Component<Props, State> {
-  constructor(props, state) {
-    super(props, state);
-    this.state = {};
-  }
-
-  async get_token(): Promise<void> {
+  async function get_token(): Promise<void> {
     try {
       const auth_token = await webapp_client.admin_client.get_user_auth_token(
-        this.props.account_id
+        account_id,
       );
-      this.setState({ auth_token });
+      set_auth_token(auth_token);
+      set_err(null);
     } catch (err) {
-      this.setState({ err: err.toString() });
+      set_err(err.toString());
+      set_auth_token(null);
     }
   }
 
-  componentDidMount(): void {
-    this.get_token();
-  }
+  useEffect(() => {
+    get_token();
+  }, []);
 
-  render_link(): Rendered {
-    if (this.state.auth_token == null) {
+  function render_link(): Rendered {
+    if (auth_token == null) {
       return <Loading />;
     }
-    const link = join(appBasePath, `app?auth_token=${this.state.auth_token}`);
+
+    // The lang_temp temporarily sets the interface language of the user to impersonate to the one of the admin
+    const link = join(
+      appBasePath,
+      `auth/impersonate?auth_token=${auth_token}&lang_temp=${locale}`,
+    );
+
+    const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault(); // Prevent left click from opening the link
+      setExtraWarning(true);
+    };
+
     return (
       <div>
-        <a href={link} target="_blank" rel="noopener noreferrer">
-          Right click and open this link in a new incognito window, where you
-          will be signed in as {this.props.first_name} {this.props.last_name}...
-        </a>
-        <br />
-        The actual link:
-        <pre style={{ fontSize: "11pt", textAlign: "center" }}>
-          <a href={link} target="_blank" rel="noopener noreferrer">
-            {link}
+        <div style={{ fontSize: "13pt", textAlign: "center" }}>
+          <a
+            href={link}
+            onClick={handleClick}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Icon name="external-link" /> Right click and open this link in a
+            new <b>Incognito Window</b>, where you will be signed in as "
+            {first_name} {last_name}"...
           </a>
-        </pre>
+          <br />
+          <br />
+          or copy the following link and paste it in a different browser:
+          <br />
+          <br />
+          <CopyToClipBoard
+            before
+            inputWidth="500px"
+            value={`${location.origin}${link}`}
+          />
+        </div>
+        {extraWarning && (
+          <Alert
+            showIcon
+            style={{ margin: "30px auto", maxWidth: "800px" }}
+            type="warning"
+            message="Open this link in a new Incognito Window!"
+            description="Otherwise your current browser session will get overwritten, and potentially sensitive information could leak."
+          />
+        )}
       </div>
     );
   }
 
-  render_err(): Rendered {
-    if (this.state.err != null) {
+  function render_err(): Rendered {
+    if (err != null) {
       return (
         <div>
-          <b>ERROR</b> {this.state.err}
+          <b>ERROR</b> {err}
         </div>
       );
     }
   }
 
-  render(): Rendered {
-    return (
-      <Alert
-        type="warning"
-        style={{
-          margin: "15px",
-        }}
-        message={
-          <b>
-            Impersonate user "{this.props.first_name} {this.props.last_name}"
-          </b>
-        }
-        description={
-          <>
-            {this.render_err()}
-            {this.render_link()}
-          </>
-        }
-      />
-    );
-  }
+  return (
+    <Card
+      title={
+        <>
+          Impersonate user "{first_name} {last_name}"
+        </>
+      }
+    >
+      {render_err()}
+      {render_link()}
+    </Card>
+  );
 }

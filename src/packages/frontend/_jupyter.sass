@@ -1,81 +1,86 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+@use 'colors'
+
+// I just noticed there is another version of this file in jupyter/_jupyter.sass
+// They need to be carefully merged into one!  But not today.
+
 .smc-jupyter-nbviewer-content
-  border : 1px solid lightgray
+  border: 1px solid lightgray
 
 .smc-jupyter-nbviewer
-  background : white
-  position   : fixed
-  width      : 100%
+  background: white
+  position: fixed
+  width: 100%
 
 .smc-jupyter-notebook
-  background : white
-  width      : 100%
-  left       : 0px
-  min-height : 10em   /* ensure path is covered while loading notebook */
+  background: white
+  width: 100%
+  left: 0px
+  min-height: 10em /* ensure path is covered while loading notebook */
 
 .smc-jupyter-notebook-history-slider-controls
-  position      : absolute
-  top           : 8px
-  right         : 5px
-  width         : 80%
-  background    : white
-  border        : 2px solid orange
-  border-radius : 4px
-  padding       : 20px
-  box-shadow    : 5px 6px 4px lightgray
+  position: absolute
+  top: 8px
+  right: 5px
+  width: 80%
+  background: white
+  border: 2px solid orange
+  border-radius: 4px
+  padding: 20px
+  box-shadow: 5px 6px 4px lightgray
 
 .smc-jupyter-notebook-history-slider
-  margin-top : 11px
+  margin-top: 11px
 
 .smc-jupyter-notebook-status-messages
-  font-size : 10pt
+  font-size: 10pt
 
 .smc-jupyter-notebook-danger
-  color       : white
-  font-weight : bold
-  font-size   : 7pt
-  background  : red
+  color: white
+  font-weight: bold
+  font-size: 7pt
+  background: red
 
 .smc-jupyter-history-revision-number
-  font-size : 10pt
+  font-size: 10pt
 
 .smc-jupyter-history-revision-time
-  font-size : 10pt
+  font-size: 10pt
 
 /* Used for new sync. */
 .smc-jupyter-cursor
-  position : absolute
-  width    : 15em
-  z-index  : 5 !important
+  position: absolute
+  width: 15em
+  z-index: 5 !important
 
 .smc-jupyter-cursor-inside
-  height   : 1.2em
-  width    : 1px
+  height: 1.2em
+  width: 1px
 
 .smc-jupyter-cursor-label
-  font-size   : 8pt
-  font-family : serif
-  color       : #fff
-  z-index     : 1000
+  font-size: 8pt
+  font-family: serif
+  color: #fff
+  z-index: 1000
 
 .smc-jupyter-notebook-notebook
-  width : 100%
+  width: 100%
 
 .cc-jupyter-snippets
   .ant-collapse-content-box
-    padding: 0  !important
+    padding: 0 !important
 
   span.hl
-    background-color : yellow
+    background-color: yellow
     font-weight: bold
 
 .cc-jupyter-snippet
   > div.ant-collapse-header
-    color: $COL_GRAY !important
+    color: colors.$COL_GRAY !important
 
 .cc-jupyter-snippet-collapse
   .cc-jupyter-snippet
@@ -87,23 +92,32 @@
   background: white
   margin: 0 10px 10px 10px
   padding: 10px
-  border: 1px solid $COL_GRAY_L
+  border: 1px solid colors.$COL_GRAY_L
   border-radius: 3px
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.22)
   > pre
     font-size: 80%
 
 .cc-jupyter-snippet-header
-  vertical-align: -0.125em  // to match ANTD's collapse icon
+  vertical-align: -0.125em // to match ANTD's collapse icon
   p
     display: inline
 
 // katex 0.13.5 somehow causes formulas to be displayed wider than the width of the output
-// adding ugly horizontal scrollbars. this eliminates that.
+// adding ugly horizontal scrollbar. this eliminates that.
 .cocalc-jupyter-rendered
   .katex-display>.katex>.katex-html
-    // display: contents // this did work, but it's some experimenal new display option
+    // display: contents // this did work, but it's some experimental new display option
     margin: 1em .5em // margin works as well, but we also have to set it for mathjax to make it look consistent
+  .katex
+    padding: 0 2.5px
 
-  .MathJax_SVG_Display
-    padding-right: 1em
+// this seems to be missing from jupyter widgets, but is used to implement the according
+//   https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#accordion
+// I.e., without this css rule, accordion is just broken.
+.lm-Widget.lm-mod-hidden
+  display: none !important
+
+.cc-jupyter-buttonbar-dropdown
+  .ant-dropdown-menu-item
+    color: colors.$COL_GRAY_D !important

@@ -1,11 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Col, Row } from "antd";
 
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
 import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
@@ -48,8 +48,8 @@ export function Product({
   children,
   external,
 }: {
-  icon;
-  icon2?;
+  icon: IconName;
+  icon2?: IconName;
   title;
   href;
   children;

@@ -24,7 +24,7 @@ export default function PayAsYouGoMinBalance({ account_id }) {
   const saveMinBalance = async (minBalance: number) => {
     await webapp_client.purchases_client.adminSetMinBalance(
       account_id,
-      minBalance
+      minBalance,
     );
     setLastSaved(minBalance);
     setTimeout(getMinBalance, 5000); // minBalance is cached so just do this soon...
@@ -33,6 +33,7 @@ export default function PayAsYouGoMinBalance({ account_id }) {
   return (
     <div>
       <Button
+        type={lastSaved != null ? "dashed" : undefined}
         onClick={() => {
           if (minBalance == null || lastSaved == null) {
             getMinBalance();
@@ -42,12 +43,12 @@ export default function PayAsYouGoMinBalance({ account_id }) {
           }
         }}
       >
-        <Icon name="credit-card" /> Minimum Allowed Balance...{" "}
+        <Icon name="credit-card" /> Minimum Allowed Balance{" "}
         {loading && <Spin delay={500} />}
       </Button>
       {lastSaved != null && (
         <Alert
-          style={{ marginTop: "15px", maxWidth: "600px" }}
+          style={{ marginTop: "15px", maxWidth: "800px" }}
           type="warning"
           closable
           onClose={() => {
@@ -68,7 +69,6 @@ export default function PayAsYouGoMinBalance({ account_id }) {
               </div>
               <Space style={{ marginTop: "5px" }}>
                 <InputNumber
-                  max={0}
                   step={10}
                   defaultValue={minBalance ?? undefined}
                   onChange={(val) => setMinBalance(val)}
@@ -85,6 +85,38 @@ export default function PayAsYouGoMinBalance({ account_id }) {
                   <Icon name="save" /> Save
                 </Button>
               </Space>
+              {(minBalance ?? 0) > 0 && (
+                <Alert
+                  style={{ marginTop: "15px" }}
+                  showIcon
+                  type="info"
+                  description={
+                    <>
+                      This is a <b>POSITIVE</b> value, which means that the user
+                      has to maintain at least that balance to make any
+                      purchases. This might be for users we don't trust, but we
+                      haven't decided to ban them. This is also useful for
+                      testing, to force a purchase requirement without having to
+                      zero out your balance.
+                    </>
+                  }
+                />
+              )}
+              {(minBalance ?? 0) < 0 && (
+                <Alert
+                  style={{ marginTop: "15px" }}
+                  showIcon
+                  type="info"
+                  description={
+                    <>
+                      This is a <b>NEGATIVE</b> value, which means that the user
+                      ONLY has to maintain at least that balance to make any
+                      purchases. This is for users we trust more than the
+                      default.
+                    </>
+                  }
+                />
+              )}
             </div>
           }
         />

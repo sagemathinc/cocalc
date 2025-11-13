@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Group headers of active files (editors) in the current project
@@ -16,9 +16,9 @@ import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { capitalize, trunc_middle } from "@cocalc/util/misc";
 import { ACTIVE_FOLDER_TYPE, FLYOUT_PADDING } from "./consts";
-import { FileListItem, fileItemLeftBorder } from "./file-list-item";
+import { FileListItem } from "./file-list-item";
 import { FlyoutActiveMode } from "./state";
-import { GROUP_STYLE, deterministicColor } from "./utils";
+import { GROUP_STYLE, deterministicColor, fileItemBorder } from "./utils";
 
 interface GroupProps {
   group: string;
@@ -27,6 +27,7 @@ interface GroupProps {
   starred: string[];
   setStarredPath: (path: string, next: boolean) => void;
   showStarred: boolean;
+  isLast?: boolean; // if group is empty, it is also the last one in the group
 }
 
 export function Group({
@@ -36,11 +37,13 @@ export function Group({
   starred,
   setStarredPath,
   showStarred,
-}: GroupProps): JSX.Element {
+  isLast = false,
+}: GroupProps): React.JSX.Element {
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const current_path = useTypedRedux({ project_id }, "current_path");
+  const activeTab = useTypedRedux({ project_id }, "active_project_tab");
 
   const components = group.replace(/^\.smc\/root\//, "/").split("/");
   const parts = [
@@ -50,10 +53,12 @@ export function Group({
   const displayed = group === "" ? "Home" : parts.join("/");
 
   const col = deterministicColor(group);
+
   const style: CSS = {
     ...GROUP_STYLE,
-    backgroundColor: col,
-    ...fileItemLeftBorder(col),
+    ...fileItemBorder(col, "left"),
+    ...fileItemBorder(col, "top"),
+    ...(isLast ? fileItemBorder(col, "bottom") : {}),
   } as const;
 
   function getTypeIconDisplay(group: string): {
@@ -90,7 +95,7 @@ export function Group({
             name: group,
             isdir: true,
             isopen,
-            isactive: current_path === group,
+            isactive: current_path === group && activeTab === "files",
           }}
           multiline={false}
           displayedNameOverride={displayed}

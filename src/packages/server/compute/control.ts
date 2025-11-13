@@ -17,12 +17,13 @@ await a.start({account_id:'fd9d855b-9245-473d-91a0-cdd1e69410e4', id:8})
 */
 
 import { getServer, getServerNoCheck } from "./get-servers";
-import { setState, setError } from "./util";
+import { clearData, setState, setError } from "./util";
 import * as testCloud from "./cloud/testcloud";
 import * as fluidStack from "./cloud/fluid-stack";
 import * as coreWeave from "./cloud/core-weave";
 import * as lambdaCloud from "./cloud/lambda-cloud";
 import * as googleCloud from "./cloud/google-cloud";
+import * as hyperstackCloud from "./cloud/hyperstack";
 import type {
   Architecture,
   Cloud,
@@ -38,7 +39,7 @@ import { setProjectApiKey, deleteProjectApiKey } from "./project-api-key";
 import getPool from "@cocalc/database/pool";
 import { isEqual } from "lodash";
 import updatePurchase from "./update-purchase";
-import { changedKeys } from "@cocalc/server/compute/util";
+import { changedKeys, setConfiguration } from "@cocalc/server/compute/util";
 import { checkValidDomain } from "@cocalc/util/compute/dns";
 import { hasDNS, makeDnsChange } from "./dns";
 import startupScript from "@cocalc/server/compute/cloud/startup-script";
@@ -47,8 +48,15 @@ import {
   deprovisionScript,
 } from "@cocalc/server/compute/cloud/off-scripts";
 import setDetailedState from "@cocalc/server/compute/set-detailed-state";
-
+import isBanned from "@cocalc/server/accounts/is-banned";
 import getLogger from "@cocalc/backend/logger";
+import { getImages } from "@cocalc/server/compute/images";
+import { defaultProxyConfig } from "@cocalc/util/compute/images";
+import { ensureComputeServerHasVpnIp } from "./vpn";
+import {
+  unmountAll as unmountAllCloudFilesystems,
+  numMounted as numMountedCloudFilesystems,
+} from "@cocalc/server/compute/cloud-filesystem/control";
 
 const logger = getLogger("server:compute:control");
 
@@ -74,6 +82,11 @@ export const start: (opts: {
 }) => Promise<void> = reuseInFlight(async ({ account_id, id }) => {
   let server = await getServer({ account_id, id });
   try {
+    if (await isBanned(account_id)) {
+      // they should never get this far, but just in case.
+      throw Error("user is banned");
+    }
+    await ensureComputeServerHasVpnIp(id);
     await setError(id, "");
     await setProjectApiKey({ account_id, server });
   } catch (err) {
@@ -84,6 +97,7 @@ export const start: (opts: {
     await setState(id, "starting");
     await doStart(server);
     await setState(id, "running");
+    await updateLastEditedUser(id);
     await saveProvisionedConfiguration(server);
     await setDetailedState({
       project_id: server.project_id,
@@ -93,10 +107,31 @@ export const start: (opts: {
       timeout: 60,
       progress: 10,
     });
+    updateDNS(server, "running");
   });
 });
 
+// call this to ensure that the idle timeout doesn't kill the server
+// before the user even gets a chance to use it.  We always set the
+// initial edited time to a few minutes in the future to allow for
+// startup configuration, before user can trigger last_edited_user updates.
+async function updateLastEditedUser(id: number) {
+  const pool = getPool();
+  await pool.query(
+    "UPDATE compute_servers SET last_edited_user = NOW() + interval '15 minutes' WHERE id=$1",
+    [id],
+  );
+}
+
 async function doStart(server: ComputeServer) {
+  if (server.data?.cloud != server.cloud) {
+    // If you deprovision a server, then change the cloud, a stale data field
+    // can result, which breaks things.  Thus we must clear it.  Also, this
+    // data is something that is meaningless once a server is deprovisioned as
+    // data is about provisioned state (e.g., ip address).
+    delete server.data;
+    await clearData({ id: server.id });
+  }
   switch (server.cloud) {
     case "test":
       return await testCloud.start(server);
@@ -106,10 +141,17 @@ async function doStart(server: ComputeServer) {
       return await fluidStack.start(server);
     case "google-cloud":
       return await googleCloud.start(server);
+    case "hyperstack":
+      return await hyperstackCloud.start(server);
     case "lambda-cloud":
       return await lambdaCloud.start(server);
+    case "onprem":
+      // no-op: user pastes a script provided on the frontend for on-prem.
+      return;
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'start'`,
+      );
   }
 }
 
@@ -130,7 +172,20 @@ export const stop: (opts: { account_id: string; id: number }) => Promise<void> =
     await setError(id, "");
     runTasks({ account_id, id }, async () => {
       await setState(id, "stopping");
-      await deleteProjectApiKey({ account_id, server });
+      if (server.configuration?.autoRestart) {
+        // If we are explicitly stopping an auto-restart server, we disable auto restart,
+        // so there is no chance of it being accidentally triggered.
+        await setConfiguration(id, { autoRestartDisabled: true });
+      }
+      try {
+        await deleteProjectApiKey({ account_id, server });
+      } catch (err) {
+        logger.debug(
+          "WARNING -- unable to delete api key used by server",
+          server,
+          err,
+        );
+      }
       await doStop(server);
       await setState(id, "off");
     });
@@ -146,10 +201,15 @@ async function doStop(server: ComputeServer) {
       return await fluidStack.stop(server);
     case "google-cloud":
       return await googleCloud.stop(server);
+    case "hyperstack":
+      return await hyperstackCloud.stop(server);
     case "lambda-cloud":
       return await lambdaCloud.stop(server);
+    case "onprem":
+      // no-op: user pastes a script provided on the frontend for on-prem.
+      return;
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(`cloud '${server.cloud}' not currently supported for 'stop'`);
   }
 }
 
@@ -162,7 +222,19 @@ export const deprovision: (opts: {
 
   runTasks({ account_id, id }, async () => {
     await setState(id, "stopping");
-    await deleteProjectApiKey({ account_id, server });
+    try {
+      await deleteProjectApiKey({ account_id, server });
+    } catch (err) {
+      // This can happen if the user is no longer a collaborator on the
+      // project that contains the compute server and they run out of money,
+      // so the system automatically deletes their compute server.  It's
+      // bad for this to block the actual compute server delete below!
+      logger.debug(
+        "WARNING -- unable to delete api key used by server",
+        server,
+        err,
+      );
+    }
     await doDeprovision(server);
     await setState(id, "deprovisioned");
   });
@@ -172,11 +244,22 @@ async function doDeprovision(server: ComputeServer) {
   switch (server.cloud) {
     case "google-cloud":
       return await googleCloud.deprovision(server);
+
+    case "hyperstack":
+      return await hyperstackCloud.deprovision(server);
+
+    case "onprem":
+      // no-op: user pastes a script provided on the frontend for on-prem.
+      return;
+
     case "test":
       // just a no-op
       return;
+
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'deprovision'`,
+      );
   }
 }
 
@@ -185,22 +268,54 @@ async function doDeprovision(server: ComputeServer) {
 export const state: (opts: {
   account_id: string;
   id: number;
-}) => Promise<State> = reuseInFlight(async ({ account_id, id }) => {
-  //const now = Date.now();
-  //   const last = lastCalled[id];
-  //   if (now - last?.time < MIN_STATE_UPDATE_INTERVAL_MS) {
-  //     return last.state;
-  //   }
-  const server = await getServer({ account_id, id });
-  const state = await getCloudServerState(server);
-  doPurchaseUpdate({ server, state });
-  if (state == "deprovisioned") {
-    // don't need it anymore.
-    await deleteProjectApiKey({ account_id, server });
-  }
-  //lastCalled[id] = { time: now, state };
-  return state;
-});
+
+  // maintenance = true -- means we are getting this state as part of
+  // a maintenance loop, NOT as part of a user or api initiated action.
+  // An impact of this is that auto restart could be triggered.
+  maintenance?: boolean;
+}) => Promise<State> = reuseInFlight(
+  async ({ account_id, id, maintenance }) => {
+    //const now = Date.now();
+    //   const last = lastCalled[id];
+    //   if (now - last?.time < MIN_STATE_UPDATE_INTERVAL_MS) {
+    //     return last.state;
+    //   }
+    const server = await getServer({ account_id, id });
+    const state = await getCloudServerState(server);
+    doPurchaseUpdate({ server, state });
+    if (state == "deprovisioned") {
+      // don't need it anymore.
+      try {
+        await deleteProjectApiKey({ account_id, server });
+      } catch (err) {
+        logger.debug(
+          "WARNING -- unable to delete api key used by server",
+          server,
+          err,
+        );
+      }
+    } else if (
+      maintenance &&
+      server.configuration?.autoRestart &&
+      !server.configuration?.autoRestartDisabled &&
+      state == "off"
+    ) {
+      // compute server got killed so launch the compute server running again.
+      start({ account_id, id });
+    } else if (
+      server.configuration?.autoRestart &&
+      server.configuration?.autoRestartDisabled &&
+      state == "running"
+    ) {
+      // This is an auto-restart server and it's running,
+      // so re-enable auto restart.
+      await setConfiguration(id, { autoRestartDisabled: false });
+    }
+    //lastCalled[id] = { time: now, state };
+    updateDNS(server, state);
+    return state;
+  },
+);
 
 async function getCloudServerState(server: ComputeServer): Promise<State> {
   try {
@@ -211,6 +326,44 @@ async function getCloudServerState(server: ComputeServer): Promise<State> {
     await setError(server.id, `${err}`);
     await setState(server.id, "unknown");
     return "unknown";
+  }
+}
+
+// this won't throw an exception
+async function updateDNS(server: ComputeServer, state: State) {
+  if (
+    server.configuration?.dns &&
+    (state == "running" || state == "deprovisioned")
+  ) {
+    // We only mess with DNS when the instance is running (in which case we make sure it is properly set),
+    // or the instance is deprovisioned, in which case we delete the DNS.
+    // In all other cases, we just leave it alone.  It turns out if you delete the DNS record
+    // whenever the machine stops, it can often take a very long time after you create the
+    // record for clients to become aware of it again, which is very annoying.
+    // TODO: we may want to change dns records for off machines to point to some special
+    // status page (?).
+    try {
+      if (await hasDNS()) {
+        await makeDnsChange({
+          id: server.id,
+          cloud: server.cloud,
+          name: state == "running" ? server.configuration.dns : "",
+        });
+      } else {
+        if (server.configuration.dns) {
+          logger.debug(
+            `WARNING -- not setting dns subdomain ${server.configuration.dns} because cloudflare api token and compute server dns not fully configured.  Please configure it.`,
+          );
+          await setError(
+            server.id,
+            `WARNING -- unable to set DNS since it is not fully configured by the site admins`,
+          );
+        }
+      }
+    } catch (err) {
+      logger.debug("WARNING -- issue setting dns: ", err);
+      await setError(server.id, `WARNING -- issue setting dns: ${err}`);
+    }
   }
 }
 
@@ -226,11 +379,15 @@ async function doState(server: ComputeServer): Promise<State> {
       return await googleCloud.state(server);
     case "lambda-cloud":
       return await lambdaCloud.state(server);
+    case "hyperstack":
+      return await hyperstackCloud.state(server);
     case "onprem":
       // for onprem all state is self-reported.
       return server.state ?? "unknown";
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'state'`,
+      );
   }
 }
 
@@ -346,11 +503,16 @@ export async function computeCost({
       return await fluidStack.cost(server, state);
     case "google-cloud":
       return await googleCloud.cost(server, state);
+    case "hyperstack":
+      return await hyperstackCloud.cost(server, state);
     case "lambda-cloud":
       return await lambdaCloud.cost(server, state);
+    case "onprem":
+      // no-op: user pastes a script provided on the frontend for on-prem.
+      return 0;
     default:
       throw Error(
-        `cost for cloud '${server.cloud}' and state '${state}' not currently supported`,
+        `cost for cloud '${server.cloud}' and state '${state}' not currently supported for 'cost'`,
       );
   }
 }
@@ -364,17 +526,22 @@ export const suspend: (opts: {
   await setError(id, "");
   runTasks({ account_id, id }, async () => {
     await setState(id, "suspending");
-    await doSuspend(server);
+    await doSuspend(server, account_id);
     await setState(id, "suspended");
   });
 });
 
-async function doSuspend(server: ComputeServer) {
+async function doSuspend(server: ComputeServer, account_id: string) {
+  if ((await numMountedCloudFilesystems(server.project_id)) > 0) {
+    await unmountAllCloudFilesystems({ id: server.id, account_id });
+  }
   switch (server.cloud) {
     case "google-cloud":
       return await googleCloud.suspend(server);
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'suspend'`,
+      );
   }
 }
 
@@ -397,7 +564,9 @@ async function doResume(server: ComputeServer) {
     case "google-cloud":
       return await googleCloud.resume(server);
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'resume'`,
+      );
   }
 }
 
@@ -418,8 +587,18 @@ async function doReboot(server: ComputeServer) {
   switch (server.cloud) {
     case "google-cloud":
       return await googleCloud.reboot(server);
+    case "hyperstack":
+      return await hyperstackCloud.reboot(server);
+    case "onprem":
+      // for now: just switch back to running: useful for dev at least.
+      setTimeout(() => {
+        setState(server.id, "running");
+      }, 100);
+      return;
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for 'reboot'`,
+      );
   }
 }
 
@@ -461,9 +640,6 @@ export async function validateConfigurationChange({
   }
 
   if (changed.has("authToken")) {
-    if (state == "running" || state == "suspended" || state == "suspending") {
-      throw Error("cannot change authToken while server is running");
-    }
     if (typeof newConfiguration.authToken != "string") {
       throw Error("authToken must be a string");
     }
@@ -530,6 +706,16 @@ export async function makeConfigurationChange({
   }
 
   const changed = changedKeys(currentConfiguration, newConfiguration);
+  logger.debug("makeConfigurationChange", {
+    id,
+    cloud,
+    state,
+    currentConfiguration,
+    newConfiguration,
+    changes,
+    changed,
+    keys: Object.keys(changed),
+  });
   if (changed.has("dns")) {
     if (state == "running" || !newConfiguration.dns) {
       // if running or removing dns, better update it.
@@ -547,6 +733,22 @@ export async function makeConfigurationChange({
     }
     changed.delete("dns");
   }
+  if (changed.has("authToken")) {
+    // this is handled directly by the client right now
+    // TODO: we might change to do it here instead at some point.
+    changed.delete("authToken");
+  }
+  if (changed.has("proxy")) {
+    // same comment as for authToken
+    changed.delete("proxy");
+  }
+  if (changed.has("ephemeral")) {
+    // always safe to change this -- no heck required and no impact on actual deployment
+    changed.delete("ephemeral");
+  }
+  if (changed.has("excludeFromSync") && state == "off") {
+    changed.delete("excludeFromSync");
+  }
   if (changed.size == 0) {
     // nothing else to change
     return;
@@ -562,9 +764,20 @@ export async function makeConfigurationChange({
         // @ts-ignore
         newConfiguration,
       });
+    case "hyperstack":
+      return await hyperstackCloud.makeConfigurationChange({
+        id,
+        state,
+        // @ts-ignore
+        currentConfiguration,
+        // @ts-ignore
+        newConfiguration,
+      });
     default:
       throw Error(
-        `makeConfigurationChange not implemented for cloud '${cloud}'`,
+        `makeConfigurationChange not implemented for cloud '${cloud}' changing value of ${JSON.stringify(
+          Array.from(changed),
+        )}`,
       );
   }
 }
@@ -589,8 +802,10 @@ export async function getNetworkUsage(opts: {
   switch (opts.server.cloud) {
     case "google-cloud":
       return await googleCloud.getNetworkUsage(opts);
+    case "hyperstack":
     case "lambda-cloud":
-      // lambda doesn't charge for network usage at all.
+      // hyperstack and lambda do not charge for or meter
+      // network usage at all.
       return { amount: 0, cost: 0 };
     case "onprem":
       // TODO: network usage currently free for on prem. This will change
@@ -623,26 +838,36 @@ export async function setTestNetworkUsage({
   testNetworkUsage[id] = { amount, cost };
 }
 
-async function getStartupParams(id: number): Promise<{
+export async function getStartupParams(id: number): Promise<{
+  cloud: Cloud;
   project_id: string;
+  project_specific_id: number;
   gpu?: boolean;
   arch: Architecture;
   image: string;
   exclude_from_sync: string;
   auth_token: string;
+  proxy;
 }> {
   const server = await getServerNoCheck(id);
   const { configuration } = server;
   const excludeFromSync = server.configuration?.excludeFromSync ?? [];
   const auth_token = server.configuration?.authToken ?? "";
+  const image = configuration.image ?? "python";
+  const proxy =
+    server.configuration?.proxy ??
+    defaultProxyConfig({ IMAGES: await getImages(), image });
   const exclude_from_sync = excludeFromSync.join("|");
+
   let x;
   switch (server.cloud) {
     case "google-cloud":
       x = {
         ...(await googleCloud.getStartupParams(server)),
+        image,
         exclude_from_sync,
         auth_token,
+        proxy,
       };
       break;
     case "onprem":
@@ -653,10 +878,24 @@ async function getStartupParams(id: number): Promise<{
         project_id: server.project_id,
         gpu: !!configuration.gpu,
         arch: configuration.arch ?? "x86_64",
-        image: configuration.image ?? "python",
-
+        image,
         exclude_from_sync,
         auth_token,
+        proxy,
+      };
+      break;
+    case "hyperstack":
+      if (configuration.cloud != "hyperstack") {
+        throw Error("inconsistent configuration -- must be hyperstack");
+      }
+      x = {
+        ...(await hyperstackCloud.getStartupParams(server)),
+        project_id: server.project_id,
+        arch: "x86_64",
+        image,
+        exclude_from_sync,
+        auth_token,
+        proxy,
       };
       break;
     default:
@@ -665,6 +904,8 @@ async function getStartupParams(id: number): Promise<{
       );
   }
   return {
+    cloud: server.cloud,
+    project_specific_id: server.project_specific_id,
     tag: configuration.tag,
     tag_cocalc: configuration.tag_cocalc,
     tag_filesystem: configuration.tag_filesystem,
@@ -672,9 +913,9 @@ async function getStartupParams(id: number): Promise<{
   };
 }
 
-export async function getHostname(id: number): Promise<string> {
+async function getHostname(project_specific_id: number): Promise<string> {
   // we might make this more customizable
-  return `compute-server-${id}`;
+  return `compute-server-${project_specific_id}`;
 }
 
 export async function getStartupScript({
@@ -690,7 +931,7 @@ export async function getStartupScript({
   return await startupScript({
     compute_server_id: id,
     api_key,
-    hostname: await getHostname(id),
+    hostname: await getHostname(params.project_specific_id),
     installUser,
     ...params,
   });
@@ -736,6 +977,20 @@ export async function setImageTested(opts: {
       await googleCloud.setImageTested(server, opts.tested);
       return;
     default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+      throw Error(
+        `cloud '${server.cloud}' not currently supported for setting image tested`,
+      );
+  }
+}
+
+export async function getSerialPortOutput({ account_id, id }): Promise<string> {
+  const server = await getServer({ account_id, id });
+  switch (server.cloud) {
+    case "google-cloud":
+      return await googleCloud.getSerialPortOutput(server);
+    default:
+      throw Error(
+        `serial port output not implemented on cloud '${server.cloud}'`,
+      );
   }
 }

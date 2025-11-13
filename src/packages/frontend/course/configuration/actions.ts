@@ -1,11 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Actions involving configuration of the course.
 */
+
+// cSpell:ignore collabs
 
 import { redux } from "@cocalc/frontend/app-framework";
 import {
@@ -17,10 +19,29 @@ import { store as projects_store } from "@cocalc/frontend/projects/store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { CourseActions, primary_key } from "../actions";
-import { DEFAULT_LICENSE_UPGRADE_HOST_PROJECT } from "../store";
+import {
+  DEFAULT_LICENSE_UPGRADE_HOST_PROJECT,
+  CourseSettingsRecord,
+  PARALLEL_DEFAULT,
+} from "../store";
 import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
-import { StudentProjectFunctionality } from "./customize-student-project-functionality";
+import {
+  StudentProjectFunctionality,
+  completeStudentProjectFunctionality,
+} from "./customize-student-project-functionality";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { delay } from "awaiting";
+import {
+  NBGRADER_CELL_TIMEOUT_MS,
+  NBGRADER_MAX_OUTPUT,
+  NBGRADER_MAX_OUTPUT_PER_CELL,
+  NBGRADER_TIMEOUT_MS,
+} from "../assignments/consts";
+
+interface ConfigurationTarget {
+  project_id: string;
+  path: string;
+}
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
@@ -34,34 +55,34 @@ export class ConfigurationActions {
     );
   }
 
-  public set(obj: SyncDBRecord, commit: boolean = true): void {
+  set = (obj: SyncDBRecord, commit: boolean = true): void => {
     this.course_actions.set(obj, commit);
-  }
+  };
 
-  public set_title(title: string): void {
+  set_title = (title: string): void => {
     this.set({ title, table: "settings" });
     this.course_actions.student_projects.set_all_student_project_titles(title);
     this.course_actions.shared_project.set_project_title();
-  }
+  };
 
-  public set_description(description: string): void {
+  set_description = (description: string): void => {
     this.set({ description, table: "settings" });
     this.course_actions.student_projects.set_all_student_project_descriptions(
       description,
     );
     this.course_actions.shared_project.set_project_description();
-  }
+  };
 
   // NOTE: site_license_id can be a single id, or multiple id's separate by a comma.
-  public add_site_license_id(license_id: string): void {
+  add_site_license_id = (license_id: string): void => {
     const store = this.course_actions.get_store();
     let site_license_id = store.getIn(["settings", "site_license_id"]) ?? "";
     if (site_license_id.indexOf(license_id) != -1) return; // already known
     site_license_id += (site_license_id.length > 0 ? "," : "") + license_id;
     this.set({ site_license_id, table: "settings" });
-  }
+  };
 
-  public remove_site_license_id(license_id: string): void {
+  remove_site_license_id = (license_id: string): void => {
     const store = this.course_actions.get_store();
     let cur = store.getIn(["settings", "site_license_id"]) ?? "";
     let removed = store.getIn(["settings", "site_license_removed"]) ?? "";
@@ -81,47 +102,47 @@ export class ConfigurationActions {
       site_license_removed: removed,
       table: "settings",
     });
-  }
+  };
 
-  public set_site_license_strategy(
+  set_site_license_strategy = (
     site_license_strategy: SiteLicenseStrategy,
-  ): void {
+  ): void => {
     this.set({ site_license_strategy, table: "settings" });
-  }
+  };
 
-  public set_pay_choice(type: "student" | "institute", value: boolean): void {
+  set_pay_choice = (type: "student" | "institute", value: boolean): void => {
     this.set({ [type + "_pay"]: value, table: "settings" });
     if (type == "student") {
       if (!value) {
         this.setStudentPay({ when: "" });
       }
     }
-  }
+  };
 
-  public set_upgrade_goal(upgrade_goal: UpgradeGoal): void {
+  set_upgrade_goal = (upgrade_goal: UpgradeGoal): void => {
     this.set({ upgrade_goal, table: "settings" });
-  }
+  };
 
-  public set_allow_collabs(allow_collabs: boolean): void {
+  set_allow_collabs = (allow_collabs: boolean): void => {
     this.set({ allow_collabs, table: "settings" });
     this.course_actions.student_projects.configure_all_projects();
-  }
+  };
 
-  public async set_student_project_functionality(
+  set_student_project_functionality = async (
     student_project_functionality: StudentProjectFunctionality,
-  ): Promise<void> {
+  ): Promise<void> => {
     this.set({ student_project_functionality, table: "settings" });
     await this.course_actions.student_projects.configure_all_projects();
-  }
+  };
 
-  public set_email_invite(body: string): void {
+  set_email_invite = (body: string): void => {
     this.set({ email_invite: body, table: "settings" });
-  }
+  };
 
   // Set the pay option for the course, and ensure that the course fields are
   // set on every student project in the course (see schema.coffee for format
   // of the course field) to reflect this change in the database.
-  async setStudentPay({
+  setStudentPay = async ({
     when,
     info,
     cost,
@@ -129,7 +150,7 @@ export class ConfigurationActions {
     when?: Date | string; // date when they need to pay
     info?: PurchaseInfo; // what they must buy for the course
     cost?: number;
-  }) {
+  }) => {
     const value = {
       ...(info != null ? { payInfo: info } : undefined),
       ...(when != null
@@ -146,9 +167,9 @@ export class ConfigurationActions {
       table: "settings",
       ...value,
     });
-  }
+  };
 
-  public async configure_host_project(): Promise<void> {
+  configure_host_project = async (): Promise<void> => {
     const id = this.course_actions.set_activity({
       desc: "Configuring host project.",
     });
@@ -177,9 +198,9 @@ export class ConfigurationActions {
     } finally {
       this.course_actions.set_activity({ id });
     }
-  }
+  };
 
-  public async configure_all_projects(force: boolean = false): Promise<void> {
+  configure_all_projects = async (force: boolean = false): Promise<void> => {
     if (this.configuring) {
       // Important -- if configure_all_projects is called *while* it is running,
       // wait until it is done, then call it again (though I'm being lazy about the
@@ -203,27 +224,27 @@ export class ConfigurationActions {
         this.configure_all_projects();
       }
     }
-  }
+  };
 
-  public async push_missing_handouts_and_assignments(): Promise<void> {
+  push_missing_handouts_and_assignments = async (): Promise<void> => {
     const store = this.course_actions.get_store();
     for (const student_id of store.get_student_ids({ deleted: false })) {
       await this.course_actions.students.push_missing_handouts_and_assignments(
         student_id,
       );
     }
-  }
+  };
 
-  public set_copy_parallel(copy_parallel: number): void {
+  set_copy_parallel = (copy_parallel: number = PARALLEL_DEFAULT): void => {
     this.set({
       copy_parallel,
       table: "settings",
     });
-  }
+  };
 
-  public async configure_nbgrader_grade_project(
+  configure_nbgrader_grade_project = async (
     project_id?: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     let store;
     try {
       store = this.course_actions.get_store();
@@ -254,22 +275,21 @@ export class ConfigurationActions {
         .get_course_info(project_id)
         ?.toJS();
       if (course_info?.type == null || course_info.type == "nbgrader") {
-        await projects_actions.set_project_course_info(
+        await projects_actions.set_project_course_info({
           project_id,
-          store.get("course_project_id"),
-          store.get("course_filename"),
-          "", // pay
-          null, // payInfo
-          null, // account_id
-          null, // email_address
+          course_project_id: store.get("course_project_id"),
+          path: store.get("course_filename"),
+          pay: "", // pay
+          payInfo: null,
+          account_id: null,
+          email_address: null,
           datastore,
-          "nbgrader", // type of project
-          undefined, // student_project_functionality
+          type: "nbgrader",
           envvars,
-        );
+        });
       }
 
-      // we also make sure all teachers have access to that project – otherwise NBGrader can't work, etc.
+      // we also make sure all teachers have access to that project – otherwise nbgrader can't work, etc.
       // this has to happen *after* setting the course field, extended access control, ...
       const ps = redux.getStore("projects");
       const teachers = ps.get_users(store.get("course_project_id"));
@@ -291,10 +311,12 @@ export class ConfigurationActions {
     } finally {
       this.course_actions.set_activity({ id });
     }
-  }
+  };
 
   // project_id is a uuid *or* empty string.
-  public async set_nbgrader_grade_project(project_id: string): Promise<void> {
+  set_nbgrader_grade_project = async (
+    project_id: string = "",
+  ): Promise<void> => {
     this.set({
       nbgrader_grade_project: project_id,
       table: "settings",
@@ -304,105 +326,118 @@ export class ConfigurationActions {
     if (project_id) {
       await this.configure_nbgrader_grade_project(project_id);
     }
-  }
+  };
 
-  public set_nbgrader_cell_timeout_ms(nbgrader_cell_timeout_ms: number): void {
+  set_nbgrader_cell_timeout_ms = (
+    nbgrader_cell_timeout_ms: number = NBGRADER_CELL_TIMEOUT_MS,
+  ): void => {
     this.set({
       nbgrader_cell_timeout_ms,
       table: "settings",
     });
-  }
+  };
 
-  public set_nbgrader_timeout_ms(nbgrader_timeout_ms: number): void {
+  set_nbgrader_timeout_ms = (
+    nbgrader_timeout_ms: number = NBGRADER_TIMEOUT_MS,
+  ): void => {
     this.set({
       nbgrader_timeout_ms,
       table: "settings",
     });
-  }
+  };
 
-  public set_nbgrader_max_output(nbgrader_max_output: number): void {
+  set_nbgrader_max_output = (
+    nbgrader_max_output: number = NBGRADER_MAX_OUTPUT,
+  ): void => {
     this.set({
       nbgrader_max_output,
       table: "settings",
     });
-  }
+  };
 
-  public set_nbgrader_max_output_per_cell(
-    nbgrader_max_output_per_cell: number,
-  ): void {
+  set_nbgrader_max_output_per_cell = (
+    nbgrader_max_output_per_cell: number = NBGRADER_MAX_OUTPUT_PER_CELL,
+  ): void => {
     this.set({
       nbgrader_max_output_per_cell,
       table: "settings",
     });
-  }
+  };
 
-  public set_nbgrader_include_hidden_tests(value: boolean): void {
+  set_nbgrader_include_hidden_tests = (value: boolean): void => {
     this.set({
       nbgrader_include_hidden_tests: value,
       table: "settings",
     });
-  }
+  };
 
-  public set_inherit_compute_image(image?: string): void {
+  set_inherit_compute_image = (image?: string): void => {
     this.set({ inherit_compute_image: image != null, table: "settings" });
     if (image != null) {
       this.set_compute_image(image);
     }
-  }
+  };
 
-  public set_compute_image(image: string) {
+  set_compute_image = (image: string) => {
     this.set({
       custom_image: image,
       table: "settings",
     });
     this.course_actions.student_projects.configure_all_projects();
     this.course_actions.shared_project.set_project_compute_image();
-  }
+  };
 
-  public async set_software_environment(
+  set_software_environment = async (
     state: SoftwareEnvironmentState,
-  ): Promise<void> {
+  ): Promise<void> => {
     const image = await derive_project_img_name(state);
     this.set_compute_image(image);
-  }
+  };
 
-  public set_nbgrader_parallel(nbgrader_parallel: number): void {
+  set_nbgrader_parallel = (
+    nbgrader_parallel: number = PARALLEL_DEFAULT,
+  ): void => {
     this.set({
       nbgrader_parallel,
       table: "settings",
     });
-  }
+  };
 
-  public set_datastore(datastore: Datastore): void {
+  set_datastore = (datastore: Datastore): void => {
     this.set({ datastore, table: "settings" });
-    this.configure_all_projects_shared_and_nbgrader();
-  }
+    setTimeout(() => {
+      this.configure_all_projects_shared_and_nbgrader();
+    }, 1);
+  };
 
-  public set_envvars(inherit: boolean): void {
+  set_envvars = (inherit: boolean): void => {
     this.set({ envvars: { inherit }, table: "settings" });
-    this.configure_all_projects_shared_and_nbgrader();
-  }
+    setTimeout(() => {
+      this.configure_all_projects_shared_and_nbgrader();
+    }, 1);
+  };
 
-  public set_license_upgrade_host_project(upgrade: boolean): void {
+  set_license_upgrade_host_project = (upgrade: boolean): void => {
     this.set({ license_upgrade_host_project: upgrade, table: "settings" });
-    this.configure_host_project();
-  }
+    setTimeout(() => {
+      this.configure_host_project();
+    }, 1);
+  };
 
-  private configure_all_projects_shared_and_nbgrader() {
+  private configure_all_projects_shared_and_nbgrader = () => {
     this.course_actions.student_projects.configure_all_projects();
     this.course_actions.shared_project.set_datastore_and_envvars();
     // in case there is a separate nbgrader project, we have to set the envvars as well
     this.configure_nbgrader_grade_project();
-  }
+  };
 
-  public purgeDeleted(): void {
+  purgeDeleted = (): void => {
     const { syncdb } = this.course_actions;
     for (const record of syncdb.get()) {
       if (record?.get("deleted")) {
         for (const table in primary_key) {
           const key = primary_key[table];
           if (record.get(key)) {
-            console.log("deleting ", record.toJS());
             syncdb.delete({ [key]: record.get(key) });
             break;
           }
@@ -410,5 +445,147 @@ export class ConfigurationActions {
       }
     }
     syncdb.commit();
+  };
+
+  copyConfiguration = async ({
+    groups,
+    targets,
+  }: {
+    groups: ConfigurationGroup[];
+    targets: ConfigurationTarget[];
+  }) => {
+    const store = this.course_actions.get_store();
+    if (groups.length == 0 || targets.length == 0 || store == null) {
+      return;
+    }
+    const settings = store.get("settings");
+    for (const target of targets) {
+      const targetActions = await openCourseFileAndGetActions({
+        ...target,
+        maxTimeMs: 30000,
+      });
+      for (const group of groups) {
+        await configureGroup({
+          group,
+          settings,
+          actions: targetActions.course_actions,
+        });
+      }
+    }
+    // switch back
+    const { project_id, path } = this.course_actions.syncdb;
+    redux.getProjectActions(project_id).open_file({ path, foreground: true });
+  };
+}
+
+async function openCourseFileAndGetActions({ project_id, path, maxTimeMs }) {
+  await redux
+    .getProjectActions(project_id)
+    .open_file({ path, foreground: true });
+  const t = Date.now();
+  let d = 250;
+  while (Date.now() + d - t <= maxTimeMs) {
+    await delay(d);
+    const targetActions = redux.getEditorActions(project_id, path);
+    if (targetActions?.course_actions?.syncdb.get_state() == "ready") {
+      return targetActions;
+    }
+    d *= 1.1;
+  }
+  throw Error(`unable to open '${path}'`);
+}
+
+export const CONFIGURATION_GROUPS = [
+  "collaborator-policy",
+  "email-invitation",
+  "copy-limit",
+  "restrict-student-projects",
+  "nbgrader",
+  "upgrades",
+  //   "network-file-systems",
+  //   "env-variables",
+  //   "software-environment",
+] as const;
+
+export type ConfigurationGroup = (typeof CONFIGURATION_GROUPS)[number];
+
+async function configureGroup({
+  group,
+  settings,
+  actions,
+}: {
+  group: ConfigurationGroup;
+  settings: CourseSettingsRecord;
+  actions: CourseActions;
+}) {
+  switch (group) {
+    case "collaborator-policy":
+      const allow_collabs = !!settings.get("allow_collabs");
+      actions.configuration.set_allow_collabs(allow_collabs);
+      return;
+    case "email-invitation":
+      actions.configuration.set_email_invite(settings.get("email_invite"));
+      return;
+    case "copy-limit":
+      actions.configuration.set_copy_parallel(settings.get("copy_parallel"));
+      return;
+    case "restrict-student-projects":
+      actions.configuration.set_student_project_functionality(
+        completeStudentProjectFunctionality(
+          settings.get("student_project_functionality")?.toJS() ?? {},
+        ),
+      );
+      return;
+    case "nbgrader":
+      await actions.configuration.set_nbgrader_grade_project(
+        settings.get("nbgrader_grade_project"),
+      );
+      await actions.configuration.set_nbgrader_cell_timeout_ms(
+        settings.get("nbgrader_cell_timeout_ms"),
+      );
+      await actions.configuration.set_nbgrader_timeout_ms(
+        settings.get("nbgrader_timeout_ms"),
+      );
+      await actions.configuration.set_nbgrader_max_output(
+        settings.get("nbgrader_max_output"),
+      );
+      await actions.configuration.set_nbgrader_max_output_per_cell(
+        settings.get("nbgrader_max_output_per_cell"),
+      );
+      await actions.configuration.set_nbgrader_include_hidden_tests(
+        !!settings.get("nbgrader_include_hidden_tests"),
+      );
+      return;
+
+    case "upgrades":
+      if (settings.get("student_pay")) {
+        actions.configuration.set_pay_choice("student", true);
+        await actions.configuration.setStudentPay({
+          when: settings.get("pay"),
+          info: settings.get("payInfo")?.toJS(),
+          cost: settings.get("payCost"),
+        });
+        await actions.configuration.configure_all_projects();
+      } else {
+        actions.configuration.set_pay_choice("student", false);
+      }
+      if (settings.get("institute_pay")) {
+        actions.configuration.set_pay_choice("institute", true);
+        const strategy = settings.get("set_site_license_strategy");
+        if (strategy != null) {
+          actions.configuration.set_site_license_strategy(strategy);
+        }
+        const site_license_id = settings.get("site_license_id");
+        actions.configuration.set({ site_license_id, table: "settings" });
+      } else {
+        actions.configuration.set_pay_choice("institute", false);
+      }
+      return;
+
+    //     case "network-file-systems":
+    //     case "env-variables":
+    //     case "software-environment":
+    default:
+      throw Error(`configuring group ${group} not implemented`);
   }
 }

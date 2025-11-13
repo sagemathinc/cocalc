@@ -1,10 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { React, useEffect, useRedux } from "../../app-framework";
-import { TableOfContents as TOC, TableOfContentsEntryList } from "../../components";
+import { React, useEffect, useRedux } from "@cocalc/frontend/app-framework";
+import {
+  TableOfContents as TOC,
+  TableOfContentsEntryList,
+} from "@cocalc/frontend/components";
 import { Actions } from "./actions";
 
 interface Props {
@@ -15,7 +18,7 @@ interface Props {
 export const TableOfContents: React.FC<Props> = React.memo(
   ({ font_size, actions }) => {
     useEffect(() => {
-      // I'm not completely certain why, but we have to do this update
+      // We have to do this update
       // in the NEXT render loop so that the contents useRedux thing below
       // immediately fires again causing a re-render.  If we don't do this,
       // the first change doesn't get caught and it seems like the contents
@@ -30,9 +33,9 @@ export const TableOfContents: React.FC<Props> = React.memo(
     return (
       <TOC
         contents={contents}
-        style={{ fontSize: `${font_size - 6}px` }}
+        fontSize={font_size}
         scrollTo={actions.scrollToHeading.bind(actions)}
       />
     );
-  }
+  },
 );

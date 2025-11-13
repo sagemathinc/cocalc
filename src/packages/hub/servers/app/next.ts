@@ -6,17 +6,19 @@
 - ... and more?!
 */
 
+import { Application, NextFunction, Request, Response } from "express";
 import { join } from "path";
-import { Application, Request, Response, NextFunction } from "express";
+
 // @ts-ignore -- TODO: typescript doesn't like @cocalc/next/init (it is a js file).
 import initNextServer from "@cocalc/next/init";
-import handleRaw from "@cocalc/next/lib/share/handle-raw";
-import { getLogger } from "@cocalc/hub/logger";
-import shareRedirect from "./share-redirect";
-import createLandingRedirect from "./landing-redirect";
 import basePath from "@cocalc/backend/base-path";
-import { database } from "../database";
+import { getLogger } from "@cocalc/hub/logger";
+import handleRaw from "@cocalc/next/lib/share/handle-raw";
 import { callback2 } from "@cocalc/util/async-utils";
+import { database } from "../database";
+import createLandingRedirect from "./landing-redirect";
+import shareRedirect from "./share-redirect";
+import { separate_file_extension } from "@cocalc/util/misc";
 
 export default async function init(app: Application) {
   const winston = getLogger("nextjs");
@@ -48,23 +50,27 @@ export default async function init(app: Application) {
     // etc. servers is definitely too much, so we just disable this.
     // For serving actual raw content, the solution will be to use
     // a vhost.
+
     // 1: The raw static server:
     const raw = join(shareBasePath, "raw");
     app.all(
       join(raw, "*"),
       (req: Request, res: Response, next: NextFunction) => {
+        // Embedding only enabled for PDF files -- see note above
+        const download =
+          separate_file_extension(req.path).ext.toLowerCase() !== "pdf";
         try {
           handleRaw({
             ...parseURL(req, raw),
             req,
             res,
             next,
-            download: true /* do not change this by default -- see above. */,
+            download,
           });
         } catch (_err) {
           res.status(404).end();
         }
-      }
+      },
     );
 
     // 2: The download server -- just like raw, but files always get sent via download.
@@ -83,7 +89,7 @@ export default async function init(app: Application) {
         } catch (_err) {
           res.status(404).end();
         }
-      }
+      },
     );
 
     // 3: Redirects for backward compat; unfortunately there's slight
@@ -99,8 +105,10 @@ export default async function init(app: Application) {
 
   // The next.js server that serves everything else.
   winston.info(
-    "Now using next.js packages/share handler to handle all endpoints not otherwise handled"
+    "Now using next.js packages/share handler to handle all endpoints not otherwise handled",
   );
+
+  // nextjs listens on everything else
   app.all("*", handler);
 }
 

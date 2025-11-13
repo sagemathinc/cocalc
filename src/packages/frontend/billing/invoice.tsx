@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { useState } from "../app-framework";
@@ -27,7 +27,7 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
     return;
   }
 
-  function render_paid_status(): JSX.Element {
+  function render_paid_status(): React.JSX.Element {
     // The status of the invoice: one of draft, open, paid, uncollectible, or void
     const status = capitalize(invoice.get("status") ?? "");
     if (invoice.get("hosted_invoice_url")) {
@@ -44,7 +44,7 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
     }
   }
 
-  function render_description(): JSX.Element {
+  function render_description(): React.JSX.Element {
     const cnt = invoice.getIn(["lines", "total_count"]) ?? 0;
     if (hide_line_items && cnt > 0) {
       // This is much more useful as a summary than the totally generic description we usually have...
@@ -78,7 +78,7 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
     return v;
   }
 
-  function render_line_item(line: InvoiceLineMap, n): JSX.Element {
+  function render_line_item(line: InvoiceLineMap, n): React.JSX.Element {
     return (
       <Row key={line.get("id")} style={{ borderBottom: "1px solid #aaa" }}>
         <Col sm={1}>{n}.</Col>
@@ -90,7 +90,7 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
     );
   }
 
-  function render_tax(): JSX.Element {
+  function render_tax(): React.JSX.Element {
     return (
       <Row key="tax" style={{ borderBottom: "1px solid #aaa" }}>
         <Col sm={1} />
@@ -102,7 +102,7 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
     );
   }
 
-  function render_line_items(): undefined | JSX.Element | JSX.Element[] {
+  function render_line_items(): undefined | React.JSX.Element | React.JSX.Element[] {
     if (invoice.get("lines") == null) return;
     if (hide_line_items) {
       return (
@@ -117,7 +117,7 @@ export const Invoice: React.FC<Props> = ({ invoice }) => {
         </a>
       );
     } else {
-      const v: JSX.Element[] = [];
+      const v: React.JSX.Element[] = [];
       v.push(
         <a
           key="hide"

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -18,7 +18,7 @@ import {
   Process,
   Processes,
   ProjectInfo,
-} from "@cocalc/comm/project-info/types";
+} from "@cocalc/util/types/project-info/types";
 import { DEFAULT_FREE_PROCS_NICENESS, is_free_project } from "./project-setup";
 
 const L = getLogger("autorenice").debug;

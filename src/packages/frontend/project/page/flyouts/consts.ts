@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { CSS } from "@cocalc/frontend/app-framework";
@@ -33,3 +33,6 @@ export const PANEL_STYLE_TOP: CSS = {
 
 const PANEL_KEYS = ["selected", "terminal"];
 export type PanelKey = (typeof PANEL_KEYS)[number];
+
+// make sure two types of borders are of the same width
+export const BORDER_WIDTH_PX = "4px";

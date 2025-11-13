@@ -1,11 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Col, Row, Space } from "antd";
-import { ReactNode } from "react";
-
+import { ReactNode, type JSX } from "react";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
@@ -15,6 +14,7 @@ import { MAX_WIDTH_LANDING } from "lib/config";
 import useCustomize from "lib/use-customize";
 import Image from "./image";
 import SignIn from "./sign-in";
+import LiveDemo from "components/landing/live-demo";
 
 // See https://github.com/vercel/next.js/issues/29788 for why we have to define this for now (it's to work around a bug).
 interface StaticImageData {
@@ -172,18 +172,9 @@ export default function Content(props: Props) {
 
   function renderLogo() {
     if (typeof body === "string" || (body as StaticImageData)?.src != null) {
-      return (
-        <Logo
-          logo={body}
-          title={title}
-        />
-      );
+      return <Logo logo={body} title={title} />;
     } else {
-      return (
-        <>
-          {body}
-        </>
-      );
+      return <>{body}</>;
     }
   }
 
@@ -197,7 +188,8 @@ export default function Content(props: Props) {
       <Row
         gutter={[20, 30]}
         style={{
-          paddingTop: "12px",
+          paddingTop: "50px",
+          paddingBottom: "50px",
           maxWidth: MAX_WIDTH_LANDING,
           marginTop: "0",
           marginBottom: "0",
@@ -222,14 +214,18 @@ export default function Content(props: Props) {
             {renderTitle()}
             {subtitle && renderSubtitleTop()}
             {description && (
-              <Title
-                level={4}
-                style={{ color: COLORS.GRAY }}
-              >
+              <Title level={4} style={{ color: COLORS.GRAY }}>
                 {description}
               </Title>
             )}
-            <SignIn startup={startup ?? title} hideFree={true} />
+            <div style={{ marginTop: "15px" }}>
+              <LiveDemo
+                context={
+                  typeof title == "string" ? title : alt ?? "Feature Page"
+                }
+              />
+            </div>
+            <SignIn startup={startup ?? title} hideFree={true} emphasize />
           </Space>
         </Col>
         <Col sm={14} xs={24}>

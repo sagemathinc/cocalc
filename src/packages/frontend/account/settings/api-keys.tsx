@@ -1,22 +1,34 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+import { FormattedMessage, useIntl } from "react-intl";
 
 import ApiKeysTables from "@cocalc/frontend/components/api-keys";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { SettingBox } from "@cocalc/frontend/components";
+import { Paragraph, SettingBox } from "@cocalc/frontend/components";
 
 const manage = (opts) => webapp_client.account_client.api_keys(opts);
 
 export default function ApiKeys() {
+  const intl = useIntl();
+
+  const title = intl.formatMessage({
+    id: "account.settings.api-keys.title",
+    defaultMessage: "API Keys",
+  });
+
   return (
-    <SettingBox title="API Keys" icon={"api"}>
+    <SettingBox title={title} icon={"api"}>
       <ApiKeysTables manage={manage} />
-      <p>
-        You can also make project specific api keys in any project's settings.
-        If you only need to use the API to access one project, these are safer.
-      </p>
+      <Paragraph>
+        <FormattedMessage
+          id="account.settings.api-keys.explanation"
+          defaultMessage={`You can also make project specific api keys in any project's settings.
+          If you only need to use the API to access one project, these are safer.`}
+        />
+      </Paragraph>
     </SettingBox>
   );
 }

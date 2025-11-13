@@ -1,12 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // they are used in commands-guide.tsx, that's all
 
-import { CSS, React, useMemo, useState } from "../../app-framework";
-import { Button, Row, Col, Select, Typography, Popconfirm } from "antd";
+import { Button, Col, Popconfirm, Row, Select, Typography } from "antd";
+
+import { CSS, React, useMemo, useState } from "@cocalc/frontend/app-framework";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import { TerminalActions } from "./actions";
 import { TerminalActionsContext } from "./commands-guide";
 
@@ -56,14 +58,14 @@ export const SelectFile: React.FC<SelectFileProps> = React.memo(
         ))}
       </Select>
     );
-  }
+  },
 );
 
 // ------------------------
 
 interface RowLayoutProps {
-  left: JSX.Element | string;
-  right: JSX.Element | string;
+  left: React.JSX.Element | string;
+  right: React.JSX.Element | string;
 }
 
 const RowLayout: React.FC<RowLayoutProps> = React.memo(
@@ -74,7 +76,7 @@ const RowLayout: React.FC<RowLayoutProps> = React.memo(
         <Col flex={"auto"}>{props.right}</Col>
       </Row>
     );
-  }
+  },
 );
 
 interface CommandProps {
@@ -100,7 +102,7 @@ const CMD_BTN_STYLE: CSS = {
 // either append non-nullish args or insert them everywhere where $1, $2, etc. is
 function calc_cmd_args(
   cmd0?: string,
-  args: (string | undefined)[] = []
+  args: (string | undefined)[] = [],
 ): { cmdargs: string; all_args: boolean } {
   let expected_args = args.length;
   let cmd = cmd0 ?? "";
@@ -134,11 +136,11 @@ export const Command: React.FC<CommandProps> = React.memo(
         special != null
           ? { cmdargs: "", all_args: false }
           : calc_cmd_args(cmd, args),
-      [cmd, fileargs, dirargs]
+      [cmd, fileargs, dirargs],
     );
 
     const actions: TerminalActions | undefined = React.useContext(
-      TerminalActionsContext
+      TerminalActionsContext,
     );
 
     function run_command() {
@@ -166,7 +168,7 @@ export const Command: React.FC<CommandProps> = React.memo(
             title={<div style={{ maxWidth: "300px" }}>{msg}</div>}
             onConfirm={run_command}
             okText="Insert"
-            cancelText="Cancel"
+            cancelText={<CancelText />}
           >
             {render_cmd_btn()}
           </Popconfirm>
@@ -182,5 +184,5 @@ export const Command: React.FC<CommandProps> = React.memo(
         right={<Typography.Text type="secondary">{descr}</Typography.Text>}
       />
     );
-  }
+  },
 );

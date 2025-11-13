@@ -8,14 +8,17 @@ an error if you don't own the server.
 import LRU from "lru-cache";
 import { getTitle as getTitleViaApi } from "./api";
 
-const cache = new LRU<number, { title: string; color: string }>({
+const cache = new LRU<
+  number,
+  { title: string; color: string; project_specific_id: number }
+>({
   max: 1000,
   ttl: 1000 * 30,
 });
 
 export default async function getTitle(
   compute_server_id: number,
-): Promise<{ title: string; color: string }> {
+): Promise<{ title: string; color: string; project_specific_id: number }> {
   if (cache.has(compute_server_id)) {
     return cache.get(compute_server_id)!;
   }

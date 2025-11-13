@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -9,7 +9,8 @@ Component that shows all the scores for all problems and notebooks in a given as
 
 import { Alert, Card } from "antd";
 import { Icon } from "@cocalc/frontend/components";
-import { Rendered, useState, useActions } from "@cocalc/frontend/app-framework";
+import { useActions } from "@cocalc/frontend/app-framework";
+import { useState } from "react";
 import {
   NotebookScores,
   Score,
@@ -33,24 +34,22 @@ interface State {
   id?: string;
 }
 
-export const NbgraderScores: React.FC<Props> = (props: Props) => {
-  const {
-    nbgrader_scores,
-    nbgrader_score_ids,
-    assignment_id,
-    student_id,
-    name,
-    show_all,
-    set_show_all,
-  } = props;
-
+export function NbgraderScores({
+  nbgrader_scores,
+  nbgrader_score_ids,
+  assignment_id,
+  student_id,
+  name,
+  show_all,
+  set_show_all,
+}: Props) {
   const actions = useActions<CourseActions>({ name });
 
   const [editingScore, setEditingScore] = useState<State>({});
 
-  function render_show_all(): Rendered {
+  function render_show_all() {
     if (!show_all) return;
-    const v: Rendered[] = [];
+    const v: React.JSX.Element[] = [];
     for (const filename in nbgrader_scores) {
       v.push(render_info_for_file(filename, nbgrader_scores[filename]));
     }
@@ -59,8 +58,8 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
 
   function render_info_for_file(
     filename: string,
-    scores: NotebookScores | string
-  ): Rendered {
+    scores: NotebookScores | string,
+  ) {
     return (
       <div key={filename} style={{ marginBottom: "5px" }}>
         {render_filename_links(filename)}
@@ -73,11 +72,11 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
     actions.assignments.open_file_in_collected_assignment(
       assignment_id,
       student_id,
-      filename
+      filename,
     );
   }
 
-  function render_filename_links(filename: string): Rendered {
+  function render_filename_links(filename: string) {
     const filename2 = autograded_filename(filename);
     return (
       <div style={{ fontSize: "12px" }}>
@@ -100,8 +99,8 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
 
   function render_scores_for_file(
     filename: string,
-    scores: NotebookScores | string
-  ): Rendered {
+    scores: NotebookScores | string,
+  ) {
     if (typeof scores == "string") {
       return (
         <Alert
@@ -110,7 +109,7 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
         />
       );
     }
-    const v: Rendered[] = [];
+    const v: React.JSX.Element[] = [];
 
     const ids: string[] = nbgrader_score_ids?.[filename] ?? [];
     for (const id in scores) {
@@ -157,15 +156,11 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
       filename,
       id,
       score,
-      true
+      true,
     );
   }
 
-  function render_assigned_score(
-    filename: string,
-    id: string,
-    score: Score
-  ): Rendered {
+  function render_assigned_score(filename: string, id: string, score: Score) {
     if (!score.manual) {
       return <>{score.score ?? "?"}</>;
     }
@@ -209,7 +204,7 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
     });
   }
 
-  function render_score(filename: string, id: string, score: Score): Rendered {
+  function render_score(filename: string, id: string, score: Score) {
     const backgroundColor = score.score == null ? "#fff1f0" : undefined;
     const style = { padding: "5px", backgroundColor };
     return (
@@ -223,7 +218,7 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_needs_score(score: Score): Rendered {
+  function render_needs_score(score: Score) {
     if (!score.manual || score.score != null) return;
     return (
       <div>
@@ -232,7 +227,7 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_more_toggle(action_required: boolean): Rendered {
+  function render_more_toggle(action_required: boolean) {
     return (
       <a onClick={() => set_show_all?.()}>
         {action_required ? (
@@ -245,7 +240,7 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_title(score, points, error): Rendered {
+  function render_title(score, points, error) {
     return (
       <span>
         <b>nbgrader:</b> {error ? "error" : `${score}/${points}`}
@@ -266,9 +261,9 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
       style={{ marginTop: "5px", backgroundColor }}
       extra={render_more_toggle(action_required)}
       title={render_title(score, points, error)}
-      bodyStyle={show_all ? {} : { padding: 0 }}
+      styles={{ body: show_all ? {} : { padding: 0 } }}
     >
       {render_show_all()}
     </Card>
   );
-};
+}

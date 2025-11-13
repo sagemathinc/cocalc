@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { project_api } from "../../frame-editors/generic/client";
@@ -10,16 +10,16 @@ import type {
   NBGraderAPIOptions,
   NBGraderAPIResponse,
   RunNotebookOptions,
-} from "@cocalc/jupyter/nbgrader/types";
+} from "@cocalc/util/jupyter/nbgrader-types";
 export type { NBGraderAPIOptions, RunNotebookOptions };
 
 export async function nbgrader(
-  opts: NBGraderAPIOptions
+  opts: NBGraderAPIOptions,
 ): Promise<NBGraderAPIResponse> {
   // console.log("nbgrader", opts);
   const { autograde_ipynb, ids } = create_autograde_ipynb(
     opts.instructor_ipynb,
-    opts.student_ipynb
+    opts.student_ipynb,
   );
   const limits = {
     max_time_per_cell_ms: opts.cell_timeout_ms,
@@ -41,7 +41,7 @@ export async function nbgrader(
 
 export async function jupyter_strip_notebook(
   project_id: string,
-  path: string
+  path: string,
 ): Promise<string> {
   await redux.getActions("projects").start_project(project_id);
   const api = await project_api(project_id);
@@ -50,7 +50,7 @@ export async function jupyter_strip_notebook(
 
 export async function jupyter_run_notebook(
   project_id: string,
-  opts: RunNotebookOptions
+  opts: RunNotebookOptions,
 ): Promise<string> {
   // const log = (m) => console.log("jupyter_run_notebook", project_id, m);
   // log("start_project");

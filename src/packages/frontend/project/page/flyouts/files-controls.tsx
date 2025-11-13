@@ -1,10 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button, Descriptions, Space, Tooltip } from "antd";
 import immutable from "immutable";
+import { useIntl } from "react-intl";
 
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
@@ -20,9 +21,9 @@ import {
 } from "@cocalc/frontend/project/explorer/types";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import { human_readable_size, path_split, plural } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { PANEL_STYLE_BOTTOM, PANEL_STYLE_TOP } from "./consts";
 import { useSingleFile } from "./utils";
-import { COLORS } from "@cocalc/util/theme";
 
 interface FilesSelectedControlsProps {
   checked_files: immutable.Set<string>;
@@ -49,6 +50,7 @@ export function FilesSelectedControls({
   showFileSharingDialog,
   activeFile,
 }: FilesSelectedControlsProps) {
+  const intl = useIntl();
   const current_path = useTypedRedux({ project_id }, "current_path");
   const actions = useActions({ project_id });
 
@@ -205,9 +207,10 @@ export function FilesSelectedControls({
               (current_path?.startsWith(".snapshots") ?? false);
 
             const { name: actionName, icon, hideFlyout } = FILE_ACTIONS[name];
+            const title = intl.formatMessage(actionName);
             if (hideFlyout) return;
             return (
-              <Tooltip key={name} title={`${actionName}...`}>
+              <Tooltip key={name} title={`${title}...`}>
                 <Button
                   size="small"
                   key={name}
@@ -215,10 +218,7 @@ export function FilesSelectedControls({
                   onClick={() => {
                     // TODO re-using the existing controls is a stopgap. make this part of the flyouts.
                     actions?.set_active_tab("files");
-                    actions?.set_file_action(
-                      name,
-                      () => path_split(checked_files.first()).tail,
-                    );
+                    actions?.set_file_action(name);
                   }}
                 >
                   <Icon name={icon} />

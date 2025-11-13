@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { LicenseIdleTimeouts } from "../consts/site-license";
@@ -17,17 +17,21 @@ export type DiskCostProps = {
   type: "disk";
   dedicated_disk: DedicatedDisk;
   period: Period;
-}
+};
 
 export type VMCostProps = {
   type: "vm";
   period: "range";
   range: DateRange;
   dedicated_vm: DedicatedVM;
-}
+};
+
+// the store's source page from where a site-license has been created
+export type LicenseSource = "site-license" | "course";
 
 export type QuotaCostProps = {
   type: "quota";
+  source?: LicenseSource;
   user: User;
   run_limit: number;
   period: Period;
@@ -39,18 +43,26 @@ export type QuotaCostProps = {
   member: boolean;
   uptime: keyof typeof LicenseIdleTimeouts | "always_running";
   boost?: boolean;
-}
+};
 
 export type CashVoucherCostProps = {
   type: "cash-voucher";
   amount: number;
-}
+  numVouchers: number;
+  whenPay: "now" | "admin";
+  length: number;
+  title: string;
+  prefix: string;
+  postfix: string;
+  charset: string;
+  expire: Date;
+};
 
 export type ComputeCostProps =
   | CashVoucherCostProps
   | DiskCostProps
   | QuotaCostProps
-  | VMCostProps
+  | VMCostProps;
 
 export type ComputeCostPropsTypes = ComputeCostProps["type"];
 
@@ -59,7 +71,8 @@ export interface CustomDescription {
   description?: string; // user can change this
 }
 
-export interface QuotaCostPropsDB extends Omit<QuotaCostProps, 'range'|'always_running'> {
+export interface QuotaCostPropsDB
+  extends Omit<QuotaCostProps, "range" | "always_running"> {
   range?: readonly [string, string]; // should be converted to [Date, Date]
   always_running?: boolean;
 }
@@ -70,4 +83,3 @@ export type SiteLicenseDescriptionDB =
   | (QuotaCostPropsDB & CustomDescription)
   | (VMCostProps & CustomDescription)
   | (DiskCostProps & CustomDescription);
-

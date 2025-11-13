@@ -1,5 +1,5 @@
 // This file allows you to run a jupyter kernel via `launch_jupyter_kernel`.
-// You have to provide the kernel name and (optionally) launch options for execa [1].
+// You have to provide the kernel name and (optionally) launch options.
 //
 // Example:
 // import launchJupyterKernel from "./launch-jupyter-kernel";
@@ -8,9 +8,6 @@
 // * shell channel: `${kernel.config.ip}:${kernel.config.shell_port}`
 // * `kernel.spawn` holds the process and you have to close it when finished.
 // * Unless  `cleanupConnectionFile` is false, the connection file will be deleted when finished.
-//
-// Ref:
-// [1] execa: https://github.com/sindresorhus/execa#readme
 //
 // History:
 // This is a port of https://github.com/nteract/spawnteract/ to TypeScript (with minor changes).
@@ -23,23 +20,17 @@ import * as fs from "fs";
 import * as uuid from "uuid";
 import { mkdir } from "fs/promises";
 import { spawn } from "node:child_process";
-
 import { findAll } from "kernelspecs";
 import * as jupyter_paths from "jupyter-paths";
-
-import getPorts from "./get-ports";
+import bash from "@cocalc/backend/bash";
 import { writeFile } from "jsonfile";
 import mkdirp from "mkdirp";
 import shellEscape from "shell-escape";
 import { envForSpawn } from "@cocalc/backend/misc";
 import { getLogger } from "@cocalc/backend/logger";
+import { getPorts } from "@cocalc/backend/get-port";
 
 const logger = getLogger("launch-kernel");
-
-// This is temporary hack to import the latest execa, which is only
-// available as an ES Module now.  We will of course eventually switch
-// to using esm modules instead of commonjs, but that's a big project.
-import { dynamicImport } from "tsimportlib";
 
 // this is passed to "execa", there are more options
 // https://github.com/sindresorhus/execa#options
@@ -65,7 +56,7 @@ export interface LaunchJupyterOpts {
 }
 
 export interface SpawnedKernel {
-  spawn; // output of execa
+  spawn; // output of node:child_process spawn
   connectionFile: string;
   config: ConnectionInfo;
   kernel_spec;
@@ -100,15 +91,10 @@ function connectionInfo(ports): ConnectionInfo {
   };
 }
 
-const DEFAULT_PORT_OPTS = { port: 9000, host: "127.0.0.1" } as const;
-
 // gather the connection information for a kernel, write it to a json file, and return it
-async function writeConnectionFile(port_options?: {
-  port?: number;
-  host?: string;
-}) {
-  const options = { ...DEFAULT_PORT_OPTS, ...port_options };
-  const ports = await getPorts(5, options);
+async function writeConnectionFile() {
+  const ports = await getPorts(5);
+  // console.log("ports = ", ports);
 
   // Make sure the kernel runtime dir exists before trying to write the kernel file.
   const runtimeDir = jupyter_paths.runtimeDir();
@@ -161,11 +147,6 @@ async function launchKernelSpec(
     ...spawn_options.env,
   };
 
-  const { execaCommand } = (await dynamicImport(
-    "execa",
-    module,
-  )) as typeof import("execa");
-
   let running_kernel;
 
   if (full_spawn_options.cwd != null) {
@@ -180,22 +161,14 @@ async function launchKernelSpec(
     const escapedCmd = shellEscape(argv);
 
     // Prepend the ulimit command
-    const bashCmd = `${ulimitCmd} && ${escapedCmd}`;
+    const bashCmd = `${ulimitCmd}\n\n${escapedCmd}`;
 
     // Execute the command with ulimit
-    running_kernel = execaCommand(bashCmd, {
-      ...full_spawn_options,
-      shell: true,
-    });
+    running_kernel = await bash(bashCmd, full_spawn_options);
   } else {
-    // CRITICAL: I am *NOT* using execa, but instead spawn, because
-    // I hit bugs in execa.  Namely, when argv[0] is a path that doesn't exist,
-    // no matter what, there is an uncaught exception emitted later.  The exact
-    // same situation with execaCommand or node's spawn does NOT have an uncaught
-    // exception, so it's a bug.
-    //running_kernel = execa(argv[0], argv.slice(1), full_spawn_options);  // NO!
     running_kernel = spawn(argv[0], argv.slice(1), full_spawn_options);
   }
+  spawned.push(running_kernel);
 
   running_kernel.on("error", (code, signal) => {
     logger.debug("launchKernelSpec: ERROR -- ", { argv, code, signal });
@@ -245,3 +218,25 @@ async function ensureDirectoryExists(path: string) {
     }
   }
 }
+
+// Clean up after any children created here
+const spawned: any[] = [];
+export function closeAll() {
+  for (const child of spawned) {
+    if (child.pid) {
+      process.kill(-child.pid, "SIGKILL");
+      child.kill("SIGKILL");
+    }
+  }
+  spawned.length = 0;
+}
+
+process.once("exit", () => {
+  closeAll();
+});
+
+["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => {
+  process.once(sig, () => {
+    closeAll();
+  });
+});

@@ -1,21 +1,47 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Alert, Flex } from "antd";
 import React from "react";
-import { TERM_MODE_CHAR } from "./file-listing";
-import { Icon, SearchInput } from "../../components";
+import { useIntl } from "react-intl";
+import { CSS, redux } from "@cocalc/frontend/app-framework";
+import { Icon, SearchInput } from "@cocalc/frontend/components";
 import { ProjectActions } from "@cocalc/frontend/project_store";
-import { ListingItem } from "./types";
-import { output_style_searchbox } from "./mini-terminal";
-import { webapp_client } from "../../webapp-client";
-import { Alert } from "react-bootstrap";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_to_file } from "@cocalc/util/misc";
-import { redux } from "@cocalc/frontend/app-framework";
+import { useProjectContext } from "../context";
+import { TERM_MODE_CHAR } from "./file-listing";
+import { ListingItem } from "./types";
+import { TerminalModeDisplay } from "@cocalc/frontend/project/explorer/file-listing/terminal-mode-display";
+
+const HelpStyle = {
+  wordWrap: "break-word",
+  top: "40px",
+  position: "absolute",
+  width: "100%",
+  height: "38",
+  boxShadow: "#999 6px 6px 6px",
+  zIndex: 100,
+  borderRadius: "15px",
+} as const;
+
+export const outputMinitermStyle: React.CSSProperties = {
+  background: "white",
+  position: "absolute",
+  zIndex: 10,
+  boxShadow: "-4px 4px 7px #aaa",
+  maxHeight: "450px",
+  overflow: "auto",
+  right: 0,
+  marginTop: "36px",
+  marginRight: "5px",
+  borderRadius: "5px",
+  width: "100%",
+} as const;
 
 interface Props {
-  project_id: string; // Added by miniterm functionality
   file_search: string;
   current_path?: string;
   actions: ProjectActions;
@@ -33,7 +59,6 @@ interface Props {
 // Search WARNING to find the line in this class.
 export const SearchBar = React.memo((props: Props) => {
   const {
-    project_id,
     file_search = "",
     current_path,
     actions,
@@ -46,6 +71,9 @@ export const SearchBar = React.memo((props: Props) => {
     disabled = false,
     ext_selection,
   } = props;
+
+  const intl = useIntl();
+  const { project_id } = useProjectContext();
 
   // edit → run → edit
   // TODO use "state" to show a progress spinner while a command is running
@@ -136,12 +164,11 @@ export const SearchBar = React.memo((props: Props) => {
     set_cmd({ input, id: _id.current });
   }
 
-  function render_help_info(): JSX.Element | undefined {
-    if (
-      file_search.length > 0 &&
-      num_files_displayed > 0 &&
-      file_search[0] !== TERM_MODE_CHAR
-    ) {
+  function render_help_info(): React.JSX.Element | undefined {
+    if (file_search[0] == TERM_MODE_CHAR) {
+      return <TerminalModeDisplay style={HelpStyle} />;
+    }
+    if (file_search.length > 0 && num_files_displayed > 0) {
       let text;
       const firstFolderPosition = file_search.indexOf("/");
       if (file_search === " /") {
@@ -152,32 +179,31 @@ export const SearchBar = React.memo((props: Props) => {
           file_search.length - 1,
         )}`;
       } else {
-        text = `Showing files matching ${file_search}`;
+        text = `Showing files matching "${file_search}"`;
       }
-      return (
-        <Alert style={{ wordWrap: "break-word" }} bsStyle="info">
-          {text}
-        </Alert>
-      );
+      return <Alert style={HelpStyle} type="info" message={text} />;
     }
   }
 
-  function render_file_creation_error(): JSX.Element | undefined {
+  function render_file_creation_error(): React.JSX.Element | undefined {
     if (file_creation_error) {
       return (
         <Alert
-          style={{ wordWrap: "break-word" }}
-          bsStyle="danger"
-          onDismiss={dismiss_alert}
-        >
-          {file_creation_error}
-        </Alert>
+          style={{ wordWrap: "break-word", marginBottom: "10px" }}
+          type="error"
+          closable
+          onClose={dismiss_alert}
+          message={file_creation_error}
+        />
       );
     }
   }
 
   // Miniterm functionality
-  function render_output(x, style): JSX.Element | undefined {
+  function render_output(
+    x: string | undefined,
+    style: CSS,
+  ): React.JSX.Element | undefined {
     if (x) {
       return (
         <pre style={style}>
@@ -194,6 +220,7 @@ export const SearchBar = React.memo((props: Props) => {
               color: "#666",
               fontSize: "14pt",
               position: "absolute",
+              background: "white",
             }}
           >
             <Icon name="times" />
@@ -271,11 +298,14 @@ export const SearchBar = React.memo((props: Props) => {
   }
 
   return (
-    <span>
+    <Flex style={{ flex: "1 0 auto", position: "relative" }} vertical={true}>
       <SearchInput
         autoFocus
         autoSelect
-        placeholder="Search or create file"
+        placeholder={intl.formatMessage({
+          id: "project.explorer.search-bar.placeholder",
+          defaultMessage: 'Filter files or "/" for terminal...',
+        })}
         value={file_search}
         on_change={on_change}
         on_submit={search_submit}
@@ -286,13 +316,13 @@ export const SearchBar = React.memo((props: Props) => {
       />
       {render_file_creation_error()}
       {render_help_info()}
-      <div style={output_style_searchbox}>
+      <div style={{ ...outputMinitermStyle, width: "100%", left: 0 }}>
         {render_output(error, {
           color: "darkred",
           margin: 0,
         })}
         {render_output(stdout, { margin: 0 })}
       </div>
-    </span>
+    </Flex>
   );
 });

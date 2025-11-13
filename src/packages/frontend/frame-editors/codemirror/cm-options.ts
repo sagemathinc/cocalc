@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -8,18 +8,18 @@ Compute the codemirror options for file with given name,
 using the given editor settings.
 */
 
-import * as CodeMirror from "codemirror";
-import { file_associations } from "../../file-associations";
-import * as feature from "../../feature";
-import { path_split } from "@cocalc/util/misc";
-import { get_editor_settings } from "../generic/client";
 import { EDITOR_COLOR_SCHEMES } from "@cocalc/util/db-schema/accounts";
+import { path_split } from "@cocalc/util/misc";
+import * as CodeMirror from "codemirror";
+import * as feature from "../../feature";
+import { file_associations } from "../../file-associations";
+import { get_editor_settings } from "../generic/client";
 
-import { filename_extension_notilde, defaults } from "@cocalc/util/misc";
+import { defaults, filename_extension_notilde } from "@cocalc/util/misc";
 
 import { extra_alt_keys } from "./mobile";
-import { Map } from "immutable";
 
+import { AccountState } from "../../account/types";
 import { valid_indent } from "./util";
 
 function save(cm) {
@@ -36,17 +36,17 @@ export function default_opts(filename) {
 
 export function cm_options(
   filename: string, // extension determines editor mode
-  editor_settings: Map<string, any>,
+  editor_settings: AccountState["editor_settings"],
   gutters: string[] = [], // array of extra gutters
   editor_actions: any = undefined,
   frame_tree_actions: any = undefined,
-  frame_id: string = ""
+  frame_id: string = "",
 ) {
-  let theme = editor_settings.get("theme");
+  let theme = editor_settings?.get("theme");
   // if we do not know the theme, fallback to default
-  if (EDITOR_COLOR_SCHEMES[theme] == null) {
+  if (!theme || EDITOR_COLOR_SCHEMES[theme] == null) {
     console.warn(
-      `codemirror theme '${theme}' not known -- fallback to 'Default'`
+      `codemirror theme '${theme}' not known -- fallback to 'Default'`,
     );
     theme = "default";
   }
@@ -57,7 +57,7 @@ export function cm_options(
     mode: "txt",
     show_trailing_whitespace: editor_settings.get(
       "show_trailing_whitespace",
-      true
+      true,
     ),
     allow_javascript_eval: true, // if false, the one use of eval isn't allowed.
     line_numbers: editor_settings.get("line_numbers", true),
@@ -132,7 +132,7 @@ export function cm_options(
       } else {
         if (get_editor_settings().get("show_exec_warning")) {
           frame_tree_actions.set_error(
-            "You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead."
+            "You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead.",
           );
         }
       }

@@ -4,7 +4,7 @@ import { exec as exec0, spawn } from "child_process";
 import spawnAsync from "await-spawn";
 import * as fs from "fs";
 import { writeFile } from "fs/promises";
-import { projects, root, blobstore } from "@cocalc/backend/data";
+import { projects, root } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "@cocalc/backend/logger";
@@ -13,8 +13,12 @@ import { getUid } from "@cocalc/backend/misc";
 import base_path from "@cocalc/backend/base-path";
 import { db } from "@cocalc/database";
 import { getProject } from ".";
+import { conatServer } from "@cocalc/backend/data";
+import { pidFilename } from "@cocalc/util/project-info";
+import { executeCode } from "@cocalc/backend/execute-code";
+import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 
-const winston = getLogger("project-control:util");
+const logger = getLogger("project-control:util");
 
 export const mkdir = promisify(fs.mkdir);
 const readFile = promisify(fs.readFile);
@@ -48,21 +52,58 @@ function pidIsRunning(pid: number): boolean {
 }
 
 function pidFile(HOME: string): string {
-  return join(dataPath(HOME), "project.pid");
+  return join(dataPath(HOME), pidFilename);
+}
+
+function parseDarwinTime(output:string) : number {
+  // output = '{ sec = 1747866131, usec = 180679 } Wed May 21 15:22:11 2025';
+  const match = output.match(/sec\s*=\s*(\d+)/);
+
+  if (match) {
+    const sec = parseInt(match[1], 10);
+    return sec * 1000;
+  } else {
+    throw new Error("Could not parse sysctl output");
+  }
+}
+
+let _bootTime = 0;
+export async function bootTime(): Promise<number> {
+  if (!_bootTime) {
+    if (process.platform === "darwin") {
+      // uptime isn't available on macos.
+      const { stdout } = await executeCode({ command: "sysctl", args: ['-n', 'kern.boottime']});
+      _bootTime = parseDarwinTime(stdout);
+    } else {
+      const { stdout } = await executeCode({ command: "uptime", args: ["-s"] });
+      _bootTime = new Date(stdout).valueOf();
+    }
+  }
+  return _bootTime;
 }
 
 // throws error if no such file
 export async function getProjectPID(HOME: string): Promise<number> {
-  return parseInt((await readFile(pidFile(HOME))).toString());
+  const path = pidFile(HOME);
+  // if path was created **before OS booted**, throw an error
+  const stats = await stat(path);
+  const modificationTime = stats.mtime.getTime();
+  if (modificationTime <= (await bootTime())) {
+    throw new Error(
+      `The pid file "${path}" is too old -- considering project to be dead`,
+    );
+  }
+
+  return parseInt((await readFile(path)).toString());
 }
 
 export async function isProjectRunning(HOME: string): Promise<boolean> {
   try {
     const pid = await getProjectPID(HOME);
-    //winston.debug(`isProjectRunning(HOME="${HOME}") -- pid=${pid}`);
+    //logger.debug(`isProjectRunning(HOME="${HOME}") -- pid=${pid}`);
     return pidIsRunning(pid);
   } catch (err) {
-    //winston.debug(`isProjectRunning(HOME="${HOME}") -- no pid ${err}`);
+    //logger.debug(`isProjectRunning(HOME="${HOME}") -- no pid ${err}`);
     // err would happen if file doesn't exist, which means nothing to do.
     return false;
   }
@@ -70,11 +111,30 @@ export async function isProjectRunning(HOME: string): Promise<boolean> {
 
 export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
   const data = dataPath(HOME);
-  winston.debug(`setup "${data}"...`);
+  logger.debug(`setup "${data}"...`);
   await rm(data, { recursive: true, force: true });
   await mkdir(data);
   if (uid != null) {
     await chown(data, uid);
+  }
+}
+
+// see also packages/project/secret-token.ts
+export function secretTokenPath(HOME: string) {
+  const data = dataPath(HOME);
+  return join(data, "secret-token");
+}
+
+export async function writeSecretToken(
+  HOME: string,
+  secretToken: string,
+  uid?: number,
+): Promise<void> {
+  const path = secretTokenPath(HOME);
+  await ensureContainingDirectoryExists(path);
+  await writeFile(path, secretToken);
+  if (uid) {
+    await chown(path, uid);
   }
 }
 
@@ -84,25 +144,18 @@ async function logLaunchParams(params): Promise<void> {
   try {
     await writeFile(path, JSON.stringify(params, undefined, 2));
   } catch (err) {
-    winston.debug(
+    logger.debug(
       `WARNING: failed to write ${path}, which is ONLY used for debugging -- ${err}`,
     );
   }
 }
 
 export async function launchProjectDaemon(env, uid?: number): Promise<void> {
-  winston.debug(`launching project daemon at "${env.HOME}"...`);
+  logger.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
   const cmd = "pnpm";
-  const args = [
-    "cocalc-project",
-    "--daemon",
-    "--init",
-    "project_init.sh",
-    "--blobstore",
-    blobstore,
-  ];
-  winston.debug(
+  const args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
+  logger.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`,
   );
   logLaunchParams({ cwd, env, cmd, args, uid });
@@ -113,20 +166,37 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
       uid,
       gid: uid,
     });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (data) => {
+      stdout += data.toString();
+      if (stdout.length > 10000) {
+        stdout = stdout.slice(-5000);
+      }
+    });
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+      if (stderr.length > 10000) {
+        stderr = stderr.slice(-5000);
+      }
+    });
     child.on("error", (err) => {
-      winston.debug(`project daemon error ${err}`);
+      logger.debug(`project daemon error ${err} -- \n${stdout}\n${stderr}`);
       cb(err);
     });
     child.on("exit", async (code) => {
-      winston.debug("project daemon exited with code", code);
+      logger.debug("project daemon exited", { code, stdout, stderr });
       if (code != 0) {
         try {
           const s = (await readFile(env.LOGS)).toString();
-          winston.debug("project log file ended: ", s.slice(-2000));
+          logger.debug("project log file ended: ", s.slice(-2000), {
+            stdout,
+            stderr,
+          });
         } catch (err) {
           // there's a lot of reasons the log file might not even exist,
           // e.g., debugging is not enabled
-          winston.debug("project log file ended - unable to read log ", err);
+          logger.debug("project log file ended - unable to read log ", err);
         }
       }
       cb(code);
@@ -138,10 +208,10 @@ async function exec(
   command: string,
   verbose?: boolean,
 ): Promise<{ stdout: string; stderr: string }> {
-  winston.debug(`exec '${command}'`);
+  logger.debug(`exec '${command}'`);
   const output = await promisify(exec0)(command);
   if (verbose) {
-    winston.debug(`output: ${JSON.stringify(output)}`);
+    logger.debug(`output: ${JSON.stringify(output)}`);
   }
   return output;
 }
@@ -155,11 +225,11 @@ export async function createUser(project_id: string): Promise<void> {
     // that is fine. The user may or may not already exist.
   }
   const uid = `${getUid(project_id)}`;
-  winston.debug("createUser: adding group");
+  logger.debug("createUser: adding group");
   try {
     await exec(`/usr/sbin/groupadd -g ${uid} -o ${username}`, true);
   } catch (_) {}
-  winston.debug("createUser: adding user");
+  logger.debug("createUser: adding user");
   try {
     await exec(
       `/usr/sbin/useradd -u ${uid} -g ${uid} -o ${username} -m -d ${homePath(
@@ -186,28 +256,31 @@ export async function deleteUser(project_id: string): Promise<void> {
   }
 }
 
+const ENV_VARS_DELETE = [
+  "PGDATA",
+  "PGHOST",
+  "PGUSER",
+  "PGDATABASE",
+  "PROJECTS",
+  "BASE_PATH",
+  "PORT",
+  "DATA",
+  "LOGS",
+  "PWD",
+  "LINES",
+  "COLUMNS",
+  "LS_COLORS",
+  "INIT_CWD",
+  "DEBUG_FILE",
+  "SECRETS",
+] as const;
+
 export function sanitizedEnv(env: { [key: string]: string | undefined }): {
   [key: string]: string;
 } {
   const env2 = { ...env };
   // Remove some potentially confusing env variables
-  for (const key of [
-    "PGDATA",
-    "PGHOST",
-    "PGUSER",
-    "PGDATABASE",
-    "PROJECTS",
-    "BASE_PATH",
-    "PORT",
-    "DATA",
-    "LOGS",
-    "PWD",
-    "LINES",
-    "COLUMNS",
-    "LS_COLORS",
-    "INIT_CWD",
-    "DEBUG_FILE",
-  ]) {
+  for (const key of ENV_VARS_DELETE) {
     delete env2[key];
   }
   // Comment about stripping things starting with /root:
@@ -219,6 +292,7 @@ export function sanitizedEnv(env: { [key: string]: string | undefined }): {
     if (
       key.startsWith("npm_") ||
       key.startsWith("COCALC_") ||
+      key.startsWith("CONAT_") ||
       key.startsWith("PNPM_") ||
       key.startsWith("__NEXT") ||
       key.startsWith("NODE_") ||
@@ -252,7 +326,7 @@ export async function getEnvironment(
       HOME,
       BASE_PATH: base_path,
       DATA,
-      LOGS: join(DATA, "logs"),
+      LOGS: DATA,
       DEBUG: "cocalc:*,-cocalc:silly:*", // so interesting stuff gets logged, but not too much unless we really need it.
       // important to reset the COCALC_ vars since server env has own in a project
       COCALC_PROJECT_ID: project_id,
@@ -260,15 +334,17 @@ export async function getEnvironment(
       USER,
       COCALC_EXTRA_ENV: extra_env,
       PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`,
+      CONAT_SERVER: conatServer,
+      COCALC_SECRET_TOKEN: secretTokenPath(HOME),
     },
   };
 }
 
 export async function getState(HOME: string): Promise<ProjectState> {
-  winston.debug(`getState("${HOME}")`);
+  logger.debug(`getState("${HOME}")`);
   try {
     return {
-      ip: "localhost",
+      ip: "127.0.0.1",
       state: (await isProjectRunning(HOME)) ? "running" : "opened",
       time: new Date(),
     };
@@ -282,7 +358,7 @@ export async function getState(HOME: string): Promise<ProjectState> {
 }
 
 export async function getStatus(HOME: string): Promise<ProjectStatus> {
-  winston.debug(`getStatus("${HOME}")`);
+  logger.debug(`getStatus("${HOME}")`);
   const data = dataPath(HOME);
   const status: ProjectStatus = {};
   if (!(await isProjectRunning(HOME))) {
@@ -294,7 +370,6 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
     "browser-server.port",
     "sage_server.port",
     "sage_server.pid",
-    "secret_token",
     "start-timestamp.txt",
     "session-id.txt",
   ]) {
@@ -315,7 +390,7 @@ export async function getStatus(HOME: string): Promise<ProjectStatus> {
         status[path] = val;
       }
     } catch (_err) {
-      //winston.debug(`getStatus: ${_err}`);
+      //logger.debug(`getStatus: ${_err}`);
     }
   }
   return status;
@@ -343,7 +418,7 @@ export async function ensureConfFilesExists(
           await chown(target, uid);
         }
       } catch (err) {
-        winston.error(`ensureConfFilesExists -- ${err}`);
+        logger.error(`ensureConfFilesExists -- ${err}`);
       }
     }
   }
@@ -358,9 +433,7 @@ export async function copyPath(
   project_id: string,
   target_uid?: number,
 ): Promise<void> {
-  winston.info(
-    `copyPath(source="${project_id}"): opts=${JSON.stringify(opts)}`,
-  );
+  logger.info(`copyPath(source="${project_id}"): opts=${JSON.stringify(opts)}`);
   const { path, overwrite_newer, delete_missing, backup, timeout, bwlimit } =
     opts;
   if (path == null) {
@@ -477,7 +550,7 @@ export async function copyPath(
   }
 
   // do the copy!
-  winston.info(`doing rsync ${args.join(" ")}`);
+  logger.info(`doing rsync ${args.join(" ")}`);
   if (opts.wait_until_done ?? true) {
     try {
       const stdout = await spawnAsync("rsync", args, {
@@ -485,7 +558,7 @@ export async function copyPath(
           ? 1000 * opts.timeout
           : undefined /* spawnAsync has ms units, but rsync has second units */,
       });
-      winston.info(`finished rsync ${stdout}`);
+      logger.info(`finished rsync ${stdout}`);
     } catch (err) {
       throw Error(
         `WARNING: copy exited with an error -- ${

@@ -6,16 +6,16 @@ the manage-purchases loop can handle them soon.
 Here are the criterion for when we need to do some management of a compute server's purchases:
 
 - it has any open purchase that started at least MAX_PURCHASE_LENGTH_MS ago.
-- it has a network purchase that wasn't updated since MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS ago.
-
+- EVERYTHING active in the last day that isn't deprovisioned -- once every PERIODIC_SHORT_UPDATE_INTERVAL_MS
+- also EVERYTHING that isn't deprovisioned -- once every PERIODIC_LONG_UPDATE_INTERVAL_MS
 */
 
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import {
   MAX_PURCHASE_LENGTH_MS,
-  MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS,
-  PERIODIC_UPDATE_INTERVAL_MS,
+  PERIODIC_SHORT_UPDATE_INTERVAL_MS,
+  PERIODIC_LONG_UPDATE_INTERVAL_MS,
 } from "./manage-purchases";
 
 const logger = getLogger("server:compute:maintain-purchases");
@@ -39,21 +39,21 @@ export default async function ongoingPurchases() {
   )
 `);
 
-  // update ALL running servers that haven't been updated since MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS,
-  // because there might be network activity.  These could in theory not have a network purchase,
-  // in which case it should get created.
+  // update ALL non-deprovisioned servers that had some activity in the last day
+  // that we haven't updated since PERIODIC_SHORT_UPDATE_INTERVAL_MS
   await pool.query(`
   UPDATE compute_servers
-  SET update_purchase=TRUE
-  WHERE state='running' AND COALESCE(last_purchase_update, '1970-01-01') <= NOW() - interval '${
-    MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS / 1000
+  SET update_purchase = TRUE
+  WHERE state != 'deprovisioned' AND COALESCE(last_edited, '1970-01-01') >= now() - interval '1 day' AND COALESCE(last_purchase_update, '1970-01-01') <= NOW() - interval '${
+    PERIODIC_SHORT_UPDATE_INTERVAL_MS / 1000
   } seconds'`);
 
-  // update ALL non-deprovisiond servers that we haven't updated since PERIODIC_UPDATE_INTERVAL_MS
+  // update ALL non-deprovisioned servers
+  // that we haven't updated since PERIODIC_LONG_UPDATE_INTERVAL_MS
   await pool.query(`
   UPDATE compute_servers
-  SET update_purchase=TRUE
-  WHERE state!='deprovisioned' AND COALESCE(last_purchase_update, '1970-01-01') <= NOW() - interval '${
-    PERIODIC_UPDATE_INTERVAL_MS / 1000
+  SET update_purchase = TRUE
+  WHERE state != 'deprovisioned' AND COALESCE(last_purchase_update, '1970-01-01') <= NOW() - interval '${
+    PERIODIC_LONG_UPDATE_INTERVAL_MS / 1000
   } seconds'`);
 }

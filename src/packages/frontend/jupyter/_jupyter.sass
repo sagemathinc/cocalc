@@ -1,12 +1,16 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+@use '../colors'
+
+// I just noticed there is another version of this file in ../_jupyter.sass
+// They need to be carefully merged into one!  But not today.
 
 .cocalc-jupyter-rendered
   img
     max-width: 100%
-    height: auto
   table
     border: none
     border-collapse: collapse
@@ -55,31 +59,31 @@
 .cocalc-jupyter-usage-info
   padding: 2px 2px 0px 2px
   margin-right: 1em
-  border: 1px solid $COL_GRAY_L
+  border: 1px solid colors.$COL_GRAY_L
   +smooth-background-color
 
 .cocalc-jupyter-btn-interrupt
   +smooth-background-color
 
 .cocalc-jupyter-insert-cell
-  margin-top: 6px
   margin-bottom: 10px
   height: 8px
+  margin-top: 10px
   cursor: pointer
   text-align: center
   &:hover
-    background-color: $COL_FG_BLUE
+    background-color: colors.$COL_FG_BLUE
   &:hover .cocalc-jupyter-insert-cell-controls
     visibility: visible
     opacity: 1
   &.cocalc-jupyter-insert-cell-below
     margin-top: 20px
     height: 5px
-    background-color: $COL_GRAY_L
+    background-color: colors.$COL_GRAY_L
     > .cocalc-jupyter-insert-cell-controls
       top: -10px
     &:hover
-      background-color: $COL_FG_BLUE
+      background-color: colors.$COL_FG_BLUE
 
 .cocalc-jupyter-insert-cell-controls
   visibility: hidden
@@ -89,15 +93,22 @@
   top: -8px
 
 .cocalc-jupyter-insert-cell-btn
-  background-color: $COL_FG_BLUE
+  background-color: colors.$COL_FG_BLUE
   &:hover
-    background-color: $COL_BLUE_DD
+    background-color: colors.$COL_BLUE_DD
 
 .cocalc-jupyter-insert-cell-btn-below
-  background-color: $COL_GRAY_L
+  background-color: colors.$COL_GRAY_L
   &:hover
-    background-color: $COL_BLUE_DD
+    background-color: colors.$COL_BLUE_DD
 
 .cocalc-jupyter-menu
   .ant-dropdown-trigger:hover
     background-color: white
+
+// Make it so the widgets container has position relative,
+// which is assumed by some widgets, e.g.,
+// %matplotlib widgets
+// from pylab import plot; plot([1,2],[3,4])
+cocalc-lumino-adapter
+  position: relative

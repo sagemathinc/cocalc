@@ -1,6 +1,8 @@
-import { Card } from "antd";
+import { Card, Space, Tooltip } from "antd";
 import Support from "./support";
 import MoneyStatistic from "./money-statistic";
+import ClosingDate from "./closing-date";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   minBalance?: number | null;
@@ -15,7 +17,14 @@ export default function MinBalance({ minBalance, style }: Props) {
   return (
     <Card style={style}>
       <MoneyStatistic title={"Minimum Balance"} value={minBalance} />
-      <Support style={{ fontSize: "12pt" }}>Allow Negative</Support>
+      <Space direction="vertical">
+        <ClosingDate type="link" />
+        <Support>
+          <Tooltip title="Create support request to allow your balance to be negative for Pay As You Go purchases.  This is useful if you use compute servers a lot.">
+            <Icon name="rise-outlined" rotate="90" /> Allow Negative
+          </Tooltip>
+        </Support>
+      </Space>
     </Card>
   );
 }

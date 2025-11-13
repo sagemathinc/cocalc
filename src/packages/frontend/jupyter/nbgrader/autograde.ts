@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -23,11 +23,11 @@ that get used in testing.
 
 import { copy, is_array, startswith } from "@cocalc/util/misc";
 import { state_to_value } from "./cell-types";
-import type { JupyterNotebook, Cell } from "@cocalc/jupyter/nbgrader/types";
+import type { JupyterNotebook, Cell } from "@cocalc/util/jupyter/nbgrader-types";
 
 export function create_autograde_ipynb(
   instructor_ipynb: string,
-  student_ipynb: string
+  student_ipynb: string,
 ): { autograde_ipynb: string; ids: string[] } {
   const instructor = JSON.parse(instructor_ipynb);
   const student = JSON.parse(student_ipynb);
@@ -45,7 +45,7 @@ export function create_autograde_ipynb(
       // TODO: be more clever within inserting this...?  What does nbgrader upstream do?
       console.warn(
         "WARNING: student deleted locked cell with grade_id (inserting at end for now)",
-        grade_id
+        grade_id,
       );
       student.cells.push(copy(instructor_cell));
     } else {
@@ -175,10 +175,12 @@ function get_score(output: object, lang: string): number | undefined {
     output["traceback"] != null || // has a traceback
     output["ename"] != null || // name of the error
     output["evalue"] != null || // metadata about error
-    output["output_type"] == "error" || // it's an error output
-    output["name"] == "stderr" // writing to stderr stream
+    output["output_type"] == "error" // it's an error output
   ) {
     // If there is any traceback or error indication at all, it's obviously 0 points.
+    // However, the one thing that is NOT zero points is 'output["name"] == "stderr"'
+    // since warnings output to stderr with some kernels (e.g., R), and there's a lot
+    // of cases when warnings are OK.
     return 0;
   }
   if (output["text"] == null) {

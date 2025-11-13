@@ -1,15 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import {
-  green as ANTD_GREEN,
-  orange as ANTD_ORANGE,
-  yellow as ANTD_YELLOW,
-} from "@ant-design/colors";
 import { Button, Dropdown, MenuProps, Tooltip } from "antd";
 import immutable from "immutable";
+import { useIntl } from "react-intl";
 
 import {
   CSS,
@@ -33,7 +29,6 @@ import { url_href } from "@cocalc/frontend/project/utils";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import {
   filename_extension,
-  hexColorToRGBA,
   human_readable_size,
   path_split,
   path_to_file,
@@ -41,12 +36,8 @@ import {
   separate_file_extension,
   trunc_middle,
 } from "@cocalc/util/misc";
-import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
 import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
-
-// make sure two types of borders are of the same width
-const BORDER_WIDTH_PX = "4px";
 
 const FILE_ITEM_SELECTED_STYLE: CSS = {
   backgroundColor: COLORS.BLUE_LLL, // bit darker than .cc-project-flyout-file-item:hover
@@ -61,12 +52,12 @@ const FILE_ITEM_OPENED_STYLE: CSS = {
 const FILE_ITEM_ACTIVE_STYLE: CSS = {
   ...FILE_ITEM_OPENED_STYLE,
   color: COLORS.PROJECT.FIXED_LEFT_OPENED,
-};
+} as const;
 
 const FILE_ITEM_ACTIVE_STYLE_2: CSS = {
   ...FILE_ITEM_ACTIVE_STYLE,
   backgroundColor: COLORS.GRAY_L0,
-};
+} as const;
 
 const FILE_ITEM_STYLE: CSS = {
   flex: "1",
@@ -114,7 +105,7 @@ const CLOSE_ICON_STYLE: CSS = {
   top: "1px",
   position: "relative",
   paddingBottom: "1px",
-};
+} as const;
 
 interface Item {
   isopen?: boolean;
@@ -130,8 +121,8 @@ interface FileListItemProps {
   // we only set this from the "files" flyout, not "log", since in the log you can't select multiple files
   checked_files?: immutable.Set<string>;
   displayedNameOverride?: string; // override the name
-  extra?: JSX.Element | string | null; // null means don't show anything
-  extra2?: JSX.Element | string | null; // null means don't show anything
+  extra?: React.JSX.Element | string | null; // null means don't show anything
+  extra2?: React.JSX.Element | string | null; // null means don't show anything
   iconNameOverride?: IconName;
   index?: number;
   isStarred?: boolean;
@@ -149,7 +140,7 @@ interface FileListItemProps {
   setShowCheckboxIndex?: (index: number | null) => void;
   showCheckbox?: boolean;
   style?: CSS;
-  tooltip?: JSX.Element | string;
+  tooltip?: React.JSX.Element | string;
   noPublish?: boolean; // for layout only – indicate that there is never a publish indicator button
 }
 
@@ -181,6 +172,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const isActive = mode === "active";
   // only in files mode, we show the publish icon
   const showPublish = mode === "files";
+  const intl = useIntl();
   const { project_id } = useProjectContext();
   const current_path = useTypedRedux({ project_id }, "current_path");
   const actions = useActions({ project_id });
@@ -191,7 +183,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const itemRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  function renderCloseItem(item: Item): JSX.Element | null {
+  function renderCloseItem(item: Item): React.JSX.Element | null {
     if (onClose == null || !item.isopen) return null;
 
     const { name } = item;
@@ -207,7 +199,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function renderPublishedIcon(): JSX.Element | undefined {
+  function renderPublishedIcon(): React.JSX.Element | undefined {
     if (!showPublish || !item.is_public) return undefined;
     return (
       <Tooltip title="File is published" placement="right">
@@ -225,7 +217,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function renderName(): JSX.Element {
+  function renderName(): React.JSX.Element {
     const name = item.name;
 
     const path = isActive ? path_split(name).tail : name;
@@ -279,7 +271,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     setShowCheckboxIndex?.(null);
   }
 
-  function renderBodyLeft(): JSX.Element {
+  function renderBodyLeft(): React.JSX.Element {
     const iconName =
       iconNameOverride ??
       (selectable && showCheckbox && item.name !== ".."
@@ -308,15 +300,28 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function renderStarred(): JSX.Element | undefined {
+  function renderStarred(): React.JSX.Element | undefined {
     if (isStarred == null) return;
+
+    const icon: IconName = isStarred ? "star-filled" : "star";
+
+    // In "files" mode, always show yellow star when starred
+    // In "active" mode, only show yellow star when file is also open
+    const starColor =
+      mode === "files"
+        ? isStarred
+          ? COLORS.STAR
+          : COLORS.GRAY_L
+        : isStarred && item.isopen
+        ? COLORS.STAR
+        : COLORS.GRAY_L;
 
     return (
       <Icon
-        name={isStarred ? "star-filled" : "star-o"}
+        name={icon}
         style={{
           ...ICON_STYLE,
-          color: isStarred && item.isopen ? COLORS.STAR : COLORS.GRAY_L,
+          color: starColor,
         }}
         onClick={(e: React.MouseEvent) => {
           e?.stopPropagation();
@@ -326,7 +331,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function renderExtra(type: 1 | 2): JSX.Element | undefined {
+  function renderExtra(type: 1 | 2): React.JSX.Element | undefined {
     const currentExtra = type === 1 ? extra : extra2;
     if (currentExtra == null) return;
     // calculate extra margin to align the columns. if there is no "onClose", no margin
@@ -370,7 +375,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function renderBody(): JSX.Element {
+  function renderBody(): React.JSX.Element {
     const el = (
       <div
         ref={bodyRef}
@@ -412,18 +417,18 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       : isdir
       ? ACTION_BUTTONS_DIR
       : ACTION_BUTTONS_FILE;
-    for (const name of actionNames) {
-      if (name === "download" && !item.isdir) continue;
+    for (const key of actionNames) {
+      if (key === "download" && !item.isdir) continue;
       const disabled =
-        isDisabledSnapshots(name) &&
+        isDisabledSnapshots(key) &&
         (current_path?.startsWith(".snapshots") ?? false);
 
-      const { name: nameStr, icon, hideFlyout } = FILE_ACTIONS[name];
+      const { name, icon, hideFlyout } = FILE_ACTIONS[key];
       if (hideFlyout) return;
 
       ctx.push({
-        key: nameStr,
-        label: nameStr,
+        key,
+        label: intl.formatMessage(name),
         icon: <Icon name={icon} />,
         disabled,
         onClick: () => {
@@ -440,7 +445,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
             }
           }
           actions?.set_active_tab("files");
-          actions?.set_file_action(name, () => fileName);
+          actions?.set_file_action(key);
         },
       });
     }
@@ -558,27 +563,3 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     </Dropdown>
   );
 });
-
-// Depending on age, highlight  entries from the past past 24 hours and week
-export function fileItemStyle(time: number = 0, masked: boolean = false): CSS {
-  const diff = server_time().getTime() - time;
-  const days = Math.max(0, diff / 1000 / 60 / 60 / 24);
-  let col = "rgba(1, 1, 1, 0)";
-  if (days < 1 / 24) {
-    col = hexColorToRGBA(ANTD_GREEN[3], 1);
-  } else if (days < 1) {
-    const opacity = 1 - days / 2; // only fade to 50%
-    col = hexColorToRGBA(ANTD_ORANGE[3], opacity);
-  } else if (days < 14) {
-    const opacity = 1 - (days - 1) / 14;
-    col = hexColorToRGBA(ANTD_YELLOW[5], opacity);
-  }
-  return {
-    ...fileItemLeftBorder(col),
-    ...(masked ? { color: COLORS.GRAY_L } : {}),
-  };
-}
-
-export function fileItemLeftBorder(col) {
-  return { borderLeft: `${BORDER_WIDTH_PX} solid ${col}` };
-}

@@ -1,13 +1,15 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Add collaborators to a project
 */
 
-import { Alert, Input, Select } from "antd";
+import { Alert, Button, Input, Select } from "antd";
+import { useIntl } from "react-intl";
+import { labels } from "@cocalc/frontend/i18n";
 import {
   React,
   redux,
@@ -18,7 +20,7 @@ import {
   useTypedRedux,
   useState,
 } from "../app-framework";
-import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
+import { Well } from "../antd-bootstrap";
 import { A, Icon, Loading, ErrorDisplay, Gap } from "../components";
 import { webapp_client } from "../webapp-client";
 import { SITE_NAME } from "@cocalc/util/theme";
@@ -39,6 +41,7 @@ import { alert_message } from "../alerts";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import Sandbox from "./sandbox";
 import track from "@cocalc/frontend/user-tracking";
+import RequireLicense from "@cocalc/frontend/site-licenses/require-license";
 
 interface RegisteredUser {
   sort?: string;
@@ -85,6 +88,11 @@ export const AddCollaborators: React.FC<Props> = ({
   where,
   mode = "project",
 }) => {
+  const intl = useIntl();
+  const unlicensedLimit = useTypedRedux(
+    "customize",
+    "unlicensed_project_collaborator_limit",
+  );
   const isFlyout = mode === "flyout";
   const student = useStudentProjectFunctionality(project_id);
   const user_map = useTypedRedux("users", "user_map");
@@ -118,6 +126,13 @@ export const AddCollaborators: React.FC<Props> = ({
   const [email_body_error, set_email_body_error] = useState<string>("");
   const [email_body_editing, set_email_body_editing] = useState<boolean>(false);
   const [invite_result, set_invite_result] = useState<string>("");
+
+  const hasLicense = (project?.get("site_license")?.size ?? 0) > 0;
+  const limitExceeded =
+    !!unlicensedLimit &&
+    !hasLicense &&
+    (project?.get("users").size ?? 1) + selected_entries.length >
+      unlicensedLimit;
 
   const isMountedRef = useIsMountedRef();
 
@@ -223,8 +238,8 @@ export const AddCollaborators: React.FC<Props> = ({
     select_ref.current?.focus();
   }
 
-  function render_options(users: User[]): JSX.Element[] {
-    const options: JSX.Element[] = [];
+  function render_options(users: User[]): React.JSX.Element[] {
+    const options: React.JSX.Element[] = [];
     for (const r of users) {
       if (r.label == null || r.tag == null || r.name == null) {
         let name = r.account_id
@@ -409,14 +424,14 @@ export const AddCollaborators: React.FC<Props> = ({
     }
   }
 
-  function render_email_body_error(): JSX.Element | undefined {
+  function render_email_body_error(): React.JSX.Element | undefined {
     if (!email_body_error) {
       return;
     }
     return <ErrorDisplay error={email_body_error} />;
   }
 
-  function render_email_textarea(): JSX.Element {
+  function render_email_textarea(): React.JSX.Element {
     return (
       <Input.TextArea
         defaultValue={email_body}
@@ -436,7 +451,7 @@ export const AddCollaborators: React.FC<Props> = ({
     );
   }
 
-  function render_send_email(): JSX.Element | undefined {
+  function render_send_email(): React.JSX.Element | undefined {
     if (!email_to) {
       return;
     }
@@ -454,9 +469,7 @@ export const AddCollaborators: React.FC<Props> = ({
           />
           <div
             style={{
-              border: "1px solid lightgrey",
-              padding: "10px",
-              borderRadius: "5px",
+              padding: "20px 0",
               backgroundColor: "white",
               marginBottom: "15px",
             }}
@@ -464,14 +477,7 @@ export const AddCollaborators: React.FC<Props> = ({
             {render_email_body_error()}
             {render_email_textarea()}
           </div>
-          <ButtonToolbar>
-            <Button
-              bsStyle="primary"
-              onClick={send_email_invite}
-              disabled={!!email_body_editing}
-            >
-              Send Invitation
-            </Button>
+          <div style={{ display: "flex" }}>
             <Button
               onClick={() => {
                 set_email_to("");
@@ -479,15 +485,23 @@ export const AddCollaborators: React.FC<Props> = ({
                 set_email_body_editing(false);
               }}
             >
-              Cancel
+              {intl.formatMessage(labels.cancel)}
             </Button>
-          </ButtonToolbar>
+            <Gap />
+            <Button
+              type="primary"
+              onClick={send_email_invite}
+              disabled={!!email_body_editing}
+            >
+              Send Invitation
+            </Button>
+          </div>
         </Well>
       </div>
     );
   }
 
-  function render_search(): JSX.Element | undefined {
+  function render_search(): React.JSX.Element | undefined {
     return (
       <div style={{ marginBottom: "15px" }}>
         {state == "searched" ? (
@@ -508,20 +522,20 @@ export const AddCollaborators: React.FC<Props> = ({
     );
   }
 
-  function render_select_list(): JSX.Element | undefined {
+  function render_select_list(): React.JSX.Element | undefined {
     if (project == null) return;
 
     const users: User[] = [];
     const existing: User[] = [];
     for (const r of results) {
-      if (project.get("users").get(r.account_id) != null) {
+      if (project.getIn(["users", r.account_id]) != null) {
         existing.push(r);
       } else {
         users.push(r);
       }
     }
 
-    function render_search_help(): JSX.Element | undefined {
+    function render_search_help(): React.JSX.Element | undefined {
       if (focused && results.length === 0) {
         return <Alert type="info" message={"Press enter to search..."} />;
       }
@@ -615,7 +629,7 @@ export const AddCollaborators: React.FC<Props> = ({
     return false;
   }
 
-  function render_select_list_button(): JSX.Element | undefined {
+  function render_select_list_button(): React.JSX.Element | undefined {
     const number_selected = selected_entries.length;
     let label: string;
     let disabled: boolean;
@@ -640,21 +654,21 @@ export const AddCollaborators: React.FC<Props> = ({
         disabled = false;
       }
     }
-    if (email_body_error) {
+    if (email_body_error || limitExceeded) {
       disabled = true;
     }
     return (
-      <div>
+      <div style={{ display: "flex" }}>
         <Button onClick={reset}>Cancel</Button>
         <Gap />
-        <Button disabled={disabled} onClick={add_selected} bsStyle="primary">
+        <Button disabled={disabled} onClick={add_selected} type="primary">
           <Icon name="user-plus" /> {label}
         </Button>
       </div>
     );
   }
 
-  function render_invite_result(): JSX.Element | undefined {
+  function render_invite_result(): React.JSX.Element | undefined {
     if (state != "invited") {
       return;
     }
@@ -678,6 +692,12 @@ export const AddCollaborators: React.FC<Props> = ({
     <div
       style={isFlyout ? { paddingLeft: "5px", paddingRight: "5px" } : undefined}
     >
+      {limitExceeded && (
+        <RequireLicense
+          project_id={project_id}
+          message={`A license is required to have more than ${unlicensedLimit} collaborators on this project.`}
+        />
+      )}
       {err && <ErrorDisplay error={err} onClose={() => set_err("")} />}
       {state == "searching" && <Loading />}
       {render_search()}

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -29,7 +29,6 @@ The point of this code here is ensure that these objects stay in sync properly.
 */
 
 import { List, Map } from "immutable";
-
 import { close } from "@cocalc/util/misc";
 import { ProjectActions } from "../project_actions";
 import { ProjectStore } from "../project_store";

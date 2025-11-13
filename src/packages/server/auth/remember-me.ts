@@ -6,6 +6,7 @@ import Cookies from "cookies";
 import type { Request } from "express";
 import generateHash from "@cocalc/server/auth/hash";
 import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
+import isBanned from "@cocalc/server/accounts/is-banned";
 
 // Create a remember me cookie for the given account_id and store
 // it in the database.  The cookie is similar to using a server
@@ -15,7 +16,7 @@ import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 // them to sign in.
 export async function createRememberMeCookie(
   account_id: string,
-  arg_ttl_s?: number
+  arg_ttl_s?: number,
 ): Promise<{
   // the value of the cookie, which encodes
   // a random uuid-v4 and the hash algorithm
@@ -24,6 +25,9 @@ export async function createRememberMeCookie(
   // database considers it invalid; cookie should have same age
   ttl_s: number;
 }> {
+  if (await isBanned(account_id)) {
+    throw Error("user is banned");
+  }
   // compute the value and ttl_s:
   const session_id: string = v4();
   const hash_session_id: string = passwordHash(session_id);
@@ -35,7 +39,7 @@ export async function createRememberMeCookie(
   const pool = getPool();
   await pool.query(
     "INSERT INTO remember_me (hash, expire, account_id) VALUES($1::TEXT, $2::TIMESTAMP, $3::UUID)",
-    [hash_session_id.slice(0, 127), expireTime(ttl_s), account_id]
+    [hash_session_id.slice(0, 127), expireTime(ttl_s), account_id],
   );
 
   return { value, ttl_s };
@@ -44,7 +48,7 @@ export async function createRememberMeCookie(
 // delete the remember me database entry for the given hash
 export async function deleteRememberMe(hash: string): Promise<void> {
   const pool = getPool();
-  await pool.query("DELETE FROM remember_me WHERE hash=$1::TEXT", [
+  await pool.query("DELETE FROM remember_me WHERE hash=$1::CHAR(127)", [
     hash.slice(0, 127),
   ]);
 }
@@ -63,6 +67,12 @@ export function getRememberMeHash(req: Request): string | undefined {
   if (!rememberMe) {
     return;
   }
+  return getRememberMeHashFromCookieValue(rememberMe);
+}
+
+export function getRememberMeHashFromCookieValue(
+  rememberMe: string,
+): string | undefined {
   const x: string[] = rememberMe.split("$");
   if (x.length !== 4) {
     throw Error("badly formatted remember_me cookie");

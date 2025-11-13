@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* Jupyter cells
@@ -54,7 +54,13 @@ export default function Code({
   const [mode, setMode] = useState<any>(codemirrorMode("py"));
   const isMountedRef = useIsMountedRef();
   useAsyncEffect(async () => {
-    const mode = await getMode({ project_id, path });
+    let mode;
+    try {
+      mode = await getMode({ project_id, path });
+    } catch {
+      // this can fail, e.g., if user closes file before finishing opening it
+      return;
+    }
     if (isMountedRef.current) {
       setMode(mode);
     }
@@ -100,7 +106,7 @@ export default function Code({
       if (elt == null) return;
       const h = Math.max(
         MIN_HEIGHT,
-        elt.getBoundingClientRect()?.height / canvasScale + EXTRA_HEIGHT
+        elt.getBoundingClientRect()?.height / canvasScale + EXTRA_HEIGHT,
       );
       actions.setElement({
         obj: { id: element.id, h },
@@ -116,7 +122,7 @@ export default function Code({
       if (elt == null) return;
       const newHeight = Math.max(
         MIN_HEIGHT,
-        elt.getBoundingClientRect()?.height / canvasScale + EXTRA_HEIGHT
+        elt.getBoundingClientRect()?.height / canvasScale + EXTRA_HEIGHT,
       );
       if (newHeight > element.h) {
         shrinkElement.cancel();

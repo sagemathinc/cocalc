@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -15,6 +15,8 @@ import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { trunc_middle } from "@cocalc/util/misc";
 import { SHARE_AUTHENTICATED_ICON } from "@cocalc/util/consts/ui";
+
+import type { JSX } from "react";
 
 function Description({
   description,

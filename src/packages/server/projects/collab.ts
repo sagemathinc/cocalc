@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { PostgreSQL } from "@cocalc/database/postgres/types";
@@ -64,6 +64,44 @@ export async function add_collaborators_to_projects(
     if (token_id != null) {
       await increment_project_invite_token_counter(db, token_id);
     }
+  }
+}
+
+export async function remove_collaborators_from_projects(
+  db: PostgreSQL,
+  account_id: string,
+  accounts: string[],
+  projects: string[], // can be empty strings if tokens specified (since they determine project_id)
+): Promise<void> {
+  try {
+    // Ensure user is allowed to modify project(s)
+    //
+    await verify_write_access_to_projects(db, account_id, projects);
+  } catch (err) {
+    // Users can always remove themselves from a project.
+    //
+    if (accounts.length == 1 && account_id == accounts[0]) {
+      await verify_course_access_to_project(db, account_id, projects[0]);
+    } else {
+      throw err;
+    }
+  }
+
+  /* Right now this function is called from outside typescript
+    (e.g., api from user), so we have to do extra type checking.
+    Also, the input is uuid's, which typescript can't check. */
+  verify_types(account_id, accounts, projects);
+
+  // Remove users from projects
+  //
+  for (const i in projects) {
+    const project_id: string = projects[i];
+    const account_id: string = accounts[i];
+
+    await callback2(db.remove_user_from_project, {
+      project_id,
+      account_id,
+    });
   }
 }
 

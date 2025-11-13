@@ -1,10 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import getPool from "@cocalc/database/pool";
-import getContents from "./get-contents";
+import getContents, { getSizeLimit } from "./get-contents";
 import getProjectInfo from "./get-project";
 import { join } from "path";
 import basePath from "lib/base-path";
@@ -35,12 +35,12 @@ export default async function getPublicPathInfo({
   // Get the database entry that describes the public path
   const { rows } = await pool.query(
     `SELECT project_id, path, description, compute_image, license, disabled, unlisted,
-    authenticated, url, jupyter_api, redirect,
+    authenticated, url, jupyter_api, redirect, created, last_edited,
     counter::INT,
     (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars,
     CASE WHEN site_license_id <> '' THEN TRUE ELSE FALSE END AS has_site_license
     FROM public_paths WHERE vhost IS NULL AND id=$1`,
-    [id]
+    [id],
   );
   if (rows.length == 0 || rows[0].project_id == null || rows[0].path == null) {
     throw Error("not found");
@@ -91,16 +91,31 @@ export default async function getPublicPathInfo({
     if (rows[0].url) {
       // only proxied public paths have url attribute
       details = await getProxiedPublicPathInfo(rows[0].url, public_path ?? []);
+      if (details.contents != null) {
+        const limit = getSizeLimit(
+          public_path
+            ? (public_path[public_path.length - 1] ?? "")
+            : rows[0].url,
+        );
+        if (details.contents.size > limit) {
+          // it would be nice to do this *BEFORE* pulling it from github, etc., but
+          // life is short.
+          details.contents.content =
+            "File too big to be displayed; download it instead.";
+          details.contents.size = details.contents.content.length;
+        }
+      }
     } else {
       const { title, avatar_image_full } = await getProjectInfo(
         rows[0].project_id,
         ["title", "avatar_image_full"],
-        "medium"
+        "medium",
       );
       details = {
         contents: await getContents(
           rows[0].project_id,
-          join(rows[0].path, relativePath)
+          join(rows[0].path, relativePath),
+          rows[0].unlisted,
         ),
         projectTitle: title,
         projectAvatarImage: avatar_image_full,
@@ -113,8 +128,18 @@ export default async function getPublicPathInfo({
       basePath,
       isStarred,
       ...details,
+      created: rows[0].created?.toISOString() ?? null,
+      last_edited: rows[0].last_edited?.toISOString() ?? null,
     };
   } catch (error) {
-    return { id, ...rows[0], relativePath, isStarred, error: error.toString() };
+    return {
+      id,
+      ...rows[0],
+      relativePath,
+      isStarred,
+      created: rows[0].created?.toISOString() ?? null,
+      last_edited: rows[0].last_edited?.toISOString() ?? null,
+      error: error.toString(),
+    };
   }
 }

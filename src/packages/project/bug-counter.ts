@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { getLogger } from "./logger";
@@ -25,6 +25,7 @@ export function init() {
     const border = `BUG (count=${bugCount}) ${STARS}`;
     log.error(border);
     log.error(`Uncaught exception: ${err}`);
+    console.warn(err);
     log.error(err.stack);
     log.error(border);
   };

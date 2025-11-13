@@ -1,14 +1,18 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Popover } from "antd";
+import { Button, Popover, Col, Row } from "antd";
 import memoizeOne from "memoize-one";
-import { Col, Row } from "react-bootstrap";
-
 import { CSS, React, useState } from "@cocalc/frontend/app-framework";
-import { Icon, IconName, TimeAgo, Tip } from "@cocalc/frontend/components";
+import {
+  Icon,
+  IconName,
+  TimeAgo,
+  Tip,
+  VisibleXS,
+} from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
@@ -17,7 +21,7 @@ import { ProjectActions } from "@cocalc/frontend/project_actions";
 import track from "@cocalc/frontend/user-tracking";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { url_href } from "../../utils";
+import { url_href } from "@cocalc/frontend/project/utils";
 import { FileCheckbox } from "./file-checkbox";
 import { PublicButton } from "./public-button";
 import { generate_click_for } from "./utils";
@@ -48,8 +52,11 @@ interface Props {
   actions: ProjectActions;
   no_select: boolean;
   link_target?: string;
-  // if given, include a little 'server' tag in this color, and tooltip etc using id
+  // if given, include a little 'server' tag in this color, and tooltip etc using id.
+  // Also important for download and preview links!
   computeServerId?: number;
+  isStarred?: boolean;
+  onToggleStar?: (path: string, starred: boolean) => void;
 }
 
 export const FileRow: React.FC<Props> = React.memo((props) => {
@@ -64,7 +71,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       color: props.mask ? "#bbbbbb" : COLORS.FILE_ICON,
       verticalAlign: "sub",
     } as const;
-    let body: JSX.Element;
+    let body: React.JSX.Element;
     if (props.isdir) {
       body = (
         <>
@@ -171,6 +178,29 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     }
   }
 
+  function render_star() {
+    if (!props.onToggleStar) return null;
+    const path = full_path();
+    const starred = props.isStarred ?? false;
+    const iconName = starred ? "star-filled" : "star";
+
+    return (
+      <Icon
+        name={iconName}
+        onClick={(e) => {
+          e?.preventDefault();
+          e?.stopPropagation();
+          props.onToggleStar?.(path, !starred);
+        }}
+        style={{
+          cursor: "pointer",
+          fontSize: "14pt",
+          color: starred ? COLORS.STAR : COLORS.GRAY_L,
+        }}
+      />
+    );
+  }
+
   function full_path() {
     return misc.path_to_file(props.current_path, props.name);
   }
@@ -202,7 +232,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       props.actions.open_file({
         path,
         foreground,
-        explicit:true,
+        explicit: true,
       });
       if (foreground) {
         props.actions.set_file_search("");
@@ -230,12 +260,12 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       return (
         <TimeAgo
           date={new Date(props.time * 1000).toISOString()}
-          style={{ color: "#666" }}
+          style={{ color: COLORS.GRAY_M }}
         />
       );
     } catch (error) {
       return (
-        <div style={{ color: "#666", display: "inline" }}>
+        <div style={{ color: COLORS.GRAY_M, display: "inline" }}>
           Invalid Date Time
         </div>
       );
@@ -286,7 +316,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     }
   }
 
-  function render_download_button(url_href) {
+  function render_download_button(url) {
     if (student_project_functionality.disableActions) return;
     const size = misc.human_readable_size(props.size);
     // TODO: This really should not be in the size column...
@@ -302,14 +332,14 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           <>
             Download this {size} file
             <br />
-            to your own computer.
+            to your computer.
           </>
         }
       >
         <Button
           size="small"
           type="link"
-          href={`${url_href}`}
+          href={url}
           onClick={handle_download_click}
           style={{ color: COLORS.GRAY, padding: 0 }}
         >
@@ -331,7 +361,11 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   // See https://github.com/sagemathinc/cocalc/issues/1020
   // support right-click → copy url for the download button
-  const url = url_href(props.actions.project_id, full_path());
+  const url = url_href(
+    props.actions.project_id,
+    full_path(),
+    props.computeServerId,
+  );
 
   return (
     <Row
@@ -339,7 +373,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       onMouseDown={handle_mouse_down}
       className={props.no_select ? "noselect" : undefined}
     >
-      <Col sm={1} xs={1} style={{ textAlign: "center" }}>
+      <Col sm={2} xs={6} style={{ textAlign: "center" }}>
         {!student_project_functionality.disableActions && (
           <FileCheckbox
             name={props.name}
@@ -350,27 +384,43 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           />
         )}
       </Col>
-      <Col sm={1} xs={1} style={{ textAlign: "center" }}>
+      <Col sm={2} xs={6} style={{ textAlign: "center" }}>
         {render_public_file_info()}
       </Col>
-      <Col sm={1} xs={3} onClick={handle_click}>
+      <Col sm={2} xs={12} onClick={handle_click}>
         {render_icon()}
       </Col>
-      <Col sm={4} smPush={5} xs={6}>
+      <Col sm={1} xs={6} style={{ textAlign: "center" }}>
+        {render_star()}
+      </Col>
+      <Col sm={10} xs={24} onClick={handle_click}>
+        <VisibleXS>
+          <span style={{ marginLeft: "16px" }} />
+        </VisibleXS>
+        {render_name()}
+      </Col>
+      <Col
+        sm={7}
+        xs={24}
+        style={{
+          paddingRight:
+            "16px" /* otherwise cloud download is too close to edge or cut off */,
+        }}
+      >
+        <VisibleXS>
+          <span style={{ marginLeft: "16px" }} />
+        </VisibleXS>
         {render_timestamp()}
         {props.isdir ? (
           <>
             <DirectorySize size={props.size} />
           </>
         ) : (
-          <span className="pull-right" style={{ color: "#666" }}>
+          <span className="pull-right" style={{ color: COLORS.GRAY_M }}>
             {render_download_button(url)}
             {render_view_button(url, props.name)}
           </span>
         )}
-      </Col>
-      <Col sm={5} smPull={4} xs={12} onClick={handle_click}>
-        {render_name()}
       </Col>
     </Row>
   );

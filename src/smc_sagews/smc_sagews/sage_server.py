@@ -63,9 +63,15 @@ from datetime import datetime
 def log(*args):
     try:
         debug_log = open(LOGFILE, 'a')
-        mesg = "%s (%s): %s\n" % (PID, datetime.utcnow().strftime(
-            '%Y-%m-%d %H:%M:%S.%f')[:-3], ' '.join([unicode8(x)
-                                                    for x in args]))
+        from sys import version_info
+        if version_info >= (3, 12):
+            from datetime import UTC
+            d = datetime.now(UTC)
+        else:
+            d = datetime.utcnow()
+        d_txt = d.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        args_str = ' '.join([unicode8(x) for x in args])
+        mesg = "%s (%s): %s\n" % (PID, d_txt, args_str)
         debug_log.write(mesg)
         debug_log.flush()
     except Exception as err:

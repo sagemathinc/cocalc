@@ -40,6 +40,7 @@ export function createIndexesQueries(
   return queries;
 }
 
+// IMPORTANT: There is also code in database/postgres/schema/sync.ts that creates indexes.
 export async function createIndexes(
   db: Client,
   schema: TableSchema

@@ -41,7 +41,7 @@ export default function SyncButton({
       mouseEnterDelay={0.9}
       title={
         <>
-          Synchronize files in /user/home of the compute server with /user/home
+          Synchronize files in /home/user of the compute server with /home/user
           of the project, except fast data directories. You usually must
           explicitly sync files.
         </>
@@ -70,7 +70,11 @@ export default function SyncButton({
             <Spin delay={1000} size="small" style={{ marginLeft: "5px" }} />
           )}
         </Button>
-        <ShowError error={error} setError={setError} />
+        <ShowError
+          error={error}
+          setError={setError}
+          style={{ position: "absolute", zIndex: 1 }}
+        />
       </>
     </Tooltip>
   );

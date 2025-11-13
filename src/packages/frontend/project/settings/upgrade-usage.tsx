@@ -1,16 +1,18 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button, Card, Typography } from "antd";
 import { List } from "immutable";
 import { join } from "path";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import {
   CSS,
   React,
-  redux,
   Rendered,
+  redux,
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -18,21 +20,21 @@ import {
   Icon,
   Loading,
   Paragraph,
+  Text,
   Title,
   UpgradeAdjustor,
 } from "@cocalc/frontend/components";
-import { HelpEmailLink } from "@cocalc/frontend/customize";
-import { ShowSupportLink } from "@cocalc/frontend/support";
 import { ProjectsActions } from "@cocalc/frontend/todo-types";
 import { ROOT } from "@cocalc/util/consts/dedicated";
 import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 import { is_zero_map, plural, round2, to_human_list } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import { COLORS } from "@cocalc/util/theme";
 import {
   DedicatedDisk,
   DedicatedResources,
 } from "@cocalc/util/types/dedicated";
+import { process_gpu_quota } from "@cocalc/util/types/gpu";
+import { GPU } from "@cocalc/util/types/site-licenses";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { dedicatedDiskDisplay } from "@cocalc/util/upgrades/utils";
 import AdminQuotas from "./quota-editor/admin-quotas";
@@ -40,7 +42,6 @@ import PayAsYouGoQuotaEditor from "./quota-editor/pay-as-you-go";
 import { RunQuota } from "./run-quota";
 import { SiteLicense } from "./site-license";
 import { Project } from "./types";
-import { URLBox } from "./url-box";
 
 const UPGRADE_BUTTON_STYLE: CSS = {
   paddingBottom: "15px",
@@ -56,6 +57,7 @@ interface Props {
   all_projects_have_been_loaded?: boolean;
   site_license_ids: string[];
   dedicated_resources?: DedicatedResources;
+  gpu?: GPU;
   mode: "project" | "flyout";
 }
 
@@ -71,7 +73,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
     dedicated_resources,
     mode,
   }: Readonly<Props>) => {
-    const isFlyout = mode === "flyout";
+    const intl = useIntl();
     const actions: ProjectsActions = useActions("projects");
     const project_actions = useActions({ project_id });
     const account_groups: List<string> =
@@ -146,7 +148,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
           title="Your upgrade contributions"
           extra={adjust}
           type="inner"
-          bodyStyle={style}
+          styles={{ body: style }}
         >
           {showAdjustor ? render_upgrade_adjustor() : list_user_contributions()}
         </Card>
@@ -162,8 +164,17 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
         <div style={{ ...UPGRADE_BUTTON_STYLE, marginTop: "15px" }}>
           {noUpgrades ? (
             <Typography.Text type="secondary">
-              <Typography.Text strong>Note:</Typography.Text> You can increase
-              the above limits via Licenses or Pay As You Go below:
+              <FormattedMessage
+                id="project.settings.upgrade-usage.how_upgrade_info_note"
+                defaultMessage={
+                  "<strong>Note:</strong> You can increase the above limits via Licenses or Pay As You Go below:"
+                }
+                values={{
+                  strong: (ch) => (
+                    <Typography.Text strong>{ch}</Typography.Text>
+                  ),
+                }}
+              />
             </Typography.Text>
           ) : (
             <>{render_contributions()}</>
@@ -207,7 +218,10 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       return (
         <>
           {account_groups.includes("admin") && (
-            <AdminQuotas project_id={project_id} />
+            <AdminQuotas
+              project_id={project_id}
+              style={{ marginTop: "15px" }}
+            />
           )}
           {is_commercial && (
             <PayAsYouGoQuotaEditor
@@ -270,7 +284,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
             // NOTE: there is usually symlink disks/x → /local/... but we can't rely on it,
             // because the project only creates that symlink if there isn't a file/dir already with that name
             project_actions?.open_directory(
-              join(".smc/root/", ROOT, `/${disk.name}/`)
+              join(".smc/root/", ROOT, `/${disk.name}/`),
             );
           }}
         >
@@ -303,50 +317,60 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
           }
           type="inner"
           style={{ marginTop: "15px" }}
-          bodyStyle={{ padding: "10px 0 0 0" }}
+          styles={{ body: { padding: "10px 0 0 0" } }}
         >
           <ul>{render_dedicated_disks_list(disks)}</ul>
         </Card>
       );
     }
 
-    function render_support(): Rendered {
-      if (!is_commercial) return; // don't render if not commercial
+    function render_gpu(): Rendered {
+      if (dedicated_resources == null) return;
+      const gpu = dedicated_resources.gpu;
+      if (gpu == null || gpu === false) return;
+      const info = process_gpu_quota({ gpu });
+      const nodes = info.nodeSelector
+        ? ` on nodes labeled: ${Object.entries(info.nodeSelector)
+            .map(([key, value]) => `${key}=${value}`)
+            .join(", ")}`
+        : "";
+      const taint = info.tolerations
+        ? ` with taint: ${info.tolerations
+            .map((t) => {
+              if ("value" in t) {
+                return `${t.key}=${t.value}`;
+              } else {
+                return `${t.key}`;
+              }
+            })
+            .join(", ")}`
+        : "";
+
       return (
-        <>
-          <hr />
-          <Paragraph type="secondary">
-            If you have any questions about upgrading a project, create a{" "}
-            <ShowSupportLink />
-            {isFlyout ? (
-              <>
-                , or email <HelpEmailLink /> and mention the project id:{" "}
-                <Paragraph
-                  style={{
-                    display: "inline",
-                    color: COLORS.GRAY,
-                    fontWeight: "bold",
-                  }}
-                  copyable={{ text: project_id }}
-                >
-                  {project_id}
-                </Paragraph>
-                .
-              </>
-            ) : (
-              <>
-                , or email <HelpEmailLink /> and include the following URL:
-                <URLBox />
-              </>
-            )}
-          </Paragraph>
-        </>
+        <Card
+          title={
+            <>
+              <Icon name="gpu" /> GPU
+            </>
+          }
+          type="inner"
+          style={{ marginTop: "15px" }}
+          styles={{ body: { padding: "10px" } }}
+        >
+          <Text>
+            Requesting {gpu.num} GPU(s){nodes}
+            {taint}.
+          </Text>
+        </Card>
       );
     }
 
     function render_site_license(): Rendered {
-      // site licenses are also used in on-prem setups to tweak project quotas
-      if (!in_kucalc) return;
+      if (!in_kucalc) {
+        // site licenses are also used in on-prem setups to tweak project quotas, but
+        // nowhere else (currently).
+        return;
+      }
       return (
         <SiteLicense
           project_id={project_id}
@@ -360,24 +384,33 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
     if (project == null) {
       return <Loading theme="medium" transparent />;
     }
+
     return (
-      <div style={{ maxWidth: "1000px" }}>
-        <Title level={4}>Usage and Quotas</Title>
+      <div>
+        <Title level={4}>
+          <FormattedMessage
+            id="project.settings.upgrade-usage.header"
+            defaultMessage={"Usage and Quotas"}
+          />
+        </Title>
         <Paragraph
           type="secondary"
           ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
         >
-          This table lists project quotas, their current usage, and their
-          value/limit. Click on a row to show more details about it. If the
-          project is not running, you see the last known quota values.
+          {intl.formatMessage({
+            id: "project.settings.upgrade-usage.intro",
+            defaultMessage: `This table lists project quotas, their current usage, and their value/limit.
+            Click on a row to show more details about it.
+            If the project is not running, you see the last known quota values.`,
+          })}
         </Paragraph>
         {render_run_quota()}
         {render_upgrades_button()}
+        {render_site_license()}
         {renderQuotaEditor()}
         {render_dedicated_disks()}
-        {render_site_license()}
-        {render_support()}
+        {render_gpu()}
       </div>
     );
-  }
+  },
 );

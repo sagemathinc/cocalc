@@ -13,6 +13,8 @@ interface Options {
   offset?: number;
 }
 
+// Here we do NOT worry about ::decimal like in get-balance, because
+// this is just for a statement or analytics.
 export default async function getCostPerDay({
   account_id,
   limit = 100,

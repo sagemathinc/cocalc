@@ -7,5 +7,5 @@
     "outDir": "dist"
   },
   "exclude": ["node_modules", "dist", "test"],
-  "references": [{ "path": "../util" }]
+  "references": [{ "path": "../util", "path": "../conat" }]
 }

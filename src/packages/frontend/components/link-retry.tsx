@@ -1,16 +1,16 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 
 import {
   useEffect,
   useIsMountedRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Gap } from "@cocalc/frontend/components";
+import { Gap, Icon, Loading } from "@cocalc/frontend/components";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { COLORS } from "@cocalc/util/theme";
@@ -22,10 +22,22 @@ interface Props {
   size?: "small" | undefined; // antd button size
   loadingText?: string;
   onClick?: () => void;
+  autoStart?: boolean;
+  maxTime?: number;
+  tooltip?: React.ReactNode;
 }
 
-const LinkRetry: React.FC<Props> = (props: Props) => {
-  const { href, size, mode = "link", children, onClick } = props;
+const LinkRetry: React.FC<Props> = ({
+  href,
+  size,
+  mode = "link",
+  children,
+  onClick,
+  autoStart,
+  maxTime = 30000,
+  loadingText,
+  tooltip,
+}: Props) => {
   const isMountedRef = useIsMountedRef();
   const [working, setWorking] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -56,7 +68,7 @@ const LinkRetry: React.FC<Props> = (props: Props) => {
       await retry_until_success({
         f,
         max_delay: 500,
-        max_time: 30000,
+        max_time: maxTime,
         desc: "opening link",
       });
     } catch (err) {
@@ -88,44 +100,54 @@ const LinkRetry: React.FC<Props> = (props: Props) => {
     }
   }
 
+  useEffect(() => {
+    if (autoStart) {
+      start();
+    }
+  }, [href]);
+
+  function renderError() {
+    if (!error) return;
+    return (
+      <span style={{ color: COLORS.ANTD_RED_WARN }}>
+        <Gap /> (failed to load)
+      </span>
+    );
+  }
+
   switch (mode) {
-    case "link":
-      return (
-        <span>
-          <a onClick={click} style={{ cursor: "pointer" }}>
-            {children}
-          </a>
-          {mode === "link" && loading && (
-            <span>
-              <Gap /> <Loading text={props.loadingText} />
-            </span>
-          )}
-          {error && (
-            <>
-              <span style={{ color: COLORS.ANTD_RED_WARN }}>
-                <Gap /> (failed to load)
-              </span>
-            </>
-          )}
-        </span>
-      );
     case "button":
-      return (
+      const btn = (
         <Button onClick={click} size={size}>
           {children}
-          {loading ? (
-            <Icon name="cocalc-ring" spin />
-          ) : (
-            error && (
-              <span style={{ color: COLORS.ANTD_RED_WARN }}>
-                (failed to load)
-              </span>
-            )
-          )}
+          {loading ? <Icon name="cocalc-ring" spin /> : renderError()}
         </Button>
       );
+      if (tooltip) {
+        return <Tooltip title={tooltip}>{btn}</Tooltip>;
+      } else {
+        return btn;
+      }
+    case "link":
+      const aLink = (
+        <a onClick={click} style={{ cursor: "pointer" }}>
+          {children}
+        </a>
+      );
+      const a = tooltip ? <Tooltip title={tooltip}>{aLink}</Tooltip> : aLink;
+      return (
+        <span>
+          {a}
+          {mode === "link" && loading && (
+            <span>
+              <Gap /> <Loading text={loadingText} />
+            </span>
+          )}
+          {renderError()}
+        </span>
+      );
     default:
-      throw Error("invalid mode");
+      console.warn(`LinkRetry: invalid mode "${mode}"`);
   }
 };
 

@@ -1,21 +1,24 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // The "Restart Project" button, which says "Start" like the one at the top if the project isn't running
 
 import { PlayCircleOutlined, SyncOutlined } from "@ant-design/icons";
-import { Button, Popconfirm } from "antd";
+import { Button, ButtonProps, Popconfirm } from "antd";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { redux, useActions } from "@cocalc/frontend/app-framework";
+import { labels } from "@cocalc/frontend/i18n";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import { useProjectState } from "../page/project-state-hook";
 
 interface Props {
   project_id: string;
   disabled?: boolean;
   text?: string;
-  size?;
+  size?: ButtonProps["size"];
   danger?: boolean;
   short?: boolean;
 }
@@ -30,26 +33,37 @@ export function RestartProject({
 }: Props) {
   const actions = useActions("projects");
   const state = useProjectState(project_id);
+  const intl = useIntl();
   const is_running = state.get("state") === "running";
-  const task = is_running ? "Restart" : "Start";
+  const task = intl.formatMessage(
+    {
+      id: "project.settings.restart-project.button.label",
+      defaultMessage: "{is_running, select, true {Restart} other {Start}}",
+    },
+    { is_running },
+  );
   const icon = is_running ? <SyncOutlined /> : <PlayCircleOutlined />;
   const description =
-    text != null ? text : `${task}${short ? "" : " Project"}…`;
+    text != null
+      ? text
+      : `${task}${short ? "" : ` ${intl.formatMessage(labels.project)}`}…`;
 
   const explanation = (
     <div style={{ maxWidth: "300px" }}>
-      Restarting the project server will terminate all processes in the project,
-      update the project code, and start the project running again. Running{" "}
-      <a
-        onClick={() => {
-          redux.getProjectActions(project_id)?.set_active_tab("servers");
+      <FormattedMessage
+        {...labels.project_settings_restart_project_confirm_explanation}
+        values={{
+          a: (ch) => (
+            <a
+              onClick={() => {
+                redux.getProjectActions(project_id)?.showComputeServers();
+              }}
+            >
+              {ch}
+            </a>
+          ),
         }}
-      >
-        compute servers
-      </a>{" "}
-      are not affected. It takes a few seconds, and can fix some issues in case
-      things are not working properly. You'll not lose any files, but you have
-      to start your notebooks and worksheets again.
+      />
     </div>
   );
 
@@ -60,8 +74,13 @@ export function RestartProject({
       title={explanation}
       icon={icon}
       onConfirm={() => actions?.restart_project(project_id)}
-      okText={`Yes, ${task.toLocaleLowerCase()} project`}
-      cancelText="Cancel"
+      okText={
+        <FormattedMessage
+          {...labels.project_settings_restart_project_confirm_ok}
+          values={{ task: task.toLocaleLowerCase() }}
+        />
+      }
+      cancelText={<CancelText />}
     >
       <Button
         disabled={disabled || actions == null}

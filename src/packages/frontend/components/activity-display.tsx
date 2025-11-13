@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { CSS, React } from "../app-framework";
@@ -36,7 +36,7 @@ interface Props {
 
 export const ActivityDisplay: React.FC<Props> = React.memo(
   ({ activity, trunc, on_clear, style }) => {
-    function render_items(): JSX.Element[] {
+    function render_items(): React.JSX.Element[] {
       const n = trunc ?? 80;
       const do_trunc = (s) => trunc_string(s, n);
       return activity.map((desc, i) => (

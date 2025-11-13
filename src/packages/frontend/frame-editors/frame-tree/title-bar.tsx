@@ -1,17 +1,22 @@
 /*
 
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
-import { Button, Input, InputNumber, Popover, Tooltip } from "antd";
+// cSpell:ignore rescan subframe
+
+import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
+import { Button, Dropdown, Input, InputNumber, Popover, Tooltip } from "antd";
+import type { MenuProps } from "antd/lib";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
-import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
+import { useIntl } from "react-intl";
+
 import {
   CSS,
   redux,
@@ -20,43 +25,57 @@ import {
   useState,
 } from "@cocalc/frontend/app-framework";
 import {
+  Gap,
   Icon,
   MenuItem,
   MenuItems,
   r_join,
-  Gap,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { DropdownMenu } from "@cocalc/frontend/components/dropdown-menu";
+import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
+import { StandaloneComputeServerDocStatus } from "@cocalc/frontend/compute/standalone-doc-status";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { copy, path_split, trunc_middle, field_cmp } from "@cocalc/util/misc";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
+import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
+import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { ACTIVITY_BAR_TOGGLE_LABELS } from "@cocalc/frontend/project/page/activity-bar-consts";
+import { AIGenerateDocumentModal } from "@cocalc/frontend/project/page/home-page/ai-generate-document";
+import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
+import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+import userTracking from "@cocalc/frontend/user-tracking";
+import {
+  copy,
+  field_cmp,
+  filename_extension,
+  path_split,
+  trunc_middle,
+} from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
-import { SaveButton } from "./save-button";
-import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
-import LanguageModelTitleBarButton from "../chatgpt/title-bar-button";
-import userTracking from "@cocalc/frontend/user-tracking";
-import TitleBarTour from "./title-bar-tour";
-import { IS_MOBILE } from "@cocalc/frontend/feature";
-import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
-import { computeServersEnabled } from "@cocalc/frontend/compute/config";
-import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
+import LanguageModelTitleBarButton from "../llm/llm-assistant-button";
 import {
   APPLICATION_MENU,
   COMMANDS,
-  MENUS,
   GROUPS,
-  SEARCH_COMMANDS,
   ManageCommands,
+  MENUS,
+  SEARCH_COMMANDS,
 } from "./commands";
-const MAX_SEARCH_RESULTS = 10;
-import { StandaloneComputeServerDocStatus } from "@cocalc/frontend/compute/standalone-doc-status";
+import { SaveButton } from "./save-button";
+import TitleBarTour from "./title-bar-tour";
+import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
+import { TITLE_BAR_BORDER } from "./style";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
 // In all cases, we check these are actually defined before calling
 // them to avoid a runtime stacktrace.
-interface FrameActions extends Actions {
+export interface FrameActions extends Actions {
   zoom_page_width?: (id: string) => void;
   zoom_page_height?: (id: string) => void;
   sync?: (id: string, editor_actions: EditorActions) => void;
@@ -66,6 +85,11 @@ interface FrameActions extends Actions {
   clean?: (id: string) => void;
   word_count?: (time: number, force: boolean) => void;
   close_and_halt?: (id: string) => void;
+  stop_build?: (id: string) => void;
+
+  // optional, set in frame-editors/jupyter-editor/editor.ts → initMenus
+  jupyter_actions?: JupyterActions;
+  frame_actions?: NotebookFrameActions;
 }
 
 interface EditorActions extends Actions {
@@ -75,7 +99,7 @@ interface EditorActions extends Actions {
   halt_jupyter?: () => void;
 }
 
-import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+const MAX_SEARCH_RESULTS = 10;
 
 const COL_BAR_BACKGROUND = "#f8f8f8";
 const COL_BAR_BACKGROUND_DARK = COL_BAR_BACKGROUND;
@@ -92,6 +116,7 @@ const title_bar_style: CSS = {
   display: "flex",
 } as const;
 
+// This is characters
 const MAX_TITLE_WIDTH = 20;
 const MAX_TITLE_WIDTH_INACTIVE = 40;
 
@@ -100,7 +125,7 @@ const TITLE_STYLE: CSS = {
   fontSize: "11pt",
   whiteSpace: "nowrap",
   display: "inline-block",
-  maxWidth: `${MAX_TITLE_WIDTH + 2}ex`,
+  maxWidth: "100%",
   overflow: "hidden",
   fontWeight: 500,
 } as const;
@@ -135,7 +160,7 @@ export function ConnectionStatusIcon({ status }: { status: ConnectionStatus }) {
   );
 }
 
-interface Props {
+export interface FrameTitleBarProps {
   actions: FrameActions;
   editor_actions: EditorActions;
   path: string;
@@ -146,7 +171,7 @@ interface Props {
   is_only?: boolean; // is the only frame
   is_public?: boolean; // public view of a file
   is_paused?: boolean;
-  type: string;
+  type: string; // type of editor
   spec: EditorDescription;
   editor_spec: EditorSpec;
   status: string;
@@ -160,7 +185,7 @@ interface Props {
   tab_is_visible?: boolean;
 }
 
-export function FrameTitleBar(props: Props) {
+export function FrameTitleBar(props: FrameTitleBarProps) {
   // Whether this is *the* active currently focused frame:
   const is_active = props.active_id === props.id;
   const track = useMemo(() => {
@@ -175,13 +200,19 @@ export function FrameTitleBar(props: Props) {
     };
   }, [props.project_id, props.path]);
 
+  const intl = useIntl();
+
   const [showMainButtonsPopover, setShowMainButtonsPopover] =
     useState<boolean>(false);
 
   const [close_and_halt_confirm, set_close_and_halt_confirm] =
     useState<boolean>(false);
 
-  const [showAI, setShowAI] = useState<boolean>(false);
+  const [showAIDialogs, setShowAIDialogs] = useState<{
+    main: boolean;
+    popover: boolean;
+  }>({ main: false, popover: false });
+  const [showNewAI, setShowNewAI] = useState<boolean>(false);
 
   const [helpSearch, setHelpSearch] = useState<string>("");
 
@@ -210,23 +241,27 @@ export function FrameTitleBar(props: Props) {
       new ManageCommands({
         props,
         studentProjectFunctionality: student_project_functionality,
-        setShowAI,
+        setShowAI: (val: boolean) =>
+          setShowAIDialogs((prev) => ({ ...prev, main: val })),
+        setShowNewAI,
         helpSearch,
         setHelpSearch,
         readOnly: read_only,
         editorSettings,
+        intl,
       }),
     [
       props,
       student_project_functionality,
       helpSearch,
       setHelpSearch,
-      setShowAI,
+      setShowAIDialogs,
+      setShowNewAI,
       read_only,
       editorSettings,
+      intl,
     ],
   );
-  // window.x = { manageCommands };
 
   const has_unsaved_changes: boolean = useRedux([
     props.editor_actions.name,
@@ -245,6 +280,10 @@ export function FrameTitleBar(props: Props) {
   const otherSettings = useRedux(["account", "other_settings"]);
   //  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
   const darkMode = otherSettings.get("dark_mode");
+  const showSymbolBarLabels = otherSettings.get(
+    "show_symbol_bar_labels",
+    false,
+  );
   const disableTourRefs = useRef<boolean>(false);
   const tourRefs = useRef<{ [name: string]: { current: any } }>({});
   const getTourRef = (name: string) => {
@@ -300,16 +339,18 @@ export function FrameTitleBar(props: Props) {
 
   function render_x(): Rendered {
     return (
-      <Button
-        title={"Close this frame"}
-        key={"close"}
-        size="small"
-        type="text"
-        onClick={click_close}
-        disabled={props.is_only}
+      <Tooltip
+        title={intl.formatMessage({
+          id: "frame_editors.frame_tree.title_bar.close",
+          defaultMessage:
+            "Close this frame. To restore the default layout, close all frames.",
+          description: "Click this X button to close the frame",
+        })}
       >
-        <Icon name={"times"} />
-      </Button>
+        <Button key={"close"} size="small" type="text" onClick={click_close}>
+          <Icon name={"times"} />
+        </Button>
+      </Tooltip>
     );
   }
 
@@ -326,18 +367,17 @@ export function FrameTitleBar(props: Props) {
         <ButtonGroup
           style={{
             padding: "3.5px 0 0 0",
-            background: is_active
-              ? COL_BAR_BACKGROUND
-              : COL_BAR_BACKGROUND_DARK,
             height: button_height(),
             float: "right",
           }}
           key={"control-buttons"}
         >
-          {!props.is_full ? render_split_row() : undefined}
-          {!props.is_full ? render_split_col() : undefined}
-          {!props.is_only ? render_full() : undefined}
-          {render_x()}
+          <span style={is_active ? undefined : { opacity: 0.3 }}>
+            {!props.is_full ? render_split_row() : undefined}
+            {!props.is_full ? render_split_col() : undefined}
+            {!props.is_only ? render_full() : undefined}
+            {render_x()}
+          </span>
         </ButtonGroup>
       </div>
     );
@@ -346,86 +386,104 @@ export function FrameTitleBar(props: Props) {
   function render_full(): Rendered {
     if (props.is_full) {
       return (
-        <Button
-          disabled={props.is_only}
-          title={"Show all frames"}
-          key={"full-screen-button"}
-          size="small"
-          type="text"
-          onClick={() => {
-            track("unset-full");
-            props.actions.unset_frame_full();
-          }}
-          style={{
-            color: darkMode ? "orange" : undefined,
-            background: !darkMode ? "orange" : undefined,
-          }}
+        <Tooltip
+          title={intl.formatMessage({
+            id: "frame_editors.frame_tree.title_bar.minimize",
+            defaultMessage: "Show all frames",
+            description: "Minimize this frame to show all frames",
+          })}
         >
-          <Icon name={"compress"} />
-        </Button>
+          <Button
+            disabled={props.is_only}
+            key={"full-screen-button"}
+            size="small"
+            type="text"
+            onClick={() => {
+              track("unset-full");
+              props.actions.unset_frame_full();
+            }}
+            style={{
+              color: darkMode ? "yellowgreen" : undefined,
+              background: !darkMode ? "yellowgreen" : undefined,
+            }}
+          >
+            <Icon name={"compress"} />
+          </Button>
+        </Tooltip>
       );
     } else {
       return (
-        <Button
-          disabled={props.is_only}
-          key={"full-screen-button"}
-          title={"Show only this frame"}
-          size="small"
-          type="text"
-          onClick={() => {
-            track("set-full");
-            props.actions.set_frame_full(props.id);
-          }}
+        <Tooltip
+          title={intl.formatMessage({
+            id: "frame_editors.frame_tree.title_bar.maximize",
+            defaultMessage: "Show only this frame",
+            description: "Maximize this frame to show only this one",
+          })}
         >
-          <Icon name={"expand"} />
-        </Button>
+          <Button
+            disabled={props.is_only}
+            key={"full-screen-button"}
+            size="small"
+            type="text"
+            onClick={() => {
+              track("set-full");
+              props.actions.set_frame_full(props.id);
+            }}
+          >
+            <Icon name={"expand"} />
+          </Button>
+        </Tooltip>
       );
     }
   }
 
   function render_split_row(): Rendered {
     return (
-      <Button
-        key={"split-row-button"}
-        title={"Split frame horizontally into two rows"}
-        size="small"
-        type="text"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (props.is_full) {
-            track("unset-full");
-            return props.actions.unset_frame_full();
-          } else {
-            track("split-row");
-            return props.actions.split_frame("row", props.id);
-          }
-        }}
+      <Tooltip
+        title={intl.formatMessage(labels.split_frame_horizontally_title)}
       >
-        <Icon name="horizontal-split" />
-      </Button>
+        <Button
+          key={"split-row-button"}
+          size="small"
+          type="text"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (props.is_full) {
+              track("unset-full");
+              return props.actions.unset_frame_full();
+            } else {
+              track("split-row");
+              return props.actions.split_frame("row", props.id);
+            }
+          }}
+        >
+          <Icon name="horizontal-split" />
+        </Button>
+      </Tooltip>
     );
   }
 
   function render_split_col(): Rendered {
     return (
-      <Button
-        key={"split-col-button"}
-        title={"Split frame vertically into two columns"}
-        size="small"
-        type="text"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (props.is_full) {
-            track("unset-full");
-            return props.actions.unset_frame_full();
-          } else {
-            track("split-col");
-            return props.actions.split_frame("col", props.id);
-          }
-        }}
-      >
-        <Icon name="vertical-split" />
-      </Button>
+      <Tooltip title={intl.formatMessage(labels.split_frame_vertically_title)}>
+        <Button
+          key={"split-col-button"}
+          size="small"
+          type="text"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (props.is_full) {
+              track("unset-full");
+              return props.actions.unset_frame_full();
+            } else {
+              track("split-col");
+              return props.actions.split_frame("col", props.id);
+            }
+          }}
+        >
+          <Icon name="vertical-split" />
+        </Button>
+      </Tooltip>
     );
   }
 
@@ -455,11 +513,11 @@ export function FrameTitleBar(props: Props) {
     return (
       <DropdownMenu
         key={"switch-to-file"}
-        button={true}
         style={{
+          margin: "0 -5px",
           height: button_height(),
         }}
-        title={path_split(props.path).tail}
+        title={<>File: {path_split(props.path).tail}</>}
         items={items}
       />
     );
@@ -503,14 +561,32 @@ export function FrameTitleBar(props: Props) {
         <Icon name="history" />
         {noLabel ? undefined : (
           <VisibleMDLG>
-            <span style={{ marginLeft: "5px" }}>TimeTravel</span>
+            <span style={{ marginLeft: "5px" }}>
+              {intl.formatMessage(labels.timetravel)}
+            </span>
           </VisibleMDLG>
         )}
       </Button>
     );
   }
 
-  function renderAssistant(noLabel): Rendered {
+  function renderNewAI() {
+    const { path, project_id } = props;
+    const ext = filename_extension(path);
+    if (!isSupportedExtension(ext)) return;
+
+    return (
+      <AIGenerateDocumentModal
+        key={"new-ai"}
+        ext={ext}
+        show={showNewAI}
+        setShow={setShowNewAI}
+        project_id={project_id}
+      />
+    );
+  }
+
+  function renderAssistant(noLabel, where: "main" | "popover"): Rendered {
     if (
       !manageCommands.isVisible("chatgpt") ||
       !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
@@ -519,19 +595,25 @@ export function FrameTitleBar(props: Props) {
     }
     return (
       <LanguageModelTitleBarButton
-        showDialog={showAI}
-        setShowDialog={setShowAI}
+        path={props.path}
+        type={props.type}
+        showDialog={showAIDialogs[where]}
+        setShowDialog={(value: boolean) => {
+          setShowAIDialogs((prev) => ({ ...prev, [where]: value }));
+        }}
         project_id={props.project_id}
         buttonRef={getTourRef("chatgpt")}
-        key={"ai-button"}
+        key={`ai-button-${where}`}
         id={props.id}
         actions={props.actions}
-        path={props.path}
         buttonSize={button_size()}
         buttonStyle={{
           ...button_style(),
           ...(!darkMode
-            ? { backgroundColor: "#f6bf61", color: "#333" }
+            ? {
+                backgroundColor: COLORS.AI_ASSISTANT_BG,
+                color: COLORS.AI_ASSISTANT_TXT,
+              }
             : undefined),
         }}
         visible={props.tab_is_visible && props.is_visible}
@@ -568,13 +650,17 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
-  function renderSaveTimetravelGroup(): Rendered {
+  function renderSaveTimetravelGroup(where: "main" | "popover"): Rendered {
+    if (props.type == "chat") {
+      // these buttons don't make much sense for side chat.
+      return;
+    }
     const noLabel = IS_MOBILE || !(props.is_only || props.is_full);
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     let x;
     if ((x = renderSaveButton(noLabel))) v.push(x);
     if ((x = renderTimeTravel(noLabel))) v.push(x);
-    if ((x = renderAssistant(noLabel))) v.push(x);
+    if ((x = renderAssistant(noLabel, where))) v.push(x);
     if ((x = renderComputeServer(noLabel))) v.push(x);
     if (v.length == 1) return v[0];
     if (v.length > 0) {
@@ -637,8 +723,10 @@ export function FrameTitleBar(props: Props) {
           key={`menu-${name}`}
           style={MENU_STYLE}
           title={
-            label == APPLICATION_MENU
+            label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
+              : isIntlMessage(label)
+              ? intl.formatMessage(label)
               : label
           }
           items={v}
@@ -651,7 +739,7 @@ export function FrameTitleBar(props: Props) {
   function renderMenus() {
     if (!is_active) return;
 
-    const v: { menu: JSX.Element; pos: number }[] = [];
+    const v: { menu: React.JSX.Element; pos: number }[] = [];
     for (const name in MENUS) {
       const x = renderMenu(name);
       if (x != null) {
@@ -675,11 +763,14 @@ export function FrameTitleBar(props: Props) {
     // seems too horrible right now since it is a selector.
   }
 
-  function renderButtons(style?: CSS, noRefs?): Rendered {
+  function renderButtons(
+    style?: CSS,
+    noRefs?,
+    where: "main" | "popover" = "main",
+  ): Rendered {
     if (!is_active) {
       return (
         <div style={{ display: "flex", width: "100%" }}>
-          {renderSaveTimetravelGroup()}
           <div style={{ flex: 1, textAlign: "center" }}>{renderTitle()}</div>
         </div>
       );
@@ -705,14 +796,15 @@ export function FrameTitleBar(props: Props) {
         disableTourRefs.current = true;
       }
 
-      const v: (JSX.Element | undefined | null)[] = [];
-      v.push(renderSaveTimetravelGroup());
+      const v: (React.JSX.Element | undefined | null)[] = [];
+      v.push(renderSaveTimetravelGroup(where));
       if (props.title != null) {
         v.push(renderTitle());
       }
       v.push(renderPage());
-      v.push(renderMenus());
+      v.push(renderNewAI());
       v.push(renderSwitchToFile());
+      v.push(renderMenus());
 
       const w: Rendered[] = [];
       for (const c of v) {
@@ -757,9 +849,12 @@ export function FrameTitleBar(props: Props) {
   }
 
   function allButtonsPopover() {
+    if (!is_active) {
+      return null;
+    }
     return (
       <Popover
-        overlayStyle={{ zIndex: 990 }}
+        styles={{ root: { zIndex: 990 } }}
         open={
           props.tab_is_visible && props.is_visible && showMainButtonsPopover
         }
@@ -778,7 +873,11 @@ export function FrameTitleBar(props: Props) {
                   marginRight: "3px",
                 }}
               >
-                {renderButtons({ maxHeight: "50vh", display: "block" }, true)}
+                {renderButtons(
+                  { maxHeight: "50vh", display: "block" },
+                  true,
+                  "popover",
+                )}
               </div>
               <div>
                 {renderFrameControls()}
@@ -786,7 +885,7 @@ export function FrameTitleBar(props: Props) {
                   style={{ float: "right" }}
                   onClick={() => setShowMainButtonsPopover(false)}
                 >
-                  Close
+                  {intl.formatMessage(labels.close)}
                 </Button>
               </div>
               {renderButtonBar(true)}
@@ -823,7 +922,7 @@ export function FrameTitleBar(props: Props) {
     ) {
       return;
     }
-    if (props.connection_status == "connected") {
+    if (props.connection_status === "connected") {
       // To reduce clutter show nothing when connected.
       // NOTE: Keep this consistent with
       // cocalc/src/@cocalc/frontend/project/websocket/websocket-indicator.tsx
@@ -859,15 +958,27 @@ export function FrameTitleBar(props: Props) {
         style={{
           height: button_height(),
           overflow: "hidden",
-          borderRight: "1px solid #d9d9d9",
-          borderTop: "1px solid #d9d9d9",
-          borderBottom: "1px solid #d9d9d9",
+          borderRight: TITLE_BAR_BORDER,
+          borderTop: TITLE_BAR_BORDER,
+          borderBottom: TITLE_BAR_BORDER,
           borderTopRightRadius: "5px",
           borderBottomRightRadius: "5px",
         }}
         noLabel={noLabel}
       />
     );
+  }
+
+  function spec2display(
+    spec: EditorDescription,
+    aspect: "name" | "short",
+  ): string {
+    const label: string | IntlMessage = spec[aspect];
+    if (isIntlMessage(label)) {
+      return intl.formatMessage(label);
+    } else {
+      return label;
+    }
   }
 
   function renderTitle(): Rendered {
@@ -880,24 +991,21 @@ export function FrameTitleBar(props: Props) {
       if (spec != null) {
         if (!title) {
           if (spec.name) {
-            title = spec.name;
+            title = spec2display(spec, "name");
           } else if (spec.short) {
-            title = spec.short;
+            title = spec2display(spec, "short");
           }
         }
       }
     }
-    const label = (
-      <span>
-        {trunc_middle(
-          title,
-          is_active ? MAX_TITLE_WIDTH : MAX_TITLE_WIDTH_INACTIVE,
-        )}
-      </span>
+
+    const label = trunc_middle(
+      title,
+      is_active ? MAX_TITLE_WIDTH : MAX_TITLE_WIDTH_INACTIVE,
     );
 
     if (props.title == null && is_active) {
-      return label;
+      return <>{label}</>;
     }
 
     const body = (
@@ -912,6 +1020,7 @@ export function FrameTitleBar(props: Props) {
         {label}
       </div>
     );
+
     if (title.length >= MAX_TITLE_WIDTH) {
       return (
         <Tooltip title={title} key="title">
@@ -938,7 +1047,7 @@ export function FrameTitleBar(props: Props) {
       >
         Halt the server and close this?
         <Button onClick={() => set_close_and_halt_confirm(false)}>
-          Cancel
+          {intl.formatMessage(labels.cancel)}
         </Button>
         <Button
           danger
@@ -975,6 +1084,11 @@ export function FrameTitleBar(props: Props) {
       return null;
     }
     const { disabled, label, key, children, onClick } = item;
+    const style: CSS = {
+      color: "#333",
+      padding: showSymbolBarLabels ? "0" : "7.5px 0 0 0",
+      height: showSymbolBarLabels ? "36px" : undefined,
+    } as const;
     if (children != null) {
       return (
         <DropdownMenu
@@ -983,7 +1097,7 @@ export function FrameTitleBar(props: Props) {
           title={label}
           items={children}
           button={false}
-          style={{ color: "#333", padding: 0, height: "36px" }}
+          style={style}
         />
       );
     } else {
@@ -994,7 +1108,7 @@ export function FrameTitleBar(props: Props) {
           key={key}
           disabled={disabled}
           onClick={onClick}
-          style={{ color: "#333", padding: 0, height: "36px" }}
+          style={style}
         >
           {label}
         </Button>
@@ -1002,12 +1116,54 @@ export function FrameTitleBar(props: Props) {
     }
   }
 
+  function wrapButtonBarContextMenu(bar: React.JSX.Element) {
+    const showSymbolLabel = (
+      <>
+        <Tooltip
+          title={intl.formatMessage({
+            id: "frame_editors.frame_tree.title_bar.symbols.label.explanation",
+            defaultMessage:
+              "If labels are shown, the symbol bar is placed in its own row beneath the menu – otherwise it is smaller and next to the menu.",
+          })}
+        >
+          <Icon name="signature-outlined" />{" "}
+          {intl.formatMessage(ACTIVITY_BAR_TOGGLE_LABELS, {
+            show: showSymbolBarLabels,
+          })}
+        </Tooltip>
+      </>
+    );
+    const items: MenuProps["items"] = [
+      {
+        key: "toggle-labels",
+        label: showSymbolLabel,
+        onClick: () => {
+          redux
+            .getActions("account")
+            .set_other_settings("show_symbol_bar_labels", !showSymbolBarLabels);
+        },
+      },
+    ];
+    return (
+      <Dropdown
+        trigger={["contextMenu"]}
+        menu={{ items }}
+        overlayStyle={{ maxWidth: "400px" }}
+      >
+        {bar}
+      </Dropdown>
+    );
+  }
+
   function renderButtonBar(popup = false) {
+    if (!is_active) {
+      return null;
+    }
     if (!popup && !editorSettings?.get("extra_button_bar")) {
       return null;
     }
     const w = manageCommands.getToolbarButtons();
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     for (const name of w) {
       const b = renderButtonBarButton(name);
       if (b != null) {
@@ -1017,16 +1173,24 @@ export function FrameTitleBar(props: Props) {
     if (v.length == 0) {
       return null;
     }
-    return (
-      <div
-        style={{
-          borderBottom: popup ? undefined : "1px solid #ccc",
-          background: "#fafafa",
-        }}
-      >
-        <div style={{ margin: "-1px 0 -5px 0" }}>{v}</div>
-      </div>
-    );
+    // if labels are shown, we render two rows – otherwise symbols are next to the menu and frame controls
+    if (showSymbolBarLabels) {
+      return wrapButtonBarContextMenu(
+        <div
+          style={{
+            borderBottom: popup ? undefined : "1px solid #ccc",
+            background: "#fafafa",
+            opacity: is_active ? undefined : 0.3,
+          }}
+        >
+          <div style={{ marginBottom: "-1px", marginTop: "1px" }}>{v}</div>
+        </div>,
+      );
+    } else {
+      return wrapButtonBarContextMenu(
+        <div style={{ marginTop: "3px" }}>{v}</div>,
+      );
+    }
   }
 
   function renderComputeServerDocStatus() {
@@ -1051,11 +1215,15 @@ export function FrameTitleBar(props: Props) {
     if (
       props.page == null ||
       props.pages == null ||
-      manageCommands.isExplicitlyHidden("page")
+      manageCommands.isExplicitlyHidden("page") ||
+      props.type === "output"
     ) {
       // do not render anything unless both page and pages are set
+      // also don't render for latex output panels (they have their own page controls)
+      // but DO render for standalone pdfjs viewers
       return;
     }
+
     let content;
     if (typeof props.pages == "number") {
       // pages contains the number of pages and page must also be a number
@@ -1172,11 +1340,12 @@ export function FrameTitleBar(props: Props) {
           className={"cc-frame-tree-title-bar"}
         >
           {renderMainMenusAndButtons()}
-          {renderConnectionStatus()}
-          {allButtonsPopover()}
+          {is_active && renderConnectionStatus()}
+          {is_active && allButtonsPopover()}
+          {!showSymbolBarLabels ? renderButtonBar() : undefined}
           {renderFrameControls()}
         </div>
-        {renderButtonBar()}
+        {showSymbolBarLabels ? renderButtonBar() : undefined}
         {renderConfirmBar()}
         {hasTour && props.is_visible && props.tab_is_visible && (
           <TitleBarTour refs={tourRefs} />

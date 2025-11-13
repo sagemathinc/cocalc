@@ -1,7 +1,12 @@
-import { CSSProperties, useEffect, useState } from "react";
 import {
-  Checkbox,
+  Alert,
   Button,
+  Card,
+  Checkbox,
+  DatePicker,
+  Flex,
+  Input,
+  Modal,
   Popover,
   Space,
   Spin,
@@ -9,41 +14,74 @@ import {
   Tag,
   Tooltip,
 } from "antd";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { SettingBox } from "@cocalc/frontend/components/setting-box";
-import * as api from "./api";
-import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
-import type { Purchase, Description } from "@cocalc/util/db-schema/purchases";
-import { getAmountStyle } from "@cocalc/util/db-schema/purchases";
-import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { TimeAgo } from "@cocalc/frontend/components/time-ago";
-import { Icon } from "@cocalc/frontend/components/icon";
-import ServiceTag from "./service";
-import { capitalize, plural, round1, round4 } from "@cocalc/util/misc";
-import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
-import Next from "@cocalc/frontend/components/next";
-import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
-import { currency } from "@cocalc/util/misc";
-import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
-import { load_target } from "@cocalc/frontend/history";
-import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import Refresh from "./refresh";
-import ShowError from "@cocalc/frontend/components/error";
-import Export from "./export";
-import EmailStatement from "./email-statement";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import {
+  CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  MutableRefObject,
+} from "react";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import AdminRefund from "./admin-refund";
-import { A } from "@cocalc/frontend/components/A";
-import getSupportURL from "@cocalc/frontend/support/url";
+import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
+import ShowError from "@cocalc/frontend/components/error";
+import { Icon } from "@cocalc/frontend/components/icon";
+import Next from "@cocalc/frontend/components/next";
+import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import {
   ComputeServerDescription,
   ComputeServerNetworkUsageDescription,
+  ComputeServerStorageDescription,
 } from "@cocalc/frontend/compute/purchases";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { load_target } from "@cocalc/frontend/history";
+import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
+import getSupportURL from "@cocalc/frontend/support/url";
+import {
+  ANTHROPIC_PREFIX,
+  GOOGLE_PREFIX,
+  LLM_USERNAMES,
+  MISTRAL_PREFIX,
+  service2model,
+} from "@cocalc/util/db-schema/llm-utils";
+import {
+  QUOTA_SPEC,
+  type ProjectQuota,
+  type Service,
+} from "@cocalc/util/db-schema/purchase-quotas";
+import type { Purchase } from "@cocalc/util/db-schema/purchases";
+import { getAmountStyle } from "@cocalc/util/db-schema/purchases";
+import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import {
+  capitalize,
+  cmp,
+  field_cmp,
+  currency,
+  plural,
+  round1,
+  round2down,
+  round4,
+} from "@cocalc/util/misc";
+import { decimalAdd } from "@cocalc/util/stripe/calc";
+import AdminRefund, { isRefundable } from "./admin-refund";
+import * as api from "./api";
+import EmailStatement from "./email-statement";
+import Export from "./export";
+import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
+import Refresh from "./refresh";
+import ServiceTag from "./service";
+import { LineItemsButton } from "./line-items";
+import { describeNumberOf, SectionDivider } from "./util";
+import PurchasesPlot from "./purchases-plot";
+import searchFilter from "@cocalc/frontend/search/filter";
+import { debounce } from "lodash";
+import dayjs from "dayjs";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 
-const DEFAULT_LIMIT = 150;
+const DEFAULT_LIMIT = 10;
 
 interface Props {
   project_id?: string; // if given, restrict to only purchases that are for things in this project
@@ -51,6 +89,7 @@ interface Props {
   day_statement_id?: number; // if given, restrict to purchases on this day statement.
   month_statement_id?: number; // if given, restrict to purchases on this month statement.
   account_id?: string; // used by admins to specify a different user
+  noTitle?: boolean;
 }
 
 export default function Purchases(props: Props) {
@@ -67,89 +106,88 @@ function Purchases0({
   day_statement_id,
   month_statement_id,
   account_id,
+  noTitle,
 }: Props) {
   const [group, setGroup] = useState<boolean>(!!group0);
-  const [activeOnly, setActiveOnly] = useState<boolean>(false);
-  const [thisMonth, setThisMonth] = useState<boolean>(true);
-  const [noStatement, setNoStatement] = useState<boolean>(false);
+  const [cutoff, setCutoff] = useState<Date | undefined>(undefined);
 
   return (
-    <SettingBox
-      title={
-        <>
-          {account_id && (
-            <Avatar account_id={account_id} style={{ marginRight: "15px" }} />
-          )}
-          {project_id ? (
-            <span>
+    <div>
+      <Card
+        title={
+          noTitle ? undefined : (
+            <>
+              {account_id && (
+                <Avatar
+                  account_id={account_id}
+                  style={{ marginRight: "15px" }}
+                />
+              )}
               {project_id ? (
-                <a onClick={() => load_target("settings/purchases")}>
-                  Purchases
-                </a>
+                <span>
+                  {project_id ? (
+                    <a onClick={() => load_target("settings/purchases")}>
+                      Purchases
+                    </a>
+                  ) : (
+                    "Purchases"
+                  )}{" "}
+                  in <ProjectTitle project_id={project_id} trunc={30} />
+                </span>
               ) : (
-                "Purchases"
-              )}{" "}
-              in <ProjectTitle project_id={project_id} trunc={30} />
-            </span>
-          ) : (
-            <span>
-              <Icon name="table" /> Transactions
-            </span>
+                <span>
+                  <Icon name="credit-card" /> Purchases
+                </span>
+              )}
+            </>
+          )
+        }
+      >
+        <Flex style={{ alignItems: "center" }}>
+          <div style={{ flex: 1 }} />
+          <div>
+            <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
+              <Checkbox
+                checked={group}
+                onChange={(e) => {
+                  setGroup(e.target.checked);
+                }}
+              >
+                Group by service and project
+              </Checkbox>
+            </Tooltip>
+          </div>
+          {group && (
+            <div style={{ marginLeft: "30px" }}>
+              Starting{" "}
+              <DatePicker
+                changeOnBlur
+                allowClear
+                value={cutoff}
+                onChange={setCutoff}
+                disabledDate={(current) => current >= dayjs().startOf("day")}
+              />
+            </div>
           )}
-        </>
-      }
-    >
-      <div>
-        <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
-          <Checkbox
-            checked={group}
-            onChange={(e) => setGroup(e.target.checked)}
-          >
-            Group by service and project
-          </Checkbox>
-        </Tooltip>
-        <Tooltip title="Only show transactions from your current billing month.">
-          <Checkbox
-            checked={thisMonth}
-            onChange={(e) => setThisMonth(e.target.checked)}
-          >
-            Current billing month
-          </Checkbox>
-        </Tooltip>
-        <Tooltip title="Only show transactions that are not on any daily or monthly statement. These should all be from today.">
-          <Checkbox
-            checked={noStatement}
-            onChange={(e) => setNoStatement(e.target.checked)}
-          >
-            Not on any statement yet
-          </Checkbox>
-        </Tooltip>
-        <Tooltip title="Only show unfinished active purchases">
-          <Checkbox
-            disabled={group}
-            checked={!group && activeOnly}
-            onChange={(e) => setActiveOnly(e.target.checked)}
-          >
-            Only Show Active
-          </Checkbox>
-        </Tooltip>
-      </div>
-      <PurchasesTable
-        project_id={project_id}
-        account_id={account_id}
-        group={group}
-        thisMonth={thisMonth}
-        day_statement_id={day_statement_id}
-        month_statement_id={month_statement_id}
-        noStatement={noStatement}
-        showBalance
-        showTotal
-        showRefresh
-        activeOnly={activeOnly}
-      />
-    </SettingBox>
+        </Flex>
+        <PurchasesTable
+          project_id={project_id}
+          account_id={account_id}
+          group={group}
+          day_statement_id={day_statement_id}
+          month_statement_id={month_statement_id}
+          showBalance
+          showTotal
+          cutoff={group ? cutoff : undefined}
+        />
+      </Card>
+    </div>
   );
 }
+
+type PurchaseItem = Partial<
+  Purchase & { sum?: number; filter?: string; balance?: number }
+>;
 
 export function PurchasesTable({
   account_id,
@@ -164,9 +202,9 @@ export function PurchasesTable({
   showTotal,
   showRefresh,
   style,
-  limit = DEFAULT_LIMIT,
   filename,
   activeOnly,
+  refreshRef,
 }: Props & {
   thisMonth?: boolean;
   cutoff?: Date;
@@ -175,83 +213,139 @@ export function PurchasesTable({
   showTotal?: boolean;
   showRefresh?: boolean;
   style?: CSSProperties;
-  limit?: number;
   filename?: string;
   activeOnly?: boolean;
+  refreshRef?;
 }) {
-  const [purchaseRecords, setPurchaseRecords] = useState<
-    Partial<Purchase & { sum?: number }>[] | null
-  >(null);
-  const [purchases, setPurchases] = useState<
-    Partial<Purchase & { sum?: number }>[] | null
+  const [loading, setLoading] = useState<boolean>(false);
+  const [purchaseRecords, setPurchaseRecords] = useState<PurchaseItem[] | null>(
+    null,
+  );
+  const [purchases, setPurchases] = useState<PurchaseItem[] | null>(null);
+  const [filteredPurchases, setFilteredPurchases] = useState<
+    PurchaseItem[] | null
   >(null);
   const [groupedPurchases, setGroupedPurchases] = useState<
-    Partial<Purchase & { sum?: number }>[] | null
+    PurchaseItem[] | null
   >(null);
   const [error, setError] = useState<string>("");
   const [offset, setOffset] = useState<number>(0);
   const [total, setTotal] = useState<number | null>(null);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
-  const [balance, setBalance] = useState<number>(0);
+  const [balance, setBalance] = useState<number | null | undefined>(undefined);
+  const [hasMore, setHasMore] = useState<boolean>(true); // todo
+  const [limit, setLimit] = useState<number>(DEFAULT_LIMIT);
+  const [filter, setFilter] = useState<string>("");
+  const searchFilterRef = useRef<any>(null) as MutableRefObject<
+    (string) => Promise<PurchaseItem[]> | null
+  >;
 
-  const getNextPage = () => {
-    setOffset((prevOffset) => prevOffset + limit);
-  };
-
-  const getPrevPage = () => {
-    setOffset((prevOffset) => Math.max(prevOffset - limit, 0));
-  };
-
-  const getBalance = async () => {
+  const loadMore = async ({ init }: { init? } = {}) => {
     try {
-      const userBalance = account_id
-        ? await api.getBalanceAdmin(account_id)
-        : await api.getBalance();
+      setError("");
+      setLoading(true);
 
-      setBalance(userBalance);
-    } catch (err) {
-      setError(`${err}`);
-    }
-  };
-
-  const getPurchaseRecords = async () => {
-    try {
-      setPurchaseRecords(null);
+      let limit0;
+      if (group) {
+        limit0 = 300;
+      } else {
+        if (purchaseRecords == null) {
+          limit0 = DEFAULT_LIMIT;
+        } else if (init) {
+          limit0 = Math.max(
+            DEFAULT_LIMIT,
+            Math.min(100, purchaseRecords.length),
+          );
+        } else {
+          limit0 = limit;
+        }
+      }
 
       const opts = {
         cutoff,
         day_statement_id,
         month_statement_id,
         group,
-        limit,
+        limit: limit0 + 1,
         no_statement: noStatement,
-        offset,
+        offset: init ? 0 : offset,
         project_id,
         service,
         thisMonth,
       };
-      const x = account_id
+      let { purchases: x, balance } = account_id
         ? await api.getPurchasesAdmin({ ...opts, account_id })
         : await api.getPurchases(opts);
+      setBalance(balance);
+      for (const purchase of x) {
+        getFilter(purchase);
+      }
 
-      setPurchaseRecords(x);
+      // TODO: need getPurchases to tell if there are more or not.
+      setHasMore(x.length == limit0 + 1);
+      x = x.slice(0, limit0);
+
+      if (init) {
+        setOffset(DEFAULT_LIMIT);
+        searchFilterRef.current = await searchFilter({
+          data: x,
+          toString: getFilter,
+        });
+        setPurchaseRecords(x); // put after creating filter so will update view
+      } else {
+        const v: { [id: string]: any } = {};
+        for (const z of (purchaseRecords ?? []).concat(x)) {
+          v[(z as any).id] = z;
+        }
+        const v2 = Object.values(v);
+        v2.sort(field_cmp("id"));
+        v2.reverse();
+        // for next time:
+        setOffset(v2.length);
+        searchFilterRef.current = await searchFilter<PurchaseItem>({
+          data: v2,
+          toString: getFilter,
+        });
+        setPurchaseRecords(v2); // put after creating filter so will update view
+      }
+      setLimit(100);
     } catch (err) {
       setError(`${err}`);
+    } finally {
+      setLoading(false);
     }
   };
 
+  useMemo(() => {
+    if (
+      searchFilterRef.current == null ||
+      !filter?.trim() ||
+      purchases == null
+    ) {
+      setFilteredPurchases(purchases);
+      return;
+    }
+    (async () => {
+      setFilteredPurchases(await searchFilterRef.current(filter));
+    })();
+  }, [filter, purchases]);
+
   const refreshRecords = async () => {
-    await getPurchaseRecords();
-    await getBalance();
+    // [ ] TODO: this needs to instead get only recent records (that could have possibly
+    // changed or been added) and update them.
+    await loadMore({ init: true });
   };
+  if (refreshRef != null) {
+    refreshRef.current = refreshRecords;
+  }
 
   useEffect(() => {
-    getBalance();
-  }, []);
+    loadMore({ init: true });
+  }, [cutoff]);
 
   useEffect(() => {
-    getPurchaseRecords();
-  }, [group, limit, noStatement, offset, project_id, service, thisMonth]);
+    refreshRecords();
+  }, [group, noStatement, project_id, service, thisMonth]);
 
   useEffect(() => {
     if (purchaseRecords == null) {
@@ -262,21 +356,34 @@ export function PurchasesTable({
 
     let b = balance;
     let t = 0;
-    const purchases: Partial<Purchase & { balance: number }>[] = [];
+    const purchases: PurchaseItem[] = [];
     for (const row of purchaseRecords) {
       if (activeOnly && row.cost != null) {
         continue;
       }
       const cost = getCost(row);
       // Compute incremental balance
-      purchases.push({ ...row, balance: b });
-      b += cost;
+      if (b != null) {
+        purchases.push({ ...row, balance: b });
+      } else {
+        purchases.push(row);
+      }
+
+      if (row.pending) {
+        // pending transactions are not include in the total
+        // or the balance
+        continue;
+      }
+      if (b != null) {
+        b = decimalAdd(b, cost);
+      }
 
       // Compute total cost
-      t += cost;
+      t = decimalAdd(t, cost);
     }
 
     if (group) {
+      purchases.sort(field_cmp("service"));
       setGroupedPurchases(purchases);
     } else {
       setPurchases(purchases);
@@ -288,25 +395,71 @@ export function PurchasesTable({
 
   return (
     <div style={style}>
-      <div>
-        <ShowError error={error} setError={setError} />
-        <div style={{ display: "flex" }}>
-          <Export
-            style={{ marginRight: "8px" }}
-            name={
-              filename ??
-              getFilename({ thisMonth, cutoff, limit, offset, noStatement })
-            }
-            data={purchases}
-          />
-          {showRefresh && (
-            <Refresh
-              handleRefresh={refreshRecords}
-              style={{ marginRight: "8px" }}
-            />
+      <SectionDivider
+        loading={loading}
+        onRefresh={() => loadMore({ init: true })}
+      >
+        <Tooltip title="These are transactions made within CoCalc, which includes all purchases and credits resulting from payments.">
+          {group ? (
+            <>
+              All Your Purchases Grouped by Service and Project
+              {cutoff && (
+                <>
+                  {" "}
+                  starting <TimeAgo date={cutoff} />
+                </>
+              )}
+            </>
+          ) : (
+            describeNumberOf({
+              n: purchases?.length,
+              hasMore,
+              loadMore,
+              loading,
+              type: "purchase",
+            })
           )}
-        </div>
-      </div>
+        </Tooltip>
+      </SectionDivider>
+      <ShowError error={error} setError={setError} />
+      <Flex>
+        {!group && (
+          <>
+            <Input.Search
+              allowClear
+              placeholder="Filter purchases..."
+              style={{ maxWidth: "400px" }}
+              onChange={debounce((e) => setFilter(e.target.value ?? ""), 250)}
+            />
+            {filter?.trim() &&
+              filteredPurchases != null &&
+              purchases != null &&
+              filteredPurchases.length != purchases.length && (
+                <Alert
+                  style={{ margin: "-5px 0 0 15px" }}
+                  showIcon
+                  type="warning"
+                  message={`Showing ${filteredPurchases.length} matching ${plural(filteredPurchases.length, "purchase")} and hiding ${purchases.length - filteredPurchases.length} ${plural(purchases.length - filteredPurchases.length, "purchase")}.`}
+                />
+              )}
+          </>
+        )}
+        <div style={{ flex: 1 }} />
+        <Export
+          style={{ margin: "-8px" }}
+          name={
+            filename ??
+            getFilename({ thisMonth, cutoff, limit, offset, noStatement })
+          }
+          data={purchases}
+        />
+        {showRefresh && (
+          <Refresh
+            handleRefresh={refreshRecords}
+            style={{ marginRight: "8px" }}
+          />
+        )}
+      </Flex>
       <div
         style={{
           display: "flex",
@@ -314,29 +467,6 @@ export function PurchasesTable({
           alignItems: "center",
         }}
       >
-        {purchases &&
-          !thisMonth &&
-          purchases.length > 0 &&
-          (purchases.length >= limit || offset > 0) && (
-            <div style={{ marginRight: "10px" }}>
-              Page {Math.floor(offset / limit) + 1}
-            </div>
-          )}
-        {!thisMonth && offset > 0 && (
-          <Button
-            type="default"
-            onClick={getPrevPage}
-            style={{ marginRight: "8px" }}
-          >
-            Previous
-          </Button>
-        )}
-        {!thisMonth && purchases && purchases.length >= limit && (
-          <Button type="default" onClick={getNextPage}>
-            Next
-          </Button>
-        )}
-
         {(day_statement_id != null || month_statement_id != null) && (
           <EmailStatement
             style={{ marginLeft: "8px" }}
@@ -348,7 +478,12 @@ export function PurchasesTable({
         {group ? (
           <GroupedPurchaseTable purchases={groupedPurchases} />
         ) : (
-          <DetailedPurchaseTable purchases={purchases} admin={!!account_id} />
+          <DetailedPurchaseTable
+            purchases={filteredPurchases}
+            admin={!!account_id}
+            refresh={refreshRecords}
+            style={{ maxHeight: "70vh", overflow: "auto" }}
+          />
         )}
       </div>
       <div
@@ -360,31 +495,40 @@ export function PurchasesTable({
           alignItems: "center",
         }}
       >
-        {showTotal && total != null && (
-          <span>Total of Displayed Costs: ${(-total).toFixed(2)}</span>
+        {showTotal && total != null && !filter?.trim() && (
+          <span>Total of Displayed Costs: {currency(-total)}</span>
         )}
-        {showBalance && balance != null && (
-          <span>Current Balance: ${balance.toFixed(2)}</span>
+        {showBalance && balance != null && !filter?.trim() && (
+          <span>Current Balance: {currency(round2down(balance))}</span>
         )}
       </div>
+      {!group && purchases != null && <PurchasesPlot purchases={purchases} />}
     </div>
   );
 }
 
-function GroupedPurchaseTable({ purchases }) {
+export function GroupedPurchaseTable({
+  purchases,
+  hideColumns,
+  style,
+}: {
+  purchases: PurchaseItem[] | null;
+  hideColumns?: Set<string>;
+  style?;
+}) {
   if (purchases == null) {
     return <Spin size="large" />;
   }
   return (
-    <div style={{ overflow: "auto" }}>
+    <div style={{ overflow: "auto", ...style }}>
       <div style={{ minWidth: "600px" }}>
         <Table
-          scroll={{ y: 400 }}
           pagination={false}
           dataSource={purchases}
           rowKey={({ service, project_id }) => `${service}-${project_id}`}
           columns={[
             {
+              hidden: hideColumns?.has("service"),
               title: "Service",
               dataIndex: "service",
               key: "service",
@@ -394,6 +538,7 @@ function GroupedPurchaseTable({ purchases }) {
               render: (service) => <ServiceTag service={service} />,
             },
             {
+              hidden: hideColumns?.has("amount"),
               title: "Amount (USD)",
               dataIndex: "cost",
               key: "cost",
@@ -404,6 +549,7 @@ function GroupedPurchaseTable({ purchases }) {
             },
 
             {
+              hidden: hideColumns?.has("items"),
               title: "Items",
               dataIndex: "count",
               key: "count",
@@ -412,9 +558,20 @@ function GroupedPurchaseTable({ purchases }) {
               sortDirections: ["ascend", "descend"],
             },
             {
+              hidden: hideColumns?.has("project"),
               title: "Project",
               dataIndex: "project_id",
               key: "project_id",
+              sorter: (a: any, b: any) => {
+                const title_a = a.project_id
+                  ? redux.getStore("projects").get_title(a.project_id)
+                  : "";
+                const title_b = a.project_id
+                  ? redux.getStore("projects").get_title(b.project_id)
+                  : "";
+                return cmp(title_a, title_b);
+              },
+              sortDirections: ["ascend", "descend"],
               render: (project_id) =>
                 project_id ? (
                   <ProjectTitle project_id={project_id} trunc={30} />
@@ -429,25 +586,66 @@ function GroupedPurchaseTable({ purchases }) {
   );
 }
 
-function DetailedPurchaseTable({
+export function DetailedPurchaseTable({
   purchases,
   admin,
+  refresh,
+  hideColumns,
+  style,
 }: {
-  purchases: Partial<Purchase & { balance?: number }>[] | null;
-  admin: boolean;
+  purchases: PurchaseItem[] | null;
+  admin?: boolean;
+  refresh?;
+  hideColumns?: Set<string>;
+  style?;
 }) {
+  const [current, setCurrent] = useState<PurchaseItem | undefined>(undefined);
+  const fragment = useTypedRedux("account", "fragment");
+  const [hideBalance, setHideBalance] = useState<boolean>(false);
+  useEffect(() => {
+    if (purchases == null) {
+      return;
+    }
+    let hideBalance = true;
+    for (const purchase of purchases) {
+      if (purchase.balance != null) {
+        hideBalance = false;
+        break;
+      }
+    }
+    setHideBalance(hideBalance);
+    const id = parseInt(fragment?.get("id") ?? Fragment.get()?.id ?? "-1");
+    if (id == -1) {
+      return;
+    }
+    for (const purchase of purchases) {
+      if (purchase.id == id) {
+        setCurrent(purchase);
+        return;
+      }
+    }
+  }, [fragment, purchases]);
+
   if (purchases == null) {
     return <Spin size="large" />;
   }
   return (
-    <div style={{ overflow: "auto" }}>
+    <div style={{ overflow: "auto", ...style }}>
       <div style={{ minWidth: "1000px" }}>
         <Table
-          scroll={{ y: 400 }}
           pagination={false}
           dataSource={purchases}
           rowKey="id"
           columns={[
+            {
+              render: (_, purchase) => {
+                return (
+                  <Button onClick={() => setCurrent(purchase)}>
+                    <Icon name="expand" />
+                  </Button>
+                );
+              },
+            },
             {
               width: "100px",
               title: "Id",
@@ -457,50 +655,21 @@ function DetailedPurchaseTable({
               sortDirections: ["ascend", "descend"],
             },
             {
+              hidden: hideColumns?.has("description"),
               title: "Description",
               dataIndex: "description",
               key: "description",
               width: "35%",
-              render: (
-                _,
-                { id, description, invoice_id, notes, period_end, service },
-              ) => (
-                <div>
-                  <Description
-                    service={service}
-                    description={description}
-                    period_end={period_end}
-                  />
-                  {invoice_id && (
-                    <div
-                      style={{ marginLeft: "15px", display: "inline-block" }}
-                    >
-                      {admin && id != null && <AdminRefund purchase_id={id} />}
-                      {!admin && (
-                        <A
-                          href={getSupportURL({
-                            body: `I would like to request a full refund for transaction ${id}.\n\nEXPLAIN WHAT HAPPENED.  THANKS!`,
-                            subject: `Refund Request: Transaction ${id}`,
-                            type: "purchase",
-                            hideExtra: true,
-                          })}
-                        >
-                          <Icon name="external-link" /> Refund
-                        </A>
-                      )}
-                      <InvoiceLink invoice_id={invoice_id} />
-                    </div>
-                  )}
-                  {notes && (
-                    <StaticMarkdown
-                      style={{ marginTop: "8px" }}
-                      value={`**Notes:** ${notes}`}
-                    />
-                  )}
-                </div>
+              render: (_, purchase) => (
+                <PurchaseDescription
+                  {...(purchase as any)}
+                  admin={admin}
+                  refresh={refresh}
+                />
               ),
             },
             {
+              hidden: hideColumns?.has("time"),
               title: "Time",
               dataIndex: "time",
               key: "time",
@@ -513,6 +682,7 @@ function DetailedPurchaseTable({
               sortDirections: ["ascend", "descend"],
             },
             {
+              hidden: hideColumns?.has("period_start"),
               title: "Period",
               dataIndex: "period_start",
               key: "period",
@@ -528,6 +698,7 @@ function DetailedPurchaseTable({
               sortDirections: ["ascend", "descend"],
             },
             {
+              hidden: hideColumns?.has("project"),
               title: "Project",
               dataIndex: "project_id",
               key: "project_id",
@@ -538,6 +709,7 @@ function DetailedPurchaseTable({
             },
 
             {
+              hidden: hideColumns?.has("service"),
               title: "Service",
               dataIndex: "service",
               key: "service",
@@ -547,6 +719,7 @@ function DetailedPurchaseTable({
               render: (service) => <ServiceTag service={service} />,
             },
             {
+              hidden: hideColumns?.has("amount"),
               title: "Amount (USD)",
               align: "right" as "right",
               dataIndex: "cost",
@@ -554,13 +727,13 @@ function DetailedPurchaseTable({
               render: (_, record) => (
                 <>
                   <Amount record={record} />
-                  <Pending record={record} />
                 </>
               ),
               sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
               sortDirections: ["ascend", "descend"],
             },
             {
+              hidden: hideBalance || hideColumns?.has("balance"),
               title: "Balance (USD)",
               align: "right" as "right",
               dataIndex: "balance",
@@ -571,7 +744,154 @@ function DetailedPurchaseTable({
           ]}
         />
       </div>
+      {current != null && (
+        <PurchaseModal
+          admin={admin}
+          purchase={current}
+          onClose={() => {
+            console.log("calling on close and clearing all fragments");
+            redux.getActions("account").setFragment(undefined);
+            Fragment.clear();
+            // have to setCurrent *after* the above stuff happens,
+            // since it updates 'fragment' via useTypedRedux, and if
+            // we don't wait, then when current because undefined we'll
+            // just pop this up again since fragment is still set.
+            setTimeout(() => {
+              setCurrent(undefined);
+            }, 1);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function PurchaseDescription({
+  id,
+  description,
+  invoice_id,
+  notes,
+  period_end,
+  service,
+  admin,
+  cost,
+  refresh,
+}) {
+  return (
+    <div>
+      <Description
+        service={service}
+        description={description}
+        period_end={period_end}
+      />
+      {description?.credit_id != null && (
+        <div>
+          <a
+            onClick={() => {
+              redux
+                .getActions("account")
+                .setFragment({ id: description.credit_id });
+            }}
+          >
+            Credit Id: {description.credit_id}
+          </a>
+        </div>
+      )}
+      <Flex wrap style={{ marginLeft: "-8px" }}>
+        {description?.["line_items"] != null && (
+          <LineItemsButton
+            lineItems={description["line_items"]}
+            style={{ marginBottom: "15px" }}
+          />
+        )}
+        {description?.refund_purchase_id && (
+          <b style={{ marginLeft: "8px" }}>
+            REFUNDED: Transaction {description.refund_purchase_id}
+          </b>
+        )}
+        {admin &&
+          description?.refund_purchase_id == null &&
+          id != null &&
+          isRefundable(service, invoice_id) && (
+            <AdminRefund
+              purchase_id={id}
+              service={service}
+              cost={cost}
+              refresh={refresh}
+            />
+          )}
+        {invoice_id && (
+          <Space>
+            {!admin && !description?.refund_purchase_id && (
+              <Button
+                size="small"
+                type="link"
+                target="_blank"
+                href={getSupportURL({
+                  body: `I would like to request a full refund for transaction ${id}.\n\nEXPLAIN WHAT HAPPENED.  THANKS!`,
+                  subject: `Refund Request: Transaction ${id}`,
+                  type: "purchase",
+                  hideExtra: true,
+                })}
+              >
+                <Icon name="external-link" /> Refund
+              </Button>
+            )}
+            <InvoiceLink invoice_id={invoice_id} />
+          </Space>
+        )}
+      </Flex>
+      {notes && (
+        <StaticMarkdown
+          style={{ marginTop: "8px" }}
+          value={`**Notes:** ${notes}`}
+        />
+      )}
+    </div>
+  );
+}
+
+function PurchaseModal({ purchase, onClose, admin }) {
+  useEffect(() => {
+    Fragment.set({ id: purchase.id });
+  }, [purchase.id]);
+  return (
+    <Modal
+      width={800}
+      open
+      onOk={onClose}
+      onCancel={onClose}
+      title={<>Purchase Id={purchase.id}</>}
+    >
+      <Space direction="vertical">
+        <PurchaseDescription {...purchase} admin={admin} />
+        <div>
+          Time: <TimeAgo date={purchase.text} />
+        </div>
+        <div>
+          <Active record={purchase} />
+          <Period record={purchase} />
+        </div>
+        <div>
+          {purchase.project_id ? (
+            <>
+              Project: <ProjectTitle project_id={purchase.project_id} />
+            </>
+          ) : undefined}
+        </div>
+        <div>
+          Service: <ServiceTag service={purchase.service} />
+        </div>
+        <div>
+          Amount: <Amount record={purchase} />
+        </div>
+        {purchase.balance != null && (
+          <div>
+            Balance: <Balance balance={purchase.balance} />
+          </div>
+        )}
+      </Space>
+    </Modal>
   );
 }
 
@@ -581,7 +901,13 @@ function Description({ description, period_end, service }) {
   if (description == null) {
     return null;
   }
-  if (service == "openai-gpt-4") {
+
+  if (typeof service !== "string") {
+    // service should be DescriptionType["type"]
+    return null;
+  }
+
+  if (service.startsWith("openai-gpt-")) {
     return (
       <Tooltip
         title={() => (
@@ -592,44 +918,45 @@ function Description({ description, period_end, service }) {
           </div>
         )}
       >
-        GPT-4
+        {QUOTA_SPEC[service].display ?? service}
       </Tooltip>
     );
   }
-  //             <pre>{JSON.stringify(description, undefined, 2)}</pre>
-  if (service == "license") {
-    const { license_id } = description;
+
+  if (
+    service.startsWith(MISTRAL_PREFIX) ||
+    service.startsWith(ANTHROPIC_PREFIX) ||
+    service.startsWith(GOOGLE_PREFIX)
+  ) {
     return (
-      <Popover
-        title={
-          <>
-            Licenses:{" "}
-            {license_id && (
-              <Next href={`licenses/how-used?license_id=${license_id}`}>
-                {license_id}
-              </Next>
-            )}
-          </>
-        }
-        content={() => <>{license_id && <License license_id={license_id} />}</>}
-      >
-        License:{" "}
-        {license_id && (
-          <Next href={`licenses/how-used?license_id=${license_id}`}>
-            {license_id}
-          </Next>
+      <Tooltip
+        title={() => (
+          <div>
+            Prompt tokens: {description.prompt_tokens}
+            <br />
+            Completion tokens: {description.completion_tokens}
+          </div>
         )}
-      </Popover>
+      >
+        {LLM_USERNAMES[service2model(service)] ?? service}
+      </Tooltip>
     );
   }
-  if (service == "credit") {
+
+  // <pre>{JSON.stringify(description, undefined, 2)}</pre>
+  if (service === "license") {
+    const { license_id } = description;
+    return <>License: {license_id && <License license_id={license_id} />}</>;
+  }
+  if (service === "credit") {
     return (
       <Space>
         <Tooltip title="Thank you!">
-          Credit{" "}
+          {description?.description ?? "Credit"}
           {description.voucher_code ? (
             <>
-              from voucher <Tag>{description.voucher_code}</Tag>
+              {" "}
+              For voucher <Tag>{description.voucher_code}</Tag>
             </>
           ) : (
             ""
@@ -638,28 +965,25 @@ function Description({ description, period_end, service }) {
       </Space>
     );
   }
-  if (service == "refund") {
+  if (service === "refund") {
     const { notes, reason, purchase_id } = description;
     return (
-      <Tooltip
-        title={
-          <div>
-            Reason: {capitalize(reason.replace(/_/g, " "))}
-            {!!notes && (
-              <>
-                <br />
-                Notes: {notes}
-              </>
-            )}
-          </div>
-        }
-      >
+      <div>
         Refund Transaction {purchase_id}
-      </Tooltip>
+        <div>
+          Reason: {capitalize(reason.replace(/_/g, " "))}
+          {!!notes && (
+            <>
+              <br />
+              Notes: {notes}
+            </>
+          )}
+        </div>
+      </div>
     );
   }
 
-  if (service == "project-upgrade") {
+  if (service === "project-upgrade") {
     const quota = description?.quota ?? {};
     return (
       <>
@@ -668,7 +992,7 @@ function Description({ description, period_end, service }) {
     );
   }
 
-  if (service == "compute-server") {
+  if (service === "compute-server") {
     return (
       <ComputeServerDescription
         description={description}
@@ -677,7 +1001,7 @@ function Description({ description, period_end, service }) {
     );
   }
 
-  if (service == "compute-server-network-usage") {
+  if (service === "compute-server-network-usage") {
     return (
       <ComputeServerNetworkUsageDescription
         description={description}
@@ -686,7 +1010,16 @@ function Description({ description, period_end, service }) {
     );
   }
 
-  if (service == "voucher") {
+  if (service === "compute-server-storage") {
+    return (
+      <ComputeServerStorageDescription
+        description={description}
+        period_end={period_end}
+      />
+    );
+  }
+
+  if (service === "voucher") {
     const { title, quantity, voucher_id } = description;
     return (
       <div>
@@ -696,16 +1029,13 @@ function Description({ description, period_end, service }) {
       </div>
     );
   }
-  if (service == "edit-license") {
+  if (service === "edit-license") {
     const { license_id } = description;
     return (
       <Popover
         title={
           <div style={{ fontSize: "13pt" }}>
-            <Icon name="pencil" /> Edited License:{" "}
-            <Next href={`licenses/how-used?license_id=${license_id}`}>
-              {license_id}
-            </Next>
+            <Icon name="pencil" /> Edited License
           </div>
         }
         content={() => (
@@ -725,8 +1055,11 @@ function Description({ description, period_end, service }) {
           </div>
         )}
       >
-        {describeQuotaFromInfo(description.modifiedInfo)}{" "}
-        <LicenseDates info={description.modifiedInfo} />
+        Edit License: <License license_id={license_id} />
+        <div>
+          {describeQuotaFromInfo(description.modifiedInfo)}
+          <LicenseDates info={description.modifiedInfo} />
+        </div>
       </Popover>
     );
   }
@@ -814,6 +1147,7 @@ function InvoiceLink({ invoice_id }) {
   const [unknown, setUnknown] = useState<boolean>(false);
   return (
     <Button
+      size="small"
       disabled={unknown}
       type="link"
       onClick={async () => {
@@ -858,32 +1192,28 @@ function Amount({ record }) {
   if (cost != null) {
     const amount = -cost;
     return (
-      <Tooltip title={` (USD): $${round4(amount)}`}>
-        <span style={getAmountStyle(amount)}>{currency(amount, 2)}</span>
+      <Tooltip title={` (USD): ${currency(round4(amount), 4)}`}>
+        <span
+          style={{
+            ...getAmountStyle(amount),
+            ...(record.pending ? { color: "#999" } : undefined),
+          }}
+        >
+          {currency(amount, 2)}
+        </span>
       </Tooltip>
     );
   }
   return <>-</>;
 }
 
-function Pending({ record }) {
-  if (!record.pending) return null;
-  return (
-    <div>
-      <Tooltip title="The transaction does not yet count against your spending limits.">
-        <Tag style={{ marginRight: 0 }} color="red">
-          Pending
-        </Tag>
-      </Tooltip>
-    </div>
-  );
-}
-
 function Balance({ balance }) {
   if (balance != null) {
     return (
-      <Tooltip title={` (USD): $${round4(balance)}`}>
-        <span style={getAmountStyle(balance)}>{currency(balance, 2)}</span>
+      <Tooltip title={` (USD): ${currency(round4(balance), 4)}`}>
+        <span style={getAmountStyle(balance)}>
+          {currency(round2down(balance), 2)}
+        </span>
       </Tooltip>
     );
   }
@@ -914,8 +1244,8 @@ export function PurchasesButton(props: Props) {
   const [show, setShow] = useState<boolean>(false);
   return (
     <div>
-      <Button onClick={() => setShow(!show)}>
-        <Icon name="table" /> Transactions...
+      <Button onClick={() => setShow(!show)} type={show ? "dashed" : undefined}>
+        <Icon name="table" /> Purchases
       </Button>
       {show && (
         <div style={{ marginTop: "8px" }}>
@@ -927,7 +1257,7 @@ export function PurchasesButton(props: Props) {
 }
 
 // this should match with sql formula in server/purchases/get-balance.ts
-function getCost(row: Partial<Purchase>) {
+function getCost(row: PurchaseItem) {
   if (row.cost != null) {
     return row.cost;
   }
@@ -1018,4 +1348,26 @@ function Period({ record }) {
     }
   }
   return null;
+}
+
+function getFilter(purchase) {
+  if (purchase.filter == null) {
+    purchase.filter = JSON.stringify(purchase).toLowerCase();
+  }
+  return purchase.filter;
+}
+
+function License({ license_id }) {
+  const [open, setOpen] = useState<boolean>(false);
+
+  return (
+    <span>
+      <Button onClick={() => setOpen(!open)}>{license_id}</Button>
+      {open && (
+        <div style={{ maxWidth: "100%", minWidth: "700px" }}>
+          <SiteLicensePublicInfo license_id={license_id} />
+        </div>
+      )}
+    </span>
+  );
 }

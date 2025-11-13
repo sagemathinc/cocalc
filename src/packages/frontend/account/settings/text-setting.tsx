@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Input } from "antd";
@@ -19,7 +19,11 @@ interface Props {
   disabled?: boolean;
 }
 
-export function TextSetting(props: Props): JSX.Element {
+
+// Note -- we disable all password manager autocomplete, since this is a component
+// that's used internally in the app for configuration. See https://github.com/sagemathinc/cocalc/issues/6868
+
+export function TextSetting(props: Props): React.JSX.Element {
   return (
     <LabeledRow
       label={props.label}
@@ -33,6 +37,9 @@ export function TextSetting(props: Props): JSX.Element {
         onPressEnter={props.onPressEnter}
         maxLength={props.maxLength}
         disabled={props.disabled}
+        autoComplete={"off"}
+        data-lpignore="true"
+        data-1p-ignore
       />
     </LabeledRow>
   );

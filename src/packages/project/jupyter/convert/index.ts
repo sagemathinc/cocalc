@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -8,13 +8,12 @@ Node.js interface to nbconvert.
 */
 
 import { executeCode } from "@cocalc/backend/execute-code";
-import ipynbToHtml, { htmlPath } from "./ipynb-to-html";
 import htmlToPDF from "./html-to-pdf";
 import { parseSource, parseTo } from "./util";
-import { join } from "path";
+import { join, parse } from "path";
 import { getLogger } from "@cocalc/project/logger";
 import { sanitize_nbconvert_path } from "@cocalc/util/sanitize-nbconvert";
-import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
+import type { NbconvertParams } from "@cocalc/util/jupyter/types";
 
 const log = getLogger("jupyter-nbconvert");
 
@@ -26,21 +25,6 @@ export async function nbconvert(opts: NbconvertParams): Promise<void> {
     }
 
     let { j, to } = parseTo(opts.args);
-
-    if (to == "cocalc-html" || to == "cocalc-pdf") {
-      // We use our own internal cocalc conversion, since I'm tired of weird subtle issues
-      // with upstream nbconvert...
-      const ipynb = join(opts.directory ?? "", parseSource(opts.args)); // make relative to home directory
-      const html = await ipynbToHtml(ipynb);
-      if (to == "cocalc-html") {
-        return;
-      }
-      if (to == "cocalc-pdf") {
-        await htmlToPDF(html, opts.timeout);
-        return;
-      }
-      throw Error("impossible");
-    }
 
     let convertToPDF = false;
     const originalSource = parseSource(opts.args); // before any mangling for the benefit of nbconvert.
@@ -106,3 +90,10 @@ export async function nbconvert(opts: NbconvertParams): Promise<void> {
     log.debug("finished");
   }
 }
+
+
+function htmlPath(path: string): string {
+  const { dir, name } = parse(path);
+  return join(dir, name + ".html");
+}
+

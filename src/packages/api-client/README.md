@@ -10,7 +10,7 @@ the settings of your project.
 ```sh
 export PROJECT_ID=6640ddad-4bdd-4745-8e63-8db74686a20e
 export API_KEY=sk-FcnRs3NxsTZROgbF000001
-export API_SERVER=http://localhost:9001
+export API_SERVER=http://127.0.0.1:9001
 ```
 
 The run code in node from the shell in the current directory:

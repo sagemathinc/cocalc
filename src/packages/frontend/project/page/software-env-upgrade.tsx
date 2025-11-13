@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 import { Space } from "antd";
 
@@ -56,11 +56,14 @@ const TO_UPGRADE = [
 
 function useComputeImage(project_id) {
   const [compute_image, set_compute_image] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   const project_map = useTypedRedux("projects", "project_map");
   // ? below because reported to be null in some cases of iframe embedding.
-  const current_image = project_map?.getIn([project_id, "compute_image"]) as any;
+  const current_image = project_map?.getIn([
+    project_id,
+    "compute_image",
+  ]) as any;
   if (current_image != compute_image) {
     set_compute_image(current_image);
   }
@@ -89,7 +92,7 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
   const project_state = useProjectState(project_id);
   const is_running = project_state.get("state") === "running";
   const customize_software = useTypedRedux("customize", "software");
-  const [software_envs, dflt_compute_image] = useMemo(() => {
+  const [software_envs, default_compute_image] = useMemo(() => {
     return [
       customize_software.get("environments")?.toJS() as any,
       customize_software.get("default"),
@@ -110,11 +113,21 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
       [UBUNTU2004_DEPRECATED, UBUNTU2004_DEV].indexOf(compute_image) != -1;
 
     // just a safety measure, before accessing .title
-    if (software_envs == null || dflt_compute_image == null) return null;
-    if (software_envs[compute_image] == null) return null;
+    if (software_envs == null || default_compute_image == null) return null;
+
+    // In case there is no information, we can't upgrade or fallback
+    // https://github.com/sagemathinc/cocalc/issues/8141
+    for (const key of [
+      compute_image,
+      UBUNTU2004_DEPRECATED,
+      default_compute_image,
+    ]) {
+      if (software_envs[key] == null) return null;
+    }
+
     const oldname = software_envs[compute_image].title;
     const name2004 = software_envs[UBUNTU2004_DEPRECATED].title;
-    const name2204 = software_envs[dflt_compute_image].title;
+    const name2204 = software_envs[default_compute_image].title;
 
     const KEEP_IMAGE = only2204 ? DISMISS_IMG_2004 : DISMISS_IMG_1804;
 
@@ -134,11 +147,11 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
       }
     }
 
-    function render_conrol_buttons() {
+    function render_control_buttons() {
       if (only2204) {
         return (
           <Button
-            onClick={() => set_image(dflt_compute_image)}
+            onClick={() => set_image(default_compute_image)}
             bsStyle={"primary"}
           >
             Upgrade
@@ -154,7 +167,7 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
               {name2004}
             </Button>
             <Button
-              onClick={() => set_image(dflt_compute_image)}
+              onClick={() => set_image(default_compute_image)}
               bsStyle={"primary"}
             >
               {name2204}
@@ -171,7 +184,7 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
         return (
           <Space>
             <Button onClick={() => set_image(KEEP_IMAGE)}>Keep</Button>
-            {render_conrol_buttons()}
+            {render_control_buttons()}
             <CloseX on_close={() => set_hide(true)} />
           </Space>
         );
@@ -187,7 +200,7 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
       );
     }
 
-    function render_main(): JSX.Element {
+    function render_main(): React.JSX.Element {
       return (
         <Alert
           bsStyle={"info"}

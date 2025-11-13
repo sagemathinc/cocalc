@@ -2,27 +2,24 @@
 Create a stripe checkout session for this user.
 
 See https://stripe.com/docs/api/checkout/sessions
+
+!!!!!WARNING!!!!! Maybe this isn't used anymore?!  See also server/purchases/stripe/get-checkout-session.ts !
 */
 
 import getConn from "@cocalc/server/stripe/connection";
 import getPool from "@cocalc/database/pool";
-import stripeName from "@cocalc/util/stripe/name";
-import { setStripeCustomerId } from "@cocalc/database/postgres/stripe";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import getLogger from "@cocalc/backend/logger";
 import type { Stripe } from "stripe";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 import { currency } from "@cocalc/util/misc";
+import type { LineItem } from "@cocalc/util/stripe/types";
+import { getStripeCustomerId, sanityCheckAmount } from "./stripe/util";
+import { decimalToStripe } from "@cocalc/util/stripe/calc";
 
-const MINIMUM_STRIPE_TRANSACTION = 0.5;  // Stripe requires transactions to be at least $0.50.
+const MINIMUM_STRIPE_TRANSACTION = 0.5; // Stripe requires transactions to be at least $0.50.
 const logger = getLogger("purchases:create-stripe-checkout-session");
-
-interface LineItem {
-  amount: number; // amount in US Dollars
-  description: string;
-}
 
 interface Options {
   account_id: string;
@@ -36,16 +33,14 @@ interface Options {
 export const createStripeCheckoutSession = async (
   opts: Options,
 ): Promise<Stripe.Checkout.Session> => {
-  const {
-    account_id,
-    cancel_url,
-    force,
-    line_items,
-    success_url,
-    token
-  } = opts;
+  const { account_id, cancel_url, force, line_items, success_url, token } =
+    opts;
   logger.debug("createStripeCheckoutSession", opts);
-  const cartTotal = line_items.reduce((total, line_item) => total + line_item.amount, 0);
+
+  const cartTotal = line_items.reduce(
+    (total, line_item) => total + line_item.amount,
+    0,
+  );
 
   // check if there is already a stripe checkout session; if so throw error.
   if (!force && (await getCurrentSession(account_id)) != null) {
@@ -53,23 +48,22 @@ export const createStripeCheckoutSession = async (
   }
 
   if (!force) {
-    const { pay_as_you_go_min_payment } = await getServerSettings();
-    if (!cartTotal || cartTotal < pay_as_you_go_min_payment) {
-      throw Error(`Amount must be at least ${currency(pay_as_you_go_min_payment)}, but it is ${currency(cartTotal)}`);
-    }
+    await sanityCheckAmount(cartTotal);
   } else {
     // Conform to minimum Stripe transaction amount
     if (!cartTotal || cartTotal < MINIMUM_STRIPE_TRANSACTION) {
       line_items.push({
         amount: MINIMUM_STRIPE_TRANSACTION - cartTotal,
-        description: 'Minimum payment processor transaction charge'
+        description: "Minimum payment processor transaction charge",
       });
     }
   }
 
   // Session validation
   if (cartTotal > MAX_COST) {
-    throw Error(`Amount exceeds the maximum allowed amount of ${currency(MAX_COST)}. Please contact support.`);
+    throw Error(
+      `Amount exceeds the maximum allowed amount of ${currency(MAX_COST)}. Please contact support.`,
+    );
   }
   if (line_items.some((item) => !item.description?.trim())) {
     throw Error("all line item descriptions must be nontrivial");
@@ -90,7 +84,7 @@ export const createStripeCheckoutSession = async (
     cancel_url,
     line_items: line_items.map((item) => ({
       price_data: {
-        unit_amount: Math.round(100 * item.amount), // stripe uses pennies not dollars.
+        unit_amount: decimalToStripe(item.amount), // stripe uses pennies not dollars.
         currency: "usd",
         product_data: {
           name: item.description,
@@ -113,9 +107,9 @@ export const createStripeCheckoutSession = async (
       },
     },
     tax_id_collection: { enabled: true },
-    automatic_tax: {
-      enabled: true,
-    },
+//     automatic_tax: {
+//       enabled: true,
+//     },
     customer_update: {
       address: "auto",
       name: "auto",
@@ -124,7 +118,7 @@ export const createStripeCheckoutSession = async (
   });
   await setStripeCheckoutSession({ account_id, session });
   return session;
-}
+};
 
 export const setStripeCheckoutSession = async ({ account_id, session }) => {
   const db = getPool();
@@ -132,80 +126,21 @@ export const setStripeCheckoutSession = async ({ account_id, session }) => {
     "UPDATE accounts SET stripe_checkout_session=$2 WHERE account_id=$1",
     [account_id, { id: session.id, url: session.url }],
   );
-}
-
-export const getStripeCustomerId = async ({
-  account_id,
-  create,
-}: {
-  account_id: string;
-  create: boolean;
-}): Promise<string | undefined> => {
-  const db = getPool();
-  const { rows } = await db.query(
-    "SELECT stripe_customer_id FROM accounts WHERE account_id=$1",
-    [account_id],
-  );
-  const stripe_customer_id = rows[0]?.stripe_customer_id;
-  if (stripe_customer_id) {
-    logger.debug(
-      "getStripeCustomerId",
-      "customer already exists",
-      stripe_customer_id,
-    );
-    return stripe_customer_id;
-  }
-  if (create) {
-    return await createStripeCustomer(account_id);
-  } else {
-    return undefined;
-  }
-}
-
-const createStripeCustomer = async (account_id: string): Promise<string> => {
-  logger.debug("createStripeCustomer", account_id);
-  const db = getPool();
-  const { rows } = await db.query(
-    "SELECT email_address, first_name, last_name FROM accounts WHERE account_id=$1",
-    [account_id],
-  );
-  if (rows.length == 0) {
-    throw Error(`no account ${account_id}`);
-  }
-  const email = rows[0].email_address;
-  const description = stripeName(rows[0].first_name, rows[0].last_name);
-  const stripe = await getConn();
-  const { id } = await stripe.customers.create({
-    description,
-    name: description,
-    email,
-    metadata: {
-      account_id,
-    },
-  });
-  logger.debug("createStripeCustomer", "created ", {
-    id,
-    description,
-    email,
-    account_id,
-  });
-  await setStripeCustomerId(account_id, id);
-  return id;
-}
+};
 
 const getSession = async (
   session_id: string,
 ): Promise<Stripe.Checkout.Session> => {
   const stripe = await getConn();
   return await stripe.checkout.sessions.retrieve(session_id);
-}
+};
 
 const getSessionStatus = async (
   session_id: string,
 ): Promise<"open" | "complete" | "expired" | null> => {
   const session = await getSession(session_id);
   return session.status;
-}
+};
 
 export const getCurrentSession = async (
   account_id: string,
@@ -231,7 +166,7 @@ export const getCurrentSession = async (
     return undefined;
   }
   return session;
-}
+};
 
 export const cancelCurrentSession = async (account_id: string) => {
   const session = await getCurrentSession(account_id);
@@ -248,6 +183,6 @@ export const cancelCurrentSession = async (account_id: string) => {
     throw Error("failed to delete stripe checkout session");
   }
   // it worked :-)
-}
+};
 
 export default createStripeCheckoutSession;

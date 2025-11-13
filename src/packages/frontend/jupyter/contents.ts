@@ -1,14 +1,17 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Parse the Table of Contents information from the notebook structure.
 */
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { List, Map } from "immutable";
-import { IconName } from "@cocalc/frontend/components/icon";
+
+import { parseTableOfContents } from "@cocalc/frontend/markdown";
 
 export interface TableOfContentsInfo {
   id: string;
@@ -19,9 +22,9 @@ export interface TableOfContentsInfo {
   align: "center" | "top";
 }
 
-export function parse_headings(
+export function parseHeadings(
   cells: Map<string, any>,
-  cell_list: List<string>
+  cell_list: List<string>,
 ): TableOfContentsInfo[] {
   const v: TableOfContentsInfo[] = [];
   let last_level: number = 0,
@@ -63,47 +66,44 @@ export function parse_headings(
       }
     }
 
-    if (cell.get("cell_type") != "markdown") return;
+    if (cell.get("cell_type") != "markdown") {
+      return;
+    }
 
     const input = cell.get("input");
-    if (input == null) return; // this is only needed since in types we don't impose any structure on cell yet.
-    const { level, value } = parse_cell_heading(input);
-
-    if (level > 0) {
-      if (last_level != level) {
-        // reset section numbers
-        for (let i = level; i < section_counter.length; i++) {
-          section_counter[i] = 0;
+    if (input == null) {
+      // this is only needed since in types we don't impose any structure on cell yet.
+      return;
+    }
+    for (const { id: markdown_id, level, value } of parseTableOfContents(
+      input,
+    )) {
+      if (level == null) {
+        continue;
+      }
+      if (level > 0) {
+        if (last_level != level) {
+          // reset section numbers
+          for (let i = level; i < section_counter.length; i++) {
+            section_counter[i] = 0;
+          }
+          last_level = level;
         }
-        last_level = level;
+        for (let i = 0; i < level; i++) {
+          if (section_counter[i] == null) section_counter[i] = 0;
+        }
+        section_counter[level - 1] += 1;
+        const cell_id = cell.get("id");
+        if (cell_id == null) return;
+        v.push({
+          id: JSON.stringify({ markdown_id, cell_id }),
+          level,
+          value,
+          number: section_counter.slice(0, level),
+          align: "top",
+        });
       }
-      for (let i = 0; i < level; i++) {
-        if (section_counter[i] == null) section_counter[i] = 0;
-      }
-      section_counter[level - 1] += 1;
-      const id = cell.get("id");
-      if (id == null) return;
-      v.push({
-        id,
-        level,
-        value,
-        number: section_counter.slice(0, level),
-        align: "top",
-      });
     }
   });
   return v;
-}
-
-function parse_cell_heading(input: string): { level: number; value: string } {
-  for (const line of input.split("\n")) {
-    const x = line.trim();
-    if (x[0] != "#") continue;
-    for (let n = 1; n < x.length; n++) {
-      if (x[n] != "#") {
-        return { level: n, value: x.slice(n).trim() };
-      }
-    }
-  }
-  return { level: 0, value: "" }; // no heading in markdown
 }

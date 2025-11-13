@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Layout, List } from "antd";
@@ -24,6 +24,8 @@ import { encodeRange } from "components/store/quota-query-params";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+
+import type { JSX } from "react";
 
 interface Item {
   title: string;
@@ -86,7 +88,7 @@ const training: Item = (() => {
     shared_cores: conf.cpu,
     dedicated_cores: 0,
     academic: false,
-    online: profPrice.discounted_cost,
+    online: profPrice.cost,
     conf,
   };
 })();
@@ -135,7 +137,7 @@ const courseSmall: Item = (() => {
     shared_cores: conf.cpu,
     academic: true,
     retail: price.cost,
-    online: price.discounted_cost,
+    online: price.cost,
     conf,
   };
 })();
@@ -185,7 +187,7 @@ const courseLarge: Item = (() => {
     shared_cores: conf.cpu,
     academic: true,
     retail: price.cost,
-    online: price.discounted_cost,
+    online: price.cost,
     conf,
   };
 })();

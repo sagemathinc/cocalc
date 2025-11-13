@@ -1,5 +1,5 @@
 /*
-Dropdown on frame title bar for running that Jupyter notebook or terminal on a compute server.
+Dropdown on frame title bar for running that on a compute server.
 */
 
 import type { CSSProperties, ReactNode } from "react";
@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Select, Spin, Tooltip } from "antd";
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { cmp } from "@cocalc/util/misc";
-import { Icon, VisibleMDLG } from "@cocalc/frontend/components";
+import { Icon, isIconName, VisibleMDLG } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { capitalize } from "@cocalc/util/misc";
 import { DisplayImage } from "./select-image";
@@ -27,11 +27,12 @@ interface Option {
 interface Props {
   project_id: string;
   value: number | undefined;
-  setValue: (number) => void;
+  setValue?: (number) => void;
   disabled?: boolean;
   size?;
   style?: CSSProperties;
   noLabel?: boolean;
+  fullLabel?: boolean;
   title?: ReactNode;
 }
 
@@ -43,6 +44,7 @@ export default function SelectServer({
   size,
   style,
   noLabel,
+  fullLabel,
   title,
 }: Props) {
   const account_id = useTypedRedux("account", "account_id");
@@ -50,7 +52,7 @@ export default function SelectServer({
     value0 == 0 ? null : value0,
   );
   const setValue = (value) => {
-    setValue0(value ?? 0);
+    setValue0?.(value ?? 0);
     setValue1(value);
   };
   useEffect(() => {
@@ -89,8 +91,15 @@ export default function SelectServer({
     for (const id in computeServers) {
       const server = computeServers[id];
       if (server.deleted) continue;
-      const { color, title, state, configuration, position, account_id } =
-        server;
+      const {
+        color,
+        title,
+        state,
+        configuration,
+        position,
+        account_id,
+        project_specific_id,
+      } = server;
       const { icon } = STATE_INFO[state ?? "off"] ?? {};
       const label = (
         <div
@@ -102,7 +111,7 @@ export default function SelectServer({
           }}
         >
           <div style={{ width: "100%", display: "flex" }}>
-            {icon && (
+            {icon && isIconName(icon) && (
               <Tooltip title={capitalize(state)}>
                 <div>
                   <Icon name={icon} style={{ marginRight: "5px" }} />
@@ -115,7 +124,7 @@ export default function SelectServer({
               </div>
             )}
             {(open || !noLabel) && <div style={{ flex: 1, minWidth: "5px" }} />}
-            <div style={{ marginRight: "15px" }}>Id: {id}</div>
+            <div style={{ marginRight: "15px" }}>Id: {project_specific_id}</div>
           </div>
           {value != Number(id) && (
             <div style={{ marginLeft: "20px" }}>
@@ -151,38 +160,44 @@ export default function SelectServer({
         }
       }
     }
-    const v: { label: JSX.Element; options: Option[] }[] = [
+    const v: { label: React.JSX.Element; options: Option[] }[] = [
       {
-        label: <div style={{ fontSize: "12pt" }}>Default shared resources</div>,
+        label: <div style={{ fontSize: "12pt" }}>Default</div>,
         options: [
           {
             value: "0",
             sort: "project",
             state: "",
             label: (
-              <div
-                style={{
-                  background: PROJECT_COLOR,
-                  color: avatar_fontcolor(PROJECT_COLOR),
-                  padding: "0 5px",
-                  borderRadius: "3px",
-                }}
+              <Tooltip
+                mouseEnterDelay={1}
+                title="The Home Base is the core of your project; it contains your primary files and has limited compute resources to work with them. You can upgrade it using a license.  For GPUs, high end CPUs, and root access use a compute server."
+                placement="right"
               >
-                {value != 0 ? (
-                  <div>
+                <div
+                  style={{
+                    background: PROJECT_COLOR,
+                    color: avatar_fontcolor(PROJECT_COLOR),
+                    padding: "0 5px",
+                    borderRadius: "3px",
+                  }}
+                >
+                  {value != 0 ? (
                     <div>
-                      <Icon name="edit" /> Shared Resources
+                      <div>
+                        <Icon name="edit" /> Home Base
+                      </div>
+                      <div style={{ marginLeft: "15px" }}>
+                        <Icon name="users" /> Standard image
+                      </div>
                     </div>
-                    <div style={{ marginLeft: "15px" }}>
-                      <Icon name="users" /> Default shared image
+                  ) : (
+                    <div style={{ padding: "5px 15px" }}>
+                      <Icon name="edit" /> Home Base
                     </div>
-                  </div>
-                ) : (
-                  <div>
-                    <Icon name="edit" /> Shared Resources
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </Tooltip>
             ),
           },
         ],
@@ -229,13 +244,9 @@ export default function SelectServer({
           label: (
             <div
               onClick={() => {
-                const actions = redux.getProjectActions(project_id);
-                if (actions != null) {
-                  actions.setState({ create_compute_server: true });
-                  actions.set_active_tab("servers", {
-                    change_history: true,
-                  });
-                }
+                redux
+                  .getProjectActions(project_id)
+                  ?.createComputeServerDialog();
               }}
             >
               <Icon name="plus-circle" /> New Compute Server...
@@ -260,7 +271,7 @@ export default function SelectServer({
       title={
         title ??
         `This is open ${
-          !value ? "on the default shared resources" : `on compute server ${value}`
+          !value ? "in your home base" : `on compute server ${value}`
         }.`
       }
     >
@@ -268,7 +279,7 @@ export default function SelectServer({
         disabled={disabled}
         allowClear
         size={size}
-        bordered={false}
+        variant={"borderless"}
         placeholder={
           <span style={{ color: avatar_fontcolor(background) }}>
             <Icon name="server" style={{ fontSize: "13pt" }} />{" "}
@@ -283,7 +294,11 @@ export default function SelectServer({
         onClear={() => {
           setValue(undefined);
         }}
-        value={!open || value == 0 || value == null ? null : `${value}`}
+        value={
+          !(fullLabel || open) || value == 0 || value == null
+            ? null
+            : `${value}`
+        }
         onDropdownVisibleChange={setOpen}
         style={{
           width: open ? "300px" : undefined,

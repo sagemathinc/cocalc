@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -39,10 +39,14 @@ export default function EditorTime() {
   const { project_id, path, actions } = useFrameContext() as unknown as {
     project_id: string;
     path: string;
-    actions: TimeActions;
+    actions?: TimeActions;
   };
   const timers: List<any> | undefined = useRedux(["timers"], project_id, path);
   const error: string | undefined = useRedux(["error"], project_id, path);
+
+  if (timers == null || actions == null) {
+    return <Loading />;
+  }
 
   function renderStopwatches(): ReactNode[] {
     if (timers == null) {
@@ -64,7 +68,7 @@ export default function EditorTime() {
           setCountdown={
             data.countdown != null
               ? (countdown) => {
-                  actions.setCountdown(data.id, countdown);
+                  actions?.setCountdown(data.id, countdown);
                 }
               : undefined
           }
@@ -73,6 +77,9 @@ export default function EditorTime() {
   }
 
   function clickButton(id: number, button: string): void {
+    if (actions == null) {
+      return;
+    }
     switch (button) {
       case "reset":
         actions.resetStopwatch(id);
@@ -93,14 +100,14 @@ export default function EditorTime() {
   }
 
   function setLabel(id: number, label: string): void {
-    actions.setLabel(id, label);
+    actions?.setLabel(id, label);
   }
 
   function renderButtonBar(): ReactNode {
+    if (actions == null) return null;
     return <ButtonBar actions={actions} />;
   }
 
-  if (timers == null) return <Loading />;
   return (
     <div className="smc-vfill">
       {error && <Alert type="error" message={`Error: ${error}`} />}

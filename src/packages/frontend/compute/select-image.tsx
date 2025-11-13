@@ -1,19 +1,20 @@
+import { Icon, isIconName, Markdown } from "@cocalc/frontend/components";
+import { A } from "@cocalc/frontend/components/A";
 import type {
   Architecture,
-  State,
   Configuration,
-  Images,
   GoogleCloudImages,
+  Images,
+  State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { makeValidGoogleName } from "@cocalc/util/db-schema/compute-servers";
-import { Alert, Select, Spin } from "antd";
+import { field_cmp, trunc } from "@cocalc/util/misc";
+import { Alert, Checkbox, Select, Spin } from "antd";
 import { CSSProperties, useEffect, useMemo, useState } from "react";
-import { Icon, Markdown } from "@cocalc/frontend/components";
-import { A } from "@cocalc/frontend/components/A";
-import { field_cmp } from "@cocalc/util/misc";
+import Advanced from "./advanced";
+import { RenderImage } from "./images";
 import { useImages } from "./images-hook";
 import SelectVersion from "./select-version";
-import Advanced from "./advanced";
 
 interface Props {
   setConfig;
@@ -29,6 +30,11 @@ interface Props {
   // view otherwise (explicitly saying images aren't actually available)
   googleImages?: GoogleCloudImages;
   arch: Architecture;
+  // if specified, only show images with dockerSizeGb set and <= maxDockerSizeGb
+  // Ignored if advanced is selected
+  maxDockerSizeGb?: number;
+  // show a warning if dockerSizeGb is bigger than this:
+  warnBigGb?: number;
 }
 
 export default function SelectImage({
@@ -40,15 +46,19 @@ export default function SelectImage({
   gpu,
   googleImages,
   arch,
+  maxDockerSizeGb,
+  warnBigGb,
 }: Props) {
   const [advanced, setAdvanced] = useState<boolean>(false);
   const [IMAGES, ImagesError] = useImages();
+  const [dockerSizeGb, setDockerSizeGb] = useState<number | undefined>(
+    undefined,
+  );
   const [value, setValue] = useState<string | undefined>(configuration.image);
   useEffect(() => {
     setValue(configuration.image);
   }, [configuration.image]);
-  // [ ] TODO: MAYBE we should allow gpu/non-gpu options in
-  // all cases, but just suggest one or the other?
+
   const options = useMemo(() => {
     if (IMAGES == null || typeof IMAGES == "string") {
       return [];
@@ -61,6 +71,7 @@ export default function SelectImage({
       value,
       selectedTag: configuration.tag,
       arch,
+      maxDockerSizeGb,
     });
   }, [IMAGES, gpu, advanced, value, configuration.tag]);
 
@@ -89,14 +100,17 @@ export default function SelectImage({
         placeholder="Select compute server image..."
         defaultOpen={!value && state == "deprovisioned"}
         value={value}
-        style={style}
+        style={{ width: "500px", ...style }}
         options={options}
         onChange={(val) => {
           setValue(val);
-          const x: any = { image: val };
+          const x = {
+            image: val,
+            tag: null,
+          };
           for (const option of options) {
             if (option.value == val) {
-              x.tag = option.tag;
+              setDockerSizeGb(option.dockerSizeGb);
               break;
             }
           }
@@ -115,6 +129,27 @@ export default function SelectImage({
           configuration={configuration}
         />
       )}
+      {warnBigGb && (dockerSizeGb ?? 1) > warnBigGb && (
+        <Alert
+          style={{ margin: "15px 0" }}
+          type="warning"
+          message={<h4>Large Image Warning</h4>}
+          description={
+            <>
+              The compute server will take{" "}
+              <b>up to {Math.ceil((dockerSizeGb ?? 1) / 3)} extra minutes</b> to
+              start the first time, because a {dockerSizeGb} GB Docker image
+              must be pulled and decompressed. Please be patient!
+              <br />
+              <br />
+              <Checkbox>
+                I understand that initial startup will take at least{" "}
+                {Math.ceil((dockerSizeGb ?? 1) / 3)} extra minutes
+              </Checkbox>
+            </>
+          }
+        />
+      )}
     </div>
   );
 }
@@ -127,6 +162,7 @@ function getOptions({
   value,
   selectedTag,
   arch,
+  maxDockerSizeGb,
 }: {
   IMAGES: Images;
   advanced?: boolean;
@@ -135,6 +171,7 @@ function getOptions({
   selectedTag?: string;
   googleImages?: GoogleCloudImages;
   arch: Architecture;
+  maxDockerSizeGb?: number;
 }) {
   const options: {
     key: string;
@@ -142,11 +179,12 @@ function getOptions({
     priority: number;
     value: string;
     search: string;
-    label: JSX.Element;
+    label: React.JSX.Element;
+    dockerSizeGb?: number;
   }[] = [];
   for (const name in IMAGES) {
     const image = IMAGES[name];
-    let { label, icon, versions, priority = 0 } = image;
+    let { label, icon, versions, priority = 0, dockerSizeGb } = image;
     if (image.system) {
       continue;
     }
@@ -155,6 +193,11 @@ function getOptions({
     }
     if (gpu != null && gpu != image.gpu) {
       continue;
+    }
+    if (!advanced && maxDockerSizeGb != null) {
+      if (dockerSizeGb == null || dockerSizeGb > maxDockerSizeGb) {
+        continue;
+      }
     }
     if (!advanced) {
       // restrict to only tested versions.
@@ -165,7 +208,7 @@ function getOptions({
         // on google cloud, so make sure image is built and tested
         versions = versions.filter(
           (y) =>
-            x[`${makeValidGoogleName(y.tag)}-${makeValidGoogleName(arch)}`]
+            x?.[`${makeValidGoogleName(y.tag)}-${makeValidGoogleName(arch)}`]
               ?.tested,
         );
       }
@@ -204,6 +247,9 @@ function getOptions({
         }
       }
     }
+    if (dockerSizeGb) {
+      extra += ` - ${dockerSizeGb} GB`;
+    }
 
     options.push({
       key: name,
@@ -211,10 +257,14 @@ function getOptions({
       priority,
       search: label?.toLowerCase() ?? "",
       tag,
+      dockerSizeGb,
       label: (
         <div style={{ fontSize: "12pt" }}>
           <div style={{ float: "right" }}>{versionLabel}</div>
-          <Icon name={icon} style={{ marginRight: "5px" }} /> {label}
+          {isIconName(icon) && (
+            <Icon name={icon} style={{ marginRight: "5px" }} />
+          )}{" "}
+          {label}
           {image.disabled && <> (disabled)</>}
           {extra}
         </div>
@@ -243,19 +293,32 @@ export function ImageLinks({ image, style }: { image; style? }) {
         display: "flex",
         flexDirection: "column",
         marginTop: "10px",
-        height: "90px", // so not squished vertically
         ...style,
       }}
     >
-      <A style={{ flex: 1 }} href={data.url}>
-        <Icon name="external-link" /> {data.label}
-      </A>
+      {data.videos != null && data.videos.length > 0 && (
+        <A style={{ flex: 1 }} href={data.videos[0]}>
+          <Icon name="youtube" style={{ color: "red" }} /> YouTube
+        </A>
+      )}
+      {data.tutorials != null && data.tutorials.length > 0 && (
+        <A style={{ flex: 1 }} href={data.tutorials[0]}>
+          <Icon name="graduation-cap" /> Tutorial
+        </A>
+      )}
       <A style={{ flex: 1 }} href={data.source}>
-        <Icon name="github" /> Source
+        <Icon name="github" /> GitHub
       </A>
-      <A style={{ flex: 1 }} href={packageNameToUrl(data.package)}>
-        <Icon name="docker" /> dockerhub
-      </A>
+      {!!data.url && (
+        <A style={{ flex: 1 }} href={data.url}>
+          <Icon name="external-link" /> {trunc(data.label, 10)}
+        </A>
+      )}
+      {!!data.package && (
+        <A style={{ flex: 1 }} href={packageNameToUrl(data.package)}>
+          <Icon name="docker" /> DockerHub
+        </A>
+      )}
     </div>
   );
 }
@@ -274,26 +337,17 @@ function packageNameToUrl(name: string): string {
 
 export function DisplayImage({
   configuration,
+  style,
 }: {
   configuration: { image: string };
+  style?;
 }) {
   const [IMAGES, ImagesError] = useImages();
-  if (IMAGES == null) {
-    return <Spin />;
-  }
   if (ImagesError != null) {
     return ImagesError;
   }
-  const { image } = configuration ?? {};
-  if (image == null) return null;
-  const data = IMAGES[image];
-  if (data == null) {
-    return <span>{image}</span>;
-  }
   return (
-    <span>
-      <Icon name={data.icon} style={{ marginRight: "5px" }} /> {data.label}
-    </span>
+    <RenderImage configuration={configuration} style={style} IMAGES={IMAGES} />
   );
 }
 

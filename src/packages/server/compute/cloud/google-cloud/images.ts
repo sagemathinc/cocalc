@@ -18,7 +18,7 @@ train those models is available on github.  But oh my god what a nightmare.
 In any case, typescript for the win here.
 */
 
-import { createDatabaseCache } from "@cocalc/server/compute/database-cache";
+import { createDatabaseCachedResource } from "@cocalc/server/compute/database-cache";
 import { getCredentials } from "./client";
 import { ImagesClient } from "@google-cloud/compute";
 import type {
@@ -27,6 +27,7 @@ import type {
   GoogleCloudImage,
   GoogleCloudImages,
 } from "@cocalc/util/db-schema/compute-servers";
+import { getArchitecture as getArchitecture0 } from "@cocalc/util/db-schema/compute-servers";
 import { makeValidGoogleName } from "@cocalc/util/db-schema/compute-servers";
 import { cmp } from "@cocalc/util/misc";
 import { getGoogleCloudImagePrefix } from "./index";
@@ -76,15 +77,16 @@ export async function getImagesClient() {
 const TTL_MS = 1000 * 60 * 60;
 const GOOGLE_CLOUD_IMAGES_SERVER_SETTINGS = `${COMPUTE_SERVER_IMAGES}-google-cloud`;
 
-export const getAllImages = createDatabaseCache<{
+export const { get: getAllImages } = createDatabaseCachedResource<{
   [name: string]: GoogleCloudImage;
 }>({
-  TTL_MS,
-  NAME: GOOGLE_CLOUD_IMAGES_SERVER_SETTINGS,
+  ttl: TTL_MS,
+  cloud: "google",
+  key: GOOGLE_CLOUD_IMAGES_SERVER_SETTINGS,
   fetchData: fetchImagesFromGoogleCloud,
 });
 
-async function fetchImagesFromGoogleCloud({
+export async function fetchImagesFromGoogleCloud({
   labels,
 }: {
   labels?: object;
@@ -157,7 +159,7 @@ export async function deleteImage(name: string) {
 }
 
 export function getArchitecture(machineType: string): Architecture {
-  return machineType.startsWith("t2a-") ? "arm64" : "x86_64";
+  return getArchitecture0({ machineType, cloud: "google-cloud" } as any);
 }
 
 export async function getSourceImage({

@@ -1,10 +1,12 @@
 import User from "./user";
-import { User as IUser } from "lib/share/types";
+import { ProjectCollaborator } from "lib/api/schema/projects/collaborators/list";
+
+import type { JSX } from "react";
 
 export default function Collaborators({
   collaborators,
 }: {
-  collaborators: IUser[];
+  collaborators: ProjectCollaborator[];
 }) {
   const v: JSX.Element[] = [];
   for (const user of collaborators ?? []) {

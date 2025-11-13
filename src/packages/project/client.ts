@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -27,64 +27,77 @@ import { join } from "node:path";
 import { FileSystemClient } from "@cocalc/sync-client/lib/client-fs";
 import { execute_code, uuidsha1 } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
-import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
+import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import type { ProjectClient as ProjectClientInterface } from "@cocalc/sync/editor/generic/types";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import * as synctable2 from "@cocalc/sync/table";
-import { callback2, once } from "@cocalc/util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import { PROJECT_HUB_HEARTBEAT_INTERVAL_S } from "@cocalc/util/heartbeat";
 import * as message from "@cocalc/util/message";
 import * as misc from "@cocalc/util/misc";
 import type { CB } from "@cocalc/util/types/callback";
 import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 import * as blobs from "./blobs";
-import { symmetric_channel } from "./browser-websocket/symmetric_channel";
 import { json } from "./common";
 import * as data from "./data";
 import initJupyter from "./jupyter/init";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
 import * as sage_session from "./sage_session";
-import { getListingsTable } from "@cocalc/project/sync/listings";
-import { get_synctable } from "./sync/open-synctables";
-import { get_syncdoc } from "./sync/sync-doc";
+import synctable_conat from "@cocalc/project/conat/synctable";
+import pubsub from "@cocalc/project/conat/pubsub";
+import type { ConatSyncTableFunction } from "@cocalc/conat/sync/synctable";
+import {
+  callConatService,
+  createConatService,
+  type CallConatServiceFunction,
+  type CreateConatServiceFunction,
+} from "@cocalc/conat/service";
+import { connectToConat } from "./conat/connection";
+import { getSyncDoc } from "@cocalc/project/conat/open-files";
+import { isDeleted } from "@cocalc/project/conat/listings";
 
 const winston = getLogger("client");
 
 const HOME = process.env.HOME ?? "/home/user";
 
-let DEBUG = false;
-// Easy way to enable debugging in any project anywhere.
-const DEBUG_FILE = join(HOME, ".smc-DEBUG");
-if (fs.existsSync(DEBUG_FILE)) {
-  DEBUG = true;
-} else if (kucalc.IN_KUCALC) {
-  // always make verbose in kucalc, since logs are taken care of by the k8s
-  // logging infrastructure...
-  DEBUG = true;
-} else {
-  winston.info(
-    "create this file to enable very verbose debugging:",
-    DEBUG_FILE,
-  );
+let DEBUG = !!kucalc.IN_KUCALC;
+
+export function initDEBUG() {
+  if (DEBUG) {
+    return;
+  }
+  // // Easy way to enable debugging in any project anywhere.
+  const DEBUG_FILE = join(HOME, ".smc-DEBUG");
+  fs.access(DEBUG_FILE, (err) => {
+    if (err) {
+      // no file
+      winston.info(
+        "create this file to enable very verbose debugging:",
+        DEBUG_FILE,
+      );
+      return;
+    } else {
+      DEBUG = true;
+    }
+    winston.info(`DEBUG = ${DEBUG}`);
+  });
 }
 
-winston.info(`DEBUG = ${DEBUG}`);
-if (!DEBUG) {
-  winston.info(`create ${DEBUG_FILE} for much more verbose logging`);
-}
-
-let client: Client;
+let client: Client | null = null;
 
 export function init() {
   if (client != null) {
-    throw Error("BUG: Client already initialized!");
+    return client;
   }
   client = new Client();
   return client;
 }
 
 export function getClient(): Client {
+  if (client == null) {
+    init();
+  }
   if (client == null) {
     throw Error("BUG: Client not initialized!");
   }
@@ -96,7 +109,7 @@ let ALREADY_CREATED = false;
 type HubCB = CB<any, { event: "error"; error?: string }>;
 
 export class Client extends EventEmitter implements ProjectClientInterface {
-  private project_id: string;
+  public readonly project_id: string;
   private _connected: boolean;
 
   private _hub_callbacks: {
@@ -137,6 +150,10 @@ export class Client extends EventEmitter implements ProjectClientInterface {
       throw Error("BUG: Client already created!");
     }
     ALREADY_CREATED = true;
+    if (process.env.HOME != null) {
+      // client assumes curdir is HOME
+      process.chdir(process.env.HOME);
+    }
     this.project_id = data.project_id;
     this.dbg("constructor")();
     this.setMaxListeners(300); // every open file/table/sync db listens for connect event, which adds up.
@@ -482,36 +499,35 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return synctable2.synctable(query, options, this, throttle_changes);
   }
 
-  // We leave in the project_id for consistency with the browser UI.
-  // And maybe someday we'll have tables managed across projects (?).
-  public async synctable_project(_project_id: string, query, _options) {
-    // TODO: this is ONLY for syncstring tables (syncstrings, patches, cursors).
-    // Also, options are ignored -- since we use whatever was selected by the frontend.
-    const the_synctable = await get_synctable(query, this);
-    // To provide same API, must also wait until done initializing.
-    if (the_synctable.get_state() !== "connected") {
-      await once(the_synctable, "connected");
-    }
-    if (the_synctable.get_state() !== "connected") {
-      throw Error(
-        "Bug -- state of synctable must be connected " + JSON.stringify(query),
-      );
-    }
-    return the_synctable;
-  }
+  conat = () => connectToConat();
+
+  synctable_conat: ConatSyncTableFunction = async (query, options?) => {
+    return await synctable_conat(query, options);
+  };
+
+  pubsub_conat = async ({ path, name }: { path?: string; name: string }) => {
+    return await pubsub({ path, name });
+  };
+
+  callConatService: CallConatServiceFunction = async (options) => {
+    return await callConatService(options);
+  };
+
+  createConatService: CreateConatServiceFunction = (options) => {
+    return createConatService({
+      ...options,
+      project_id: this.project_id,
+    });
+  };
 
   // WARNING: making two of the exact same sync_string or sync_db will definitely
   // lead to corruption!
 
   // Get the synchronized doc with the given path.  Returns undefined
   // if currently no such sync-doc.
-  public syncdoc({ path }: { path: string }): SyncDoc | undefined {
-    return get_syncdoc(path);
-  }
-
-  public symmetric_channel(name) {
-    return symmetric_channel(name);
-  }
+  syncdoc = ({ path }: { path: string }): SyncDoc | undefined => {
+    return getSyncDoc(path);
+  };
 
   public path_access(opts: { path: string; mode: string; cb: CB }): void {
     // mode: sub-sequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
@@ -612,31 +628,23 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   }
 
   // no-op; assumed async api
-  touch_project(_project_id: string) {}
-
-  async get_syncdoc_history(string_id: string, patches = false) {
-    const dbg = this.dbg("get_syncdoc_history");
-    dbg(string_id, patches);
-    const mesg = message.get_syncdoc_history({
-      string_id,
-      patches,
-    });
-    return await callback2(this.call, { message: mesg });
-  }
+  touch_project(_project_id: string, _compute_server_id?: number) {}
 
   // Return true if the file was explicitly deleted.
   // Returns unknown if don't know
   // Returns false if definitely not.
-  public is_deleted(filename: string, _project_id: string) {
-    return getListingsTable()?.isDeleted(filename);
+  public is_deleted(
+    filename: string,
+    _project_id: string,
+  ): boolean | undefined {
+    return isDeleted(filename);
   }
 
   public async set_deleted(
-    filename: string,
+    _filename: string,
     _project_id?: string,
   ): Promise<void> {
-    // project_id is ignored
-    const listings = getListingsTable();
-    return await listings?.setDeleted(filename);
+    // DEPRECATED
+    this.dbg("set_deleted: DEPRECATED");
   }
 }

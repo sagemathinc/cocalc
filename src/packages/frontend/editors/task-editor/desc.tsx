@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -137,7 +137,7 @@ export const Description: React.FC<Props> = React.memo(
           style={{
             position: "absolute",
             right: "25px",
-            bottom: 0,
+            bottom: "-10px",
             background: "white",
             zIndex: 1,
           }}

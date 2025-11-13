@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Layout } from "antd";
@@ -221,17 +221,17 @@ export default function JupyterNotebook({ customize }) {
 
           <Info
             anchor="a-nbgrader"
-            title="NBGrader: automatically grading assignments"
+            title="nbgrader: automatically grading assignments"
             icon="graduation-cap"
             image={Nbgrader}
-            alt="Creating an NBGrader-enhanced Jupyter notebook"
+            alt="Creating an nbgrader-enhanced Jupyter notebook"
           >
             <Paragraph>
               CoCalc's Jupyter Notebooks fully support both{" "}
               <strong>automatic</strong> and <strong>manual grading</strong>!
             </Paragraph>
             <Paragraph>
-              When using NBGrader, the teacher's notebook contains exercise
+              When using nbgrader, the teacher's notebook contains exercise
               cells for students and test cells, some of which students run to
               get immediate feedback. Once collected, you tell CoCalc to
               automatically run the full test suite across all student notebooks
@@ -240,7 +240,7 @@ export default function JupyterNotebook({ customize }) {
             <Paragraph>
               Learn more about{" "}
               <A href="https://doc.cocalc.com/teaching-nbgrader.html">
-                NBGrader in CoCalc
+                nbgrader in CoCalc
               </A>
               .{" "}
             </Paragraph>

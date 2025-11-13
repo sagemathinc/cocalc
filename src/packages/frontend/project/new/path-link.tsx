@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import React from "react";
@@ -21,7 +21,7 @@ export const PathLink = React.memo(function PathLink({
   path,
   actions,
   default_value = "home directory of project",
-}: Props): JSX.Element {
+}: Props): React.JSX.Element {
   const handle_click = React.useCallback(
     function handle_click() {
       actions.set_active_tab("files");

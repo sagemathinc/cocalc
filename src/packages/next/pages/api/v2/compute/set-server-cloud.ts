@@ -8,7 +8,14 @@ import getAccountId from "lib/account/get-account";
 import setServerCloud from "@cocalc/server/compute/set-server-cloud";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import { OkStatus } from "lib/api/status";
+import {
+  SetComputeServerCloudInputSchema,
+  SetComputeServerCloudOutputSchema,
+} from "lib/api/schema/compute/set-server-cloud";
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -28,5 +35,26 @@ async function get(req) {
     id,
     cloud,
   });
-  return { status: "ok" };
+  return OkStatus;
 }
+
+export default apiRoute({
+  setServerCloud: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: SetComputeServerCloudInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: SetComputeServerCloudOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

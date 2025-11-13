@@ -8,23 +8,16 @@
     "./*": "./dist/*.js",
     "./lib/*": "./dist/lib/*.js"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "npx tsc --build",
+    "build": "../node_modules/.bin/tsc --build",
     "clean": "rm -rf node_modules dist",
-    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
+    "depcheck": "pnpx depcheck"
   },
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter"
-  ],
+  "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",
@@ -33,11 +26,10 @@
     "@cocalc/primus-responder": "^1.0.5",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/primus": "^7.3.6",
-    "cookie": "^0.5.0",
-    "debug": "^4.3.2",
-    "primus": "^8.0.7",
-    "ws": "^8.13.0"
+    "cookie": "^1.0.0",
+    "debug": "^4.4.0",
+    "primus": "^8.0.9",
+    "ws": "^8.18.0"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync-client",
   "repository": {
@@ -45,6 +37,10 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/node": "^18.16.14"
+    "@types/cookie": "^0.6.0",
+    "@types/debug": "^4.1.12",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^18.16.14",
+    "@types/primus": "^7.3.9"
   }
 }

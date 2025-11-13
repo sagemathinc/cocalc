@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Katex support -- NOTE: this import of katex is pretty LARGE.
@@ -84,11 +84,18 @@ export const SlateMath: React.FC<Props> = React.memo(
     // putting renderEditMode before is critical since as we type, length of formula changes,
     // and default would move the popover as we type, which is horrible
 
+    // !frameContext.project_id is so that this also works when using editor outside of any
+    // particular project.
+    const open =
+      editMode &&
+      ((frameContext.isFocused && frameContext.isVisible) ||
+        !frameContext.project_id);
+
     return (
       <span contentEditable={false} style={{ cursor: "pointer" }}>
         <Popover
-          open={editMode && frameContext.isFocused && frameContext.isVisible}
-          destroyTooltipOnHide={true}
+          open={open}
+          destroyOnHidden
           title={
             <>
               <Icon name="pencil" style={{ marginRight: "5px" }} />{" "}
@@ -122,5 +129,5 @@ export const SlateMath: React.FC<Props> = React.memo(
         </Popover>
       </span>
     );
-  }
+  },
 );

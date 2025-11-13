@@ -1,19 +1,19 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 X11 Window frame.
 */
 
-import { React, Rendered, TypedMap, useRedux } from "../../app-framework";
-import { Button } from "@cocalc/frontend/antd-bootstrap";
-import { Icon } from "../../components";
-import { APPS } from "@cocalc/comm/x11-apps";
-import { Actions } from "./actions";
-import { Capabilities } from "../../project_configuration";
 import { debounce, keys, sortBy } from "lodash";
+import { APPS } from "@cocalc/comm/x11-apps";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { Rendered, TypedMap, useRedux } from "@cocalc/frontend/app-framework";
+import { Icon, isIconName } from "@cocalc/frontend/components";
+import { Capabilities } from "@cocalc/frontend/project_configuration";
+import { Actions } from "./actions";
 
 function sort_apps(k): string {
   const label = APPS[k].label;
@@ -22,7 +22,7 @@ function sort_apps(k): string {
 }
 
 const APP_KEYS: ReadonlyArray<string> = Object.freeze(
-  sortBy(keys(APPS), sort_apps)
+  sortBy(keys(APPS), sort_apps),
 );
 
 interface Props {
@@ -30,16 +30,12 @@ interface Props {
   name: string;
 }
 
-function isSame(_prev, _next) {
-  return true;
-}
-
-export const Launcher: React.FC<Props> = React.memo((props: Props) => {
+export function Launcher(props: Props) {
   const { actions, name } = props;
 
   const x11_apps: TypedMap<Capabilities> | undefined = useRedux(
     name,
-    "x11_apps"
+    "x11_apps",
   );
 
   const launch = debounce(_launch, 1000, { leading: true, trailing: false });
@@ -55,7 +51,7 @@ export const Launcher: React.FC<Props> = React.memo((props: Props) => {
     if (desc == null) return;
 
     let icon: Rendered = undefined;
-    if (desc.icon != null) {
+    if (desc.icon != null && isIconName(desc.icon)) {
       icon = <Icon name={desc.icon} style={{ marginRight: "5px" }} />;
     }
 
@@ -88,4 +84,4 @@ export const Launcher: React.FC<Props> = React.memo((props: Props) => {
       {render_launchers()}
     </div>
   );
-}, isSame);
+}

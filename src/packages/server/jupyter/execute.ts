@@ -132,7 +132,7 @@ export async function execute({
         "account_id must be specified -- make sure you are signed in",
       );
     }
-    if (!isCollaborator({ project_id, account_id })) {
+    if (!(await isCollaborator({ project_id, account_id }))) {
       throw Error("permission denied -- user must be collaborator on project");
     }
     request_account_id = account_id;
@@ -157,7 +157,8 @@ export async function execute({
     throw Error(resp.error);
   }
   const { output } = resp;
-  log.debug("output", output);
+  // this is HUGE and should not be logged!
+  // log.debug("output", output);
   const total_time_s = (Date.now() - created.valueOf()) / 1000;
   saveResponse({
     created,

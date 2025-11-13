@@ -12,13 +12,13 @@ export default getLogger;
 
 import { setCounter } from "@cocalc/backend/logger";
 
-const metrics_recorder = require("./metrics-recorder");
+import { new_counter } from "@cocalc/server/metrics/metrics-recorder";
 
 // one metric for all WinstonMetrics instances (instead, they have a name and the level!)
-const counter = metrics_recorder.new_counter(
+const counter = new_counter(
   "log_lines_total",
   "counts the number of printed log lines",
-  ["name", "level"]
+  ["name", "level"],
 );
 
 setCounter(counter);

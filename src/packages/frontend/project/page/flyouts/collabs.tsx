@@ -1,10 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert } from "antd";
-
+import { useIntl } from "react-intl";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   AddCollaborators,
@@ -12,15 +11,20 @@ import {
 } from "@cocalc/frontend/collaborators";
 import { Icon, Loading, Paragraph, Title } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { labels } from "@cocalc/frontend/i18n";
 import { useProject } from "../common";
-import { COLLABS_INFO_TEXT } from "../project-collaborators";
+import AdminWarning from "@cocalc/frontend/project/page/admin-warning";
 
 interface CollabsProps {
   project_id: string;
   wrap: Function;
 }
 
-export function CollabsFlyout({ project_id, wrap }: CollabsProps): JSX.Element {
+export function CollabsFlyout({
+  project_id,
+  wrap,
+}: CollabsProps): React.JSX.Element {
+  const intl = useIntl();
   const user_map = useTypedRedux("users", "user_map");
   const student = getStudentProjectFunctionality(project_id);
   const { project, group } = useProject(project_id);
@@ -50,27 +54,13 @@ export function CollabsFlyout({ project_id, wrap }: CollabsProps): JSX.Element {
             />
           </>
         )}
-      </>
+      </>,
     );
   }
 
   function renderAdmin() {
     if (group !== "admin") return;
-    return (
-      <Alert
-        type="warning"
-        banner
-        closable
-        showIcon={false}
-        message={
-          <h4>
-            <strong>
-              Warning: you are editing the project settings as an administrator.
-            </strong>
-          </h4>
-        }
-      />
-    );
+    return <AdminWarning />;
   }
 
   return (
@@ -79,7 +69,7 @@ export function CollabsFlyout({ project_id, wrap }: CollabsProps): JSX.Element {
         type="secondary"
         ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
       >
-        {COLLABS_INFO_TEXT}
+        {intl.formatMessage(labels.collabs_info)}
       </Paragraph>
       {renderAdmin()}
       {renderSettings()}

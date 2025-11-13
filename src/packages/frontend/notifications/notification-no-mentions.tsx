@@ -1,8 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { useIntl } from "react-intl";
 import { CSS } from "@cocalc/frontend/app-framework";
 import { unreachable } from "@cocalc/util/misc";
 import { MentionsFilter } from "./mentions/types";
@@ -15,19 +16,32 @@ interface NoMentionsProps {
 
 export function NoMentions(props: NoMentionsProps) {
   const { filter, style } = props;
+  const intl = useIntl();
   let text = "No new mentions";
   switch (filter) {
     case "unread":
-      text = "No unread mentions";
+      text = intl.formatMessage({
+        id: "notifications.no-mentions.unread",
+        defaultMessage: "No unread mentions",
+      });
       break;
     case "read":
-      text = "No read mentions";
+      text = intl.formatMessage({
+        id: "notifications.no-mentions.read",
+        defaultMessage: "No read mentions",
+      });
       break;
     case "saved":
-      text = "No saved mentions";
+      text = intl.formatMessage({
+        id: "notifications.no-mentions.saved",
+        defaultMessage: "No saved mentions",
+      });
       break;
     case "all":
-      text = "No mentions";
+      text = intl.formatMessage({
+        id: "notifications.no-mentions.all",
+        defaultMessage: "No mentions",
+      });
       break;
     default:
       unreachable(filter);

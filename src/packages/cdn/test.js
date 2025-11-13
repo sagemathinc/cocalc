@@ -6,13 +6,7 @@ describe("test that the built module description object exists and has some prop
   });
 
   it("has versions for the five modules it should have", () => {
-    for (const name of [
-      "bootstrap",
-      "codemirror",
-      "katex",
-      "mathjax",
-      "pdfjs-dist",
-    ]) {
+    for (const name of ["codemirror", "katex"]) {
       expect(obj.versions).toHaveProperty(name);
     }
   });

@@ -1,18 +1,21 @@
 /*
-Get recent (last 10, during last day) paid stripe invoices 
-for the given account, and make sure that we have properly 
-credited the user for them. 
+DEPRECATED
+
+
+Get recent (last 10, during last day) paid stripe invoices
+for the given account, and make sure that we have properly
+credited the user for them.
 
 NOTE: This shouldn't be necessary if webhooks were 100%
 reliable, which maybe they are.  However, for dev purposes,
 and my piece of mind I'm doing this, since I really hate
-the idea of a user paying us and not getting what they 
+the idea of a user paying us and not getting what they
 paid for!  It's nice to have a backup to make sure things
 work, in case either webhooks are messed up, or our handling
 of a webhook is buggy.
 
 RIGHT NOW: This ONLY consideres invoices that are for crediting
-the purchases account. These are defined by having 
+the purchases account. These are defined by having
 
      invoice.metadata.service = "credit"
      invoice.metadata.account_id is set.

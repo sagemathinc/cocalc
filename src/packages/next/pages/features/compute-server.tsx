@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 import { Layout } from "antd";
 
@@ -15,47 +15,76 @@ import SignIn from "components/landing/sign-in";
 import { Paragraph, Text, Title } from "components/misc";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
-import ComputeServerCreate from "public/features/cocalc-compute_server-create-20231127.png";
-import ComputeServerGPU from "public/features/cocalc-compute_server-gpu-20231127.png";
-import ComputeServerSelector from "public/features/cocalc-compute_server-select-20231127.png";
+import runningComputeServer from "public/features/running-compute-server.png";
+import ComputeServerCreate from "public/features/create-compute-server.png";
+import ComputeServerSelector from "public/features/compute-server-select.png";
 import A from "components/misc/A";
+import ComputeServerTemplates from "components/landing/compute-server-templates";
+import Videos from "components/videos";
+
+const VIDEOS = [
+  {
+    id: "7fzLd6HD-Qs",
+    title: "Using Anaconda and Python with a GPU on a compute server on CoCalc",
+  },
+  { id: "OMN1af0LUcA", title: "Using OpenWebUI and Ollama On CoCalc" },
+  { id: "JG6jm6yv_KE", title: "PyTorch with a GPU on CoCalc" },
+  { id: "NkNx6tx3nu0", title: "Running On-Prem Compute Servers on CoCalc" },
+  {
+    id: "Uwn3ngzXD0Y",
+    title: "JAX Quickstart on CoCalc using a GPU (or on CPU)",
+  },
+];
 
 export const component = "Compute Servers";
-export const title = `Enhance your project with ${component}`;
+export const title = `Enhance your Projects with ${component}`;
 export const logo = "servers";
 
 export default function ComputeServer({ customize }) {
-  const { siteName } = customize;
+  const { computeServersEnabled, siteName } = customize;
+  if (!computeServersEnabled) {
+    return <div>Compute Servers are not enabled on this server.</div>;
+  }
   return (
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
         <Header page="features" subPage="compute-server" />
         <Layout.Content>
+          <div style={{ textAlign: "center", margin: "15px 0" }}>
+            <ComputeServerTemplates />
+          </div>
           <Content
             landing
             startup={component}
             body={<Icon name={logo} style={{ fontSize: "128px" }} />}
-            title={title}
+            title={
+              <>
+                Enhance your Projects with{" "}
+                <A href="https://doc.cocalc.com/compute_server.html">
+                  {component}
+                </A>
+              </>
+            }
             subtitleBelow={true}
             subtitle={
               <div>
                 Extend your project's compute capabilities far beyond the bounds
-                of its underlying compute environment.
+                of its underlying compute environment. Read{" "}
+                <A href="https://doc.cocalc.com/compute_server.html">
+                  the documentation
+                </A>
+                .
               </div>
             }
-            image={ComputeServerInfographic}
-            alt={
-              "Illustration of Compute servers enhancing your CoCalc project"
-            }
+            image={runningComputeServer}
+            alt={"A Running Compute Server with an H100 GPU"}
             caption={
               <div style={{ marginTop: "10px" }}>
                 Compute servers enhance your CoCalc project
               </div>
             }
           />
-
           <Pitch
             col1={
               <>
@@ -66,25 +95,32 @@ export default function ComputeServer({ customize }) {
                 <Paragraph>
                   <ul>
                     <li>
+                      <Text strong>GPU's</Text>: select one or more powerful
+                      GPUs for your selected machine, including H100's for about
+                      $2/hour.
+                    </li>
+                    <li>
                       <Text strong>CPU</Text>: you can not only select the
-                      number of CPU cores, but also the type of machine.
+                      number of CPU cores, but also the type of processor, with
+                      support for both x86_64 and ARM.
                     </li>
                     <li>
                       <Text strong>Memory</Text>: depending on the type of
-                      machine, select from the full range of possible memory
-                      configurations.
-                    </li>
-                    <li>
-                      <Text strong>GPU</Text>: select one or more GPUs for your
-                      selected machine
+                      machine, select from a huge range of possible memory
+                      configurations, exceeding 1000 GB.
                     </li>
                     <li>
                       <Text strong>Disk</Text>: configure the size and speed of
                       the provisioned disk
                     </li>
                     <li>
+                      <Text strong>Shared Cloud Disk</Text>: mount a single
+                      shared cloud filesystem across your compute servers
+                    </li>
+                    <li>
                       <Text strong>Hosting</Text>: choose a subdomain, in order
-                      to host any kind of web application
+                      to host web applications, VS Code, JupyterLab, R IDE,
+                      Pluto, and more.
                     </li>
                   </ul>
                 </Paragraph>
@@ -102,7 +138,7 @@ export default function ComputeServer({ customize }) {
                     <li>
                       Use the{" "}
                       <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/colab.md">
-                        Google Colab Softwar Environment with a GPU
+                        Google Colab Software Environment with a GPU
                       </A>
                     </li>
                     <li>
@@ -136,17 +172,13 @@ export default function ComputeServer({ customize }) {
                       </A>{" "}
                       anywhere in the world.
                     </li>
+                    <li>
+                      <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/README.md">
+                        Many more applications...
+                      </A>
+                    </li>
                   </ul>
-                  {/* Not an ideal choice of video -- will change later. */}
-                  <iframe
-                    width="560"
-                    height="315"
-                    src="https://www.youtube.com/embed/kcxyShH3wYE?si=1utaPIniNOXgSJ2N"
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  ></iframe>
+                  <Videos videos={VIDEOS} />
                 </Paragraph>
               </>
             }
@@ -155,23 +187,6 @@ export default function ComputeServer({ customize }) {
           <Info.Heading description={"More details about compute servers"}>
             Compute Server Functionality
           </Info.Heading>
-
-          <Info
-            title="GPU Support"
-            image={ComputeServerGPU}
-            icon="gpu"
-            anchor="a-gpu"
-            alt="GPU support in CoCalc compute servers"
-            wide
-          >
-            <Paragraph>
-              Compute servers have a <Text strong>quick startup time</Text>.
-              Pre-configured Docker images are already pulled into the virtual
-              machine. You neither have to wait a longtime to provision the
-              machine, nor do you have to wait for preparing and installing the
-              ncessary software environment.
-            </Paragraph>
-          </Info>
 
           <Info
             title="Seamless Integration"
@@ -199,7 +214,11 @@ export default function ComputeServer({ customize }) {
             <Paragraph>
               At the end of using the compute machine, you can either stop it to
               preserve the data, or delete it to save the cost of keeping the
-              stored files around.
+              stored files around. You can also store data longterm in our{" "}
+              <A href="https://doc.cocalc.com/cloud_file_system.html">
+                Cloud Filesystem
+              </A>
+              .
             </Paragraph>
           </Info>
 
@@ -212,11 +231,12 @@ export default function ComputeServer({ customize }) {
             wide
           >
             <Paragraph>
-              You can create VM's with over 10TB of RAM, over 400 cores, and up
-              to 65TB of disk space.
+              You can create servers with over 10TB of RAM, over 400 cores, and
+              up to 65TB of disk space.
             </Paragraph>
             <Paragraph>
-              You can choose one or more T4, L4, and A100 GPUs.
+              You can choose from a wide range of GPU's: T4, L4, L40, A100,
+              H100, RTX 4000, 5000, and 6000!
             </Paragraph>
             <Paragraph>
               Many preconfigured software stacks are available, including

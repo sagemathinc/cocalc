@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* The "Account" navigation tab in the bar at the top. */
@@ -11,6 +11,10 @@ import { join } from "path";
 import { CSSProperties } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import {
+  type PreferencesSubTabType,
+  type SettingsPageType,
+} from "@cocalc/util/types/settings";
 import Avatar from "components/account/avatar";
 import {
   menuGroup,
@@ -28,6 +32,16 @@ import { useRouter } from "next/router";
 const DIVIDER = {
   type: "divider",
 } as const;
+
+// Type-safe settings link helper
+type SettingsLink =
+  | `/settings/${SettingsPageType}`
+  | `/settings/preferences/${PreferencesSubTabType}`;
+
+// Helper function to create type-safe settings links with basePath prefix
+function createSettingsLink(path: SettingsLink): string {
+  return join(basePath, path);
+}
 
 interface Props {
   style: CSSProperties;
@@ -71,7 +85,7 @@ export default function AccountNavTab({ style }: Props) {
         {first_name} {last_name}
         {name ? ` (@${name})` : ""}
       </b>
-    </A>
+    </A>,
   );
 
   const docs = menuItem(
@@ -79,29 +93,83 @@ export default function AccountNavTab({ style }: Props) {
     <A href="https://doc.cocalc.com" external>
       Documentation
     </A>,
-    "book"
+    "book",
   );
 
   const configuration = menuGroup(
     "configuration",
-    <A href="/config/search/input">
+    <A href={createSettingsLink("/settings/profile")}>
       <span style={{ color: "#a4acb3" }}>
-        <Icon name="wrench" /> Configuration
+        <Icon name="wrench" /> Account
       </span>
     </A>,
     [
-      menuItem("account", <A href="/config/account/name">Account</A>, "user"),
       menuItem(
-        "editor",
-        <A href="/config/editor/appearance">Editor</A>,
-        "edit"
+        "profile",
+        <A href={createSettingsLink("/settings/profile")}>Profile</A>,
+        "address-card",
       ),
       menuItem(
-        "system",
-        <A href="/config/system/appearance">System</A>,
-        "gear"
+        "settings",
+        <A href={createSettingsLink("/settings/index")}>Settings</A>,
+        "cogs",
       ),
-    ]
+      menuItem(
+        "appearance",
+        <A href={createSettingsLink("/settings/preferences/appearance")}>
+          Appearance
+        </A>,
+        "highlighter",
+      ),
+      menuItem(
+        "communication",
+        <A href={createSettingsLink("/settings/preferences/communication")}>
+          Communication
+        </A>,
+        "mail",
+      ),
+      menuItem(
+        "keys",
+        <A href={createSettingsLink("/settings/preferences/keys")}>
+          SSH & API Keys
+        </A>,
+        "key",
+      ),
+      DIVIDER,
+      menuItem(
+        "subscriptions",
+        <A href={createSettingsLink("/settings/subscriptions")}>
+          Subscriptions
+        </A>,
+        "calendar",
+      ),
+      menuItem(
+        "licenses",
+        <A href={createSettingsLink("/settings/licenses")}>Licenses</A>,
+        "key",
+      ),
+      menuItem(
+        "payg",
+        <A href={createSettingsLink("/settings/payg")}>Pay As You Go</A>,
+        "line-chart",
+      ),
+      DIVIDER,
+      menuItem(
+        "purchases",
+        <A href={createSettingsLink("/settings/purchases")}>Purchases</A>,
+        "money-check",
+      ),
+      menuItem(
+        "payments",
+        <A href={createSettingsLink("/settings/payments")}>Payments</A>,
+        "credit-card",
+      ),
+      menuItem(
+        "statements",
+        <A href={createSettingsLink("/settings/statements")}>Statements</A>,
+        "calendar-week",
+      ),
+    ],
   );
 
   function profileItems() {
@@ -115,8 +183,8 @@ export default function AccountNavTab({ style }: Props) {
           <A href="/config/search/input">
             <b>Sign Up (save your work)!</b>
           </A>,
-          "user"
-        )
+          "user",
+        ),
       );
     }
     ret.push(docs);
@@ -137,31 +205,42 @@ export default function AccountNavTab({ style }: Props) {
         <a href={join(basePath, "projects")}>
           {is_anonymous ? "Project" : "Projects"}
         </a>,
-        "edit"
-      )
+        "edit",
+      ),
     );
 
     if (!is_anonymous) {
-      yours.push(menuItem("licenses", <A href="/licenses">Licenses</A>, "key"));
+      yours.push(
+        menuItem(
+          "messages",
+          <A href="/notifications#page=messages-inbox">Messages</A>,
+          "mail",
+        ),
+      );
+      yours.push(
+        menuItem(
+          "mentions",
+          <A href="/notifications#page=unread">@-Mentions</A>,
+          "comment",
+        ),
+      );
+      yours.push(
+        menuItem(
+          "support",
+          <A href={createSettingsLink("/settings/support")}>Support Tickets</A>,
+          "medkit",
+        ),
+      );
 
-      if (isCommercial) {
-        yours.push(
-          menuItem(
-            "billing",
-            <A href="/billing">Billing Management</A>,
-            "credit-card"
-          )
-        );
-      }
       if (sshGateway) {
         yours.push(
           menuItem(
             "ssh",
-            <A href={join(basePath, "settings", "ssh-keys")} external>
+            <A href={createSettingsLink("/settings/preferences/keys")}>
               SSH Keys
             </A>,
-            "key"
-          )
+            "key",
+          ),
         );
       }
 
@@ -177,12 +256,23 @@ export default function AccountNavTab({ style }: Props) {
             >
               Shared Files
             </A>,
-            "bullhorn"
-          )
+            "bullhorn",
+          ),
         );
 
+        // TODO: redundant with the above?
+        // yours.push(
+        //   menuItem(
+        //     "shared",
+        //     <A href={createSettingsLink("/settings/public-files")}>
+        //       Published Files
+        //     </A>,
+        //     "share-square",
+        //   ),
+        // );
+
         yours.push(
-          menuItem("stars", <A href="/stars">Stars</A>, "star-filled")
+          menuItem("stars", <A href="/stars">Starred Files</A>, "star-filled"),
         );
       }
     }
@@ -193,7 +283,7 @@ export default function AccountNavTab({ style }: Props) {
         <span style={{ color: "#a4acb3" }}>
           <Icon name="user" /> Your...
         </span>,
-        yours
+        yours,
       ),
     ];
   }
@@ -205,7 +295,7 @@ export default function AccountNavTab({ style }: Props) {
       menuItem(
         "admin",
         <a href={join(basePath, "admin")}>Site Administration</a>,
-        "settings"
+        "settings",
       ),
     ];
   }
@@ -221,7 +311,7 @@ export default function AccountNavTab({ style }: Props) {
         }}
       >
         Sign Out
-      </A>
+      </A>,
     ),
   ];
 

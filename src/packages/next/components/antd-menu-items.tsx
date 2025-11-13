@@ -1,12 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import type { MenuProps } from "antd";
-
-import { Icon, isIconName } from "@cocalc/frontend/components/icon";
 import { ReactNode } from "react";
+
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { Icon, isIconName } from "@cocalc/frontend/components/icon";
 
 export type MenuItem = Required<MenuProps>["items"][number];
 export type MenuItems = MenuItem[];
@@ -16,10 +17,16 @@ export function menuItem(
   label: React.ReactNode,
   icon?: React.ReactNode | string,
   children?: MenuItem[],
-  danger?: boolean
+  danger?: boolean,
 ): MenuItem {
-  if (typeof icon === "string" && isIconName(icon)) {
-    icon = <Icon name={icon} />;
+  if (typeof icon === "string") {
+    if (isIconName(icon)) {
+      icon = <Icon name={icon} />;
+    } else if (icon === "ai") {
+      icon = (
+        <AIAvatar size={18} style={{ position: "relative", top: "-12px" }} />
+      );
+    }
   }
   return {
     key,
@@ -34,7 +41,7 @@ export function menuGroup(
   key: React.Key,
   label: React.ReactNode,
   children: MenuItem[],
-  icon?: ReactNode
+  icon?: ReactNode,
 ): MenuItem {
   return {
     key,

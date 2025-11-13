@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { fromJS, Map } from "immutable";
@@ -242,12 +242,6 @@ class Actions implements EditorActions {
         this.frame.actions.store.getIn(["elements", this.id, "str"]) ?? "",
     });
     this.set_cell_input(this.id, new_input);
-  }
-
-  complete_handle_key(_: string, keyCode: number) {
-    if (this.jupyter_actions == null) return;
-    this.jupyter_actions.complete_handle_key(_, keyCode);
-    // TODO -- need to implement this.jupyter_actions.complete_cell somehow..
   }
 
   clear_complete() {

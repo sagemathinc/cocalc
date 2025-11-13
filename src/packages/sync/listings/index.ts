@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { delay } from "awaiting";
@@ -27,7 +27,7 @@ import { DirectoryListingEntry } from "@cocalc/util/types";
 // This is important since we don't want to fire off dozens of changes per second,
 // e.g., if a logfile is being updated.
 const WATCH_DEBOUNCE_MS = parseInt(
-  process.env.COCALC_FS_WATCH_DEBOUNCE_MS ?? "1500",
+  process.env.COCALC_FS_WATCH_DEBOUNCE_MS ?? "500",
 );
 
 // See https://github.com/sagemathinc/cocalc/issues/4623

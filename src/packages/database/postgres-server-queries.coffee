@@ -1,6 +1,6 @@
 #########################################################################
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+# License: MS-RSL – see LICENSE.md for details
 #########################################################################
 
 ###
@@ -10,7 +10,7 @@ These are all the non-reactive non-push queries, e.g., adding entries to logs,
 checking on cookies, creating accounts and projects, etc.
 
 COPYRIGHT : (c) 2017 SageMath, Inc.
-LICENSE   : AGPLv3
+LICENSE   : MS-RSL
 ###
 
 # limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel
@@ -40,7 +40,6 @@ read = require('read')
 
 {PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres-base')
 
-{syncdoc_history} = require('./postgres/syncdoc-history')
 # TODO is set_account_info_if_possible used here?!
 {is_paying_customer, set_account_info_if_possible} = require('./postgres/account-queries')
 {getStripeCustomerId, syncCustomer} = require('./postgres/stripe')
@@ -61,19 +60,11 @@ read = require('read')
 {pii_expire} = require("./postgres/pii")
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 registrationTokens = require('./postgres/registration-tokens').default;
+{updateUnreadMessageCount} = require('./postgres/messages');
+centralLog = require('./postgres/central-log').default;
 
 stripe_name = require('@cocalc/util/stripe/name').default;
 
-# log events, which contain personal information (email, account_id, ...)
-PII_EVENTS = ['create_account',
-              'change_password',
-              'change_email_address',
-              'webapp-add_passport',
-              'get_user_auth_token',
-              'successful_sign_in',
-              'webapp-email_sign_up',
-              'create_account_registration_token'
-             ]
 
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # write an event to the central_log table
@@ -82,27 +73,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             event : required    # string
             value : required    # object
             cb    : undefined
-
-        # always expire central_log entries after 1 year, unless …
-        expire = expire_time(365*24*60*60)
-        # exception events expire earlier
-        if opts.event == 'uncaught_exception'
-            expire = misc.expire_time(30 * 24 * 60 * 60) # del in 30 days
-        else
-            # and user-related events according to the PII time, although "never" falls back to 1 year
-            v = opts.value
-            if v.ip_address? or v.email_address? or opts.event in PII_EVENTS
-                expire = await pii_expire(@) ? expire
-
-        @_query
-            query  : 'INSERT INTO central_log'
-            values :
-                'id::UUID'          : misc.uuid()
-                'event::TEXT'       : opts.event
-                'value::JSONB'      : opts.value
-                'time::TIMESTAMP'   : 'NOW()'
-                'expire::TIMESTAMP' : expire
-            cb     : (err) => opts.cb?(err)
+        try
+            await centralLog(opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err)
 
     uncaught_exception: (err) =>
         # call when things go to hell in some unexpected way; at least
@@ -337,9 +312,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         return await update_account_and_passport(@, opts)
 
     ###
-    Account creation, deletion, existence
+    Creating an account using SSO only.
+    This needs to be rewritten in @cocalc/server like
+    all the other account creation.  This is horrible
+    because
     ###
-    create_account: (opts={}) =>
+    create_sso_account: (opts={}) =>
         opts = defaults opts,
             first_name        : undefined
             last_name         : undefined
@@ -356,7 +334,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             usage_intent      : undefined
             cb                : required       # cb(err, account_id)
 
-        dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name}, #{opts.lti_id}, #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
+        dbg = @_dbg("create_sso_account(#{opts.first_name}, #{opts.last_name}, #{opts.lti_id}, #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
         dbg()
 
         for name in ['first_name', 'last_name']
@@ -619,12 +597,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 'account_id = $::UUID' : opts.account_id
             cb     : opts.cb
 
+    # DEPRECATED: use import accountCreationActions from "@cocalc/server/accounts/account-creation-actions"; instead!!!!
     do_account_creation_actions: (opts) =>
         opts = defaults opts,
             email_address : required
             account_id    : required
             cb            : required
         dbg = @_dbg("do_account_creation_actions(email_address='#{opts.email_address}')")
+        dbg("**DEPRECATED!**  This will miss doing important things, e.g., creating initial project.")
         @account_creation_actions
             email_address : opts.email_address
             cb            : (err, actions) =>
@@ -851,39 +831,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             v[id] = {first_name:undefined, last_name:undefined}
                     opts.cb(err, v)
 
-    get_usernames: (opts) =>
-        opts = defaults opts,
-            account_ids  : required
-            use_cache    : true
-            cache_time_s : 60*60        # one hour
-            cb           : required     # cb(err, map from account_id to object (user name))
-        if not @_validate_opts(opts) then return
-        usernames = {}
-        for account_id in opts.account_ids
-            usernames[account_id] = false
-        if opts.use_cache
-            if not @_account_username_cache?
-                @_account_username_cache = {}
-            for account_id, done of usernames
-                if not done and @_account_username_cache[account_id]?
-                    usernames[account_id] = @_account_username_cache[account_id]
-        @account_ids_to_usernames
-            account_ids : (account_id for account_id,done of usernames when not done)
-            cb          : (err, results) =>
-                if err
-                    opts.cb(err)
-                else
-                    # use a closure so that the cache clear timeout below works
-                    # with the correct account_id!
-                    f = (account_id, username) =>
-                        usernames[account_id] = username
-                        @_account_username_cache[account_id] = username
-                        setTimeout((()=>delete @_account_username_cache[account_id]),
-                                   1000*opts.cache_time_s)
-                    for account_id, username of results
-                        f(account_id, username)
-                    opts.cb(undefined, usernames)
-
     _account_where: (opts) =>
         # account_id > email_address > lti_id
         if opts.account_id
@@ -953,25 +900,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             where : @_account_where(opts)
             cb    : one_result('banned', (err, banned) => opts.cb(err, !!banned))
 
-    _set_ban_user: (opts) =>
-        opts = defaults opts,
-            account_id    : undefined
-            email_address : undefined
-            banned        : required
-            cb            : required
-        if not @_validate_opts(opts) then return
-        @_query
-            query : 'UPDATE accounts'
-            set   : {banned: opts.banned}
-            where : @_account_where(opts)
-            cb    : one_result('banned', opts.cb)
-
-    ban_user: (opts) =>
-        @_set_ban_user(misc.merge(opts, banned:true))
-
-    unban_user: (opts) =>
-        @_set_ban_user(misc.merge(opts, banned:false))
-
     _touch_account: (account_id, cb) =>
         if @_throttle('_touch_account', 120, account_id)
             cb()
@@ -1023,27 +951,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 @record_file_use(project_id:opts.project_id, path:opts.path, action:opts.action, account_id:opts.account_id, cb:cb)
         ], (err)->opts.cb?(err))
 
-    ###
-    Rememberme cookie functionality
-    ###
-    # Save remember me info in the database
-    save_remember_me: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            hash       : required
-            value      : required
-            ttl        : required
-            cb         : required
-        if not @_validate_opts(opts) then return
-        @_query
-            query : 'INSERT INTO remember_me'
-            values :
-                'hash       :: TEXT      ' : opts.hash.slice(0,127)
-                'value      :: JSONB     ' : opts.value
-                'expire     :: TIMESTAMP ' : expire_time(opts.ttl)
-                'account_id :: UUID      ' : opts.account_id
-            conflict : 'hash'
-            cb       : opts.cb
 
     # Invalidate all outstanding remember me cookies for the given account by
     # deleting them from the remember_me key:value store.
@@ -1236,56 +1143,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         )
 
     ###
-    User auth token
-    ###
-    # save an auth token in the database
-    save_auth_token: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            auth_token : required
-            ttl        : 12*3600    # ttl in seconds (default: 12 hours)
-            cb         : required
-        if not @_validate_opts(opts) then return
-        @_query
-            query  : 'INSERT INTO auth_tokens'
-            values :
-                'auth_token :: CHAR(24)  ' : opts.auth_token
-                'expire     :: TIMESTAMP ' : expire_time(opts.ttl)
-                'account_id :: UUID      ' : opts.account_id
-            cb     : opts.cb
-
-    # Get account_id of account with given auth_token.  If it
-    # is not defined, get back undefined instead.
-    get_auth_token_account_id: (opts) =>
-        opts = defaults opts,
-            auth_token : required
-            cb         : required   # cb(err, account_id)
-        @_query
-            query : 'SELECT account_id, expire FROM auth_tokens'
-            where :
-                'auth_token = $::CHAR(24)' : opts.auth_token
-            cb       : one_result (err, x) =>
-                if err
-                    opts.cb(err)
-                else if not x?
-                    opts.cb()  # nothing
-                else if x.expire <= new Date()
-                    opts.cb()
-                else
-                    opts.cb(undefined, x.account_id)
-
-    delete_auth_token: (opts) =>
-        opts = defaults opts,
-            auth_token : required
-            cb         : undefined   # cb(err)
-        @_query
-            query : 'DELETE FROM auth_tokens'
-            where :
-                'auth_token = $::CHAR(24)' : opts.auth_token
-            cb    : opts.cb
-
-
-    ###
     Password reset
     ###
     set_password_reset: (opts) =>
@@ -1372,7 +1229,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             return
 
         # If expire no pii expiration is set, use 1 year as a fallback
-        expire = await pii_expire(@) ? expire_time(365*24*60*60)
+        expire = await pii_expire() ? expire_time(365*24*60*60)
 
         @_query
             query  : 'INSERT INTO file_access_log'
@@ -2544,19 +2401,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         cb    : cb
         ], opts.cb)
 
-    syncdoc_history: (opts) =>
-        opts = defaults opts,
-            string_id : required
-            patches   : false      # if true, include actual patches
-            cb        : required
-        try
-            opts.cb(undefined, await syncdoc_history(@, opts.string_id, opts.patches))
-        catch err
-            opts.cb(err)
-
-    syncdoc_history_async : (string_id, patches) =>
-        return await syncdoc_history(@, string_id, patches)
-
     # async function
     site_license_usage_stats: () =>
         return await site_license_usage_stats(@)
@@ -2669,3 +2513,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async
     registrationTokens: (options, query) =>
         return await registrationTokens(@, options, query)
+
+    updateUnreadMessageCount: (opts) =>
+        return await updateUnreadMessageCount(opts)

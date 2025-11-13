@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+/*
 Add special commands and menus, typically for a specific type of functionality, e.g.,
 Jupyter notebooks or text formatting.
 
@@ -6,23 +11,26 @@ This is basically a more user friendly and compact interface to the addMenus
 and addCommands functions.
 */
 
+import { IconRotation } from "@cocalc/frontend/components/icon";
+import { IntlMessage } from "@cocalc/frontend/i18n";
+import { capitalize } from "@cocalc/util/misc";
 import { addCommands } from "./commands";
 import { addMenus } from "./menus";
 import type { Command, Menus } from "./types";
-import { capitalize } from "@cocalc/util/misc";
 
 type Command0 = {
   icon?: string;
-  label?: string | (({ props }: any) => any);
+  iconRotate?: IconRotation;
+  label?: string | (({ props }: any) => any) | IntlMessage;
   name?: string;
   children?;
   disabled?: ({ props }: { props: any }) => boolean;
 };
 
 type Menu = {
-  label: string;
+  label: string | IntlMessage;
   pos: number;
-  [key: string]: (Partial<Command0> | string)[] | number | string;
+  entries: { [key: string]: (Partial<Command0> | string)[] | number | string };
 };
 
 type EditorMenus = {
@@ -39,30 +47,30 @@ export function addEditorMenus({
   getCommand: (name) => Partial<Command>;
 }) {
   const MENUS: Menus = {};
+  // Q: why do we pick only these properties?
   const COMMANDS: {
-    [name: string]: {
-      group: string;
-      pos: number;
-      children?;
-      label?;
-      icon?;
-      onClick?;
-      disabled?;
-    };
+    [name: string]: Pick<
+      Command,
+      | "group"
+      | "pos"
+      | "children"
+      | "label"
+      | "icon"
+      | "iconRotate"
+      | "onClick"
+      | "disabled"
+    >;
   } = {};
   for (const menuName in editorMenus) {
     const menu = editorMenus[menuName];
     const groups: string[] = [];
-    for (const group in menu) {
-      const data = menu[group];
-      if (typeof data == "string" || typeof data == "number") {
-        // label and pos
-        continue;
-      }
+    const { entries } = menu;
+    for (const group in entries) {
+      const data = entries[group];
       const gp = `${prefix}-${group}`;
       groups.push(gp);
       let pos = -1;
-      for (const cmd of data) {
+      for (const cmd of Object.values(data)) {
         pos += 1;
         if (typeof cmd == "string") {
           COMMANDS[cmd] = { group: gp, pos };
@@ -127,7 +135,7 @@ export function addEditorMenus({
     const { children } = COMMANDS[name];
     const cmdName = `${prefix}-${name}`;
     if (children == null) {
-      // everthing based entirely on spec object.
+      // everything based entirely on spec object.
       C[cmdName] = {
         ...cmd(name),
         ...COMMANDS[name],

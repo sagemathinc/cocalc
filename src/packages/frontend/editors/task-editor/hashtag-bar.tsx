@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -8,14 +8,18 @@ Hashtag bar for selecting which tasks are shown by tags
 */
 
 import { CSSProperties } from "react";
-import { cmp, trunc } from "@cocalc/util/misc";
 import { Tag } from "antd";
+
+import { cmp, trunc } from "@cocalc/util/misc";
+
 const { CheckableTag } = Tag;
-import {
+
+import type {
   HashtagsOfVisibleTasks,
   HashtagState,
   SelectedHashtags,
 } from "./types";
+
 import { STYLE as GENERIC_STYLE } from "../../projects/hashtags";
 
 const STYLE: CSSProperties = {
@@ -77,7 +81,7 @@ export function HashtagBar({
   selected_hashtags,
   style,
 }: Props) {
-  function render_hashtag(tag: string): JSX.Element {
+  function render_hashtag(tag: string): React.JSX.Element {
     return (
       <Hashtag
         key={tag}
@@ -88,8 +92,8 @@ export function HashtagBar({
     );
   }
 
-  function render_hashtags(): JSX.Element[] {
-    const v: [string, JSX.Element][] = [];
+  function render_hashtags(): React.JSX.Element[] {
+    const v: [string, React.JSX.Element][] = [];
     hashtags?.forEach((tag) => {
       v.push([tag, render_hashtag(tag)]);
     });

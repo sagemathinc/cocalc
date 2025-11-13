@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert, Checkbox, Spin } from "antd";
@@ -120,7 +120,7 @@ export const ManagedLicenses: React.FC = () => {
   return (
     <>
       <Title level={3}>
-        Licenses that you manage {render_count()}
+        Licenses You Manage {render_count()}
         <div style={{ float: "right" }}>{render_show_all()}</div>
         {loading && <Spin />}
       </Title>
@@ -148,7 +148,8 @@ function CancelSubscriptionBanner() {
             visit the Subscription tab above
           </a>
           . To edit a license <i>that you purchased</i> expand the license
-          below, then click on the "Edit License..." button.
+          below, then click on the "Edit License..." button. To apply a license
+          to a project, select the project under Projects below.
         </>
       }
     />

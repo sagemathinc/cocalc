@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /**
@@ -11,6 +11,7 @@
 export const SHARE_AUTHENTICATED_ICON = "user";
 export const SHARE_AUTHENTICATED_EXPLANATION =
   "only visible to those who are signed in";
+
 // boolean flags for various shared files visibility modes
 export const SHARE_FLAGS = {
   LISTED: { unlisted: false, disabled: false, authenticated: false }, // aka PUBLIC
@@ -18,3 +19,23 @@ export const SHARE_FLAGS = {
   DISABLED: { unlisted: false, disabled: true, authenticated: false }, // aka PRIVATE
   AUTHENTICATED: { unlisted: false, disabled: false, authenticated: true },
 } as const;
+
+// documentation pages
+export const DOC_AI = "https://doc.cocalc.com/ai.html";
+
+// How we call Posit's RStudio (rserver) IDE.  They trademark "RStudio"
+// see https://posit.co/about/trademark-guidelines/
+// and a core principle of our company is to be as respectful as possible
+// to all legal requirements. We thus don't use their trademark
+// anywhere in our frontend.
+export const R_IDE = "R IDE";
+
+// Default font size for account settings and UI elements
+export const DEFAULT_FONT_SIZE = 14;
+
+// Icon unicode character for dark mode toggle (◑ - circle with right half black)
+export const DARK_MODE_ICON = 0x25d1;
+
+// Icon unicode characters for auto-sync arrows in LaTeX editor
+export const SYNC_FORWARD_ICON = 0x21a6; // ↦ - rightwards arrow $mapto$
+export const SYNC_INVERSE_ICON = 0x21a4; // ↤ - leftwards arrow $mapfrom$

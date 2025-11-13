@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Component that allows WYSIWYG editing of markdown.
@@ -11,29 +11,30 @@ const EXPENSIVE_DEBUG = false;
 import { delay } from "awaiting";
 import { Map } from "immutable";
 import { debounce, isEqual, throttle } from "lodash";
-import { MutableRefObject, RefObject } from "react";
-
 import {
-  CSS,
-  React,
+  MutableRefObject,
+  RefObject,
   useCallback,
   useEffect,
-  useIsMountedRef,
   useMemo,
   useRef,
   useState,
-} from "@cocalc/frontend/app-framework";
-import { mentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
+} from "react";
+import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
+import { SubmitMentionsRef } from "@cocalc/frontend/chat/types";
+import { useMentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
 import { submit_mentions } from "@cocalc/frontend/editors/markdown-input/mentions";
 import { EditorFunctions } from "@cocalc/frontend/editors/markdown-input/multimode";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Path } from "@cocalc/frontend/frame-editors/frame-tree/path";
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import { createEditor, Descendant, Editor, Range, Transforms } from "slate";
+import { Descendant, Editor, Range, Transforms, createEditor } from "slate";
 import { resetSelection } from "./control";
+import * as control from "./control";
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
 import { Element } from "./element";
@@ -118,58 +119,60 @@ interface Props {
   registerEditor?: (editor: EditorFunctions) => void;
   unregisterEditor?: () => void;
   getValueRef?: MutableRefObject<() => string>; // see comment in src/packages/frontend/editors/markdown-input/multimode.tsx
-  submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>; // when called this will submit all mentions in the document, and also returns current value of the document (for compat with markdown editor).  If not set, mentions are submitted when you create them.  This prop is used mainly for implementing chat, which has a clear "time of submission".
-  chatGPT?: boolean;
-  editBar2?: MutableRefObject<JSX.Element | undefined>;
+  submitMentionsRef?: SubmitMentionsRef; // when called this will submit all mentions in the document, and also returns current value of the document (for compat with markdown editor).  If not set, mentions are submitted when you create them.  This prop is used mainly for implementing chat, which has a clear "time of submission".
+  editBar2?: MutableRefObject<React.JSX.Element | undefined>;
   dirtyRef?: MutableRefObject<boolean>;
-  vertexAI?: boolean;
   minimal?: boolean;
+  controlRef?: MutableRefObject<{
+    moveCursorToEndOfLine: () => void;
+  } | null>;
+  showEditBar?: boolean;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   const {
     actions: actions0,
-    id: id0,
-    read_only,
-    value,
-    placeholder,
+    autoFocus,
+    cursors,
+    dirtyRef,
+    disableWindowing = !USE_WINDOWING,
+    divRef,
+    editBar2,
+    editBarStyle,
+    editor_state,
     font_size: font_size0,
+    getValueRef,
+    height,
+    hidePath,
+    hideSearch,
+    id: id0,
     is_current,
     is_fullscreen,
-    editor_state,
-    cursors,
-    hidePath,
-    disableWindowing = !USE_WINDOWING,
-    style,
-    pageStyle,
-    editBarStyle,
-    onFocus,
-    onBlur,
-    autoFocus,
-    hideSearch,
-    saveDebounceMs,
-    noVfill,
-    divRef,
-    selectionRef,
-    height,
-    onCursorTop,
-    onCursorBottom,
     isFocused,
-    registerEditor,
-    unregisterEditor,
-    getValueRef,
-    submitMentionsRef,
-    editBar2,
-    dirtyRef,
-    chatGPT,
-    vertexAI,
     minimal,
+    noVfill,
+    onBlur,
+    onCursorBottom,
+    onCursorTop,
+    onFocus,
+    pageStyle,
+    placeholder,
+    read_only,
+    registerEditor,
+    saveDebounceMs = SAVE_DEBOUNCE_MS,
+    selectionRef,
+    style,
+    submitMentionsRef,
+    unregisterEditor,
+    value,
+    controlRef,
+    showEditBar,
   } = props;
-  const { project_id, path, desc } = useFrameContext();
+  const { project_id, path, desc, isVisible } = useFrameContext();
   const isMountedRef = useIsMountedRef();
   const id = id0 ?? "";
   const actions = actions0 ?? {};
-  const font_size = font_size0 ?? desc.get("font_size") ?? 14; // so possible to use without specifying this.  TODO: should be from account settings
+  const font_size = font_size0 ?? desc?.get("font_size") ?? DEFAULT_FONT_SIZE; // so possible to use without specifying this.  TODO: should be from account settings
   const [change, setChange] = useState<number>(0);
 
   const editor = useMemo(() => {
@@ -251,6 +254,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
       };
     }
 
+    if (controlRef != null) {
+      controlRef.current = {
+        moveCursorToEndOfLine: () => control.moveCursorToEndOfLine(ed),
+      };
+    }
+
     ed.onCursorBottom = onCursorBottom;
     ed.onCursorTop = onCursorTop;
 
@@ -260,7 +269,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   // hook up to syncstring if available:
   useEffect(() => {
     if (actions._syncstring == null) return;
-    const beforeChange = setSyncstringFromSlate;
+    const beforeChange = setSyncstringFromSlateNOW;
     const change = () => {
       setEditorToValue(actions._syncstring.to_str());
     };
@@ -336,7 +345,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     return estimateSize({ node, fontSize: font_size });
   }, []);
 
+  const mentionableUsers = useMentionableUsers();
+
   const mentions = useMentions({
+    isVisible,
     editor,
     insertMention: (editor, account_id) => {
       Transforms.insertNodes(editor, [
@@ -348,8 +360,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         submit_mentions(project_id, path, [{ account_id, description: "" }]);
       }
     },
-    matchingUsers: (search) =>
-      mentionableUsers(project_id, search, chatGPT, vertexAI),
+    matchingUsers: (search) => mentionableUsers(search, { avatarLLMSize: 16 }),
   });
 
   const emojis = useEmojis({
@@ -364,33 +375,40 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
   useEffect(() => {
     if (submitMentionsRef != null) {
-      submitMentionsRef.current = (fragmentId?: FragmentId) => {
+      submitMentionsRef.current = (
+        fragmentId?: FragmentId,
+        onlyValue = false,
+      ) => {
         if (project_id == null || path == null) {
           throw Error(
             "project_id and path must be set in order to use mentions.",
           );
         }
-        const fragment_id = Fragment.encode(fragmentId);
 
-        // No mentions in the document were already sent, so we send them now.
-        // We have to find all mentions in the document tree, and submit them.
-        const mentions: {
-          account_id: string;
-          description: string;
-          fragment_id: string;
-        }[] = [];
-        for (const [node, path] of Editor.nodes(editor, {
-          at: { path: [], offset: 0 },
-          match: (node) => node["type"] == "mention",
-        })) {
-          const [parent] = Editor.parent(editor, path);
-          mentions.push({
-            account_id: (node as Mention).account_id,
-            description: slate_to_markdown([parent]),
-            fragment_id,
-          });
+        if (!onlyValue) {
+          const fragment_id = Fragment.encode(fragmentId);
+
+          // No mentions in the document were already sent, so we send them now.
+          // We have to find all mentions in the document tree, and submit them.
+          const mentions: {
+            account_id: string;
+            description: string;
+            fragment_id: string;
+          }[] = [];
+          for (const [node, path] of Editor.nodes(editor, {
+            at: { path: [], offset: 0 },
+            match: (node) => node["type"] == "mention",
+          })) {
+            const [parent] = Editor.parent(editor, path);
+            mentions.push({
+              account_id: (node as Mention).account_id,
+              description: slate_to_markdown([parent]),
+              fragment_id,
+            });
+          }
+
+          submit_mentions(project_id, path, mentions);
         }
-        submit_mentions(project_id, path, mentions);
         const value = editor.getMarkdownValue();
         return value;
       };
@@ -491,7 +509,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     }
   }, [value]);
 
-  function setSyncstringFromSlate() {
+  const lastSetValueRef = useRef<string | null>(null);
+
+  const setSyncstringFromSlateNOW = () => {
     if (actions.set_value == null) {
       // no way to save the value out (e.g., just beginning to test
       // using the component).
@@ -503,12 +523,22 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     }
 
     const markdown = editor.getMarkdownValue();
+    lastSetValueRef.current = markdown;
     actions.set_value(markdown);
     actions.syncstring_commit?.();
 
     // Record that the syncstring's value is now equal to ours:
     editor.resetHasUnsavedChanges();
-  }
+  };
+
+  const setSyncstringFromSlate = useMemo(() => {
+    if (saveDebounceMs) {
+      return debounce(setSyncstringFromSlateNOW, saveDebounceMs);
+    } else {
+      // this case shouldn't happen
+      return setSyncstringFromSlateNOW;
+    }
+  }, []);
 
   // We don't want to do saveValue too much, since it presumably can be slow,
   // especially if the document is large. By debouncing, we only do this when
@@ -567,6 +597,15 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   }, [is_current]);
 
   const setEditorToValue = (value) => {
+    // console.log("setEditorToValue", { value, ed: editor.getMarkdownValue() });
+    if (lastSetValueRef.current == value) {
+      // this always happens once right after calling setSyncstringFromSlateNOW
+      // and it can randomly undo the last thing done, so don't do that!
+      // Also, this is an excellent optimization to do as well.
+      lastSetValueRef.current = null;
+      // console.log("setEditorToValue: skip");
+      return;
+    }
     if (value == null) return;
     if (value == editor.getMarkdownValue()) {
       // nothing to do, and in fact doing something
@@ -633,6 +672,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         // also so we don't update the source editor (and other browsers)
         // with a view with things like loan $'s escaped.'
         editor.syncCausedUpdate = true;
+        // console.log("setEditorToValue: applying operations...", { operations });
         preserveScrollPosition(editor, operations);
         applyOperations(editor, operations);
         // console.log("time to set via diff", new Date() - t);
@@ -648,6 +688,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
     try {
       if (editor.selection != null) {
+        // console.log("setEditorToValue: restore selection", editor.selection);
         const { anchor, focus } = editor.selection;
         Editor.node(editor, anchor);
         Editor.node(editor, focus);
@@ -944,9 +985,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     <ChangeContext.Provider value={{ change, editor }}>
       <div
         ref={divRef}
-        className={noVfill || height == "auto" ? undefined : "smc-vfill"}
+        className={noVfill || height === "auto" ? undefined : "smc-vfill"}
         style={{
-          overflow: noVfill || height == "auto" ? undefined : "auto",
+          overflow: noVfill || height === "auto" ? undefined : "auto",
           backgroundColor: "white",
           ...style,
           height,
@@ -956,16 +997,18 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         {!hidePath && (
           <Path is_current={is_current} path={path} project_id={project_id} />
         )}
-        <EditBar
-          Search={search.Search}
-          isCurrent={is_current}
-          marks={marks}
-          linkURL={linkURL}
-          listProperties={listProperties}
-          editor={editor}
-          style={editBarStyle}
-          hideSearch={hideSearch}
-        />
+        {showEditBar && (
+          <EditBar
+            Search={search.Search}
+            isCurrent={is_current}
+            marks={marks}
+            linkURL={linkURL}
+            listProperties={listProperties}
+            editor={editor}
+            style={editBarStyle}
+            hideSearch={hideSearch}
+          />
+        )}
         <div
           className={noVfill || height == "auto" ? undefined : "smc-vfill"}
           style={{

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -9,6 +9,11 @@ everything on *desktop*, once the user has signed in.
 */
 
 declare var DEBUG: boolean;
+
+import type { IconName } from "@cocalc/frontend/components/icon";
+
+import { Spin } from "antd";
+import { useIntl } from "react-intl";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { alert_message } from "@cocalc/frontend/alerts";
@@ -21,26 +26,34 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/components";
-import { IconName } from "@cocalc/frontend/components/icon";
-import { SiteName } from "@cocalc/frontend/customize";
+import { ClientContext } from "@cocalc/frontend/client/context";
+import { Icon } from "@cocalc/frontend/components/icon";
+import Next from "@cocalc/frontend/components/next";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
+import { labels } from "@cocalc/frontend/i18n";
 import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
+import BalanceButton from "@cocalc/frontend/purchases/balance-button";
+import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
 import openSupportTab from "@cocalc/frontend/support/open";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COLORS } from "@cocalc/util/theme";
 import { IS_IOS, IS_MOBILE, IS_SAFARI } from "../feature";
 import { ActiveContent } from "./active-content";
 import { ConnectionIndicator } from "./connection-indicator";
 import { ConnectionInfo } from "./connection-info";
-import { useAppState } from "./context";
+import { useAppContext } from "./context";
 import { FullscreenButton } from "./fullscreen-button";
+import { I18NBanner, useShowI18NBanner } from "./i18n-banner";
+import InsecureTestModeBanner from "./insecure-test-mode-banner";
 import { AppLogo } from "./logo";
 import { NavTab } from "./nav-tab";
 import { Notification } from "./notifications";
-import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
-import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
-import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
 import PopconfirmModal from "./popconfirm-modal";
+import SettingsModal from "./settings-modal";
+import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
+import { VerifyEmail } from "./verify-email-banner";
+import VersionWarning from "./version-warning";
+import { CookieWarning, LocalStorageWarning } from "./warnings";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -68,8 +81,10 @@ const PAGE_STYLE: CSS = {
 export const Page: React.FC = () => {
   const page_actions = useActions("page");
 
-  const { pageStyle } = useAppState();
+  const { pageStyle } = useAppContext();
   const { isNarrow, fileUseStyle, topBarStyle, projectsNavStyle } = pageStyle;
+
+  const intl = useIntl();
 
   const open_projects = useTypedRedux("projects", "open_projects");
   const [show_label, set_show_label] = useState<boolean>(true);
@@ -86,6 +101,11 @@ export const Page: React.FC = () => {
     };
   }, []);
 
+  const [showSignInTab, setShowSignInTab] = useState<boolean>(false);
+  useEffect(() => {
+    setTimeout(() => setShowSignInTab(true), 3000);
+  }, []);
+
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const show_mentions = active_top_tab === "notifications";
   const show_connection = useTypedRedux("page", "show_connection");
@@ -93,21 +113,19 @@ export const Page: React.FC = () => {
   const fullscreen = useTypedRedux("page", "fullscreen");
   const local_storage_warning = useTypedRedux("page", "local_storage_warning");
   const cookie_warning = useTypedRedux("page", "cookie_warning");
-  const new_version = useTypedRedux("page", "new_version");
 
+  const accountIsReady = useTypedRedux("account", "is_ready");
   const account_id = useTypedRedux("account", "account_id");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
-  const doing_anonymous_setup = useTypedRedux(
-    "account",
-    "doing_anonymous_setup",
-  );
   const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
+  const show_i18n = useShowI18NBanner();
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
+  const insecure_test_mode = useTypedRedux("customize", "insecure_test_mode");
 
-  function account_tab_icon(): IconName | JSX.Element {
+  function account_tab_icon(): IconName | React.JSX.Element {
     if (is_anonymous) {
       return <></>;
     } else if (account_id) {
@@ -124,7 +142,14 @@ export const Page: React.FC = () => {
     }
   }
 
-  function render_account_tab(): JSX.Element {
+  function render_account_tab(): React.JSX.Element {
+    if (!accountIsReady) {
+      return (
+        <div>
+          <Spin delay={1000} />
+        </div>
+      );
+    }
     const icon = account_tab_icon();
     let label, style;
     if (is_anonymous) {
@@ -152,7 +177,7 @@ export const Page: React.FC = () => {
       */
       setTimeout(() => $("#anonymous-sign-up").css("opacity", 1), 3000);
     } else {
-      label = "Account";
+      label = undefined;
       style = undefined;
     }
 
@@ -165,16 +190,21 @@ export const Page: React.FC = () => {
         icon={icon}
         active_top_tab={active_top_tab}
         hide_label={!show_label}
+        tooltip={intl.formatMessage(labels.account)}
       />
     );
   }
 
-  function render_admin_tab(): JSX.Element | undefined {
+  function render_balance() {
+    if (!is_commercial) return;
+    return <BalanceButton minimal topBar />;
+  }
+
+  function render_admin_tab(): React.JSX.Element | undefined {
     if (is_logged_in && groups?.includes("admin")) {
       return (
         <NavTab
           name="admin"
-          label={"Admin"}
           label_class={NAV_CLASS}
           icon={"users"}
           active_top_tab={active_top_tab}
@@ -184,38 +214,30 @@ export const Page: React.FC = () => {
     }
   }
 
-  function sign_in_tab_clicked() {
-    if (active_top_tab === "account") {
-      page_actions.sign_in();
-    }
-  }
+  function render_sign_in_tab(): React.JSX.Element | null {
+    if (is_logged_in || !showSignInTab) return null;
 
-  function render_sign_in_tab(): JSX.Element | null {
-    if (is_logged_in) return null;
-
-    let style: CSS | undefined = undefined;
-    if (active_top_tab !== "account") {
-      // Strongly encourage clicking on the sign in tab.
-      // Especially important if user got signed out due
-      // to cookie expiring or being deleted (say).
-      style = { backgroundColor: COLORS.TOP_BAR.SIGN_IN_BG, fontSize: "16pt" };
-    }
     return (
-      <NavTab
-        name="account"
-        label="Sign in"
-        label_class={NAV_CLASS}
-        icon="sign-in"
-        on_click={sign_in_tab_clicked}
-        active_top_tab={active_top_tab}
-        style={style}
-        add_inner_style={{ color: "black" }}
-        hide_label={!show_label}
-      />
+      <Next
+        sameTab
+        href="/auth/sign-in"
+        style={{
+          backgroundColor: COLORS.TOP_BAR.SIGN_IN_BG,
+          fontSize: "16pt",
+          color: "black",
+          padding: "5px 15px",
+        }}
+      >
+        <Icon name="sign-in" />{" "}
+        {intl.formatMessage({
+          id: "page.sign_in.label",
+          defaultMessage: "Sign in",
+        })}
+      </Next>
     );
   }
 
-  function render_support(): JSX.Element | undefined {
+  function render_support(): React.JSX.Element | undefined {
     if (!is_commercial) {
       return;
     }
@@ -227,7 +249,10 @@ export const Page: React.FC = () => {
       <NavTab
         name={undefined} // does not open a tab, just a popup
         active_top_tab={active_top_tab} // it's never supposed to be active!
-        label={"Help"}
+        label={intl.formatMessage({
+          id: "page.help.label",
+          defaultMessage: "Help",
+        })}
         label_class={NAV_CLASS}
         icon={"medkit"}
         on_click={openSupportTab}
@@ -236,14 +261,14 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_bell(): JSX.Element | undefined {
+  function render_bell(): React.JSX.Element | undefined {
     if (!is_logged_in || is_anonymous) return;
     return (
       <Notification type="bell" active={show_file_use} pageStyle={pageStyle} />
     );
   }
 
-  function render_notification(): JSX.Element | undefined {
+  function render_notification(): React.JSX.Element | undefined {
     if (!is_logged_in || is_anonymous) return;
     return (
       <Notification
@@ -254,13 +279,13 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_fullscreen(): JSX.Element | undefined {
+  function render_fullscreen(): React.JSX.Element | undefined {
     if (isNarrow || is_anonymous) return;
 
     return <FullscreenButton pageStyle={pageStyle} />;
   }
 
-  function render_right_nav(): JSX.Element {
+  function render_right_nav(): React.JSX.Element {
     return (
       <div
         className="smc-right-tabs-fixed"
@@ -276,7 +301,8 @@ export const Page: React.FC = () => {
         {render_admin_tab()}
         {render_sign_in_tab()}
         {render_support()}
-        {is_logged_in && render_account_tab()}
+        {is_logged_in ? render_account_tab() : undefined}
+        {render_balance()}
         {render_notification()}
         {render_bell()}
         {!is_anonymous && (
@@ -290,7 +316,7 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_project_nav_button(): JSX.Element {
+  function render_project_nav_button(): React.JSX.Element {
     return (
       <NavTab
         style={{
@@ -300,9 +326,12 @@ export const Page: React.FC = () => {
         }}
         name={"projects"}
         active_top_tab={active_top_tab}
-        tooltip="Show all the projects on which you collaborate."
+        tooltip={intl.formatMessage({
+          id: "page.project_nav.tooltip",
+          defaultMessage: "Show all the projects on which you collaborate.",
+        })}
         icon="edit"
-        label="Projects"
+        label={intl.formatMessage(labels.projects)}
       />
     );
   }
@@ -323,47 +352,31 @@ export const Page: React.FC = () => {
         type: "info",
         title: "File Drop Rejected",
         message:
-          'To upload a file, drop it onto the files listing or the "Drop files to upload" area in the +New tab.',
+          'To upload a file, drop it onto a file you are editing, the file explorer listing or the "Drop files to upload" area in the +New page.',
       });
     }
   }
 
-  if (doing_anonymous_setup) {
-    // Don't show the login screen or top navbar for a second
-    // while creating their anonymous account, since that
-    // would just be ugly/confusing/and annoying.
-    // Have to use above style to *hide* the crash warning.
-    const loading_anon = (
-      <div style={{ margin: "auto", textAlign: "center" }}>
-        <h1 style={{ color: COLORS.GRAY }}>
-          <Loading />
-        </h1>
-        <div style={{ color: COLORS.GRAY, width: "50vw" }}>
-          Please give <SiteName /> a couple of seconds to start your project and
-          prepare a file...
-        </div>
-      </div>
-    );
-    return <div style={PAGE_STYLE}>{loading_anon}</div>;
-  }
-
   // Children must define their own padding from navbar and screen borders
   // Note that the parent is a flex container
-  return (
+  const body = (
     <div
       style={PAGE_STYLE}
       onDragOver={(e) => e.preventDefault()}
       onDrop={drop}
     >
+      {insecure_test_mode && <InsecureTestModeBanner />}
       {show_file_use && (
         <div style={fileUseStyle} className="smc-vfill">
           <FileUsePage />
         </div>
       )}
       {show_connection && <ConnectionInfo />}
-      {new_version && <VersionWarning new_version={new_version} />}
+      <VersionWarning />
       {cookie_warning && <CookieWarning />}
       {local_storage_warning && <LocalStorageWarning />}
+      {show_i18n && <I18NBanner />}
+      <VerifyEmail />
       {!fullscreen && (
         <nav className="smc-top-bar" style={topBarStyle}>
           <AppLogo size={pageStyle.height} />
@@ -384,6 +397,12 @@ export const Page: React.FC = () => {
       <ActiveContent />
       <PayAsYouGoModal />
       <PopconfirmModal />
+      <SettingsModal />
     </div>
+  );
+  return (
+    <ClientContext.Provider value={{ client: webapp_client }}>
+      {body}
+    </ClientContext.Provider>
   );
 };

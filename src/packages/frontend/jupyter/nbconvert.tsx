@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -156,16 +156,14 @@ interface NBConvertProps {
 }
 
 export const NBConvert: React.FC<NBConvertProps> = React.memo(
-  (props: NBConvertProps) => {
-    const {
-      actions,
-      path,
-      project_id,
-      nbconvert,
-      nbconvert_dialog,
-      backend_kernel_info,
-    } = props;
-
+  ({
+    actions,
+    path,
+    project_id,
+    nbconvert,
+    nbconvert_dialog,
+    backend_kernel_info,
+  }: NBConvertProps) => {
     function target(): { targetPath?: string; url?: string; info? } {
       if (
         nbconvert == null ||
@@ -196,13 +194,16 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
         ext = info.ext;
       }
       const targetPath = misc.change_filename_extension(path, ext);
-      const url = actions.store.get_raw_link(targetPath);
+      const store = redux.getProjectStore(actions.project_id);
+      const url = store.fileURL(targetPath);
       return { targetPath, url, info };
     }
 
     // on show of dialog, start running, if not already running.
     useEffect(() => {
-      if (nbconvert_dialog == null) return;
+      if (nbconvert_dialog == null) {
+        return;
+      }
       const state = nbconvert?.get("state");
       if (state != "start" && state != "run") {
         run();
@@ -235,12 +236,13 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
         <div>
           <br />
           <Button
+            type="primary"
             onClick={() => {
               actions.file_action("open_file", target_path);
               close();
             }}
           >
-            Edit exported file...
+            Open Exported File
           </Button>
         </div>
       );

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -21,14 +21,17 @@ import { Alert, Button, Card, Divider, Layout, Space, Spin } from "antd";
 import { useRouter } from "next/router";
 import type { Description } from "@cocalc/util/db-schema/token-actions";
 import { capitalize } from "@cocalc/util/misc";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getTokenDescription } from "@cocalc/server/token-actions/handle";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import getAccountId from "lib/account/get-account";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
+import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
+import { LineItemsTable } from "@cocalc/frontend/purchases/line-items";
+import A from "components/misc/A";
 
-const STYLE = { margin: "30px auto", maxWidth: "600px", fontSize: "14pt" };
+const STYLE = { margin: "30px auto", maxWidth: "750px", fontSize: "14pt" };
 
 export async function getServerSideProps(context) {
   const { id: token_id } = context.params;
@@ -46,6 +49,16 @@ export async function getServerSideProps(context) {
     };
   }
   return await withCustomize({ context, props: { token_id, description } });
+}
+
+function reloadOnceToCheckForAuth() {
+  const now = Date.now();
+  const last = localStorage.reloadOnceToCheckForAuth;
+  if (last && now - last <= 10000) {
+    return;
+  }
+  localStorage.reloadOnceToCheckForAuth = now;
+  location.reload();
 }
 
 interface Props {
@@ -70,6 +83,13 @@ export default function TokenActions({
   const [doAction, setDoAction] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const title = getTitle(description);
+  useEffect(() => {
+    // due to samesite auth cookie, we refresh browser once...
+    // This is needed when clicking a URL from outside cocalc, which is likely.
+    if (description.signIn) {
+      reloadOnceToCheckForAuth();
+    }
+  }, []);
 
   return (
     <Customize value={customize}>
@@ -91,6 +111,7 @@ export default function TokenActions({
           okText={description.okText}
           cancelText={description.cancelText}
           icon={description.icon}
+          payment={description["payment"]}
           onConfirm={() => {
             setDoAction(true);
           }}
@@ -116,13 +137,14 @@ function Dialog({
   onConfirm,
   onCancel,
   loading,
+  payment,
 }) {
   return (
     <Card
       style={{
         margin: "30px auto",
-        minWidth: "400px",
-        maxWidth: "min(700px,100%)",
+        width: "750px",
+        maxWidth: "100%",
       }}
       title={
         <Space>
@@ -131,18 +153,24 @@ function Dialog({
         </Space>
       }
     >
-      {details && <Markdown value={details} />}
+      {payment && <LineItemsTable lineItems={payment.lineItems} />}
+      {details && <Markdown value={details} style={{ marginTop: "30px" }} />}
       <Divider />
-      <div style={{ float: "right" }}>
+      <div style={{ textAlign: "center" }}>
         <Space style={{ marginTop: "8px" }}>
           {loading && <Spin />}
           {cancelText != "" && (
-            <Button onClick={onCancel} disabled={disabled || loading}>
+            <Button
+              size="large"
+              onClick={onCancel}
+              disabled={disabled || loading}
+            >
               {cancelText ?? "Cancel"}
             </Button>
           )}
           {okText != "" && (
             <Button
+              size="large"
               onClick={onConfirm}
               disabled={disabled || loading}
               type="primary"
@@ -174,17 +202,22 @@ function HandleToken({ token }) {
   );
 }
 
-function RenderResult({ data }: { data: any }) {
-  if (data?.type == "create-credit") {
-    const { session, instructions } = data;
+function RenderResult({ data }) {
+  const [finishedPaying, setFinishedPaying] = useState<boolean>(false);
+
+  if (data?.pay != null && !finishedPaying) {
     return (
-      <Alert
-        showIcon
-        style={STYLE}
-        type="warning"
-        message="Make a Payment"
-        description={<a href={session.url}>{instructions}</a>}
-      />
+      <Card style={STYLE} title="Make a Payment">
+        <div>
+          <StripePayment
+            disabled={finishedPaying}
+            {...data.pay}
+            onFinished={() => {
+              setFinishedPaying(true);
+            }}
+          />
+        </div>
+      </Card>
     );
   } else {
     return (
@@ -192,7 +225,13 @@ function RenderResult({ data }: { data: any }) {
         showIcon
         style={STYLE}
         type="success"
-        message="Success!"
+        message={
+          <>
+            Thank you for your payment! Please visit{" "}
+            <A href="/settings/payments">the payments page</A> to ensure your
+            payment is completed successfully and download a receipt.
+          </>
+        }
         description={data?.text ? <Markdown value={data?.text} /> : undefined}
       />
     );

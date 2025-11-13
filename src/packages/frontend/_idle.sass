@@ -1,7 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+@use 'colors'
 
 #cocalc-idle-notification
   z-index    : 9999
@@ -17,7 +19,7 @@
   div
     color            : white
     position         : absolute
-    background-color : $COL_BLUE_D
+    background-color : colors.$COL_BLUE_D
     min-height       : 100px
     width            : 350px
     border-radius    : 5px

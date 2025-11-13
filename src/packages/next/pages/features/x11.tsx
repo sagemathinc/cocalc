@@ -1,10 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Col, Layout, Row } from "antd";
 
+import { R_IDE } from "@cocalc/util/consts/ui";
 import Code from "components/landing/code";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -117,7 +118,7 @@ export default function X11({ customize }) {
                   include <A href="http://maxima.sourceforge.net/">Maxima</A>,{" "}
                   <A href="https://www.libreoffice.org/">LibreOffice</A>,{" "}
                   <A href="https://www.openmodelica.org/">OpenModelica</A>,{" "}
-                  <A href="https://www.rstudio.com/">RStudio</A>,{" "}
+                  <A href="https://www.rstudio.com/">{R_IDE}</A>,{" "}
                   <A href="https://swirlstats.com/">
                     {"{"}swirl{"}"}
                   </A>

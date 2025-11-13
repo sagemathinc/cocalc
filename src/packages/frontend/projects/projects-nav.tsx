@@ -1,39 +1,38 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import type { TabsProps } from "antd";
 import { Avatar, Popover, Tabs, Tooltip } from "antd";
+import { CSSProperties, useMemo, useState } from "react";
 
-import { Icon, Loading } from "@cocalc/frontend//components";
 import {
+  CSS,
   redux,
   useActions,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { set_window_title } from "@cocalc/frontend/browser";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import {
+  SortableTab,
   SortableTabs,
-  renderTabBar,
   useItemContext,
   useSortable,
 } from "@cocalc/frontend/components/sortable-tabs";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { WebsocketIndicator } from "@cocalc/frontend/project/websocket/websocket-indicator";
-import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-row";
+import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-avatar";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
-import { CSSProperties, useMemo, useState } from "react";
 import { useProjectState } from "../project/page/project-state-hook";
 import { useProjectHasInternetAccess } from "../project/settings/has-internet-access-hook";
-import { NO_INTERNET } from "../project/trial-banner";
 import { BuyLicenseForProject } from "../site-licenses/purchase/buy-license-for-project";
 
-const PROJECT_NAME_STYLE: CSSProperties = {
+const PROJECT_NAME_STYLE: CSS = {
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -63,7 +62,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   const status = useProjectState(project_id);
   const isRunning = useMemo(
     () => status.get("state") === "running",
-    [status.get("state")]
+    [status.get("state")],
   );
   const hasInternet = useProjectHasInternetAccess(project_id);
   const showNoInternet = isRunning && !hasInternet;
@@ -75,23 +74,9 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   const pageActions = useActions("page");
   const public_project_titles = useTypedRedux(
     "projects",
-    "public_project_titles"
+    "public_project_titles",
   );
-  const project_websockets = useTypedRedux("projects", "project_websockets");
   const any_alerts = useProjectStatusAlerts(project_id);
-
-  function renderWebsocketIndicator() {
-    return (
-      // Hiding this on very skinny devices isn't necessarily bad, since the exact same information is
-      // now visible via a big "Connecting..." banner after a few seconds.
-      <span
-        style={{ paddingLeft: "15px", marginRight: "-15px" }}
-        className="hidden-xs"
-      >
-        <WebsocketIndicator state={project_websockets?.get(project_id)} />
-      </span>
-    );
-  }
 
   const title = project?.get("title") ?? public_project_titles?.get(project_id);
   if (title == null) {
@@ -104,11 +89,6 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   if (active_top_tab == project_id) {
     set_window_title(title);
   }
-
-  const nav_style_inner: CSSProperties = {
-    float: "right",
-    whiteSpace: "nowrap",
-  };
 
   const project_state = project?.getIn(["state", "state"]);
 
@@ -137,7 +117,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
     return (
       <>
         <div style={fontStyle}>
-          This project does not have access to the internet: {NO_INTERNET}.
+          This project does not have access to the internet.
           {onKucalc && (
             <>
               {" "}
@@ -195,15 +175,36 @@ function ProjectTab({ project_id }: ProjectTabProps) {
 
   function renderAvatar() {
     const avatar = project?.get("avatar_image_tiny");
-    if (!avatar) return;
-    return (
-      <Avatar
-        style={{ marginTop: "-2px" }}
-        shape="circle"
-        icon={<img src={project.get("avatar_image_tiny")} />}
-        size={20}
-      />
-    );
+    const color = project?.get("color");
+
+    if (avatar) {
+      // Avatar exists: show it with colored border
+      return (
+        <Avatar
+          style={{
+            marginTop: "-2px",
+            border: color ? `2px solid ${color}` : undefined,
+          }}
+          shape="circle"
+          icon={<img src={project.get("avatar_image_tiny")} />}
+          size={20}
+        />
+      );
+    } else if (color) {
+      // No avatar but has color: show colored circle
+      return (
+        <Avatar
+          style={{
+            marginTop: "-2px",
+            backgroundColor: color,
+          }}
+          shape="circle"
+          size={20}
+        />
+      );
+    }
+
+    return undefined;
   }
 
   function onMouseUp(e: React.MouseEvent) {
@@ -216,8 +217,13 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   }
 
   const body = (
-    <div onMouseUp={onMouseUp} style={width != null ? { width } : undefined}>
-      <div style={nav_style_inner}>{renderWebsocketIndicator()}</div>
+    <div
+      onMouseUp={onMouseUp}
+      style={{
+        marginTop: "-4px" /* compensate for border */,
+        ...(width != null ? { width } : undefined),
+      }}
+    >
       <div style={PROJECT_NAME_STYLE} onClick={click_title}>
         {icon}
         {renderNoInternet()}
@@ -256,6 +262,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
   const projectActions = useActions("projects");
   const activeTopTab = useTypedRedux("page", "active_top_tab");
   const openProjects = useTypedRedux("projects", "open_projects");
+  //const project_map = useTypedRedux("projects", "project_map");
 
   const items: TabsProps["items"] = useMemo(() => {
     if (openProjects == null) return [];
@@ -272,14 +279,14 @@ export function ProjectsNav(props: ProjectsNavProps) {
     return openProjects.toJS().map((project_id) => project_id);
   }, [openProjects]);
 
-  const onEdit = (project_id: string, action: "add" | "remove") => {
-    if (action == "add") {
+  function onEdit(project_id: string, action: "add" | "remove") {
+    if (action === "add") {
       actions.set_active_tab("projects");
     } else {
       // close given project
       actions.close_project_tab(project_id);
     }
-  };
+  }
 
   function onDragEnd(event) {
     const { active, over } = event;
@@ -294,6 +301,38 @@ export function ProjectsNav(props: ProjectsNavProps) {
     if (event?.active?.id != activeTopTab) {
       actions.set_active_tab(event?.active?.id);
     }
+  }
+
+  function renderTabBar0(tabBarProps, DefaultTabBar) {
+    return (
+      <DefaultTabBar {...tabBarProps}>
+        {(node) => {
+          const project_id = node.key;
+          const isActive = project_id === activeTopTab;
+
+          const wrapperStyle: CSS = {
+            border: isActive
+              ? `2px solid ${"#d3d3d3"}`
+              : `2px solid  ${"transparent"}`,
+            borderRadius: "8px",
+          };
+
+          // Kept for reference, this allows to tweak the node props directly
+          // const styledNode = cloneElement(node, {
+          //   style: {
+          //     ...node.props.style,
+          //     backgroundColor: wrapperStyle.backgroundColor,
+          //   },
+          // });
+
+          return (
+            <SortableTab key={node.key} id={node.key} style={wrapperStyle}>
+              {node}
+            </SortableTab>
+          );
+        }}
+      </DefaultTabBar>
+    );
   }
 
   return (
@@ -319,7 +358,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
               actions.set_active_tab(project_id);
             }}
             type={"editable-card"}
-            renderTabBar={renderTabBar}
+            renderTabBar={renderTabBar0}
             items={items}
           />
         </SortableTabs>

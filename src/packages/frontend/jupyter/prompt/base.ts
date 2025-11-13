@@ -25,9 +25,8 @@ export interface InputPromptProps {
   actions?: JupyterActions;
   id?: string;
   style?: CSSProperties;
-  hideMove?: boolean;
-  hideCut?: boolean;
-  hideRun?: boolean;
+  dragHandle?: React.JSX.Element;
+  read_only?: boolean;
 }
 
 export const OUTPUT_STYLE: React.CSSProperties = {

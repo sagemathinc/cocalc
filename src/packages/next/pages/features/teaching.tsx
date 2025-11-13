@@ -1,14 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Layout, Row } from "antd";
-import { ReactNode } from "react";
-
+import { Layout } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { AvailableTools } from "components/landing/available-tools";
-import BannerWithLinks from "components/landing/banner-with-links";
 import Contact from "components/landing/contact";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -26,12 +23,8 @@ import assignments from "public/features/cocalc-course-assignments-2019.png";
 import nbgrader from "public/features/cocalc-jupyter-nbgrader-overview.png";
 import teaching from "public/features/cocalc-teaching.png";
 import logo from "public/features/fa-graduation-cap.svg";
-import kiran from "public/features/kiran.jpeg";
-import conley from "public/features/will_conley.jpg";
 
 export default function Teaching({ customize }) {
-  const { onCoCalcCom, shareServer } = customize;
-
   const pitchPcLab = (
     <>
       <Title level={2}>
@@ -162,7 +155,6 @@ export default function Teaching({ customize }) {
       <Layout>
         <Header page="features" subPage="teaching" />
         <Layout.Content>
-          {shareServer && onCoCalcCom && <BannerWithLinks />}
           <Content
             landing
             startup={"CoCalc"}
@@ -276,17 +268,17 @@ export default function Teaching({ customize }) {
           <Info.Heading>Feature Overview</Info.Heading>
 
           <Info
-            title="NBGrader support"
+            title="nbgrader support"
             icon="graduation-cap"
             image={nbgrader}
-            alt="Editing an NBgrader Jupyter notebook"
+            alt="Editing an nbgrader Jupyter notebook"
             anchor="a-nbgrader"
           >
             <Paragraph>
               CoCalc's Jupyter Notebooks fully support{" "}
               <strong>automatic</strong> and <strong>manual grading</strong>{" "}
               <A href="https://doc.cocalc.com/teaching-nbgrader.html">
-                using our version of NBGrader
+                using our version of nbgrader
               </A>{" "}
               with no configuration!
             </Paragraph>
@@ -305,52 +297,6 @@ export default function Teaching({ customize }) {
 
           <AvailableTools style={{}} />
 
-          <div style={{ padding: "30px 10%", backgroundColor: "#fff" }}>
-            <Title
-              level={1}
-              style={{ textAlign: "center", color: "#333", fontSize: "32pt" }}
-            >
-              <Icon name="comment" style={{ marginRight: "10px" }} />{" "}
-              Testimonials
-            </Title>
-
-            <Row>
-              <Col lg={12}>
-                <Testimonial
-                  image={kiran}
-                  name="Kiran Kedlaya"
-                  coords="UC San Diego, March 2017"
-                >
-                  I just found out that my CoCalc class got by far the best
-                  course evaluations for any course I've taught at UCSD to date
-                  (over 85% on the favorable/unfavorable scale), which makes it
-                  a sure thing that I'll be teaching this course again (in some
-                  form) next year! Many thanks for the backend work on CoCalc,
-                  for the course materials, for the guest lecture...
-                </Testimonial>
-              </Col>
-              <Col lg={12}>
-                <Testimonial
-                  image={conley}
-                  name="Will Conley"
-                  coords="University of California at Los Angeles, Fall 2016"
-                >
-                  CoCalc provides a user-friendly interface. Students don't need
-                  to install any software at all. They just open up a web
-                  browser and go to{" "}
-                  <A href="https://cocalc.com">https://cocalc.com</A> and that's
-                  it. They just type code directly in, hit shift+enter and it
-                  runs, and they can see if it works. It provides immediate
-                  feedback. The{" "}
-                  <A href="https://doc.cocalc.com/teaching-instructors.html">
-                    course management features
-                  </A>{" "}
-                  work really well.
-                </Testimonial>
-              </Col>
-            </Row>
-          </div>
-
           <SignIn />
         </Layout.Content>
         <Footer />
@@ -361,40 +307,4 @@ export default function Teaching({ customize }) {
 
 export async function getServerSideProps(context) {
   return await withCustomize({ context });
-}
-
-interface TestimonialProps {
-  image;
-  name: string;
-  coords: string;
-  children: ReactNode;
-}
-
-function Testimonial({ image, name, coords, children }: TestimonialProps) {
-  return (
-    <blockquote
-      style={{
-        padding: "10px 20px",
-        margin: "0 0 20px",
-        borderLeft: "5px solid #eee",
-      }}
-    >
-      <Image
-        src={image}
-        alt={name}
-        style={{
-          width: "90px",
-          borderRadius: "6px",
-          float: "left",
-          margin: "15px",
-        }}
-      />
-      <Paragraph>
-        {children}
-        <footer style={{ marginTop: "15px", color: "#666" }}>
-          — <strong>{name}</strong> — {coords}
-        </footer>
-      </Paragraph>
-    </blockquote>
-  );
 }

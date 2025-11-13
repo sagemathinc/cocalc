@@ -1,15 +1,18 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Show a file listing.
 
+import { Alert, Spin } from "antd";
 import * as immutable from "immutable";
 import React, { useEffect, useRef, useState } from "react";
 import { useInterval } from "react-interval-hook";
+import { FormattedMessage } from "react-intl";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   AppRedux,
   Rendered,
@@ -18,17 +21,15 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
+import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
+import { useStarredFilesManager } from "@cocalc/frontend/project/page/flyouts/store";
+import * as misc from "@cocalc/util/misc";
 import { FileRow } from "./file-row";
 import { ListingHeader } from "./listing-header";
 import NoFiles from "./no-files";
-import { TerminalModeDisplay } from "./terminal-mode-display";
 import { TERM_MODE_CHAR } from "./utils";
-
-import * as misc from "@cocalc/util/misc";
-const { Col, Row } = require("react-bootstrap");
 
 interface Props {
   // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
@@ -65,26 +66,27 @@ export function watchFiles({ actions, current_path }): void {
   }
 }
 
-export const FileListing: React.FC<Props> = (props: Props) => {
-  const {
-    actions,
-    redux,
-    name,
-    active_file_sort,
-    listing,
-    file_map,
-    checked_files,
-    current_path,
-    create_folder,
-    create_file,
-    selected_file_index,
-    project_id,
-    shift_is_down,
-    sort_by,
-    configuration_main,
-    file_search = "",
-    isRunning,
-  } = props;
+export const FileListing: React.FC<Props> = ({
+  actions,
+  redux,
+  name,
+  active_file_sort,
+  listing,
+  file_map,
+  checked_files,
+  current_path,
+  create_folder,
+  create_file,
+  selected_file_index,
+  project_id,
+  shift_is_down,
+  sort_by,
+  configuration_main,
+  file_search = "",
+  isRunning,
+}: Props) => {
+  const [starting, setStarting] = useState<boolean>(false);
+  const { starred, setStarredPath } = useStarredFilesManager(project_id);
 
   const prev_current_path = usePrevious(current_path);
 
@@ -134,6 +136,10 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     const checked = checked_files.has(misc.path_to_file(current_path, name));
     const color = misc.rowBackground({ index, checked });
     const { is_public } = file_map[name];
+    const fullPath = misc.path_to_file(current_path, name);
+    // For directories, add trailing slash to match flyout convention
+    const pathForStar = isdir ? `${fullPath}/` : fullPath;
+    const isStarred = starred.includes(pathForStar);
 
     return (
       <FileRow
@@ -157,6 +163,13 @@ export const FileListing: React.FC<Props> = (props: Props) => {
         no_select={shift_is_down}
         link_target={link_target}
         computeServerId={computeServerId}
+        isStarred={isStarred}
+        onToggleStar={(path, starState) => {
+          // For directories, ensure trailing slash
+          const normalizedPath =
+            isdir && !path.endsWith("/") ? `${path}/` : path;
+          setStarredPath(normalizedPath, starState);
+        }}
       />
     );
   }
@@ -166,9 +179,20 @@ export const FileListing: React.FC<Props> = (props: Props) => {
   });
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
+  const lastSelectedFileIndexRef = useRef<undefined | number>(
+    selected_file_index,
+  );
+
   useEffect(() => {
-    if (selected_file_index == null) return;
-    virtuosoRef.current?.scrollIntoView({ index: selected_file_index });
+    if (selected_file_index == null) {
+      return;
+    }
+    if (lastSelectedFileIndexRef.current == selected_file_index - 1) {
+      virtuosoRef.current?.scrollIntoView({ index: selected_file_index + 1 });
+    } else {
+      virtuosoRef.current?.scrollIntoView({ index: selected_file_index });
+    }
+    lastSelectedFileIndexRef.current = selected_file_index;
   }, [selected_file_index]);
 
   function render_rows(): Rendered {
@@ -223,10 +247,39 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_terminal_mode(): Rendered {
-    if (file_search[0] === TERM_MODE_CHAR) {
-      return <TerminalModeDisplay />;
-    }
+  if (!isRunning && listing.length == 0) {
+    return (
+      <Alert
+        style={{
+          textAlign: "center",
+          margin: "15px auto",
+          maxWidth: "400px",
+        }}
+        showIcon
+        type="warning"
+        message={
+          <div style={{ padding: "30px", fontSize: "14pt" }}>
+            <a
+              onClick={async () => {
+                if (starting) return;
+                try {
+                  setStarting(true);
+                  await actions.fetch_directory_listing_directly(
+                    current_path,
+                    true,
+                  );
+                } finally {
+                  setStarting(false);
+                }
+              }}
+            >
+              Start this project to see your files.
+              {starting && <Spin />}
+            </a>
+          </div>
+        }
+      />
+    );
   }
 
   return (
@@ -235,19 +288,24 @@ export const FileListing: React.FC<Props> = (props: Props) => {
         <div
           style={{ textAlign: "center", marginBottom: "5px", fontSize: "12pt" }}
         >
-          <>
-            Showing stale directory listing{" "}
-            {missing > 0 && <b>missing {missing} files</b>}.{" "}
-          </>
-          To update the directory listing,{" "}
-          <a
-            onClick={() => {
-              redux.getActions("projects").start_project(project_id);
+          <FormattedMessage
+            id="project.explorer.file-listing.stale-warning"
+            defaultMessage={`Showing stale directory listing{is_missing, select, true {<b> missing {missing} files</b>} other {}}.
+              To update the directory listing <a>start this project</a>.`}
+            values={{
+              is_missing: missing > 0,
+              missing,
+              a: (c) => (
+                <a
+                  onClick={() => {
+                    redux.getActions("projects").start_project(project_id);
+                  }}
+                >
+                  {c}
+                </a>
+              ),
             }}
-          >
-            start this project
-          </a>
-          .
+          />
         </div>
       )}
       <Col
@@ -260,7 +318,6 @@ export const FileListing: React.FC<Props> = (props: Props) => {
           flexDirection: "column",
         }}
       >
-        {render_terminal_mode()}
         {listing.length > 0 && (
           <ListingHeader
             active_file_sort={active_file_sort}

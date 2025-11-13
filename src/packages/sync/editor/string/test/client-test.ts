@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -9,13 +9,13 @@ Minimal client class that we use for testing.
 
 import { EventEmitter } from "events";
 import { bind_methods, keys } from "@cocalc/util/misc";
-import { once } from "@cocalc/util/async-utils";
 import {
   Client as Client0,
   FileWatcher as FileWatcher0,
 } from "../../generic/types";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
+import { once } from "@cocalc/util/async-utils";
 
 export class FileWatcher extends EventEmitter implements FileWatcher0 {
   private path: string;
@@ -45,6 +45,10 @@ export class Client extends EventEmitter implements Client0 {
   public server_time(): Date {
     return new Date();
   }
+
+  isTestClient = () => {
+    return true;
+  };
 
   public is_project(): boolean {
     return false;
@@ -152,7 +156,7 @@ export class Client extends EventEmitter implements Client0 {
 
   public set_deleted(_filename: string, _project_id?: string): void {}
 
-  async synctable_project(
+  async synctable_ephemeral(
     _project_id: string,
     query: any,
     options: any,
@@ -163,12 +167,11 @@ export class Client extends EventEmitter implements Client0 {
     return s;
   }
 
-  async synctable_database(
-    _query: any,
-    _options: any,
-    _throttle_changes?: number,
-  ): Promise<SyncTable> {
-    throw Error("not implemented");
+  async synctable_conat(_query: any): Promise<SyncTable> {
+    throw Error("synctable_conat: not implemented");
+  }
+  async pubsub_conat(_query: any): Promise<SyncTable> {
+    throw Error("pubsub_conat: not implemented");
   }
 
   // account_id or project_id

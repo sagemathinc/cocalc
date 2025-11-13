@@ -1,11 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert as AntdAlert, Space } from "antd";
 import { List, Map } from "immutable";
 import { join } from "path";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import {
   Alert,
@@ -13,17 +14,16 @@ import {
   ButtonToolbar,
   Checkbox,
   Col,
-  FormGroup,
   Panel,
   Row,
   Well,
 } from "@cocalc/frontend/antd-bootstrap";
 import {
-  Component,
   React,
   Rendered,
   TypedMap,
   redux,
+  useState,
 } from "@cocalc/frontend/app-framework";
 import {
   A,
@@ -32,7 +32,11 @@ import {
   Icon,
   TimeAgo,
 } from "@cocalc/frontend/components";
+import { SiteName, TermsOfService } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { labels } from "@cocalc/frontend/i18n";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import {
   PassportStrategyIcon,
   strategy2display,
@@ -40,13 +44,13 @@ import {
 import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { keys, startswith } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
-import { SiteName, TermsOfService } from "../../customize";
-import { open_new_tab } from "../../misc/open-browser-tab";
+import { AccountState } from "../types";
 import { DeleteAccount } from "../delete-account";
+import { ACCOUNT_PROFILE_ICON_NAME } from "../account-preferences-profile";
 import { SignOut } from "../sign-out";
 import { set_account_table, ugly_error } from "../util";
-import { APIKeySetting } from "./api-key";
 import { EmailAddressSetting } from "./email-address-setting";
 import { EmailVerification } from "./email-verification";
 import { PasswordSetting } from "./password-setting";
@@ -65,7 +69,7 @@ interface Props {
   passports?: Map<string, any>;
   sign_out_error?: string;
   delete_account_error?: string;
-  other_settings?: Map<string, any>;
+  other_settings?: AccountState["other_settings"];
   is_anonymous?: boolean;
   email_enabled?: boolean;
   verify_emails?: boolean;
@@ -73,54 +77,46 @@ interface Props {
   strategies?: List<ImmutablePassportStrategy>;
 }
 
-interface State {
-  add_strategy_link?: string;
-  remove_strategy_button?: string;
-  terms_checkbox: boolean;
-  show_delete_confirmation: boolean;
-  username: boolean;
-}
+export function AccountSettings(props: Readonly<Props>) {
+  const intl = useIntl();
 
-export class AccountSettings extends Component<Props, State> {
-  constructor(props, state) {
-    super(props, state);
-    this.state = {
-      add_strategy_link: undefined,
-      remove_strategy_button: undefined,
-      terms_checkbox: false,
-      show_delete_confirmation: false,
-      username: false,
-    };
+  const [add_strategy_link, set_add_strategy_link] = useState<
+    string | undefined
+  >(undefined);
+  const [remove_strategy_button, set_remove_strategy_button] = useState<
+    string | undefined
+  >(undefined);
+  const [terms_checkbox, set_terms_checkbox] = useState<boolean>(false);
+  const [show_delete_confirmation, set_show_delete_confirmation] =
+    useState<boolean>(false);
+  const [username, set_username] = useState<boolean>(false);
+
+  const actions = () => redux.getActions("account");
+
+  function handle_change(evt, field) {
+    actions().setState({ [field]: evt.target.value });
   }
 
-  private actions() {
-    return redux.getActions("account");
-  }
-
-  private handle_change(evt, field) {
-    this.actions().setState({ [field]: evt.target.value });
-  }
-
-  private save_change(evt, field: string): void {
+  function save_change(evt, field: string): void {
     const { value } = evt.target;
     set_account_table({ [field]: value });
   }
 
-  private get_strategy(name: string): ImmutablePassportStrategy | undefined {
-    if (this.props.strategies == null) return undefined;
-    return this.props.strategies.find((val) => val.get("name") == name);
+  function get_strategy(name: string): ImmutablePassportStrategy | undefined {
+    if (props.strategies == null) return undefined;
+    return props.strategies.find((val) => val.get("name") == name);
   }
 
-  private render_add_strategy_link(): Rendered {
-    if (!this.state.add_strategy_link) {
+  function render_add_strategy_link(): Rendered {
+    if (!add_strategy_link) {
       return;
     }
-    const strategy_name = this.state.add_strategy_link;
-    const strategy = this.get_strategy(strategy_name);
+    const strategy_name = add_strategy_link;
+    const strategy = get_strategy(strategy_name);
     if (strategy == null) return;
     const strategy_js = strategy.toJS();
     const name = strategy2display(strategy_js);
-    const href = join(appBasePath, "auth", this.state.add_strategy_link);
+    const href = join(appBasePath, "auth", add_strategy_link);
     return (
       <Well>
         <h4>
@@ -134,8 +130,8 @@ export class AccountSettings extends Component<Props, State> {
             href={href}
             target="_blank"
             onClick={() => {
-              this.setState({ add_strategy_link: undefined });
-              if (this.props.is_anonymous) {
+              set_add_strategy_link(undefined);
+              if (props.is_anonymous) {
                 log("add_passport", {
                   passport: name,
                   source: "anonymous_account",
@@ -145,24 +141,20 @@ export class AccountSettings extends Component<Props, State> {
           >
             <Icon name="external-link" /> Link My {name} Account
           </Button>
-          <Button
-            onClick={() => this.setState({ add_strategy_link: undefined })}
-          >
-            Cancel
+          <Button onClick={() => set_add_strategy_link(undefined)}>
+            <CancelText />
           </Button>
         </ButtonToolbar>
       </Well>
     );
   }
 
-  private async remove_strategy_click(): Promise<void> {
-    const strategy = this.state.remove_strategy_button;
-    this.setState({
-      remove_strategy_button: undefined,
-      add_strategy_link: undefined,
-    });
+  async function remove_strategy_click(): Promise<void> {
+    const strategy = remove_strategy_button;
+    set_remove_strategy_button(undefined);
+    set_add_strategy_link(undefined);
     if (strategy == null) return;
-    const obj = this.props.passports?.toJS() ?? {};
+    const obj = props.passports?.toJS() ?? {};
     let id: string | undefined = undefined;
     for (const k in obj) {
       if (startswith(k, strategy)) {
@@ -174,26 +166,23 @@ export class AccountSettings extends Component<Props, State> {
       return;
     }
     try {
-      const x = await webapp_client.account_client.unlink_passport(
-        strategy,
-        id
-      );
-      console.log("ret:", x);
+      await webapp_client.account_client.unlink_passport(strategy, id);
+      // console.log("ret:", x);
     } catch (err) {
       ugly_error(err);
     }
   }
 
-  private render_remove_strategy_button(): Rendered {
-    if (!this.state.remove_strategy_button) {
+  function render_remove_strategy_button(): Rendered {
+    if (!remove_strategy_button) {
       return;
     }
-    const strategy_name = this.state.remove_strategy_button;
-    const strategy = this.get_strategy(strategy_name);
+    const strategy_name = remove_strategy_button;
+    const strategy = get_strategy(strategy_name);
     if (strategy == null) return;
     const strategy_js = strategy.toJS();
     const name = strategy2display(strategy_js);
-    if ((this.props.passports?.size ?? 0) <= 1 && !this.props.email_address) {
+    if ((props.passports?.size ?? 0) <= 1 && !props.email_address) {
       return (
         <Well>
           You must set an email address above or add another login method before
@@ -202,7 +191,7 @@ export class AccountSettings extends Component<Props, State> {
         </Well>
       );
       // TODO: flesh out the case where the UI prevents a user from unlinking an exclusive sso strategy
-      // Right now, the backend blocks this.
+      // Right now, the backend blocks
     } else if (false) {
       return (
         <Well>You are not allowed to remove the passport strategy {name}.</Well>
@@ -220,18 +209,11 @@ export class AccountSettings extends Component<Props, State> {
           this account to log into <SiteName />.
           <br /> <br />
           <ButtonToolbar style={{ textAlign: "center" }}>
-            <Button
-              bsStyle="danger"
-              onClick={this.remove_strategy_click.bind(this)}
-            >
+            <Button bsStyle="danger" onClick={remove_strategy_click}>
               <Icon name="unlink" /> Unlink my {name} account
             </Button>
-            <Button
-              onClick={() =>
-                this.setState({ remove_strategy_button: undefined })
-              }
-            >
-              Cancel
+            <Button onClick={() => set_remove_strategy_button(undefined)}>
+              <CancelText />
             </Button>
           </ButtonToolbar>
         </Well>
@@ -239,29 +221,25 @@ export class AccountSettings extends Component<Props, State> {
     }
   }
 
-  private render_strategy(
+  function render_strategy(
     strategy: ImmutablePassportStrategy,
-    account_passports: string[]
+    account_passports: string[],
   ): Rendered {
     if (strategy.get("name") !== "email") {
       const is_configured = account_passports.includes(strategy.get("name"));
       const strategy_js = strategy.toJS();
       const btn = (
         <Button
-          disabled={this.props.is_anonymous && !this.state.terms_checkbox}
-          onClick={() =>
-            this.setState(
-              is_configured
-                ? {
-                    remove_strategy_button: strategy.get("name"),
-                    add_strategy_link: undefined,
-                  }
-                : {
-                    add_strategy_link: strategy.get("name"),
-                    remove_strategy_button: undefined,
-                  }
-            )
-          }
+          disabled={props.is_anonymous && !terms_checkbox}
+          onClick={() => {
+            if (is_configured) {
+              set_remove_strategy_button(strategy.get("name"));
+              set_add_strategy_link(undefined);
+            } else {
+              set_add_strategy_link(strategy.get("name"));
+              set_remove_strategy_button(undefined);
+            }
+          }}
           key={strategy.get("name")}
           bsStyle={is_configured ? "info" : undefined}
         >
@@ -273,20 +251,20 @@ export class AccountSettings extends Component<Props, State> {
     }
   }
 
-  private render_sign_out_error(): Rendered {
-    if (!this.props.sign_out_error) {
+  function render_sign_out_error(): Rendered {
+    if (!props.sign_out_error) {
       return;
     }
     return (
       <ErrorDisplay
         style={{ margin: "5px 0" }}
-        error={this.props.sign_out_error}
-        onClose={() => this.actions().setState({ sign_out_error: "" })}
+        error={props.sign_out_error}
+        onClose={() => actions().setState({ sign_out_error: "" })}
       />
     );
   }
 
-  private render_sign_out_buttons(): Rendered {
+  function render_sign_out_buttons(): Rendered {
     return (
       <Row
         style={{
@@ -298,63 +276,65 @@ export class AccountSettings extends Component<Props, State> {
         <Col xs={12}>
           <div className="pull-right">
             <SignOut everywhere={false} highlight={true} />
-            {!this.props.is_anonymous ? <Gap /> : undefined}
-            {!this.props.is_anonymous ? (
-              <SignOut everywhere={true} />
-            ) : undefined}
+            {!props.is_anonymous ? <Gap /> : undefined}
+            {!props.is_anonymous ? <SignOut everywhere={true} /> : undefined}
           </div>
         </Col>
       </Row>
     );
   }
 
-  private get_account_passport_names(): string[] {
-    return keys(this.props.passports?.toJS() ?? {}).map((x) =>
-      x.slice(0, x.indexOf("-"))
+  function get_account_passport_names(): string[] {
+    return keys(props.passports?.toJS() ?? {}).map((x) =>
+      x.slice(0, x.indexOf("-")),
     );
   }
 
-  private render_linked_external_accounts(): Rendered {
-    if (this.props.strategies == null || this.props.strategies.size <= 1) {
+  function render_linked_external_accounts(): Rendered {
+    if (props.strategies == null || props.strategies.size <= 1) {
       // not configured by server
       return;
     }
-    const account_passports: string[] = this.get_account_passport_names();
+    const account_passports: string[] = get_account_passport_names();
 
-    const linked: List<ImmutablePassportStrategy> =
-      this.props.strategies.filter((strategy) => {
+    const linked: List<ImmutablePassportStrategy> = props.strategies.filter(
+      (strategy) => {
         const name = strategy?.get("name");
         return name !== "email" && account_passports.includes(name);
-      });
+      },
+    );
     if (linked.size === 0) return;
 
     const btns = linked
-      .map((strategy) => this.render_strategy(strategy, account_passports))
+      .map((strategy) => render_strategy(strategy, account_passports))
       .toArray();
     return (
       <div>
         <hr key="hr0" />
-        <h5 style={{ color: "#666" }}>
-          Your account is linked with (click to unlink)
+        <h5 style={{ color: COLORS.GRAY_M }}>
+          {intl.formatMessage({
+            id: "account.settings.sso.account_is_linked",
+            defaultMessage: "Your account is linked with (click to unlink)",
+          })}
         </h5>
         <ButtonToolbar style={{ marginBottom: "10px", display: "flex" }}>
           {btns}
         </ButtonToolbar>
-        {this.render_remove_strategy_button()}
+        {render_remove_strategy_button()}
       </div>
     );
   }
 
-  private render_available_to_link(): Rendered {
-    if (this.props.strategies == null || this.props.strategies.size <= 1) {
+  function render_available_to_link(): Rendered {
+    if (props.strategies == null || props.strategies.size <= 1) {
       // not configured by server yet, or nothing but email
       return;
     }
-    const account_passports: string[] = this.get_account_passport_names();
+    const account_passports: string[] = get_account_passport_names();
 
     let any_hidden = false;
-    const not_linked: List<ImmutablePassportStrategy> =
-      this.props.strategies.filter((strategy) => {
+    const not_linked: List<ImmutablePassportStrategy> = props.strategies.filter(
+      (strategy) => {
         const name = strategy.get("name");
         // skip the email strategy, we don't use it
         if (name === "email") return false;
@@ -369,14 +349,22 @@ export class AccountSettings extends Component<Props, State> {
           return false;
         }
         return true;
-      });
+      },
+    );
     if (any_hidden === false && not_linked.size === 0) return;
 
-    const heading = this.props.is_anonymous
-      ? "Sign up using your account at"
-      : "Click to link your account";
+    const heading = intl.formatMessage(
+      {
+        id: "account.settings.sso.link_your_account",
+        defaultMessage: `{is_anonymous, select,
+          true {Sign up using your account at}
+          other {Click to link your account}}`,
+      },
+      { is_anonymous: props.is_anonymous },
+    );
+
     const btns = not_linked
-      .map((strategy) => this.render_strategy(strategy, account_passports))
+      .map((strategy) => render_strategy(strategy, account_passports))
       .toArray();
 
     // add an extra button to link to the non public ones, which aren't shown
@@ -388,23 +376,23 @@ export class AccountSettings extends Component<Props, State> {
           bsStyle="info"
         >
           Other SSO
-        </Button>
+        </Button>,
       );
     }
     return (
       <div>
         <hr key="hr0" />
-        <h5 style={{ color: "#666" }}>{heading}</h5>
+        <h5 style={{ color: COLORS.GRAY_M }}>{heading}</h5>
         <Space size={[10, 10]} wrap style={{ marginBottom: "10px" }}>
           {btns}
         </Space>
-        {this.render_add_strategy_link()}
+        {render_add_strategy_link()}
       </div>
     );
   }
 
-  private render_anonymous_warning(): Rendered {
-    if (!this.props.is_anonymous) {
+  function render_anonymous_warning(): Rendered {
+    if (!props.is_anonymous) {
       return;
     }
     // makes no sense to delete an account that is anonymous; it'll
@@ -427,8 +415,8 @@ export class AccountSettings extends Component<Props, State> {
     );
   }
 
-  private render_delete_account(): Rendered {
-    if (this.props.is_anonymous) {
+  function render_delete_account(): Rendered {
+    if (props.is_anonymous) {
       return;
     }
     return (
@@ -436,57 +424,49 @@ export class AccountSettings extends Component<Props, State> {
         <Col xs={12}>
           <DeleteAccount
             style={{ marginTop: "1ex" }}
-            initial_click={() =>
-              this.setState({ show_delete_confirmation: true })
-            }
-            confirm_click={() => this.actions().delete_account()}
-            cancel_click={() =>
-              this.setState({ show_delete_confirmation: false })
-            }
-            user_name={(
-              this.props.first_name +
-              " " +
-              this.props.last_name
-            ).trim()}
-            show_confirmation={this.state.show_delete_confirmation}
+            initial_click={() => set_show_delete_confirmation(true)}
+            confirm_click={() => actions().delete_account()}
+            cancel_click={() => set_show_delete_confirmation(false)}
+            user_name={(props.first_name + " " + props.last_name).trim()}
+            show_confirmation={show_delete_confirmation}
           />
         </Col>
       </Row>
     );
   }
 
-  private render_password(): Rendered {
-    if (!this.props.email_address) {
+  function render_password(): Rendered {
+    if (!props.email_address) {
       // makes no sense to change password if don't have an email address
       return;
     }
     return <PasswordSetting />;
   }
 
-  private render_terms_of_service(): Rendered {
-    if (!this.props.is_anonymous) {
+  function render_terms_of_service(): Rendered {
+    if (!props.is_anonymous) {
       return;
     }
     const style: React.CSSProperties = { padding: "10px 20px" };
-    if (this.state.terms_checkbox) {
+    if (terms_checkbox) {
       style.border = "2px solid #ccc";
     } else {
       style.border = "2px solid red";
     }
     return (
-      <FormGroup style={style}>
+      <div style={style}>
         <Checkbox
-          checked={this.state.terms_checkbox}
-          onChange={(e) => this.setState({ terms_checkbox: e.target.checked })}
+          checked={terms_checkbox}
+          onChange={(e) => set_terms_checkbox(e.target.checked)}
         >
           <TermsOfService style={{ display: "inline" }} />
         </Checkbox>
-      </FormGroup>
+      </div>
     );
   }
 
-  private render_header(): Rendered {
-    if (this.props.is_anonymous) {
+  function render_header(): Rendered {
+    if (props.is_anonymous) {
       return (
         <b>
           Thank you for using <SiteName />!
@@ -495,63 +475,71 @@ export class AccountSettings extends Component<Props, State> {
     } else {
       return (
         <>
-          <Icon name="user" /> Account
+          <Icon name={ACCOUNT_PROFILE_ICON_NAME} /> {intl.formatMessage(labels.account)}
         </>
       );
     }
   }
 
-  private render_created(): Rendered {
-    if (this.props.is_anonymous || !this.props.created) {
+  function render_created(): Rendered {
+    if (props.is_anonymous || !props.created) {
       return;
     }
     return (
       <Row style={{ marginBottom: "15px" }}>
-        <Col md={4}>Created</Col>
+        <Col md={4}>
+          <FormattedMessage
+            id="account.settings.created.label"
+            defaultMessage={"Created"}
+          />
+        </Col>
         <Col md={8}>
-          <TimeAgo date={this.props.created} />
+          <TimeAgo date={props.created} />
         </Col>
       </Row>
     );
   }
 
-  private render_name(): Rendered {
+  function render_name(): Rendered {
     return (
       <>
         <TextSetting
-          label="First name"
-          value={this.props.first_name}
-          onChange={(e) => this.handle_change(e, "first_name")}
-          onBlur={(e) => this.save_change(e, "first_name")}
-          onPressEnter={(e) => this.save_change(e, "first_name")}
+          label={intl.formatMessage(labels.account_first_name)}
+          value={props.first_name}
+          onChange={(e) => handle_change(e, "first_name")}
+          onBlur={(e) => save_change(e, "first_name")}
+          onPressEnter={(e) => save_change(e, "first_name")}
           maxLength={254}
-          disabled={this.props.is_anonymous && !this.state.terms_checkbox}
+          disabled={props.is_anonymous && !terms_checkbox}
         />
         <TextSetting
-          label="Last name"
-          value={this.props.last_name}
-          onChange={(e) => this.handle_change(e, "last_name")}
-          onBlur={(e) => this.save_change(e, "last_name")}
-          onPressEnter={(e) => this.save_change(e, "last_name")}
+          label={intl.formatMessage(labels.account_last_name)}
+          value={props.last_name}
+          onChange={(e) => handle_change(e, "last_name")}
+          onBlur={(e) => save_change(e, "last_name")}
+          onPressEnter={(e) => save_change(e, "last_name")}
           maxLength={254}
-          disabled={this.props.is_anonymous && !this.state.terms_checkbox}
+          disabled={props.is_anonymous && !terms_checkbox}
         />
         <TextSetting
-          label="Username (optional)"
-          value={this.props.name}
+          label={intl.formatMessage({
+            id: "account.settings.username.label",
+            defaultMessage: "Username (optional)",
+          })}
+          value={props.name}
           onChange={(e) => {
             const name = e.target.value?.trim();
-            this.actions().setState({ name });
+            actions().setState({ name });
           }}
           onBlur={(e) => {
-            this.setState({ username: false });
+            set_username(false);
             const name = e.target.value?.trim();
             if (name) {
               set_account_table({ name });
             }
           }}
           onFocus={() => {
-            this.setState({ username: true });
+            set_username(true);
           }}
           onPressEnter={(e) => {
             const name = e.target.value?.trim();
@@ -560,23 +548,23 @@ export class AccountSettings extends Component<Props, State> {
             }
           }}
           maxLength={39}
-          disabled={this.props.is_anonymous && !this.state.terms_checkbox}
+          disabled={props.is_anonymous && !terms_checkbox}
         />
-        {this.state.username && (
+        {username && (
           <AntdAlert
             showIcon
             style={{ margin: "15px 0" }}
             message={
-              <>
-                Setting a username provides optional nicer URL's for shared
-                public documents. Your username can be between 1 and 39
-                characters, contain upper and lower case letters, numbers, and
-                dashes.
-                <br />
-                WARNING: If you change your username, existing links using the
-                previous username will no longer work (automatic redirects are
-                not implemented), so change with caution.
-              </>
+              <FormattedMessage
+                id="account.settings.username.info"
+                defaultMessage={`Setting a username provides optional nicer URL's for shared
+public documents. Your username can be between 1 and 39 characters,
+contain upper and lower case letters, numbers, and dashes.
+{br}
+WARNING: If you change your username, existing links using the previous username
+will no longer work (automatic redirects are not implemented), so change with caution.`}
+                values={{ br: <br /> }}
+              />
             }
             type="info"
           />
@@ -585,76 +573,68 @@ export class AccountSettings extends Component<Props, State> {
     );
   }
 
-  private render_email_address(): Rendered {
-    if (!this.props.account_id) {
+  function render_email_address(): Rendered {
+    if (!props.account_id) {
       return; // makes no sense to change email if there is no account
     }
     return (
       <EmailAddressSetting
-        account_id={this.props.account_id}
-        email_address={this.props.email_address}
-        is_anonymous={this.props.is_anonymous}
-        disabled={this.props.is_anonymous && !this.state.terms_checkbox}
-        verify_emails={this.props.verify_emails}
+        email_address={props.email_address}
+        is_anonymous={props.is_anonymous}
+        disabled={props.is_anonymous && !terms_checkbox}
+        verify_emails={props.verify_emails}
       />
     );
   }
 
-  private render_unlisted(): Rendered {
-    if (!this.props.account_id) {
+  function render_unlisted(): Rendered {
+    if (!props.account_id) {
       return; // makes no sense to change unlisted status if there is no account
     }
     return (
       <Checkbox
-        checked={this.props.unlisted}
+        checked={props.unlisted}
         onChange={(e) =>
-          this.actions().set_account_table({ unlisted: e.target.checked })
+          actions().set_account_table({ unlisted: e.target.checked })
         }
       >
-        Unlisted: you can only be found by an exact email address match
+        <FormattedMessage
+          id="account.settings.unlisted.label"
+          defaultMessage={
+            "Unlisted: you can only be found by an exact email address match"
+          }
+        />
       </Checkbox>
     );
   }
 
-  private render_email_verification(): Rendered {
-    if (
-      this.props.email_enabled &&
-      this.props.verify_emails &&
-      !this.props.is_anonymous
-    ) {
+  function render_email_verification(): Rendered {
+    if (props.email_enabled && props.verify_emails && !props.is_anonymous) {
       return (
         <EmailVerification
-          email_address={this.props.email_address}
-          email_address_verified={this.props.email_address_verified}
+          email_address={props.email_address}
+          email_address_verified={props.email_address_verified}
         />
       );
     }
   }
 
-  private render_api_key(): Rendered {
-    if (this.props.is_anonymous) return;
-    return <APIKeySetting />;
-  }
-
-  public render(): Rendered {
-    return (
-      <Panel header={this.render_header()}>
-        {this.render_anonymous_warning()}
-        {this.render_terms_of_service()}
-        {this.render_name()}
-        {this.render_email_address()}
-        {this.render_unlisted()}
-        <div style={{ marginBottom: "15px" }}></div>
-        {this.render_email_verification()}
-        {this.render_password()}
-        {this.render_api_key()}
-        {this.render_created()}
-        {this.render_delete_account()}
-        {this.render_linked_external_accounts()}
-        {this.render_available_to_link()}
-        {this.render_sign_out_buttons()}
-        {this.render_sign_out_error()}
-      </Panel>
-    );
-  }
+  return (
+    <Panel header={render_header()}>
+      {render_anonymous_warning()}
+      {render_terms_of_service()}
+      {render_name()}
+      {render_email_address()}
+      {render_unlisted()}
+      <div style={{ marginBottom: "15px" }}></div>
+      {render_email_verification()}
+      {render_password()}
+      {render_created()}
+      {render_delete_account()}
+      {render_linked_external_accounts()}
+      {render_available_to_link()}
+      {render_sign_out_buttons()}
+      {render_sign_out_error()}
+    </Panel>
+  );
 }

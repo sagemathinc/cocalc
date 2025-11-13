@@ -2,7 +2,7 @@
 Mostly static markdown, but with some minimal dynamic editable content, e.g., checkboxes,
 and maybe some other nice features, but much less than a full slate editor!
 
-This is used a lot in the fronend app, whereas the fully static one is used a lot in the next.js app.
+This is used a lot in the frontend app, whereas the fully static one is used a lot in the next.js app.
 
 Extras include:
 
@@ -47,6 +47,11 @@ import Hashtag from "./elements/hashtag/component";
 import Highlighter from "react-highlight-words";
 import { ChangeContext } from "./use-change";
 
+const HIGHLIGHT_STYLE = {
+  padding: 0,
+  backgroundColor: "#feff03", // to match what chrome browser users.
+};
+
 interface Props {
   value: string;
   className?: string;
@@ -54,7 +59,7 @@ interface Props {
   onChange?: (string) => void; // if given support some very minimal amount of editing, e.g., checkboxes; onChange is called with modified markdown.
   selectedHashtags?: Set<string>; // assumed lower case!
   toggleHashtag?: (string) => void;
-  searchWords?: Set<string> | string[]; // higlight text that matches anything in here
+  searchWords?: Set<string> | string[]; // highlight text that matches anything in here
 }
 
 export default function MostlyStaticMarkdown({
@@ -81,7 +86,7 @@ export default function MostlyStaticMarkdown({
       if (mutateEditor(editor1.children, element, change)) {
         // actual change
         onChange(
-          slateToMarkdown(editor1.children, { cache: syncCacheRef.current })
+          slateToMarkdown(editor1.children, { cache: syncCacheRef.current }),
         );
         setEditor(editor1);
       }
@@ -137,7 +142,7 @@ function RenderElement({
   toggleHashtag,
   searchWords,
 }) {
-  let children: JSX.Element[] = [];
+  let children: React.JSX.Element[] = [];
   if (element["children"]) {
     let n = 0;
     for (const child of element["children"]) {
@@ -149,7 +154,7 @@ function RenderElement({
           selectedHashtags={selectedHashtags}
           toggleHashtag={toggleHashtag}
           searchWords={searchWords}
-        />
+        />,
       );
       n += 1;
     }
@@ -190,21 +195,27 @@ function RenderElement({
   return (
     <Leaf leaf={element} text={{} as any} attributes={{} as any}>
       {searchWords != null ? (
-        <Highlighter
-          highlightStyle={
-            {
-              padding: 0,
-              backgroundColor: "#feff03", // to match what chrome browser users.
-            } /* since otherwise partial matches in parts of words add weird spaces in the word itself.*/
-          }
-          searchWords={searchWords}
-          autoEscape={true}
-          textToHighlight={element["text"]}
-        />
+        <HighlightText searchWords={searchWords} text={element["text"]} />
       ) : (
         element["text"]
       )}
     </Leaf>
+  );
+}
+
+export function HighlightText({ text, searchWords }) {
+  searchWords = Array.from(searchWords);
+  if (searchWords.length == 0) {
+    return <>{text}</>;
+  }
+  return (
+    <Highlighter
+      highlightStyle={HIGHLIGHT_STYLE}
+      searchWords={searchWords}
+      /* autoEscape: since otherwise partial matches in parts of words add weird spaces in the word itself.*/
+      autoEscape={true}
+      textToHighlight={text}
+    />
   );
 }
 

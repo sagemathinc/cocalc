@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -17,7 +17,7 @@ import { raw_url } from "../frame-tree/util";
 
 export class Actions extends MarkdownActions {
   private run_wiki2html: Function;
-  private _last_wiki_hash: string = "";
+  private _last_wiki_hash: number | undefined = undefined;
 
   _init2(): void {
     if (!this.is_public) {
@@ -37,7 +37,7 @@ export class Actions extends MarkdownActions {
           this._last_wiki_hash = hash;
           await this.run_wiki2html();
         }
-      })
+      }),
     );
 
     this._syncstring.once("ready", this.run_wiki2html.bind(this));

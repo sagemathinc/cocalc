@@ -1,7 +1,15 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+/*
+This is some kind of canonical address, similar to robots.txt. It's useful for password managers, e.g.
+here is an old article I found about this [Google Chrome’s built-in password manager now lets users
+quickly change compromised passwords](https://www.techtsp.com/2020/08/enable-well-known-change-password-google-chrome.html)
+
+spec: [W3C A Well-Known URL for Changing Passwords](https://www.w3.org/TR/change-password-url/)
+*/
 
 import { useRouter } from "next/router";
 import React, { CSSProperties, useEffect } from "react";

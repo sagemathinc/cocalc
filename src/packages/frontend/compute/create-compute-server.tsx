@@ -1,24 +1,34 @@
 import { Button, Modal, Spin } from "antd";
-import { Icon } from "@cocalc/frontend/components";
-import {
-  createServer,
-  computeServerAction,
-  setServerConfiguration,
-} from "./api";
+import { delay } from "awaiting";
+import { cloneDeep } from "lodash";
 import { useEffect, useState } from "react";
-import { availableClouds } from "./config";
+
+import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import ShowError from "@cocalc/frontend/components/error";
+import { Icon } from "@cocalc/frontend/components/icon";
+import PublicTemplates from "@cocalc/frontend/compute/public-templates";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import { randomPetName } from "@cocalc/frontend/project/utils";
+import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
 import {
   CLOUDS_BY_NAME,
   Cloud as CloudType,
+  Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
 import { replace_all } from "@cocalc/util/misc";
-import ShowError from "@cocalc/frontend/components/error";
-import ComputeServer from "./compute-server";
-import { useTypedRedux, useRedux, redux } from "@cocalc/frontend/app-framework";
+import {
+  computeServerAction,
+  createServer,
+  getTemplate,
+  setServerConfiguration,
+} from "./api";
 import { randomColor } from "./color";
-import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
-import costPerHour from "./cost";
+import ComputeServer from "./compute-server";
 import { Docs } from "./compute-servers";
+import { availableClouds } from "./config";
+import costPerHour from "./cost";
+
+export const DEFAULT_FAST_LOCAL = "scratch";
 
 function defaultTitle() {
   return `Untitled ${new Date().toISOString().split("T")[0]}`;
@@ -40,35 +50,95 @@ function defaultConfiguration() {
 }
 
 function genericDefaults(conf) {
-  return { ...conf, excludeFromSync: ["compute-server-[id]"] };
+  return { ...conf, excludeFromSync: [DEFAULT_FAST_LOCAL] };
 }
 
 export default function CreateComputeServer({ project_id, onCreate }) {
   const account_id = useTypedRedux("account", "account_id");
   const create_compute_server = useRedux(["create_compute_server"], project_id);
+  const create_compute_server_template_id = useRedux(
+    ["create_compute_server_template_id"],
+    project_id,
+  );
   const [editing, setEditing] = useState<boolean>(create_compute_server);
+  const [templateId, setTemplateId] = useState<number | undefined>(
+    create_compute_server_template_id,
+  );
+
   useEffect(() => {
-    if (create_compute_server) {
-      redux
-        .getProjectActions(project_id)
-        .setState({ create_compute_server: false });
+    if (create_compute_server_template_id) {
+      setConfigToTemplate(create_compute_server_template_id);
     }
-  }, [create_compute_server]);
+    return () => {
+      if (create_compute_server) {
+        redux
+          .getProjectActions(project_id)
+          .setState({ create_compute_server: false });
+      }
+    };
+  }, []);
+
+  // we have to do this stupid hack because of the animation when showing
+  // a modal and how select works.  It's just working around limitations
+  // of antd, I think.
+  const [showTemplates, setShowTemplates] = useState<boolean>(false);
+  useEffect(() => {
+    setTimeout(() => setShowTemplates(true), 1000);
+  }, []);
+
   const [creating, setCreating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   const [title, setTitle] = useState<string>(defaultTitle());
   const [color, setColor] = useState<string>(randomColor());
   const [cloud, setCloud] = useState<CloudType>(defaultCloud());
-  const [configuration, setConfiguration] = useState<any>(
+  const [configuration, setConfiguration] = useState<Configuration>(
     defaultConfiguration(),
   );
+  const resetConfig = async () => {
+    try {
+      setLoadingTemplate(true);
+      await delay(1);
+      setTitle(defaultTitle());
+      setColor(randomColor());
+      setCloud(defaultCloud());
+      setConfiguration(defaultConfiguration());
+      setTemplateId(undefined);
+    } finally {
+      setLoadingTemplate(false);
+    }
+  };
 
-  const resetConfig = () => {
-    setTitle(defaultTitle());
-    setColor(randomColor());
-    setCloud(defaultCloud());
-    setConfiguration(defaultConfiguration());
+  const [notes, setNotes] = useState<string>("");
+  const [loadingTemplate, setLoadingTemplate] = useState<boolean>(false);
+  const setConfigToTemplate = async (id) => {
+    setTemplateId(id);
+    setNotes(`Starting with template ${id}.\n`);
+    const currentConfiguration = cloneDeep(configuration);
+    let template;
+    try {
+      setLoadingTemplate(true);
+      template = await getTemplate(id);
+      setTitle(template.title);
+      setColor(template.color);
+      setCloud(template.cloud);
+      const { configuration } = template;
+      if (currentConfiguration.dns) {
+        // keep current config
+        configuration.dns = currentConfiguration.dns;
+      } else if (configuration.dns) {
+        // TODO: should automatically ensure this randomly isn't taken.  Can implement
+        // that later.
+        configuration.dns += `-${randomPetName().toLowerCase()}`;
+      }
+      configuration.excludeFromSync = currentConfiguration.excludeFromSync;
+      setConfiguration(configuration);
+    } catch (err) {
+      setError(`${err}`);
+      return;
+    } finally {
+      setLoadingTemplate(false);
+    }
   };
 
   useEffect(() => {
@@ -91,12 +161,13 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           title,
           color,
           configuration,
+          notes,
         });
         await updateFastDataDirectoryId(id, configuration);
         setEditing(false);
         resetConfig();
         setCreating(false);
-        if (start) {
+        if (start && cloud != "onprem") {
           (async () => {
             try {
               await confirmStartComputeServer({
@@ -120,11 +191,17 @@ export default function CreateComputeServer({ project_id, onCreate }) {
 
   const footer = [
     <div style={{ textAlign: "center" }} key="footer">
-      <Button key="cancel" size="large" onClick={() => setEditing(false)}>
-        Cancel
+      <Button
+        key="cancel"
+        size="large"
+        onClick={() => setEditing(false)}
+        style={{ marginRight: "5px" }}
+      >
+        <CancelText />
       </Button>
       {cloud != "onprem" && (
         <Button
+          style={{ marginRight: "5px" }}
           key="start"
           size="large"
           type="primary"
@@ -133,7 +210,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           }}
           disabled={!!error || !title.trim()}
         >
-          <Icon name="run" /> Start Compute Server
+          <Icon name="run" /> Start Server
           {!!error && "(clear error) "}
           {!title.trim() && "(set title) "}
         </Button>
@@ -147,6 +224,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         disabled={!!error || !title.trim()}
       >
         <Icon name="run" /> Create Server
+        {cloud != "onprem" ? " (don't start)" : ""}
         {!!error && "(clear error) "}
         {!title.trim() && "(set title) "}
       </Button>
@@ -190,11 +268,30 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         width={"900px"}
         onCancel={() => {
           setEditing(false);
+          setTemplateId(undefined);
           resetConfig();
         }}
         open={editing}
-        destroyOnClose
-        title={"Create Compute Server"}
+        destroyOnHidden
+        title={
+          <div>
+            <div style={{ display: "flex" }}>Create Compute Server</div>
+            <div style={{ textAlign: "center", color: "#666" }}>
+              {showTemplates && (
+                <PublicTemplates
+                  disabled={loadingTemplate}
+                  defaultId={templateId}
+                  setId={async (id) => {
+                    setTemplateId(id);
+                    if (id) {
+                      await setConfigToTemplate(id);
+                    }
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        }
         footer={
           <div style={{ display: "flex" }}>
             {footer}
@@ -203,45 +300,74 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         }
       >
         <div style={{ marginTop: "15px" }}>
-          <ShowError error={error} setError={setError} />
-          <div
-            style={{
-              marginBottom: "5px",
-              color: "#666",
-              textAlign: "center",
-            }}
-          >
-            Customize your compute server below, then{" "}
-            <Button
-              onClick={() => handleCreate(true)}
-              disabled={!!error || !title.trim()}
-            >
-              <Icon name="run" /> Start It
-            </Button>
-          </div>
-          <ComputeServer
-            project_id={project_id}
-            account_id={account_id}
-            title={title}
-            color={color}
-            cloud={cloud}
-            configuration={configuration}
-            editable={!creating}
-            onColorChange={setColor}
-            onTitleChange={setTitle}
-            onCloudChange={setCloud}
-            onConfigurationChange={setConfiguration}
+          <ShowError
+            error={error}
+            setError={setError}
+            style={{ margin: "15px 0" }}
           />
+          {cloud != "onprem" && (
+            <div
+              style={{
+                marginBottom: "5px",
+                color: "#666",
+                textAlign: "center",
+              }}
+            >
+              Customize your compute server below, then{" "}
+              <Button
+                onClick={() => handleCreate(true)}
+                disabled={!!error || !title.trim()}
+                type={"primary"}
+              >
+                <Icon name="run" /> Start Server
+              </Button>
+            </div>
+          )}
+          {cloud == "onprem" && (
+            <div
+              style={{
+                marginBottom: "5px",
+                color: "#666",
+                textAlign: "center",
+              }}
+            >
+              Customize your compute server below, then{" "}
+              <Button
+                onClick={() => handleCreate(false)}
+                disabled={!!error || !title.trim()}
+                type={"primary"}
+              >
+                <Icon name="run" /> Create Server
+              </Button>
+            </div>
+          )}
+          {loadingTemplate && <Spin />}
+          {!loadingTemplate && (
+            <ComputeServer
+              server={{
+                project_id,
+                account_id,
+                title,
+                color,
+                cloud,
+                configuration,
+              }}
+              editable={!creating}
+              controls={{
+                onColorChange: setColor,
+                onTitleChange: setTitle,
+                onCloudChange: setCloud,
+                onConfigurationChange: setConfiguration,
+              }}
+            />
+          )}
         </div>
       </Modal>
     </div>
   );
 }
 
-async function updateFastDataDirectoryId(
-  id: number,
-  configuration,
-) {
+async function updateFastDataDirectoryId(id: number, configuration) {
   const { excludeFromSync } = configuration;
   if (excludeFromSync == null || excludeFromSync.length == 0) {
     return;

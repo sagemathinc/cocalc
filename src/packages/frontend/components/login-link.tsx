@@ -1,25 +1,35 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { redux } from "../app-framework";
-import { Alert } from "../antd-bootstrap";
+import { Alert } from "antd";
 import { Icon } from "./icon";
-import { Gap } from "./gap";
+import Next from "@cocalc/frontend/components/next";
+import { SiteName } from "@cocalc/frontend/customize";
 
-export const LoginLink: React.FC = () => {
+export function LoginLink() {
   return (
-    <Alert bsStyle="info" style={{ margin: "15px" }}>
-      <Icon name="sign-in" style={{ fontSize: "13pt", marginRight: "10px" }} />{" "}
-      Please
-      <Gap />
-      <a
-        style={{ cursor: "pointer" }}
-        onClick={() => redux.getActions("page").set_active_tab("account")}
-      >
-        login or create an account...
-      </a>
-    </Alert>
+    <Alert
+      type="warning"
+      style={{ margin: "15px" }}
+      description={
+        <div style={{ fontSize: "12pt" }}>
+          <Icon
+            name="sign-in"
+            style={{ fontSize: "13pt", marginRight: "10px" }}
+          />{" "}
+          Please{" "}
+          <Next sameTab href="/auth/sign-in">
+            login to <SiteName />
+          </Next>{" "}
+          or{" "}
+          <Next sameTab href="/auth/sign-up">
+            create a <SiteName /> account
+          </Next>
+          ...
+        </div>
+      }
+    />
   );
-};
+}

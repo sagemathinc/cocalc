@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // File-tabs in the active files (editors) flyout.
@@ -28,7 +28,7 @@ import { CSS as DNDCSS } from "@dnd-kit/utilities";
 interface Props {
   openTabs: string[];
   dndDragEnd: (event: any) => void;
-  renderFileItem: (path: string, how: "file" | "undo") => JSX.Element;
+  renderFileItem: (path: string, how: "file" | "undo") => React.JSX.Element;
   disabled: boolean;
 }
 
@@ -37,7 +37,7 @@ export function OpenFileTabs({
   dndDragEnd,
   renderFileItem,
   disabled,
-}: Props): JSX.Element {
+}: Props): React.JSX.Element {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {

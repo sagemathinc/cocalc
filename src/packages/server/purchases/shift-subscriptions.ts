@@ -58,10 +58,10 @@ async function shiftSubscriptionToEndOnDay(
     // it already ends on the right day, so nothing to do.
     return;
   }
-  /* 
+  /*
   Adjust current_period_start and current_period_end to both
   be on the target day, subject to:
-  
+
   - right now must be contained in the period, i.e., current_period_start <= now <= current_period_end, and
   - shift the interval by the minimum number of days
   */
@@ -87,7 +87,7 @@ async function shiftSubscriptionToEndOnDay(
     );
 
     if (sub.status != "canceled") {
-      // change underlying license end date to match (could result in credit or pending charge)
+      // change underlying license end date to match (could result in credit or charge)
       await editLicense({
         account_id,
         license_id: sub.metadata.license_id,

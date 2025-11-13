@@ -3,7 +3,7 @@ import { CSSProperties } from "react";
 import { CSS } from "@cocalc/frontend/app-framework";
 
 interface Props {
-  size?;
+  size: number; // e.g. 16 or 24
   backgroundColor?;
   style?: CSSProperties;
   innerStyle?: CSSProperties;
@@ -32,6 +32,7 @@ export default function AIAvatar({
         height: size,
         display: "inline-block",
         position: "relative",
+        top: "2px",
         ...style,
       }}
     >
@@ -41,7 +42,6 @@ export default function AIAvatar({
           backgroundColor,
           color: "white",
           height: size,
-          top: "5px",
           ...innerStyle,
         }}
       >

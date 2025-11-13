@@ -24,11 +24,12 @@ import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import TimeAgo from "react-timeago"; // so can use from nextjs
 const { Text, Paragraph } = Typography; // so can use from nextjs
-
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 import { A } from "./A";
 import CopyToClipBoard from "./copy-to-clipboard";
 import { Icon } from "./icon";
+
 const { useForm } = Form;
 
 interface Props {
@@ -76,7 +77,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
       setError(null);
     } catch (err) {
       setLoading(false);
-      setError(err.message || "An error occurred");
+      setError(`${err}`);
     }
   };
 
@@ -85,7 +86,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
       await manage({ action: "delete", id });
       getAllApiKeys();
     } catch (err) {
-      setError(err.message || "An error occurred");
+      setError(`${err}`);
     }
   };
 
@@ -100,7 +101,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
       await manage({ action: "edit", id, name, expire });
       getAllApiKeys();
     } catch (err) {
-      setError(err.message || "An error occurred");
+      setError(`${err}`);
     }
   };
 
@@ -115,13 +116,14 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
       getAllApiKeys();
 
       Modal.success({
+        width: 600,
         title: "New Secret API Key",
         content: (
           <>
             <div>
-              Save this secret key somewhere safe. You won't be able to view it
-              again here. If you lose this secret key, you'll need to generate a
-              new one.
+              Save this secret key somewhere safe.{" "}
+              <b>You won't be able to view it again here.</b> If you lose this
+              secret key, you'll need to generate a new one.
             </div>
             <div style={{ marginTop: 16 }}>
               <strong>Secret API Key</strong>{" "}
@@ -135,7 +137,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
       });
       setError(null);
     } catch (err) {
-      setError(err.message || "An error occurred");
+      setError(`${err}`);
     }
   };
 
@@ -202,7 +204,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
 
   const handleModalOK = () => {
     const name = form.getFieldValue("name");
-    const expire = form.getFieldValue("expire");
+    const expire = form.getFieldValue("expire")?.toDate();
     if (editingKey != null) {
       editApiKey(editingKey, name, expire);
       setEditModalVisible(false);
@@ -270,7 +272,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
             editingKey != null ? "Edit API Key Name" : "Create a New API Key"
           }
           okText={editingKey != null ? "Save" : "Create"}
-          cancelText="Cancel"
+          cancelText={<CancelText />}
           onCancel={handleModalCancel}
           onOk={handleModalOK}
         >

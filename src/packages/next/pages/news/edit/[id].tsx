@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import {
@@ -19,8 +19,9 @@ import {
   Space,
 } from "antd";
 import dayjs from "dayjs";
+import { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 
 import { getNewsItem } from "@cocalc/database/postgres/news";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -45,14 +46,13 @@ import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
 import { extractID } from "lib/news";
 import withCustomize from "lib/with-customize";
-import { GetServerSidePropsContext } from "next";
 
 interface Props {
   customize: CustomizeType;
   news?: NewsItem;
 }
 
-type NewsTypeForm = Omit<NewsItem, "date"> & { date: dayjs.Dayjs };
+type NewsTypeForm = Omit<NewsItem, "date" | "until"> & { date: dayjs.Dayjs; until?: dayjs.Dayjs };
 
 export default function EditNews(props: Props) {
   const { customize, news } = props;
@@ -68,10 +68,12 @@ export default function EditNews(props: Props) {
 
   const date: dayjs.Dayjs =
     typeof news?.date === "number" ? dayjs.unix(news.date) : dayjs();
+  const until: dayjs.Dayjs | undefined =
+    typeof news?.until === "number" ? dayjs.unix(news.until) : undefined;
 
   const init: NewsTypeForm =
     news != null
-      ? { ...news, tags: news.tags ?? [], date }
+      ? { ...news, tags: news.tags ?? [], date, until }
       : {
           hide: false,
           title: "",
@@ -80,6 +82,7 @@ export default function EditNews(props: Props) {
           tags: [],
           channel: "feature",
           date: dayjs(),
+          until: undefined,
         };
 
   const [data, setData] = useState<NewsTypeForm>(init);
@@ -91,20 +94,49 @@ export default function EditNews(props: Props) {
 
   useEffect(() => {
     form.setFieldsValue(data);
+
+    // If we're creating a new item, set the channel from URL params (if such a param exists).
+    // This is used when creating a new event from the events page.
+    //
+    if (isNew) {
+      const { channel } = router.query;
+      if (
+        typeof channel === "string" &&
+        CHANNELS.includes(channel as Channel)
+      ) {
+        form.setFieldValue("channel", channel);
+      }
+    }
+
     form.validateFields();
   }, [data]);
 
   async function save() {
     setSaving(true);
     try {
-      // send data, but convert date field to epoch seconds
-      const next = { ...data, id, date: data.date.unix() };
+      // send data, but convert date and until fields to epoch seconds
+      const next = { 
+        ...data, 
+        id, 
+        date: data.date.unix(),
+        until: data.until?.unix()
+      };
+      const { channel } = data;
       const ret = await apiPost("/news/edit", next);
       if (ret == null || ret.id == null) {
         throw Error("Problem saving news item – no id returned.");
       }
-      if (isNew) {
-        router.push(`/news/edit/${ret.id}`, undefined, { scroll: false });
+      if (channel === "event") {
+        router.push("/about/events", undefined, { scroll: false });
+      } else {
+        router.push(
+          slugURL({
+            ...data,
+            ...ret,
+          }),
+          undefined,
+          { scroll: false },
+        );
       }
       // this signals to the user that the save was successful
       setSaved(ret.id);
@@ -140,9 +172,29 @@ export default function EditNews(props: Props) {
         return "Use this rarely, only once or twice a month.";
       case "about":
         return "This is the meta-level category.";
+      case "event":
+        return (
+          "Let users know about upcoming company/conference events. These events are ONLY" +
+          " shown in the About page and are filtered from normal news views."
+        );
       default:
         return CHANNELS_DESCRIPTIONS[channel];
     }
+  }
+
+  function updateChannelParam(channel: string) {
+    const { query } = router;
+
+    router.replace(
+      {
+        query: {
+          ...query,
+          channel,
+        },
+      },
+      undefined,
+      { shallow: true, scroll: false },
+    );
   }
 
   function edit() {
@@ -182,12 +234,20 @@ export default function EditNews(props: Props) {
             <DatePicker changeOnBlur showTime={true} allowClear={false} />
           </Form.Item>
           <Form.Item
+            label="Until"
+            name="until"
+            rules={[{ required: false }]}
+            extra="Optional expiration date - news item will not be shown after this date. Leave empty to never expire."
+          >
+            <DatePicker changeOnBlur showTime={true} allowClear={true} />
+          </Form.Item>
+          <Form.Item
             label="Channel"
             name="channel"
             rules={[{ required: true }]}
             extra={explainChannel(data.channel)}
           >
-            <Select>
+            <Select onSelect={(value) => updateChannelParam(value)}>
               {CHANNELS.map((ch) => {
                 return (
                   <Select.Option value={ch} key={ch}>
@@ -232,7 +292,7 @@ export default function EditNews(props: Props) {
         <Row gutter={30}>
           <Col span={16}>
             <Paragraph>
-              <News news={{ ...data, id, date: data.date.unix() }} />
+              <News news={{ ...data, id, date: data.date.unix(), until: data.until?.unix() }} />
             </Paragraph>
           </Col>
           <Col span={8}>

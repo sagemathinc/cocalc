@@ -1,99 +1,77 @@
 import getPool, { PoolClient } from "@cocalc/database/pool";
-import getLicense from "@cocalc/server/licenses/get-license";
-
-import editLicense, { costToChangeLicense } from "./edit-license";
-import { getSubscription } from "./renew-subscription";
+import send, { support, url, name } from "@cocalc/server/messages/send";
+import adminAlert from "@cocalc/server/messages/admin-alert";
+import { currency } from "@cocalc/util/misc";
 
 interface Options {
   account_id: string;
   subscription_id: number;
-  cancelImmediately?: boolean;
+  reason?: string;
   client?: PoolClient;
 }
 
 export default async function cancelSubscription({
-  account_id,
+  account_id, // only used for added security
   subscription_id,
-  cancelImmediately,
+  reason = "no reason specified",
   client,
 }: Options) {
   const pool = client ?? getPool();
   const now = new Date();
 
   await pool.query(
-    "UPDATE subscriptions SET status='canceled', canceled_at=$1 WHERE id=$2",
-    [now, subscription_id],
+    "UPDATE subscriptions SET status='canceled', canceled_at=$1, canceled_reason=$2 WHERE id=$3 AND account_id=$4",
+    [now, reason, subscription_id, account_id],
   );
-  if (!cancelImmediately) {
-    return;
-  }
-
-  const { license_id, end } = await cancelSubscriptionData(
-    subscription_id,
-    now,
-  );
-  if (end == null) {
-    return;
-  }
-
-  // edit the corresponding license so that it ends now and users gets credit.
-  await editLicense({
-    isSubscriptionRenewal: true,
-    account_id,
-    license_id,
-    changes: { end },
-    note: "Canceling a subscription immediately.",
-    client,
-  });
+  await sendCancelNotification({ subscription_id, client });
 }
 
-export async function creditToCancelSubscription(
+export async function sendCancelNotification({
   subscription_id,
-): Promise<number> {
-  const { license_id, end } = await cancelSubscriptionData(
-    subscription_id,
-    new Date(),
+  client,
+}: {
+  subscription_id: number;
+  client?: PoolClient;
+}) {
+  const pool = client ?? getPool();
+  const { rows } = await pool.query(
+    "SELECT account_id, canceled_reason, cost, interval FROM subscriptions where id=$1",
+    [subscription_id],
   );
-  if (end == null) {
-    throw Error("not a valid subscription");
+  if (rows.length == 0) {
+    return;
   }
-  const { cost } = await costToChangeLicense({
-    license_id,
-    changes: { end },
-    isSubscriptionRenewal: true,
+  const { account_id, canceled_reason, cost, interval } = rows[0];
+
+  const subject = `Subscription Id=${subscription_id} Canceled`;
+  const body = `
+This is a confirmation that your subscription (id=${subscription_id}) that
+costs ${currency(cost)}/${interval} was canceled.
+
+**REASON:** ${JSON.stringify(canceled_reason)}
+
+You can easily [resume or edit this subscription at any time](${await url(`/settings/subscriptions#id=${subscription_id}`)}).
+
+${await support()}
+`;
+
+  await send({
+    to_ids: [account_id],
+    subject,
+    body,
   });
-  return cost;
-}
 
-async function cancelSubscriptionData(
-  subscription_id,
-  now,
-): Promise<{ license_id: string; end: Date | null }> {
-  const subscription = await getSubscription(subscription_id);
-  const { metadata, current_period_end } = subscription;
-  const { license_id } = metadata;
-  const license = await getLicense(license_id);
-  let end;
+  adminAlert({
+    subject: `Alert -- User Subscription for ${currency(cost)}/${interval} Id=${subscription_id} was Canceled`,
+    body: `
+- User: ${await name(account_id)}, account_id=${account_id}
 
-  if (license.activates != null && new Date(license.activates) > now) {
-    // activation in the future
-    end = new Date(license.activates);
-  } else {
-    end = now;
-  }
+- User provided reason: "${JSON.stringify(canceled_reason)}"
 
-  if (
-    (license.expires != null && new Date(license.expires) <= end) ||
-    current_period_end <= end
-  ) {
-    // license already ended
-    return { license_id, end: null };
-  }
+- Cost: ${currency(cost)}/${interval}
 
-  if (metadata?.type != "license" || metadata.license_id == null) {
-    // only license subscriptions are currently implemented
-    return { license_id, end: null };
-  }
+- subscription_id=${subscription_id}
 
-  return { license_id, end };
+`,
+  });
 }

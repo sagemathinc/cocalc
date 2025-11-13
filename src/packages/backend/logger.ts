@@ -13,7 +13,7 @@ process.env.DEBUG_HIDE_DATE = "yes"; // since we supply it ourselves
 
 import debug, { Debugger } from "debug";
 import { mkdirSync, createWriteStream, statSync, ftruncate } from "fs";
-import { format } from "util";
+import { format, inspect } from "util";
 import { dirname, join } from "path";
 import { logs } from "./data";
 
@@ -25,12 +25,12 @@ let _trimLogFileSizePath = "";
 export function trimLogFileSize() {
   // THIS JUST DOESN'T REALLY WORK!
   return;
-  
+
   if (!_trimLogFileSizePath) return;
   let stats;
   try {
     stats = statSync(_trimLogFileSizePath);
-  } catch(_) {
+  } catch (_) {
     // this happens if the file doesn't exist, which is fine since "trimming" it would be a no-op
     return;
   }
@@ -50,19 +50,21 @@ export function trimLogFileSize() {
 
 function myFormat(...args): string {
   if (args.length > 1 && typeof args[0] == "string" && !args[0].includes("%")) {
-    // This is something where we didn't use printf formatting.
     const v: string[] = [];
     for (const x of args) {
       try {
-        v.push(typeof x == "object" ? JSON.stringify(x) : `${x}`);
+        // Use util.inspect for better object representation
+        v.push(
+          typeof x == "object"
+            ? inspect(x, { depth: 4, breakLength: 120 })
+            : `${x}`,
+        );
       } catch (_) {
-        // better to not crash everything just for logging
         v.push(`${x}`);
       }
     }
     return v.join(" ");
   }
-  // use printf formatting.
   return format(...args);
 }
 
@@ -115,7 +117,7 @@ function initTransports() {
         transports.console ? " and console.log" : ""
       } via the debug module\nwith  DEBUG='${
         process.env.DEBUG
-      }'.\nUse   DEBUG_FILE='path' and DEBUG_CONSOLE=[yes|no] to override.\nUsing DEBUG='cocalc:*,-cocalc:silly:*' to control log levels.\n\n***`;
+      }'.\nUse   DEBUG_FILE='path' and DEBUG_CONSOLE=[yes|no] to override.\nUsing e.g., something like DEBUG='cocalc:*,-cocalc:silly:*' to control log levels.\n\n***`;
       console.log(announce);
       if (transports.file) {
         // the file transport
@@ -126,7 +128,7 @@ function initTransports() {
     // Similar as in debug source code, except I stuck a timestamp
     // at the beginning, which I like... except also aware of
     // non-printf formatting.
-    const line = `${new Date().toISOString()}: ${myFormat(...args)}\n`;
+    const line = `${new Date().toISOString()} (${process.pid}):${myFormat(...args)}\n`;
 
     if (transports.console) {
       // the console transport:

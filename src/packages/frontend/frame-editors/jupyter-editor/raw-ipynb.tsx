@@ -1,25 +1,25 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Frame that displays the raw JSON for a Jupyter Notebook
 */
 
+import { fromJS } from "immutable";
 
+import { AccountState } from "@cocalc/frontend/account/types";
+import { RawEditor } from "@cocalc/frontend/jupyter/raw-editor";
 
-import { RawEditor } from "../../jupyter/raw-editor";
+import { cm_options } from "../codemirror/cm-options";
 
 import { JupyterEditorActions } from "./actions";
-
-import { Map, fromJS } from "immutable";
-import { cm_options } from "../codemirror/cm-options";
 
 interface Props {
   actions: JupyterEditorActions;
   font_size: number;
-  editor_settings: Map<string, any>;
+  editor_settings: AccountState["editor_settings"];
   project_id: string;
 }
 

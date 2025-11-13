@@ -5,8 +5,14 @@ Get compute servers
 import getAccountId from "lib/account/get-account";
 import getServers from "@cocalc/server/compute/get-servers";
 import getParams from "lib/api/get-params";
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GetComputeServersInputSchema,
+  GetComputeServersOutputSchema,
+} from "lib/api/schema/compute/get-servers";
+import throttle from "@cocalc/util/api/throttle";
 
-export default async function handle(req, res) {
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -20,19 +26,35 @@ async function get(req) {
   if (!account_id) {
     throw Error("must be signed in");
   }
-  const { project_id, id } = getParams(req, {
-    allowGet: true,
+  throttle({
+    account_id,
+    endpoint: "compute/get-servers",
   });
-  let servers = await getServers({
+  const { project_id, id } = getParams(req);
+  return await getServers({
     account_id,
     project_id,
     id,
   });
-  // strip data, which is not meant to be visible to the user (?).
-  // [ ] TODO: better to not do it this way but make getServers not use SELECT *
-  for (const server of servers) {
-    delete server.data;
-    delete server.api_key;
-  }
-  return servers;
 }
+
+export default apiRoute({
+  getServers: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: GetComputeServersInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: GetComputeServersOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

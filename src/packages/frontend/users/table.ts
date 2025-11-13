@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Table, redux } from "../app-framework";
@@ -16,7 +16,7 @@ class UsersTable extends Table {
     if (kiosk_project_id) {
       // In kiosk mode for a project we load only collabs on the relevant project.
       const query = require("@cocalc/sync/table/util").parse_query(
-        "collaborators_one_project"
+        "collaborators_one_project",
       );
       query.collaborators_one_project[0].project_id = kiosk_project_id;
       return query;
@@ -42,8 +42,10 @@ class UsersTable extends Table {
     } else {
       // merge in upstream changes:
       table.get().map((data, account_id) => {
-        if (data !== user_map.get(account_id)) {
-          user_map = user_map.set(account_id, data);
+        if (!data?.equals(user_map.get(account_id))) {
+          // we also set collaborator: true, so it's easy to tell that users added
+          // via the user_map table are collaborators.  Other users can get added later.
+          user_map = user_map.set(account_id, data.set("collaborator", true));
         }
         return false;
       });

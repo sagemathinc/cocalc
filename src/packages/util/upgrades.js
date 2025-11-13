@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 const { PROJECT_UPGRADES } = require("./schema");
@@ -10,7 +10,11 @@ const misc = require("./misc");
 // This is used by the frontend in r_account.  It's also used by the backend
 // to double check the claims of the frontend.
 // stripe_subscriptions_data = stripe_customer?.subscriptions?.data
-function get_total_upgrades(stripe_subscriptions_data) {
+function get_total_upgrades(stripe_subscriptions_data, DEBUG = false) {
+  if (DEBUG) {
+    return PROJECT_UPGRADES.subscription.professional.benefits;
+  }
+
   const subs = stripe_subscriptions_data;
   if (subs == null) {
     return {};
@@ -92,7 +96,7 @@ exports.available_upgrades = available_upgrades;
 function upgrade_maxes(stripe_subscriptions_data, projects, project_id) {
   const { available, excess } = available_upgrades(
     stripe_subscriptions_data,
-    projects
+    projects,
   );
   const allocated = projects[project_id];
   const maxes = {};

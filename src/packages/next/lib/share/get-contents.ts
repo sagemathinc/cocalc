@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import pathToFiles from "./path-to-files";
@@ -11,14 +11,41 @@ import { hasSpecialViewer } from "@cocalc/frontend/file-extensions";
 import { getExtension } from "./util";
 
 const MB: number = 1000000;
-const LIMITS = {
-  listing: 10000, // directory listing is truncated after this many files
+
+const LISTED_LIMITS = {
+  listing: 3000, // directory listing is truncated after this many files
+  ipynb: 7 * MB,
+  sagews: 5 * MB,
+  whiteboard: 3 * MB,
+  slides: 3 * MB,
+  other: 1 * MB,
+  html: 3 * MB,
+  // no special viewer
+  generic: 2 * MB,
+};
+
+const UNLISTED_LIMITS = {
+  ...LISTED_LIMITS,
   ipynb: 15 * MB,
   sagews: 10 * MB,
-  whiteboard: 5 * MB,
-  slides: 5 * MB,
-  other: 2 * MB,
+  whiteboard: 10 * MB,
+  slides: 10 * MB,
+  other: 5 * MB,
+  html: 40 * MB, // E.g., cambridge: https://cocalc.com/Cambridge/S002211202200903X/S002211202200903X-Figure-4/files/Figure4.html
+
+  // no special viewer
+  generic: 10 * MB,
 };
+
+// also used for proxied content -- see https://github.com/sagemathinc/cocalc/issues/8020
+export function getSizeLimit(path: string, unlisted: boolean = false): number {
+  const LIMITS = unlisted ? UNLISTED_LIMITS : LISTED_LIMITS;
+  const ext = getExtension(path);
+  if (hasSpecialViewer(ext)) {
+    return LIMITS[ext] ?? LIMITS.other;
+  }
+  return LIMITS.generic;
+}
 
 export interface FileInfo {
   name: string;
@@ -40,7 +67,8 @@ export interface PathContents {
 
 export default async function getContents(
   project_id: string,
-  path: string
+  path: string,
+  unlisted?: boolean, // if true, higher size limits, since much less likely to be abused
 ): Promise<PathContents> {
   const fsPath = pathToFiles(project_id, path);
   const obj: PathContents = {};
@@ -58,13 +86,10 @@ export default async function getContents(
     }
   } else {
     // get actual file content
-    const ext = getExtension(fsPath);
-    if (hasSpecialViewer(ext)) {
-      if (stats.size >= LIMITS[ext] ?? LIMITS.other) {
-        obj.truncated = "File too big to be displayed; download it instead.";
-      } else {
-        obj.content = (await fs.readFile(fsPath)).toString();
-      }
+    if (stats.size >= getSizeLimit(fsPath, unlisted)) {
+      obj.truncated = "File too big to be displayed; download it instead.";
+    } else {
+      obj.content = (await fs.readFile(fsPath)).toString();
     }
     obj.size = stats.size;
   }
@@ -72,7 +97,7 @@ export default async function getContents(
 }
 
 async function getDirectoryListing(
-  path: string
+  path: string,
 ): Promise<{ listing: FileInfo[]; truncated?: string }> {
   const listing: FileInfo[] = [];
   let truncated: string | undefined = undefined;
@@ -98,8 +123,8 @@ async function getDirectoryListing(
       obj.error = err;
     }
     listing.push(obj);
-    if (listing.length >= LIMITS.listing) {
-      truncated = `Too many files -- only showing ${LIMITS.listing} of them.`;
+    if (listing.length >= LISTED_LIMITS.listing) {
+      truncated = `Too many files -- only showing ${LISTED_LIMITS.listing} of them.`;
       break;
     }
   }

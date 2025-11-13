@@ -1,11 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Map, Set } from "immutable";
 import { clone } from "lodash";
-
 import {
   CSS,
   React,
@@ -116,7 +115,7 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     useEffect(() => {
       if (!frameRootRef.current) return;
       const observer = new ResizeObserver(() => {
-        actions.set_resize();
+        actions.set_resize?.();
       });
       observer.observe(frameRootRef.current);
       return () => observer.disconnect();
@@ -215,11 +214,11 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
   shouldMemoize,
 );
 
-interface Options {
+interface Options<T = EditorSpec> {
   display_name: string;
   format_bar?: boolean;
   format_bar_exclude?: SetMap;
-  editor_spec: EditorSpec;
+  editor_spec: T;
 }
 
 export interface EditorProps {
@@ -232,7 +231,9 @@ export interface EditorProps {
 
 // this returns a function that creates a FrameTreeEditor for given Options.
 // memoization happens in FrameTreeEditor
-export function createEditor(opts: Options): React.FC<EditorProps> {
+export function createEditor<T = EditorSpec>(
+  opts: Options<T>,
+): React.FC<EditorProps> {
   const Editor = (props: EditorProps) => {
     const { actions, name, path, project_id, is_visible } = props;
     return (
@@ -243,7 +244,11 @@ export function createEditor(opts: Options): React.FC<EditorProps> {
         project_id={project_id}
         format_bar={!!opts.format_bar}
         format_bar_exclude={opts.format_bar_exclude}
-        editor_spec={{ ...opts.editor_spec, chat }}
+        editor_spec={
+          path.endsWith(".sage-chat")
+            ? opts.editor_spec
+            : { ...opts.editor_spec, chat }
+        }
         tab_is_visible={is_visible}
       />
     );

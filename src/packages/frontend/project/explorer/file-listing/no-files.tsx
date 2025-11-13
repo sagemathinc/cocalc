@@ -1,20 +1,25 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button } from "antd";
 import { useMemo } from "react";
-import { Paragraph, Text } from "@cocalc/frontend/components";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Paragraph, Text } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
+import ComputeServer from "@cocalc/frontend/compute/inline";
+import { labels } from "@cocalc/frontend/i18n";
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
+import { useAvailableFeatures } from "@cocalc/frontend/project/use-available-features";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
-import { useAvailableFeatures } from "@cocalc/frontend/project/use-available-features";
+import { capitalize } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { HelpAlert } from "./help-alert";
 import { full_path_text } from "./utils";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 
 interface Props {
   name: string;
@@ -35,6 +40,7 @@ export default function NoFiles({
   project_id,
   configuration_main,
 }: Props) {
+  const intl = useIntl();
   const availableFeatures = useAvailableFeatures(project_id);
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const { buttonText, actualNewFilename } = useMemo(() => {
@@ -45,13 +51,18 @@ export default function NoFiles({
 
     const buttonText =
       file_search.length === 0 ? (
-        "Create or Upload Files..."
+        `${intl.formatMessage({
+          id: "project.explorer.file-listing.no-files.button",
+          defaultMessage: "Create or Upload Files",
+          description:
+            "Button label to open a dialog to create or upload files",
+        })}...`
       ) : (
         <>
-          Create {actualNewFilename}{" "}
+          {capitalize(intl.formatMessage(labels.create))} {actualNewFilename}{" "}
           {!!compute_server_id && (
             <>
-              {" on "}
+              {` ${intl.formatMessage(labels.on)} `}
               <ComputeServer id={compute_server_id} />
             </>
           )}
@@ -72,8 +83,20 @@ export default function NoFiles({
       }}
       className="smc-vfill"
     >
-      <h4 style={{ color: "#666" }}>
-        No files {file_search?.trim() ? `matching '${file_search}'` : ""} found
+      <h4 style={{ color: COLORS.GRAY_M }}>
+        <FormattedMessage
+          id="project.explorer.file-listing.no-files.no-files-found"
+          defaultMessage={`{filtering, select,
+            true {No files matching {file_search} found}
+            other {No files found}}`}
+          description={
+            "Indicate there are no files in the directory or no files found when there is an active filter."
+          }
+          values={{
+            filtering: !!file_search?.trim(),
+            file_search,
+          }}
+        />
       </h4>
       <hr />
       <Button
@@ -83,6 +106,7 @@ export default function NoFiles({
           margin: "0 auto",
           height: "80px",
           fontSize: "24px",
+          padding: "30px",
         }}
         onClick={(): void => {
           if (file_search.length === 0) {
@@ -100,7 +124,14 @@ export default function NoFiles({
         type="secondary"
         style={{ textAlign: "center", marginTop: "10px" }}
       >
-        (or <Text code>Shift+Return</Text> in the search box)
+        <FormattedMessage
+          id="project.explorer.file-listing.no-files.shift-return"
+          defaultMessage={`(or <keyboard>Shift+Return</keyboard> in the search box)`}
+          description={"Tell user about a keyboard shortcut."}
+          values={{
+            keyboard: (c) => <Text code>{c}</Text>,
+          }}
+        />
       </Paragraph>
       <HelpAlert
         file_search={file_search}

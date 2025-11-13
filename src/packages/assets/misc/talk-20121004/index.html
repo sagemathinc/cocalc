@@ -1,9 +1,9 @@
-<!-- 
+<!--
   This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+  License: MS-RSL – see LICENSE.md for details
  -->
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
 	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -106,7 +106,7 @@
 <font size=+3>
 <pre>
 On Wed, Sep 26, 2012 at 9:54 AM, Chris Seberino <cseberino@gmail.com> wrote:
-> I have a Xen Ubuntu Linux 1 Gb RAM virtual machine  from a provider 
+> I have a Xen Ubuntu Linux 1 Gb RAM virtual machine  from a provider
 > called Linode.
 >
 
@@ -314,18 +314,18 @@ Matlab, Magma).</li>
      /|\
       |       (sockjs)
    Stunnels ... (https://salv.us)
-      |     
       |
-     \|/ 
+      |
+     \|/
  HAProxy Load Balancers  ...  Nginx static servers ...
  /|\       /|\      /|\      /|\
   |         |        |        |           [tinc vpn]
-  |https1.1 |        |        |                                     
- \|/       \|/      \|/      \|/                                      
+  |https1.1 |        |        |
+ \|/       \|/      \|/      \|/
 Tornado  Tornado  Tornado  Tornado    <------------------>   Cassandra   ...
            /|\      /|\                                         /|\
             |        |        -----------------------------------|
-   ---------|        |        |                                         
+   ---------|        |        |
    |                 |        |
    |                 |        |
   \|/               \|/      \|/
@@ -365,7 +365,7 @@ Tornado  Tornado  Tornado  Tornado    <------------------>   Cassandra   ...
     disk images).</li>
 <li> <b>The <i>only</i> persistent data:</b> in all of Salvus is in the distributed
     database.  This will sit in a disk partition that is
-    encrypted using the Linux ecryptfs filesystem and a passphrase
+    encrypted using the Linux ecryptfs file system and a passphrase
     that I type in (exactly once from my management interface) when
     launching the database. </li>
 </ul>
@@ -384,7 +384,7 @@ Tornado  Tornado  Tornado  Tornado    <------------------>   Cassandra   ...
     making noise about implementing something open source kind of like
     what Amazon and VMware already did, but with a lot of the truly hard
     real work being doing by libvirt.  (This will likely be useful for
-    something in a year or two, and now if you <a href="http://www.ubuntu.com/cloud/solutions">pay companies money</a>, 
+    something in a year or two, and now if you <a href="http://www.ubuntu.com/cloud/solutions">pay companies money</a>,
 but now it is worse than useless...)
 </li>
 <li>    The real work is done by libvirt, kvm (or xen).  Evidently, Redhat put a ton
@@ -406,7 +406,7 @@ but now it is worse than useless...)
 
   <li>By using a VPN, Salvus can easily combine cloud computers, my own
     computers, etc., and don't have to worry about ip addresses
-    changing. 
+    changing.
 </li>
 <li> We don't have to worry about securing
     communication between the different services or vm's in salvus.
@@ -434,7 +434,7 @@ but now it is worse than useless...)
          <li> Public-facing machines on the VPN also acts as
            servers, so clients can connect to VPN as long as at least one public-facing
            machine is up.   </li>
-         <li> It's P2P -- traffic does not all go through one 
+         <li> It's P2P -- traffic does not all go through one
            master node, which could be very inefficient. </li>
          <li> All traffic is encrypted.</li>
          <li> Easy/sensible; to add a machine to the VPN, you just
@@ -444,7 +444,7 @@ but now it is worse than useless...)
 </ul>
 </li>
 </ul></div>
-      
+
 
 
 
@@ -465,14 +465,14 @@ an absolutely crucial component of the design.
     databases based on usernames.  (I also read a lot about
     SQLalchemy, used PostgreSQL a lot, etc.)</li>
 <li>Then the Padelford server room blew up for the <i>n</i>-th time, and I
-    firmly decided on no SPOF's as an <i>Axiom</i>. 
+    firmly decided on no SPOF's as an <i>Axiom</i>.
 </ul>
 </div>
 
 <div class="slide">
 <h1>Database: noSQL</h1>
 <ul>
-<li> NO SPOFS!:  
+<li> NO SPOFS!:
     Relational databases like PostgreSQL become even more difficult to
     use with this constraint. You have to have a master database, at least one other slave
     databases replicating it, and some sort of automatic failover that
@@ -492,7 +492,7 @@ an absolutely crucial component of the design.
     how redundant they are.  I had learned a lot about MongoDB (a
     noSQL database) a few years ago, and after getting LMFDB.org to
     use it a lot (and using it for my own database work), I think it
-    sucks.... for me at least. 
+    sucks.... for me at least.
 
       <a href="http://news.ycombinator.com/item?id=4570790">"Does everyone hate MongoDB?"</a>
       </li>
@@ -555,7 +555,7 @@ an absolutely crucial component of the design.
 <h1>Load balancing: haproxy</h1>
 The stunnel process directs all requests to another program called
 haproxy (which can be running on a different computer or the same
-computer). 
+computer).
 <ul>
 <li>Haproxy is pretty much the canonical open source load balancer
 program.</li>
@@ -630,7 +630,7 @@ language.</li>
 with various things pre-imported such as graphics, Maxima, etc.,
 listens on a socket (running as root), accepts a connection, forks,
 lowers privileges, executes blocks of sage code, and streams results
-back over the connection.  
+back over the connection.
 </li>
 <li>The design is much different than with the Sage notebook, where one
 process watches another.  Here, as code executes, the running process
@@ -661,7 +661,7 @@ tons!) of programs out there for managing installing and running
 software on a bunch of machine.  I found one called Ansible that I
 kind of liked at first, but found it to be too immature and not so
 widely used.  There were some other solutions, but they seemed like
-massive overkill.  I spent quite a bit of time investigating them. 
+massive overkill.  I spent quite a bit of time investigating them.
 But for every actual application, there is a bunch of subtle logic
 that just has to be figured out and coded, and I had a lot of that down
 from my code mentioned above.</li>

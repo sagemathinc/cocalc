@@ -1,11 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useRedux, useActions } from "../../app-framework";
 import { Button, Card } from "antd";
-import { A, ErrorDisplay, Icon, Loading } from "../../components";
+
+import { useActions, useRedux } from "@cocalc/frontend/app-framework";
+import { A, ErrorDisplay, Icon, Loading } from "@cocalc/frontend/components";
 import { ArchiveActions } from "./actions";
 
 export const Archive: React.FC<{ project_id: string; path: string }> = ({

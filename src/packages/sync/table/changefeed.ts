@@ -1,13 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { EventEmitter } from "events";
 import { callback, delay } from "awaiting";
 import { close } from "@cocalc/util/misc";
 
-type State = "closed" | "disconnected" | "connecting" | "connected";
+export type State = "closed" | "disconnected" | "connecting" | "connected";
 
 export class Changefeed extends EventEmitter {
   private query: any;
@@ -44,10 +44,10 @@ export class Changefeed extends EventEmitter {
   // changefeed, and return the initial state
   // of the table.  Throws an exception if anything
   // goes wrong.
-  public async connect(): Promise<any> {
+  connect = async () => {
     if (this.state != "disconnected") {
       throw Error(
-        `can only connect if state is 'disconnected' but it is ${this.state}`
+        `can only connect if state is 'disconnected' but it is ${this.state}`,
       );
     }
     this.state = "connecting";
@@ -66,11 +66,27 @@ export class Changefeed extends EventEmitter {
     this.state = "connected";
     this.process_queue_next_tick();
     return resp.query[this.table];
-  }
+  };
+
+  close = (): void => {
+    this.state = "closed";
+    if (this.id != null) {
+      // stop listening for future updates
+      this.cancel_query(this.id);
+    }
+    this.emit("close");
+    this.removeAllListeners();
+    close(this);
+    this.state = "closed";
+  };
+
+  get_state = (): string => {
+    return this.state;
+  };
 
   // Wait a tick, then process the queue of messages that
   // arrived during initialization.
-  private async process_queue_next_tick(): Promise<void> {
+  private process_queue_next_tick = async () => {
     await delay(0);
     while (this.state != "closed" && this.handle_update_queue.length > 0) {
       const x = this.handle_update_queue.shift();
@@ -78,9 +94,9 @@ export class Changefeed extends EventEmitter {
         this.handle_update(x.err, x.resp);
       }
     }
-  }
+  };
 
-  private run_the_query(cb: Function): void {
+  private run_the_query = (cb: Function): void => {
     // This query_function gets called first on the
     // initial query, then repeatedly with each changefeed
     // update. The input function "cb" will be called
@@ -91,7 +107,6 @@ export class Changefeed extends EventEmitter {
     this.do_query({
       query: this.query,
       changes: true,
-      timeout: 30,
       options: this.options,
       cb: (err, resp) => {
         if (first_time) {
@@ -102,9 +117,9 @@ export class Changefeed extends EventEmitter {
         }
       },
     });
-  }
+  };
 
-  private handle_update(err, resp): void {
+  private handle_update = (err, resp): void => {
     if (this.state != "connected") {
       if (this.state == "closed") {
         // expected, since last updates after query cancel may get through...
@@ -139,21 +154,8 @@ export class Changefeed extends EventEmitter {
     }
     x.action = resp.action;
     this.emit("update", x);
-  }
-
-  public close(): void {
-    this.state = "closed";
-    if (this.id != null) {
-      // stop listening for future updates
-      this.cancel_query(this.id);
-    }
-    this.emit("close");
-    this.removeAllListeners();
-    close(this);
-    this.state = "closed";
-  }
-
-  private async cancel_query(id: string): Promise<void> {
+  };
+  private cancel_query = async (id: string) => {
     try {
       await this.query_cancel(id);
     } catch (err) {
@@ -161,11 +163,7 @@ export class Changefeed extends EventEmitter {
       // Basically anything that could cause an error would have also
       // canceled the changefeed anyways.
     }
-  }
-
-  public get_state(): string {
-    return this.state;
-  }
+  };
 }
 
 //

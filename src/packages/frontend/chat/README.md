@@ -1,9 +1,22 @@
 # Chat
 
 WARNING: like all development docs, don't trust anything technical in
-this file; instead, only trust the code itself!  Nobody ever looks at
+this file; instead, only trust the code itself! Nobody ever looks at
 docs like this, except people very new to the codebase, hence they tend
 to just maximize confusion.
+
+## Timestamps
+
+Note: There are a couple of ways to represent a time in Javascript:
+
+- iso string
+- ms since epoch as a number
+- string version of ms since epoch
+- Date object
+
+The data structures for chat have somehow evolved since that
+crazy Sage Days by the Ocean in WA to use all of these at once, which is
+confusing and annoying.  Be careful!
 
 ## Overview
 
@@ -59,4 +72,3 @@ date      : Date Object
 history   : immutable.List of immutable.Maps
 editing   : immutable.Map
 ```
-

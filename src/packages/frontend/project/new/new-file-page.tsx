@@ -1,15 +1,17 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button, Input, Modal, Space } from "antd";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 
 import { default_filename } from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   ProjectActions,
+  redux,
   useActions,
   useRedux,
   useTypedRedux,
@@ -24,8 +26,13 @@ import {
   Tip,
 } from "@cocalc/frontend/components";
 import FakeProgress from "@cocalc/frontend/components/fake-progress";
-import { FileUpload } from "@cocalc/frontend/file-upload";
+import ComputeServer from "@cocalc/frontend/compute/inline";
+import { filenameIcon } from "@cocalc/frontend/file-associations";
+import { FileUpload, UploadLink } from "@cocalc/frontend/file-upload";
+import { labels } from "@cocalc/frontend/i18n";
 import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
+import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
+import { ACTIVITY_BAR_KEY } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -34,13 +41,38 @@ import { useAvailableFeatures } from "../use-available-features";
 import { FileTypeSelector } from "./file-type-selector";
 import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
-import ComputeServer from "@cocalc/frontend/compute/inline";
+
+const CREATE_MSG = defineMessage({
+  id: "project.new.new-file-page.create.title",
+  defaultMessage: `Create {desc}`,
+  description: "creating a file with the given description in a file-system",
+});
 
 interface Props {
   project_id: string;
 }
 
 export default function NewFilePage(props: Props) {
+  const intl = useIntl();
+  const [createFolderModal, setCreateFolderModal] = useState<boolean>(false);
+  const createFolderModalRef = useRef<any>(null);
+  useEffect(() => {
+    setTimeout(() => {
+      if (createFolderModal && createFolderModalRef.current) {
+        createFolderModalRef.current.focus();
+        createFolderModalRef.current.select();
+      }
+    }, 1);
+  }, [createFolderModal]);
+  const inputRef = useRef<any>(null);
+  useEffect(() => {
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
+    }, 1);
+  }, []);
   const { project_id } = props;
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const actions = useActions({ project_id });
@@ -51,6 +83,7 @@ export default function NewFilePage(props: Props) {
   const [filename, setFilename] = useState<string>(
     filename0 ? filename0 : default_filename(undefined, project_id),
   );
+  const [filenameChanged, setFilenameChanged] = useState<boolean>(false);
   const file_creation_error = useTypedRedux(
     { project_id },
     "file_creation_error",
@@ -77,6 +110,7 @@ export default function NewFilePage(props: Props) {
   const [creatingFile, setCreatingFile] = useState<string>("");
 
   async function createFile(ext?: string) {
+    const filename = inputRef.current?.input.value;
     if (!filename) {
       return;
     }
@@ -100,6 +134,7 @@ export default function NewFilePage(props: Props) {
   }
 
   function submit(ext?: string) {
+    const filename = inputRef.current?.input.value;
     if (!filename) {
       // empty filename
       return;
@@ -177,7 +212,7 @@ export default function NewFilePage(props: Props) {
               setExtensionWarning(false);
             }}
           >
-            Cancel
+            {intl.formatMessage(labels.cancel)}
           </Button>
         </Space>
       </Alert>
@@ -190,17 +225,27 @@ export default function NewFilePage(props: Props) {
         <Row style={{ marginTop: "20px" }}>
           <Col sm={12}>
             <h4>
-              <Icon name="cloud-upload" /> Upload Files Into Your Project
+              <Icon name="cloud-upload" />{" "}
+              <FormattedMessage
+                id="project.new.new-file-page.upload.title"
+                defaultMessage={"Upload Files"}
+              />
             </h4>
           </Col>
         </Row>
         <Row>
           <Col sm={24}>
             <div style={{ color: COLORS.GRAY_M, fontSize: "12pt" }}>
-              You can drop one or more files here or on the Explorer file
-              listing. See{" "}
-              <A href="https://doc.cocalc.com/howto/upload.html">the docs</A>{" "}
-              for more ways to get your files into your project.
+              <FormattedMessage
+                id="project.new.new-file-page.upload.description"
+                defaultMessage={`You can drop one or more files here or on the Explorer file listing.
+                  See <A>documentation</A> for more ways to get your files into your project.`}
+                values={{
+                  A: (c) => (
+                    <A href="https://doc.cocalc.com/howto/upload.html">{c}</A>
+                  ),
+                }}
+              />
             </div>
           </Col>
         </Row>
@@ -224,48 +269,144 @@ export default function NewFilePage(props: Props) {
 
   const renderCreate = () => {
     let desc: string;
+    const ext = filename_extension(filename);
     if (filename.endsWith("/")) {
-      desc = "folder";
+      desc = intl.formatMessage(labels.folder);
     } else if (
       filename.toLowerCase().startsWith("http:") ||
       filename.toLowerCase().startsWith("https:")
     ) {
-      desc = "download";
+      desc = intl.formatMessage(labels.download);
     } else {
-      const ext = filename_extension(filename);
       if (ext) {
-        desc = `${ext} file`;
+        desc = intl.formatMessage(
+          {
+            id: "project.new.new-file-page.create.desc_file",
+            defaultMessage: "{ext} file",
+            description: "An extension-named file on a button",
+          },
+          { ext },
+        );
       } else {
-        desc = "file with no extension";
+        desc = intl.formatMessage({
+          id: "project.new.new-file-page.create.desc_no_ext",
+          defaultMessage: "File with no extension",
+          description: "A filename without an extension",
+        });
       }
     }
+    const title = intl.formatMessage(CREATE_MSG, { desc });
+
     return (
-      <Tip
-        icon="file"
-        title={`Create ${desc}`}
-        tip={`Create ${desc}.  You can also press return.`}
-      >
-        <Button
-          size="large"
-          disabled={filename.trim() == ""}
-          onClick={() => submit()}
+      <Space>
+        {!ext && !filename.endsWith("/") && (
+          <Button size="large" onClick={() => createFolder()}>
+            <Icon name="folder" />{" "}
+            {intl.formatMessage(CREATE_MSG, {
+              desc: intl.formatMessage(labels.folder),
+            })}
+          </Button>
+        )}
+        <Tip
+          icon="file"
+          title={title}
+          tip={intl.formatMessage(
+            {
+              id: "project.new.new-file-page.create.tooltip",
+              defaultMessage: `{title}.  You can also press return.`,
+              description:
+                "Informing the user in this tooltip, that it is also possible to press the return key",
+            },
+            { title },
+          )}
         >
-          Create {desc}
-        </Button>
-      </Tip>
+          <Button
+            size="large"
+            disabled={filename.trim() == ""}
+            onClick={() => submit()}
+          >
+            <Icon name={filenameIcon(filename)} />{" "}
+            {intl.formatMessage(CREATE_MSG, { desc })}
+          </Button>
+        </Tip>
+      </Space>
     );
   };
 
-  const showFiles = () => {
-    actions.set_active_tab("files");
-  };
+  function closeNewPage() {
+    // Showing homepage in flyout only mode, otherwise the files as usual
+    const account_store = redux.getStore("account") as any;
+    const actBar = account_store?.getIn(["other_settings", ACTIVITY_BAR_KEY]);
+    const pureFlyoutMode = getValidActivityBarOption(actBar) === "flyout";
+    actions?.set_active_tab(pureFlyoutMode ? "home" : "files");
+  }
 
   //key is so autofocus works below
   return (
     <SettingBox
+      style={{ marginTop: "20px" }}
       show_header
       icon={"plus-circle"}
-      title={<>Create or Upload New File or Folder</>}
+      title={
+        <>
+          &nbsp;
+          <FormattedMessage
+            id="project.new-file-page.title"
+            defaultMessage={
+              "Create or {upload} New File or <folder>Folder</folder>"
+            }
+            values={{
+              upload: (
+                <UploadLink
+                  project_id={project_id}
+                  path={current_path}
+                  onUpload={() => getActions().fetch_directory_listing()}
+                />
+              ),
+              folder: (txt) => (
+                <a
+                  onClick={() => {
+                    setCreateFolderModal(true);
+                  }}
+                >
+                  {txt}
+                </a>
+              ),
+            }}
+          />
+          <Modal
+            open={createFolderModal}
+            title={intl.formatMessage({
+              id: "project.new-file-page.title.modal.title",
+              defaultMessage: "Create New Folder",
+            })}
+            onCancel={() => setCreateFolderModal(false)}
+            onOk={() => {
+              setCreateFolderModal(false);
+              if (filename) {
+                createFolder();
+              }
+            }}
+          >
+            <div style={{ textAlign: "center" }}>
+              <Input
+                ref={createFolderModalRef}
+                style={{ margin: "15px 0" }}
+                autoFocus
+                size="large"
+                value={filename}
+                onChange={(e) => setFilename(e.target.value)}
+                onPressEnter={() => {
+                  setCreateFolderModal(false);
+                  if (filename) {
+                    createFolder();
+                  }
+                }}
+              />
+            </div>
+          </Modal>
+        </>
+      }
       subtitle={
         <div>
           <PathNavigator
@@ -280,7 +421,7 @@ export default function NewFilePage(props: Props) {
           )}
         </div>
       }
-      close={showFiles}
+      close={closeNewPage}
     >
       <Modal
         onCancel={() => setCreatingFile("")}
@@ -300,8 +441,10 @@ export default function NewFilePage(props: Props) {
               fontSize: "16px",
             }}
           >
-            Name your file, folder or paste in a link. End name with / to make a
-            folder.
+            <FormattedMessage
+              id="new.file-type-page.header.intro"
+              defaultMessage="Name your file, folder or paste in a link. End name with / to make a folder."
+            />
           </Paragraph>
           <div
             style={{
@@ -320,6 +463,7 @@ export default function NewFilePage(props: Props) {
             >
               <Input
                 size="large"
+                ref={inputRef}
                 autoFocus
                 value={filename}
                 disabled={extensionWarning}
@@ -327,6 +471,7 @@ export default function NewFilePage(props: Props) {
                   "Name your file, folder, or a URL to download from..."
                 }
                 onChange={(e) => {
+                  setFilenameChanged(true);
                   if (extensionWarning) {
                     setExtensionWarning(false);
                   } else {
@@ -352,12 +497,17 @@ export default function NewFilePage(props: Props) {
               marginTop: "15px",
             }}
           >
-            What would you like to create? Documents can be simultaneously
-            edited by multiple people, maintain a full{" "}
-            <A href="https://doc.cocalc.com/time-travel.html">
-              TimeTravel history
-            </A>{" "}
-            of edits, and support evaluation of code.
+            <FormattedMessage
+              id="new.file-type-page.header.description"
+              defaultMessage={
+                "Click a button to create a new file.  Documents can be simultaneously edited by multiple people, maintain a full <A>TimeTravel history</A> of edits, and support evaluation of code."
+              }
+              values={{
+                A: (ch) => (
+                  <A href="https://doc.cocalc.com/time-travel.html">{ch}</A>
+                ),
+              }}
+            />
           </Paragraph>
           <FileTypeSelector
             create_file={submit}
@@ -365,6 +515,7 @@ export default function NewFilePage(props: Props) {
             projectActions={actions}
             availableFeatures={availableFeatures}
             filename={filename}
+            filenameChanged={filenameChanged}
           >
             <Tip
               title={"Download files from the Internet"}

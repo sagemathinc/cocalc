@@ -1,6 +1,7 @@
-import $ from "cheerio";
+import { load } from "cheerio";
 
 export function getAttrs(content: string, attrs: string[]): [string, string][] {
+  const $ = load("");
   const x = $(content);
   const v: [string, string][] = [];
   for (const attr of attrs) {

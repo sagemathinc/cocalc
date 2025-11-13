@@ -1,6 +1,6 @@
 #########################################################################
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+# License: MS-RSL – see LICENSE.md for details
 #########################################################################
 
 # This is a collection of utility classes for printing documents.
@@ -277,7 +277,7 @@ class SagewsPrinter extends Printer
 
                     <script type="text/javascript">window.MathJax = #{misc.to_json(MathJaxConfig)};</script>
                     <script type="text/javascript" async
-                        src="#{BASE_URL}/static/mathjax/MathJax.js?config=TeX-AMS_HTML">
+                        src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS_HTML">
                     </script>
                 </head>
 

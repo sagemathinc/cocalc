@@ -1,104 +1,110 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Card, Col, Row } from "antd";
+import { Button, Col, Row, Space } from "antd";
 
-import {
-  redux,
-  useActions,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import useAppContext from "@cocalc/frontend/app/use-context";
 import { Icon, Title } from "@cocalc/frontend/components";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { useProjectContext } from "../../context";
-import AIGenerateJupyterNotebook from "./ai-generate-jupyter";
+import { COLORS } from "@cocalc/util/theme";
+import { FIXED_PROJECT_TABS } from "../file-tab";
 import { HomeRecentFiles } from "./recent-files";
-import {
-  computeServersEnabled,
-  ComputeServers,
-  ComputeServerDocs,
-} from "@cocalc/frontend/compute";
-import AccountStatus from "@cocalc/frontend/purchases/account-status";
 
-const SPAN = { md: 12, sm: 24, xs: 24 } as const;
+const BTN_PROPS = {
+  block: true,
+  width: "50%",
+  size: "large",
+  style: { backgroundColor: COLORS.GRAY_LLL },
+  overflow: "hidden",
+} as const;
 
 export default function HomePage() {
-  const { project_id } = useProjectContext();
-  const actions = useActions({ project_id });
-  const commercial = useTypedRedux("customize", "commercial");
-
-  function renderGPTGenerator() {
-    // if not available, the entire block should be gone
-    // making room for the toher blocks to move into its place
-    if (!redux.getStore("projects").hasLanguageModelEnabled(project_id))
-      return null;
-
-    return (
-      <Col {...SPAN}>
-        <AIGenerateJupyterNotebook project_id={project_id} />
-      </Col>
-    );
-  }
+  const { displayI18N: display } = useAppContext();
+  const { project_id, actions } = useProjectContext();
 
   return (
-    <div style={{ margin: "15px", maxWidth: "1300px" }}>
-      <Row gutter={[30, 30]}>
-        <Col {...SPAN}>
-          <div
+    <Row
+      gutter={[30, 30]}
+      style={{
+        maxWidth: "800px",
+        margin: "0 auto",
+        padding: "10px",
+      }}
+    >
+      <Col md={24}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Title
+            level={2}
+            onClick={() => actions?.set_active_tab("settings")}
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "200px",
+              cursor: "pointer",
+              textAlign: "center",
+              color: COLORS.GRAY_M,
             }}
           >
-            <Title
-              level={2}
-              onClick={() => actions?.set_active_tab("settings")}
-              style={{ cursor: "pointer", textAlign: "center", color: "#666" }}
-            >
-              <ProjectTitle project_id={project_id} noClick />
-            </Title>
-          </div>
-        </Col>
-        <Col {...SPAN}>
-          <HomeRecentFiles
-            project_id={project_id}
-            style={{ height: "200px" }}
-          />
-        </Col>
-        {renderGPTGenerator()}
-        {computeServersEnabled() && (
-          <Col {...SPAN}>
-            <Card
-              style={{
-                maxHeight: "500px",
-                overflow: "auto",
-                border: "1px solid #ddd",
-              }}
-              title={
-                <Title level={4}>
-                  <ComputeServerDocs style={{ float: "right" }} />
-                  <Icon
-                    name="servers"
-                    style={{ fontSize: "20pt", marginRight: "5px" }}
-                  />{" "}
-                  Compute Servers
-                </Title>
-              }
-            >
-              <ComputeServers project_id={project_id} />
-            </Card>
-          </Col>
-        )}
-        {commercial && (
-          <Col md={24}>
-            <AccountStatus compact style={{ border: "1px solid #ddd" }} />
-          </Col>
-        )}
-      </Row>
-    </div>
+            <ProjectTitle project_id={project_id} noClick />
+          </Title>
+        </div>
+      </Col>
+      <Col md={24} style={{ textAlign: "center" }}>
+        <Space.Compact>
+          <Button
+            {...BTN_PROPS}
+            onClick={() => {
+              actions?.set_active_tab("new");
+            }}
+          >
+            <Icon name={FIXED_PROJECT_TABS.new.icon} /> Create a new file ...
+          </Button>
+          <Button
+            {...BTN_PROPS}
+            onClick={() => {
+              actions?.set_active_tab("files");
+            }}
+          >
+            <Icon name={FIXED_PROJECT_TABS.files.icon} /> Browse existing files
+            ...
+          </Button>
+        </Space.Compact>
+      </Col>
+      <Col md={24} style={{ textAlign: "center" }}>
+        <Button type="text" onClick={() => actions?.set_active_tab("log")}>
+          <Icon name={FIXED_PROJECT_TABS.log.icon} />{" "}
+          {display(FIXED_PROJECT_TABS.log.label)}
+        </Button>
+        <Button type="text" onClick={() => actions?.set_active_tab("users")}>
+          <Icon name={FIXED_PROJECT_TABS.users.icon} />{" "}
+          {display(FIXED_PROJECT_TABS.users.label)}
+        </Button>
+        <Button type="text" onClick={() => actions?.set_active_tab("upgrades")}>
+          <Icon name={FIXED_PROJECT_TABS.upgrades.icon} />{" "}
+          {display(FIXED_PROJECT_TABS.upgrades.label)}
+        </Button>
+        <Button type="text" onClick={() => actions?.set_active_tab("servers")}>
+          <Icon name={FIXED_PROJECT_TABS.servers.icon} />{" "}
+          {display(FIXED_PROJECT_TABS.servers.label)}
+        </Button>
+        <Button type="text" onClick={() => actions?.set_active_tab("settings")}>
+          <Icon name={FIXED_PROJECT_TABS.settings.icon} />{" "}
+          {display(FIXED_PROJECT_TABS.settings.label)}
+        </Button>
+      </Col>
+      <Col md={24}>
+        <HomeRecentFiles
+          project_id={project_id}
+          style={{ height: "max(200px, 50%)" }}
+          mode="embed"
+        />
+      </Col>
+    </Row>
   );
 }

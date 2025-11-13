@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -17,7 +17,7 @@ import Loading from "components/share/loading";
 import { Layout } from "components/share/layout";
 import A from "components/misc/A";
 import { Customize } from "lib/share/customize";
-import { User } from "lib/share/types";
+import { ProjectCollaborator } from "lib/api/schema/projects/collaborators/list";
 import Edit from "./edit";
 import editURL from "lib/share/edit-url";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
@@ -104,7 +104,7 @@ export default function Project({
 
 function isCollaborator(
   account: undefined | { account_id: string },
-  collaborators: User[]
+  collaborators: ProjectCollaborator[],
 ): boolean {
   const account_id = account?.account_id;
   if (account_id == null) return false;

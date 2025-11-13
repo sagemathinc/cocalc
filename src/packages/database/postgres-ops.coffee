@@ -1,13 +1,13 @@
 #########################################################################
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+# License: MS-RSL – see LICENSE.md for details
 #########################################################################
 
 ###
 PostgreSQL -- operations code, e.g., backups, maintenance, etc.
 
 COPYRIGHT : (c) 2017 SageMath, Inc.
-LICENSE   : AGPLv3
+LICENSE   : MS-RSL
 ###
 
 fs         = require('fs')

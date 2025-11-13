@@ -23,7 +23,7 @@ const logger = getLogger("purchases:renew-subscription");
 interface Options {
   account_id: string;
   subscription_id: number;
-  force?: boolean; // subscription renews even if we are out of money, but via a *pending* purchase
+  force?: boolean; // subscription renews even if we are out of money.
 }
 
 export default async function renewSubscription({
@@ -73,7 +73,7 @@ export default async function renewSubscription({
 }
 
 // add the interval to the date.  The day of the month (and time) should be unchanged
-function addInterval(expires: Date, interval: "month" | "year"): Date {
+export function addInterval(expires: Date, interval: "month" | "year"): Date {
   if (interval != "month" && interval != "year") {
     throw Error(`interval must be 'month' or 'year' but it is "${interval}"`);
   }

@@ -1,14 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Input, List, Space } from "antd";
+import { Flex, Input, List } from "antd";
+import { useIntl } from "react-intl";
 
 import {
   CSS,
   redux,
-  useMemo,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -21,67 +21,33 @@ import {
   TimeAgo,
 } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
-import { EventRecordMap } from "@cocalc/frontend/project/history/types";
+import { labels } from "@cocalc/frontend/i18n";
+import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
+import {
+  useRecentFiles,
+  type OpenedFile,
+} from "@cocalc/frontend/projects/util";
 import { User } from "@cocalc/frontend/users";
-import { handleFileEntryClick } from "../../history/utils";
-import { getTime } from "@cocalc/frontend/project/page/flyouts/log";
 
-interface OpenedFile {
-  filename: string;
-  time: Date;
-  account_id: string;
-}
 interface Props {
   project_id: string;
   max?: number;
   style?: CSS;
+  mode?: "box" | "embed";
 }
 
 export function HomeRecentFiles({
   max = 100,
   project_id,
   style,
-}: Props): JSX.Element {
+  mode = "box",
+}: Props): React.JSX.Element {
   const project_log = useTypedRedux({ project_id }, "project_log");
   const user_map = useTypedRedux("users", "user_map");
 
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  const log: OpenedFile[] = useMemo(() => {
-    if (project_log == null) return [];
-
-    const dedupe: string[] = [];
-
-    return project_log
-      .valueSeq()
-      .filter(
-        (entry: EventRecordMap) =>
-          entry.getIn(["event", "filename"]) &&
-          entry.getIn(["event", "event"]) === "open"
-      )
-      .sort((a, b) => getTime(b) - getTime(a))
-      .filter((entry: EventRecordMap) => {
-        const fn = entry.getIn(["event", "filename"]);
-        if (dedupe.includes(fn)) return false;
-        dedupe.push(fn);
-        return true;
-      })
-      .filter((entry: EventRecordMap) =>
-        entry
-          .getIn(["event", "filename"], "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())
-      ) // <-- added filter
-      .slice(0, max)
-      .map((entry: EventRecordMap) => {
-        return {
-          filename: entry.getIn(["event", "filename"]),
-          time: entry.get("time"),
-          account_id: entry.get("account_id"),
-        };
-      })
-      .toJS() as any;
-  }, [project_log, searchTerm]);
+  const log: OpenedFile[] = useRecentFiles(project_log, max, searchTerm);
 
   function renderItemInfo({ account_id, time }) {
     return (
@@ -132,31 +98,54 @@ export function HomeRecentFiles({
     }
   }
 
-  function renderHeader(): JSX.Element | undefined {
+  function renderHeader(): React.JSX.Element | undefined {
+    const intl = useIntl();
     return (
-      <>
-        <Space style={{ width: "100%" }}>
-          Recent Files{" "}
-          <Input
-            placeholder="Search..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyUp={onKeyUpHandler}
-            style={{ width: "350px" }}
-          />
-        </Space>
-      </>
+      <Flex
+        justify="space-between"
+        align="center"
+        style={{
+          width: "100%",
+          ...(mode === "embed" ? { padding: "10px" } : undefined),
+        }}
+      >
+        <Text strong>{intl.formatMessage(labels.recent_files)}</Text>
+        <Input
+          placeholder="Search..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyUp={onKeyUpHandler}
+          style={{ width: "350px" }}
+        />
+      </Flex>
     );
   }
 
-  return (
-    <List
-      style={{ maxHeight: "500px", overflow: "auto", ...style }}
-      size="small"
-      header={renderHeader()}
-      bordered={true}
-      dataSource={log}
-      renderItem={renderItem}
-    />
-  );
+  switch (mode) {
+    case "box":
+      return (
+        <List
+          style={{ maxHeight: "500px", overflow: "auto", ...style }}
+          size="small"
+          header={renderHeader()}
+          bordered={true}
+          dataSource={log}
+          renderItem={renderItem}
+        />
+      );
+
+    case "embed":
+      return (
+        <>
+          {renderHeader()}
+          <List
+            style={{ maxHeight: "500px", overflow: "auto", ...style }}
+            size="small"
+            bordered={false}
+            dataSource={log}
+            renderItem={renderItem}
+          />
+        </>
+      );
+  }
 }

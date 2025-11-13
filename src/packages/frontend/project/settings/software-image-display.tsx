@@ -1,14 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { React, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import {
   compute_image2basename,
   compute_image2name,
-  CUSTOM_IMG_PREFIX,
+  is_custom_image,
 } from "@cocalc/frontend/custom-software/util";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -18,12 +18,12 @@ interface DisplayProps {
 
 // this is also used for standard images !!!
 // in course/configuration/custom-software-environment
-export const SoftwareImageDisplay: React.FC<DisplayProps> = ({ image }) => {
+export function SoftwareImageDisplay({ image }: DisplayProps) {
   const images = useTypedRedux("compute_images", "images");
   const software = useTypedRedux("customize", "software");
   const compute_images = useMemo(
     () => software?.get("environments"),
-    [software]
+    [software],
   );
   if (images == null) {
     return <Loading />;
@@ -31,7 +31,7 @@ export const SoftwareImageDisplay: React.FC<DisplayProps> = ({ image }) => {
   if (!image) {
     return <>Default</>;
   }
-  if (!image.startsWith(CUSTOM_IMG_PREFIX)) {
+  if (!is_custom_image(image)) {
     const img = compute_images.get(image);
     if (img == null) {
       return <>{image}</>;
@@ -56,4 +56,4 @@ export const SoftwareImageDisplay: React.FC<DisplayProps> = ({ image }) => {
       );
     }
   }
-};
+}

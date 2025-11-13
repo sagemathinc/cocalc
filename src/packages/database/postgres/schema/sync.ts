@@ -139,17 +139,20 @@ async function getCurrentIndexes(
   return curIndexes;
 }
 
+// There is also code in database/postgres/schema/indexes.ts that creates indexes.
+
 async function updateIndex(
   db: Client,
   table: string,
   action: "create" | "delete",
   name: string,
   query?: string,
+  unique?: boolean,
 ): Promise<void> {
   log.debug("updateIndex", { table, action, name });
   if (action == "create") {
     // ATTN if you consider adding CONCURRENTLY to create index, read the note earlier above about this
-    await db.query(`CREATE INDEX ${name} ON ${table} ${query}`);
+    await db.query(`CREATE ${unique ? "UNIQUE" : ""} INDEX ${name} ON ${table} ${query}`);
   } else if (action == "delete") {
     await db.query(`DROP INDEX ${name}`);
   } else {
@@ -177,7 +180,7 @@ async function syncTableSchemaIndexes(
   for (const x of goalIndexes) {
     goalIndexNames.add(x.name);
     if (!curIndexes.has(x.name)) {
-      await updateIndex(db, schema.name, "create", x.name, x.query);
+      await updateIndex(db, schema.name, "create", x.name, x.query, x.unique);
     }
   }
   for (const name of curIndexes) {

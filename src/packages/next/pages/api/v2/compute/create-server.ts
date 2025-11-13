@@ -5,8 +5,13 @@ Create a compute server
 import getAccountId from "lib/account/get-account";
 import createServer from "@cocalc/server/compute/create-server";
 import getParams from "lib/api/get-params";
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  CreateServerInputSchema,
+  CreateServerOutputSchema,
+} from "lib/api/schema/compute/create-server";
 
-export default async function handle(req, res) {
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -14,7 +19,6 @@ export default async function handle(req, res) {
     return;
   }
 }
-
 async function get(req) {
   const account_id = await getAccountId(req);
   if (!account_id) {
@@ -24,19 +28,44 @@ async function get(req) {
     project_id,
     title,
     color,
-    idle_timeout,
     autorestart,
     cloud,
     configuration,
+    notes,
+    course_project_id,
+    course_server_id,
   } = getParams(req);
   return await createServer({
     account_id,
     project_id,
     title,
     color,
-    idle_timeout,
     autorestart,
     cloud,
     configuration,
+    notes,
+    course_project_id,
+    course_server_id,
   });
 }
+
+export default apiRoute({
+  createServer: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: CreateServerInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: CreateServerOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

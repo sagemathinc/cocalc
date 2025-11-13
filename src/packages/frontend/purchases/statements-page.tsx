@@ -3,8 +3,7 @@ import { useState } from "react";
 import Statements from "./statements";
 import Statement from "./statement";
 import { Icon } from "@cocalc/frontend/components/icon";
-import Config from "./config";
-import { Footer } from "../customize";
+import ClosingDate from "./closing-date";
 
 type Key = string[] | string | number[] | number;
 
@@ -38,7 +37,7 @@ export default function StatementsPage() {
 
   return (
     <div>
-      <Config />
+      <ClosingDate />
       <h3>
         <Icon name="calendar" style={{ marginRight: "8px" }} /> Monthly and
         Daily Statements
@@ -53,7 +52,7 @@ export default function StatementsPage() {
       <Statement />
       <Divider>Monthly and Daily Statements</Divider>
       <Collapse
-        destroyInactivePanel
+        destroyOnHidden
         activeKey={activeKey}
         onChange={(x) => {
           cache.activeKey = x;
@@ -61,7 +60,6 @@ export default function StatementsPage() {
         }}
         items={items}
       />
-      <Footer />
     </div>
   );
 }

@@ -24,7 +24,7 @@ export function queryIsCmp(val): false | string {
 // Additional where object condition imposed by user's get query
 export function userGetQueryFilter(
   user_query: object,
-  client_query: UserOrProjectQuery<any>
+  client_query: UserOrProjectQuery<any>,
 ): { [expr: string]: any } {
   if (client_query.get == null) {
     // no get queries allowed (this is mainly to make typescript happy below.)
@@ -32,7 +32,7 @@ export function userGetQueryFilter(
   }
 
   // If the schema lists the value in a get query as 'null', then we remove it;
-  // nulls means it was only there to be used by the initial where filter
+  // null means it was only there to be used by the initial where filter
   // part of the query.
   for (const field in client_query.get.fields) {
     const val = client_query.get.fields[field];
@@ -68,6 +68,15 @@ export function userGetQueryFilter(
         // hack to use same where format for now, since $ replacement
         // doesn't work for "foo IS ...".
         where[`${quoteField(field)} ${op} ${isToOperand(v)}`] = true;
+      } else if (op.toLowerCase() === "any") {
+        // PostgreSQL array contains $v: field=ANY(column)
+        where[`$ = ANY(${quoteField(field)})`] = v;
+      } else if (op.toLowerCase() === "minlen") {
+        // PostgreSQL array: minumum array length along first dimension
+        where[`array_length(${quoteField(field)}, 1) >= $`] = v;
+      } else if (op.toLowerCase() === "maxlen") {
+        // PostgreSQL array: minumum array length along first dimension
+        where[`array_length(${quoteField(field)}, 1) <= $`] = v;
       } else if (
         is_object(v) &&
         v["relative_time"] != null &&

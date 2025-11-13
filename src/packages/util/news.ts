@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { NewsItem } from "./types/news";
@@ -9,7 +9,7 @@ import { NewsItem } from "./types/news";
 // https://www.semrush.com/blog/what-is-a-url-slug/
 // The main point here is to have a URL that contains unique information and is human readable.
 export function slugURL(news?: Pick<NewsItem, "id" | "title">): string {
-  if (!news) return "/news";
+  if (!news || !news.title || !news.id) return "/news";
   const { title, id } = news;
   const shortTitle = title
     .toLowerCase()

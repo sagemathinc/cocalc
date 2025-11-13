@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Postgres 14 is different than 13 an earlier.
@@ -13,5 +13,5 @@ export function timeInSeconds(field: string, asField?: string): string {
 
 // Given number of seconds **in the future**.
 export function expireTime(ttl_s: number = 0): Date {
-  return new Date(new Date().valueOf() + ttl_s * 1000);
+  return new Date(Date.now() + ttl_s * 1000);
 }

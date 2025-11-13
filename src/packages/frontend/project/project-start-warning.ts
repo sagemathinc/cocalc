@@ -1,9 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { redux } from "@cocalc/frontend/app-framework";
+import { dialogs } from "@cocalc/frontend/i18n";
+import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 
 /* Various actions depend on the project running, so this function currently does the following:
     - Checks whether or not the project is starting or running (assuming project state known -- admins don't know).
@@ -23,15 +25,23 @@ const explicitly_started: { [project_id: string]: number } = {};
 
 export function is_running_or_starting(project_id: string): boolean {
   const t = explicitly_started[project_id];
-  if (t != null && Date.now() - t <= 15000) return true;
+  if (t != null && Date.now() - t <= 15000) {
+    return true;
+  }
 
   const project_map = redux.getStore("projects")?.get("project_map");
-  if (!project_map) return false;
+  if (!project_map) {
+    return false;
+  }
   const state = project_map.getIn([project_id, "state", "state"]);
-  if (state == null || state == "running" || state == "starting") return true;
+  if (state == null || state == "running" || state == "starting") {
+    return true;
+  }
 
   const x = project_map?.get(project_id)?.get("action_request");
-  if (x == null) return false;
+  if (x == null) {
+    return false;
+  }
   const action = x.get("action");
   const finished = x.get("finished");
   const time = new Date(x.get("time"));
@@ -43,14 +53,25 @@ export function is_running_or_starting(project_id: string): boolean {
 
 export async function ensure_project_running(
   project_id: string,
-  what: string
+  what: string,
 ): Promise<boolean> {
+  const intl = await getIntl();
+  const project_actions = redux.getProjectActions(project_id);
+  await project_actions.wait_until_no_modals();
   if (is_running_or_starting(project_id)) {
     return true;
   }
-  const project_actions = redux.getProjectActions(project_id);
-  await project_actions.wait_until_no_modals();
+
   let result: string = "";
+
+  const project_title = redux.getStore("projects").get_title(project_id);
+  const title = intl.formatMessage(dialogs.project_start_warning_title);
+  const content = intl.formatMessage(dialogs.project_start_warning_content, {
+    project_title,
+    title,
+    what,
+  });
+
   const interval = setInterval(() => {
     if (result != "") {
       clearInterval(interval);
@@ -61,13 +82,10 @@ export async function ensure_project_running(
       project_actions.clear_modal();
     }
   }, 1000);
-  const project_title = redux.getStore("projects").get_title(project_id);
-  result = await project_actions.show_modal({
-    title: "Start Project?",
-    content: `You must start the project '${project_title}' before you can ${what}.  Start this project?`,
-  });
+
+  result = await project_actions.show_modal({ title, content });
   if (result == "ok") {
-    explicitly_started[project_id] = new Date().valueOf();
+    explicitly_started[project_id] = Date.now();
     redux.getActions("projects").start_project(project_id);
     return true;
   }

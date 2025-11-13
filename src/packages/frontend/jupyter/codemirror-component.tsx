@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -12,12 +12,19 @@ TODO:
 
 */
 
-import { React, useIsMountedRef, useRef, useState } from "../app-framework";
 import { Map as ImmutableMap } from "immutable";
+
+import {
+  React,
+  useIsMountedRef,
+  useRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
 import { all_fields_equal } from "@cocalc/util/misc";
+import { JupyterActions } from "./browser-actions";
 import { CodeMirrorEditor } from "./codemirror-editor";
 import { CodeMirrorStatic } from "./codemirror-static";
-import { JupyterActions } from "./browser-actions";
+import { Position } from "./insert-cell/types";
 
 interface CodeMirrorProps {
   actions?: JupyterActions;
@@ -26,12 +33,14 @@ interface CodeMirrorProps {
   value: string;
   font_size?: number; // not explicitly used, but critical to re-render on change so Codemirror recomputes itself!
   is_focused: boolean;
+  is_current: boolean;
   cursors?: ImmutableMap<any, any>;
   complete?: ImmutableMap<any, any>;
   is_scrolling?: boolean;
   registerEditor?;
   unregisterEditor?;
   getValueRef?;
+  setShowAICellGen?: (show: Position) => void;
 }
 
 function should_memoize(prev, next) {
@@ -41,6 +50,7 @@ function should_memoize(prev, next) {
     "value",
     "font_size",
     "is_focused",
+    "is_current",
     "is_scrolling",
     "cursors",
     "complete",
@@ -56,14 +66,15 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
       value,
       font_size,
       is_focused,
+      is_current,
       cursors,
       complete,
       is_scrolling,
       registerEditor,
       unregisterEditor,
       getValueRef,
+      setShowAICellGen,
     } = props;
-
     const is_mounted = useIsMountedRef();
 
     // coordinates if static input was just clicked on
@@ -105,11 +116,13 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
           set_last_cursor={set_last_cursor}
           last_cursor={last_cursor}
           is_focused={is_focused}
+          is_current={is_current}
           is_scrolling={is_scrolling}
           complete={complete}
           registerEditor={registerEditor}
           unregisterEditor={unregisterEditor}
           getValueRef={getValueRef}
+          setShowAICellGen={setShowAICellGen}
         />
       );
     } else {
@@ -125,5 +138,5 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
       );
     }
   },
-  should_memoize
+  should_memoize,
 );

@@ -11,6 +11,7 @@ import addUserToProject from "@cocalc/server/projects/add-user-to-project";
 import isSandboxProject from "@cocalc/server/projects/is-sandbox";
 import { getAccountWithApiKey } from "@cocalc/server/api/manage";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import isBanned from "@cocalc/server/accounts/is-banned";
 
 const logger = getLogger("proxy:has-access");
 
@@ -22,10 +23,10 @@ interface Options {
   isPersonal: boolean;
 }
 
-// 3 minute cache: grant "yes" for a while
-const yesCache = new LRU({ max: 20000, ttl: 1000 * 60 * 3 });
+// 1 minute cache: grant "yes" for a while
+const yesCache = new LRU({ max: 20000, ttl: 1000 * 60 * 1.5 });
 // 5 second cache: recheck "no" much more frequently
-const noCache = new LRU({ max: 20000, ttl: 1000 * 5 });
+const noCache = new LRU({ max: 20000, ttl: 1000 * 15 });
 
 export default async function hasAccess(opts: Options): Promise<boolean> {
   if (opts.isPersonal) {
@@ -140,6 +141,9 @@ async function checkForRememberMeAccess({
 
   let access: boolean = false;
   const { account_id, email_address } = signed_in_mesg;
+  if (await isBanned(account_id)) {
+    return { access: false, error: "banned" };
+  }
   dbg({ account_id, email_address });
 
   dbg(`now check if user has access to project`);
@@ -183,10 +187,15 @@ async function checkForRememberMeAccess({
 async function checkForApiKeyAccess({ project_id, api_key, type, dbg }) {
   // we don't have a notion of "read" access, for type.
   dbg("checkForApiKeyAccess", { project_id, type });
-  const account_id = await getAccountWithApiKey(api_key);
-  if (!account_id) {
+  const user = await getAccountWithApiKey(api_key);
+  if (user == null) {
     dbg("api key is not valid (probably expired)");
     return { access: false, error: "invalid or expired api key" };
   }
-  return { access: await isCollaborator({ account_id, project_id }) };
+  if (user.project_id) {
+    return { access: user.project_id == project_id };
+  }
+  return {
+    access: await isCollaborator({ account_id: user.account_id!, project_id }),
+  };
 }

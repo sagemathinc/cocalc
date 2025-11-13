@@ -1,12 +1,13 @@
-import { useMemo } from "react";
-import { FilterOutlined } from "@ant-design/icons";
 import { Button, Input, InputNumber, Popover, Select, Space } from "antd";
-import type { ColumnsType } from "../../fields";
-import { getFieldSpec } from "../../fields";
+import { useMemo } from "react";
+
+import { FilterOutlined } from "@ant-design/icons";
 import { Icon } from "@cocalc/frontend/components";
-import { Operator, AtomicSearch } from "../../syncdb/use-search";
 import { OPERATORS } from "@cocalc/util/db-schema";
 import { capitalize } from "@cocalc/util/misc";
+import type { ColumnsType } from "../../fields";
+import { getFieldSpec } from "../../fields";
+import { AtomicSearch, Operator } from "../../syncdb/use-search";
 import TimeValue from "./time-value";
 
 function enumerate(x: object[]): any[] {
@@ -16,6 +17,11 @@ function enumerate(x: object[]): any[] {
   }
   return v;
 }
+
+const IS_NOT_IS = [
+  { value: "IS" as Operator, label: "IS" },
+  { value: "IS NOT" as Operator, label: "IS NOT" },
+] as const;
 
 export default function SearchMenu({ columns, search, setSearch, query }) {
   const dbtable = Object.keys(query)[0] as string;
@@ -90,7 +96,7 @@ function SearchBy({
 }: SearchByProps) {
   const fieldSpec = useMemo(
     () => (field ? getFieldSpec(dbtable, field) : {}),
-    [dbtable, field]
+    [dbtable, field],
   );
 
   return (
@@ -151,13 +157,20 @@ function SearchBy({
 
 function SelectOperator({ fieldSpec, operator, onChange }) {
   const options = useMemo(() => {
-    if (fieldSpec.type == "boolean") {
+    if (fieldSpec.type === "boolean") {
+      return [...IS_NOT_IS];
+    }
+    if (fieldSpec.type === "array") {
       return [
-        { value: "IS" as Operator, label: "IS" },
-        { value: "IS NOT" as Operator, label: "IS NOT" },
+        { value: "ANY" as Operator, label: "ANY" },
+        { value: "MINLEN" as Operator, label: ">=LEN" },
+        { value: "MAXLEN" as Operator, label: "<=LEN" },
+        ...IS_NOT_IS,
       ];
     }
-    return OPERATORS.filter((op) => op != "==").map((op: Operator) => {
+    return OPERATORS.filter(
+      (op) => op !== "==" && op !== "ANY" && op !== "MINLEN" && op !== "MAXLEN",
+    ).map((op: Operator) => {
       return { value: op, label: op };
     });
   }, [fieldSpec]);

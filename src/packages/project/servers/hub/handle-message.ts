@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -29,12 +29,13 @@ import { version } from "@cocalc/util/smc-version";
 import { Message } from "./types";
 import writeTextFileToProject from "./write-text-file-to-project";
 import readTextFileFromProject from "./read-text-file-from-project";
+import { jupyter_execute_response } from "@cocalc/util/message";
 
 const logger = getLogger("handle-message-from-hub");
 
 export default async function handleMessage(
   socket: CoCalcSocket,
-  mesg: Message
+  mesg: Message,
 ) {
   logger.debug("received a message", {
     event: mesg.event,
@@ -68,21 +69,25 @@ export default async function handleMessage(
 
     case "project_exec":
       // this is no longer used by web browser clients; however it *is* used by the HTTP api served
-      // by the hub to api key users, so do NOT remove it!
-      // The web browser clients use the websocket api,
+      // by the hub to api key users, so do NOT remove it!  E.g., the latex endpoint, the compute
+      // server, etc., use it.   The web browser clients use the websocket api.
       exec_shell_code(socket, mesg);
       return;
 
     case "jupyter_execute":
       try {
-        await jupyterExecute(socket, mesg);
+        const outputs = await jupyterExecute(mesg as any);
+        socket.write_mesg(
+          "json",
+          jupyter_execute_response({ id: mesg.id, output: outputs }),
+        );
       } catch (err) {
         socket.write_mesg(
           "json",
           message.error({
             id: mesg.id,
             error: `${err}`,
-          })
+          }),
         );
       }
       return;
@@ -94,7 +99,7 @@ export default async function handleMessage(
           message.jupyter_kernels({
             kernels: await get_kernel_data(),
             id: mesg.id,
-          })
+          }),
         );
       } catch (err) {
         socket.write_mesg(
@@ -102,7 +107,7 @@ export default async function handleMessage(
           message.error({
             id: mesg.id,
             error: `${err}`,
-          })
+          }),
         );
       }
       return;
@@ -141,7 +146,7 @@ export default async function handleMessage(
             message.error({
               id: mesg.id,
               error: "invalid pid or signal (must be 2,3,9)",
-            })
+            }),
           );
         }
         return;

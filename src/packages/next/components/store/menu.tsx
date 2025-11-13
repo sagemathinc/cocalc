@@ -1,19 +1,17 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React, { useContext } from 'react';
-import { Menu, MenuProps, Typography, Flex } from "antd";
+import type { MenuProps } from "antd";
+import { Button, Flex, Menu, Spin } from "antd";
 import { useRouter } from "next/router";
+import React, { useContext } from "react";
 
-import { currency } from "@cocalc/util/misc";
-import { COLORS } from '@cocalc/util/theme';
 import { Icon } from "@cocalc/frontend/components/icon";
-
-import { StoreBalanceContext } from "../../lib/balance";
-
-const { Text } = Typography;
+import { currency, round2down } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { StoreBalanceContext } from "lib/balance";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -21,12 +19,13 @@ const styles: { [k: string]: React.CSSProperties } = {
   menuBookend: {
     height: "100%",
     whiteSpace: "nowrap",
-    flexGrow: 1,
-    textAlign: "end"
+    flex: "0 1 auto",
+    textAlign: "end",
   },
   menu: {
     width: "100%",
     height: "100%",
+    flex: "1 1 auto",
     border: 0,
   },
   menuRoot: {
@@ -42,7 +41,7 @@ const styles: { [k: string]: React.CSSProperties } = {
     maxWidth: "100%",
     flexGrow: 1,
   },
-};
+} as const;
 
 export interface ConfigMenuProps {
   main?: string;
@@ -50,19 +49,29 @@ export interface ConfigMenuProps {
 
 export default function ConfigMenu({ main }: ConfigMenuProps) {
   const router = useRouter();
-  const { balance } = useContext(StoreBalanceContext);
+  const { balance, refreshBalance, loading } = useContext(StoreBalanceContext);
 
   const handleMenuItemSelect: MenuProps["onSelect"] = ({ keyPath }) => {
     router.push(`/store/${keyPath[0]}`, undefined, {
       scroll: false,
     });
-  }
+    refreshBalance();
+    setTimeout(() => {
+      refreshBalance();
+    }, 7500);
+  };
 
   const items: MenuItem[] = [
     {
       label: "Licenses",
       key: "site-license",
       icon: <Icon name="key" />,
+    },
+    { label: "Course", key: "course", icon: <Icon name="graduation-cap" /> },
+    {
+      label: "Vouchers",
+      key: "vouchers",
+      icon: <Icon name="gift" />,
     },
     {
       label: "Cart",
@@ -75,24 +84,29 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
       icon: <Icon name="list" />,
     },
     {
+      label: "Processing",
+      key: "processing",
+      icon: <Icon name="run" />,
+    },
+    {
       label: "Congrats",
       key: "congrats",
       icon: <Icon name="check-circle" />,
     },
-    {
-      label: "Vouchers",
-      key: "vouchers",
-      icon: <Icon name="gift" />,
-    },
   ];
 
   return (
-    <Flex gap="middle" justify="space-between" style={styles.menuRoot} wrap="wrap">
+    <Flex
+      gap="middle"
+      justify="space-between"
+      style={styles.menuRoot}
+      wrap="wrap"
+    >
       <Flex style={styles.menuContainer} align="center">
         <strong>
           <a
             onClick={() => {
-              router.push('/store', undefined, {
+              router.push("/store", undefined, {
                 scroll: false,
               });
             }}
@@ -109,9 +123,20 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
           items={items}
         />
       </Flex>
-      <Text strong style={styles.menuBookend}>
-        {balance !== undefined ? `Balance: ${currency(balance)}` : null}
-      </Text>
+      <Button
+        type="text"
+        style={styles.menuBookend}
+        onClick={() => {
+          refreshBalance();
+        }}
+      >
+        {balance !== undefined
+          ? `Balance: ${currency(round2down(balance))}`
+          : null}
+        {loading && (
+          <Spin delay={2000} size="small" style={{ marginLeft: "15px" }} />
+        )}
+      </Button>
     </Flex>
   );
 }

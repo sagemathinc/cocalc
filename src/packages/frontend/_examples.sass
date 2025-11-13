@@ -1,13 +1,16 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+@use 'colors'
+@use 'mixins'
 
 $selector-height: 180px
 $code-height: 230px
 
 .webapp-examples
-  +disable-user-select
+  +mixins.disable-user-select
 
   .modal-header
     white-space : nowrap
@@ -44,11 +47,11 @@ $code-height: 230px
             margin: 0
 
       > div > ul.list-group
-        border          : 1px solid $COL_GRAY_DDD
+        border          : 1px solid colors.$COL_GRAY_DDD
         border-radius   : 5px
         > li
           border        : none
-          border-bottom : 1px solid $COL_GRAY_LL
+          border-bottom : 1px solid colors.$COL_GRAY_LL
           margin        : 0
           border-radius : 0
 
@@ -57,8 +60,8 @@ $code-height: 230px
       padding           : 0px
       height            : $code-height
       overflow          : auto
-      border-color      : $COL_GRAY_DDD
-      +enable-user-select
+      border-color      : colors.$COL_GRAY_DDD
+      +mixins.enable-user-select
       .attr,
       .attr a
         font-size  : 9px
@@ -70,7 +73,7 @@ $code-height: 230px
     padding    : 10px
     text-align : left
     > .contrib-link
-      color: $COL_GRAY
+      color: colors.$COL_GRAY
 
   span.badge
     background-color : #eee

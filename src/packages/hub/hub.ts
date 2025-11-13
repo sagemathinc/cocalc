@@ -1,6 +1,6 @@
 //########################################################################
 // This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-// License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+// License: MS-RSL – see LICENSE.md for details
 //########################################################################
 
 // This is the CoCalc Global HUB.  It runs as a daemon, sitting in the
@@ -17,11 +17,26 @@ import {
   pghost as DEFAULT_DB_HOST,
   pgdatabase as DEFAULT_DB_NAME,
   pguser as DEFAULT_DB_USER,
+  pgConcurrentWarn as DEFAULT_DB_CONCURRENT_WARN,
+  hubHostname as DEFAULT_HUB_HOSTNAME,
+  agentPort as DEFAULT_AGENT_PORT,
 } from "@cocalc/backend/data";
+import { trimLogFileSize } from "@cocalc/backend/logger";
 import port from "@cocalc/backend/port";
 import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
+import { load_server_settings_from_env } from "@cocalc/database/settings/server-settings";
+import {
+  initConatApi,
+  initConatChangefeedServer,
+  initConatPersist,
+  loadConatConfiguration,
+} from "@cocalc/server/conat";
+import { initConatServer } from "@cocalc/server/conat/socketio";
+import { init_passport } from "@cocalc/server/hub/auth";
 import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
 import initHandleMentions from "@cocalc/server/mentions/handle";
+import initMessageMaintenance from "@cocalc/server/messages/maintenance";
+import { start as startHubRegister } from "@cocalc/server/metrics/hub_register";
 import initProjectControl, {
   COCALC_MODES,
 } from "@cocalc/server/projects/control";
@@ -29,50 +44,41 @@ import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects"
 import initNewProjectPoolMaintenanceLoop from "@cocalc/server/projects/pool/maintain";
 import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
 import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
-import { load_server_settings_from_env } from "@cocalc/database/settings/server-settings";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
-import { init_passport } from "@cocalc/server/hub/auth";
-import { getClients } from "./clients";
 import { set_agent_endpoint } from "./health-checks";
-import { start as startHubRegister } from "./hub_register";
 import { getLogger } from "./logger";
-import { trimLogFileSize } from "@cocalc/backend/logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
+
 import initHttpRedirect from "./servers/http-redirect";
-import initPrimus from "./servers/primus";
-import initVersionServer from "./servers/version";
-const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
-const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
+
+import { addErrorListeners } from "@cocalc/server/metrics/error-listener";
+import * as MetricsRecorder from "@cocalc/server/metrics/metrics-recorder";
+import { migrateBookmarksToConat } from "./migrate-bookmarks";
 
 // Logger tagged with 'hub' for this file.
-const winston = getLogger("hub");
+const logger = getLogger("hub");
 
 // program gets populated with the command line options below.
 let program: { [option: string]: any } = {};
 export { program };
 
-// How frequently to register with the database that this hub is up and running,
-// and also report number of connected clients.
 const REGISTER_INTERVAL_S = 20;
-
-// the jsmap of connected clients
-const clients = getClients();
 
 async function reset_password(email_address: string): Promise<void> {
   try {
     await callback2(database.reset_password, { email_address });
-    winston.info(`Password changed for ${email_address}`);
+    logger.info(`Password changed for ${email_address}`);
   } catch (err) {
-    winston.info(`Error resetting password -- ${err}`);
+    logger.info(`Error resetting password -- ${err}`);
   }
 }
 
 // This calculates and updates the statistics for the /stats endpoint.
 // It's important that we call this periodically, because otherwise the /stats data is outdated.
 async function init_update_stats(): Promise<void> {
-  winston.info("init updating stats periodically");
+  logger.info("init updating stats periodically");
   const update = () => callback2(database.get_stats);
   // Do it every minute:
   setInterval(() => update(), 60000);
@@ -85,41 +91,32 @@ async function init_update_stats(): Promise<void> {
 // to be able to monitor site license usage. This is enabled
 // by default only for dev mode (so for development).
 async function init_update_site_license_usage_log() {
-  winston.info("init updating site license usage log periodically");
+  logger.info("init updating site license usage log periodically");
   const update = async () => await database.update_site_license_usage_log();
   setInterval(update, 31000);
   await update();
 }
 
 async function initMetrics() {
-  winston.info("Initializing Metrics Recorder...");
-  await callback(MetricsRecorder.init, winston);
+  logger.info("Initializing Metrics Recorder...");
+  MetricsRecorder.init();
   return {
     metric_blocked: MetricsRecorder.new_counter(
       "blocked_ms_total",
       'accumulates the "blocked" time in the hub [ms]',
     ),
-    uncaught_exception_total: MetricsRecorder.new_counter(
-      "uncaught_exception_total",
-      'counts "BUG"s',
-    ),
   };
 }
 
 async function startServer(): Promise<void> {
-  winston.info("start_server");
+  logger.info("start_server");
 
-  // Be very sure cookies do NOT work unless over https.  IMPORTANT.
-  if (!COOKIE_OPTIONS.secure) {
-    throw Error("client cookie options are not secure");
-  }
-
-  winston.info(`basePath='${basePath}'`);
-  winston.info(
+  logger.info(`basePath='${basePath}'`);
+  logger.info(
     `database: name="${program.databaseName}" nodes="${program.databaseNodes}" user="${program.databaseUser}"`,
   );
 
-  const { metric_blocked, uncaught_exception_total } = await initMetrics();
+  const { metric_blocked } = await initMetrics();
 
   // Log anything that blocks the CPU for more than ~100ms -- see https://github.com/tj/node-blocked
   blocked((ms: number) => {
@@ -128,7 +125,7 @@ async function startServer(): Promise<void> {
     }
     // record that something blocked:
     if (ms > 100) {
-      winston.debug(`BLOCKED for ${ms}ms`);
+      logger.debug(`BLOCKED for ${ms}ms`);
     }
   });
 
@@ -138,40 +135,43 @@ async function startServer(): Promise<void> {
     start_delay: 1000,
     max_delay: 10000,
   });
-  winston.info("connected to database.");
+  logger.info("connected to database.");
 
   if (program.updateDatabaseSchema) {
-    winston.info("Update database schema");
+    logger.info("Update database schema");
     await callback2(database.update_schema);
 
     // in those cases where we initialize the database upon startup
     // (essentially only relevant for kucalc's hub-websocket)
     if (program.mode === "kucalc") {
-      // set server settings based on environment variables
-      await load_server_settings_from_env(database);
       // and for on-prem setups, also initialize the admin account, set a registration token, etc.
       await initialOnPremSetup(database);
     }
   }
 
+  // set server settings based on environment variables
+  await load_server_settings_from_env(database);
+
   if (program.agentPort) {
-    winston.info("Configure agent port");
+    logger.info("Configure agent port");
     set_agent_endpoint(program.agentPort, program.hostname);
   }
 
   // Mentions
   if (program.mentions) {
-    winston.info("enabling handling of mentions...");
+    logger.info("enabling handling of mentions...");
     initHandleMentions();
+    logger.info("enabling handling of messaging...");
+    initMessageMaintenance();
   }
 
   // Project control
-  winston.info("initializing project control...");
+  logger.info("initializing project control...");
   const projectControl = initProjectControl(program.mode);
   // used for nextjs hot module reloading dev server
   process.env["COCALC_MODE"] = program.mode;
 
-  if (program.mode != "kucalc" && program.websocketServer) {
+  if (program.mode != "kucalc" && program.conatServer) {
     // We handle idle timeout of projects.
     // This can be disabled via COCALC_NO_IDLE_TIMEOUT.
     // This only uses the admin-configurable settings field of projects
@@ -179,11 +179,24 @@ async function startServer(): Promise<void> {
     initIdleTimeout(projectControl);
   }
 
-  if (program.websocketServer) {
-    // Initialize the version server -- must happen after updating schema
-    // (for first ever run).
-    await initVersionServer();
+  // This loads from the database credentials to use Conat.
+  await loadConatConfiguration();
 
+  if (program.conatRouter) {
+    // launch standalone socketio websocket server (no http server)
+    await initConatServer({ kucalc: program.mode == "kucalc" });
+  }
+
+  if (program.conatApi || program.conatServer) {
+    await initConatApi();
+    await initConatChangefeedServer();
+  }
+
+  if (program.conatPersist || program.conatServer) {
+    await initConatPersist();
+  }
+
+  if (program.conatServer) {
     if (program.mode == "single-user" && process.env.USER == "user") {
       // Definitely in dev mode, probably on cocalc.com in a project, so we kill
       // all the running projects when starting the hub:
@@ -191,7 +204,7 @@ async function startServer(): Promise<void> {
       // all projects are stopped, since assuming they are
       // running when they are not is bad.  Something similar
       // is done in cocalc-docker.
-      winston.info("killing all projects...");
+      logger.info("killing all projects...");
       await callback2(database._query, {
         safety_check: false,
         query: 'update projects set state=\'{"state":"opened"}\'',
@@ -201,7 +214,7 @@ async function startServer(): Promise<void> {
       // Also, unrelated to killing projects, for purposes of developing
       // custom software images, we inject a couple of random nonsense entries
       // into the table in the DB:
-      winston.info("inserting random nonsense compute images in database");
+      logger.info("inserting random nonsense compute images in database");
       await callback2(database.insert_random_compute_images);
     }
 
@@ -209,57 +222,44 @@ async function startServer(): Promise<void> {
       await init_update_stats();
       await init_update_site_license_usage_log();
       // This is async but runs forever, so don't wait for it.
-      winston.info("init starting always running projects");
+      logger.info("init starting always running projects");
       init_start_always_running_projects(database);
     }
   }
 
-  const { router, httpServer } = await initExpressApp({
-    isPersonal: program.personal,
-    projectControl,
-    proxyServer: !!program.proxyServer,
-    nextServer: !!program.nextServer,
-    cert: program.httpsCert,
-    key: program.httpsKey,
-    listenersHack:
-      program.mode == "single-user" &&
-      program.proxyServer &&
-      program.nextServer &&
-      program.websocketServer &&
-      process.env["NODE_ENV"] == "development",
-  });
-
-  // The express app create via initExpressApp above **assumes** that init_passport is done
-  // or complains a lot. This is obviously not really necessary, but we leave it for now.
-  await callback2(init_passport, {
-    router,
-    database,
-    host: program.hostname,
-  });
-
-  winston.info(`starting webserver listening on ${program.hostname}:${port}`);
-  await callback(httpServer.listen.bind(httpServer), port, program.hostname);
-
-  if (port == 443 && program.httpsCert && program.httpsKey) {
-    // also start a redirect from port 80 to port 443.
-    await initHttpRedirect(program.hostname);
-  }
-
-  if (program.websocketServer) {
-    winston.info("initializing primus websocket server");
-    initPrimus({
-      httpServer,
-      router,
-      projectControl,
-      clients,
-      host: program.hostname,
-      port,
+  if (
+    program.conatServer ||
+    program.proxyServer ||
+    program.nextServer ||
+    program.conatApi
+  ) {
+    const { router, httpServer } = await initExpressApp({
       isPersonal: program.personal,
+      projectControl,
+      conatServer: !!program.conatServer,
+      proxyServer: true, // always
+      nextServer: !!program.nextServer,
+      cert: program.httpsCert,
+      key: program.httpsKey,
     });
-  }
 
-  if (program.websocketServer || program.proxyServer || program.nextServer) {
-    winston.info(
+    // The express app create via initExpressApp above **assumes** that init_passport is done
+    // or complains a lot. This is obviously not really necessary, but we leave it for now.
+    await callback2(init_passport, {
+      router,
+      database,
+      host: program.hostname,
+    });
+
+    logger.info(`starting webserver listening on ${program.hostname}:${port}`);
+    await callback(httpServer.listen.bind(httpServer), port, program.hostname);
+
+    if (port == 443 && program.httpsCert && program.httpsKey) {
+      // also start a redirect from port 80 to port 443.
+      await initHttpRedirect(program.hostname);
+    }
+
+    logger.info(
       "Starting registering periodically with the database and updating a health check...",
     );
 
@@ -267,24 +267,22 @@ async function startServer(): Promise<void> {
     // also confirms that database is working.
     await callback2(startHubRegister, {
       database,
-      clients,
       host: program.hostname,
       port,
       interval_s: REGISTER_INTERVAL_S,
     });
 
     const protocol = program.httpsKey ? "https" : "http";
+    const target = `${protocol}://${program.hostname}:${port}${basePath}`;
 
-    const msg = `Started HUB!\n\n-----------\n\n The following URL *might* work: ${protocol}://${
-      program.hostname
-    }:${port}${basePath}\n\n\nPORT=${port}\nBASE_PATH=${basePath}\nPROTOCOL=${protocol}\n\n${
+    const msg = `Started HUB!\n\n-----------\n\n The following URL *might* work: ${target}\n\n\nPORT=${port}\nBASE_PATH=${basePath}\nPROTOCOL=${protocol}\n\n${
       basePath.length <= 1
         ? ""
         : "If you are developing cocalc inside of cocalc, take the URL of the host cocalc\nand append " +
           basePath +
           " to it."
     }\n\n-----------\n\n`;
-    winston.info(msg);
+    logger.info(msg);
     console.log(msg);
   }
 
@@ -298,42 +296,14 @@ async function startServer(): Promise<void> {
     // upgrades of projects.
     initPurchasesMaintenanceLoop();
     initSalesloftMaintenance();
+    // Migrate bookmarks from database to conat (runs once at startup)
+    migrateBookmarksToConat().catch((err) => {
+      logger.error("Failed to migrate bookmarks to conat:", err);
+    });
     setInterval(trimLogFileSize, 1000 * 60 * 3);
   }
 
-  addErrorListeners(uncaught_exception_total);
-}
-
-// addErrorListeners: after successful startup, don't crash on routine errors.
-// We don't do this until startup, since we do want to crash on errors on startup.
-// TODO: could alternatively be handled via winston (?).
-function addErrorListeners(uncaught_exception_total) {
-  process.addListener("uncaughtException", function (err) {
-    winston.error(
-      "BUG ****************************************************************************",
-    );
-    winston.error("Uncaught exception: " + err);
-    console.error(err.stack);
-    winston.error(err.stack);
-    winston.error(
-      "BUG ****************************************************************************",
-    );
-    database?.uncaught_exception(err);
-    uncaught_exception_total.inc(1);
-  });
-
-  return process.on("unhandledRejection", function (reason, p) {
-    winston.error(
-      "BUG UNHANDLED REJECTION *********************************************************",
-    );
-    console.error(p, reason); // strangely sometimes winston.error can't actually show the traceback...
-    winston.error("Unhandled Rejection at:", p, "reason:", reason);
-    winston.error(
-      "BUG UNHANDLED REJECTION *********************************************************",
-    );
-    database?.uncaught_exception(reason);
-    uncaught_exception_total.inc(1);
-  });
+  addErrorListeners();
 }
 
 //############################################
@@ -355,11 +325,26 @@ async function main(): Promise<void> {
       "--all",
       "runs all of the servers: websocket, proxy, next (so you don't have to pass all those opts separately), and also mentions updator and updates db schema on startup; use this in situations where there is a single hub that serves everything (instead of a microservice situation like kucalc)",
     )
-    .option("--websocket-server", "run the websocket server")
-    .option("--proxy-server", "run the proxy server")
+    .option(
+      "--conat-server",
+      "run a hub that provides a single-core conat server (i.e., conat-router but integrated with the http server), api, and persistence, along with an http server. This is for dev and small deployments of cocalc (and if given, do not bother with --conat-[core|api|persist] below.)",
+    )
+    .option(
+      "--conat-router",
+      "run a hub that provides the core conat communication layer server over a websocket (but not http server).",
+    )
+    .option(
+      "--conat-api",
+      "run a hub that connect to conat-router and provides the standard conat API services, e.g., basic api, LLM's, changefeeds, http file upload/download, etc.  There must be at least one of these.   You can increase or decrease the number of these servers with no coordination needed.",
+    )
+    .option(
+      "--conat-persist",
+      "run a hub that connects to conat-router and provides persistence for streams (e.g., key for sync editing).  There must be at least one of these, and they need access to common shared disk to store sqlite files.  Only one server uses a given sqlite file at a time.  You can increase or decrease the number of these servers with no coordination needed.",
+    )
+    .option("--proxy-server", "run a proxy server in this process")
     .option(
       "--next-server",
-      "run the nextjs server (landing pages, share server, etc.)",
+      "run a nextjs server (landing pages, share server, etc.) in this process",
     )
     .option(
       "--https-key [string]",
@@ -371,14 +356,14 @@ async function main(): Promise<void> {
     )
     .option(
       "--agent-port <n>",
-      "port for HAProxy agent-check (default: 0 -- do not start)",
+      `port for HAProxy agent-check (default: ${DEFAULT_AGENT_PORT}; 0 means "do not start")`,
       (n) => parseInt(n),
-      0,
+      DEFAULT_AGENT_PORT,
     )
     .option(
       "--hostname [string]",
-      'host of interface to bind to (default: "127.0.0.1")',
-      "127.0.0.1",
+      `host of interface to bind to (default: "${DEFAULT_HUB_HOSTNAME}")`,
+      DEFAULT_HUB_HOSTNAME,
     )
     .option(
       "--database-nodes <string,string,...>",
@@ -426,9 +411,9 @@ async function main(): Promise<void> {
     )
     .option(
       "--db-concurrent-warn <n>",
-      "be very unhappy if number of concurrent db requests exceeds this (default: 300)",
+      `be very unhappy if number of concurrent db requests exceeds this (default: ${DEFAULT_DB_CONCURRENT_WARN})`,
       (n) => parseInt(n),
-      300,
+      DEFAULT_DB_CONCURRENT_WARN,
     )
     .option(
       "--personal",
@@ -453,12 +438,15 @@ async function main(): Promise<void> {
     }
   }
   if (program.all) {
-    program.websocketServer =
+    program.conatServer =
       program.proxyServer =
       program.nextServer =
       program.mentions =
       program.updateDatabaseSchema =
         true;
+  }
+  if (process.env.COCALC_DISABLE_NEXT) {
+    program.nextServer = false;
   }
 
   //console.log("got opts", opts);
@@ -475,12 +463,12 @@ async function main(): Promise<void> {
     });
 
     if (program.passwd) {
-      winston.debug("Resetting password");
+      logger.debug("Resetting password");
       await reset_password(program.passwd);
       process.exit();
     } else if (program.stripeSync) {
-      winston.debug("Stripe sync");
-      await stripe_sync({ database, logger: winston });
+      logger.debug("Stripe sync");
+      await stripe_sync({ database, logger: logger });
       process.exit();
     } else if (program.deleteExpired) {
       await callback2(database.delete_expired, {
@@ -498,7 +486,7 @@ async function main(): Promise<void> {
     }
   } catch (err) {
     console.log(err);
-    winston.error("Error -- ", err);
+    logger.error("Error -- ", err);
     process.exit(1);
   }
 }

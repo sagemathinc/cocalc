@@ -1,12 +1,13 @@
 import {
-  CLOUDS_BY_NAME,
   Cloud as CloudType,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
+import { CLOUDS_BY_NAME } from "@cocalc/util/compute/cloud/clouds";
 import { Select, Space, Spin, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 import { setServerCloud } from "./api";
 import { useStore } from "@cocalc/frontend/app-framework";
+import DisplayCloud from "./display-cloud";
 
 interface Props {
   cloud: CloudType;
@@ -37,21 +38,18 @@ export default function Cloud({
     setNewCloud(cloud);
   }, [cloud]);
 
-  const x = CLOUDS_BY_NAME[cloud];
   const label = (
-    <span>
-      {x?.image ? (
-        <img src={x.image} height={height ?? 18} />
-      ) : (
-        x?.label ?? "No Cloud Configured"
-      )}
-    </span>
+    <DisplayCloud
+      cloud={cloud}
+      height={height}
+      style={!editable ? style : undefined}
+    />
   );
   if (!editable) {
     return label;
   }
 
-  const options: { value: string; label: JSX.Element; key: string }[] = [];
+  const options: { value: string; label: React.JSX.Element; key: string }[] = [];
   for (const cloud in CLOUDS_BY_NAME) {
     if (customize?.get(`compute_servers_${cloud}_enabled`)) {
       options.push({

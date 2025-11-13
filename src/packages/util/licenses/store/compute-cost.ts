@@ -1,90 +1,29 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
-import {
-  compute_cost,
-  compute_cost_dedicated,
-} from "@cocalc/util/licenses/purchase/compute-cost";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import type {
   CostInputPeriod,
   PurchaseInfo,
 } from "@cocalc/util/licenses/purchase/types";
 import { fixRange } from "@cocalc/util/licenses/purchase/purchase-info";
-import { getDays } from "@cocalc/util/stripe/timecalcs";
-import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import type { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
-
-function computeDedicatedDiskCost(
-  props: ComputeCostProps
-): CostInputPeriod | undefined {
-  if (props.type !== "disk") {
-    throw new Error("compute cost for disk only");
-  }
-  if (props.dedicated_disk == null)
-    throw new Error("missing props.dedicated_disk");
-  const { dedicated_disk } = props;
-  if (props.period != "monthly") throw new Error("period must be monthly");
-  if (dedicated_disk === false) throw new Error(`should not happen`);
-
-  try {
-    return {
-      input: { ...props, subscription: props.period },
-      ...compute_cost_dedicated({
-        dedicated_disk,
-        subscription: props.period,
-      }),
-    };
-  } catch (err) {
-    console.log(`problem calculating dedicated price: ${err}`);
-  }
-}
-
-function computeDedicatedVMCost(
-  props: ComputeCostProps
-): CostInputPeriod | undefined {
-  if (props.type !== "vm") {
-    throw new Error("compute cost for VM only");
-  }
-  if (props.dedicated_vm == null) {
-    throw new Error("missing props.dedicated_vm");
-  }
-  const { range, dedicated_vm } = props;
-  const machine = dedicated_vm.machine;
-  if (range == null || range[0] == null || range[1] == null) return;
-  const price_day = PRICES.vms[machine]?.price_day;
-  if (price_day == null) return;
-  const days = getDays({ start: range[0], end: range[1] });
-  const price = days * price_day;
-  return {
-    cost: price,
-    cost_per_unit: price,
-    discounted_cost: price,
-    cost_per_project_per_month: AVG_MONTH_DAYS * price_day,
-    cost_sub_month: AVG_MONTH_DAYS * price_day,
-    cost_sub_year: 12 * AVG_MONTH_DAYS * price_day,
-    input: {
-      ...props,
-      subscription: "no",
-      start: range[0] ?? new Date(),
-      end: range?.[1],
-    },
-    period: "range",
-  };
-}
+import { CURRENT_VERSION } from "@cocalc/util/licenses/purchase/consts";
+import { decimalMultiply } from "@cocalc/util/stripe/calc";
 
 function computeCashVoucherPrice(props: ComputeCostProps) {
   if (props.type != "cash-voucher") {
     throw Error("BUG");
   }
-  const cost = props.amount;
+  const cost_per_unit = props.whenPay == "admin" ? 0 : props.amount;
+  const quantity = props.numVouchers ?? 1;
+  const cost = decimalMultiply(cost_per_unit, quantity);
   return {
     // a lot of this is mainly for typescript.
     cost,
-    cost_per_unit: cost,
-    discounted_cost: cost,
+    cost_per_unit,
     input: {
       ...props,
       subscription: "no",
@@ -93,11 +32,13 @@ function computeCashVoucherPrice(props: ComputeCostProps) {
     cost_per_project_per_month: 0,
     cost_sub_month: 0,
     cost_sub_year: 0,
+    quantity,
   } as const;
 }
 
 export function computeCost(
-  props: ComputeCostProps
+  props: ComputeCostProps,
+  noRangeShift?: boolean,
 ): CostInputPeriod | undefined {
   const type = props.type ?? "quota";
   switch (type) {
@@ -105,10 +46,8 @@ export function computeCost(
       return computeCashVoucherPrice(props);
 
     case "disk":
-      return computeDedicatedDiskCost(props);
-
     case "vm":
-      return computeDedicatedVMCost(props);
+      throw Error(`computing cost of item of type ${type} is deprecated`);
 
     case "quota":
     default:
@@ -137,7 +76,12 @@ export function computeCost(
         return undefined;
       }
 
+      if (run_limit == null) {
+        return undefined;
+      }
+
       const input: PurchaseInfo = {
+        version: CURRENT_VERSION,
         type: "quota",
         user,
         upgrade: "custom" as "custom",
@@ -155,8 +99,17 @@ export function computeCost(
         custom_member: member,
         custom_uptime: uptime,
         boost,
-        ...fixRange(range, period),
+        // For computing the *shopping cart checkout price* of a subscription,
+        // we remove the endpoints data.  Otherwise, compute_cost(input).cost
+        // returns the price for that exact interval, not the generic monthly
+        // cost, since compute_cost is also used for refunds/value computations
+        // (though we never do prorated refunds of subscriptions anymore!).
+        // In particular, we only include start/end dates for explicit ranges.
+        ...(period == "range"
+          ? fixRange(range, period, noRangeShift)
+          : { start: null, end: null }),
       };
+
       return {
         ...compute_cost(input),
         input,

@@ -1,13 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Frame for using the assistant to put code snippets in a Jupyter notebook.
 */
 
-import { Rendered, Component } from "../../app-framework";
+import { Component, Rendered } from "@cocalc/frontend/app-framework";
 
 interface Props {
   project_id: string;

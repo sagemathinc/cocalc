@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -27,7 +27,7 @@ import { inflateSync } from "zlibjs";
 import { ord } from "./util";
 import { bencode, bdecode } from "./bencode";
 import { HEADER_SIZE } from "./constants";
-import * as lz4 from "@cocalc/xpra-lz4";
+import { uncompressBlock } from "@rinsuki/lz4-ts";
 
 let debug;
 if (DEBUG) {
@@ -52,7 +52,7 @@ function inflate(
       const length = d[0] | (d[1] << 8) | (d[2] << 16) | (d[3] << 24);
       // decode the LZ4 block
       const inflated = new Uint8Array(length);
-      const uncompressedSize = lz4.decodeBlock(data, inflated, 4);
+      const uncompressedSize = uncompressBlock(data.slice(4), inflated);
       // if lz4 errors out at the end of the buffer, ignore it:
       if (uncompressedSize <= 0 && size + uncompressedSize != 0) {
         console.error(

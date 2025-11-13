@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 export const DEFAULT_FONT_SIZE = 14;
@@ -20,10 +20,12 @@ export const DEFAULT_NEW_FILENAMES: NewFilenameTypes = "ymd_semantic";
 
 // This is used on cocalc.com, and the storage server has images named "default", "ubuntu2004" and "ubuntu2204"
 // For on-prem, you have to configure the "software environment" configuration, which includes a default image name.
-export const DEFAULT_COMPUTE_IMAGE = "ubuntu2204";
+export const DEFAULT_COMPUTE_IMAGE = "ubuntu2404";
 
 // this is the fallback value to use for the compute image, in case it isn't set
 // in particular, for projects and public_path shares!
 // historical note: we used "default" to refer to ubuntu 18.04, but once
 // we switch over to 20.04, we will keep older projects on 18.04 (explicit upgrade)
 export const FALLBACK_COMPUTE_IMAGE = "default";
+
+export const OTHER_SETTINGS_USERDEFINED_LLM = "userdefined_llm";

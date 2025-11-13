@@ -1,14 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Frame for working with a Jupyter notebook as a single markdown
-document, like in RStudio or our RMarkdown editor.
+document, like in RIDE or our RMarkdown editor.
 */
 
-import { Rendered, Component } from "../../app-framework";
+import { Rendered, Component } from "@cocalc/frontend/app-framework";
 
 interface Props {
   project_id: string;

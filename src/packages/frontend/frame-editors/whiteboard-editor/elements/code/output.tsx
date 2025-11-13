@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { fromJS } from "immutable";
@@ -50,7 +50,7 @@ export default function Output({ element, onClick }) {
     }
   }, [more_output]);
 
-  const divRef = useRef(null);
+  const divRef = useRef<any>(null);
   useWheel(divRef);
 
   if (jupyterActions == null) {

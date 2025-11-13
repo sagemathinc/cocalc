@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { CSSProperties } from "react";
@@ -16,7 +16,7 @@ export const selected_entry: CSSProperties = merge(
     borderRadius: "3px",
     marginBottom: "10px",
   },
-  entry_style
+  entry_style,
 );
 
 export const note: CSSProperties = {

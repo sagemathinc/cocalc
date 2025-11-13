@@ -8,7 +8,7 @@
   "references": [
     { "path": "../backend" },
     { "path": "../sync" },
-    { "path": "../sync-client" },
-    { "path": "../util" }
+    { "path": "../util" },
+    { "path": "../conat" }
   ]
 }

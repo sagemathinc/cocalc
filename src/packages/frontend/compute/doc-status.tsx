@@ -18,19 +18,24 @@ server.  It does the following:
 
 import Inline from "./inline";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Alert, Button, Progress, Space, Spin, Tooltip } from "antd";
 import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
 import ComputeServer from "./compute-server";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import SyncButton from "./sync-button";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+import { DisplayImage } from "./select-image";
+import Menu from "./menu";
+import { SpendLimitStatus } from "./spend-limit";
 
 interface Props {
   project_id: string;
   id: number;
-  requestedId: number;
+  requestedId?: number;
   noSync?: boolean;
+  standalone?: boolean;
 }
 
 export function ComputeServerDocStatus({
@@ -38,7 +43,11 @@ export function ComputeServerDocStatus({
   id,
   requestedId,
   noSync,
+  standalone,
 }: Props) {
+  if (requestedId == null) {
+    requestedId = id;
+  }
   const [showDetails, setShowDetails] = useState<boolean | null>(null);
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
@@ -50,6 +59,10 @@ export function ComputeServerDocStatus({
   }, [id, requestedId]);
 
   const requestedServer = computeServers?.get(`${requestedId}`);
+  const server: ComputeServerUserInfo | undefined = useMemo(
+    () => requestedServer?.toJS(),
+    [requestedServer],
+  );
   const syncExclude = requestedServer?.getIn([
     "configuration",
     "excludeFromSync",
@@ -81,46 +94,22 @@ export function ComputeServerDocStatus({
       style={{
         display: "flex",
         borderBottom:
-          requestedServer != null && !showDetails
+          !standalone && requestedServer != null && !showDetails
             ? "1px solid #ccc"
             : undefined,
+        ...(standalone
+          ? { border: "1px solid #ddd", borderRadius: "5px" }
+          : undefined),
       }}
     >
-      <Tooltip
-        mouseEnterDelay={0.9}
-        title={
-          <>
-            {progress == 100 ? "Running on " : "Moving to "}{" "}
-            <Inline id={requestedId} computeServer={requestedServer} />.
-          </>
-        }
-      >
-        <div
-          onClick={() => {
-            setShowDetails(showDetails === true ? false : true);
-          }}
-          style={{
-            height: "23px",
-            cursor: "pointer",
-            padding: "2px 5px",
-            background: requestedServer.get("color"),
-            color: avatar_fontcolor(requestedServer.get("color")),
-            width: "100%",
-            overflow: "hidden",
-            textAlign: "center",
-          }}
-        >
-          {progress < 100 ? `${progress}% - ` : ""}
-          {requestedServer.get("title")} (Id: {requestedId})
-        </div>
-      </Tooltip>
       {progress == 100 && !noSync && (
         <SyncButton
+          type="text"
           disabled={excludeFromSync}
           style={{
-            marginTop: "-1px",
             marginLeft: "-3px",
             float: "right",
+            width: "90px",
           }}
           size="small"
           compute_server_id={id}
@@ -133,33 +122,108 @@ export function ComputeServerDocStatus({
               80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
           }
         >
-          Sync Files
+          Sync
         </SyncButton>
       )}
+      {progress < 100 && (
+        <Tooltip title={"Make sure the compute server is running."}>
+          <div
+            onClick={() => {
+              setShowDetails(showDetails === true ? false : true);
+            }}
+            style={{
+              whiteSpace: "nowrap",
+              padding: "2.5px 5px",
+              background: "darkred",
+              color: "white",
+              height: "24px",
+            }}
+          >
+            NOT CONNECTED
+          </div>
+        </Tooltip>
+      )}
+      <Tooltip
+        mouseEnterDelay={0.9}
+        title={
+          <>
+            {progress == 100 ? "Running on " : "Opening on "}{" "}
+            <Inline id={requestedId} computeServer={requestedServer} />.
+          </>
+        }
+      >
+        <div
+          onClick={() => {
+            setShowDetails(showDetails === true ? false : true);
+          }}
+          style={{
+            height: "24px",
+            cursor: "pointer",
+            padding: "2px 5px",
+            background: requestedServer?.get("color") ?? "#fff",
+            color: avatar_fontcolor(requestedServer?.get("color") ?? "#fff"),
+            width: "100%",
+            overflow: "hidden",
+            textAlign: "center",
+          }}
+        >
+          {progress < 100 ? `${progress}% - ` : ""}
+          <div style={{ display: "inline-block" }}>
+            <div style={{ display: "flex" }}>
+              <div
+                style={{
+                  maxWidth: "30ex",
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                  marginRight: "5px",
+                }}
+              >
+                {requestedServer?.get("title") ?? "Loading..."}
+              </div>
+              (Id: {requestedServer?.get("project_specific_id")})
+            </div>
+          </div>
+          <DisplayImage
+            style={{
+              marginLeft: "10px",
+              borderLeft: "1px solid black",
+              paddingLeft: "10px",
+            }}
+            configuration={requestedServer?.get("configuration")?.toJS()}
+          />
+        </div>
+      </Tooltip>
+      {requestedServer != null && (
+        <SpendLimitStatus server={server} horizontal />
+      )}
+      <Menu
+        fontSize={"13pt"}
+        size="small"
+        style={{ marginTop: "1px", height: "10px" }}
+        id={requestedId}
+        project_id={project_id}
+      />
     </div>
   );
 
-  if (id == requestedId && !showDetails) {
-    return topBar(100);
-  }
-
-  const server: ComputeServerUserInfo | undefined = computeServers
-    ?.get(`${requestedId}`)
-    ?.toJS();
   const { progress, message, status } = getProgress(
     server,
     account_id,
     id,
     requestedId,
   );
-  if (showDetails != null && !showDetails) {
+  if (!showDetails) {
+    if (showDetails == null && progress < 100) {
+      setShowDetails(true);
+    }
     return topBar(progress);
   }
 
   return (
     <div
       className="smc-vfill"
-      style={{ flex: 100, minHeight: "250px", background: "white" }}
+      style={{ flex: 3, minHeight: "300px", background: "white" }}
     >
       <div>{topBar(progress)}</div>
       <div
@@ -211,7 +275,7 @@ export function ComputeServerDocStatus({
         {server != null && (
           <ComputeServer
             editable={account_id == server.account_id}
-            {...server}
+            server={server}
           />
         )}
       </div>
@@ -219,6 +283,7 @@ export function ComputeServerDocStatus({
   );
 }
 
+// gets progress of starting the compute server with given id and having it actively available to host this file.
 function getProgress(
   server: ComputeServerUserInfo | undefined,
   account_id,
@@ -234,13 +299,6 @@ function getProgress(
       progress: 50,
       message: "Moving back to project...",
       status: "active",
-    };
-  }
-  if (id == requestedId) {
-    return {
-      progress: 100,
-      message: "Compute server is connected!",
-      status: "success",
     };
   }
   if (server == null) {
@@ -277,8 +335,7 @@ function getProgress(
   if (server.state == "deprovisioned") {
     return {
       progress: 0,
-      message:
-        "Please start the compute server by clicking the Start button below.",
+      message: "Please start the compute server.",
       status: "exception",
     };
   }
@@ -286,8 +343,14 @@ function getProgress(
   if (server.state == "off") {
     return {
       progress: 10,
-      message:
-        "Please start the compute server by clicking the Start button below.",
+      message: "Please start the compute server.",
+      status: "exception",
+    };
+  }
+  if (server.state == "suspended") {
+    return {
+      progress: 15,
+      message: "Please resume the compute server.",
       status: "exception",
     };
   }
@@ -309,31 +372,85 @@ function getProgress(
   }
 
   // below it is running
-  if (server.detailed_state?.compute?.state == "ready") {
-    if (isRecent(server.detailed_state?.compute?.time)) {
+
+  const computeIsLive = server.detailed_state?.compute?.state == "ready";
+  if (computeIsLive) {
+    if (id == requestedId) {
       return {
-        progress: 80,
-        message: "Waiting for compute server to connect.",
-        status: "normal",
+        progress: 100,
+        message: "Compute server is fully connected!",
+        status: "success",
+      };
+    } else {
+      return {
+        progress: 90,
+        message:
+          "Compute server is connected and should attach to this file soon...",
+        status: "success",
       };
     }
   }
-
-  if (server.detailed_state?.["filesystem-sync"]?.state == "ready") {
-    if (isRecent(server.detailed_state?.["filesystem-sync"]?.time)) {
+  const filesystemIsLive =
+    server.detailed_state?.["filesystem-sync"]?.state == "ready";
+  const computeIsRecent = isRecent(server.detailed_state?.compute?.time);
+  const filesystemIsRecent = isRecent(
+    server.detailed_state?.["filesystem-sync"]?.time,
+  );
+  if (filesystemIsRecent) {
+    return {
+      progress: 70,
+      message: "Waiting for filesystem to connect.",
+      status: "normal",
+    };
+  }
+  if (filesystemIsLive) {
+    if (computeIsRecent) {
       return {
-        progress: 65,
-        message: "Waiting for compute server to fully boot up.",
-        status: "active",
+        progress: 80,
+        message: "Waiting for compute to connect.",
+        status: "normal",
       };
     }
   }
 
   return {
     progress: 50,
-    message: "Waiting for compute server to finish booting up.",
+    message:
+      "Compute server is running, but filesystem and compute components aren't connected. Waiting...",
     status: "active",
   };
+}
+
+// This is useful elsewhere to give a sense of how the compute server
+// is doing as it progresses from running to really being fully available.
+function getRunningStatus(server) {
+  if (server == null) {
+    return { progress: 0, message: "Loading...", status: "exception" };
+  }
+  return getProgress(server, webapp_client.account_id, server.id, server.id);
+}
+
+export function RunningProgress({
+  server,
+  style,
+}: {
+  server: ComputeServerUserInfo | undefined;
+  style?;
+}) {
+  const { progress, message } = useMemo(() => {
+    return getRunningStatus(server);
+  }, [server]);
+
+  return (
+    <Tooltip title={message}>
+      <Progress
+        trailColor="#e6f4ff"
+        percent={progress}
+        strokeWidth={14}
+        style={style}
+      />
+    </Tooltip>
+  );
 }
 
 function isRecent(expire = 0) {

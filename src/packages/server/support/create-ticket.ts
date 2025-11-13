@@ -1,4 +1,7 @@
-import type { Type } from "node-zendesk/dist/types/clients/core/tickets";
+import type {
+  CreateOrUpdateTicket,
+  Type,
+} from "node-zendesk/dist/types/clients/core/tickets";
 
 import { getLogger } from "@cocalc/backend/logger";
 import siteURL from "@cocalc/database/settings/site-url";
@@ -30,7 +33,7 @@ export default async function createTicket(options: Options): Promise<string> {
   const { account_id, email, files, type, subject, url, info } = options;
   const name = await getUserName(email, account_id);
 
-  let { body } = options;
+  let body: string = options.body ?? "";
 
   if (url) {
     body += `\n\n\nURL:\n${url}\n`;
@@ -66,7 +69,7 @@ export default async function createTicket(options: Options): Promise<string> {
       type,
       requester: { name, email },
     },
-  };
+  } as CreateOrUpdateTicket; // ATTN: this is somehow necessary, no idea why
 
   log.debug("ticket ", ticket);
 

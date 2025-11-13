@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -32,7 +32,6 @@ export class IPynbImporter {
   private _ipynb: any;
   private _new_id: any;
   private _output_handler: any;
-  private _process_attachment: any;
   private _existing_ids: any;
   private _cells: any;
   private _kernel: any;
@@ -45,13 +44,11 @@ export class IPynbImporter {
       // an is_available function; new_id(is_available) = a new id.
       existing_ids: [], // re-use these on loading for efficiency purposes
       output_handler: undefined, // h = output_handler(cell); h.message(...) -- hard to explain
-      process_attachment: undefined,
     }); // process attachments:  attachment(base64, mime) --> sha1
 
     this._ipynb = misc.deep_copy(opts.ipynb);
     this._new_id = opts.new_id;
     this._output_handler = opts.output_handler;
-    this._process_attachment = opts.process_attachment;
     this._existing_ids = opts.existing_ids; // option to re-use existing ids
 
     this._handle_old_versions(); // must come before sanity checks, as old versions are "insane". -- see https://github.com/sagemathinc/cocalc/issues/1937
@@ -81,7 +78,6 @@ export class IPynbImporter {
     delete this._existing_ids;
     delete this._new_id;
     delete this._output_handler;
-    delete this._process_attachment;
   };
 
   // Everything below is the internal private implementation.
@@ -162,6 +158,13 @@ export class IPynbImporter {
       this._ipynb.metadata &&
       this._ipynb.metadata.kernelspec &&
       this._ipynb.metadata.kernelspec.name;
+    if (this._kernel != null) {
+      // kernel names are supposed to be case insensitive
+      // https://jupyter-client.readthedocs.io/en/latest/kernels.html
+      // We also make them all lower case when reading them in at
+      // src/packages/jupyter/kernel/kernel-data.ts
+      this._kernel = this._kernel.toLowerCase();
+    }
   };
 
   _import_metadata = () => {
@@ -255,7 +258,11 @@ export class IPynbImporter {
     );
   };
 
-  _get_new_id = () => {
+  _get_new_id = (cell) => {
+    if (cell?.id && this._id_is_available(cell.id)) {
+      // attempt to use id in the ipynb file
+      return cell.id;
+    }
     if (this._new_id != null) {
       return this._new_id(this._id_is_available);
     } else {
@@ -333,7 +340,7 @@ export class IPynbImporter {
         ? this._existing_ids != null
           ? this._existing_ids[n]
           : undefined
-        : this._get_new_id();
+        : this._get_new_id(cell);
     const obj: any = {
       type: "cell",
       id,
@@ -344,12 +351,12 @@ export class IPynbImporter {
         cell.metadata != null && cell.metadata.cocalc != null
           ? cell.metadata.cocalc.outputs
           : undefined,
-        id
+        id,
       ),
       cell_type: this._get_cell_type(cell.cell_type),
       exec_count: this._get_exec_count(
         cell.execution_count,
-        cell.prompt_number
+        cell.prompt_number,
       ),
     };
 
@@ -389,22 +396,7 @@ export class IPynbImporter {
         const val = cell.attachments[name];
         for (const mime in val) {
           const base64 = val[mime];
-          if (this._process_attachment != null) {
-            try {
-              const sha1 = this._process_attachment(base64, mime);
-              obj.attachments[name] = { type: "sha1", value: sha1 };
-            } catch (err) {
-              // We put this in input, since actually attachments are
-              // only for markdown cells (?), and they have no output.
-              // Anyway, I'm mainly putting this here to debug this
-              // and it should never failed when debugged.
-              // Just to be clear again: this should never ever happen.
-              const text = `\n${err.stack}\nCoCalc Bug -- ${err}\n`;
-              obj.input = (obj.input ?? "") + text;
-            }
-          } else {
-            obj.attachments[name] = { type: "base64", value: base64 };
-          }
+          obj.attachments[name] = { type: "base64", value: base64 };
         }
       }
     }

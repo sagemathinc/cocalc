@@ -1,10 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { delay } from "awaiting";
-declare var $: any;
+import $ from "jquery";
 
 // Cause a file at a given url to get downloaded... using an iframe.  Don't await this.
 export async function download_file(src: string): Promise<void> {

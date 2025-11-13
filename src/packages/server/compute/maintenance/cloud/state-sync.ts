@@ -54,7 +54,7 @@ import getPool from "@cocalc/database/pool";
 import { state } from "@cocalc/server/compute/control";
 import { mapParallelLimit } from "@cocalc/util/async-utils";
 
-const logger = getLogger("server:compute:maintenance:purchases:state-sync");
+const logger = getLogger("server:compute:maintenance:cloud:state-sync");
 
 const lastChecked: { [id: number]: number } = {};
 
@@ -96,7 +96,7 @@ export default async function stateSync() {
 async function checkState(x) {
   lastChecked[x.id] = Date.now();
   try {
-    const realState = await state(x);
+    const realState = await state({ ...x, maintenance: true });
     logger.debug("checkState", x, `realState=${realState}`);
   } catch (err) {
     logger.debug("checkState", x, `error: ${err}`);

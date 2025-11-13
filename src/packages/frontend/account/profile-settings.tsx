@@ -1,56 +1,42 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
-import { rclass, rtypes, Component, Rendered } from "../app-framework";
-import { Panel } from "../antd-bootstrap";
-import { LabeledRow, Loading, Gap } from "../components";
-import { ColorPicker } from "../colorpicker";
-import { ProfileImageSelector, setProfile } from "./profile-image";
+import { useIntl } from "react-intl";
+import { Panel } from "@cocalc/frontend/antd-bootstrap";
+import { Rendered, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { ColorPicker } from "@cocalc/frontend/colorpicker";
+import { Gap, LabeledRow, Loading } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { Avatar } from "./avatar/avatar";
+import { ProfileImageSelector, setProfile } from "./profile-image";
 
 interface Props {
   email_address?: string;
-  first_name?: string;
-  last_name?: string;
-
-  // redux props
-  account_id: string;
-  profile: Map<string, any>;
+  // first_name?: string;
+  // last_name?: string;
 }
 
-interface State {
-  show_instructions: boolean;
-}
+export function ProfileSettings({ email_address }: Props) {
+  const intl = useIntl();
 
-class ProfileSettings extends Component<Props, State> {
-  constructor(props, state) {
-    super(props, state);
-    this.state = { show_instructions: false };
-  }
+  // const [show_instructions, set_show_instructions] = useState<boolean>(false);
 
-  static reduxProps() {
-    return {
-      account: {
-        account_id: rtypes.string,
-        profile: rtypes.immutable.Map,
-      },
-    };
-  }
+  const account_id: string = useTypedRedux("account", "account_id");
+  const profile = useTypedRedux("account", "profile");
 
-  private onColorChange = (value: string) => {
+  function onColorChange(value: string) {
     setProfile({
-      account_id: this.props.account_id,
+      account_id,
       profile: { color: value },
     });
-  };
+  }
 
-  private render_header(): Rendered {
+  function render_header(): Rendered {
     return (
       <>
-        <Avatar account_id={this.props.account_id} size={48} />
+        <Avatar account_id={account_id} size={48} />
         <Gap />
         <Gap />
         Avatar
@@ -58,30 +44,26 @@ class ProfileSettings extends Component<Props, State> {
     );
   }
 
-  public render(): JSX.Element {
-    if (this.props.account_id == null || this.props.profile == null) {
-      return <Loading />;
-    }
-    return (
-      <Panel header={this.render_header()}>
-        <LabeledRow label="Color">
-          <ColorPicker
-            color={this.props.profile?.get("color")}
-            justifyContent={"flex-start"}
-            onChange={this.onColorChange}
-          />
-        </LabeledRow>
-        <LabeledRow label="Style">
-          <ProfileImageSelector
-            account_id={this.props.account_id}
-            email_address={this.props.email_address}
-            profile={this.props.profile}
-          />
-        </LabeledRow>
-      </Panel>
-    );
+  if (account_id == null || profile == null) {
+    return <Loading />;
   }
-}
 
-const tmp = rclass(ProfileSettings);
-export { tmp as ProfileSettings };
+  return (
+    <Panel header={render_header()}>
+      <LabeledRow label={intl.formatMessage(labels.color)}>
+        <ColorPicker
+          color={profile?.get("color")}
+          justifyContent={"flex-start"}
+          onChange={onColorChange}
+        />
+      </LabeledRow>
+      <LabeledRow label="Style">
+        <ProfileImageSelector
+          account_id={account_id}
+          email_address={email_address}
+          profile={profile}
+        />
+      </LabeledRow>
+    </Panel>
+  );
+}

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
@@ -96,7 +96,7 @@ describe("creates an account, then creates purchases and statements", () => {
     expect(statements[0].total_credits).toBe(-10);
     expect(statements[0].balance).toBe(3);
 
-    const purchases = await getPurchases({
+    const { purchases } = await getPurchases({
       account_id,
       day_statement_id: statements[0].id,
     });
@@ -116,17 +116,17 @@ describe("creates an account, then creates purchases and statements", () => {
       interval: "day",
     });
     expect(statements.length).toBe(2);
-    const purchases = await getPurchases({
+
+    const { purchases } = await getPurchases({
       account_id,
       day_statement_id: statements[0].id,
     });
     expect(purchases.length).toBe(1);
     expect(purchases[0].cost).toBeCloseTo(statements[0].total_charges, 3);
     expect(purchases[0].cost).toBeCloseTo(1.25 / 2, 2);
-
-    const allPurchases = await getPurchases({ account_id });
+    const { purchases: allPurchases } = await getPurchases({ account_id });
     expect(allPurchases.length).toBe(4); // because of new one created by splitting existing one
-  });
+  }, 10000);
 });
 
 describe("creates an account, then creates purchases and statements and ensures that there aren't multiple statements per day", () => {

@@ -1,9 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button, Flex, Input, Space, Tag } from "antd";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { default_filename } from "@cocalc/frontend/account";
 import {
@@ -23,7 +24,9 @@ import {
   Tip,
 } from "@cocalc/frontend/components";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
+import ComputeServer from "@cocalc/frontend/compute/inline";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { labels } from "@cocalc/frontend/i18n";
 import { DELAY_SHOW_MS } from "@cocalc/frontend/project//new/consts";
 import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
@@ -40,7 +43,6 @@ import { separate_file_extension, trunc_middle } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 
 function getFileExtension(filename: string): string | null {
   if (filename.endsWith(".")) {
@@ -61,7 +63,8 @@ export function NewFlyout({
   project_id: string;
   wrap: Function;
   defaultExt?: string;
-}): JSX.Element {
+}): React.JSX.Element {
+  const intl = useIntl();
   const other_settings = useTypedRedux("account", "other_settings");
   const rfn = other_settings.get(NEW_FILENAMES);
   const selected = rfn ?? DEFAULT_NEW_FILENAMES;
@@ -278,7 +281,7 @@ export function NewFlyout({
     setExt(nextExt);
   }
 
-  function renderExtAddon(): JSX.Element {
+  function renderExtAddon(): React.JSX.Element {
     const title = ext === "/" ? `/` : ext === "" ? "" : `.${ext}`;
     return (
       <NewFileDropdown
@@ -308,7 +311,15 @@ export function NewFlyout({
           style={{ flex: "1" }}
         >
           <span style={{ whiteSpaceCollapse: "preserve" } as any}>
-            <span>Create</span>{" "}
+            <span>
+              <FormattedMessage
+                id="project.page.flyouts.new.create.label"
+                defaultMessage={"Create"}
+                description={
+                  "Create a file with the given name in a file-system"
+                }
+              />
+            </span>{" "}
             <span
               style={{
                 fontWeight: "bold",
@@ -321,29 +332,40 @@ export function NewFlyout({
           </span>
         </Button>
         <HelpIcon
-          title="Creating files and folders"
+          title={intl.formatMessage({
+            id: "project.page.flyouts.new.create.help.title",
+            defaultMessage: "Creating files and folders",
+          })}
           style={{
             flex: "0 1 auto",
             padding: FLYOUT_PADDING,
             fontSize: "18px",
           }}
         >
-          <Paragraph>
-            The filename is optional. If you don't specify one, a default name
-            will be create for you. You can either select the type explicitly in
-            the dropdown above, or click on one of the buttons below. These
-            buttons will create the file or folder immediately.
-          </Paragraph>
-          <Paragraph>
-            New folders (directories) are created by typing in the name and
-            clicking on "Folder" below or by adding a "/" at the end of the
-            name. Such a forward-slash is used to indicate directories on Linux
-            – that's the underlying operating system.
-          </Paragraph>
-          <Paragraph>
-            You can also just type in the filename with the extension and press
-            Enter to create the file.
-          </Paragraph>
+          <FormattedMessage
+            id="project.page.flyouts.new.create.help.message"
+            description={
+              "Help information about creating a file in a file-system"
+            }
+            defaultMessage={`
+              <Paragraph>
+                The filename is optional. If you don't specify one, a default name
+                will be create for you. You can either select the type explicitly in
+                the dropdown above, or click on one of the buttons below. These
+                buttons will create the file or folder immediately.
+              </Paragraph>
+              <Paragraph>
+                New folders (directories) are created by typing in the name and
+                clicking on "Folder" below or by adding a "/" at the end of the
+                name. Such a forward-slash is used to indicate directories on Linux
+                – that's the underlying operating system.
+              </Paragraph>
+              <Paragraph>
+                You can also just type in the filename with the extension and press Enter to create the file.
+              </Paragraph>
+          `}
+            values={{ Paragraph: (c) => <Paragraph>{c}</Paragraph> }}
+          />
         </HelpIcon>
       </Flex>
     );
@@ -354,7 +376,11 @@ export function NewFlyout({
     return (
       <Space direction="vertical">
         <Space direction="horizontal" style={padding}>
-          Location:{" "}
+          <FormattedMessage
+            id="project.page.flyouts.new.header_location"
+            defaultMessage={"Location:"}
+            description={"The directory location of files in a file-system"}
+          />{" "}
           <PathNavigator
             mode={"flyout"}
             project_id={project_id}
@@ -368,7 +394,10 @@ export function NewFlyout({
         )}
         <Input
           allowClear
-          placeholder="Filename (optional)"
+          placeholder={intl.formatMessage({
+            id: "project.page.flyouts.new.filename.placeholder",
+            defaultMessage: "Filename (optional)",
+          })}
           value={filename}
           onChange={onChangeHandler}
           onKeyUp={onKeyUpHandler}
@@ -406,6 +435,7 @@ export function NewFlyout({
           create_file={handleOnClick}
           availableFeatures={availableFeatures}
           filename={filename}
+          filenameChanged={manual}
           makeNewFilename={(ext: string) => setFilename(getNewFilename(ext))}
         />
         <Tag color={COLORS.ANTD_ORANGE}>Additional types</Tag>
@@ -413,10 +443,15 @@ export function NewFlyout({
           delayShow={DELAY_SHOW_MS}
           title="Folder (directory)"
           icon={"folder"}
-          tip="Creating a subdirectory in the current directory instead of a file."
+          tip={intl.formatMessage({
+            id: "project.page.flyouts.new.folder.tooltip",
+            defaultMessage:
+              "Creating a subdirectory in the current directory instead of a file.",
+            description: "A folder in a file-system",
+          })}
         >
           <NewFileButton
-            name="Folder"
+            name={intl.formatMessage(labels.folder)}
             on_click={handleOnClick}
             ext="/"
             size="small"
@@ -425,18 +460,25 @@ export function NewFlyout({
         </Tip>
         <Tip
           delayShow={DELAY_SHOW_MS}
-          title="No file extension"
+          title={intl.formatMessage({
+            id: "project.page.flyouts.new.filename_without_ext.title",
+            defaultMessage: "No file extension",
+            description: "File without an extension in a file-system",
+          })}
           icon={"file"}
-          tip={
-            <>
-              Create a file without a file extension, for example a{" "}
-              <code>Makefile</code>. You can also type{" "}
-              <code>filename.[space]</code> and backspace once.
-            </>
-          }
+          tip={intl.formatMessage({
+            id: "project.page.flyouts.new.filename_without_ext.tooltip",
+            defaultMessage: `Create a file without a file extension,
+              for example a <code>Makefile</code>.
+              You can also type <code>filename.[space]</code> and backspace once.`,
+          })}
         >
           <NewFileButton
-            name="Create file - no extension"
+            name={intl.formatMessage({
+              id: "project.page.flyouts.new.filename_without_ext.label",
+              defaultMessage: "Create file - no extension",
+              description: "File without an extension in a file-system",
+            })}
             on_click={handleOnClick}
             ext=""
             size="small"
@@ -456,7 +498,7 @@ export function NewFlyout({
     );
   }
 
-  function renderBottom(): JSX.Element {
+  function renderBottom(): React.JSX.Element {
     return (
       <Space
         style={{

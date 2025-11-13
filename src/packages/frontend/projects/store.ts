@@ -1,16 +1,22 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
 import { List, Map, Set } from "immutable";
 import { fromPairs, isEmpty } from "lodash";
 import LRU from "lru-cache";
 
 import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import { StudentProjectFunctionality } from "@cocalc/frontend/course/configuration/customize-student-project-functionality";
-import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
+import { is_custom_image } from "@cocalc/frontend/custom-software/util";
 import { WebsocketState } from "@cocalc/frontend/project/websocket/websocket-state";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import {
+  LANGUAGE_MODEL_SERVICES,
+  LLMServiceName,
+  LLMServicesAvailable,
+} from "@cocalc/util/db-schema/llm-utils";
 import {
   cmp,
   coerce_codomain_to_numbers,
@@ -24,13 +30,16 @@ import {
 } from "@cocalc/util/misc";
 import { DEFAULT_QUOTAS, PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
-import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import { GPU, SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { site_license_quota } from "@cocalc/util/upgrades/quota";
 import { Upgrades } from "@cocalc/util/upgrades/types";
 
 export type UserGroup = "admin" | "owner" | "collaborator" | "public";
 
-const openAICache = new LRU<string, boolean>({ max: 50, ttl: 1000 * 60 });
+const aiEnabledCache = new LRU<string, boolean>({
+  max: 50,
+  ttl: 1000 * 60,
+});
 
 const ZERO_QUOTAS = fromPairs(
   Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0]),
@@ -56,6 +65,8 @@ export interface ProjectsState {
   project_websockets: Map<string, WebsocketState>;
 
   tableError?: TypedMap<{ error: string; query: any }>;
+
+  expanded_project_id?: string; // the currently expanded project in the projects table
 }
 
 // Define projects store
@@ -141,6 +152,32 @@ export class ProjectsStore extends Store<ProjectsState> {
     return !!this.get_course_info(project_id);
   }
 
+  // true if this project is a student project that requires
+  // payment and it has been paid.
+  isPaidStudentPayProject = (project_id: string) => {
+    const info = this.get_course_info(project_id);
+    if (!info?.get("pay")) {
+      return false;
+    }
+    return !!info.get("paid");
+  };
+
+  // True if the current user is the student in a course project.
+  isStudent = (project_id: string) => {
+    const account = redux.getStore("account");
+    if (account == null) {
+      return;
+    }
+    const info = this.get_course_info(project_id);
+    if (info == null) {
+      return;
+    }
+    return (
+      info.get("account_id") == webapp_client.account_id ||
+      info.get("email_address") == account.get("email_address")
+    );
+  };
+
   /*
   If a course payment is required for this project from the signed in user,
   returns time when it will be required; otherwise, returns undefined.
@@ -150,40 +187,34 @@ export class ProjectsStore extends Store<ProjectsState> {
   This is so students have access to their work even after their subscription
   has expired.
   */
-  public date_when_course_payment_required(
+  date_when_course_payment_required = (
     project_id: string,
-  ): undefined | Date {
-    const account = redux.getStore("account");
-    if (account == null) {
+  ): undefined | Date => {
+    if (!this.isStudent(project_id) || this.is_deleted(project_id)) {
       return;
     }
     const info = this.get_course_info(project_id);
     if (info == null) {
       return;
     }
-    const is_student =
-      info.get("account_id") == webapp_client.account_id ||
-      info.get("email_address") == account.get("email_address");
-    if (is_student && !this.is_deleted(project_id)) {
-      // signed in user is the student
-      let pay = info.get("pay");
-      if (pay) {
-        if (webapp_client.server_time() >= months_before(-3, pay)) {
-          // It's 3 months after date when sign up required, so course likely over,
-          // and we no longer require payment
-          return;
-        }
-        // payment is required at some point
-        if (this.get_total_project_quotas(project_id)?.member_host) {
-          // already paid -- thanks
-          return;
-        } else {
-          // need to pay, but haven't -- this is the time by which they must pay
-          return pay;
-        }
+    // signed in user is the student
+    let pay = info.get("pay");
+    if (pay) {
+      if (webapp_client.server_time() >= months_before(-3, pay)) {
+        // It's 3 months after date when sign up required, so course likely over,
+        // and we no longer require payment
+        return;
+      }
+      // payment is required at some point
+      if (this.get_total_project_quotas(project_id)?.member_host) {
+        // already paid -- thanks
+        return;
+      } else {
+        // need to pay, but haven't -- this is the time by which they must pay
+        return pay;
       }
     }
-  }
+  };
 
   public is_deleted(project_id: string): boolean {
     return !!this.getIn(["project_map", project_id, "deleted"]);
@@ -443,6 +474,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   public get_total_site_license_dedicated(project_id: string): {
     vm: false | DedicatedVM;
     disks: DedicatedDisk[];
+    gpu: GPU | false;
   } {
     const site_license: any = this.getIn([
       "project_map",
@@ -451,6 +483,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     ])?.toJS();
     const disks: DedicatedDisk[] = [];
     let vm: false | DedicatedVM = false;
+    let gpu: GPU | false = false;
     for (const license of Object.values(site_license ?? {})) {
       // could be null in the moment when a license is removed!
       if (license == null) continue;
@@ -462,8 +495,11 @@ export class ProjectsStore extends Store<ProjectsState> {
       if (!vm && typeof quota.dedicated_vm?.machine === "string") {
         vm = quota.dedicated_vm;
       }
+      if (!gpu && typeof quota.gpu === "object") {
+        gpu = quota.gpu;
+      }
     }
-    return { vm, disks };
+    return { vm, disks, gpu };
   }
 
   // Return string array of the site licenses that are applied to this project.
@@ -505,7 +541,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (quotas == null) {
       return undefined;
     }
-    const kind = quotas.member_host ?? true ? "member" : "free";
+    const kind = (quotas.member_host ?? true) ? "member" : "free";
     // if any quota regarding cpu or memory is upgraded, we treat it better than purely free projects
     const upgraded =
       (quotas.memory != null && quotas.memory > DEFAULT_QUOTAS.memory) ||
@@ -678,10 +714,10 @@ export class ProjectsStore extends Store<ProjectsState> {
     return false;
   }
 
-  public get_projects_with_compute_image(csi: string) {
+  public get_projects_with_compute_image(csi: string): any {
     const by_csi = (val) => {
       const ci = val.get("compute_image");
-      if (ci.startsWith(CUSTOM_IMG_PREFIX)) {
+      if (is_custom_image(ci)) {
         return ci.split("/")[1] === csi;
       } else {
         return false;
@@ -731,77 +767,108 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   clearOpenAICache() {
-    openAICache.clear();
+    aiEnabledCache.clear();
+  }
+
+  // ATTN: the useLanguageModelSetting hook computes this dynamically, with dependencies
+  public whichLLMareEnabled(
+    project_id: string = "global",
+    tag?: string,
+  ): LLMServicesAvailable {
+    return LANGUAGE_MODEL_SERVICES.reduce((cur, svc) => {
+      cur[svc] = this.hasLanguageModelEnabled(project_id, tag, svc);
+      return cur;
+    }, {}) as LLMServicesAvailable;
+  }
+
+  /**
+   * Returns true for those "tags", which might be restricted by the instructor in a student project.
+   */
+  private limitAIinCourseProject(tag?: string): boolean {
+    // Regarding the aiEnabledCache:
+    // We only care about 'explain' or 'help-me-fix-hint' or 'reply' in the tags
+    // right now regarding disabling AI integration, hence to make our cache
+    // better we base the key only on those possibilities.
+    if (!tag) return false; // no tag, all good
+
+    // These tags are always allowed (non-limited), even with disableSomeChatGPT
+    const allowed_tags = ["explain", "help-me-fix-hint", "reply"];
+    for (const allowed of allowed_tags) {
+      // we match more, e.g. "help-me-fix-hint:[something else]" or "jupyter-explain"
+      if (tag.includes(allowed)) return false;
+    }
+
+    // help-me-fix-solution is limited - restricted by disableSomeChatGPT
+    if (tag.includes("help-me-fix-solution")) {
+      return true;
+    }
+
+    return true;
   }
 
   hasLanguageModelEnabled(
     project_id: string = "global",
     tag?: string,
-    vendor: "openai" | "google" | "any" = "any",
+    vendor: LLMServiceName | "any" = "any",
   ): boolean {
-    // cache answer for a few seconds, in case this gets called a lot:
+    const courseLimited = this.limitAIinCourseProject(tag);
 
-    let courseLimited = false;
-    if (
-      tag &&
-      (tag.includes("explain") ||
-        tag.includes("help-me-fix") ||
-        tag.includes("reply"))
-    ) {
-      // We only care about 'explain' or 'help-me-fix' or 'reply' for the tags
-      // right now regarding disabling chatgpt, hence to make our cache
-      // better we base the key only on those possibilities.
-      courseLimited = true;
-    }
+    // cache answer for a few seconds, in case this gets called a lot:
     const key = `${project_id}-${courseLimited}-${vendor}`;
-    if (openAICache.has(key)) {
-      return !!openAICache.get(key);
+    if (aiEnabledCache.has(key)) {
+      return !!aiEnabledCache.get(key);
     }
     const value = this._hasLanguageModelEnabled(
       project_id,
       courseLimited,
       vendor,
     );
-    openAICache.set(key, value);
+    aiEnabledCache.set(key, value);
     return value;
   }
 
   private _hasLanguageModelEnabled(
     project_id: string | "global" = "global",
-    courseLimited?: boolean,
-    vendor: "openai" | "google" | "any" = "any",
+    courseLimited: boolean,
+    vendor: LLMServiceName | "any" = "any",
   ): boolean {
+    // First, check which ones are actually available
     const customize = redux.getStore("customize");
-    const haveOpenAI = customize.get("openai_enabled");
-    const haveGoogle = customize.get("google_vertexai_enabled");
+    const enabledLLMs = customize.getEnabledLLMs();
 
-    if (!haveOpenAI && !haveGoogle) return false; // the vendor == "any" case
-    if (vendor === "openai" && !haveOpenAI) return false;
-    if (vendor === "google" && !haveGoogle) return false;
+    // if none are available, we can't enable any – that's the "any" case
+    const anyEnabled = LANGUAGE_MODEL_SERVICES.some((svc) => enabledLLMs[svc]);
+    if (!anyEnabled) return false;
 
-    // this customization accounts for disabling any language model vendor
+    // check by specific vendor
+    for (const svc of LANGUAGE_MODEL_SERVICES) {
+      if (vendor === svc && !enabledLLMs[svc]) {
+        return false;
+      }
+    }
+
+    // the "openai_disabled" account setting disabled **any** language model vendor!
     const openai_disabled = redux
       .getStore("account")
       .getIn(["other_settings", "openai_disabled"]);
     if (openai_disabled) {
       return false;
     }
-    if (project_id != "global") {
-      const s = this.getIn([
+
+    // Finally, if we're in a specific project, we check if some/all are disabled for students
+    if (project_id !== "global") {
+      const studentProjectSettings = this.getIn([
         "project_map",
         project_id,
         "course",
         "student_project_functionality",
       ]);
-      if (s?.get("disableChatGPT")) {
+
+      if (studentProjectSettings?.get("disableChatGPT")) {
         return false;
       }
-      if (s?.get("disableSomeChatGPT")) {
-        if (courseLimited) {
-          return true;
-        } else {
-          return false;
-        }
+      if (studentProjectSettings?.get("disableSomeChatGPT")) {
+        return !courseLimited;
       }
     }
     return true;

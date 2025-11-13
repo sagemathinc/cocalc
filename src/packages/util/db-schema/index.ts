@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 export { SCHEMA } from "./types";
@@ -21,8 +21,10 @@ import "./accounts";
 import "./api-keys";
 import "./auth";
 import "./blobs";
+import "./bookmarks";
 import "./central-log";
 import "./client-error-log";
+import "./cloud-filesystems";
 import "./collaborators";
 import "./compute-images";
 import "./compute-servers";
@@ -30,28 +32,27 @@ import "./copy-paths";
 import "./crm";
 import "./email-counter";
 import "./file-access-log";
-import "./file-use-times";
 import "./file-use";
+import "./groups";
 import "./hub-servers";
 import "./instances"; // probably deprecated
 import "./jupyter";
 import "./listings";
+import "./llm";
 import "./lti";
 import "./mentions";
+import "./messages";
 import "./news";
-import "./openai";
 import "./organizations";
 import "./password-reset";
 import "./pg-system";
-import "./project-info";
 import "./project-invite-tokens";
 import "./project-log";
-import "./project-status";
 import "./projects";
 import "./public-path-stars";
 import "./public-paths";
-import "./purchases";
 import "./purchase-quotas";
+import "./purchases";
 import "./registration-tokens";
 import "./retention";
 import "./server-settings";
@@ -61,7 +62,6 @@ import "./site-settings";
 import "./site-whitelabeling";
 import "./statements";
 import "./stats";
-import "./storage-servers";
 import "./subscriptions";
 import "./syncstring-schema";
 import "./system-notifications"; // deprecated: use "news" with channel="system"

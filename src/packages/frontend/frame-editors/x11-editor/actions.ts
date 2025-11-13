@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -54,11 +54,16 @@ export class Actions extends BaseActions<X11EditorState> {
   client?: XpraClient;
 
   async _init2(): Promise<void> {
-    await this.check_capabilities();
     this.launch = reuseInFlight(this.launch.bind(this));
     this.setState({ windows: Map() });
     this.init_client();
     this.init_new_x11_frame();
+    // IMPORTANT: call check_capabilities *after* init_client!!!!!
+    // This was buggy, where the terminal would come up and
+    // try to use this.client immediately, but it wasn't defined
+    // since _init2 was stuck awaiting this.check_capabilities.
+    // The init_client function is just setting
+    await this.check_capabilities();
     try {
       await this.init_channel();
     } catch (err) {
@@ -311,7 +316,7 @@ export class Actions extends BaseActions<X11EditorState> {
       super.reload(id);
       return;
     }
-    this.set_reload("x11", new Date().valueOf());
+    this.set_reload("x11", Date.now());
   }
 
   blur(): void {
@@ -627,7 +632,10 @@ export class Actions extends BaseActions<X11EditorState> {
     });
   }
 
-  set_physical_keyboard(layout: string, variant: string): void {
+  set_physical_keyboard(
+    layout: string | undefined,
+    variant: string | undefined,
+  ): void {
     if (this.client == null) {
       // better to ignore if client isn't configured yet.
       // I saw this once when testing. (TODO: could be more careful.)

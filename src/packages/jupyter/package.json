@@ -4,10 +4,11 @@
   "description": "CoCalc Jupyter -- code to support using Jupyter in cocalc, mainly across all clients",
   "exports": {
     "./*": "./dist/*.js",
-    "./blobs": "./dist/blobs/index.js",
     "./execute/*": "./dist/execute/*.js",
     "./kernel": "./dist/kernel/index.js",
     "./kernel/*": "./dist/kernel/*.js",
+    "./zmq": "./dist/zmq/index.js",
+    "./zmq/*": "./dist/zmq/*.js",
     "./nbgrader": "./dist/nbgrader/index.js",
     "./nbgrader/*": "./dist/nbgrader/*.js",
     "./pool/*": "./dist/pool/*.js",
@@ -20,9 +21,11 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "npx tsc --build",
-    "test": "pnpm exec jest dist",
-    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+    "build": "../node_modules/.bin/tsc --build",
+    "clean": "rm -rf node_modules dist",
+    "test": "pnpm exec jest --forceExit --maxWorkers=1",
+    "depcheck": "pnpx depcheck",
+    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
   "files": [
     "dist/**",
@@ -38,18 +41,12 @@
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
     "@cocalc/sync": "workspace:*",
-    "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@nteract/messaging": "^7.0.20",
-    "@types/better-sqlite3": "^7.6.4",
-    "@types/node-cleanup": "^2.1.2",
     "awaiting": "^3.0.0",
-    "better-sqlite3": "^8.3.0",
-    "debug": "^4.3.2",
-    "enchannel-zmq-backend": "^9.1.23",
-    "execa": "^8.0.1",
+    "debug": "^4.4.0",
     "expect": "^26.6.2",
     "he": "^1.2.0",
     "immutable": "^4.3.0",
@@ -58,16 +55,17 @@
     "jupyter-paths": "^2.0.3",
     "kernelspecs": "^2.0.1",
     "lodash": "^4.17.21",
-    "lru-cache": "^7.14.1",
+    "lru-cache": "^7.18.3",
     "mkdirp": "^1.0.4",
     "node-cleanup": "^2.1.2",
-    "portfinder": "^1.0.32",
     "shell-escape": "^0.2.0",
-    "tsimportlib": "^0.0.5",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "zeromq": "^6.4.2"
   },
   "devDependencies": {
-    "@types/node": "^18.16.14"
+    "@types/json-stable-stringify": "^1.0.32",
+    "@types/node": "^18.16.14",
+    "@types/node-cleanup": "^2.1.2"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/jupyter",
   "repository": {

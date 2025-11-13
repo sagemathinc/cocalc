@@ -1,10 +1,10 @@
 /*
 Functions for interfacing with the purchases functionality.
 
-TODO/DEPRECATE: this module is mostly pointess since I moved essentially
+TODO/DEPRECATE: this module is mostly pointless since I moved essentially
 all of this code to @cocalc/frontend/purchases/api, which is much better
 since it can also be used directly by our nextjs app, and also is
-scoped better.
+scoped better.  That said quotaModal is here.
 */
 
 import type { Service } from "@cocalc/util/db-schema/purchases";
@@ -13,12 +13,16 @@ import { once } from "@cocalc/util/async-utils";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
+import { round2up } from "@cocalc/util/misc";
+import type { WebappClient } from "./client";
 
 export class PurchasesClient {
   api: typeof purchasesApi;
+  client: WebappClient;
 
-  constructor() {
+  constructor(client: WebappClient) {
     this.api = purchasesApi;
+    this.client = client;
   }
   async getQuotas(): Promise<{
     minBalance: number;
@@ -28,7 +32,7 @@ export class PurchasesClient {
   }
 
   async getBalance(): Promise<number> {
-    return await purchasesApi.getBalance();
+    return await this.client.conat_client.hub.purchases.getBalance();
   }
 
   async getSpendRate(): Promise<number> {
@@ -96,7 +100,7 @@ export class PurchasesClient {
       pay_as_you_go: {
         showModal: true,
         service,
-        cost,
+        cost: cost != null ? round2up(cost) : cost,
         reason,
         allowed,
         cost_per_hour,
@@ -105,20 +109,12 @@ export class PurchasesClient {
     await waitUntilPayAsYouGoModalCloses();
   }
 
-  async getPaymentMethods() {
-    return await purchasesApi.getPaymentMethods();
-  }
-
   async getCustomer() {
     return await purchasesApi.getCustomer();
   }
 
   async getChargesByService() {
     return await purchasesApi.getChargesByService();
-  }
-
-  async createCredit(opts): Promise<any> {
-    return await purchasesApi.createCredit(opts);
   }
 
   async getCurrentCheckoutSession() {
@@ -154,17 +150,9 @@ export class PurchasesClient {
     return await purchasesApi.getPayAsYouGoPricesProjectQuotas();
   }
 
-  async syncPaidInvoices() {
-    await purchasesApi.syncPaidInvoices();
-  }
-
   // this is only used in the nextjs store app right now...
   async getShoppingCartCheckoutParams() {
     return await purchasesApi.getShoppingCartCheckoutParams();
-  }
-
-  async getVoucherCartCheckoutParams(count: number) {
-    return await purchasesApi.getVoucherCartCheckoutParams(count);
   }
 
   async adminGetMinBalance(account_id: string): Promise<number> {
@@ -176,7 +164,7 @@ export class PurchasesClient {
   }
 
   async getLicense(license_id: string) {
-    return await purchasesApi.getLicense(license_id);
+    return await purchasesApi.getLicense({ license_id });
   }
 
   async renewSubscription(

@@ -18,6 +18,7 @@ interface ConfigS3 extends ConfigCommon {
   type: "s3";
   keyid: string;
   bucket: string;
+  host?: string;
 }
 
 interface ConfigSSHFS extends ConfigCommon {

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* Definition and control logic behind the various button bars.
@@ -22,7 +22,7 @@ CONSIDERATIONS:
       it's easier for users to delete lines than to end up with some partial broken fragments
 */
 
-declare var $;
+import $ from "jquery";
 
 export const FONT_SIZES = [
   "xx-small",

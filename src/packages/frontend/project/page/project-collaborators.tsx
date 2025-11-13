@@ -1,9 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert } from "@cocalc/frontend/antd-bootstrap";
+import { useIntl } from "react-intl";
+import AdminWarning from "@cocalc/frontend/project/page/admin-warning";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   AddCollaborators,
@@ -17,11 +18,15 @@ import {
   Title,
 } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { ICON_USERS, ROOT_STYLE, TITLE_USERS } from "../servers/consts";
-import { useProject } from "./common";
+import { labels } from "@cocalc/frontend/i18n";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { ICON_USERS, ROOT_STYLE } from "../servers/consts";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
+import { useProject } from "./common";
 
-export function ProjectCollaboratorsPage({ project_id }): JSX.Element {
+export function ProjectCollaboratorsPage(): React.JSX.Element {
+  const intl = useIntl();
+  const { project_id } = useProjectContext();
   const user_map = useTypedRedux("users", "user_map");
   const student = getStudentProjectFunctionality(project_id);
   const { project, group } = useProject(project_id);
@@ -51,15 +56,7 @@ export function ProjectCollaboratorsPage({ project_id }): JSX.Element {
 
   function renderAdmin() {
     if (group !== "admin") return;
-    return (
-      <Alert bsStyle="warning" style={{ margin: "10px" }}>
-        <h4>
-          <strong>
-            Warning: you are editing the project settings as an administrator.
-          </strong>
-        </h4>
-      </Alert>
-    );
+    return <AdminWarning />;
   }
 
   if (group != "admin" && group != "owner" && project?.get("sandbox")) {
@@ -67,23 +64,13 @@ export function ProjectCollaboratorsPage({ project_id }): JSX.Element {
   }
 
   return (
-    <div
-      style={{
-        ...ROOT_STYLE,
-        width: "1000px",
-        maxWidth: "100%",
-        margin: "auto",
-      }}
-    >
+    <div style={ROOT_STYLE}>
       <Title level={2}>
-        <Icon name={ICON_USERS} /> {TITLE_USERS}
+        <Icon name={ICON_USERS} /> {intl.formatMessage(labels.users)}
       </Title>
-      <Paragraph>{COLLABS_INFO_TEXT}</Paragraph>
+      <Paragraph>{intl.formatMessage(labels.collabs_info)}</Paragraph>
       {renderAdmin()}
       {renderSettings()}
     </div>
   );
 }
-
-export const COLLABS_INFO_TEXT =
-  "Collaborators are people who can access this project. They can view and edit the same files as you.";

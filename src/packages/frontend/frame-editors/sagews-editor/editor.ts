@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -42,21 +42,27 @@ const worksheetCommands = set([
   "format",
 ]);
 
+const cells: EditorDescription = {
+  type: "sagews-cells",
+  short: "Cells",
+  name: "Cell Worksheet",
+  icon: "minus-square",
+  component: CellWorksheet as any, // TODO: rclass wrapper does not fit the EditorDescription type
+  commands: worksheetCommands,
+} as const;
+
+const document: EditorDescription = {
+  type: "sagews-document",
+  short: "Document",
+  name: "Document Worksheet",
+  icon: "file-alt",
+  component: DocumentWorksheet as any, // TODO: rclass wrapper does not fit the EditorDescription type
+  commands: worksheetCommands,
+} as const;
+
 const EDITOR_SPEC = {
-  cells: {
-    short: "Cells",
-    name: "Cell Worksheet",
-    icon: "minus-square",
-    component: CellWorksheet,
-    commands: worksheetCommands,
-  } as EditorDescription,
-  document: {
-    short: "Document",
-    name: "Document Worksheet",
-    icon: "file-alt",
-    component: DocumentWorksheet,
-    commands: worksheetCommands,
-  } as EditorDescription,
+  cells,
+  document,
   terminal,
   /*,
   print: {
@@ -66,7 +72,7 @@ const EDITOR_SPEC = {
     component: Print,
     commands: set(["print"])
   }*/
-};
+} as const;
 
 /* Ideas:
 

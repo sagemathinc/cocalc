@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import {
@@ -14,9 +14,9 @@ import {
 } from "fs/promises";
 import { basename, dirname, join } from "path";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
-import { execa, mtimeDirTree, parseCommonPrefixes, remove } from "./util";
+import { exec, mtimeDirTree, parseCommonPrefixes, remove } from "./util";
 import { toCompressedJSON } from "./compressed-json";
-import SyncClient from "@cocalc/sync-client/lib/index";
+import SyncClient, { type Role } from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
 import getLogger from "@cocalc/backend/logger";
 import { apiCall } from "@cocalc/api-client";
@@ -28,7 +28,10 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import { delete_files } from "@cocalc/backend/files/delete-files";
 import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
-import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
+import { initConatClientService } from "./conat/syncfs-client";
+import { initConatServerService } from "./conat/syncfs-server";
+
+const EXPLICIT_HIDDEN_EXCLUDES = [".cache", ".local"];
 
 const log = getLogger("sync-fs:index").debug;
 const REGISTER_INTERVAL_MS = 30000;
@@ -59,7 +62,7 @@ interface Options {
   tar: { send; get };
   compression?: "lz4"; // default 'lz4'
   data?: string; // absolute path to data directory (default: /data)
-  role;
+  role: Role;
 }
 
 const UNIONFS = ".unionfs-fuse";
@@ -74,7 +77,7 @@ const DEFAULT_SYNC_INTERVAL_MAX_S = 30;
 // result in massive bandwidth usage.
 const MAX_FAILURES_IN_A_ROW = 3;
 
-class SyncFS {
+export class SyncFS {
   private state: State = "init";
   private lower: string;
   private upper: string;
@@ -93,11 +96,14 @@ class SyncFS {
   private tar: { send; get };
   // number of failures in a row to sync.
   private numFails: number = 0;
+  private conatService;
 
   private client: SyncClient;
 
   private timeout;
   private websocket?;
+
+  private role: Role;
 
   constructor({
     lower,
@@ -114,6 +120,7 @@ class SyncFS {
     data = "/data",
     role,
   }: Options) {
+    this.role = role;
     this.lower = lower;
     this.upper = upper;
     this.mount = mount;
@@ -159,6 +166,7 @@ class SyncFS {
   }
 
   init = async () => {
+    await this.initConatService();
     await this.mountUnionFS();
     await this.bindMountExcludes();
     await this.makeScratchDir();
@@ -175,6 +183,10 @@ class SyncFS {
       return;
     }
     this.state = "closed";
+    if (this.conatService != null) {
+      this.conatService.close();
+      delete this.conatService;
+    }
     if (this.timeout != null) {
       clearTimeout(this.timeout);
       delete this.timeout;
@@ -186,7 +198,7 @@ class SyncFS {
     const args = ["-uz", this.mount];
     log("fusermount", args.join(" "));
     try {
-      await execa("fusermount", args);
+      await exec("fusermount", args);
     } catch (err) {
       log("fusermount fail -- ", err);
     }
@@ -265,7 +277,7 @@ class SyncFS {
     }
   };
 
-  private doApiRequest = async (data) => {
+  doApiRequest = async (data) => {
     log("doApiRequest", { data });
     switch (data?.event) {
       case "compute_server_sync_request":
@@ -313,19 +325,9 @@ class SyncFS {
       }
 
       case "listing":
-        return await getListing(data.path, data.hidden, this.mount);
+        return await getListing(data.path, data.hidden, { HOME: this.mount });
 
       case "exec":
-        if (data.opts.command == "cc-new-file") {
-          // so we don't have to depend on having our cc-new-file script
-          // installed.  We just don't support templates on compute server.
-          for (const path of data.opts.args ?? []) {
-            const target = join(this.mount, path);
-            await ensureContainingDirectoryExists(target);
-            await writeFile(target, "");
-          }
-          return { status: 0, stdout: "", stderr: "" };
-        }
         return await executeCode({ ...data.opts, home: this.mount });
 
       case "delete_files":
@@ -352,8 +354,10 @@ class SyncFS {
   };
 
   private mountUnionFS = async () => {
+    // NOTE: allow_other is essential to allow bind mounted as root
+    // of fast scratch directories into HOME!
     // unionfs-fuse -o allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768 /upper=RW:/home/user=RO /merged
-    await execa("unionfs-fuse", [
+    await exec("unionfs-fuse", [
       "-o",
       "allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768",
       `${this.upper}=RW:${this.lower}=RO`,
@@ -377,7 +381,7 @@ class SyncFS {
         try {
           const target = join(this.mount, path);
           log("unmountExcludes -- unmounting", { target });
-          await execa("sudo", ["umount", target]);
+          await exec("sudo", ["umount", target]);
         } catch (err) {
           log("unmountExcludes -- warning ", err);
         }
@@ -399,10 +403,23 @@ class SyncFS {
         // Yes, we have to mkdir in the upper level of the unionfs, because
         // we excluded this path from the websocketfs metadataFile caching.
         await mkdirp(upper);
-        await execa("sudo", ["mount", "--bind", source, target]);
+        await exec("sudo", ["mount", "--bind", source, target]);
       } else {
         log("bindMountExcludes -- skipping", { path });
       }
+    }
+    // The following are (1) not mounted above due to shouldMountExclude,
+    // and (2) always get exclued, and (3) start with . so could conflict
+    // with the unionfs upper layer, so we change them:
+    for (const path of EXPLICIT_HIDDEN_EXCLUDES) {
+      log("bindMountExcludes -- explicit hidden path ", { path });
+      const source = join(this.data, `.explicit${path}`);
+      const target = join(this.mount, path);
+      const upper = join(this.upper, path);
+      log("bindMountExcludes -- explicit hidden path", { source, target });
+      await mkdirp(source);
+      await mkdirp(upper);
+      await exec("sudo", ["mount", "--bind", source, target]);
     }
   };
 
@@ -568,7 +585,7 @@ class SyncFS {
     );
     await writeFile(
       join(this.lower, computeStateJson),
-      toCompressedJSON(computeState),
+      await toCompressedJSON(computeState),
     );
     this.reportState({
       state: "send-state-to-project",
@@ -683,7 +700,7 @@ class SyncFS {
     log("sendFiles: ", files.length, "sent");
   };
 
-  // pathToFileList is the path to a file in the filesystem on
+  // pathToFileList is the path to a file in the file system on
   // in the project that has the names of the files to copy to
   // the compute server.
   private receiveFiles = async (pathToFileList: string) => {
@@ -778,6 +795,23 @@ class SyncFS {
         state: "cache-files-from-project",
         progress: 85,
       });
+    }
+  };
+
+  initConatService = async () => {
+    if (this.role == "compute_server") {
+      this.conatService = await initConatClientService({
+        syncfs: this,
+        project_id: this.project_id,
+        compute_server_id: this.compute_server_id,
+      });
+    } else if (this.role == "project") {
+      this.conatService = await initConatServerService({
+        syncfs: this,
+        project_id: this.project_id,
+      });
+    } else {
+      throw Error("only compute_server and project roles are supported");
     }
   };
 }

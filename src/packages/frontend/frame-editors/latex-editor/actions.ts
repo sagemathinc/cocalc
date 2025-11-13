@@ -1,11 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 LaTeX Editor Actions.
 */
+
+// cSpell:ignore rtex cmdl ramdisk maketitle documentclass outdirflag latexer rescan
 
 const MINIMAL = `\\documentclass{article}
 \\title{Title}
@@ -17,73 +19,73 @@ const MINIMAL = `\\documentclass{article}
 
 const HELP_URL = "https://doc.cocalc.com/latex.html";
 
-const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build"] as const;
+// NOTE: These names are the keys in EDITOR_SPEC in editor.ts, not the type field
+const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build", "output"] as const;
+
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
-import { normalize as path_normalize } from "path";
-import { debounce, union } from "lodash";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { fromJS, List, Map } from "immutable";
-import { once } from "@cocalc/util/async-utils";
-import { project_api } from "../generic/client";
+import { debounce, union } from "lodash";
+import { normalize as path_normalize } from "path";
+
+import { Store, TypedMap } from "@cocalc/frontend/app-framework";
+import {
+  TableOfContentsEntry,
+  TableOfContentsEntryList,
+} from "@cocalc/frontend/components";
 import {
   Actions as BaseActions,
   CodeEditorState,
-} from "../code-editor/actions";
+} from "@cocalc/frontend/frame-editors/code-editor/actions";
+import { print_html } from "@cocalc/frontend/frame-editors/frame-tree/print";
+import { FrameTree } from "@cocalc/frontend/frame-editors/frame-tree/types";
+import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
 import {
-  latexmk,
+  exec,
+  project_api,
+  server_time,
+} from "@cocalc/frontend/frame-editors/generic/client";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import { once } from "@cocalc/util/async-utils";
+import { ExecOutput } from "@cocalc/util/db-schema/projects";
+import {
+  change_filename_extension,
+  path_split,
+  separate_file_extension,
+  sha1,
+  splitlines,
+  startswith,
+} from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import * as tree_ops from "../frame-tree/tree-ops";
+import { bibtex } from "./bibtex";
+import { clean } from "./clean";
+import { KNITR_EXTS } from "./constants";
+import { count_words } from "./count_words";
+import { update_gutters } from "./gutters";
+import { knitr, knitr_errors, patch_synctex } from "./knitr";
+import { IProcessedLatexLog, LatexParser } from "./latex-log-parser";
+import {
   build_command,
   Engine,
   get_engine_from_config,
+  latexmk,
 } from "./latexmk";
-import { sagetex, sagetex_hash, sagetex_errors } from "./sagetex";
-import { pythontex, pythontex_errors } from "./pythontex";
-import { knitr, patch_synctex, knitr_errors } from "./knitr";
-import * as synctex from "./synctex";
-import { bibtex } from "./bibtex";
-import { count_words } from "./count_words";
-import { server_time, ExecOutput } from "../generic/client";
-import { clean } from "./clean";
-import { LatexParser, IProcessedLatexLog } from "./latex-log-parser";
-import { update_gutters } from "./gutters";
-import { ensureTargetPathIsCorrect, pdf_path } from "./util";
-import { KNITR_EXTS } from "./constants";
+import { PDFWatcher } from "./pdf-watcher";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
-import { FrameTree } from "../frame-tree/types";
-import { Store } from "../../app-framework";
-import { createTypedMap, TypedMap } from "../../app-framework";
-import { print_html } from "../frame-tree/print";
-import { raw_url } from "../frame-tree/util";
-import {
-  path_split,
-  separate_file_extension,
-  splitlines,
-  startswith,
-  change_filename_extension,
-  sha1,
-} from "@cocalc/util/misc";
-import { IBuildSpecs } from "./build";
-import { open_new_tab } from "@cocalc/frontend/misc";
+import { pythontex, pythontex_errors } from "./pythontex";
+import { sagetex, sagetex_errors, sagetex_hash } from "./sagetex";
+import * as synctex from "./synctex";
 import { parseTableOfContents } from "./table-of-contents";
 import {
-  TableOfContentsEntryList,
-  TableOfContentsEntry,
-} from "@cocalc/frontend/components";
-
-export interface BuildLog extends ExecOutput {
-  parse?: IProcessedLatexLog;
-}
-
-export type BuildLogs = Map<string, Map<string, any>>;
-
-interface ScrollIntoViewParams {
-  page: number;
-  y: number;
-  id: string;
-}
-
-export const ScrollIntoViewRecord = createTypedMap<ScrollIntoViewParams>();
-export type ScrollIntoViewMap = TypedMap<ScrollIntoViewParams>;
+  BuildLog,
+  BuildLogs,
+  BuildSpecName,
+  IBuildSpecs,
+  ScrollIntoViewMap,
+  ScrollIntoViewRecord,
+} from "./types";
+import { ensureTargetPathIsCorrect, pdf_path } from "./util";
 
 interface LatexEditorState extends CodeEditorState {
   build_logs: BuildLogs;
@@ -99,14 +101,24 @@ interface LatexEditorState extends CodeEditorState {
   includeError?: string;
   build_command_hardcoded?: boolean; // if true, an % !TeX cocalc = ... directive sets the command via the document itself
   contents?: TableOfContentsEntryList; // table of contents data.
+  switch_output_to_pdf_tab?: boolean; // used for SyncTeX to switch output panel to PDF tab
+  output_panel_id_for_sync?: string; // stores the output panel ID for SyncTeX operations
+  // job_infos: JobInfos;
+  autoSyncInProgress?: boolean; // unified flag to prevent sync loops - true when any auto sync operation is in progress
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
   public project_id: string;
   public store: Store<LatexEditorState>;
   private _last_sagetex_hash: string;
-  private _last_syncstring_hash: string | undefined;
+  private _last_syncstring_hash: number | undefined;
   private is_building: boolean = false;
+  public word_count: (
+    time: number,
+    force: boolean,
+    skipFramePopup?: boolean,
+  ) => Promise<void>;
+  private is_stopping: boolean = false; // if true, do not continue running any compile jobs
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
   private filename_knitr: string; // .rnw or .rtex
@@ -127,19 +139,62 @@ export class Actions extends BaseActions<LatexEditorState> {
   private canonical_paths: { [path: string]: string } = {};
   private parsed_output_log?: IProcessedLatexLog;
 
+  private _last_sync_time = 0;
+
+  // PDF file watcher - watches directory for PDF file changes
+  private pdf_watcher?: PDFWatcher;
+
+  // Debounced version - initialized in _init2()
+  update_pdf: (time: number, force: boolean) => void;
+
+  // Auto-sync function for cursor position changes (forward sync: source → PDF)
+  private async handle_cursor_sync_to_pdf(
+    line: number,
+    column: number,
+    filename: string,
+  ): Promise<void> {
+    if (this.is_auto_sync_in_progress()) {
+      return; // Prevent sync loops
+    }
+
+    this.set_auto_sync_in_progress(true);
+    try {
+      await this.synctex_tex_to_pdf(line, column, filename);
+
+      // Fallback: Clear flag after timeout if viewport change doesn't happen
+      setTimeout(() => {
+        if (this.is_auto_sync_in_progress()) {
+          this.set_auto_sync_in_progress(false);
+        }
+      }, 2000);
+
+      // Note: The autoSyncInProgress flag will be cleared when PDF viewport actually changes
+    } catch (error) {
+      console.warn("Auto-sync forward search failed:", error);
+      // Clear flag on error since viewport won't change
+      this.set_auto_sync_in_progress(false);
+    }
+  }
+
   private output_directory_path(): string {
     return `/tmp/${sha1(this.path)}`;
   }
 
   _init2(): void {
     this.set_gutter = this.set_gutter.bind(this);
+    // Debounce update_pdf with 500ms delay, trailing only, has to work when PDF watcher fires during the build
+    this.update_pdf = debounce(this._update_pdf.bind(this), 500, {
+      leading: false,
+      trailing: true,
+    });
     if (!this.is_public) {
       this.init_bad_filename();
       this.init_ext_filename(); // safe to set before syncstring init
       this._init_syncstring_value();
       this.init_ext_path(); // must come after syncstring init
       this.init_latexmk();
-      this._init_spellcheck();
+      // This breaks browser spellcheck.
+      // this._init_spellcheck();
       this.init_config();
       if (!this.knitr) {
         this.output_directory = this.output_directory_path();
@@ -152,7 +207,23 @@ export class Actions extends BaseActions<LatexEditorState> {
         "change",
         debounce(this.ensureNonempty.bind(this), 1500),
       );
+      this._init_pdf_directory_watcher();
     }
+    this.word_count = reuseInFlight(this._word_count.bind(this));
+  }
+
+  // Watch the directory containing the PDF file for changes
+  private async _init_pdf_directory_watcher(): Promise<void> {
+    const pdfPath = pdf_path(this.path);
+    this.pdf_watcher = new PDFWatcher(
+      this.project_id,
+      pdfPath,
+      // We ignore the PDFs timestamp (mtime) and use last_save_time for consistency with build-triggered updates
+      (_mtime: number, force: boolean) => {
+        this.update_pdf(this.last_save_time(), force);
+      },
+    );
+    await this.pdf_watcher.init();
   }
 
   // similar to jupyter, where an empty document is really
@@ -195,21 +266,17 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   private init_ext_path(): void {
     if (this.knitr) {
-      // changing the path to the (to be generated) tex file makes everyting else
+      // changing the path to the (to be generated) tex file makes everything else
       // here compatible with the latex commands
       this.path = change_filename_extension(this.path, "tex");
       this.setState({ knitr: this.knitr, knitr_error: false });
     }
   }
 
-  private not_ready(): boolean {
-    return this._syncstring == null || this._syncstring.get_state() != "ready";
-  }
-
   private is_likely_master(): boolean {
     if (this.not_ready()) return false;
     const s = this._syncstring.to_str();
-    return s && s.indexOf("\\document") != -1;
+    return s != null && s.indexOf("\\document") != -1;
   }
 
   private init_latexmk(): void {
@@ -227,7 +294,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         ) {
           this._last_syncstring_hash = hash;
           // there are two cases: the parent "master" file triggers the build (usual case)
-          // or an included depdenency – i.e. where parent_file is set
+          // or an included dependency – i.e. where parent_file is set
           if (this.parent_file != null && this.parent_file != this.path) {
             const parent_actions = this.redux.getEditorActions(
               this.project_id,
@@ -262,9 +329,16 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     // Wait until the syncstring is loaded from disk.
     if (this._syncstring.get_state() == "init") {
-      await once(this._syncstring, "ready");
+      try {
+        await once(this._syncstring, "ready");
+      } catch {
+        // closed before finished opening
+        return;
+      }
     }
-    if (this._state == "closed") return;
+    if (this._state == "closed") {
+      return;
+    }
 
     let program = ""; // later, might contain the !TeX program build directive
     let cocalc_cmd = ""; // later, might contain the cocalc command
@@ -329,9 +403,16 @@ export class Actions extends BaseActions<LatexEditorState> {
     this._init_syncdb(["key"], undefined, path);
 
     // Wait for the syncdb to be loaded and ready.
-    if (this._syncdb == null) throw Error("syncdb must be defined");
+    if (this._syncdb == null) {
+      throw Error("syncdb must be defined");
+    }
     if (this._syncdb.get_state() == "init") {
-      await once(this._syncdb, "ready");
+      try {
+        await once(this._syncdb, "ready");
+      } catch {
+        // user closed it
+        return;
+      }
       if (this._state == "closed") return;
     }
 
@@ -557,7 +638,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     return change;
   }
 
-  _raw_default_frame_tree(): FrameTree {
+  // this was the default until we made the new output.tsx one-stop-shop panel the default
+  _classic_frame_tree_layout(): FrameTree {
     if (this.is_public) {
       return { type: "cm" };
     } else {
@@ -587,6 +669,25 @@ export class Actions extends BaseActions<LatexEditorState> {
         pos: 0.5,
       };
     }
+  }
+
+  _new_frame_tree_layout(): FrameTree {
+    if (this.is_public) {
+      return { type: "cm" };
+    } else {
+      return {
+        type: "node",
+        direction: "col",
+        first: { type: "cm" },
+        second: { type: "output" },
+        pos: 0.5,
+      };
+    }
+  }
+
+  // Override to make new layout the default
+  _raw_default_frame_tree(): FrameTree {
+    return this._new_frame_tree_layout();
   }
 
   check_for_fatal_error(): void {
@@ -626,6 +727,10 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   close(): void {
     this._forget_pdf_document();
+    if (this.pdf_watcher != null) {
+      this.pdf_watcher.close();
+      this.pdf_watcher = undefined;
+    }
     super.close();
   }
 
@@ -666,44 +771,110 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   public async explicit_save() {
-    const account: any = this.redux.getStore("account");
+    const account = this.redux.getStore("account");
     if (
-      account == null ||
-      !account.getIn(["editor_settings", "build_on_save"]) ||
+      !account?.getIn(["editor_settings", "build_on_save"]) ||
       !this.is_likely_master()
     ) {
-      await this.save_all(true);
+      // kicks off a save of all relevant files
+      // Obviously, do not make this save_all(true), because
+      // that would end up calling this very function again
+      // crashing the browser in an INFINITE RECURSION
+      // (this was a bug for a while!).
+      // Also, the save of the related files is NOT
+      // explicit -- the user is only explicitly saving this
+      // file.  Explicit save is mainly about deleting trailing
+      // whitespace and launching builds.
+      await this.save_all(false);
       return;
     }
-    await this.build(); // kicks off a save of all relevant files
+    await this.build();
   }
 
-  // used by generic framework.
-  async build(id?: string, force: boolean = false): Promise<void> {
+  // used by generic framework – this is bound to the instance, otherwise "this" is undefined, hence
+  // make sure to use an arrow function!
+  build = async (id?: string, force: boolean = false): Promise<void> => {
+    this.set_error("");
+    this.set_status("");
     if (id) {
       const cm = this._get_cm(id);
       if (cm) {
         cm.focus();
       }
     }
+    // initiating a build. if one is running & forced, we stop the build
     if (this.is_building) {
-      return;
+      if (force) {
+        await this.stop_build();
+      } else {
+        return;
+      }
     }
     this.is_building = true;
     try {
       await this.save_all(false);
       await this.run_build(this.last_save_time(), force);
+    } catch (err) {
+      this.set_error(`${err}`);
+      // if there is an error, we issue a stop, but keep the build logs
+      await this.stop_build();
     } finally {
       this.is_building = false;
     }
-  }
+  };
 
   async clean(): Promise<void> {
     await this.build_action("clean");
   }
 
-  async run_build(time: number, force: boolean): Promise<void> {
-    (this as unknown as any).setState({ build_logs: Map() });
+  private async kill(job: ExecOutput): Promise<ExecOutput> {
+    if (job.type !== "async") return job;
+    const { pid, status } = job;
+    if (status === "running" && typeof pid === "number") {
+      try {
+        await exec(
+          {
+            project_id: this.project_id,
+            // negative PID, to kill the entire process group
+            command: `kill -9 -${pid}`,
+            // bash:true is necessary. kill + array does not work. IDK why.
+            bash: true,
+            err_on_exit: false,
+          },
+          this.path,
+        );
+      } catch (err) {
+        // likely "No such process", we just ignore it
+      } finally {
+        // set this build log to be no longer running
+        job.status = "killed";
+      }
+    }
+    return job;
+  }
+
+  // This stops all known jobs with a status "running" and resets the state.
+  async stop_build(_id?: string) {
+    const build_logs = this.store.get("build_logs");
+    try {
+      this.is_stopping = true;
+      if (build_logs) {
+        for (const [name, job] of build_logs) {
+          // this.kill returns the job with a modified status, it's not the kill exec itself
+          this.set_build_logs({ [name]: await this.kill(job.toJS()) });
+        }
+      }
+    } finally {
+      this.set_status("");
+      this.is_building = false;
+      this.is_stopping = false;
+    }
+  }
+
+  private async run_build(time: number, force: boolean): Promise<void> {
+    if (this.is_stopping) return;
+    // reset state of build_logs, since it is a fresh start
+    this.setState({ build_logs: Map() });
 
     if (this.bad_filename) {
       const err = `ERROR: It is not possible to compile this LaTeX file with the name '${this.path}'.
@@ -722,7 +893,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (this._has_frame_of_type("word_count")) {
       run_word_count = this.word_count(time, force);
     }
-    // update_pdf=false, because it is defered until the end
+    // update_pdf=false, because it is deferred until the end
     await this.run_latex(time, force, false);
     // ... and then patch the synctex file to align the source line numberings
     if (this.knitr) {
@@ -763,9 +934,11 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  async run_knitr(time: number, force: boolean): Promise<void> {
+  private async run_knitr(time: number, force: boolean): Promise<void> {
+    if (this.is_stopping) return;
     let output: BuildLog;
     const status = (s) => this.set_status(`Running Knitr... ${s}`);
+    const set_job_info = (job) => this.set_build_logs({ knitr: job });
     status("");
 
     try {
@@ -774,6 +947,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.filename_knitr,
         this.make_timestamp(time, force),
         status,
+        set_job_info,
       );
     } catch (err) {
       this.set_error(err);
@@ -840,11 +1014,12 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  async run_latex(
+  private async run_latex(
     time: number,
     force: boolean,
     update_pdf: boolean = true,
   ): Promise<void> {
+    if (this.is_stopping) return;
     let output: BuildLog;
     let build_command: string | string[];
     const timestamp = this.make_timestamp(time, force);
@@ -855,12 +1030,15 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     this.set_error("");
     this.set_build_logs({ latex: undefined });
+    // this.set_job_infos({ latex: undefined });
     if (typeof s == "string") {
       build_command = s;
     } else {
       build_command = s.toJS();
     }
     const status = (s) => this.set_status(`Running Latex... ${s}`);
+    const set_job_info = (job) => this.set_build_logs({ latex: job });
+
     status("");
     try {
       output = await latexmk(
@@ -870,12 +1048,17 @@ export class Actions extends BaseActions<LatexEditorState> {
         timestamp,
         status,
         this.get_output_directory(),
+        set_job_info,
       );
+      // console.log(output);
     } catch (err) {
+      //console.info("LaTeX Editor/actions/run_latex error=", err);
       this.set_error(err);
       return;
+    } finally {
+      // In all cases, we want the status info to clear
+      this.set_status("");
     }
-    this.set_status("");
     // resetting parsed_output_log is ok, even if we do two passes.
     // the reason is that in pythontex or sagetex there is a merge *after* this step.
     // therefore, resetting this here will get rid of then stale errors related to
@@ -884,7 +1067,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       ignoreDuplicates: true,
     }).parse();
     this.set_build_logs({ latex: output });
-    // TODO: knitr complicates multifile a lot, so we do
+    // TODO: knitr complicates multi-file a lot, so we do
     // not support it yet.
     if (!this.knitr && this.parsed_output_log.deps != null) {
       this.set_switch_to_files(this.parsed_output_log.deps);
@@ -892,7 +1075,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.check_for_fatal_error();
     this.update_gutters();
     this.update_gutters_soon();
-
+    // Explicit PDF reload after latex compilation
     if (update_pdf) {
       this.update_pdf(time, force);
     }
@@ -926,15 +1109,18 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private update_gutters(): void {
-    // if we pass in a parsed log, we don't clean the gutters
-    // it is meant to add to what we already have, e.g. for PythonTeX
-    if (this.parsed_output_log == null) return;
-    this.clear_gutters();
-    update_gutters({
-      log: this.parsed_output_log,
-      set_gutter: this.set_gutter,
-      actions: this,
-    });
+    // Defer gutter updates to avoid React rendering conflicts
+    setTimeout(() => {
+      // if we pass in a parsed log, we don't clean the gutters
+      // it is meant to add to what we already have, e.g. for PythonTeX
+      if (this.parsed_output_log == null) return;
+      this.clear_gutters();
+      update_gutters({
+        log: this.parsed_output_log,
+        set_gutter: this.set_gutter,
+        actions: this,
+      });
+    }, 0);
   }
 
   private clear_gutters(): void {
@@ -1004,7 +1190,11 @@ export class Actions extends BaseActions<LatexEditorState> {
       files2 = await api.canonical_paths(files1);
       this.setState({ includeError: "" });
     } catch (err) {
-      this.setState({ includeError: err.toString() });
+      // Safely convert error to string, handling undefined/null cases
+      const errorMessage = err
+        ? String(err)
+        : "Unknown error checking included files";
+      this.setState({ includeError: errorMessage });
       return;
     }
 
@@ -1013,9 +1203,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       const canon_path = files2[i];
       if (!canon_path.startsWith("/")) {
         switch_to_files.push(canon_path);
-        const relnorm_path = path_normalize(files[i]);
-        this.relative_paths[canon_path] = relnorm_path;
-        this.canonical_paths[relnorm_path] = canon_path;
+        const norm_path = path_normalize(files[i]);
+        this.relative_paths[canon_path] = norm_path;
+        this.canonical_paths[norm_path] = canon_path;
       }
     }
     // sort and make unique.
@@ -1024,7 +1214,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
-  update_pdf(time: number, force: boolean): void {
+  private _update_pdf(time: number, force: boolean): void {
     const timestamp = this.make_timestamp(time, force);
     // forget currently cached pdf
     this._forget_pdf_document();
@@ -1052,7 +1242,9 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_sagetex(time: number, force: boolean): Promise<void> {
+    if (this.is_stopping) return;
     const status = (s) => this.set_status(`Running SageTeX... ${s}`);
+    const set_job_info = (job) => this.set_build_logs({ sagetex: job });
     status("");
     // First compute hash of sagetex file.
     let hash: string = "";
@@ -1088,16 +1280,17 @@ export class Actions extends BaseActions<LatexEditorState> {
         hash,
         status,
         this.get_output_directory(),
+        set_job_info,
       );
+      if (!output) throw new Error("Unable to run SageTeX.");
       if (output.stderr.indexOf("sagetex.VersionError") != -1) {
         // See https://github.com/sagemathinc/cocalc/issues/4432
         throw Error(
-          "SageTex in CoCalc currently only works with the default verison of Sage.  Delete ~/bin/sage and try again.",
+          "SageTex in CoCalc currently only works with the default version of Sage.  Delete ~/bin/sage and try again.",
         );
       }
-      // Now Run LaTeX, since we had to run sagetex, which changes
-      // the sage output. This +1 forces re-running latex... but still dedups
-      // it in case of multiple users.
+      // Now Run LaTeX, since we had to run sagetex, which changes the sage output.
+      // This +1 forces re-running latex... but still deduplicates it in case of multiple users.
       await this.run_latex(time + 1, force);
     } catch (err) {
       this.set_error(err);
@@ -1118,8 +1311,10 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_pythontex(time: number, force: boolean): Promise<void> {
+    if (this.is_stopping) return;
     let output: BuildLog;
     const status = (s) => this.set_status(`Running PythonTeX... ${s}`);
+    const set_job_info = (job) => this.set_build_logs({ pythontex: job });
     status("");
 
     try {
@@ -1131,10 +1326,10 @@ export class Actions extends BaseActions<LatexEditorState> {
         force,
         status,
         this.get_output_directory(),
+        set_job_info,
       );
-      // Now run latex again, since we had to run pythontex, which changes
-      // the inserted snippets. This +2 forces re-running latex... but still dedups
-      // it in case of multiple users. (+1 is for sagetex)
+      // Now run latex again, since we had to run pythontex, which changes the inserted snippets.
+      // This +2 forces re-running latex... but still deduplicates it in case of multiple users. (+1 is for sagetex)
       await this.run_latex(time + 2, force);
     } catch (err) {
       this.set_error(err);
@@ -1151,7 +1346,20 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.update_gutters();
   }
 
-  async synctex_pdf_to_tex(page: number, x: number, y: number): Promise<void> {
+  async synctex_pdf_to_tex(
+    page: number,
+    x: number,
+    y: number,
+    manual: boolean = false,
+  ): Promise<void> {
+    // Only check auto sync flag for automatic sync, not manual double-clicks
+    if (!manual && this.is_auto_sync_in_progress()) {
+      return; // Prevent sync loops
+    }
+
+    if (!manual) {
+      this.set_auto_sync_in_progress(true);
+    }
     this.set_status("Running SyncTex...");
     try {
       const info = await synctex.pdf_to_tex({
@@ -1171,7 +1379,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (typeof info.Input != "string") {
         throw Error("unable to determine source file");
       }
-      this.goto_line_in_file(line, info.Input);
+      await this.goto_line_in_file(line, info.Input);
     } catch (err) {
       if (err.message.indexOf("ENOENT") != -1) {
         console.log("synctex_pdf_to_tex err:", err);
@@ -1183,10 +1391,18 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.set_error(
           'Synctex failed to run.  Try "Force Rebuild" your project (use the Build frame) or retry once the build is complete.',
         );
+        // Clear flag since sync failed (only for automatic sync)
+        if (!manual) {
+          this.set_auto_sync_in_progress(false);
+        }
         return;
       }
       console.warn("ERROR ", err);
       this.set_error(err);
+      // Clear flag since sync failed (only for automatic sync)
+      if (!manual) {
+        this.set_auto_sync_in_progress(false);
+      }
     } finally {
       this.set_status("");
     }
@@ -1197,8 +1413,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       path = await (await project_api(this.project_id)).canonical_path(path);
     }
     if (this.knitr) {
-      // #v0 will not support multifile knitr.
-      this.programmatical_goto_line(line, true, true);
+      // #v0 will not support multi-file knitr.
+      this.programmatically_goto_line(line, true, true);
+      this.clear_auto_sync_after_cursor_move();
       return;
     }
     // Focus a cm frame so that we split a code editor below.
@@ -1210,13 +1427,116 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (actions == null) {
       throw Error(`actions for "${path}" must be defined`);
     }
-    (actions as BaseActions).programmatical_goto_line(line, true, true, id);
+    (actions as BaseActions).programmatically_goto_line(line, true, true, id);
+
+    this.clear_auto_sync_after_cursor_move();
+  }
+
+  // Clear auto sync flag after cursor has moved (backward sync completion)
+  private clear_auto_sync_after_cursor_move(): void {
+    // Only for automatic sync - manual sync doesn't set the flag
+    if (this.is_auto_sync_in_progress()) {
+      setTimeout(() => {
+        this.set_auto_sync_in_progress(false);
+      }, 200); // Give time for cursor to actually move
+    }
+  }
+
+  // Check if forward auto-sync (CM → PDF) is enabled for any output panel
+  private is_auto_sync_forward_enabled(): boolean {
+    const local_view_state = this.store.get("local_view_state");
+    if (!local_view_state) return false;
+
+    // Check all output panels for forward auto-sync enabled
+    for (const [key, value] of local_view_state.entrySeq()) {
+      // Only check output panels
+      if (this._is_output_panel(key) && value) {
+        const autoSyncForward =
+          typeof value.get === "function"
+            ? value.get("autoSyncForward")
+            : value.autoSyncForward;
+        if (autoSyncForward) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // Set auto sync in progress flag in state
+  private set_auto_sync_in_progress(inProgress: boolean): void {
+    this.setState({ autoSyncInProgress: inProgress });
+  }
+
+  // Check if auto sync is currently in progress
+  private is_auto_sync_in_progress(): boolean {
+    return this.store.get("autoSyncInProgress") ?? false;
+  }
+
+  // Handle cursor movement - called by BaseActions.set_cursor_locs
+  public handle_cursor_move(locs: any[]): void {
+    if (!this.is_auto_sync_forward_enabled() || locs.length === 0) return;
+
+    // Prevent duplicate sync operations
+    if (this.is_auto_sync_in_progress()) return;
+
+    // Throttle sync operations to prevent excessive calls (max once every 500ms)
+    const now = Date.now();
+    if (now - this._last_sync_time < 500) return;
+    this._last_sync_time = now;
+
+    // Get the primary cursor position (first in the array)
+    const cursor = locs[0];
+    if (typeof cursor?.y === "number" && typeof cursor?.x === "number") {
+      // Trigger forward sync (source → PDF)
+      this.handle_cursor_sync_to_pdf(cursor.y + 1, cursor.x, this.path); // y is 0-based, synctex expects 1-based
+    }
   }
 
   _get_most_recent_pdfjs(): string | undefined {
     return this._get_most_recent_active_frame_id(
       (node) => node.get("type").indexOf("pdfjs") != -1,
     );
+  }
+
+  _get_most_recent_output_panel(): string | undefined {
+    let result = this._get_most_recent_active_frame_id_of_type("output");
+    // console.log(
+    //   "LaTeX: _get_most_recent_output_panel() via active history returning",
+    //   result,
+    // );
+
+    // If no recently active output panel found, look for any output panel
+    if (!result) {
+      result = this._get_any_frame_id_of_type("output");
+      //console.log("LaTeX: _get_any_frame_id_of_type() returning", result);
+    }
+
+    return result;
+  }
+
+  // Helper method to find any frame of the given type, regardless of activity history
+  _get_any_frame_id_of_type(type: string): string | undefined {
+    const tree = this._get_tree();
+    const leaf_ids = tree_ops.get_leaf_ids(tree);
+
+    for (const id in leaf_ids) {
+      const node = tree_ops.get_node(tree, id);
+      if (node && node.get("type") === type) {
+        return id;
+      }
+    }
+    return undefined;
+  }
+
+  // Switch output panel to PDF tab for SyncTeX
+  _switch_output_panel_to_pdf(output_panel_id: string): void {
+    // This will be handled by the output panel component
+    // We set a state that the output panel can react to
+    this.setState({
+      switch_output_to_pdf_tab: true,
+      output_panel_id_for_sync: output_panel_id,
+    });
   }
 
   async synctex_tex_to_pdf(
@@ -1251,14 +1571,32 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.set_status("");
     }
     // Next get a PDF to jump to.
-    let pdfjs_id: string | undefined = this._get_most_recent_pdfjs();
-    if (!pdfjs_id) {
-      // no pdfjs preview, so make one
-      // todo: maybe replace pdfjs_canvas by which pdfjs was most recently used...?
-      this.split_frame("col", this._get_active_id(), "pdfjs_canvas");
+    // First check if there's an output panel, which contains a PDF viewer
+    let output_panel_id: string | undefined =
+      this._get_most_recent_output_panel();
+    let pdfjs_id: string | undefined;
+
+    // console.log("LaTeX forward sync: output_panel_id =", output_panel_id);
+
+    if (output_panel_id) {
+      // There's an output panel - switch it to PDF tab and use it
+      // console.log("LaTeX forward sync: Using output panel", output_panel_id);
+      this._switch_output_panel_to_pdf(output_panel_id);
+      pdfjs_id = output_panel_id;
+    } else {
+      // No output panel, look for standalone PDF viewer
+      // console.log(
+      //   "LaTeX forward sync: No output panel found, looking for standalone PDFJS",
+      // );
       pdfjs_id = this._get_most_recent_pdfjs();
       if (!pdfjs_id) {
-        throw Error("BUG -- there must be a pdfjs frame.");
+        // no pdfjs preview, so make one
+        // console.log("LaTeX forward sync: Creating new PDFJS panel");
+        this.split_frame("col", this._get_active_id(), "pdfjs_canvas");
+        pdfjs_id = this._get_most_recent_pdfjs();
+        if (!pdfjs_id) {
+          throw Error("BUG -- there must be a pdfjs frame.");
+        }
       }
     }
     const full_id: string | undefined = this.store.getIn([
@@ -1275,24 +1613,32 @@ export class Actions extends BaseActions<LatexEditorState> {
   // Scroll the pdf preview frame with given id into view.
   scroll_pdf_into_view(page: number, y: number, id: string): void {
     this.setState({
-      scroll_pdf_into_view: new ScrollIntoViewRecord({
-        page: page,
-        y: y,
-        id: id,
-      }),
+      scroll_pdf_into_view: new ScrollIntoViewRecord({ page, y, id }),
     });
   }
 
-  set_build_logs(obj: { [K in keyof IBuildSpecs]?: BuildLog }): void {
-    let build_logs: BuildLogs = this.store.get("build_logs");
-    if (!build_logs) {
-      // may have already been closed.
-      return;
-    }
-    let k: string;
+  // Check if the given ID is an output panel
+  _is_output_panel(id: string): boolean {
+    const frame = this._get_frame_node(id);
+    const frameType = frame?.get("type");
+    return frameType === "output";
+  }
+
+  // Public method to save local view state (delegates to parent's debounced method)
+  save_local_view_state(): void {
+    (this as any)._save_local_view_state();
+  }
+
+  private set_build_logs(obj: { [K in keyof IBuildSpecs]?: BuildLog }): void {
+    let build_logs: BuildLogs = this.store.get("build_logs") ?? Map();
+    let k: BuildSpecName;
     for (k in obj) {
-      const v: BuildLog = obj[k];
-      build_logs = build_logs.set(k, fromJS(v));
+      const v: BuildLog | undefined = obj[k];
+      if (v) {
+        build_logs = build_logs.set(k, fromJS(v) as any as TypedMap<BuildLog>);
+      } else {
+        build_logs = build_logs.delete(k);
+      }
     }
     this.setState({ build_logs });
   }
@@ -1305,7 +1651,10 @@ export class Actions extends BaseActions<LatexEditorState> {
       log += s + "\n";
       const build_logs: BuildLogs = this.store.get("build_logs");
       this.setState({
-        build_logs: build_logs.set("clean", fromJS({ output: log })),
+        build_logs: build_logs.set(
+          "clean",
+          fromJS({ output: log }) as any as TypedMap<BuildLog>,
+        ),
       });
     };
 
@@ -1324,7 +1673,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.set_status("");
   }
 
-  async build_action(action: string, force?: boolean): Promise<void> {
+  // TODO: is this used in any way besides build_action("clean") ?
+  private async build_action(action: string, force?: boolean): Promise<void> {
     if (force === undefined) {
       force = false;
     }
@@ -1358,9 +1708,15 @@ export class Actions extends BaseActions<LatexEditorState> {
     return force ? Date.now() : time || this.last_save_time();
   }
 
-  async word_count(time: number, force: boolean): Promise<void> {
-    // only run word count if at least one such panel exists
-    this.show_recently_focused_frame_of_type("word_count");
+  private async _word_count(
+    time: number,
+    force: boolean,
+    skipFramePopup: boolean = false,
+  ): Promise<void> {
+    // only run word count if at least one such panel exists or skipFramePopup is true
+    if (!skipFramePopup) {
+      this.show_recently_focused_frame_of_type("word_count");
+    }
 
     try {
       const timestamp = this.make_timestamp(time, force);
@@ -1420,9 +1776,18 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   download_pdf(): void {
     const path: string = pdf_path(this.path);
+
+    // we use auto false and true, since the pdf may not exist, and we don't want
+    // a **silent failure**.  With auto:false, the pdf appears in a new tab
+    // and user has to click again to actually get it on their computer, but
+    // auto:true makes it so it downloads automatically to avoid that click.
+    // If there is an error, that is clear too.
     this.redux
       .getProjectActions(this.project_id)
-      .download_file({ path: path, log: true });
+      .download_file({ path, log: true, auto: false });
+    this.redux
+      .getProjectActions(this.project_id)
+      .download_file({ path, log: false, auto: true });
   }
 
   print(id: string): void {
@@ -1436,7 +1801,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       super.print(id);
       return;
     }
-    if (type.indexOf("pdf") != -1) {
+    if (type.indexOf("pdf") != -1 || type === "output") {
       this.print_pdf();
       return;
     }
@@ -1488,9 +1853,10 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     if (
       !force &&
-      !this.get_matching_frame({ type: "latex_table_of_contents" })
+      !this.get_matching_frame({ type: "latex_table_of_contents" }) &&
+      !this.get_matching_frame({ type: "output" })
     ) {
-      // There is no table of contents frame so don't update that info.
+      // There is no table of contents frame or output frame so don't update that info.
       return;
     }
     const contents = fromJS(
@@ -1502,7 +1868,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   public async scrollToHeading(entry: TableOfContentsEntry): Promise<void> {
     const id = this.show_focused_frame_of_type("cm");
     if (id == null) return;
-    this.programmatical_goto_line(parseInt(entry.id), true, true, id);
+    this.programmatically_goto_line(parseInt(entry.id), true, true, id);
   }
 
   languageModelExtraFileInfo() {
@@ -1511,5 +1877,45 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   chatgptCodeDescription(): string {
     return "Put any LaTeX you generate in the answer in a fenced code block with info string 'tex'.";
+  }
+
+  set_font_size(id: string, font_size: number): void {
+    if (this._is_output_panel(id)) {
+      // This is for the output panel UI, not a regular frame.
+      // We store its font size in the local_view_state.
+      const local_view_state = this.store.get("local_view_state");
+      this.setState({
+        local_view_state: local_view_state.setIn([id, "font_size"], font_size),
+      });
+      // Save the state change
+      this.save_local_view_state();
+    } else {
+      super.set_font_size(id, font_size);
+      this.update_gutters_soon();
+    }
+  }
+
+  increase_font_size(id: string): void {
+    if (this._is_output_panel(id)) {
+      const font_size = this.store.getIn(
+        ["local_view_state", id, "font_size"],
+        14,
+      );
+      this.set_font_size(id, font_size + 1);
+    } else {
+      super.increase_font_size(id);
+    }
+  }
+
+  decrease_font_size(id: string): void {
+    if (this._is_output_panel(id)) {
+      const font_size = this.store.getIn(
+        ["local_view_state", id, "font_size"],
+        14,
+      );
+      this.set_font_size(id, Math.max(2, font_size - 1));
+    } else {
+      super.decrease_font_size(id);
+    }
   }
 }

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Parameters for the Jupyter Pool
@@ -11,16 +11,51 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import getLogger from "@cocalc/backend/logger";
 
-const L = getLogger("jupyter:pool-params").debug;
+const logger = getLogger("jupyter:pool-params");
 
 // read env vars with that prefix
 const PREFIX = "COCALC_JUPYTER_POOL";
+// avoid craziness:
+const MAX_POOL_SIZE = 10;
 
 // the defaults
-const CONFIG_FN = "cocalc-jupyter-pool";
+const CONFIG_FILENAME = `cocalc-jupyter-pool${
+  process.env.COMPUTE_SERVER_ID ?? ""
+}`;
 const CONFIG_DIR = join(homedir(), ".config");
-const CONFIG = join(CONFIG_DIR, CONFIG_FN);
-const SIZE = 1; // size of pool, set to 0 to disable it
+const CONFIG = join(CONFIG_DIR, CONFIG_FILENAME);
+// size of pool, set to 0 to disable it.
+function getPoolSize(): number {
+  try {
+    const size = parseInt(process.env.COCALC_JUPYTER_POOL_SIZE ?? "1");
+    if (!isFinite(size)) {
+      logger.debug(
+        "getPoolSize ",
+        process.env.COCALC_JUPYTER_POOL_SIZE,
+        " not finite",
+      );
+      // disable
+      return 0;
+    }
+    if (size < 0) {
+      logger.debug(
+        "getPoolSize ",
+        process.env.COCALC_JUPYTER_POOL_SIZE,
+        " negative -- setting to 0",
+      );
+      return 0;
+    }
+    if (size > MAX_POOL_SIZE) {
+      return MAX_POOL_SIZE;
+    }
+    return size;
+  } catch (err) {
+    logger.debug("getPoolSize -- error -- disabling pool", err);
+    return 0;
+  }
+  return 0;
+}
+const SIZE = getPoolSize();
 const TIMEOUT_S = 3600; // after that time, clean up old kernels in the pool
 const LAUNCH_DELAY_MS = 7500; // additional delay before spawning an additional kernel
 
@@ -28,7 +63,7 @@ const PARAMS = {
   SIZE,
   TIMEOUT_S,
   LAUNCH_DELAY_MS,
-  CONFIG_FN,
+  CONFIG_FILENAME,
   CONFIG_DIR,
   CONFIG,
 };
@@ -47,15 +82,16 @@ export function init() {
       // if val can be converted to a number, use the integer value
       const num = Number(val);
       if (!Number.isNaN(num)) {
-        L(`setting ${key} to ${num} (converted from '${val}')`);
+        logger.debug(`setting ${key} to ${num} (converted from '${val}')`);
         PARAMS[key] = num;
       } else {
-        L(`setting ${key} to '${val}'`);
+        logger.debug(`setting ${key} to '${val}'`);
         PARAMS[key] = val;
       }
     }
   }
-  PARAMS.CONFIG = join(PARAMS.CONFIG_DIR, PARAMS.CONFIG_FN);
+  PARAMS.CONFIG = join(PARAMS.CONFIG_DIR, PARAMS.CONFIG_FILENAME);
+  logger.debug("jupyter kernel pool parameters: ", PARAMS);
 }
 
 export function getSize(): number {

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -50,11 +50,23 @@ export function evt_to_obj(evt: any, mode: NotebookMode): KeyboardCommand {
   if (mode != null) {
     obj.mode = mode;
   }
+  if (evt.which == 173) {
+    // firefox sends 173 for the "-" key but everybody else sends 189
+    // see https://github.com/sagemathinc/cocalc/issues/4467
+    // See also https://stackoverflow.com/questions/18177818/why-jquerys-event-which-gives-different-results-in-firefox-and-chrome
+    // and of course we should rewrite this entire file to use
+    // evt.key instead of evt.which
+    evt.which = 189;
+  }
+  if (evt.which == 59) {
+    // firefox sends 59 for the "-" key but everybody else sends 186
+    evt.which = 186;
+  }
   return obj;
 }
 
 function evt_to_shortcut(evt: any, mode: NotebookMode): string {
-  return json(evt_to_obj(evt, mode));
+  return json(evt_to_obj(evt, mode))!;
 }
 
 export function create_key_handler(
@@ -84,7 +96,7 @@ export function create_key_handler(
       // TODO: remove this when we switch from using event.which to event.key!
       s = copy_without(s, ["key"]);
     }
-    shortcut_to_command[json(s)] = { name, val };
+    shortcut_to_command[json(s)!] = { name, val };
     if (s.alt) {
       s = copy_without(s, "alt");
       s.meta = true;
@@ -97,6 +109,7 @@ export function create_key_handler(
     frame_actions,
     editor_actions,
   });
+
   for (const name in object) {
     val = object[name];
     if ((val != null ? val.k : undefined) == null) {
@@ -119,10 +132,17 @@ export function create_key_handler(
     const mode = frame_actions.store.get("mode");
     if (mode === "escape") {
       const focused = $(":focus");
-      if (focused.length > 0 && focused[0].tagName != "DIV") {
+      if (
+        focused.length > 0 &&
+        (focused[0].tagName != "DIV" ||
+          focused[0].className?.includes("widget-readout"))
+      ) {
         // Never use keyboard shortcuts when something is focused, e.g.,
         // getting a password or using text input widget.  However, the cell list DIV
         // itself gets focused often, so we have to avoid that special case.
+        // An example with ipywidgets that the className case above covers:
+        //   import ipywidgets as widgets; w = widgets.IntSlider(0,1,100); w
+        // Then put your cursor in the number to the right of the slider and hit backspace.
         return;
       }
     }

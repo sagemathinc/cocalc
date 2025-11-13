@@ -9,7 +9,10 @@ await require('./dist/compute/cloud/google-cloud/create-image').createImages({})
 await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
 
 
-a = require('./dist/compute/cloud/google-cloud/create-image')
+images = require('./dist/compute/images'); a = require('./dist/compute/cloud/google-cloud/create-image');
+
+(await images.getImages({noCache:true}))['jupyterhub']
+await a.createImages({image:"jupyterhub"});
 
 await a.createImages({image:"python", arch:'x86_64'})
 
@@ -134,9 +137,9 @@ export async function createImages({
   IMAGES,
   force,
 }: Options = {}): Promise<string[]> {
-  // we use getImages(0) to force updating the images before doing a build,
+  // we use getImages({noCache:true}) to force updating the images before doing a build,
   // since this is when it matters (and this is rare).
-  IMAGES = IMAGES ?? (await getImages(0));
+  IMAGES = IMAGES ?? (await getImages({ noCache: true }));
   if (image == null) {
     // create all types
     return await createAllImages({
@@ -228,7 +231,7 @@ export async function createImages({
       });
       // force updating the list of google cloud images (in database), since we just
       // changed them.  This of course only impacts the server we are running this on!
-      await getAllImages(0);
+      await getAllImages({ noCache: true });
       if (!noDelete) {
         await logToFile(name, "createImage: delete the instance");
         await deleteInstance({ zone, name });
@@ -300,10 +303,20 @@ function getConf({
   }
 }
 
-function getSourceImage(arch: Architecture) {
-  return `projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-${
-    arch == "arm64" ? "arm64-" : ""
-  }v20230829`;
+function getSourceImage(arch: Architecture, IMAGES: Images) {
+  const version = IMAGES["google-cloud"]?.["base_image"]?.[arch];
+  if (version) {
+    return version;
+  }
+
+  // hard coded fallback:
+  // ubuntu-2404-noble-arm64-v20241115
+  // ubuntu-2404-noble-amd64-v20241115
+  const GOOGLE_CLOUD_UBUNTU_VERSION = "20241115";
+
+  return `projects/ubuntu-os-cloud/global/images/ubuntu-2404-noble-${
+    arch == "arm64" ? "arm" : "amd"
+  }64-v${GOOGLE_CLOUD_UBUNTU_VERSION}`;
 }
 
 const LOGDIR = "logs";
@@ -469,7 +482,7 @@ function createBuildConfiguration({
   if (!pkg) {
     throw Error(`unknown image '${image}'`);
   }
-  const maxTimeMinutes = gpu ? 60 : 30;
+  const maxTimeMinutes = gpu ? 120 : 90;
   const configuration = {
     image,
     tag,
@@ -496,21 +509,29 @@ function createBuildConfiguration({
           machineType: "n2-standard-8",
         } as const)
       : arch == "x86_64"
-      ? ({
-          region: "us-east1",
-          zone: "us-east1-b",
-          machineType: "c2-standard-4",
-        } as const)
-      : ({
-          region: "us-central1",
-          zone: "us-central1-a",
-          machineType: "t2a-standard-4",
-        } as const)),
+        ? ({
+            region: "us-east1",
+            zone: "us-east1-b",
+            machineType: "c2-standard-4",
+          } as const)
+        : ({
+            region: "us-central1",
+            zone: "us-central1-a",
+            machineType: "t2a-standard-4",
+          } as const)),
   } as const;
+
+  // IMPORTANT SECURITY NOTE: Do *NOT* install microk8s, even for an image
+  // that uses it. Though it saves time (e.g., 30s), it likely also sets up
+  // secret keys that would be a major security vulnerability, i.e., two kubernetes
+  // VM's made from the same image have the same keys. So don't do that.
 
   const startupScript = `
 #!/bin/bash
 set -ev
+
+apt-get update
+apt-get upgrade -y
 
 # Install docker daemon and client
 ${installDocker()}
@@ -524,7 +545,7 @@ docker system prune -a -f
 # Install nodejs
 ${installNode()}
 
-${installCoCalc({ arch, IMAGES })}
+${installCoCalc({ IMAGES })}
 
 # Pre-pull filesystem Docker container
 docker pull ${IMAGES["filesystem"].package}:${tag_filesystem}
@@ -545,6 +566,6 @@ sync
     startupScript,
     maxTimeMinutes,
     arch,
-    sourceImage: getSourceImage(arch),
+    sourceImage: getSourceImage(arch, IMAGES),
   } as const;
 }

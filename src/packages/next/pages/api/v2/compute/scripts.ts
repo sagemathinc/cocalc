@@ -11,11 +11,17 @@ import {
   getStopScript,
   getDeprovisionScript,
 } from "@cocalc/server/compute/control";
-import { getAccountWithApiKey as getProjectIdWithApiKey } from "@cocalc/server/api/manage";
+import { getAccountWithApiKey } from "@cocalc/server/api/manage";
 import getParams from "lib/api/get-params";
 import getPool from "@cocalc/database/pool";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  ComputeServerScriptsInputSchema,
+  ComputeServerScriptsOutputSchema,
+} from "lib/api/schema/compute/scripts";
+
+async function handle(req, res) {
   try {
     res.send(await get(req));
   } catch (err) {
@@ -25,7 +31,7 @@ export default async function handle(req, res) {
 }
 
 export async function get(req) {
-  const { api_key, id: id0, action } = getParams(req, { allowGet: true });
+  const { api_key, id: id0, action } = getParams(req);
   // use api_key to get project, and also verify access:
   const id = parseInt(id0);
   return await getScript({ api_key, id, action });
@@ -40,7 +46,7 @@ export async function getScript({
   id: number;
   action: "start" | "stop" | "deprovision";
 }): Promise<string> {
-  const project_id = await getProjectIdWithApiKey(api_key);
+  const { project_id } = (await getAccountWithApiKey(api_key)) ?? {};
   if (!project_id) {
     throw Error("api_key must be a valid project api key");
   }
@@ -71,3 +77,24 @@ export async function getScript({
     throw Error(`unknown action=${action}`);
   }
 }
+
+export default apiRoute({
+  scripts: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: ComputeServerScriptsInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "text/plain",
+        body: ComputeServerScriptsOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

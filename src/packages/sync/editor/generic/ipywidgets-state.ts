@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -14,15 +14,15 @@ import { Map as iMap } from "immutable";
 import {
   close,
   delete_null_fields,
+  is_object,
   len,
   auxFileToOriginal,
+  sha1,
 } from "@cocalc/util/misc";
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { Client } from "./types";
-import { delay } from "awaiting";
 import { debounce } from "lodash";
-import sha1 from "sha1";
 
 type State = "init" | "ready" | "closed";
 
@@ -33,7 +33,21 @@ type Value = { [key: string]: any };
 // backend project, and not by frontend browser clients.
 // The garbage collection is deleting models and related
 // data when they are not referenced in the notebook.
+// Also, we don't implement complete object delete yet so instead we
+// set the data field to null, which clears all state about and
+// object and makes it easy to know to ignore it.
 const GC_DEBOUNCE_MS = 10000;
+
+// If for some reason GC needs to be deleted, e.g., maybe you
+// suspect a bug, just toggle this flag.  In particular, note
+// includeThirdPartyReferences below that has to deal with a special
+// case schema that k3d uses for references, which they just made up,
+// which works with official upstream, since that has no garbage
+// collection.
+const DISABLE_GC = false;
+
+// ignore messages past this age.
+const MAX_MESSAGE_TIME_MS = 10000;
 
 interface CommMessage {
   header: { msg_id: string };
@@ -46,7 +60,7 @@ export interface Message {
   // don't know yet...
 }
 
-export type ModelState = { [key: string]: any };
+export type SerializedModelState = { [key: string]: any };
 
 export class IpywidgetsState extends EventEmitter {
   private syncdoc: SyncDoc;
@@ -61,7 +75,9 @@ export class IpywidgetsState extends EventEmitter {
   // This should be done in conjunction with the main table (with gc
   // on backend, and with change to null event on the frontend).
   private buffers: {
-    [model_id: string]: { [path: string]: { buffer: Buffer; hash: string } };
+    [model_id: string]: {
+      [path: string]: { buffer: Buffer; hash: string };
+    };
   } = {};
   // Similar but used on frontend
   private arrayBuffers: {
@@ -86,23 +102,19 @@ export class IpywidgetsState extends EventEmitter {
     this.syncdoc = syncdoc;
     this.client = client;
     this.create_synctable = create_synctable;
-    if (this.syncdoc.data_server == "project") {
-      // options only supported for project...
-      // ephemeral -- don't store longterm in database
-      // persistent -- doesn't automatically vanish when all browser clients disconnect
-      this.table_options = [{ ephemeral: true, persistent: true }];
-    }
-    this.gc = client.is_project() // no-op if not project
-      ? debounce(() => {
-          // return; // temporarily disabled since it is still too aggressive
-          if (this.state == "ready") {
-            this.deleteUnused();
-          }
-        }, GC_DEBOUNCE_MS)
-      : () => {};
+    this.table_options = [{ ephemeral: true }];
+    this.gc =
+      !DISABLE_GC && client.is_project() // no-op if not project or DISABLE_GC
+        ? debounce(() => {
+            // return; // temporarily disabled since it is still too aggressive
+            if (this.state == "ready") {
+              this.deleteUnused();
+            }
+          }, GC_DEBOUNCE_MS)
+        : () => {};
   }
 
-  public async init(): Promise<void> {
+  init = async (): Promise<void> => {
     const query = {
       ipywidgets: [
         {
@@ -122,9 +134,9 @@ export class IpywidgetsState extends EventEmitter {
     this.table.on("change", (keys) => {
       this.emit("change", keys);
     });
-  }
+  };
 
-  public keys(): { model_id: string; type: "value" | "state" | "buffer" }[] {
+  keys = (): { model_id: string; type: "value" | "state" | "buffer" }[] => {
     // return type is arrow of s
     this.assert_state("ready");
     const x = this.table.get();
@@ -139,9 +151,9 @@ export class IpywidgetsState extends EventEmitter {
       }
     });
     return keys;
-  }
+  };
 
-  public get(model_id: string, type: string): iMap<string, any> | undefined {
+  get = (model_id: string, type: string): iMap<string, any> | undefined => {
     const key: string = JSON.stringify([
       this.syncdoc.get_string_id(),
       model_id,
@@ -152,11 +164,13 @@ export class IpywidgetsState extends EventEmitter {
       return undefined;
     }
     return record.get("data");
-  }
+  };
 
   // assembles together state we know about the widget with given model_id
   // from info in the table, and returns it as a Javascript object.
-  public get_model_state(model_id: string): ModelState | undefined {
+  getSerializedModelState = (
+    model_id: string,
+  ): SerializedModelState | undefined => {
     this.assert_state("ready");
     const state = this.get(model_id, "state");
     if (state == null) {
@@ -174,9 +188,9 @@ export class IpywidgetsState extends EventEmitter {
       }
     }
     return state_js;
-  }
+  };
 
-  public get_model_value(model_id: string): Value {
+  get_model_value = (model_id: string): Value => {
     this.assert_state("ready");
     let value: any = this.get(model_id, "value");
     if (value == null) {
@@ -187,7 +201,7 @@ export class IpywidgetsState extends EventEmitter {
       return {};
     }
     return value;
-  }
+  };
 
   /*
   Setting and getting buffers.
@@ -211,10 +225,12 @@ export class IpywidgetsState extends EventEmitter {
     buffers, which is a problem I don't think upstream ipywidgets
     has to solve.
   */
-  public async get_model_buffers(model_id: string): Promise<{
+  getModelBuffers = async (
+    model_id: string,
+  ): Promise<{
     buffer_paths: string[][];
     buffers: ArrayBuffer[];
-  }> {
+  }> => {
     let value: iMap<string, string> | undefined = this.get(model_id, "buffers");
     if (value == null) {
       return { buffer_paths: [], buffers: [] };
@@ -227,26 +243,21 @@ export class IpywidgetsState extends EventEmitter {
     }
     const f = async (path: string) => {
       const hash = value?.get(path);
-      if (hash == null) return;
+      if (!hash) {
+        // It is important to look for !hash, since we use hash='' as a sentinel (in this.clearOutputBuffers)
+        // to indicate that we want to consider a buffer as having been deleted. This is very important
+        // to do since large outputs are often buffers in output widgets, and clear_output
+        // then needs to delete those buffers, or output never goes away.
+        return;
+      }
       const cur = this.arrayBuffers[model_id][path];
       if (cur?.hash == hash) {
         buffer_paths.push(JSON.parse(path));
         buffers.push(cur.buffer);
         return;
       }
-      // async get of the buffer efficiently via HTTP:
-      if (this.client.ipywidgetsGetBuffer == null) {
-        throw Error(
-          "NotImplementedError: frontend client must implement ipywidgetsGetBuffer in order to support binary buffers",
-        );
-      }
       try {
-        const buffer = await this.client.ipywidgetsGetBuffer(
-          this.syncdoc.project_id,
-          auxFileToOriginal(this.syncdoc.path),
-          model_id,
-          path,
-        );
+        const buffer = await this.clientGetBuffer(model_id, path);
         this.arrayBuffers[model_id][path] = { buffer, hash };
         buffer_paths.push(JSON.parse(path));
         buffers.push(buffer);
@@ -255,41 +266,116 @@ export class IpywidgetsState extends EventEmitter {
       }
     };
     // Run f in parallel on all of the keys of value:
-    await Promise.all(value.keySeq().toJS().map(f));
+    await Promise.all(
+      value
+        .keySeq()
+        .toJS()
+        .filter((path) => path.startsWith("["))
+        .map(f),
+    );
     return { buffers, buffer_paths };
-  }
+  };
+
+  // This is used on the backend when syncing changes from project nodejs *to*
+  // the jupyter kernel.
+  getKnownBuffers = (model_id: string) => {
+    let value: iMap<string, string> | undefined = this.get(model_id, "buffers");
+    if (value == null) {
+      return { buffer_paths: [], buffers: [] };
+    }
+    // value is an array from JSON of paths array to array buffers:
+    const buffer_paths: string[][] = [];
+    const buffers: ArrayBuffer[] = [];
+    if (this.buffers[model_id] == null) {
+      this.buffers[model_id] = {};
+    }
+    const f = (path: string) => {
+      const hash = value?.get(path);
+      if (!hash) {
+        return;
+      }
+      const cur = this.buffers[model_id][path];
+      if (cur?.hash == hash) {
+        buffer_paths.push(JSON.parse(path));
+        buffers.push(new Uint8Array(cur.buffer).buffer);
+        return;
+      }
+    };
+    value
+      .keySeq()
+      .toJS()
+      .filter((path) => path.startsWith("["))
+      .map(f);
+    return { buffers, buffer_paths };
+  };
+
+  private clientGetBuffer = async (model_id: string, path: string) => {
+    // async get of the buffer from backend
+    if (this.client.ipywidgetsGetBuffer == null) {
+      throw Error(
+        "NotImplementedError: frontend client must implement ipywidgetsGetBuffer in order to support binary buffers",
+      );
+    }
+    const b = await this.client.ipywidgetsGetBuffer(
+      this.syncdoc.project_id,
+      auxFileToOriginal(this.syncdoc.path),
+      model_id,
+      path,
+    );
+    return b;
+  };
 
   // Used on the backend by the project http server
-  public getBuffer(model_id: string, buffer_path: string): Buffer | undefined {
-    const dbg = this.dbg("getBuffer");
-    dbg("getBuffer", model_id, buffer_path);
-    return this.buffers[model_id]?.[buffer_path]?.buffer;
-  }
-
-  private set_model_buffers(
+  getBuffer = (
     model_id: string,
-    buffer_paths: string[],
+    buffer_path_or_sha1: string,
+  ): Buffer | undefined => {
+    const dbg = this.dbg("getBuffer");
+    dbg("getBuffer", model_id, buffer_path_or_sha1);
+    return this.buffers[model_id]?.[buffer_path_or_sha1]?.buffer;
+  };
+
+  // returns the sha1 hashes of the buffers
+  setModelBuffers = (
+    // model that buffers are associated to:
+    model_id: string,
+    // if given, these are buffers with given paths; if not given, we
+    // store buffer associated to sha1 (which is used for custom messages)
+    buffer_paths: string[][] | undefined,
+    // the actual buffers.
     buffers: Buffer[],
     fire_change_event: boolean = true,
-  ): void {
-    const dbg = this.dbg("set_model_buffers");
+  ): string[] => {
+    const dbg = this.dbg("setModelBuffers");
     dbg("buffer_paths = ", buffer_paths);
 
     const data: { [path: string]: boolean } = {};
     if (this.buffers[model_id] == null) {
       this.buffers[model_id] = {};
     }
-    for (let i = 0; i < buffer_paths.length; i++) {
-      const key = JSON.stringify(buffer_paths[i]);
-      // we set to the sha1 of the buffer not to make getting
-      // the buffer easy, but to make it easy to KNOW if we
-      // even need to get the buffer.
-      const hash = sha1(buffers[i]);
-      data[key] = hash;
-      this.buffers[model_id][key] = { buffer: buffers[i], hash };
+    const hashes: string[] = [];
+    if (buffer_paths != null) {
+      for (let i = 0; i < buffer_paths.length; i++) {
+        const key = JSON.stringify(buffer_paths[i]);
+        // we set to the sha1 of the buffer not just to make getting
+        // the buffer easy, but to make it easy to KNOW if we
+        // even need to get the buffer.
+        const hash = sha1(buffers[i]);
+        hashes.push(hash);
+        data[key] = hash;
+        this.buffers[model_id][key] = { buffer: buffers[i], hash };
+      }
+    } else {
+      for (const buffer of buffers) {
+        const hash = sha1(buffer);
+        hashes.push(hash);
+        this.buffers[model_id][hash] = { buffer, hash };
+        data[hash] = hash;
+      }
     }
     this.set(model_id, "buffers", data, fire_change_event);
-  }
+    return hashes;
+  };
 
   /*
   Setting model state and value
@@ -307,82 +393,111 @@ export class IpywidgetsState extends EventEmitter {
     are efficient.)
   */
 
-  public set_model_value(
+  set_model_value = (
     model_id: string,
     value: Value,
     fire_change_event: boolean = true,
-  ): void {
+  ): void => {
     this.set(model_id, "value", value, fire_change_event);
-  }
+  };
 
-  public set_model_state(
+  set_model_state = (
     model_id: string,
     state: any,
     fire_change_event: boolean = true,
-  ): void {
+  ): void => {
     this.set(model_id, "state", state, fire_change_event);
-  }
+  };
 
   // Do any setting of the underlying table through this function.
-  public set(
+  set = (
     model_id: string,
     type: "value" | "state" | "buffers" | "message",
     data: any,
     fire_change_event: boolean = true,
-  ): void {
+    merge?: "none" | "shallow" | "deep",
+  ): void => {
+    //const dbg = this.dbg("set");
     const string_id = this.syncdoc.get_string_id();
     if (typeof data != "object") {
       throw Error("TypeError -- data must be a map");
     }
-    let merge: "none" | "shallow" | "deep";
+    let defaultMerge: "none" | "shallow" | "deep";
     if (type == "value") {
+      //defaultMerge = "shallow";
       // we manually do the shallow merge only on the data field.
-      const data0 = this.get_model_value(model_id);
-      if (data0 != null) {
+      const current = this.get_model_value(model_id);
+      // this can be HUGE:
+      // dbg("value: before", { data, current });
+      if (current != null) {
         for (const k in data) {
-          data0[k] = data[k];
+          if (is_object(data[k]) && is_object(current[k])) {
+            current[k] = { ...current[k], ...data[k] };
+          } else {
+            current[k] = data[k];
+          }
         }
-        data = data0;
+        data = current;
       }
-      merge = "none";
+      // dbg("value -- after", { merged: data });
+      defaultMerge = "none";
     } else if (type == "buffers") {
-      // we keep around the buffers that were
-      // already set, but overwrite
-      // when they change.
-      merge = "deep";
+      // it's critical to not throw away existing buffers when
+      // new ones come or current ones change.  With shallow merge,
+      // the existing ones go away, which is very broken, e.g.,
+      // see this with this example:
+      /*
+import bqplot.pyplot as plt
+import numpy as np
+x, y = np.random.rand(2, 10)
+fig = plt.figure(animation_duration=3000)
+scat = plt.scatter(x=x, y=y)
+fig
+---
+scat.x, scat.y = np.random.rand(2, 50)
+
+# now close and open it, and it breaks with shallow merge,
+# since the second cell caused the opacity buffer to be
+# deleted, which breaks everything.
+*/
+      defaultMerge = "deep";
     } else if (type == "message") {
-      merge = "none";
+      defaultMerge = "none";
     } else {
-      merge = "deep";
+      defaultMerge = "deep";
+    }
+    if (merge == null) {
+      merge = defaultMerge;
     }
     this.table.set(
       { string_id, type, model_id, data },
       merge,
       fire_change_event,
     );
-  }
+  };
 
-  public async save(): Promise<void> {
+  save = async (): Promise<void> => {
     this.gc();
     await this.table.save();
-  }
+  };
 
-  public async close(): Promise<void> {
+  close = async (): Promise<void> => {
     if (this.table != null) {
       await this.table.close();
     }
     close(this);
     this.set_state("closed");
-  }
+  };
 
-  private dbg(_f): Function {
+  private dbg = (_f): Function => {
     if (this.client.is_project()) {
       return this.client.dbg(`IpywidgetsState.${_f}`);
     } else {
       return (..._) => {};
     }
-  }
-  public async clear(): Promise<void> {
+  };
+
+  clear = async (): Promise<void> => {
     // This is used when we restart the kernel -- we reset
     // things so no information about any models is known
     // and delete all Buffers.
@@ -404,13 +519,21 @@ export class IpywidgetsState extends EventEmitter {
       this.table.set({ string_id, type, model_id, data: null }, "none", false);
     }
     await this.table.save();
-  }
+  };
+
+  values = () => {
+    const x = this.table.get();
+    if (x == null) {
+      return [];
+    }
+    return Object.values(x.toJS()).filter((obj) => obj.data);
+  };
 
   // Clean up all data in the table about models that are not
   // referenced (directly or indirectly) in any cell in the notebook.
   // There is also a comm:close event/message somewhere, which
   // could also be useful....?
-  public async deleteUnused(): Promise<void> {
+  deleteUnused = async (): Promise<void> => {
     this.assert_state("ready");
     const dbg = this.dbg("deleteUnused");
     dbg();
@@ -418,24 +541,34 @@ export class IpywidgetsState extends EventEmitter {
     // which is why we just set the data to null.
     const activeIds = this.getActiveModelIds();
     this.table.get()?.forEach((val, key) => {
-      if (key == null || val == null || val.get("data") == null) return; // already deleted
+      if (key == null || val?.get("data") == null) {
+        // already deleted
+        return;
+      }
       const [string_id, model_id, type] = JSON.parse(key);
       if (!activeIds.has(model_id)) {
+        // Delete this model from the table (or as close to delete as we have).
+        // This removes the last message, state, buffer info, and value,
+        // depending on type.
         this.table.set(
           { string_id, type, model_id, data: null },
           "none",
           false,
         );
+
+        // Also delete buffers for this model, which are stored in memory, and
+        // won't be requested again.
+        delete this.buffers[model_id];
       }
     });
     await this.table.save();
-  }
+  };
 
   // For each model in init, we add in all the ids of models
   // that it explicitly references, e.g., by IPY_MODEL_[model_id] fields
   // and by output messages and other things we learn about (e.g., k3d
   // has its own custom references).
-  public getReferencedModelIds(init: string | Set<string>): Set<string> {
+  getReferencedModelIds = (init: string | Set<string>): Set<string> => {
     const modelIds =
       typeof init == "string" ? new Set([init]) : new Set<string>(init);
     let before = 0;
@@ -453,18 +586,21 @@ export class IpywidgetsState extends EventEmitter {
       }
       after = modelIds.size;
     }
-    // Also any custom ways of doing referencing...
+    // Also any custom ways of doing referencing -- e.g., k3d does this.
     this.includeThirdPartyReferences(modelIds);
 
+    // Also anything that references any modelIds
+    this.includeReferenceTo(modelIds);
+
     return modelIds;
-  }
+  };
 
   // We find the ids of all models that are explicitly referenced
   // in the current version of the Jupyter notebook by iterating through
   // the output of all cells, then expanding the result to everything
   // that these models reference.  This is used as a foundation for
   // garbage collection.
-  private getActiveModelIds(): Set<string> {
+  private getActiveModelIds = (): Set<string> => {
     const modelIds: Set<string> = new Set();
     this.syncdoc.get({ type: "cell" }).forEach((cell) => {
       const output = cell.get("output");
@@ -484,16 +620,40 @@ export class IpywidgetsState extends EventEmitter {
       }
     });
     return this.getReferencedModelIds(modelIds);
-  }
+  };
 
-  private includeThirdPartyReferences(modelIds: Set<string>) {
+  private includeReferenceTo = (modelIds: Set<string>) => {
+    // This example is extra tricky and one version of our GC broke it:
+    // from ipywidgets import VBox, jsdlink, IntSlider, Button; s1 = IntSlider(max=200, value=100); s2 = IntSlider(value=40); jsdlink((s1, 'value'), (s2, 'max')); VBox([s1, s2])
+    // What happens here is that this jsdlink model ends up referencing live widgets,
+    // but is not referenced by any cell, so it would get garbage collected.
+
+    let before = -1;
+    let after = modelIds.size;
+    while (before < after) {
+      before = modelIds.size;
+      this.table.get()?.forEach((val) => {
+        const data = val?.get("data");
+        if (data != null) {
+          for (const model_id of getModelIds(data)) {
+            if (modelIds.has(model_id)) {
+              modelIds.add(val.get("model_id"));
+            }
+          }
+        }
+      });
+      after = modelIds.size;
+    }
+  };
+
+  private includeThirdPartyReferences = (modelIds: Set<string>) => {
     /*
     Motivation (RANT):
     It seems to me that third party widgets can just invent their own
     ways of referencing each other, and there's no way to know what they are
     doing.  The only possible way to do garbage collection is by reading
     and understanding their code or reverse engineering their data.
-    It's not unlikely that any nontrivail third
+    It's not unlikely that any nontrivial third
     party widget has invented it's own custom way to do object references,
     and for every single one we may need to write custom code for garbage
     collection, which can randomly break if they change.
@@ -532,22 +692,23 @@ export class IpywidgetsState extends EventEmitter {
         modelIds.add(model_id);
       }
     });
-  }
+  };
 
   // The finite state machine state, e.g., 'init' --> 'ready' --> 'close'
-  private set_state(state: State): void {
+  private set_state = (state: State): void => {
     this.state = state;
-  }
+    this.emit(state);
+  };
 
-  public get_state(): State {
+  get_state = (): State => {
     return this.state;
-  }
+  };
 
-  private assert_state(state: string): void {
+  private assert_state = (state: string): void => {
     if (this.state != state) {
       throw Error(`state must be "${state}" but it is "${this.state}"`);
     }
-  }
+  };
 
   /*
   process_comm_message_from_kernel gets called whenever the
@@ -555,13 +716,14 @@ export class IpywidgetsState extends EventEmitter {
   the state of the table, which results in frontends creating widgets
   or updating state of widgets.
   */
-  public async process_comm_message_from_kernel(
+  process_comm_message_from_kernel = async (
     msg: CommMessage,
-  ): Promise<void> {
+  ): Promise<void> => {
     const dbg = this.dbg("process_comm_message_from_kernel");
     // WARNING: serializing any msg could cause huge server load, e.g., it could contain
     // a 20MB buffer in it.
     //dbg(JSON.stringify(msg));  // EXTREME DANGER!
+    //console.log("process_comm_message_from_kernel", msg);
     dbg(JSON.stringify(msg.header));
     this.assert_state("ready");
 
@@ -569,6 +731,17 @@ export class IpywidgetsState extends EventEmitter {
 
     if (content == null) {
       dbg("content is null -- ignoring message");
+      return;
+    }
+
+    if (content.data.method == "echo_update") {
+      // just ignore echo_update -- it's a new ipywidgets 8 mechanism
+      // for some level of RTC sync between clients -- we don't need that
+      // since we have our own, obviously. Setting the env var
+      // JUPYTER_WIDGETS_ECHO to 0 will disable these messages to slightly
+      // reduce traffic.
+      // NOTE: this check was lower which wrecked the buffers,
+      // which was a bug for a long time. :-(
       return;
     }
 
@@ -583,7 +756,7 @@ export class IpywidgetsState extends EventEmitter {
       }
     }
     const model_id: string = comm_id;
-    dbg(`model_id=${model_id}`);
+    dbg({ model_id, comm_id });
 
     const { data } = content;
     if (data == null) {
@@ -600,10 +773,12 @@ export class IpywidgetsState extends EventEmitter {
     // the other data; otherwise, deserialization on
     // the client side can't work, since it is missing
     // the data it needs.
+    // This happens with method "update".  With method="custom",
+    // there is just an array of buffers and no buffer_paths at all.
     if (content.data.buffer_paths?.length > 0) {
       // Deal with binary buffers:
       dbg("setting binary buffers");
-      this.set_model_buffers(
+      this.setModelBuffers(
         model_id,
         content.data.buffer_paths,
         msg.buffers,
@@ -614,15 +789,39 @@ export class IpywidgetsState extends EventEmitter {
     switch (content.data.method) {
       case "custom":
         const message = content.data.content;
-        dbg("custom message", message);
-        // NOTE: any buffers that are part of this comm message
-        // already got set above.
+        const { buffers } = msg;
+        dbg("custom message", {
+          message,
+          buffers: `${buffers?.length ?? "no"} buffers`,
+        });
+        let buffer_hashes: string[];
+        if (
+          buffers != null &&
+          buffers.length > 0 &&
+          content.data.buffer_paths == null
+        ) {
+          // TODO
+          dbg("custom message  -- there are BUFFERS -- saving them");
+          buffer_hashes = this.setModelBuffers(
+            model_id,
+            undefined,
+            buffers,
+            false,
+          );
+        } else {
+          buffer_hashes = [];
+        }
         // We now send the message.
-        this.sendCustomMessage(model_id, message, false);
+        this.sendCustomMessage(model_id, message, buffer_hashes, false);
         break;
 
+      case "echo_update":
+        return;
+
       case "update":
-        if (state == null) return;
+        if (state == null) {
+          return;
+        }
         dbg("method -- update");
         if (this.clear_output[model_id] && state.outputs != null) {
           // we are supposed to clear the output before inserting
@@ -673,7 +872,7 @@ export class IpywidgetsState extends EventEmitter {
         break;
       case undefined:
         if (state == null) return;
-        dbg("method -- undefined (=initial set?)");
+        dbg("method -- undefined (=set_model_state)", { model_id, state });
         this.set_model_state(model_id, state, false);
         break;
       default:
@@ -683,30 +882,30 @@ export class IpywidgetsState extends EventEmitter {
     }
 
     await this.save();
-  }
+  };
 
   /*
-  process_comm_message_from_widget gets called whenever a
+  process_comm_message_from_browser gets called whenever a
   browser client emits a comm message related to widgets.
   This updates the state of the table, which results in
   other frontends updating their widget state, *AND* the backend
   kernel changing the value of variables (and possibly
   updating other widgets).
   */
-  public async process_comm_message_from_browser(
+  process_comm_message_from_browser = async (
     msg: CommMessage,
-  ): Promise<void> {
+  ): Promise<void> => {
     const dbg = this.dbg("process_comm_message_from_browser");
     dbg(msg);
     this.assert_state("ready");
     // TODO: not implemented!
-  }
+  };
 
   // The mesg here is exactly what came over the IOPUB channel
   // from the kernel.
 
   // TODO: deal with buffers
-  public capture_output_message(mesg: any): boolean {
+  capture_output_message = (mesg: any): boolean => {
     const msg_id = mesg.parent_header.msg_id;
     if (this.capture_output[msg_id] == null) {
       return false;
@@ -718,11 +917,12 @@ export class IpywidgetsState extends EventEmitter {
     if (model_id == null) return false; // should not happen.
 
     if (mesg.header.msg_type == "clear_output") {
-      if (mesg.content != null && mesg.content.wait) {
+      if (mesg.content?.wait) {
         this.clear_output[model_id] = true;
       } else {
         delete this.clear_output[model_id];
-        this.set_model_value(model_id, { outputs: [] });
+        this.clearOutputBuffers(model_id);
+        this.set_model_value(model_id, { outputs: null });
       }
       return true;
     }
@@ -732,9 +932,10 @@ export class IpywidgetsState extends EventEmitter {
       return false;
     }
 
-    let outputs: any[];
+    let outputs: any;
     if (this.clear_output[model_id]) {
       delete this.clear_output[model_id];
+      this.clearOutputBuffers(model_id);
       outputs = [];
     } else {
       outputs = this.get_model_value(model_id).outputs;
@@ -745,34 +946,91 @@ export class IpywidgetsState extends EventEmitter {
     outputs.push(mesg.content);
     this.set_model_value(model_id, { outputs });
     return true;
-  }
+  };
 
-  private async sendCustomMessage(
+  private clearOutputBuffers = (model_id: string) => {
+    // TODO: need to clear all output buffers.
+    /* Example where if you do not properly clear buffers, then broken output re-appears:
+
+import ipywidgets as widgets
+from IPython.display import YouTubeVideo
+out = widgets.Output(layout={'border': '1px solid black'})
+out.append_stdout('Output appended with append_stdout')
+out.append_display_data(YouTubeVideo('eWzY2nGfkXk'))
+out
+
+---
+
+out.clear_output()
+
+---
+
+with out:
+   print('hi')
+    */
+    // TODO!!!!
+
+    const y: any = {};
+    let n = 0;
+    for (const jsonPath of this.get(model_id, "buffers")?.keySeq() ?? []) {
+      const path = JSON.parse(jsonPath);
+      if (path[0] == "outputs") {
+        y[jsonPath] = "";
+        n += 1;
+      }
+    }
+    if (n > 0) {
+      this.set(model_id, "buffers", y, true, "shallow");
+    }
+  };
+
+  private sendCustomMessage = async (
     model_id: string,
     message: object,
+    buffer_hashes: string[],
     fire_change_event: boolean = true,
-  ): Promise<void> {
+  ): Promise<void> => {
     /*
     Send a custom message.
 
     It's not at all clear what this should even mean in the context of
     realtime collaboration, and there will likely be clients where
-    this is bad.  But for now, we just make the message available
-    via the table for a few seconds, then remove it.  Any clients
-    that are connected while we do this can react, and any that aren't
-    just don't get the message (which is presumably fine).
+    this is bad.  But for now, we just make the last message sent
+    available via the table, and each successive message overwrites the previous
+    one.  Any clients that are connected while we do this can react,
+    and any that aren't just don't get the message (which is presumably fine).
+
+    Some widgets like ipympl use this to initialize state, so when a new
+    client connects, it requests a message describing the plot, and everybody
+    receives it.
     */
 
-    this.set(model_id, "message", message, fire_change_event);
-    await delay(3000);
-    // Actually, delete is not implemented for synctable, so for
-    // now we just set it to an empty message.
-    this.set(model_id, "message", {}, fire_change_event);
-  }
+    this.set(
+      model_id,
+      "message",
+      { message, buffer_hashes, time: Date.now() },
+      fire_change_event,
+    );
+  };
 
-  public get_message(model_id: string) {
-    return this.get(model_id, "message")?.toJS();
-  }
+  // Return the most recent message for the given model.
+  getMessage = async (
+    model_id: string,
+  ): Promise<{ message: object; buffers: ArrayBuffer[] } | undefined> => {
+    const x = this.get(model_id, "message")?.toJS();
+    if (x == null) {
+      return undefined;
+    }
+    if (Date.now() - (x.time ?? 0) >= MAX_MESSAGE_TIME_MS) {
+      return undefined;
+    }
+    const { message, buffer_hashes } = x;
+    let buffers: ArrayBuffer[] = [];
+    for (const hash of buffer_hashes) {
+      buffers.push(await this.clientGetBuffer(model_id, hash));
+    }
+    return { message, buffers };
+  };
 }
 
 // Get model id's that appear either as serialized references

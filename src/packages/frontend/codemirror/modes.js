@@ -1,6 +1,6 @@
 //########################################################################
 // This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-// License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+// License: MS-RSL – see LICENSE.md for details
 //########################################################################
 
 /*
@@ -39,6 +39,7 @@ require("codemirror/mode/julia/julia.js");
 require("codemirror/mode/livescript/livescript.js");
 require("codemirror/mode/lua/lua.js");
 require("codemirror/mode/markdown/markdown.js");
+require("codemirror/mode/mllike/mllike.js");
 require("codemirror/mode/nginx/nginx.js");
 require("codemirror/mode/ntriples/ntriples.js");
 require("codemirror/mode/octave/octave.js");
@@ -102,7 +103,6 @@ require("./mode/rst.js");
 require("./mode/coffeescript2.js");
 
 require("./mode/less.js");
-require("./mode/ocaml.js");
 require("./mode/pari.js");
 require("./mode/macaulay2.js");
 
@@ -113,4 +113,3 @@ require("./mode/lean");
 require("./mode/ada");
 
 require("./custom-modes");
-

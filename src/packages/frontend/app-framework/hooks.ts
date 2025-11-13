@@ -1,34 +1,44 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* Gather together and export some common hooks for convenience. */
 
 declare const window: any;
 
-export {
-  useState,
+import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
-  useLayoutEffect,
+  useState,
 } from "react";
+import { useSelector } from "react-redux";
 import { useAsyncEffect } from "use-async-effect";
-export { useAsyncEffect };
-export { useSelector } from "react-redux";
-import { useRef, useEffect, useState } from "react";
-export { useFrameContext } from "../frame-editors/frame-tree/frame-context";
-import useDelayedRender from "./delayed-render-hook";
-export { useDelayedRender };
 
-import useIsMountedRef from "./is-mounted-hook";
-export { useIsMountedRef };
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import useCounter from "./counter-hook";
-export { useCounter };
+import useDelayedRender from "./delayed-render-hook";
+import useIsMountedRef from "./is-mounted-hook";
 import useToggle from "./toggle-hook";
-export { useToggle };
+
+export {
+  useAsyncEffect,
+  useCallback,
+  useCounter,
+  useDelayedRender,
+  useEffect,
+  useFrameContext,
+  useIsMountedRef,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useSelector,
+  useState,
+  useToggle,
+};
 
 export function useForceUpdate() {
   const counterRef = useRef<any>(0);
@@ -59,7 +69,7 @@ function getWindowDimensions() {
 
 export function useWindowDimensions() {
   const [windowDimensions, setWindowDimensions] = useState(
-    getWindowDimensions()
+    getWindowDimensions(),
   );
 
   useEffect(() => {

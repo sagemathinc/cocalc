@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -8,8 +8,12 @@ A single tab in a project.
    - There is one of these for each open file in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
-import { Popover, Tag } from "antd";
+
+// cSpell:ignore fixedtab popout Collabs
+
+import { Popover, Tag, Tooltip } from "antd";
 import { CSSProperties, ReactNode } from "react";
+import { defineMessage, useIntl } from "react-intl";
 
 import { getAlertName } from "@cocalc/comm/project-status/types";
 import {
@@ -21,17 +25,16 @@ import {
 import { Icon, IconName, r_join } from "@cocalc/frontend/components";
 import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import {
   ICON_UPGRADES,
   ICON_USERS,
-  TITLE_UPGRADES,
-  TITLE_USERS,
 } from "@cocalc/frontend/project/servers/consts";
 import { PayAsYouGoCost } from "@cocalc/frontend/project/settings/quota-editor/pay-as-you-go";
 import track from "@cocalc/frontend/user-tracking";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { PROJECT_INFO_TITLE } from "../info";
+import { useProjectContext } from "../context";
 import { TITLE as SERVERS_TITLE } from "../servers";
 import {
   CollabsFlyout,
@@ -45,9 +48,9 @@ import {
   SettingsFlyout,
 } from "./flyouts";
 import { ActiveFlyout } from "./flyouts/active";
-import { VBAR_KEY, getValidVBAROption } from "./vbar";
 import { shouldOpenFileInNewWindow } from "./utils";
-import { useProjectContext } from "../context";
+import { getValidActivityBarOption } from "./activity-bar";
+import { ACTIVITY_BAR_KEY } from "./activity-bar-consts";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -69,25 +72,25 @@ export function isFixedTab(tab?: any): tab is FixedTab {
 
 type FixedTabs = {
   [name in FixedTab]: {
-    label: string | ReactNode;
+    label: string | ReactNode | IntlMessage;
     icon: IconName;
     flyout: (props: {
       project_id: string;
-      wrap: (content: JSX.Element, style?: CSS) => JSX.Element;
+      wrap: (content: React.JSX.Element, style?: CSS) => React.JSX.Element;
       flyoutWidth: number;
-    }) => JSX.Element;
-    flyoutTitle?: string | ReactNode;
+    }) => React.JSX.Element;
+    flyoutTitle?: string | ReactNode | IntlMessage;
     noAnonymous?: boolean;
     noFullPage?: boolean; // if true, then this tab can't be opened in a full page
   };
 };
 
-// TODO/NOTE: for better or worse I just can't stand the tooltips on the sidebar!
+// TODO/NOTE: for better or worse I just can't stand the tooltips on the activity bar!
 // Disabling them.  If anyone complaints or likes them, I can make them an option.
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
   active: {
-    label: "Tabs",
+    label: labels.tabs,
     flyoutTitle: "File Tabs",
     icon: "edit",
     flyout: ActiveFlyout,
@@ -95,27 +98,36 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     noFullPage: true,
   },
   files: {
-    label: "Explorer",
+    label: labels.explorer,
     icon: "folder-open",
     flyout: FilesFlyout,
     noAnonymous: false,
   },
   new: {
-    label: "New",
-    flyoutTitle: "Create New File or Folder",
+    label: labels.new,
+    flyoutTitle: defineMessage({
+      id: "project.page.flyout.new_file.title",
+      defaultMessage: "Create New",
+    }),
     icon: "plus-circle",
     flyout: NewFlyout,
     noAnonymous: false,
   },
   log: {
-    label: "Log",
+    label: labels.log,
     icon: "history",
     flyout: LogFlyout,
-    flyoutTitle: "Recent Files",
+    flyoutTitle: defineMessage({
+      id: "project.page.flyout.log.title",
+      defaultMessage: "Recent Files",
+    }),
     noAnonymous: false,
   },
   search: {
-    label: "Find",
+    label: defineMessage({
+      id: "project.page.file-tab.search_file.label",
+      defaultMessage: "Find",
+    }),
     icon: "search",
     flyout: SearchFlyout,
     noAnonymous: false,
@@ -127,30 +139,36 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     noAnonymous: false,
   },
   users: {
-    label: TITLE_USERS,
+    label: labels.users,
     icon: ICON_USERS,
     flyout: CollabsFlyout,
     noAnonymous: false,
   },
   upgrades: {
-    label: "Upgrades",
+    label: labels.upgrades,
     icon: ICON_UPGRADES,
     flyout: LicensesFlyout,
-    flyoutTitle: `Project ${TITLE_UPGRADES}`,
+    flyoutTitle: defineMessage({
+      id: "project.page.file-tab.upgrades.flyoutTitle",
+      defaultMessage: `Project Upgrades`,
+    }),
     noAnonymous: false,
   },
   info: {
-    label: PROJECT_INFO_TITLE,
+    label: labels.project_info_title,
     icon: "microchip",
     flyout: ProjectInfoFlyout,
     noAnonymous: false,
   },
   settings: {
-    label: "Settings",
+    label: labels.settings,
     icon: "wrench",
     flyout: SettingsFlyout,
     noAnonymous: false,
-    flyoutTitle: "Status and Settings",
+    flyoutTitle: defineMessage({
+      id: "project.page.flyout.settings.title",
+      defaultMessage: "Status and Settings",
+    }),
   },
 } as const;
 
@@ -161,9 +179,11 @@ interface Props0 {
   noPopover?: boolean;
   placement?;
   iconStyle?: CSSProperties;
+  extraSpacing?: string; // around main div and caret
   isFixedTab?: boolean;
   flyout?: FixedTab;
   condensed?: boolean;
+  showLabel?: boolean; // only relevant for the vertical activity bar. still showing alert tags!
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -184,10 +204,11 @@ export function FileTab(props: Readonly<Props>) {
     isFixedTab,
     flyout = null,
     condensed = false,
+    showLabel = true,
   } = props;
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
-
+  const intl = useIntl();
   const { onCoCalcDocker } = useProjectContext();
   // this is @cocalc/comm/project-status/types::ProjectStatus
   const project_status = useTypedRedux({ project_id }, "status");
@@ -202,7 +223,9 @@ export function FileTab(props: Readonly<Props>) {
 
   const other_settings = useTypedRedux("account", "other_settings");
   const active_flyout = useTypedRedux({ project_id }, "flyout");
-  const vbar = getValidVBAROption(other_settings.get(VBAR_KEY));
+  const actBar = getValidActivityBarOption(
+    other_settings.get(ACTIVITY_BAR_KEY),
+  );
 
   // True if there is activity (e.g., active output) in this tab
   const has_activity = useRedux(
@@ -252,8 +275,8 @@ export function FileTab(props: Readonly<Props>) {
       if (flyout != null && FIXED_PROJECT_TABS[flyout].noFullPage) {
         // this tab can't be opened in a full page
         actions?.toggleFlyout(flyout);
-      } else if (flyout != null && vbar !== "both") {
-        if (anyModifierKey !== (vbar === "full")) {
+      } else if (flyout != null && actBar !== "both") {
+        if (anyModifierKey !== (actBar === "full")) {
           setActiveTab(name);
         } else {
           actions?.toggleFlyout(flyout);
@@ -274,7 +297,7 @@ export function FileTab(props: Readonly<Props>) {
   }
 
   function renderFlyoutCaret() {
-    if (flyout == null || vbar !== "both") return;
+    if (flyout == null || actBar !== "both") return;
 
     const color =
       flyout === active_flyout
@@ -299,7 +322,11 @@ export function FileTab(props: Readonly<Props>) {
         }}
       >
         <Icon
-          style={{ padding: "0 3px", margin: "0", color }}
+          style={{
+            padding: "0 3px",
+            margin: "0",
+            color,
+          }}
           name="caret-right"
         />
       </div>
@@ -312,7 +339,7 @@ export function FileTab(props: Readonly<Props>) {
   } else {
     // highlight info tab if there is at least one alert
     if (status_alerts.length > 0) {
-      style = { backgroundColor: COLORS.ATND_BG_RED_L };
+      style = { backgroundColor: COLORS.ANTD_BG_RED_L };
     } else {
       style = { flex: "none" };
     }
@@ -320,6 +347,7 @@ export function FileTab(props: Readonly<Props>) {
 
   // how to read: default color -> style for component -> override color if there is activity
   const icon_style: CSSProperties = {
+    marginRight: "2px",
     color: COLORS.FILE_ICON,
     ...props.iconStyle,
     ...(has_activity ? { color: "orange" } : undefined),
@@ -328,6 +356,9 @@ export function FileTab(props: Readonly<Props>) {
   if (label == null) {
     if (name != null) {
       label = FIXED_PROJECT_TABS[name].label;
+      if (isIntlMessage(label)) {
+        label = intl.formatMessage(label);
+      }
     } else if (path != null) {
       label = path_split(path).tail;
     }
@@ -353,7 +384,7 @@ export function FileTab(props: Readonly<Props>) {
                 paddingInline: "2px",
                 marginInlineEnd: "4px",
               }}
-              color={COLORS.ATND_BG_RED_M}
+              color={COLORS.ANTD_BG_RED_M}
             >
               {getAlertName(a)}
             </Tag>
@@ -362,6 +393,33 @@ export function FileTab(props: Readonly<Props>) {
         )}
       </div>
     ) : undefined;
+
+  function renderFixedTab() {
+    const button = (
+      <div
+        className="cc-project-fixedtab"
+        style={{
+          textAlign: "center",
+          width: "100%",
+          paddingLeft: "8px",
+          paddingRight: "8px",
+          paddingTop: props.extraSpacing ?? "0",
+          paddingBottom: props.extraSpacing ?? "0",
+        }}
+      >
+        {btnLeft}
+      </div>
+    );
+    if (isFixedTab && !showLabel && !other_settings.get("hide_file_popovers")) {
+      return (
+        <Tooltip title={label} placement="right" mouseEnterDelay={1}>
+          {button}
+        </Tooltip>
+      );
+    } else {
+      return button;
+    }
+  }
 
   const btnLeft = (
     <>
@@ -372,13 +430,14 @@ export function FileTab(props: Readonly<Props>) {
         }}
         name={icon}
       />
-      <DisplayedLabel
-        path={path}
-        label={label}
-        inline={!isFixedTab}
-        project_id={project_id}
-        condensed={condensed}
-      />
+      {showLabel ? (
+        <DisplayedLabel
+          path={path}
+          label={label}
+          inline={!isFixedTab}
+          project_id={project_id}
+        />
+      ) : null}
       {tags}
     </>
   );
@@ -393,19 +452,17 @@ export function FileTab(props: Readonly<Props>) {
         justifyContent: "space-between",
       }}
     >
-      <div
-        className="cc-project-fixedtab"
-        style={{ textAlign: "center", width: "100%" }}
-      >
-        {btnLeft}
-      </div>
+      {renderFixedTab()}
       {renderFlyoutCaret()}
     </div>
   );
 
   const body = (
     <div
-      style={{ ...style, ...props.style }}
+      style={{
+        ...style,
+        ...props.style,
+      }}
       cocalc-test={label}
       onClick={click}
       onMouseUp={onMouseUp}
@@ -425,7 +482,7 @@ export function FileTab(props: Readonly<Props>) {
 
   // in pure "full page" vbar mode, do not show a vertical tab, which has no fullpage
   if (
-    vbar === "full" &&
+    actBar === "full" &&
     flyout != null &&
     FIXED_PROJECT_TABS[flyout].noFullPage
   ) {
@@ -473,11 +530,10 @@ export function FileTab(props: Readonly<Props>) {
 }
 
 const LABEL_STYLE: CSS = {
-  maxWidth: "250px",
   overflow: "hidden",
-  textOverflow: "ellipsis",
+  //textOverflow: "ellipsis",
+  margin: "auto",
   whiteSpace: "nowrap",
-  marginRight: "-15px", // this makes a lot more of the filename visible by undoing the antd tab spacing.
 } as const;
 
 const FULLPATH_LABEL_STYLE: CSS = {
@@ -488,13 +544,21 @@ const FULLPATH_LABEL_STYLE: CSS = {
   padding: "0 1px", // need less since have ..
 } as const;
 
-function DisplayedLabel({ path, label, inline = true, project_id, condensed }) {
+function DisplayedLabel({ path, label, inline = true, project_id }) {
   if (path == null) {
     // a fixed tab (not an actual file)
     const E = inline ? "span" : "div";
     const style: CSS = {
-      fontSize: condensed ? "10px" : "12px",
+      // disabled because condensed state is buggy -- both andrey and I have frequently
+      // complained about it getting stuck small. Also, the width doesn't change so all
+      // you get from this is small hard to read text and slightly more vertical buttons,
+      // but there is vertical scroll, so not needed.
+      //fontSize: condensed ? "10px" : "12px",
+      fontSize: "12px",
       textAlign: "center",
+      maxWidth: "65px",
+      overflow: "hidden",
+      textOverflow: "ellipsis", // important for i18n, since sometimes the words are long
     };
     return (
       <>

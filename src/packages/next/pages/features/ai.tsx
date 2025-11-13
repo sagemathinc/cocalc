@@ -1,13 +1,17 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Layout, Row } from "antd";
+import { Flex, Layout } from "antd";
 
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import AnthropicAvatar from "@cocalc/frontend/components/anthropic-avatar";
 import GoogleGeminiLogo from "@cocalc/frontend/components/google-gemini-avatar";
+import MistralAvatar from "@cocalc/frontend/components/mistral-avatar";
+import OllamaAvatar from "@cocalc/frontend/components/ollama-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { DOC_AI } from "@cocalc/util/consts/ui";
 import { COLORS } from "@cocalc/util/theme";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -33,11 +37,17 @@ import ChatGptGenerateCode from "/public/features/chatgpt-generate-code.png";
 import ChatGptJupyterCell from "/public/features/chatgpt-jupyter-linear-regression-cell.png";
 import ChatGptJupyterPrompt from "/public/features/chatgpt-jupyter-linear-regression-prompt.png";
 
-const title = `AI Assistance`;
+const title = `AI Assistant`;
 const component = title;
 
 export default function AI({ customize }) {
-  const { googleVertexaiEnabled, openaiEnabled } = customize;
+  const {
+    googleVertexaiEnabled,
+    openaiEnabled,
+    mistralEnabled,
+    anthropicEnabled,
+    ollamaEnabled,
+  } = customize;
 
   const iconTxtStyle = {
     fontSize: "20px",
@@ -62,20 +72,25 @@ export default function AI({ customize }) {
             subtitle={
               <>
                 <div>
-                  CoCalc integrates large language models such as{" "}
-                  <A href="https://openai.com/chatgpt">OpenAI's ChatGPT</A> or{" "}
+                  CoCalc integrates large language models including{" "}
+                  <A href="https://openai.com/">OpenAI's ChatGPT</A>,{" "}
                   <A href="https://deepmind.google/technologies/gemini/">
                     Google's Gemini
-                  </A>{" "}
-                  as virtual assistants. They generate human-like responses and
-                  code, assist with programming, explain error messages, and
+                  </A>
+                  ,{" "}
+                  <A href="https://www.anthropic.com/claude">
+                    Anthropic's Claude
+                  </A>
+                  , and <A href="https://mistral.ai/">Mistral</A> as virtual
+                  assistants. They generate human-like responses and code,
+                  assist with programming, explain error messages, and
                   ultimately making it easier for you to get your work done.
                 </div>
               </>
             }
             image={AILLMQuery}
-            alt={"AI assistance in CoCalc"}
-            caption={"AI assistance in a CoCalc"}
+            alt={"AI Assistant in CoCalc"}
+            caption={"AI Assistant in CoCalc"}
           />
 
           <Pitch
@@ -119,20 +134,22 @@ export default function AI({ customize }) {
             description={
               <>
                 <Paragraph style={{ marginTop: "20px" }}>
-                  There are various places where AI assistants appears in
+                  There are various places where an AI Assistant appears in
                   CoCalc, as illustrated below and{" "}
-                  <A href="https://doc.cocalc.com/chatgpt.html">
-                    explained in the docs
-                  </A>
-                  .
+                  <A href={DOC_AI}>explained in the docs</A>.
                 </Paragraph>
                 <Paragraph>
                   CoCalc currently supports the following language models:
                 </Paragraph>
                 <Paragraph>
-                  <Row gutter={[30, 30]}>
+                  <Flex
+                    style={{ margin: "20px" }}
+                    justify="space-between"
+                    align="center"
+                    wrap="wrap"
+                  >
                     {openaiEnabled ? (
-                      <Col md={6} offset={6}>
+                      <span style={{ margin: "10px", whiteSpace: "nowrap" }}>
                         <OpenAIAvatar size={32} />{" "}
                         <A
                           href="https://openai.com/chatgpt"
@@ -140,10 +157,10 @@ export default function AI({ customize }) {
                         >
                           OpenAI's ChatGPT
                         </A>
-                      </Col>
+                      </span>
                     ) : undefined}
                     {googleVertexaiEnabled ? (
-                      <Col md={6}>
+                      <span style={{ margin: "10px", whiteSpace: "nowrap" }}>
                         <GoogleGeminiLogo size={32} />{" "}
                         <A
                           href="https://deepmind.google/technologies/gemini/"
@@ -151,9 +168,36 @@ export default function AI({ customize }) {
                         >
                           Google's Gemini
                         </A>
-                      </Col>
+                      </span>
                     ) : undefined}
-                  </Row>
+                    {anthropicEnabled ? (
+                      <span style={{ margin: "10px", whiteSpace: "nowrap" }}>
+                        <AnthropicAvatar size={32} />{" "}
+                        <A
+                          href="https://www.anthropic.com/claude"
+                          style={iconTxtStyle}
+                        >
+                          Anthropic's Claude
+                        </A>
+                      </span>
+                    ) : undefined}
+                    {mistralEnabled ? (
+                      <span style={{ margin: "10px", whiteSpace: "nowrap" }}>
+                        <MistralAvatar size={32} />{" "}
+                        <A href="https://mistral.ai/" style={iconTxtStyle}>
+                          Mistral
+                        </A>
+                      </span>
+                    ) : undefined}
+                    {ollamaEnabled ? (
+                      <span style={{ margin: "10px", whiteSpace: "nowrap" }}>
+                        <OllamaAvatar size={32} />{" "}
+                        <A href="https://ollama.com/" style={iconTxtStyle}>
+                          Ollama
+                        </A>
+                      </span>
+                    ) : undefined}
+                  </Flex>
                 </Paragraph>
               </>
             }
@@ -164,7 +208,7 @@ export default function AI({ customize }) {
           <ChatGPTFixError />
 
           <Info
-            title={"Mention @chatgpt in any Chatroom in CoCalc"}
+            title={"Mention AI models in any Chatroom in CoCalc"}
             icon="comment"
             image={ChatGptGenerateCode}
             anchor="a-mention"
@@ -173,10 +217,10 @@ export default function AI({ customize }) {
             <Paragraph>
               Here, a user learning <A href="https://pytorch.org/">PyTorch</A>{" "}
               asks ChatGPT by{" "}
-              <A href="https://doc.cocalc.com/chatgpt.html#chatgpt-in-chat-rooms-and-side-chat">
+              <A href={`${DOC_AI}#chatgpt-in-chat-rooms-and-side-chat`}>
                 mentioning
               </A>{" "}
-              <Text code>@chatgpt</Text> in a{" "}
+              <Text code>@</Text> in a{" "}
               <A href="https://doc.cocalc.com/chat.html#side-chat">Side Chat</A>
               . The prompt is:
             </Paragraph>
@@ -196,13 +240,13 @@ export default function AI({ customize }) {
             </Paragraph>
             {googleVertexaiEnabled ? (
               <Paragraph>
-                Note: Mention <Text code>@gemini</Text> to talk to Google's
-                Gemini model.
+                Note: Use @ also to talk to Google's Gemini model.
               </Paragraph>
             ) : undefined}
           </Info>
 
           <Info
+            narrow
             title={"Generate Jupyter Cells"}
             icon="jupyter"
             anchor="a-jupyter"

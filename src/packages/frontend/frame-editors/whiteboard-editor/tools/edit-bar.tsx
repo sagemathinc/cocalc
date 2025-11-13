@@ -220,7 +220,6 @@ function FontSize(props: ButtonProps) {
           width: "64px",
           fontSize: "20px",
           color: "#666",
-          paddingTop: "4px",
         }}
         min={minFontSize}
         max={maxFontSize}
@@ -251,7 +250,6 @@ function Radius(props: ButtonProps) {
           width: "70px",
           fontSize: "20px",
           color: "#666",
-          paddingTop: "4px",
         }}
         min={0}
         max={maxRadius}
@@ -288,7 +286,6 @@ function Opacity(props: ButtonProps) {
           width: "70px",
           fontSize: "20px",
           color: "#666",
-          paddingTop: "4px",
         }}
         min={0}
         max={1}

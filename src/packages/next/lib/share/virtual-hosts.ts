@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -8,12 +8,13 @@ Support for virtual hosts.
 */
 
 import type { Request, Response } from "express";
+
+import basePath from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/backend/logger";
-import pathToFiles from "./path-to-files";
 import isAuthenticated from "./authenticate";
 import getVirtualHostInfo from "./get-vhost-info";
 import { staticHandler } from "./handle-raw";
-import basePath from "@cocalc/backend/base-path";
+import pathToFiles from "./path-to-files";
 
 const logger = getLogger("virtual-hosts");
 
@@ -23,7 +24,7 @@ export default function virtualHostsMiddleware() {
   return async function (
     req: Request,
     res: Response,
-    next: Function
+    next: Function,
   ): Promise<void> {
     // For debugging in cc-in-cc dev, just manually set host to something
     // else and comment this out.  That's the only way, since dev is otherwise
@@ -69,7 +70,7 @@ export default function virtualHostsMiddleware() {
       logger.debug(
         "not authenticated -- denying vhost='%s', path='%s'",
         vhost,
-        path
+        path,
       );
       res.status(403).end();
       return;

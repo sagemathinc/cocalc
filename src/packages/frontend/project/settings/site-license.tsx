@@ -1,12 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // NOTE: some code here is similar to code in
 // src/@cocalc/frontend/course/configuration/upgrades.tsx
 
 import { Button, Card, Popover } from "antd";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
@@ -17,6 +18,8 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { LICENSE_INFORMATION } from "@cocalc/frontend/site-licenses/rules";
@@ -58,13 +61,18 @@ export async function applyLicense(opts: ALOpts): Promise<void> {
   }
 }
 
-export const SiteLicense: React.FC<Props> = (props: Props) => {
-  const { project_id, site_license, mode = "project" } = props;
+export function SiteLicense({
+  project_id,
+  site_license,
+  mode = "project",
+}: Props) {
   const isFlyout = mode === "flyout";
+
+  const intl = useIntl();
 
   const haveLicenses = useMemo(
     () => (site_license?.size ?? 0) > 0,
-    [site_license]
+    [site_license],
   );
 
   // all licenses known to the client, not just for the project
@@ -110,7 +118,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
       const license = managed_licenses?.get(license_id)?.toJS();
       if (license != null && license.quota != null && isBoostLicense(license)) {
         const boostGroup = licenseToGroupKey(
-          license as SiteLicenseQuotaSetting // we check that license.quota is not null above
+          license as SiteLicenseQuotaSetting, // we check that license.quota is not null above
         );
         // this ignores any other licenses (e.g. disks), which do not have the boost field
         // for those which are regular licenses, we check if they're compatible with the boost license
@@ -123,7 +131,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
           return regularGroup === boostGroup;
         });
         setBoostWarning(
-          haveCompatible ? "none" : haveRegular ? "incompatible" : "no_other"
+          haveCompatible ? "none" : haveRegular ? "incompatible" : "no_other",
         );
       } else {
         setBoostWarning("none");
@@ -184,24 +192,39 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
           isFlyout ? { paddingLeft: "5px", paddingRight: "5px" } : undefined
         }
       >
-        <Icon name="key" /> Licenses
+        <Icon name="key" /> {intl.formatMessage(labels.licenses)}
         {isFlyout ? (
           <span style={{ float: "right" }}>{render_extra()}</span>
-        ) : undefined}
+        ) : (
+          <>
+            {" "}
+            - <ProjectTitle project_id={project_id} />
+          </>
+        )}
       </Title>
     );
   }
 
   function render_extra(): Rendered {
     return (
-      <Popover
-        content={LICENSE_INFORMATION}
-        trigger={["click"]}
-        placement="rightTop"
-        title="License information"
-      >
-        <Icon name="question-circle" />
-      </Popover>
+      <>
+        <Button
+          href="https://youtu.be/kQv26e27ksY"
+          target="_new"
+          style={{ marginRight: "15px" }}
+        >
+          <Icon name="youtube" style={{ color: "red" }} />
+          Tutorial
+        </Button>
+        <Popover
+          content={LICENSE_INFORMATION}
+          trigger={["click"]}
+          placement="rightTop"
+          title="License information"
+        >
+          <Icon name="question-circle" />
+        </Popover>
+      </>
     );
   }
 
@@ -210,8 +233,10 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
       <>
         {isFlyout && haveLicenses ? (
           <Paragraph type="secondary" style={{ padding: "5px" }}>
-            Information about attached licenses. Click on a row to expand
-            details.
+            <FormattedMessage
+              id="project.settings.site-license.body.info"
+              defaultMessage={`Information about attached licenses. Click on a row to expand details.`}
+            />
           </Paragraph>
         ) : undefined}
         {render_current_licenses()}
@@ -222,7 +247,11 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
             onClick={() => set_show_site_license(true)}
             disabled={show_site_license}
           >
-            <Icon name="key" /> Upgrade using a license key...
+            <Icon name="key" />{" "}
+            <FormattedMessage
+              id="project.settings.site-license.button.label"
+              defaultMessage="Upgrade using a license key..."
+            />
           </Button>
           {render_site_license_text()}
           <br />
@@ -253,10 +282,10 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
         extra={render_extra()}
         type="inner"
         style={{ marginTop: "15px" }}
-        bodyStyle={{ padding: "0px" }}
+        styles={{ body: { padding: "0px" } }}
       >
         {renderBody()}
       </Card>
     );
   }
-};
+}

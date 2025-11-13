@@ -1,49 +1,21 @@
 /*
-- it connects to the project and registers as a compute-server (sending its id number).
-- it receives messages from project
-- one of the messages is "connect to this path", where the path ends in .term or .ipynb
-- it handles that by launching the command to create the connection.
-- by default it just launches it in the same process, but it can configured to instead create a docker container to handle the connection
-- another message is "disconnect from this path".  That closes the connection or stops the docker container.
-- compute server
+The manager does the following:
 
-
----
+- Waits until the filesystem is mounted
+- Then connects to NATS in the same was as a project, but with compute_server_id positive.
 
 */
 
-import { ClientFs as SyncClient } from "@cocalc/sync-client/lib/client-fs";
-import { SYNCDB_PARAMS, encodeIntToUUID } from "@cocalc/util/compute/manager";
 import debug from "debug";
-import { project } from "@cocalc/api-client";
-import { jupyter } from "./jupyter";
-import { fileServer } from "./file-server";
-import { terminal } from "./terminal";
-import { initListings } from "./listings";
-import { once } from "@cocalc/util/async-utils";
-import { dirname, join } from "path";
-import { userInfo } from "os";
+import startProjectServers from "@cocalc/project/conat";
 import { pingProjectUntilSuccess, waitUntilFilesystemIsOfType } from "./util";
-import { apiCall } from "@cocalc/api-client";
-import { get_blob_store as initJupyterBlobStore } from "@cocalc/jupyter/blobs";
-import { delay } from "awaiting";
+import { apiCall, project } from "@cocalc/api-client";
 
 const logger = debug("cocalc:compute:manager");
 
 const STATUS_INTERVAL_MS = 20 * 1000;
 
 interface Options {
-  project_id: string;
-  // the id number of the comput server where this manager is running;
-  // it should be the id in the database from the compute_servers table.
-  compute_server_id: number;
-  // HOME = local home directory.  This should be a network mounted (or local)
-  // filesystem that is identical to the home directory of the target project.
-  // The ipynb file will be loaded and saved from here, and must exist, and
-  // process.env.HOME gets set to this.
-  home: string;
-  // If true, doesn't do anything until the type of the filesystem that home is
-  // mounted on is of this type, e.g., "fuse".
   waitHomeFilesystemType?: string;
 }
 
@@ -75,36 +47,24 @@ export function manager(opts: Options) {
 
 class Manager {
   private state: "new" | "init" | "ready" = "new";
-  private sync_db;
   private project_id: string;
   private home: string;
   private waitHomeFilesystemType?: string;
   private compute_server_id: number;
-  private connections: { [path: string]: any } = {};
-  private websocket;
-  private client;
 
-  constructor({
-    project_id,
-    compute_server_id = parseInt(process.env.COMPUTE_SERVER_ID ?? "0"),
-    home = process.env.HOME ?? "/home/user",
-    waitHomeFilesystemType,
-  }: Options) {
-    if (!project_id) {
-      throw Error("project_id or process.env.PROJECT_ID must be given");
-    }
-    this.project_id = project_id;
-    if (!compute_server_id) {
-      throw Error("set the compute_server_id or process.env.COMPUTE_SERVER_ID");
-    }
-    // @ts-ignore -- can't true type, since constructed via plain javascript startup script.
-    this.compute_server_id = parseInt(compute_server_id);
-    this.home = home;
+  constructor({ waitHomeFilesystemType }: Options) {
     this.waitHomeFilesystemType = waitHomeFilesystemType;
-    const env = this.env();
-    for (const key in env) {
-      process.env[key] = env[key];
+    // default so that any windows that any user apps in terminal or jupyter run will
+    // automatically just work in xpra's X11 desktop.... if they happen to be running it.
+    process.env.DISPLAY = ":0";
+    if (!process.env.COMPUTE_SERVER_ID) {
+      throw Error("env variable COMPUTE_SERVER_ID must be set");
     }
+    this.compute_server_id = parseInt(process.env.COMPUTE_SERVER_ID);
+    if (!process.env.HOME) {
+      throw Error("HOME must be set");
+    }
+    this.home = process.env.HOME;
   }
 
   init = async () => {
@@ -115,7 +75,7 @@ class Manager {
     this.state = "init";
     // Ping to start the project and ensure there is a hub connection to it.
     await pingProjectUntilSuccess(this.project_id);
-    // wait for home direcotry filesystem to be mounted:
+    // wait for home directory file system to be mounted:
     if (this.waitHomeFilesystemType) {
       this.reportComponentState({
         state: "waiting",
@@ -125,41 +85,9 @@ class Manager {
       });
       await waitUntilFilesystemIsOfType(this.home, this.waitHomeFilesystemType);
     }
-    // initialize the blobstore
-    await initJupyterBlobStore();
-    // connect to the project for participating in realtime sync
-    const client_id = encodeIntToUUID(this.compute_server_id);
-    this.client = new SyncClient({
-      project_id: this.project_id,
-      client_id,
-      home: this.home,
-      role: "compute_server",
-    });
-    this.reportComponentState({
-      state: "connecting",
-      extra: "to project",
-      progress: 30,
-      timeout: 30,
-    });
-    this.websocket = await this.client.project_client.websocket(
-      this.project_id,
-    );
-    this.websocket.on("state", (state) => {
-      if (state == "online" && this.sync_db?.get_state() == "ready") {
-        this.log("just connected -- make sure everything configured properly.");
-        for (const record of this.sync_db.get()) {
-          if (record.get("id") == this.compute_server_id) {
-            if (record.get("open")) {
-              this.ensureConnected(record.get("path"));
-            }
-          } else {
-            this.ensureDisconnected(record.get("path"));
-          }
-        }
-      }
-    });
-    await this.initListings();
-    await this.initSyncDB();
+
+    await startProjectServers();
+
     this.state = "ready";
     this.reportComponentState({
       state: "ready",
@@ -167,43 +95,6 @@ class Manager {
       timeout: Math.ceil(STATUS_INTERVAL_MS / 1000 + 3),
     });
     setInterval(this.reportStatus, STATUS_INTERVAL_MS);
-  };
-
-  private initListings = async () => {
-    await initListings({
-      client: this.client,
-      project_id: this.project_id,
-      compute_server_id: this.compute_server_id,
-      home: this.home,
-    });
-  };
-
-  private initSyncDB = async () => {
-    this.sync_db = this.client.sync_client.sync_db({
-      project_id: this.project_id,
-      ...SYNCDB_PARAMS,
-    });
-    this.sync_db.on("change", this.handleSyncdbChange);
-    this.sync_db.on("error", async (err) => {
-      this.sync_db.close();
-      // This could MAYBE possibly very rarely happen if you click to restart a project, then immediately
-      // close the browser tab, then try to connect compute server to it and there's a broken socket,
-      // which is in a cache but not yet tested and removed...  Just try again.
-      this.log("sync_db", "ERROR -- ", `${err}`);
-      this.log("Will ping, then initialize syncDB again in a few seconds...");
-      await pingProjectUntilSuccess(this.project_id);
-      await delay(5000);
-      this.initSyncDB();
-    });
-    if (this.sync_db.get_state() == "init") {
-      await once(this.sync_db, "ready");
-    }
-  };
-
-  disconnectAll = () => {
-    for (const path in this.connections) {
-      this.ensureDisconnected(path);
-    }
   };
 
   private log = (func, ...args) => {
@@ -228,76 +119,6 @@ class Manager {
     }
   };
 
-  private handleSyncdbChange = (changes) => {
-    this.log("handleSyncdbChange", "changes = ", changes.toJS());
-    for (const key of changes) {
-      const record = this.sync_db.get_one(key);
-      const id = record?.get("id");
-      if (id == this.compute_server_id) {
-        if (record.get("open")) {
-          this.ensureConnected(key.get("path"));
-        }
-      } else {
-        this.ensureDisconnected(key.get("path"));
-      }
-    }
-  };
-
-  private ensureConnected = async (path) => {
-    this.log("ensureConnected", path);
-    if (this.connections[path] == null) {
-      if (path.endsWith(".term")) {
-        const term = terminal({
-          websocket: this.websocket,
-          path,
-          cwd: this.cwd(path),
-          env: this.env(),
-          computeServerId: this.compute_server_id,
-        });
-        term.on("closed", () => {
-          delete this.connections[path];
-        });
-        this.connections[path] = term;
-      } else if (path.endsWith(".ipynb")) {
-        this.connections[path] = jupyter({
-          client: this.client,
-          path,
-        });
-      } else {
-        try {
-          this.connections[path] = "connecting";
-          this.connections[path] = await fileServer({
-            client: this.client,
-            path,
-          });
-        } catch (err) {
-          delete this.connections[path];
-          this.setError({
-            path,
-            message: `${err}`,
-          });
-        }
-      }
-    }
-  };
-
-  private setError = ({ path, message }) => {
-    this.sync_db.set({
-      path,
-      error: message,
-    });
-    this.sync_db.commit();
-  };
-
-  private ensureDisconnected = (path) => {
-    this.log("ensureDisconnected", path);
-    const conn = this.connections[path];
-    if (conn != null) {
-      delete this.connections[path];
-      conn.close();
-    }
-  };
-
   private reportStatus = async () => {
     this.log("reportStatus");
     // Ping to start the project and ensure there is a hub connection to it.
@@ -308,32 +129,10 @@ class Manager {
       this.log(`ping project -- ERROR '${err}'`);
       return;
     }
-    // todo -- will put system load and other info here too
-    this.sync_db.set_cursor_locs([
-      {
-        status: "running",
-        //// fake for dev
-        //uptime:
-        //  "00:04:17 up 10 days,  6:39,  0 users,  load average: 2.65, 2.74, 2.72",
-      },
-    ]);
     this.reportComponentState({
       state: "ready",
       progress: 100,
       timeout: STATUS_INTERVAL_MS + 3,
     });
-  };
-
-  private env = () => {
-    return {
-      HOME: this.home ?? "/home/user",
-      COCALC_PROJECT_ID: this.project_id,
-      COCALC_USERNAME: userInfo().username,
-      COMPUTE_SERVER_ID: `${this.compute_server_id}`,
-    };
-  };
-
-  private cwd = (path) => {
-    return join(this.home, dirname(path));
   };
 }

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -38,9 +38,9 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 */
 import { getDocument as pdfjs_getDocument } from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist/webpack.mjs";
-
-import { raw_url } from "../frame-tree/util";
+import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
 import { pdf_path } from "./util";
+import { getComputeServerId } from "@cocalc/frontend/frame-editors/generic/client";
 
 const options = {
   maxSize: MAX_PAGES,
@@ -54,8 +54,12 @@ export function url_to_pdf(
   path: string,
   reload: number,
 ): string {
-  const url = raw_url(project_id, pdf_path(path));
-  return `${url}?param=${reload}`;
+  return raw_url(
+    project_id,
+    pdf_path(path),
+    getComputeServerId({ project_id, path }),
+    `param=${reload}`,
+  );
 }
 
 const doc_cache = new LRU(options);

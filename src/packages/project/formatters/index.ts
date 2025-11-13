@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -35,17 +35,31 @@ import type {
   Syntax as FormatterSyntax,
   Config,
   Options,
+  FormatResult,
 } from "@cocalc/util/code-formatter";
 export type { Config, Options, FormatterSyntax };
+import { getLogger } from "@cocalc/backend/logger";
+import { getClient } from "@cocalc/project/client";
 
-export async function run_formatter(
-  client: any,
-  path: string,
-  options: Options,
-  logger: any,
-): Promise<object> {
+// don't wait too long, since the entire api call likely times out after 5s.
+const MAX_WAIT_FOR_SYNC = 3000;
+
+const logger = getLogger("project:formatters");
+
+export async function run_formatter({
+  path,
+  options,
+  syncstring,
+}: {
+  path: string;
+  options: Options;
+  syncstring?;
+}): Promise<FormatResult> {
+  const client = getClient();
   // What we do is edit the syncstring with the given path to be "prettier" if possible...
-  const syncstring = client.syncdoc({ path });
+  if (syncstring == null) {
+    syncstring = client.syncdoc({ path });
+  }
   if (syncstring == null || syncstring.get_state() == "closed") {
     return {
       status: "error",
@@ -56,6 +70,26 @@ export async function run_formatter(
   if (syncstring.get_state() != "ready") {
     await once(syncstring, "ready");
   }
+  if (options.lastChanged) {
+    // wait within reason until syncstring's last change is this new.
+    // (It's not a huge problem if this fails for some reason.)
+    const start = Date.now();
+    const waitUntil = new Date(options.lastChanged);
+    while (
+      Date.now() - start < MAX_WAIT_FOR_SYNC &&
+      syncstring.last_changed() < waitUntil
+    ) {
+      try {
+        await once(
+          syncstring,
+          "change",
+          MAX_WAIT_FOR_SYNC - (Date.now() - start),
+        );
+      } catch {
+        break;
+      }
+    }
+  }
   const doc = syncstring.get_doc();
   let formatted, math, input0;
   let input = (input0 = doc.to_str());
@@ -63,7 +97,7 @@ export async function run_formatter(
     [input, math] = remove_math(math_escape(input));
   }
   try {
-    formatted = await run_formatter_string(path, input, options, logger);
+    formatted = await run_formatter_string({ path, str: input, options });
   } catch (err) {
     logger.debug(`run_formatter error: ${err.message}`);
     return { status: "error", phase: "format", error: err.message };
@@ -78,13 +112,17 @@ export async function run_formatter(
   return { status: "ok", patch };
 }
 
-export async function run_formatter_string(
-  path: string | undefined,
-  input: string,
-  options: Options,
-  logger: any,
-): Promise<string> {
+export async function run_formatter_string({
+  options,
+  str,
+  path,
+}: {
+  str: string;
+  options: Options;
+  path?: string; // only used for CLANG
+}): Promise<string> {
   let formatted;
+  const input = str;
   logger.debug(`run_formatter options.parser: "${options.parser}"`);
   switch (options.parser) {
     case "latex":

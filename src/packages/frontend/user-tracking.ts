@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Provide a typescript-friendly stable interface to user_tracking, so
@@ -41,7 +41,7 @@ export async function log(eventName: string, payload: any): Promise<void> {
 // shows a warning in the console when it can't report to the backend.
 export default async function track(
   event: string,
-  value: object
+  value: object,
 ): Promise<void> {
   // Replace all dashes with underscores in the event argument for consistency
   event = event.replace(/-/g, "_");
@@ -49,7 +49,7 @@ export default async function track(
   // console.log("user_tracking", event, value);
   try {
     await webapp_client.tracking_client.user_tracking(event, value);
-  } catch (err) {
-    console.warn("user_tracking", { event, value }, err);
+  } catch {
+    //console.warn("user_tracking", { event, value }, err);
   }
 }

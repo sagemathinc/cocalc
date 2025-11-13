@@ -1,14 +1,15 @@
+import { Alert, Button, Popconfirm, Spin, Tag } from "antd";
 import { CSSProperties, useEffect, useMemo, useState } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { currency, plural } from "@cocalc/util/misc";
 import {
   getLiveSubscriptions,
   LiveSubscription,
   renewSubscription,
 } from "./api";
-import { currency } from "@cocalc/util/misc";
-import { Alert, Button, Popconfirm, Spin, Tag } from "antd";
-import { plural } from "@cocalc/util/misc";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface Props {
   style?: CSSProperties;
@@ -140,7 +141,7 @@ export default function UnpaidSubscriptions({
         }
         onConfirm={handleRenewSubscriptions}
         okText="Renew Subscriptions"
-        cancelText="Cancel"
+        cancelText={<CancelText />}
       >
         <Button type="primary" size={size} onClick={update}>
           <Icon name="credit-card" />

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -18,12 +18,13 @@ import {
   useRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, Loading } from "@cocalc/frontend/components";
-import HelpMeFix from "@cocalc/frontend/frame-editors/chatgpt/help-me-fix";
+import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
+import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
 import { capitalize, is_different, path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { EditorState } from "../frame-tree/types";
-import { Actions, BuildLogs } from "./actions";
+import { Actions } from "./actions";
 import { use_build_logs } from "./hooks";
+import { BuildLogs } from "./types";
 
 function group_to_level(group: string): string {
   switch (group) {
@@ -60,7 +61,7 @@ export const SPEC: SpecDesc = {
     icon: "exclamation-triangle",
     color: "#fdb600",
   },
-};
+} as const;
 
 const ITEM_STYLES: { [name: string]: CSS } = {
   warning: {
@@ -78,10 +79,10 @@ const ITEM_STYLES: { [name: string]: CSS } = {
     padding: "15px",
     margin: "5px 0",
   },
-};
+} as const;
 
 interface item {
-  line: string;
+  line: number;
   file?: string;
   level: number;
   message?: string;
@@ -92,15 +93,16 @@ interface ItemProps {
   actions: Actions;
   item: TypedMap<item>;
   group: string;
+  font_size: number;
 }
 
 // memo has an update function, see bottom
 const Item: React.FC<ItemProps> = React.memo(
-  ({ actions, item, group }: ItemProps) => {
+  ({ actions, item, group, font_size }: ItemProps) => {
     function edit_source(e: React.SyntheticEvent<any>): void {
       e.stopPropagation();
       if (!item.get("file")) return; // not known
-      const line: number = parseInt(item.get("line"));
+      const line = item.get("line");
       let path = item.get("file");
       const head = path_split(actions.path).head;
       if (head != "") {
@@ -108,7 +110,8 @@ const Item: React.FC<ItemProps> = React.memo(
       }
       if (!path) return;
       actions.goto_line_in_file(line, path);
-      actions.synctex_tex_to_pdf(line, 0, path);
+      // Note: We don't call synctex_tex_to_pdf here because clicking on errors
+      // should only jump to source, not trigger PDF sync
     }
 
     function render_location(): React.ReactElement<any> | undefined {
@@ -142,9 +145,8 @@ const Item: React.FC<ItemProps> = React.memo(
           style={{ float: "right", marginLeft: "10px" }}
           size="small"
           task={"ran latex"}
-          error={
-            (item.get("message") ?? "") + "\n" + (item.get("content") ?? "")
-          }
+          error={item.get("message") ?? ""}
+          line={item.get("content") ?? ""}
           input={() => {
             const s = actions._syncstring.to_str();
             const v = s
@@ -157,7 +159,7 @@ const Item: React.FC<ItemProps> = React.memo(
           language={"latex"}
           extraFileInfo={actions.languageModelExtraFileInfo()}
           tag={"latex-error-frame"}
-          prioritizeLastInput
+          prioritize="end"
         />
       );
     }
@@ -167,7 +169,16 @@ const Item: React.FC<ItemProps> = React.memo(
         {renderGetHelp()}
         {render_location()}
         {item.get("message") && <div>{item.get("message")}</div>}
-        {item.get("content") && <pre>{item.get("content")}</pre>}
+        {item.get("content") && (
+          <pre
+            style={{
+              fontSize: font_size * 0.85, // slightly smaller than main font size
+              borderRadius: 0, // remove border radius
+            }}
+          >
+            {item.get("content")}
+          </pre>
+        )}
       </div>
     );
   },
@@ -189,7 +200,7 @@ interface ErrorsAndWarningsProps {
   is_fullscreen: boolean;
   project_id: string;
   path: string;
-  reload: number;
+  reload?: number;
   font_size: number;
 }
 
@@ -208,7 +219,8 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
     const status: string = useRedux([name, "status"]) ?? "";
     const knitr: boolean = useRedux([name, "knitr"]);
     const includeError: string = useRedux([name, "includeError"]) ?? "";
-
+    
+    
     function render_status(): Rendered {
       if (status) {
         return (
@@ -223,7 +235,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
             <Loading
               text={status}
               style={{
-                fontSize: "10pt",
+                fontSize: props.font_size,
                 color: COLORS.GRAY,
               }}
             />
@@ -233,7 +245,15 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
     }
 
     function render_item(item, key, group): Rendered {
-      return <Item key={key} item={item} actions={actions} group={group} />;
+      return (
+        <Item
+          key={key}
+          item={item}
+          actions={actions}
+          group={group}
+          font_size={props.font_size}
+        />
+      );
     }
 
     function render_group_content(content, group): Rendered {
@@ -323,7 +343,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
         style={{
           overflowY: "scroll",
           padding: "5px 15px",
-          fontSize: "10pt",
+          fontSize: props.font_size,
         }}
       >
         {includeError && (
@@ -332,7 +352,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
             type="error"
             showIcon
             message={"\\include error -- ensure all included files exist"}
-            description={includeError.replace(/Error:/g, "")}
+            description={`${includeError}`.replace(/Error:/g, "")}
           />
         )}
         {render_hint()}

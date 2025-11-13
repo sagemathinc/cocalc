@@ -1,20 +1,21 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Top-level React component for an X Window
 */
 
+import { set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
-import { X11 } from "./x11";
-import { Launcher } from "./launcher";
-import { set } from "@cocalc/util/misc";
 import { terminal } from "../terminal-editor/editor";
+import { Launcher } from "./launcher";
+import { X11 } from "./x11";
 
-export const x11 = {
+export const x11: EditorDescription = {
+  type: "x11",
   short: "X11",
   name: "X11",
   icon: "window-restore",
@@ -30,21 +31,22 @@ export const x11 = {
     "help",
     "connection_status",
   ]),
-} as EditorDescription;
+} as const;
 
-export const launcher = {
+export const launcher: EditorDescription = {
+  type: "x11-apps",
   short: "Apps",
   name: "Applications",
   icon: "server",
   component: Launcher,
   commands: set([]),
-} as EditorDescription;
+} as const;
 
 const EDITOR_SPEC = {
   x11,
   terminal,
   launcher,
-};
+} as const;
 
 export const Editor = createEditor({
   format_bar: false,

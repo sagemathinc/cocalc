@@ -1,11 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { keys, map, sortBy, zipObject } from "lodash";
 import { promises } from "node:fs";
-import { basename } from "node:path";
 
 import {
   SOFTWARE_ENV_NAMES,
@@ -56,7 +55,6 @@ async function downloadInventoryJson(name: SoftwareEnvNames): Promise<EnvData> {
 }
 
 // load the current version of the software specs – if there is a problem, use the locally stored files as fallback.
-// both files go hand-in-hand, hence either both work or both are the fallback!
 async function fetchInventory(): Promise<SoftwareEnvironments> {
   // for development, set the env variable to directory, where this files are
   const localSpec = process.env.COCALC_SOFTWARE_ENVIRONMENTS;
@@ -138,9 +136,8 @@ async function getSoftwareSpec(name: SoftwareEnvNames): Promise<SoftwareSpec> {
     if (nextSpec[info.lang] == null) {
       nextSpec[info.lang] = {};
     }
-    // the basename of the cmd path
-    const base = cmd.indexOf(" ") > 0 ? cmd : basename(cmd);
-    nextSpec[info.lang][base] = {
+    // use the full command as key to avoid basename collisions
+    nextSpec[info.lang][cmd] = {
       cmd,
       name: info.name,
       doc: info.doc,

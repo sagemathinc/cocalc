@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button } from "antd";
@@ -10,7 +10,7 @@ import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { NEW_FILETYPE_ICONS, isNewFiletypeIconName } from "./consts";
 
-const STYLE = {
+export const STYLE = {
   marginRight: "5px",
   marginBottom: "5px",
   whiteSpace: "normal",
@@ -21,7 +21,6 @@ const STYLE = {
 const ICON_STYLE = {
   color: COLORS.FILE_ICON,
   fontSize: "125%",
-  marginRight: "15px",
 } as const;
 
 const ICON_STYLE_LARGE = {
@@ -30,7 +29,7 @@ const ICON_STYLE_LARGE = {
 };
 
 interface Props {
-  name: string | JSX.Element;
+  name: string | React.JSX.Element;
   href?: string;
   on_click?: (ext?: string) => void;
   ext?: string;

@@ -1,7 +1,7 @@
 import { isValidUUID } from "@cocalc/util/misc";
 import getConn from "@cocalc/server/stripe/connection";
 import { getLogger } from "@cocalc/backend/logger";
-import { getStripeCustomerId } from "@cocalc/server/purchases/create-stripe-checkout-session";
+import { getStripeCustomerId } from "@cocalc/server/purchases/stripe/util";
 
 const log = getLogger("billing:get-invoices");
 
@@ -46,7 +46,6 @@ export async function getInvoiceUrl(
     const charges = await stripe.charges.list({
       payment_intent: invoice_id,
     });
-    console.log(charges);
     return charges.data?.[0]?.receipt_url;
   }
   const invoice = await stripe.invoices.retrieve(invoice_id);

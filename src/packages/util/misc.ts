@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 export { get_start_time_ts, get_uptime, log, wrap_log } from "./log";
@@ -68,6 +68,19 @@ export {
 
 import sha1 from "sha1";
 export { sha1 };
+
+function base16ToBase64(hex) {
+  return Buffer.from(hex, "hex").toString("base64");
+  //   let bytes: number[] = [];
+  //   for (let c = 0; c < hex.length; c += 2) {
+  //     bytes.push(parseInt(hex.substr(c, 2), 16));
+  //   }
+  //   return btoa(String.fromCharCode.apply(null, bytes));
+}
+
+export function sha1base64(s) {
+  return base16ToBase64(sha1(s));
+}
 
 import getRandomValues from "get-random-values";
 import * as lodash from "lodash";
@@ -381,7 +394,8 @@ export function walltime(t?: number): number {
 // encode a UNIX path, which might have # and % in it.
 // Maybe alternatively, (encodeURIComponent(p) for p in path.split('/')).join('/') ?
 export function encode_path(path) {
-  path = encodeURI(path); // doesn't escape # and ?, since they are special for urls (but not unix paths)
+  // doesn't escape # and ?, since they are special for urls (but not unix paths)
+  path = encodeURI(path);
   return path.replace(/#/g, "%23").replace(/\?/g, "%3F");
 }
 
@@ -439,13 +453,15 @@ export function plural(
 
 const ELLIPSIS = "…";
 // "foobar" --> "foo…"
-export function trunc(s, max_length = 1024, ellipsis = ELLIPSIS) {
-  if (s == null) {
-    return s;
+export function trunc<T>(
+  sArg: T,
+  max_length = 1024,
+  ellipsis = ELLIPSIS,
+): string | T {
+  if (sArg == null) {
+    return sArg;
   }
-  if (typeof s !== "string") {
-    s = `${s}`;
-  }
+  const s = typeof sArg !== "string" ? `${sArg}` : sArg;
   if (s.length > max_length) {
     if (max_length < 1) {
       throw new Error("ValueError: max_length must be >= 1");
@@ -457,13 +473,15 @@ export function trunc(s, max_length = 1024, ellipsis = ELLIPSIS) {
 }
 
 // "foobar" --> "fo…ar"
-export function trunc_middle(s, max_length = 1024, ellipsis = ELLIPSIS) {
-  if (s == null) {
-    return s;
+export function trunc_middle<T>(
+  sArg: T,
+  max_length = 1024,
+  ellipsis = ELLIPSIS,
+): T | string {
+  if (sArg == null) {
+    return sArg;
   }
-  if (typeof s !== "string") {
-    s = `${s}`;
-  }
+  const s = typeof sArg !== "string" ? `${sArg}` : sArg;
   if (s.length <= max_length) {
     return s;
   }
@@ -479,13 +497,15 @@ export function trunc_middle(s, max_length = 1024, ellipsis = ELLIPSIS) {
 }
 
 // "foobar" --> "…bar"
-export function trunc_left(s, max_length = 1024, ellipsis = ELLIPSIS) {
-  if (s == null) {
-    return s;
+export function trunc_left<T>(
+  sArg: T,
+  max_length = 1024,
+  ellipsis = ELLIPSIS,
+): T | string {
+  if (sArg == null) {
+    return sArg;
   }
-  if (typeof s !== "string") {
-    s = `${s}`;
-  }
+  const s = typeof sArg !== "string" ? `${sArg}` : sArg;
   if (s.length > max_length) {
     if (max_length < 1) {
       throw new Error("ValueError: max_length must be >= 1");
@@ -651,14 +671,14 @@ export function human_readable_size(
   }
   if (bytes < 1000000) {
     const b = Math.floor(bytes / 100);
-    return `${b / 10} ${short ? "K" : "KB"}`;
+    return `${b / 10} KB`;
   }
   if (bytes < 1000000000) {
     const b = Math.floor(bytes / 100000);
-    return `${b / 10} ${short ? "M" : "MB"}`;
+    return `${b / 10} MB`;
   }
   const b = Math.floor(bytes / 100000000);
-  return `${b / 10} ${short ? "G" : "GB"}`;
+  return `${b / 10} GB`;
 }
 
 // Regexp used to test for URLs in a string.
@@ -1174,7 +1194,7 @@ export function to_safe_str(x: any): string {
 //   e.g.,   2016-12-12T02:12:03.239Z    and    2016-12-12T02:02:53.358752
 const reISO =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
-export function date_parser(_key: string, value) {
+export function date_parser(_key: string | undefined, value: any) {
   if (typeof value === "string" && value.length >= 20 && reISO.exec(value)) {
     return ISO_to_Date(value);
   } else {
@@ -1459,20 +1479,14 @@ export function retry_until_success(opts: {
           return;
         }
         if (err && opts.warn != null) {
-          opts.warn(
-            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`,
-          );
+          opts.warn(`retry_until_success(${opts.name}) -- err=${err}`);
         }
         if (opts.log != null) {
-          opts.log(
-            `retry_until_success(${opts.name}) -- err=${JSON.stringify(err)}`,
-          );
+          opts.log(`retry_until_success(${opts.name}) -- err=${err}`);
         }
         if (opts.max_tries != null && opts.max_tries <= tries) {
           opts.cb?.(
-            `maximum tries (=${
-              opts.max_tries
-            }) exceeded - last error ${JSON.stringify(err)}`,
+            `maximum tries (=${opts.max_tries}) exceeded - last error ${err}`,
             err,
           );
           return;
@@ -1486,9 +1500,7 @@ export function retry_until_success(opts: {
           Date.now() - start_time + delta > opts.max_time
         ) {
           opts.cb?.(
-            `maximum time (=${
-              opts.max_time
-            }ms) exceeded - last error ${JSON.stringify(err)}`,
+            `maximum time (=${opts.max_time}ms) exceeded - last error ${err}`,
             err,
           );
           return;
@@ -1569,6 +1581,14 @@ export class StringCharMapping {
   public to_array(x: string): string[] {
     return Array.from(x).map((s) => this.to_string[s]);
   }
+
+  // for testing
+  public _debug_get_to_char() {
+    return this._to_char;
+  }
+  public _debug_get_next_char() {
+    return this._next_char;
+  }
 }
 
 // Used in the database, etc., for different types of users of a project
@@ -1617,7 +1637,7 @@ export function hash_string(s: string): number {
   return hash;
 }
 
-export function parse_hashtags(t: string): [number, number][] {
+export function parse_hashtags(t?: string): [number, number][] {
   // return list of pairs (i,j) such that t.slice(i,j) is a hashtag (starting with #).
   const v: [number, number][] = [];
   if (typeof t != "string") {
@@ -1670,8 +1690,8 @@ export function parse_hashtags(t: string): [number, number][] {
 // Always returns false if path is undefined/null (since
 // that might be dangerous, right)?
 export function path_is_in_public_paths(
-  path: string,
-  paths: string[] | Set<string> | object | undefined,
+  path: string | undefined | null,
+  paths: string[] | Set<string> | object | undefined | null,
 ): boolean {
   return containing_public_path(path, paths) != null;
 }
@@ -1681,8 +1701,8 @@ export function path_is_in_public_paths(
 // IMPORTANT: a possible returned string is "", which is falsey but defined!
 // paths can be an array or object (with keys the paths) or a Set
 export function containing_public_path(
-  path: string,
-  paths: string[] | Set<string> | object | undefined,
+  path: string | undefined | null,
+  paths: string[] | Set<string> | object | undefined | null,
 ): undefined | string {
   if (paths == null || path == null) {
     // just in case of non-typescript clients
@@ -1776,6 +1796,15 @@ export function to_money(n: number, d = 2): string {
   return n.toFixed(d).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
 }
 
+// numbers with commas -- https://stackoverflow.com/questions/2901102/how-to-format-a-number-with-commas-as-thousands-separators
+export function commas(n: number): string {
+  if (n == null) {
+    // in case of bugs, at least fail with empty in prod
+    return "";
+  }
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
 // Display currency with a dollar sign, rounded to *nearest*.
 // If d is not given and n is less than 1 cent, will show 3 digits
 // instead of 2.
@@ -1783,7 +1812,19 @@ export function currency(n: number, d?: number) {
   if (n == 0) {
     return `$0.00`;
   }
-  return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.0095 ? 3 : 2))}`;
+  let s = `$${to_money(Math.abs(n) ?? 0, d ?? (Math.abs(n) < 0.0095 ? 3 : 2))}`;
+  if (n < 0) {
+    s = `-${s}`;
+  }
+  if (d == null || d <= 2) {
+    return s;
+  }
+  // strip excessive 0's off the end
+  const i = s.indexOf(".");
+  while (s[s.length - 1] == "0" && i <= s.length - (d ?? 2)) {
+    s = s.slice(0, s.length - 1);
+  }
+  return s;
 }
 
 export function stripeAmount(
@@ -1819,15 +1860,122 @@ export function get_array_range(arr: any[], value1: any, value2: any): any[] {
   return arr.slice(index1, +index2 + 1 || undefined);
 }
 
+function seconds2hms_years(
+  y: number,
+  d: number,
+  h: number,
+  m: number,
+  s: number,
+  longform: boolean,
+  show_seconds: boolean,
+  show_minutes: boolean = true,
+): string {
+  // Get remaining days after years
+  const remaining_days = d % 365;
+
+  // When show_minutes is false, show only years and days
+  if (!show_minutes) {
+    if (remaining_days === 0) {
+      if (longform) {
+        return `${y} ${plural(y, "year")}`;
+      } else {
+        return `${y}y`;
+      }
+    }
+    if (longform) {
+      return `${y} ${plural(y, "year")} ${remaining_days} ${plural(
+        remaining_days,
+        "day",
+      )}`;
+    } else {
+      return `${y}y${remaining_days}d`;
+    }
+  }
+
+  // When show_minutes is true, include hours and minutes for sub-day portion
+  // Use seconds2hms_days for the remaining days
+  if (remaining_days > 0) {
+    const sub_str = seconds2hms_days(
+      remaining_days,
+      h,
+      m,
+      s,
+      longform,
+      show_seconds,
+      show_minutes,
+    );
+    if (longform) {
+      return `${y} ${plural(y, "year")} ${sub_str}`;
+    } else {
+      return `${y}y${sub_str}`;
+    }
+  } else {
+    // Only years, no remaining days - but may have hours/minutes/seconds
+    // Calculate seconds for just the sub-day portion
+    const h_within_day = h % 24;
+    const sub_day_seconds = h_within_day * 3600 + m * 60 + s;
+    if (sub_day_seconds > 0) {
+      // Call seconds2hms_days with 0 days to get just the hours/minutes/seconds formatting
+      const sub_str = seconds2hms_days(
+        0,
+        h_within_day,
+        m,
+        s,
+        longform,
+        show_seconds,
+        show_minutes,
+      );
+      if (sub_str) {
+        if (longform) {
+          return `${y} ${plural(y, "year")} ${sub_str}`;
+        } else {
+          return `${y}y${sub_str}`;
+        }
+      }
+    }
+    // Only years, nothing else
+    if (longform) {
+      return `${y} ${plural(y, "year")}`;
+    } else {
+      return `${y}y`;
+    }
+  }
+}
+
 function seconds2hms_days(
   d: number,
   h: number,
   m: number,
+  s: number,
   longform: boolean,
+  show_seconds: boolean,
+  show_minutes: boolean = true,
 ): string {
   h = h % 24;
-  const s = h * 60 * 60 + m * 60;
-  const x = s > 0 ? seconds2hms(s, longform, false) : "";
+  // When show_minutes is false and h is 0, don't show anything for the sub-day part
+  if (!show_minutes && h === 0) {
+    if (d === 0) {
+      // No days to show, return empty
+      return "";
+    }
+    if (longform) {
+      return `${d} ${plural(d, "day")}`;
+    } else {
+      return `${d}d`;
+    }
+  }
+  // Calculate total seconds for the sub-day portion
+  const total_secs = h * 60 * 60 + m * 60 + s;
+  // When there are days, use show_seconds for shortform but false for longform (original behavior)
+  const use_show_seconds = d > 0 && longform ? false : show_seconds;
+  const x =
+    total_secs > 0
+      ? seconds2hms(total_secs, longform, use_show_seconds, show_minutes)
+      : "";
+  if (d === 0) {
+    // No days, just return the sub-day portion
+    return x;
+  }
   if (longform) {
     return `${d} ${plural(d, "day")} ${x}`.trim();
   } else {
@@ -1845,7 +1993,11 @@ export function seconds2hms(
   secs: number,
   longform: boolean = false,
   show_seconds: boolean = true,
+  show_minutes: boolean = true,
 ): string {
+  if (show_minutes === false) {
+    show_seconds = false;
+  }
   let s;
   if (!longform && secs < 10) {
     s = round2(secs % 60);
@@ -1857,9 +2009,23 @@ export function seconds2hms(
   const m = Math.floor(secs / 60) % 60;
   const h = Math.floor(secs / 60 / 60);
   const d = Math.floor(secs / 60 / 60 / 24);
-  // for more than one day, special routine (ignoring seconds altogehter)
+  const y = Math.floor(d / 365);
+  // for more than one year, special routine
+  if (y > 0) {
+    return seconds2hms_years(
+      y,
+      d,
+      h,
+      m,
+      s,
+      longform,
+      show_seconds,
+      show_minutes,
+    );
+  }
+  // for more than one day, special routine (ignoring seconds altogether)
   if (d > 0) {
-    return seconds2hms_days(d, h, m, longform);
+    return seconds2hms_days(d, h, m, s, longform, show_seconds, show_minutes);
   }
   if (h === 0 && m === 0 && show_seconds) {
     if (longform) {
@@ -1871,19 +2037,24 @@ export function seconds2hms(
   if (h > 0) {
     if (longform) {
       let ret = `${h} ${plural(h, "hour")}`;
-      if (m > 0) {
+      if (m > 0 && show_minutes) {
         ret += ` ${m} ${plural(m, "minute")}`;
       }
+      // In longform, don't show seconds when there are hours (original behavior)
       return ret;
     } else {
-      if (show_seconds) {
-        return `${h}h${m}m${s}s`;
+      if (show_minutes) {
+        if (show_seconds) {
+          return `${h}h${m}m${s}s`;
+        } else {
+          return `${h}h${m}m`;
+        }
       } else {
-        return `${h}h${m}m`;
+        return `${h}h`;
       }
     }
   }
-  if (m > 0 || !show_seconds) {
+  if ((m > 0 || !show_seconds) && show_minutes) {
     if (show_seconds) {
       if (longform) {
         let ret = `${m} ${plural(m, "minute")}`;
@@ -1900,6 +2071,31 @@ export function seconds2hms(
       } else {
         return `${m}m`;
       }
+    }
+  }
+  // If neither minutes nor seconds are shown, use fallback logic
+  if (!show_minutes && !show_seconds) {
+    // If we have hours, show hours
+    if (h > 0) {
+      if (longform) {
+        return `${h} ${plural(h, "hour")}`;
+      } else {
+        return `${h}h`;
+      }
+    }
+    // If less than 1 hour, fall back to showing minutes
+    if (m > 0) {
+      if (longform) {
+        return `${m} ${plural(m, "minute")}`;
+      } else {
+        return `${m}m`;
+      }
+    }
+    // If less than 1 minute, fall back to showing seconds
+    if (longform) {
+      return `${s} ${plural(s, "second")}`;
+    } else {
+      return `${s}s`;
     }
   }
   return "";
@@ -1956,6 +2152,20 @@ export function has_null_leaf(obj: object): boolean {
   }
   return false;
 }
+
+// mutate obj and delete any undefined leafs.
+// was used for MsgPack -- but the ignoreUndefined:true option
+// to the encoder is a much better fix.
+// export function removeUndefinedLeafs(obj: object) {
+//   for (const k in obj) {
+//     const v = obj[k];
+//     if (v === undefined) {
+//       delete obj[k];
+//     } else if (is_object(v)) {
+//       removeUndefinedLeafs(v);
+//     }
+//   }
+// }
 
 // Peer Grading
 // This function takes a list of student_ids,
@@ -2019,7 +2229,7 @@ export function path_to_tab(name: string): string {
 
 // assumes a valid editor tab name...
 // If invalid or undefined, returns undefined
-export function tab_to_path(name: string): string | undefined {
+export function tab_to_path(name?: string): string | undefined {
   if (name?.substring(0, 7) === EDITOR_PREFIX) {
     return name.substring(7);
   }
@@ -2029,6 +2239,7 @@ export function tab_to_path(name: string): string | undefined {
 // suggest a new filename when duplicating it as follows:
 // strip extension, split at '_' or '-' if it exists
 // try to parse a number, if it works, increment it, etc.
+// Handle leading zeros for the number (see https://github.com/sagemathinc/cocalc/issues/2973)
 export function suggest_duplicate_filename(name: string): string {
   let ext;
   ({ name, ext } = separate_file_extension(name));
@@ -2041,9 +2252,13 @@ export function suggest_duplicate_filename(name: string): string {
       name.slice(0, idx + 1),
       name.slice(idx + 1),
     ]);
-    const num = parseInt(ending);
+    // Pad the number with leading zeros to maintain the original length
+    const paddedEnding = ending.padStart(ending.length, "0");
+    const num = parseInt(paddedEnding);
     if (!Number.isNaN(num)) {
-      new_name = `${prefix}${num + 1}`;
+      // Increment the number and pad it back to the original length
+      const newNum = (num + 1).toString().padStart(ending.length, "0");
+      new_name = `${prefix}${newNum}`;
     }
   }
   if (new_name == null) {
@@ -2177,7 +2392,7 @@ export function top_sort(
 //    \|/               |
 //   func_name3 <-------|
 export function create_dependency_graph(obj: {
-  [name: string]: Function & { dependency_names?: string };
+  [name: string]: Function & { dependency_names?: string[] };
 }): { [name: string]: string[] } {
   const DAG = {};
   for (const name in obj) {
@@ -2261,12 +2476,12 @@ export function jupyter_language_to_name(lang: string): string {
 // Find the kernel whose name is closest to the given name.
 export function closest_kernel_match(
   name: string,
-  kernel_list: immutable.List<immutable.Map<string, string>>,
-): immutable.Map<string, string> {
+  kernel_list: immutable.List<immutable.Map<string, any>>,
+): immutable.Map<string, any> {
   name = name.toLowerCase().replace("matlab", "octave");
   name = name === "python" ? "python3" : name;
   let bestValue = -1;
-  let bestMatch: immutable.Map<string, string> | undefined = undefined;
+  let bestMatch: immutable.Map<string, any> | undefined = undefined;
   for (let i = 0; i < kernel_list.size; i++) {
     const k = kernel_list.get(i);
     if (k == null) {
@@ -2412,13 +2627,23 @@ export function test_valid_jsonpatch(patch: any): boolean {
     return false;
   }
   for (const op of patch) {
-    if (!is_object(op)) return false;
-    if (op.op == null) return false;
-    if (!["add", "remove", "replace", "move", "copy", "test"].includes(op.op)) {
+    if (!is_object(op)) {
       return false;
     }
-    if (op.path == null) return false;
-    if (op.from != null && typeof op.from !== "string") return false;
+    if (op["op"] == null) {
+      return false;
+    }
+    if (
+      !["add", "remove", "replace", "move", "copy", "test"].includes(op["op"])
+    ) {
+      return false;
+    }
+    if (op["path"] == null) {
+      return false;
+    }
+    if (op["from"] != null && typeof op["from"] !== "string") {
+      return false;
+    }
     // we don't test on value
   }
   return true;
@@ -2459,16 +2684,18 @@ const randomColorCache = new LRU<string, string>({ max: 100 });
  * - min: minimum value for each channel
  * - max: maxium value for each channel
  * - diff: mimimum difference across channels (increase, to avoid dull gray colors)
+ * - seed: seed for the random number generator
  */
 export function getRandomColor(
   s: string,
-  opts?: { min?: number; max?: number; diff?: number },
+  opts?: { min?: number; max?: number; diff?: number; seed?: number },
 ): string {
   const diff = opts?.diff ?? 0;
   const min = clip(opts?.min ?? 120, 0, 254);
   const max = Math.max(min, clip(opts?.max ?? 230, 1, 255));
+  const seed = opts?.seed ?? 0;
 
-  const key = `${s}-${min}-${max}-${diff}`;
+  const key = `${s}-${min}-${max}-${diff}-${seed}`;
   const cached = randomColorCache.get(key);
   if (cached) {
     return cached;
@@ -2479,7 +2706,9 @@ export function getRandomColor(
   const mod = max - min;
 
   while (true) {
-    const hash = sha1(s + String.fromCharCode("A".charCodeAt(0) + iter))
+    // seed + s + String.fromCharCode("A".charCodeAt(0) + iter)
+    const val = `${seed}-${s}-${String.fromCharCode("A".charCodeAt(0) + iter)}`;
+    const hash = sha1(val)
       .split("")
       .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
     const r = (((hash >> 0) & 0xff) % mod) + min;
@@ -2509,10 +2738,155 @@ export function hexColorToRGBA(col: string, opacity?: number): string {
   }
 }
 
+// returns an always positive integer, not negative ones. useful for "scrolling backwards", etc.
 export function strictMod(a: number, b: number): number {
   return ((a % b) + b) % b;
 }
 
 export function clip(val: number, min: number, max: number): number {
   return Math.min(Math.max(val, min), max);
+}
+
+/**
+ * Converts an integer to an English word, but only for small numbers and reverts to a digit for larger numbers
+ */
+export function smallIntegerToEnglishWord(val: number): string | number {
+  if (!Number.isInteger(val)) return val;
+  switch (val) {
+    case 0:
+      return "zero";
+    case 1:
+      return "one";
+    case 2:
+      return "two";
+    case 3:
+      return "three";
+    case 4:
+      return "four";
+    case 5:
+      return "five";
+    case 6:
+      return "six";
+    case 7:
+      return "seven";
+    case 8:
+      return "eight";
+    case 9:
+      return "nine";
+    case 10:
+      return "ten";
+    case 11:
+      return "eleven";
+    case 12:
+      return "twelve";
+    case 13:
+      return "thirteen";
+    case 14:
+      return "fourteen";
+    case 15:
+      return "fifteen";
+    case 16:
+      return "sixteen";
+    case 17:
+      return "seventeen";
+    case 18:
+      return "eighteen";
+    case 19:
+      return "nineteen";
+    case 20:
+      return "twenty";
+  }
+  return val;
+}
+
+export function numToOrdinal(val: number): string {
+  // 1 → 1st, 2 → 2nd, 3 → 3rd, 4 → 4th, ... 21 → 21st, ... 101 → 101st, ...
+  if (!Number.isInteger(val)) return `${val}th`;
+  const mod100 = val % 100;
+  if (mod100 >= 11 && mod100 <= 13) {
+    return `${val}th`;
+  }
+  const mod10 = val % 10;
+  switch (mod10) {
+    case 1:
+      return `${val}st`;
+    case 2:
+      return `${val}nd`;
+    case 3:
+      return `${val}rd`;
+    default:
+      return `${val}th`;
+  }
+}
+
+export function hoursToTimeIntervalHuman(num: number): string {
+  if (num < 24) {
+    const n = round1(num);
+    return `${n} ${plural(n, "hour")}`;
+  } else if (num < 24 * 7) {
+    const n = round1(num / 24);
+    return `${n} ${plural(n, "day")}`;
+  } else {
+    const n = round1(num / (24 * 7));
+    return `${n} ${plural(n, "week")}`;
+  }
+}
+
+/**
+ * Return the last @lines lines of string s, in an efficient way. (e.g. long stdout, and return last 3 lines)
+ */
+export function tail(s: string, lines: number) {
+  if (lines < 1) return "";
+
+  let lineCount = 0;
+  let lastIndex = s.length - 1;
+
+  // Iterate backwards through the string, searching for newline characters
+  while (lastIndex >= 0 && lineCount < lines) {
+    lastIndex = s.lastIndexOf("\n", lastIndex);
+    if (lastIndex === -1) {
+      // No more newlines found, return the entire string
+      return s;
+    }
+    lineCount++;
+    lastIndex--;
+  }
+
+  // Return the substring starting from the next character after the last newline
+  return s.slice(lastIndex + 2);
+}
+
+export function basePathCookieName({
+  basePath,
+  name,
+}: {
+  basePath: string;
+  name: string;
+}): string {
+  return `${basePath.length <= 1 ? "" : encodeURIComponent(basePath)}${name}`;
+}
+
+export function isNumericString(str: string): boolean {
+  // https://stackoverflow.com/questions/175739/how-can-i-check-if-a-string-is-a-valid-number
+  if (typeof str != "string") {
+    return false; // we only process strings!
+  }
+  return (
+    // @ts-ignore
+    !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+    !isNaN(parseFloat(str))
+  ); // ...and ensure strings of whitespace fail
+}
+
+// This is needed in browsers, where toString('base64') doesn't work
+// and .toBase64(). This also works on buffers.  In nodejs there is
+// toString('base64'), but that seems broken in some cases and a bit
+// dangerous since toString('base64') in the browser is just toString(),
+// which is very different.
+export function uint8ArrayToBase64(uint8Array: Uint8Array) {
+  let binaryString = "";
+  for (let i = 0; i < uint8Array.length; i++) {
+    binaryString += String.fromCharCode(uint8Array[i]);
+  }
+  return btoa(binaryString);
 }

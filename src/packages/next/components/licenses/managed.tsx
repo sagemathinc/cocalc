@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import {
@@ -279,7 +279,7 @@ export default function ManagedLicenses() {
   const numExpired: number = useMemo(() => {
     if (!result) return 0;
     let n = 0;
-    const t = new Date().valueOf();
+    const t = Date.now();
     for (const x of result) {
       if (x.expires && x.expires <= t) {
         n += 1;
@@ -368,7 +368,7 @@ function doSearch(data: object[], search: string): object[] {
 
 function removeExpired(data: { expires?: number }[]): { expires?: number }[] {
   const data1: { expires?: number }[] = [];
-  const now = new Date().valueOf();
+  const now = Date.now();
   for (const x of data) {
     if (!(x.expires != null && x.expires <= now)) {
       data1.push(x);

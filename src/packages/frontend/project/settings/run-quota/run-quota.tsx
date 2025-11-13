@@ -1,7 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+// cSpell: ignore dedi
 
 import { PoweroffOutlined } from "@ant-design/icons";
 import { Table, Typography } from "antd";
@@ -106,7 +108,7 @@ export const RunQuota: React.FC<Props> = React.memo(
       });
     }, [runQuota, currentUsage, maxUpgrades, projectIsRunning]);
 
-    function renderExtraMaximum(record: QuotaData): JSX.Element | undefined {
+    function renderExtraMaximum(record: QuotaData): React.JSX.Element | undefined {
       if (SHOW_MAX.includes(record.key)) {
         return (
           <>
@@ -120,21 +122,22 @@ export const RunQuota: React.FC<Props> = React.memo(
       }
     }
 
-    function renderExtraExplanation(record: QuotaData): JSX.Element {
+    function renderExtraExplanation(record: QuotaData): React.JSX.Element {
       if (onDedicatedVM) return <></>;
 
       const dedicatedVM = (
         <>
-          If you need more RAM or CPU, consider upgrading to a{" "}
-          <A href={"https://cocalc.com/pricing/dedicated"}>Dedicated VM</A>.
+          If you need more RAM or CPU, consider using a{" "}
+          <A href={"https://doc.cocalc.com/compute_server.html"}>
+            Compute Server
+          </A>
+          .
         </>
       );
 
       const dedicatedDisk = (
         <>
-          It is possible to rent a{" "}
-          <A href={"https://cocalc.com/pricing/dedicated"}>Dedicated Disk</A>{" "}
-          for much more storage, or attach{" "}
+          It is possible to attach{" "}
           <A href={DOC_CLOUD_STORAGE_URL}>files hosted online</A>.
         </>
       );
@@ -166,6 +169,10 @@ export const RunQuota: React.FC<Props> = React.memo(
       const { key, quota, quotaDedicated, usage } = record;
       if (QUOTAS_BOOLEAN.includes(key as any)) {
         return `This quota is ${booleanValueStr(quota)}.`;
+      } else if (key === "gpu") {
+        return usage != null
+          ? `There are ${usage.display} GPU(s) requested.`
+          : ``;
       } else if (key === "patch") {
         return usage != null
           ? `There are ${usage.display} patch(es) in total.`
@@ -183,7 +190,7 @@ export const RunQuota: React.FC<Props> = React.memo(
       }
     }
 
-    function renderDedicatedVMExtra(record: QuotaData): JSX.Element {
+    function renderDedicatedVMExtra(record: QuotaData): React.JSX.Element {
       const desc = (function () {
         switch (record.key) {
           case "memory_limit":
@@ -203,7 +210,7 @@ export const RunQuota: React.FC<Props> = React.memo(
       );
     }
 
-    function renderExtra(record: QuotaData): JSX.Element {
+    function renderExtra(record: QuotaData): React.JSX.Element {
       if (onDedicatedVM) {
         return renderDedicatedVMExtra(record);
       } else {
@@ -216,11 +223,12 @@ export const RunQuota: React.FC<Props> = React.memo(
       }
     }
 
-    function renderUsage(record: QuotaData): JSX.Element | undefined {
+    function renderUsage(record: QuotaData): React.JSX.Element | undefined {
       if (!projectIsRunning) return;
       // the usage of a boolean quota is always the same as its value
       if (QUOTAS_BOOLEAN.includes(record.key as any)) return;
       if (record.key === "patch") return;
+      if (record.key === "gpu") return;
       const usage: Usage = record.usage;
       if (usage == null) return;
       const { element } = usage;
@@ -243,22 +251,20 @@ export const RunQuota: React.FC<Props> = React.memo(
 
       if (typeof val === "boolean") {
         return renderBoolean(val, projectIsRunning);
-      } else if (typeof val === "number") {
-        if (record.key === "idle_timeout") {
-          return val;
-        }
+      } else if (record.key === "idle_timeout") {
+        return val;
       } else if (Array.isArray(val)) {
         return val.length;
       } else {
         return (
-          <Text strong={true} style={style}>
+          <Text strong style={style}>
             <NoWrap>{val}</NoWrap>
           </Text>
         );
       }
     }
 
-    function renderValueColumnTitle(): JSX.Element {
+    function renderValueColumnTitle(): React.JSX.Element {
       if (projectIsRunning) {
         return (
           <QuestionMarkText tip="Usage limit imposed by the current quota configuration. Add a license to change this limit or adjust your quota upgrade contribution. Project needs to run in order to see the effective runtime quota.">

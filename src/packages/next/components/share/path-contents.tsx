@@ -1,11 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { FileInfo } from "lib/share/get-contents";
 import DirectoryListing from "./directory-listing";
 import FileContents from "./file-contents";
-import { FileInfo } from "lib/share/get-contents";
 import Loading from "./loading";
 
 interface Props {

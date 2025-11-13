@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Table } from "@cocalc/frontend/app-framework/Table";
@@ -25,6 +25,10 @@ export class AccountTable extends Table {
       accounts: [
         {
           account_id: null,
+          balance: null,
+          min_balance: null,
+          balance_alert: null,
+          auto_balance: null,
           email_address: null,
           email_address_verified: null,
           email_address_problem: null,
@@ -43,13 +47,14 @@ export class AccountTable extends Table {
           ssh_keys: null,
           created: null,
           unlisted: null,
-          //tags: null,
+          tags: null,
           tours: null,
           purchase_closing_day: null,
           email_daily_statements: null,
           stripe_checkout_session: null,
           stripe_usage_subscription: null,
           stripe_customer: null, // used for legacy upgrades ONLY.
+          unread_message_count: null,
         },
       ],
     };
@@ -59,11 +64,18 @@ export class AccountTable extends Table {
     const changes = table.get_one();
     if (!changes) return;
     const actions = this.redux.getActions("account");
-    actions.setState(changes.toJS());
+    const obj = changes.toJS();
+    actions.setState(obj);
     if (this.first_set) {
       this.first_set = false;
       actions.setState({ is_ready: true });
       this.redux.getStore("account").emit("is_ready");
+      if (obj.stripe_customer?.subscriptions?.data != null) {
+        // exclude legacy customers from commercialization requirements.
+        (
+          this.redux.getActions("customize") as any
+        ).disableCommercializationParameters();
+      }
     }
   }
 }

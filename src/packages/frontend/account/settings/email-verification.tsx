@@ -1,9 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Map } from "immutable";
+import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
@@ -21,10 +22,17 @@ interface Props {
   email_address_verified?: Map<string, boolean>;
 }
 
+export const emailVerificationMsg = defineMessage({
+  id: "account.settings.email-verification.button.status",
+  defaultMessage: `{disabled_button, select, true {Email Sent} other {Send Verification Email}}`,
+});
+
 export function EmailVerification({
   email_address,
   email_address_verified,
 }: Props) {
+  const intl = useIntl();
+
   const is_mounted = useIsMountedRef();
   const [disabled_button, set_disabled_button] = useState(false);
 
@@ -48,22 +56,39 @@ export function EmailVerification({
 
   function render_status(): Rendered {
     if (email_address == null) {
-      return <span>Unknown</span>;
+      return (
+        <span>
+          <FormattedMessage
+            id="account.settings.email-verification.unknown"
+            defaultMessage={"Unknown"}
+          />
+        </span>
+      );
     } else {
       if (email_address_verified?.get(email_address)) {
-        return <span style={{ color: "green" }}>Verified</span>;
+        return (
+          <span style={{ color: "green" }}>
+            <FormattedMessage
+              id="account.settings.email-verification.verified"
+              defaultMessage={"Verified"}
+            />
+          </span>
+        );
       } else {
         return (
           <>
             <span key={1} style={{ color: "red", paddingRight: "3em" }}>
-              Not Verified
+              <FormattedMessage
+                id="account.settings.email-verification.button.label"
+                defaultMessage={"Not Verified"}
+              />
             </span>
             <Button
               onClick={verify}
               bsStyle="success"
               disabled={disabled_button}
             >
-              {disabled_button ? "Email Sent" : "Send Verification Email"}
+              {intl.formatMessage(emailVerificationMsg, { disabled_button })}
             </Button>
           </>
         );
@@ -72,8 +97,20 @@ export function EmailVerification({
   }
 
   return (
-    <LabeledRow label="Email verification" style={{ marginBottom: "15px" }}>
-      <div>Status: {render_status()}</div>
+    <LabeledRow
+      label={intl.formatMessage({
+        id: "account.settings.email-verification.label",
+        defaultMessage: "Email verification",
+      })}
+      style={{ marginBottom: "15px" }}
+    >
+      <div>
+        <FormattedMessage
+          id="account.settings.email-verification.status"
+          defaultMessage={"Status: {status}"}
+          values={{ status: render_status() }}
+        />
+      </div>
     </LabeledRow>
   );
 }

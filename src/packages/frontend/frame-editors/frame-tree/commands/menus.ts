@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import type { Command, Menus } from "./types";
 
 export const MENUS: Menus = {};
@@ -28,7 +33,6 @@ export function addMenus(menus: Menus) {
     }
   }
 }
-// window.x = { MENUS };
 
 export function addCommandsToMenus(commands: { [command: string]: Command }) {
   for (const name in commands) {

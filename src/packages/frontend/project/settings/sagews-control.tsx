@@ -1,11 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import React from "react";
-import { Button } from "react-bootstrap";
-
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import {

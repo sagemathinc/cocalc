@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // in "Files", this shows some information and action buttons related to the custom software environment
@@ -67,7 +67,7 @@ export const CustomSoftwareInfo: React.FC<Props> = (props: Props) => {
     actions.toggle_custom_software_reset(!show_custom_software_reset);
   }
 
-  function render_jupyter(): JSX.Element | null {
+  function render_jupyter(): React.JSX.Element | null {
     if (available_features == null) return null;
 
     const href_jupyterlab = serverURL(project_id, "jupyterlab");

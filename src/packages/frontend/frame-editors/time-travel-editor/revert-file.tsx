@@ -1,31 +1,43 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Rendered, Component } from "../../app-framework";
-import { Button } from "react-bootstrap";
+import { Button, Tooltip } from "antd";
 import { TimeTravelActions } from "./actions";
 import { Icon } from "../../components";
 
 interface Props {
   actions: TimeTravelActions;
-  version: Date | undefined;
+  version: number | undefined;
+  doc;
+  changesMode?: boolean;
+  gitMode?: boolean;
 }
 
-export class RevertFile extends Component<Props> {
-  public render(): Rendered {
-    return (
+export function RevertFile({
+  actions,
+  version,
+  doc,
+  changesMode,
+  gitMode,
+}: Props) {
+  return (
+    <Tooltip
+      title={`Revert file to the displayed version (this makes a new version, so nothing is lost). ${
+        changesMode ? "In changes mode, this uses newer version." : ""
+      }`}
+    >
       <Button
-        title={`Revert file to the displayed version (this makes a new version, so nothing is lost)`}
         onClick={() => {
-          if (this.props.version != null)
-            this.props.actions.revert(this.props.version);
+          if (version != null) {
+            actions.revert({ version, doc, gitMode });
+          }
         }}
-        disabled={this.props.version == null}
+        disabled={version == null || actions.syncdoc?.is_read_only()}
       >
         <Icon name="undo" /> Revert
       </Button>
-    );
-  }
+    </Tooltip>
+  );
 }

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { callback } from "awaiting";
@@ -640,14 +640,6 @@ export class StripeClient {
     }
     dbg("Sync the database to indicate that everything is canceled.");
     await this.update_database();
-  }
-
-  public async getPaymentMethods(): Promise<Message> {
-    const dbg = this.dbg("get_sources");
-    dbg("get a list of all the payment sources that this customer has");
-    const customer = await this.need_customer_id();
-    const conn = await getConn();
-    return await conn.paymentMethods.list({ customer, type: "card" });
   }
 
   public async setDefaultSource(default_source: string): Promise<void> {

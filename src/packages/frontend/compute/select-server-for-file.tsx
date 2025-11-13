@@ -12,7 +12,7 @@ import SelectServer, { PROJECT_COLOR } from "./select-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
-import ComputeServer from "@cocalc/frontend/compute/inline";
+import InlineComputeServer from "@cocalc/frontend/compute/inline";
 
 interface Props {
   project_id: string;
@@ -40,10 +40,13 @@ export default function SelectComputeServerForFile({
       if (frame_id == null) {
         throw Error("frame_id is required for terminal");
       }
-      return actions.terminals.get(frame_id)?.term_path;
+      return actions.terminals.get(frame_id)?.termPath;
     }
     if (type == "chat") {
       return chatFile(path);
+    }
+    if (type == "jupyter_cell_notebook" && actions != null) {
+      return actions.jupyter_actions.syncdb.path;
     }
     return path;
   };
@@ -59,7 +62,7 @@ export default function SelectComputeServerForFile({
   }, [project_id]);
   const [value, setValue] = useState<number | undefined>(undefined);
 
-  const okButtonRef = useRef();
+  const okButtonRef = useRef<any>(undefined);
   useEffect(() => {
     if (confirmSwitch && okButtonRef.current) {
       // @ts-ignore
@@ -82,23 +85,6 @@ export default function SelectComputeServerForFile({
           }
         }
         const id = (await computeServerAssociations.getServerIdForPath(p)) ?? 0;
-        if (type == "jupyter_cell_notebook" && actions != null) {
-          actions.jupyter_actions.setState({ requestedComputeServerId: id });
-          if (
-            actions.jupyter_actions.store?.get("kernel_error") &&
-            id != actions.jupyter_actions.getComputeServerId()
-          ) {
-            // show a warning about the kernel being killed isn't useful and
-            // is just redundant when actively switching.
-            actions.jupyter_actions.setState({ kernel_error: "" });
-          }
-        } else if (type == "terminal") {
-          const terminalRequestedComputeServerIds =
-            actions.store.get("terminalRequestedComputeServerIds")?.toJS() ??
-            {};
-          terminalRequestedComputeServerIds[p] = id;
-          actions.setState({ terminalRequestedComputeServerIds });
-        }
         setValue(id == null ? undefined : id);
       } catch (err) {
         console.warn(err);
@@ -136,10 +122,23 @@ export default function SelectComputeServerForFile({
         style={style}
         value={value}
         setValue={(newValue) => {
-          setIdNum(newValue ?? 0);
+          const idNum = newValue ?? 0;
+          setIdNum(idNum);
           lastValueRef.current = value;
-          setValue(newValue);
-          setConfirmSwitch(true);
+          if (value != idNum) {
+            if (idNum) {
+              computeServerAssociations.connectComputeServerToPath({
+                id: idNum,
+                path: getPath(path),
+              });
+              setValue(idNum);
+            } else {
+              computeServerAssociations.disconnectComputeServer({
+                path: getPath(path),
+              });
+              setValue(undefined);
+            }
+          }
         }}
         noLabel={noLabel}
       />
@@ -152,10 +151,12 @@ export default function SelectComputeServerForFile({
           setIdNum(lastValueRef.current ?? 0);
           setValue(lastValueRef.current ?? 0);
         }}
+        cancelButtonProps={{ style: { marginTop: "5px" } }}
         okButtonProps={{
           // @ts-ignore
           ref: okButtonRef,
           style: {
+            marginTop: "5px",
             background: computeServers[idNum]?.color ?? PROJECT_COLOR,
             color: avatar_fontcolor(
               computeServers[idNum]?.color ?? PROJECT_COLOR,
@@ -207,31 +208,58 @@ export function modalParams({ current, target, path }) {
   }
   const targetDesc = (
     <span key="target-desc">
-      on <ComputeServer key="target-name" id={target} titleOnly />
+      on <InlineComputeServer noColor key="target-name" id={target} titleOnly />
     </span>
   );
   const sourceDesc = (
     <span key="source-desc">
-      on <ComputeServer key="source-name" id={current} titleOnly />
+      on{" "}
+      <InlineComputeServer noColor key="source-name" id={current} titleOnly />
     </span>
   );
 
   return {
     title: (
       <>
-        {what} {targetDesc}?
+        {what} {targetDesc}
       </>
     ),
-    cancelText: <>Stay {sourceDesc}?</>,
+    cancelText: (
+      <div style={{ display: "flex" }}>
+        <div
+          style={{
+            maxWidth: "40ex",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            marginRight: "5px",
+          }}
+        >
+          Stay {sourceDesc}
+        </div>
+        <InlineComputeServer key="current-id" id={current} idOnly />
+      </div>
+    ),
     okText: (
-      <>
-        {what} {targetDesc}?
-      </>
+      <div style={{ display: "flex" }}>
+        <div
+          style={{
+            maxWidth: "40ex",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            marginRight: "5px",
+          }}
+        >
+          {what} {targetDesc}
+        </div>
+        <InlineComputeServer key="target-id" id={target} idOnly />
+      </div>
     ),
     description: (
       <>
-        Do you want to {what} '{path}' {targetDesc} instead of {sourceDesc}?{" "}
-        {consequence}
+        Do you want to {what.toLowerCase()} '{path}' {targetDesc} instead of{" "}
+        {sourceDesc}? {consequence}
       </>
     ),
   };

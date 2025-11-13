@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* The startup banner
@@ -15,6 +15,10 @@ import cocalc_word from "./cocalc-word.svg";
 import cocalc_circle from "./cocalc-circle.svg";
 import useCustomize from "./customize";
 import "./startup-banner.css";
+
+export function TestBanner() {
+  return <StartupBanner />;
+}
 
 export default function StartupBanner() {
   const customize = useCustomize();

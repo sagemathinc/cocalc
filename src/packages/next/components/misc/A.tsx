@@ -1,11 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import Link from "next/link";
-import basePath from "lib/base-path";
 import { join } from "path";
+
+import basePath from "lib/base-path";
 
 export default function A(props: any) {
   const { href } = props;
@@ -21,7 +22,11 @@ export default function A(props: any) {
       />
     );
   }
-  if (props.external) {
+  if (
+    props.external ||
+    href.startsWith("/projects") ||
+    href.startsWith("/settings")
+  ) {
     const props2 = copyWithout(props, new Set(["external"]));
     if (!href.startsWith(basePath)) {
       // @ts-ignore

@@ -1,28 +1,44 @@
-import { COMMANDS } from "./commands";
-import { GROUPS, MENUS } from "./menus";
-import { APPLICATION_MENU, SEARCH_COMMANDS } from "./const";
-import type { Command } from "./types";
-import { Icon, IconName } from "@cocalc/frontend/components/icon";
-import { cmp, filename_extension, trunc_middle } from "@cocalc/util/misc";
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { Button, Tooltip } from "antd";
-import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
-import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
+import { ReactNode } from "react";
+import { IntlShape } from "react-intl";
+
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
+import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
+import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
+import { Icon, IconName, isIconName } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
+import { cmp, filename_extension, trunc_middle } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { EditorDescription } from "../types";
+import { COMMANDS } from "./commands";
+import { APPLICATION_MENU, SEARCH_COMMANDS } from "./const";
+import { GROUPS, MENUS } from "./menus";
+import type { Command } from "./types";
 
 const MAX_TITLE_WIDTH = 20;
 const MAX_SEARCH_RESULTS = 10;
-const ICON_WIDTH = "24px";
+const ICON_WIDTH = "28px";
 
 export class ManageCommands {
-  readonly props;
+  // TODO: setting this to FrameTitleBarProps causes type issues in frame-editors/jupyter-editor/editor.ts
+  // So, there is probably a fundamental problem with that mapping into "AllActions"
+  readonly props; // FrameTitleBarProps;
   readonly studentProjectFunctionality;
-  readonly setShowAI;
+  readonly setShowAI: (val: boolean) => void;
+  readonly setShowNewAI: (val: boolean) => void;
   readonly helpSearch: string;
   readonly setHelpSearch;
   readonly readOnly: boolean;
   readonly editorSettings;
+  readonly intl: IntlShape;
+  readonly formatMessageValues: Parameters<typeof this.intl.formatMessage>[1];
 
   static allCommandPositions: { [name: string]: number } | null = null;
 
@@ -30,18 +46,23 @@ export class ManageCommands {
     props,
     studentProjectFunctionality,
     setShowAI,
+    setShowNewAI,
     helpSearch,
     setHelpSearch,
     readOnly,
     editorSettings,
+    intl,
   }) {
     this.props = props;
     this.studentProjectFunctionality = studentProjectFunctionality;
     this.setShowAI = setShowAI;
+    this.setShowNewAI = setShowNewAI;
     this.helpSearch = helpSearch;
     this.setHelpSearch = setHelpSearch;
     this.readOnly = readOnly;
     this.editorSettings = editorSettings;
+    this.intl = intl;
+    this.formatMessageValues = { br: <br /> };
     //window.x = { manage: this };
   }
 
@@ -49,7 +70,12 @@ export class ManageCommands {
     if (cmd == null) {
       cmd = COMMANDS[name];
     }
-    // some buttons are always visible, e.g., for controlling the frame.
+    if (this.props.spec.commands?.[`-${name}`]) {
+      // explicitly hidden by the spec
+      return false;
+    }
+    // some buttons are always visible, e.g., for controlling the frame, unless of course they are explicitly
+    // hidden by the spec (above)
     if (cmd?.alwaysShow) {
       return true;
     }
@@ -60,13 +86,9 @@ export class ManageCommands {
     if (cmd?.disable && this.studentProjectFunctionality[cmd.disable]) {
       return false;
     }
-    if (this.props.spec.commands?.[`-${name}`]) {
-      // explicitly hidden by the spec
-      return false;
-    }
     if (cmd?.isVisible != null) {
       const { isVisible } = cmd;
-      if (typeof isVisible == "string") {
+      if (typeof isVisible === "string") {
         return !!this.props.spec.commands?.[isVisible];
       } else {
         return isVisible(this);
@@ -110,7 +132,7 @@ export class ManageCommands {
     if (cmd == null) {
       return v;
     }
-    const process = (cmd, name, parentLabel: JSX.Element | string) => {
+    const process = (cmd, name, parentLabel: React.JSX.Element | string) => {
       if (cmd.children) {
         const newParentLabel = (
           <div style={{ display: "flex" }}>
@@ -154,6 +176,19 @@ export class ManageCommands {
     return v;
   };
 
+  spec2display = (
+    spec: EditorDescription,
+    aspect: "name" | "short",
+  ): string => {
+    const label: string | IntlMessage | undefined = spec[aspect];
+    if (isIntlMessage(label)) {
+      return this.intl.formatMessage(label);
+    } else if (typeof label === "string") {
+      return label;
+    }
+    return "";
+  };
+
   applicationMenuTitle = () => {
     let title: string = "Application";
     let icon: IconName | undefined = undefined;
@@ -162,9 +197,9 @@ export class ManageCommands {
       if (spec != null) {
         icon = spec.icon;
         if (spec.short) {
-          title = spec.short;
+          title = this.spec2display(spec, "short");
         } else if (spec.name) {
-          title = spec.name;
+          title = this.spec2display(spec, "name");
         }
       }
     }
@@ -176,7 +211,7 @@ export class ManageCommands {
     );
   };
 
-  getParentLabel = (cmd: Partial<Command>): JSX.Element | string => {
+  getParentLabel = (cmd: Partial<Command>): React.JSX.Element | string => {
     const { group } = cmd;
     if (!group) {
       return "Menu";
@@ -187,6 +222,11 @@ export class ManageCommands {
         if (label == APPLICATION_MENU) {
           return this.applicationMenuTitle();
         }
+
+        if (isIntlMessage(label)) {
+          return this.intl.formatMessage(label);
+        }
+
         return label;
       }
     }
@@ -221,11 +261,11 @@ export class ManageCommands {
           `BUG -- ${type} must be defined by the editor_spec, but is not`,
         );
       }
-      const search = spec.name?.toLowerCase();
-      let label = spec.name;
+      const label = this.spec2display(spec, "name");
+      const search = label.toLowerCase();
       items.push({
         search,
-        label: selected_type == type ? <b>{label}</b> : label,
+        label: selected_type === type ? <b>{label}</b> : label,
         icon: spec.icon ? spec.icon : "file",
         onClick: () => {
           if (createNew) {
@@ -241,7 +281,7 @@ export class ManageCommands {
 
   getCommandChildren = (cmd) => {
     if (cmd.children != null) {
-      if (typeof cmd.children == "function") {
+      if (typeof cmd.children === "function") {
         return cmd.children(this);
       } else {
         return cmd.children;
@@ -252,11 +292,12 @@ export class ManageCommands {
   };
 
   private getCommandIcon = (cmd: Partial<Command>) => {
+    const rotate = cmd.iconRotate;
     let icon = cmd.icon;
     if (!icon) {
       return undefined;
     }
-    if (typeof icon == "function") {
+    if (typeof icon === "function") {
       icon = icon(this);
     }
     return (
@@ -267,9 +308,43 @@ export class ManageCommands {
           display: "inline-block",
         }}
       >
-        {typeof icon == "string" ? <Icon name={icon} /> : icon}
+        {isIconName(icon) ? <Icon name={icon} rotate={rotate} /> : icon}
       </span>
     );
+  };
+
+  private commandToDisplay = (
+    cmd: Partial<Command>,
+    aspect: "label" | "title" | "button",
+  ): string | null | undefined | ReactNode => {
+    if (cmd == null) return;
+    const data = cmd[aspect];
+    if (data == null) return;
+
+    if (typeof data === "string") {
+      return data;
+    }
+
+    if (typeof data === "function") {
+      const result = data(this);
+      // Check if the function returned an IntlMessage
+      if (isIntlMessage(result)) {
+        return this.intl.formatMessage(result, this.formatMessageValues);
+      }
+      return result;
+    }
+
+    // react-intl defineMessage object
+    if (isIntlMessage(data)) {
+      return this.intl.formatMessage(data, this.formatMessageValues);
+    }
+
+    if (typeof data === "boolean" || typeof data === "number") {
+      return `${data}`;
+    }
+
+    // what's left should be a ReactNode
+    return data;
   };
 
   private getCommandLabel = (
@@ -278,10 +353,11 @@ export class ManageCommands {
     tip: boolean,
   ) => {
     const width = ICON_WIDTH;
-    let lbl = typeof cmd.label == "function" ? cmd.label(this) : cmd.label;
+    let lbl = this.commandToDisplay(cmd, "label");
     if (tip && cmd.title) {
+      const title = this.commandToDisplay(cmd, "title");
       lbl = (
-        <Tooltip mouseEnterDelay={0.9} title={cmd.title} placement={"left"}>
+        <Tooltip mouseEnterDelay={0.9} title={title} placement={"left"}>
           {lbl}
         </Tooltip>
       );
@@ -300,12 +376,16 @@ export class ManageCommands {
       const isOnButtonBar = this.isOnButtonBar(name);
       icon = cmd.icon ? (
         <Tooltip
-          title={
-            isOnButtonBar
-              ? "Click icon to remove from toolbar"
-              : "Click icon to add to toolbar"
-          }
-          placement="top"
+          title={this.intl.formatMessage(
+            {
+              id: "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip",
+              defaultMessage: `{isOnButtonBar, select,
+                true {Click icon to remove from toolbar}
+                other {Click icon to add to toolbar}}`,
+            },
+            { isOnButtonBar },
+          )}
+          placement="left"
         >
           <Button
             type="text"
@@ -368,6 +448,11 @@ export class ManageCommands {
     });
   };
 
+  showSymbolBarLabels = (): boolean => {
+    const account = redux.getStore("account");
+    return account.showSymbolBarLabels();
+  };
+
   commandToMenuItem = ({
     name = "",
     key,
@@ -398,28 +483,28 @@ export class ManageCommands {
       const icon = this.getCommandIcon(cmd);
       let buttonLabel;
       if (cmd.button != null) {
-        buttonLabel =
-          typeof cmd.button == "function" ? cmd.button(this) : cmd.button;
+        buttonLabel = this.commandToDisplay(cmd, "button");
       } else {
-        buttonLabel =
-          typeof cmd.label == "function" ? cmd.label(this) : cmd.label;
+        buttonLabel = this.commandToDisplay(cmd, "label");
       }
       label = (
         <>
           {icon ?? <Icon name="square" />}
-          <div
-            style={{
-              fontSize: "10px",
-              color: "#666",
-              marginTop: "-5px",
-              // special case: button='' explicitly means no label
-              width: cmd.button === "" ? undefined : "46px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {buttonLabel}
-          </div>
+          {this.showSymbolBarLabels() && (
+            <div
+              style={{
+                fontSize: "11px",
+                color: COLORS.GRAY_M,
+                marginTop: "-10px",
+                // special case: button='' explicitly means no label
+                width: cmd.button === "" ? undefined : "50px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {buttonLabel}
+            </div>
+          )}
         </>
       );
     } else {
@@ -442,7 +527,9 @@ export class ManageCommands {
             return (
               <>
                 {this.getCommandLabel(cmd, name, false)}
-                {cmd.title ? <div>{cmd.title}</div> : undefined}
+                {cmd.title ? (
+                  <div>{this.commandToDisplay(cmd, "title")}</div>
+                ) : undefined}
               </>
             );
           }}
@@ -454,7 +541,7 @@ export class ManageCommands {
     const onClick = async (event) => {
       let { popconfirm } = cmd;
       if (popconfirm != null) {
-        if (typeof popconfirm == "function") {
+        if (typeof popconfirm === "function") {
           popconfirm = popconfirm(this);
         }
         if (popconfirm != null) {
@@ -479,12 +566,12 @@ export class ManageCommands {
     };
     if (!button && cmd.keyboard && !IS_MOBILE) {
       label = (
-        <div style={{ display: "flex" }}>
+        <div style={{ display: "flex", width: "100%" }}>
           {label}
           <div
             style={{
               flex: 1,
-              color: "#666",
+              color: "#999",
               textAlign: "right",
               marginLeft: "50px",
             }}
@@ -496,7 +583,7 @@ export class ManageCommands {
     }
     // TODO: handle when cmd.confirm is defined.
     return {
-      disabled: cmd.disabled?.(this),
+      disabled: cmd.disabled?.(this) || allChildrenAreDisabled(children),
       label,
       onClick,
       key: cmd.stayOpenOnClick ? `${key}-${STAY_OPEN_ON_CLICK}` : key,
@@ -645,4 +732,16 @@ export class ManageCommands {
     }
     return ManageCommands.allCommandPositions;
   };
+}
+
+function allChildrenAreDisabled(children) {
+  if (children == null || children.length == 0) {
+    return false;
+  }
+  for (const child of children) {
+    if (!child.disabled) {
+      return false;
+    }
+  }
+  return true;
 }

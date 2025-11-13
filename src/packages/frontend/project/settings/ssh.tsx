@@ -1,14 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Typography } from "antd";
 import { replace } from "lodash";
-
-import { SSHKeyAdder } from "@cocalc/frontend/account/ssh-keys/ssh-key-adder";
-import { SSHKeyList } from "@cocalc/frontend/account/ssh-keys/ssh-key-list";
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import SSHKeyList from "@cocalc/frontend/account/ssh-keys/ssh-key-list";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Project } from "./types";
@@ -26,15 +24,10 @@ export function SSHPanel({ project, mode = "project" }: Props) {
   const ssh_gateway_dns = useTypedRedux("customize", "ssh_gateway_dns");
   const ssh_gateway_fingerprint = useTypedRedux(
     "customize",
-    "ssh_gateway_fingerprint"
+    "ssh_gateway_fingerprint",
   );
 
   const project_id = project.get("project_id");
-
-  function add_ssh_key(opts) {
-    opts.project_id = project_id;
-    redux.getActions("projects").add_ssh_key_to_project(opts);
-  }
 
   function render_fingerprint() {
     // we ignore empty strings as well
@@ -90,27 +83,17 @@ export function SSHPanel({ project, mode = "project" }: Props) {
     >
       <>
         <p>
-          Easily access this project directly via SSH by adding an ssh public
-          key here.
+          Easily access this project or any compute server directly via SSH by
+          adding an ssh public key here.
         </p>
         <p>
-          The project <Text strong>must be running</Text> in order to be able to
-          connect and any changes take <Text strong>about 30 seconds</Text> to
-          take effect.
+          The project or compute server <Text strong>must be running</Text> in
+          order to be able to connect and any changes take{" "}
+          <Text strong>about 30 seconds</Text> to take effect. It is not
+          necessary to restart the project or compute server after you add or
+          remove an ssh key.
         </p>
       </>
-      <SSHKeyAdder
-        add_ssh_key={add_ssh_key}
-        toggleable={true}
-        style={{ marginBottom: "10px" }}
-        extra={
-          <p>
-            If you want to use the same SSH key for all your projects, add it
-            using the "SSH Keys" tab under Account Settings. If you have done
-            that, there is no need to also configure an SSH key here.
-          </p>
-        }
-      />
       {render_ssh_notice()}
     </SSHKeyList>
   );

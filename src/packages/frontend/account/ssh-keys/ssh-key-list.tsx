@@ -1,48 +1,96 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Popconfirm, Typography } from "antd";
+import { Button, Flex, Popconfirm, Typography } from "antd";
 import { Map } from "immutable";
+import { useIntl } from "react-intl";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import {
+  Gap,
   HelpIcon,
   Icon,
   SettingBox,
-  Gap,
   TimeAgo,
 } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import { cmp } from "@cocalc/util/misc";
+import SSHKeyAdder from "./ssh-key-adder";
 
 interface SSHKeyListProps {
   ssh_keys?: Map<string, any>;
   project_id?: string;
-  help?: JSX.Element;
+  help?: React.JSX.Element;
   children?: any;
   mode?: "project" | "flyout";
 }
 
 // Children are rendered above the list of SSH Keys
 // Takes an optional Help string or node to render as a help modal
-export const SSHKeyList: React.FC<SSHKeyListProps> = (
-  props: SSHKeyListProps,
-) => {
-  const { ssh_keys, project_id, help, children, mode = "project" } = props;
+export default function SSHKeyList({
+  ssh_keys,
+  project_id,
+  help,
+  children,
+  mode = "project",
+}: SSHKeyListProps) {
+  const intl = useIntl();
   const isFlyout = mode === "flyout";
+
+  function renderAdder(size?) {
+    if (project_id) {
+      return (
+        <SSHKeyAdder
+          size={size}
+          add_ssh_key={(opts) => {
+            redux
+              .getActions("projects")
+              .add_ssh_key_to_project({ ...opts, project_id });
+          }}
+          style={{ marginBottom: "10px" }}
+          extra={
+            <p>
+              If you want to use the same SSH key for all your projects and
+              compute servers, add it using the "SSH Keys" tab under Account
+              Settings. If you have done that, there is no need to also
+              configure an SSH key here.
+            </p>
+          }
+        />
+      );
+    } else {
+      return (
+        <SSHKeyAdder
+          size={size}
+          add_ssh_key={(opts) => redux.getActions("account").add_ssh_key(opts)}
+          style={{ marginBottom: "0px" }}
+        />
+      );
+    }
+  }
 
   function render_header() {
     return (
-      <>
-        SSH Keys <Gap />
+      <Flex style={{ width: "100%" }}>
+        {project_id ? "Project Specific " : "Global "}
+        {intl.formatMessage(labels.ssh_keys)} <Gap />
         {help && <HelpIcon title="Using SSH Keys">{help}</HelpIcon>}
-      </>
+        <div style={{ flex: 1 }} />
+        {(ssh_keys?.size ?? 0) > 0 ? (
+          <div style={{ float: "right" }}>{renderAdder()}</div>
+        ) : undefined}
+      </Flex>
     );
   }
 
   function render_keys() {
-    if (ssh_keys == null || ssh_keys.size == 0) return;
-    const v: { date?: Date; fp: string; component: JSX.Element }[] = [];
+    if (ssh_keys == null || ssh_keys.size == 0) {
+      return <div style={{ textAlign: "center" }}>{renderAdder("large")}</div>;
+    }
+    const v: { date?: Date; fp: string; component: React.JSX.Element }[] = [];
 
     ssh_keys?.forEach(
       (ssh_key: Map<string, any>, fingerprint: string): void => {
@@ -101,12 +149,12 @@ export const SSHKeyList: React.FC<SSHKeyListProps> = (
     return renderBody();
   } else {
     return (
-      <SettingBox title={render_header()} icon={"list-ul"}>
+      <SettingBox title={render_header()} icon={"key"}>
         {renderBody()}
       </SettingBox>
     );
   }
-};
+}
 
 interface OneSSHKeyProps {
   ssh_key: Map<string, any>;
@@ -117,7 +165,7 @@ interface OneSSHKeyProps {
 function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
   const isFlyout = mode === "flyout";
 
-  function render_last_use(): JSX.Element {
+  function render_last_use(): React.JSX.Element {
     const d = ssh_key.get("last_use_date");
     if (d) {
       return (
@@ -169,9 +217,10 @@ function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
           }
           onConfirm={() => delete_key()}
           okText={"Yes, delete key"}
-          cancelText={"Cancel"}
+          cancelText={<CancelText />}
         >
           <Button
+            type="link"
             size={isFlyout ? "small" : "middle"}
             style={{ float: "right" }}
           >
@@ -185,11 +234,7 @@ function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
         </Typography.Text>
         <br />
         Added on {new Date(ssh_key.get("creation_date")).toLocaleDateString()}
-        <div>
-          {" "}
-          {render_last_use()}
-          {" "}(NOTE: not all usage is tracked.)
-        </div>
+        <div> {render_last_use()} (NOTE: not all usage is tracked.)</div>
       </div>
     </div>
   );

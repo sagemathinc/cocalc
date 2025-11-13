@@ -1,22 +1,32 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+// cSpell:ignore userdefined
 
 import { List, Map } from "immutable";
 
-import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { MessageInfo } from "@cocalc/frontend/client/hub";
+import type { Locale, OTHER_SETTINGS_LOCALE_KEY } from "@cocalc/frontend/i18n";
+import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
 import {
-  NewFilenameTypes,
   NEW_FILENAMES,
+  NewFilenameTypes,
+  OTHER_SETTINGS_USERDEFINED_LLM,
 } from "@cocalc/util/db-schema/defaults";
+import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
+import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
+import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
+import { type PreferencesSubTabKey } from "@cocalc/util/types/settings";
+import { ACTIVITY_BAR_LABELS } from "../project/page/activity-bar-consts";
+import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 
 // this is incomplete...
 
 export interface AccountState {
   active_page: string;
+  active_sub_tab?: PreferencesSubTabKey;
   user_type: string;
   account_id: string;
   groups?: List<string>;
@@ -30,6 +40,9 @@ export interface AccountState {
   editor_settings: TypedMap<{
     jupyter_classic?: boolean;
     jupyter?: { kernel: string };
+    theme?: string;
+    physical_keyboard?: string;
+    keyboard_variant?: string;
   }>;
   font_size: number;
   other_settings: TypedMap<{
@@ -42,8 +55,14 @@ export interface AccountState {
     dark_mode_brightness: number;
     dark_mode_contrast: number;
     dark_mode_sepia: number;
-    dark_mode_grayscale: number;
     news_read_until: number; // JavaScript timestamp in milliseconds
+    [OTHER_SETTINGS_USERDEFINED_LLM]: string; // string is JSON: CustomLLM[]
+    [OTHER_SETTINGS_LOCALE_KEY]?: string;
+    [OTHER_SETTINGS_REPLY_ENGLISH_KEY]?: string;
+    no_email_new_messages?: boolean;
+    use_balance_toward_subscriptions?: boolean;
+    show_symbol_bar_labels?: boolean; // whether to show labels on the menu buttons
+    [ACTIVITY_BAR_LABELS]?: boolean; // whether to show labels on the vertical activity bar
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };
@@ -62,7 +81,6 @@ export interface AccountState {
   reset_key?: string;
   sign_out_error?: string;
   show_sign_out?: boolean;
-  mesg_info?: TypedMap<MessageInfo>;
   hub?: string;
   remember_me?: boolean;
   has_remember_me?: boolean;
@@ -70,7 +88,6 @@ export interface AccountState {
   is_anonymous: boolean;
   is_admin: boolean;
   is_ready: boolean; // user signed in and account settings have been loaded.
-  doing_anonymous_setup?: boolean;
   lti_id?: List<string>;
   created?: Date;
   strategies?: List<TypedMap<PassportStrategyFrontend>>;
@@ -88,4 +105,12 @@ export interface AccountState {
   stripe_checkout_session?: TypedMap<{ id: string; url: string }>;
   purchase_closing_day?: number;
   email_daily_statements?: boolean;
+  [SETTINGS_LANGUAGE_MODEL_KEY]?: LanguageModel;
+  i18n: Locale;
+  balance?: number;
+  min_balance?: number;
+  balance_alert?: boolean;
+  auto_balance?: TypedMap<AutoBalance>;
+  unread_message_count?: number;
+  fragment?: TypedMap<{ id?: string }>;
 }
