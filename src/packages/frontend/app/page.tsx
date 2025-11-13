@@ -230,6 +230,7 @@ export const Page: React.FC = () => {
           icon={"users"}
           active_top_tab={active_top_tab}
           hide_label={!show_label}
+          aria-label="Admin"
         />
       );
     }

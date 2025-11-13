@@ -15,7 +15,7 @@ import type { SelectProps } from "antd";
 import { Button, Input, Select, Space, Switch } from "antd";
 import { Set } from "immutable";
 import { ReactNode, useMemo } from "react";
-import { useIntl } from "react-intl";
+import { defineMessage, useIntl } from "react-intl";
 
 import { useAutoFocusPreference } from "@cocalc/frontend/account";
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -25,6 +25,17 @@ import { labels } from "@cocalc/frontend/i18n";
 //import { COLORS } from "@cocalc/util/theme";
 
 import { get_visible_hashtags } from "./util";
+
+const messages = {
+  hidden: defineMessage({
+    id: "projects.table-controls.hidden.label",
+    defaultMessage: "Hidden",
+  }),
+  deleted: defineMessage({
+    id: "projects.table-controls.deleted.label",
+    defaultMessage: "Deleted",
+  }),
+};
 
 const CONTROLS_STYLE: CSS = {
   width: "100%",
@@ -145,30 +156,16 @@ export function ProjectsTableControls({
         {!is_anonymous && (
           <Space ref={filtersRef}>
             <Switch
-              aria-label="Show hidden projects"
               checked={hidden}
               onChange={(checked) => actions.display_hidden_projects(checked)}
-              checkedChildren={intl.formatMessage({
-                id: "projects.table-controls.hidden.label",
-                defaultMessage: "Hidden",
-              })}
-              unCheckedChildren={intl.formatMessage({
-                id: "projects.table-controls.hidden.label",
-                defaultMessage: "Hidden",
-              })}
+              checkedChildren={intl.formatMessage(messages.hidden)}
+              unCheckedChildren={intl.formatMessage(messages.hidden)}
             />
             <Switch
-              aria-label="Show deleted projects"
               checked={deleted}
               onChange={(checked) => actions.display_deleted_projects(checked)}
-              checkedChildren={intl.formatMessage({
-                id: "projects.table-controls.deleted.label",
-                defaultMessage: "Deleted",
-              })}
-              unCheckedChildren={intl.formatMessage({
-                id: "projects.table-controls.deleted.label",
-                defaultMessage: "Deleted",
-              })}
+              checkedChildren={intl.formatMessage(messages.deleted)}
+              unCheckedChildren={intl.formatMessage(messages.deleted)}
             />
           </Space>
         )}
@@ -181,7 +178,6 @@ export function ProjectsTableControls({
           <Button
             ref={createNewRef}
             type="primary"
-            aria-label="Create a new project"
             onClick={onCreateProject}
             icon={<Icon name="plus-circle" />}
           >

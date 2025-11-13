@@ -33,6 +33,7 @@ import {
 } from "@cocalc/frontend/components";
 import { getGoogleCloudImages, getImages } from "@cocalc/frontend/compute/api";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { set_meta_description } from "@cocalc/frontend/browser";
 import { labels, Locale } from "@cocalc/frontend/i18n";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import {
@@ -261,7 +262,7 @@ export class CustomizeActions extends Actions<CustomizeState> {
       unlicensed_project_timetravel_limit: undefined,
     });
   };
-  
+
   reload = async () => {
     await loadCustomizeState();
   };
@@ -366,6 +367,15 @@ function set_customize(obj) {
 
   obj._is_configured = true;
   actions.setState(obj);
+
+  // Set meta description tag (WCAG AA)
+  // This must happen after setState to ensure customize store is updated
+  if (typeof window !== "undefined") {
+    // Only run in browser, not on server
+    setTimeout(() => {
+      set_meta_description();
+    }, 0);
+  }
 }
 
 function process_software(software, is_cocalc_com) {

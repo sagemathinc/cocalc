@@ -112,7 +112,7 @@ export function SortableTabs(props: Props) {
   }, [resize.width, items.length, divRef.current, isOver]);
 
   return (
-    <div style={{ width: "100%", ...style }} ref={divRef}>
+    <div role="tablist" style={{ width: "100%", ...style }} ref={divRef}>
       <ItemContext.Provider value={{ width: itemWidth }}>
         <DndContext
           onDragStart={onDragStart}
@@ -148,9 +148,13 @@ export function SortableTab({
   const { attributes, listeners, setNodeRef, transform, transition, active } =
     useSortable({ id });
 
+  // Extract role from attributes to avoid conflict with our role="tab"
+  const { role: _, ...restAttributes } = attributes;
+
   return (
     <div
       ref={setNodeRef}
+      role="tab"
       style={{
         ...style,
         transform: transform
@@ -159,7 +163,7 @@ export function SortableTab({
         transition,
         zIndex: active?.id == id ? 1 : undefined,
       }}
-      {...attributes}
+      {...restAttributes}
       {...listeners}
       onKeyDown={onKeyReturn ? ariaKeyDown(onKeyReturn, false) : undefined}
     >

@@ -75,10 +75,13 @@ function DraggableProjectButton({
     <Button
       className="starred-project-button"
       style={buttonStyle}
-      aria-label={`${project.title}`}
       icon={
         project.avatar_image_tiny ? (
-          <Avatar src={project.avatar_image_tiny} size={20} />
+          <Avatar
+            src={project.avatar_image_tiny}
+            size={20}
+            alt="Project avatar"
+          />
         ) : (
           <Icon name="star-filled" style={{ color: COLORS.STAR }} />
         )

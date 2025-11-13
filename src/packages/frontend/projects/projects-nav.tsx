@@ -186,7 +186,8 @@ function ProjectTab({ project_id }: ProjectTabProps) {
             border: color ? `2px solid ${color}` : undefined,
           }}
           shape="circle"
-          icon={<img src={project.get("avatar_image_tiny")} />}
+          src={project.get("avatar_image_tiny")}
+          alt="Project avatar"
           size={20}
         />
       );

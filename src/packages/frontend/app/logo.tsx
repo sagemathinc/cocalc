@@ -28,7 +28,7 @@ export const AppLogo: React.FC<Props> = React.memo((props: Props) => {
 
   const logo_square: string | undefined = useTypedRedux(
     "customize",
-    "logo_square"
+    "logo_square",
   );
 
   const backgroundImage = `url('${logo_square ? logo_square : APP_ICON}')`;
@@ -36,6 +36,7 @@ export const AppLogo: React.FC<Props> = React.memo((props: Props) => {
   return (
     <A
       href={appBasePath}
+      aria-label="CoCalc homepage"
       style={{
         height: dimension,
         width: dimension,
