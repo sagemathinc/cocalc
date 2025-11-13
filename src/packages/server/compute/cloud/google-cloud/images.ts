@@ -18,47 +18,41 @@ train those models is available on github.  But oh my god what a nightmare.
 In any case, typescript for the win here.
 */
 
+import { createDatabaseCachedResource } from "@cocalc/server/compute/database-cache";
 import { getCredentials } from "./client";
 import { ImagesClient } from "@google-cloud/compute";
-import TTLCache from "@isaacs/ttlcache";
-import dayjs from "dayjs";
 import type {
   Architecture,
   GoogleCloudConfiguration,
-  ImageName,
+  GoogleCloudImage,
+  GoogleCloudImages,
 } from "@cocalc/util/db-schema/compute-servers";
-import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
+import { getArchitecture as getArchitecture0 } from "@cocalc/util/db-schema/compute-servers";
+import { makeValidGoogleName } from "@cocalc/util/db-schema/compute-servers";
 import { cmp } from "@cocalc/util/misc";
-import { getGoogleCloudPrefix } from "./index";
+import { getGoogleCloudImagePrefix } from "./index";
 import { imageDeprecation } from "@cocalc/server/compute/cloud/startup-script";
+import { COMPUTE_SERVER_IMAGES } from "@cocalc/server/compute/images";
+import { delay } from "awaiting";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("server:compute:google-cloud:images");
 
 // Return the latest available image of the given type on the configured cluster.
 // Returns null if no images of the given type are available.
 
 export async function imageName({
   image,
-  date,
   tag,
-  arch = "x86_64",
+  arch,
 }: {
-  image: ImageName;
-  date?: Date;
-  tag?: string;
-  arch?: Architecture;
+  image: string;
+  tag: string;
+  arch: Architecture;
 }) {
-  const image1 = image.replace(".", "-").replace("_", "-");
-  const gcloud_prefix = await getGoogleCloudPrefix();
-  const prefix = `${gcloud_prefix}-${image1}-${
-    arch == "x86_64" ? "x86" : arch
-  }`; // _ not allowed
-  if (!date) {
-    return prefix;
-  }
-
-  // this format matches with what we use internally on cocalc.com for
-  // docker images in Kubernetes:
-  const dateFormatted = dayjs(date).format("YYYY-MM-DD-HHmmss");
-  return `${prefix}-${dateFormatted}${tag ? "-" + tag : ""}`;
+  return `${await getGoogleCloudImagePrefix()}-${makeValidGoogleName(
+    image,
+  )}-${makeValidGoogleName(tag)}${arch == "x86_64" ? "" : `-${arch}`}`; // _ not allowed
 }
 
 let client: ImagesClient | undefined = undefined;
@@ -77,45 +71,28 @@ export async function getImagesClient() {
 // and "The matching is anchored and case insensitive. An optional trailing * does a
 // word prefix match."
 
-const imageCache = new TTLCache({ ttl: 60 * 1000 });
+// 1 hour default ttl -- data stored in the database,
+// and some operations like building new images
+// update this.
+const TTL_MS = 1000 * 60 * 60;
+const GOOGLE_CLOUD_IMAGES_SERVER_SETTINGS = `${COMPUTE_SERVER_IMAGES}-google-cloud`;
 
-type ImageList = {
-  name: string;
-  labels: object;
-  diskSizeGb: string;
-  creationTimestamp: string;
-}[];
-export async function getAllImages({
-  image,
-  arch,
-  sourceImage,
+export const { get: getAllImages } = createDatabaseCachedResource<{
+  [name: string]: GoogleCloudImage;
+}>({
+  ttl: TTL_MS,
+  cloud: "google",
+  key: GOOGLE_CLOUD_IMAGES_SERVER_SETTINGS,
+  fetchData: fetchImagesFromGoogleCloud,
+});
+
+export async function fetchImagesFromGoogleCloud({
   labels,
 }: {
-  image?: ImageName;
-  arch?: Architecture;
-  sourceImage?: string;
   labels?: object;
-}): Promise<ImageList> {
-  let prefix;
-  if (image == null) {
-    // gets all images
-    prefix = `${await getGoogleCloudPrefix()}-`;
-  } else {
-    // fix for when we rename images
-    image = imageDeprecation(image);
-    if (image == null) {
-      throw Error("bug");
-    }
-    // restrict images by image and arch
-    prefix = await imageName({ image, arch });
-    if (sourceImage) {
-      prefix = `${prefix}-${sourceImage}`;
-    }
-  }
-  const cacheKey = JSON.stringify({ image, arch, labels });
-  if (imageCache.has(cacheKey)) {
-    return imageCache.get(cacheKey)!;
-  }
+} = {}): Promise<GoogleCloudImages> {
+  logger.debug("fetchImagesFromGoogleCloud", labels);
+  const prefix = `${await getGoogleCloudImagePrefix()}-`;
   const { client, projectId } = await getImagesClient();
   let filter = `name:${prefix}*`;
   if (labels != null) {
@@ -125,98 +102,149 @@ export async function getAllImages({
   }
   const [images] = await client.list({
     project: projectId,
-    maxResults: 1000,
+    maxResults: 2000, // should never be close to this.
     filter,
   });
-  imageCache.set(cacheKey, images as ImageList);
-  return images as ImageList;
+
+  // there's a lot of extra info in images that we don't need to store.
+  const data: GoogleCloudImages = {};
+  for (const { name, labels, diskSizeGb, creationTimestamp } of images) {
+    if (!name) continue;
+    data[name] = {
+      labels,
+      diskSizeGb: parseInt(diskSizeGb as string),
+      creationTimestamp,
+    } as unknown as GoogleCloudImage;
+  }
+  return data;
+}
+
+// Returns true if the image currently exists; false, otherwise.
+export async function imageExists(name: string): Promise<boolean> {
+  const { client, projectId } = await getImagesClient();
+  const filter = `name:${name}`;
+  const [images] = await client.list({
+    project: projectId,
+    maxResults: 1,
+    filter,
+  });
+  logger.debug("imageExists:", name, images.length > 0);
+  return images.length > 0;
+}
+
+export async function deleteImage(name: string) {
+  logger.debug("deleteImage:", name);
+  const { client, projectId } = await getImagesClient();
+  await client.delete({
+    project: projectId,
+    image: name,
+  });
+  const t0 = Date.now();
+  let n = 5000;
+  // this can take a while -- we give it 15 minutes.
+  while (Date.now() - t0 <= 1000 * 60 * 15) {
+    if (!(await imageExists(name))) {
+      logger.debug("deleteImage: ", name, "confirmed deleted");
+      return;
+    }
+    n = Math.min(15000, n * 1.3);
+    logger.debug(
+      `deleteImage: ${name} waiting `,
+      n / 1000,
+      "seconds for image to be deleted...",
+    );
+    await delay(n);
+  }
+  throw Error(`image creation did not finish -- ${name}`);
 }
 
 export function getArchitecture(machineType: string): Architecture {
-  return machineType.startsWith("t2a-") ? "arm64" : "x86_64";
+  return getArchitecture0({ machineType, cloud: "google-cloud" } as any);
 }
 
-type ImageFilter = Partial<GoogleCloudConfiguration> & {
-  prod?: boolean;
-  arch?: Architecture;
-};
-
-export async function getNewestSourceImage(opts: ImageFilter): Promise<{
+export async function getSourceImage({
+  image,
+  tag,
+  machineType,
+}: GoogleCloudConfiguration): Promise<{
   sourceImage: string;
   diskSizeGb: number;
 }> {
-  const images = await getSourceImages(opts);
-  if (images.length == 0) {
+  logger.debug("getSourceImage", {
+    image,
+    tag,
+    machineType,
+  });
+  image = imageDeprecation(image);
+  const arch = getArchitecture(machineType);
+  const googleImages = await getAllImages();
+  const { projectId } = await getCredentials();
+
+  if (tag) {
+    const name = await imageName({ image, tag, arch });
+    const x = googleImages[name];
+    if (x != null) {
+      return {
+        sourceImage: `projects/${projectId}/global/images/${name}`,
+        diskSizeGb: x.diskSizeGb,
+      };
+    }
+    // failed to find image with the exactly specified tag.
     throw Error(
-      `no images are available for ${
-        IMAGES[opts.image ?? ""]?.label ?? opts.image
-      } ${opts.arch ?? "x86_64"} ${
-        opts.prod
-          ? "that are labeled prod=true"
-          : " with no constraint on prod label"
-      }`,
+      `Image '${name}' is not currently available on Google cloud -- please change the image, possibly in advanced settings`,
     );
   }
-  return images[0];
-}
-
-export async function getSourceImages({
-  image,
-  machineType,
-  sourceImage,
-  prod,
-  arch,
-}: ImageFilter = {}): Promise<
-  {
-    sourceImage: string;
-    diskSizeGb: number;
-  }[]
-> {
-  if (arch == null) {
-    arch = machineType ? getArchitecture(machineType) : undefined;
+  // choose source based on what is available -- best tested image if there is one;
+  // otherwise, an untested image.  This is mainly for old compute servers, since newer
+  // ones are likely to have the tag set.
+  const options: (GoogleCloudImage & { name: string })[] = [];
+  for (const name in googleImages) {
+    const x = googleImages[name];
+    if (
+      makeValidGoogleName(image) == x.labels?.image &&
+      makeValidGoogleName(arch) == x.labels?.arch
+    ) {
+      options.push({ name, ...x });
+    }
   }
-  const images = await getAllImages({
-    image,
-    arch,
-    sourceImage,
-    labels: !prod || sourceImage ? undefined : { prod: true },
+  // best at beginning
+  options.sort((a, b) => {
+    const a_tested = a.labels?.["tested"];
+    const b_tested = b.labels?.["tested"];
+    if (a_tested && !b_tested) {
+      // a is better
+      return -1;
+    }
+    if (b_tested && !a_tested) {
+      // b is better
+      return 1;
+    }
+    // compare based on timestamp
+    return -cmp(a.creationTimestamp, b.creationTimestamp);
   });
-  // sort by newest first; note that creationTimestamp is an iso date string
-  images.sort((a, b) => -cmp(a.creationTimestamp, b.creationTimestamp));
-  const { projectId } = await getCredentials();
-  return images.map(({ name, diskSizeGb }) => {
+  if (options.length > 0) {
+    const x = options[0];
     return {
-      sourceImage: `projects/${projectId}/global/images/${name}`,
-      diskSizeGb: parseInt(diskSizeGb),
+      sourceImage: `projects/${projectId}/global/images/${x.name}`,
+      diskSizeGb: x.diskSizeGb,
     };
-  });
-}
-
-export async function labelSourceImages({
-  filter,
-  key = "prod",
-  value = true,
-}: {
-  filter: ImageFilter;
-  key;
-  value;
-}) {
-  for (const { sourceImage: name } of await getSourceImages(filter)) {
-    await setImageLabel({ name, key, value });
   }
+  throw Error(
+    `No prebuilt image for '${image}' on Google Cloud -- please change the image`,
+  );
 }
 
 // name = exact full name of the image
-export async function setImageLabel({
+// labels: object key:value map.  Use value=null/undefined to delete keys.
+//        keys not mentioned in label are ignored.
+export async function setImageLabels({
   name,
-  key,
-  value,
+  labels: changes,
 }: {
   name: string;
-  key: string;
-  value: string | null | undefined;
+  labels: { [key: string]: string | null | undefined };
 }) {
-  // console.log("setImageLabel", { name, key, value });
+  logger.debug("setImageLabels", { name, changes });
   const { client, projectId } = await getImagesClient();
   const i = name.lastIndexOf("/");
   if (i != -1) {
@@ -231,14 +259,17 @@ export async function setImageLabel({
   if (labels == null) {
     labels = {};
   }
-  if (value == null) {
-    if (labels[key] == null) {
-      // nothing to do
-      return;
+  for (const key in changes) {
+    const value = changes[key];
+    if (value == null) {
+      if (labels[key] == null) {
+        // nothing to do
+        continue;
+      }
+      delete labels[key];
+    } else {
+      labels[key] = `${value}`;
     }
-    delete labels[key];
-  } else {
-    labels[key] = `${value}`;
   }
 
   await client.setLabels({
@@ -249,4 +280,22 @@ export async function setImageLabel({
       labelFingerprint,
     },
   });
+}
+export async function setTested(
+  { image, tag, machineType }: GoogleCloudConfiguration,
+  tested: boolean,
+) {
+  logger.debug("setTested", {
+    image,
+    tag,
+    machineType,
+    tested,
+  });
+  image = imageDeprecation(image);
+  const arch = getArchitecture(machineType);
+  if (!tag) {
+    throw Error("tag must be set");
+  }
+  const name = await imageName({ image, tag, arch });
+  await setImageLabels({ name, labels: { tested: tested ? "true" : null } });
 }

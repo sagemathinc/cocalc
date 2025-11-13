@@ -1,31 +1,31 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Implement the open_file actions for opening one single file in a project.
 
 import { callback } from "awaiting";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { redux } from "@cocalc/frontend/app-framework";
+import { local_storage } from "@cocalc/frontend/editor-local-storage";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { remove } from "@cocalc/frontend/project-file";
+import { ProjectActions } from "@cocalc/frontend/project_actions";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { retry_until_success } from "@cocalc/util/async-utils";
 import {
   defaults,
   filename_extension,
-  filename_extension_notilde,
   path_to_tab,
   required,
   uuid,
 } from "@cocalc/util/misc";
-import { retry_until_success } from "@cocalc/util/async-utils";
-import { ProjectActions } from "../project_actions";
 import { SITE_NAME } from "@cocalc/util/theme";
-import { redux } from "../app-framework";
-import { alert_message } from "../alerts";
-import { webapp_client } from "../webapp-client";
 import { normalize } from "./utils";
-import { ensure_project_running } from "./project-start-warning";
-import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import { local_storage } from "../editor-local-storage";
-import { remove } from "../project-file";
-
+import { syncdbPath as ipynbSyncdbPath } from "@cocalc/util/jupyter/names";
+import { termPath } from "@cocalc/util/terminal/names";
+import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 
 export interface OpenFileOpts {
   path: string;
@@ -39,13 +39,18 @@ export interface OpenFileOpts {
   ignore_kiosk?: boolean;
   new_browser_window?: boolean;
   change_history?: boolean;
+  // opened via an explicit click
+  explicit?: boolean;
+  // if specified, open the file on the specified compute server; if not given,
+  // opens it on whatever compute server it is currently set to open on.
+  compute_server_id?: number;
 }
 
 export async function open_file(
   actions: ProjectActions,
-  opts: OpenFileOpts
+  opts: OpenFileOpts,
 ): Promise<void> {
-  // console.log(opts);
+  // console.log("open_file: ", opts);
 
   if (opts.path.endsWith("/")) {
     actions.open_directory(opts.path);
@@ -64,12 +69,14 @@ export async function open_file(
     ignore_kiosk: false,
     new_browser_window: false,
     change_history: true,
+    explicit: false,
+    compute_server_id: undefined,
   });
   opts.path = normalize(opts.path);
 
   if (opts.line != null && !opts.fragmentId) {
     // backward compat
-    opts.fragmentId = { line: opts.line };
+    opts.fragmentId = { line: `${opts.line}` };
   }
 
   const is_kiosk = () =>
@@ -85,16 +92,16 @@ export async function open_file(
     return;
   }
 
-  let store = actions.get_store();
-  if (store == undefined) {
-    return;
-  }
+  // ensure the project is opened -- otherwise the modal to start
+  // the project won't appear.
+  redux.getActions("projects").open_project({
+    project_id: actions.project_id,
+    switch_to: opts.foreground_project,
+  });
 
-  // ensure the project is opened -- otherwise the modal to start the project won't appear.
-  redux.getActions("projects").open_project({ project_id: actions.project_id });
-
-  let open_files = store.get("open_files");
-  const alreadyOpened = open_files.has(opts.path);
+  const tabIsOpened = () =>
+    !!actions.get_store()?.get("open_files")?.has(opts.path);
+  const alreadyOpened = tabIsOpened();
 
   if (!alreadyOpened) {
     // Make the visible tab itself appear ASAP (just the tab at the top,
@@ -104,7 +111,10 @@ export async function open_file(
     // we have to resolve a symlink instead, then we *fix*
     // that below!  This makes things fast and predictable
     // usually.
-    if (!actions.open_files) return; // closed
+    if (!actions.open_files) {
+      return;
+      // closed
+    }
     actions.open_files.set(opts.path, "component", {});
   }
 
@@ -131,14 +141,7 @@ export async function open_file(
     opts.fragmentId = Fragment.decode(location.hash);
   }
 
-  if (
-    !(await ensure_project_running(
-      actions.project_id,
-      `open the file '${opts.path}'`
-    ))
-  ) {
-    if (!actions.open_files) return; // closed
-    actions.open_files.delete(opts.path);
+  if (!tabIsOpened()) {
     return;
   }
 
@@ -152,12 +155,15 @@ export async function open_file(
       project_id: actions.project_id,
       path: opts.path,
     });
+    if (!tabIsOpened()) {
+      return;
+    }
     if (opts.path != realpath) {
       if (!actions.open_files) return; // closed
       alert_message({
         type: "info",
-        message: `Opening realpath "${realpath}" instead, since filesystem links are not fully supported.`,
-        timeout: 15,
+        message: `Opening normalized real path "${realpath}"`,
+        timeout: 10,
       });
       actions.open_files.delete(opts.path);
       opts.path = realpath;
@@ -166,22 +172,15 @@ export async function open_file(
   } catch (_) {
     // TODO: old projects will not have the new realpath api call -- can delete this try/catch at some point.
   }
-  let ext = opts.ext ?? filename_extension_notilde(opts.path).toLowerCase();
-
-  // Returns true if the project is closed or the file tab is now closed.
-  function is_closed(): boolean {
-    const store = actions.get_store();
-    // if store isn't defined (so project closed) *or*
-    // open_files doesn't have path in since tab got closed
-    // (see https://github.com/sagemathinc/cocalc/issues/4692):
-    return store?.getIn(["open_files", opts.path]) == null;
-  }
+  let ext = opts.ext ?? filename_extension(opts.path).toLowerCase();
 
   // Next get the group.
   let group: string;
   try {
     group = await get_my_group(actions.project_id);
-    if (is_closed()) return;
+    if (!tabIsOpened()) {
+      return;
+    }
   } catch (err) {
     actions.set_activity({
       id: uuid(),
@@ -189,6 +188,12 @@ export async function open_file(
     });
     return;
   }
+
+  let store = actions.get_store();
+  if (store == null) {
+    return;
+  }
+
   const is_public = group === "public";
 
   if (!is_public) {
@@ -196,7 +201,9 @@ export async function open_file(
     // to only do this if not public, since again, if public we
     // are not even using the project (it is all client side).
     const can_open_file = await store.can_open_file_ext(ext, actions);
-    if (is_closed()) return;
+    if (!tabIsOpened()) {
+      return;
+    }
     if (!can_open_file) {
       const site_name =
         redux.getStore("customize").get("site_name") || SITE_NAME;
@@ -215,6 +222,9 @@ export async function open_file(
     // know anything about the state of the project).
     try {
       await callback(actions._ensure_project_is_open.bind(actions));
+      if (!tabIsOpened()) {
+        return;
+      }
     } catch (err) {
       actions.set_activity({
         id: uuid(),
@@ -222,7 +232,9 @@ export async function open_file(
       });
       return;
     }
-    if (is_closed()) return;
+    if (!tabIsOpened()) {
+      return;
+    }
   }
 
   if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
@@ -236,12 +248,14 @@ export async function open_file(
   }
 
   store = actions.get_store(); // because async stuff happened above.
-  if (store == undefined) return;
+  if (store == undefined) {
+    return;
+  }
 
   // Only generate the editor component if we don't have it already
   // Also regenerate if view type (public/not-public) changes.
   // (TODO: get rid of that change code since public is deprecated)
-  open_files = store.get("open_files");
+  const open_files = store.get("open_files");
   if (open_files == null || actions.open_files == null) {
     // project is closing
     return;
@@ -269,6 +283,60 @@ export async function open_file(
   }
 
   actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
+
+  const noComputeServer = excludeFromComputeServer(opts.path);
+
+  if (
+    noComputeServer &&
+    actions.getComputeServerIdForFile({ path: opts.path })
+  ) {
+    // this won't work so if such a file is somehow on a compute server, move it back:
+    opts.compute_server_id = 0;
+    await actions.setComputeServerIdForFile({
+      path: opts.path,
+      compute_server_id: opts.compute_server_id,
+      confirm: false,
+    });
+  } else {
+    if ((opts.compute_server_id != null || opts.explicit) && !alreadyOpened) {
+      let path = opts.path;
+      path = canonicalPath(path);
+      try {
+        if (noComputeServer) {
+          if (opts.compute_server_id) {
+            throw Error(
+              `Opening '${path}' on a compute server is not yet supported -- copy it to the Home Base and open it there instead.`,
+            );
+          } else {
+            opts.compute_server_id = 0;
+            await actions.setComputeServerIdForFile({
+              path,
+              compute_server_id: opts.compute_server_id,
+              confirm: false,
+            });
+          }
+        } else {
+          await actions.setComputeServerIdForFile({
+            path,
+            compute_server_id: opts.compute_server_id,
+            confirm: true,
+          });
+        }
+      } catch (err) {
+        actions.open_files.delete(opts.path);
+        alert_message({
+          type: "error",
+          message: `${err}`,
+          timeout: 20,
+        });
+        return;
+      }
+    }
+  }
+
+  if (!tabIsOpened()) {
+    return;
+  }
 
   if (opts.foreground) {
     actions.foreground_project(opts.change_history);
@@ -327,7 +395,7 @@ async function open_sagenb_worksheet(opts: {
   try {
     const path: string = await convert_sagenb_worksheet(
       opts.project_id,
-      opts.path
+      opts.path,
     );
     await open_file(actions, {
       path,
@@ -345,7 +413,7 @@ async function open_sagenb_worksheet(opts: {
 
 async function convert_sagenb_worksheet(
   project_id: string,
-  filename: string
+  filename: string,
 ): Promise<string> {
   const ext = filename_extension(filename);
   if (ext != "sws") {
@@ -367,14 +435,18 @@ async function convert_sagenb_worksheet(
   return filename.slice(0, filename.length - 3) + "sagews";
 }
 
-const log_open_time: { [path: string]: { id: string; start: Date } } = {};
+const log_open_time: { [path: string]: { id: string; start: number } } = {};
 
-export function log_file_open(project_id: string, path: string): void {
+export function log_file_open(
+  project_id: string,
+  path: string,
+  deleted?: number,
+): void {
   // Only do this if the file isn't
   // deleted, since if it *is* deleted, then user sees a dialog
   // and we only log the open if they select to recreate the file.
   // See https://github.com/sagemathinc/cocalc/issues/4720
-  if (webapp_client.file_client.is_deleted(path, project_id)) {
+  if (!deleted && webapp_client.file_client.is_deleted(path, project_id)) {
     return;
   }
 
@@ -384,6 +456,7 @@ export function log_file_open(project_id: string, path: string): void {
     event: "open",
     action: "open",
     filename: path,
+    deleted,
   });
 
   // Save the log entry id, so it is possible to optionally
@@ -395,7 +468,7 @@ export function log_file_open(project_id: string, path: string): void {
     const key = `${project_id}-${path}`;
     log_open_time[key] = {
       id,
-      start: webapp_client.server_time(),
+      start: Date.now(),
     };
   }
 }
@@ -415,7 +488,7 @@ export function log_opened_time(project_id: string, path: string): void {
   // do not allow recording the time more than once, which would be weird.
   delete log_open_time[key];
   const actions = redux.getProjectActions(project_id);
-  const time = webapp_client.server_time().valueOf() - start.valueOf();
+  const time = Date.now() - start;
   actions.log({ time }, id);
 }
 
@@ -426,7 +499,7 @@ function get_side_chat_state(
     path: string;
     chat?: boolean;
     chat_width?: number;
-  }
+  },
 ): void {
   // grab chat state from local storage
   if (local_storage != null) {
@@ -441,4 +514,14 @@ function get_side_chat_state(
   if (filename_extension(opts.path) === "sage-chat") {
     opts.chat = false;
   }
+}
+
+export function canonicalPath(path: string) {
+  if (path.endsWith(".ipynb")) {
+    return ipynbSyncdbPath(path);
+  }
+  if (path.endsWith("term") && path[0] != ".") {
+    return termPath({ path, cmd: "", number: 0 });
+  }
+  return path;
 }

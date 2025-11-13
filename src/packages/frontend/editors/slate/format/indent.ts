@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Editor, Element, Location, Path, Transforms } from "slate";
@@ -104,7 +104,7 @@ export function unindentListItem(editor: Editor): boolean {
 export function getNode(
   editor,
   match,
-  at: Location | undefined = undefined
+  at: Location | undefined = undefined,
 ): [Element, number[]] | [undefined, undefined] {
   if (at != null) {
     // First try the node at *specific* given position.
@@ -120,19 +120,23 @@ export function getNode(
       // no such element, so try search below...
     }
   }
-  for (const elt of Editor.nodes(editor, {
-    match: (node, path) => Element.isElement(node) && match(node, path),
-    mode: "lowest",
-    at,
-  })) {
-    return [elt[0] as Element, elt[1]];
+  try {
+    for (const elt of Editor.nodes(editor, {
+      match: (node, path) => Element.isElement(node) && match(node, path),
+      mode: "lowest",
+      at,
+    })) {
+      return [elt[0] as Element, elt[1]];
+    }
+  } catch (_err) {
+    // no  such element
   }
   return [undefined, undefined];
 }
 
 export function indentListItem(
   editor: Editor,
-  at: Location | undefined = undefined
+  at: Location | undefined = undefined,
 ): boolean {
   const [item, path] = getNode(editor, (node) => node.type == "list_item", at);
   if (item == null || path == null) {
@@ -188,7 +192,7 @@ export function indentListItem(
       Transforms.wrapNodes(
         editor,
         { type: list.type, tight: true, children: [] },
-        { at: to }
+        { at: to },
       );
     });
   } catch (err) {

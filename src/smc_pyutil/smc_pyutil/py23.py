@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
+# License: MS-RSL – see LICENSE.md for details
 
 # thin compatibility layer to support python 2 and 3
 # to avoid an additional dependency on six & others

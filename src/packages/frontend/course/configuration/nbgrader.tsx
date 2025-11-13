@@ -1,19 +1,20 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+import { Card, InputNumber, Radio } from "antd";
 
 import { Checkbox } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
-  React,
   redux,
   useActions,
   useRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, Icon, NumberInput } from "@cocalc/frontend/components";
+import { A, Icon } from "@cocalc/frontend/components";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
-import { Card, Radio } from "antd";
+
 import { CourseActions } from "../actions";
 import {
   NBGRADER_CELL_TIMEOUT_MS,
@@ -26,13 +27,13 @@ const radioStyle: CSS = {
   display: "block",
   whiteSpace: "normal",
   fontWeight: "inherit",
-};
+} as const;
 
 interface Props {
   name: string;
 }
 
-export const Nbgrader: React.FC<Props> = ({ name }) => {
+export function Nbgrader({ name }: Props) {
   const settings = useRedux([name, "settings"]);
   const course_project_id = useRedux([name, "course_project_id"]);
   const actions: CourseActions = useActions({ name });
@@ -40,7 +41,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
     throw Error("bug");
   }
 
-  function render_grade_project(): JSX.Element {
+  function render_grade_project(): React.JSX.Element {
     const location = settings?.get("nbgrader_grade_project")
       ? "project"
       : "student";
@@ -64,7 +65,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
               actions.configuration.set_nbgrader_grade_project("");
             } else {
               actions.configuration.set_nbgrader_grade_project(
-                course_project_id
+                course_project_id,
               );
             }
           }}
@@ -106,7 +107,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
         You can create a new project dedicated to running nbgrader, upgrade or
         license it appropriately, and copy any files to it that student work
         depends on. This new project will be shared will all collaborators of
-        this instructorproject.
+        this instructor project.
         <br />
         You can also grade all student work in the student's own project, which
         is good because the code runs in the same environment as the student
@@ -116,7 +117,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
     );
   }
 
-  function render_include_hidden_tests(): JSX.Element {
+  function render_include_hidden_tests(): React.JSX.Element {
     return (
       <div
         style={{
@@ -126,7 +127,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
         }}
       >
         <h6>
-          Nbgrader hidden tests:{" "}
+          nbgrader hidden tests:{" "}
           {settings?.get("nbgrader_include_hidden_tests")
             ? "Included"
             : "NOT included"}
@@ -135,7 +136,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
           checked={settings?.get("nbgrader_include_hidden_tests")}
           onChange={(e) =>
             actions.configuration.set_nbgrader_include_hidden_tests(
-              (e.target as any).checked
+              (e.target as any).checked,
             )
           }
         >
@@ -148,12 +149,12 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
     );
   }
 
-  function render_timeouts(): JSX.Element {
+  function render_timeouts(): React.JSX.Element {
     const timeout = Math.round(
-      settings.get("nbgrader_timeout_ms", NBGRADER_TIMEOUT_MS) / 1000
+      settings.get("nbgrader_timeout_ms", NBGRADER_TIMEOUT_MS) / 1000,
     );
     const cell_timeout = Math.round(
-      settings.get("nbgrader_cell_timeout_ms", NBGRADER_CELL_TIMEOUT_MS) / 1000
+      settings.get("nbgrader_cell_timeout_ms", NBGRADER_CELL_TIMEOUT_MS) / 1000,
     );
     return (
       <div
@@ -163,42 +164,47 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
           borderRadius: "5px",
         }}
       >
-        <h6>Nbgrader timeouts: {timeout} seconds</h6>
+        <h6>nbgrader timeouts: {timeout} seconds</h6>
         <i>Grading timeout in seconds:</i> if grading a student notebook takes
         longer than <i>{timeout} seconds</i>, then it is terminated with a
         timeout error.
-        <NumberInput
-          on_change={(n) =>
-            actions.configuration.set_nbgrader_timeout_ms(n * 1000)
+        <InputNumber
+          onChange={(n) =>
+            actions.configuration.set_nbgrader_timeout_ms(
+              n ? n * 1000 : undefined,
+            )
           }
           min={30}
           max={3600}
-          number={timeout}
+          value={timeout}
         />
         <br />
         <i>Cell grading timeout in seconds:</i> if grading a cell in a student
         notebook takes longer than <i>{cell_timeout} seconds</i>, then that cell
         is terminated with a timeout error.
-        <NumberInput
-          on_change={(n) =>
+        <InputNumber
+          onChange={(n) =>
             actions.configuration.set_nbgrader_cell_timeout_ms(
-              Math.min(n * 1000, timeout * 1000)
+              n ? Math.min(n * 1000, timeout * 1000) : undefined,
             )
           }
           min={5}
           max={3600}
-          number={cell_timeout}
+          value={cell_timeout}
         />
       </div>
     );
   }
 
-  function render_limits(): JSX.Element {
+  function render_limits(): React.JSX.Element {
     const max_output = Math.round(
-      settings.get("nbgrader_max_output", NBGRADER_MAX_OUTPUT)
+      settings.get("nbgrader_max_output", NBGRADER_MAX_OUTPUT),
     );
     const max_output_per_cell = Math.round(
-      settings.get("nbgrader_max_output_per_cell", NBGRADER_MAX_OUTPUT_PER_CELL)
+      settings.get(
+        "nbgrader_max_output_per_cell",
+        NBGRADER_MAX_OUTPUT_PER_CELL,
+      ),
     );
     return (
       <div
@@ -208,37 +214,41 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
           borderRadius: "5px",
         }}
       >
-        <h6>Nbgrader output limits: {Math.round(max_output / 1000)} KB</h6>
+        <h6>nbgrader output limits: {Math.round(max_output / 1000)} KB</h6>
         <i>Max output:</i> if total output from all cells exceeds{" "}
         {Math.round(max_output / 1000)} KB, then further output is truncated.
-        <NumberInput
-          on_change={(n) =>
-            actions.configuration.set_nbgrader_max_output(n * 1000)
+        <InputNumber
+          onChange={(n) =>
+            actions.configuration.set_nbgrader_max_output(
+              n ? n * 1000 : undefined,
+            )
           }
           min={1}
           max={10000}
-          number={Math.round(max_output / 1000)}
+          value={Math.round(max_output / 1000)}
         />
         <br />
         <i>Max output per cell:</i> if output from a cell exceeds{" "}
         {Math.round(max_output_per_cell / 1000)} KB, then further output is
         truncated.
-        <NumberInput
-          on_change={(n) =>
-            actions.configuration.set_nbgrader_max_output_per_cell(n * 1000)
+        <InputNumber
+          onChange={(n) =>
+            actions.configuration.set_nbgrader_max_output_per_cell(
+              n ? n * 1000 : undefined,
+            )
           }
           min={1}
           max={10000}
-          number={Math.round(max_output_per_cell / 1000)}
+          value={Math.round(max_output_per_cell / 1000)}
         />
       </div>
     );
   }
 
-  function render_parallel(): JSX.Element {
+  function render_parallel(): React.JSX.Element {
     const parallel = Math.round(
       settings.get("nbgrader_parallel") ??
-        actions.get_store().get_nbgrader_parallel()
+        actions.get_store().get_nbgrader_parallel(),
     );
     return (
       <div
@@ -249,7 +259,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
         }}
       >
         <h6>
-          Nbgrader parallel limit:{" "}
+          nbgrader parallel limit:{" "}
           {parallel > 1
             ? `grade ${parallel} students at once`
             : "one student a time"}
@@ -258,11 +268,13 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
         could depend on where grading is happening (see "Where to autograde
         assignments" above), and compute resources you or your students have
         bought.
-        <NumberInput
-          on_change={(n) => actions.configuration.set_nbgrader_parallel(n)}
+        <InputNumber
+          onChange={(n) =>
+            actions.configuration.set_nbgrader_parallel(n ? n : undefined)
+          }
           min={1}
           max={50}
-          number={parallel}
+          value={parallel}
         />
       </div>
     );
@@ -271,9 +283,10 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
   return (
     <Card
       title={
-        <A href="https://doc.cocalc.com/teaching-nbgrader.html">
-          <Icon name="graduation-cap" /> Nbgrader
-        </A>
+        <>
+          <Icon name="graduation-cap" /> nbgrader (
+          <A href="https://doc.cocalc.com/teaching-nbgrader.html">Docs</A>)
+        </>
       }
     >
       {render_grade_project()}
@@ -287,4 +300,4 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
       {render_parallel()}
     </Card>
   );
-};
+}

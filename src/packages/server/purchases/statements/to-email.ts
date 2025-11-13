@@ -26,7 +26,6 @@ purchases:
     "cost_per_hour": null,
     "period_start": null,
     "period_end": null,
-    "pending": null,
     "service": "credit",
     "description": {
       "type": "credit"
@@ -38,133 +37,62 @@ purchases:
 
 import type { Statement } from "@cocalc/util/db-schema/statements";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
-import { currency } from "@cocalc/util/misc";
+import { currency, round2down } from "@cocalc/util/misc";
 import { plural } from "@cocalc/util/misc";
 import { QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
-import { getAmountStyle } from "@cocalc/util/db-schema/purchases";
+import { decimalSubtract } from "@cocalc/util/stripe/calc";
 
-const STYLE = "padding: 10px 15px;";
-const TD = `style="${STYLE}"`;
-const WIDTH = "676px";
+function toISODay(d: any) {
+  return new Date(d).toISOString().split("T")[0];
+}
 
-export function statementToHtml(
+export function statementToMarkdown(
   statement: Statement,
   previousStatement: Statement | null,
-  opts: { siteName?: string } = {}
+  opts: { siteName?: string } = {},
 ): string {
   const { siteName = "CoCalc" } = opts;
   return `
-<h3>Your ${
-    statement.interval == "day" ? "Daily" : "Monthly"
-  } ${siteName} Statement</h3>
-<div style='border: 2px solid lightgrey; border-radius:5px; width:${WIDTH}'>
-<table style='border-collapse: collapse; width:${WIDTH}'>
-<tr><td ${TD}>Statement Id</td><td style='text-align:center; ${STYLE}'>${
-    statement.id
-  }</td></tr>
-<tr><td ${TD}>Date</td><td style='text-align:center; ${STYLE}'>${new Date(
-    statement.time
-  ).toDateString()}</td></tr>
-<tr><td ${TD}>Previous Statement Balance</td><td style='font-family: monospace;text-align:center; ${STYLE}; color:${
-    getAmountStyle(previousStatement?.balance ?? 0).color
-  }'>${currency(previousStatement?.balance ?? 0)}</td></tr>
-<tr><td ${TD}>${statement.num_charges} ${plural(
-    statement.num_charges,
-    "Charge"
-  )} </td><td style='font-family: monospace;text-align:center; ${STYLE}; color:${
-    getAmountStyle(-1).color
-  }'>${currency(-statement.total_charges)}</td></tr>
-<tr><td ${TD}>${statement.num_credits} ${plural(
-    statement.num_credits,
-    "Credit"
-  )} </td><td style='font-family: monospace;text-align:center; ${STYLE}; color:${
-    getAmountStyle(1).color
-  }'>${currency(-statement.total_credits)}</td></tr>
-<tr style='border:2px solid green'><td ${TD}>Your New Statement Balance</td><td style='font-family: monospace;text-align:center; ${STYLE}; font-size:18px'>${currency(
-    statement.balance
-  )}</td></tr>
-</table>
-</div>
+## Your ${statement.interval == "day" ? "Daily" : "Monthly"} ${siteName} Statement (Id = ${statement.id})
+- ${toISODay(statement.time)}
+- Previous Balance: ${currency(round2down(previousStatement?.balance ?? 0))}
+- ${statement.num_charges} ${plural(statement.num_charges, "Charge")}: ${currency(
+    -statement.total_charges,
+  )}
+- ${statement.num_credits} ${plural(statement.num_credits, "Credit")}: ${currency(
+    -statement.total_credits,
+  )}
+- New Balance: ${currency(statement.balance)}
+${statement.balance >= 0 ? "- **NO PAYMENT IS REQUIRED.**" : ""}
 `;
 }
 
-export function statementToText(
-  statement: Statement,
-  previousStatement: Statement | null,
-  opts: { siteName?: string } = {}
-): string {
-  const { siteName = "CoCalc" } = opts;
-  return `
-Your ${statement.interval == "day" ? "Daily" : "Monthly"} ${siteName} Statement
-Id: ${statement.id}
-Date: ${new Date(statement.time).toDateString()}
-Previous Statement Balance: ${currency(statement.balance)}
-${statement.num_charges} ${plural(statement.num_charges, "Charge")}: ${currency(
-    -statement.total_charges
-  )}
-${statement.num_credits} ${plural(statement.num_credits, "Credit")}: ${currency(
-    -statement.total_credits
-  )}
-New Statement Balance: ${currency(previousStatement?.balance ?? 0)}
-`;
-}
-
-export function purchasesToHtml(purchases: Purchase[]): string {
+export function purchasesToMarkdown({
+  purchases,
+  statement,
+}: {
+  purchases: Purchase[];
+  statement: Statement;
+}): string {
   const v: string[] = [];
-  let n = 0;
-  for (const { id, description, time, service, cost } of purchases) {
+  v.push("| Id  | Date | Service | Amount | Balance |");
+  v.push("| :-- | :--  | :------ | -----: | -----: |");
+  let balance = statement.balance;
+  for (const { id, time, service, cost } of purchases) {
     const amount = -(cost ?? 0);
     const spec = QUOTA_SPEC[service];
     v.push(
-      `<tr ${
-        n % 2 == 0 ? 'style="background:#f8f8f8"' : ""
-      }><td ${TD}>${id}</td><td ${TD}>${new Date(
-        time
-      ).toLocaleString()}</td><td style='text-align:center; ${STYLE}'>${
-        spec?.display ?? service
-      }</td><td style='font-family: monospace;text-align:right; ${STYLE};  color:${
-        getAmountStyle(amount).color
-      }'>${
-        amount == null ? "-" : currency(amount)
-      }</td><td ${TD}><pre style="overflow-y:auto; height:80px;border:1px solid lightgrey;border-radius: 4px; background: white; color: #666;">${JSON.stringify(
-        description,
-        undefined,
-        2
-      )}</pre></td></tr>`
+      `| ${id} | ${toISODay(time)} | ${spec?.display ?? service} | ${amount == null ? "-" : currency(amount)} | ${currency(balance)} |`,
     );
-    n += 1;
+    if (amount != null) {
+      balance = decimalSubtract(balance, amount);
+    }
   }
 
   return `
-<h3>Individual Transactions (${purchases.length})</h3>
-<div style='border: 2px solid lightgrey; border-radius:5px; width:${WIDTH}; overflow-x: scroll'>
-<table style='border-collapse: collapse; width:${WIDTH}'>
-<tr>
-<th ${TD}>Transaction Id</th>
-<th ${TD}>Time (UTC)</th>
-<th ${TD}>Service</th>
-<th ${TD}>Amount (USD)</th>
-<th ${TD}>Description</th>
-</tr>
+### Transactions (${purchases.length})
+
 ${v.join("\n")}
-</table>
-</div>
-`;
-}
 
-export function purchasesToText(purchases: Purchase[]): string {
-  const v: string[] = [];
-  for (const { id, description, time, service, cost } of purchases) {
-    v.push(
-      `${id}: ${new Date(time).toLocaleString()}, ${service}, ${
-        cost == null ? "-" : currency(cost)
-      }, ${JSON.stringify(description)}`
-    );
-  }
-
-  return `
-Individual Transactions (${purchases.length})
-
-${v.join("\n\n")}
 `;
 }

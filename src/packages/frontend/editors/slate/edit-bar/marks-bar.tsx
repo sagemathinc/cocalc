@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button, Tooltip } from "antd";
@@ -79,7 +79,7 @@ const TITLES = {
 
 export const MarksBar: React.FC<MarksBarProps> = (props: MarksBarProps) => {
   const { marks, editor } = props;
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   v.push(<Insert key="insert" editor={editor} />);
   for (const mark of MARKS) {
     v.push(

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { CopyOutlined } from "@ant-design/icons";
@@ -21,6 +21,7 @@ interface Props {
   inputWidth?: string;
   size?: "large" | "middle" | "small";
   before?: boolean;
+  copyTip?: string;
 }
 
 const INPUT_STYLE: CSS = { display: "inline-block", flex: 1 } as const;
@@ -44,6 +45,7 @@ export default function CopyToClipBoard({
   inputStyle,
   outerStyle,
   inputWidth,
+  copyTip,
   before,
 }: Props) {
   const [copied, setCopied] = useState<boolean>(false);
@@ -60,7 +62,7 @@ export default function CopyToClipBoard({
     );
     if (!copied) return btn;
     return (
-      <Tooltip title="Copied!" defaultOpen>
+      <Tooltip title={copyTip ?? "Copied!"} defaultOpen>
         {btn}
       </Tooltip>
     );
@@ -76,6 +78,7 @@ export default function CopyToClipBoard({
         style={{
           width: inputWidth ?? `${(display ?? value).length + 8}ex`,
           fontFamily: "monospace",
+          ...inputStyle,
         }}
         readOnly
         size={size}
@@ -85,11 +88,13 @@ export default function CopyToClipBoard({
       {!before ? copy : undefined}
     </Space.Compact>
   );
-  if (!label) return <div style={style}>{input}</div>;
+  if (!label) {
+    return <div style={style}>{input}</div>;
+  }
   return (
     <div style={{ display: "flex", ...style }}>
       <div style={{ ...LABEL_STYLE, ...labelStyle }}>{label}</div>{" "}
-      <div style={{ ...INPUT_STYLE, ...inputStyle }}>{input}</div>
+      <div style={{ ...INPUT_STYLE }}>{input}</div>
     </div>
   );
 }

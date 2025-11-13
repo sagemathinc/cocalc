@@ -3,11 +3,12 @@ Undelete the compute server.
 */
 
 import getPool from "@cocalc/database/pool";
+import { isDnsAvailable } from "./dns";
 
 export default async function undeleteServer({ account_id, id }) {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT account_id, deleted FROM compute_servers WHERE id=$1",
+    "SELECT account_id, deleted, configuration->>'dns' AS dns FROM compute_servers WHERE id=$1",
     [id],
   );
   if (rows.length == 0) {
@@ -20,6 +21,13 @@ export default async function undeleteServer({ account_id, id }) {
     // already not deleted
     return;
   }
+  const dns = rows[0].dns;
+  if (dns && !(await isDnsAvailable(dns))) {
+    throw Error(
+      `The dns name '${dns}' is taken by another compute server.  Edit the settings of this deleted compute server and change 'DNS: Custom Subdomain' to a different subdomain then try to undelete the server.`,
+    );
+  }
+
   // do not just set deleted to null, since we want changefeed to update synctable
   // and it doesn't with deleted=null.
   const { rowCount } = await pool.query(

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -23,7 +23,7 @@ export async function export_assignment(
   export_path: string,
   students: StudentsMap,
   student_name: Function,
-  log: Function // call with a string giving the current thing being done.
+  log: Function, // call with a string giving the current thing being done.
 ): Promise<void> {
   log(`Ensure target path "${export_path}" exists`);
   await exec({ command: "mkdir", args: ["-p", export_path], project_id });
@@ -43,7 +43,7 @@ export async function export_assignment(
         collect_path + "/" + student_id,
         export_path,
         name,
-        (s) => log(desc + s)
+        (s) => log(desc + s),
       );
     } catch (err) {
       errors[name] = `${err}`;
@@ -67,14 +67,14 @@ async function export_one_directory(
   source: string,
   target: string,
   prefix: string,
-  log: Function
+  log: Function,
 ): Promise<void> {
   const api = await project_api(project_id);
   let listing;
   try {
     listing = await api.listing(source);
   } catch (err) {
-    if (err.toString().indexOf("ENOENT") != -1) {
+    if (`${err}`.indexOf("ENOENT") != -1) {
       // ignore completely missing directories -- no problem.
       return;
     }

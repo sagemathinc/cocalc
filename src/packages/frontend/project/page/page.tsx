@@ -1,10 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { DndContext, useDraggable } from "@dnd-kit/core";
-import { Modal } from "antd";
+import { Button, Modal, Tooltip } from "antd";
+import { useIntl } from "react-intl";
 
 import {
   React,
@@ -13,16 +14,19 @@ import {
   useEffect,
   useMemo,
   useRedux,
+  useRef,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { useAppState } from "@cocalc/frontend/app/context";
+import { Icon, Loading } from "@cocalc/frontend/components";
+import { useAppContext } from "@cocalc/frontend/app/context";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { Loading } from "@cocalc/frontend/components";
 import {
   FrameContext,
   defaultFrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import StudentPayUpgrade from "@cocalc/frontend/purchases/student-pay";
+import track from "@cocalc/frontend/user-tracking";
 import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { AnonymousName } from "../anonymous-name";
@@ -32,7 +36,6 @@ import {
   useProjectContextProvider,
 } from "../context";
 import { ProjectWarningBanner } from "../project-banner";
-import { StartButton } from "../start-button";
 import { DeletedProjectWarning } from "../warnings/deleted";
 import { DiskSpaceWarning } from "../warnings/disk-space";
 import { OOMWarning } from "../warnings/oom";
@@ -50,8 +53,15 @@ import {
 } from "./flyouts/state";
 import HomePageButton from "./home-page/button";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
-import Tabs, { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./tabs";
-import StudentPayUpgrade from "@cocalc/frontend/purchases/student-pay";
+import ProjectTabs, {
+  FIXED_TABS_BG_COLOR,
+  VerticalFixedTabs,
+} from "./activity-bar-tabs";
+import { throttle } from "lodash";
+import { StartButton } from "@cocalc/frontend/project/start-button";
+import { TOGGLE_ACTIVITY_BAR_TOGGLE_BUTTON_SPACE } from "./activity-bar-consts";
+
+const START_BANNER = false;
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
@@ -67,6 +77,9 @@ interface Props {
 
 export const ProjectPage: React.FC<Props> = (props: Props) => {
   const { project_id, is_active } = props;
+  const intl = useIntl();
+  const mainRef = useRef<HTMLDivElement>(null);
+  const [mainWidthPx, setMainWidthPx] = useState<number>(0);
   const hideActionButtons = useTypedRedux({ project_id }, "hideActionButtons");
   const flyout = useTypedRedux({ project_id }, "flyout");
   const actions = useActions({ project_id });
@@ -76,7 +89,11 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     project_id,
     "deleted",
   ]);
-  const projectCtx = useProjectContextProvider(project_id, is_active);
+  const projectCtx = useProjectContextProvider({
+    project_id,
+    is_active,
+    mainWidthPx,
+  });
   const fullscreen = useTypedRedux("page", "fullscreen");
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const modal = useTypedRedux({ project_id }, "modal");
@@ -92,7 +109,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     getFlyoutWidth(project_id),
   );
   const [oldFlyoutWidth, setOldFlyoutWidth] = useState(flyoutWidth);
-  const { pageWidthPx } = useAppState();
+  const { pageWidthPx } = useAppContext();
 
   const narrowerPX = useMemo(() => {
     return hideActionButtons ? homePageButtonWidth : 0;
@@ -108,10 +125,31 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   }, [project_id]);
 
   useEffect(() => {
-    if (flyoutWidth > pageWidthPx / 2) {
-      setFlyoutWidth(Math.max(FLYOUT_DEFAULT_WIDTH_PX / 2, pageWidthPx / 2));
+    if (flyoutWidth > pageWidthPx * 0.9) {
+      setFlyoutWidth(Math.max(FLYOUT_DEFAULT_WIDTH_PX / 2, pageWidthPx * 0.9));
     }
   }, [pageWidthPx]);
+
+  // observe debounced width changes of mainRef div and set it via setMainWidthPx
+  useEffect(() => {
+    const main = mainRef.current;
+    if (main == null) return;
+    const resizeObserver = new ResizeObserver(
+      throttle(
+        (entries) => {
+          if (entries.length > 0) {
+            setMainWidthPx(entries[0].contentRect.width);
+          }
+        },
+        100,
+        { leading: false, trailing: true },
+      ),
+    );
+    resizeObserver.observe(main);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   function setWidth(newWidth: number, reset = false): void {
     if (flyout == null) return;
@@ -141,7 +179,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   }
 
   function renderEditorContent() {
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
 
     open_files_order.map((path) => {
       if (!path) {
@@ -253,41 +291,79 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     // CSS note: the paddingTop is here to not make the tabs touch the top row (looks funny)
     // this was part of the container-content div, which makes little sense for e.g. the banner bars
     return (
-      <div style={{ display: "flex", margin: "0", paddingTop: "3px" }}>
+      <div style={{ display: "flex", height: "36px" }}>
         <HomePageButton
           project_id={project_id}
           active={active_project_tab == "home"}
           width={homePageButtonWidth}
         />
         {renderFlyoutHeader()}
-        <div style={{ flex: 1, overflow: "hidden" }}>
-          <Tabs project_id={project_id} />
+        <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
+          <StartButton minimal style={{ margin: "2px 4px 0px 4px" }} />
+          <ProjectTabs project_id={project_id} />
         </div>
       </div>
     );
   }
 
-  function renderVerticalActionButtons() {
-    if (hideActionButtons) return;
+  function renderActivityBarButtons() {
     if (fullscreen && fullscreen !== "project") return;
 
-    return (
-      <div
-        style={{
-          background: FIXED_TABS_BG_COLOR,
-          borderRadius: "0",
-          borderTop: FIX_BORDERS.borderTop,
-          borderRight: flyout == null ? FIX_BORDERS.borderRight : undefined,
-        }}
-      >
-        <VerticalFixedTabs setHomePageButtonWidth={setHomePageButtonWidth} />
-      </div>
-    );
+    if (hideActionButtons) {
+      return (
+        <Tooltip
+          title={intl.formatMessage({
+            id: "project.page.activity-bar.show.tooltip",
+            defaultMessage: "Show the activity bar",
+            description: "This shows the vertical activity bar in the UI",
+          })}
+          placement="rightTop"
+        >
+          <Button
+            size="small"
+            type="text"
+            style={{
+              position: "fixed",
+              bottom: "0px",
+              marginBottom: TOGGLE_ACTIVITY_BAR_TOGGLE_BUTTON_SPACE,
+              left: "0px",
+              zIndex: 1000,
+              outline: `1px solid ${COLORS.GRAY_L}`,
+              borderRadius: "0 3px 0 0 ",
+              backgroundColor: COLORS.GRAY_LLL,
+            }}
+            onClick={() => {
+              track("action-bar", { action: "show" });
+              actions?.toggleActionButtons();
+            }}
+          >
+            <Icon name="vertical-left-outlined" />
+          </Button>
+        </Tooltip>
+      );
+    } else {
+      return (
+        <div
+          style={{
+            flex: "0 0 auto",
+            display: "flex",
+            flexDirection: "column",
+            background: FIXED_TABS_BG_COLOR,
+            borderRadius: "0",
+            borderTop: FIX_BORDERS.borderTop,
+            borderRight: flyout == null ? FIX_BORDERS.borderRight : undefined,
+          }}
+        >
+          <VerticalFixedTabs setHomePageButtonWidth={setHomePageButtonWidth} />
+        </div>
+      );
+    }
   }
 
   function renderMainContent() {
     return (
       <div
+        ref={mainRef}
         style={{
           flex: 1,
           display: "flex",
@@ -295,7 +371,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           overflowX: "auto",
         }}
       >
-        <StartButton />
+        {START_BANNER && <StartButton />}
         {renderEditorContent()}
         {render_project_content()}
         {render_project_modal()}
@@ -310,10 +386,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   return (
     <ProjectContext.Provider value={projectCtx}>
       <div className="container-content" style={PAGE_STYLE}>
-        <StudentPayUpgrade
-          project_id={project_id}
-          style={{ marginTop: "5px" }}
-        />
+        <StudentPayUpgrade project_id={project_id} />
         <AnonymousName project_id={project_id} />
         <DiskSpaceWarning project_id={project_id} />
         <RamWarning project_id={project_id} />
@@ -323,7 +396,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         {renderTopRow()}
         {is_deleted && <DeletedProjectWarning />}
         <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          {renderVerticalActionButtons()}
+          {renderActivityBarButtons()}
           {renderFlyout()}
           {renderMainContent()}
         </div>

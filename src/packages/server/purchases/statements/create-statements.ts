@@ -1,8 +1,8 @@
 /*
 See packages/util/db-schema/statements.ts for the definition of a statement.
 
-NOTE: This is not coded in a way that would scale up to having like 100K active
-users who make purchases every day, since the first step is too load some data
+NOTE: This is not coded in a way that would scale up to having like "one bazillion"
+active users who make purchases every day, since the first step is too load some data
 into memory about every user active with a purchase in a given day.  By the time
 we get anywhere close to that level of usage, I can higher somebody else to
 rewrite this to scale better.
@@ -219,7 +219,7 @@ function getQuery(
 }
 
 // Gets the charges or credits for the given interval, which aren't on any statement
-// already.  These always include pending charges, which are NOT treated differently.
+// already.  This EXCLUDES anything where the cost field is not yet set.
 async function getData(
   time: Date,
   pool,

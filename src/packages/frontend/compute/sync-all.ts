@@ -1,5 +1,5 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { throttle } from "lodash";
 import { redux } from "@cocalc/frontend/app-framework";
 

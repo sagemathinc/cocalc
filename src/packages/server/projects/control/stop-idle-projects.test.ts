@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import createProject from "@cocalc/server/projects/create";
@@ -8,6 +8,7 @@ import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 import { test } from "./stop-idle-projects";
 const { stopIdleProjects } = test;
+import { delay } from "awaiting";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -20,11 +21,11 @@ afterAll(async () => {
 describe("creates a project, set various parameters, and runs idle project function, it and confirm that things work as intended", () => {
   let project_id;
 
-  const projectsTheGotStopped = new Set<string>([]);
+  const projectsThatGotStopped = new Set<string>([]);
   const stopProject = async (project_id) => {
-    projectsTheGotStopped.add(project_id);
+    projectsThatGotStopped.add(project_id);
   };
-  const reset = () => projectsTheGotStopped.clear();
+  const reset = () => projectsThatGotStopped.clear();
   const pool = getPool();
 
   afterAll(async () => {
@@ -38,69 +39,75 @@ describe("creates a project, set various parameters, and runs idle project funct
 
   it("confirm that our project doesn't get stopped", async () => {
     await stopIdleProjects(stopProject);
-    expect(projectsTheGotStopped.has(project_id)).toBe(false);
+    expect(projectsThatGotStopped.has(project_id)).toBe(false);
   });
 
   it("mock start of our project by setting run_quota, last_edited, and last_started", async () => {
     await pool.query(
-      `UPDATE projects SET run_quota='{"network": false, "cpu_limit": 1, "disk_quota": 3000, "privileged": false, "cpu_request": 0.02, "member_host": false, "dedicated_vm": false, "idle_timeout": 1800, "memory_limit": 1000, "always_running": false, "memory_request": 200, "dedicated_disks": []}', 
+      `UPDATE projects SET run_quota='{"network": false, "cpu_limit": 1, "disk_quota": 3000, "privileged": false, "cpu_request": 0.02, "member_host": false, "dedicated_vm": false, "idle_timeout": 1800, "memory_limit": 1000, "always_running": false, "memory_request": 200, "dedicated_disks": []}',
       last_edited=NOW(), last_started=NOW(), state='{"state":"running"}' WHERE project_id=$1`,
-      [project_id]
+      [project_id],
     );
     await stopIdleProjects(stopProject);
-    expect(projectsTheGotStopped.has(project_id)).toBe(false);
+    expect(projectsThatGotStopped.has(project_id)).toBe(false);
   });
 
   it("changes our project so that last_edited is an hour ago and last_started is an hour ago, and observe project gets stopped", async () => {
     await pool.query(
       `UPDATE projects SET last_edited=NOW()-interval '1 hour', last_started=NOW()-interval '1 hour' WHERE project_id=$1`,
-      [project_id]
+      [project_id],
     );
     await stopIdleProjects(stopProject);
-    expect(projectsTheGotStopped.has(project_id)).toBe(true);
+    while (!projectsThatGotStopped.has(project_id)) {
+      await delay(30);
+    }
+    expect(projectsThatGotStopped.has(project_id)).toBe(true);
   });
 
   it("changes our project so that last_edited is an hour ago and last_started is a minute ago, and observe project does NOT get stopped", async () => {
     await pool.query(
       `UPDATE projects SET last_edited=NOW()-interval '1 hour', last_started=NOW()-interval '1 minute' WHERE project_id=$1`,
-      [project_id]
+      [project_id],
     );
     reset();
     await stopIdleProjects(stopProject);
-    expect(projectsTheGotStopped.has(project_id)).toBe(false);
+    expect(projectsThatGotStopped.has(project_id)).toBe(false);
   });
 
   it("changes our project so that last_edited is a minute ago and last_started is an hour ago, and observe project does NOT get stopped", async () => {
     await pool.query(
       `UPDATE projects SET last_edited=NOW()-interval '1 minute', last_started=NOW()-interval '1 hour' WHERE project_id=$1`,
-      [project_id]
+      [project_id],
     );
     reset();
     await stopIdleProjects(stopProject);
-    expect(projectsTheGotStopped.has(project_id)).toBe(false);
+    expect(projectsThatGotStopped.has(project_id)).toBe(false);
   });
 
   it("changes our project so that last_edited and last_started are both a month ago, but always_running is true, and observe project does NOT get stopped", async () => {
     await pool.query(
       `UPDATE projects SET run_quota='{"network": false, "cpu_limit": 1, "disk_quota": 3000, "privileged": false, "cpu_request": 0.02, "member_host": false, "dedicated_vm": false, "idle_timeout": 1800, "memory_limit": 1000, "always_running": true, "memory_request": 200, "dedicated_disks": []}',
       last_edited=NOW()-interval '1 month', last_started=NOW()-interval '1 month' WHERE project_id=$1`,
-      [project_id]
+      [project_id],
     );
     reset();
     await stopIdleProjects(stopProject);
-    expect(projectsTheGotStopped.has(project_id)).toBe(false);
+    expect(projectsThatGotStopped.has(project_id)).toBe(false);
   });
 
   it("makes it so stopping the project throws an error, and checks that the entire stopIdleProjects does NOT throw an error (it just logs something)", async () => {
     await pool.query(
       `UPDATE projects SET run_quota='{"network": false, "cpu_limit": 1, "disk_quota": 3000, "privileged": false, "cpu_request": 0.02, "member_host": false, "dedicated_vm": false, "idle_timeout": 1800, "memory_limit": 1000, "always_running": false, "memory_request": 200, "dedicated_disks": []}',
-      last_edited=NOW()-interval '1 month', last_started=NOW()-interval '1 month' WHERE project_id=$1`,
-      [project_id]
+      last_edited=NOW()-interval '1 month', last_started=NOW()-interval '1 month', state='{"state":"running"}' WHERE project_id=$1`,
+      [project_id],
     );
-    // first confirm it will get called
+    // first confirm stopProject2 will get called
     reset();
     await stopIdleProjects(stopProject);
-    expect(projectsTheGotStopped.has(project_id)).toBe(true);
+    while (!projectsThatGotStopped.has(project_id)) {
+      await delay(30);
+    }
+    expect(projectsThatGotStopped.has(project_id)).toBe(true);
     // now call again with error but doesn't break anything
     const stopProject2 = async (project_id) => {
       await stopProject(project_id);
@@ -108,6 +115,9 @@ describe("creates a project, set various parameters, and runs idle project funct
     };
     reset();
     await stopIdleProjects(stopProject2);
-    expect(projectsTheGotStopped.has(project_id)).toBe(true);
+    while (!projectsThatGotStopped.has(project_id)) {
+      await delay(30);
+    }
+    expect(projectsThatGotStopped.has(project_id)).toBe(true);
   });
 });

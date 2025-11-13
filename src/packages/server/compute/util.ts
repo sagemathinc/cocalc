@@ -68,8 +68,8 @@ export async function setError(id: number, error: string) {
   }
 }
 
-// merges the object newData into the current data in the database
-// (i.e., doesn't delete keys not mentioned in newData)
+// merges the object 'data' into the current data in the database
+// (i.e., doesn't delete keys not mentioned in 'data')
 
 export async function setData({
   cloud,
@@ -77,13 +77,37 @@ export async function setData({
   data,
 }: {
   id: number;
-  cloud: "lambda-cloud" | "google-cloud";
-  data: Partial<Data>;
+  cloud: "lambda-cloud" | "google-cloud" | "hyperstack";
+  data: Partial<Data> | { [key: string]: null };
 }) {
   const pool = getPool();
   await pool.query(
     `UPDATE compute_servers SET data = COALESCE(data, '{}'::jsonb) || $1::jsonb, last_edited=NOW()  WHERE id=$2`,
     [JSON.stringify({ ...data, cloud }), id],
+  );
+}
+
+export async function getData({
+  id,
+}: {
+  id: number;
+}): Promise<Data | undefined> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT data FROM compute_servers WHERE id=$1",
+    [id],
+  );
+  if (rows.length == 0) {
+    throw Error(`no server with id=${id}`);
+  }
+  return rows[0].data;
+}
+
+export async function clearData({ id }: { id: number }) {
+  const pool = getPool();
+  await pool.query(
+    `UPDATE compute_servers SET data = NULL, last_edited=NOW()  WHERE id=$1`,
+    [id],
   );
 }
 
@@ -115,10 +139,19 @@ export async function setConfiguration(id: number, newConfiguration0: object) {
   logConfigurationChange({ id, configuration, newConfiguration });
 }
 
+const HIDE_FROM_LOG = new Set(["authToken"]);
+
 async function logConfigurationChange({ id, configuration, newConfiguration }) {
   const changes: { [param: string]: { from: any; to: any } } = {};
   for (const key in newConfiguration) {
-    changes[key] = { from: configuration[key], to: newConfiguration[key] };
+    if (HIDE_FROM_LOG.has(key)) {
+      changes[key] = {
+        from: configuration[key] ? "(hidden)" : "",
+        to: newConfiguration[key] ? "(hidden)" : "",
+      };
+    } else {
+      changes[key] = { from: configuration[key], to: newConfiguration[key] };
+    }
   }
   eventLog({
     server: { id },

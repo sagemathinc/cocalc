@@ -1,16 +1,17 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { IconName } from "@cocalc/frontend/components/icon";
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { search_match, search_split } from "@cocalc/util/misc";
 
 interface Info0 {
   path: string;
   desc: string;
   title: string;
-  icon?: IconName;
+  icon?: IconName | "ai";
 }
 
 export interface Info extends Info0 {

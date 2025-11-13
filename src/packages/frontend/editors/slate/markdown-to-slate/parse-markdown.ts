@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -80,7 +80,7 @@ export function parse_markdown(
   lines: string[];
   references?: References;
 } {
-  // const t0 = new Date().valueOf();
+  // const t0 = Date.now();
   let meta: undefined | string = undefined;
 
   markdown = trailingCodeblockWhitespaceHack(markdown);
@@ -98,7 +98,7 @@ export function parse_markdown(
   restoreSingleTrailingWhitespace(tokens);
 
   // window.parse_markdown = { tokens, meta };
-  // console.log("time: parse_markdown", new Date().valueOf() - t0, " ms");
+  // console.log("time: parse_markdown", Date.now() - t0, " ms");
   // console.log("tokens", tokens);
   return { tokens, meta, lines, references: state.references };
 }

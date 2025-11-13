@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -21,6 +21,7 @@ import { init as initApp } from "../app/init";
 import { init as initProjects } from "../projects";
 import { init as initMarkdown } from "../markdown/markdown-input/main";
 import { init as initCrashBanner } from "../crash-banner";
+import { init as initCustomize } from "../customize";
 
 
 // Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
@@ -36,6 +37,7 @@ export async function init() {
   initApp();
   initProjects();
   initMarkdown();
+  initCustomize();
   initLast();
   try {
     await render();

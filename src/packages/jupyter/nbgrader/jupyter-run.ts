@@ -1,24 +1,24 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import type { RunNotebookOptions } from "@cocalc/jupyter/nbgrader/types";
-import type { JupyterNotebook } from "@cocalc/jupyter/nbgrader/types";
+import {
+  type JupyterNotebook,
+  type RunNotebookOptions,
+  type Limits,
+  DEFAULT_LIMITS,
+} from "@cocalc/util/jupyter/nbgrader-types";
 import type { JupyterKernelInterface as JupyterKernel } from "@cocalc/jupyter/types/project-interface";
 import { is_object, len, uuid, trunc_middle } from "@cocalc/util/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { kernel } from "@cocalc/jupyter/kernel";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import getLogger from "@cocalc/backend/logger";
+export type { Limits };
 
-// For tracking limits during the run:
-export interface Limits {
-  timeout_ms_per_cell: number;
-  max_output_per_cell: number;
-  max_output: number;
-  total_output: number;
-  timeout_ms?: number;
-  start_time?: number;
-}
+const logger = getLogger("jupyter:nbgrader:jupyter-run");
 
 function global_timeout_exceeded(limits: Limits): boolean {
   if (limits.timeout_ms == null || limits.start_time == null) return false;
@@ -26,8 +26,7 @@ function global_timeout_exceeded(limits: Limits): boolean {
 }
 
 export async function jupyter_run_notebook(
-  logger,
-  opts: RunNotebookOptions
+  opts: RunNotebookOptions,
 ): Promise<string> {
   const log = (...args) => {
     logger.debug("jupyter_run_notebook", ...args);
@@ -44,10 +43,17 @@ export async function jupyter_run_notebook(
     total_output: 0,
   };
 
-  const name = notebook.metadata.kernelspec.name;
-  let jupyter: JupyterKernel | undefined = undefined;
+  // path is random so it doesn't randomly conflict with
+  // something else running at the same time.
+  const path = join(opts.path, `${uuid()}.ipynb`);
+  try {
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, opts.ipynb);
 
-  /* We use retry_until_success to spawn the kernel, since
+    const name = notebook.metadata.kernelspec.name;
+    let jupyter: JupyterKernel | undefined = undefined;
+
+    /* We use retry_until_success to spawn the kernel, since
      it makes people's lives much easier if this works even
      if there is a temporary issue.  Also, in testing, I've
      found that sometimes if you try to spawn two kernels at
@@ -56,92 +62,95 @@ export async function jupyter_run_notebook(
      just work around it since we want extra reliability
      anyways.
   */
-  async function init_jupyter0(): Promise<void> {
-    log("init_jupyter", jupyter != null);
-    jupyter?.close();
-    jupyter = undefined;
-    // path is random so it doesn't randomly conflict with
-    // something else running at the same time.
-    const path = opts.path + `/${uuid()}.ipynb`;
-    jupyter = kernel({ name, path });
-    log("init_jupyter: spawning");
-    // for Python, we suppress all warnings
-    // they end up as stderr-output and hence would imply 0 points
-    const env = { PYTHONWARNINGS: "ignore" };
-    await jupyter.spawn({ env });
-    log("init_jupyter: spawned");
-  }
+    async function init_jupyter0(): Promise<void> {
+      log("init_jupyter", jupyter != null);
+      jupyter?.close();
+      jupyter = undefined;
+      jupyter = kernel({ name, path });
+      log("init_jupyter: spawning");
+      // for Python, we suppress all warnings
+      // they end up as stderr-output and hence would imply 0 points
+      const env = { PYTHONWARNINGS: "ignore" };
+      await jupyter.spawn({ env });
+      log("init_jupyter: spawned");
+    }
 
-  async function init_jupyter(): Promise<void> {
-    await retry_until_success({
-      f: init_jupyter0,
-      start_delay: 1000,
-      max_delay: 5000,
-      factor: 1.4,
-      max_time: 30000,
-      log: function (...args) {
-        log("init_jupyter - retry_until_success", ...args);
-      },
-    });
-  }
+    async function init_jupyter(): Promise<void> {
+      await retry_until_success({
+        f: init_jupyter0,
+        start_delay: 1000,
+        max_delay: 5000,
+        factor: 1.4,
+        max_time: 30000,
+        log: function (...args) {
+          log("init_jupyter - retry_until_success", ...args);
+        },
+      });
+    }
 
-  try {
-    log("init_jupyter...");
-    await init_jupyter();
-    log("init_jupyter: done");
-    for (const cell of notebook.cells) {
-      try {
-        if (jupyter == null) {
-          log("BUG: jupyter==null");
-          throw Error("jupyter can't be null since it was initialized above");
-        }
-        log("run_cell...");
-        await run_cell(jupyter, limits, cell); // mutates cell by putting in outputs
-        log("run_cell: done");
-      } catch (err) {
-        // fatal error occured, e.g,. timeout, broken kernel, etc.
-        if (cell.outputs == null) {
-          cell.outputs = [];
-        }
-        cell.outputs.push({ traceback: [`${err}`] });
-        if (!global_timeout_exceeded(limits)) {
-          // close existing jupyter and spawn new one, so we can robustly run more cells.
-          // Obviously, only do this if we are not out of time.
-          log("timeout exceeded so restarting...");
-          await init_jupyter();
-          log("timeout exceeded restart done");
+    try {
+      log("init_jupyter...");
+      await init_jupyter();
+      log("init_jupyter: done");
+      for (const cell of notebook.cells) {
+        try {
+          if (jupyter == null) {
+            log("BUG: jupyter==null");
+            throw Error("jupyter can't be null since it was initialized above");
+          }
+          log("run_cell...");
+          await run_cell(jupyter, limits, cell); // mutates cell by putting in outputs
+          log("run_cell: done");
+        } catch (err) {
+          // fatal error occured, e.g,. timeout, broken kernel, etc.
+          if (cell.outputs == null) {
+            cell.outputs = [];
+          }
+          cell.outputs.push({ traceback: [`${err}`] });
+          if (!global_timeout_exceeded(limits)) {
+            // close existing jupyter and spawn new one, so we can robustly run more cells.
+            // Obviously, only do this if we are not out of time.
+            log("timeout exceeded so restarting...");
+            await init_jupyter();
+            log("timeout exceeded restart done");
+          }
         }
       }
+    } finally {
+      log("in finally");
+      if (jupyter != null) {
+        log("jupyter != null so closing");
+        // @ts-ignore
+        jupyter.close();
+        jupyter = undefined;
+      }
     }
+    log("returning result");
+    return JSON.stringify(notebook);
   } finally {
-    log("in finally");
-    if (jupyter != null) {
-      log("jupyter != null so closing");
-      // @ts-ignore
-      jupyter.close();
-      jupyter = undefined;
-    }
+    try {
+      await unlink(path);
+    } catch {}
   }
-  log("returning result");
-  return JSON.stringify(notebook);
 }
 
 export async function run_cell(
   jupyter: JupyterKernel,
-  limits: Limits,
-  cell
+  limits0: Partial<Limits>,
+  cell,
 ): Promise<void> {
   if (jupyter == null) {
     throw Error("jupyter must be defined");
   }
+  const limits = { ...DEFAULT_LIMITS, ...limits0 };
 
   if (limits.timeout_ms && global_timeout_exceeded(limits)) {
     // the total time has been exceeded -- this will mark outputs as error
     // for each cell in the rest of the notebook.
     throw Error(
       `Total time limit (=${Math.round(
-        limits.timeout_ms / 1000
-      )} seconds) exceeded`
+        limits.timeout_ms / 1000,
+      )} seconds) exceeded`,
     );
   }
 

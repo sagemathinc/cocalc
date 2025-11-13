@@ -1,10 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Card, Typography } from "antd";
 import { CSSProperties, ReactNode } from "react";
+
 import { CloseX2 } from "./close-x2";
 import { Icon, IconName } from "./icon";
 
@@ -25,24 +26,23 @@ const STYLE = {
   marginBottom: "20px",
 } as CSSProperties;
 
-export function SettingBox(props: Props) {
-  const {
-    icon,
-    title,
-    subtitle,
-    show_header = true,
-    close,
-    children,
-    style,
-    bodyStyle,
-  } = props;
+export function SettingBox({
+  icon,
+  title,
+  subtitle,
+  show_header = true,
+  close,
+  children,
+  style,
+  bodyStyle,
+}: Props) {
   return (
     // type inner for the gray background in the header
     <Card
       title={
         show_header ? (
           <div style={{ whiteSpace: "normal" }}>
-            <Title level={4}>
+            <Title level={4} style={{ display: "flex" }}>
               {icon && <Icon name={icon} />}&nbsp;{title}
             </Title>
             {subtitle}
@@ -53,7 +53,7 @@ export function SettingBox(props: Props) {
       extra={close != null ? <CloseX2 close={close} /> : undefined}
       type="inner"
       style={{ ...STYLE, ...style }}
-      bodyStyle={bodyStyle}
+      styles={{ body: bodyStyle }}
     >
       {children}
     </Card>

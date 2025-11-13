@@ -7,7 +7,14 @@ import getAccountId from "lib/account/get-account";
 import setServerTitle from "@cocalc/server/compute/set-server-title";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import { OkStatus } from "lib/api/status";
+import {
+  SetComputeServerTitleInputSchema,
+  SetComputeServerTitleOutputSchema,
+} from "lib/api/schema/compute/set-server-title";
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -27,5 +34,26 @@ async function get(req) {
     id,
     title,
   });
-  return { status: "ok" };
+  return OkStatus;
 }
+
+export default apiRoute({
+  setServerTitle: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: SetComputeServerTitleInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: SetComputeServerTitleOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

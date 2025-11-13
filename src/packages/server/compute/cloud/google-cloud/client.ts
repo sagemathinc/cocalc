@@ -3,6 +3,10 @@ IMPORTANT NOTE: Basically the only way to figure out how to use any of
 this @google-cloud/compute package is via VS Code and typescript, and
 following the typescript definitions.  There's no other docs really.
 But that works!
+
+UPDATE: VS Code is very helpful, but there are now good public API docs at
+
+https://googleapis.dev/nodejs/compute/latest/index.html
 */
 
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -36,16 +40,22 @@ export default async function getClient(): Promise<Client> {
   return client;
 }
 
-export async function getCredentials() {
-  const { google_cloud_service_account_json } = await getServerSettings();
-  if (!google_cloud_service_account_json) {
-    throw Error(
-      "The Google Cloud service account for Compute Servers is not configure",
-    );
+export async function getCredentials(service_account_json?: string) {
+  if (!service_account_json) {
+    const { google_cloud_service_account_json } = await getServerSettings();
+    if (!google_cloud_service_account_json) {
+      throw Error(
+        "The Google Cloud service account for Compute Servers is not configure",
+      );
+    }
+    service_account_json = google_cloud_service_account_json;
+  }
+  if (!service_account_json) {
+    throw Error("service account not configured");
   }
   let serviceAccount;
   try {
-    serviceAccount = JSON.parse(google_cloud_service_account_json);
+    serviceAccount = JSON.parse(service_account_json);
   } catch (err) {
     throw Error(`The Google Cloud service account must be valid JSON - ${err}`);
   }
@@ -153,7 +163,13 @@ export async function getSerialPortOutput({
   return response.contents ?? "";
 }
 
-export async function waitUntilOperationComplete({ response, zone }) {
+export async function waitUntilOperationComplete({
+  response,
+  zone,
+}: {
+  response;
+  zone?;
+}) {
   let operation = response.latestResponse;
   const credentials = await getCredentials();
   const operationsClient = new ZoneOperationsClient(credentials);

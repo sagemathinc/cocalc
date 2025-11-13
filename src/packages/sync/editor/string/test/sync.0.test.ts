@@ -1,12 +1,20 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+/*
+
+DEVELOPMENT:
+
+pnpm test sync.0.test.ts
+
+*/
 
 import { Client } from "./client-test";
 import { SyncString } from "../sync";
-import { once } from "@cocalc/util/async-utils";
 import { a_txt } from "./data";
+import { once } from "@cocalc/util/async-utils";
 
 // This mostly tests the trivial minimal edge cases.
 describe("create a blank minimal string SyncDoc and call public methods on it", () => {
@@ -64,11 +72,11 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
 
   it("get version without (removing nothing though)", () => {
     expect(syncstring.version_without([]).to_str()).toBe("");
-    expect(syncstring.version_without([new Date()]).to_str()).toBe("");
+    expect(syncstring.version_without([Date.now()]).to_str()).toBe("");
   });
 
-  it("revert to version now (does nothing - no error)", () => {
-    syncstring.revert(new Date());
+  it("revert to version now (error since no version with this time)", () => {
+    expect(() => syncstring.revert(Date.now())).toThrow("unknown time");
   });
 
   it("undo/redo -- nothing to undo yet...", () => {
@@ -81,27 +89,19 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
   });
 
   it("account_id of change at given point in time gives error", () => {
-    expect(() => syncstring.account_id(new Date())).toThrow("no patch at");
-  });
-
-  it("time sent of change at given point in time gives error", () => {
-    expect(() => syncstring.time_sent(new Date())).toThrow("no patch at");
+    expect(() => syncstring.account_id(Date.now())).toThrow("no patch at");
   });
 
   it("user_id of change at given point in time gives error", () => {
-    expect(() => syncstring.user_id(new Date())).toThrow("no patch at");
+    expect(() => syncstring.user_id(Date.now())).toThrow("no patch at");
   });
 
   it("get list of versions (should be empty)", () => {
     expect(syncstring.versions()).toEqual([]);
   });
 
-  it("get all known versions (also empty)", () => {
-    expect(syncstring.all_versions()).toEqual([]);
-  });
-
   it("last changed when time began", () => {
-    expect(syncstring.last_changed()).toEqual(new Date(0));
+    expect(syncstring.last_changed()).toEqual(0);
   });
 
   it("check ready state", async () => {
@@ -125,11 +125,11 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
   });
 
   it("verifies it has the full history already", () => {
-    expect(syncstring.has_full_history()).toBe(true);
+    expect(syncstring.hasFullHistory()).toBe(true);
   });
 
-  it("loads full history (which does basically nothing)", async () => {
-    await syncstring.load_full_history();
+  it("loads more history (which does basically nothing)", async () => {
+    await syncstring.loadMoreHistory();
   });
 
   it("do a save (no-op, since haven't done anything yet)", async () => {

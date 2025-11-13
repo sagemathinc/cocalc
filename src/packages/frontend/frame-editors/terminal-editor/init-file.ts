@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { console_init_filename } from "@cocalc/util/misc";
@@ -36,23 +36,27 @@ source ~/.bashrc
 // over what we had before...
 async function create_init_file(
   project_id: string,
-  init_filename: string
+  init_filename: string,
+  path: string,
 ): Promise<void> {
   const content = init_file_content(init_filename);
   const command = `test ! -r '${init_filename}' && echo '${content}' > '${init_filename}'`;
-  await exec({
-    project_id: project_id,
-    command,
-    bash: true,
-    err_on_exit: false,
-  });
+  await exec(
+    {
+      project_id: project_id,
+      command,
+      bash: true,
+      err_on_exit: false,
+    },
+    path,
+  );
 }
 
 export async function open_init_file(
   project_actions,
-  path: string
+  path: string,
 ): Promise<void> {
   const init_filename: string = console_init_filename(path);
-  await create_init_file(project_actions.project_id, init_filename);
+  await create_init_file(project_actions.project_id, init_filename, path);
   project_actions.open_file({ path: init_filename, foreground: true });
 }

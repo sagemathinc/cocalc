@@ -22,7 +22,6 @@ export default function sendFiles({
     return;
   }
   let start = Date.now();
-  // TODO: 'foo' is just a demo
   const tar = spawn("tar", args, {
     cwd: HOME,
   });

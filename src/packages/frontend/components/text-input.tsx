@@ -1,12 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Form, Input } from "antd";
+import { Button, Form, Input } from "antd";
 import React, { useEffect } from "react";
-
-import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { CSS } from "@cocalc/frontend/app-framework";
 import { Icon } from "./icon";
 
@@ -20,6 +18,7 @@ interface Props {
   onBlur?: () => void;
   disabled?: boolean;
   style?: CSS;
+  size?: "small";
 }
 
 export const TextInput: React.FC<Props> = React.memo(
@@ -34,6 +33,7 @@ export const TextInput: React.FC<Props> = React.memo(
       onBlur,
       disabled = false,
       style,
+      size,
     } = props;
 
     const inputRef = React.useRef<any>(null);
@@ -63,8 +63,9 @@ export const TextInput: React.FC<Props> = React.memo(
           <Form.Item>
             <Button
               style={{ marginBottom: "15px" }}
-              bsStyle="success"
+              type="primary"
               onClick={saveChange}
+              size={size}
             >
               <Icon name="save" /> Save
             </Button>
@@ -87,6 +88,7 @@ export const TextInput: React.FC<Props> = React.memo(
             onFocus={onFocus}
             onBlur={onBlur}
             disabled={disabled}
+            size={size === "small" ? "small" : undefined}
           />
         </Form.Item>
       );
@@ -98,5 +100,5 @@ export const TextInput: React.FC<Props> = React.memo(
         {render_save_button()}
       </Form>
     );
-  }
+  },
 );

@@ -1,37 +1,39 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Markdown Editor Actions
 */
 
-import { debounce } from "lodash";
 import { delay } from "awaiting";
-import { toggle_checkbox } from "@cocalc/frontend/editors/task-editor/desc-rendering";
+import { fromJS } from "immutable";
 import $ from "jquery";
+import { debounce } from "lodash";
+
+import {
+  TableOfContentsEntry,
+  TableOfContentsEntryList,
+} from "@cocalc/frontend/components";
+import { scrollToHeading } from "@cocalc/frontend/editors/slate/control";
+import { SlateEditor } from "@cocalc/frontend/editors/slate/editable-markdown";
+import { formatAction as slateFormatAction } from "@cocalc/frontend/editors/slate/format";
+import {
+  markdownPositionToSlatePoint,
+  scrollIntoView as scrollSlateIntoView,
+  slatePointToMarkdownPosition,
+} from "@cocalc/frontend/editors/slate/sync";
+import { toggle_checkbox } from "@cocalc/frontend/editors/task-editor/desc-rendering";
+import { parseTableOfContents } from "@cocalc/frontend/markdown";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import {
   Actions as CodeEditorActions,
   CodeEditorState,
 } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
-import { scrollToHeading } from "@cocalc/frontend/editors/slate/control";
-import { SlateEditor } from "@cocalc/frontend/editors/slate/editable-markdown";
-import { formatAction as slateFormatAction } from "@cocalc/frontend/editors/slate/format";
-import {
-  TableOfContentsEntryList,
-  TableOfContentsEntry,
-} from "@cocalc/frontend/components";
-import { fromJS } from "immutable";
-import { parseTableOfContents } from "@cocalc/frontend/markdown";
-import {
-  markdownPositionToSlatePoint,
-  slatePointToMarkdownPosition,
-  scrollIntoView as scrollSlateIntoView,
-} from "@cocalc/frontend/editors/slate/sync";
-import { open_new_tab } from "@cocalc/frontend/misc";
 
 interface MarkdownEditorState extends CodeEditorState {
   custom_pdf_error_message: string; // currently used only in rmd editor, but we could easily add pdf output to the markdown editor
@@ -39,6 +41,7 @@ interface MarkdownEditorState extends CodeEditorState {
   build_log: string; // for Rmd
   build_err: string; // for Rmd
   build_exit: number; // for Rmd
+  job_info?: ExecuteCodeOutputAsync; // for Rmd streaming with stats
   contents?: TableOfContentsEntryList; // table of contents data.
 }
 
@@ -58,7 +61,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
 
     this._syncstring.on(
       "change",
-      debounce(this.updateTableOfContents.bind(this), 1500)
+      debounce(this.updateTableOfContents.bind(this), 1500),
     );
   }
 
@@ -120,7 +123,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       return;
     }
     const value = this._syncstring.undo().to_str();
-    this._syncstring.set(value, true);
+    this._syncstring.set(value);
     this._syncstring.commit();
     // Important: also set codemirror editor state, if there is one (otherwise it will be out of sync!)
     this._get_cm()?.setValueNoJump(value, true);
@@ -141,7 +144,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       return;
     }
     const value = doc.to_str();
-    this._syncstring.set(value, true);
+    this._syncstring.set(value);
     this._syncstring.commit();
     // Important: also set codemirror editor state, as for undo above.
     this._get_cm()?.setValueNoJump(value, true);
@@ -153,7 +156,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       super.format_action(cmd, args, force_main);
       return;
     }
-    slateFormatAction(this.slateEditors[id], cmd, args);
+    slateFormatAction(this.slateEditors[id], cmd, args, this.project_id);
   }
 
   public getSlateEditor(id?: string): SlateEditor | undefined {
@@ -172,13 +175,13 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
   }
 
   public async show_table_of_contents(
-    _id: string | undefined = undefined
+    _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type(
       "markdown_table_of_contents",
       "col",
       true,
-      1 / 3
+      1 / 3,
     );
     // the click to select TOC focuses the active id back on the notebook
     await delay(0);
@@ -186,7 +189,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     this.set_active_id(id, true);
   }
 
-  public updateTableOfContents(force: boolean = false): void {
+  updateTableOfContents = (force: boolean = false): void => {
     if (this._state == "closed" || this._syncstring == null) {
       // no need since not initialized yet or already closed.
       return;
@@ -198,9 +201,11 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       // There is no table of contents frame so don't update that info.
       return;
     }
-    const contents = fromJS(parseTableOfContents(this._syncstring.to_str())) as any;
+    const contents = fromJS(
+      parseTableOfContents(this._syncstring.to_str()),
+    ) as any;
     this.setState({ contents });
-  }
+  };
 
   public async scrollToHeading(entry: TableOfContentsEntry): Promise<void> {
     const id = this.show_focused_frame_of_type("slate");
@@ -212,8 +217,15 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       await delay(1);
       editor = this.getSlateEditor(id);
     }
-    if (editor == null) return;
-    scrollToHeading(editor, parseInt(entry.id));
+    if (editor == null) {
+      return;
+    }
+    const n = parseInt(entry.id);
+    scrollToHeading(editor, n);
+    // this is definitely necessary in case the editor wasn't opened, and doesn't
+    // hurt if it is.
+    await delay(1);
+    scrollToHeading(editor, n);
   }
 
   // for rendered markdown, switch frame type so that this rendered view
@@ -229,7 +241,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
 
   private async sync_cm_to_slate(
     id: string,
-    editor_actions: Actions
+    editor_actions: Actions,
   ): Promise<void> {
     const cm = editor_actions._cm[id];
     if (cm == null) return;
@@ -270,12 +282,12 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     }
     const pos = slatePointToMarkdownPosition(editor, point);
     if (pos == null) return;
-    this.programmatical_goto_line(
+    this.programmatically_goto_line(
       pos.line + 1, // 1 based (TODO: could use codemirror option)
       true,
       false,
       undefined,
-      pos.ch
+      pos.ch,
     );
   }
 
@@ -298,7 +310,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
 
   languageModelGetText(
     frameId: string,
-    scope: "selection" | "cell" | "all" = "all"
+    scope: "selection" | "cell" | "all" = "all",
   ): string {
     const node = this._get_frame_node(frameId);
     if (node?.get("type") == "cm") {
@@ -313,7 +325,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
         if (ed.selectionIsCollapsed()) {
           // if collapsed it could still be a void element, in which case we grab it.
           for (const x of fragment) {
-            if (x?.['isVoid']) {
+            if (x?.["isVoid"]) {
               return ed.getSourceValue(fragment);
             }
           }

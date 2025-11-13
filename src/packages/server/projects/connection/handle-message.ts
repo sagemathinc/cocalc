@@ -2,14 +2,16 @@
 Handle incoming JSON messages from a project.
 */
 
-import handleVersion from "./handle-version";
-import handleQuery from "./handle-query";
-import handleSyncdoc from "./handle-syncdoc";
-import { error, pong } from "@cocalc/util/message";
-import getLogger from "@cocalc/backend/logger";
-const logger = getLogger("project-connection:handle-message");
+import { promisify } from "node:util";
 import { v4 } from "uuid";
-import { promisify } from "util";
+
+import getLogger from "@cocalc/backend/logger";
+import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
+import { error, pong } from "@cocalc/util/message";
+import handleQuery from "./handle-query";
+import handleVersion from "./handle-version";
+
+const logger = getLogger("project-connection:handle-message");
 
 interface Options {
   socket;
@@ -59,9 +61,6 @@ export default async function handleMessage({
       case "query_cancel":
         await handleQuery({ project_id, mesg, sendResponse });
         return;
-      case "get_syncdoc_history":
-        await handleSyncdoc({ project_id, mesg, sendResponse });
-        return;
       case "file_written_to_project":
       case "file_read_from_project":
       case "error":
@@ -78,7 +77,7 @@ export default async function handleMessage({
 export async function callProjectMessage({
   socket,
   mesg,
-  timeoutSeconds = 60,
+  timeoutSeconds = 60, // DEV: change this to 3 to simulate quick timeouts
 }): Promise<any> {
   logger.debug("callProjectMessage", mesg.event, mesg.id);
   while (mesg.id == null || callCallbacks[mesg.id] != null) {
@@ -91,11 +90,11 @@ export async function callProjectMessage({
       cb(undefined, resp);
     };
     setTimeout(() => {
-      cb("timeout");
+      cb(TIMEOUT_CALLING_PROJECT);
       callCallbacks[mesg.id] = () => {
         logger.debug(
           mesg.id,
-          `callProjectMessage -- ignoring response due to timeout ${timeoutSeconds}s`
+          `callProjectMessage -- ignoring response due to timeout ${timeoutSeconds}s`,
         );
       };
     }, timeoutSeconds * 1000);

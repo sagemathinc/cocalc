@@ -4,11 +4,12 @@ This is much less complicated than the normal tags that map
 to integers in the CRM. These are used at least for
 accounts for users to indicate their interests.
 */
-import { Tag } from "antd";
-
+import { Input, Tag } from "antd";
 import { render } from "./register";
+import { useEffect, useRef, useState } from "react";
+import { useEditableContext } from "./context";
 
-render({ type: "string-tags" }, ({ field, obj }) => {
+render({ type: "string-tags", editable: false }, ({ field, obj }) => {
   const tags = obj[field];
   if (tags == null) return null;
   return (
@@ -17,5 +18,59 @@ render({ type: "string-tags" }, ({ field, obj }) => {
         <Tag key={value}>{value}</Tag>
       ))}
     </div>
+  );
+});
+
+render({ type: "string-tags", editable: true }, ({ field, obj, spec }) => {
+  const ref = useRef<any>(undefined);
+  const { save, saving, counter, edit, error, ClickToEdit } =
+    useEditableContext<string>(field);
+  const [value, setValue] = useState<string>(obj[field]?.join(", ") ?? "");
+  useEffect(() => {
+    setValue(obj[field]?.join(", ") ?? "");
+  }, [counter, obj[field]]);
+
+  if (spec.type != "string-tags" || !spec.editable) {
+    throw Error("bug");
+  }
+  if (!edit) {
+    return (
+      <ClickToEdit empty={!value.trim()}>
+        <div style={{ lineHeight: "2em", display: "inline-block" }}>
+          {value.split(",").map((tag) => (
+            <Tag key={value}>{tag.trim()}</Tag>
+          ))}
+        </div>
+      </ClickToEdit>
+    );
+  }
+  return (
+    <>
+      <Input
+        style={{ width: "100%" }}
+        disabled={saving}
+        ref={ref}
+        autoFocus
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value);
+        }}
+        onBlur={() => {
+          setValue(ref.current.input.value);
+          save(
+            obj,
+            ref.current.input.value.split(",").map((x) => x.trim()),
+          );
+        }}
+        onPressEnter={() => {
+          setValue(ref.current.input.value);
+          save(
+            obj,
+            ref.current.input.value.split(",").map((x) => x.trim()),
+          );
+        }}
+      />
+      {error}
+    </>
   );
 });

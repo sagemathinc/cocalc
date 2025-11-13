@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -55,6 +55,25 @@ export function configure() {
   }
 }
 
+/**
+ * Set the given key/value pair in the environment.
+ * However, for $PATH we avoid breaking the project by prepending the new value to $PATH if there is no "$PATH" in the value,
+ * or we insert the existing value of $PATH where the string "$PATH" is found in the value as a placeholder.
+ *
+ * Ref: https://github.com/sagemathinc/cocalc/issues/7404
+ */
+function set_sanitized_envvar(key: string, value: string): string {
+  if (key === "PATH") {
+    if (value.indexOf("$PATH") !== -1) {
+      value = value.replace(/\$PATH/g, process.env.PATH || "");
+    } else {
+      value = `${value}:${process.env.PATH}`;
+    }
+  }
+  process.env[key] = value;
+  return value;
+}
+
 // Contains additional environment variables. Base 64 encoded JSON of {[key:string]:string}.
 export function set_extra_env(): { [key: string]: string } | undefined {
   sage_aarch64_hack();
@@ -75,19 +94,18 @@ export function set_extra_env(): { [key: string]: string } | undefined {
         const v = data[k];
         if (typeof v !== "string" || v.length === 0) {
           L.debug(
-            `set_extra_env: ignoring key ${k}, value is not a string or has length 0`
+            `set_extra_env: ignoring key ${k}, value is not a string or has length 0`,
           );
           continue;
         }
         // this is the meat of all this – this should happen after cleanup()!
-        process.env[k] = v;
-        ret[k] = v;
+        ret[k] = set_sanitized_envvar(k, v);
       }
     }
   } catch (err) {
     // we report and ignore errors
     L.debug(
-      `ERROR set_extra_env -- cannot process '${process.env.COCALC_EXTRA_ENV}' -- ${err}`
+      `ERROR set_extra_env -- cannot process '${process.env.COCALC_EXTRA_ENV}' -- ${err}`,
     );
   }
   return ret;
@@ -117,6 +135,10 @@ export function cleanup(): void {
     "PATH_COCALC",
     "COCALC_ROOT",
     "DEBUG_CONSOLE",
+    "CONAT_SERVER",
+    "PORT",
+    "HISTFILE",
+    "PROMPT_COMMAND",
   ];
   envrm.forEach((name) => delete process.env[name]);
 

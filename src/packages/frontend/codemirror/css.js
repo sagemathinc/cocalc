@@ -6,9 +6,12 @@
 require("codemirror/lib/codemirror.css");
 require("codemirror/theme/3024-day.css");
 require("codemirror/theme/3024-night.css");
+require("codemirror/theme/abbott.css");
 require("codemirror/theme/abcdef.css");
 //require('codemirror/theme/ambiance-mobile.css') # doesn't highlight python, confusing
 require("codemirror/theme/ambiance.css");
+require("codemirror/theme/ayu-dark.css");
+require("codemirror/theme/ayu-mirage.css");
 require("codemirror/theme/base16-dark.css");
 require("codemirror/theme/base16-light.css");
 require("codemirror/theme/bespin.css");
@@ -27,9 +30,13 @@ require("codemirror/theme/hopscotch.css");
 require("codemirror/theme/icecoder.css");
 require("codemirror/theme/idea.css");
 require("codemirror/theme/isotope.css");
+require("codemirror/theme/juejin.css");
 require("codemirror/theme/lesser-dark.css");
 require("codemirror/theme/liquibyte.css");
 require("codemirror/theme/lucario.css");
+require("codemirror/theme/material-darker.css");
+require("codemirror/theme/material-ocean.css");
+require("codemirror/theme/material-palenight.css");
 require("codemirror/theme/material.css");
 require("codemirror/theme/mbo.css");
 require("codemirror/theme/mdn-like.css");
@@ -58,7 +65,11 @@ require("codemirror/theme/vibrant-ink.css");
 require("codemirror/theme/xq-dark.css");
 require("codemirror/theme/xq-light.css");
 require("codemirror/theme/yeti.css");
+require("codemirror/theme/yonce.css");
 require("codemirror/theme/zenburn.css");
+
+require("@cocalc/cdn/dist/cm-custom-theme/cocalc-dark.css");
+require("@cocalc/cdn/dist/cm-custom-theme/cocalc-light.css");
 
 require("./mode/mediawiki/mediawiki.css");
 

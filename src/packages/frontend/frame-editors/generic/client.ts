@@ -1,37 +1,70 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Typescript async/await rewrite of @cocalc/util/client.coffee...
 */
 
+import { Map } from "immutable";
 import { redux } from "@cocalc/frontend/app-framework";
-import { ExecOpts, ExecOutput } from "@cocalc/frontend/client/project";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { CompressedPatch } from "@cocalc/sync/editor/generic/types";
 import { callback2 } from "@cocalc/util/async-utils";
-import { Map } from "immutable";
+import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { FakeSyncstring } from "./syncstring-fake";
-const schema = require("@cocalc/util/schema");
-const DEFAULT_FONT_SIZE: number =
-  require("@cocalc/util/db-schema").DEFAULT_FONT_SIZE;
-export { ExecOpts, ExecOutput };
+import { type UserSearchResult as User } from "@cocalc/util/db-schema/accounts";
+export { type User };
+import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
+
+import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
+export type { ExecOpts, ExecOutput };
+
+import * as schema from "@cocalc/util/schema";
+
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/db-schema";
 
 export function server_time(): Date {
   return webapp_client.time_client.server_time();
 }
 
+export function getComputeServerId({
+  project_id,
+  path,
+}: {
+  project_id: string;
+  path: string;
+}) {
+  let compute_server_id =
+    redux.getProjectActions(project_id).getComputeServerIdForFile({ path }) ??
+    0;
+  if (compute_server_id && excludeFromComputeServer(path)) {
+    compute_server_id = 0;
+  }
+  return compute_server_id;
+}
+
 // async version of the webapp_client exec -- let's you run any code in a project!
-export async function exec(opts: ExecOpts): Promise<ExecOutput> {
+// If the second argument filePath is the file this is being used for as a second argument,
+// it always runs code on the compute server that the given file is on.
+export async function exec(
+  opts: ExecOpts,
+  filePath?: string,
+): Promise<ExecOutput> {
+  if (filePath) {
+    const compute_server_id = getComputeServerId({
+      project_id: opts.project_id,
+      path: filePath,
+    });
+    opts = { ...opts, compute_server_id };
+  }
   return await webapp_client.project_client.exec(opts);
 }
 
 export async function touch(project_id: string, path: string): Promise<void> {
   // touch the file on disk
-  await exec({ project_id, command: "touch", args: [path] });
+  await exec({ project_id, command: "touch", args: [path] }, path);
   // Also record in file-use table that we are editing the file (so appears in file use)
   // Have to use any type, since file_use isn't converted to typescript yet.
   const actions: any = redux.getActions("file_use");
@@ -41,9 +74,15 @@ export async function touch(project_id: string, path: string): Promise<void> {
 }
 
 // Resets the idle timeout timer and makes it known we are using the project.
-export async function touch_project(project_id: string): Promise<void> {
+export async function touch_project(
+  project_id: string,
+  compute_server_id?: number,
+): Promise<void> {
   try {
-    await webapp_client.project_client.touch(project_id);
+    await webapp_client.project_client.touch_project(
+      project_id,
+      compute_server_id,
+    );
   } catch (err) {
     console.warn(`unable to touch '${project_id}' -- ${err}`);
   }
@@ -53,7 +92,7 @@ export async function touch_project(project_id: string): Promise<void> {
 // throwing a timeout means it attempted to start
 export async function start_project(
   project_id: string,
-  timeout: number = 60
+  timeout: number = 60,
 ): Promise<boolean> {
   const store = redux.getStore("projects");
   function is_running() {
@@ -76,7 +115,7 @@ export async function start_project(
 // throwing a timeout means it attempted to stop
 export async function stop_project(
   project_id: string,
-  timeout: number = 60
+  timeout: number = 60,
 ): Promise<boolean> {
   const store = redux.getStore("projects");
   function is_not_running() {
@@ -98,7 +137,7 @@ interface ReadTextFileOpts {
 }
 
 export async function read_text_file_from_project(
-  opts: ReadTextFileOpts
+  opts: ReadTextFileOpts,
 ): Promise<string> {
   return await webapp_client.project_client.read_text_file(opts);
 }
@@ -110,7 +149,7 @@ interface WriteTextFileOpts {
 }
 
 export async function write_text_file_to_project(
-  opts: WriteTextFileOpts
+  opts: WriteTextFileOpts,
 ): Promise<void> {
   await webapp_client.project_client.write_text_file(opts);
 }
@@ -118,16 +157,16 @@ export async function write_text_file_to_project(
 export async function formatter(
   project_id: string,
   path: string,
-  config: FormatterConfig
+  config: FormatterConfig,
 ): Promise<CompressedPatch> {
   const api = await webapp_client.project_client.api(project_id);
   const resp = await api.formatter(path, config);
 
   if (resp.status === "error") {
-    const loc = resp.error.loc;
+    const loc = resp.error?.loc;
     if (loc && loc.start) {
       throw Error(
-        `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`
+        `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`,
       );
     } else if (resp.error) {
       throw Error(resp.error);
@@ -166,7 +205,7 @@ export function syncstring(opts: SyncstringOpts): any {
 
 import { DataServer } from "@cocalc/sync/editor/generic/sync-doc";
 
-import { SyncString } from "@cocalc/sync/editor/string/sync";
+import type { SyncString } from "@cocalc/sync/editor/string/sync";
 
 interface SyncstringOpts2 {
   project_id: string;
@@ -181,7 +220,7 @@ interface SyncstringOpts2 {
 export function syncstring2(opts: SyncstringOpts2): SyncString {
   const opts1: any = opts;
   opts1.client = webapp_client;
-  return new SyncString(opts1);
+  return webapp_client.sync_client.sync_string(opts1);
 }
 
 export interface SyncDBOpts {
@@ -203,7 +242,7 @@ export function syncdb(opts: SyncDBOpts): any {
   return webapp_client.sync_db(opts1);
 }
 
-import { SyncDB } from "@cocalc/sync/editor/db/sync";
+import type { SyncDB } from "@cocalc/sync/editor/db/sync";
 
 export function syncdb2(opts: SyncDBOpts): SyncDB {
   if (opts.primary_keys.length <= 0) {
@@ -211,7 +250,7 @@ export function syncdb2(opts: SyncDBOpts): SyncDB {
   }
   const opts1: any = opts;
   opts1.client = webapp_client;
-  return new SyncDB(opts1);
+  return webapp_client.sync_client.sync_db(opts1);
 }
 
 interface QueryOpts {
@@ -243,16 +282,6 @@ export function get_editor_settings(): Map<string, any> {
   return Map(); // not loaded
 }
 
-export interface User {
-  account_id: string;
-  created?: number; // since commit 63e8e9954dc51632cf
-  email_address?: string;
-  first_name?: string;
-  last_active?: number; // since commit 63e8e9954dc51632cf
-  last_name?: string;
-  banned?: boolean;
-}
-
 export async function user_search(opts: {
   query: string;
   limit?: number;
@@ -270,9 +299,4 @@ import { API } from "@cocalc/frontend/project/websocket/api";
 
 export async function project_api(project_id: string): Promise<API> {
   return (await project_websocket(project_id)).api as API;
-}
-
-// Returns the raw URL to read the file from the project.
-export function raw_url_of_file(project_id: string, path: string): string {
-  return webapp_client.project_client.read_file({ project_id, path });
 }

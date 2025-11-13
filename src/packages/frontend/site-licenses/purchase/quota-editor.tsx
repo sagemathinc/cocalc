@@ -1,17 +1,18 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
-
 Editing a quota
 
  - shows user rows for cpu, ram, disk, member, and always_running: optional
  - they can edit all the rows.
  - optional: also shows rows for support and network that can't be edited
-
 */
+
+// cSpell: ignore jsonpatch requiresMemberhosting
+
 import {
   Button,
   Checkbox,
@@ -22,6 +23,7 @@ import {
   Typography,
 } from "antd";
 
+import { JsonEditor } from "@cocalc/frontend/admin/json-editor";
 import {
   CSS,
   React,
@@ -43,18 +45,18 @@ import {
   untangleUptime,
 } from "@cocalc/util/consts/site-license";
 import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
-import {
-  COSTS,
-  CostMap,
-  GCE_COSTS,
-} from "@cocalc/util/licenses/purchase/consts";
+import { COSTS, CostMap } from "@cocalc/util/licenses/purchase/consts";
 import { User } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural, round1, test_valid_jsonpatch } from "@cocalc/util/misc";
+import {
+  extract_gpu,
+  GPU_DEFAULT_RESOURCE,
+  process_gpu_quota,
+} from "@cocalc/util/types/gpu";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { DEDICATED_VM_ONPREM_MACHINE } from "@cocalc/util/upgrades/consts";
 import { Upgrades } from "@cocalc/util/upgrades/quota";
-import { JsonEditor } from "../../admin/json-editor";
 
 const { Text } = Typography;
 
@@ -70,7 +72,7 @@ const UNIT_STYLE: CSS = {
   fontWeight: 400,
 } as const;
 
-function render_explanation(s): JSX.Element {
+function render_explanation(s): React.JSX.Element {
   return (
     <span style={{ color: "#888" }}>
       <Gap /> - {s}
@@ -101,17 +103,17 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
   const max_upgrades = useTypedRedux("customize", "max_upgrades");
 
   const [show_advanced, set_show_advanced] = useState<boolean>(
-    show_advanced_default ?? false
+    show_advanced_default ?? false,
   );
   const [jsonPatchError, setJSONPatchError] = useState<string | undefined>(
-    undefined
+    undefined,
   );
 
   const hosting_multiplier = useMemo(() => {
     return (
       (quota.member ? COSTS.custom_cost.member : 1) *
       (quota.always_running ? COSTS.custom_cost.always_running : 1) *
-      (quota.member && quota.always_running ? GCE_COSTS.non_pre_factor : 1)
+      (quota.member && quota.always_running ? COSTS.gce.non_pre_factor : 1)
     );
   }, [quota]);
 
@@ -159,7 +161,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
   const isDedicated =
     quota.dedicated_vm != null || quota.dedicated_disk != null;
 
-  function render_cpu(): JSX.Element {
+  function render_cpu(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -191,12 +193,12 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
               {`${money(
                 COSTS.user_discount[user()] *
                   COSTS.custom_cost.cpu *
-                  hosting_multiplier
+                  hosting_multiplier,
               )}/CPU cores per month per project`}
               )
             </b>
             {render_explanation(
-              "Google cloud vCPU's shared with other projects (member hosting significantly reduces sharing)"
+              "Google Cloud vCPUs shared with other projects (member hosting significantly reduces sharing)",
             )}
           </Col>
         )}
@@ -204,7 +206,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_ram(): JSX.Element {
+  function render_ram(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -219,7 +221,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             }}
           />
           <Gap />
-          <span style={UNIT_STYLE}>shared G RAM</span>
+          <span style={UNIT_STYLE}>shared GB RAM</span>
         </Col>
         <Col md={col.max}>
           <Button
@@ -232,12 +234,12 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         {!hideExtra && (
           <Col md={col.desc}>
             <b>
-              G RAM (
+              GB RAM (
               {`${money(
                 COSTS.user_discount[user()] *
                   COSTS.custom_cost.ram *
-                  hosting_multiplier
-              )}/G RAM per month per project`}
+                  hosting_multiplier,
+              )}/GB RAM per month per project`}
               )
             </b>
             {render_explanation("RAM may be shared with other users")}
@@ -247,7 +249,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_dedicated_cpu(): JSX.Element {
+  function render_dedicated_cpu(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -287,12 +289,12 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
               {`${money(
                 COSTS.user_discount[user()] *
                   COSTS.custom_cost.dedicated_cpu *
-                  hosting_multiplier
+                  hosting_multiplier,
               )}/CPU cores per month per project`}
               )
             </b>
             {render_explanation(
-              "Google cloud vCPU's NOT shared with other projects.  You can enter a fractional value, e.g., 0.5 for a half dedicated core."
+              "Google Cloud vCPUs NOT shared with other projects.  You can enter a fractional value, e.g., 0.5 for a half dedicated core.",
             )}
           </Col>
         )}
@@ -300,7 +302,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_dedicated_ram(): JSX.Element {
+  function render_dedicated_ram(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control - col.max}>
@@ -319,7 +321,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             }}
           />
           <Gap />
-          <span style={UNIT_STYLE}>dedicated G RAM</span>
+          <span style={UNIT_STYLE}>dedicated GB RAM</span>
         </Col>
         <Col md={col.max}>
           <Button
@@ -334,11 +336,11 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         {!hideExtra && (
           <Col md={col.desc}>
             <b>
-              dedicated G RAM (
+              dedicated GB RAM (
               {`${money(
                 COSTS.user_discount[user()] *
                   COSTS.custom_cost.dedicated_ram *
-                  hosting_multiplier
+                  hosting_multiplier,
               )}/GB RAM per month per project`}
               )
             </b>
@@ -349,7 +351,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_disk(): JSX.Element | null {
+  function render_disk(): React.JSX.Element | null {
     if (isOnPrem) return null;
     return (
       <Row style={ROW_STYLE}>
@@ -380,12 +382,12 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             <b>
               G Disk Space (
               {`${money(
-                COSTS.user_discount[user()] * COSTS.custom_cost.disk
+                COSTS.user_discount[user()] * COSTS.custom_cost.disk,
               )}/G disk per month per project`}
               )
             </b>
             {render_explanation(
-              "store a larger number of files. Snapshots and file edit history is included at no additional charge."
+              "store a larger number of files. Snapshots and file edit history is included at no additional charge.",
             )}
           </Col>
         )}
@@ -393,7 +395,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_member(): JSX.Element | null {
+  function render_member(): React.JSX.Element | null {
     if (isOnPrem) return null;
     return (
       <Row style={ROW_STYLE}>
@@ -415,7 +417,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             member hosting{" "}
             <b>(multiplies RAM/CPU price by {COSTS.custom_cost.member})</b>
             {render_explanation(
-              "project runs on computers with far fewer other projects.  If not selected your project runs on very, very heavily loaded trial servers, which might be OK depending on your application."
+              "project runs on computers with far fewer other projects.  If not selected your project runs on very, very heavily loaded trial servers, which might be OK depending on your application.",
             )}
           </Col>
         )}
@@ -423,7 +425,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_ext_rw(): JSX.Element {
+  function render_ext_rw(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control}>
@@ -443,7 +445,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_dedicated_vm_help(): JSX.Element {
+  function render_dedicated_vm_help(): React.JSX.Element {
     return (
       <HelpIcon title="Dedicated VM">
         <Paragraph>
@@ -491,7 +493,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_dedicated_vm(): JSX.Element {
+  function render_dedicated_vm(): React.JSX.Element {
     const dvm = quota.dedicated_vm;
     const text = (dvm != null && typeof dvm != "boolean" && dvm.name) || "";
     return (
@@ -519,6 +521,171 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_gpu_help(): React.JSX.Element {
+    return (
+      <HelpIcon title="GPU Support" maxWidth="500px">
+        <Paragraph>
+          This configures a license, which will cause the project to run on a
+          GPU. You need to configure your VMs in your cluster in such a way,
+          that requesting a GPU is possible.
+        </Paragraph>
+        <Paragraph>
+          In particular, the pod will get the following resource limit:{" "}
+          <code>nvidia.com/gpu: 1</code>, where the specific GPU resource name
+          can be configured.
+        </Paragraph>
+        <Paragraph>
+          On top of that, you can optionally specify a{" "}
+          <Text strong>taint toleration</Text>. This helps with keeping all
+          other project pods away from your GPU enabled nodes. e.g.{" "}
+          <Text code>gpu=cocalc</Text> ends up as:{" "}
+          <pre>
+            {JSON.stringify({
+              tolerations: [
+                {
+                  key: "gpu",
+                  operator: "Equal",
+                  value: "cocalc",
+                  effect: "NoSchedule",
+                },
+              ],
+            })}
+          </pre>
+        </Paragraph>
+        <Paragraph>
+          You can also specify a <Text strong>node selector</Text>, useful if
+          you have several different types of GPU nodes in your cluster, and you
+          want to restrict where the project can run. E.g.{" "}
+          <Text code>gpu-type=nvidia-tesla-v100</Text> ends up as{" "}
+          <pre>
+            {JSON.stringify({
+              nodeSelector: { "gpu-type": "nvidia-tesla-v100" },
+            })}
+          </pre>
+        </Paragraph>
+      </HelpIcon>
+    );
+  }
+
+  function render_gpu(): React.JSX.Element {
+    const {
+      num = 0,
+      toleration = "",
+      nodeLabel = "",
+      resource = GPU_DEFAULT_RESOURCE,
+    } = extract_gpu(quota);
+
+    const debug = process_gpu_quota(quota);
+
+    // edit text and save button on the same row
+    const style: CSS = { display: "inline-flex", gap: "5px" } as const;
+
+    return (
+      <Row style={ROW_STYLE}>
+        <Col md={col.control}>
+          <Paragraph>
+            <Checkbox
+              checked={num > 0}
+              disabled={disabled}
+              style={{ fontWeight: "normal" }}
+              onChange={(e) =>
+                onChange({
+                  gpu: {
+                    num: e.target.checked ? Math.max(1, num) : 0,
+                    toleration,
+                    nodeLabel,
+                    resource,
+                  },
+                })
+              }
+            >
+              <Text strong>Configure GPU</Text> {render_gpu_help()}
+            </Checkbox>
+          </Paragraph>
+        </Col>
+        {num > 0 ? (
+          <Col md={col.desc}>
+            <Paragraph>
+              <Text strong>Number of GPUs</Text>{" "}
+              <InputNumber
+                min={1}
+                size={"small"}
+                value={num}
+                onChange={(num: number) =>
+                  onChange({ gpu: { num, toleration, nodeLabel, resource } })
+                }
+              />{" "}
+              (usually "1")
+            </Paragraph>
+            <Paragraph>
+              <Text strong>GPU Resource</Text>{" "}
+              <TextInput
+                size={"small"}
+                disabled={disabled}
+                type={"text"}
+                on_change={(resource) =>
+                  onChange({
+                    gpu: {
+                      resource: resource.trim(),
+                      toleration,
+                      num,
+                      nodeLabel,
+                    },
+                  })
+                }
+                style={style}
+                text={resource}
+              />{" "}
+              (optional, default "{GPU_DEFAULT_RESOURCE}", alternatively e.g.
+              "nvidia.com/mig-1g.5gb")
+            </Paragraph>
+            <Paragraph>
+              <Text strong>Node selector:</Text>{" "}
+              <TextInput
+                size={"small"}
+                disabled={disabled}
+                type={"text"}
+                on_change={(label) =>
+                  onChange({
+                    gpu: { nodeLabel: label.trim(), toleration, num, resource },
+                  })
+                }
+                style={style}
+                text={nodeLabel}
+              />{" "}
+              (optional, [1])
+            </Paragraph>
+            <Paragraph>
+              <Text strong>Tolerate a taint:</Text>{" "}
+              <TextInput
+                size={"small"}
+                disabled={disabled}
+                type={"text"}
+                on_change={(tol) =>
+                  onChange({
+                    gpu: { toleration: tol.trim(), nodeLabel, num, resource },
+                  })
+                }
+                style={style}
+                text={toleration}
+              />{" "}
+              (optional, [1])
+            </Paragraph>
+            <Paragraph type="secondary">
+              [1] format: <code>key=value</code> or for taints, also{" "}
+              <code>key</code> to tolerate the key regardless of value. Keep the
+              field empty if you do not use label selectors or taints. Specify
+              multiple ones via a "," comma. Below is a "debug" view.
+            </Paragraph>
+            <pre style={{ fontSize: "85%" }}>
+              {JSON.stringify(debug, null, 2)}
+            </pre>
+          </Col>
+        ) : undefined}
+      </Row>
+    );
+  }
+
   function on_json_patch_change(patch: string): void {
     try {
       const patchObj = JSON.parse(patch);
@@ -527,7 +694,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         onChange({ patch }); // we save the string, not the object!
       } else {
         setJSONPatchError(
-          'Must be a list of {`[{"op": "replace", "path": "…", "value": "…"}, …]`} objects.'
+          'Must be a list of {`[{"op": "replace", "path": "…", "value": "…"}, …]`} objects.',
         );
       }
     } catch (err) {
@@ -535,7 +702,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_patch_project_pod(): JSX.Element {
+  function render_patch_project_pod(): React.JSX.Element {
     const value = quota.patch ?? "[]";
     return (
       <Row style={ROW_STYLE}>
@@ -558,19 +725,19 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function idleTimeoutUptimeOptions(): JSX.Element[] {
-    const ret: JSX.Element[] = [];
+  function idleTimeoutUptimeOptions(): React.JSX.Element[] {
+    const ret: React.JSX.Element[] = [];
     for (const [key, it] of Object.entries(LicenseIdleTimeouts)) {
       ret.push(
         <Select.Option key={key} value={key}>
           {it.label}
-        </Select.Option>
+        </Select.Option>,
       );
     }
     ret.push(
       <Select.Option key={"always_running"} value={"always_running"}>
         Always running
-      </Select.Option>
+      </Select.Option>,
     );
     return ret;
   }
@@ -584,7 +751,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     onChange(next);
   }
 
-  function idleTimeoutExtra(): JSX.Element | undefined {
+  function idleTimeoutExtra(): React.JSX.Element | undefined {
     if (hideExtra) return;
     return (
       <Col md={col.desc}>
@@ -592,7 +759,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <>
             <b>
               longer idle time increases price by up to{" "}
-              {COSTS.custom_cost.always_running * GCE_COSTS.non_pre_factor}{" "}
+              {COSTS.custom_cost.always_running * COSTS.gce.non_pre_factor}{" "}
               times
             </b>{" "}
             {render_explanation(`If you leave your project alone, it will be shut down the latest
@@ -608,7 +775,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_idle_timeout(): JSX.Element {
+  function render_idle_timeout(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control} style={{ whiteSpace: "nowrap" }}>
@@ -625,7 +792,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_support(): JSX.Element {
+  function render_support(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control}>
@@ -639,7 +806,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <Col md={col.desc}>
             priority support
             {render_explanation(
-              "we prioritize your support requests much higher (included with all licensed projects)"
+              "we prioritize your support requests much higher (included with all licensed projects)",
             )}
           </Col>
         )}
@@ -647,7 +814,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_network(): JSX.Element {
+  function render_network(): React.JSX.Element {
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control}>
@@ -661,7 +828,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <Col md={col.desc}>
             network access
             {render_explanation(
-              "project can connect to the Internet to clone git repositories, download files, send emails, etc.  (included with all licensed projects)"
+              "project can connect to the Internet to clone git repositories, download files, send emails, etc.  (included with all licensed projects)",
             )}
           </Col>
         )}
@@ -669,7 +836,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_show_advanced_link(): JSX.Element {
+  function render_show_advanced_link(): React.JSX.Element {
     if (show_advanced) {
       return (
         <a
@@ -690,7 +857,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
       );
   }
 
-  function render_dedicated(): JSX.Element {
+  function render_dedicated(): React.JSX.Element {
     return (
       <div style={ROW_STYLE}>
         We also offer <b>dedicated virtual machines</b>, which are usually a
@@ -708,6 +875,32 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_advanced_onprem(): React.JSX.Element | undefined {
+    if (!show_advanced || !isOnPrem) return;
+    return (
+      <>
+        {render_ext_rw()}
+        {render_dedicated_vm()}
+        {render_gpu()}
+        {render_patch_project_pod()}
+      </>
+    );
+  }
+
+  function render_advanced(): React.JSX.Element | undefined {
+    if (!show_advanced) return;
+    return (
+      <>
+        {render_member()}
+        {render_idle_timeout()}
+        {render_dedicated_cpu()}
+        {render_dedicated_ram()}
+        {!hideExtra && render_dedicated()}
+        {render_advanced_onprem()}
+      </>
+    );
+  }
+
   return (
     <>
       {render_cpu()}
@@ -716,14 +909,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
       {!hideExtra && render_support()}
       {!hideExtra && render_network()}
       {render_show_advanced_link()}
-      {show_advanced && render_member()}
-      {show_advanced && render_idle_timeout()}
-      {show_advanced && render_dedicated_cpu()}
-      {show_advanced && render_dedicated_ram()}
-      {show_advanced && !hideExtra && render_dedicated()}
-      {show_advanced && isOnPrem && render_ext_rw()}
-      {show_advanced && isOnPrem && render_dedicated_vm()}
-      {show_advanced && isOnPrem && render_patch_project_pod()}
+      {render_advanced()}
     </>
   );
 };

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // React libraries
@@ -23,6 +23,11 @@ import {
 } from "@cocalc/frontend/projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type {
+  CopyConfigurationOptions,
+  CopyConfigurationTargets,
+} from "./configuration/configuration-copying";
+import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
 
 export const PARALLEL_DEFAULT = 5;
 export const MAX_COPY_PARALLEL = 25;
@@ -32,6 +37,7 @@ import {
   AssignmentStatus,
   SiteLicenseStrategy,
   UpgradeGoal,
+  ComputeServerConfig,
 } from "./types";
 
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
@@ -44,6 +50,7 @@ export type TerminalCommandOutput = TypedMap<{
   project_id: string;
   stdout?: string;
   stderr?: string;
+  time_ms?: number;
 }>;
 
 export type TerminalCommand = TypedMap<{
@@ -53,18 +60,20 @@ export type TerminalCommand = TypedMap<{
 }>;
 
 export type StudentRecord = TypedMap<{
-  create_project: number; // Time the student project was created
-  account_id: string;
+  create_project?: number; // Time the student project was created
+  account_id?: string;
   student_id: string;
-  first_name: string;
-  last_name: string;
-  last_active: number;
-  hosting: string;
-  email_address: string;
-  project_id: string;
-  deleted: boolean;
-  note: string;
-  last_email_invite: number;
+  first_name?: string;
+  last_name?: string;
+  last_active?: number;
+  hosting?: string;
+  email_address?: string;
+  project_id?: string;
+  deleted?: boolean;
+  // deleted_account: true if the account_id is known to have been deleted
+  deleted_account?: boolean;
+  note?: string;
+  last_email_invite?: number;
 }>;
 
 export type StudentsMap = Map<string, StudentRecord>;
@@ -78,7 +87,7 @@ export type LastCopyInfo = {
 export type AssignmentRecord = TypedMap<{
   assignment_id: string;
   deleted: boolean;
-  due_date: Date;
+  due_date: string; // iso string
   path: string;
   peer_grade?: {
     enabled: boolean;
@@ -109,6 +118,7 @@ export type AssignmentRecord = TypedMap<{
     [student_id: string]: { [ipynb: string]: NotebookScores | string };
   };
   nbgrader_score_ids?: { [ipynb: string]: string[] };
+  compute_server?: ComputeServerConfig;
 }>;
 
 export type AssignmentsMap = Map<string, AssignmentRecord>;
@@ -120,9 +130,17 @@ export type HandoutRecord = TypedMap<{
   path: string;
   note: string;
   status: { [student_id: string]: LastCopyInfo };
+  compute_server?: ComputeServerConfig;
 }>;
 
 export type HandoutsMap = Map<string, HandoutRecord>;
+
+// unit = record or assignment...
+export type Unit = TypedMap<{
+  compute_server?: ComputeServerConfig;
+  assignment_id?: string;
+  handout_id?: string;
+}>;
 
 export type SortDescription = TypedMap<{
   column_name: string;
@@ -136,6 +154,8 @@ export type CourseSettingsRecord = TypedMap<{
   email_invite: string;
   institute_pay: boolean;
   pay: string | Date;
+  payInfo?: TypedMap<PurchaseInfo>;
+  payCost?: number;
   shared_project_id: string;
   student_pay: boolean;
   title: string;
@@ -155,6 +175,8 @@ export type CourseSettingsRecord = TypedMap<{
   nbgrader_parallel?: number;
   datastore?: Datastore;
   envvars?: EnvVarsRecord;
+  copy_config_targets: CopyConfigurationTargets;
+  copy_config_options: CopyConfigurationOptions;
 }>;
 
 export const CourseSetting = createTypedMap<CourseSettingsRecord>();
@@ -199,6 +221,10 @@ export interface CourseState {
   unsaved?: boolean;
   terminal_command?: TerminalCommand;
   nbgrader_run_info?: NBgraderRunInfo;
+  // map from student_id to a filter string.
+  assignmentFilter?: Map<string, string>;
+  // each page -- students, assignments, handouts (etc.?) has a filter.  This is the state of that filter.
+  pageFilter?: Map<string, string>;
 }
 
 export class CourseStore extends Store<CourseState> {
@@ -226,7 +252,7 @@ export class CourseStore extends Store<CourseState> {
   // that graded the given student, or undefined if no relevant assignment.
   public get_peers_that_graded_student(
     assignment_id: string,
-    student_id: string
+    student_id: string,
   ): string[] {
     const peers: string[] = [];
     const assignment = this.get_assignment(assignment_id);
@@ -260,9 +286,13 @@ export class CourseStore extends Store<CourseState> {
   public get_payInfo(): PurchaseInfo | null {
     const settings = this.get("settings");
     if (settings == null || !settings.get("student_pay")) return null;
-    const payInfo = settings.get("payInfo");
+    const payInfo = settings.get("payInfo")?.toJS();
     if (!payInfo) return null;
-    return payInfo;
+    // merge in defaults for backward compat if e.g., no version set
+    return {
+      ...DEFAULT_PURCHASE_INFO,
+      ...payInfo,
+    };
   }
 
   public get_datastore(): Datastore {
@@ -325,7 +355,7 @@ export class CourseStore extends Store<CourseState> {
       // Student doesn't have an account yet on CoCalc (that we know about).
       // Email address:
       if (student.has("email_address")) {
-        return student.get("email_address");
+        return student.get("email_address")!;
       }
       // One of the above had to work, since we add students by email or account.
       // But put this in anyways:
@@ -341,7 +371,7 @@ export class CourseStore extends Store<CourseState> {
     // This situation usually shouldn't happen, but maybe could in case the user was known but
     // then removed themselves as a collaborator, or something else odd.
     if (student.has("email_address")) {
-      return student.get("email_address");
+      return student.get("email_address")!;
     }
     // OK, now there is really no way to identify this student.  I suppose this could
     // happen if the student was added by searching for their name, then they removed
@@ -373,8 +403,8 @@ export class CourseStore extends Store<CourseState> {
       if (users != null) {
         const name = users.get_name(student.get("account_id"));
         if (name != null) {
-          extra = ` (You call them "${student.has("first_name")} ${student.has(
-            "last_name"
+          extra = ` (You call them "${student.get("first_name")} ${student.get(
+            "last_name",
           )}", but they call themselves "${name}".)`;
         }
       }
@@ -392,13 +422,13 @@ export class CourseStore extends Store<CourseState> {
     }
     if (student.has("first_name") || student.has("last_name")) {
       return [student.get("last_name", ""), student.get("first_name", "")].join(
-        " "
+        " ",
       );
     }
     const account_id = student.get("account_id");
     if (account_id == null) {
       if (student.has("email_address")) {
-        return student.get("email_address");
+        return student.get("email_address")!;
       }
       return student_id;
     }
@@ -430,7 +460,7 @@ export class CourseStore extends Store<CourseState> {
     opts: {
       include_deleted?: boolean;
       deleted_only?: boolean;
-    } = {}
+    } = {},
   ): string[] {
     // include_deleted = if true, also include deleted projects
     // deleted_only = if true, only include deleted projects
@@ -439,7 +469,10 @@ export class CourseStore extends Store<CourseState> {
     let v: string[] = [];
 
     for (const [, val] of this.get("students")) {
-      const project_id: string = val.get("project_id");
+      const project_id = val.get("project_id");
+      if (!project_id) {
+        continue;
+      }
       if (deleted_only) {
         if (include_deleted && val.get("deleted")) {
           v.push(project_id);
@@ -474,8 +507,8 @@ export class CourseStore extends Store<CourseState> {
     v.sort((a, b) =>
       cmp(
         this.get_student_sort_name(a.get("student_id")),
-        this.get_student_sort_name(b.get("student_id"))
-      )
+        this.get_student_sort_name(b.get("student_id")),
+      ),
     );
     return v;
   }
@@ -489,14 +522,14 @@ export class CourseStore extends Store<CourseState> {
 
   public get_nbgrader_scores(
     assignment_id: string,
-    student_id: string
+    student_id: string,
   ): { [ipynb: string]: NotebookScores | string } | undefined {
     const { assignment } = this.resolve({ assignment_id });
     return assignment?.getIn(["nbgrader_scores", student_id])?.toJS();
   }
 
   public get_nbgrader_score_ids(
-    assignment_id: string
+    assignment_id: string,
   ): { [ipynb: string]: string[] } | undefined {
     const { assignment } = this.resolve({ assignment_id });
     const ids = assignment?.get("nbgrader_score_ids")?.toJS();
@@ -551,11 +584,15 @@ export class CourseStore extends Store<CourseState> {
     return this.getIn(["assignments", assignment_id]);
   }
 
-  // if deleted is true return only deleted assignments
-  public get_assignment_ids(opts: { deleted?: boolean } = {}): string[] {
+  public get_assignment_ids({
+    deleted = false,
+  }: {
+    // if deleted is true return only deleted assignments
+    deleted?: boolean;
+  } = {}): string[] {
     const v: string[] = [];
     for (const [assignment_id, val] of this.get_assignments()) {
-      if (!!val.get("deleted") == opts.deleted) {
+      if (!!val.get("deleted") == deleted) {
         v.push(assignment_id);
       }
     }
@@ -606,7 +643,7 @@ export class CourseStore extends Store<CourseState> {
   // get info about relation between a student and a given assignment
   public student_assignment_info(
     student_id: string,
-    assignment_id: string
+    assignment_id: string,
   ): {
     last_assignment?: LastCopyInfo;
     last_collect?: LastCopyInfo;
@@ -665,7 +702,7 @@ export class CourseStore extends Store<CourseState> {
     step: AssignmentCopyStep,
     assignment_id: string,
     student_id: string,
-    no_error?: boolean
+    no_error?: boolean,
   ): boolean {
     const x = this.getIn([
       "assignments",
@@ -688,7 +725,7 @@ export class CourseStore extends Store<CourseState> {
   }
 
   public get_assignment_status(
-    assignment_id: string
+    assignment_id: string,
   ): AssignmentStatus | undefined {
     //
     // Compute and return an object that has fields (deleted students are ignored)
@@ -705,7 +742,7 @@ export class CourseStore extends Store<CourseState> {
     //                        (only present if peer grading enabled; similar for peer below)
     //  not_peer_assignment - number of students who have NOT received peer assignment
     //  peer_collect        - number of students from whom we have collected peer grading
-    //  not_peer_collect    - number of students from whome we have NOT collected peer grading
+    //  not_peer_collect    - number of students from whom we have NOT collected peer grading
     //  return_graded       - number of students to whom we've returned assignment
     //  not_return_graded   - number of students to whom we've NOT returned assignment
     //                        but we collected it from them *and* either assigned a grade or skip grading
@@ -779,10 +816,12 @@ export class CourseStore extends Store<CourseState> {
     return this.getIn(["handouts", handout_id]);
   }
 
-  public get_handout_ids(opts: { deleted?: boolean } = {}): string[] {
+  public get_handout_ids({
+    deleted = false,
+  }: { deleted?: boolean } = {}): string[] {
     const v: string[] = [];
     for (const [handout_id, val] of this.get_handouts()) {
-      if (!!val.get("deleted") == opts.deleted) {
+      if (!!val.get("deleted") == deleted) {
         v.push(handout_id);
       }
     }
@@ -791,7 +830,7 @@ export class CourseStore extends Store<CourseState> {
 
   public student_handout_info(
     student_id: string,
-    handout_id: string
+    handout_id: string,
   ): { status?: LastCopyInfo; handout_id: string; student_id: string } {
     // status -- important to be undefined if no info -- assumed in code
     const status = this.getIn(["handouts", handout_id, "status", student_id]);
@@ -819,7 +858,7 @@ export class CourseStore extends Store<CourseState> {
   }
 
   public get_handout_status(
-    handout_id: string
+    handout_id: string,
   ): undefined | { handout: number; not_handout: number } {
     //
     // Compute and return an object that has fields (deleted students are ignored)
@@ -881,13 +920,13 @@ export class CourseStore extends Store<CourseState> {
       student_project_ids: set(
         this.get_student_project_ids({
           include_deleted: true,
-        })
+        }),
       ),
       deleted_project_ids: set(
         this.get_student_project_ids({
           include_deleted: true,
           deleted_only: true,
-        })
+        }),
       ),
       upgrade_goal,
     });
@@ -974,6 +1013,10 @@ export class CourseStore extends Store<CourseState> {
     }
     return licenses;
   }
+
+  getUnit = (id: string) => {
+    return this.getIn(["assignments", id]) ?? this.getIn(["handouts", id]);
+  };
 }
 
 export function get_nbgrader_score(scores: {

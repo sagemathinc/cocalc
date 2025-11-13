@@ -1,5 +1,6 @@
 import getAccountId from "lib/account/get-account";
 import { syncUsageBasedSubscription } from "@cocalc/server/purchases/stripe-usage-based-subscription";
+import { OkStatus } from "../../../../lib/api/status";
 
 export default async function handle(req, res) {
   try {
@@ -17,5 +18,8 @@ async function get(req) {
   }
 
   const found = await syncUsageBasedSubscription(account_id);
-  return { status: "ok", found };
+  return {
+    ...OkStatus,
+    found,
+  };
 }

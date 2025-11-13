@@ -2,11 +2,50 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { is_valid_uuid_string as isUUID } from "@cocalc/util/misc";
 import { splitFirst } from "@cocalc/util/misc";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { APP_ROUTES } from "@cocalc/util/routing/app";
+import { join } from "path";
+import { encode_path } from "@cocalc/util/misc";
+
+// URL to use http to download a file from a project or compute server
+// that you collaborate on.
+export function fileURL({
+  project_id,
+  compute_server_id,
+  path,
+  param,
+}: {
+  project_id: string;
+  path: string;
+  compute_server_id?: number;
+  param?: string;
+}): string {
+  let url = join(appBasePath, project_id, "files", encode_path(path));
+  if (compute_server_id) {
+    url += `?id=${compute_server_id}`;
+  }
+  if (param) {
+    if (compute_server_id) {
+      url += "&" + param;
+    } else {
+      url += "?" + param;
+    }
+  }
+  return url;
+}
 
 function getOrigin(): string {
   // This is a situation where our choice of definition of "/" for the
   // trivial base path is annoying.
   return document.location.origin + (appBasePath.length > 1 ? appBasePath : "");
+}
+
+// strips page origin from href, but NOT leading slash
+export function removeOrigin(href: string): string {
+  const origin = getOrigin();
+  if (!href?.startsWith(origin)) {
+    return href;
+  }
+  return href.slice(origin.length);
 }
 
 // True if starts with host's URL, but is not a port or proxy URL (e.g.,
@@ -19,10 +58,17 @@ function getOrigin(): string {
 // isn't that bad.
 export function isCoCalcURL(href?: string): boolean {
   const origin = getOrigin();
-  return !!(
-    href?.startsWith(origin) &&
-    !isUUID(href.slice(origin.length + 1, origin.length + 37))
-  );
+  if (!href?.startsWith(origin)) {
+    return false;
+  }
+  const s = href.slice(origin.length + 1);
+  if (isUUID(s.slice(0, 37))) {
+    // proxied route
+    return false;
+  }
+  const url = new URL("http://dummy/" + s);
+  const path = url.pathname.split("/")[1];
+  return APP_ROUTES.has(path);
 }
 
 export function parseCoCalcURL(href?: string): {
@@ -44,10 +90,6 @@ export function parseCoCalcURL(href?: string): {
   const query = url.search;
   let pathname = url.pathname.slice(1);
   const i = pathname.indexOf("/");
-  if (pathname.startsWith("settings")) {
-    // annoyingly, 'account' is what it is called in src/packages/frontend/app/actions.ts
-    pathname = "account";
-  }
   if (i == -1) {
     return { page: pathname, fragmentId, query };
   }

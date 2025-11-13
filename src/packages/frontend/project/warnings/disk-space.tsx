@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert } from "../../antd-bootstrap";
@@ -9,7 +9,6 @@ import {
   useMemo,
   useRedux,
   useTypedRedux,
-  redux,
   useActions,
 } from "../../app-framework";
 import { Icon } from "../../components";
@@ -20,12 +19,13 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
 }) => {
   const project = useRedux(["projects", "project_map", project_id]);
   const is_commercial = useTypedRedux("customize", "is_commercial");
+  // We got a report of a crash when project isn't defined; that could happen
+  // when opening a project via a direct link, and the project isn't in the
+  // initial project maps (the map will get extended to all projects, and
+  // then this gets rerendered).
   const quotas = useMemo(
-    () =>
-      is_commercial
-        ? redux.getStore("projects").get_total_project_quotas(project_id)
-        : undefined,
-    [project, is_commercial]
+    () => (is_commercial ? project?.get("run_quota")?.toJS() : undefined),
+    [project, is_commercial],
   );
 
   const actions = useActions({ project_id });

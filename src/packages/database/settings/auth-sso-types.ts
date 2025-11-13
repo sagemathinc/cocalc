@@ -1,25 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { PostgreSQL } from "@cocalc/database/postgres/types";
-
-// see @hub/sign-in
-interface RecordSignInOpts {
-  ip_address: string;
-  successful: boolean;
-  database: PostgreSQL;
-  email_address?: string;
-  account_id?: string;
-  remember_me: boolean;
-}
 
 export interface PassportLoginOpts {
   passports: { [k: string]: PassportStrategyDB };
   database: PostgreSQL;
   strategyName: string;
-  record_sign_in: (opts: RecordSignInOpts) => void; // a function of that old "hub/sign-in" module
   profile: any; // complex object
   id: string; // id is required. e.g. take the email address – see create_passport in postgres-server-queries.coffee
   first_name?: string;
@@ -31,6 +20,7 @@ export interface PassportLoginOpts {
   update_on_login: boolean; // passed down from StrategyConf, default false
   cookie_ttl_s?: number; // how long the remember_me cookied lasts (default is a month or so)
   host: string;
+  site_url: string;
   cb?: (err) => void;
 }
 
@@ -90,7 +80,9 @@ export type PassportLoginInfo = { [key in LoginInfoKeys]?: string };
  * The remaining fields, except for type, clientID, clientSecret, and callbackURL, userinfoURL, login_info are passed to that constructor.
  * Additionally, there are default values for some of the fields, e.g. for the SAML2.0 strategy.
  * Please check the hub/auth.ts file for more details.
+ *
  * Regarding the userinfoURL, this is used by OAuth2 to get the profile.
+ *
  * The "login_info" field is a mapping from "cocalc" profile fields, that end up in the DB,
  * to the entries in the generated profile object. The DB entry can only be a string and
  * processing is done by using the "dot-object" npm library.
@@ -101,6 +93,7 @@ export type PassportLoginInfo = { [key in LoginInfoKeys]?: string };
  *   last_name: "name.familyName",
  *   emails: "emails[0].value",
  * }
+ * You can to customize the separator of dot-object, e.g. to process keys with dots, add a "_sep: string" entry.
  */
 export interface PassportStrategyDBConfig {
   type: PassportTypes;
@@ -111,6 +104,8 @@ export interface PassportStrategyDBConfig {
   userinfoURL?: string; // OAuth2, to get a profile
   login_info?: PassportLoginInfo; // extracting fields from the returned profile, uses "dot-object", e.g. { emails: "emails[0].value" }
   auth_opts?: { [key: string]: string }; // auth options, typed as AuthenticateOptions but OAuth2 has one which isn't part of the type – hence we keep it general
+  cert?: string; // passport-saml<5
+  idpCert?: string; // passport-saml>=5  https://github.com/node-saml/node-saml/pull/343
 }
 
 /**

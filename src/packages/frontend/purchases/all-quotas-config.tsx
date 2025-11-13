@@ -5,61 +5,106 @@ This shows an overview of configured quotas for all services,
 and lets you adjust any of them.
 */
 
-import { Icon } from "@cocalc/frontend/components/icon";
+import {
+  Alert,
+  Button,
+  Dropdown,
+  InputNumber,
+  Progress,
+  Spin,
+  Table,
+  Tag,
+} from "antd";
+import { cloneDeep, isEqual } from "lodash";
+import { useEffect, useRef, useState } from "react";
+
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { getServiceCosts } from "@cocalc/frontend/purchases/api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { LLM_COST, service2model_core } from "@cocalc/util/db-schema/llm-utils";
 import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { currency } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Alert, Button, InputNumber, Progress, Spin, Table, Tag } from "antd";
-import { cloneDeep, isEqual } from "lodash";
-import { useEffect, useRef, useState } from "react";
+import { TITLE_BAR_BORDER } from "../frame-editors/frame-tree/style";
 import Cost from "./pay-as-you-go/cost";
 import ServiceTag from "./service";
-import Refresh from "./refresh";
+import { SectionDivider } from "./util";
 
-export const QUOTA_LIMIT_ICON_NAME = "ColumnHeightOutlined";
+export const QUOTA_LIMIT_ICON_NAME: IconName = "ColumnHeightOutlined";
 
-export const PRESETS = [0, 5, 20, 1000];
+export const PRESETS = [0, 25, 100, 2000];
+export const PRESETS_LLM = [0, 5, 10, 20];
 export const STEP = 5;
 
 interface ServiceQuota {
   service: Service;
   quota: number;
   current: number;
+  cost?: any;
 }
 
 export default function AllQuotasConfig() {
   const [saving, setSaving] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [serviceQuotas, setServiceQuotas] = useState<ServiceQuota[] | null>(
     null,
   );
   const lastFetchedQuotasRef = useRef<ServiceQuota[] | null>(null);
   const [changed, setChanged] = useState<boolean>(false);
+  const selectableLLMs = useTypedRedux("customize", "selectable_llms");
+  // The 10 is just for the initial rollout, the value is customizable
+  const llm_default_quota =
+    useTypedRedux("customize", "llm_default_quota") ?? 10;
 
   const getQuotas = async () => {
-    let x, y;
+    let quotas, charges;
     try {
-      x = await webapp_client.purchases_client.getQuotas();
-      y = await webapp_client.purchases_client.getChargesByService();
+      setLoading(true);
+      [quotas, charges] = await Promise.all([
+        webapp_client.purchases_client.getQuotas(),
+        webapp_client.purchases_client.getChargesByService(),
+      ]);
     } catch (err) {
       setError(`${err}`);
       return;
+    } finally {
+      setLoading(false);
     }
-    const { services } = x;
-    const v: ServiceQuota[] = [];
+    const { services } = quotas;
+    const w: { [service: string]: ServiceQuota } = {};
     for (const service in QUOTA_SPEC) {
       const spec = QUOTA_SPEC[service];
       if (spec.noSet) continue;
-      v.push({
-        current: y[service] ?? 0,
+      const llmModel = service2model_core(service);
+      const isLLM = llmModel != null;
+      if (isLLM) {
+        // We do not show those models, which can't be selected by users OR are free in the first place
+        const cost = LLM_COST[llmModel];
+        if (!selectableLLMs.includes(llmModel) || cost?.free === true) {
+          continue;
+        }
+      }
+      const defaultQuota: number = isLLM ? llm_default_quota : 0;
+      w[service] = {
+        current: charges[service] ?? 0,
         service: service as Service,
-        quota: services[service] ?? 0,
-      });
+        quota: services[service] ?? defaultQuota,
+      };
     }
-    lastFetchedQuotasRef.current = cloneDeep(v);
-    setServiceQuotas(v);
-    setChanged(false);
+    try {
+      const costs = await getServiceCosts(Object.keys(w) as Service[]);
+      const v: ServiceQuota[] = [];
+      for (const service in costs) {
+        v.push({ ...w[service], cost: costs[service] });
+      }
+      lastFetchedQuotasRef.current = cloneDeep(v);
+      setServiceQuotas(v);
+      setChanged(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -114,33 +159,56 @@ export default function AllQuotasConfig() {
       title: "Monthly Limit (USD)",
       dataIndex: "quota",
       align: "center" as "center",
-      render: (quota: number, _record: ServiceQuota, index: number) => (
-        <div>
-          <div style={{ marginBottom: "15px", whiteSpace: "nowrap" }}>
-            {PRESETS.map((amount) => (
-              <Preset
-                key={amount}
-                index={index}
-                amount={amount}
-                handleQuotaChange={(a, b) => {
-                  handleQuotaChange(a, b);
+      render: (quota: number, _record: ServiceQuota, index: number) => {
+        const isLLM = QUOTA_SPEC[_record.service]?.category === "ai";
+        const presets = isLLM ? PRESETS_LLM : PRESETS;
+
+        return (
+          <Dropdown
+            menu={{
+              items: presets.map((preset) => ({
+                key: preset.toString(),
+                label: `$${preset}`,
+                onClick: () => {
+                  handleQuotaChange(index, preset);
                   handleSave();
+                },
+              })),
+            }}
+            trigger={["click"]}
+            overlayStyle={{ minWidth: "100px" }}
+          >
+            <div style={{ display: "flex" }}>
+              <InputNumber
+                min={0}
+                value={quota}
+                onChange={(newQuota) =>
+                  handleQuotaChange(index, newQuota as number)
+                }
+                formatter={(value) => `$${value}`}
+                step={STEP}
+                onBlur={handleSave}
+                style={{
+                  borderRight: "none",
+                  borderRadius: "5px 0 0 5px",
+                  width: "120px",
                 }}
               />
-            ))}
-          </div>
-          <InputNumber
-            min={0}
-            value={quota}
-            onChange={(newQuota) =>
-              handleQuotaChange(index, newQuota as number)
-            }
-            formatter={(value) => `$${value}`}
-            step={STEP}
-            onBlur={handleSave}
-          />
-        </div>
-      ),
+              <Button
+                style={{
+                  border: TITLE_BAR_BORDER,
+                  borderLeft: "none",
+                  borderRadius: "0 5px 5px 0",
+                  padding: "0 8px",
+                  cursor: "pointer",
+                }}
+              >
+                <Icon name="caret-down" />
+              </Button>
+            </div>
+          </Dropdown>
+        );
+      },
     },
     {
       title: "This Month Spend (USD)",
@@ -163,12 +231,17 @@ export default function AllQuotasConfig() {
     {
       title: "Cost",
       align: "center" as "center",
-      render: (_, { service }: ServiceQuota) => <Cost service={service} />,
+      render: (_, { cost, service }: ServiceQuota) => (
+        <Cost service={service} cost={cost} />
+      ),
     },
   ];
 
   return (
-    <>
+    <div>
+      <SectionDivider onRefresh={handleRefresh} loading={saving || loading}>
+        Your Pay As You Go Budget
+      </SectionDivider>
       {error && (
         <Alert
           type="error"
@@ -177,17 +250,21 @@ export default function AllQuotasConfig() {
         />
       )}
 
-      <div style={{ marginLeft: "5px", float: "right" }}>
-        <Refresh
-          handleRefresh={handleRefresh}
-          disabled={saving}
-          style={{ float: "right" }}
-        />
-      </div>
-
       <div style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
-        These are your personal monthly spending caps to prevent overspending.
-        You can change them to whatever you want at any time.
+        <Alert
+          style={{ margin: "auto", maxWidth: "800px" }}
+          type="info"
+          description={
+            <>
+              These are your monthly spending limits to help prevent
+              overspending. You can change them at any time, and they help you
+              visualize how much you have spent on pay as you go purchases.
+              These are "soft limits" --{" "}
+              <b>purchases are not blocked if you exceed these limits</b>;
+              instead, you will receive warnings.
+            </>
+          }
+        />
       </div>
 
       <div style={{ marginBottom: "15px" }}>
@@ -220,7 +297,7 @@ export default function AllQuotasConfig() {
           <Spin size="large" delay={500} />
         </div>
       )}
-    </>
+    </div>
   );
 }
 

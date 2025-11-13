@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -98,8 +98,8 @@ const MAIN_COLORS = {
   ANTD_LINK_BLUE: "#1677ff", // blue used for links
   ANTD_LINK_BLUE_DARK: "#003eb3", // dark blue used for links
 
-  ATND_BG_RED_M: "#ff7875",
-  ATND_BG_RED_L: "#fff2f0",
+  ANTD_BG_RED_M: "#ff7875",
+  ANTD_BG_RED_L: "#fff2f0",
   ANTD_BG_BLUE_L: "#e6f4ff",
   ANTD_RED_WARN: "#f5222d", // used in official docs if there is red text to warn
   ANTD_YELL_M: "#fadb14",
@@ -115,6 +115,13 @@ const MAIN_COLORS = {
   COCALC_ORANGE: "#fcc861", // orange used for the logo
 
   ORANGE_WARN: "#FFA500", // e.g. connecting… indicator. use $ANTD_RED_WARN for more severe warnings
+
+  AI_ASSISTANT_BG: "#f6bf61", // e.g. the orange background of the button bar AI button
+  AI_ASSISTANT_TXT: "#303030", // the text color for the above
+  // a darker variant of AI_ASSISNTANT_BG for text
+  AI_ASSISTANT_FONT: "#f0a11d",
+
+  RUN: "#389e0d", // the green color of the run button
 } as const;
 
 export const COLORS = {

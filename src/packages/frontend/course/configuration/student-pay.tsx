@@ -1,17 +1,32 @@
-import { Alert, Button, Card, Checkbox, DatePicker, Divider, Spin } from "antd";
-import { useEffect, useMemo, useState } from "react";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Gap, Icon, TimeAgo } from "@cocalc/frontend/components";
-import LicenseEditor from "@cocalc/frontend/purchases/license-editor";
-import { currency } from "@cocalc/util/misc";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
-import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
+import {
+  Alert,
+  Button,
+  Card,
+  Checkbox,
+  DatePicker,
+  Divider,
+  Space,
+  Spin,
+} from "antd";
 import dayjs from "dayjs";
 import { isEqual } from "lodash";
+import { useEffect, useMemo, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+import { Gap, Icon, TimeAgo } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
+import LicenseEditor from "@cocalc/frontend/purchases/license-editor";
+import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { currency } from "@cocalc/util/misc";
+import ShowError from "@cocalc/frontend/components/error";
 
 export default function StudentPay({ actions, settings }) {
+  const intl = useIntl();
+
+  const [error, setError] = useState<string>("");
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
   const updateMinPayment = () => {
     (async () => {
@@ -23,16 +38,24 @@ export default function StudentPay({ actions, settings }) {
   }, []);
 
   const [info, setInfo] = useState<PurchaseInfo>(() => {
-    const cur = settings.get("payInfo")?.toJS();
+    let cur = settings.get("payInfo")?.toJS();
+    let info: PurchaseInfo;
     if (cur != null) {
-      return cur;
+      info = { ...DEFAULT_PURCHASE_INFO, ...cur };
+    } else {
+      info = {
+        ...DEFAULT_PURCHASE_INFO,
+        // @ts-ignore
+        start: new Date(),
+        end: dayjs().add(3, "month").toDate(),
+      };
     }
-    const info = {
-      ...DEFAULT_PURCHASE_INFO,
-      start: new Date(),
-      end: dayjs().add(3, "month").toDate(),
-    } as PurchaseInfo;
-    actions.configuration.setStudentPay({ info, cost });
+    setTimeout(() => {
+      // React requirement: this must happen in different render loop, because
+      // it causes an update to the UI.
+      actions.configuration.setStudentPay({ info, cost });
+    }, 1);
+    console.log(info);
     return info;
   });
 
@@ -55,8 +78,9 @@ export default function StudentPay({ actions, settings }) {
   const [when, setWhen] = useState<dayjs.Dayjs>(getWhenFromSettings);
   const cost = useMemo(() => {
     try {
-      return compute_cost(info).discounted_cost;
-    } catch (_) {
+      return compute_cost(info).cost;
+    } catch (err) {
+      setError(`${err}`);
       return null;
     }
   }, [info]);
@@ -93,15 +117,45 @@ export default function StudentPay({ actions, settings }) {
     return <Spin />;
   }
 
+  const buttons = showStudentPay ? (
+    <Space style={{ margin: "10px 0", float: "right" }}>
+      <Button
+        onClick={() => {
+          setShowStudentPay(false);
+          reset();
+        }}
+      >
+        {intl.formatMessage(labels.cancel)}
+      </Button>
+      <Button
+        disabled={
+          isEqual(info, settings.get("payInfo")?.toJS()) &&
+          when.isSame(dayjs(settings.get("pay")))
+        }
+        type="primary"
+        onClick={() => {
+          actions.configuration.setStudentPay({ info, when, cost });
+        }}
+      >
+        {intl.formatMessage(labels.save_changes)}
+      </Button>
+    </Space>
+  ) : undefined;
+
   return (
     <Card
       style={!paySelected ? { background: "#fcf8e3" } : undefined}
       title={
         <>
-          <Icon name="dashboard" /> Require Students to Upgrade (Students Pay)
+          <Icon name="dashboard" />{" "}
+          <FormattedMessage
+            id="course.student-pay.title"
+            defaultMessage={"Require Students to Upgrade (Students Pay)"}
+          />
         </>
       }
     >
+      <ShowError error={error} setError={setError} />
       {cost != null && !showStudentPay && !!settings?.get("student_pay") && (
         <div style={{ float: "right" }}>
           <MoneyStatistic title="Cost Per Student" value={cost} />
@@ -118,16 +172,20 @@ export default function StudentPay({ actions, settings }) {
               info,
               cost,
             });
+            actions.configuration.configure_all_projects();
           }
         }}
       >
-        Students pay directly
+        <FormattedMessage
+          id="course.student-pay.checkbox.students-pay"
+          defaultMessage={"Students pay directly"}
+        />
       </Checkbox>
       {settings?.get("student_pay") && (
         <div>
-          <div style={{ margin: "10px 0" }}>
+          {buttons}
+          <Space style={{ margin: "10px 0" }}>
             <Button
-              style={{ marginTop: "5px" }}
               disabled={showStudentPay}
               onClick={() => {
                 setShowStudentPay(true);
@@ -135,35 +193,7 @@ export default function StudentPay({ actions, settings }) {
             >
               <Icon name="credit-card" /> Start and end dates and upgrades...
             </Button>
-            {showStudentPay && (
-              <>
-                {" "}
-                <Button
-                  style={{ marginTop: "5px" }}
-                  onClick={() => {
-                    setShowStudentPay(false);
-                    reset();
-                  }}
-                >
-                  Cancel
-                </Button>{" "}
-                <Button
-                  style={{ marginTop: "5px" }}
-                  disabled={
-                    isEqual(info, settings.get("payInfo")?.toJS()) &&
-                    when.isSame(dayjs(settings.get("pay")))
-                  }
-                  type="primary"
-                  onClick={() => {
-                    actions.configuration.setStudentPay({ info, when, cost });
-                    setShowStudentPay(false);
-                  }}
-                >
-                  Save Changes
-                </Button>
-              </>
-            )}
-          </div>
+          </Space>
           <div>
             {showStudentPay && (
               <Alert
@@ -195,6 +225,8 @@ export default function StudentPay({ actions, settings }) {
                       info={info}
                       onChange={setInfo}
                       hiddenFields={new Set(["quantity", "custom_member"])}
+                      minDiskGb={1}
+                      minRamGb={2}
                     />
                     <div style={{ margin: "15px 0" }}>
                       <StudentPayCheckboxLabel
@@ -208,8 +240,10 @@ export default function StudentPay({ actions, settings }) {
                         setWhen={setWhen}
                         cost={cost}
                         minPayment={minPayment}
+                        info={info}
                       />
                     )}
+                    {buttons}
                   </div>
                 }
               />
@@ -246,15 +280,19 @@ function StudentPayCheckboxLabel({ settings, when }) {
   }
 }
 
-function RequireStudentsPayWhen({ when, setWhen, cost, minPayment }) {
+function RequireStudentsPayWhen({ when, setWhen, cost, minPayment, info }) {
+  const start = dayjs(info.start);
   return (
     <div style={{ marginBottom: "15px" }}>
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
         <DatePicker
           changeOnBlur
-          showToday
+          showNow
           allowClear={false}
-          disabledDate={(current) => current < dayjs().subtract(1, "day")}
+          disabledDate={(current) =>
+            current < start.subtract(1, "day") ||
+            current >= start.add(21, "day")
+          }
           defaultValue={when}
           onChange={(date) => {
             setWhen(date ?? dayjs());
@@ -309,12 +347,11 @@ function RequireStudentPayDesc({ cost, when, minPayment }) {
         {cost != null && (
           <>
             They will then be required to upgrade for a{" "}
-            <b>one-time fee of {currency(cost)}</b>. This cost in USD is locked
-            in, even if the rates on our site change.{" "}
+            <b>one-time fee of {currency(cost)}</b>.{" "}
             {minPayment != null && cost < minPayment
               ? `NOTE: Students will have
                to pay ${currency(
-                 minPayment
+                 minPayment,
                )} since that is the minimum transaction; they can use excess credit for other purchases.`
               : ""}
           </>

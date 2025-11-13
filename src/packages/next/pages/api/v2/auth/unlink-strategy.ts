@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* api call to unlink a specific single sign on for the currently authenticated user */
@@ -8,6 +8,7 @@
 import unlinkStrategy from "@cocalc/server/auth/sso/unlink-strategy";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
+import { OkStatus } from "lib/api/status";
 
 export default async function handle(req, res) {
   try {
@@ -17,7 +18,7 @@ export default async function handle(req, res) {
     }
     const { name } = getParams(req);
     await unlinkStrategy({ account_id, name });
-    res.json({ status: "ok" });
+    res.json(OkStatus);
   } catch (err) {
     res.json({ error: err.message });
   }

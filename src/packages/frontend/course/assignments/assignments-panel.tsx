@@ -1,25 +1,25 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button } from "antd";
+import { Alert, Button, Col, Row } from "antd";
+import { Map, Set } from "immutable";
+import { FormattedMessage, useIntl } from "react-intl";
 import {
   AppRedux,
-  React,
-  Rendered,
   useActions,
   useMemo,
   useRedux,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Gap, Tip } from "@cocalc/frontend/components";
+import { Gap, Icon, Tip } from "@cocalc/frontend/components";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
+import { course } from "@cocalc/frontend/i18n";
 import { cmp_array } from "@cocalc/util/misc";
-import { Alert, Col, Row } from "antd";
-import { Map, Set } from "immutable";
+
 import { CourseActions } from "../actions";
-import { FoldersToolbar } from "../common";
+import { AddItems, FoldersToolbar } from "../common/folders-tool-bar";
 import {
   AssignmentRecord,
   IsGradingMap,
@@ -30,7 +30,6 @@ import {
 import * as styles from "../styles";
 import * as util from "../util";
 import { Assignment } from "./assignment";
-import { HelpBox } from "../configuration/help-box";
 
 interface Props {
   frame_id?: string;
@@ -41,41 +40,53 @@ interface Props {
   assignments: Map<string, AssignmentRecord>;
   students: Map<string, StudentRecord>;
   user_map: object;
+  frameActions;
 }
 
-export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
-  const { frame_id, name, project_id, redux, assignments, students, user_map } =
-    props;
+export function AssignmentsPanel(props: Props) {
+  const {
+    frame_id,
+    name,
+    project_id,
+    redux,
+    assignments,
+    students,
+    user_map,
+    frameActions,
+  } = props;
+
+  const intl = useIntl();
 
   const course_actions = useActions<CourseActions>({ name });
 
   const expanded_assignments: Set<string> = useRedux(
     name,
-    "expanded_assignments"
+    "expanded_assignments",
   );
   const active_assignment_sort: SortDescription = useRedux(
     name,
-    "active_assignment_sort"
-  );
-  const active_student_sort: SortDescription = useRedux(
-    name,
-    "active_student_sort"
+    "active_assignment_sort",
   );
   const expanded_peer_configs: Set<string> = useRedux(
     name,
-    "expanded_peer_configs"
+    "expanded_peer_configs",
   );
   const active_feedback_edits: IsGradingMap = useRedux(
     name,
-    "active_feedback_edits"
+    "active_feedback_edits",
   );
   const nbgrader_run_info: NBgraderRunInfo | undefined = useRedux(
     name,
-    "nbgrader_run_info"
+    "nbgrader_run_info",
   );
 
   // search query to restrict which assignments are shown.
-  const [search, set_search] = useState<string>("");
+  const pageFilter = useRedux(name, "pageFilter");
+  const filter = pageFilter?.get("assignments") ?? "";
+  const setFilter = (filter: string) => {
+    course_actions.setPageFilter("assignments", filter);
+  };
+
   // whether or not to show deleted assignments on the bottom
   const [show_deleted, set_show_deleted] = useState<boolean>(false);
 
@@ -87,60 +98,54 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     return assignment as any;
   }
 
-  const { shown_assignments, deleted_assignments, num_omitted, num_deleted } =
-    useMemo((): {
-      shown_assignments: any[];
-      deleted_assignments: any[];
-      num_omitted: number;
-      num_deleted: number;
-    } => {
-      let deleted, f, num_deleted, num_omitted;
-      let list = util.immutable_to_list(assignments, "assignment_id");
+  const { shown_assignments, num_omitted, num_deleted } = useMemo((): {
+    shown_assignments: any[];
+    num_omitted: number;
+    num_deleted: number;
+  } => {
+    let f, num_deleted, num_omitted;
+    let list = util.immutable_to_list(assignments, "assignment_id");
 
-      ({ list, num_omitted } = util.compute_match_list({
-        list,
-        search_key: "path",
-        search: search.trim(),
-      }));
+    ({ list, num_omitted } = util.compute_match_list({
+      list,
+      search_key: "path",
+      search: filter.trim(),
+    }));
 
-      if (active_assignment_sort.get("column_name") === "due_date") {
-        f = (a) => [
-          a.due_date != null ? a.due_date : 0,
-          a.path != null ? a.path.toLowerCase() : undefined,
-        ];
-      } else if (active_assignment_sort.get("column_name") === "dir_name") {
-        f = (a) => [
-          a.path != null ? a.path.toLowerCase() : undefined,
-          a.due_date != null ? a.due_date : 0,
-        ];
-      }
+    if (active_assignment_sort.get("column_name") === "due_date") {
+      f = (a) => [
+        a.due_date != null ? a.due_date : 0,
+        a.path != null ? a.path.toLowerCase() : undefined,
+      ];
+    } else if (active_assignment_sort.get("column_name") === "dir_name") {
+      f = (a) => [
+        a.path != null ? a.path.toLowerCase() : undefined,
+        a.due_date != null ? a.due_date : 0,
+      ];
+    }
 
-      ({ list, deleted, num_deleted } = util.order_list({
-        list,
-        compare_function: (a, b) => cmp_array(f(a), f(b)),
-        reverse: active_assignment_sort.get("is_descending"),
-        include_deleted: show_deleted,
-      }));
+    ({ list, num_deleted } = util.order_list({
+      list,
+      compare_function: (a, b) => cmp_array(f(a), f(b)),
+      reverse: active_assignment_sort.get("is_descending"),
+      include_deleted: show_deleted,
+    }));
 
-      return {
-        shown_assignments: list,
-        deleted_assignments: deleted,
-        num_omitted,
-        num_deleted,
-      };
-    }, [assignments, active_assignment_sort, show_deleted, search]);
+    return {
+      shown_assignments: list,
+      num_omitted,
+      num_deleted,
+    };
+  }, [assignments, active_assignment_sort, show_deleted, filter]);
 
-  function render_sort_link(
-    column_name: string,
-    display_name: string
-  ): Rendered {
+  function render_sort_link(column_name: string, display_name: string) {
     return (
       <a
         href=""
         onClick={(e) => {
           e.preventDefault();
           return course_actions.assignments.set_active_assignment_sort(
-            column_name
+            column_name,
           );
         }}
       >
@@ -160,18 +165,28 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_assignment_table_header(): Rendered {
+  function render_assignment_table_header() {
     return (
       <div style={{ borderBottom: "1px solid #e5e5e5" }}>
         <Row style={{ marginRight: "0px" }}>
-          <Col md={12}>{render_sort_link("dir_name", "Assignment Name")}</Col>
-          <Col md={12}>{render_sort_link("due_date", "Due Date")}</Col>
+          <Col md={12}>
+            {render_sort_link(
+              "dir_name",
+              intl.formatMessage({
+                id: "course.assignments-panel.table-header.assignments",
+                defaultMessage: "Assignment Name",
+              }),
+            )}
+          </Col>
+          <Col md={12}>
+            {render_sort_link("due_date", intl.formatMessage(course.due_date))}
+          </Col>
         </Row>
       </div>
     );
   }
 
-  function render_assignment(assignment_id: string, index: number): Rendered {
+  function render_assignment(assignment_id: string, index: number) {
     return (
       <Assignment
         key={assignment_id}
@@ -184,7 +199,6 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
         students={students}
         user_map={user_map}
         is_expanded={expanded_assignments.has(assignment_id)}
-        active_student_sort={active_student_sort}
         expand_peer_config={expanded_peer_configs.has(assignment_id)}
         active_feedback_edits={active_feedback_edits}
         nbgrader_run_info={nbgrader_run_info}
@@ -192,14 +206,13 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_assignments(
-    assignments: { assignment_id: string }[]
-  ): Rendered {
+  function render_assignments(assignments: { assignment_id: string }[]) {
     if (assignments.length == 0) {
       return render_no_assignments();
     }
     return (
       <ScrollableList
+        virtualize
         rowCount={assignments.length}
         rowRenderer={({ key, index }) => render_assignment(key, index)}
         rowKey={(index) => assignments[index]?.assignment_id ?? ""}
@@ -208,49 +221,60 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_no_assignments(): Rendered {
-    const message = (
-      <div>
-        <h3>Add an Assignment to your Course</h3>
-        <p>
-          An assignment is a <i>directory</i> of files somewhere in your CoCalc
-          project. You copy the assignment to your students and they work on it;
-          later, you collect it, grade it, and return the graded version to
-          them.
-        </p>
-        <p>
-          Add assignments to your course by clicking "Add Assignment..." above.
-          You can create and select one or more directories and they will become
-          assignments that you can then customize and distribute to your
-          students.
-        </p>
-      </div>
-    );
-
+  function render_no_assignments() {
     return (
       <div>
-        <div
+        <Alert
+          type="info"
           style={{
-            margin: "30px auto",
+            margin: "15px auto",
             fontSize: "12pt",
             maxWidth: "800px",
           }}
-        >
-          <HelpBox />
-        </div>
-        <Alert
-          type="info"
-          style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
-          message={message}
+          message={
+            <b>
+              <a onClick={() => frameActions.setModal("add-assignments")}>
+                <FormattedMessage
+                  id="course.assignments-panel.no_assignments.message"
+                  defaultMessage={"Add Assignments to your Course"}
+                  description={"online course for students"}
+                />
+              </a>
+            </b>
+          }
+          description={
+            <div>
+              <FormattedMessage
+                id="course.assignments-panel.no_assignments.description"
+                defaultMessage={`
+                  <p>
+                    An assignment is a <i>directory</i> of files somewhere in your
+                    CoCalc project. You copy the assignment to your students and
+                    they work on it; later, you collect it, grade it, and return the
+                    graded version to them.
+                  </p>
+                  <p>
+                    <A>Add assignments to your course</A> by clicking "Add Assignment..." above.
+                    You can create and select one or more directories and they will become assignments
+                    that you can then customize and distribute to your students.
+                  </p>`}
+                values={{
+                  A: (c) => (
+                    <a onClick={() => frameActions.setModal("add-assignments")}>
+                      {c}
+                    </a>
+                  ),
+                }}
+                description={"online course for students"}
+              />
+            </div>
+          }
         />
       </div>
     );
   }
 
-  function render_show_deleted(
-    num_deleted: number,
-    num_shown: number
-  ): Rendered {
+  function render_show_deleted(num_deleted: number, num_shown: number) {
     if (show_deleted) {
       return (
         <Button
@@ -272,7 +296,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
           style={styles.show_hide_deleted({ needs_margin: num_shown > 0 })}
           onClick={() => {
             set_show_deleted(true);
-            set_search("");
+            setFilter("");
           }}
         >
           <Tip
@@ -287,34 +311,16 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function yield_adder(deleted_assignments): (string) => void {
-    const deleted_paths = {};
-    deleted_assignments.map((obj) => {
-      if (obj.path) {
-        deleted_paths[obj.path] = obj.assignment_id;
-      }
-    });
-
-    return (path) => {
-      if (deleted_paths[path] != null) {
-        course_actions.assignments.undelete_assignment(deleted_paths[path]);
-      } else {
-        course_actions.assignments.add_assignment(path);
-      }
-    };
-  }
-
   function header() {
-    const add_assignment = yield_adder(deleted_assignments);
     return (
       <div style={{ marginBottom: "15px" }}>
         <FoldersToolbar
-          search={search}
-          search_change={(value) => set_search(value)}
+          search={filter}
+          search_change={setFilter}
           num_omitted={num_omitted}
           project_id={project_id}
           items={assignments}
-          add_folders={(paths) => paths.map(add_assignment)}
+          add_folders={course_actions.assignments.addAssignment}
           item_name={"assignment"}
           plural_item_name={"assignments"}
         />
@@ -336,4 +342,28 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
       </div>
     </div>
   );
-});
+}
+
+// used for adding assignments outside of the above component.
+export function AddAssignments({ name, actions, close }) {
+  const assignments = useRedux(name, "assignments");
+  return (
+    <AddItems
+      itemName="assignment"
+      items={assignments}
+      addItems={(paths) => {
+        actions.assignments.addAssignment(paths);
+        close?.();
+      }}
+      selectorStyle={{
+        position: null,
+        width: "100%",
+        boxShadow: null,
+        zIndex: null,
+        backgroundColor: null,
+      }}
+      defaultOpen
+      closable={false}
+    />
+  );
+}

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* Definition and control logic behind the various button bars.
@@ -22,7 +22,7 @@ CONSIDERATIONS:
       it's easier for users to delete lines than to end up with some partial broken fragments
 */
 
-declare var $;
+import $ from "jquery";
 
 export const FONT_SIZES = [
   "xx-small",
@@ -281,12 +281,14 @@ $$\
       },
     },
     equation: {
+      default: "x^2",
       wrap: {
         left: "$",
         right: "$",
       },
     },
     display_equation: {
+      default: "x^2",
       wrap: {
         left: "$$",
         right: "$$",
@@ -660,12 +662,14 @@ $$\
       },
     },
     equation: {
+      default: "x^2",
       wrap: {
         left: "$",
         right: "$",
       },
     },
     display_equation: {
+      default: "x^2",
       wrap: {
         left: "$$",
         right: "$$",
@@ -831,12 +835,14 @@ $$\
       },
     },
     equation: {
+      default: "x^2",
       wrap: {
         left: " :math:`",
         right: "` ",
       },
     },
     display_equation: {
+      default: "x^2",
       wrap: {
         left: "\n.. math::\n\n    ",
         right: "\n",
@@ -1924,7 +1930,7 @@ const add_menu = function (bar, entries) {
 <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="${entries[1]}">
  ${entries[0]} <b class="caret"></b>
 </span>\
-`)
+`),
   );
 
   const droplist = $("<ul class='dropdown-menu'></ul>");
@@ -1976,7 +1982,7 @@ const initialize_sagews_editor = function () {
   const bar = $(".webapp-editor-codemirror-worksheet-editable-buttons");
   let elt = bar.find(".sagews-output-editor-font").find(".dropdown-menu");
   for (let font of "Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana".split(
-    ","
+    ",",
   )) {
     item = $(`<li><a href='#fontName' data-args='${font}'>${font}</a></li>`);
     item.css("font-family", font);
@@ -1986,7 +1992,7 @@ const initialize_sagews_editor = function () {
   elt = bar.find(".sagews-output-editor-font-size").find(".dropdown-menu");
   for (let size = 1; size <= 7; size++) {
     item = $(
-      `<li><a href='#fontSize' data-args='${size}'><font size=${size}>Size ${size}</font></a></li>`
+      `<li><a href='#fontSize' data-args='${size}'><font size=${size}>Size ${size}</font></a></li>`,
     );
     elt.append(item);
   }
@@ -1994,7 +2000,7 @@ const initialize_sagews_editor = function () {
   elt = bar.find(".sagews-output-editor-block-type").find(".dropdown-menu");
   for (i = 1; i <= 6; i++) {
     item = $(
-      `<li><a href='#formatBlock' data-args='<H${i}>'><H${i} style='margin:0'>Heading</H${i}></a></li>`
+      `<li><a href='#formatBlock' data-args='<H${i}>'><H${i} style='margin:0'>Heading</H${i}></a></li>`,
     );
     elt.append(item);
   }
@@ -2007,7 +2013,7 @@ const initialize_sagews_editor = function () {
     { normalize: true, elementTagName: "code", applyToEditableOnly: true },
   ]);
   item = $(
-    `<li><a href='#ClassApplier' data-args='${args}'><i class='fa fa-code'></i> <code>Code</code></a></li>`
+    `<li><a href='#ClassApplier' data-args='${args}'><i class='fa fa-code'></i> <code>Code</code></a></li>`,
   );
   elt.prepend(item);
 
@@ -2035,7 +2041,7 @@ const initialize_md_html_editor = function () {
     item = $(
       `<li><a href='#font_size' data-args='${size}'><font size=${size}>Size ${size} ${
         size === 3 ? "default" : ""
-      }</font></a></li>`
+      }</font></a></li>`,
     );
     elt.append(item);
   }
@@ -2044,15 +2050,15 @@ const initialize_md_html_editor = function () {
   for (i = 1; i <= 4; i++) {
     elt.append(
       $(
-        `<li><a href='#format_heading_${i}'><H${i} style='margin:0'>Heading ${i}</H${i}></a></li>`
-      )
+        `<li><a href='#format_heading_${i}'><H${i} style='margin:0'>Heading ${i}</H${i}></a></li>`,
+      ),
     );
   }
   elt.append('<li role="presentation" class="divider"></li>');
   return elt.append(
     $(
-      "<li><a href='#format_code'><i class='fa fa-code'></i> <code>Code</code></a></li>"
-    )
+      "<li><a href='#format_code'><i class='fa fa-code'></i> <code>Code</code></a></li>",
+    ),
   );
 };
 
@@ -2264,9 +2270,7 @@ const initialize_sage_python_r_toolbar = function () {
   // https://github.com/sagemathinc/cocalc/issues/4068
   // don't worry about xs, because then the whole bar is not visible (and replaced by one for mobile)
   // actually not: https://github.com/sagemathinc/cocalc/issues/6416
-  const sagebar = make_bar(
-    "webapp-editor-codeedit-buttonbar-sage hidden-xs"
-  );
+  const sagebar = make_bar("webapp-editor-codeedit-buttonbar-sage hidden-xs");
 
   const sage_calculus = [
     "Calculus",
@@ -2627,7 +2631,7 @@ function initialize_latex_buttonbar() {
     latexbar,
     "<i class='fa fa-comment'></i>",
     "#comment",
-    "Comment selected text"
+    "Comment selected text",
   );
 
   const templates = [
@@ -2652,10 +2656,10 @@ function initialize_latex_buttonbar() {
 <span class="btn btn-default dropdown-toggle" data-toggle="dropdown" title="Text Formatting">
  <i class="fa">Format</i> <b class="caret"></b>
 </span>\
-`)
+`),
   );
   const format_buttons = $(
-    ".webapp-editor-codemirror-worksheet-editable-buttons"
+    ".webapp-editor-codemirror-worksheet-editable-buttons",
   ).clone();
   format_buttons.addClass("dropdown-menu");
   format_buttons.removeClass("hide");

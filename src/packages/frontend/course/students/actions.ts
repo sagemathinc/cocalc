@@ -1,29 +1,38 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Actions specific to manipulating the students in a course
 */
 
+import { delay, map } from "awaiting";
+import { redux } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { callback2 } from "@cocalc/util/async-utils";
+import { defaults, required, uuid } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { CourseActions } from "../actions";
 import { CourseStore, StudentRecord } from "../store";
-import { SyncDBRecordStudent } from "../types";
-import { callback2 } from "@cocalc/util/async-utils";
-import { map } from "awaiting";
-import { redux } from "../../app-framework";
-import { webapp_client } from "../../webapp-client";
-import { defaults, required, uuid } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
+import type { SyncDBRecordStudent } from "../types";
+import { Map as iMap } from "immutable";
+
+const STUDENT_STATUS_UPDATE_MS = 60 * 1000;
 
 export class StudentsActions {
   private course_actions: CourseActions;
+  private updateInterval?;
 
   constructor(course_actions: CourseActions) {
     this.course_actions = course_actions;
     this.push_missing_handouts_and_assignments = reuseInFlight(
-      this.push_missing_handouts_and_assignments
+      this.push_missing_handouts_and_assignments.bind(this),
+    );
+    setTimeout(this.updateStudentStatus, 5000);
+    this.updateInterval = setInterval(
+      this.updateStudentStatus,
+      STUDENT_STATUS_UPDATE_MS,
     );
   }
 
@@ -34,7 +43,7 @@ export class StudentsActions {
   }
 
   public async add_students(
-    students: { account_id?: string; email_address?: string }[]
+    students: { account_id?: string; email_address?: string }[],
   ): Promise<void> {
     // students = array of objects that may have an account_id or email_address field set
     // New student_id's will be constructed randomly for each student
@@ -73,7 +82,7 @@ export class StudentsActions {
     } catch (err) {
       if (this.course_actions.is_closed()) return;
       this.course_actions.set_error(
-        `error creating student projects -- ${err}`
+        `error creating student projects -- ${err}`,
       );
     } finally {
       if (this.course_actions.is_closed()) return;
@@ -84,81 +93,165 @@ export class StudentsActions {
     }
   }
 
-  public async delete_student(student_id: string): Promise<void> {
+  public async delete_student(
+    student_id: string,
+    noTrash = false,
+  ): Promise<void> {
     const store = this.get_store();
     const student = store.get_student(student_id);
-    if (student == null) return;
-    await this.do_delete_student(student);
-    await this.course_actions.student_projects.configure_all_projects(); // since they may get removed from shared project, etc.
+    if (student == null) {
+      return;
+    }
+    this.doDeleteStudent(student, noTrash);
+    // We always remove any deleted student from all student projects and the
+    // shared project when they are deleted, since this best aligns with
+    // user expectations.  We do this, even if "allow collaborators" is enabled.
+    await this.course_actions.student_projects.removeFromAllStudentProjects(
+      student,
+    );
   }
 
-  public async undelete_student(student_id: string): Promise<void> {
+  undelete_student = async (student_id: string): Promise<void> => {
     this.course_actions.set({
       deleted: false,
       student_id,
       table: "students",
     });
     // configure, since they may get added back to shared project, etc.
+    await delay(1); // so store is updated, since it is used by configure
     await this.course_actions.student_projects.configure_all_projects();
-  }
+  };
 
-  public async delete_all_students(): Promise<void> {
+  deleteAllStudents = async (noTrash = false): Promise<void> => {
     const store = this.get_store();
     const students = store.get_students().valueSeq().toArray();
-    await map(students, store.get_copy_parallel(), this.do_delete_student);
+    for (const student of students) {
+      this.doDeleteStudent(student, noTrash, false);
+    }
+    this.course_actions.syncdb.commit();
+    await delay(1); // so store is updated, since it is used by configure
     await this.course_actions.student_projects.configure_all_projects();
-  }
+  };
 
-  private async do_delete_student(student: StudentRecord): Promise<void> {
+  private doDeleteStudent = (
+    student: StudentRecord,
+    noTrash = false,
+    commit = true,
+  ): void => {
     const project_id = student.get("project_id");
     if (project_id != null) {
       // The student's project was created so let's clear any upgrades from it.
       redux.getActions("projects").clear_project_upgrades(project_id);
     }
-    this.course_actions.set({
-      deleted: true,
-      student_id: student.get("student_id"),
-      table: "students",
-    });
-  }
+    if (noTrash) {
+      this.course_actions.delete(
+        {
+          student_id: student.get("student_id"),
+          table: "students",
+        },
+        commit,
+      );
+    } else {
+      this.course_actions.set(
+        {
+          deleted: true,
+          student_id: student.get("student_id"),
+          table: "students",
+        },
+        commit,
+      );
+    }
+  };
 
   // Some students might *only* have been added using their email address, but they
   // subsequently signed up for an CoCalc account.  We check for any of these and if
   // we find any, we add in the account_id information about that student.
-  public async lookup_nonregistered_students(): Promise<void> {
+  lookupNonregisteredStudents = async (): Promise<void> => {
     const store = this.get_store();
     const v: { [email: string]: string } = {};
     const s: string[] = [];
     store.get_students().map((student: StudentRecord, student_id: string) => {
       if (!student.get("account_id") && !student.get("deleted")) {
         const email = student.get("email_address");
-        v[email] = student_id;
-        s.push(email);
+        if (email) {
+          v[email] = student_id;
+          s.push(email);
+        }
       }
     });
-    if (s.length == 0) return;
+    if (s.length == 0) {
+      return;
+    }
     try {
       const result = await webapp_client.users_client.user_search({
         query: s.join(","),
         limit: s.length,
+        only_email: true,
       });
       for (const x of result) {
-        if (x.email_address == null) continue;
+        if (x.email_address == null) {
+          continue;
+        }
         this.course_actions.set({
+          student_id: v[x.email_address],
           account_id: x.account_id,
           table: "students",
-          student_id: v[x.email_address],
         });
       }
     } catch (err) {
-      // Non-fatal, will try again next time lookup_nonregistered_students gets called.
-      console.warn(`lookup_nonregistered_students: search error -- ${err}`);
+      // Non-fatal, will try again next time lookupNonregisteredStudents gets called.
+      console.warn(`lookupNonregisteredStudents: search error -- ${err}`);
     }
-  }
+  };
+
+  // For every student with a known account_id, verify that their
+  // account still exists, and if not, mark it as deleted.  This is rare, but happens
+  // despite all attempts otherwise: https://github.com/sagemathinc/cocalc/issues/3243
+  updateDeletedAccounts = async () => {
+    const store = this.get_store();
+    const account_ids: string[] = [];
+    const student_ids: { [account_id: string]: string } = {};
+    store.get_students().map((student: StudentRecord) => {
+      const account_id = student.get("account_id");
+      if (account_id && !student.get("deleted_account")) {
+        account_ids.push(account_id);
+        student_ids[account_id] = student.get("student_id");
+      }
+    });
+    if (account_ids.length == 0) {
+      return;
+    }
+    // note: there is no notion of undeleting an account in cocalc
+    const users = await webapp_client.users_client.getNames(account_ids);
+    for (const account_id of account_ids) {
+      if (users[account_id] == null) {
+        this.course_actions.set({
+          student_id: student_ids[account_id],
+          account_id,
+          table: "students",
+          deleted_account: true,
+        });
+      }
+    }
+  };
+
+  updateStudentStatus = async () => {
+    const state = this.course_actions.syncdb?.get_state();
+    if (state == "init") {
+      return;
+    }
+    if (state != "ready") {
+      clearInterval(this.updateInterval);
+      delete this.updateInterval;
+      return;
+    }
+    await this.lookupNonregisteredStudents();
+    await this.updateDeletedAccounts();
+  };
 
   // columns: first_name, last_name, email, last_active, hosting
   // Toggles ascending/decending order
-  public set_active_student_sort(column_name: string): void {
+  set_active_student_sort = (column_name: string): void => {
     let is_descending: boolean;
     const store = this.get_store();
     const current_column = store.getIn(["active_student_sort", "column_name"]);
@@ -170,12 +263,12 @@ export class StudentsActions {
     this.course_actions.setState({
       active_student_sort: { column_name, is_descending },
     });
-  }
+  };
 
-  public async set_internal_student_info(
+  set_internal_student_info = async (
     student_id: string,
-    info: { first_name: string; last_name: string; email_address?: string }
-  ): Promise<void> {
+    info: { first_name: string; last_name: string; email_address?: string },
+  ): Promise<void> => {
     const { student } = this.course_actions.resolve({ student_id });
     if (student == null) return;
 
@@ -195,23 +288,23 @@ export class StudentsActions {
 
     // since they may get removed from shared project, etc.
     await this.course_actions.student_projects.configure_all_projects();
-  }
+  };
 
-  public set_student_note(student_id: string, note: string): void {
+  set_student_note = (student_id: string, note: string): void => {
     this.course_actions.set({
       note,
       table: "students",
       student_id,
     });
-  }
+  };
 
   /*
   Function to "catch up a student" by pushing out all (non-deleted) handouts and assignments to
   this student that have been pushed to at least one student so far.
   */
-  public async push_missing_handouts_and_assignments(
-    student_id: string
-  ): Promise<void> {
+  push_missing_handouts_and_assignments = async (
+    student_id: string,
+  ): Promise<void> => {
     const { student, store } = this.course_actions.resolve({ student_id });
     if (student == null) {
       throw Error("no such student");
@@ -229,7 +322,7 @@ export class StudentsActions {
           await this.course_actions.assignments.copy_assignment(
             "assigned",
             assignment_id,
-            student_id
+            student_id,
           );
           if (this.course_actions.is_closed()) return;
         }
@@ -239,7 +332,7 @@ export class StudentsActions {
           await this.course_actions.handouts.copy_handout_to_student(
             handout_id,
             student_id,
-            true
+            true,
           );
           if (this.course_actions.is_closed()) return;
         }
@@ -247,5 +340,22 @@ export class StudentsActions {
     } finally {
       this.course_actions.set_activity({ id });
     }
-  }
+  };
+
+  setAssignmentFilter = (student_id: string, filter: string) => {
+    const store = this.get_store();
+    if (!store) return;
+    let assignmentFilter = store.get("assignmentFilter");
+    if (assignmentFilter == null) {
+      if (filter) {
+        assignmentFilter = iMap({ [student_id]: filter });
+        this.course_actions.setState({
+          assignmentFilter,
+        });
+      }
+      return;
+    }
+    assignmentFilter = assignmentFilter.set(student_id, filter);
+    this.course_actions.setState({ assignmentFilter });
+  };
 }

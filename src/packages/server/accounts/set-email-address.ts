@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -23,6 +23,7 @@ import passwordHash, {
 import getPool from "@cocalc/database/pool";
 import { checkRequiredSSO } from "@cocalc/server/auth/sso/check-required-sso";
 import getStrategies from "@cocalc/database/settings/get-sso-strategies";
+import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
 import {
   isValidUUID,
   is_valid_email_address as isValidEmailAddress,
@@ -32,12 +33,20 @@ import accountCreationActions, {
   creationActionsDone,
 } from "./account-creation-actions";
 import sendEmailVerification from "./send-email-verification";
+import { getLogger } from "@cocalc/backend/logger";
 
-export default async function setEmailAddress(
-  account_id: string,
-  email_address: string,
-  password: string
-): Promise<void> {
+const log = getLogger("server:accounts:email-address");
+
+export default async function setEmailAddress({
+  account_id,
+  email_address,
+  password,
+}: {
+  account_id: string;
+  email_address: string;
+  password: string;
+}): Promise<void> {
+  log.debug("setEmailAddress", account_id, email_address);
   if (!isValidUUID(account_id)) {
     throw Error("account_id is not valid");
   }
@@ -45,14 +54,14 @@ export default async function setEmailAddress(
     throw Error("email address is not valid");
   }
   email_address = email_address.toLowerCase();
-  if (!password || password.length < 6) {
-    throw Error("password must be at least 6 characters");
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    throw Error(`password must be at least ${MIN_PASSWORD_LENGTH} characters`);
   }
 
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT email_address, password_hash, email_address_verified, stripe_customer_id FROM accounts WHERE account_id=$1",
-    [account_id]
+    [account_id],
   );
   if (rows.length == 0) {
     throw Error("no such account");
@@ -72,8 +81,8 @@ export default async function setEmailAddress(
     // user has no password set, so we can set it – but not the email address
     if (!password_hash) {
       await pool.query(
-        "UPDATE accounts SET password_hash=$1,  WHERE account_id=$2",
-        [passwordHash(password), account_id]
+        "UPDATE accounts SET password_hash=$1 WHERE account_id=$2",
+        [passwordHash(password), account_id],
       );
     }
     throw new Error(`You are not allowed to change your email address`);
@@ -82,7 +91,7 @@ export default async function setEmailAddress(
   // you're also not allowed to change your email address to one that's covered by an exclusive strategy
   if (checkRequiredSSO({ strategies, email: email_address }) != null) {
     throw new Error(
-      `You are not allowed to change your email address to this one`
+      `You are not allowed to change your email address to this one`,
     );
   }
 
@@ -90,7 +99,7 @@ export default async function setEmailAddress(
     // setting both the email_address *and* password at once.
     await pool.query(
       "UPDATE accounts SET password_hash=$1, email_address=$2 WHERE account_id=$3",
-      [passwordHash(password), email_address, account_id]
+      [passwordHash(password), email_address, account_id],
     );
     return;
   }
@@ -104,12 +113,12 @@ export default async function setEmailAddress(
     (
       await pool.query(
         "SELECT COUNT(*)::INT FROM accounts WHERE email_address=$1",
-        [email_address]
+        [email_address],
       )
     ).rows[0].count > 0
   ) {
     throw Error(
-      `email address "${email_address}" is already in use by another account`
+      `email address "${email_address}" is already in use by another account`,
     );
   }
 
@@ -120,7 +129,7 @@ export default async function setEmailAddress(
   ]);
 
   // Do any pending account creation actions for this email.
-  await accountCreationActions(email_address, account_id);
+  await accountCreationActions({ email_address, account_id });
   await creationActionsDone(account_id);
 
   // sync new email address with stripe
@@ -130,7 +139,7 @@ export default async function setEmailAddress(
       await stripe.update_database();
     } catch (err) {
       console.warn(
-        `ERROR syncing new email address with stripe: ${err} – ignoring`
+        `ERROR syncing new email address with stripe: ${err} – ignoring`,
       );
     }
   }
@@ -139,6 +148,6 @@ export default async function setEmailAddress(
   // we do this at the very end, since we don't want an error sending the verification email
   // disrupt the account creation process above
   if (email_address_verified?.[email_address] == null) {
-    await sendEmailVerification(account_id, email_address);
+    await sendEmailVerification(account_id);
   }
 }

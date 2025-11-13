@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -12,12 +12,14 @@ import {
   Card,
   Checkbox,
   Divider,
+  InputNumber,
   Col,
   Row,
+  Space,
+  Slider,
   Spin,
-  Table,
 } from "antd";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState, type JSX } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
@@ -30,154 +32,118 @@ import { useProfileWithReload } from "lib/hooks/profile";
 import { Paragraph, Title, Text } from "components/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChangeEmailAddress } from "components/account/config/account/email";
-import * as purchasesApi from "@cocalc/frontend/purchases/api";
-import { currency, round2up, round2down } from "@cocalc/util/misc";
-import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
+import {
+  getShoppingCartCheckoutParams,
+  shoppingCartCheckout,
+} from "@cocalc/frontend/purchases/api";
+import { currency, plural, round2up, round2down } from "@cocalc/util/misc";
+import { type CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import { ProductColumn } from "./cart";
 import ShowError from "@cocalc/frontend/components/error";
 import { StoreBalanceContext } from "../../lib/balance";
-
-enum PaymentIntent {
-  PAY_TOTAL,
-  APPLY_BALANCE,
-}
+import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
+import { toFriendlyDescription } from "@cocalc/util/upgrades/describe";
+import { creditLineItem } from "@cocalc/util/upgrades/describe";
+import { SHOPPING_CART_CHECKOUT } from "@cocalc/util/db-schema/purchases";
+import { decimalSubtract } from "@cocalc/util/stripe/calc";
 
 export default function Checkout() {
   const router = useRouter();
   const isMounted = useIsMounted();
   const [completingPurchase, setCompletingPurchase] = useState<boolean>(false);
-  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>(
-    PaymentIntent.APPLY_BALANCE,
+  const [completedPurchase, setCompletedPurchase] = useState<boolean>(false);
+  const [showApplyCredit, setShowApplyCredit] = useState<boolean>(false);
+  const [applyCredit, setApplyCredit] = useState<number | null>(0);
+  const [lastApplyCredit, setLastApplyCredit] = useState<number | null>(
+    applyCredit,
   );
   const [totalCost, setTotalCost] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
-  const { refreshBalance } = useContext(StoreBalanceContext);
-  const [session, setSession] = useState<{ id: string; url: string } | null>(
-    null,
-  );
-  const updateSession = async () => {
-    const session = await purchasesApi.getCurrentCheckoutSession();
-    setSession(session);
-    return session;
-  };
 
+  const [userSuccessfullyAddedCredit, setUserSuccessfullyAddedCredit] =
+    useState<boolean>(false);
+  const { refreshBalance } = useContext(StoreBalanceContext);
   const [paymentAmount, setPaymentAmount0] = useState<number>(0);
   const setPaymentAmount = (amount: number) => {
     // no matter how this is set, always round it up to nearest penny.
     setPaymentAmount0(round2up(amount));
   };
   const [params, setParams] = useState<CheckoutParams | null>(null);
-  const updateParams = async (intent?) => {
+  const updateParams = async (applyCredit0?: number | null) => {
+    const applyCredit1 = applyCredit0 ?? applyCredit ?? 0;
     try {
-      const params = await purchasesApi.getShoppingCartCheckoutParams({
-        ignoreBalance: (intent ?? paymentIntent) == PaymentIntent.PAY_TOTAL,
-      });
+      const params = await getShoppingCartCheckoutParams();
       const cost = params.total;
       setParams(params);
       setTotalCost(round2up(cost));
-
-      if ((intent ?? paymentIntent) === PaymentIntent.APPLY_BALANCE) {
-        setPaymentAmount(params.chargeAmount ?? 0);
-      } else {
-        setPaymentAmount(
-          Math.max(Math.max(params.minPayment, cost), params.chargeAmount ?? 0),
-        );
-      }
+      setPaymentAmount(cost - applyCredit1);
+      setLastApplyCredit(applyCredit1);
     } catch (err) {
       setError(`${err}`);
     }
   };
 
+  const lineItems = useMemo(() => {
+    if (params?.cart == null) {
+      return [];
+    }
+    const v = params.cart.map((x) => {
+      return {
+        description: toFriendlyDescription(x.description),
+        amount: x.lineItemAmount,
+      };
+    });
+    const { credit } = creditLineItem({
+      lineItems: v,
+      amount:
+        paymentAmount > 0 ? Math.max(params.minPayment, paymentAmount) : 0,
+    });
+    if (credit) {
+      // add one more line item to make the grand total be equal to amount
+      if (credit.amount > 0) {
+        credit.description = `${credit.description} -- adjustment so payment is at least ${currency(params.minPayment)}`;
+      }
+      v.push(credit);
+    }
+    return v;
+  }, [paymentAmount, params]);
+
   useEffect(() => {
-    // on load, check for existing payent session.
-    updateSession();
     // on load also get current price, cart, etc.
     updateParams();
-  }, []);
-
-  // handle ?complete -- i.e., what happens after successfully paying
-  // for a purchase - we do ANOTHER completePurchase, and for the second
-  // one no additional payment is required, so in this case user actually
-  // gets the items and goes to the congrats page.  Unless, of course,
-  // they try to be sneaky and add something to their cart right *after*
-  // paying... in which case they will just get asked for additional
-  // money for that last thing. :-)
-  useEffect(() => {
-    if (router.query.complete == null) {
-      // nothing to handle
-      return;
-    }
-    (async () => {
-      // in case webhooks aren't configured, get the payment via sync:
-      try {
-        await purchasesApi.syncPaidInvoices();
-      } catch (err) {
-        console.warn("syncPaidInvoices buying licenses -- issue", err);
-      }
-
-      // now do the purchase flow again with money available.
-      completePurchase(false);
-    })();
   }, []);
 
   if (error) {
     return <ShowError error={error} setError={setError} />;
   }
-  async function completePurchase(ignoreBalance: boolean) {
+  async function completePurchase() {
     try {
       setError("");
       setCompletingPurchase(true);
-      const curSession = await updateSession();
-      if (curSession != null || !isMounted.current) {
-        // there is already a stripe checkout session that hasn't been finished, so let's
-        // not cause confusion by creating another one.
-        // User will see a big alert with a link to finish this one, since updateSession
-        // sets the session state.
-        return;
+      await shoppingCartCheckout();
+      setCompletedPurchase(true);
+      if (isMounted.current) {
+        router.push("/store/congrats");
       }
-      // This api call tells the backend, "make a session that, when successfully finished, results in
-      // buying everything in my shopping cart", or, if it returns {done:true}, then
-      // It succeeds if the purchase goes through.
-      const currentUrl = window.location.href.split("?")[0];
-      const success_url = `${currentUrl}?complete=true`;
-      const result = await purchasesApi.shoppingCartCheckout({
-        success_url,
-        cancel_url: currentUrl,
-        paymentAmount,
-        ignoreBalance,
-      });
-      if (result.done) {
-        // done -- nothing further to do!
-        if (isMounted.current) {
-          router.push("/store/congrats");
-        }
-        return;
-      }
-      // payment is required to complete the purchase, since user doesn't
-      // have enough credit.
-      window.location = result.session.url as any;
     } catch (err) {
       // The purchase failed.
       setError(err.message);
+      setCompletingPurchase(false);
     } finally {
       refreshBalance();
-      if (!isMounted.current) return;
-      setCompletingPurchase(false);
+      if (!isMounted.current) {
+        return;
+      }
+      // do NOT set completing purchase back, since the
+      // above router.push
+      // will move to next page, but we don't want to
+      // see the complete purchase button
+      // again ever... unless there is an error.
     }
   }
-
-  const cancelPurchaseInProgress = async () => {
-    try {
-      await purchasesApi.cancelCurrentCheckoutSession();
-      updateSession();
-      updateParams();
-    } catch (err) {
-      setError(err.message);
-    }
-  };
 
   if (params == null) {
     return (
@@ -187,34 +153,83 @@ export default function Checkout() {
     );
   }
 
-  const columns = getColumns();
+  let mode;
+  if (completingPurchase) {
+    mode = "completing";
+  } else if (params == null || paymentAmount == 0) {
+    mode = "complete";
+  } else if (completedPurchase) {
+    mode = "completed";
+  } else {
+    mode = "add";
+  }
+
+  function getApplyCreditWarning() {
+    if (params == null) {
+      return null;
+    }
+    const balance = params.balance ?? 0;
+    if (!balance) {
+      return null;
+    }
+    const max = round2down(
+      Math.max(
+        0,
+        Math.min(params.balance, decimalSubtract(totalCost, params.minPayment)),
+      ),
+    );
+    return (
+      <>
+        Between{" "}
+        <a
+          onClick={() => {
+            setApplyCredit(0);
+            updateParams(0);
+          }}
+        >
+          {currency(0)}
+        </a>{" "}
+        and{" "}
+        <a
+          onClick={() => {
+            setApplyCredit(max);
+            updateParams(max);
+          }}
+        >
+          {currency(max)}
+        </a>
+        {totalCost <= params.balance && (
+          <>
+            {" "}
+            or exactly{" "}
+            <a
+              onClick={() => {
+                setApplyCredit(totalCost);
+                updateParams(totalCost);
+              }}
+            >
+              {currency(totalCost)}
+            </a>
+            .
+          </>
+        )}
+        <Slider
+          min={0}
+          max={max}
+          tipFormatter={currency}
+          step={0.01}
+          value={applyCredit ?? 0}
+          onChange={setApplyCredit}
+        />
+        The minimum payment size is {currency(params.minPayment)}, which
+        constrains the amount of credit that can be applied.
+      </>
+    );
+  }
 
   return (
     <>
-      {session != null && (
-        <div style={{ textAlign: "center" }}>
-          <Alert
-            style={{ margin: "30px", display: "inline-block" }}
-            type="warning"
-            message={<h2>Purchase in Progress</h2>}
-            description={
-              <div style={{ fontSize: "14pt", width: "450px" }}>
-                <Divider />
-                <p>
-                  <Button href={session.url} type="primary" size="large">
-                    Complete Purchase
-                  </Button>
-                </p>
-                or
-                <p style={{ marginTop: "15px" }}>
-                  <Button onClick={cancelPurchaseInProgress}>Cancel</Button>
-                </p>
-              </div>
-            }
-          />
-        </div>
-      )}
-      <div style={session != null ? { opacity: 0.4 } : undefined}>
+      <div>
         <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
         {params.cart.length == 0 && (
           <div style={{ maxWidth: "800px", margin: "auto" }}>
@@ -237,102 +252,171 @@ export default function Checkout() {
             <br />
             You must have at least one item in{" "}
             <A href="/store/cart">your cart</A> to checkout. Shop for{" "}
-            <A href="/store/site-license">upgrades</A>, a{" "}
-            <A href="/store/boost">license boost</A>, or a{" "}
-            <A href="/dedicated">dedicated VM or disk</A>.
+            <A href="/store/site-license">licenses</A> or{" "}
+            <A href="/store/vouchers">vouchers</A>.
           </div>
         )}
         {params.cart.length > 0 && (
           <>
             <ShowError error={error} setError={setError} />
-            <Card title={<>1. Review Items ({params.cart.length})</>}>
-              <Table
-                showHeader={false}
-                columns={columns}
-                dataSource={params.cart}
-                rowKey={"id"}
-                pagination={{ hideOnSinglePage: true }}
-              />
-              <GetAQuote items={params.cart} />
-            </Card>
-
-            <div style={{ height: "30px" }} />
-
-            <Card title={<>2. Place Your Order</>}>
+            <Card title={<>Place Your Order</>}>
               <Row>
-                <Col sm={12} style={{ textAlign: "center" }}>
-                  {round2down(
-                    (params.balance ?? 0) - (params.minBalance ?? 0),
-                  ) > 0 && (
-                    <Checkbox
-                      style={{ marginTop: "38px" }}
-                      checked={paymentIntent == PaymentIntent.APPLY_BALANCE}
-                      onChange={async (e) => {
-                        let intent;
-                        if (e.target.checked) {
-                          intent = PaymentIntent.APPLY_BALANCE;
-                        } else {
-                          intent = PaymentIntent.PAY_TOTAL;
-                        }
-                        setPaymentIntent(intent);
-                        await updateParams(intent);
-                      }}
-                    >
-                      Apply Account Balance Toward Purchase
-                    </Checkbox>
+                <Col
+                  sm={12}
+                  style={{
+                    paddingRight: "30px",
+                    borderRight: "1px solid #ddd",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  {round2down(params.balance ?? 0) > 0 && (
+                    <div>
+                      <Checkbox
+                        style={{ fontSize: "12pt" }}
+                        checked={showApplyCredit}
+                        onChange={(e) => {
+                          let x = 0;
+                          if (e.target.checked) {
+                            setShowApplyCredit(true);
+                            if (params.balance >= totalCost) {
+                              x = totalCost;
+                            } else if (
+                              params.balance > 0 &&
+                              params.balance <= totalCost - params.minPayment
+                            ) {
+                              x = round2down(params.balance);
+                            }
+                          } else {
+                            setShowApplyCredit(false);
+                          }
+                          setApplyCredit(x);
+                          updateParams(x);
+                        }}
+                      >
+                        <b>
+                          Use Account Balance -{" "}
+                          <span style={{ color: "#666" }}>
+                            {currency(round2down(params.balance))} available
+                          </span>
+                        </b>
+                      </Checkbox>
+                      {showApplyCredit && (
+                        <div style={{ textAlign: "center", marginTop: "30px" }}>
+                          <Space.Compact>
+                            <InputNumber
+                              value={applyCredit}
+                              disabled={round2down(params.balance ?? 0) <= 0}
+                              min={0}
+                              max={Math.max(
+                                0,
+                                Math.min(totalCost, params.balance),
+                              )}
+                              addonBefore="$"
+                              onChange={(value) => setApplyCredit(value)}
+                              onPressEnter={() => {
+                                updateParams(applyCredit);
+                              }}
+                            />
+                            <Button
+                              type="primary"
+                              disabled={
+                                round2down(params.balance ?? 0) <= 0 ||
+                                applyCredit == lastApplyCredit
+                              }
+                              onClick={() => {
+                                updateParams(applyCredit);
+                              }}
+                            >
+                              Apply
+                            </Button>
+                          </Space.Compact>
+                          {applyCredit != totalCost &&
+                            applyCredit != params.balance && (
+                              <Alert
+                                showIcon
+                                style={{ marginTop: "30px", textAlign: "left" }}
+                                message={getApplyCreditWarning()}
+                              />
+                            )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </Col>
-                <Col sm={12}>
+                <Col sm={12} style={{ paddingLeft: "30px" }}>
                   <div style={{ fontSize: "15pt" }}>
-                    <TotalCost totalCost={totalCost} />
-                    <br />
                     <Terms />
                   </div>
                 </Col>
               </Row>
+              <GetAQuote items={params.cart} />
 
-              <ExplainPaymentSituation
-                params={params}
-                style={{ margin: "15px 0" }}
-              />
               <div style={{ textAlign: "center" }}>
                 <Divider />
-                <Button
-                  disabled={
-                    params?.total == 0 ||
-                    completingPurchase ||
-                    !profile?.email_address ||
-                    session != null
-                  }
-                  style={{ marginTop: "7px", marginBottom: "15px" }}
-                  size="large"
-                  type="primary"
-                  onClick={() =>
-                    completePurchase(paymentIntent === PaymentIntent.PAY_TOTAL)
-                  }
-                >
-                  <Icon name="credit-card" />{" "}
-                  {completingPurchase ? (
-                    <>
-                      Completing Purchase
-                      <Spin style={{ marginLeft: "10px" }} />
-                    </>
-                  ) : params == null || paymentAmount == 0 ? (
-                    `Complete Purchase${
-                      session != null ? " (finish payment first)" : ""
-                    }`
-                  ) : (
-                    `Add ${currency(paymentAmount)} credit to your account`
-                  )}
-                </Button>
+                {mode == "completing" && (
+                  <Alert
+                    showIcon
+                    style={{ margin: "30px auto", maxWidth: "700px" }}
+                    type="success"
+                    message={
+                      <>
+                        Transferring the items in your cart to your account...
+                        <Spin style={{ marginLeft: "10px" }} />
+                      </>
+                    }
+                  />
+                )}
               </div>
-              {completingPurchase ||
-              params == null ||
-              paymentAmount != params.minPayment ? null : (
-                <div style={{ color: "#666", marginTop: "15px" }}>
-                  NOTE: There is a minimum transaction amount of{" "}
-                  {currency(params.minPayment)}.
+              {!userSuccessfullyAddedCredit && (
+                <div>
+                  <StripePayment
+                    description={`Purchasing ${params.cart.length} ${plural(params.cart, "item")} in the CoCalc store.`}
+                    style={{ maxWidth: "600px", margin: "30px auto" }}
+                    lineItems={lineItems}
+                    purpose={SHOPPING_CART_CHECKOUT}
+                    metadata={{
+                      cart_ids: JSON.stringify(
+                        params.cart.map((item) => item.id),
+                      ),
+                    }}
+                    onFinished={async () => {
+                      setUserSuccessfullyAddedCredit(true);
+                      // user paid successfully and money should be in their account
+                      await refreshBalance();
+                      if (!isMounted.current) {
+                        return;
+                      }
+                      if (paymentAmount <= 0) {
+                        // now do the purchase flow with money available.
+                        await completePurchase();
+                      } else {
+                        // actually paid something so processing happens on the backend in response
+                        // to payment completion
+                        router.push("/store/processing");
+                      }
+                    }}
+                  />
                 </div>
+              )}
+              {completingPurchase ||
+              totalCost >= params.minPayment ||
+              params == null ||
+              totalCost <= 0 ||
+              paymentAmount >= params.minPayment ? null : (
+                <Alert
+                  showIcon
+                  type="warning"
+                  style={{ marginTop: "15px" }}
+                  message={
+                    <>
+                      The minimum payment amount is{" "}
+                      {currency(params.minPayment)}. Extra money you deposit for
+                      this purchase can be used toward future purchases.
+                    </>
+                  }
+                />
               )}
             </Card>
           </>
@@ -351,25 +435,6 @@ export function fullCost(items) {
     }
   }
   return full_cost;
-}
-
-export function discountedCost(items) {
-  let discounted_cost = 0;
-  for (const { cost, checked } of items) {
-    if (checked) {
-      discounted_cost += cost.cost_sub_first_period ?? cost.discounted_cost;
-    }
-  }
-  return discounted_cost;
-}
-
-function TotalCost({ totalCost }) {
-  return (
-    <>
-      Total:{" "}
-      <b style={{ float: "right", color: "darkred" }}>{money(totalCost)}</b>
-    </>
-  );
 }
 
 function Terms() {
@@ -410,7 +475,7 @@ function GetAQuote({ items }) {
   const [more, setMore] = useState<boolean>(false);
   let isSub;
   for (const item of items) {
-    if (item.description.period != "range") {
+    if (item.description.period != "range" && item.product == "site-license") {
       isSub = true;
       break;
     }
@@ -449,13 +514,14 @@ function GetAQuote({ items }) {
 
   return (
     <Paragraph style={{ paddingTop: "15px" }}>
-      <A onClick={() => setMore(!more)}>
-        Need to obtain a quote, invoice, modified terms, a purchase order, or
-        pay via wire transfer, etc.?
-      </A>
+      <div style={{ textAlign: "right" }}>
+        <A onClick={() => setMore(!more)}>
+          Need a quote, invoice or modified terms?
+        </A>
+      </div>
       {more && (
         <Paragraph>
-          {fullCost(items) <= MIN_AMOUNT || isSub ? (
+          {fullCost(items) < MIN_AMOUNT || isSub ? (
             <Alert
               showIcon
               style={{
@@ -464,14 +530,16 @@ function GetAQuote({ items }) {
                 borderRadius: "5px",
               }}
               type="warning"
-              message={
+              message={"Customized Payment Options"}
+              description={
                 <>
-                  Customized payment is available only for{" "}
+                  Customized payment options are available for{" "}
                   <b>non-subscription purchases over ${MIN_AMOUNT}</b>. Make
-                  sure your cost before discounts is over ${MIN_AMOUNT} and{" "}
-                  <A href="/store/cart">convert</A> any subscriptions in your
-                  cart to explicit date ranges, then try again. If this is
-                  confusing, <A href="/support/new">make a support request</A>.
+                  sure your cost (currently {currency(fullCost(items))}) is over
+                  ${MIN_AMOUNT} and <A href="/store/cart">edit</A> any
+                  subscriptions in your cart to have explicit date ranges, then
+                  try again. If this is confusing,{" "}
+                  <A href="/support/new">make a support request</A>.
                 </>
               }
             />
@@ -484,15 +552,19 @@ function GetAQuote({ items }) {
                 borderRadius: "5px",
               }}
               type="info"
-              message={
+              message={"Customized Payment Options"}
+              description={
                 <>
                   Click the button below to copy your shopping cart contents to
-                  a support request, and we will take if from there. Note that
-                  the 25% self-service discount is <b>only available</b> when
-                  you purchase from this page.
-                  <div style={{ textAlign: "center", marginTop: "5px" }}>
-                    <Button onClick={createSupportRequest}>
-                      <Icon name="medkit" /> Copy cart to support request
+                  a support request, and we will take if from there!
+                  <div style={{ textAlign: "center", marginTop: "15px" }}>
+                    <Button
+                      type="primary"
+                      size="large"
+                      onClick={createSupportRequest}
+                    >
+                      <Icon name="medkit" /> Copy Shopping Cart to a Support
+                      Request
                     </Button>
                   </div>
                 </>
@@ -622,16 +694,21 @@ export function getColumns({
     {
       responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { cost, description, project_id }) => (
-        <>
-          <DescriptionColumn
-            cost={cost}
-            description={description}
-            voucherPeriod={voucherPeriod}
-          />{" "}
-          <ProjectID project_id={project_id} />
-        </>
-      ),
+      render: (_, { cost, description, project_id }) => {
+        if (cost == null) {
+          return null;
+        }
+        return (
+          <>
+            <DescriptionColumn
+              cost={cost}
+              description={description}
+              voucherPeriod={voucherPeriod}
+            />{" "}
+            <ProjectID project_id={project_id} />
+          </>
+        );
+      },
     },
     {
       responsive: ["sm" as "sm"],
@@ -652,60 +729,5 @@ function ProjectID({ project_id }: { project_id: string }): JSX.Element | null {
     <div>
       For project: <code>{project_id}</code>
     </div>
-  );
-}
-
-export function ExplainPaymentSituation({
-  params,
-  style,
-}: {
-  params: CheckoutParams | null;
-  style?;
-}) {
-  if (params == null) {
-    return <Spin />;
-  }
-  const { balance, chargeAmount, total, minBalance } = params;
-  const curBalance = (
-    <div style={{ float: "right", marginLeft: "30px", fontWeight: "bold" }}>
-      Account Balance: {currency(balance)}
-      {minBalance ? `, Minimum allowed balance: ${currency(minBalance)}` : ""}
-    </div>
-  );
-
-  if (chargeAmount == 0) {
-    return (
-      <Alert
-        showIcon
-        type="info"
-        style={style}
-        description={
-          <>
-            {curBalance}
-            Complete this purchase without adding credit to your account.
-          </>
-        }
-      />
-    );
-  }
-  return (
-    <Alert
-      showIcon
-      type="info"
-      style={style}
-      description={
-        <>
-          {curBalance}
-          Complete this purchase by adding {currency(chargeAmount)} to your
-          account.{" "}
-          {chargeAmount > total && (
-            <>
-              Your account balance must always be at least{" "}
-              {currency(params.minBalance)}.
-            </>
-          )}
-        </>
-      }
-    />
   );
 }

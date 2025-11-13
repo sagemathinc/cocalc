@@ -21,8 +21,8 @@ export default function PaygInfo({ what }) {
         <div>
           <ul>
             <li>
-              If you need a large amount of compute power, disk space, GPU's,
-              root privileges or to run commercial software, add a{" "}
+              If you need a large amount of compute power, disk space, GPUs,
+              root privileges, or to run commercial software, add a{" "}
               <A href="https://doc.cocalc.com/compute_server.html">
                 pay as you go compute server to your project
               </A>

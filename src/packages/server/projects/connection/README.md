@@ -10,7 +10,7 @@ This connection is used much more by the projects to send and share state.  For 
 
 ## How do is it work?
 
-There is a long random token associated to each project, which is stored in the database (or the filesystem).  When a hub connects to a project via TCP, it must first send this token before any further communication is allowed.   
+There is a long random token associated to each project, which is stored in the database (or the file system).  When a hub connects to a project via TCP, it must first send this token before any further communication is allowed.   
 
 For security reasons, the TCP connection is _**always**_ initiated from a hub to the project, and there can be several distinct hubs connected to the same project at once.  
 

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -18,7 +18,7 @@ import type { Channel } from "@cocalc/comm/websocket/types";
 import { Map, Set as immutableSet, fromJS } from "immutable";
 import { project_api } from "../generic/client";
 import { set_buffer, get_buffer } from "../../copy-paste-buffer";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { callback, delay } from "awaiting";
 import { assertDefined } from "@cocalc/util/misc";
 import {
@@ -54,18 +54,23 @@ export class Actions extends BaseActions<X11EditorState> {
   client?: XpraClient;
 
   async _init2(): Promise<void> {
-    await this.check_capabilities();
-    this.launch = reuseInFlight(this.launch);
+    this.launch = reuseInFlight(this.launch.bind(this));
     this.setState({ windows: Map() });
     this.init_client();
     this.init_new_x11_frame();
+    // IMPORTANT: call check_capabilities *after* init_client!!!!!
+    // This was buggy, where the terminal would come up and
+    // try to use this.client immediately, but it wasn't defined
+    // since _init2 was stuck awaiting this.check_capabilities.
+    // The init_client function is just setting
+    await this.check_capabilities();
     try {
       await this.init_channel();
     } catch (err) {
       this.set_error(
         // TODO: should retry instead (?)
         err +
-          " -- you might need to refresh your browser or close and open this file."
+          " -- you might need to refresh your browser or close and open this file.",
       );
     }
   }
@@ -88,7 +93,7 @@ export class Actions extends BaseActions<X11EditorState> {
 
       // next, we check for specific apps
       const x11_conf = (await proj_actions.init_configuration(
-        "x11"
+        "x11",
       )) as X11Configuration;
       if (x11_conf == null) return false;
       // from here, we know that we have x11 status information
@@ -202,7 +207,7 @@ export class Actions extends BaseActions<X11EditorState> {
           .set(wid, fromJS({ wid, title, is_modal }));
         this.setState({ windows });
         this.update_x11_tabs();
-      }
+      },
     );
 
     this.client.on("window:destroy", (wid: number) => {
@@ -311,7 +316,7 @@ export class Actions extends BaseActions<X11EditorState> {
       super.reload(id);
       return;
     }
-    this.set_reload("x11", new Date().valueOf());
+    this.set_reload("x11", Date.now());
   }
 
   blur(): void {
@@ -326,12 +331,12 @@ export class Actions extends BaseActions<X11EditorState> {
   set_focused_window_in_frame(
     id: string,
     wid: number,
-    do_not_ensure = false
+    do_not_ensure = false,
   ): void {
     const modal_wids = this.get_modal_wids();
     if (modal_wids.size > 0 && !modal_wids.has(wid)) {
       this.set_error(
-        "Close any modal tabs before switching to a non-modal tab."
+        "Close any modal tabs before switching to a non-modal tab.",
       );
       return;
     }
@@ -627,7 +632,10 @@ export class Actions extends BaseActions<X11EditorState> {
     });
   }
 
-  set_physical_keyboard(layout: string, variant: string): void {
+  set_physical_keyboard(
+    layout: string | undefined,
+    variant: string | undefined,
+  ): void {
     if (this.client == null) {
       // better to ignore if client isn't configured yet.
       // I saw this once when testing. (TODO: could be more careful.)

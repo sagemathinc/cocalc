@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -59,6 +59,7 @@ export default function DescriptionEditor({
   return (
     <div>
       <MarkdownInput
+        saveDebounceMs={SAVE_DEBOUNCE_MS}
         cacheId={task_id}
         value={desc}
         onChange={(desc) => {
@@ -86,7 +87,10 @@ export default function DescriptionEditor({
           actions.redo();
         }}
         minimal
-        editBarStyle={{ marginBottom: "10px" }}
+        modeSwitchStyle={{
+          float: "right",
+          position: "relative",
+        }}
       />
       <ColorPicker
         toggle={<Button style={{ float: "right" }}>Color...</Button>}

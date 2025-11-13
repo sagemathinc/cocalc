@@ -1,13 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Input box for setting the account creation token.
 */
 
-import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import {
   Button as AntdButton,
   Checkbox,
@@ -22,7 +21,8 @@ import {
 import dayjs from "dayjs";
 import { List } from "immutable";
 import { pick, sortBy } from "lodash";
-import { TimeAgo } from "@cocalc/frontend/components";
+
+import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
@@ -30,8 +30,14 @@ import {
   Rendered,
   TypedMap,
 } from "@cocalc/frontend/app-framework";
-import { ErrorDisplay, Icon, Saving } from "@cocalc/frontend/components";
+import {
+  ErrorDisplay,
+  Icon,
+  Saving,
+  TimeAgo,
+} from "@cocalc/frontend/components";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import { RegistrationTokenSetFields } from "@cocalc/util/db-schema/types";
 import { cmp_dayjs, round1, secure_random_token } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -137,7 +143,7 @@ function use_registration_tokens() {
     ] as RegistrationTokenSetFields[]);
     // set optional field to undefined (to get rid of it)
     ["descr", "limit", "expires"].forEach(
-      (k: RegistrationTokenSetFields) => (val[k] = val[k] ?? undefined)
+      (k: RegistrationTokenSetFields) => (val[k] = val[k] ?? undefined),
     );
     try {
       set_saving(true);
@@ -160,7 +166,7 @@ function use_registration_tokens() {
 
   async function delete_token(
     token: string | undefined,
-    single: boolean = false
+    single: boolean = false,
   ) {
     if (token == null) return;
     if (single) set_deleting(true);
@@ -316,7 +322,7 @@ export function RegistrationToken() {
               Reset
             </AntdButton>
             <AntdButton htmlType="button" onClick={() => set_editing(null)}>
-              Cancel
+              <CancelText />
             </AntdButton>
             <AntdButton onClick={onRandom}>Randomize</AntdButton>
           </AntdButton.Group>
@@ -362,7 +368,7 @@ export function RegistrationToken() {
         v.key = v.token;
         return v;
       }),
-      "token"
+      "token",
     );
     const rowSelection = {
       selectedRowKeys: sel_rows,
@@ -421,7 +427,7 @@ export function RegistrationToken() {
                     props: {
                       style: {
                         backgroundColor:
-                          pct > 90 ? COLORS.ATND_BG_RED_L : undefined,
+                          pct > 90 ? COLORS.ANTD_BG_RED_L : undefined,
                       },
                     },
                     children: `${round1(pct)}%`,

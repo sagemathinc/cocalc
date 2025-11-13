@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { delay } from "awaiting";
@@ -27,7 +27,7 @@ import { DirectoryListingEntry } from "@cocalc/util/types";
 // This is important since we don't want to fire off dozens of changes per second,
 // e.g., if a logfile is being updated.
 const WATCH_DEBOUNCE_MS = parseInt(
-  process.env.COCALC_FS_WATCH_DEBOUNCE_MS ?? "1500",
+  process.env.COCALC_FS_WATCH_DEBOUNCE_MS ?? "500",
 );
 
 // See https://github.com/sagemathinc/cocalc/issues/4623
@@ -65,7 +65,7 @@ interface Options {
 }
 
 class ListingsTable {
-  private readonly table?: SyncTable; // might be removed by close()
+  private readonly table?: SyncTable; // will be removed by close()
   private project_id: string;
   private compute_server_id: number;
   private watchers: { [path: string]: Watcher } = {};
@@ -82,7 +82,7 @@ class ListingsTable {
     this.log = opts.getLogger("sync:listings").debug;
     this.log("constructor");
     this.project_id = opts.project_id;
-    this.compute_server_id = opts.compute_server_id;
+    this.compute_server_id = opts.compute_server_id ?? 0;
     this.table = opts.table;
     this.getListing = opts.getListing;
     this.createWatcher = opts.createWatcher;
@@ -184,6 +184,7 @@ class ListingsTable {
   };
 
   get = (path: string): ImmutableListing | undefined => {
+    path = canonicalPath(path);
     const x = this.getTable().get(
       JSON.stringify([this.project_id, path, this.compute_server_id]),
     );
@@ -220,6 +221,7 @@ class ListingsTable {
   };
 
   private ensureWatching = async (path: string): Promise<void> => {
+    path = canonicalPath(path);
     if (this.watchers[path] != null) {
       // We are already watching this path
       if (this.get(path)?.get("error")) {
@@ -249,6 +251,7 @@ class ListingsTable {
   };
 
   private computeListing = async (path: string): Promise<void> => {
+    path = canonicalPath(path);
     const time = new Date();
     let listing;
     try {
@@ -305,6 +308,7 @@ class ListingsTable {
   };
 
   private startWatching = (path: string): void => {
+    path = canonicalPath(path);
     if (this.watchers[path] != null) return;
     if (process.env.HOME == null) {
       throw Error("HOME env variable must be defined");
@@ -322,6 +326,7 @@ class ListingsTable {
   };
 
   private stopWatching = (path: string): void => {
+    path = canonicalPath(path);
     const w = this.watchers[path];
     if (w == null) return;
     delete this.watchers[path];
@@ -456,16 +461,27 @@ class ListingsTable {
   };
 }
 
-let listingsTable: ListingsTable | undefined = undefined;
+let listingsTable: { [compute_server_id: number]: ListingsTable } = {};
 export function registerListingsTable(opts: Options): void {
-  if (listingsTable != null) {
+  const { compute_server_id = 0 } = opts;
+  if (listingsTable[compute_server_id] != null) {
     // There was one sitting around wasting space so clean it up
     // before making a new one.
-    listingsTable.close();
+    listingsTable[compute_server_id].close();
   }
-  listingsTable = new ListingsTable(opts);
+  listingsTable[compute_server_id] = new ListingsTable(opts);
 }
 
-export function getListingsTable(): ListingsTable | undefined {
-  return listingsTable;
+export function getListingsTable(
+  compute_server_id: number = 0,
+): ListingsTable | undefined {
+  return listingsTable[compute_server_id];
+}
+
+// this does a tiny amount to make paths more canonical.
+function canonicalPath(path: string): string {
+  if (path == "." || path == "~") {
+    return "";
+  }
+  return path;
 }

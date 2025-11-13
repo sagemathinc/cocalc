@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import {
@@ -15,23 +15,22 @@ import {
   Upload,
 } from "antd";
 import { useEffect, useState } from "react";
-
 import { InboxOutlined } from "@ant-design/icons";
 import ImgCrop from "antd-img-crop";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import gravatarUrl from "@cocalc/frontend/account/gravatar-url";
 import { ColorPicker } from "@cocalc/frontend/colorpicker";
 import { Icon } from "@cocalc/frontend/components/icon";
+import register from "../register";
 import imageToDataURL from "@cocalc/frontend/misc/image-to-data";
+import useEditTable from "lib/hooks/edit-table";
+import useProfile from "lib/hooks/profile";
+import useCustomize from "lib/use-customize";
 import { DisplayAvatar } from "components/account/avatar";
 import Code from "components/landing/code";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
-import useEditTable from "lib/hooks/edit-table";
-import useProfile from "lib/hooks/profile";
-import useCustomize from "lib/use-customize";
-import register from "../register";
 
 interface Data {
   email_address?: string;

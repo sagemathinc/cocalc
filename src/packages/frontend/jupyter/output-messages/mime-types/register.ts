@@ -19,11 +19,13 @@ export interface HandlerProps {
   data: Map<string, any>;
   message: Map<string, any>;
   project_id?: string;
+  path?: string;
   directory?: string;
   actions?: JupyterActions;
   name?: string;
   trust?: boolean;
   id?: string;
+  index?: number;
 }
 
 type Handler = React.FC<HandlerProps>;
@@ -36,14 +38,14 @@ const priorities: { [priority: number]: string } = {};
 export default function register(
   typeRegexp: string, // string or regexp that matches the MIME type
   priority: number, // priority used when there are multiple description of same object: bigger means a higher priority.
-  handler: Handler // react component that renders the message.
+  handler: Handler, // react component that renders the message.
 ): void {
   if (priority < 0) {
     throw Error(`priority (=${priority}) must be nonnegative`);
   }
   if (priorities[priority] && priorities[priority] != typeRegexp) {
     console.warn(
-      `WARNING: Jupyter mime type priority (=${priority}) is used by both ${priorities[priority]} and ${typeRegexp}, which makes rendering undefined.`
+      `WARNING: Jupyter mime type priority (=${priority}) is used by both ${priorities[priority]} and ${typeRegexp}, which makes rendering undefined.`,
     );
   }
   priorities[priority] = typeRegexp;
@@ -63,7 +65,9 @@ export function getPriority(type: string): number {
 
 export function getHandler(type: string): Handler {
   const h = HANDLERS[type];
-  if (h != null) return h.handler;
+  if (h != null) {
+    return h.handler;
+  }
   for (const typeRegexp in HANDLERS) {
     if (type.match("^" + typeRegexp + "$")) {
       const hRegex = HANDLERS[typeRegexp];

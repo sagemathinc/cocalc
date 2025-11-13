@@ -1,35 +1,35 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import {
-  React,
-  redux,
-  Rendered,
-  useState,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+// cspell:ignore descr
+
+import { Alert, Card, Divider, Radio, Space } from "antd";
+import { useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon, Markdown } from "@cocalc/frontend/components";
 import {
   ComputeImage,
   ComputeImages,
+  ComputeImageTypes,
 } from "@cocalc/frontend/custom-software/init";
-import {
-  SoftwareEnvironment,
-  SoftwareEnvironmentState,
-} from "@cocalc/frontend/custom-software/selector";
+import { SoftwareEnvironmentState } from "@cocalc/frontend/custom-software/selector";
 import {
   compute_image2basename,
   is_custom_image,
 } from "@cocalc/frontend/custom-software/util";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
+import { labels } from "@cocalc/frontend/i18n";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
 import { SoftwareImageDisplay } from "@cocalc/frontend/project/settings/software-image-display";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { Alert, Button, Card, Divider, Radio } from "antd";
 import { ConfigurationActions } from "./actions";
 
 const CSI_HELP =
@@ -40,32 +40,53 @@ interface Props {
   course_project_id: string;
   software_image?: string;
   inherit_compute_image?: boolean;
+  close?;
 }
 
-export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
+export function StudentProjectSoftwareEnvironment({
   actions,
   course_project_id,
   software_image,
   inherit_compute_image,
-}) => {
+  close,
+}: Props) {
+  const intl = useIntl();
+  const { onCoCalcCom } = useProjectContext();
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const customize_software = useTypedRedux("customize", "software");
   const software_envs = customize_software.get("environments");
-  const dflt_compute_img = customize_software.get("default");
+  const default_compute_img = customize_software.get("default");
 
   // by default, we inherit the software image from the project where this course is run from
   const inherit = inherit_compute_image ?? true;
   const [state, set_state] = useState<SoftwareEnvironmentState>({});
   const [changing, set_changing] = useState(false);
 
-  function handleChange(state): void {
-    set_state(state);
+  async function handleSelect({
+    id,
+    display,
+    type,
+  }: {
+    id: string;
+    display: string;
+    type: ComputeImageTypes;
+  }) {
+    set_changing(true);
+    const nextState: SoftwareEnvironmentState = {
+      image_selected: id,
+      title_text: display,
+      image_type: type,
+    };
+    set_state(nextState);
+    await actions.set_software_environment(nextState);
+    set_changing(false);
+    close?.();
   }
   const current_environment = <SoftwareImageDisplay image={software_image} />;
 
   const custom_images: ComputeImages | undefined = useTypedRedux(
     "compute_images",
-    "images"
+    "images",
   );
 
   function on_inherit_change(inherit: boolean) {
@@ -83,77 +104,53 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     }
   }
 
-  React.useEffect(() => {
-    if (inherit) {
-      set_changing(false);
-    }
-  }, [inherit]);
-
-  function csi_warning(): Rendered {
+  function csi_warning() {
     return (
       <Alert
         type={"warning"}
         message={
           <>
-            <strong>Warning:</strong> Do not change a custom image once there is
-            already one setup and deployed!
+            <strong>Warning:</strong> Do not change a specialized software
+            environment after it has already been deployed and in use!
           </>
         }
         description={
-          "The associated user files will not be updated and the software environment changes might break the functionality of existing files."
+          "The associated user files will not be updated and the software environment changes likely break the functionality of existing files."
         }
       />
     );
   }
 
-  function render_controls_body(): Rendered {
-    if (!changing) {
-      return (
-        <Button onClick={() => set_changing(true)} disabled={changing}>
-          Change...
-        </Button>
-      );
-    } else {
-      return (
-        <>
-          <Button onClick={() => set_changing(false)}>Cancel</Button>
-          <Button
-            disabled={
-              state.image_type === "custom" && state.image_selected == null
-            }
-            type="primary"
-            onClick={async () => {
-              set_changing(false);
-              await actions.set_software_environment(state);
-            }}
-          >
-            Save
-          </Button>
-          <br />
-          <SoftwareEnvironment
-            onChange={handleChange}
-            default_image={software_image}
-          />
-          {state.image_type === "custom" && csi_warning()}
-        </>
-      );
-    }
+  function render_controls_body() {
+    return (
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <ComputeImageSelector
+          current_image={software_image ?? default_compute_img}
+          layout={"dialog"}
+          onSelect={handleSelect}
+          hideCustomImages={!onCoCalcCom}
+          label={intl.formatMessage(labels.save)}
+          changing={changing}
+        />
+        {state.image_type === "custom" && csi_warning()}
+      </Space>
+    );
   }
 
-  function render_controls(): Rendered {
+  function render_controls() {
     if (inherit) return;
     return (
       <>
-        <Divider orientation="left" plain>
-          Configure
+        <Divider orientation="left">
+          {intl.formatMessage(labels.configuration)}
         </Divider>
         {render_controls_body()}
       </>
     );
   }
 
-  function render_description(): Rendered {
-    const img_id = software_image ?? dflt_compute_img;
+  function render_description() {
+    const img_id = software_image ?? default_compute_img;
     let descr: string | undefined;
     if (is_custom_image(img_id)) {
       if (custom_images == null) return;
@@ -184,18 +181,24 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     }
   }
 
-  function render_custom_info(): Rendered {
+  function render_custom_info() {
     if (software_image != null && is_custom_image(software_image)) return;
     return (
       <p>
-        If you need additional software or a fully{" "}
-        <A href={CSI_HELP}>customized software environment</A>, please contact{" "}
-        <HelpEmailLink />.
+        <FormattedMessage
+          id="course.student-project-software-environment.help"
+          defaultMessage={`If you need additional software or a fully <A>customized software environment</A>,
+  please contact {help}.`}
+          values={{
+            help: <HelpEmailLink />,
+            A: (c) => <A href={CSI_HELP}>{c}</A>,
+          }}
+        />
       </p>
     );
   }
 
-  function render_inherit(): Rendered {
+  function render_inherit() {
     // We use fontWeight: "normal" below because otherwise the default
     // of bold for the entire label is a bit much for such a large label.
     return (
@@ -204,18 +207,22 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
         value={inherit}
       >
         <Radio style={{ fontWeight: "normal" }} value={true}>
-          <strong>Inherit</strong> student projects software environments from
-          this teacher project
+          <FormattedMessage
+            id="course.student-project-software-environment.inherit.true"
+            defaultMessage={`<strong>Inherit</strong> student projects software environments from this teacher project`}
+          />
         </Radio>
         <Radio style={{ fontWeight: "normal" }} value={false}>
-          <strong>Explicitly</strong> specify student project software
-          environments
+          <FormattedMessage
+            id="course.student-project-software-environment.inherit.false"
+            defaultMessage={`<strong>Explicitly</strong> specify student project software environments`}
+          />
         </Radio>
       </Radio.Group>
     );
   }
 
-  // this selector only make sense for cocalc.com and cocalc-cloud on-prem
+  // this selector only make sense for cocalc.com and cocalc-onprem
   if (
     customize_kucalc !== KUCALC_COCALC_COM &&
     customize_kucalc !== KUCALC_ON_PREMISES
@@ -226,13 +233,21 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     <Card
       title={
         <>
-          <Icon name="laptop" /> Software environment: {current_environment}
+          <Icon name="laptop" />{" "}
+          {intl.formatMessage(labels.software_environment)}:{" "}
+          {current_environment}
         </>
       }
     >
       <p>
-        Student projects will be using the software environment:{" "}
-        <em>{current_environment}</em>
+        <FormattedMessage
+          id="course.student-project-software-environment.status"
+          defaultMessage={`Student projects will use the following software environment: <em>{env}</em>`}
+          values={{
+            em: (c) => <em>{c}</em>,
+            env: current_environment,
+          }}
+        />
       </p>
       {render_description()}
       {render_custom_info()}
@@ -240,4 +255,4 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
       {render_controls()}
     </Card>
   );
-};
+}

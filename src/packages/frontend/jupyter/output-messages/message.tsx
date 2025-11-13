@@ -1,25 +1,31 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Handling of output messages.
 */
 
-import React from "react";
+import Anser from "anser";
 import type { Map } from "immutable";
+import React from "react";
+
 import type { JupyterActions } from "@cocalc/jupyter/redux/actions";
-import { OUTPUT_STYLE, OUTPUT_STYLE_SCROLLED } from "./style";
-import { Stdout } from "./stdout";
-import { Stderr } from "./stderr";
-import { MoreOutput } from "./more-output";
+import { LLMTools } from "@cocalc/jupyter/types";
 import { Input } from "./input";
 import { InputDone } from "./input-done";
 import { Data } from "./mime-types/data";
-import { Traceback } from "./traceback";
+import { MoreOutput } from "./more-output";
 import { NotImplemented } from "./not-implemented";
-import Anser from "anser";
+import { Stderr } from "./stderr";
+import { Stdout } from "./stdout";
+import { OUTPUT_STYLE, OUTPUT_STYLE_SCROLLED } from "./style";
+import { Traceback } from "./traceback";
+
+function Blank({}) {
+  return null;
+}
 
 function messageComponent(message: Map<string, any>): any {
   if (message.get("more_output") != null) {
@@ -44,6 +50,16 @@ function messageComponent(message: Map<string, any>): any {
   if (message.get("traceback") != null) {
     return Traceback;
   }
+  if (message.get("transient") != null) {
+    // none of the above match and it's a transient message, should not render anything.
+    // E.g., {"transient": {"display_id": "b522bc679b384e39a52feaade4117916"}}},
+    return Blank;
+  }
+  if (message.get("output_type") == "display_data") {
+    // matches nothing we know how to render and it just a message about the output_type
+    return Blank;
+  }
+  // Final fallback -- render an error looking message...  maybe this should be blank too, not sure.
   return NotImplemented;
 }
 
@@ -54,24 +70,15 @@ interface CellOutputMessageProps {
   actions?: JupyterActions; // optional  - not needed by most messages
   name?: string;
   id?: string; // optional, and not usually needed either; this is the id of the cell.  It is needed for iframe + windowing.
+  index?: number;
   trust?: boolean; // is notebook trusted by the user (if not won't eval javascript)
 }
 
 export const CellOutputMessage: React.FC<CellOutputMessageProps> = React.memo(
   (props: CellOutputMessageProps) => {
     const C: any = messageComponent(props.message);
-    return (
-      <C
-        message={props.message}
-        project_id={props.project_id}
-        directory={props.directory}
-        actions={props.actions}
-        name={props.name}
-        trust={props.trust}
-        id={props.id}
-      />
-    );
-  }
+    return <C {...props} />;
+  },
 );
 
 interface CellOutputMessagesProps {
@@ -83,7 +90,7 @@ interface CellOutputMessagesProps {
   scrolled?: boolean;
   trust?: boolean;
   id?: string;
-  chatgpt?;
+  llmTools?: LLMTools;
 }
 
 function shouldMemoize(prev, next) {
@@ -104,14 +111,14 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
     scrolled,
     trust,
     id,
-    chatgpt,
+    llmTools,
   }: CellOutputMessagesProps) => {
     const obj: Map<string, any>[] = React.useMemo(
       () => messageList(output),
-      [output]
+      [output],
     );
 
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     // NOTE: hasIframes -- we do not switch the output mode to "scrolled" if there are iframes in the output,
     // due to it being too difficult to handle them combined with windowing/virtualization.
     // It's likely that if there are iframes, the output is just one big iframe and scrolled mode is
@@ -132,6 +139,7 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
         v.push(
           <CellOutputMessage
             key={n}
+            index={n}
             message={mesg}
             project_id={project_id}
             directory={directory}
@@ -139,13 +147,13 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
             name={name}
             trust={trust}
             id={id}
-          />
+          />,
         );
       }
     }
     const help =
-      hasError && id && actions && chatgpt ? (
-        <chatgpt.ChatGPTError
+      hasError && id && actions && llmTools ? (
+        <llmTools.toolComponents.LLMError
           style={{ margin: "5px 0" }}
           input={actions.store.getIn(["cells", id, "input"]) ?? ""}
           traceback={Anser.ansiToText(traceback.trim())}
@@ -162,7 +170,7 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
       </div>
     );
   },
-  shouldMemoize
+  shouldMemoize,
 );
 
 function numericallyOrderedKeys(obj: object): number[] {

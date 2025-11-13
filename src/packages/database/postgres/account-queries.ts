@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Various functions involving the database and accounts.
@@ -19,12 +19,12 @@ import { PostgreSQL } from "./types";
 /* For now we define "paying customer" to mean they have a subscription.
   It's OK if it expired.  They at least bought one once.
   This is mainly used for anti-abuse purposes...
-  
+
   TODO: modernize this or don't use this at all...
 */
 export async function is_paying_customer(
   db: PostgreSQL,
-  account_id: string
+  account_id: string,
 ): Promise<boolean> {
   let x;
   try {
@@ -54,7 +54,7 @@ interface SetAccountFields {
 
 // this is like set_account_info_if_different, but only sets the fields if they're not set
 export async function set_account_info_if_not_set(
-  opts: SetAccountFields
+  opts: SetAccountFields,
 ): Promise<void> {
   return await set_account_info_if_different(opts, false);
 }
@@ -62,12 +62,16 @@ export async function set_account_info_if_not_set(
 // This sets the given fields of an account, if it is different from the current value  – except for the email address, which we only set but not change
 export async function set_account_info_if_different(
   opts: SetAccountFields,
-  overwrite = true
+  overwrite = true,
 ): Promise<void> {
   const columns = ["email_address", "first_name", "last_name"];
 
   // this could throw an error for "no such account"
-  const account = await get_account(opts.db, opts.account_id, columns);
+  const account = await get_account<{
+    email_address: string;
+    first_name: string;
+    last_name: string;
+  }>(opts.db, opts.account_id, columns);
 
   const do_set: { [field: string]: string } = {};
   let do_email: string | undefined = undefined;
@@ -106,7 +110,7 @@ export async function set_account_info_if_different(
 export async function set_account(
   db: PostgreSQL,
   account_id: string,
-  set: { [field: string]: any }
+  set: { [field: string]: any },
 ): Promise<void> {
   await db.async_query({
     query: "UPDATE accounts",
@@ -115,11 +119,12 @@ export async function set_account(
   });
 }
 
-export async function get_account(
+// TODO typing: pick the column fields from the actual account type stored in the database
+export async function get_account<T>(
   db: PostgreSQL,
   account_id: string,
-  columns: string[]
-): Promise<void> {
+  columns: string[],
+): Promise<T> {
   return await callback2(db.get_account.bind(db), {
     account_id,
     columns,
@@ -133,7 +138,7 @@ interface SetEmailAddressVerifiedOpts {
 }
 
 export async function set_email_address_verified(
-  opts: SetEmailAddressVerifiedOpts
+  opts: SetEmailAddressVerifiedOpts,
 ): Promise<void> {
   const { db, account_id, email_address } = opts;
   assert_valid_account_id(account_id);
@@ -143,4 +148,14 @@ export async function set_email_address_verified(
     jsonb_set: { email_address_verified: { [email_address]: new Date() } },
     where: { "account_id = $::UUID": account_id },
   });
+}
+
+export async function is_admin(
+  db: PostgreSQL,
+  account_id: string,
+): Promise<boolean> {
+  const { groups } = await get_account<{ groups?: string[] }>(db, account_id, [
+    "groups",
+  ]);
+  return Array.isArray(groups) && groups.includes("admin");
 }

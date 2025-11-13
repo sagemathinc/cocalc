@@ -1,24 +1,64 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Layout } from "antd";
+import { Alert, Button, Divider, Layout, List } from "antd";
+import { ReactNode, type JSX } from "react";
 
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import getSupportUrl from "@cocalc/frontend/support/url";
+import { money } from "@cocalc/util/licenses/purchase/utils";
+import { COLORS } from "@cocalc/util/theme";
+
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
+import PricingItem, { Line } from "components/landing/pricing-item";
 import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
+
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { useRouter } from "next/router";
 
-const DOCKER_PRICE = "$999";
-const K8S_PRICE = "$5000";
-const K8S_PRICE_ACADEMIC = "$3000";
+const PUBLISH_PRICE = false;
+
+const CM = <Icon name="check" />;
+
+const INF = "∞";
+interface Item {
+  title: string;
+  icon: IconName;
+  individuals: string;
+  price: number | null;
+  academic?: ReactNode;
+  extra?: number;
+  prod?: string;
+}
+
+const data: Item[] = [
+  {
+    title: "Small Business",
+    icon: "experiment",
+    individuals: "≤ 25",
+    price: 10000,
+  },
+  {
+    title: "Large Organization",
+    icon: "home",
+    individuals: "> 25",
+    price: null,
+    prod: "≥1",
+  },
+  {
+    title: "University",
+    icon: "graduation-cap",
+    individuals: "≤ 150",
+    price: 6000,
+    academic: CM,
+  },
+];
 
 export default function OnPrem({ customize }) {
   const { siteName } = customize;
@@ -41,204 +81,299 @@ export default function OnPrem({ customize }) {
 }
 
 function Body() {
-  const router = useRouter();
+  const contactURL = getSupportUrl({
+    subject: "Purchase CoCalc OnPrem",
+    type: "chat",
+    url: "",
+  });
 
-  function docker(): JSX.Element {
-    const body = encodeURIComponent(
-      "I'm interested in puchasing CoCalc Docker on-premises."
-    );
-
+  function renderContactButton(
+    text: string | ReactNode = "Contact Us",
+  ): JSX.Element {
     return (
-      <>
-        <Title level={2}>
-          CoCalc Docker <Icon name="docker" style={{ float: "right" }} />
-        </Title>
-        <Paragraph>
-          <Text strong>
-            <A
-              href={"https://github.com/sagemathinc/cocalc-docker#what-is-this"}
-            >
-              CoCalc Docker
-            </A>
-          </Text>{" "}
-          is a downsized but feature complete version of CoCalc. It can be used
-          on your own laptop, desktop or server. It is suitable for{" "}
-          <Text strong>personal use</Text> or a small{" "}
-          <Text strong>working group</Text>, e.g. a few researchers in an office
-          or lab.
-        </Paragraph>
-        <Text strong>Features</Text>: it includes support for Jupyter Notebooks,
-        a recent version of Sage, Python 3, R, Julia, Octave and LaTeX. Also,
-        X11 support, editing and compiling code and much more is included as
-        well. If something is missing, you could{" "}
-        <A
-          href={
-            "https://github.com/sagemathinc/cocalc-docker#adding-custom-software-to-your-cocalc-instance"
-          }
-        >
-          extend the base image
-        </A>{" "}
-        to fit your needs.
-        <Paragraph></Paragraph>
-        <Paragraph>
-          The <Text strong>setup</Text> is very easy: CoCalc Docker comes as a
-          pre-packaged single <A href={"https://www.docker.com/"}>Docker</A>{" "}
-          image. All services are included and ready to work out of the box.
-        </Paragraph>
-        <Paragraph>
-          The license is business-friendly and costs {DOCKER_PRICE}/year.
-        </Paragraph>
-        <Paragraph style={{ textAlign: "center" }}>
-          <Button
-            type="primary"
-            size="large"
-            onClick={() =>
-              router.push(
-                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Docker&body=${body}&title=Purchase%20CoCalc-Docker`
-              )
-            }
-          >
-            Purchase CoCalc Docker at {DOCKER_PRICE}/year
-          </Button>
-        </Paragraph>
-      </>
+      <Button size="large" href={contactURL} type="primary" block>
+        {text}
+      </Button>
     );
   }
 
-  function cloud(): JSX.Element {
-    const body = encodeURIComponent(
-      "I'm interested in puchasing CoCalc Cloud on-premises."
+  function renderContact(): JSX.Element {
+    return (
+      <Alert
+        type="info"
+        banner={true}
+        showIcon={false}
+        style={{
+          textAlign: "center",
+          padding: "30px",
+          marginTop: "30px",
+          marginBottom: "30px",
+          borderRadius: "10px",
+        }}
+        message={
+          <>
+            <Paragraph strong style={{ fontSize: "150%" }}>
+              Ready to bring CoCalc to your organization?{" "}
+              <A href={contactURL} external>
+                Let's get in contact!
+              </A>
+            </Paragraph>
+            <Paragraph>
+              Every enterprise deployment is unique. We'll work with you to
+              understand your specific requirements, from user scale and
+              security needs to integration with existing systems.
+            </Paragraph>
+            <Paragraph>
+              <Text strong>We offer flexible licensing options</Text>, including
+              volume discounts for large organizations, academic discounts for
+              educational institutions, multi-year agreements, and comprehensive
+              support packages. Plus, we provide a{" "}
+              <Text strong>free evaluation period</Text> to ensure CoCalc OnPrem
+              meets your needs before you commit.
+            </Paragraph>
+            {renderContactButton()}
+          </>
+        }
+      />
     );
+  }
 
+  function renderPriceInfo(): JSX.Element {
+    if (PUBLISH_PRICE) {
+      return (
+        <>
+          <Title level={3}>Purchasing CoCalc OnPrem</Title>
+          <List
+            grid={{ gutter: 30, column: 3, xs: 1, sm: 1 }}
+            dataSource={data}
+            renderItem={({
+              price,
+              individuals,
+              icon,
+              title,
+              academic,
+              prod,
+            }) => {
+              return (
+                <PricingItem title={title} icon={icon}>
+                  <Line amount={individuals} desc={"Monthly Active Users¹"} />
+                  <Line amount={prod ?? 1} desc="Production Deployment" />
+                  <Line amount={1} desc="Test Deployment" />
+                  <Line amount={INF} desc="Number of Projects" />
+                  <Line amount={INF} desc="Project Collaborators" />
+                  <Line amount={INF} desc="Cluster Resources²" />
+                  <Line amount={CM} desc="Help for Initial Setup" />
+                  <Line amount={CM} desc="Premium Support" />
+                  <Divider />
+                  <Line
+                    amount={CM}
+                    desc="Collaborative Jupyter, LaTeX, SageMath, R, ..."
+                  />
+                  <Line amount={CM} desc="Custom Software Environments" />
+                  <Line amount={CM} desc="Regular Software Upgrades" />
+                  <Line amount={CM} desc="Flexible LLM integration³" />
+                  <Line amount={CM} desc="GPU Support" />
+                  <Line amount={CM} desc="SAML SSO" />
+
+                  <br />
+                  <div
+                    style={{
+                      textAlign: "center",
+                    }}
+                  >
+                    {typeof price === "number"
+                      ? renderContactButton(
+                          <span
+                            style={{
+                              fontWeight: "bold",
+                              fontSize: "18pt",
+                              color: COLORS.GRAY_DD,
+                              padding: "10px",
+                            }}
+                          >
+                            {money(price, true)}
+                            <span style={{ color: COLORS.GRAY }}>/year</span>
+                          </span>,
+                        )
+                      : renderContactButton()}
+                  </div>
+                  {academic ? (
+                    <>
+                      <Divider />
+                      <Line
+                        amount={academic}
+                        desc={<Text strong>Academic discount</Text>}
+                      />
+                    </>
+                  ) : undefined}
+                </PricingItem>
+              );
+            }}
+          />
+          {renderContact()}
+          <Paragraph
+            style={{
+              marginTop: "100px",
+              borderTop: `1px solid ${COLORS.GRAY_L}`,
+              color: COLORS.GRAY,
+            }}
+          >
+            ¹ "Monthly Active Users" is defined as the maximum count of distinct
+            "Active Users" during any calendar month, who actually use CoCalc.
+            <br />² There are no limitations on the number of CPU cores, Memory
+            or Virtual Machines your instance of CoCalc OnPrem can make use of
+            in your cluster.
+            <br />³ Configure CoCalc OnPrem to use your own internal LLM server
+            for increased privacy.
+          </Paragraph>
+        </>
+      );
+    } else {
+      return <>{renderContact()}</>;
+    }
+  }
+
+  function cloud(): JSX.Element {
     return (
       <>
-        <Title level={2}>
-          CoCalc Cloud <Icon name="network-wired" style={{ float: "right" }} />
-        </Title>
+        {/* <Title level={2}>
+          CoCalc OnPrem <Icon name="network-wired" style={{ float: "right" }} />
+        </Title> */}
+
         <Paragraph>
           <Text strong>
-            <A href="https://doc-cloud.cocalc.com/">CoCalc Cloud</A>
+            <A href="https://onprem.cocalc.com/">CoCalc OnPrem</A>{" "}
           </Text>{" "}
-          is an on-prem version of CoCalc that runs on a full-fledged{" "}
-          <A href={"https://kubernetes.io"}>Kubernetes Cluster</A>. The
-          underlying services and their architecture are the same, as the ones
-          that power the main service at cocalc.com. This means you get the same
-          overall performance, scalability and reliability as the main SaaS
-          site.
+          brings the power of collaborative scientific computing to your
+          organization's infrastructure. Keep your data secure, maintain full
+          control over your environment, and provide your teams with the same
+          cutting-edge tools used by leading research institutions and
+          enterprises worldwide.
+        </Paragraph>
+
+        {/* IMPORTANT: keep the NASA text snippet exactly as it is -- https://github.com/sagemathinc/cocalc/issues/8545  */}
+        <Paragraph>
+          Our software is used by NASA's Space Science and Mission Operations
+          organization.
+        </Paragraph>
+
+        <Title level={3}>Why Choose CoCalc OnPrem?</Title>
+        <Paragraph>Deploy CoCalc on your own systems and gain:</Paragraph>
+
+        <ul>
+          <li>
+            <Text strong>Complete data sovereignty and security</Text> - Your
+            research data never leaves your infrastructure, ensuring compliance
+            with regulatory requirements and protecting sensitive intellectual
+            property.
+          </li>
+          <li>
+            <Text strong>Seamless IT integration</Text> - Works with your
+            existing authentication systems (SAML SSO), network policies, and
+            security frameworks.
+          </li>
+          <li>
+            <Text strong>Customizable environments</Text> - Tailor software
+            stacks and computing resources to match your specific research
+            workflows and organizational needs.
+          </li>
+          <li>
+            <Text strong>Expert deployment and support</Text> - Our team
+            provides comprehensive guidance through setup, configuration, and
+            ongoing management.
+          </li>
+          <li>
+            <Text strong>Scalable performance</Text> - Handle growing teams and
+            computational demands without compromising on collaboration or
+            security.
+          </li>
+        </ul>
+
+        <Paragraph>
+          Experience the cutting-edge capabilities of CoCalc within your own
+          secure ecosystem, providing your team or institution with a tailored,
+          high-performance platform for scientific computing, mathematics, and
+          data science collaboration.
+        </Paragraph>
+
+        <Title level={3}>Complete Research Environment</Title>
+        <ul>
+          <li>
+            <Text strong>Accelerated Research</Text> - Reduce time-to-insight
+            with collaborative tools that streamline scientific workflows
+          </li>
+          <li>
+            <Text strong>Interactive Computing</Text> - Jupyter notebooks for
+            Python, R, SageMath, and Octave
+          </li>
+          <li>
+            <Text strong>Collaboration</Text> - Real-time editing of LaTeX,
+            Markdown, and code files, as well as integrated chatrooms and task
+            lists
+          </li>
+          <li>
+            <Text strong>Linux Terminals</Text> - Use any CLI tool to maximize
+            flexibility or conduct advanced computing tasks
+          </li>
+          <li>
+            <Text strong>Custom Software</Text> - Flexible environments
+            supporting your specific research needs
+          </li>
+        </ul>
+
+        <Paragraph>
+          All tools work seamlessly together, enabling your researchers to focus
+          on discovery rather than technical setup.
+        </Paragraph>
+
+        <Title level={3}>Enterprise Benefits</Title>
+        <ul>
+          <li>
+            <Text strong>Cost Efficiency</Text> - Reduce dependency on external
+            SaaS/cloud services and unify several tools in one place
+          </li>
+          <li>
+            <Text strong>Regulatory Compliance</Text> - Meet stringent data
+            residency and security requirements
+          </li>
+        </ul>
+
+        {renderPriceInfo()}
+
+        <Title level={3}>Technical Requirements</Title>
+        <Paragraph>
+          CoCalc OnPrem requires a modern infrastructure setup. Our team will
+          work with your IT department to ensure smooth deployment:
         </Paragraph>
         <Paragraph>
-          <Text strong>Features</Text>
           <ul>
             <li>
-              Jupyter Notebooks, a recent version of Sage, Python 3, R, Octave
-              and LaTeX. Editing code and text-files, Linux terminal, compiling
-              code, and virtual X11 desktop are included as well. Beyond the
-              standard set of included software, it's also possible to define
-              and build customized software environments.
+              <Text strong>Kubernetes</Text> - A modern container management
+              system for scalable deployment: starting at just a single VM up to
+              dozens of heterogeneous nodes.
             </li>
             <li>
-              Support for <Text strong>single sign-on</Text>, in particular,
-              includes SAML.
+              <Text strong>Domain and SSL certificate</Text> - Secure access
+              configuration for your users.
             </li>
             <li>
-              The networking is defined by standard{" "}
-              <A href={"https://kubernetes.github.io/ingress-nginx/"}>
-                NGINX ingress rules
-              </A>
-              . It's possible to run within a VPN as well.
+              <Text strong>Database infrastructure</Text> - PostgreSQL for
+              application data storage.
             </li>
             <li>
-              You can <Text strong>deploy</Text> this solution on your own
-              bare-metal cluster or managed kubernetes clusters like{" "}
-              <A href={"https://aws.amazon.com/eks/"}>Amazon's AWS EKS</A> or{" "}
-              <A href={"https://cloud.google.com/kubernetes-engine"}>
-                Google's GCE GKE
-              </A>
-              . Other options should work as well.
+              <Text strong>Shared storage system</Text> - Network file system
+              for collaborative project data.
+            </li>
+            <li>
+              <Text strong>IT support resources</Text> - Your internal team or
+              our experts to manage the deployment.
             </li>
           </ul>
         </Paragraph>
+
         <Paragraph>
-          <Text strong>Prerequisites</Text>
-          <ul>
-            <li>
-              A <Text strong>Kubernetes cluster</Text> and some experience
-              managing it. We'll guide you through the setup and give you enough
-              information to be able to manage the service, react to issues,
-              plan resource requirements, and know how to scale the various
-              services to your expected usage.
-            </li>
-            <li>
-              Some experience working with{" "}
-              <A href={"https://helm.sh/"}>
-                <b>HELM</b> charts
-              </A>
-              .
-            </li>
-            <li>
-              A (sub)<Text strong>domain</Text> and TLS certificate (e.g.{" "}
-              <A href={"https://letsencrypt.org/"}>letsencrypt</A>).
-            </li>
-            <li>
-              A standard{" "}
-              <A href={"https://www.postgresql.org/"}>
-                <Text strong>PostgreSQL</Text>
-              </A>{" "}
-              database.
-            </li>
-            <li>
-              Regarding storage, a shared network file-system like{" "}
-              <Text strong>NFS</Text> will hold the data of all projects. The
-              only pre-requisite is it needs to support the Kubernetes{" "}
-              <A
-                href={
-                  "https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes"
-                }
-              >
-                ReadWriteMany
-              </A>{" "}
-              file-system access mode.
-            </li>
-          </ul>
-        </Paragraph>
-        <Paragraph>
-          For more details, see the{" "}
-          <A href="https://doc-cloud.cocalc.com/">cocalc cloud documentation</A>
-          .
-        </Paragraph>
-        <Title level={3}>Purchasing CoCalc Cloud</Title>
-        <Paragraph>
-          In contrast to the Docker variant, CoCalc Cloud is a scalable
-          solution. Therefore, the price is proportional to the expected number
-          of users. Additionally, various levels of support can be negotiated
-          for an additional cost. Please contact us for a quote.
-        </Paragraph>
-        <Paragraph>
-          The price starts at{" "}
-          <Button
-            type="primary"
-            size="large"
-            onClick={() =>
-              router.push(
-                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Cloud%20Business&body=${body}&title=Purchase%20CoCalc-Cloud`
-              )
-            }
-          >
-            {K8S_PRICE}/year
-          </Button>{" "}
-          or if an academic discount applies, starting at{" "}
-          <Button
-            type="primary"
-            size="large"
-            onClick={() =>
-              router.push(
-                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Cloud%20Academic&body=${body}&title=Purchase%20CoCalc-Cloud`
-              )
-            }
-          >
-            {K8S_PRICE_ACADEMIC}/year
-          </Button>
-          .
+          Read more about how to deploy mand manage CoCalc Onprem in its{" "}
+          <A href="https://onprem.cocalc.com/">online documentation</A>.
         </Paragraph>
       </>
     );
@@ -254,42 +389,11 @@ function Body() {
       }}
     >
       <Title level={1} style={{ textAlign: "center" }}>
-        <Icon name="server" style={{ marginRight: "30px" }} /> CoCalc - On
-        Premises Offerings
+        <Icon name="server" style={{ marginRight: "30px" }} /> CoCalc
+        On-Premises
       </Title>
 
-      <Paragraph>
-        CoCalc's on-premises offerings allow you to run CoCalc on your own
-        machine or cluster in order to keep your data on-site and use compute
-        resources that you already have.
-      </Paragraph>
-      <div>
-        <Alert
-          type="info"
-          banner={true}
-          showIcon={false}
-          style={{
-            textAlign: "center",
-            fontSize: "125%",
-            marginTop: "30px",
-            marginBottom: "30px",
-          }}
-          message={
-            <>
-              Please{" "}
-              <A
-                href={`/support/new?hideExtra=true&type=purchase&subject=CoCalc%20On-prem&body=&title=Purchase%20CoCalc%20On-prem`}
-              >
-                contact us
-              </A>{" "}
-              for questions, licensing details, and purchasing.
-            </>
-          }
-        />
-        {docker()}
-        <hr style={{ margin: "30px 0" }} />
-        {cloud()}
-      </div>
+      <div>{cloud()}</div>
     </div>
   );
 }

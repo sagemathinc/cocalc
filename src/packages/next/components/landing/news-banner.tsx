@@ -1,7 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+import { useEffect, useRef, useState } from "react";
+import { useAsyncEffect } from "use-async-effect";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { slugURL } from "@cocalc/util/news";
@@ -9,11 +12,9 @@ import { COLORS } from "@cocalc/util/theme";
 import { CHANNELS_ICONS, RecentHeadline } from "@cocalc/util/types/news";
 import { Paragraph } from "components/misc";
 import A from "components/misc/A";
-import { NewsTags } from "components/news/news";
+import { TagList } from "components/news/news";
 import { useDateStr } from "components/news/useDateStr";
 import { MAX_WIDTH } from "lib/config";
-import { useEffect, useRef, useState } from "react";
-import { useAsyncEffect } from "use-async-effect";
 
 const PADDING = "15px";
 const FONT_SIZE = "16px";
@@ -80,7 +81,7 @@ function NewsHeader({ item }: { item: RecentHeadline }) {
         setOpacity(Math.min(1, (2 * i) / offset));
       }
     },
-    [item]
+    [item],
   );
 
   const permalink = slugURL(cur);
@@ -109,8 +110,9 @@ function NewsHeader({ item }: { item: RecentHeadline }) {
         >
           {title}
         </A>{" "}
-        <NewsTags
+        <TagList
           tags={tags}
+          mode="news"
           style={{ paddingLeft: PADDING }}
           styleTag={{ fontSize: FONT_SIZE }}
         />

@@ -1,16 +1,47 @@
-import type { KernelSpec } from "@cocalc/jupyter/types";
-import { get_server_url } from "./server-urls";
 import LRU from "lru-cache";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { redux } from "@cocalc/frontend/app-framework";
+import type { KernelSpec } from "@cocalc/jupyter/types";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
-const cache = new LRU<"spec", KernelSpec[]>({ max: 1, ttl: 1000 * 15 }); // 15 seconds
+const cache = new LRU<string, KernelSpec[]>({
+  // up to 15 compute servers at once cached
+  max: 15,
+  // cache for 5 minutes; when user explicitly clicks refresh it doesn't use cache.
+  ttl: 1000 * 5 * 60,
+});
 
-export default async function getKernelSpec(
-  project_id: string
-): Promise<KernelSpec[]> {
-  const spec = cache.get("spec");
-  if (spec != null) return spec;
-  const url = `${get_server_url(project_id)}/kernelspecs/`;
-  const spec1 = await (await fetch(url)).json();
-  cache.set("spec", spec1);
-  return spec1;
-}
+const getKernelSpec = reuseInFlight(
+  async ({
+    project_id,
+    compute_server_id,
+    noCache,
+  }: {
+    project_id: string;
+    // uses current default compute_server_id if not defined
+    compute_server_id?: number;
+    noCache?: boolean;
+  }): Promise<KernelSpec[]> => {
+    compute_server_id =
+      compute_server_id ??
+      redux.getProjectActions(project_id).getComputeServerId();
+    const key = JSON.stringify({ project_id, compute_server_id });
+    // console.log({ key, noCache });
+    if (!noCache) {
+      const spec = cache.get(key);
+      if (spec != null) {
+        return spec;
+      }
+    }
+    const api = webapp_client.conat_client.projectApi({
+      project_id,
+      compute_server_id,
+      timeout: 7500,
+    });
+    const spec = await api.editor.jupyterKernels();
+    cache.set(key, spec);
+    return spec;
+  },
+);
+
+export default getKernelSpec;

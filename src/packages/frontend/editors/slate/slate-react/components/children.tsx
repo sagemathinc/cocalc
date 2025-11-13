@@ -206,7 +206,7 @@ const Children: React.FC<Props> = React.memo(
       );
     } else {
       // anything else -- just render the children
-      const children: JSX.Element[] = [];
+      const children: React.JSX.Element[] = [];
       for (let index = 0; index < node.children.length; index++) {
         try {
           children.push(renderChild({ index }));

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // CoCalc libraries
@@ -17,6 +17,7 @@ import {
 import { SharedProjectActions } from "./shared-project/actions";
 import { ActivityActions } from "./activity/actions";
 import { StudentsActions } from "./students/actions";
+import { ComputeActions } from "./compute/actions";
 import { StudentProjectsActions } from "./student-projects/actions";
 import { AssignmentsActions } from "./assignments/actions";
 import { HandoutsActions } from "./handouts/actions";
@@ -26,6 +27,7 @@ import { ProjectsStore } from "../projects/store";
 import { bind_methods } from "@cocalc/util/misc";
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
+import { Map as iMap } from "immutable";
 
 export const primary_key = {
   students: "student_id",
@@ -40,6 +42,7 @@ export class CourseActions extends Actions<CourseState> {
   private last_collaborator_state: any;
   private activity: ActivityActions;
   public students: StudentsActions;
+  public compute: ComputeActions;
   public student_projects: StudentProjectsActions;
   public shared_project: SharedProjectActions;
   public assignments: AssignmentsActions;
@@ -57,6 +60,7 @@ export class CourseActions extends Actions<CourseState> {
     this.shared_project = bind_methods(new SharedProjectActions(this));
     this.activity = bind_methods(new ActivityActions(this));
     this.students = bind_methods(new StudentsActions(this));
+    this.compute = new ComputeActions(this);
     this.student_projects = bind_methods(new StudentProjectsActions(this));
     this.assignments = bind_methods(new AssignmentsActions(this));
     this.handouts = bind_methods(new HandoutsActions(this));
@@ -64,16 +68,16 @@ export class CourseActions extends Actions<CourseState> {
     this.export = bind_methods(new ExportActions(this));
   }
 
-  public get_store(): CourseStore {
+  get_store = (): CourseStore => {
     const store = this.redux.getStore<CourseState, CourseStore>(this.name);
     if (store == null) throw Error("store is null");
     if (!this.store_is_initialized())
       throw Error("course store must be initialized");
     this.state = "ready"; // this is pretty dumb for now.
     return store;
-  }
+  };
 
-  public is_closed(): boolean {
+  is_closed = (): boolean => {
     if (this.state == "closed") return true;
     const store = this.redux.getStore<CourseState, CourseStore>(this.name);
     if (store == null) {
@@ -81,17 +85,17 @@ export class CourseActions extends Actions<CourseState> {
       return true;
     }
     return false;
-  }
+  };
 
-  private is_loaded(): boolean {
+  private is_loaded = (): boolean => {
     if (this.syncdb == null) {
       this.set_error("attempt to set syncdb before loading");
       return false;
     }
     return true;
-  }
+  };
 
-  private store_is_initialized(): boolean {
+  private store_is_initialized = (): boolean => {
     const store = this.redux.getStore<CourseState, CourseStore>(this.name);
     if (store == null) {
       return false;
@@ -107,10 +111,14 @@ export class CourseActions extends Actions<CourseState> {
       return false;
     }
     return true;
-  }
+  };
 
   // Set one object in the syncdb
-  public set(obj: SyncDBRecord, commit: boolean = true): void {
+  set = (
+    obj: SyncDBRecord,
+    commit: boolean = true,
+    emitChangeImmediately: boolean = false,
+  ): void => {
     if (
       !this.is_loaded() ||
       (this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined)
@@ -119,12 +127,29 @@ export class CourseActions extends Actions<CourseState> {
     }
     this.syncdb.set(obj);
     if (commit) {
+      this.syncdb.commit(emitChangeImmediately);
+    }
+  };
+
+  delete = (obj: SyncDBRecord, commit: boolean = true): void => {
+    if (
+      !this.is_loaded() ||
+      (this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined)
+    ) {
+      return;
+    }
+    // put in similar checks for other tables?
+    if (obj.table == "students" && obj.student_id == null) {
+      console.warn("course: deleting student without primary key", obj);
+    }
+    this.syncdb.delete(obj);
+    if (commit) {
       this.syncdb.commit();
     }
-  }
+  };
 
   // Get one object from this.syncdb as a Javascript object (or undefined)
-  public get_one(obj: SyncDBRecord): SyncDBRecord | undefined {
+  get_one = (obj: SyncDBRecord): SyncDBRecord | undefined => {
     if (
       this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined
     ) {
@@ -133,9 +158,9 @@ export class CourseActions extends Actions<CourseState> {
     const x: any = this.syncdb.get_one(obj);
     if (x == null) return;
     return x.toJS();
-  }
+  };
 
-  public async save(): Promise<void> {
+  save = async (): Promise<void> => {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -158,9 +183,9 @@ export class CourseActions extends Actions<CourseState> {
       this.update_unsaved_changes();
       setTimeout(this.update_unsaved_changes.bind(this), 1000);
     }
-  }
+  };
 
-  public syncdb_change(changes: TypedMap<SyncDBRecord>[]): void {
+  syncdb_change = (changes: TypedMap<SyncDBRecord>[]): void => {
     let t;
     const store = this.get_store();
     if (store == null) {
@@ -198,18 +223,18 @@ export class CourseActions extends Actions<CourseState> {
       this.setState(t);
     }
     this.update_unsaved_changes();
-  }
+  };
 
-  private update_unsaved_changes(): void {
+  private update_unsaved_changes = (): void => {
     if (this.syncdb == null) {
       return;
     }
     const unsaved = this.syncdb.has_unsaved_changes();
     this.setState({ unsaved });
-  }
+  };
 
   // important that this be bound...
-  public handle_projects_store_update(projects_store: ProjectsStore): void {
+  handle_projects_store_update = (projects_store: ProjectsStore): void => {
     const store = this.redux.getStore<CourseState, CourseStore>(this.name);
     if (store == null) return; // not needed yet.
     let users = projects_store.getIn([
@@ -227,12 +252,12 @@ export class CourseActions extends Actions<CourseState> {
       this.student_projects.configure_all_projects();
     }
     this.last_collaborator_state = users;
-  }
+  };
 
   // Set the error.  Use error="" to explicitly clear the existing set error.
   // If there is an error already set, then the new error is just
   // appended to the existing one.
-  public set_error(error: string): void {
+  set_error = (error: string): void => {
     if (error != "") {
       const store = this.get_store();
       if (store == null) return;
@@ -242,18 +267,18 @@ export class CourseActions extends Actions<CourseState> {
       error = error.trim();
     }
     this.setState({ error });
-  }
+  };
 
   // ACTIVITY ACTIONS
-  public set_activity(
-    opts: { id: number; desc?: string } | { id?: number; desc: string }
-  ): number {
+  set_activity = (
+    opts: { id: number; desc?: string } | { id?: number; desc: string },
+  ): number => {
     return this.activity.set_activity(opts);
-  }
+  };
 
-  public clear_activity(id?: number): void {
+  clear_activity = (id?: number): void => {
     this.activity.clear_activity(id);
-  }
+  };
 
   // CONFIGURATION ACTIONS
   // These hang off of this.configuration
@@ -281,12 +306,12 @@ export class CourseActions extends Actions<CourseState> {
      If something goes wrong and the finish function is defined, then
      it is called with a string describing the error.
     */
-  public resolve(opts: {
+  resolve = (opts: {
     assignment_id?: string;
     student_id?: string;
     handout_id?: string;
     finish?: Function;
-  }) {
+  }) => {
     const r: {
       student?: StudentRecord;
       assignment?: AssignmentRecord;
@@ -301,6 +326,7 @@ export class CourseActions extends Actions<CourseState> {
       }) as StudentRecord | undefined;
       if (student == null) {
         if (opts.finish != null) {
+          console.trace();
           opts.finish("no student " + opts.student_id);
           return r;
         }
@@ -337,20 +363,20 @@ export class CourseActions extends Actions<CourseState> {
       }
     }
     return r;
-  }
+  };
 
   // Takes an item_name and the id of the time
   // item_name should be one of
   // ['student', 'assignment', 'peer_config', handout', 'skip_grading']
-  public toggle_item_expansion(
+  toggle_item_expansion = (
     item_name:
       | "student"
       | "assignment"
       | "peer_config"
       | "handout"
       | "skip_grading",
-    item_id
-  ): void {
+    item_id,
+  ): void => {
     let adjusted;
     const store = this.get_store();
     if (store == null) {
@@ -369,5 +395,22 @@ export class CourseActions extends Actions<CourseState> {
       }
     }
     this.setState({ [field_name]: adjusted });
-  }
+  };
+
+  setPageFilter = (page: string, filter: string) => {
+    const store = this.get_store();
+    if (!store) return;
+    let pageFilter = store.get("pageFilter");
+    if (pageFilter == null) {
+      if (filter) {
+        pageFilter = iMap({ [page]: filter });
+        this.setState({
+          pageFilter,
+        });
+      }
+      return;
+    }
+    pageFilter = pageFilter.set(page, filter);
+    this.setState({ pageFilter });
+  };
 }

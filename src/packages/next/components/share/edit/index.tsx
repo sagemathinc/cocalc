@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -58,7 +58,8 @@ export default function Edit({
   return (
     <span>
       <Button
-        type="primary"
+        style={{ marginLeft: "-15px" }}
+        type="link"
         disabled={expanded}
         onClick={(e) => {
           e.preventDefault();
@@ -66,7 +67,7 @@ export default function Edit({
         }}
         key="edit"
       >
-        <Icon name="pencil" /> Edit your own copy...
+        <Icon name="pencil" /> Edit Copy
       </Button>
       {expanded && (
         <EditOptions

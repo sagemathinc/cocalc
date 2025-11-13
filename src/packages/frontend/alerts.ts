@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { notification } from "antd";
@@ -18,10 +18,10 @@ import { webapp_client } from "./webapp-client";
 type NotificationType = "error" | "default" | "success" | "info" | "warning";
 
 const default_timeout: { [key: string]: number } = {
-  error: 8,
-  default: 4,
-  success: 4,
-  info: 6,
+  error: 9,
+  default: 6,
+  success: 5,
+  info: 7,
 };
 
 const last_shown = {};
@@ -42,7 +42,9 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     block: undefined,
     timeout: undefined, // time in seconds
   });
+
   if (opts.type == null) throw Error("bug"); // make typescript happy.
+
   if (opts.timeout == null) {
     let t: number | undefined = default_timeout[opts.type];
     if (t == null) {
@@ -52,7 +54,7 @@ export function alert_message(opts: AlertMessageOptions = {}) {
   }
 
   // Don't show the exact same alert message more than once per 5s.
-  // This prevents a screenful of identical useless messages, which
+  // This prevents a screen full of identical useless messages, which
   // is just annoying and useless.
   if (opts.message instanceof Error) {
     opts.message = `${opts.message}`;
@@ -70,9 +72,10 @@ export function alert_message(opts: AlertMessageOptions = {}) {
     alert(`BUG: Unknown alert_message type ${opts.type}.`);
     return;
   }
+
   f({
     message: opts.title != null ? opts.title : "",
-    description: opts.message,
+    description: stripExcessiveError(opts.message),
     duration: opts.block ? 0 : opts.timeout,
   });
 
@@ -85,25 +88,6 @@ export function alert_message(opts: AlertMessageOptions = {}) {
   }
 }
 
-function check_for_clock_skew() {
-  const local_time = new Date().valueOf();
-  const s = Math.ceil(
-    Math.abs(
-      webapp_client.time_client.server_time().valueOf() - local_time.valueOf()
-    ) / 1000
-  );
-  if (s > 120) {
-    return alert_message({
-      type: "error",
-      timeout: 9999,
-      message: `Your computer's clock is off by about ${s} seconds!  You MUST set it correctly then refresh your browser.  Expect nothing to work until you fix this.`,
-    });
-  }
-}
-
-// Wait until after the page is loaded and clock sync'd before checking for skew.
-setTimeout(check_for_clock_skew, 60000);
-
 // for testing/development
 /*
 alert_message({ type: "error", message: "This is an error" });
@@ -112,3 +96,14 @@ alert_message({ type: "warning", message: "This is a warning alert" });
 alert_message({ type: "success", message: "This is a success alert" });
 alert_message({ type: "info", message: "This is an info alert" });
 */
+
+function stripExcessiveError(s) {
+  if (typeof s != "string") {
+    return s;
+  }
+  s = s.trim();
+  if (s.startsWith("Error: Error:")) {
+    s = s.slice("Error: ".length);
+  }
+  return s;
+}

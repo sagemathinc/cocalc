@@ -1,11 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Divider } from "antd";
 import { isEmpty } from "lodash";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { r_join } from "@cocalc/frontend/components/r_join";
@@ -19,7 +19,7 @@ import Logo from "components/logo";
 import { CSS } from "components/misc";
 import A from "components/misc/A";
 import { MAX_WIDTH_LANDING } from "lib/config";
-import { useCustomize } from "lib/customize";
+import { CustomizeType, useCustomize } from "lib/customize";
 
 const BASE_STYLE: CSS = {
   backgroundColor: "white",
@@ -52,6 +52,12 @@ const INNER_STYLE: CSS = {
   whiteSpace: "nowrap",
 };
 
+const about = {
+  index: {},
+  events: { label: "Events" },
+  team: { label: "Team" },
+} as const;
+
 const software = {
   index: {},
   executables: { label: "Executables" },
@@ -79,7 +85,7 @@ const features = {
   x11: { label: "X11" },
   div1: { type: "divider" },
   "compute-server": { label: "Compute" },
-  ai: { label: "AI Assist" },
+  ai: { label: "AI Assistant" },
   compare: { label: "Compare" },
   api: { label: "API" },
 } as const;
@@ -90,15 +96,16 @@ const pricing = {
   subscriptions: { label: "Subscriptions" },
   courses: { label: "Courses" },
   institutions: { label: "Institutions" },
-  dedicated: { label: "Dedicated" },
   onprem: { label: "OnPrem" },
+  dedicated: { label: "Dedicated" },
 } as const;
 
-const policies = {
+export const POLICIES = {
   index: {},
   terms: { label: "Terms of Service", hide: (c) => !c.onCoCalcCom },
   copyright: { label: "Copyright", hide: (c) => !c.onCoCalcCom },
   privacy: { label: "Privacy", hide: (c) => !c.onCoCalcCom },
+  trust: { label: "Trust", hide: (c) => !c.onCoCalcCom },
   thirdparties: { label: "Third Parties", hide: (c) => !c.onCoCalcCom },
   ferpa: { label: "FERPA", hide: (c) => !c.onCoCalcCom },
   accessibility: { label: "Accessibility", hide: (c) => !c.onCoCalcCom },
@@ -113,47 +120,63 @@ const info = {
   run: { label: "Run CoCalc" },
 } as const;
 
-const sign_in = {
-  "sign-in": { label: "Sign In", href: "/auth/sign-in" },
-  "password-reset": { label: "Password Reset", href: "/auth/password-reset" },
-} as const;
-
 const support = {
   index: {},
   community: { label: "Community" },
   new: { label: "New Ticket", hide: (customize) => !customize.zendesk },
   tickets: { label: "Tickets", hide: (customize) => !customize.zendesk },
-  chatgpt: { label: "ChatGPT", hide: (customize) => !customize.openaiEnabled },
+  chatgpt: {
+    label: "AI",
+    hide: (customize) => !customize.openaiEnabled || !customize.onCoCalcCom,
+  },
 } as const;
 
-const news = {
-  index: {},
-};
+type PageKey =
+  | "about"
+  | "features"
+  | "software"
+  | "pricing"
+  | "policies"
+  | "share"
+  | "info"
+  | "sign-up"
+  | "sign-in"
+  | "try"
+  | "support"
+  | "news"
+  | "store";
 
-const PAGES = {
+const PAGES: {
+  [top in PageKey]:
+    | {
+        [page: string]: { label: string; hide?: (c: CustomizeType) => boolean };
+      }
+    | { index: {} };
+} = {
+  about,
   features,
   software,
   pricing,
-  policies,
+  policies: POLICIES,
   share: {},
   info,
   "sign-up": {},
-  "sign-in": sign_in,
+  "sign-in": {},
   try: {},
   support,
-  news,
+  news: {},
   store: {},
 } as const;
 
-export type Page = keyof typeof PAGES | "account";
+export type Page = PageKey | "account";
 export type SubPage =
   | keyof typeof software
   | keyof typeof features
   | keyof typeof pricing
-  | keyof typeof policies
+  | keyof typeof POLICIES
   | keyof typeof info
-  | keyof typeof sign_in
-  | keyof typeof support;
+  | keyof typeof support
+  | keyof typeof about;
 
 interface Props {
   page?: Page;
@@ -183,6 +206,10 @@ export default function SubNav(props: Props) {
   }, [subnavRef]);
 
   if (page == null) return null;
+
+  // if we define a custom support page, render it instead – and hide the sub menu
+  if (customize.support && !customize.onCoCalcCom) return null;
+
   const tabs: JSX.Element[] = [];
   const p = PAGES[page];
   if (p == null || isEmpty(p)) return null;

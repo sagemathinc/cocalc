@@ -2,24 +2,45 @@ import getLogger from "@cocalc/backend/logger";
 import { deprovision, stop } from "@cocalc/server/compute/control";
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import { setError } from "@cocalc/server/compute/util";
-import sendEmail from "@cocalc/server/email/send-email";
+import send, { name, support } from "@cocalc/server/messages/send";
 import siteURL from "@cocalc/database/settings/site-url";
 import getProjectTitle from "@cocalc/server/projects/get-title";
 import { getServerSettings } from "@cocalc/database/settings";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import TTLCache from "@isaacs/ttlcache";
+import getMinBalance from "@cocalc/server/purchases/get-min-balance";
+import adminAlert from "@cocalc/server/messages/admin-alert";
 
 // turn VM off if you don't have at least this much left.
-const COST_THRESH_DOLLARS = 2;
+const COST_THRESH_DOLLARS = 1;
 
 // If can't buy -- even if you increase all quotas and balance by
 // this amount -- then delete.  This is to avoid bad situations, e.g.,
 // buy 50TB of expensive disk, turn machine off, get a huge bill.
-const DELETE_THRESH_MARGIN = 20;
+// On the other hand, a typical abuse situation involves somebody adding
+// say $10 from a stolen credit card and then quickly spending as much
+// as possible.  And they might do this with a large number of different
+// accounts at once.  So we don't want this margin to be too large.
+// Still we make it reasonably large since we really don't want to
+// delete data for non-abuse users.
+//
+// NOTE: we do not automatically delete for a user with a negative balance
+// until it's way below (DELETE_THRESH_MARGIN_NEGATIVE_BALANCE) their negative,
+// as that indicates some trust.
+const DELETE_THRESH_MARGIN_DEFAULT = 2;
+const DELETE_THRESH_MARGIN_NEGATIVE_BALANCE = 200;
 
 const logger = getLogger("server:compute:maintenance:purchase:low-balance");
 
 export default async function lowBalance({ server }) {
+  if (server.cloud == "onprem") {
+    // currently there is no charge at all for onprem compute servers
+    return;
+  }
+  if (server.state == "deprovisioned") {
+    // We only need to worry if the server isn't already deprovisioned.
+    return;
+  }
   if (!(await checkAllowed("compute-server", server))) {
     return;
   }
@@ -40,12 +61,18 @@ async function checkAllowed(service, server) {
     // normal purchase is allowed - we're good
     return true;
   }
+  const minBalance = await getMinBalance(server.account_id);
+  const margin =
+    minBalance < 0
+      ? DELETE_THRESH_MARGIN_NEGATIVE_BALANCE
+      : DELETE_THRESH_MARGIN_DEFAULT;
+
   // is it just bad, or REALLY bad?
   const x = await isPurchaseAllowed({
     account_id: server.account_id,
     service,
     cost: COST_THRESH_DOLLARS,
-    margin: DELETE_THRESH_MARGIN,
+    margin,
   });
   if (!x.allowed) {
     // REALLY BAD!
@@ -72,9 +99,36 @@ async function checkAllowed(service, server) {
   if (alsoDelete) {
     action = "Computer Server Deprovisioned (Disk Deleted)";
     callToAction = `Add credit to your account, to prevent other compute servers from being deleted.`;
+    adminAlert({
+      subject: "CRITICAL -- investigate low balance situation!!",
+      body: `
+- User: ${await name(server.account_id)}
+
+- Account id: ${server.account_id}
+
+- Global Server id: ${server.id}
+
+- Project Specific Server id: ${server.project_specific_id}
+
+- Action taken: ${action}`,
+    });
   } else {
     action = "Computer Server Turned Off";
-    callToAction = `Add credit to your account, so your compute server isn't deleted.`;
+    callToAction = `[Add credit to your account or enable automatic deposits, so your compute server isn't deleted.](${await siteURL()}/settings/payg)`;
+    adminAlert({
+      subject: "WARNING -- low balance situation",
+      body: `
+- User: ${await name(server.account_id)}
+
+- Account id: ${server.account_id}
+
+- Global Server id: ${server.id}
+
+- Project Specific Server id: ${server.project_specific_id}
+
+
+Server automatically stopped, but not deleted.`,
+    });
   }
 
   notifyUser({
@@ -117,68 +171,24 @@ async function notifyUser({ server, service, action, callToAction }) {
       );
     }
     const projectTitle = await getProjectTitle(server.project_id);
-    const { help_email: from, site_name: siteName } = await getServerSettings();
-    const subject = `Low Balance - ${action}`;
-    const html = `
+    const { site_name: siteName } = await getServerSettings();
+    const subject = `${siteName}: Low Balance - ${action}`;
+    const body = `
 Hello ${name},
 
-<br/>
-<br/>
+Your Compute Server '${server.title}' (Id: ${server.project_specific_id}) is
+hitting your ${service} quota, or you are very low on funds.
 
-Your Compute Server '${server.title}' (Id: ${server.id}) is
-hitting your ${service} quota, or you are too low on funds.
-<br/>
-<br/>
-Action: ${action}
-<br/>
-<br/>
-<b>${callToAction}</b>
-<br/>
-<br/>
+- Action Taken: ${action}
 
+- ${callToAction}
 
-<ul>
-<li>
-<a href="${await siteURL()}/settings/purchases">Add credit to your account
-and see all of your purchases</a>
-</li>
-<li>
-<a href="${await siteURL()}/projects/${server.project_id}/servers">Compute
-  Servers in your project ${projectTitle}</a>
-</li>
-</ul>
+- [Compute Servers in your project "${projectTitle}"](${await siteURL()}/projects/${server.project_id}/servers)
 
-If you have any questions, reply to this email to create a support request.
-<br/>
-<br/>
-
-  -- ${siteName}
+${await support()}
 `;
 
-    const text = `
-Hello ${name},
-
-Your Compute Server '${server.title}' (Id: ${server.id}) is
-hitting your ${service} quota, or you are too low on funds.
-
-Action Taken: ${action}
-
-${callToAction}
-
-Add credit to your account and see all of your purchases:
-
-${await siteURL()}/settings/purchases
-
-Compute Servers in your project ${projectTitle}
-
-${await siteURL()}/projects/${server.project_id}/servers
-
-If you have any questions, reply to this email to create a support request.
-
-  -- ${siteName}
-`;
-
-    await sendEmail({ from, to, subject, html, text });
+    await send({ to_ids: [server.account_id], subject, body });
   } catch (err) {
     logger.debug("updatePurchase: WARNING -- error notifying user -- ", err);
   }

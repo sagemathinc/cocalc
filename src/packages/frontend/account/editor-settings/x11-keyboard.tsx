@@ -1,11 +1,16 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { LabeledRow, Loading, SelectorInput } from "../../components";
+import { useIntl } from "react-intl";
 
-import { PHYSICAL_KEYBOARDS } from "../../frame-editors/x11-editor/xpra/keyboards";
+import {
+  LabeledRow,
+  Loading,
+  SelectorInput,
+} from "@cocalc/frontend/components";
+import { PHYSICAL_KEYBOARDS } from "@cocalc/frontend/frame-editors/x11-editor/xpra/keyboards";
 
 interface PhysicalKeyboardProps {
   physical_keyboard: string;
@@ -13,13 +18,20 @@ interface PhysicalKeyboardProps {
 }
 
 export function EditorSettingsPhysicalKeyboard(
-  props: PhysicalKeyboardProps
-): JSX.Element {
+  props: PhysicalKeyboardProps,
+): React.JSX.Element {
+  const intl = useIntl();
+
   if (props.physical_keyboard === "NO_DATA") {
     return <Loading />;
   } else {
+    const label = intl.formatMessage({
+      id: "account.editor-settings.x11-physical-keyboard.label",
+      defaultMessage: "Keyboard layout (for X11 Desktop)",
+    });
+
     return (
-      <LabeledRow label="Keyboard layout (for X11 Desktop)">
+      <LabeledRow label={label}>
         <SelectorInput
           options={PHYSICAL_KEYBOARDS}
           selected={props.physical_keyboard}
@@ -38,13 +50,20 @@ interface KeyboardVariantProps {
 }
 
 export function EditorSettingsKeyboardVariant(
-  props: KeyboardVariantProps
-): JSX.Element {
+  props: KeyboardVariantProps,
+): React.JSX.Element {
+  const intl = useIntl();
+
   if (props.keyboard_variant === "NO_DATA") {
     return <Loading />;
   } else {
+    const label = intl.formatMessage({
+      id: "account.editor-settings.x11-keyboard-variant.label",
+      defaultMessage: "Keyboard variant (for X11 Desktop)",
+    });
+
     return (
-      <LabeledRow label="Keyboard variant (for X11 Desktop)">
+      <LabeledRow label={label}>
         <SelectorInput
           options={props.keyboard_variant_options}
           selected={props.keyboard_variant}

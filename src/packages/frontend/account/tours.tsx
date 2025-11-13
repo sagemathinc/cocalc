@@ -1,7 +1,11 @@
-import { Checkbox, Space } from "antd";
+// cSpell:ignore fullpage
+
+import { Space } from "antd";
 import { ReactNode } from "react";
 
+import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 const TOUR_NAMES = {
   projects: "Projects",
@@ -18,7 +22,7 @@ export default function Tours() {
   const v: ReactNode[] = [];
   for (const name in TOUR_NAMES) {
     v.push(
-      <Checkbox
+      <Switch
         key={name}
         checked={tours?.includes(name) || tours?.includes("all")}
         onChange={(e) => {
@@ -31,8 +35,19 @@ export default function Tours() {
         }}
       >
         {TOUR_NAMES[name]}
-      </Checkbox>
+      </Switch>,
     );
   }
-  return <Space>Completed Tours: {v}</Space>;
+  return (
+    <Panel
+      size={"small"}
+      header={
+        <span>
+          <Icon name="map" /> Completed Tours
+        </span>
+      }
+    >
+      <Space wrap>{v}</Space>
+    </Panel>
+  );
 }

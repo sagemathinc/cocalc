@@ -13,7 +13,7 @@ render({ type: "markdown", editable: true }, ({ field, obj, viewOnly }) => {
   const [value, setValue] = useState<string>(obj[field] ?? "");
   const { save, counter, edit, error, ClickToEdit } =
     useEditableContext<string>(field);
-  const valueRef = useRef<any>();
+  const valueRef = useRef<any>(undefined);
 
   useEffect(() => {
     // TODO: at least a little 3-way merge when upstream value changes?

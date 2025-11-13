@@ -1,3 +1,0 @@
---require coffeescript/register
---reporter spec
---recursive

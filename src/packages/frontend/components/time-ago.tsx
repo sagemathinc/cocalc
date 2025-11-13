@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -8,11 +8,11 @@
  * TODO: internationalize this formatter -- see https://www.npmjs.com/package/react-timeago
  */
 
+import { Popover, Radio } from "antd";
 import React, { CSSProperties as CSS } from "react";
 import { default as UpstreamTimeAgo } from "react-timeago";
-import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { is_date, is_different as misc_is_different } from "@cocalc/util/misc";
-import { Popover, Radio } from "antd";
+import useAppContext from "@cocalc/frontend/app/use-context";
 
 function timeago_formatter(value, unit, suffix, _date) {
   if (value === 0) {
@@ -51,7 +51,7 @@ export function is_different_date(
 
 interface TimeAgoElementProps {
   placement?;
-  tip?: string | JSX.Element; // optional body of the tip popover with title the original time.
+  tip?: string | React.JSX.Element; // optional body of the tip popover with title the original time.
   live?: boolean; // whether or not to auto-update
   date;
   time_ago_absolute?: boolean;
@@ -70,20 +70,25 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
 }) => {
   if (live == null) live = true;
 
-  if (placement == null) placement = "top";
-  if (time_ago_absolute == null) time_ago_absolute = false;
+  if (placement == null) {
+    placement = "top";
+  }
+  if (time_ago_absolute == null) {
+    time_ago_absolute = false;
+  }
 
   function render_timeago_element(d) {
     // See this bug -- https://github.com/nmn/react-timeago/issues/181
     return (
-      <UpstreamTimeAgo
-        key={d}
-        title=""
-        date={d}
-        style={{ cursor: "pointer", ...style }}
-        formatter={timeago_formatter}
-        live={live}
-      />
+      <span style={{ cursor: "pointer", ...style }}>
+        <UpstreamTimeAgo
+          key={d}
+          title=""
+          date={d}
+          formatter={timeago_formatter}
+          live={live}
+        />
+      </span>
     );
   }
 
@@ -103,7 +108,9 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
       s = `${err}`;
     }
     const el = render_timeago_element(d);
-    if (!click_to_toggle) return el;
+    if (!click_to_toggle) {
+      return el;
+    }
     return (
       <Popover
         trigger="click"
@@ -130,8 +137,16 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
     } catch (err) {
       s = `${err}`;
     }
-    const el = <span style={{ cursor: "pointer", ...style }}>{s}</span>;
-    if (!click_to_toggle) return el;
+    const el = (
+      <span
+        style={{ cursor: click_to_toggle ? "pointer" : undefined, ...style }}
+      >
+        {s}
+      </span>
+    );
+    if (!click_to_toggle) {
+      return el;
+    }
     return (
       <Popover
         trigger="click"
@@ -168,28 +183,29 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
 
 interface TimeAgoProps {
   placement?;
-  tip?: string | JSX.Element; // optional body of the tip popover with title the original time.
+  tip?: string | React.JSX.Element; // optional body of the tip popover with title the original time.
   live?: boolean; // whether or not to auto-update
   style?: CSS;
   date?;
-  time_ago_absolute?: boolean;
   click_to_toggle?: boolean; // default true
+  time_ago_absolute?: boolean;
 }
 
 export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
-  (props: TimeAgoElementProps) => {
-    const {
-      placement,
-      tip,
-      live,
-      style,
-      date,
-      time_ago_absolute,
-      click_to_toggle = true,
-    } = props;
+  ({
+    placement,
+    tip,
+    live,
+    style,
+    date,
+    click_to_toggle = true,
+    time_ago_absolute,
+  }: TimeAgoElementProps) => {
+    const { timeAgoAbsolute } = useAppContext();
 
-    const other_settings = useTypedRedux("account", "other_settings");
-    if (date == null) return <></>;
+    if (date == null) {
+      return <></>;
+    }
 
     return (
       <TimeAgoElement
@@ -197,9 +213,7 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
         placement={placement}
         tip={tip}
         live={live}
-        time_ago_absolute={
-          time_ago_absolute ?? other_settings.get("time_ago_absolute") ?? false
-        }
+        time_ago_absolute={time_ago_absolute ?? timeAgoAbsolute ?? false}
         style={style}
         click_to_toggle={click_to_toggle}
       />
@@ -214,24 +228,26 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
         "tip",
         "live",
         "click_to_toggle",
+        "style",
+        "time_ago_absolute",
       ])
     );
   },
 );
 
 function ToggleRelativeAndAbsolute({}) {
-  const other = useTypedRedux("account", "other_settings");
-  const absolute = other?.get("time_ago_absolute") ?? false;
+  const { timeAgoAbsolute, setTimeAgoAbsolute } = useAppContext();
+  if (setTimeAgoAbsolute == null) {
+    return null;
+  }
 
   return (
     <div style={{ marginTop: "10px", textAlign: "center" }}>
       <Radio.Group
         onChange={() => {
-          redux
-            .getActions("account")
-            .set_other_settings("time_ago_absolute", !absolute);
+          setTimeAgoAbsolute?.(!timeAgoAbsolute);
         }}
-        value={absolute ? "absolute" : "relative"}
+        value={timeAgoAbsolute ? "absolute" : "relative"}
         optionType="button"
         buttonStyle="solid"
         size="small"
@@ -242,3 +258,15 @@ function ToggleRelativeAndAbsolute({}) {
     </div>
   );
 }
+
+/*
+I had to disable this for now since @cocalc/frontend/i18n doesn't support the nextjs app.
+
+//import { labels } from "@cocalc/frontend/i18n";
+
+ import { useIntl } from "react-intl";
+const intl = useIntl();
+        <Radio value="relative">{intl.formatMessage(labels.relative)}</Radio>
+        <Radio value="absolute">{intl.formatMessage(labels.absolute)}</Radio>
+
+*/

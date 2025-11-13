@@ -12,14 +12,16 @@ being virtualized with react-virtuoso.
 
 import { CSSProperties, ReactNode, useState } from "react";
 import { Icon } from "./icon";
-
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import {
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import {
+  restrictToVerticalAxis,
+  restrictToFirstScrollableAncestor,
+} from "@dnd-kit/modifiers";
 
 interface Props {
   items: (string | number)[];
@@ -72,7 +74,7 @@ export function SortableList({
       }}
       onDragEnd={onDragEnd}
       onDragMove={onDragMove}
-      modifiers={[restrictToVerticalAxis]}
+      modifiers={[restrictToVerticalAxis, restrictToFirstScrollableAncestor]}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
         <DragOverlay>
@@ -130,7 +132,7 @@ export function DragHandle({
     <div
       style={{
         display: "inline-block",
-        cursor: "grab",
+        cursor: "move",
         ...style,
       }}
       {...attributes}

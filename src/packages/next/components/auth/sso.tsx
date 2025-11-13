@@ -1,9 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Avatar, Tooltip, Typography } from "antd";
+import { Alert, Avatar, Space, Tooltip, Typography } from "antd";
 import { useRouter } from "next/router";
 import { join } from "path";
 import { CSSProperties, ReactNode, useMemo } from "react";
@@ -24,6 +24,8 @@ interface SSOProps {
   size?: number;
   style?: CSSProperties;
   header?: ReactNode;
+  showAll?: boolean;
+  showName?: boolean;
 }
 
 export function getLink(strategy: string, target?: string): string {
@@ -39,12 +41,12 @@ export function getLink(strategy: string, target?: string): string {
 }
 
 export default function SSO(props: SSOProps) {
-  const { size, style, header } = props;
+  const { size = 60, style, header, showAll = false, showName = false } = props;
   const { strategies } = useCustomize();
   const ssoHREF = useSSOHref("sso");
 
   const havePrivateSSO: boolean = useMemo(() => {
-    return strategies?.some((s) => !s.public) ?? false;
+    return showAll ? false : strategies?.some((s) => !s.public) ?? false;
   }, [strategies]);
 
   if (strategies == null) {
@@ -68,24 +70,34 @@ export default function SSO(props: SSOProps) {
     };
 
     return (
-      <a href={ssoHREF}>
-        {"Institutional Single Sign-On: "}
-        <StrategyAvatar key={"sso"} strategy={sso} size={size ?? 60} />
-      </a>
+      <div style={{ marginLeft: "-5px", marginTop: "10px" }}>
+        <a href={ssoHREF}>
+          {"Institutional Single Sign-On: "}
+          <StrategyAvatar key={"sso"} strategy={sso} size={size} />
+        </a>
+      </div>
     );
   }
 
   function renderStrategies() {
     if (strategies == null) return;
-    return strategies
-      .filter((s) => s.public || s.doNotHide)
-      .map((strategy) => (
-        <StrategyAvatar
-          key={strategy.name}
-          strategy={strategy}
-          size={size ?? 60}
-        />
-      ));
+    const s = strategies
+      .filter((s) => showAll || s.public || s.doNotHide)
+      .map((strategy) => {
+        return (
+          <StrategyAvatar
+            key={strategy.name}
+            strategy={strategy}
+            size={size}
+            showName={showName}
+          />
+        );
+      });
+    return (
+      <div style={{ marginLeft: "-5px", textAlign: "center" }}>
+        {showName ? <Space wrap>{s}</Space> : s}
+      </div>
+    );
   }
 
   // The -5px is to offset the initial avatar image, since they
@@ -93,10 +105,8 @@ export default function SSO(props: SSOProps) {
   return (
     <div style={{ ...style }}>
       {header}
-      <div style={{ marginLeft: "-5px" }}>{renderStrategies()}</div>
-      <div style={{ marginLeft: "-5px", marginTop: "10px" }}>
-        {renderPrivateSSO()}
-      </div>
+      {renderStrategies()}
+      {renderPrivateSSO()}
     </div>
   );
 }
@@ -246,7 +256,7 @@ export function RequiredSSO({ strategy }: { strategy?: Strategy }) {
 // hence this should be good enough to catch @email.foo.edu for foo.edu domains
 export function useRequiredSSO(
   strategies: Strategy[] | undefined,
-  email: string | undefined
+  email: string | undefined,
 ): Strategy | undefined {
   return useMemo(() => {
     return checkRequiredSSO({ email, strategies });

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { DatePicker } from "antd";
@@ -26,7 +26,7 @@ export default function DateRange(props: Props) {
     maxDaysInFuture,
     disabled = false,
     initialValues = [undefined, undefined],
-    suffix
+    suffix,
   } = props;
 
   const [dateRange, setDateRange] = useState<DateRangeType>(initialValues);
@@ -66,7 +66,6 @@ export default function DateRange(props: Props) {
     <div style={style}>
       <DatePicker.RangePicker
         changeOnBlur
-        showTime
         disabled={disabled}
         allowEmpty={[true, true]}
         renderExtraFooter={() => (
@@ -93,10 +92,18 @@ export default function DateRange(props: Props) {
           ] as any
         }
         onChange={(value) => {
-          const x: [Date0, Date0] = [
-            value?.[0]?.toDate(),
-            value?.[1]?.toDate(),
-          ];
+          const now = dayjs();
+          // Ensure start is the later of now or the start of the selected day
+          const start = value?.[0]
+            ? dayjs(value[0]).isBefore(now)
+              ? now.toDate()
+              : dayjs(value[0]).startOf("day").toDate()
+            : undefined;
+          // Set end of day, but only modify if there's a value
+          const end = value?.[1]
+            ? dayjs(value[1]).endOf("day").subtract(1, "minute").toDate()
+            : undefined;
+          const x: [Date0, Date0] = [start, end];
           setDateRange(x);
           onChange?.(x);
         }}
@@ -116,9 +123,7 @@ export default function DateRange(props: Props) {
             : undefined
         }
       />
-      {suffix && (
-        <span style={{marginLeft: '5px'}}>{suffix}</span>
-      )}
+      {suffix && <span style={{ marginLeft: "5px" }}>{suffix}</span>}
     </div>
   );
 }

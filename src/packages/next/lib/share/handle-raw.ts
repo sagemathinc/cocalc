@@ -5,14 +5,16 @@ It confirms that the request is valid (so the content is
 actually currently publicly shared) then sends the result.
 */
 
-import { join } from "path";
 import type { Request, Response } from "express";
 import { static as ExpressStatic } from "express";
-import DirectoryListing from "serve-index";
-import { getExtension, isSha1Hash } from "./util";
-import { pathFromID } from "./path-to-files";
 import LRU from "lru-cache";
 import ms from "ms";
+import { join } from "path";
+import DirectoryListing from "serve-index";
+
+import { pathFromID } from "./path-to-files";
+import { getExtension, isSha1Hash } from "./util";
+
 const MAX_AGE = Math.round(ms("15 minutes") / 1000);
 
 interface Options {
@@ -96,33 +98,59 @@ export function staticHandler(
   fsPath: string,
   req: Request,
   res: Response,
-  next: Function
+  next: Function,
 ) {
-  //console.log("staticHandler", { fsPath, url: req.url });
+  // console.log("staticHandler", { fsPath, url: req.url });
   const handler = getStaticFileHandler(fsPath);
   // @ts-ignore -- TODO
   handler(req, res, () => {
     // Static handler didn't work, so try the directory listing handler.
     //console.log("directoryHandler", { fsPath, url: req.url });
     const handler = getDirectoryHandler(fsPath);
-    handler(req, res, next);
+    try {
+      handler(req, res, next);
+    } catch (err) {
+      // I noticed in logs that if reeq.url is malformed then this directory listing handler --
+      // which is just some old middleware not updated in 6+ years -- can throw an exception
+      // which is not caught.  So we catch it here and respond with some sort of generic
+      // server error, but without crashing the server.
+      // Respond with a 500 Internal Server Error status code.
+      if (!res.headersSent) {
+        res
+          .status(500)
+          .send(
+            `Something went wrong on the server, please try again later. -- ${err}`,
+          );
+      } else {
+        // In case headers were already sent, end the response without sending any data.
+        res.end();
+      }
+    }
   });
 }
 
-const staticFileCache = new LRU({ max: 200 });
-function getStaticFileHandler(path: string) {
-  if (staticFileCache.has(path)) {
-    return staticFileCache.get(path);
+const staticFileCache = new LRU<string, ReturnType<typeof ExpressStatic>>({
+  max: 200,
+});
+function getStaticFileHandler(path: string): ReturnType<typeof ExpressStatic> {
+  const sfh = staticFileCache.get(path);
+  if (sfh) {
+    return sfh;
   }
   const handler = ExpressStatic(path);
   staticFileCache.set(path, handler);
   return handler;
 }
 
-const directoryCache = new LRU({ max: 200 });
-function getDirectoryHandler(path: string) {
-  if (directoryCache.has(path)) {
-    return directoryCache.get(path);
+const directoryCache = new LRU<string, ReturnType<typeof DirectoryListing>>({
+  max: 200,
+});
+function getDirectoryHandler(
+  path: string,
+): ReturnType<typeof DirectoryListing> {
+  const dh = directoryCache.get(path);
+  if (dh) {
+    return dh;
   }
   const handler = DirectoryListing(path, { icons: true, view: "details" });
   directoryCache.set(path, handler);

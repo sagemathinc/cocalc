@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Layout } from "antd";
@@ -31,7 +31,7 @@ export default function API({ customize }) {
             landing
             startup={siteName}
             title={title}
-            logo={<Icon name="api" style={{ fontSize: "60px" }} />}
+            body={<Icon name="api" style={{ fontSize: "60px" }} />}
             subtitle={
               <>
                 Programmatically control CoCalc from your own server. Embed

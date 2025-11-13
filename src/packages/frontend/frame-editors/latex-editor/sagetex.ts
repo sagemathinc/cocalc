@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -9,10 +9,15 @@ Run sagetex
 - TODO: this might be better done always as part of latexmk; not sure.
 */
 
-import { exec, ExecOutput } from "../generic/client";
-import { parse_path } from "../frame-tree/util";
-import { ProcessedLatexLog, Error } from "./latex-log-parser";
-import { BuildLog } from "./actions";
+import { parse_path } from "@cocalc/frontend/frame-editors/frame-tree/util";
+import {
+  exec,
+  ExecOutput,
+} from "@cocalc/frontend/frame-editors/generic/client";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+import { Error as ErrorLog, ProcessedLatexLog } from "./latex-log-parser";
+import { BuildLog } from "./types";
+import { runJob } from "./util";
 
 function sagetex_file(base: string): string {
   return base + ".sagetex.sage";
@@ -23,20 +28,23 @@ export async function sagetex_hash(
   path: string,
   time: number,
   status: Function,
-  output_directory: string | undefined
+  output_directory: string | undefined,
 ): Promise<string> {
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
   status(`sha1sum ${s}`);
-  const output = await exec({
-    timeout: 10,
-    command: "sha1sum",
-    args: [s],
-    project_id: project_id,
-    path: output_directory || directory,
-    err_on_exit: true,
-    aggregate: time,
-  });
+  const output = await exec(
+    {
+      timeout: 10,
+      command: "sha1sum",
+      args: [s],
+      project_id: project_id,
+      path: output_directory || directory,
+      err_on_exit: true,
+      aggregate: time,
+    },
+    path,
+  );
   return output.stdout.split(" ")[0];
 }
 
@@ -45,20 +53,21 @@ export async function sagetex(
   path: string,
   hash: string,
   status: Function,
-  output_directory: string | undefined
+  output_directory: string | undefined,
+  set_job_info: (info: ExecuteCodeOutputAsync) => void,
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
   status(`sage ${s}`);
-  return exec({
-    timeout: 360,
-    bash: true, // so timeout is enforced by ulimit
+
+  return runJob({
+    project_id,
     command: "sage",
     args: [s],
-    project_id: project_id,
-    path: output_directory || directory,
-    err_on_exit: false,
+    set_job_info,
+    runDir: output_directory || directory,
     aggregate: hash ? { value: hash } : undefined,
+    path,
   });
 }
 
@@ -72,11 +81,11 @@ export async function sagetex(
 
 export function sagetex_errors(
   file: string,
-  output: BuildLog
+  output: BuildLog,
 ): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
 
-  let err: Error | undefined = undefined;
+  let err: ErrorLog | undefined = undefined;
 
   // all fine
   if (output.stderr.indexOf("Sage processing complete") >= 0) {

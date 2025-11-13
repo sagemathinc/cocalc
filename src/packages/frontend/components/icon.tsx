@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 declare var DEBUG: boolean; // comes from static webpack; not defined in other contexts.
@@ -25,6 +25,7 @@ import {
   ArrowsAltOutlined,
   AudioOutlined,
   BackwardOutlined,
+  BankOutlined,
   BellFilled,
   BellOutlined,
   BoldOutlined,
@@ -42,6 +43,7 @@ import {
   CheckCircleOutlined,
   CheckOutlined,
   CheckSquareOutlined,
+  ClearOutlined,
   ClockCircleOutlined,
   CloseCircleFilled,
   CloseCircleOutlined,
@@ -58,6 +60,7 @@ import {
   ColumnWidthOutlined,
   CommentOutlined,
   CompassOutlined,
+  ContainerOutlined,
   ControlOutlined,
   CopyOutlined,
   CreditCardOutlined,
@@ -65,12 +68,14 @@ import {
   DatabaseFilled,
   DatabaseOutlined,
   DeleteOutlined,
+  DeliveredProcedureOutlined,
   DeploymentUnitOutlined,
   DesktopOutlined,
   DoubleLeftOutlined,
   DoubleRightOutlined,
   DownCircleOutlined,
   DownOutlined,
+  DownSquareOutlined,
   DownloadOutlined,
   EditFilled,
   EditOutlined,
@@ -81,6 +86,7 @@ import {
   ExportOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
+  FacebookFilled,
   FacebookOutlined,
   FieldTimeOutlined,
   FileImageOutlined,
@@ -92,12 +98,15 @@ import {
   FolderOpenOutlined,
   FolderOutlined,
   FontSizeOutlined,
+  ForkOutlined,
   ForwardOutlined,
   FrownOutlined,
+  FunctionOutlined,
   FundProjectionScreenOutlined,
   GatewayOutlined,
   GiftOutlined,
   GiftTwoTone,
+  GithubFilled,
   GithubOutlined,
   GlobalOutlined,
   GoogleOutlined,
@@ -111,23 +120,29 @@ import {
   IdcardOutlined,
   InfoCircleOutlined,
   InfoOutlined,
+  InstagramFilled,
+  InstagramOutlined,
   ItalicOutlined,
   KeyOutlined,
   LaptopOutlined,
   LayoutOutlined,
+  LeftCircleOutlined,
   LeftOutlined,
   LeftSquareFilled,
   LineChartOutlined,
   LineHeightOutlined,
   LinkOutlined,
+  LinkedinFilled,
+  LinkedinOutlined,
   LoadingOutlined,
   LockFilled,
+  LockOutlined,
   LoginOutlined,
-  LogoutOutlined,
   MailOutlined,
   MedicineBoxOutlined,
   MehOutlined,
   MenuOutlined,
+  MergeCellsOutlined,
   MinusCircleOutlined,
   MinusOutlined,
   MinusSquareOutlined,
@@ -144,13 +159,16 @@ import {
   PlusSquareOutlined,
   PoweroffOutlined,
   PrinterOutlined,
+  ProjectOutlined,
   QuestionCircleOutlined,
   RedoOutlined,
   ReloadOutlined,
   RetweetOutlined,
   RightCircleFilled,
+  RightCircleOutlined,
   RightOutlined,
   RightSquareFilled,
+  RiseOutlined,
   RobotOutlined,
   RocketOutlined,
   SaveOutlined,
@@ -162,16 +180,21 @@ import {
   ShareAltOutlined,
   ShoppingCartOutlined,
   ShrinkOutlined,
+  SignatureOutlined,
   SlidersOutlined,
   SmileOutlined,
   SolutionOutlined,
+  SoundOutlined,
   StarFilled,
   StarOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
+  StopFilled,
   StopOutlined,
   StrikethroughOutlined,
+  SwapLeftOutlined,
   SwapOutlined,
+  SwapRightOutlined,
   SyncOutlined,
   TableOutlined,
   TagFilled,
@@ -182,30 +205,39 @@ import {
   TagsTwoTone,
   TeamOutlined,
   ThunderboltOutlined,
+  ToTopOutlined,
   ToolOutlined,
-  TwitterOutlined,
+  TranslationOutlined,
   UnderlineOutlined,
   UndoOutlined,
   UnlockFilled,
   UnorderedListOutlined,
   UpCircleOutlined,
   UpOutlined,
+  UpSquareOutlined,
   UploadOutlined,
   UserAddOutlined,
   UserDeleteOutlined,
   UserOutlined,
   UsergroupAddOutlined,
+  VerticalAlignBottomOutlined,
   VerticalAlignMiddleOutlined,
+  VerticalLeftOutlined,
   VerticalRightOutlined,
   VideoCameraOutlined,
   WalletOutlined,
   WarningOutlined,
   WifiOutlined,
+  XOutlined,
+  YoutubeFilled,
+  YoutubeOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined,
 } from "@ant-design/icons";
 
 // Unfortunately -- "error TS7056: The inferred type of this node exceeds the maximum length the
 // compiler will serialize. An explicit type annotation is needed."
-const IconSpec: { [name: string]: any } = {
+const IconSpec = {
   "address-card": IdcardOutlined,
   aim: AimOutlined,
   "align-left": AlignLeftOutlined,
@@ -234,6 +266,7 @@ const IconSpec: { [name: string]: any } = {
   "battery-three-quarters": { IconFont: "battery-three-quarters" },
   "battery-full": { IconFont: "battery-full" },
   ban: StopOutlined,
+  bank: BankOutlined,
   bars: { IconFont: "bars" },
   bell: BellFilled,
   "bell-o": BellOutlined,
@@ -298,6 +331,7 @@ const IconSpec: { [name: string]: any } = {
   comments: CommentOutlined,
   compass: CompassOutlined,
   compress: ShrinkOutlined,
+  container: ContainerOutlined,
   copy: CopyOutlined,
   "credit-card": CreditCardOutlined,
   csv: { IconFont: "csv" },
@@ -309,6 +343,7 @@ const IconSpec: { [name: string]: any } = {
   "deployment-unit": DeploymentUnitOutlined,
   dedicated: DatabaseOutlined, // icon for "dedicated resources", looks like a server rack
   desktop: DesktopOutlined,
+  "delivered-procedure-outlined": DeliveredProcedureOutlined,
   digitalocean: { IconFont: "digitalocean" },
   discord: { IconFont: "discord" },
   "disk-drive": { IconFont: "disk-drive" },
@@ -332,6 +367,7 @@ const IconSpec: { [name: string]: any } = {
   "external-link": { IconFont: "external-link-alt" },
   eye: EyeOutlined,
   "eye-slash": EyeInvisibleOutlined,
+  "facebook-filled": FacebookFilled,
   facebook: FacebookOutlined,
   file: FileOutlined,
   "file-archive": FileZipOutlined,
@@ -353,13 +389,16 @@ const IconSpec: { [name: string]: any } = {
   forward: ForwardOutlined,
   frame: { IconFont: "frame" },
   frown: FrownOutlined,
+  fx: FunctionOutlined,
   slides: FundProjectionScreenOutlined,
+  "project-outlined": ProjectOutlined,
   "gateway-outlined": GatewayOutlined,
   gavel: { IconFont: "gavel" },
   gears: ControlOutlined,
   gear: ControlOutlined,
   gift: GiftOutlined,
   gift2: GiftTwoTone,
+  "github-filled": GithubFilled,
   github: GithubOutlined,
   git: { IconFont: "git1" },
   "git-square": { IconFont: "git-square" },
@@ -390,6 +429,8 @@ const IconSpec: { [name: string]: any } = {
   indent: { IconFont: "indent" },
   info: InfoOutlined,
   inkscape: { IconFont: "inkscape" },
+  "instagram-filled": InstagramFilled,
+  instagram: InstagramOutlined,
   ipynb: { IconFont: "ipynb" },
   italic: ItalicOutlined,
   "js-square": { IconFont: "js-square" },
@@ -406,6 +447,8 @@ const IconSpec: { [name: string]: any } = {
   lightbulb: BulbOutlined,
   "line-chart": LineChartOutlined,
   link: LinkOutlined,
+  "linkedin-filled": LinkedinFilled,
+  linkedin: LinkedinOutlined,
   linux: { IconFont: "linux" },
   list: UnorderedListOutlined,
   "list-ul": UnorderedListOutlined,
@@ -413,6 +456,7 @@ const IconSpec: { [name: string]: any } = {
   "list-ol": OrderedListOutlined,
   "lock-open": UnlockFilled,
   lock: LockFilled,
+  "lock-outlined": LockOutlined,
   magic: { IconFont: "magic" },
   mail: MailOutlined,
   map: { IconFont: "map" },
@@ -432,9 +476,7 @@ const IconSpec: { [name: string]: any } = {
   "money-check": { IconFont: "money-check" },
   mousepointer: { IconFont: "mousepointer" },
   move: { IconFont: "move" },
-  arrows: {
-    IconFont: "move",
-  } /* fa-arrows is used by the bqplot custom widget */,
+  arrows: { IconFont: "move" }, // fa-arrows is used by the bqplot custom widget
   network: { IconFont: "network" },
   "network-server": { IconFont: "network-server" },
   "network-wired": ClusterOutlined,
@@ -490,14 +532,14 @@ const IconSpec: { [name: string]: any } = {
   scheme: { IconFont: "scheme" },
   scissors: ScissorOutlined,
   search: SearchOutlined,
-  "search-minus": MinusOutlined, // we actually use this for zoom
-  "search-plus": PlusOutlined,
+  "search-minus": ZoomOutOutlined,
+  "search-plus": ZoomInOutlined,
   "select-outlined": SelectOutlined,
   settings: SettingOutlined,
   server: CloudServerOutlined,
   servers: { IconFont: "servers" },
   "sign-in": LoginOutlined,
-  "sign-out-alt": LogoutOutlined,
+  "sign-out-alt": LoginOutlined, // Yes, since the logout one breaks darkreader, weirdly! they both look reasonable.
   sitemap: ClusterOutlined,
   "share-square": ShareAltOutlined,
   "shopping-cart": ShoppingCartOutlined,
@@ -514,6 +556,7 @@ const IconSpec: { [name: string]: any } = {
   "step-backward": StepBackwardOutlined,
   "step-forward": StepForwardOutlined,
   stop: { IconFont: "stop" }, // the ant-design "stop" looks weird.
+  "stop-filled": StopFilled,
   stopwatch: FieldTimeOutlined,
   store: { IconFont: "store" },
   strikethrough: StrikethroughOutlined,
@@ -550,12 +593,16 @@ const IconSpec: { [name: string]: any } = {
   "toggle-on": { IconFont: "toggle-on" },
   tool: ToolOutlined,
   trash: DeleteOutlined,
-  twitter: TwitterOutlined,
+  "twitter-filled": XOutlined,
+  twitter: XOutlined,
   ubuntu: { IconFont: "ubuntu" },
   underline: UnderlineOutlined,
   undo: UndoOutlined,
   ungroup: { IconFont: "ungroup" },
+  "signature-outlined": SignatureOutlined,
   swap: SwapOutlined,
+  "sync-left": SwapLeftOutlined,
+  "sync-right": SwapRightOutlined,
   unlink: { IconFont: "unlink" },
   upload: UploadOutlined,
   user: UserOutlined,
@@ -570,6 +617,8 @@ const IconSpec: { [name: string]: any } = {
   "vertical-right-outlined": VerticalRightOutlined,
   "video-camera": VideoCameraOutlined,
   "vertical-align-middle": VerticalAlignMiddleOutlined,
+  "vertical-align-bottom": VerticalAlignBottomOutlined,
+  "vertical-left-outlined": VerticalLeftOutlined,
   vim: { IconFont: "vim" },
   vscode: { IconFont: "vscode" },
   wallet: WalletOutlined,
@@ -578,7 +627,23 @@ const IconSpec: { [name: string]: any } = {
   "window-maximize": { IconFont: "window-maximize" },
   "window-restore": DesktopOutlined, //  we only use for x11 and this has big X.
   wrench: { IconFont: "wrench" },
-};
+  youtube: YoutubeOutlined,
+  "youtube-filled": YoutubeFilled,
+  "left-circle-o": LeftCircleOutlined,
+  "right-circle-o": RightCircleOutlined,
+  "down-circle-o": DownCircleOutlined,
+  "translation-outlined": TranslationOutlined,
+  "clean-outlined": ClearOutlined,
+  "sound-outlined": SoundOutlined,
+  "rise-outlined": RiseOutlined,
+  "up-square-outlined": UpSquareOutlined,
+  "down-square-outlined": DownSquareOutlined,
+  "merge-cells-outlined": MergeCellsOutlined,
+  "fork-outlined": ForkOutlined,
+  "to-top-outlined": ToTopOutlined,
+  "column-width": ColumnWidthOutlined,
+  "column-height": ColumnHeightOutlined,
+} as const;
 
 // Icon Fonts coming from https://www.iconfont.cn/?lang=en-us
 import { createFromIconfontCN } from "@ant-design/icons";
@@ -626,29 +691,33 @@ try {
 } catch (err) {
   // Might as well have option for a graceful fallback, e.g., when
   // used from node.js...
-  console.log(`IconFont not available -- ${err}`);
+  if (!process.env.COCALC_TEST_MODE) {
+    console.log(`IconFont not available -- ${err}`);
+  }
 }
 
-// This was nice but unfortunately it exceeds typescript limits.
-//export type IconName = keyof typeof IconSpec;
-export type IconName = string;
+// This used to exceed TypeScript limits, but apparently it is ok now…
+export type IconName = keyof typeof IconSpec;
 export const IconName = undefined; // Javascript needs this, though we are only using IconName for the type
 
 // Typeguard so can tell if a string is name of an icon and also
 // make typescript happy.
-export function isIconName(name?: string): name is IconName {
+export function isIconName(name?: unknown): name is IconName {
   if (name == null) return false;
+  if (typeof name !== "string") return false;
   return IconSpec[name] != null;
 }
 
 export const iconNames: IconName[] = Object.keys(IconSpec) as any;
+
+export type IconRotation = "45" | "90" | "135" | "180" | "225" | "270" | "315";
 
 interface Props {
   name?: IconName;
   unicode?: number; // (optional) set a hex 16 bit charcode to render a unicode char, e.g. 0x2620
   className?: string;
   size?: "lg" | "2x" | "3x" | "4x" | "5x";
-  rotate?: "45" | "90" | "135" | "180" | "225" | "270" | "315";
+  rotate?: IconRotation;
   flip?: "horizontal" | "vertical";
   spin?: boolean;
   pulse?: boolean;
@@ -679,8 +748,24 @@ export const Icon: React.FC<Props> = (props: Props) => {
   if (!onFrontend) return null;
 
   if (props.unicode != null) {
+    const style: React.CSSProperties = { ...UNICODE_STYLE, ...props.style };
+
+    // Apply CSS transformations for unicode characters
+    if (props.rotate) {
+      style.display = style.display ?? "inline-block";
+      style.transform = `rotate(${props.rotate}deg)`;
+    }
+    if (props.flip) {
+      style.display = style.display ?? "inline-block";
+      const flipTransform =
+        props.flip === "horizontal" ? "scaleX(-1)" : "scaleY(-1)";
+      style.transform = style.transform
+        ? `${style.transform} ${flipTransform}`
+        : flipTransform;
+    }
+
     return (
-      <span style={{ ...UNICODE_STYLE, ...props.style }}>
+      <span style={style}>
         {String.fromCharCode(props.unicode!)}
       </span>
     );

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert, Button } from "@cocalc/frontend/antd-bootstrap";
@@ -96,7 +96,7 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
 
   // first time message is different from later ones
   let style: undefined | "info" | "danger";
-  let msg: JSX.Element;
+  let msg: React.JSX.Element;
   if (cur_oom_dismissed === 0) {
     if (cur_oom_kills > 1) {
       msg = (
@@ -126,17 +126,17 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
 
   function renderUpgrade() {
     if (hasLicenseUpgrades) {
-      const boostUrl = join(appBasePath, "/store/boost");
+      const boostUrl = join(appBasePath, "/settings/licenses");
       return (
         <A href={boostUrl} style={{ fontWeight: "bold" }}>
-          boost memory quota
+          edit your license to increase its memory quota
         </A>
       );
     } else {
       const slUrl = join(appBasePath, "/store/site-license");
       return (
         <A href={slUrl} style={{ fontWeight: "bold" }}>
-          upgrade memory quota
+          purchase a license with higher memory quota
         </A>
       );
     }

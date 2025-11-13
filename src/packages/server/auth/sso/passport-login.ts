@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /** This is called by a passport strategy endpoint (which is already setup) to actually
@@ -21,15 +21,12 @@
 import Cookies from "cookies";
 import * as _ from "lodash";
 import { isEmpty } from "lodash";
-
 import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
 import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { legacyManageApiKey } from "@cocalc/server/api/manage";
 import generateHash from "@cocalc/server/auth/hash";
 import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
-import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
 import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
 import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
 import {
@@ -42,6 +39,10 @@ import { HELP_EMAIL } from "@cocalc/util/theme";
 import getEmailAddress from "../../accounts/get-email-address";
 import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
 import { SSO_API_KEY_COOKIE_NAME } from "./consts";
+import isBanned from "@cocalc/server/accounts/is-banned";
+import accountCreationActions from "@cocalc/server/accounts/account-creation-actions";
+import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
+import setSignInCookies from "@cocalc/server/auth/set-sign-in-cookies";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
@@ -51,7 +52,6 @@ export class PassportLogin {
   private readonly database: PostgreSQL;
   // passed on to do the login
   private opts: PassportLoginOpts;
-  private record_sign_in: Function;
 
   constructor(opts: PassportLoginOpts) {
     const L = logger.extend("constructor").debug;
@@ -59,9 +59,7 @@ export class PassportLogin {
     this.passports = opts.passports;
     //this.exclusiveDomains = this.mapExclusiveDomains();
     this.database = opts.database;
-    this.record_sign_in = opts.record_sign_in;
 
-    // TODO: untangle this, make each param a field in this object
     this.opts = opts;
 
     L({
@@ -87,7 +85,7 @@ export class PassportLogin {
     }
     if (this.passports?.[this.opts.strategyName] == null) {
       throw new Error(
-        `passport strategy '${this.opts.strategyName}' does not exist`
+        `passport strategy '${this.opts.strategyName}' does not exist`,
       );
     }
     if (!_.isPlainObject(this.opts.profile)) {
@@ -136,19 +134,23 @@ export class PassportLogin {
       await this.checkExistingEmails(this.opts, locals);
       // if no account yet → create one
       await this.maybeCreateAccount(this.opts, locals);
-      // record a sign-in activity, if we deal with an existing account
-      await this.maybeRecordSignIn(this.opts, locals);
       // if update_on_login is true, update the account with the new profile data
       await this.maybeUpdateAccountAndPassport(this.opts, locals);
-      // deal with the case where user wants an API key
-      await this.maybeProvisionAPIKey(locals);
       // check if user is banned?
       await this.isUserBanned(locals.account_id, locals.email_address);
       //  last step: set remember me cookie (for a  new sign in)
       await this.handleNewSignIn(this.opts, locals);
       // no exceptions → we're all good
+
       L(`redirect the client to '${locals.target}'`);
-      this.opts.res.redirect(locals.target);
+      // Doing a 302 redirect does NOT work because it doesn't send the cookie, due to
+      // sameSite = 'strict'!!!
+      // this.opts.res.redirect(locals.target);
+      // See https://stackoverflow.com/questions/66675803/samesite-strict-cookies-are-not-included-in-302-redirects-when-user-clicks-link
+      // WARNING: a 302 appears to work in dev mode, but that's only because
+      // of all the hot module loading complexity.  Also, I could not get a meta redirect to work,
+      // so had to use Javascript.
+      clientSideRedirect({ res: this.opts.res, target: this.opts.site_url });
     } catch (err) {
       // this error is used to signal that the user has done something wrong (in a general sense)
       // and it shouldn't be the code or how it handles the returned data.
@@ -174,7 +176,7 @@ export class PassportLogin {
   // not being valid should just not entitle the user to having a
   // a specific account_id.
   private async checkRememberMeCookie(
-    locals: PassportLoginLocals
+    locals: PassportLoginLocals,
   ): Promise<void> {
     const L = logger.extend("check_remember_me_cookie").debug;
     if (!locals.remember_me_cookie) return;
@@ -192,7 +194,7 @@ export class PassportLogin {
     } catch (error) {
       const err = error;
       L(
-        `unable to generate hash from remember_me cookie = '${locals.remember_me_cookie}' -- ${err}`
+        `unable to generate hash from remember_me cookie = '${locals.remember_me_cookie}' -- ${err}`,
       );
     }
     if (hash != null) {
@@ -213,7 +215,7 @@ export class PassportLogin {
   // this adds a passport to an existing account
   private async createPassport(
     opts: PassportLoginOpts,
-    locals: PassportLoginLocals
+    locals: PassportLoginLocals,
   ) {
     if (locals.account_id == null) {
       throw new Error("createPassport: account_id is null");
@@ -266,11 +268,11 @@ export class PassportLogin {
   // Exceptions apply to exclusive SSO strategies, which excert more control over the associated account.
   private async checkPassportExists(
     opts: PassportLoginOpts,
-    locals: PassportLoginLocals
+    locals: PassportLoginLocals,
   ): Promise<void> {
     const L = logger.extend("check_passport_exists").debug;
     L(
-      "check to see if the passport already exists indexed by the given id -- in that case we will log user in"
+      "check to see if the passport already exists indexed by the given id -- in that case we will log user in",
     );
 
     const passport_account_id = await this.database.passport_exists({
@@ -284,7 +286,7 @@ export class PassportLogin {
       locals.account_id != null
     ) {
       L(
-        "passport doesn't exist, but user is authenticated (via remember_me), so we add this passport for them."
+        "passport doesn't exist, but user is authenticated (via remember_me), so we add this passport for them.",
       );
 
       // check if the email address of the passport is exclusive (which means we do not link to an existing account)
@@ -292,7 +294,7 @@ export class PassportLogin {
         throw new Error(
           `It is not possible to link this SSO ${
             opts.passports[opts.strategyName].info?.display ?? opts.strategyName
-          } account to the account your're current logged in with. Please sign out first and then try signin in using this SSO account again.`
+          } account to the account your're current logged in with. Please sign out first and then try signin in using this SSO account again.`,
         );
       }
 
@@ -302,7 +304,7 @@ export class PassportLogin {
       if (account_email_address != null) {
         if (this.checkEmailExclusiveSSO(account_email_address)) {
           throw new Error(
-            `It is not possible to link any other SSO accounts to the account your're current logged in with.`
+            `It is not possible to link any other SSO accounts to the account your're current logged in with.`,
           );
         }
       }
@@ -316,16 +318,16 @@ export class PassportLogin {
       ) {
         L("passport exists but is associated with another account already");
         throw Error(
-          `Your ${opts.strategyName} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.strategyName} in account settings, if you want to instead associate it with this account.`
+          `Your ${opts.strategyName} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.strategyName} in account settings, if you want to instead associate it with this account.`,
         );
       } else {
         if (locals.has_valid_remember_me) {
           L(
-            "passport already exists and is associated to the currently logged in account"
+            "passport already exists and is associated to the currently logged in account",
           );
         } else {
           L(
-            "passport exists and is already associated to a valid account, which we'll log user into"
+            "passport exists and is already associated to a valid account, which we'll log user into",
           );
           locals.account_id = passport_account_id;
         }
@@ -340,14 +342,14 @@ export class PassportLogin {
   // strategy)
   private async checkExistingEmails(
     opts: PassportLoginOpts,
-    locals: PassportLoginLocals
+    locals: PassportLoginLocals,
   ): Promise<void> {
     const L = logger.extend("check_existing_emails").debug;
     // handle case where passport doesn't exist, but we know one or more email addresses → check for matching email
     if (locals.account_id != null || opts.emails == null) return;
 
     L(
-      "passport doesn't exist but emails are available -- therefore check for existing account with a matching email -- if we find one it's an error, unless it's an 'exclusive' strategy, where we take over that account"
+      "passport doesn't exist but emails are available -- therefore check for existing account with a matching email -- if we find one it's an error, unless it's an 'exclusive' strategy, where we take over that account",
     );
 
     const strategy: PassportStrategyDB = opts.passports[opts.strategyName];
@@ -365,15 +367,15 @@ export class PassportLogin {
         locals.account_id = existing_account_id;
         locals.email_address = email_address;
         L(
-          `found matching account ${locals.account_id} for email ${locals.email_address}`
+          `found matching account ${locals.account_id} for email ${locals.email_address}`,
         );
         if (this.checkExclusiveSSO(opts)) {
           L(
             `email ${email_address} belongs to SSO strategy ${
               strategy.info?.display ?? opts.strategyName
             }, which exclusively manages all emails with domain in ${JSON.stringify(
-              strategy.info?.exclusive_domains ?? []
-            )}`
+              strategy.info?.exclusive_domains ?? [],
+            )}`,
           );
           await this.createPassport(opts, locals);
           return;
@@ -381,7 +383,7 @@ export class PassportLogin {
 
         // if there is no SSO mechanism with an exclusive email domain, we throw an error:
         throw Error(
-          `There is already an account with email address ${locals.email_address}; please sign in using that email account, then link ${opts.strategyName} to it in account settings.`
+          `There is already an account with email address ${locals.email_address}; please sign in using that email account, then link ${opts.strategyName} to it in account settings.`,
         );
       }
     }
@@ -390,9 +392,9 @@ export class PassportLogin {
   // This calls the DB methods to create a new account, including the SSO passport configuration
   private async create_account(
     opts: PassportLoginOpts,
-    email_address: string | undefined
+    email_address: string | undefined,
   ): Promise<string> {
-    return await cb2(this.database.create_account, {
+    return await cb2(this.database.create_sso_account, {
       first_name: opts.first_name,
       last_name: opts.last_name,
       email_address,
@@ -405,13 +407,13 @@ export class PassportLogin {
   // This calls the above, as long as we do not already have an account_id
   private async maybeCreateAccount(
     opts: PassportLoginOpts,
-    locals: PassportLoginLocals
+    locals: PassportLoginLocals,
   ): Promise<void> {
     if (locals.account_id) return;
     const L = logger.extend("maybe_create_account").debug;
 
     L(
-      "no existing account to link, so create new account that can be accessed using this passport"
+      "no existing account to link, so create new account that can be accessed using this passport",
     );
     if (opts.emails != null) {
       locals.email_address = opts.emails[0];
@@ -420,19 +422,20 @@ export class PassportLogin {
     locals.account_id = await this.create_account(opts, locals.email_address);
     locals.new_account_created = true;
 
-    // if we know the email address provided by the SSO strategy,
+    // if we know the email address provided by t
     // we execute the account creation actions and set the address to be verified
+    await accountCreationActions({
+      email_address: locals.email_address,
+      account_id: locals.account_id,
+      // TODO: tags should be encoded in URL and passed here, but that's
+      // not implemented
+    });
     if (locals.email_address != null) {
-      const actions = cb2(this.database.do_account_creation_actions, {
-        email_address: locals.email_address,
-        account_id: locals.account_id,
-      });
-      const verify = set_email_address_verified({
+      await set_email_address_verified({
         db: this.database,
         account_id: locals.account_id,
         email_address: locals.email_address,
       });
-      await Promise.all([actions, verify]);
     }
 
     // log the newly created account
@@ -452,33 +455,12 @@ export class PassportLogin {
     });
   }
 
-  // if the above created no new account (and hence we had an account_id before that)
-  // we record that we signed in a user
-  private async maybeRecordSignIn(
-    opts: PassportLoginOpts,
-    locals: PassportLoginLocals
-  ): Promise<void> {
-    if (locals.new_account_created) return;
-    const L = logger.extend("maybe_record_sign_in").debug;
-
-    // don't make client wait for this -- it's just a log message for us.
-    L(`no new account → record_sign_in: ${opts.req.ip}`);
-    this.record_sign_in({
-      ip_address: opts.req.ip,
-      successful: true,
-      remember_me: locals.has_valid_remember_me,
-      email_address: locals.email_address,
-      account_id: locals.account_id,
-      database: this.database,
-    });
-  }
-
   // optionally, SSO strategies can be configured to always update fields of the user
   // with the data they provide. right now that's first and last name.
   // email address is a bit more tricky and not implemented.
   private async maybeUpdateAccountAndPassport(
     opts: PassportLoginOpts,
-    locals: PassportLoginLocals
+    locals: PassportLoginLocals,
   ) {
     // we only update if explicitly configured to do so
     if (!opts.update_on_login) return;
@@ -504,78 +486,41 @@ export class PassportLogin {
     });
   }
 
-  // There is a special case, where an api_key was requested.
-  // This is chekced here, key created, and the client is redirected to a special (local) URL
-  private async maybeProvisionAPIKey(
-    locals: PassportLoginLocals
-  ): Promise<void> {
-    if (!locals.get_api_key) return;
-    if (!locals.account_id) return; // typescript cares about this.
-    const L = logger.extend("maybe_provision_api_key").debug;
-
-    // Just handle getting api key here.
-    if (locals.new_account_created) {
-      locals.action = "regenerate"; // obvious
-    } else {
-      locals.action = "get";
-    }
-
-    locals.api_key = await legacyManageApiKey({
-      account_id: locals.account_id,
-      action: locals.action,
-    });
-
-    // if there is no key
-    if (!locals.api_key) {
-      L("must generate key, since don't already have it");
-      locals.api_key = await legacyManageApiKey({
-        account_id: locals.account_id,
-        action: "regenerate",
-      });
-    }
-    // we got a key ...
-    // NOTE: See also code to generate similar URL in @cocalc/frontend/account/init.ts
-    locals.target = `https://authenticated?api_key=${locals.api_key}`;
-  }
-
   // ebfore recording the sign-in below, we check if a user is banned
   private async isUserBanned(account_id, email_address): Promise<boolean> {
-    const is_banned = await cb2(this.database.is_banned_user, {
-      account_id,
-    });
+    const is_banned = await isBanned(account_id);
     if (is_banned) {
       const helpEmail = await this.getHelpEmail();
       throw Error(
-        `User (account_id=${account_id}, email_address=${email_address}) is BANNED. If this is a mistake, please contact ${helpEmail}.`
+        `User (account_id=${account_id}, email_address=${email_address}) is BANNED. If this is a mistake, please contact ${helpEmail}.`,
       );
     }
     return is_banned;
   }
 
   // If we did end up here, and there wasn't already a valid remember me cookie,
-  // we signed in a user. We record that and set the remember me cookie
-  // SSO strategies can configure the expiration of that cookie – e.g. super paranoid ones can set this to 1 day.
+  // we signed in a user. We record that and set the remember me cookie.
+  // SSO strategies can configure the expiration of that cookie – e.g. super
+  // paranoid ones can set this to 1 day.
   private async handleNewSignIn(
-    opts: PassportLoginOpts,
-    locals: PassportLoginLocals
+    { req, res }: PassportLoginOpts,
+    locals: PassportLoginLocals,
   ): Promise<void> {
     if (locals.has_valid_remember_me) return;
     const L = logger.extend("handle_new_sign_in").debug;
 
     // make TS happy
-    if (locals.account_id == null) throw new Error("locals.account_id is null");
+    if (locals.account_id == null) {
+      throw new Error("locals.account_id is null");
+    }
 
     L("passport created: set remember_me cookie, so user gets logged in");
 
-    L(`create remember_me cookie in database. ttl=${opts.cookie_ttl_s}s`);
-    const { value, ttl_s } = await createRememberMeCookie(
-      locals.account_id,
-      opts.cookie_ttl_s
-    );
-
-    L(`set remember_me cookie in client. ttl=${ttl_s}s`);
-    locals.cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
-      maxAge: ttl_s * 1000,
+    L(`create remember_me cookie in database`);
+    await setSignInCookies({
+      account_id: locals.account_id,
+      req,
+      res,
     });
   }
 }

@@ -1,10 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 – 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
-Datastore (only for kucalc and cocalc-cloud)
+Datastore (only for kucalc and cocalc-onprem)
+
+cSpell: words sshfs keyid, ignore creds ALPHANUM
 */
 
 import {
@@ -19,6 +21,7 @@ import {
   Checkbox,
   Form,
   Input,
+  Modal,
   Popconfirm,
   Space,
   Switch,
@@ -26,6 +29,7 @@ import {
   Tooltip,
   Typography,
 } from "antd";
+import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 
 import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -41,7 +45,12 @@ import {
   SettingBox,
   Tip,
 } from "@cocalc/frontend/components";
+import Password, {
+  PasswordTextArea,
+} from "@cocalc/frontend/components/password";
+import { labels } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { DATASTORE_TITLE } from "@cocalc/util/db-schema/site-defaults";
 import { unreachable } from "@cocalc/util/misc";
 import { FLYOUT_PADDING } from "../page/flyouts/consts";
@@ -49,13 +58,12 @@ import { useProjectState } from "../page/project-state-hook";
 import { useProjectHasInternetAccess } from "./has-internet-access-hook";
 import { RestartProject } from "./restart-project";
 import { DatastoreConfig as Config } from "./types";
-import Password, {
-  PasswordTextArea,
-} from "@cocalc/frontend/components/password";
 
-const SECRET_TOOLTIP = `\nSecrets can't be edited. Keep the field empty to retain the current value, or enter a new secret to replace the existing one.`;
-
-const DOC = "https://doc.cocalc.com/project-settings.html#datastore";
+const SECRET_TOOLTIP = defineMessage({
+  id: "project.settings.datastore.secrets_info",
+  defaultMessage: `<b>Secrets are hidden!</b>
+  Either keep the field empty to retain the current secret – or enter a new secret to replace the existing one.`,
+});
 
 const RULE_REQUIRED = [
   { required: true, message: "This is a required field." },
@@ -78,7 +86,11 @@ function raw2configs(raw: { [name: string]: Config }): Config[] {
     v.key = k; // for antd, to have unique rows
     switch (v.type) {
       case "s3":
-        v.about = [`Key ID: ${v.keyid}`, `Bucket: ${v.bucket}`].join("\n");
+        const about = [`Key ID: ${v.keyid}`, `Bucket: ${v.bucket}`];
+        if (v.host?.trim()) {
+          about.push(`Host: ${v.host}`);
+        }
+        v.about = about.join("\n");
         break;
       case "gcs":
         v.about = `Bucket: ${v.bucket}`;
@@ -110,6 +122,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   const { project_id, mode = "project", reloadTrigger = 0 } = props;
   const isFlyout = mode === "flyout";
   const size = isFlyout ? "small" : undefined; // for buttons
+  const intl = useIntl();
   const project_actions = useActions({ project_id });
   const state = useProjectState(project_id);
   const has_internet = useProjectHasInternetAccess(project_id);
@@ -122,6 +135,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   const editing = new_config != null;
   const is_mounted_ref = useIsMountedRef();
   const [configs, set_configs] = useState<Config[]>([]);
+  const [editMode, setEditMode] = useState<boolean>(false);
   const [form_readonly, set_form_readonly] =
     useState<boolean>(READONLY_DEFAULT);
 
@@ -140,9 +154,16 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
 
   async function add(type: Config["type"]): Promise<void> {
     const common = { name: "", secret: "" };
+    setEditMode(false);
     switch (type) {
       case "s3":
-        set_new_config({ ...common, type: "s3", keyid: "", bucket: "" });
+        set_new_config({
+          ...common,
+          type: "s3",
+          keyid: "",
+          bucket: "",
+          host: "",
+        });
         break;
       case "gcs":
         set_new_config({ ...common, type: "gcs", bucket: "" });
@@ -180,6 +201,10 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
       return;
     }
     // we have to check if the name isn't ""
+    if (!config.name.trim()) {
+      set_error(`You have to set a "name".`);
+      return;
+    }
     const name_change = new_config?.name && new_config.name != config.name;
     // if we edit a datastore's name, we have to pick the secret from the one that's going to be deleted
     if (new_config != null && name_change) {
@@ -198,6 +223,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     } else {
       set_needs_restart(true);
       set_new_config(null); // hide form
+      setEditMode(false);
       if (!name_change) reload(); // refresh what we just saved ...
     }
 
@@ -242,7 +268,10 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         set_configs(raw2configs(raw.addons.datastore));
       }
     } catch (err) {
-      if (err) set_error(err);
+      if (err) {
+        console.error(err);
+        set_error(err.toString());
+      }
     } finally {
       set_loading(false);
     }
@@ -253,30 +282,35 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     reload();
   }, [reloadTrigger]);
 
+  function getCurrentForm() {
+    if (new_config == null) return;
+    const { type } = new_config;
+    switch (type) {
+      case "s3":
+        return form_s3;
+      case "gcs":
+        return form_gcs;
+      case "sshfs":
+        return form_sshfs;
+      default:
+        unreachable(type);
+    }
+  }
+
   // when we change the new_config data, we also want to reflect that in the corresponding form values
   React.useEffect(() => {
     if (new_config == null) return;
-    switch (new_config.type) {
-      case "s3":
-        form_s3.setFieldsValue(new_config);
-        break;
-      case "gcs":
-        form_gcs.setFieldsValue(new_config);
-        break;
-      case "sshfs":
-        form_sshfs.setFieldsValue(new_config);
-        break;
-      default:
-        unreachable(new_config);
-    }
+    getCurrentForm()?.setFieldsValue(new_config);
   }, [new_config]);
 
-  function edit(record) {
+  function edit(record: Config) {
     if (record == null) return;
-    const conf: Config = Object.assign({}, record);
+    const conf: Config = { ...record };
     conf.secret = "";
+    delete conf.about;
     set_new_config(conf);
     set_form_readonly(conf.readonly ?? READONLY_DEFAULT);
+    setEditMode(true);
   }
 
   async function confirm_del(name) {
@@ -302,12 +336,17 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         message={
           <div>
             <Typography.Text strong>
-              Restart your project for these changes to take effect.
+              <FormattedMessage
+                id="project.settings.datastore.restart-instructions"
+                defaultMessage={
+                  "Restart your project for these changes to take effect."
+                }
+              />
             </Typography.Text>
             <span style={{ float: "right" }}>
               <RestartProject
                 project_id={project_id}
-                text={"Restart…"}
+                text={`${intl.formatMessage(labels.restart)}…`}
                 size={"small"}
               />
             </span>
@@ -346,8 +385,8 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         <Popconfirm
           title={`Delete ${record.name}?`}
           onConfirm={() => confirm_del(record.name)}
-          okText="Yes"
-          cancelText="No"
+          okText={intl.formatMessage(labels.yes)}
+          cancelText={intl.formatMessage(labels.no)}
         >
           <Tooltip title={`Delete ${record.name}.`} placement={placement}>
             <Button size={size} icon={<DeleteOutlined />}></Button>{" "}
@@ -441,7 +480,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           type={"primary"}
           disabled={editing}
         >
-          AWS S3
+          S3
         </Button>
 
         {isFlyout ? (
@@ -465,6 +504,43 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  function render_help_content() {
+    return (
+      <FormattedMessage
+        id="project.settings.datastore-help"
+        defaultMessage={`
+        <p>
+          This configuration allows you to mount a cloud store (a remote
+          collection of file-like objects) or a remote file-system into a
+          CoCalc project. The configuration is passed on to the back-end and
+          activated upon project startup. The project must have access to
+          the internet (i.e. an active license attached to it).
+        </p>
+        <p>
+          If everything works out fine, you will be able to access the data
+          at "/data/[name]". As a convenience and if ~/data is not taken yet,
+          a symlink will point from ~/data/[name] to the mounted  directory.
+        </p>
+        <p>
+          For security, the secret stays hidden. Keep the credentials text
+          empty in order to keep it as it is – otherwise it gets replaced by
+          the newly entered value.
+        </p>
+        <p>
+          More information: {doc}
+        </p>`}
+        values={{
+          p: (c) => <p>{c}</p>,
+          doc: (
+            <A href={DOC_CLOUD_STORAGE_URL}>
+              Project Settings / Cloud Storage & Remote File Systems
+            </A>
+          ),
+        }}
+      />
+    );
+  }
+
   function render_help() {
     if (!show_help) return;
     return (
@@ -472,34 +548,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         showIcon={false}
         banner
         type="info"
-        message={
-          <div>
-            <p>
-              This configuration allows you to mount a cloud store (a remote
-              collection of file-like objects) or a remote file-system into a
-              CoCalc project. The configuration is passed on to the back-end and
-              activated upon project startup. The project must have access to
-              the internet (quota "internet").
-            </p>
-            <p>
-              If everything works out fine, you will be able to access the data
-              at "/data/[name]". As a convenience, it's possible to let a
-              symlink point from the project's home directory to the "/data"
-              directory.
-            </p>
-            <p>
-              When editing, the secret stays hidden. Keep the credentials text
-              empty in order to not modify it – otherwise it gets replaced by
-              the newly entered value.
-            </p>
-            <p>
-              More information:{" "}
-              <A href={DOC}>
-                Project Settings / Cloud Storage & Remote File Systems
-              </A>
-            </p>
-          </div>
-        }
+        message={<div>{render_help_content()}</div>}
       />
     );
   }
@@ -515,9 +564,9 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           <div>
             <h3>No internet access</h3>
             <p>
-              You need to have your project upgraded in order to activate the
-              "internet access" quota. Otherwise you can't access cloud storage
-              or remote file systems.
+              You need to have your project upgraded with a license in order to
+              activate the "internet access" quota. Otherwise you can't access
+              cloud storage or remote file systems.
             </p>
           </div>
         }
@@ -528,6 +577,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   function cancel() {
     set_new_config(null);
     set_error("");
+    setEditMode(false);
   }
 
   function process_failure(err: { errorFields: { name; errors: string[] }[] }) {
@@ -537,9 +587,8 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     set_error(msg.join("\n"));
   }
 
-  async function form_finish(values: any, type): Promise<void> {
+  async function save_config(values: any): Promise<void> {
     values.readonly = form_readonly;
-    values.type = type;
     try {
       await set(values);
     } catch (err) {
@@ -555,8 +604,8 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
       set_form_readonly,
       cancel,
       process_failure,
-      form_finish,
       isFlyout,
+      editMode,
     } as const;
     switch (type) {
       case "s3":
@@ -564,7 +613,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
       case "gcs":
         return <NewGCS form_gcs={form_gcs} {...props} />;
       case "sshfs":
-        return <NewSSHF form_sshfs={form_sshfs} {...props} />;
+        return <NewSSHFS form_sshfs={form_sshfs} {...props} />;
       default:
         unreachable(type);
     }
@@ -572,17 +621,28 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
 
   function render_new_config() {
     if (new_config == null) return;
-    return (
+    const title = (
       <>
-        <span>&nbsp;</span>
-        <h3 style={{ textAlign: "center" }}>
-          <Typography.Text strong>
-            {new_config.type.toUpperCase()}
-          </Typography.Text>{" "}
-          configuration
-        </h3>
-        {render_forms(new_config)}
+        {new_config.type.toUpperCase()}{" "}
+        {intl.formatMessage(labels.configuration)} (
+        <A href={DOC_CLOUD_STORAGE_URL}>Help</A>)
       </>
+    );
+    return (
+      <Modal
+        open={new_config != null}
+        title={title}
+        okText={intl.formatMessage(labels.save)}
+        cancelText={intl.formatMessage(labels.cancel)}
+        onOk={() => {
+          const vals = getCurrentForm()?.getFieldsValue(true);
+          save_config(vals);
+        }}
+        onCancel={cancel}
+      >
+        {render_forms(new_config)}
+        {error != "" ? <ErrorDisplay banner error={error} /> : undefined}
+      </Modal>
     );
   }
 
@@ -608,7 +668,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           onClick={reload}
           style={{ float: "right", marginTop: "-7px" }}
         >
-          Refresh
+          {intl.formatMessage(labels.reload)}
         </Button>
       </>
     );
@@ -634,11 +694,17 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
 });
 
 function FormName() {
+  const intl = useIntl();
+
   return (
     <Form.Item
       label="Name"
       name="name"
       rules={RULE_ALPHANUM}
+      help={intl.formatMessage({
+        id: "project.settings.datastore.form.name.help",
+        defaultMessage: "Short, alphanumeric identifier. e.g. 'foo'",
+      })}
       tooltip={
         <div>
           Choose a name.
@@ -653,14 +719,7 @@ function FormName() {
   );
 }
 
-function FormBottom({ form_readonly, set_form_readonly, form_layout, cancel }) {
-  const form_layout_tail = {
-    wrapperCol: {
-      offset: form_layout.labelCol.span,
-      span: form_layout.wrapperCol.span,
-    },
-  };
-
+function FormBottom({ form_readonly, set_form_readonly }) {
   // TODO: in general, I don't know to back the readonly boolean with the form
   // that's why this is a control setting a state, and some extras around it
   return (
@@ -671,39 +730,31 @@ function FormBottom({ form_readonly, set_form_readonly, form_layout, cancel }) {
           onChange={(e) => set_form_readonly(e.target.checked)}
         />
       </Form.Item>
-      <Form.Item {...form_layout_tail}>
-        <Space>
-          <Button type="primary" htmlType="submit">
-            Save
-          </Button>
-          <Button onClick={cancel}>Cancel</Button>
-        </Space>
-      </Form.Item>
     </>
   );
 }
 
-function NewSSHF({
+function NewSSHFS({
   form_sshfs,
   form_layout,
   form_readonly,
   set_form_readonly,
-  cancel,
   process_failure,
-  form_finish,
   isFlyout,
+  editMode,
 }) {
+  const intl = useIntl();
+
   const pk_help =
     "This must be a passphrase-less private key, which allows to connect to the remove OpenSSH server.";
   const pk_example =
-    "This must be a passphrase-less private key!\n\n-----BEGIN OPENSSH PRIVATE KEY-----\naNmQfie...\n...\n...\n-----END OPENSSH PRIVATE KEY-----";
+    "This must be a passphrase-less private key!\n\n-----BEGIN OPENSSH PRIVATE KEY-----\naRandomLookingString...\n...\n...\n-----END OPENSSH PRIVATE KEY-----";
   return (
     <ConfigForm
       form={form_sshfs}
       type={"sshfs"}
       form_layout={form_layout}
       process_failure={process_failure}
-      form_finish={form_finish}
       isFlyout={isFlyout}
     >
       <FormName />
@@ -733,15 +784,14 @@ function NewSSHF({
       <Form.Item
         label="Private Key"
         name="secret"
-        tooltip={pk_help + SECRET_TOOLTIP}
+        tooltip={pk_help}
+        help={editMode ? intl.formatMessage(SECRET_TOOLTIP) : undefined}
       >
         <PasswordTextArea rows={5} placeholder={pk_example} visibilityToggle />
       </Form.Item>
       <FormBottom
-        form_layout={form_layout}
         form_readonly={form_readonly}
         set_form_readonly={set_form_readonly}
-        cancel={cancel}
       />
     </ConfigForm>
   );
@@ -752,11 +802,12 @@ function NewGCS({
   form_layout,
   form_readonly,
   set_form_readonly,
-  cancel,
   process_failure,
-  form_finish,
   isFlyout,
+  editMode,
 }) {
+  const intl = useIntl();
+
   const creds_help =
     "JSON formatted content of the service account credentials file.";
   const msg_bucket = "Name of the S3 bucket";
@@ -766,7 +817,6 @@ function NewGCS({
       type={"gcs"}
       form_layout={form_layout}
       process_failure={process_failure}
-      form_finish={form_finish}
       isFlyout={isFlyout}
     >
       <FormName />
@@ -781,15 +831,14 @@ function NewGCS({
       <Form.Item
         label="Credentials"
         name="secret"
-        tooltip={creds_help + SECRET_TOOLTIP}
+        tooltip={creds_help}
+        help={editMode ? intl.formatMessage(SECRET_TOOLTIP) : undefined}
       >
         <PasswordTextArea rows={5} placeholder={creds_help} visibilityToggle />
       </Form.Item>
       <FormBottom
-        form_layout={form_layout}
         form_readonly={form_readonly}
         set_form_readonly={set_form_readonly}
-        cancel={cancel}
       />
     </ConfigForm>
   );
@@ -800,18 +849,18 @@ function NewS3({
   form_layout,
   form_readonly,
   set_form_readonly,
-  cancel,
   process_failure,
-  form_finish,
   isFlyout,
+  editMode,
 }) {
+  const intl = useIntl();
+
   return (
     <ConfigForm
       form={form_s3}
       type={"s3"}
       form_layout={form_layout}
       process_failure={process_failure}
-      form_finish={form_finish}
       isFlyout={isFlyout}
     >
       <FormName />
@@ -834,15 +883,22 @@ function NewS3({
       <Form.Item
         label="Secret"
         name="secret"
-        tooltip={`The secret key ${SECRET_TOOLTIP}`}
+        tooltip={`The secret key.`}
+        help={editMode ? intl.formatMessage(SECRET_TOOLTIP) : undefined}
       >
         <Password placeholder="fie$kf2&ifw..." visibilityToggle />
       </Form.Item>
+      <Form.Item
+        label="Host"
+        name="host"
+        tooltip="Optional. Empty string or an URL like https://minio.server.com"
+        help="If not set (empty string), then it connects with AWS S3. Otherwise enter the URL of the S3 server."
+      >
+        <Input placeholder="Optional. Leave empty or e.g. https://minio.server.com/" />
+      </Form.Item>
       <FormBottom
-        form_layout={form_layout}
         form_readonly={form_readonly}
         set_form_readonly={set_form_readonly}
-        cancel={cancel}
       />
     </ConfigForm>
   );
@@ -851,17 +907,21 @@ function NewS3({
 function ConfigForm({
   form_layout,
   form,
-  form_finish,
   process_failure,
-  type,
   isFlyout,
   children,
+}: {
+  form_layout;
+  form;
+  process_failure;
+  isFlyout;
+  children;
+  type;
 }) {
   return (
     <Form
       {...form_layout}
       form={form}
-      onFinish={(v) => form_finish(v, type)}
       onFinishFailed={process_failure}
       style={isFlyout ? { paddingRight: FLYOUT_PADDING } : undefined}
       size="small"

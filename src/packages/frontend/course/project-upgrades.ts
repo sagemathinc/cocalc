@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -38,7 +38,11 @@ export function available_upgrades(opts: {
       // do not count projects in course
       return;
     }
-    const upgrades = project.getIn(["users", opts.account_id, "upgrades"]) as any;
+    const upgrades = project.getIn([
+      "users",
+      opts.account_id,
+      "upgrades",
+    ]) as any;
     if (upgrades != null) {
       available = map_diff(available as any, upgrades.toJS());
     }

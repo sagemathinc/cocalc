@@ -25,6 +25,6 @@ export default async function removeFromCart(
     "UPDATE shopping_cart_items SET removed=NOW() WHERE account_id=$1 AND id=$2 AND removed IS NULL AND purchased IS NULL",
     [account_id, id]
   );
-  return rowCount;
+  return rowCount ?? 0;
 }
 

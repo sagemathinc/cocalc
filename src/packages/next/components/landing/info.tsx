@@ -1,24 +1,20 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Row } from "antd";
-import { CSSProperties, ReactNode } from "react";
+import { Col, Row, Space } from "antd";
+import { CSSProperties, ReactNode, type JSX } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { TitleProps } from "antd/es/typography/Title";
 import { CSS, Paragraph, Title } from "components/misc";
+import A from "components/misc/A";
 import { MAX_WIDTH_LANDING } from "lib/config";
 import Image, { StaticImageData } from "./image";
-import { MediaURL } from "./util";
-
-const showcase: CSSProperties = {
-  width: "100%",
-  boxShadow: "2px 2px 4px rgb(0 0 0 / 25%), 0 2px 4px rgb(0 0 0 / 22%)",
-  borderRadius: "3px",
-} as const;
+import { MediaURL, SHADOW } from "./util";
 
 interface Props {
   alt?: string;
@@ -27,7 +23,7 @@ interface Props {
   belowWide?: boolean;
   caption?: ReactNode;
   children: ReactNode;
-  icon?: IconName;
+  icon?: IconName | JSX.Element;
   image?: string | StaticImageData;
   imageComponent?: ReactNode; // if set, this replaces the image!
   level?: TitleProps["level"];
@@ -39,30 +35,64 @@ interface Props {
   title: ReactNode;
   video?: string | string[];
   wide?: boolean; // if given image is wide and could use more space or its very hard to see.
+  innerRef?;
+  icons?: { icon: IconName | JSX.Element; title?: string; link?: string }[];
 }
 
-export default function Info(props: Readonly<Props>): JSX.Element {
-  const {
-    alt,
-    anchor,
-    below,
-    belowWide = false,
-    caption,
-    children,
-    icon,
-    image,
-    imageComponent,
-    level = 1,
-    narrow = false,
-    style,
-    swapCols,
-    textStyle,
-    textStyleExtra,
-    title,
-    video,
-    wide,
-  } = props;
-
+export default function Info({
+  alt,
+  anchor,
+  below,
+  belowWide = false,
+  caption,
+  children,
+  icon,
+  image,
+  imageComponent,
+  level = 1,
+  narrow = false,
+  style,
+  swapCols,
+  textStyle,
+  textStyleExtra,
+  title,
+  video,
+  wide,
+  innerRef,
+  icons,
+}: Props) {
+  function renderIcons() {
+    if (icons == null || icons.length == 0) {
+      return null;
+    }
+    return (
+      <div style={{ margin: "auto" }}>
+        <Space size={"large"}>
+          {icons.map(({ icon, title, link }, idx) => {
+            const elt = (
+              <div style={{ textAlign: "center", color: "#333" }}>
+                {typeof icon === "string" ? (
+                  <Icon name={icon} style={{ fontSize: "28pt" }} key={icon} />
+                ) : (
+                  icon
+                )}
+                <br />
+                {title ?? capitalize(typeof icon === "string" ? icon : "")}
+              </div>
+            );
+            if (link) {
+              return (
+                <A key={idx} href={link}>
+                  {elt}
+                </A>
+              );
+            }
+            return elt;
+          })}
+        </Space>
+      </div>
+    );
+  }
   function renderBelow() {
     if (!below) return;
 
@@ -100,9 +130,9 @@ export default function Info(props: Readonly<Props>): JSX.Element {
         ...textStyle,
       }}
     >
-      {icon && (
+      {icon != null && (
         <span style={{ fontSize: "24pt", marginRight: "5px" }}>
-          <Icon name={icon} />{" "}
+          {typeof icon === "string" ? <Icon name={icon} /> : icon}{" "}
         </span>
       )}
       {title}
@@ -120,13 +150,13 @@ export default function Info(props: Readonly<Props>): JSX.Element {
   };
 
   if (image != null) {
-    graphic = <Image style={showcase} src={image} alt={alt ?? ""} />;
+    graphic = <Image shadow src={image} alt={alt ?? ""} />;
   } else if (video != null) {
     const videoSrcs = typeof video == "string" ? [video] : video;
     verifyHasMp4(videoSrcs);
     graphic = (
       <div style={{ position: "relative", width: "100%" }}>
-        <video style={showcase} loop controls>
+        <video style={{ width: "100%", ...SHADOW }} loop controls>
           {sources(videoSrcs)}
         </video>
       </div>
@@ -163,6 +193,8 @@ export default function Info(props: Readonly<Props>): JSX.Element {
       Object.assign(noGraphicTextStyle, textStyleExtra);
     }
 
+    const icons = renderIcons();
+
     return (
       <div
         style={{
@@ -179,6 +211,11 @@ export default function Info(props: Readonly<Props>): JSX.Element {
             >
               {children}
             </div>
+            {icons && (
+              <div style={{ marginTop: "20px", textAlign: "center" }}>
+                {icons}
+              </div>
+            )}
             {below && <div style={{ marginTop: "20px" }}>{below}</div>}
           </div>
         </div>
@@ -221,6 +258,7 @@ export default function Info(props: Readonly<Props>): JSX.Element {
 
   return (
     <div
+      ref={innerRef}
       style={{
         ...padding,
         background: "white",
@@ -239,6 +277,7 @@ export default function Info(props: Readonly<Props>): JSX.Element {
         >
           {cols}
           {renderBelow()}
+          {renderIcons()}
         </Row>
       </>
     </div>
@@ -271,10 +310,20 @@ interface HeadingProps {
   style?: CSSProperties;
   textStyle?: CSSProperties;
   level?: TitleProps["level"];
+  anchor?: string;
+  icon?: IconName | JSX.Element;
 }
 
 Info.Heading = (props: HeadingProps) => {
-  const { level = 1, children, description, style, textStyle } = props;
+  const {
+    level = 1,
+    children,
+    description,
+    style,
+    textStyle,
+    anchor,
+    icon,
+  } = props;
   return (
     <div
       style={{
@@ -282,27 +331,38 @@ Info.Heading = (props: HeadingProps) => {
           textAlign: "center",
           margin: "0",
           padding: "20px",
-          borderTop: `1px solid ${COLORS.GRAY_L}`,
         },
         ...style,
       }}
     >
       <Title
         level={level}
+        id={anchor}
         style={{
           color: COLORS.GRAY_D,
           maxWidth: MAX_WIDTH_LANDING,
-          margin: "0 auto",
+          margin: "0 auto 20px auto",
           ...textStyle,
         }}
       >
+        {icon != null && (
+          <span style={{ fontSize: "24pt", marginRight: "5px" }}>
+            {typeof icon === "string" ? <Icon name={icon} /> : icon}{" "}
+          </span>
+        )}
         {children}
       </Title>
-      <Paragraph
-        style={{ fontSize: "13pt", color: COLORS.GRAY_D, ...textStyle }}
-      >
-        {description}
-      </Paragraph>
+      {description && (
+        <Paragraph
+          style={{
+            fontSize: "13pt",
+            color: COLORS.GRAY_D,
+            ...textStyle,
+          }}
+        >
+          {description}
+        </Paragraph>
+      )}
     </div>
   );
 };

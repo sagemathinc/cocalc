@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Map } from "immutable";
@@ -8,8 +8,11 @@ import { Map } from "immutable";
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import type { ComputeServerEvent } from "@cocalc/util/compute/log";
+import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+
+import type { Mode as JupyterCellLLMMode } from "@cocalc/frontend/jupyter/llm/cell-tool";
+import { Ext } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
 
 export type EventRecord = {
   id: string;
@@ -34,6 +37,7 @@ export type ProjectEvent =
   | ProjectControlEvent
   | FileActionEvent
   | LibraryEvent
+  | LLMEvent
   | UpgradeEvent
   | PayAsYouGoUpgradeEvent
   | LicenseEvent
@@ -132,6 +136,36 @@ export type AssistantEvent = {
   path: string;
 };
 
+interface LLMEventBase {
+  event: "llm";
+  model?: string;
+  path: string;
+}
+
+interface LLMEventJupyterCellButton extends LLMEventBase {
+  usage: "jupyter-cell-button";
+  mode?: JupyterCellLLMMode | null; // "jupyter-cell-buttons"
+}
+
+interface LLMEventJupyterCellGenerate extends LLMEventBase {
+  usage: "jupyter-generate-cell";
+}
+
+interface LLMEventJupyterGenerateNotebook extends LLMEventBase {
+  usage: "jupyter-generate-notebook";
+}
+
+interface LLMEvenGenerateDocument extends LLMEventBase {
+  usage: "generate-document";
+  ext: Ext;
+}
+
+export type LLMEvent =
+  | LLMEventJupyterCellButton
+  | LLMEventJupyterCellGenerate
+  | LLMEventJupyterGenerateNotebook
+  | LLMEvenGenerateDocument;
+
 export type MiniTermEvent = {
   event: "miniterm" | "termInSearch";
   input: string;
@@ -143,6 +177,8 @@ export type OpenFile = {
   filename: string;
   time?: number;
   type?: string;
+  // if true, opening a file that was deleted
+  deleted?: number;
 };
 
 export type ProjectControlEvent = {
@@ -158,12 +194,22 @@ export type ProjectControlEvent = {
 };
 
 export type FileActionEvent =
-  | { event: "file_action"; action: "renamed"; src: string; dest: string }
+  | {
+      event: "file_action";
+      action: "renamed";
+      src: string;
+      dest: string;
+      compute_server_id?: number;
+    }
   | ((
       | { action: "deleted" }
       | { action: "downloaded" }
       | { action: "moved" }
-      | { action: "copied" }
+      | {
+          action: "copied";
+          src_compute_server_id?: number;
+          dest_compute_server_id?: number;
+        }
       | { action: "shared" }
       | { action: "uploaded"; file: string }
       | { action: "created" }
@@ -173,6 +219,7 @@ export type FileActionEvent =
       count?: number;
       project?: string;
       dest?: string;
+      compute_server_id?: number;
     });
 
 export type PublicPathEvent = {

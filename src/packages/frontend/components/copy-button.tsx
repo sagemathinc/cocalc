@@ -9,6 +9,7 @@ interface Props {
   value?: string;
   size?;
   noText?: boolean;
+  block?: true;
 }
 
 export default function CopyButton({
@@ -16,6 +17,7 @@ export default function CopyButton({
   value,
   size,
   noText = false,
+  block,
 }: Props) {
   const [copied, setCopied] = useState<boolean>(false);
   useEffect(() => {
@@ -24,6 +26,7 @@ export default function CopyButton({
   return (
     <CopyToClipboard text={value} onCopy={() => setCopied(true)}>
       <Button
+        block={block}
         size={size}
         type="text"
         style={style}

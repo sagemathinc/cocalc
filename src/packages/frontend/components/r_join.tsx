@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { ReactNode } from "react";
@@ -9,7 +9,7 @@ import { len } from "@cocalc/util/misc";
 export function r_join(
   components: ReactNode[],
   sep: ReactNode = ", "
-): JSX.Element {
+): React.JSX.Element {
   const w: ReactNode[] = [];
   for (const c of components) {
     if (c != null) {

@@ -1,10 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import getPool from "@cocalc/database/pool";
-import { Strategy } from "@cocalc/util/types/sso";
+import type { Strategy } from "@cocalc/util/types/sso";
 import { ssoDispayedName } from "@cocalc/util/auth";
 
 /** Returns an array of public info about strategies.

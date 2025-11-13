@@ -1,7 +1,16 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // used by frontend and project backend
-export type NamedServerName = "jupyter" | "jupyterlab" | "code" | "pluto";
+
+export const NAMED_SERVER_NAMES = [
+  "jupyter",
+  "jupyterlab",
+  "code",
+  "pluto",
+  "rserver",
+] as const;
+
+export type NamedServerName = (typeof NAMED_SERVER_NAMES)[number];

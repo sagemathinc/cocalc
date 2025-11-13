@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -8,7 +8,7 @@ Functionality related to running cocalc in personal mode.
 */
 
 import { PostgreSQL } from "./types";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { uuid } from "@cocalc/util/misc";
 
 async function _get_personal_user(database: PostgreSQL): Promise<string> {

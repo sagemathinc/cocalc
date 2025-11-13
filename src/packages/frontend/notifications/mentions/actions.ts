@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Actions } from "@cocalc/frontend/app-framework";
@@ -19,8 +19,8 @@ export class MentionsActions extends Actions<MentionsState> {
     this.setState({ mentions: sorted_mentions });
   }
 
-  public set_filter(filter: NotificationFilter) {
-    this.setState({ filter });
+  public set_filter(filter: NotificationFilter, id?: number) {
+    this.setState({ filter, id });
   }
 
   private update_mention(new_mention: MentionInfo, id: string) {
@@ -38,7 +38,7 @@ export class MentionsActions extends Actions<MentionsState> {
     const account_id = account_store.get("account_id");
     const adjusted_mention = mention.setIn(
       ["users", account_id, "read"],
-      type === "read"
+      type === "read",
     );
 
     this.update_mention(adjusted_mention, id);
@@ -48,7 +48,7 @@ export class MentionsActions extends Actions<MentionsState> {
   private async saveAdjustedMention(
     id: string,
     mention: MentionInfo,
-    delay = false
+    delay = false,
   ) {
     // if setting this in the DB worked, we wait 50 ms and update the UI
     if (await this.set(mention)) {
@@ -61,7 +61,7 @@ export class MentionsActions extends Actions<MentionsState> {
 
   public async markAll(
     project_id: string,
-    as: "read" | "unread"
+    as: "read" | "unread",
   ): Promise<void> {
     const store = this.redux.getStore("mentions");
     if (store == undefined) return;
@@ -79,7 +79,7 @@ export class MentionsActions extends Actions<MentionsState> {
       ) {
         const adjusted = mention.setIn(
           ["users", account_id, "read"],
-          as === "read"
+          as === "read",
         );
         await this.saveAdjustedMention(id, adjusted, true);
       }
@@ -88,7 +88,7 @@ export class MentionsActions extends Actions<MentionsState> {
 
   public async saveAll(
     project_id: string,
-    filter: "read" | "unread"
+    filter: "read" | "unread",
   ): Promise<void> {
     const store = this.redux.getStore("mentions");
     if (store == undefined) return;
@@ -113,7 +113,7 @@ export class MentionsActions extends Actions<MentionsState> {
   public markSaved(
     mention: MentionInfo,
     id: string,
-    as: "saved" | "unsaved"
+    as: "saved" | "unsaved",
   ): void {
     const account_store = this.redux.getStore("account");
     if (account_store == undefined) {
@@ -122,7 +122,7 @@ export class MentionsActions extends Actions<MentionsState> {
     const account_id = account_store.get("account_id");
     const adjusted_mention = mention.setIn(
       ["users", account_id, "saved"],
-      as === "saved"
+      as === "saved",
     );
 
     this.update_mention(adjusted_mention, id);

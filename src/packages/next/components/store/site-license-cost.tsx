@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -10,24 +10,21 @@ import {
   describe_quota,
 } from "@cocalc/util/licenses/describe-quota";
 import type {
-  CostInput,
   CostInputPeriod,
   PurchaseInfo,
   Subscription,
 } from "@cocalc/util/licenses/purchase/types";
-import { money, percent_discount } from "@cocalc/util/licenses/purchase/utils";
+import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural, round2, round2up } from "@cocalc/util/misc";
 import { appendAfterNowToDate, getDays } from "@cocalc/util/stripe/timecalcs";
-import {
-  dedicatedDiskDisplay,
-  dedicatedVmDisplay,
-} from "@cocalc/util/upgrades/utils";
 import Timestamp, { processTimestamp } from "components/misc/timestamp";
 import { ReactNode } from "react";
 import { useTimeFixer } from "./util";
 import { Tooltip, Typography } from "antd";
 import { currency } from "@cocalc/util/misc";
 const { Text } = Typography;
+import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { decimalMultiply } from "@cocalc/util/stripe/calc";
 
 interface Props {
   cost: CostInputPeriod;
@@ -43,21 +40,12 @@ export function DisplayCost({
   simple = false,
   oneLine = false,
   simpleShowPeriod = true,
-  discountTooltip = false,
-  noDiscount = false,
 }: Props) {
-  if (cost == null || isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
+  if (cost == null || isNaN(cost.cost)) {
     return <>&ndash;</>;
   }
 
-  const discount_pct = percent_discount(cost);
   if (simple) {
-    const discount = discount_pct > 0 && (
-      <>
-        Price includes {discount_pct}% self-service discount, only if you buy
-        now.
-      </>
-    );
     return (
       <>
         {cost.cost_sub_first_period != null &&
@@ -68,7 +56,7 @@ export function DisplayCost({
               {oneLine ? <>, </> : <br />}
             </>
           )}
-        {money(round2up(noDiscount ? cost.cost : cost.discounted_cost))}
+        {money(round2up(periodicCost(cost)))}
         {cost.period != "range" ? (
           <>
             {oneLine ? " " : <br />}
@@ -78,42 +66,24 @@ export function DisplayCost({
           ""
         )}
         {oneLine ? null : <br />}{" "}
-        {!noDiscount && discount && !discountTooltip && discount}
       </>
     );
   }
-  let desc;
-  if (cost.discounted_cost < cost.cost) {
-    desc = (
-      <>
-        <span style={{ textDecoration: "line-through" }}>
-          {money(round2up(cost.cost))}
-        </span>
-        {" or "}
-        <b>
-          {money(round2up(cost.discounted_cost))}
-          {cost.input.subscription != "no" ? " " + cost.input.subscription : ""}
-        </b>
-        , if you purchase right now ({discount_pct}% self-service discount).
-      </>
-    );
-  } else {
-    desc = `${money(round2up(cost.cost))} ${
-      cost.period != "range" ? cost.period : ""
-    }`;
-  }
+  const desc = `${money(round2up(periodicCost(cost)))} ${
+    cost.period != "range" ? cost.period : ""
+  }`;
 
   return (
     <span>
       {describeItem({ info: cost.input })}
       <hr />
-      <Icon name="money-check" /> Cost: {desc}
+      <Icon name="money-check" /> Total Cost: {desc}
     </span>
   );
 }
 
 interface DescribeItemProps {
-  info: CostInput;
+  info;
   variant?: "short" | "long";
   voucherPeriod?: boolean;
 }
@@ -127,26 +97,18 @@ export function describeItem({
   voucherPeriod,
 }: DescribeItemProps): ReactNode {
   if (info.type == "cash-voucher") {
-    return <>{currency(info.amount)} account credit</>;
-  }
-  if (info.type === "disk") {
+    // see also packages/util/upgrades/describe.ts for text version of this
+    // that appears on invoices.
     return (
       <>
-        Dedicated Disk ({dedicatedDiskDisplay(info.dedicated_disk, variant)}){" "}
-        {describePeriod({ quota: info, variant, voucherPeriod })}
+        {info.numVouchers ?? 1} {plural(info.numVouchers ?? 1, "Voucher Code")}{" "}
+        {info.numVouchers > 1 ? " each " : ""} worth{" "}
+        {currency(info.amount)}. Total Value:{" "}
+        {currency(decimalMultiply(info.amount, info.numVouchers ?? 1))}
+        {info.whenPay == "admin" ? " (admin: no charge)" : ""}
       </>
     );
   }
-
-  if (info.type === "vm") {
-    return (
-      <>
-        Dedicated VM ({dedicatedVmDisplay(info.dedicated_vm)}){" "}
-        {describePeriod({ quota: info, variant, voucherPeriod })}
-      </>
-    );
-  }
-
   if (info.type !== "quota") {
     throw Error("at this point, we only deal with type=quota");
   }

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -455,8 +455,8 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       obj.page =
         frameId == null
           ? this.defaultPageId()
-          : pages.get((this._get_frame_node(frameId)?.get("page") ?? 1) - 1) ??
-            this.defaultPageId();
+          : (pages.get((this._get_frame_node(frameId)?.get("page") ?? 1) - 1) ??
+            this.defaultPageId());
     }
 
     // Remove certain fields that never ever make no sense for a new element
@@ -863,7 +863,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       console.warn("no cell with id", id);
       return;
     }
-    const time = new Date().valueOf();
+    const time = Date.now();
     const sender_id = this.redux.getStore("account").get_account_id();
     const sender_name = getName(sender_id);
     this.setElementData({
@@ -881,7 +881,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       console.warn("no cell with id", id);
       return;
     }
-    const time = new Date().valueOf();
+    const time = Date.now();
     const sender_id = this.redux.getStore("account").get_account_id();
     // We also record (reasonably truncated) sender name, just in case
     // they are no longer a collaborator with user who is looking at
@@ -1023,11 +1023,11 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   }
 
   gotoUser(account_id: string, frameId?: string) {
-    const locs = this._syncstring
-      .get_cursors({ maxAge: 0 })
-      ?.getIn([account_id, "locs"])
+    const cursors = this._syncstring
+      .get_cursors({ maxAge: 0, excludeSelf: "never" })
       ?.toJS();
-    if (locs == null) return; // no info
+    if (cursors == null) return; // no info
+    const locs = cursors[account_id]?.locs;
     for (const loc of locs) {
       if (loc.id != null) {
         this.scrollElementIntoView(loc.id, frameId);
@@ -1299,7 +1299,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     this.set_frame_tree({ id, search });
   }
 
-  async programmatical_goto_line(
+  async programmatically_goto_line(
     line: string | number,
     _cursor?: boolean,
     _focus?: boolean,
@@ -1321,6 +1321,10 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   }
 
   async gotoFragment(fragmentId: FragmentId) {
+    if (fragmentId.chat) {
+      // deal with side chat in base class
+      await super.gotoFragment(fragmentId);
+    }
     // console.log("gotoFragment ", fragmentId);
     const frameId = await this.waitUntilFrameReady({
       type: this.mainFrameType,

@@ -1,19 +1,21 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React from "react";
-import { sortBy, keys } from "lodash";
-import { SettingBox, A, Icon, Loading } from "@cocalc/frontend/components";
-import { redux, Rendered, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Project } from "./types";
-import * as misc from "@cocalc/util/misc";
-import { Button } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
-import { tool2display } from "@cocalc/util/code-formatter";
+import { Button } from "antd";
+import { keys, sortBy } from "lodash";
+import React from "react";
+
+import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { A, Icon, Loading, SettingBox } from "@cocalc/frontend/components";
 import { CUSTOM_SOFTWARE_HELP_URL } from "@cocalc/frontend/custom-software/util";
+import { tool2display } from "@cocalc/util/code-formatter";
+import { R_IDE } from "@cocalc/util/consts/ui";
+import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { Project } from "./types";
 
 declare let DEBUG;
 
@@ -29,11 +31,11 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
 
     const available_features = useTypedRedux(
       { project_id },
-      "available_features"
+      "available_features",
     );
     const configuration_loading = useTypedRedux(
       { project_id },
-      "configuration_loading"
+      "configuration_loading",
     );
     const configuration = useTypedRedux({ project_id }, "configuration");
 
@@ -52,11 +54,12 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
         ["pandoc", "File format conversions via pandoc"],
         ["vscode", "VSCode editor"],
         ["julia", "Julia programming language"],
+        ["rserver", R_IDE],
       ];
-      const features: JSX.Element[] = [];
+      const features: React.JSX.Element[] = [];
       let any_nonavail = false;
       for (const [key, display] of Array.from(
-        sortBy(feature_map, (f) => f[1])
+        sortBy(feature_map, (f) => f[1]),
       )) {
         const available = avail[key];
         any_nonavail = !available;
@@ -78,7 +81,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
             <dd>
               {display} {extra}
             </dd>
-          </React.Fragment>
+          </React.Fragment>,
         );
       }
 
@@ -100,7 +103,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
         return [<div>All code formatters are available</div>, false];
       }
 
-      const r_formatters: JSX.Element[] = [];
+      const r_formatters: React.JSX.Element[] = [];
       let any_nonavail = false;
       for (const tool of sortBy(keys(formatter), (x) => x)) {
         const available = formatter[tool];
@@ -123,7 +126,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
             <dd>
               <b>{tool}</b> for {misc.to_human_list(langs)}
             </dd>
-          </React.Fragment>
+          </React.Fragment>,
         );
       }
 
@@ -229,7 +232,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
       );
     }
   },
-  dont_render
+  dont_render,
 );
 
 function dont_render(prev, next) {

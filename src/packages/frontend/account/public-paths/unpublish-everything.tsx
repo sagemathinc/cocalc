@@ -1,13 +1,20 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert, Button, Input } from "antd";
-import { React, useIsMountedRef, useMemo, useState } from "../../app-framework";
+import { useIntl } from "react-intl";
+
+import {
+  React,
+  useIsMountedRef,
+  useMemo,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { PublicPath } from "@cocalc/util/db-schema/public-paths";
 import { plural } from "@cocalc/util/misc";
-import { webapp_client } from "../../webapp-client";
 
 interface Props {
   data?: PublicPath[];
@@ -16,10 +23,16 @@ interface Props {
 
 export const UnpublishEverything: React.FC<Props> = React.memo(
   ({ data, refresh }) => {
+    const intl = useIntl();
     const [confirm, set_confirm] = useState<boolean>(false);
     const [confirm_text, set_confirm_text] = useState<string>("");
     const [counter, set_counter] = useState<number>(-1);
     const isMountedRef = useIsMountedRef();
+
+    const unpublishEverything = intl.formatMessage({
+      id: "account.public-path.unpublish.title",
+      defaultMessage: "Unpublish Everything",
+    });
 
     const num_published = useMemo(() => {
       if (data == null) return -1;
@@ -32,14 +45,14 @@ export const UnpublishEverything: React.FC<Props> = React.memo(
       return n;
     }, [data]);
 
-    function render_confirm(): JSX.Element {
+    function render_confirm(): React.JSX.Element {
       const goal = "YES, UNPUBLISH EVERYTHING!";
       const body = (
         <div>
           <div style={{ fontSize: "12pt", margin: "auto", maxWidth: "800px" }}>
             {`Are you sure you want to unpublish ALL ${num_published} listed and unlisted ${plural(
               num_published,
-              "path"
+              "path",
             )} published in all projects on which you collaborate and have been active?  You cannot easily undo this operation, though you could tediously republish everything.  To unpublish everything type "${goal}" below, then click the button.`}
           </div>
           <br />
@@ -60,14 +73,14 @@ export const UnpublishEverything: React.FC<Props> = React.memo(
               disable_all();
             }}
           >
-            Unpublish everything
+            {unpublishEverything}
           </Button>
         </div>
       );
       return (
         <Alert
           style={{ marginBottom: "20px" }}
-          message={<h3>Unpublish Everything?</h3>}
+          message={<h3>{unpublishEverything}?</h3>}
           description={body}
           type="warning"
           showIcon
@@ -114,9 +127,9 @@ export const UnpublishEverything: React.FC<Props> = React.memo(
           onClick={() => set_confirm(true)}
           disabled={num_published == 0 || confirm}
         >
-          Unpublish everything...
+          {unpublishEverything}...
         </Button>
       </div>
     );
-  }
+  },
 );

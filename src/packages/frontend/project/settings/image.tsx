@@ -41,13 +41,13 @@ export default function ProjectImage({ avatarImage, onChange }: Props) {
                     src,
                     fullSize,
                     fullSize,
-                    "image/png"
+                    "image/png",
                   ),
                   tiny: await imageToDataURL(
                     src,
                     tinySize,
                     tinySize,
-                    "image/png"
+                    "image/png",
                   ),
                 };
                 onChange(data);
@@ -55,19 +55,26 @@ export default function ProjectImage({ avatarImage, onChange }: Props) {
                 setError(`Error processing uploaded image -- ${err}`);
               }
             },
-            false
+            false,
           );
           if (typeof file != "object") {
             // see comment in src/packages/next/components/account/config/account/avatar.tsx
             console.warn(
-              "WARNING: unable to read, since image is assumed to be a Blob"
+              "WARNING: unable to read, since image is assumed to be a Blob",
             );
             return;
           }
           reader.readAsDataURL(file as any); // typing situation is weird, but this does work right now.
         }}
       >
-        <Upload.Dragger name="file" showUploadList={false}>
+        <Upload.Dragger
+          name="file"
+          showUploadList={false}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
           {avatarImage ? (
             <img src={avatarImage} width="160px" height="160px" />
           ) : (

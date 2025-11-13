@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import "./generic/jquery-plugins";
@@ -19,8 +19,7 @@ import "./pdf-editor/register";
 
 import "./terminal-editor/register";
 import "./x11-editor/register";
-import "./lean-editor/register";
-//import "./jupyter-editor/register"; // currently done in register-all (due to some non-react stuff still)
+import "./jupyter-editor/register";
 import "./time-travel-editor/register";
 import "./course-editor/register";
 import "./csv-editor/register";
@@ -29,3 +28,4 @@ import "./whiteboard-editor/register";
 
 import "./crm-editor/register";
 import "./task-editor/register";
+import "./chat-editor/register";

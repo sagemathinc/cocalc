@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -22,16 +22,22 @@ interface Options {
   doubleClick?: boolean;
 }
 
-// @ts-ignore
-$.fn.process_smc_links = function (opts: Options) {
+export function init() {
   // @ts-ignore
-  processLinks(this, {
-    urlTransform: opts?.href_transform,
-    projectId: opts?.project_id,
-    filePath: opts?.file_path,
-    doubleClick: opts?.doubleClick,
-    $,
-    projectActions: redux.getActions("projects"),
-  });
-  return this;
-};
+  if ($.fn.process_smc_links != null) {
+    return;
+  }
+  // @ts-ignore
+  $.fn.process_smc_links = function (opts: Options) {
+    // @ts-ignore
+    processLinks(this, {
+      urlTransform: opts?.href_transform,
+      projectId: opts?.project_id,
+      filePath: opts?.file_path,
+      doubleClick: opts?.doubleClick,
+      $,
+      projectActions: redux.getActions("projects"),
+    });
+    return this;
+  };
+}

@@ -14,23 +14,28 @@ import { Editor, Range, Text, Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import React from "react";
 import { useIsMountedRef } from "@cocalc/frontend/app-framework";
-import { useCallback, useMemo, useState } from "react";
-import { Complete, Item } from "@cocalc/frontend/editors/markdown-input/complete";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Complete,
+  Item,
+} from "@cocalc/frontend/editors/markdown-input/complete";
 import { debounce } from "lodash";
 
 interface Options {
   editor: ReactEditor;
   insertMention: (Editor, string) => void;
-  matchingUsers: (search: string) => (string | JSX.Element)[];
+  matchingUsers: (search: string) => (string | React.JSX.Element)[];
+  isVisible?: boolean;
 }
 
 interface MentionsControl {
   onChange: () => void;
   onKeyDown: (event) => void;
-  Mentions: JSX.Element | undefined;
+  Mentions: React.JSX.Element | undefined;
 }
 
 export const useMentions: (Options) => MentionsControl = ({
+  isVisible,
   editor,
   insertMention,
   matchingUsers,
@@ -39,8 +44,14 @@ export const useMentions: (Options) => MentionsControl = ({
   const [search, setSearch] = useState("");
   const isMountedRef = useIsMountedRef();
 
+  useEffect(() => {
+    if (!isVisible && target) {
+      setTarget(undefined);
+    }
+  }, [isVisible]);
+
   const items: Item[] = useMemo(() => {
-    return matchingUsers(search);
+    return matchingUsers(search.toLowerCase());
   }, [search]);
 
   const onKeyDown = useCallback(
@@ -49,6 +60,8 @@ export const useMentions: (Options) => MentionsControl = ({
       switch (event.key) {
         case "ArrowDown":
         case "ArrowUp":
+        case "ArrowLeft":
+        case "ArrowRight":
         case "Tab":
         case "Enter":
           event.preventDefault();
@@ -59,7 +72,7 @@ export const useMentions: (Options) => MentionsControl = ({
           break;
       }
     },
-    [target]
+    [target],
   );
 
   // we debounce this onChange, since it is VERY expensive and can make typing feel
@@ -81,6 +94,8 @@ export const useMentions: (Options) => MentionsControl = ({
           }
           if (Text.isText(current)) {
             const charBeforeCursor = current.text[focus.offset - 1];
+            //  keep use of this consistent with before stuff in frontend/editors/markdown-input/component.tsx
+            const charBeforeBefore = current.text[focus.offset - 2]?.trim();
             let afterMatch, beforeMatch, beforeRange, search;
             if (charBeforeCursor == "@") {
               beforeRange = {
@@ -105,7 +120,13 @@ export const useMentions: (Options) => MentionsControl = ({
               const afterText = Editor.string(editor, afterRange);
               afterMatch = afterText.match(/^(\s|$)/);
             }
-            if (charBeforeCursor == "@" || (beforeMatch && afterMatch)) {
+            if (
+              (charBeforeCursor == "@" &&
+                (!charBeforeBefore ||
+                  charBeforeBefore == "(" ||
+                  charBeforeBefore == "[")) ||
+              (beforeMatch && afterMatch)
+            ) {
               setTarget(beforeRange);
               setSearch(search);
               return;
@@ -118,7 +139,7 @@ export const useMentions: (Options) => MentionsControl = ({
         console.log("WARNING -- slate.mentions", err);
       }
     }, 250),
-    [editor]
+    [editor],
   );
 
   const renderMentions = useCallback(() => {

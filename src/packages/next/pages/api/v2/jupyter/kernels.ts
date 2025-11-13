@@ -10,9 +10,7 @@ import getParams from "lib/api/get-params";
 import getAccountId from "lib/account/get-account";
 
 export default async function handle(req, res) {
-  const { project_id } = getParams(req, {
-    allowGet: true,
-  });
+  const { project_id } = getParams(req);
   const account_id = project_id != null ? await getAccountId(req) : undefined;
   try {
     res.json({

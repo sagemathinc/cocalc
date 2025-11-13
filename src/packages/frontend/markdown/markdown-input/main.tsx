@@ -1,51 +1,47 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // 3rd Party Libraries
-import { markdown_to_html } from "../index";
-import { Button, ButtonToolbar, FormControl, FormGroup } from "react-bootstrap";
-import { Tip } from "@cocalc/frontend/components/tip";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Button, Input, Space } from "antd";
+import { FormattedMessage, useIntl } from "react-intl";
 
 // Internal Libraries
 import {
-  Component,
   React,
-  ReactDOM,
-  rclass,
   redux,
-  rtypes,
+  useEffect,
+  useRedux,
+  useState,
 } from "@cocalc/frontend/app-framework";
+import { A } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { Tip } from "@cocalc/frontend/components/tip";
+import { labels } from "@cocalc/frontend/i18n";
 
 // Sibling Libraries
-import * as info from "./info";
+import { COLORS } from "@cocalc/util/theme";
+import { markdown_to_html } from "../index";
 import { MarkdownWidgetActions } from "./actions";
+import * as info from "./info";
 import { MarkdownWidgetStore, MarkdownWidgetStoreState } from "./store";
 
 export function init(): void {
-  if (redux.hasActions(info.name)) {
+  if (redux.hasActions(info.REDUX_NAME)) {
     return;
   }
   redux.createStore<MarkdownWidgetStoreState, MarkdownWidgetStore>(
-    info.name,
-    MarkdownWidgetStore
+    info.REDUX_NAME,
+    MarkdownWidgetStore,
   );
   redux.createActions<MarkdownWidgetStoreState, MarkdownWidgetActions>(
-    info.name,
-    MarkdownWidgetActions
+    info.REDUX_NAME,
+    MarkdownWidgetActions,
   );
 }
 
-// separate string, in particular the `>` char is ambiguous in newer TSX
-export const TIP_TEXT = `\
-You may enter (Github flavored) markdown here. In particular, use #
-for headings, > for block quotes, *'s for italic text, **'s for bold
-text, - at the beginning of a line for lists, back ticks \` for code,
-and URL's will automatically become links.`;
-
-interface ReactProps {
+interface MarkdownInputProps {
   autoFocus?: boolean;
   persist_id?: string; // A unique id to identify the input. Required if you want automatic persistence
   attach_to?: string; // Removes record when given store name is destroyed. Only use with persist_id
@@ -62,215 +58,180 @@ interface ReactProps {
   hide_edit_button?: boolean;
 }
 
-interface ReduxProps {
+interface MarkdownInput {
   open_inputs: Map<any, any>;
 }
 
-interface MarkdownInputState {
-  editing?: boolean;
-  value: string;
-}
+export function MarkdownInput({
+  autoFocus,
+  persist_id,
+  attach_to,
+  default_value = "",
+  editing: initEditing = false,
+  save_disabled,
+  on_change,
+  on_save,
+  on_edit,
+  on_cancel,
+  rows,
+  placeholder,
+  rendered_style,
+  hide_edit_button,
+}: MarkdownInputProps) {
+  const intl = useIntl();
 
-class MarkdownInput0 extends Component<
-  ReactProps & ReduxProps,
-  MarkdownInputState
-> {
-  displayName: "WidgetMarkdownInput";
+  const open_inputs = useRedux([info.REDUX_NAME, "open_inputs"]);
 
-  constructor(props) {
-    super(props);
-    this.state = this.getInitialState();
-  }
+  const actions = redux.getActions<
+    MarkdownWidgetStoreState,
+    MarkdownWidgetActions
+  >(info.REDUX_NAME);
 
-  static reduxProps() {
-    return {
-      markdown_inputs: {
-        open_inputs: rtypes.immutable.Map.isRequired,
-      },
-    };
-  }
+  const [value, setValue] = useState<string>("");
+  const [editing, setEditing] = useState<boolean>(initEditing);
 
-  getInitialState = () => {
-    let value = this.props.default_value ?? "";
-    let editing = false;
-    if (
-      this.props.persist_id &&
-      this.props.open_inputs.has(this.props.persist_id)
-    ) {
-      value = this.props.open_inputs.get(this.props.persist_id);
-      editing = true;
+  useEffect(() => {
+    if (persist_id && open_inputs.has(persist_id)) {
+      setValue(open_inputs.get(persist_id));
+      setEditing(true);
     }
 
-    return {
-      editing,
-      value,
-    };
-  };
+    if (attach_to && !open_inputs.has(persist_id)) {
+      redux.getStore(attach_to).on("destroy", clear_persist);
+    }
+  }, []);
 
-  getActions() {
-    return redux.getActions<MarkdownWidgetStoreState, MarkdownWidgetActions>(
-      info.name
-    );
-  }
-
-  componentDidMount() {
-    if (
-      this.props.attach_to &&
-      !this.props.open_inputs.has(this.props.persist_id)
-    ) {
-      (redux as any)
-        .getStore(this.props.attach_to)
-        .on("destroy", this.clear_persist);
+  function persist_value(next) {
+    if (persist_id != null) {
+      actions.set_value(persist_id, next ?? value);
     }
   }
 
-  componentWillUnmount() {
-    if (
-      this.props.persist_id != null &&
-      !(this.state.editing || this.props.editing)
-    ) {
-      this.clear_persist();
+  function clear_persist() {
+    if (persist_id != null) {
+      actions.clear(persist_id);
     }
   }
 
-  persist_value = (value) => {
-    if (this.props.persist_id != null) {
-      this.getActions().set_value(
-        this.props.persist_id,
-        value ?? this.state.value
-      );
+  function onChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const next = e.target.value;
+    if (typeof on_change === "function") {
+      on_change(next);
     }
-  };
+    persist_value(next);
+    setValue(next);
+  }
 
-  clear_persist = () => {
-    if (this.props.persist_id != null) {
-      this.getActions().clear(this.props.persist_id);
+  function edit() {
+    if (typeof on_edit === "function") {
+      on_edit(value);
     }
-  };
+    if (!editing) {
+      setEditing(true);
+    }
+    setValue(default_value ?? "");
+  }
 
-  set_value = (value) => {
-    if (typeof this.props.on_change === "function") {
-      this.props.on_change(value);
+  function cancel() {
+    if (typeof on_cancel === "function") {
+      on_cancel(value);
     }
-    this.persist_value(value);
-    this.setState({ value });
-  };
+    clear_persist();
+    if (editing) {
+      setEditing(false);
+    }
+  }
 
-  edit = () => {
-    if (typeof this.props.on_edit === "function") {
-      this.props.on_edit(this.state.value);
+  function save() {
+    if (typeof on_save === "function") {
+      on_save(value);
     }
-    if (this.props.editing == null) {
-      this.setState({ editing: true });
+    clear_persist();
+    if (editing) {
+      setEditing(false);
     }
-    this.setState({ value: this.props.default_value ?? "" });
-  };
+  }
 
-  cancel = () => {
-    if (typeof this.props.on_cancel === "function") {
-      this.props.on_cancel(this.state.value);
-    }
-    this.clear_persist();
-    if (this.props.editing == null) {
-      this.setState({ editing: false });
-    }
-  };
-
-  save = () => {
-    if (typeof this.props.on_save === "function") {
-      this.props.on_save(this.state.value);
-    }
-    this.clear_persist();
-    if (this.props.editing == null) {
-      this.setState({ editing: false });
-    }
-  };
-
-  keydown = (e) => {
+  function keydown(e) {
     if (e.keyCode === 27) {
-      this.cancel();
-    } else if (e.keyCode === 13 && e.shiftKey) {
-      this.save();
+      cancel();
+    } else if (e.keyCode === 13) {
+      if (rows == 1 || e.shiftKey) {
+        save();
+      }
     }
-  };
+  }
 
-  to_html = () => {
-    if (this.props.default_value) {
-      const html = markdown_to_html(this.props.default_value);
+  function to_html() {
+    if (default_value) {
+      const html = markdown_to_html(default_value);
       return { __html: html };
     } else {
       return { __html: "" };
     }
-  };
+  }
 
-  render() {
-    if (this.state.editing || this.props.editing) {
-      const tip = <span>{TIP_TEXT}</span>;
-      return (
-        <div>
-          <form onSubmit={this.save} style={{ marginBottom: "-20px" }}>
-            <FormGroup>
-              <FormControl
-                autoFocus={this.props.autoFocus ?? true}
-                ref="input"
-                componentClass="textarea"
-                rows={this.props.rows ?? 4}
-                placeholder={this.props.placeholder}
-                value={this.state.value}
-                onChange={() => {
-                  const value = ReactDOM.findDOMNode(this.refs.input)?.value;
-                  if (value == null) return;
-                  this.set_value(value);
-                }}
-                onKeyDown={this.keydown}
-              />
-            </FormGroup>
-          </form>
-          <div style={{ paddingTop: "8px", color: "#666" }}>
-            <Tip title="Use Markdown" tip={tip}>
-              Format using{" "}
-              <a href={info.guide_link} target="_blank">
-                Markdown
-              </a>
-            </Tip>
-          </div>
-          <ButtonToolbar style={{ paddingBottom: "5px" }}>
-            <Button
-              key="save"
-              bsStyle="success"
-              onClick={this.save}
-              disabled={
-                this.props.save_disabled ??
-                this.state.value === this.props.default_value
-              }
-            >
-              <Icon name="edit" /> Save
-            </Button>
-            <Button key="cancel" onClick={this.cancel}>
-              Cancel
-            </Button>
-          </ButtonToolbar>
+  function renderTip() {
+    const tip = intl.formatMessage({
+      id: "markdown-input.tooltip.tip",
+      defaultMessage: `\
+      You may enter (Github flavored) markdown here. In particular, use #
+      for headings, > for block quotes, *'s for italic text, **'s for bold
+      text, - at the beginning of a line for lists, back ticks \` for code,
+      and URL's will automatically become links.`,
+    });
+    return (
+      <Tip title="Use Markdown" tip={tip}>
+        <FormattedMessage
+          id="markdown-input.tooltip.info"
+          defaultMessage={`Format using {A}`}
+          values={{ A: <A href={info.guide_link}>Markdown</A> }}
+        />
+      </Tip>
+    );
+  }
+
+  if (editing) {
+    return (
+      <div>
+        <Input.TextArea
+          autoFocus={autoFocus ?? true}
+          rows={rows ?? 4}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          onKeyDown={keydown}
+        />
+        <div style={{ paddingTop: "8px", color: COLORS.GRAY_M }}>
+          {renderTip()}
         </div>
-      );
-    } else {
-      let style;
-      const html = this.to_html();
-      if (html?.__html) {
-        style = this.props.rendered_style;
-      } else {
-        style = undefined;
-      }
-      return (
-        <div>
-          <div dangerouslySetInnerHTML={html} style={style} />
-          {!this.props.hide_edit_button ? (
-            <Button onClick={this.edit}>Edit</Button>
-          ) : undefined}
-        </div>
-      );
-    }
+        <Space style={{ paddingBottom: "5px" }}>
+          <Button key="cancel" onClick={cancel}>
+            {intl.formatMessage(labels.cancel)}
+          </Button>
+          <Button
+            key="save"
+            type="primary"
+            onClick={save}
+            disabled={save_disabled ?? value === default_value}
+          >
+            <Icon name="save" /> {intl.formatMessage(labels.save)}
+          </Button>
+        </Space>
+      </div>
+    );
+  } else {
+    const html = to_html();
+    const style = html?.__html ? rendered_style : undefined;
+    return (
+      <div>
+        <div dangerouslySetInnerHTML={html} style={style} />
+        {!hide_edit_button ? (
+          <Button onClick={edit}>
+            <Icon name="edit" /> {intl.formatMessage(labels.edit)}
+          </Button>
+        ) : undefined}
+      </div>
+    );
   }
 }
-
-const MarkdownInput = rclass<ReactProps>(MarkdownInput0);
-export { MarkdownInput };

@@ -1,85 +1,24 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Row } from "antd";
-import React, { useEffect } from "react";
+import { Button, Flex, Modal } from "antd";
+import { useEffect, useState } from "react";
+import { useIntl } from "react-intl";
 
-import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import {
-  A,
-  Icon,
-  Loading,
-  Paragraph,
-  Title,
-} from "@cocalc/frontend/components";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { A, Loading, Paragraph, Title } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { labels } from "@cocalc/frontend/i18n";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { COLORS } from "@cocalc/util/theme";
 import { NotificationFilter } from "./mentions/types";
 import { NotificationList } from "./notification-list";
 import { NotificationNav } from "./notification-nav";
 
-const OUTER_STYLE: CSS = {
-  display: "flex",
-  flex: "1",
-  flexDirection: "column",
-  height: "100%",
-  margin: "0",
-  overflowY: "hidden",
-  overflowX: "auto",
-} as const;
-
-const INNER_STYLE: CSS = {
-  display: "flex",
-  height: "100%",
-  flex: "1",
-  flexDirection: "column",
-  margin: "0px auto",
-  padding: "0 10px",
-  maxWidth: "1200px",
-  overflow: "hidden",
-} as const;
-
-const CONTENT_STYLE: CSS = {
-  display: "flex",
-  flex: "1 1 0",
-  flexDirection: "row",
-  height: "100%",
-  overflow: "hidden",
-};
-
-const NAV_COL_STYLE: CSS = {
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-  flex: "1 1 0",
-  overflow: "auto",
-};
-
-const NAV_STYLE: CSS = {
-  width: "200px",
-  margin: "0",
-  borderInlineEnd: "none",
-} as const;
-
-const LIST_CONTAINER_STYLE: CSS = {
-  flex: "1 1 0",
-  display: "flex",
-  flexDirection: "column",
-  height: "100%",
-  overflowX: "hidden",
-  overflowY: "auto",
-} as const;
-
-const LIST_STYLE: CSS = {
-  flex: "1 1 0",
-  height: "100%",
-  overflow: "auto",
-  margin: "0",
-} as const;
-
-export const NotificationPage: React.FC<{}> = () => {
+export function NotificationPage() {
+  const intl = useIntl();
   const account_id = useTypedRedux("account", "account_id");
   const mentions = useTypedRedux("mentions", "mentions");
   const news = useTypedRedux("news", "news");
@@ -90,32 +29,38 @@ export const NotificationPage: React.FC<{}> = () => {
     Fragment.set({ page: filter });
   }, [filter]);
 
+  const [showHelp, setShowHelp] = useState<boolean>(false);
+
   function renderExplanation() {
     return (
-      <Paragraph
-        ellipsis={{
-          rows: 1,
-          expandable: true,
-          symbol: <strong>read more</strong>,
-        }}
-        style={{ color: COLORS.GRAY_D, flex: "0 0 auto" }}
-      >
-        Global news or someone used @your_name to explicitly mention you as a
-        collaborator. This could have happened in a{" "}
-        <A href="https://doc.cocalc.com/chat.html">Chatroom</A>, in the context
-        of{" "}
-        <A href="https://doc.cocalc.com/teaching-interactions.html#mention-collaborators-in-chat">
-          teaching
-        </A>
-        , or{" "}
-        <A href="https://doc.cocalc.com/markdown.html#mentions">
-          when editing files.
-        </A>{" "}
-        For example, when editing text in a Jupyter notebook or whiteboard, type
-        an @ symbol, then select the name of a collaborator, and they will
-        receive an email telling them that you mentioned them. You can also
-        @mention yourself for testing or to make it easy to find something
-        later.
+      <Paragraph style={{ color: COLORS.GRAY_D, flex: "0 0 auto" }}>
+        {intl.formatMessage(
+          {
+            id: "notifications.page.intro",
+            description:
+              "The @ sign in front of a user name handle is used to notify someone else.",
+            defaultMessage: `This page contains messages, news or when someone used "@your_name" to explicitly mention you as a collaborator in a <A1>Chatroom</A1>,
+            in the context of <A2>teaching</A2>, or <A3>when editing files.</A3>
+            Messages are similar to email and allow you to send direct messages to any user of CoCalc,
+            with embedding images, markdown, LaTeX formulas, and handling of internal links.
+            When editing text in a Jupyter notebook or whiteboard,
+            type an @ symbol, then select the name of a collaborator,
+            and they will receive an email and be listed under mentions, telling them that
+            you mentioned them. You can also "@mention" yourself for testing or to make it
+            easy to find something later.`,
+          },
+          {
+            A1: (c) => <A href="https://doc.cocalc.com/chat.html">{c}</A>,
+            A2: (c) => (
+              <A href="https://doc.cocalc.com/teaching-interactions.html#mention-collaborators-in-chat">
+                {c}
+              </A>
+            ),
+            A3: (c) => (
+              <A href="https://doc.cocalc.com/markdown.html#mentions">{c}</A>
+            ),
+          },
+        )}
       </Paragraph>
     );
   }
@@ -126,38 +71,79 @@ export const NotificationPage: React.FC<{}> = () => {
     }
 
     return (
-      <Row style={CONTENT_STYLE} gutter={[20, 20]}>
-        <Col span={6} style={NAV_COL_STYLE}>
-          <NotificationNav
-            filter={filter}
-            on_click={redux.getActions("mentions").set_filter}
-            style={NAV_STYLE}
-          />
-        </Col>
-
-        <Col span={18} style={LIST_CONTAINER_STYLE}>
-          <NotificationList
-            account_id={account_id}
-            mentions={mentions}
-            news={news}
-            style={LIST_STYLE}
-            user_map={user_map}
-            filter={filter}
-          />
-        </Col>
-      </Row>
+      <Flex style={{ overflow: "hidden", flex: 1 }}>
+        <NotificationNav
+          filter={filter}
+          on_click={redux.getActions("mentions").set_filter}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            width: "200px",
+            overflowY: "auto",
+            marginRight: "10px",
+            // paddingRight = so more scrollbar friendly
+            paddingRight: "15px",
+          }}
+        />
+        <NotificationList
+          account_id={account_id}
+          mentions={mentions}
+          news={news}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            overflowY: "auto",
+          }}
+          user_map={user_map}
+          filter={filter}
+        />
+      </Flex>
     );
   }
 
   return (
-    <div style={OUTER_STYLE}>
-      <div style={INNER_STYLE}>
-        <Title level={2} style={{ textAlign: "center", flex: "0 0 auto" }}>
-          <Icon name="mail" /> Notifications
+    <div
+      className="smc-vfill"
+      style={{
+        padding: "0 30px 15px 30px",
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "center",
+        overflowY: "hidden",
+      }}
+    >
+      <div className="smc-vfill" style={{ maxWidth: "1400px" }}>
+        <Title
+          level={2}
+          style={{ textAlign: "center", flex: "0 0 auto", marginTop: "10px" }}
+        >
+          <Icon name="comments" style={{ marginRight: "10px" }} />{" "}
+          {intl.formatMessage(labels.messages_title)}
+          <Button
+            type="link"
+            style={{ fontSize: "12pt" }}
+            onClick={() => setShowHelp(true)}
+          >
+            <Icon name="question-circle" />
+          </Button>
         </Title>
-        {renderExplanation()}
         {renderContent()}
+        <Modal
+          width={600}
+          title={
+            <>
+              <Icon name="question-circle" />{" "}
+              {intl.formatMessage(labels.messages_title)}
+            </>
+          }
+          open={showHelp}
+          onCancel={() => setShowHelp(false)}
+          onOk={() => setShowHelp(false)}
+        >
+          {renderExplanation()}
+        </Modal>
       </div>
     </div>
   );
-};
+}

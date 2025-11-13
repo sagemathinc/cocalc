@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import React from "react";
@@ -20,7 +20,7 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
   if (listProperties == null) {
     return <></>;
   }
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
 
   v.push(
     <Checkbox
@@ -122,7 +122,7 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       style={{ color: "#666" }}
       onClick={() => {
         moveListItemUp(editor);
-        ReactEditor.focus(editor);
+        ReactEditor.focus(editor, false, true);
       }}
     >
       <Icon name={"arrow-up"} />
@@ -137,7 +137,7 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       style={{ color: "#666" }}
       onClick={() => {
         moveListItemDown(editor);
-        ReactEditor.focus(editor);
+        ReactEditor.focus(editor, false, true);
       }}
     >
       <Icon name={"arrow-down"} />

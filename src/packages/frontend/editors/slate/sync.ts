@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import * as CodeMirror from "codemirror";
@@ -39,7 +39,7 @@ export function slatePointToMarkdown(
   try {
     [node] = Editor.node(editor, point);
   } catch (err) {
-    console.warn(`slate -- invalid point ${JSON.stringify(point)} -- ${err}`);
+    // console.warn(`slate -- invalid point ${JSON.stringify(point)} -- ${err}`);
     // There is no guarantee that point is valid when this is called.
     return { index: -1, markdown: "" };
   }

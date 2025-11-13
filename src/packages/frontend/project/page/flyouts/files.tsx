@@ -1,11 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert, InputRef } from "antd";
 import { delay } from "awaiting";
-import { List } from "immutable";
+import { List, Map } from "immutable";
 import { debounce, fromPairs } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
@@ -35,7 +35,7 @@ import {
   DirectoryListingEntry,
   FileMap,
 } from "@cocalc/frontend/project/explorer/types";
-import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
+import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
 import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import {
@@ -55,9 +55,10 @@ import {
   FLYOUT_EXTRA_WIDTH_PX,
   FLYOUT_PADDING,
 } from "./consts";
-import { FileListItem, fileItemStyle } from "./file-list-item";
+import { FileListItem } from "./file-list-item";
 import { FilesBottom } from "./files-bottom";
 import { FilesHeader } from "./files-header";
+import { fileItemStyle } from "./utils";
 
 type PartialClickEvent = Pick<
   React.MouseEvent | React.KeyboardEvent,
@@ -93,22 +94,29 @@ export function FilesFlyout({
   flyoutWidth,
 }: {
   flyoutWidth: number;
-}): JSX.Element {
+}): React.JSX.Element {
   const {
     isRunning: projectIsRunning,
     project_id,
     actions,
+    manageStarredFiles,
   } = useProjectContext();
   const isMountedRef = useIsMountedRef();
-  const rootRef = useRef<HTMLDivElement>(null);
-  const refInput = useRef<InputRef>(null);
+  const rootRef = useRef<HTMLDivElement>(null as any);
+  const refInput = useRef<InputRef>(null as any);
   const [rootHeightPx, setRootHeightPx] = useState<number>(0);
   const [showCheckboxIndex, setShowCheckboxIndex] = useState<number | null>(
     null,
   );
   const current_path = useTypedRedux({ project_id }, "current_path");
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
-  const directoryListings = useTypedRedux({ project_id }, "directory_listings");
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
+  const directoryListings: Map<
+    string,
+    TypedMap<DirectoryListing> | null
+  > | null = useTypedRedux({ project_id }, "directory_listings")?.get(
+    compute_server_id,
+  );
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const activeFileSort: ActiveFileSort = useTypedRedux(
     { project_id },
@@ -123,12 +131,12 @@ export function FilesFlyout({
   const [mode, setMode] = useState<"open" | "select">("open");
   const [prevSelected, setPrevSelected] = useState<number | null>(null);
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
-  const [scollIdxHide, setScrollIdxHide] = useState<boolean>(false);
+  const [scrollIdxHide, setScrollIdxHide] = useState<boolean>(false);
   const [selectionOnMouseDown, setSelectionOnMouseDown] = useState<string>("");
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const disableUploads = student_project_functionality.disableUploads ?? false;
-  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const virtuosoRef = useRef<VirtuosoHandle>(null as any);
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `${project_id}::flyout::files::${current_path}`,
   });
@@ -136,7 +144,7 @@ export function FilesFlyout({
     return tab_to_path(activeTab);
   }, [activeTab]);
 
-  // copied roughly from directoy-selector.tsx
+  // copied roughly from directory-selector.tsx
   useEffect(() => {
     // Run the loop below every 30s until project_id or current_path changes (or unmount)
     // in which case loop stops.  If not unmount, then get new loops for new values.
@@ -180,7 +188,8 @@ export function FilesFlyout({
     // TODO this is an error, process it
     if (typeof filesStore === "string") return EMPTY_LISTING;
 
-    const files: DirectoryListing = filesStore.toJS();
+    const files: DirectoryListing | null = filesStore.toJS?.();
+    if (files == null) return EMPTY_LISTING;
     let activeFile: DirectoryListingEntry | null = null;
     compute_file_masks(files);
     const searchWords = search_split(file_search.trim().toLowerCase());
@@ -231,6 +240,21 @@ export function FilesFlyout({
           const aExt = a.name.split(".").pop() ?? "";
           const bExt = b.name.split(".").pop() ?? "";
           return aExt.localeCompare(bExt);
+        case "starred":
+          const pathA = path_to_file(current_path, a.name);
+          const pathB = path_to_file(current_path, b.name);
+          const starPathA = a.isdir ? `${pathA}/` : pathA;
+          const starPathB = b.isdir ? `${pathB}/` : pathB;
+          const starredA = manageStarredFiles.starred.includes(starPathA);
+          const starredB = manageStarredFiles.starred.includes(starPathB);
+
+          if (starredA && !starredB) {
+            return -1;
+          } else if (!starredA && starredB) {
+            return 1;
+          } else {
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+          }
         default:
           console.warn(`flyout/files: unknown sort column ${col}`);
           return 0;
@@ -249,7 +273,7 @@ export function FilesFlyout({
     }
 
     if (activeFileSort.get("is_descending")) {
-      procFiles.reverse(); // inplace op
+      procFiles.reverse(); // in-place op
     }
 
     const isEmpty = procFiles.length === 0;
@@ -355,7 +379,7 @@ export function FilesFlyout({
     })();
   }
 
-  if (directoryListings.get(current_path) == null) {
+  if (directoryListings?.get(current_path) == null) {
     (async () => {
       // Must happen in a different render loop, hence the delay, because
       // fetch can actually update the store in the same render loop.
@@ -392,6 +416,7 @@ export function FilesFlyout({
         actions?.open_file({
           path: fullPath,
           foreground,
+          explicit: true,
         });
       }
     }
@@ -442,7 +467,7 @@ export function FilesFlyout({
     window.getSelection()?.removeAllRanges();
     const file = directoryFiles[index];
 
-    // doubleclick straight to open file
+    // double click straight to open file
     if (e.detail === 2) {
       setPrevSelected(index);
       open(e, index);
@@ -565,10 +590,13 @@ export function FilesFlyout({
     // either select by scrolling (and only scrolling!) or by clicks
     const isSelected =
       scrollIdx != null
-        ? !scollIdxHide && index === scrollIdx
+        ? !scrollIdxHide && index === scrollIdx
         : checked_files.includes(
             path_to_file(current_path, directoryFiles[index].name),
           );
+    const fullPath = path_to_file(current_path, item.name);
+    const pathForStar = item.isdir ? `${fullPath}/` : fullPath;
+    const isStarred = manageStarredFiles.starred.includes(pathForStar);
     return (
       <FileListItem
         mode="files"
@@ -597,11 +625,17 @@ export function FilesFlyout({
           toggleSelected(index, item.name, nextState);
         }}
         checked_files={checked_files}
+        isStarred={isStarred}
+        onStar={(starState: boolean) => {
+          const normalizedPath =
+            item.isdir && !fullPath.endsWith("/") ? `${fullPath}/` : fullPath;
+          manageStarredFiles.setStarredPath(normalizedPath, starState);
+        }}
       />
     );
   }
 
-  function renderLoadingOrStartProject(): JSX.Element {
+  function renderLoadingOrStartProject(): React.JSX.Element {
     if (projectIsRunning) {
       return <Loading theme="medium" transparent />;
     } else {
@@ -629,8 +663,8 @@ export function FilesFlyout({
     }
   }
 
-  function renderListing(): JSX.Element {
-    const files = directoryListings.get(current_path);
+  function renderListing(): React.JSX.Element {
+    const files = directoryListings?.get(current_path);
     if (files == null) {
       return renderLoadingOrStartProject();
     }

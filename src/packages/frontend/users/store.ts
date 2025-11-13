@@ -1,16 +1,17 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import LRU from "lru-cache";
 import { fromJS } from "immutable";
-import { webapp_client } from "../webapp-client";
-import { Store, redux } from "../app-framework";
-import { UsersState } from "./types";
-import { actions } from "./actions";
+import LRU from "lru-cache";
+
+import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
+import { Store, redux } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { cmp } from "@cocalc/util/misc";
-import { isChatBot, chatBotName } from "@cocalc/frontend/account/chatbot";
+import { actions } from "./actions";
+import { UsersState } from "./types";
 
 export const DEFAULT_COLOR = "rgb(170,170,170)";
 
@@ -127,7 +128,7 @@ export class UsersStore extends Store<UsersState> {
       } else {
         return cmp(
           this.get_last_name(a.account_id),
-          this.get_last_name(b.account_id)
+          this.get_last_name(b.account_id),
         );
       }
     });

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Layout } from "antd";
@@ -16,7 +16,7 @@ export default function Home({ customize }) {
     <Customize value={customize}>
       <Head title={"Forgot your Password?"} />
       <Layout>
-        <Header page="sign-in" subPage="password-reset" />
+        <Header page="sign-in" />
         <Layout.Content style={{ backgroundColor: "white" }}>
           <PasswordReset />
           <Footer />

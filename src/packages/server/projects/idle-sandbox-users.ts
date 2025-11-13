@@ -25,7 +25,7 @@ export default async function idleSandboxUsers(
   }
   const idleUsers: string[] = [];
   const { users, last_active } = rows[0];
-  const now = new Date().valueOf();
+  const now = Date.now();
   const cutoff = now - idleTimeoutSeconds * 1000;
   const addToLastActive: string[] = []; // these got added to sandbox but no activity being tracked yet, so we initialize it.
   for (const account_id in users ?? {}) {

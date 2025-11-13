@@ -6,6 +6,7 @@ import { Alert } from "antd";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
 import type { JupyterActions } from "./browser-actions";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 interface Props {
   name: string; // redux name
@@ -23,7 +24,7 @@ export default function KernelWarning({ name, actions }: Props) {
   }
   return (
     <Alert
-      style={{ margin: "5px auto", width: "800px", maxWidth: "100%" }}
+      banner
       message={
         <div>
           <A
@@ -32,7 +33,7 @@ export default function KernelWarning({ name, actions }: Props) {
           >
             Docs...
           </A>
-          {kernelError}
+          <StaticMarkdown value={kernelError} />
         </div>
       }
       type="warning"

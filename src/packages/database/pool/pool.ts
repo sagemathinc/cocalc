@@ -1,15 +1,15 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Client, Pool, PoolClient } from "pg";
 import { syncSchema } from "@cocalc/database/postgres/schema";
-
 import {
   pgdatabase as database,
   pghost as host,
   pguser as user,
+  pgssl as ssl,
 } from "@cocalc/backend/data";
 import { getLogger } from "@cocalc/backend/logger";
 import { STATEMENT_TIMEOUT_MS } from "../consts";
@@ -28,7 +28,7 @@ export default function getPool(cacheTime?: CacheTime): Pool {
   }
   if (pool == null) {
     L.debug(
-      `creating a new Pool(host:${host}, database:${database}, user:${user}, statement_timeout:${STATEMENT_TIMEOUT_MS}ms)`,
+      `creating a new Pool(host:${host}, database:${database}, user:${user}, ssl:${JSON.stringify(ssl)} statement_timeout:${STATEMENT_TIMEOUT_MS}ms)`,
     );
     pool = new Pool({
       password: dbPassword(),
@@ -38,6 +38,14 @@ export default function getPool(cacheTime?: CacheTime): Pool {
       statement_timeout: STATEMENT_TIMEOUT_MS, // fixes https://github.com/sagemathinc/cocalc/issues/6014
       // the test suite assumes small pool, or there will be random failures sometimes (?)
       max: process.env.PGDATABASE == TEST ? 2 : undefined,
+      ssl,
+    });
+
+    pool.on("error", (err: Error) => {
+      L.debug("WARNING: Unexpected error on idle client in PG pool", {
+        err: err.message,
+        stack: err.stack,
+      });
     });
     const end = pool.end.bind(pool);
     pool.end = async () => {
@@ -48,6 +56,10 @@ export default function getPool(cacheTime?: CacheTime): Pool {
   return pool;
 }
 
+// CRITICAL -- the caller *must* call client.release on the client
+// that is returned from getTransactionClient()!  E.g., for unit testing
+// if you don't do this  you exhaust the limit of 2 on the pool size,
+// (see above) and everything hangs!
 export async function getTransactionClient(): Promise<PoolClient> {
   const client = await getPoolClient();
   try {
@@ -66,7 +78,7 @@ export async function getPoolClient(): Promise<PoolClient> {
 }
 
 export function getClient(): Client {
-  return new Client({ password: dbPassword(), user, host, database });
+  return new Client({ password: dbPassword(), user, host, database, ssl });
 }
 
 // This is used for testing.  It ensures the schema is loaded and
@@ -92,6 +104,13 @@ export async function initEphemeralDatabase({
     host,
     database: "smc",
     statement_timeout: STATEMENT_TIMEOUT_MS,
+    ssl,
+  });
+  db.on("error", (err: Error) => {
+    L.debug("WARNING: Unexpected error on idle client in PG pool", {
+      err: err.message,
+      stack: err.stack,
+    });
   });
   const { rows } = await db.query(
     "SELECT COUNT(*) AS count FROM pg_catalog.pg_database WHERE datname = $1",
@@ -114,6 +133,12 @@ export async function initEphemeralDatabase({
 
 async function dropAllData() {
   const pool = getPool();
+  pool.on("error", (err: Error) => {
+    L.debug("WARNING: Unexpected error on idle client in PG pool", {
+      err: err.message,
+      stack: err.stack,
+    });
+  });
   if (pool?.["options"]?.database != TEST) {
     // safety check!
     throw Error(

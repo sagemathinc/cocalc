@@ -4,11 +4,15 @@ Welcome to Node.js v18.17.1.
 Type ".help" for more information.
 >
 
-await require('./dist/compute/cloud/google-cloud/create-image').createImages({}); await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
+await require('./dist/compute/cloud/google-cloud/create-image').createImages({});
+
+await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({filter:{prod:false}})
 
 
+images = require('./dist/compute/images'); a = require('./dist/compute/cloud/google-cloud/create-image');
 
-a = require('./dist/compute/cloud/google-cloud/create-image')
+(await images.getImages({noCache:true}))['jupyterhub']
+await a.createImages({image:"jupyterhub"});
 
 await a.createImages({image:"python", arch:'x86_64'})
 
@@ -20,17 +24,20 @@ await a.createImages({image:"cuda"})
 
 await a.createImages({image:"ollama"})
 
+await a.createImages({image:"julia", tag:'1.9.4'});
+
 await a.createImages({image:"sagemath", arch:'x86_64'});
 
 
 await require('./dist/compute/cloud/google-cloud/create-image').createImages({gpu:true})
 
-// (Danger) This just creates ALL images in parallel:
+// (OCanger) This just creates ALL images in parallel:
 await require('./dist/compute/cloud/google-cloud/create-image').createImages({})
 
 a = require('./dist/compute/cloud/google-cloud/images')
 {sourceImage} = await a.getNewestSourceImage({image:'python',test:true})
-await a.setImageLabel({key:'prod',value:true, name:sourceImage})
+
+await a.setImageLabels({name:sourceImage, labels:{prod:true}})
 
 
 
@@ -42,7 +49,14 @@ await require('./dist/compute/cloud/google-cloud/images').labelSourceImages({fil
 
 */
 
-import { imageName, getImagesClient } from "./images";
+import {
+  imageExists,
+  deleteImage,
+  getAllImages,
+  imageName,
+  getImagesClient,
+  setImageLabels,
+} from "./images";
 import getLogger from "@cocalc/backend/logger";
 import createInstance from "./create-instance";
 import { getSerialPortOutput, deleteInstance, stopInstance } from "./client";
@@ -58,27 +72,25 @@ import getInstance from "./get-instance";
 import type {
   Architecture,
   GoogleCloudConfiguration,
-  ImageName,
-  CudaVersion,
 } from "@cocalc/util/db-schema/compute-servers";
-import {
-  getMinDiskSizeGb,
-  IMAGES,
-  DOCKER_USER,
-} from "@cocalc/util/db-schema/compute-servers";
+import { makeValidGoogleName } from "@cocalc/util/db-schema/compute-servers";
+import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import { appendFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { getTag } from "@cocalc/server/compute/cloud/startup-script";
+import { getImages, Images } from "@cocalc/server/compute/images";
 
 const logger = getLogger("server:compute:google-cloud:create-image");
 
 interface Options {
-  image?: ImageName;
+  image?: string;
   tag?: string;
   noDelete?: boolean;
   noParallel?: boolean;
   gpu?: boolean;
   arch?: Architecture;
+  IMAGES?: Images;
+  force?: boolean;
 }
 
 async function createAllImages(opts) {
@@ -87,32 +99,47 @@ async function createAllImages(opts) {
   }
   const t0 = Date.now();
 
+  if (opts.IMAGES == null) {
+    throw Error("IMAGES must be set");
+  }
+  const toBuild: string[] = [];
+  for (const image in opts.IMAGES) {
+    const x = opts.IMAGES[image];
+    if (x.disabled || x.system) {
+      continue;
+    }
+    toBuild.push(image);
+  }
+
   let names: string[] = [];
   if (opts.noParallel) {
     // serial
-    for (const image in IMAGES) {
+    for (const image of toBuild) {
       names = names.concat(await build(image));
     }
   } else {
-    for (const r of await Promise.all(Object.keys(IMAGES).map(build))) {
+    for (const r of await Promise.all(toBuild.map(build))) {
       names = names.concat(r);
     }
   }
   console.log("CREATED", names);
   console.log("DONE", (Date.now() - t0) / 1000 / 60, "minutes");
   return names;
-
-  return names;
 }
 
 export async function createImages({
   image,
-  tag = "",
+  tag,
   noDelete,
   noParallel,
   gpu,
   arch,
+  IMAGES,
+  force,
 }: Options = {}): Promise<string[]> {
+  // we use getImages({noCache:true}) to force updating the images before doing a build,
+  // since this is when it matters (and this is rare).
+  IMAGES = IMAGES ?? (await getImages({ noCache: true }));
   if (image == null) {
     // create all types
     return await createAllImages({
@@ -121,6 +148,7 @@ export async function createImages({
       noParallel,
       gpu,
       arch,
+      IMAGES,
     });
   }
 
@@ -141,7 +169,7 @@ export async function createImages({
       maxTimeMinutes,
       arch,
     }: {
-      image: ImageName;
+      image: string;
       configuration: GoogleCloudConfiguration;
       startupScript: string;
       sourceImage: string;
@@ -154,10 +182,24 @@ export async function createImages({
         console.log("Skipping ", arch);
         return;
       }
-      if (image == null) {
-        throw Error("bug -- image must not be null");
+      if (!image) {
+        throw Error("bug -- image must be specified");
       }
-      const name = await imageName({ image, date: new Date(), tag, arch });
+      if (!configuration.tag) {
+        throw Error("bug -- configuration.tag must be specified");
+      }
+      if (!arch) {
+        throw Error("bug -- arch must be specified");
+      }
+      const name = await imageName({
+        image,
+        tag: configuration.tag,
+        arch,
+      });
+      if (!force && (await imageExists(name))) {
+        console.log(name, " -- image already exists, so not building it");
+        return;
+      }
       console.log("logging to ", logFile(name));
       await logToFile(name, { arch, configuration, sourceImage });
       let zone = "";
@@ -178,6 +220,18 @@ export async function createImages({
       });
       await logToFile(name, "createImage: create image from instance");
       await createImageFromInstance({ zone, name, maxTimeMinutes });
+      await setImageLabels({
+        name,
+        labels: {
+          image: makeValidGoogleName(image),
+          tag: makeValidGoogleName(configuration.tag),
+          arch: makeValidGoogleName(arch),
+          gpu: gpu ? "true" : null,
+        },
+      });
+      // force updating the list of google cloud images (in database), since we just
+      // changed them.  This of course only impacts the server we are running this on!
+      await getAllImages({ noCache: true });
       if (!noDelete) {
         await logToFile(name, "createImage: delete the instance");
         await deleteInstance({ zone, name });
@@ -186,7 +240,7 @@ export async function createImages({
       }
       names.push(name);
     }
-    const configs = getConf(image, gpu);
+    const configs = getConf({ image, gpu, IMAGES, tag });
     if (noParallel) {
       // serial
       for (const config of configs) {
@@ -214,7 +268,7 @@ export async function createImages({
 }
 
 interface BuildConfig {
-  image: ImageName;
+  image: string;
   configuration: GoogleCloudConfiguration;
   startupScript: string;
   maxTimeMinutes: number;
@@ -222,27 +276,47 @@ interface BuildConfig {
   sourceImage: string;
 }
 
-function getConf(image: ImageName, gpu?: boolean): BuildConfig[] {
+function getConf({
+  image,
+  gpu,
+  IMAGES,
+  tag,
+}: {
+  image: string;
+  gpu?: boolean;
+  IMAGES: Images;
+  tag?: string;
+}): BuildConfig[] {
   const data = IMAGES[image];
+  console.log({ image, data });
   if (gpu != null && gpu != data.gpu) {
     // skip.
     return [];
   }
   if (data.gpu) {
-    const { cudaVersion } = data;
-    return [createBuildConfiguration({ image, arch: "x86_64", cudaVersion })];
+    return [createBuildConfiguration({ image, arch: "x86_64", IMAGES, tag })];
   } else {
     return [
-      createBuildConfiguration({ image, arch: "x86_64" }),
-      createBuildConfiguration({ image, arch: "arm64" }),
+      createBuildConfiguration({ image, arch: "x86_64", IMAGES, tag }),
+      createBuildConfiguration({ image, arch: "arm64", IMAGES, tag }),
     ];
   }
 }
 
-function getSourceImage(arch: Architecture) {
-  return `projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-${
-    arch == "arm64" ? "arm64-" : ""
-  }v20230829`;
+function getSourceImage(arch: Architecture, IMAGES: Images) {
+  const version = IMAGES["google-cloud"]?.["base_image"]?.[arch];
+  if (version) {
+    return version;
+  }
+
+  // hard coded fallback:
+  // ubuntu-2404-noble-arm64-v20241115
+  // ubuntu-2404-noble-amd64-v20241115
+  const GOOGLE_CLOUD_UBUNTU_VERSION = "20241115";
+
+  return `projects/ubuntu-os-cloud/global/images/ubuntu-2404-noble-${
+    arch == "arm64" ? "arm" : "amd"
+  }64-v${GOOGLE_CLOUD_UBUNTU_VERSION}`;
 }
 
 const LOGDIR = "logs";
@@ -337,8 +411,19 @@ async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
     name,
     sourceDisk: `/zones/${zone}/disks/${name}`,
   };
-  logger.debug("create ", { imageResource });
 
+  if (await imageExists(name)) {
+    // this should be rare, but we support getting into this situation
+    // via the force option.
+    await logToFile(
+      name,
+      "createImageFromInstance: image exists, so deleting it before creating new version of it",
+    );
+    await deleteImage(name);
+  }
+  await logToFile(name, "createImageFromInstance: should now not exist");
+
+  await logToFile(name, "createImageFromInstance: ", { imageResource });
   await client.insert({
     project: projectId,
     imageResource,
@@ -358,7 +443,12 @@ async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
       return;
     }
     n = Math.min(15000, n * 1.3);
-    logger.debug("waiting ", n / 1000, "seconds for image to be created...");
+    await logToFile(
+      name,
+      "createImageFromInstance: waiting ",
+      n / 1000,
+      "seconds for image to be created...",
+    );
     await delay(n);
   }
   throw Error(`image creation did not finish -- ${name}`);
@@ -366,27 +456,37 @@ async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
 
 function createBuildConfiguration({
   image,
-  arch = "x86_64",
-  cudaVersion = "12.3",
+  arch,
+  IMAGES,
+  tag,
 }: {
-  image: ImageName;
+  image: string;
   arch: Architecture;
-  cudaVersion?: CudaVersion;
+  IMAGES: Images;
+  tag?: string;
 }): BuildConfig {
-  const tag = getTag(image);
-  const { label, docker, gpu } = IMAGES[image] ?? {};
+  tag = getTag({ image, IMAGES, tag });
+  const tag_filesystem = getTag({
+    image: "filesystem",
+    IMAGES,
+  });
+  const { label, package: pkg, gpu } = IMAGES[image] ?? {};
   logger.debug("createBuildConfiguration", {
     image,
     label,
-    docker,
+    pkg,
     gpu,
-    cudaVersion,
+    tag,
+    tag_filesystem,
   });
-  if (!docker) {
+  if (!pkg) {
     throw Error(`unknown image '${image}'`);
   }
-  const maxTimeMinutes = gpu ? 120 : 45;
+  const maxTimeMinutes = gpu ? 120 : 90;
   const configuration = {
+    image,
+    tag,
+    tag_filesystem,
     ...({
       cloud: "google-cloud",
       externalIp: true,
@@ -395,7 +495,7 @@ function createBuildConfiguration({
       // SSD is hugely better in terms of speeding things up, since we're basically
       // just extracting/copying files around.
       diskType: "pd-ssd",
-      diskSizeGb: getMinDiskSizeGb({ image }),
+      diskSizeGb: getMinDiskSizeGb({ configuration: { image }, IMAGES }),
       maxRunDurationSeconds: 60 * maxTimeMinutes,
     } as const),
     /*
@@ -409,21 +509,29 @@ function createBuildConfiguration({
           machineType: "n2-standard-8",
         } as const)
       : arch == "x86_64"
-      ? ({
-          region: "us-east1",
-          zone: "us-east1-b",
-          machineType: "c2-standard-4",
-        } as const)
-      : ({
-          region: "us-central1",
-          zone: "us-central1-a",
-          machineType: "t2a-standard-4",
-        } as const)),
+        ? ({
+            region: "us-east1",
+            zone: "us-east1-b",
+            machineType: "c2-standard-4",
+          } as const)
+        : ({
+            region: "us-central1",
+            zone: "us-central1-a",
+            machineType: "t2a-standard-4",
+          } as const)),
   } as const;
+
+  // IMPORTANT SECURITY NOTE: Do *NOT* install microk8s, even for an image
+  // that uses it. Though it saves time (e.g., 30s), it likely also sets up
+  // secret keys that would be a major security vulnerability, i.e., two kubernetes
+  // VM's made from the same image have the same keys. So don't do that.
 
   const startupScript = `
 #!/bin/bash
 set -ev
+
+apt-get update
+apt-get upgrade -y
 
 # Install docker daemon and client
 ${installDocker()}
@@ -437,16 +545,16 @@ docker system prune -a -f
 # Install nodejs
 ${installNode()}
 
-${installCoCalc(arch)}
+${installCoCalc({ IMAGES })}
 
 # Pre-pull filesystem Docker container
-docker pull ${DOCKER_USER}/filesystem
+docker pull ${IMAGES["filesystem"].package}:${tag_filesystem}
 
 # Pre-pull compute Docker container
-docker pull ${docker}:${tag}
+docker pull ${pkg}:${tag}
 
 # On GPU nodes also install CUDA drivers (which takes a while)
-${gpu ? installCuda(cudaVersion) : ""}
+${gpu ? installCuda() : ""}
 
 df -h /
 sync
@@ -458,6 +566,6 @@ sync
     startupScript,
     maxTimeMinutes,
     arch,
-    sourceImage: getSourceImage(arch),
+    sourceImage: getSourceImage(arch, IMAGES),
   } as const;
 }

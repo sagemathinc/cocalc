@@ -1,30 +1,27 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { capitalize } from "@cocalc/util/misc";
 import { Button } from "antd";
 import { SizeType } from "antd/lib/config-provider/SizeContext";
-import React from "react";
 import { Icon } from "./icon";
 
-interface Props<T = string> {
-  how: T;
-  onClick: (how: T) => void;
+interface Props {
+  how: string;
+  onClick: (how: string) => void;
   size?: SizeType;
 }
 
-export function MarkAll<T extends string>(
-  props: Props<T>
-): ReturnType<React.FC<Props<T>>> {
-  const { how, onClick, size } = props;
-
+export function MarkAll({ how, onClick, size }: Props) {
   function icon() {
     switch (how) {
       case "read":
+      case "seen":
         return <Icon name="check-square" />;
       case "unread":
+      case "unseen":
         return <Icon name="square" />;
       default:
         undefined;

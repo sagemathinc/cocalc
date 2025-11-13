@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Layout } from "antd";
@@ -36,7 +36,7 @@ export default function Octave({ customize }) {
           <Content
             landing
             startup={"Octave"}
-            logo={logo}
+            body={logo}
             title={title}
             subtitle={
               <>

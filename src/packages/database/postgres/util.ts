@@ -1,9 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import LRU from "lru-cache";
 import { Pool } from "pg";
 import { sha1 } from "@cocalc/backend/misc_node";
@@ -61,11 +61,11 @@ export class LRUQueryCache {
   }
 
   public query = reuseInFlight(
-    async <T,>(
+    async (
       query: string,
       args: (string | number | Date)[] = [],
       cached = true,
-    ): Promise<T[]> => {
+    ) => {
       const key = sha1(JSON.stringify([query, ...args]));
 
       if (cached) {

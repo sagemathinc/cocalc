@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import React from "react";
@@ -23,7 +23,7 @@ export const LabeledRow: React.FC<Props> = ({
   style,
   label,
   className,
-  label_cols = 4,
+  label_cols = 3,
   extra,
   extra_cols = 1,
   innerStyle = { marginTop: "8px" },
@@ -46,7 +46,7 @@ export const LabeledRow: React.FC<Props> = ({
     return (
       <Row style={style} className={className}>
         <Col span={spanLabel} style={innerStyle}>
-          {label}
+          <strong>{label}</strong>
         </Col>
         <Col span={spanChildren} style={innerStyle}>
           {children}

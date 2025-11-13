@@ -74,12 +74,19 @@ export default function getTour(refs) {
   });
 
   step({
+    target: "all-buttons",
+    title: "Hidden Buttons",
+    description:
+      "If your terminal is skinny some of the buttons may not be visible.  See all buttons by clicking these ellipsis.",
+  });
+
+  step({
     target: "title",
-    title: "Current Directory",
+    title: "Current Folder",
     description: (
       <>
-        The current working directory is displayed here. If it is truncated,
-        mouse over it to see the full directory.
+        The name of the current working folder is displayed here. If it is
+        truncated, mouse over it to see the full folder name.
       </>
     ),
   });
@@ -88,22 +95,21 @@ export default function getTour(refs) {
     target: "chatgpt",
     title: (
       <>
-        <Icon name="robot" /> Ask ChatGPT Anything
+        <Icon name="robot" /> Ask Artificial Intelligence
       </>
     ),
     description: (
       <>
         <p>
-          Ask ChatGPT anything in everyday language about the terminal. ChatGPT
-          is trained on a massive amount of data, and has amazingly good
-          knowledge of Linux terminal commands. It can help you learn Linux,
-          troubleshoot issues, find all files with some property, and generally
-          get your homework or projects done.
+          Ask Artificial Intelligence (AI) anything in everyday language about
+          the terminal. AI is trained on a massive amount of data, and has
+          amazingly good knowledge of Linux terminal commands. It can help you
+          learn Linux, troubleshoot issues, find all files with some property,
+          and generally get your homework or projects done.
         </p>
         <p>
-          Ask ChatGPT something about the terminal right now. For instance, you
-          might ask about how to manipulate a large data file or automate a
-          repetitive task.
+          For instance, you might ask about how to manipulate a large data file
+          or automate a repetitive task.
         </p>
       </>
     ),
@@ -203,7 +209,7 @@ export default function getTour(refs) {
     target: "kick_other_users_out",
     title: (
       <>
-        <Icon name={"skull-crossbones"} /> Kick Other Users Out
+        <Icon name={"skull-crossbones"} /> Force Resize
       </>
     ),
     description: (
@@ -240,13 +246,6 @@ export default function getTour(refs) {
         <A href="https://doc.cocalc.com/terminal.html">in our documentation.</A>
       </>
     ),
-  });
-
-  step({
-    target: "all-buttons",
-    title: "Hidden Buttons",
-    description:
-      "If your terminal is skinny some of the buttons may not be visible.  See all buttons by clicking these ellipsis.",
   });
 
   step({

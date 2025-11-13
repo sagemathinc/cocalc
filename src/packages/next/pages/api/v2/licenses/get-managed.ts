@@ -11,8 +11,15 @@ import getManagedLicenses, {
   License,
 } from "@cocalc/server/licenses/get-managed";
 import getAccountId from "lib/account/get-account";
+import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GetManagedLicensesInputSchema,
+  GetManagedLicensesOutputSchema,
+} from "lib/api/schema/licenses/get-managed";
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -26,5 +33,27 @@ async function get(req): Promise<License[]> {
   if (account_id == null) {
     return [];
   }
-  return await getManagedLicenses(account_id);
+  const { limit, skip } = getParams(req);
+  return await getManagedLicenses(account_id, limit, skip);
 }
+
+export default apiRoute({
+  getManaged: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Licenses"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: GetManagedLicensesInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: GetManagedLicensesOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

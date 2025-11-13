@@ -11,7 +11,7 @@ import Loading from "components/share/loading";
 import { MAX_WIDTH } from "lib/config";
 import { useCustomize } from "lib/customize";
 import useAPI from "lib/hooks/api";
-import { Type } from "./create";
+import type { Type } from "./create";
 import { NoZendesk } from "./util";
 
 export default function Tickets() {
@@ -66,7 +66,7 @@ function SupportTimeline({ tickets }) {
     v.push(
       <Timeline.Item key={ticket.id} color={statusToColor(ticket.status)}>
         <Ticket ticket={ticket} />
-      </Timeline.Item>
+      </Timeline.Item>,
     );
   }
   return <Timeline>{v}</Timeline>;
@@ -182,6 +182,7 @@ const TYPE_COLOR: { [name in Type]: string } = {
   question: "blue",
   task: "orange",
   purchase: "green",
+  chat: "purple",
 };
 
 export function Type({ status, type }: { status?: string; type: Type }) {

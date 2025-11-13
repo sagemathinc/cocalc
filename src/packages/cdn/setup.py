@@ -9,12 +9,12 @@ curdir = dirname(abspath(__file__))
 os.chdir(join(curdir, 'dist'))
 
 extra_path = {
-    'bootstrap': 'dist/css/',
     'katex': 'dist/',
 }
 
 deps = json.load(open(join('..', 'package-lock.json')))["dependencies"]
-targets = list(json.load(open(join('..', 'package.json')))["devDependencies"].keys())
+targets = list(
+    json.load(open(join('..', 'package.json')))["devDependencies"].keys())
 BLACKLIST = ["typescript"]
 
 versions = {}
@@ -41,8 +41,12 @@ for path, data in deps.items():
     os.symlink(name, dst)
     versions[name] = version
 
-# TODO: This pix should not be in this package.  Put it somewhere else.
-copytree("../pix", "pix")
+# copy custom codemirror themes
+custom_themes_src = join("..", "cm-custom-theme")
+if exists(custom_themes_src):
+    custom_themes_dst = "cm-custom-theme"
+    copytree(custom_themes_src, custom_themes_dst)
+    print(f"copied custom themes from '{custom_themes_src}' to '{custom_themes_dst}'")
 
 # finally, write the version info such that it can be loaded
 with open('index.js', 'w') as out:
@@ -53,4 +57,3 @@ exports.path = exports.versions = void 0;
 exports.versions = {json.dumps(versions)};
 exports.path = __dirname;
 """)
-

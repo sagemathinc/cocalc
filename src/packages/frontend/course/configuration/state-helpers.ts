@@ -1,13 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { useState } from "react";
 
 export function useConfirmation<T extends any[], U>(
   confirmation: (...args: T) => U,
-  init = false
+  init = false,
 ): [boolean, (...args: T) => U, () => void, () => void] {
   const [confirmation_is_open, set_confirmation] = useState(init);
   function confirm(...args: T): U {

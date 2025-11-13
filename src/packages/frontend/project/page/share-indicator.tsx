@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -52,8 +52,11 @@ export const ShareIndicator: React.FC<Props> = React.memo(
       return containing_public_path(path, paths) != null;
     }, [public_paths, path, project_id]);
 
-    if(!share_server) {
-      return  <></>;
+    // don't share anything if share server disabled *or* if file
+    // isn't already published.  When not published, you can publish it
+    // via the File menu.
+    if (!share_server || !is_public) {
+      return <></>;
     }
 
     if (student_project_functionality.disableActions) {
@@ -67,6 +70,7 @@ export const ShareIndicator: React.FC<Props> = React.memo(
     return (
       <div style={SHARE_INDICATOR_STYLE}>
         <Button
+          style={{ color: "#333" }}
           onClick={() => {
             redux.getProjectActions(project_id).show_file_action_panel({
               path,

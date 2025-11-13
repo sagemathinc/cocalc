@@ -1,11 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, MenuProps } from "antd";
+import { Button, type MenuProps, Space } from "antd";
+import { useIntl } from "react-intl";
 
 import { DropdownMenu, Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { COLORS } from "@cocalc/util/theme";
 import { Configuration } from "./explorer";
@@ -34,6 +36,8 @@ export const NewButton: React.FC<Props> = (props: Props) => {
     disabled,
   } = props;
 
+  const intl = useIntl();
+
   function new_file_button_types() {
     if (configuration != undefined) {
       const { disabled_ext } = configuration.get("main", {
@@ -41,17 +45,17 @@ export const NewButton: React.FC<Props> = (props: Props) => {
       });
       if (disabled_ext != undefined) {
         return ALL_FILE_BUTTON_TYPES.filter(
-          (ext) => !disabled_ext.includes(ext)
+          (ext) => !disabled_ext.includes(ext),
         );
       }
     }
     return ALL_FILE_BUTTON_TYPES;
   }
 
-  function file_dropdown_icon(): JSX.Element {
+  function file_dropdown_icon(): React.JSX.Element {
     return (
       <span style={{ whiteSpace: "nowrap" }}>
-        <Icon name="plus-circle" /> New
+        <Icon name="plus-circle" /> {intl.formatMessage(labels.new)}
       </span>
     );
   }
@@ -62,11 +66,11 @@ export const NewButton: React.FC<Props> = (props: Props) => {
       key: ext,
       onClick: () => on_dropdown_entry_clicked(ext),
       label: (
-        <>
+        <span style={{ whiteSpace: "nowrap" }}>
           <Icon name={data.icon} />{" "}
           <span style={{ textTransform: "capitalize" }}>{data.name} </span>{" "}
           <span style={{ color: COLORS.GRAY_D }}>(.{ext})</span>
-        </>
+        </span>
       ),
     };
   }
@@ -116,20 +120,20 @@ export const NewButton: React.FC<Props> = (props: Props) => {
       key: "folder",
       onClick: () => on_dropdown_entry_clicked("folder"),
       label: (
-        <>
-          <Icon name="folder" /> Folder
-        </>
+        <span style={{ whiteSpace: "nowrap" }}>
+          <Icon name="folder" /> {intl.formatMessage(labels.folder)}
+        </span>
       ),
     },
   ];
 
   return (
-    <Button.Group>
+    <Space.Compact>
       <Button onClick={on_create_button_clicked} disabled={disabled}>
         {file_dropdown_icon()}{" "}
       </Button>
 
       <DropdownMenu title={""} button={true} items={items} />
-    </Button.Group>
+    </Space.Compact>
   );
 };

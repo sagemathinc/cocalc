@@ -1,8 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import seedrandom from "seedrandom";
 import * as misc from "./misc";
 
 describe("academic domain", () => {
@@ -190,5 +191,155 @@ describe("test code for displaying numbers as currency with 2 or sometimes 3 dec
 
   it("always includes at least 2 decimals", () => {
     expect(currency(10)).toBe("$10.00");
+  });
+});
+
+describe("smallIntegerToEnglishWord", () => {
+  it("handles floats", () => {
+    expect(misc.smallIntegerToEnglishWord(1.2)).toBe(1.2);
+  });
+
+  it("handles 0", () => {
+    expect(misc.smallIntegerToEnglishWord(0)).toBe("zero");
+  });
+
+  it("handles 1", () => {
+    expect(misc.smallIntegerToEnglishWord(1)).toBe("one");
+  });
+
+  it("handles 17", () => {
+    expect(misc.smallIntegerToEnglishWord(17)).toBe("seventeen");
+  });
+
+  it("handles negative numbers", () => {
+    expect(misc.smallIntegerToEnglishWord(-1)).toBe(-1);
+  });
+});
+
+describe("test round2up and round2down for various inputs", () => {
+  const { round2up, round2down } = misc;
+  it("round2up tests -- uses the decimal representation (not internal binary))", () => {
+    // see https://github.com/sagemathinc/cocalc/issues/7220
+    expect(round2up(20.01)).toBe(20.01);
+    expect(round2up(20.011)).toBe(20.02);
+    expect(round2up(20.01999)).toBe(20.02);
+    expect(round2up(4.73)).toBe(4.73);
+    expect(round2up(4.731)).toBe(4.74);
+    expect(round2up(4.736)).toBe(4.74);
+  });
+
+  it("round2down tests -- uses the decimal representation (not internal binary))", () => {
+    // see https://github.com/sagemathinc/cocalc/issues/7220
+    expect(round2down(20.01)).toBe(20.01);
+    expect(round2down(20.011)).toBe(20.01);
+    expect(round2down(20.019)).toBe(20.01);
+    expect(round2down(4.73)).toBe(4.73);
+    expect(round2down(4.731)).toBe(4.73);
+    expect(round2down(4.736)).toBe(4.73);
+  });
+
+  it("a random test of 1000 cases", () => {
+    let seed = "my-seed";
+    let rng = seedrandom(seed);
+
+    for (let i = 0; i < 1000; i++) {
+      let randomNum = rng(); // Returns a number between 0 and 1
+      // Perform your tests with randomNum
+      // For example:
+      expect(round2up(randomNum)).toBeGreaterThanOrEqual(randomNum);
+      expect(round2up(randomNum)).toBeLessThan(randomNum + 0.01);
+      expect(round2down(randomNum)).toBeLessThanOrEqual(randomNum);
+      expect(round2down(randomNum)).toBeGreaterThan(randomNum - 0.01);
+    }
+  });
+});
+
+describe("numToOrdinal", () => {
+  const { numToOrdinal } = misc;
+  it("appends proper suffixes", () => {
+    expect(numToOrdinal(1)).toBe("1st");
+    expect(numToOrdinal(2)).toBe("2nd");
+    expect(numToOrdinal(3)).toBe("3rd");
+    expect(numToOrdinal(4)).toBe("4th");
+    expect(numToOrdinal(5)).toBe("5th");
+    expect(numToOrdinal(6)).toBe("6th");
+    expect(numToOrdinal(7)).toBe("7th");
+    expect(numToOrdinal(8)).toBe("8th");
+    expect(numToOrdinal(9)).toBe("9th");
+    expect(numToOrdinal(10)).toBe("10th");
+    expect(numToOrdinal(11)).toBe("11th");
+    expect(numToOrdinal(12)).toBe("12th");
+    expect(numToOrdinal(13)).toBe("13th");
+    expect(numToOrdinal(21)).toBe("21st");
+    expect(numToOrdinal(22)).toBe("22nd");
+    expect(numToOrdinal(23)).toBe("23rd");
+    expect(numToOrdinal(24)).toBe("24th");
+    expect(numToOrdinal(42)).toBe("42nd");
+    expect(numToOrdinal(101)).toBe("101st");
+    expect(numToOrdinal(202)).toBe("202nd");
+    expect(numToOrdinal(303)).toBe("303rd");
+    expect(numToOrdinal(1000)).toBe("1000th");
+  });
+  it("Falls back in other cases", () => {
+    expect(numToOrdinal(-1)).toBe("-1th");
+  });
+});
+
+describe("hoursToTimeIntervalHuman", () => {
+  const { hoursToTimeIntervalHuman } = misc;
+  it("converts nicely", () => {
+    expect(hoursToTimeIntervalHuman(1)).toBe("1 hour");
+    expect(hoursToTimeIntervalHuman(13.333)).toBe("13.3 hours");
+    expect(hoursToTimeIntervalHuman(13.888)).toBe("13.9 hours");
+    expect(hoursToTimeIntervalHuman(24)).toBe("1 day");
+    expect(hoursToTimeIntervalHuman(24 * 7)).toBe("1 week");
+    expect(hoursToTimeIntervalHuman(2)).toBe("2 hours");
+    expect(hoursToTimeIntervalHuman(2 * 24)).toBe("2 days");
+    expect(hoursToTimeIntervalHuman(5 * 7 * 24)).toBe("5 weeks");
+    expect(hoursToTimeIntervalHuman(2.5111 * 24)).toBe("2.5 days");
+    expect(hoursToTimeIntervalHuman(2.5111 * 24 * 7)).toBe("2.5 weeks");
+  });
+});
+
+describe("tail", () => {
+  const s = `
+foo
+bar
+baz
+abc
+xyz
+test 123`;
+  const { tail } = misc;
+  it("return the last 3 lines", () => {
+    const t = tail(s, 3);
+    expect(t.split("\n").length).toEqual(3);
+    expect(t.startsWith("abc")).toBe(true);
+  });
+  it("return the last line", () => {
+    const t = tail("foo", 3);
+    expect(t.split("\n").length).toEqual(1);
+    expect(t).toEqual("foo");
+  });
+});
+
+describe("suggest_duplicate_filename", () => {
+  const dup = misc.suggest_duplicate_filename;
+  it("works with numbers", () => {
+    expect(dup("filename-1.test")).toBe("filename-2.test");
+    expect(dup("filename-99.test")).toBe("filename-100.test");
+    expect(dup("filename_99.test")).toBe("filename_100.test");
+  });
+  it("handles leading zeros", () => {
+    // handles leading 0's properly: https://github.com/sagemathinc/cocalc/issues/2973
+    expect(dup("filename_001.test")).toBe("filename_002.test");
+  });
+  it("works also without", () => {
+    expect(dup("filename-test")).toBe("filename-test-1");
+    expect(dup("filename-xxx.test")).toBe("filename-xxx-1.test");
+    expect(dup("bla")).toBe("bla-1");
+    expect(dup("foo.bar")).toBe("foo-1.bar");
+  });
+  it("also works with weird corner cases", () => {
+    expect(dup("asdf-")).toBe("asdf--1");
   });
 });

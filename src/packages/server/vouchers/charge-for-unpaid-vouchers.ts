@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -20,6 +20,7 @@ import { getLogger } from "@cocalc/backend/logger";
 import { chargeUser } from "@cocalc/server/licenses/purchase/charge";
 import { StripeClient } from "@cocalc/server/stripe/client";
 import type { PurchaseInfo } from "@cocalc/util/db-schema/vouchers";
+import { CURRENT_VERSION } from "@cocalc/util/licenses/purchase/consts";
 
 const log = getLogger("charge-for-unpaid-vouchers");
 
@@ -34,7 +35,7 @@ export default async function chargeForUnpaidVouchers(): Promise<Result> {
 
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id, cost, tax, created_by, title FROM vouchers WHERE purchased is NULL AND when_pay='invoice' AND expire < NOW()"
+    "SELECT id, cost, tax, created_by, title FROM vouchers WHERE purchased is NULL AND when_pay='invoice' AND expire < NOW()",
   );
   const result: Result = {};
   for (const row of rows) {
@@ -67,7 +68,7 @@ async function chargeForUnpaidVoucher({
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT COUNT(*) AS quantity FROM voucher_codes WHERE id=$1 AND when_redeemed IS NOT NULL AND canceled IS NULL",
-    [id]
+    [id],
   );
   const quantity = rows[0].quantity;
   let purchased: PurchaseInfo;
@@ -76,6 +77,8 @@ async function chargeForUnpaidVoucher({
   } else {
     const stripe = new StripeClient({ account_id: created_by });
     const info = {
+      // version doesn't really matter since the cost is already explicitly given below
+      version: CURRENT_VERSION,
       type: "vouchers",
       quantity,
       cost,

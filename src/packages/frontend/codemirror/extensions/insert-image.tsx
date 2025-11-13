@@ -1,14 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import * as CodeMirror from "codemirror";
 import { Button, Form, Input, Modal } from "antd";
+import * as CodeMirror from "codemirror";
 
-import { show_react_modal } from "../../misc";
-import { Icon } from "../../components";
-import { alert_message } from "../../alerts";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { Icon } from "@cocalc/frontend/components";
+import { show_react_modal } from "@cocalc/frontend/misc";
 
 export interface Options {
   url: string;
@@ -91,7 +91,7 @@ function insert_image(mode: string, opts: Options): string {
 }
 
 export async function get_insert_image_opts_from_user(
-  note = ""
+  note = "",
 ): Promise<undefined | Options> {
   const opts = await show_react_modal((cb) => {
     return (

@@ -1,12 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-// Site Customize -- dynamically customize the look of CoCalc for the client.
+// Site Customize -- dynamically customize the look and configuration
+// of CoCalc for the client.
 
 import { fromJS, List, Map } from "immutable";
 import { join } from "path";
+import { useIntl } from "react-intl";
 
 import {
   Actions,
@@ -22,14 +24,16 @@ import {
 import {
   A,
   build_date,
+  Gap,
   Loading,
   r_join,
   smc_git_rev,
   smc_version,
-  Gap,
   UNIT,
 } from "@cocalc/frontend/components";
+import { getGoogleCloudImages, getImages } from "@cocalc/frontend/compute/api";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { labels, Locale } from "@cocalc/frontend/i18n";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import {
   ComputeImage,
@@ -37,17 +41,29 @@ import {
   FALLBACK_SOFTWARE_ENV,
 } from "@cocalc/util/compute-images";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
+import type {
+  GoogleCloudImages,
+  Images,
+} from "@cocalc/util/db-schema/compute-servers";
+import { LLMServicesAvailable } from "@cocalc/util/db-schema/llm-utils";
 import {
+  Config,
   KUCALC_COCALC_COM,
   KUCALC_DISABLED,
   KUCALC_ON_PREMISES,
   site_settings_conf,
 } from "@cocalc/util/db-schema/site-defaults";
 import { deep_copy, dict, YEAR } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
+import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
+import { delay } from "awaiting";
+
+// update every 2 minutes.
+const UPDATE_INTERVAL = 2 * 60000;
 
 // this sets UI modes for using a kubernetes based back-end
 // 'yes' (historic value) equals 'cocalc.com'
@@ -64,7 +80,7 @@ function validate_kucalc(k?): string {
 // populate all default key/values in the "customize" store
 const defaultKeyVals: [string, string | string[]][] = [];
 for (const k in site_settings_conf) {
-  const v = site_settings_conf[k];
+  const v: Config = site_settings_conf[k];
   const value: any =
     typeof v.to_val === "function" ? v.to_val(v.default) : v.default;
   defaultKeyVals.push([k, value]);
@@ -85,8 +101,14 @@ export type SoftwareEnvironments = TypedMap<{
 }>;
 
 export interface CustomizeState {
+  time: number; // this will always get set once customize has loaded.
   is_commercial: boolean;
   openai_enabled: boolean;
+  google_vertexai_enabled: boolean;
+  mistral_enabled: boolean;
+  anthropic_enabled: boolean;
+  ollama_enabled: boolean;
+  custom_openai_enabled: boolean;
   neural_search_enabled: boolean;
   datastore: boolean;
   ssh_gateway: boolean;
@@ -109,7 +131,16 @@ export interface CustomizeState {
   logo_rectangular: string;
   logo_square: string;
   max_upgrades: TypedMap<Partial<Upgrades>>;
+
+  // Commercialization parameters.
+  // Be sure to also update disableCommercializationParameters
+  // below if you change these:
   nonfree_countries?: List<string>;
+  limit_free_project_uptime: number; // minutes
+  require_license_to_create_project?: boolean;
+  unlicensed_project_collaborator_limit?: number;
+  unlicensed_project_timetravel_limit?: number;
+
   onprem_quota_heading: string;
   organization_email: string;
   organization_name: string;
@@ -136,10 +167,27 @@ export interface CustomizeState {
   jupyter_api_enabled?: boolean;
 
   compute_servers_enabled?: boolean;
-  compute_servers_google_enabled?: boolean;
+  ["compute_servers_google-cloud_enabled"]?: boolean;
   compute_servers_lambda_enabled?: boolean;
   compute_servers_dns_enabled?: boolean;
   compute_servers_dns?: string;
+  compute_servers_images?: TypedMap<Images> | string | null;
+  compute_servers_images_google?: TypedMap<GoogleCloudImages> | string | null;
+
+  llm_markup: number;
+
+  ollama?: TypedMap<{ [key: string]: TypedMap<CustomLLMPublic> }>;
+  custom_openai?: TypedMap<{ [key: string]: TypedMap<CustomLLMPublic> }>;
+  selectable_llms: List<string>;
+  default_llm?: string;
+  user_defined_llm: boolean;
+  llm_default_quota?: number;
+
+  insecure_test_mode?: boolean;
+
+  i18n?: List<Locale>;
+
+  user_tracking?: string;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {
@@ -158,9 +206,66 @@ export class CustomizeStore extends Store<CustomizeState> {
     await this.until_configured();
     return this.getIn(["software", "default"]) ?? DEFAULT_COMPUTE_IMAGE;
   }
+
+  getEnabledLLMs(): LLMServicesAvailable {
+    return {
+      openai: this.get("openai_enabled"),
+      google: this.get("google_vertexai_enabled"),
+      ollama: this.get("ollama_enabled"),
+      custom_openai: this.get("custom_openai_enabled"),
+      mistralai: this.get("mistral_enabled"),
+      anthropic: this.get("anthropic_enabled"),
+      user: this.get("user_defined_llm"),
+    };
+  }
 }
 
-export class CustomizeActions extends Actions<CustomizeState> {}
+export class CustomizeActions extends Actions<CustomizeState> {
+  // reload is admin only
+  updateComputeServerImages = reuseInFlight(async (reload?) => {
+    if (!store.get("compute_servers_enabled")) {
+      this.setState({ compute_servers_images: fromJS({}) as any });
+      return;
+    }
+    try {
+      this.setState({
+        compute_servers_images: fromJS(await getImages(reload)) as any,
+      });
+    } catch (err) {
+      this.setState({ compute_servers_images: `${err}` });
+    }
+  });
+
+  updateComputeServerImagesGoogle = reuseInFlight(async (reload?) => {
+    if (!store.get("compute_servers_google-cloud_enabled")) {
+      this.setState({ compute_servers_images_google: fromJS({}) as any });
+      return;
+    }
+    try {
+      this.setState({
+        compute_servers_images_google: fromJS(
+          await getGoogleCloudImages(reload),
+        ) as any,
+      });
+    } catch (err) {
+      this.setState({ compute_servers_images_google: `${err}` });
+    }
+  });
+
+  // this is used for accounts that have legacy upgrades
+  disableCommercializationParameters = () => {
+    this.setState({
+      limit_free_project_uptime: undefined,
+      require_license_to_create_project: undefined,
+      unlicensed_project_collaborator_limit: undefined,
+      unlicensed_project_timetravel_limit: undefined,
+    });
+  };
+  
+  reload = async () => {
+    await loadCustomizeState();
+  };
+}
 
 export const store = redux.createStore("customize", CustomizeStore, defaults);
 const actions = redux.createActions("customize", CustomizeActions);
@@ -171,10 +276,7 @@ actions.setState({ is_commercial: true, ssh_gateway: true });
 // to generate static content, which can't be customized.
 export let commercial: boolean = defaults.is_commercial;
 
-// For now, hopefully not used (this was the old approach).
-// in the future we might want to reload the configuration, though.
-// Note that this *is* clearly used as a fallback below though...!
-async function init_customize() {
+async function loadCustomizeState() {
   if (typeof process != "undefined") {
     // running in node.js
     return;
@@ -200,10 +302,14 @@ async function init_customize() {
     registration,
     strategies,
     software = null,
+    ollama = null, // the derived public information
+    custom_openai = null,
   } = customize;
   process_kucalc(configuration);
   process_software(software, configuration.is_cocalc_com);
   process_customize(configuration); // this sets _is_configured to true
+  process_ollama(ollama);
+  process_custom_openai(custom_openai);
   const actions = redux.getActions("account");
   // Which account creation strategies we support.
   actions.setState({ strategies });
@@ -211,7 +317,22 @@ async function init_customize() {
   actions.setState({ token: !!registration });
 }
 
-init_customize();
+export async function init() {
+  while (true) {
+    await loadCustomizeState();
+    await delay(UPDATE_INTERVAL);
+  }
+}
+
+function process_ollama(ollama?) {
+  if (!ollama) return;
+  actions.setState({ ollama: fromJS(ollama) });
+}
+
+function process_custom_openai(custom_openai?) {
+  if (!custom_openai) return;
+  actions.setState({ custom_openai: fromJS(custom_openai) });
+}
 
 function process_kucalc(obj) {
   // TODO make this a to_val function in site_settings_conf.kucalc
@@ -224,8 +345,14 @@ function process_customize(obj) {
   for (const k in site_settings_conf) {
     const v = site_settings_conf[k];
     obj[k] =
-      obj[k] != null ? obj[k] : v.to_val?.(v.default, obj_orig) ?? v.default;
+      obj[k] != null ? obj[k] : (v.to_val?.(v.default, obj_orig) ?? v.default);
   }
+  // the llm markup special case
+  obj.llm_markup = obj_orig._llm_markup ?? 30;
+
+  // always set time, so other code can know for sure that customize was loaded.
+  // it also might be helpful to know when
+  obj["time"] = Date.now();
   set_customize(obj);
 }
 
@@ -325,7 +452,7 @@ const SiteDescription0 = rclass<{ style?: React.CSSProperties }>(
       };
     }
 
-    public render(): JSX.Element {
+    public render(): React.JSX.Element {
       const style =
         this.props.style != undefined
           ? this.props.style
@@ -453,6 +580,7 @@ export function AccountCreationEmailInstructions() {
 }
 
 export const Footer: React.FC = React.memo(() => {
+  const intl = useIntl();
   const on = useTypedRedux("customize", "organization_name");
   const tos = useTypedRedux("customize", "terms_of_service_url");
 
@@ -466,16 +594,32 @@ export const Footer: React.FC = React.memo(() => {
     paddingBottom: `${UNIT}px`,
   };
 
+  const systemStatus = intl.formatMessage({
+    id: "customize.footer.system-status",
+    defaultMessage: "System Status",
+  });
+
+  const name = intl.formatMessage(
+    {
+      id: "customize.footer.name",
+      defaultMessage: "{name} by {organizationName}",
+    },
+    {
+      name: <SiteName />,
+      organizationName,
+    },
+  );
+
   function contents() {
     const elements = [
       <A key="name" href={appBasePath}>
-        <SiteName /> by {organizationName}
+        {name}
       </A>,
       <A key="status" href={SystemStatusUrl}>
-        System Status
+        {systemStatus}
       </A>,
       <A key="tos" href={TOSurl}>
-        Terms of Service
+        {intl.formatMessage(labels.terms_of_service)}
       </A>,
       <HelpEmailLink key="help" />,
       <span key="year" title={webappVersionInfo}>

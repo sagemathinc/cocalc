@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -60,6 +60,11 @@ export interface License {
   run_limit: number;
   voucher_code?: string;
   subscription_id?: number;
+}
+
+export interface LicenseFromApi extends Partial<License> {
+  number_running?: number; // in some cases this can be filled in.
+  is_manager: boolean;
 }
 
 Table({
@@ -152,6 +157,7 @@ Table({
       "((quota -> 'dedicated_vm' IS NOT NULL))",
       "((quota -> 'dedicated_disk' ->> 'name'))",
       "((quota -> 'dedicated_vm' ->> 'name'))",
+      "subscription_id", // make it fast to get the license for a given subscription
     ],
     user_query: {
       get: {
@@ -257,7 +263,7 @@ Table({
           try {
             if (!opts.multi) {
               throw Error(
-                "only query requesting multiple results is implemented"
+                "only query requesting multiple results is implemented",
               );
             }
             let limit: number = MATCHING_SITE_LICENSES_LIMIT;
@@ -270,7 +276,7 @@ Table({
             }
             cb(
               undefined,
-              await database.matching_site_licenses(opts.query.search, limit)
+              await database.matching_site_licenses(opts.query.search, limit),
             );
           } catch (err) {
             cb(err);
@@ -369,7 +375,7 @@ Table({
         async instead_of_query(database, opts, cb): Promise<void> {
           if (!opts.multi) {
             cb(
-              "query must be an array (you must request to get multiple values back)"
+              "query must be an array (you must request to get multiple values back)",
             );
             return;
           }
@@ -451,7 +457,7 @@ Table({
         async instead_of_query(database, opts, cb): Promise<void> {
           if (opts.multi) {
             cb(
-              "query must NOT be an array (do not request multiple values back)"
+              "query must NOT be an array (do not request multiple values back)",
             );
             return;
           }
@@ -462,7 +468,7 @@ Table({
             obj.number != null
           ) {
             cb(
-              "query must be of the form {license_id:uuid, cutoff?:<date>, count:null...}]"
+              "query must be of the form {license_id:uuid, cutoff?:<date>, count:null...}]",
             );
             return;
           }
@@ -635,12 +641,12 @@ Table({
           try {
             if (!opts.multi) {
               throw Error(
-                "only query requesting multiple results is implemented"
+                "only query requesting multiple results is implemented",
               );
             }
             cb(
               undefined,
-              await database.manager_site_licenses(opts.account_id)
+              await database.manager_site_licenses(opts.account_id),
             );
           } catch (err) {
             cb(err);
@@ -658,11 +664,29 @@ Table({
         },
         async instead_of_change(
           database,
-          _old_value,
+          old_value,
           new_val,
           account_id,
-          cb
+          cb,
         ): Promise<void> {
+          if (old_value == null) {
+            cb("must provide primary key");
+            return;
+          }
+          if (new_val.managers != null) {
+            // never allow removing the person who created the license.
+            // They are old_value.info.purchased.account_id
+            // This is mainly motivated by how subscriptions work, but generally
+            // seems like a good idea.
+            const owner_id = old_value.info?.purchased?.account_id;
+            if (owner_id != null && !new_val.managers.includes(owner_id)) {
+              cb(
+                "you cannot remove as manager the person who originally purchased the license",
+              );
+              return;
+            }
+          }
+
           try {
             await database.site_license_manager_set(account_id, new_val);
             cb();

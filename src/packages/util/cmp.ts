@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { isEqual } from "lodash";
@@ -63,7 +63,7 @@ export function cmp_array(a, b): number {
   return 0;
 }
 
-export function timestamp_cmp(a, b, field): number {
+export function timestamp_cmp(a, b, field?: string): number {
   if (field == null) {
     field = "timestamp";
   }

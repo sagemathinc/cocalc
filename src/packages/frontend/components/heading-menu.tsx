@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { range } from "lodash";
@@ -15,11 +15,9 @@ interface Props {
   markdown?: boolean; // if it is markdown we can document the shortcuts.
 }
 
-export default function HeadingMenu(props: Props) {
-  const { onClick, style, markdown } = props;
-
+export default function HeadingMenu({ onClick, style, markdown }: Props) {
   const items = useMemo((): MenuItems => {
-    return range(7).map((heading) => {
+    return range(1, 7).map((heading) => {
       return {
         key: heading,
         onClick: () => onClick(heading),
@@ -39,11 +37,13 @@ export default function HeadingMenu(props: Props) {
   );
 }
 
-function HeadingContent(props: {
+export function HeadingContent({
+  heading,
+  markdown,
+}: {
   heading: number;
   markdown?: boolean;
-}): JSX.Element {
-  const { heading, markdown } = props;
+}): React.JSX.Element {
   const hashes = markdown
     ? range(heading)
         .map(() => "#")
@@ -59,7 +59,6 @@ function HeadingContent(props: {
   if (heading === 0) {
     return <span>{label}</span>;
   } else {
-    // heading+1 is "wrong" but the menu is not so large
-    return React.createElement(`h${heading + 1}`, {}, label);
+    return React.createElement(`h${heading}`, { style: { margin: 0 } }, label);
   }
 }

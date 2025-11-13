@@ -1,24 +1,26 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Top-level React component for the terminal
 */
 
+import { editor, labels } from "@cocalc/frontend/i18n";
+import { set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
-import { TerminalFrame } from "./terminal";
 import { CommandsGuide } from "./commands-guide";
-import { set } from "@cocalc/util/misc";
+import { TerminalFrame } from "./terminal";
 
-export const terminal = {
-  short: "Terminal",
-  name: "Terminal",
+export const terminal: EditorDescription = {
+  type: "terminal",
+  short: labels.terminal,
+  name: labels.terminal,
   icon: "terminal",
   component: TerminalFrame,
-  buttons: set([
+  commands: set([
     "-actions", // none of this makes much sense for a terminal!
     /*"print", */
     "decrease_font_size",
@@ -34,33 +36,52 @@ export const terminal = {
     "connection_status",
     "guide",
     "chatgpt",
-    "tour",
+    // "tour", -- temporarily disabled until I figure out how to to do editor tours again (fallout from pr 7180)
     "compute_server",
-    /*"reload" */
+    "settings",
+  ]),
+  buttons: set([
+    "decrease_font_size",
+    "increase_font_size",
+    "clear",
+    "pause",
+    "kick_other_users_out",
   ]),
   hide_public: true, // never show this editor option for public view
-  clear_info: {
-    text: "Clearing this Terminal terminates a running program, respawns the shell, and cleans up the display buffer.",
-    confirm: "Yes, clean up!",
+  customizeCommands: {
+    guide: {
+      label: labels.guide,
+      title: editor.guide_tooltip,
+    },
+    help: {
+      title: editor.terminal_cmd_help_title,
+    },
+    clear: {
+      title: editor.clear_terminal_tooltip,
+      popconfirm: ({ intl }) => {
+        return {
+          title: intl.formatMessage(editor.clear_terminal_popconfirm_title),
+          description: intl.formatMessage(editor.clear_terminal_tooltip),
+          okText: intl.formatMessage(editor.clear_terminal_popconfirm_confirm),
+        };
+      },
+    },
   },
-  guide_info: {
-    title: "Guide",
-    descr: "Tool for creating, testing, and learning about terminal commands.",
-  },
-} as EditorDescription;
+} as const;
 
-const commands_guide = {
-  short: "Guide",
-  name: "Guide",
+const commands_guide: EditorDescription = {
+  type: "terminal-guide",
+  short: labels.guide,
+  name: labels.guide,
   icon: "magic",
   component: CommandsGuide,
-  buttons: set(["decrease_font_size", "increase_font_size"]),
-} as EditorDescription;
+  commands: set(["decrease_font_size", "increase_font_size"]),
+} as const;
 
 const EDITOR_SPEC = {
   terminal,
   commands_guide,
-};
+} as const;
 
 export const Editor = createEditor({
   format_bar: false,

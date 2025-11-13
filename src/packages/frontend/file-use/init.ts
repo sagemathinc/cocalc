@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { redux } from "../app-framework";
@@ -8,8 +8,6 @@ import { redux } from "../app-framework";
 import { FileUseStore } from "./store";
 import { FileUseActions } from "./actions";
 import { FileUseTable } from "./table";
-// Initialize function to updates the browser's awareness of a notification
-import { set_notify_count_function } from "../browser";
 
 export function init() {
   redux.createStore("file_use", FileUseStore, { notify_count: 0 });
@@ -23,6 +21,4 @@ export function init() {
     redux.createTable("file_use", FileUseTable);
   }
   actions._init(); // must be after making store
-
-  set_notify_count_function();
 }

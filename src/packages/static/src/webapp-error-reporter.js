@@ -7,7 +7,7 @@
  */
 //########################################################################
 // This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-// License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+// License: MS-RSL – see LICENSE.md for details
 //########################################################################
 
 // Catch and report webapp client errors to the SMC server.
@@ -66,6 +66,8 @@ const WHITELIST = [
   "a whole package of antd",
   // we can't do anything about bokeh crashes in their own code
   "cdn.bokeh.org",
+  // xtermjs
+  "renderRows",
 ];
 const isWhitelisted = function (opts) {
   const s = JSON.stringify(opts);
@@ -80,8 +82,8 @@ const isWhitelisted = function (opts) {
 // this is the final step sending the error report.
 // it gathers additional information about the webapp client.
 let currentlySendingError = false;
-var sendError = function (opts) {
-  //console.log("sendError", currentlySendingError, opts);
+const sendError = async function (opts) {
+  // console.log("sendError", currentlySendingError, opts);
   if (currentlySendingError) {
     // errors can be crazy and easily DOS the user's connection.  Since this table is
     // just something we manually check sometimes, not sending too many errors is
@@ -89,81 +91,79 @@ var sendError = function (opts) {
     return;
   }
   currentlySendingError = true;
-  return require.ensure([], async () => {
-    try {
-      //console.log 'sendError', opts
-      let webapp_client;
-      if (isWhitelisted(opts)) {
-        //console.log 'sendError: whitelisted'
-        return;
-      }
-      const misc = require("@cocalc/util/misc");
-      opts = misc.defaults(opts, {
-        name: misc.required,
-        message: misc.required,
-        comment: "",
-        stacktrace: "",
-        file: "",
-        path: "",
-        lineNumber: -1,
-        columnNumber: -1,
-        severity: "default",
-      });
-      const fingerprint = misc.uuidsha1(
-        [opts.name, opts.message, opts.comment].join("::"),
-      );
-      if (already_reported.includes(fingerprint) && !DEBUG) {
-        return;
-      }
-      already_reported.push(fingerprint);
-      // attaching some additional info
-      const feature = require("@cocalc/frontend/feature");
-      opts.user_agent = navigator?.userAgent;
-      opts.browser = feature.get_browser();
-      opts.mobile = feature.IS_MOBILE;
-      opts.smc_version = SMC_VERSION;
-      opts.build_date = BUILD_DATE;
-      opts.smc_git_rev = COCALC_GIT_REVISION;
-      opts.uptime = misc.get_uptime();
-      opts.start_time = misc.get_start_time_ts();
-      if (DEBUG) {
-        console.info("error reporter sending:", opts);
-      }
-      try {
-        // During initial load in some situations evidently webapp_client
-        // is not yet initialized, and webapp_client is undefined.  (Maybe
-        // a typescript rewrite of everything relevant will help...).  In
-        // any case, for now we
-        //   https://github.com/sagemathinc/cocalc/issues/4769
-        // As an added bonus, by try/catching and retrying once at least,
-        // we are more likely to get the error report in case of a temporary
-        // network or other glitch....
-        console.log("sendError: import webapp_client");
-
-        ({ webapp_client } = require("@cocalc/frontend/webapp-client")); // can possibly be undefined
-        // console.log 'sendError: sending error'
-        return await webapp_client.tracking_client.webapp_error(opts); // might fail.
-        // console.log 'sendError: got response'
-      } catch (err) {
-        console.info(
-          "failed to report error; trying again in 30 seconds",
-          err,
-          opts,
-        );
-        const { delay } = require("awaiting");
-        await delay(30000);
-        try {
-          ({ webapp_client } = require("@cocalc/frontend/webapp-client"));
-          return await webapp_client.tracking_client.webapp_error(opts);
-        } catch (error) {
-          err = error;
-          return console.info("failed to report error", err);
-        }
-      }
-    } finally {
-      currentlySendingError = false;
+  try {
+    //console.log 'sendError', opts
+    let webapp_client;
+    if (isWhitelisted(opts)) {
+      //console.log 'sendError: whitelisted'
+      return;
     }
-  });
+    const misc = require("@cocalc/util/misc");
+    opts = misc.defaults(opts, {
+      name: misc.required,
+      message: misc.required,
+      comment: "",
+      stacktrace: "",
+      file: "",
+      path: "",
+      lineNumber: -1,
+      columnNumber: -1,
+      severity: "default",
+    });
+    const fingerprint = misc.uuidsha1(
+      [opts.name, opts.message, opts.comment].join("::"),
+    );
+    if (already_reported.includes(fingerprint) && !DEBUG) {
+      return;
+    }
+    already_reported.push(fingerprint);
+    // attaching some additional info
+    const feature = require("@cocalc/frontend/feature");
+    opts.user_agent = navigator?.userAgent;
+    opts.browser = feature.get_browser();
+    opts.mobile = feature.IS_MOBILE;
+    opts.smc_version = SMC_VERSION;
+    opts.build_date = BUILD_DATE;
+    opts.smc_git_rev = COCALC_GIT_REVISION;
+    opts.uptime = misc.get_uptime();
+    opts.start_time = misc.get_start_time_ts();
+    if (DEBUG) {
+      console.info("error reporter sending:", opts);
+    }
+    try {
+      // During initial load in some situations evidently webapp_client
+      // is not yet initialized, and webapp_client is undefined.  (Maybe
+      // a typescript rewrite of everything relevant will help...).  In
+      // any case, for now we
+      //   https://github.com/sagemathinc/cocalc/issues/4769
+      // As an added bonus, by try/catching and retrying once at least,
+      // we are more likely to get the error report in case of a temporary
+      // network or other glitch....
+      // console.log("sendError: import webapp_client");
+
+      ({ webapp_client } = require("@cocalc/frontend/webapp-client")); // can possibly be undefined
+      // console.log 'sendError: sending error'
+      return await webapp_client.tracking_client.webapp_error(opts); // might fail.
+      // console.log 'sendError: got response'
+    } catch (err) {
+      console.info(
+        "failed to report error; trying again in 30 seconds",
+        err,
+        opts,
+      );
+      const { delay } = require("awaiting");
+      await delay(30000);
+      try {
+        ({ webapp_client } = require("@cocalc/frontend/webapp-client"));
+        return await webapp_client.tracking_client.webapp_error(opts);
+      } catch (error) {
+        err = error;
+        return console.info("failed to report error", err);
+      }
+    }
+  } finally {
+    currentlySendingError = false;
+  }
 };
 
 // neat trick to get a stacktrace when there is none
@@ -409,25 +409,24 @@ function argsToJson(args) {
   return JSON.stringify(v);
 }
 
-const sendLogLine = (severity, args) =>
-  require.ensure([], () => {
-    let message;
-    if (typeof args === "object") {
-      message = argsToJson(args);
-    } else {
-      message = Array.prototype.slice.call(args).join(", ");
-    }
-    return sendError({
-      name: "Console Output",
-      message,
-      file: "",
-      path: window.location.href,
-      lineNumber: -1,
-      columnNumber: -1,
-      stacktrace: generateStacktrace(),
-      severity,
-    });
+const sendLogLine = (severity, args) => {
+  let message;
+  if (typeof args === "object") {
+    message = argsToJson(args);
+  } else {
+    message = Array.prototype.slice.call(args).join(", ");
+  }
+  sendError({
+    name: "Console Output",
+    message,
+    file: "",
+    path: window.location.href,
+    lineNumber: -1,
+    columnNumber: -1,
+    stacktrace: generateStacktrace(),
+    severity,
   });
+};
 
 const wrapFunction = function (object, property, newFunction) {
   const oldFunction = object[property];
@@ -449,23 +448,21 @@ if (ENABLED && window.console != null) {
 }
 
 if (ENABLED) {
-  window.addEventListener("unhandledrejection", (e) =>
-    require.ensure([], () => {
-      // just to make sure there is a message
-      let reason = e.reason != null ? e.reason : "<no reason>";
-      if (typeof reason === "object") {
-        let left;
-        const misc = require("@cocalc/util/misc");
-        reason = `${
-          (left = reason.stack != null ? reason.stack : reason.message) != null
-            ? left
-            : misc.trunc_middle(misc.to_json(reason), 1000)
-        }`;
-      }
-      e.message = `unhandledrejection: ${reason}`;
-      return reportException(e, "unhandledrejection");
-    }),
-  );
+  window.addEventListener("unhandledrejection", (e) => {
+    // just to make sure there is a message
+    let reason = e.reason != null ? e.reason : "<no reason>";
+    if (typeof reason === "object") {
+      let left;
+      const misc = require("@cocalc/util/misc");
+      reason = `${
+        (left = reason.stack != null ? reason.stack : reason.message) != null
+          ? left
+          : misc.trunc_middle(misc.to_json(reason), 1000)
+      }`;
+    }
+    e.message = `unhandledrejection: ${reason}`;
+    reportException(e, "unhandledrejection");
+  });
 }
 
 // public API

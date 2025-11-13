@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /**
@@ -24,30 +24,18 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 let first_login = true;
 
 export function init() {
-  // load more of the app now that user is logged in.
-  const load_app = (cb) =>
-    (require as any).ensure([], function () {
-      require("./account/account-page"); // initialize react-related account page
-      require("./projects/actions"); // initialize projects list
-      cb();
-    });
-
-  webapp_client.on("mesg_info", function (info) {
-    const f = () => {
-      const account_store = redux.getActions("account");
-      if (account_store != undefined) {
-        account_store.setState({ mesg_info: info });
-      }
-    };
-    // must be scheduled separately, since this notification can be triggered during rendering
-    setTimeout(f, 1);
-  });
+  const load_app = async (cb) => {
+    // load more of the app now that user is logged in:
+    await import("./account/account-page"); // initialize react-related account page
+    await import("./projects/actions"); // initialize projects list
+    cb();
+  };
 
   function signed_in(mesg) {
     setRememberMe(appBasePath);
     // Record which hub we're connected to.
     redux.getActions("account").setState({ hub: mesg.hub });
-    console.log(`Signed into ${mesg.hub} at ${new Date()}`);
+    console.log(`Signed into conat server ${mesg.hub} at ${new Date()}`);
     if (first_login) {
       first_login = false;
       if (!should_load_target_url()) {
@@ -76,7 +64,7 @@ export function init() {
     // just in case, always show manual login screen after 45s.
     setTimeout(
       () => redux.getActions("account").setState({ remember_me: false }),
-      45000
+      45000,
     );
   }
   webapp_client.on("remember_me_failed", function () {

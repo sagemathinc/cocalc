@@ -1,24 +1,25 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import createLicense from "@cocalc/server/licenses/purchase/create-license";
-import createAccount from "@cocalc/server/accounts/create-account";
-import editLicenseOwner from "./edit-license-owner";
-import editLicense from "./edit-license";
-import getLicense from "@cocalc/server/licenses/get-license";
-import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
-import createPurchase from "./create-purchase";
-import { uuid } from "@cocalc/util/misc";
-import getPool, {
-  initEphemeralDatabase,
-  getPoolClient,
-} from "@cocalc/database/pool";
 import dayjs from "dayjs";
-import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
+
+import getPool, {
+  getPoolClient,
+  initEphemeralDatabase,
+} from "@cocalc/database/pool";
+import createAccount from "@cocalc/server/accounts/create-account";
+import getLicense from "@cocalc/server/licenses/get-license";
+import createLicense from "@cocalc/server/licenses/purchase/create-license";
+import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
+import { uuid } from "@cocalc/util/misc";
+import createPurchase from "./create-purchase";
+import editLicense from "./edit-license";
+import editLicenseOwner from "./edit-license-owner";
 import getSubscriptions from "./get-subscriptions";
+import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import { license0 } from "./test-data";
 
 beforeAll(async () => {
@@ -227,8 +228,9 @@ describe("create a subscription license and edit it and confirm the subscription
     } as any);
 
     // the monthly cost doesn't change *exactly* as the cost to edit, due
-    // to the date range, particular month, etc.
-    expect(subs2[0].cost).toBeCloseTo(cost2?.discounted_cost ?? 0, 0);
+    // to the date range, particular month, etc.  Other tests that do
+    // test exact cost changes exist below!
+    expect(subs2[0].cost).toBeCloseTo(cost2?.cost ?? 0, -1);
   });
 });
 

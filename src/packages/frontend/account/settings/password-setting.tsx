@@ -1,24 +1,28 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Form, Input } from "antd";
+import { join } from "path";
+import { useIntl } from "react-intl";
+
+import { Button, ButtonToolbar, Well } from "@cocalc/frontend/antd-bootstrap";
+import {
+  Rendered,
+  useIsMountedRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
 import {
   A,
   ErrorDisplay,
   LabeledRow,
   Saving,
 } from "@cocalc/frontend/components";
-import {
-  Rendered,
-  useIsMountedRef,
-  useState,
-} from "@cocalc/frontend/app-framework";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Button, ButtonToolbar, Well } from "@cocalc/frontend/antd-bootstrap";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { join } from "path";
-import { Form, Input } from "antd";
+import { labels } from "@cocalc/frontend/i18n";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
 
 interface State {
   state: "view" | "edit" | "saving"; // view --> edit --> saving --> view
@@ -28,6 +32,7 @@ interface State {
 }
 
 export const PasswordSetting: React.FC = () => {
+  const intl = useIntl();
   const is_mounted = useIsMountedRef();
 
   const [state, set_state] = useState<State["state"]>("view");
@@ -58,12 +63,13 @@ export const PasswordSetting: React.FC = () => {
     try {
       await webapp_client.account_client.change_password(
         old_password,
-        new_password
+        new_password,
       );
       if (!is_mounted.current) return;
     } catch (err) {
       if (!is_mounted.current) return;
-      set_state("edit"), set_error(`Error changing password -- ${err}`);
+      set_state("edit");
+      set_error(`Error changing password -- ${err}`);
       return;
     }
     reset();
@@ -71,7 +77,7 @@ export const PasswordSetting: React.FC = () => {
 
   function is_submittable(): boolean {
     return !!(
-      new_password.length >= 6 &&
+      new_password.length >= MIN_PASSWORD_LENGTH &&
       new_password &&
       new_password !== old_password
     );
@@ -81,13 +87,13 @@ export const PasswordSetting: React.FC = () => {
     if (is_submittable()) {
       return (
         <Button onClick={save_new_password} bsStyle="success">
-          Change Password
+          {intl.formatMessage(labels.account_password_change)}
         </Button>
       );
     } else {
       return (
         <Button disabled bsStyle="success">
-          Change Password
+          {intl.formatMessage(labels.account_password_change)}
         </Button>
       );
     }
@@ -103,7 +109,7 @@ export const PasswordSetting: React.FC = () => {
             style={{ marginTop: "15px" }}
           />
           <A href={join(appBasePath, "auth/password-reset")}>
-            Forgot Password?
+            {intl.formatMessage(labels.account_password_forgot)}
           </A>
         </>
       );
@@ -134,7 +140,9 @@ export const PasswordSetting: React.FC = () => {
             />
           </Form.Item>
           New password
-          {new_password.length < 6 ? " (at least 6 characters)" : undefined}
+          {new_password.length < MIN_PASSWORD_LENGTH
+            ? ` (at least ${MIN_PASSWORD_LENGTH} characters)`
+            : undefined}
           {new_password.length >= 6 && new_password == old_password
             ? " (different than old password)"
             : undefined}
@@ -166,14 +174,17 @@ export const PasswordSetting: React.FC = () => {
   }
 
   return (
-    <LabeledRow label="Password" style={{ marginBottom: "15px" }}>
+    <LabeledRow
+      label={intl.formatMessage(labels.account_password)}
+      style={{ marginBottom: "15px" }}
+    >
       <div style={{ height: "30px" }}>
         <Button
           className="pull-right"
           disabled={state !== "view"}
           onClick={change_password}
         >
-          Change Password...
+          {intl.formatMessage(labels.account_password_change)}...
         </Button>
       </div>
       {state !== "view" ? render_edit() : undefined}

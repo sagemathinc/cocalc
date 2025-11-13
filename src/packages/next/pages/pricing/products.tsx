@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Layout, Typography } from "antd";
@@ -14,6 +14,8 @@ import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+
+import type { JSX } from "react";
 
 const { Text } = Typography;
 
@@ -106,8 +108,8 @@ function Body({ siteName }): JSX.Element {
         <Icon name="servers" /> Compute Servers
       </Title>
       <Paragraph>
-        You can use Jupyter notebooks and terminals with access to GPU's,
-        hundreds of CPU's, and thousands of GB of RAM by creating{" "}
+        You can use Jupyter notebooks and terminals with access to GPUs,
+        hundreds of CPUs, and thousands of GB of RAM by creating{" "}
         <A href="https://doc.cocalc.com/compute_server.html">compute servers</A>{" "}
         associated to a project.
       </Paragraph>

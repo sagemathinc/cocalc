@@ -1,16 +1,16 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Row, Col } from "antd";
-import withCustomize from "lib/with-customize";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
+import { Col, Layout, Row } from "antd";
+
 import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { Customize } from "lib/customize";
-import { Layout } from "antd";
+import withCustomize from "lib/with-customize";
 
 export default function Imprint({ customize }) {
   const { imprint } = customize;
@@ -24,10 +24,10 @@ export default function Imprint({ customize }) {
             xs={{ span: 12, offset: 6 }}
             style={{ marginTop: "30px", marginBottom: "30px" }}
           >
-            {imprint && <SanitizedMarkdown value={imprint} />}
+            {imprint ? <SanitizedMarkdown value={imprint} /> : undefined}
           </Col>
         </Row>
-        <Footer />{" "}
+        <Footer />
       </Layout>
     </Customize>
   );

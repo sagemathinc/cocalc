@@ -1,13 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Skip assigning or collecting an assignment, so next step can be attempted.
 */
 
-import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { CourseActions } from "../actions";
 import { AssignmentRecord } from "../store";
 import { Icon, Gap, Tip } from "../../components";
@@ -19,20 +18,18 @@ interface SkipCopyProps {
   actions: CourseActions;
 }
 
-export const SkipCopy: React.FC<SkipCopyProps> = (props: SkipCopyProps) => {
-  const { assignment, step, actions } = props;
-
+export function SkipCopy({ assignment, step, actions }: SkipCopyProps) {
   function click() {
     actions.assignments.set_skip(
       assignment.get("assignment_id"),
       step,
-      !assignment.get(`skip_${step}` as any)
+      !assignment.get(`skip_${step}` as any),
     );
   }
 
   function icon_extra() {
     let icon;
-    let extra: Rendered = undefined;
+    let extra: React.JSX.Element | undefined = undefined;
     if (assignment.get(`skip_${step}` as any)) {
       icon = "check-square-o";
       if (assignment.getIn(["peer_grade", "enabled"])) {
@@ -62,4 +59,4 @@ export const SkipCopy: React.FC<SkipCopyProps> = (props: SkipCopyProps) => {
       </Button>
     </Tip>
   );
-};
+}

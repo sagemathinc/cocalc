@@ -1,70 +1,8 @@
 {
   "folders": [
     {
-      "name": "util",
-      "path": "packages/util"
-    },
-    {
-      "name": "sync",
-      "path": "packages/sync"
-    },
-    {
-      "name": "static",
-      "path": "packages/static"
-    },
-    {
-      "name": "project",
-      "path": "packages/project"
-    },
-    {
-      "name": "server",
-      "path": "packages/server"
-    },
-    {
-      "name": "next",
-      "path": "packages/next"
-    },
-    {
-      "name": "frontend",
-      "path": "packages/frontend"
-    },
-    {
-      "name": "hub",
-      "path": "packages/hub"
-    },
-    {
-      "name": "database",
-      "path": "packages/database"
-    },
-    {
-      "name": "cdn",
-      "path": "packages/cdn"
-    },
-    {
-      "name": "backend",
-      "path": "packages/backend"
-    },
-    {
-      "name": "assets",
-      "path": "packages/assets"
-    },
-    {
-      "path": "packages/sync-client"
-    },
-    {
-      "path": "packages/jupyter"
-    },
-    {
-      "path": "packages/compute"
-    },
-    {
-      "path": "packages/terminal"
-    },
-    {
-      "path": "packages/comm"
-    },
-    {
-      "path": "packages/api-client"
+      "name": "cocalc",
+      "path": "."
     }
   ],
   "settings": {
@@ -77,8 +15,20 @@
     ],
     "jest.autoRun": "off",
     "files.exclude": {
+      "**/dist": true,
+      "**/node_modules": true,
       "dist": true,
-      "node_modules": true
+      "compute": true,
+      "data": true,
+      "dev": true,
+      "examples": true,
+      "node_modules": true,
+      "requirements.txt": true,
+      "scripts": true,
+      "smc_pyutil": true,
+      "smc_sagews": true,
+      ".mypy_cache": true,
+      "pnpm-lock.yaml": true
     },
     "prettier.trailingComma": "all"
   }

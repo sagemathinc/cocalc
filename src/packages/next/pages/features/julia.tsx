@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Layout } from "antd";
@@ -39,7 +39,7 @@ export default function Julia({ customize }) {
           <Content
             landing
             startup={component}
-            logo={logo}
+            body={logo}
             title={title}
             subtitleBelow={true}
             subtitle={
@@ -178,7 +178,7 @@ export default function Julia({ customize }) {
           </Info>
 
           <Info
-            title={"Teach using Julia and Nbgrader"}
+            title={"Teach using Julia and nbgrader"}
             image={nbgraderScreenshot}
             alt={"A screenshot using nbgrader with Julia."}
             anchor="nbgrader"

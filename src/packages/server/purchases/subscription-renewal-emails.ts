@@ -1,7 +1,24 @@
 /*
 Periodically send emails out to users that active subscriptions will renew soon.
 
-USER FRIENDLY: The emails contain a 1-click link to cancel a subscription.
+
+RULE: For each subscription that has:
+
+- status not 'canceled'
+- expires is less than 7 days away
+- the reminder.week is more than 2 weeks in the past
+
+Send a message that the subscription renewal is coming up.
+If reminder.email is not true send an actual email.
+
+Always create a notification.
+
+Also, send a second reminder for:
+
+- expires is less than 3 days away
+- the reminder.day3 is more than 2 weeks in the past
+
+Include a link to manage the subscription.
 */
 
 import getPool from "@cocalc/database/pool";
@@ -15,7 +32,6 @@ import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import { getTotalBalance } from "./get-balance";
 import { getUsageSubscription } from "./stripe-usage-based-subscription";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
-import { cancelSubscription } from "@cocalc/server/token-actions/create";
 import sendEmail from "@cocalc/server/email/send-email";
 import getLogger from "@cocalc/backend/logger";
 import siteURL from "@cocalc/database/settings/site-url";
@@ -70,7 +86,7 @@ async function sendSubscriptionRenewalEmail(account_id, subs: Subscription[]) {
   }
   const usageSub = await getUsageSubscription(account_id);
 
-  let pay = `Your account balance, including all pending transactions, is ${currency(
+  let pay = `Your account balance is ${currency(
     totalBalance,
   )}. `;
   if (totalBalance - cost < 0) {
@@ -92,7 +108,7 @@ so they are not automatically canceled.   You will receive a reminder email in a
         sub.id
       }) for ${currency(sub.cost)}/${sub.interval}: ${await describeLicense(
         sub.metadata?.license_id,
-      )} ${await cancelSubscriptionLink(sub.id)}</li>`,
+      )} </li>`,
     );
   }
 
@@ -111,7 +127,7 @@ You have ${subs.length} ${siteName} ${plural(
 <ul>
 ${subscriptionList.join("\n")}
 </ul>
-NOTE: You can easily cancel any subscription by clicking the link above without having to sign in to ${siteName}.
+NOTE: You can cancel a subscription via the link above without having to sign in to ${siteName}.
 
 <br/><br/>
 
@@ -145,13 +161,6 @@ async function describeLicense(license_id: string): Promise<string> {
     return "";
   }
   return describeQuotaFromInfo(rows[0].purchased);
-}
-
-async function cancelSubscriptionLink(
-  subscription_id: number,
-): Promise<string> {
-  const url = await cancelSubscription(subscription_id);
-  return ` <a href="${url}">(cancel)</a>`;
 }
 
 /*

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Space } from "antd";
@@ -35,6 +35,8 @@ as { and } in C-like languages, cause the current line to be reindented.`,
   build_on_save: `Trigger a build of LaTex, Rmd, etc. files whenever they are saved to disk, instead of only building when you click the Build button. This is fine for small documents, but can be annoying for large documents, especially if you are a "compulsive saver".`,
   show_exec_warning:
     "Show a warning if you hit shift+enter (or other keys) when editing certain files, e.g., Python code, that is not directly executable.  This is just to avoid confusion if you create a .py file and think it is a Jupyter notebook.",
+  show_my_other_cursors:
+    "Enable this if you want to see your own cursor when you are editing the same file in multiple browser tabs.",
 } as const;
 
 register({

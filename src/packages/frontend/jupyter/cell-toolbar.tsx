@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -8,16 +8,16 @@ The toolbar at the top of each cell
 */
 
 import { Map } from "immutable";
-import { React, CSS } from "../app-framework";
 
-import { Slideshow } from "./cell-toolbar-slideshow";
-import { Attachments } from "./cell-toolbar-attachments";
-import { TagsToolbar } from "./cell-toolbar-tags";
-import { Metadata } from "./cell-toolbar-metadata";
-import { CreateAssignmentToolbar } from "./nbgrader/cell-toolbar-create-assignment";
+import { CSS, React } from "@cocalc/frontend/app-framework";
 
 import { JupyterActions } from "./browser-actions";
-
+import { Attachments } from "./cell-toolbar-attachments";
+import { Metadata } from "./cell-toolbar-metadata";
+import { Slideshow } from "./cell-toolbar-slideshow";
+import TagsToolbar from "./cell-toolbar-tags";
+import IdsToolbar from "./cell-toolbar-ids";
+import { CreateAssignmentToolbar } from "./nbgrader/cell-toolbar-create-assignment";
 import { PROMPT_MIN_WIDTH } from "./prompt/base";
 
 const STYLE: CSS = {
@@ -25,7 +25,6 @@ const STYLE: CSS = {
   display: "flex",
   background: "#eee",
   border: "1px solid rgb(247, 247, 247)",
-  marginTop: "20px",
 } as const;
 
 export interface CellToolbarProps {
@@ -38,9 +37,10 @@ const TOOLBARS = {
   slideshow: Slideshow,
   attachments: Attachments,
   tags: TagsToolbar,
+  ids: IdsToolbar,
   metadata: Metadata,
   create_assignment: CreateAssignmentToolbar,
-};
+} as const;
 
 export const CellToolbar: React.FC<CellToolbarProps> = React.memo(
   (props: CellToolbarProps) => {
@@ -55,5 +55,5 @@ export const CellToolbar: React.FC<CellToolbarProps> = React.memo(
         <T actions={actions} cell={cell} />
       </div>
     );
-  }
+  },
 );

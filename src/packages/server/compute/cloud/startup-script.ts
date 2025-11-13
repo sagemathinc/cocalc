@@ -1,25 +1,97 @@
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import type {
-  Architecture,
-  ImageName,
-} from "@cocalc/util/db-schema/compute-servers";
-import { IMAGES } from "@cocalc/util/db-schema/compute-servers";
+import { getImages, Images } from "@cocalc/server/compute/images";
 import {
-  installDocker,
+  installTime,
   installNode,
   installCoCalc,
+  installZpool,
+  installDocker,
+  installDockerGroup,
+  installNvidiaDocker,
   installConf,
+  installMicroK8s,
   installUser,
   UID,
 } from "./install";
+import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
+import {
+  CHECK_IN_PATH,
+  CHECK_IN_PERIOD_S,
+} from "@cocalc/util/db-schema/compute-servers";
+import basePath from "@cocalc/backend/base-path";
 
 // A one line startup script that grabs the latest version of the
 // real startup script via the API.  This is important, e.g., if
 // the user reboots the VM in some way, so they get the latest
 // cocalc startup script (with newest ssh keys, etc.) on startup.
+// This is assumed to be 1 line in various place, e.g., in cloudInitScript below.
 export async function startupScriptViaApi({ compute_server_id, api_key }) {
   const apiServer = await getApiServer();
   return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash 2>&1 | tee /var/log/cocalc-startup.log`;
+}
+
+export async function cloudInitScript({
+  compute_server_id,
+  api_key,
+  local_ssd,
+}) {
+  // This is a little tricky because we want it to run *every* time,
+  // not just the first time, and cloud init doesn't have a nice way to
+  // do that. That's why there is /root/cocalc-startup.sh
+
+  let ephemeral = "";
+  if (!local_ssd) {
+    // When no local_ssd, we reset /usr/local/sbin/prepare_ephemeral_disk.sh, since
+    // otherwise the user's data volume gets deleted by an non-ZFS aware
+    // script from hyperstack, which is very bad for us.
+    ephemeral = `
+  - path: /usr/local/sbin/prepare_ephemeral_disk.sh
+    permissions: "0700"
+    content: |
+        #!/bin/bash
+        echo "explicitly disabling ephemeral disk configuration to block what hyperstack does -- otherwise this would delete the user volume!"
+`;
+  }
+
+  return `#cloud-config
+
+write_files:
+${ephemeral}
+  - path: /root/cocalc-startup.sh
+    permissions: "0700"
+    content: |
+        #!/bin/bash
+        ${await startupScriptViaApi({ compute_server_id, api_key })}
+        if [ $? -eq 0 ]; then
+            exit 0
+        fi
+        # If the script fails (e.g., due to timing weirdness), we
+        # try restarting docker and running it again.
+        sleep 1
+        service docker restart
+        ${await startupScriptViaApi({ compute_server_id, api_key })}
+        if [ $? -eq 0 ]; then
+            exit 0
+        fi
+        sleep 3
+        service docker restart
+        ${await startupScriptViaApi({ compute_server_id, api_key })}
+        if [ $? -eq 0 ]; then
+            exit 0
+        fi
+
+runcmd:
+  - |
+    #!/bin/bash
+    set -v
+    crontab -l | grep "@reboot /root/cocalc-startup.sh"
+    if [ $? -ne 0 ]; then
+        # first boot ever, and crontab not setup, so we we add /root/cocalc-start.sh to
+        # crontab and run it. Otherwise, it will already be run.
+        (crontab -l 2>/dev/null; echo "@reboot /root/cocalc-startup.sh") | crontab -
+        /root/cocalc-startup.sh
+    fi
+`;
 }
 
 async function getApiServer() {
@@ -27,31 +99,44 @@ async function getApiServer() {
   if (!apiServer.includes("://")) {
     apiServer = `https://${apiServer}`;
   }
+  if (basePath.length > 1) {
+    apiServer += basePath;
+  }
   return apiServer;
 }
 
 export default async function startupScript({
+  cloud,
   image = "python",
+  tag,
+  tag_filesystem,
+  tag_cocalc,
   compute_server_id,
   api_key,
   project_id,
   gpu,
-  arch,
   hostname,
   exclude_from_sync,
   auth_token,
+  proxy,
   installUser: doInstallUser,
+  local_ssd,
 }: {
-  image?: ImageName;
+  cloud: Cloud;
+  image?: string; // compute image
+  tag?: string; // compute docker image tag
+  tag_filesystem?: string; // filesystem docker image tag
+  tag_cocalc?: string; // @cocalc/compute-server npm package tag
   compute_server_id: number;
   api_key: string;
   project_id: string;
   gpu?: boolean;
-  arch: Architecture;
   hostname: string;
   exclude_from_sync: string;
   auth_token: string;
+  proxy;
   installUser?: boolean;
+  local_ssd?: boolean;
 }) {
   if (!api_key) {
     throw Error("api_key must be specified");
@@ -63,17 +148,30 @@ export default async function startupScript({
   image = imageDeprecation(image);
 
   const apiServer = await getApiServer();
+  const IMAGES = await getImages();
 
   return `
 #!/bin/bash
 
 set -v
 
+export COCALC_CLOUD=${cloud}
 export DEBIAN_FRONTEND=noninteractive
+export COCALC_LOCAL_SSD=${local_ssd ?? ""}
+export CONAT_SERVER=${apiServer}
 
 ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 
 setState state running
+
+# make sure nothing involving apt-get is running (e.g., auto updates)
+# Basically, unattended upgrades can randomly run and just totally break
+# the startup script, which is really painful.
+pkill -9 apt-get || true
+pkill -f -9 unattended-upgrade || true
+apt-get remove -y unattended-upgrades || true
+
+${installTime()}
 
 setState install configure '' 60 10
 ${await installConf({
@@ -84,6 +182,7 @@ ${await installConf({
   hostname,
   exclude_from_sync,
   auth_token,
+  proxy,
 })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing configuration"
@@ -97,35 +196,53 @@ ${userSsh()}
 docker
 if [ $? -ne 0 ]; then
    setState install install-docker '' 120 20
-${installDocker()}
+   ${installDocker()}
+   ${installNvidiaDocker({ gpu })}
+   if [ $? -ne 0 ]; then
+      setState install error "problem installing Docker"
+      exit 1
+   fi
 fi
 
-# We use group 999 for docker inside the compute container,
-# so that has to also be the case outside or docker without
-# sudo won't work.
-groupmod -g 999 docker
-chgrp docker /var/run/docker.sock
+${installDockerGroup()}
 
-setState install install-nodejs 60 50
+setState install install-nodejs '' 60 40
 ${installNode()}
 if [ $? -ne 0 ]; then
    setState install error "problem installing nodejs"
    exit 1
 fi
 
-setState install install-cocalc '' 60 70
-${installCoCalc(arch)}
+setState install install-cocalc '' 60 50
+${installCoCalc({ IMAGES, tag: tag_cocalc })}
 if [ $? -ne 0 ]; then
    setState install error "problem installing cocalc"
    exit 1
 fi
 
-setState install install-user '' 60 80
+setState install install-zpool '' 120 60
+${installZpool({ cloud })}
+if [ $? -ne 0 ]; then
+   setState install error "problem configuring zpool"
+   exit 1
+fi
+
+setState install install-user '' 60 70
 ${doInstallUser ? installUser() : ""}
 if [ $? -ne 0 ]; then
    setState install error "problem creating user"
    exit 1
 fi
+
+# install-k8s has to be AFTER install-user.
+${installMicroK8s({ image, IMAGES, gpu })}
+if [ $? -ne 0 ]; then
+   setState install error "problem installing kubernetes"
+   exit 1
+fi
+
+setState install install-k8s '' 120 90
+
 setState install ready '' 0  100
 
 setState vm start '' 60 60
@@ -133,14 +250,21 @@ setState vm start '' 60 60
 ${runCoCalcCompute({
   gpu,
   image,
+  tag,
+  tag_filesystem,
+  IMAGES,
 })}
 
-exec /cocalc/disk_enlarger.py 2> /var/log/disk-enlarger.log >/var/log/disk-enlarger.log &
+echo "Launching background daemons: disk_enlarger.py and check_in.py"
 
-while true; do
-  setState vm ready '' 35 100
-  sleep 30
-done
+exec /usr/bin/python3 -u /cocalc/disk_enlarger.py 2> /var/log/cocalc-disk-enlarger.err >/var/log/cocalc-disk-enlarger.log &
+
+exec /usr/bin/python3 -u /cocalc/check_in.py ${CHECK_IN_PERIOD_S} ${CHECK_IN_PATH} 2> /var/log/cocalc-check-in.err >/var/log/cocalc-check-in.log &
+
+# Put back unattended upgrades, since they are good to have for security reasons.
+apt-get install -y unattended-upgrades || true
+
+echo "Startup complete!"
 `;
 }
 
@@ -160,17 +284,29 @@ cat /cocalc/conf/authorized_keys > /root/.ssh/authorized_keys
 // This approach is more robust to configure than running ssh directly on the compute docker
 // container on a different port, but slightly more limited, e.g., X11 port forwarding doesn't
 // seem to work, but is also something that we wouldn't want to do this way anyways.
+// NOTE the Quoted heredoc to get the escaping right; there was a bug for a while.
 function userSsh() {
   return `
 # Make it so doing 'ssh user@host' ends up in the *compute* docker container.
+# Also rsync and 'ssh user@host command' should work too.
 # To get into the true root of the VM, the user has to do 'ssh root@host'.
-if ! grep -q "Match User user" /etc/ssh/sshd_config; then
-   {
-      echo "Match User user"
-      echo '   ForceCommand [[ -z "\${SSH_ORIGINAL_COMMAND}" ]] && docker exec -w /home/user -it compute bash || docker exec -w /home/user -i compute \${SSH_ORIGINAL_COMMAND}'
-   } >> /etc/ssh/sshd_config
-   service ssh restart
-fi
+
+cat > /etc/ssh/sshd_config <<'EOF'
+Include /etc/ssh/sshd_config.d/*.conf
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+UsePAM yes
+X11Forwarding yes
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+Match User user
+   ForceCommand [[ -z "\${SSH_ORIGINAL_COMMAND}" ]] && docker exec -w /home/user -it compute bash || docker exec -w /home/user -i compute \${SSH_ORIGINAL_COMMAND}
+EOF
+
+systemctl daemon-reload
+service ssh restart
 `;
 }
 
@@ -194,23 +330,57 @@ fi
 // TODO: we could set the hostname in a more useful way!
 function runCoCalcCompute(opts) {
   return `
+${startDocker()}
 ${filesystem(opts)}
 ${compute(opts)}
 `;
 }
 
-function filesystem({}) {
-  const image = `sagemathinc/filesystem`;
+function startDocker() {
+  return `
+
+# sometimes after configuring the zpool, docker is not running, or
+# it never started due to the zpool needing to be configured, so we
+# ensure docker is running.
+
+while true; do
+    docker ps
+    if [ $? -eq 0 ]; then
+        break
+    else
+        echo "Docker not running; trying to start it again..."
+        sleep 1
+        service docker start
+    fi
+done
+`;
+}
+
+function filesystem({
+  IMAGES,
+  tag_filesystem,
+}: {
+  IMAGES: Images;
+  tag_filesystem?: string;
+}) {
+  const tag = getTag({
+    image: "filesystem",
+    IMAGES,
+    tag: tag_filesystem,
+  });
+  const docker = IMAGES["filesystem"].package;
 
   return `
-# Docker container that mounts the filesystem(s)
+# Docker container that mounts the file system(s)
 setState filesystem init '' 60 15
 
 # Make the home directory
-# Note the filesystem mount is with the option nonempty, so
+# Note the file system mount is with the option nonempty, so
 # we don't have to worry anymore about deleting /home/user/*,
 # which is scary.
-fusermount -u /home/user 2>/dev/null; mkdir -p /home/user && chown ${UID}:${UID} /home/user
+fusermount -u /home/user || true
+umount -l /home/user || true
+mkdir -p /home/user && chown ${UID}:${UID} /home/user
 if [ $? -ne 0 ]; then
    setState filesystem error "problem making /home/user directory"
    exit 1
@@ -225,32 +395,44 @@ fi
 # keys and move data.
 
 mkdir -p /data
-chown user:user /data
+chown 2001:2001 /data
 
-docker start filesystem >/dev/null 2>&1
+docker stop filesystem >/dev/null 2>&1
+docker rm filesystem >/dev/null 2>&1
+
+setState filesystem run '' 45 25
+
+# Get the total RAM
+total_ram=$(free -g | grep Mem: | awk '{print $2}')
+
+# Compute TOTAL_RAM as MAX(1, total_ram - 1)
+export TOTAL_RAM=$(($total_ram - 1))
+if [ "$TOTAL_RAM" -lt 1 ]; then
+    # Obviously 0 wouldn't work below.
+    export TOTAL_RAM=1
+fi
+
+mkdir -p /ephemeral
+chown 2001:2001 /ephemeral
+docker run \
+ -d \
+ --name=filesystem \
+ --security-opt no-new-privileges=false \
+ --privileged \
+ --memory "$TOTAL_RAM"g --memory-swap "$TOTAL_RAM"g \
+ --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
+ --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
+ --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
+ --mount type=bind,source=/ephemeral,target=/ephemeral,bind-propagation=rshared \
+ -v /cocalc:/cocalc \
+ ${docker}:${tag}
 
 if [ $? -ne 0 ]; then
-  setState filesystem run '' 45 25
-
-  docker run \
-   -d \
-   --name=filesystem \
-   --privileged \
-   --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
-   --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
-   --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
-   -v /cocalc:/cocalc \
-   ${image}
-  if [ $? -ne 0 ]; then
-     setState filesystem error "problem creating filesystem Docker container"
-     exit 1
-  fi
-  setState filesystem running '' 45 80
-
-else
-
-  setState filesystem running '' 45 80
+   setState filesystem error "problem creating filesystem Docker container"
+   exit 1
 fi
+
+setState filesystem running '' 45 80
  `;
 }
 
@@ -278,15 +460,25 @@ docker run  ${gpu ? GPU_FLAGS : ""} \
 const GPU_FLAGS =
   " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
 
-function compute({ image, gpu }) {
-  const docker = IMAGES[image]?.docker ?? `sagemathinc/${image}`;
-  const tag = getTag(image);
+function compute({
+  image,
+  tag,
+  gpu,
+  IMAGES,
+}: {
+  image: string;
+  tag?: string;
+  gpu?: boolean;
+  IMAGES: Images;
+}) {
+  const docker = IMAGES[image]?.package ?? `sagemathinc/${image}`;
+  tag = getTag({ image, IMAGES, tag });
 
   // Start a container that connects to the project
   // and manages providing terminals and jupyter kernels
   // in this environment.
 
-  // The special mount line is necessary in case the filesystem has mounted when this
+  // The special mount line is necessary in case the file system has mounted when this
   // container starts (which is likely).
 
   return `
@@ -301,13 +493,24 @@ docker start compute >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
   setState compute run '' 20 25
+  total_ram=$(free -g | grep Mem: | awk '{print $2}')
+  export TOTAL_RAM=$(($total_ram - 1))
+  if [ "$TOTAL_RAM" -lt 1 ]; then
+      # Obviously 0 wouldn't work below.
+      export TOTAL_RAM=1
+  fi
+  mkdir -p /ephemeral
+  chown 2001:2001 /ephemeral
   docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --network host \
+   --security-opt no-new-privileges=false \
    --privileged \
+   --memory "$TOTAL_RAM"g --memory-swap "$TOTAL_RAM"g \
    --mount type=bind,source=/data,target=/data,bind-propagation=rshared \
    --mount type=bind,source=/tmp,target=/tmp,bind-propagation=rshared \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
+   --mount type=bind,source=/ephemeral,target=/ephemeral,bind-propagation=rshared \
    -v /var/run/docker.sock:/var/run/docker.sock \
    -v /cocalc:/cocalc \
    ${docker}:${tag}
@@ -344,14 +547,44 @@ function setState {
   `;
 }
 
-// For now we just get the newest tag, since there
-// is only one so far.  TODO!
-export function getTag(image): string {
+/*
+If tag is given and available just returns that tag.
+If tag is given but not available or no tag is given,
+returns the newest tested tag, unless no tags are tested,
+in which case we just return the newest tag.
+Returns 'latest' in case nothing is available.
+*/
+
+export function getTag({
+  image,
+  IMAGES,
+  tag,
+}: {
+  image: string;
+  IMAGES: Images;
+  tag?: string;
+}): string {
   image = imageDeprecation(image);
-  const { versions } = IMAGES[image] ?? {};
+  let { versions } = IMAGES[image] ?? {};
   if (versions == null || versions.length == 0) {
     return "latest";
   }
+  if (tag) {
+    for (const x of versions) {
+      if (x?.tag == tag) {
+        // tag is available
+        return tag;
+      }
+    }
+  }
+  // tag is not available or not tag given, so
+  // try to return newest (latested in array, not
+  // actually sorting by tag) tested version.
+  const tested = versions.filter((x) => x.tested);
+  if (tested.length > 0) {
+    return tested[tested.length - 1]?.tag ?? "latest";
+  }
+  // just return non-tested newest sine nothing is tested.
   const version = versions[versions.length - 1];
   return version.tag ?? "latest";
 }

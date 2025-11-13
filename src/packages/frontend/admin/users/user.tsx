@@ -1,24 +1,27 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Display of basic information about a user, with link to get more information about that user.
 */
 
-import { Icon, Gap, TimeAgo } from "@cocalc/frontend/components";
-import { Component, Rendered } from "@cocalc/frontend/app-framework";
+import { useState } from "react";
+import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { capitalize } from "@cocalc/util/misc";
-import { Row, Col } from "@cocalc/frontend/antd-bootstrap";
-import { User } from "@cocalc/frontend/frame-editors/generic/client";
+import { Card, Space, Tag } from "antd";
+import type { User } from "@cocalc/frontend/frame-editors/generic/client";
 import { Projects } from "./projects";
 import { Impersonate } from "./impersonate";
 import { PasswordReset } from "./password-reset";
 import { Ban } from "./ban";
 import PayAsYouGoMinBalance from "@cocalc/frontend/frame-editors/crm-editor/users/pay-as-you-go-min-balance";
 import { PurchasesButton } from "@cocalc/frontend/purchases/purchases";
+import { PaymentsButton } from "@cocalc/frontend/purchases/payments";
+import { CreatePaymentButton } from "./create-payment";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
+import Money from "./money";
 
 interface State {
   projects: boolean;
@@ -29,23 +32,6 @@ interface State {
   ban: boolean;
 }
 
-interface HeaderProps {
-  header: true;
-  first_name: string;
-  last_name: string;
-  email_address: string;
-  created: string;
-  last_active: string;
-  account_id: string;
-  banned?: undefined;
-}
-
-interface UserProps extends User {
-  header?: false;
-}
-
-type Props = HeaderProps | UserProps;
-
 type More =
   | "projects"
   | "purchases"
@@ -54,226 +40,169 @@ type More =
   | "password"
   | "ban";
 
-const MORE: More[] = [
-  "projects",
-  "purchases",
-  "activity",
-  "impersonate",
-  "password",
-  "ban",
-];
+export function UserResult({
+  first_name,
+  last_name,
+  email_address,
+  created,
+  last_active,
+  account_id,
+  banned,
+}: User) {
+  const [details, setDetails] = useState<boolean>(false);
+  const [state, setState] = useState<State>({
+    projects: false,
+    purchases: false,
+    activity: false,
+    impersonate: false,
+    password: false,
+    ban: false,
+  });
 
-export class UserResult extends Component<Props, State> {
-  constructor(props, state) {
-    super(props, state);
-    const x: any = {};
-    for (const name of MORE) {
-      x[name] = false;
+  const renderCreated = () => {
+    if (!created) {
+      return <span>ancient times</span>;
     }
-    this.state = x as State;
-  }
+    return <TimeAgo date={created} />;
+  };
 
-  render_created(): Rendered {
-    if (!this.props.created) {
-      return <span>unknown</span>;
+  const renderLastActive = () => {
+    if (!last_active) {
+      return <span>never</span>;
     }
-    return <TimeAgo date={this.props.created} />;
-  }
+    return <TimeAgo date={last_active} />;
+  };
 
-  render_last_active(): Rendered {
-    if (!this.props.last_active) {
-      return <span>unknown</span>;
-    }
-    return <TimeAgo date={this.props.last_active} />;
-  }
-
-  render_purchases(): Rendered {
-    if (!this.state.purchases) {
-      return;
-    }
+  const renderMoreLink = (name: More) => {
     return (
-      <div style={{ margin: "15px 0" }}>
-        <PayAsYouGoMinBalance account_id={this.props.account_id} />
-        <div style={{height:'15px'}}/>
-        <PurchasesButton account_id={this.props.account_id}/>
-      </div>
-    );
-  }
-
-  render_projects(): Rendered {
-    if (!this.state.projects) {
-      return;
-    }
-    return (
-      <Projects
-        account_id={this.props.account_id}
-        title={`Recently active projects that ${this.props.first_name} ${this.props.last_name} collaborates on`}
-      />
-    );
-  }
-
-  render_impersonate(): Rendered {
-    if (!this.state.impersonate) {
-      return;
-    }
-    return (
-      <Impersonate
-        account_id={this.props.account_id}
-        first_name={this.props.first_name ?? ""}
-        last_name={this.props.last_name ?? ""}
-      />
-    );
-  }
-
-  render_password(): Rendered {
-    if (!this.state.password) {
-      return;
-    }
-    return <PasswordReset email_address={this.props.email_address} />;
-  }
-
-  render_ban(): Rendered {
-    if (!this.state.ban) {
-      return;
-    }
-    return (
-      <Ban account_id={this.props.account_id} banned={this.props.banned} />
-    );
-  }
-
-  render_caret(show: boolean): Rendered {
-    if (show) {
-      return <Icon name="caret-down" />;
-    } else {
-      return <Icon name="caret-right" />;
-    }
-  }
-
-  render_more_link(name: More): Rendered {
-    // sorry about the any below; I could NOT get typescript to work.
-    return (
-      <a
-        style={{ cursor: "pointer" }}
-        onClick={() => (this as any).setState({ [name]: !this.state[name] })}
+      <Tag.CheckableTag
+        style={{ fontSize: "11pt" }}
+        checked={state[name]}
+        onChange={() => setState({ ...state, [name]: !state[name] })}
       >
-        {this.render_caret(this.state[name])} {capitalize(name)}
-      </a>
+        {capitalize(name)}
+      </Tag.CheckableTag>
     );
-  }
+  };
 
-  render_more_links(): Rendered {
-    return (
-      <div>
-        {this.render_more_link("projects")}
-        <Gap />
-        <Gap />
-        {this.render_more_link("purchases")}
-        <Gap />
-        <Gap />
-        {this.render_more_link("impersonate")}
-        <Gap />
-        <Gap />
-        {this.render_more_link("password")}
-        <Gap />
-        <Gap />
-        {this.render_more_link("ban")}
-      </div>
-    );
-  }
-
-  render_banned(): Rendered {
-    if (!this.props.banned) return;
-    return (
-      <div
-        style={{
-          fontSize: "10pt",
-          color: "white",
-          paddingLeft: "5px",
-          background: "red",
-        }}
-      >
-        BANNED
-      </div>
-    );
-  }
-
-  render_row(): Rendered {
-    return (
-      <div>
-        <Row style={{ borderTop: "1px solid #ccc" }}>
-          <Col md={1} style={{ overflow: "auto" }}>
-            {this.props.first_name}
-          </Col>
-          <Col md={1} style={{ overflow: "auto" }}>
-            {this.props.last_name}
-          </Col>
-          <Col md={2} style={{ overflow: "auto" }}>
-            {this.props.email_address}
-          </Col>
-          <Col md={2}>
-            {this.render_last_active()} ({this.render_created()})
-          </Col>
-          <Col md={4}>{this.render_more_links()}</Col>
-          <Col md={2} style={{ overflow: "auto" }}>
-            <div
-              style={{
-                paddingTop: "8px",
-                overflowX: "scroll",
-              }}
-            >
+  return (
+    <Card
+      style={{ margin: "15px 0", background: "#fafafa" }}
+      styles={{
+        body: { padding: "0 24px" },
+        title: { padding: "0" },
+      }}
+      title={
+        <div
+          style={{ cursor: "pointer" }}
+          onClick={details ? undefined : () => setDetails(true)}
+        >
+          <Icon
+            onClick={() => setDetails(!details)}
+            name={details ? "minus-square" : "plus-square"}
+            style={{ marginRight: "15px" }}
+          />
+          <div style={{ float: "right", color: "#666" }}>
+            Active {renderLastActive()} (Created {renderCreated()})
+          </div>
+          <Space style={{ color: "#666" }}>
+            {first_name} {last_name}{" "}
+            {email_address ? (
               <CopyToClipBoard
-                before
-                value={this.props.account_id}
-                size="small"
+                style={{ color: "#666" }}
+                value={email_address}
               />
-              {this.render_banned()}
-            </div>
-          </Col>
-        </Row>
-        {this.render_purchases()}
-        {this.render_projects()}
-        {this.render_impersonate()}
-        {this.render_password()}
-        {this.render_ban()}
-      </div>
-    );
-  }
-
-  render_row_header(): Rendered {
-    return (
-      <div style={{ color: "#666" }}>
-        <Row>
-          <Col md={1} style={{ overflow: "auto" }}>
-            <b>{this.props.first_name}</b>
-          </Col>
-          <Col md={1} style={{ overflow: "auto" }}>
-            <b>{this.props.last_name}</b>
-          </Col>
-          <Col md={2} style={{ overflow: "auto" }}>
-            <b>{this.props.email_address}</b>
-          </Col>
-          <Col md={2}>
-            <b>
-              {this.props.last_active} ({this.props.created}){" "}
-              <Icon name="caret-down" />{" "}
-            </b>
-          </Col>
-          <Col md={4}>
-            <b>More...</b>
-          </Col>
-          <Col md={2}>
-            <b>{this.props.account_id}</b>
-          </Col>
-        </Row>
-      </div>
-    );
-  }
-
-  render(): Rendered {
-    if (this.props.header) {
-      return this.render_row_header();
-    } else {
-      return this.render_row();
-    }
-  }
+            ) : (
+              "NO Email"
+            )}
+          </Space>
+        </div>
+      }
+    >
+      {details && (
+        <div>
+          <div style={{ float: "right" }}>
+            <CopyToClipBoard
+              copyTip={"Copied account_id!"}
+              style={{ color: "#666" }}
+              before
+              value={account_id}
+            />
+            {banned && (
+              <div
+                style={{
+                  fontSize: "10pt",
+                  color: "white",
+                  paddingLeft: "5px",
+                  background: "red",
+                }}
+              >
+                BANNED
+              </div>
+            )}
+          </div>
+          <Space style={{ marginTop: "5px" }}>
+            {renderMoreLink("impersonate")}
+            {renderMoreLink("password")}
+            {renderMoreLink("ban")}
+            {renderMoreLink("projects")}
+            {renderMoreLink("purchases")}
+          </Space>
+          {state.impersonate && (
+            <Impersonate
+              account_id={account_id}
+              first_name={first_name ?? ""}
+              last_name={last_name ?? ""}
+            />
+          )}
+          {state.password && email_address && (
+            <Card title="Password">
+              <PasswordReset
+                account_id={account_id}
+                email_address={email_address}
+              />
+            </Card>
+          )}
+          {state.ban && (
+            <Card
+              title={
+                <>
+                  Ban {first_name} {last_name} {email_address}
+                </>
+              }
+            >
+              <Ban
+                account_id={account_id}
+                banned={banned}
+                name={`${first_name} ${last_name} ${email_address}`}
+              />
+            </Card>
+          )}
+          {state.projects && (
+            <Projects
+              account_id={account_id}
+              title={`Recently active projects that ${first_name} ${last_name} collaborates on`}
+            />
+          )}
+          {state.purchases && (
+            <Card title="Purchases">
+              <div style={{ margin: "15px 0" }}>
+                <Money account_id={account_id} />
+                <div style={{ height: "15px" }} />
+                <PayAsYouGoMinBalance account_id={account_id} />
+                <div style={{ height: "15px" }} />
+                <PurchasesButton account_id={account_id} />
+                <div style={{ height: "15px" }} />
+                <PaymentsButton account_id={account_id} />
+                <div style={{ height: "15px" }} />
+                <CreatePaymentButton account_id={account_id} />
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+    </Card>
+  );
 }
+
+export default UserResult;

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { AccountPage } from "@cocalc/frontend/account/account-page";
@@ -53,7 +53,7 @@ export const ActiveContent: React.FC = React.memo(() => {
     return !is_logged_in && notSignedIn;
   }, [is_logged_in, notSignedIn]);
 
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   open_projects?.forEach((project_id: string) => {
     const is_active = project_id === active_top_tab;
     const x = <ProjectPage project_id={project_id} is_active={is_active} />;

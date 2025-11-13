@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { CSS } from "@cocalc/frontend/app-framework";
@@ -14,7 +14,7 @@ export const HIDE_LABEL_THRESHOLD = 6;
 // the width of the top bar
 export const NAV_HEIGHT_PX = 36;
 
-// … and on narrower screens, a bit tigher
+// … and on narrower screens, a bit tighter
 export const NAV_HEIGHT_NARROW_PX = 28;
 
 export const NAV_CLASS = "hidden-xs";

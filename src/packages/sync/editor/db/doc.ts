@@ -1,9 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { CompressedPatch, Document } from "../generic/types";
+import { Document } from "../generic/types";
 import * as immutable from "immutable";
 import { isEqual } from "lodash";
 import { is_array, is_object, copy_without, len } from "@cocalc/util/misc";
@@ -25,6 +25,7 @@ type Index = immutable.Map<string, immutable.Set<number>>;
 type Indexes = immutable.Map<string, Index>;
 
 type jsmap = { [field: string]: any };
+type DBPatch = any // TODO: It's really this, but... [-1 | 1, jsmap];
 
 export type WhereCondition = { [field: string]: any };
 export type SetCondition =
@@ -163,7 +164,7 @@ export class DBDocument implements Document {
       .equals(immutable.Set(other.records).add(undefined));
   }
 
-  public apply_patch(patch: CompressedPatch): DBDocument {
+  public apply_patch(patch: DBPatch): DBDocument {
     let i = 0;
     let db: DBDocument = this;
     while (i < patch.length) {
@@ -177,7 +178,7 @@ export class DBDocument implements Document {
     return db;
   }
 
-  public make_patch(other: DBDocument): CompressedPatch {
+  public make_patch(other: DBDocument): DBPatch {
     if (other.size === 0) {
       // Special case -- delete everything
       return [-1, [{}]];

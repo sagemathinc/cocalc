@@ -1,28 +1,29 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Popover, Tooltip } from "antd";
+import { TooltipPlacement } from "antd/lib/tooltip";
 import React, { CSSProperties as CSS } from "react";
-import { Icon, IconName } from "./icon";
+
 import * as misc from "@cocalc/util/misc";
 import * as feature from "../feature";
-import { Tooltip, Popover } from "antd";
-import { TooltipPlacement } from "antd/lib/tooltip";
+import { Icon, IconName } from "./icon";
 
 const TIP_STYLE: CSS = {
   wordWrap: "break-word",
   maxWidth: "250px",
-};
+} as const;
 
 type Size = "xsmall" | "small" | "medium" | "large";
 
 type Trigger = "hover" | "focus" | "click" | "contextMenu";
 
 interface Props {
-  title?: string | JSX.Element | JSX.Element[]; // not checked for update
+  title?: string | React.JSX.Element | React.JSX.Element[] | (() => React.JSX.Element); // not checked for update
   placement?: TooltipPlacement;
-  tip?: string | JSX.Element | JSX.Element[]; // not checked for update
+  tip?: string | React.JSX.Element | React.JSX.Element[]; // not checked for update
   size?: Size; // IMPORTANT: this is currently ignored -- see https://github.com/sagemathinc/cocalc/pull/4155
   delayShow?: number;
   delayHide?: number;
@@ -74,16 +75,18 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
   } = props;
 
   function render_title() {
-    if (!icon) return title;
+    const renderedTitle = typeof title === "function" ? title() : title;
+    if (!renderedTitle) return null;
+    if (!icon) return renderedTitle;
     return (
       <span>
-        <Icon name={icon} /> {title}
+        <Icon name={icon} /> {renderedTitle}
       </span>
     );
   }
 
   // a tip is rendered in a description box below the title
-  function render_tip(): JSX.Element {
+  function render_tip(): React.JSX.Element {
     const style = { ...TIP_STYLE, ...tip_style };
     return <div style={style}>{tip}</div>;
   }
@@ -104,7 +107,7 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
       mouseLeaveDelay: delayHide / 1000,
     };
 
-    props.overlayStyle = Object.assign({}, popover_style);
+    props.styles = { root: Object.assign({}, popover_style) };
 
     if (tip) {
       return (

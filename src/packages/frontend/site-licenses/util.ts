@@ -1,13 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import LRU from "lru-cache";
 
 import { SCHEMA } from "@cocalc/util/db-schema";
 import { copy, trunc_left } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { query } from "../frame-editors/generic/client";
 import { SiteLicensePublicInfo } from "./types";
 

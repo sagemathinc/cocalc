@@ -1,39 +1,42 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
-Create certain number of vouchers for everything non-subscription
-that is checked and in the shopping cart and create corresponding
-purchase charging the user.
+Create certain number of cash voucher codes.
 
 Everything is done as one big atomic transaction, so if anything
 goes wrong the database is unchanged and the user is not charged
 and no vouchers get left sitting around.
 */
 
-import { getTransactionClient } from "@cocalc/database/pool";
 import multiInsert from "@cocalc/database/pool/multi-insert";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import generateVouchers, {
   CharSet,
   MAX_VOUCHERS,
+  MAX_VOUCHER_VALUE,
   CHARSETS,
   WhenPay,
 } from "@cocalc/util/vouchers";
 import { getLogger } from "@cocalc/backend/logger";
-import { getVoucherCheckoutCart } from "@cocalc/server/purchases/vouchers-checkout";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import dayjs from "dayjs";
+import { decimalMultiply } from "@cocalc/util/stripe/calc";
 
 const log = getLogger("createVouchers");
 
 interface Options {
   account_id: string;
+  client;
   whenPay: WhenPay;
-  count: number;
+  // how many voucher codes
+  numVouchers: number;
+  // value of each voucher code
+  amount: number;
   active: Date | null;
+  // expire is ignored except for admin vouchers
   expire: Date | null;
   cancelBy: Date | null;
   title: string;
@@ -44,65 +47,63 @@ interface Options {
     prefix?: string;
     postfix?: string;
   };
+  credit_id?: number;
 }
 
 export default async function createVouchers({
   account_id,
+  client,
   whenPay, // createVouchers *does* check if they claim to be an admin that they actually are.
-  count,
+  numVouchers: count,
+  amount,
   active,
   expire,
   cancelBy,
   title,
   generate,
+  credit_id,
 }: Options): Promise<{
   id: string;
   codes: string[];
-  cost: number; // cost to redeem one voucher
-  cart: any[];
+  amount: number; // value of one single voucher
 }> {
-  if (!count || count < 1) {
-    throw Error("count must be a positive integer");
-  }
-  // Get the list of items in the cart that haven't been purchased
-  // or saved for later, and are currently checked, and are
-  // NOT subscriptions (i.e, a date range).
-  const { cart, total: cost } = await getVoucherCheckoutCart(account_id);
   log.debug({
     account_id,
     whenPay,
     count,
+    amount,
     expire,
     title,
     generate,
-    cart,
-    cost,
+    credit_id,
   });
-  if (cart.length == 0) {
-    throw Error("cart must be nonempty");
+  if (!count || count < 1 || !isFinite(count)) {
+    // default to 1 -- this wasn't specified at all in some cases with
+    // older vouchers that might be in user shopping carts still
+    count = 1;
+  }
+  if (!amount || amount <= 0 || amount > MAX_VOUCHER_VALUE) {
+    throw Error(`amount must be positive and at most ${MAX_VOUCHER_VALUE}`);
   }
 
   // Make some checks.
   if (whenPay == "admin") {
     // they better be an admin!
     if (!(await userIsInGroup(account_id, "admin"))) {
-      throw Error("only admins can create free vouchers");
+      throw Error("only admins can create admin vouchers");
     }
   }
 
-  if (!count || count < 1 || !isFinite(count)) {
-    throw Error("must create at least 1 voucher");
-  }
   if (count > MAX_VOUCHERS[whenPay]) {
     throw Error(
-      `there is a hard limit of at most ${MAX_VOUCHERS[whenPay]} vouchers`
+      `there is a hard limit of at most ${MAX_VOUCHERS[whenPay]} vouchers`,
     );
   }
 
   if (generate != null) {
     if (generate.length != null && generate.length < 8) {
       throw Error(
-        "there must be at least 6 random characters in generated code"
+        "there must be at least 6 random characters in generated code",
       );
     }
     if (generate.charset && !CHARSETS.includes(generate.charset)) {
@@ -116,16 +117,6 @@ export default async function createVouchers({
     }
   }
 
-  if (whenPay == "admin") {
-    // We leave expire as is, since admin can set shorter expiration date
-  } else {
-    // if they pay now, then their vouchers last a long time.
-    // If after 10 years, things are still around and there is a complaint,
-    // a support person can easily extend this.
-    expire = dayjs().add(10, "year").toDate();
-  }
-
-  const client = await getTransactionClient();
   try {
     // start atomic transaction
 
@@ -141,18 +132,17 @@ export default async function createVouchers({
     */
     const now = dayjs();
     const { rows } = await client.query(
-      "INSERT INTO vouchers(created, created_by, title, active, expire, cancel_by, cart, cost, count, when_pay) VALUES(NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
+      "INSERT INTO vouchers(created, created_by, title, active, expire, cancel_by, count, when_pay, cost) VALUES(NOW(), $1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
       [
         account_id,
         title,
         active ?? now.toDate(),
-        expire ?? now.add(10, "years").toDate(),
-        cancelBy ?? now.add(14, "days").toDate(),
-        cart,
-        cost,
+        expire,
+        cancelBy,
         count,
         whenPay,
-      ]
+        amount,
+      ],
     );
     const { id } = rows[0];
 
@@ -160,7 +150,7 @@ export default async function createVouchers({
     const codes = generateVouchers({ ...generate, count });
     const { query, values } = multiInsert(
       "INSERT INTO voucher_codes(code, id, created)",
-      codes.map((code) => [code, id, now.toDate()])
+      codes.map((code) => [code, id, now.toDate()]),
     );
     await client.query(query, values);
     /* NOTE: There is a VERY VERY VERY small probability that some
@@ -177,14 +167,15 @@ export default async function createVouchers({
       const description = {
         type: "voucher",
         quantity: count,
-        cost,
+        cost: amount,
         title,
         voucher_id: id,
+        credit_id,
       } as const;
       log.debug("charging user; description =", description);
       const purchase_id = await createPurchase({
         account_id,
-        cost: cost * count,
+        cost: decimalMultiply(amount, count),
         service: "voucher",
         description,
         client,
@@ -200,25 +191,9 @@ export default async function createVouchers({
         id,
       ]);
     }
-
-    // Mark every item in the cart as "purchased".
-    await client.query(
-      "UPDATE shopping_cart_items SET purchased=$3 WHERE account_id=$1 AND id=ANY($2)",
-      [
-        cart[0].account_id,
-        cart.map((x) => x.id),
-        { success: true, time: new Date(), voucher_id: id },
-      ]
-    );
-
-    await client.query("COMMIT");
-    return { id, codes, cost, cart };
+    return { id, codes, amount };
   } catch (err) {
-    await client.query("ROLLBACK");
     log.debug("error -- rolling back entire transaction", err);
     throw err;
-  } finally {
-    // end atomic transaction
-    client.release();
   }
 }

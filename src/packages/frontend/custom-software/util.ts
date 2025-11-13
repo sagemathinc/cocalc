@@ -1,11 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { join as path_join } from "path";
+
 import { COLORS } from "@cocalc/util/theme";
-import { IconName } from "@cocalc/frontend/components/icon";
 
 export const RESET_ICON: IconName = "redo";
 
@@ -45,7 +47,7 @@ export function props2img(props: {
   if (props.project_map == null) return null;
   const ci = props.project_map.getIn([props.project_id, "compute_image"]);
   if (ci == null) return null;
-  if (!ci.startsWith(CUSTOM_IMG_PREFIX)) return null;
+  if (!is_custom_image(ci)) return null;
   return props.images?.get(compute_image2basename(ci));
 }
 

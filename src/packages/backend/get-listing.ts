@@ -1,10 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
-Server directory listing through the HTTP server and Websocket API.
+This is used by backends to serve directory listings to clients:
 
 {files:[..., {size:?,name:?,mtime:?,isdir:?}]}
 
@@ -17,13 +17,14 @@ Use ?random= or ?time= if you're worried about cacheing.
 Browser client code only uses this through the websocket anyways.
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import type { Dirent, Stats } from "node:fs";
-import { lstat, readdir, readlink, stat } from "node:fs/promises";
+import { lstat, opendir, readdir, readlink, stat } from "node:fs/promises";
 import { getLogger } from "./logger";
 import { DirectoryListingEntry } from "@cocalc/util/types";
+import { join } from "path";
 
-const logger = getLogger("directory-listing");
+const logger = getLogger("backend:directory-listing");
 
 // SMC_LOCAL_HUB_HOME is used for developing cocalc inside cocalc...
 const HOME = process.env.SMC_LOCAL_HUB_HOME ?? process.env.HOME ?? "";
@@ -32,12 +33,16 @@ const getListing = reuseInFlight(
   async (
     path: string, // assumed in home directory!
     hidden: boolean = false,
+    { home = HOME, limit }: { home?: string; limit?: number } = {},
   ): Promise<DirectoryListingEntry[]> => {
-    const dir = HOME + "/" + path;
+    const dir = join(home, path);
     logger.debug(dir);
     const files: DirectoryListingEntry[] = [];
     let file: Dirent;
-    for (file of await readdir(dir, { withFileTypes: true })) {
+    for await (file of await opendir(dir)) {
+      if (limit && files.length >= limit) {
+        break;
+      }
       if (!hidden && file.name[0] === ".") {
         continue;
       }

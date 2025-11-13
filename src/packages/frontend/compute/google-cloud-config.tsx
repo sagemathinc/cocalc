@@ -1,56 +1,75 @@
-import type {
-  State,
-  GoogleCloudConfiguration as GoogleCloudConfigurationType,
-} from "@cocalc/util/db-schema/compute-servers";
-import { GOOGLE_CLOUD_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
 import {
-  getMinDiskSizeGb,
-  IMAGES,
-} from "@cocalc/util/db-schema/compute-servers";
-import {
+  Alert,
   Button,
   Checkbox,
   Divider,
-  Input,
-  InputNumber,
   Popconfirm,
   Radio,
   Select,
-  Space,
   Spin,
   Switch,
   Table,
   Tooltip,
   Typography,
 } from "antd";
-import { cmp, plural } from "@cocalc/util/misc";
-import computeCost, {
-  GoogleCloudData,
-  EXTERNAL_IP_COST,
-  DATA_TRANSFER_OUT_COST_PER_GiB,
-  computeDiskCost,
-  markup,
-  computeAcceleratorCost,
-  computeInstanceCost,
-} from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
-import { getGoogleCloudPriceData, setServerConfiguration } from "./api";
-import { useEffect, useState } from "react";
-import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
-import { A } from "@cocalc/frontend/components/A";
-import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
-import { currency } from "@cocalc/util/misc";
+import { useEffect, useState } from "react";
+
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { DNS_COST_PER_HOUR, checkValidDomain } from "@cocalc/util/compute/dns";
-import SelectImage, { ImageLinks, ImageDescription } from "./select-image";
-import ExcludeFromSync from "./exclude-from-sync";
+import { A } from "@cocalc/frontend/components/A";
+import ShowError from "@cocalc/frontend/components/error";
+import { Icon } from "@cocalc/frontend/components/icon";
+import Disk from "@cocalc/frontend/compute/cloud/common/disk";
+import DNS from "@cocalc/frontend/compute/cloud/common/dns";
+import Template from "@cocalc/frontend/compute/cloud/common/template";
+import { displayAcceleratorType } from "@cocalc/frontend/compute/cloud/google-cloud/accelerator";
+import Specs, {
+  RamAndCpu,
+} from "@cocalc/frontend/compute/cloud/google-cloud/specs";
+import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
+import { filterOption } from "@cocalc/frontend/compute/util";
+import computeCost, {
+  computeAcceleratorCost,
+  computeDiskCost,
+  computeInstanceCost,
+  DATA_TRANSFER_OUT_COST_PER_GiB,
+  EXTERNAL_IP_COST,
+  GoogleCloudData,
+  markup,
+} from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import type {
+  Architecture,
+  ComputeServerTemplate,
+  GoogleCloudAcceleratorType,
+  GoogleCloudConfiguration as GoogleCloudConfigurationType,
+  Images,
+  State,
+} from "@cocalc/util/db-schema/compute-servers";
+import {
+  getArchitecture,
+  getMachineTypeArchitecture,
+  getMinDiskSizeGb,
+  GOOGLE_CLOUD_DEFAULTS,
+} from "@cocalc/util/db-schema/compute-servers";
+import { cmp, currency, plural } from "@cocalc/util/misc";
+import AllowCollaboratorControl from "./allow-collaborator-control";
+import {
+  getGoogleCloudPriceData,
+  setImageTested,
+  setServerConfiguration,
+} from "./api";
+import AutoRestart from "./auto-restart";
+import { availableClouds } from "./config";
+import CostOverview from "./cost-overview";
 import Ephemeral from "./ephemeral";
-import generateVouchers from "@cocalc/util/vouchers";
-import { CopyToClipBoard } from "@cocalc/frontend/components";
+import { reloadImages, useGoogleImages, useImages } from "./images-hook";
+import NestedVirtualization from "./nested-virtualization";
+import Proxy from "./proxy";
+import SelectImage, { ImageDescription, ImageLinks } from "./select-image";
 
 export const SELECTOR_WIDTH = "350px";
 
-const DEFAULT_GPU_CONFIG = GOOGLE_CLOUD_DEFAULTS.gpu2;
+export const DEFAULT_GPU_CONFIG = GOOGLE_CLOUD_DEFAULTS.gpu2;
 
 //     {
 //   acceleratorType: "nvidia-l4",
@@ -75,20 +94,30 @@ interface Props {
   editable?: boolean;
   // if id not set, then doesn't try to save anything to the backend
   id?: number;
+  project_id?: string;
   // called whenever changes are made.
   onChange?: (configuration: ConfigurationType) => void;
   disabled?: boolean;
   state?: State;
+  data?;
+  setCloud?;
+  template?: ComputeServerTemplate;
 }
 
 export default function GoogleCloudConfiguration({
   configuration: configuration0,
   editable,
   id,
+  project_id,
   onChange,
   disabled,
   state,
+  data,
+  setCloud,
+  template,
 }: Props) {
+  const [IMAGES, ImagesError] = useImages();
+  const [googleImages, ImagesErrorGoogle] = useGoogleImages();
   const [loading, setLoading] = useState<boolean>(false);
   const [cost, setCost] = useState<number | null>(null);
   const [priceData, setPriceData] = useState<GoogleCloudData | null>(null);
@@ -136,38 +165,28 @@ export default function GoogleCloudConfiguration({
     }
   }, [configuration, priceData]);
 
-  if (!editable) {
-    const gpu = configuration.acceleratorType
-      ? `${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
-          configuration.acceleratorType,
-        )} ${plural(configuration.acceleratorCount ?? 1, "GPU", "GPU's")}, `
-      : "";
-    // short summary
-    return (
-      <div>
-        {configuration.spot ? "Spot " : "Standard "} {configuration.machineType}{" "}
-        with {gpu}
-        {priceData ? (
-          <span>
-            <RamAndCpu
-              machineType={configuration.machineType}
-              priceData={priceData}
-              inline
-            />
-          </span>
-        ) : (
-          ""
-        )}
-        , and a{" "}
-        {configuration.diskSizeGb ??
-          `at least ${getMinDiskSizeGb(configuration)}`}{" "}
-        GB
-        {(configuration.diskType ?? "pd-standard") != "pd-standard"
-          ? " SSD "
-          : " HDD "}{" "}
-        disk in {configuration.zone}.
-      </div>
-    );
+  if (ImagesError != null) {
+    return ImagesError;
+  }
+  if (ImagesErrorGoogle != null) {
+    return ImagesErrorGoogle;
+  }
+
+  if (IMAGES == null || googleImages == null) {
+    return <Spin />;
+  }
+
+  const summary = (
+    <Specs
+      configuration={configuration}
+      priceData={priceData}
+      IMAGES={IMAGES}
+    />
+  );
+
+  if (!editable || !project_id) {
+    // short summary only
+    return summary;
   }
 
   if (priceData == null) {
@@ -187,7 +206,12 @@ export default function GoogleCloudConfiguration({
       return;
     }
 
-    changes = ensureConsistentConfiguration(priceData, configuration, changes);
+    changes = ensureConsistentConfiguration(
+      priceData,
+      configuration,
+      changes,
+      IMAGES,
+    );
     const newConfiguration = { ...configuration, ...changes };
 
     if (
@@ -232,7 +256,23 @@ export default function GoogleCloudConfiguration({
     { dataIndex: "label", key: "label", width: 130 },
   ];
 
-  const data = [
+  const dataSource = [
+    {
+      key: "provisioning",
+      label: (
+        <A href="https://cloud.google.com/compute/docs/instances/spot">
+          <Icon name="external-link" /> Provisioning
+        </A>
+      ),
+      value: (
+        <Provisioning
+          disabled={loading || disabled}
+          priceData={priceData}
+          setConfig={setConfig}
+          configuration={configuration}
+        />
+      ),
+    },
     {
       key: "gpu",
       label: (
@@ -247,12 +287,16 @@ export default function GoogleCloudConfiguration({
           priceData={priceData}
           setConfig={setConfig}
           configuration={configuration}
+          IMAGES={IMAGES}
+          setCloud={setCloud}
         />
       ),
     },
     {
       key: "image",
-      label: <ImageLinks image={configuration.image} />,
+      label: (
+        <ImageLinks image={configuration.image} style={{ height: "90px" }} />
+      ),
       value: (
         <Image
           state={state}
@@ -262,6 +306,8 @@ export default function GoogleCloudConfiguration({
           gpu={
             !!(configuration.acceleratorType && configuration.acceleratorCount)
           }
+          googleImages={googleImages}
+          arch={getArchitecture(configuration)}
         />
       ),
     },
@@ -322,23 +368,6 @@ export default function GoogleCloudConfiguration({
     },
 
     {
-      key: "provisioning",
-      label: (
-        <A href="https://cloud.google.com/compute/docs/instances/spot">
-          <Icon name="external-link" /> Provisioning
-        </A>
-      ),
-      value: (
-        <Provisioning
-          disabled={loading || disabled}
-          priceData={priceData}
-          setConfig={setConfig}
-          configuration={configuration}
-        />
-      ),
-    },
-
-    {
       key: "disk",
       label: (
         <A href="https://cloud.google.com/compute/docs/disks/performance">
@@ -347,28 +376,61 @@ export default function GoogleCloudConfiguration({
       ),
       value: (
         <BootDisk
+          id={id}
           disabled={loading}
           setConfig={setConfig}
           configuration={configuration}
           priceData={priceData}
           state={state}
+          IMAGES={IMAGES}
         />
       ),
     },
-
+    {
+      key: "exclude",
+      value: (
+        <ExcludeFromSync
+          id={id}
+          disabled={loading}
+          setConfig={setConfig}
+          configuration={configuration}
+          state={state}
+          style={{ marginTop: "10px", color: "#666" }}
+        />
+      ),
+    },
     {
       key: "network",
-      label: <></>,
+      label: (
+        <A href="https://cloud.google.com/compute/docs/network-bandwidth">
+          <Icon name="external-link" /> Network
+        </A>
+      ),
       value: (
         <Network
           setConfig={setConfig}
           configuration={configuration}
           loading={loading}
           priceData={priceData}
-          state={state}
         />
       ),
     },
+    {
+      key: "proxy",
+      label: <></>,
+      value: (
+        <Proxy
+          setConfig={setConfig}
+          configuration={configuration}
+          data={data}
+          state={state}
+          IMAGES={IMAGES}
+          project_id={project_id}
+          id={id}
+        />
+      ),
+    },
+
     {
       key: "ephemeral",
       label: <></>,
@@ -381,13 +443,47 @@ export default function GoogleCloudConfiguration({
       ),
     },
     {
+      key: "auto-restart",
+      label: <></>,
+      value: (
+        <AutoRestart
+          setConfig={setConfig}
+          configuration={configuration}
+          loading={loading}
+        />
+      ),
+    },
+    {
+      key: "allow-collaborator-control",
+      label: <></>,
+      value: (
+        <AllowCollaboratorControl
+          setConfig={setConfig}
+          configuration={configuration}
+          loading={loading}
+        />
+      ),
+    },
+    {
+      key: "nested-virtualization",
+      label: <></>,
+      value: (
+        <NestedVirtualization
+          setConfig={setConfig}
+          configuration={configuration}
+          loading={loading}
+        />
+      ),
+    },
+    {
       key: "admin",
       label: <></>,
       value: (
         <Admin
-          setConfig={setConfig}
+          id={id}
           configuration={configuration}
           loading={loading}
+          template={template}
         />
       ),
     },
@@ -425,43 +521,41 @@ export default function GoogleCloudConfiguration({
         </div>
       )}
       {errDisplay}
-      {cost ? (
-        <div style={{ textAlign: "center" }}>
-          <MoneyStatistic
-            value={cost}
-            title={<b>Total Cost Per Hour While Running</b>}
-            costPerMonth={730 * cost}
-          />
-          <div style={{ color: "#666", maxWidth: "600px", margin: "auto" }}>
-            You pay the above rate while the computer server VM is running. The
-            rate is <b>much cheaper</b> when the server is suspended or off, and
-            there is no cost when it is deprovisioned. Network data transfer out
-            charges are not included in the above cost, and depend on exactly
-            how much data leaves the server. All incoming networking is free.
-          </div>
-        </div>
-      ) : null}
+      {cost != null && (
+        <CostOverview
+          cost={cost}
+          description={
+            <>
+              You pay <b>{currency(cost)}/hour</b> while the computer server is
+              running. The rate is{" "}
+              <b>
+                {currency(
+                  computeCost({ configuration, priceData, state: "off" }),
+                )}
+                /hour
+              </b>{" "}
+              when the server is off, and there is no cost when it is
+              deprovisioned. Network data transfer out charges are not included
+              in the above cost, and depend on how much data leaves the server
+              (see the Network section below). Incoming networking is free.
+            </>
+          }
+        />
+      )}
+      <Divider />
+      <div style={{ textAlign: "center", margin: "10px 80px" }}>{summary}</div>
+      <Divider />
       <Table
+        showHeader={false}
         style={{ marginTop: "5px" }}
         columns={columns}
-        dataSource={data}
+        dataSource={dataSource}
         pagination={false}
       />
-      {loading && (
-        <div style={{ float: "right" }}>
-          <Spin delay={1000} />
-        </div>
-      )}
       {errDisplay}
     </div>
   );
 }
-
-// Filter `option.label` match the user type `input`
-const filterOption = (
-  input: string,
-  option: { label: string; value: string; search: string },
-) => (option?.search ?? "").toLowerCase().includes(input.toLowerCase());
 
 function Region({ priceData, setConfig, configuration, disabled }) {
   const [sortByPrice, setSortByPrice] = useState<boolean>(true);
@@ -548,7 +642,7 @@ function getRegions(priceData, configuration) {
       if (!zoneData.machineTypes.includes(machineType.split("-")[0])) {
         continue;
       }
-      if (spot != null) {
+      if (spot) {
         if (priceData.machineTypes[machineType]?.spot?.[region] == null) {
           continue;
         }
@@ -660,7 +754,7 @@ function getZones(priceData, configuration) {
 function Provisioning({ priceData, setConfig, configuration, disabled }) {
   const [newSpot, setNewSpot] = useState<boolean>(!!configuration.spot);
   const [prices, setPrices] = useState<{
-    spot: number;
+    spot: number | null;
     standard: number;
     discount: number;
   } | null>(getSpotAndStandardPrices(priceData, configuration));
@@ -669,6 +763,13 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
     setNewSpot(!!configuration.spot);
     setPrices(getSpotAndStandardPrices(priceData, configuration));
   }, [configuration]);
+
+  useEffect(() => {
+    if (configuration.spot && prices != null && !prices.spot) {
+      setNewSpot(false);
+      setConfig({ spot: false });
+    }
+  }, [prices, configuration.spot]);
 
   return (
     <div>
@@ -688,11 +789,11 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
           setConfig({ spot });
         }}
       >
-        <Radio.Button value="spot">
+        <Radio.Button value="spot" disabled={!prices?.spot}>
           Spot{" "}
-          {prices != null
+          {prices?.spot
             ? `${currency(prices.spot)}/hour (${prices.discount}% discount)`
-            : undefined}{" "}
+            : "(not available)"}{" "}
         </Radio.Button>
         <Radio.Button value="standard">
           Standard{" "}
@@ -700,9 +801,71 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
         </Radio.Button>
       </Radio.Group>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Standard VM's stay running until you stop them, whereas spot VM's are up
-        to 91% off, but{" "}
-        <b>will automatically stop when there is a surge in demand.</b>
+        Standard VM's run until you stop them, whereas spot VM's are up to 91%
+        off, but will automatically stop when there is a surge in demand. Spot
+        instances might also not be available in a given region, so you may have
+        to try different regions.{" "}
+        {configuration.acceleratorType && (
+          <> GPU's are always in high demand.</>
+        )}
+        {newSpot && (
+          <Alert
+            style={{ margin: "5px 0" }}
+            type="warning"
+            showIcon
+            description={
+              <div style={{ maxWidth: "100%", lineHeight: 1 }}>
+                This is a heavily discounted spot instance. It will
+                automatically{" "}
+                {configuration.autoRestart ? " reboot if possible " : " stop "}{" "}
+                when there is a surge in demand.
+                {!disabled && (
+                  <Popconfirm
+                    title="Switch to Standard?"
+                    description={
+                      <div style={{ maxWidth: "450px" }}>
+                        This will switch to a non-discounted standard instance,
+                        which stays running even if there is high demand. You
+                        can switch back to a spot instance using the blue toggle
+                        above.
+                      </div>
+                    }
+                    onConfirm={() => {
+                      setNewSpot(false);
+                      setConfig({ spot: false });
+                    }}
+                    okText="Switch to Standard"
+                    cancelText="Cancel"
+                  >
+                    <Button type="link">Switch to Standard</Button>
+                  </Popconfirm>
+                )}
+                {!configuration.autoRestart && (
+                  <Popconfirm
+                    title="Enable Automatic Restart?"
+                    description={
+                      <div style={{ maxWidth: "450px" }}>
+                        CoCalc will automatically restart your compute server if
+                        it is killed due to high demand. Note that there might
+                        not be any compute resources available, in which case
+                        you will have to wait for your server to start. You can
+                        disable this in the "Automatically Restart" section
+                        below.
+                      </div>
+                    }
+                    onConfirm={() => {
+                      setConfig({ autoRestart: true });
+                    }}
+                    okText="Enable Automatic Restart"
+                    cancelText="Cancel"
+                  >
+                    <Button type="link">Enable Automatic Restart</Button>
+                  </Popconfirm>
+                )}
+              </div>
+            }
+          />
+        )}
       </div>
     </div>
   );
@@ -714,14 +877,19 @@ function getSpotAndStandardPrices(priceData, configuration) {
       priceData,
       configuration: { ...configuration, spot: false },
     });
-    const spot = computeCost({
-      priceData,
-      configuration: { ...configuration, spot: true },
-    });
+    let spot: number | null = null;
+    try {
+      spot = computeCost({
+        priceData,
+        configuration: { ...configuration, spot: true },
+      });
+    } catch (_) {
+      // some machines have no spot instance support, eg h3's.
+    }
     return {
       standard,
       spot,
-      discount: Math.round((1 - spot / standard) * 100),
+      discount: spot != null ? Math.round((1 - spot / standard) * 100) : 0,
     };
   } catch (_) {
     return null;
@@ -772,26 +940,26 @@ function Zone({ priceData, setConfig, configuration, disabled }) {
 }
 
 function MachineType({ priceData, setConfig, configuration, disabled, state }) {
-  const [archType, setArchType] = useState<"x86_64" | "arm64">(
-    configuration.machineType?.startsWith("t2a-") ? "arm64" : "x86_64",
+  const [archType, setArchType] = useState<Architecture>(
+    getArchitecture(configuration),
   );
   const [sortByPrice, setSortByPrice] = useState<boolean>(true);
   const [newMachineType, setNewMachineType] = useState<string>(
     configuration.machineType ?? "",
   );
+
   useEffect(() => {
     setNewMachineType(configuration.machineType);
-    setArchType(
-      configuration.machineType?.startsWith("t2a-") ? "arm64" : "x86_64",
-    );
+    setArchType(getArchitecture(configuration));
   }, [configuration.machineType]);
+
   useEffect(() => {
-    if (archType == "arm64" && !configuration.machineType.startsWith("t2a-")) {
+    if (archType == "arm64" && getArchitecture(configuration) != "arm64") {
       setNewMachineType("t2a-standard-4");
       setConfig({ machineType: "t2a-standard-4" });
       return;
     }
-    if (archType == "x86_64" && configuration.machineType.startsWith("t2a-")) {
+    if (archType == "x86_64" && getArchitecture(configuration) == "arm64") {
       setNewMachineType("t2d-standard-4");
       setConfig({ machineType: "t2d-standard-4" });
       return;
@@ -799,32 +967,30 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
   }, [archType, configuration.machineType]);
 
   const machineTypes = Object.keys(priceData.machineTypes);
-  let allOptions = machineTypes
+  const allOptions = machineTypes
     .filter((machineType) => {
       const { acceleratorType } = configuration;
       if (!acceleratorType) {
-        if (machineType.startsWith("g2-") || machineType.startsWith("a2-")) {
+        if (machineType.startsWith("g") || machineType.startsWith("a")) {
           return false;
         }
-        if (archType == "arm64" && !machineType.startsWith("t2a-")) {
+        // Check if the machine type's architecture matches the selected architecture
+        const machineArch = getMachineTypeArchitecture(machineType);
+        if (archType == "arm64" && machineArch != "arm64") {
           return false;
         }
-        if (archType == "x86_64" && machineType.startsWith("t2a-")) {
+        if (archType == "x86_64" && machineArch != "x86_64") {
           return false;
         }
       } else {
-        if (
-          acceleratorType == "nvidia-tesla-a100" ||
-          acceleratorType == "nvidia-a100-80gb" ||
-          acceleratorType == "nvidia-l4"
-        ) {
+        if (acceleratorType == "nvidia-tesla-t4") {
+          return machineType.startsWith("n1-");
+        } else {
           const machines =
             priceData.accelerators[acceleratorType].machineType[
               configuration.acceleratorCount ?? 1
             ] ?? [];
           return machines.includes(machineType);
-        } else {
-          return machineType.startsWith("n1-");
         }
       }
 
@@ -892,18 +1058,20 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
               : "ARM64 architecture machines"
           }
         >
-          <Switch
+          <Radio.Group
             style={{ float: "right" }}
             disabled={
               disabled ||
               configuration.acceleratorType ||
               (state ?? "deprovisioned") != "deprovisioned"
             }
-            unCheckedChildren={"ARM64"}
-            checkedChildren={"X86"}
-            checked={archType == "x86_64"}
-            onChange={() => {
-              setArchType(archType == "x86_64" ? "arm64" : "x86_64");
+            options={[
+              { value: "x86_64", label: "X86_64" },
+              { value: "arm64", label: "ARM64" },
+            ]}
+            value={archType}
+            onChange={({ target: { value } }) => {
+              setArchType(value);
             }}
           />
         </Tooltip>
@@ -946,298 +1114,14 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
   );
 }
 
-function RamAndCpu({
-  machineType,
-  priceData,
-  style,
-  inline,
-}: {
-  machineType: string;
-  priceData;
-  style?;
-  inline?: boolean;
-}) {
-  const data = priceData.machineTypes[machineType];
-  if (data == null) return null;
-  const { memory } = data;
-  let { vcpu } = data;
-  if (!vcpu || !memory) return null;
-  if (machineType == "e2-micro") {
-    vcpu = "0.25-2";
-  } else if (machineType == "e2-small") {
-    vcpu = "0.5-2";
-  } else if (machineType == "e2-medium") {
-    vcpu = "1-2";
-  }
-  if (inline) {
-    return (
-      <span style={style}>
-        {vcpu} {plural(vcpu, "vCPU", "vCPU's")}, {memory} GB RAM
-      </span>
-    );
-  }
-  return (
-    <div style={{ color: "#666", ...style }}>
-      <b>{plural(vcpu, "vCPU", "vCPU's")}: </b>
-      <div
-        style={{ width: "65px", textAlign: "left", display: "inline-block" }}
-      >
-        {vcpu}
-      </div>
-      <b>Memory:</b> {memory} GB
-    </div>
-  );
-}
-
 function BootDisk(props) {
-  const {
-    setConfig,
-    configuration,
-    disabled,
-    priceData,
-    state = "deprovisioned",
-  } = props;
-  const [newDiskSizeGb, setNewDiskSizeGb] = useState<number | null>(
-    configuration.diskSizeGb ?? getMinDiskSizeGb(configuration),
-  );
-  const [newDiskType, setNewDiskType] = useState<string | null>(
-    configuration.diskType ?? "pd-standard",
-  );
-  useEffect(() => {
-    setNewDiskSizeGb(
-      configuration.diskSizeGb ?? getMinDiskSizeGb(configuration),
-    );
-    setNewDiskType(configuration.diskType ?? "pd-standard");
-  }, [configuration.diskSizeGb]);
-
-  useEffect(() => {
-    if (newDiskSizeGb == null) {
-      return;
-    }
-    const min = getMinDiskSizeGb(configuration);
-    if (newDiskSizeGb < min) {
-      setNewDiskSizeGb(min);
-    }
-  }, [configuration.image]);
-
-  useEffect(() => {
-    const min = getMinDiskSizeGb(configuration);
-    if ((newDiskSizeGb ?? 0) < min) {
-      setConfig({
-        diskSizeGb: min,
-      });
-      setNewDiskSizeGb(min);
-    }
-  }, [configuration.acceleratorType]);
-
   return (
-    <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
-        <b>
-          <Icon name="disk-drive" /> Disk
-        </b>
-      </div>
-      <Space direction="vertical">
-        <InputNumber
-          style={{ width: SELECTOR_WIDTH }}
-          disabled={disabled}
-          min={
-            state == "deprovisioned"
-              ? getMinDiskSizeGb(configuration)
-              : configuration.diskSizeGb ?? getMinDiskSizeGb(configuration)
-          }
-          max={65536}
-          value={newDiskSizeGb}
-          addonAfter="GB"
-          onChange={(diskSizeGb) => {
-            setNewDiskSizeGb(diskSizeGb);
-          }}
-          onBlur={() => {
-            if (state == "deprovisioned") {
-              // only set on blur or every keystroke rerenders and cause loss of focus.
-              setConfig({
-                diskSizeGb: newDiskSizeGb ?? getMinDiskSizeGb(configuration),
-              });
-            }
-          }}
-        />
-        {state != "deprovisioned" &&
-          !disabled &&
-          newDiskSizeGb != null &&
-          configuration.diskSizeGb != null && (
-            <Button
-              type="primary"
-              disabled={configuration.diskSizeGb == newDiskSizeGb}
-              onClick={() => {
-                setConfig({
-                  diskSizeGb: newDiskSizeGb,
-                });
-              }}
-            >
-              Enlarge by {newDiskSizeGb - configuration.diskSizeGb}GB{" "}
-              (additional cost --{" "}
-              {currency(
-                computeDiskCost({
-                  configuration: {
-                    ...configuration,
-                    diskSizeGb: newDiskSizeGb - configuration.diskSizeGb,
-                  },
-                  priceData,
-                }) * 730,
-              )}
-              /month)
-            </Button>
-          )}
-      </Space>
-      <div style={{ color: "#666", margin: "10px 0" }}>
-        Set the size between{" "}
-        {state == "deprovisioned" ? (
-          <Button
-            size="small"
-            onClick={() => {
-              setConfig({
-                diskSizeGb: getMinDiskSizeGb(configuration),
-              });
-            }}
-          >
-            {getMinDiskSizeGb(configuration)} GB
-          </Button>
-        ) : (
-          <>{getMinDiskSizeGb(configuration)} GB</>
-        )}{" "}
-        and 65,536 GB.
-        {state != "deprovisioned" && (
-          <>
-            {" "}
-            <b>
-              You can increase the disk size at any time, even while the VM is
-              running.{" "}
-            </b>
-            You cannot decrease the disk size after you increase it, without
-            first deprovisioning the server.
-          </>
-        )}
-      </div>
-      <div>
-        <Space>
-          <Select
-            style={{ width: SELECTOR_WIDTH }}
-            disabled={disabled || (state ?? "deprovisioned") != "deprovisioned"}
-            value={newDiskType}
-            onChange={(diskType) => {
-              setNewDiskType(diskType);
-              setConfig({ diskType: diskType ?? "pd-standard" });
-            }}
-            options={[
-              {
-                value: "pd-balanced",
-                label: (
-                  <div>
-                    Balanced (SSD) disk{" "}
-                    <div style={{ fontFamily: "monospace", float: "right" }}>
-                      {currency(
-                        markup({
-                          cost:
-                            priceData.disks["pd-balanced"]?.prices[
-                              configuration.region
-                            ] * 730,
-                          priceData,
-                        }),
-                      )}
-                      /GB per month
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                value: "pd-ssd",
-                label: (
-                  <div>
-                    Performance (SSD) disk{" "}
-                    <div style={{ fontFamily: "monospace", float: "right" }}>
-                      {currency(
-                        markup({
-                          cost:
-                            priceData.disks["pd-ssd"]?.prices[
-                              configuration.region
-                            ] * 730,
-                          priceData,
-                        }),
-                      )}
-                      /GB per month
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                value: "pd-standard",
-                label: (
-                  <div>
-                    Standard (HDD) disk{" "}
-                    <div style={{ fontFamily: "monospace", float: "right" }}>
-                      {currency(
-                        markup({
-                          cost:
-                            priceData.disks["pd-standard"]?.prices[
-                              configuration.region
-                            ] * 730,
-                          priceData,
-                        }),
-                      )}
-                      /GB per month
-                    </div>
-                  </div>
-                ),
-              },
-            ]}
-          ></Select>
-          <div style={{ marginLeft: "15px" }}>
-            <b>Total Cost for {configuration.diskSizeGb}GB:</b>{" "}
-            {currency(
-              markup({
-                cost:
-                  configuration.diskSizeGb *
-                  priceData.disks[configuration.diskType]?.prices[
-                    configuration.region
-                  ],
-                priceData,
-              }),
-            )}
-            /hour or{" "}
-            {currency(
-              markup({
-                cost:
-                  configuration.diskSizeGb *
-                  priceData.disks[configuration.diskType]?.prices[
-                    configuration.region
-                  ] *
-                  730,
-                priceData,
-              }),
-            )}
-            /month
-          </div>
-        </Space>
-        <div style={{ color: "#666", margin: "10px 0" }}>
-          You are charged as long as the server is provisioned, but if you run
-          out of credit and don't pay, then the disk is deleted. You can
-          instantly increase the disk size at any time <b>without</b> needing to
-          restart the server.
-        </div>
-        {newDiskType == "pd-standard" && (
-          <div style={{ marginTop: "10px", color: "#666" }}>
-            <b>WARNING:</b> Small standard disks are slow. Expect an extra
-            10s-30s of startup time and slower application start. Balanced disks
-            are much faster.
-          </div>
-        )}
-        <Divider />
-        <ExcludeFromSync
-          {...props}
-          style={{ marginTop: "10px", color: "#666" }}
-        />
-      </div>
-    </div>
+    <Disk
+      {...props}
+      minSizeGb={getMinDiskSizeGb(props)}
+      maxSizeGb={65536}
+      computeDiskCost={computeDiskCost}
+    />
   );
 }
 
@@ -1257,7 +1141,7 @@ function Image(props) {
           including commercial software.
         </div>
       )}
-      <SelectImage style={{ width: SELECTOR_WIDTH }} {...props} />
+      <SelectImage {...props} />
       {state != "deprovisioned" && (
         <div style={{ color: "#666", marginTop: "5px" }}>
           You can only edit the image when server is deprovisioned.
@@ -1270,17 +1154,21 @@ function Image(props) {
   );
 }
 
-// Putting L4 and A100 at top, since they are most
-// interesting, then T4 since very affordable.
 // We do NOT include the P4, P100, V100 or K80, which are older
 // and for which our base image and drivers don't work.
 // If for some reason we need them, we will have to switch to
-// different base drivers or have even more images
+// different base drivers or have even more images.
+
+// NOTE: H200 disabled because it requires a reservation.
+
 const ACCELERATOR_TYPES = [
+  "nvidia-tesla-t4",
   "nvidia-l4",
   "nvidia-tesla-a100",
   "nvidia-a100-80gb",
-  "nvidia-tesla-t4",
+  "nvidia-h100-80gb",
+  // "nvidia-h200-141gb",
+  // these are too hard to properly keep software image for:
   // "nvidia-tesla-v100",
   //"nvidia-tesla-p100",
   //"nvidia-tesla-p4",
@@ -1294,18 +1182,29 @@ const ACCELERATOR_TYPES = [
         </A>
 */
 
-function GPU({ priceData, setConfig, configuration, disabled, state }) {
+function GPU({
+  priceData,
+  setConfig,
+  configuration,
+  disabled,
+  state,
+  IMAGES,
+  setCloud,
+}) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
       <b>
         <Icon style={{ float: "right", fontSize: "50px" }} name="gpu" />
-        <Icon name="cube" /> NVIDIA GPUs:{" "}
-        <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
-        <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>, and{" "}
-        <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/Datasheet_NVIDIA_T4_Virtualization.pdf">
-          T4
-        </A>
+        <Icon name="cube" /> NVIDIA GPU{" "}
+        <div style={{ float: "right" }}>
+          <A href="https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/solutions/resources/documents1/Datasheet_NVIDIA_T4_Virtualization.pdf">
+            T4
+          </A>
+          , <A href="https://www.nvidia.com/en-us/data-center/l4/">L4</A>,{" "}
+          <A href="https://www.nvidia.com/en-us/data-center/a100/">A100</A>,{" "}
+          <A href="https://www.nvidia.com/en-us/data-center/h100/">H100</A>
+        </div>
       </b>
     </div>
   );
@@ -1320,7 +1219,10 @@ function GPU({ priceData, setConfig, configuration, disabled, state }) {
         if (!!acceleratorType) {
           setConfig({ acceleratorType: "", acceleratorCount: 0 });
         } else {
-          setConfig(DEFAULT_GPU_CONFIG);
+          setConfig({
+            ...DEFAULT_GPU_CONFIG,
+            spot: configuration?.spot ?? false,
+          });
         }
       }}
     />
@@ -1334,7 +1236,9 @@ function GPU({ priceData, setConfig, configuration, disabled, state }) {
     );
   }
 
-  const options = ACCELERATOR_TYPES.map((acceleratorType) => {
+  const options = ACCELERATOR_TYPES.filter(
+    (acceleratorType) => priceData.accelerators[acceleratorType] != null,
+  ).map((acceleratorType: GoogleCloudAcceleratorType) => {
     let cost;
     const config1 = { ...configuration, acceleratorType, acceleratorCount };
     const changes = { acceleratorType, acceleratorCount };
@@ -1345,6 +1249,7 @@ function GPU({ priceData, setConfig, configuration, disabled, state }) {
         priceData,
         config1,
         changes,
+        IMAGES,
       );
       cost = computeAcceleratorCost({
         priceData,
@@ -1408,16 +1313,16 @@ function GPU({ priceData, setConfig, configuration, disabled, state }) {
           <div style={{ color: "#666", marginTop: "10px" }}>
             You have selected {acceleratorCount} dedicated{" "}
             <b>{displayAcceleratorType(acceleratorType)}</b>{" "}
-            {plural(acceleratorCount, "GPU", "GPU's")}, with a total of{" "}
+            {plural(acceleratorCount, "GPU")}, with a total of{" "}
             <b>
               {priceData.accelerators[acceleratorType].memory *
                 acceleratorCount}
-              GB RAM
+              GB GPU RAM
             </b>
             .{" "}
             {acceleratorCount > 1 && (
               <>
-                The {acceleratorCount} GPU's will be available on the same
+                The {acceleratorCount} GPUs will be available on the same
                 server.
               </>
             )}
@@ -1429,6 +1334,40 @@ function GPU({ priceData, setConfig, configuration, disabled, state }) {
                 </div>
               ) /* this is mostly a google limitation, not cocalc, though we will eventually do somthing involving recreating the machine.  BUT note that e.g., changing the count for L4's actually breaks booting up! */
             }
+            {setCloud != null &&
+              availableClouds().includes("hyperstack") &&
+              (state ?? "deprovisioned") == "deprovisioned" && (
+                <Alert
+                  showIcon
+                  style={{ margin: "10px 0 5px 0" }}
+                  type="warning"
+                  description={
+                    <div>
+                      We have partnered with Hyperstack cloud to provide NVIDIA
+                      H100, A100, L40, and RTX-A4/5/6000 GPUs at a{" "}
+                      <b>much cheaper price</b> than Google cloud.{" "}
+                      <Popconfirm
+                        title="Switch to Hyperstack"
+                        description={
+                          <div style={{ maxWidth: "450px" }}>
+                            This will change the cloud for this compute server
+                            to Hyperstack, and reset its configuration. Your
+                            compute server is not storing any data so this is
+                            safe.
+                          </div>
+                        }
+                        onConfirm={() => {
+                          setCloud("hyperstack");
+                        }}
+                        okText="Switch to Hyperstack"
+                        cancelText="Cancel"
+                      >
+                        <Button type="link">Switch...</Button>
+                      </Popconfirm>
+                    </div>
+                  }
+                />
+              )}
           </div>
         )}
       </div>
@@ -1444,47 +1383,31 @@ function GPU({ priceData, setConfig, configuration, disabled, state }) {
       ) : undefined}
 */
 
-function displayAcceleratorType(acceleratorType, memory?) {
-  let x = acceleratorType
-    .replace("tesla-", "")
-    .replace("nvidia-", "NVIDIA ")
-    .replace("-", " - ")
-    .toUpperCase();
-  if (x.includes("GB") || !memory) {
-    return x;
-  }
-  return `${x} - ${memory} GB`;
-}
-
 function ensureConsistentConfiguration(
   priceData,
   configuration: GoogleCloudConfigurationType,
   changes: Partial<GoogleCloudConfigurationType>,
+  IMAGES: Images,
 ) {
   const newConfiguration = { ...configuration, ...changes };
   const newChanges = { ...changes };
-
-  ensureConsistentImage(newConfiguration, newChanges);
-
+  ensureConsistentImage(newConfiguration, newChanges, IMAGES);
   ensureConsistentAccelerator(priceData, newConfiguration, newChanges);
-
   ensureConsistentNvidiaL4andA100(priceData, newConfiguration, newChanges);
-
+  ensureConsistentZoneWithRegion(priceData, newConfiguration, newChanges);
   ensureConsistentRegionAndZoneWithMachineType(
     priceData,
     newConfiguration,
     newChanges,
   );
-
-  ensureConsistentZoneWithRegion(priceData, newConfiguration, newChanges);
-
-  ensureSufficientDiskSize(newConfiguration, newChanges);
+  ensureSufficientDiskSize(newConfiguration, newChanges, IMAGES);
+  ensureConsistentDiskType(priceData, newConfiguration, newChanges);
 
   return newChanges;
 }
 
 // We make the image consistent with the gpu selection.
-function ensureConsistentImage(configuration, changes) {
+function ensureConsistentImage(configuration, changes, IMAGES) {
   const { gpu } = IMAGES[configuration.image] ?? {};
   const gpuSelected =
     configuration.acceleratorType && configuration.acceleratorCount > 0;
@@ -1495,16 +1418,37 @@ function ensureConsistentImage(configuration, changes) {
   if (gpu && !gpuSelected) {
     // GPU image but non-GPU machine -- change image to non-GPU
     configuration["image"] = changes["image"] = "python";
+    configuration["tag"] = changes["tag"] = null;
   } else if (!gpu && gpuSelected) {
     // GPU machine but not image -- change image to pytorch
     configuration["image"] = changes["image"] = "pytorch";
+    configuration["tag"] = changes["tag"] = null;
   }
 }
 
-function ensureSufficientDiskSize(configuration, changes) {
-  const min = getMinDiskSizeGb(configuration);
+function ensureSufficientDiskSize(configuration, changes, IMAGES) {
+  const min = getMinDiskSizeGb({ configuration, IMAGES });
   if ((configuration.diskSizeGb ?? 0) < min) {
     changes.diskSizeGb = min;
+  }
+}
+
+function ensureConsistentDiskType(priceData, configuration, changes) {
+  const { machineType } = configuration;
+  const m = machineType.split("-")[0];
+  if (configuration.diskType == "hyperdisk-balanced") {
+    // make sure machine is supported
+    const { supportedMachineTypes } = priceData.extra["hyperdisk-balanced"];
+    if (!supportedMachineTypes.includes(m)) {
+      // can't use hyperdisk on this machine, so fix.
+      configuration.diskType = changes.diskType = "pd-balanced";
+    }
+  } else {
+    const { requiredMachineTypes } = priceData.extra["hyperdisk-balanced"];
+    if (requiredMachineTypes.includes(m)) {
+      // must use hyperdisk on this machine, so fix.
+      configuration.diskType = changes.diskType = "hyperdisk-balanced";
+    }
   }
 }
 
@@ -1516,18 +1460,20 @@ function ensureConsistentZoneWithRegion(priceData, configuration, changes) {
     // currently changing region, so set a zone that matches the region
     for (const zone in priceData.zones) {
       if (zone.startsWith(configuration.region)) {
-        changes["zone"] = zone;
+        configuration["zone"] = changes["zone"] = zone;
         break;
       }
     }
   } else {
     // probably changing the zone, so set the region from the zone
-    changes["region"] = zoneToRegion(configuration.zone);
+    configuration["region"] = changes["region"] = zoneToRegion(
+      configuration.zone,
+    );
   }
 }
 
 function ensureConsistentAccelerator(priceData, configuration, changes) {
-  const { acceleratorType } = configuration;
+  let { acceleratorType } = configuration;
   if (!acceleratorType) {
     return;
   }
@@ -1541,10 +1487,20 @@ function ensureConsistentAccelerator(priceData, configuration, changes) {
   }
 
   // have a GPU
-  const data = priceData.accelerators[acceleratorType];
+  let data = priceData.accelerators[acceleratorType];
   if (!data) {
-    // invalid acceleratorType.
-    return;
+    // accelerator type no longer exists; replace it by one that does.
+    for (const type in priceData.accelerators) {
+      acceleratorType =
+        configuration["acceleratorType"] =
+        changes["acceleratorType"] =
+          type;
+      data = priceData.accelerators[acceleratorType];
+      break;
+    }
+  }
+  if (data == null) {
+    throw Error("bug");
   }
   // Ensure the machine type is consistent
   if (!configuration.machineType.startsWith(data.machineType)) {
@@ -1588,7 +1544,7 @@ function ensureZoneIsConsistentWithGPU(priceData, configuration, changes) {
   // Ensure the region/zone is consistent with accelerator type
   const prices = data[configuration.spot ? "spot" : "prices"];
   if (prices[configuration.zone] == null) {
-    // there are no GPU's in the selected zone of the selected type.
+    // there are no GPUs in the selected zone of the selected type.
     // If you just explicitly changed the GPU type, then we fix this by changing the zone.
     if (changes["acceleratorType"] != null) {
       // fix the region and zone
@@ -1615,13 +1571,17 @@ function ensureZoneIsConsistentWithGPU(priceData, configuration, changes) {
   }
 }
 
-// The Nvidia L4 and A100 are a little different
+// The Nvidia L4 and A100 are a little different, etc.
 function ensureConsistentNvidiaL4andA100(priceData, configuration, changes) {
   const { machineType, acceleratorType } = configuration;
 
   // L4 or A100 GPU machine type, but switching to no GPU, so we have
   // to change the machine type
-  if (machineType.startsWith("g2-") || machineType.startsWith("a2-")) {
+  if (
+    machineType.startsWith("g2-") ||
+    machineType.startsWith("a2-") ||
+    machineType.startsWith("a3-")
+  ) {
     if (!acceleratorType) {
       // Easy case -- the user is explicitly changing the GPU from being set
       // to NOT be set, and the GPU is L4 or A100.  In this case,
@@ -1632,6 +1592,8 @@ function ensureConsistentNvidiaL4andA100(priceData, configuration, changes) {
     }
   }
   if (
+    acceleratorType != "nvidia-h200-141gb" &&
+    acceleratorType != "nvidia-h100-80gb" &&
     acceleratorType != "nvidia-tesla-a100" &&
     acceleratorType != "nvidia-a100-80gb" &&
     acceleratorType != "nvidia-l4"
@@ -1655,6 +1617,21 @@ function ensureConsistentNvidiaL4andA100(priceData, configuration, changes) {
       priceData.accelerators[acceleratorType]?.machineType[
         configuration.acceleratorCount
       ];
+
+    if (machineTypes == null) {
+      // maybe 1 gpu isn't allowed, e.g., with H200
+      const machineType = priceData.accelerators[acceleratorType]?.machineType;
+      if (machineType != null) {
+        for (const count in machineType) {
+          configuration.acceleratorCount = changes.acceleratorCount =
+            parseInt(count);
+          machineTypes =
+            priceData.accelerators[acceleratorType]?.machineType[
+              configuration.acceleratorCount
+            ];
+        }
+      }
+    }
   }
   if (machineTypes == null) {
     throw Error("bug -- this can't happen");
@@ -1679,7 +1656,7 @@ function ensureConsistentRegionAndZoneWithMachineType(
   const machineType = configuration["machineType"];
   if (priceData.machineTypes[machineType] == null) {
     console.warn(
-      `BUG -- This should never happen: unknonwn machineType = '${machineType}'`,
+      `BUG -- This should never happen: unknown machineType = '${machineType}'`,
     );
     // invalid machineType
     if (configuration.acceleratorType) {
@@ -1731,6 +1708,14 @@ function ensureConsistentRegionAndZoneWithMachineType(
   }
 
   if (configuration.acceleratorType && configuration.acceleratorCount) {
+    if (priceData.accelerators[configuration.acceleratorType] == null) {
+      // The accelerator type no longer exists in the pricing data (e.g., maybe it was deprecated),
+      // so replace it by one that exists.
+      for (const type in priceData.accelerators) {
+        configuration.acceleratorType = changes.acceleratorType = type;
+        break;
+      }
+    }
     // have a GPU -- make sure zone works
     if (
       !priceData.accelerators[configuration.acceleratorType].prices[
@@ -1741,7 +1726,7 @@ function ensureConsistentRegionAndZoneWithMachineType(
       let fixed = false;
       const region = zoneToRegion(configuration["zone"]);
       for (const zone in priceData.accelerators[configuration.acceleratorType]
-        .prices) {
+        ?.prices) {
         if (zone.startsWith(region)) {
           fixed = true;
           configuration.zone = changes.zone = zone;
@@ -1767,7 +1752,7 @@ function zoneToRegion(zone: string): string {
   return zone.slice(0, i);
 }
 
-function Network({ setConfig, configuration, loading, priceData, state }) {
+function Network({ setConfig, configuration, loading, priceData }) {
   const [externalIp, setExternalIp] = useState<boolean>(
     configuration.externalIp ?? true,
   );
@@ -1779,11 +1764,11 @@ function Network({ setConfig, configuration, loading, priceData, state }) {
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
         <b>
-          <Icon name="network-server" /> Network
+          <Icon name="network" /> Network
         </b>
         <br />
-        All compute servers have full network access with unlimited data
-        transfer in for free. Data transfer out{" "}
+        All compute servers on Google cloud have full network access with
+        unlimited data transfer in for free. Data transfer out{" "}
         <b>costs {currency(DATA_TRANSFER_OUT_COST_PER_GiB)}/GiB</b>.
       </div>
       <Checkbox
@@ -1830,185 +1815,6 @@ function Network({ setConfig, configuration, loading, priceData, state }) {
           loading={loading}
         />
       )}
-      {externalIp && (
-        <AuthToken
-          setConfig={setConfig}
-          configuration={configuration}
-          state={state}
-        />
-      )}
-    </div>
-  );
-}
-
-function createToken() {
-  return generateVouchers({ count: 1, length: 16 })[0];
-}
-
-function AuthToken({ setConfig, configuration, state }) {
-  const { authToken } = IMAGES[configuration.image] ?? {};
-  useEffect(() => {
-    // create token if it is not set but required
-    if (authToken && configuration.authToken == null) {
-      setConfig({ authToken: createToken() });
-    }
-  }, [authToken, configuration.authToken]);
-
-  if (!authToken) {
-    return null;
-  }
-  return (
-    <div style={{ color: "#666" }}>
-      <div style={{ marginTop: "15px", display: "flex" }}>
-        <div style={{ margin: "auto 30px auto 0" }}>
-          <b>Auth Token:</b>
-        </div>
-        <CopyToClipBoard value={configuration.authToken ?? ""} />
-        <Popconfirm
-          onConfirm={() => {
-            setConfig({ authToken: createToken() });
-          }}
-          okText="Change token"
-          title={"Change auth token?"}
-          description={
-            <div style={{ width: "400px" }}>
-              <b>
-                WARNING: Changing the auth token will prevent people who you
-                shared the old token with from using the site.
-              </b>
-            </div>
-          }
-        >
-          <Button
-            style={{ marginLeft: "30px" }}
-            disabled={state != "deprovisioned" && state != "off"}
-          >
-            <Icon name="refresh" />
-            Randomize...
-          </Button>
-        </Popconfirm>
-      </div>
-      Use this token to access the web server that will runs on your compute
-      server.
-    </div>
-  );
-}
-
-function DNS({ setConfig, configuration, loading }) {
-  const compute_servers_dns = useTypedRedux("customize", "compute_servers_dns");
-  const [showDns, setShowDns] = useState<boolean>(
-    !!configuration.externalIp && !!configuration.dns,
-  );
-  const [dnsError, setDnsError] = useState<string>("");
-  const [dns, setDns] = useState<string | undefined>(configuration.dns);
-  useEffect(() => {
-    if (!dns) return;
-    try {
-      checkValidDomain(dns);
-      setDnsError("");
-    } catch (err) {
-      setDnsError(`${err}`);
-    }
-  }, [dns]);
-
-  if (!compute_servers_dns) {
-    return null;
-  }
-
-  return (
-    <div>
-      <Checkbox
-        disabled={loading}
-        checked={showDns}
-        onChange={() => {
-          setShowDns(!showDns);
-          if (showDns) {
-            // disable on backend.
-            console.log("disable on backend");
-            setConfig({ dns: "" });
-          }
-        }}
-      >
-        Custom Domain Name with SSL ({currency(DNS_COST_PER_HOUR)}/hour when VM
-        not deprovisioned)
-      </Checkbox>
-      {showDns && (
-        <A
-          style={{ float: "right" }}
-          href={`https://${configuration.dns}.${compute_servers_dns}`}
-        >
-          <Icon name="external-link" /> https://{dns ?? "*"}.
-          {compute_servers_dns}
-        </A>
-      )}
-      {showDns && (
-        <div style={{ marginTop: "5px" }}>
-          <Input
-            disabled={loading}
-            style={{ margin: "15px 0" }}
-            maxLength={63}
-            showCount
-            allowClear
-            value={dns}
-            onChange={(e) => {
-              const dns = e.target.value.trim();
-              setDns(dns);
-              if (!dns) {
-                setConfig({ dns: "" });
-              }
-            }}
-          />
-
-          <Button
-            disabled={configuration.dns == dns || dnsError || loading}
-            onClick={() => {
-              const s = (dns ?? "").toLowerCase();
-              setConfig({ dns: s });
-              setDns(s);
-            }}
-          >
-            {!dns || configuration.dns != dns
-              ? "Enable Custom Domain"
-              : "Custom Domain Enabled"}
-          </Button>
-          <div style={{ color: "#666", margin: "5px 0" }}>
-            <Typography.Paragraph
-              style={{ color: "#666" }}
-              ellipsis={{
-                expandable: true,
-                rows: 2,
-                symbol: "more",
-              }}
-            >
-              A custom DNS A record with{" "}
-              <A href="https://developers.cloudflare.com/dns/manage-dns-records/reference/proxied-dns-records/">
-                https and http proxying will be created at CloudFlare
-              </A>{" "}
-              as long as your VM is not deprovisioned. Whenever your VM starts
-              running it is allocated an external ip address, and CoCalc updates
-              the DNS entry to point at that ip address. A web server with
-              self-signed certificate will appear to have a proper certificate
-              to website visitors. You can enable or disable custom DNS at any
-              time.
-            </Typography.Paragraph>
-          </div>
-          {dnsError && dns && (
-            <div
-              style={{
-                background: "red",
-                color: "white",
-                padding: "5px",
-                margin: "10px 0",
-              }}
-            >
-              <div>{dnsError}</div>
-              Please enter a valid subdomain name. Subdomains can consist of
-              letters (a-z, A-Z), numbers (0-9), and hyphens (-). They cannot
-              start or end with a hyphen.
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -2045,9 +1851,10 @@ function CostPerHour({
   );
 }
 
-function Admin({ setConfig, configuration, loading }) {
+function Admin({ id, configuration, loading, template }) {
   const isAdmin = useTypedRedux("account", "is_admin");
-  const [test, setTest] = useState<boolean>(configuration.test);
+  const [error, setError] = useState<string>("");
+  const [calling, setCalling] = useState<boolean>(false);
   if (!isAdmin) {
     return null;
   }
@@ -2060,18 +1867,31 @@ function Admin({ setConfig, configuration, loading }) {
         <br />
         Settings and functionality only available to admins.
         <br />
-        <Tooltip title="When you build a new image it is NOT used by default by compute servers until it gets labeled prod=true.  Check this box to test out the newest image.">
-          <Checkbox
-            disabled={loading}
-            checked={test}
-            onChange={() => {
-              setConfig({ test: !test });
-              setTest(!test);
+        <ShowError error={error} setError={setError} />
+        <Tooltip title="Once you have tested the currently selected image, click this button to mark it as tested.">
+          <Button
+            disabled={loading || !id || calling}
+            onClick={async () => {
+              try {
+                setCalling(true);
+                await setImageTested({ id, tested: true });
+                // force reload to database via GCP api call
+                await reloadImages("compute_servers_images_google", true);
+              } catch (err) {
+                setError(`${err}`);
+              } finally {
+                setCalling(false);
+              }
             }}
           >
-            Use newest (possibly) unreleased image
-          </Checkbox>
+            Mark Google Cloud Image Tested{" "}
+            {calling && <Spin style={{ marginLeft: "15px" }} />}
+          </Button>
         </Tooltip>
+        <pre>
+          id={id}, configuration={JSON.stringify(configuration, undefined, 2)}
+        </pre>
+        <Template id={id} template={template} />
       </div>
     </div>
   );

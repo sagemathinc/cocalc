@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // This unifies the entire webapp configuration – endpoint /customize
@@ -11,25 +11,28 @@
 
 import { delay } from "awaiting";
 import debug from "debug";
-
+import { isEmpty } from "lodash";
+import LRU from "lru-cache";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import { get_passport_manager, PassportManager } from "@cocalc/server/hub/auth";
 import { getSoftwareEnvironments } from "@cocalc/server/software-envs";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { SoftwareEnvConfig } from "@cocalc/util/sanitize-software-envs";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "@cocalc/util/schema";
+import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { parseDomain, ParseResultType } from "parse-domain";
-import { get_passport_manager, PassportManager } from "@cocalc/server/hub/auth";
-import getServerSettings from "./servers/server-settings";
+import getServerSettings, {
+  ServerSettingsDynamic,
+} from "./servers/server-settings";
 import { have_active_registration_tokens } from "./utils";
 
 const L = debug("hub:webapp-config");
 
-import LRU from "lru-cache";
-const CACHE = new LRU({ max: 1000, ttl: 60 * 1000 }); // 1 minutes
+const CACHE = new LRU({ max: 1000, ttl: 30 * 1000 }); // 1 minutes
 
 export function clear_cache(): void {
-  CACHE.reset();
+  CACHE.clear();
 }
 
 type Theme = { [key: string]: string | boolean };
@@ -40,6 +43,8 @@ interface Config {
   registration: any;
   strategies: object;
   software: SoftwareEnvConfig | null;
+  ollama: { [key: string]: CustomLLMPublic };
+  custom_openai: { [key: string]: CustomLLMPublic };
 }
 
 async function get_passport_manager_async(): Promise<PassportManager> {
@@ -53,7 +58,7 @@ async function get_passport_manager_async(): Promise<PassportManager> {
       return pp_manager;
     } else {
       L(
-        `WARNING: Passport Manager not available yet -- trying again in ${ms}ms`
+        `WARNING: Passport Manager not available yet -- trying again in ${ms}ms`,
       );
       await delay(ms);
       ms = Math.min(10000, 1.3 * ms);
@@ -63,7 +68,7 @@ async function get_passport_manager_async(): Promise<PassportManager> {
 
 export class WebappConfiguration {
   private readonly db: PostgreSQL;
-  private data?: any;
+  private data?: ServerSettingsDynamic;
 
   constructor({ db }) {
     this.db = db;
@@ -151,7 +156,7 @@ export class WebappConfiguration {
     }
     const vID = this.get_vanity_id(host);
     const config = this.data.pub;
-    const vanity = this.get_vanity(vID);
+    const vanity = await this.get_vanity(vID);
     return { ...config, ...vanity, ...{ country, dns: host } };
   }
 
@@ -168,14 +173,46 @@ export class WebappConfiguration {
     return strategies as object;
   }
 
+  // derives the public ollama model configuration from the private one
+  private get_ollama_public(): { [key: string]: CustomLLMPublic } {
+    if (this.data == null) {
+      throw new Error("server settings not yet initialized");
+    }
+    const ollama = this.data.all.ollama_configuration;
+    return processCustomLLM(ollama, "Ollama");
+  }
+
+  private get_custom_openai_public(): { [key: string]: CustomLLMPublic } {
+    if (this.data == null) {
+      throw new Error("server settings not yet initialized");
+    }
+    const custom_openai = this.data.all.custom_openai_configuration;
+    return processCustomLLM(custom_openai, "OpenAI (custom)");
+  }
+
   private async get_config({ country, host }): Promise<Config> {
-    const [configuration, registration, software] = await Promise.all([
-      this.get_configuration({ host, country }),
-      have_active_registration_tokens(this.db),
-      getSoftwareEnvironments("webapp"),
-    ]);
+    while (this.data == null) {
+      L.debug("waiting for server settings to be initialized");
+      await delay(100);
+    }
+
+    const [configuration, registration, software, ollama, custom_openai] =
+      await Promise.all([
+        this.get_configuration({ host, country }),
+        have_active_registration_tokens(this.db),
+        getSoftwareEnvironments("webapp"),
+        this.get_ollama_public(),
+        this.get_custom_openai_public(),
+      ]);
     const strategies = await this.get_strategies();
-    return { configuration, registration, strategies, software };
+    return {
+      configuration,
+      registration,
+      strategies,
+      software,
+      ollama,
+      custom_openai,
+    };
   }
 
   // it returns a shallow copy, hence you can modify/add keys in the returned map!
@@ -190,4 +227,27 @@ export class WebappConfiguration {
     }
     return config as Config;
   }
+}
+
+// for Ollama or Custom OpenAI
+function processCustomLLM(
+  data: any,
+  displayFallback,
+): { [key: string]: CustomLLMPublic } {
+  if (isEmpty(data)) return {};
+
+  const ret: { [key: string]: CustomLLMPublic } = {};
+  for (const key in data) {
+    const conf = data[key];
+    const cocalc = conf.cocalc ?? {};
+    if (cocalc.disabled) continue;
+    const model = conf.model ?? key;
+    ret[key] = {
+      model,
+      display: cocalc.display ?? `${displayFallback} ${model}`,
+      icon: cocalc.icon, // fallback is the Ollama or OpenAI icon, frontend does that
+      desc: cocalc.desc ?? "",
+    };
+  }
+  return ret;
 }

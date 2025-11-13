@@ -1,15 +1,17 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { path_split, separate_file_extension } from "@cocalc/util/misc";
-import { exec, raw_url_of_file } from "../../generic/client";
+import { exec } from "../../generic/client";
+import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
 import { sanitize_nbconvert_path } from "@cocalc/util/sanitize-nbconvert";
 
 export async function revealjs_slideshow_html(
   project_id: string,
-  path: string
+  path: string,
+  compute_server_id?: number,
 ): Promise<string> {
   const split = path_split(path);
   // The _ bewlo is because of https://github.com/sagemathinc/cocalc/issues/4066, i.e., otherwise
@@ -29,10 +31,10 @@ export async function revealjs_slideshow_html(
     args,
     project_id,
   };
-  await exec(opts);
+  await exec(opts, path);
   const ext = ".slides.html";
   const html_filename = split.head
     ? [split.head, base + ext].join("/")
     : base + ext;
-  return raw_url_of_file(project_id, html_filename);
+  return fileURL({ project_id, path: html_filename, compute_server_id });
 }

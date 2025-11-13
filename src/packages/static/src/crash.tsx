@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { join } from "path";
@@ -52,16 +52,20 @@ export default function Crash() {
           color: "white",
           background: "crimson",
           padding: "15px",
+          borderRadius: "5px",
         }}
       >
         &nbsp; CoCalc Crashed
+        <a onClick={dismiss} style={{ float: "right", color: "white" }}>
+          ×
+        </a>
       </h1>
 
       <div style={{ fontWeight: "bold", textAlign: "center" }}>
         Sorry to interrupt your work. An error happened in CoCalc's web
         application.
         <br />
-        Don't worry, all your files are securely stored on its servers!
+        Don't worry, your CoCalc files are securely stored on our servers!
       </div>
 
       <hr />

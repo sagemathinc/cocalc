@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* Search input box with the following capabilities
@@ -25,7 +25,7 @@ interface Props {
   on_change?: (value: string, opts: { ctrl_down: boolean }) => void;
   on_clear?: () => void;
   on_submit?: (value: string, opts: { ctrl_down: boolean }) => void;
-  buttonAfter?: JSX.Element;
+  buttonAfter?;
   disabled?: boolean;
   clear_on_submit?: boolean;
   on_down?: () => void;
@@ -37,14 +37,15 @@ interface Props {
   autoSelect?: boolean;
   placeholder?: string;
   focus?: number; // if this changes, focus the search box.
+  status?: "warning" | "error";
 }
 
 export const SearchInput: React.FC<Props> = React.memo((props) => {
-  const [value, set_value] = useState<string>(
+  const [value, setValue] = useState<string>(
     props.value ?? props.default_value ?? "",
   );
   // if value changes, we update as well!
-  useEffect(() => set_value(props.value ?? ""), [props.value]);
+  useEffect(() => setValue(props.value ?? ""), [props.value]);
 
   const [ctrl_down, set_ctrl_down] = useState<boolean>(false);
   const [shift_down, set_shift_down] = useState<boolean>(false);
@@ -69,7 +70,7 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
   }
 
   function clear_value(): void {
-    set_value("");
+    setValue("");
     props.on_change?.("", get_opts());
     props.on_clear?.();
   }
@@ -139,7 +140,7 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
       onChange={(e) => {
         e.preventDefault();
         const value = e.target?.value ?? "";
-        set_value(value);
+        setValue(value);
         props.on_change?.(value, get_opts());
         if (!value) clear_value();
       }}
@@ -147,6 +148,7 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
       onKeyUp={key_up}
       disabled={props.disabled}
       enterButton={props.buttonAfter}
+      status={props.status}
     />
   );
 });

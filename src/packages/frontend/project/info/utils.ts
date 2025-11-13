@@ -1,13 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { basename } from "path";
-
 import { CSS } from "@cocalc/frontend/app-framework";
-import { project_websocket } from "@cocalc/frontend/frame-editors/generic/client";
-import { Process, Processes, State } from "@cocalc/comm/project-info/types";
+import { Process, Processes, State } from "@cocalc/util/types/project-info/types";
 import {
   ALERT_DISK_FREE,
   ALERT_HIGH_PCT,
@@ -73,12 +71,6 @@ export function grid_warning(val: number, max: number): CSS {
   return col != null ? col : {};
 }
 
-export async function connect_ws(project_id: string) {
-  const ws = await project_websocket(project_id);
-  const chan = await ws.api.project_info();
-  return chan;
-}
-
 // filter for processes in process_tree
 function keep_proc(proc): boolean {
   if (proc.pid === 1) {
@@ -115,9 +107,14 @@ function args(proc: Process) {
   }
 }
 
-// convert the flat raw data into nested (forest) process rows for the table
+// Harald: convert the flat raw data into nested (forest) process rows for the table
 // I bet there are better algos, but our usual case is less than 10 procs with little nesting
 // we intentionally ignore PID 1 (tini) and the main shell script (pointless)
+
+// William: I personally find this tree structure as the default and only option
+// annoying.  When I look at the processes it is to identify the worst offender via sorting
+// and watch or kill it.  This obfuscates that goal.
+
 export function process_tree(
   procs: Processes,
   parentid: number,

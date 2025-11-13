@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Col, Row } from "antd";
@@ -16,6 +16,7 @@ import linuxLogo from "public/features/linux-logo.svg";
 import sticker from "public/features/sage-sticker-1x1_inch-small.png";
 import Info from "./info";
 import JupyterLogo from "/public/features/jupyter-logo.svg";
+import { LANDING_HEADER_LEVEL } from "./constants";
 
 interface Props {
   style?: React.CSSProperties;
@@ -26,7 +27,8 @@ export function AvailableTools(props: Props) {
 
   return (
     <Info
-      title="Jupyter, SageMath, LateX, and Linux"
+      level={LANDING_HEADER_LEVEL}
+      title="Jupyter, SageMath, LaTeX, and Linux"
       icon="wrench"
       anchor="available-tools"
       style={{ ...style }}

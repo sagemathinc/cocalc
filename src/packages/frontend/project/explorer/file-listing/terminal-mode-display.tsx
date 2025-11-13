@@ -1,40 +1,41 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React from "react";
-const { Alert, Row, Col } = require("react-bootstrap");
+import { Alert } from "antd";
+import { useState } from "react";
 
-const row_style: React.CSSProperties = {
-  textAlign: "left",
-  color: "#888",
-  marginTop: "5px",
-  wordWrap: "break-word",
-};
+import { A } from "@cocalc/frontend/components/A";
 
-const alert_style: React.CSSProperties = {
-  marginTop: "5px",
-  fontWeight: "bold",
-};
-
-export function TerminalModeDisplay() {
+export function TerminalModeDisplay({ style }) {
+  const [extra, setExtra] = useState<boolean>(false);
   return (
-    <Row style={row_style}>
-      <Col sm={2} />
-      <Col sm={8}>
-        <Alert style={alert_style} bsStyle="info">
-          You are in{" "}
-          <a
-            target="_blank"
-            href="https://github.com/sagemathinc/cocalc/wiki/File-Listing#terminal-mode"
-          >
-            terminal mode
-          </a>
-          .
-        </Alert>
-      </Col>
-      <Col sm={2} />
-    </Row>
+    <Alert
+      banner
+      type="info"
+      style={style}
+      message={
+        <>
+          You are in <a onClick={() => setExtra(!extra)}>terminal mode</a>.
+        </>
+      }
+      description={
+        extra && (
+          <>
+            Terminal mode is triggered by a leading <code>/</code> in the file
+            filter box. If you would like to display all folders instead, enter
+            a space in front of the <code>/</code>. Terminal mode allows you to
+            quickly use common Linux commands like <code>mv</code> or{" "}
+            <code>cp</code> in the displayed directory without having to click
+            on the file listing UI. Start{" "}
+            <A href="https://www.google.com/search?q=introduction+to+command+line">
+              here
+            </A>{" "}
+            for learning how to use the command line.
+          </>
+        )
+      }
+    />
   );
 }

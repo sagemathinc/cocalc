@@ -1,14 +1,26 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import "./height";
-import "./icon-spin";
-import "./misc";
-import "./math-katex";
-import "./katex-plugin";
-import "./images";
-import "./codemirror";
-import "../misc/process-links/jquery";
-import "./process-icons";
+import { init as initHeight } from "./height";
+import { init as initIconSpin } from "./icon-spin";
+import { init as initMisc } from "./misc";
+import { init as initKatex } from "./katex-plugin";
+import { init as initImages } from "./images";
+import { init as initCodemirror } from "./codemirror";
+import { init as initProcessLinks } from "../misc/process-links/jquery";
+import { init as initProcessIcons } from "./process-icons";
+import $ from "jquery";
+
+export function init() {
+  window.$ = $;
+  initHeight();
+  initIconSpin();
+  initMisc();
+  initKatex();
+  initImages();
+  initCodemirror();
+  initProcessLinks();
+  initProcessIcons();
+}

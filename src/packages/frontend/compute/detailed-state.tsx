@@ -65,7 +65,7 @@ export default function DetailedState({
   if (!detailed_state) {
     return null;
   }
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const name of COMPONENTS) {
     if (detailed_state[name]) {
       v.push(
@@ -144,7 +144,6 @@ function State({
           progress <
             80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
         }
-        style={{ marginTop: "3px" }}
       />
     );
   } else if (name == "compute") {
@@ -156,10 +155,22 @@ function State({
   }
 
   return (
-    <div style={{ borderBottom: "1px solid #ddd" }}>
+    <div
+      style={{
+        borderBottom: "1px solid #ddd",
+        height: "24px",
+        overflow: "hidden",
+        whiteSpace: "nowrap",
+      }}
+    >
       <div style={{ display: "flex" }}>
         <Tooltip title={SPEC[name]?.tip}>
-          <div style={{ flex: 1, color: expired ? "#aaa" : undefined }}>
+          <div
+            style={{
+              flex: 1,
+              color: expired ? "#aaa" : undefined,
+            }}
+          >
             {name != "compute" && name != "filesystem-sync" && (
               <>
                 <Icon
@@ -190,6 +201,7 @@ function State({
                 flex: 1,
                 textAlign: "center",
                 height: "30px",
+                overflow: "auto",
               }}
             >
               {/* only show time when at least a minute in past to avoid annoying flicker */}
@@ -208,7 +220,12 @@ function State({
           <div style={{ flex: 0.9 }}>
             {state == "error" ? (
               <ShowError
-                style={{ marginBottom: "10px" }}
+                style={{
+                  marginBottom: "10px",
+                  position: "absolute",
+                  maxWidth: "400px",
+                  zIndex: 1,
+                }}
                 error={extra}
                 setError={() => {
                   setDetailedState({

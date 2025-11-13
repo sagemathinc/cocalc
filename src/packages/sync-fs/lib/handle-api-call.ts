@@ -1,4 +1,9 @@
-/* This runs in the project and handles api calls. */
+/* This runs in the project and handles api calls from computer servers.
+
+It mainly handles a persistent connection from the file system container,
+and supports functions including moving files, syncing, executing code,
+etc.
+*/
 
 import { fromCompressedJSON } from "./compressed-json";
 import getLogger from "@cocalc/backend/logger";
@@ -25,7 +30,7 @@ export default async function handleApiCall({
 
   let computeState;
   if (computeStateJson) {
-    computeState = fromCompressedJSON(await readFile(computeStateJson));
+    computeState = await fromCompressedJSON(await readFile(computeStateJson));
   } else {
     throw Error("not implemented");
   }
@@ -247,7 +252,7 @@ export async function handleComputeServerSyncRegister(
     spark_id: spark.id,
   });
   // save the connection so we can send a sync_request message later, and also handle the api
-  // calls for copying files back and forth:
+  // calls for copying files back and forth, etc.
   sparks[compute_server_id] = spark;
   const remove = () => {
     if (sparks[compute_server_id]?.id == spark.id) {
@@ -275,42 +280,157 @@ export async function handleSyncFsRequestCall({ compute_server_id }) {
     return { status: "ok" };
   } else {
     log("handleSyncFsRequestCall: fail");
-    throw Error(
-      `no connection to compute server ${compute_server_id} -- only know about these: ${JSON.stringify(
-        Object.keys(sparks),
-      )}`,
-    );
+    throw Error(`no connection to compute server -- please start it or restart it`);
     //throw Error("no connection to compute server");
   }
+}
+
+function callComputeServerApi(
+  compute_server_id,
+  mesg,
+  timeoutMs = 30000,
+  compute = false,
+): Promise<any> {
+  const spark = compute
+    ? computeSparks[compute_server_id]
+    : sparks[compute_server_id];
+  if (spark == null) {
+    log("callComputeServerApi: no connection");
+    throw Error(
+      `no connection to compute server -- please start or restart it`,
+    );
+  }
+  return new Promise((resolve, reject) => {
+    const id = Math.random();
+    spark.write({ ...mesg, id });
+
+    const handler = (data) => {
+      if (data?.id == id) {
+        spark.removeListener("data", handler);
+        clearTimeout(timeout);
+        if (data.error) {
+          reject(Error(data.error));
+        } else {
+          resolve(data.resp);
+        }
+      }
+    };
+    spark.addListener("data", handler);
+
+    const timeout = setTimeout(() => {
+      spark.removeListener("data", handler);
+      reject(Error(`timeout -- ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
 }
 
 export async function handleCopy(opts: {
   event: string;
   compute_server_id: number;
   paths: string[];
+  dest?: string;
   timeout?: number;
 }) {
   log("handleCopy: ", opts);
-  const spark = sparks[opts.compute_server_id];
-  if (spark == null) {
-    log("handleCopy: no connection");
-    throw Error(`no connection to compute server ${opts.compute_server_id}`);
-  }
-  const id = Math.random();
-  spark.write({ ...opts, id });
-  // wait for a response with this id
-  const handler = (data) => {
-    if (data?.id == id) {
-      spark.removeListener("data", handler);
-      clearTimeout(timeout);
-      return data;
+  const mesg = { event: opts.event, paths: opts.paths, dest: opts.dest };
+  return await callComputeServerApi(
+    opts.compute_server_id,
+    mesg,
+    (opts.timeout ?? 30) * 1000,
+  );
+}
+
+export async function handleSyncFsGetListing({
+  path,
+  hidden,
+  compute_server_id,
+}) {
+  log("handleSyncFsGetListing: ", { path, hidden, compute_server_id });
+  const mesg = { event: "listing", path, hidden };
+  return await callComputeServerApi(compute_server_id, mesg, 15000);
+}
+
+export async function handleComputeServerFilesystemExec(opts) {
+  const { compute_server_id } = opts;
+  log("handleComputeServerFilesystemExec: ", opts);
+  const mesg = { event: "exec", opts };
+  return await callComputeServerApi(
+    compute_server_id,
+    mesg,
+    (opts.timeout ?? 10) * 1000,
+  );
+}
+
+export async function handleComputeServerDeleteFiles({
+  compute_server_id,
+  paths,
+}) {
+  log("handleComputeServerDeleteFiles: ", { compute_server_id, paths });
+  const mesg = { event: "delete_files", paths };
+  return await callComputeServerApi(compute_server_id, mesg, 60 * 1000);
+}
+
+export async function handleComputeServerRenameFile({
+  compute_server_id,
+  src,
+  dest,
+}) {
+  log("handleComputeServerRenameFile: ", { compute_server_id, src, dest });
+  const mesg = { event: "rename_file", src, dest };
+  return await callComputeServerApi(compute_server_id, mesg, 60 * 1000);
+}
+
+export async function handleComputeServerMoveFiles({
+  compute_server_id,
+  paths,
+  dest,
+}) {
+  log("handleComputeServerMoveFiles: ", { compute_server_id, paths, dest });
+  const mesg = { event: "move_files", paths, dest };
+  return await callComputeServerApi(compute_server_id, mesg, 60 * 1000);
+}
+
+/*
+Similar but for compute instead of filesystem:
+*/
+
+const computeSparks: { [compute_server_id: number]: Spark } = {};
+
+export async function handleComputeServerComputeRegister(
+  { compute_server_id },
+  spark,
+) {
+  log("handleComputeServerComputeRegister -- registering ", {
+    compute_server_id,
+    spark_id: spark.id,
+  });
+  // save the connection so we can send a sync_request message later, and also handle the api
+  // calls for copying files back and forth, etc.
+  computeSparks[compute_server_id] = spark;
+  const remove = () => {
+    if (computeSparks[compute_server_id]?.id == spark.id) {
+      log(
+        "handleComputeServerComputeRegister: removing compute server connection due to disconnect -- ",
+        { compute_server_id, spark_id: spark.id },
+      );
+      // the spark connection currently cached is this
+      // one, so we remove it. It could be replaced by
+      // a new one, in which case we better not remove it.
+      delete computeSparks[compute_server_id];
     }
   };
-  spark.addListener("data", handler);
-  const timeout = setTimeout(() => {
-    spark.removeListener("data", handler);
-    throw Error(
-      `timeout - failed to copy files within ${opts.timeout ?? 30000}ms`,
-    );
-  }, opts.timeout ?? 30000);
+  spark.on("end", remove);
+  spark.on("close", remove);
+}
+
+export async function handleComputeServerComputeExec(opts) {
+  const { compute_server_id } = opts;
+  log("handleComputeServerComputeExec: ", opts);
+  const mesg = { event: "exec", opts };
+  return await callComputeServerApi(
+    compute_server_id,
+    mesg,
+    (opts.timeout ?? 10) * 1000,
+    true,
+  );
 }

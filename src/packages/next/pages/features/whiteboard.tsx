@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Layout } from "antd";
@@ -29,7 +29,7 @@ export default function Whiteboard({ customize }) {
         <Layout.Content>
           <Content
             landing
-            logo={<Icon name="layout" style={{ fontSize: "100px" }} />}
+            body={<Icon name="layout" style={{ fontSize: "100px" }} />}
             startup={"Whiteboard"}
             title={
               "Online Collaborative Whiteboard with Jupyter Code Cells and LaTeX Mathematics"

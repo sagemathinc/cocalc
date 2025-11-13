@@ -1,16 +1,18 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useState } from "react";
 import { Alert, Checkbox, Popconfirm } from "antd";
-import { CopyToClipBoard, Icon } from "../components";
-import { join } from "path";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { webapp_client } from "../webapp-client";
-import { redux } from "@cocalc/frontend/app-framework";
 import { Map } from "immutable";
+import { join } from "path";
+import { useState } from "react";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import { CopyToClipBoard, Icon } from "@cocalc/frontend/components";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface Props {
   project?: Map<string, any>;
@@ -146,7 +148,7 @@ export default function Sandbox({ project }: Props) {
                 .set_project_sandbox(project.get("project_id"), true);
             }}
             okText={"Yes, make this a public sandbox project!"}
-            cancelText={"Cancel"}
+            cancelText={<CancelText />}
           >
             <Checkbox checked={false}>Public Sandbox Project</Checkbox>
           </Popconfirm>

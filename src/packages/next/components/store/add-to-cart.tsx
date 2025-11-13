@@ -1,13 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import {
   delete_local_storage,
   get_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
-import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 import apiPost from "lib/api/post";
 import { LS_KEY_LICENSE_PROJECT } from "./util";
 import { ALL_FIELDS } from "./quota-query-params";
@@ -24,72 +23,30 @@ interface Props {
 }
 
 // this is used by the "addBox" and the thin "InfoBar" to add/modify the selected license configuration to the cart
-
-export async function addToCart(props: Props) {
-  const { form, setCartError, router } = props;
-
+// If something goes wrong it throws an error *and* also calls setCartError.
+export async function addToCart({ form, setCartError, router }: Props) {
   // we make a copy, because otherwise this actually modifies the fields (user sees brief red errors)
   const description = {
     ...form.getFieldsValue(true),
   };
-
-  // exclude extra fields that are for UI only. See https://github.com/sagemathinc/cocalc/issues/6258
-  for (const field in description) {
-    if (!ALL_FIELDS.has(field)) {
-      delete description[field];
-    }
+  let product;
+  if (description.numVouchers != null) {
+    product = "cash-voucher";
+  } else {
+    product = "site-license";
   }
 
-  // unload the type parameter
-  switch (description.type) {
-    case "boost":
-      description.boost = true;
-      description.type = "quota";
-      break;
-
-    case "vm":
-      for (const k of ["disk-name", "disk-size_gb", "disk-speed"]) {
-        delete description[k];
+  if (product == "site-license") {
+    // exclude extra fields that are for UI only. See https://github.com/sagemathinc/cocalc/issues/6258
+    for (const field in description) {
+      if (!ALL_FIELDS.has(field)) {
+        delete description[field];
       }
-      const machine = description["vm-machine"];
-      if (PRICES.vms[machine] == null) {
-        setCartError(`Unknown machine type ${machine}`);
-        return;
-      }
-      description.dedicated_vm = {
-        machine,
-      };
-      delete description["vm-machine"];
-      description.type = "vm";
-      break;
-
-    case "disk":
-      delete description["vm-machine"];
-
-      const diskID = getDedicatedDiskKey({
-        size_gb: description["disk-size_gb"],
-        speed: description["disk-speed"],
-      });
-      const disk = PRICES.disks[diskID];
-      if (disk == null) {
-        setCartError(`Disk ${diskID} not found`);
-        return;
-      }
-      description.dedicated_disk = {
-        ...disk.quota.dedicated_disk,
-        name: description["disk-name"],
-      };
-      for (const k of ["disk-name", "disk-size_gb", "disk-speed"]) {
-        delete description[k];
-      }
-
-      description.type = "disk";
-      break;
-
-    case "regular":
-    default:
-      description.type = "quota";
-      description.boost = false;
+    }
+    description.type = "quota";
+    description.boost = false;
+  } else {
+    description.type = "cash-voucher";
   }
 
   try {
@@ -105,7 +62,7 @@ export async function addToCart(props: Props) {
       delete_local_storage(LS_KEY_LICENSE_PROJECT);
 
       await apiPost("/shopping/cart/add", {
-        product: "site-license",
+        product,
         description,
         project_id,
       });
@@ -113,5 +70,6 @@ export async function addToCart(props: Props) {
     router.push("/store/cart");
   } catch (err) {
     setCartError(err.message);
+    throw err;
   }
 }

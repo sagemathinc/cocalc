@@ -8,9 +8,9 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
-    "make": "pnpm install && pnpm run build",
-    "build": "npx tsc --build",
-    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+    "make": "pnpm install && pnpm build",
+    "build": "../../packages/node_modules/.bin/tsc",
+    "tsc": "../../packages/node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
   "bin": {
     "cocalc-compute-start": "./bin/start.js"
@@ -31,19 +31,19 @@
     "@cocalc/api-client": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/compute": "link:",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
+    "@cocalc/project": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/sync-fs": "workspace:*",
-    "@cocalc/terminal": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/ws": "^8.5.9",
-    "async-await-utils": "^3.0.1",
+    "@types/ws": "^8.18.1",
     "awaiting": "^3.0.0",
-    "cookie": "^0.5.0",
-    "debug": "^4.3.2",
-    "websocketfs": "^0.17.0",
-    "ws": "^8.13.0"
+    "cookie": "^1.0.0",
+    "debug": "^4.4.0",
+    "websocketfs": "^0.17.6",
+    "ws": "^8.18.0"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",
   "repository": {
@@ -51,8 +51,15 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/cookie": "^0.5.1",
+    "@types/cookie": "^0.6.0",
     "@types/node": "^18.16.14",
-    "typescript": "^5.2.2"
+    "typescript": "^5.9.2"
+  },
+  "pnpm-comment": "There is a WRONG warning during install saying this onlyBuiltDependencies won't be used because it is in this file, but this is the ONLY place that works. We do also put it there.",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "websocketfs",
+      "@cocalc/fuse-native"
+    ]
   }
 }

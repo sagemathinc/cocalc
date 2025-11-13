@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -8,6 +8,8 @@ import { Alert, Button, Popconfirm } from "antd";
 import { NextRouter } from "next/router";
 import { useLicenseProject } from "./util";
 import Project from "components/project/link";
+
+import type { JSX } from "react";
 
 interface ApplyLicenseToProjectProps {
   router: NextRouter;

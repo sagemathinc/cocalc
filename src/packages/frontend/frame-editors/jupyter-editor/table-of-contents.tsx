@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { delay } from "awaiting";
@@ -10,6 +10,7 @@ import {
   TableOfContents as TOC,
   TableOfContentsEntryList,
 } from "@cocalc/frontend/components";
+import $ from "jquery";
 
 interface Props {
   font_size: number;
@@ -22,19 +23,45 @@ export const TableOfContents: React.FC<Props> = React.memo(
       actions.jupyter_actions.name,
       "contents",
     ]);
-
-    async function jump_to_cell(id: string, extra = "top" as "top"): Promise<void> {
+    async function jump_to_cell(
+      id: string,
+      extra = "top" as "top",
+    ): Promise<void> {
       actions.jump_to_cell(id, extra);
       // stupid hack due to rendering/windowing delays...
-      await delay(100);
+      await delay(1);
+      actions.jump_to_cell(id, extra);
+      await delay(50);
       actions.jump_to_cell(id, extra);
     }
 
     return (
       <TOC
         contents={contents}
-        style={{ fontSize: `${font_size - 6}px` }}
-        scrollTo={({ id, extra }) => jump_to_cell(id, extra)}
+        fontSize={font_size}
+        scrollTo={async ({ id, extra }) => {
+          const { cell_id, markdown_id } = JSON.parse(id);
+          jump_to_cell(cell_id, extra);
+          if (markdown_id) {
+            const n = parseInt(markdown_id);
+            const f = () => {
+              // just use some "dumb" jquery to scroll the actual heading into view.
+              // It's pretty hard to do this otherwise, given our current design.
+              const cell = $(`#${cell_id}`);
+              const elt = $(cell.find(".cocalc-jupyter-header")[n]);
+              if (elt.length == 0) {
+                return;
+              }
+              // @ts-ignore -- it's a jquery plugin
+              elt.scrollintoview();
+            };
+            f();
+            await delay(2);
+            f();
+            await delay(200);
+            f();
+          }
+        }}
       />
     );
   },

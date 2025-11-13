@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -12,29 +12,37 @@ buttons in the hover state (even when tacking mouse moves!),
 which is confusing.
 */
 
-import { Button, Space, Tooltip } from "antd";
-import { ReactNode, useState } from "react";
+// cSpell:ignore aicell
 
-import { redux, useFrameContext } from "@cocalc/frontend/app-framework";
+import { Button, Space, Tooltip } from "antd";
+import { ReactNode } from "react";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { IS_TOUCH } from "@cocalc/frontend/feature";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { LLMTools } from "@cocalc/jupyter/types";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import AIAvatar from "../../components/ai-avatar";
 import { JupyterActions } from "../browser-actions";
-import ChatGPTPopover from "./ai-cell-generator";
+import { AIGenerateCodeCell } from "./ai-cell-generator";
+import { Position } from "./types";
 import { insertCell, pasteCell } from "./util";
 
-type TinyButtonType = "code" | "markdown" | "paste" | "chatgpt";
+type TinyButtonType = "code" | "markdown" | "paste" | "aicell";
 
 const BTN_HEIGHT = 22;
 
 export interface InsertCellProps {
   actions: JupyterActions;
+  project_id?: string;
   id: string;
+  llmTools?: LLMTools;
+  hide?: boolean;
   position: "above" | "below";
-  chatgpt?;
+  showAICellGen: Position;
+  setShowAICellGen: (show: Position) => void;
+  alwaysShow?: boolean;
 }
 
 export interface InsertCellState {
@@ -42,36 +50,25 @@ export interface InsertCellState {
 }
 
 export function InsertCell({
+  project_id,
   position,
-  chatgpt,
+  llmTools,
   actions,
   id,
+  hide,
+  showAICellGen,
+  setShowAICellGen,
+  alwaysShow,
 }: InsertCellProps) {
-  const { project_id } = useFrameContext();
-  const haveChatGTP =
-    chatgpt &&
-    redux
-      .getStore("projects")
-      .hasLanguageModelEnabled(project_id, "generate-cell");
   const frameActions = useNotebookFrameActions();
-  const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
 
-  if (IS_TOUCH && position === "above") {
-    // TODO: Inserting cells via hover and click does not make sense
-    // for a touch device, since no notion of hover, and is just confusing and results
-    // in many false inserts.
-    // Exception: last bottom insert bar, because it is always visible; it appears
-    // because for it position == 'below'.
-    return <div style={{ height: "6px" }}></div>;
-  }
+  const showGenerateCell = redux
+    .getStore("projects")
+    .hasLanguageModelEnabled(project_id, "generate-cell");
 
   function handleBarClick(e) {
     e.preventDefault();
     e.stopPropagation();
-    if (haveChatGTP && (e.altKey || e.metaKey)) {
-      setShowChatGPT(true);
-      return;
-    }
     const type =
       e.shiftKey || e.ctrlKey || e.altKey || e.metaKey ? "markdown" : "code";
     insertCell({ frameActions, actions, type, id, position });
@@ -88,8 +85,8 @@ export function InsertCell({
       case "paste":
         pasteCell({ frameActions, actions, id, position });
         break;
-      case "chatgpt":
-        setShowChatGPT(true);
+      case "aicell":
+        setShowAICellGen(position);
         break;
       default:
         unreachable(type);
@@ -97,80 +94,95 @@ export function InsertCell({
   }
 
   const classNames = ["cocalc-jupyter-insert-cell"];
-  if (position === "below") {
+  if (alwaysShow) {
     classNames.push("cocalc-jupyter-insert-cell-below");
   }
 
+  const isActiveAIGenerator =
+    !hide &&
+    (showAICellGen === position ||
+      (position === "below" && showAICellGen === "replace"));
+
+  function renderControls() {
+    return (
+      <div
+        className="cocalc-jupyter-insert-cell-controls"
+        style={
+          showAICellGen || alwaysShow
+            ? {
+                visibility: "visible",
+                opacity: 1,
+              }
+            : undefined
+        }
+      >
+        <Space size="large">
+          <TinyButton
+            type="code"
+            title="Insert code cell (click line)"
+            handleButtonClick={handleButtonClick}
+          >
+            <Icon name="code" /> Code
+          </TinyButton>
+          <TinyButton
+            type="markdown"
+            title="Insert text cell (shift+click line)"
+            handleButtonClick={handleButtonClick}
+          >
+            <Icon name="pen" /> Text
+          </TinyButton>
+          <TinyButton
+            type="paste"
+            title="Insert clipboard content as cell"
+            handleButtonClick={handleButtonClick}
+          >
+            <Icon name="paste" /> Paste
+          </TinyButton>
+          {showGenerateCell && llmTools && (
+            <TinyButton
+              type="aicell"
+              title="Create code based on your description (alt+click line)"
+              handleButtonClick={handleButtonClick}
+            >
+              <Space>
+                <AIAvatar
+                  backgroundColor={"transparent"}
+                  size={14}
+                  innerStyle={{ color: "default", top: "-2px" }}
+                />
+                Generate...
+              </Space>
+            </TinyButton>
+          )}
+        </Space>
+      </div>
+    );
+  }
+
+  // the AIGenerateCodeCell is only rendered if active – otherwise that dialog is rendered for each cell insertion line
   return (
     <div
       className={classNames.join(" ")}
       style={{
-        ...(position === "below"
-          ? ({ marginBottom: `${BTN_HEIGHT}px` } as const)
-          : {}),
-        ...(showChatGPT ? { backgroundColor: COLORS.FG_BLUE } : {}),
+        ...(alwaysShow ? ({ marginBottom: `${BTN_HEIGHT}px` } as const) : {}),
+        ...(showAICellGen ? { backgroundColor: COLORS.FG_BLUE } : {}),
       }}
-      onClick={showChatGPT ? undefined : handleBarClick}
+      onClick={showAICellGen ? undefined : handleBarClick}
     >
-      <ChatGPTPopover
-        setShowChatGPT={setShowChatGPT}
-        showChatGPT={showChatGPT}
-        actions={actions}
-        frameActions={frameActions}
-        id={id}
-        position={position}
-      >
-        <div
-          className="cocalc-jupyter-insert-cell-controls"
-          style={
-            showChatGPT || position === "below"
-              ? {
-                  visibility: "visible",
-                  opacity: 1,
-                }
-              : undefined
-          }
+      {isActiveAIGenerator ? (
+        <AIGenerateCodeCell
+          setShowAICellGen={setShowAICellGen}
+          showAICellGen={showAICellGen}
+          actions={actions}
+          frameActions={frameActions}
+          id={id}
+          llmTools={llmTools}
         >
-          <Space size="large">
-            <TinyButton
-              type="code"
-              title="Insert code cell (click line)"
-              handleButtonClick={handleButtonClick}
-            >
-              <Icon name="code" /> Code
-            </TinyButton>
-            <TinyButton
-              type="markdown"
-              title="Insert text cell (shift+click line)"
-              handleButtonClick={handleButtonClick}
-            >
-              <Icon name="pen" /> Text
-            </TinyButton>
-            <TinyButton
-              type="paste"
-              title="Insert clipboard content as cell"
-              handleButtonClick={handleButtonClick}
-            >
-              <Icon name="paste" /> Paste
-            </TinyButton>
-            {haveChatGTP && (
-              <TinyButton
-                type="chatgpt"
-                title="Create code based on your description (alt+click line)"
-                handleButtonClick={handleButtonClick}
-              >
-                <AIAvatar
-                  backgroundColor={"transparent"}
-                  size={12}
-                  style={{ marginRight: "5px" }}
-                  innerStyle={{ color: "default", top: "-2.5px" }}
-                />{" "}
-                Generate...
-              </TinyButton>
-            )}
-          </Space>
-        </div>
-      </ChatGPTPopover>
+          {renderControls()}
+        </AIGenerateCodeCell>
+      ) : (
+        renderControls()
+      )}
     </div>
   );
 }
@@ -183,8 +195,8 @@ function TinyButton({
 }: {
   type: TinyButtonType;
   children?: ReactNode;
-  title;
-  handleButtonClick;
+  title: string;
+  handleButtonClick: (e, type: TinyButtonType) => void;
 }) {
   return (
     <Tooltip title={title} mouseEnterDelay={1.1}>

@@ -17,7 +17,6 @@ import six
 
 # set backend of matplot lib before any other module is loaded
 import matplotlib
-import imp
 matplotlib.use('Agg')
 
 import copy, os, sys, types, re
@@ -2569,6 +2568,12 @@ class Fork(object):
             # Run some commands to tell Sage that its
             # pid has changed.
             import sage.misc.misc
+
+            # since python 3.12, there is no imp
+            try:
+                import imp
+            except:
+                import importlib as imp
             imp.reload(sage.misc.misc)
 
             # The pexpect interfaces (and objects defined in them) are
@@ -3369,7 +3374,7 @@ def var0(*args, **kwds):
 
 
 def var(*args, **kwds):
-    """
+    r"""
     Create symbolic variables and inject them into the global namespace.
 
     NOTE: In CoCalc, you can use var as a line decorator::
@@ -4153,7 +4158,7 @@ inspect.findsource = findsource
 
 def show_pdf(filename, viewer="object", width=1000, height=600, scale=1.6):
     """
-    Display a PDF file from the filesystem in an output cell of a worksheet.
+    Display a PDF file from the file system in an output cell of a worksheet.
 
     It uses the HTML object tag, which uses either the browser plugin,
     or provides a download link in case the browser can't display pdf's.
@@ -4230,7 +4235,7 @@ def go(s):
 
     - There is no relation between one cell and the next.  Each is a separate
       self-contained go program, which gets compiled and run, with the only
-      side effects being changes to the filesystem.  The program itself is
+      side effects being changes to the file system.  The program itself is
       stored in a random file that is deleted after it is run.
 
     - The %go command automatically adds 'package main' and 'import "fmt"'
@@ -4288,7 +4293,7 @@ def java(s):
 
     - There is no relation between one cell and the next.  Each is a separate
       self-contained java program, which gets compiled and run, with the only
-      side effects being changes to the filesystem.  The program itself is
+      side effects being changes to the file system.  The program itself is
       stored in a file named as the public class that is deleted after it is run.
     """
     name = re.search('public class (?P<name>[a-zA-Z0-9]+)', s)

@@ -9,12 +9,11 @@ This will also try to start the project up to about a minute.
 
 import getLogger from "@cocalc/backend/logger";
 import { getProject } from "@cocalc/server/projects/control";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import { cancelAll } from "./handle-query";
 import initialize from "./initialize";
 import { callProjectMessage } from "./handle-message";
-
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { connectToLockedSocket } from "@cocalc/backend/tcp/locked-socket";
 

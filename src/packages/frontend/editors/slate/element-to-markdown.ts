@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Element } from "slate";
@@ -27,7 +27,7 @@ export function serializeElement(node: Element, info: Info): string {
     info.topLevel === undefined ||
     !info.noCache.has(info.topLevel)
   ) {
-    const cachedMarkdown = info.cache?.[stringify(node)];
+    const cachedMarkdown = info.cache?.[stringify(node)!];
     if (cachedMarkdown != null) {
       return cachedMarkdown;
     }

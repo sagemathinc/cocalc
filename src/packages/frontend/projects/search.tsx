@@ -1,9 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { debounce } from "lodash";
+import { useIntl } from "react-intl";
+
 import {
   React,
   useEffect,
@@ -11,8 +13,8 @@ import {
   usePrevious,
   useState,
   useStore,
-} from "../app-framework";
-import { SearchInput } from "../components";
+} from "@cocalc/frontend/app-framework";
+import { SearchInput } from "@cocalc/frontend/components";
 
 interface Props {
   clear_and_focus_search?: number; // when this changes, we clear and focus the search box.
@@ -23,6 +25,7 @@ export const ProjectsSearch: React.FC<Props> = ({
   clear_and_focus_search,
   on_submit,
 }) => {
+  const intl = useIntl();
   const store = useStore("projects");
   const [search, set_search] = useState<string>(store.get("search") ?? "");
   const actions = useActions("projects");
@@ -56,8 +59,12 @@ export const ProjectsSearch: React.FC<Props> = ({
         set_search(value);
         debounce_set_search(value);
       }}
-      placeholder="Search for projects (use /re/ for regexp)..."
+      placeholder={intl.formatMessage({
+        id: "projects.search.placeholder",
+        defaultMessage: "Search for projects (use /re/ for regexp)...",
+      })}
       on_submit={(_, opts) => on_submit?.(!opts.ctrl_down)}
+      buttonAfter
     />
   );
 };

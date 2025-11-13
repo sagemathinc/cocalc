@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -8,23 +8,23 @@ Jupyter Frame Editor Actions
 */
 
 import { delay } from "awaiting";
-import { FrameTree } from "../frame-tree/types";
+import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
+import { markdown_to_slate } from "@cocalc/frontend/editors/slate/markdown-to-slate";
+import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
-import { revealjs_slideshow_html } from "./slideshow-revealjs/nbconvert";
-import {
-  create_jupyter_actions,
-  close_jupyter_actions,
-} from "./jupyter-actions";
-import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import { markdown_to_slate } from "@cocalc/frontend/editors/slate/markdown-to-slate";
-import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
-import { JupyterActions } from "../../jupyter/browser-actions";
+import { FrameTree } from "../frame-tree/types";
 import { NotebookFrameActions } from "./cell-notebook/actions";
-import { open_new_tab } from "../../misc";
-import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
+import {
+  close_jupyter_actions,
+  create_jupyter_actions,
+} from "./jupyter-actions";
+import { revealjs_slideshow_html } from "./slideshow-revealjs/nbconvert";
 
 export interface JupyterEditorState extends CodeEditorState {
   slideshow?: {
@@ -90,11 +90,11 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       this.setState({ has_unsaved_changes });
     });
 
-    this.watch_for_introspect();
-    this.watch_for_connection_file_change();
+    this.watchFrameEditorStore();
+    this.watchJupyterStore();
   }
 
-  private watch_for_introspect(): void {
+  private watchFrameEditorStore = (): void => {
     const store = this.store;
     let introspect = store.get("introspect");
     store.on("change", () => {
@@ -108,14 +108,22 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
         introspect = i;
       }
     });
-  }
+  };
 
-  private watch_for_connection_file_change(): void {
+  private watchJupyterStore = (): void => {
     const store = this.jupyter_actions.store;
     let connection_file = store.get("connection_file");
-    this.jupyter_actions.store.on("change", () => {
+    store.on("change", () => {
+      // sync read only state -- source of true is jupyter_actions.store.get('read_only')
+      const read_only = store.get("read_only");
+      if (read_only != this.store.get("read_only")) {
+        this.setState({ read_only });
+      }
+      // sync connection file
       const c = store.get("connection_file");
-      if (c == connection_file) return;
+      if (c == connection_file) {
+        return;
+      }
       connection_file = c;
       const id = this._get_most_recent_shell_id("jupyter");
       if (id == null) {
@@ -125,7 +133,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       // This will update the connection file
       this.shell(id, true);
     });
-  }
+  };
 
   public focus(id?: string): void {
     const actions = this.get_frame_actions(id);
@@ -190,14 +198,23 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   // per-session sync-aware undo
   undo(id: string): void {
-    id = id; // not used yet, since only one thing that can be undone.
-    this.jupyter_actions.undo();
+    const actions = this.get_frame_actions(id);
+    if (actions != null) {
+      // this properly moves the selection, so prefer if available
+      actions.undo();
+    } else {
+      this.jupyter_actions.undo();
+    }
   }
 
   // per-session sync-aware redo
   redo(id: string): void {
-    id = id; // not used yet
-    this.jupyter_actions.redo();
+    const actions = this.get_frame_actions(id);
+    if (actions != null) {
+      actions.redo();
+    } else {
+      this.jupyter_actions.redo();
+    }
   }
 
   cut(id: string): void {
@@ -237,6 +254,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   }
 
   async save(explicit: boolean = true): Promise<void> {
+    if (this._state == "closed") return;
     explicit = explicit; // not used yet -- might be used for "strip trailing whitespace"
 
     // Copy state from live codemirror editor into syncdb
@@ -247,17 +265,24 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       a.save_input_editor();
     }
 
-    if (!this.jupyter_actions.syncdb.has_unsaved_changes()) return;
+    if (!this.jupyter_actions.syncdb?.has_unsaved_changes()) {
+      return;
+    }
 
     // Do the save itself, using try/finally to ensure proper
     // setting of is_saving.
     try {
       this.setState({ is_saving: true });
       await this.jupyter_actions.save();
+      if (this._state == "closed") {
+        return;
+      }
       syncAllComputeServers(this.project_id);
     } catch (err) {
       console.warn("save_to_disk", this.path, "ERROR", err);
-      if (this._state == "closed") return;
+      if (this._state == "closed") {
+        return;
+      }
       this.set_error(`error saving file to disk -- ${err}`);
     } finally {
       this.setState({ is_saving: false });
@@ -372,7 +397,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   // Either show the most recently focused introspect frame, or ceate one.
   public async show_introspect(): Promise<void> {
-    this.show_recently_focused_frame_of_type("introspect", "row", false, 2 / 3);
+    this.show_recently_focused_frame_of_type("introspect", "col", false, 2 / 3);
   }
 
   // Close the most recently focused introspect frame, if there is one.
@@ -381,12 +406,16 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   }
 
   async gotoFragment(fragmentId: FragmentId) {
+    if (fragmentId.chat) {
+      // deal with side chat in base class
+      await super.gotoFragment(fragmentId);
+    }
     const frameId = await this.waitUntilFrameReady({
       type: "jupyter_cell_notebook",
       syncdoc: this.jupyter_actions.syncdb,
     });
     if (!frameId) return;
-    const { id, anchor } = fragmentId as any;
+    const { id, anchor } = fragmentId;
 
     const goto = (cellId: string) => {
       const actions = this.get_frame_actions(frameId);
@@ -505,7 +534,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   languageModelGetLanguage(): string {
     return (
-      this.jupyter_actions.store.getIn(["kernel_info", "language"]) ?? "py"
+      this.jupyter_actions.store?.getIn(["kernel_info", "language"]) ?? "py"
     );
   }
 
@@ -520,6 +549,10 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     open_new_tab("https://doc.cocalc.com/jupyter.html");
   }
 
+  about = () => {
+    this.jupyter_actions.show_about();
+  };
+
   chatgptCodeDescription(): string {
     const kernel =
       this.jupyter_actions.store.getIn(["kernel_info", "display_name"]) ?? "";
@@ -533,6 +566,42 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   compute_server() {
     // this is here just so the dropdown gets enabled
   }
+
+  gotoUser(account_id: string, frameId?: string) {
+    const cursors = this.jupyter_actions.syncdb
+      .get_cursors({ maxAge: 0, excludeSelf: "never" })
+      ?.toJS();
+    const locs = cursors?.[account_id]?.locs;
+    if (locs == null) {
+      return; // no info
+    }
+    for (const loc of locs) {
+      if (loc.id != null) {
+        const frameActions = this.get_frame_actions(frameId);
+        if (frameActions != null) {
+          frameActions.set_cur_id(loc.id);
+          frameActions.scroll("cell visible");
+          return;
+        }
+      }
+    }
+  }
+
+  getSearchIndexData = () => {
+    const cells = this.jupyter_actions.store.get("cells");
+    if (cells == null) {
+      return {};
+    }
+    const data: { [id: string]: string } = {};
+    for (const [id, cell] of cells) {
+      let content = cell.get("input")?.trim();
+      if (!content) {
+        continue;
+      }
+      data[id] = content;
+    }
+    return { data, fragmentKey: "id", reduxName: this.jupyter_actions.name };
+  };
 }
 
 export { JupyterEditorActions as Actions };

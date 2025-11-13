@@ -1,14 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 The slideshow toolbar functionality for cells.
 */
-
-import { React } from "../app-framework";
-import { FormControl } from "@cocalc/frontend/antd-bootstrap";
+import { Select } from "antd";
 import { Map as ImmutableMap } from "immutable";
 import { JupyterActions } from "./browser-actions";
 
@@ -19,35 +17,27 @@ const TYPES = [
   { title: "Fragment", value: "fragment" },
   { title: "Skip", value: "skip" },
   { title: "Notes", value: "notes" },
-];
-
-const rendered_options = TYPES.map((x) => (
-  <option key={x.value} value={x.value}>
-    {x.title}
-  </option>
-));
+] as const;
 
 interface SlideshowProps {
   actions: JupyterActions;
   cell: ImmutableMap<string, any>;
 }
 
-export const Slideshow: React.FC<SlideshowProps> = (props: SlideshowProps) => {
-  const { actions, cell } = props;
-  function select(e: any): void {
-    actions.set_cell_slide(cell.get("id"), e.target.value);
-  }
+export function Slideshow({ actions, cell }: SlideshowProps) {
   return (
     <div style={{ width: "100%" }}>
-      <FormControl
-        componentClass="select"
-        placeholder="select"
-        onChange={select}
+      <Select
+        onChange={(value) => {
+          actions.set_cell_slide(cell.get("id"), value);
+        }}
         value={cell.get("slide", "")}
         style={{ float: "right", width: "200px" }}
-      >
-        {rendered_options}
-      </FormControl>
+        options={TYPES.map((x) => ({
+          label: x.title,
+          value: x.value,
+        }))}
+      />
     </div>
   );
-};
+}

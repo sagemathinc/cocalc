@@ -1,39 +1,62 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
+// cSpell:words lehmer primality mersenne
 
-import { LabeledRow, SelectorInput } from "../../components";
-import { CodeMirrorStatic } from "../../jupyter/codemirror-static";
-import { cm_options } from "../../frame-editors/codemirror/cm-options";
-import { Button } from "../../antd-bootstrap";
+import { capitalize } from "lodash";
+import { useIntl } from "react-intl";
+
+import { AccountState } from "@cocalc/frontend/account/types";
+import { Button, Panel } from "@cocalc/frontend/antd-bootstrap";
+import { CSS } from "@cocalc/frontend/app-framework";
+import { Icon, LabeledRow, SelectorInput } from "@cocalc/frontend/components";
+import { cm_options } from "@cocalc/frontend/frame-editors/codemirror/cm-options";
+import { labels } from "@cocalc/frontend/i18n";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { AsyncComponent } from "@cocalc/frontend/misc/async-component";
 import { EDITOR_COLOR_SCHEMES } from "@cocalc/util/db-schema/accounts";
 
 interface Props {
   theme: string;
   on_change: (selected: string) => void;
-  editor_settings: Map<string, any>;
+  editor_settings;
   font_size?: number;
+  style?: CSS;
+  size?: "small";
 }
 
-export function EditorSettingsColorScheme(props: Props): JSX.Element {
+export function EditorSettingsColorScheme(props: Props): React.JSX.Element {
+  const intl = useIntl();
+
+  const title = intl.formatMessage({
+    id: "account.editor-settings.color-schemes.panel_title",
+    defaultMessage: "Editor Color Scheme",
+  });
+
   return (
-    <div>
-      <LabeledRow label="Editor color scheme">
+    <Panel
+      size={props.size}
+      header={
+        <>
+          <Icon name="file-alt" /> {title}
+        </>
+      }
+      style={props.style}
+    >
+      <LabeledRow label={capitalize(title)}>
         <Button
-          disabled={props.theme == "default"}
+          disabled={props.theme === "default"}
           style={{ float: "right" }}
           onClick={() => {
             props.on_change("default");
           }}
         >
-          Reset
+          {intl.formatMessage(labels.reset)}
         </Button>
         <SelectorInput
-          style={{ width: "150px" }}
+          style={{ width: "250px" }}
           options={EDITOR_COLOR_SCHEMES}
           selected={props.theme}
           on_change={props.on_change}
@@ -44,7 +67,7 @@ export function EditorSettingsColorScheme(props: Props): JSX.Element {
         editor_settings={props.editor_settings}
         font_size={props.font_size}
       />
-    </div>
+    </Panel>
   );
 }
 
@@ -64,7 +87,10 @@ def is_prime_lucas_lehmer(p):
 // bundle.  This probably doesn't work so well yet though.
 const CodeMirrorPreview = AsyncComponent(async () => {
   await import("@cocalc/frontend/codemirror/init");
-  return (props: { editor_settings: Map<string, any>; font_size?: number }) => {
+  return (props: {
+    editor_settings: AccountState["editor_settings"];
+    font_size?: number;
+  }) => {
     // Ensure that we load all the codemirror plugins, modes, etc., so that
     // we can show the codemirror preview of the current theme, fonts, etc.
     import("@cocalc/frontend/codemirror/init");

@@ -1,9 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert as AntdAlert } from "antd";
+import { Alert } from "antd";
 import {
   redux,
   rclass,
@@ -22,8 +22,6 @@ import * as misc from "@cocalc/util/misc";
 import { SCHEMA } from "@cocalc/util/schema";
 import React from "react";
 import { Body } from "./body";
-
-const { Alert } = require("react-bootstrap");
 
 interface ReactProps {
   project_id: string;
@@ -108,7 +106,7 @@ const ProjectSettings0 = rclass<ReactProps>(
       }
       this._table = webapp_client.sync_client.sync_table(
         { projects_admin: query },
-        []
+        [],
       );
       this._table.on("change", () => {
         this.setState({
@@ -119,23 +117,30 @@ const ProjectSettings0 = rclass<ReactProps>(
 
     render_admin_message() {
       return (
-        <Alert bsStyle="warning" style={{ margin: "10px" }}>
-          <h4>
-            <strong>Warning:</strong> you are editing the project settings as an{" "}
-            <strong>administrator</strong>.
-          </h4>
-          <ul>
-            <li>
-              {" "}
-              You are not a collaborator on this project, but can edit files,
-              etc.{" "}
-            </li>
-            <li>
-              {" "}
-              You are an admin: actions will not be logged to the project log.
-            </li>
-          </ul>
-        </Alert>
+        <Alert
+          type="warning"
+          style={{ margin: "10px" }}
+          message={
+            <>
+              <strong>Warning:</strong> you are editing the project settings as
+              an <strong>administrator</strong>. This is deprecated and should
+              hardly work.
+            </>
+          }
+          description={
+            <ul>
+              <li>
+                You are not a collaborator on this project, but some things
+                might still work since you are a site admin.
+              </li>
+              <li>
+                You should probably impersonate a collaborator on this project
+                instead.
+              </li>
+              <li>Actions will not be logged to the project log.</li>
+            </ul>
+          }
+        />
       );
     }
 
@@ -167,7 +172,7 @@ const ProjectSettings0 = rclass<ReactProps>(
         }
       }
 
-      if (project == undefined) {
+      if (project == null) {
         return <Loading />;
       } else {
         return (
@@ -187,12 +192,12 @@ const ProjectSettings0 = rclass<ReactProps>(
         );
       }
     }
-  }
+  },
 );
 
 export function SandboxProjectSettingsWarning() {
   return (
-    <AntdAlert
+    <Alert
       showIcon
       style={{ margin: "auto", fontSize: "14pt" }}
       type="warning"

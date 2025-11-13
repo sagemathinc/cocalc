@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Map, Set } from "immutable";
@@ -11,10 +11,12 @@ export interface Task {
   deleted?: boolean;
   position?: number;
   desc?: string;
-  due_date?: number
+  due_date?: number;
   done?: boolean;
   last_edited?: number;
 }
+
+export type Align = "start" | "center" | "end" | "view" | false;
 
 export type Headings = "Custom" | "Due" | "Changed";
 export type HeadingsDir = "asc" | "desc";

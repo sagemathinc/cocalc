@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import {
@@ -78,10 +78,15 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
   const { /*font_size,*/ actions, local_view_state, project_id } = props;
 
   const project_actions = useActions({ project_id });
+  // TODO: for now just assuming in the project (not a compute server) -- problem
+  // is that the guide is general to the whole terminal not a particular frame,
+  // and each frame can be on a different compute server!  Not worth solving if
+  // nobody is using either the guide or compute servers.
   const directory_listings = useTypedRedux(
     { project_id },
-    "directory_listings"
-  );
+    "directory_listings",
+  )?.get(0);
+
   const [terminal_id, set_terminal_id] = useState<string | undefined>();
   const [cwd, set_cwd] = useState<string>(""); // default home directory
   const [hidden, set_hidden] = useState<boolean>(false); // hidden files
@@ -217,7 +222,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  // these are commands which have at least one file or directory as their argument or operate related to the filesystem (e.g. cd)
+  // these are commands which have at least one file or directory as their argument or operate related to the file system (e.g. cd)
   function render_file_commands() {
     return (
       <>
@@ -293,7 +298,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
     const dir = cwd.startsWith("/") ? cwd : cwd === "" ? "~" : `~/${cwd}`;
     return (
       <Descriptions size="small" bordered column={1}>
-        <Descriptions.Item label="Directory">
+        <Descriptions.Item label="Folder">
           <code>{dir}</code>
         </Descriptions.Item>
         <Descriptions.Item label="Content">
@@ -310,7 +315,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
         <Descriptions.Item label="File 2">
           <SelectFile list={filenames} selected={fn2} select={set_fn2} />
         </Descriptions.Item>
-        <Descriptions.Item label="Directory">
+        <Descriptions.Item label="Folder">
           <SelectFile list={directorynames} selected={dir1} select={set_dir1} />
         </Descriptions.Item>
 
@@ -454,7 +459,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
           {render_file_commands()}
         </Panel>
         <Panel
-          header="Directory commands"
+          header="Folder commands"
           extra={<FolderOpenOutlined />}
           key="directory-commands"
         >

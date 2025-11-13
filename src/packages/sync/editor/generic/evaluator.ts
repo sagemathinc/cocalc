@@ -1,12 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 //##############################################################################
 //
 //    CoCalc: Collaborative Calculation
-//    Copyright (C) 2016, Sagemath Inc., AGPLv3.
+//    Copyright (C) 2016, Sagemath Inc., MS-RSL.
 //
 //##############################################################################
 
@@ -57,10 +57,7 @@ export class Evaluator {
     this.syncdoc = syncdoc;
     this.client = client;
     this.create_synctable = create_synctable;
-    if (this.syncdoc.data_server == "project") {
-      // options only supported for project...
-      this.table_options = [{ ephemeral: true, persistent: true }];
-    }
+    this.table_options = [{ ephemeral: true, persistent: true }];
   }
 
   public async init(): Promise<void> {
@@ -354,10 +351,10 @@ export class Evaluator {
     dbg(`no outputs yet with key ${to_json(id)}`);
     const r = this.inputs_table.get(key);
     if (r == null) {
-      dbg("deleting from input?");
-      throw Error("deleting from input not implemented");
-      // happens when deleting from input table (if that is
-      // ever supported, e.g., for maybe trimming old evals...)
+      dbg("deleted old input");
+      // This happens when deleting from input table (if that is
+      // ever supported, e.g., for maybe trimming old evals...).
+      // Nothing we need to do here.
       return;
     }
     const input = r.get("input");

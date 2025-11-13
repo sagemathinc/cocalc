@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -12,7 +12,12 @@ There is a ticket regarding removing this component, but it is currently used fo
 SEE https://github.com/sagemathinc/cocalc/issues/4295
 */
 
-import { React, useRef, useState, usePrevious } from "../app-framework";
+import {
+  React,
+  useRef,
+  useState,
+  usePrevious,
+} from "@cocalc/frontend/app-framework";
 const json_stable = require("json-stable-stringify");
 import { make_patch, apply_patch } from "@cocalc/sync/editor/generic/util";
 import * as immutable from "immutable";
@@ -243,5 +248,5 @@ export const JSONEditor: React.FC<JSONEditorProps> = React.memo(
       </div>
     );
   },
-  should_memoize
+  should_memoize,
 );

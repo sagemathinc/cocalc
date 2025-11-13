@@ -51,9 +51,7 @@ interface Options {
   isSubscriptionRenewal?: boolean;
   client?: PoolClient;
   // If force is true, we allow the purchase even if it exceeds any quotas.
-  // Used for automatic subscription renewal. Such forced purchases are marked as
-  // "pending" if they would have otherwise failed.  This is so they don't count
-  // against quota for a couple of days, giving the user time to pay for subscriptions.
+  // Used for automatic subscription renewal.
   force?: boolean;
 }
 
@@ -61,6 +59,14 @@ export default async function editLicense(
   opts: Options,
 ): Promise<{ purchase_id?: number; cost: number }> {
   let { changes } = opts;
+
+  // dates json to strings, of course -- this caused https://github.com/sagemathinc/cocalc/issues/7258
+  if (changes.start) {
+    changes.start = new Date(changes.start);
+  }
+  if (changes.end) {
+    changes.end = new Date(changes.end);
+  }
   const {
     account_id,
     license_id,
@@ -124,7 +130,6 @@ export default async function editLicense(
   let purchase_id;
   try {
     // Is it possible for this user to purchase this change?
-    let pending = false;
     if (cost > 0) {
       try {
         await assertPurchaseAllowed({ account_id, service, cost, client });
@@ -132,8 +137,6 @@ export default async function editLicense(
         if (!force) {
           throw err;
         }
-        // allow anyways as a "pending" purchase.
-        pending = true;
       }
     }
 
@@ -174,7 +177,6 @@ export default async function editLicense(
         client,
         period_start,
         period_end,
-        pending,
         tag: isSubscriptionRenewal ? "subscription" : "edit",
       });
     }
@@ -191,7 +193,9 @@ export default async function editLicense(
       );
     }
 
-    await client.query("COMMIT");
+    if (opts.client == null) {
+      await client.query("COMMIT");
+    }
   } catch (err) {
     if (opts.client == null) {
       logger.debug("editLicense -- error -- reverting transaction", err);
@@ -327,11 +331,13 @@ function requiresRestart(info: PurchaseInfo, changes: Changes): boolean {
   return false;
 }
 
-async function changeLicense(
+export async function changeLicense(
   license_id: string,
   info: PurchaseInfo,
   client: PoolClient,
 ) {
+  // logger.debug("changeLicense -- ", { license_id, info });
+
   if (info.type == "vouchers") {
     throw Error("BUG -- info.type must not be vouchers");
   }
@@ -405,7 +411,7 @@ async function updateSubscriptionCost(
     ...modifiedInfo,
     start: null,
     end: null,
-  }).discounted_cost;
+  }).cost;
   logger.debug(
     "updateSubscriptionCost",
     license_id,
@@ -537,7 +543,6 @@ takes as input a PurchaseInfo object and outputs this sort of object:
 {
   cost_per_unit: 19.547278681226473,
   cost: 39.094557362452946,
-  discounted_cost: 39.094557362452946,
   cost_per_project_per_month: 19.232,
   cost_sub_month: 17.3088,
   cost_sub_year: 196.16639999999998

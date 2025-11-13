@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import {
@@ -57,5 +57,7 @@ export function useProject(project_id) {
     }
   }, [group, project_id, project_map]);
 
-  return { project, group };
+  const compute_image = project_map?.get(project_id)?.get("compute_image")
+
+  return { project, group , compute_image};
 }

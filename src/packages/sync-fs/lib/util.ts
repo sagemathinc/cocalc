@@ -1,21 +1,15 @@
-import { dynamicImport } from "tsimportlib";
-import { readdir, rm } from "fs/promises";
-import { join } from "path";
+import { readdir, rm, writeFile } from "fs/promises";
+import { dirname, join } from "path";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import { createEncoderStream } from "lz4";
-import { Readable } from "stream";
-import { createWriteStream } from "fs";
+import { compressFrame } from "lz4-napi";
+import { executeCode } from "@cocalc/backend/execute-code";
 
 import getLogger from "@cocalc/backend/logger";
 const log = getLogger("sync-fs:util").debug;
 
-export async function execa(cmd, args, options?) {
-  log("execa", cmd, "...", args?.slice(-15)?.join(" "), options);
-  const { execa: execa0 } = (await dynamicImport(
-    "execa",
-    module,
-  )) as typeof import("execa");
-  return await execa0(cmd, args, options);
+export async function exec(command: string, args?: string[], options?) {
+  log("exec", command, "...", args?.slice(-15)?.join(" "), options);
+  return await executeCode({ command, args, ...options });
 }
 
 // IMPORTANT: top level hidden subdirectories in path are always ignored, e.g.,
@@ -49,7 +43,7 @@ export async function metadataFile({
   const topPaths = (await readdir(path)).filter(
     (p) => !p.startsWith(".") && !exclude.includes(p),
   );
-  const { stdout } = await execa(
+  const { stdout } = await exec(
     "find",
     topPaths.concat([
       // This '-not -readable -prune -o ' excludes directories that we can read, since there is no possible
@@ -104,7 +98,7 @@ export async function mtimeDirTree({
       "-printf",
       "%p\\0%T@\\0\\0",
     ]);
-    const { stdout } = await execa("find", [...args], {
+    const { stdout } = await exec("find", [...args], {
       cwd: path,
     });
     metadataFile = stdout;
@@ -154,29 +148,64 @@ export async function remove(paths: string[], rel?: string) {
   }
 }
 
+// Write a utf8 string to file with lz4 compression.
+// We are not using streaming because lz4-napi doesn't
+// support streams: https://github.com/antoniomuso/lz4-napi/issues/429
+// But our actual use of this is for files that are fairly small,
+// which got sent via an api call.
 export async function writeFileLz4(path: string, contents: string) {
-  // We use a stream instead of blocking in process for compression
-  // because this code is likely to run in the project's daemon,
-  // and blocking here would block interactive functionality such
-  // as terminals.
+  // lz4-napi has no docs, but compressFrame works to create a file
+  // that the lz4 command can decompress, but "compress" does not.
+  const compressed = await compressFrame(Buffer.from(contents));
+  await writeFile(path, compressed as any);
+}
 
-  // Create readable stream from the input.
-  const input = new Readable({
-    read() {
-      this.push(contents);
-      this.push(null);
-    },
-  });
-  // lz4 compression encoder
-  const encoder = createEncoderStream();
-  const output = createWriteStream(path);
-  // start writing
-  input.pipe(encoder).pipe(output);
-  // wait until done
-  const waitForFinish = new Promise((resolve, reject) => {
-    encoder.on("error", reject);
-    output.on("finish", resolve);
-    output.on("error", reject);
-  });
-  await waitForFinish;
+/*
+Given an array paths of relative paths (relative to my HOME directory),
+the function parseCommonPrefixes outputs an array of objects
+
+{prefix:string; paths:string[]}
+
+where prefix is a common path prefix of all the paths, and paths is what
+is after that prefix.  Thus if the output is x, then
+
+join(x[0].prefix, x[0].paths[0]), join(x[0].prefix, x[0].paths[1]), ..., join(x[x.length-1].prefix, x[x.length-1].paths[0]), ...
+
+is exactly the original input string[] paths.
+*/
+
+export function parseCommonPrefixes(
+  paths: string[],
+): { prefix: string; paths: string[] }[] {
+  // This function will slice the sorted path list into groups of paths having
+  // the same prefix, create an object that contains the prefix and the rest of the
+  // path for each group, and collect these objects into the result array. The rest
+  // of the path is created by slicing the common prefix from the absolute path and
+  // prepending '.' to get the relative path.
+
+  // sort the paths to group common prefixes
+  const sortedPaths = paths.slice().sort();
+  const result: { prefix: string; paths: string[] }[] = [];
+
+  let i = 0;
+  while (i < sortedPaths.length) {
+    const commonPrefix = dirname(sortedPaths[i]);
+    let j = i + 1;
+
+    // count the same prefixes
+    while (j < sortedPaths.length && dirname(sortedPaths[j]) == commonPrefix) {
+      j++;
+    }
+
+    // slice the paths with the same prefix and remove the prefix
+    const subPaths = sortedPaths
+      .slice(i, j)
+      .map((p) => "." + p.slice(commonPrefix.length));
+
+    result.push({ prefix: commonPrefix, paths: subPaths });
+
+    i = j;
+  }
+
+  return result;
 }

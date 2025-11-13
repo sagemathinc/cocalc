@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { r_human_list } from "@cocalc/frontend/components/r_human_list";
@@ -18,6 +18,8 @@ import withCustomize from "lib/with-customize";
 import Link from "next/link";
 import { join } from "path";
 import { SSO_SUBTITLE } from ".";
+
+import type { JSX } from "react";
 
 const { Paragraph, Text } = Typography;
 

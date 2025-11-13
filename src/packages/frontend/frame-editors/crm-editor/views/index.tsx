@@ -65,7 +65,7 @@ export default function Views({ table, style }: Props) {
         }
       }
     },
-    [views]
+    [views],
   );
 
   const items = useMemo(() => {
@@ -240,7 +240,7 @@ export default function Views({ table, style }: Props) {
                   getView={getView}
                   onAction={(
                     action: "rename" | "duplicate" | "delete",
-                    newName?: string
+                    newName?: string,
                   ) => {
                     if (node.key == null) return;
                     const view = getView(`${node.key}`);
@@ -250,7 +250,7 @@ export default function Views({ table, style }: Props) {
                       delete view2.id;
                       delete view2.pos;
                       view2.name = suggest_duplicate_filename(
-                        view2.name ?? "Copy"
+                        view2.name ?? "Copy",
                       );
                       saveView(view2);
                       return;
@@ -304,15 +304,17 @@ export default function Views({ table, style }: Props) {
 }
 
 function ResizeBar({ setWidth, width }) {
+  const nodeRef = useRef<any>({});
   return (
     <Draggable
+      nodeRef={nodeRef}
       position={{ x: 0, y: 0 }}
       axis="x"
       onDrag={(_, data) => {
         setWidth(width + data.deltaX);
       }}
     >
-      <div className="cocalc-crm-views-resizer"></div>
+      <div ref={nodeRef} className="cocalc-crm-views-resizer"></div>
     </Draggable>
   );
 }

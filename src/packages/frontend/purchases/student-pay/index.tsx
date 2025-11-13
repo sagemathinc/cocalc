@@ -86,7 +86,6 @@ export default function StudentPayUpgrade({
             when={when}
             purchaseInfo={purchaseInfo}
             setOpen={setOpen}
-            project_id={project_id}
           />
           <PayNow
             open={open}

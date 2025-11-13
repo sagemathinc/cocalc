@@ -1,10 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React from "react";
-import { Col, Row } from "react-bootstrap";
+import React, { useMemo } from "react";
+
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -60,10 +61,21 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
     kucalc === KUCALC_COCALC_COM ||
     (kucalc === KUCALC_ON_PREMISES && datastore);
 
+  // this very rarely changes, so just call this once
+  const isPaidStudentPayProject = useMemo(
+    () => redux.getProjectsStore().isPaidStudentPayProject(project_id),
+    [project_id],
+  );
   const showNonMemberWarning =
-    commercial && runQuota != null && !runQuota.member_host;
+    !isPaidStudentPayProject &&
+    commercial &&
+    runQuota != null &&
+    !runQuota.member_host;
   const showNoInternetWarning =
-    commercial && runQuota != null && !runQuota.network;
+    !isPaidStudentPayProject &&
+    commercial &&
+    runQuota != null &&
+    !runQuota.network;
 
   return (
     <div>
@@ -84,7 +96,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             actions={redux.getActions("projects")}
           />
           <HideDeleteBox
-            key="hidedelete"
+            key="hide-delete"
             project={project}
             actions={redux.getActions("projects")}
           />

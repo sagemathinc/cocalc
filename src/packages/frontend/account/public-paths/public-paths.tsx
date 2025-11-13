@@ -1,32 +1,34 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import ShowError from "@cocalc/frontend/components/error";
-import { Button, Checkbox, Spin, Table } from "antd";
+import { Alert, Button, Checkbox, Space, Spin, Table } from "antd";
+import { join } from "path";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import {
-  redux,
   React,
+  redux,
   useActions,
-  useState,
   useEffect,
   useIsMountedRef,
   useMemo,
+  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { PublicPath as PublicPath0 } from "@cocalc/util/db-schema/public-paths";
-import { trunc, trunc_middle } from "@cocalc/util/misc";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Icon, Loading, Gap, TimeAgo, A } from "@cocalc/frontend/components";
-import { UnpublishEverything } from "./unpublish-everything";
-import { LICENSES } from "@cocalc/frontend/share/licenses";
-import { Footer } from "@cocalc/frontend/customize";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { Alert } from "antd";
+import { A, Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
+import ShowError from "@cocalc/frontend/components/error";
+import { custom_image_name } from "@cocalc/frontend/custom-software/util";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { join } from "path";
+import { labels } from "@cocalc/frontend/i18n";
 import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
+import { LICENSES } from "@cocalc/frontend/share/licenses";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { PublicPath as PublicPath0 } from "@cocalc/util/db-schema/public-paths";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { trunc, trunc_middle } from "@cocalc/util/misc";
+import { UnpublishEverything } from "./unpublish-everything";
 
 interface PublicPath extends PublicPath0 {
   status?: string;
@@ -36,6 +38,7 @@ type filters = "Listed" | "Unlisted" | "Unpublished" | "Authenticated";
 const DEFAULT_CHECKED: filters[] = ["Listed", "Unlisted", "Authenticated"];
 
 export const PublicPaths: React.FC = () => {
+  const intl = useIntl();
   const account_id = useTypedRedux("account", "account_id");
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const showAuthenticatedOption = customize_kucalc !== KUCALC_COCALC_COM;
@@ -237,23 +240,39 @@ export const PublicPaths: React.FC = () => {
     <div style={{ marginBottom: "64px" }}>
       <Alert
         showIcon
-        style={{ maxWidth: "600px", margin: "30px auto" }}
+        style={{ margin: "30px auto" }}
         type="info"
+        banner
         message={
-          <>
-            This is an overview of your public files.{" "}
-            <A href={join(appBasePath, "share", "accounts", account_id)}>
-              Visit this page for more details...
-            </A>
-          </>
+          <FormattedMessage
+            id="account.public-paths.banner"
+            defaultMessage={`This is an overview of your published files.
+            <A>Visit this page for more details...</A>`}
+            values={{
+              A: (c) => (
+                <A href={join(appBasePath, "share", "accounts", account_id)}>
+                  {c}
+                </A>
+              ),
+            }}
+          />
         }
       />
       <Button onClick={fetch} disabled={loading} style={{ float: "right" }}>
-        <Icon name="redo" />
-        <Gap /> <Gap /> {loading ? "Loading..." : "Refresh"}
+        <Space>
+          <Icon name="redo" />
+          {intl.formatMessage(loading ? labels.loading : labels.refresh)}
+        </Space>
       </Button>
-      <h2>Public files ({paths?.length ?? "?"})</h2>
-      Files that have been published in any project that you have actively used.
+      <h2>
+        {intl.formatMessage(labels.published_files)} ({paths?.length ?? "?"})
+      </h2>
+      <FormattedMessage
+        id="account.public-paths.info"
+        defaultMessage={
+          "Files that have been published in any project that you have actively used."
+        }
+      />
       <br />
       <br />
       {loading && <Loading />}
@@ -265,8 +284,6 @@ export const PublicPaths: React.FC = () => {
         <Table rowKey="id" columns={COLUMNS} dataSource={paths} />
       )}
       <UnpublishEverything data={data} refresh={fetch} />
-      <br />
-      <Footer />
     </div>
   );
 };
@@ -274,6 +291,8 @@ export const PublicPaths: React.FC = () => {
 function ComputeImage({ compute_image, project_id, path, setError }) {
   const [selectedImage, setSelectedImage] = useState<string>(compute_image);
   const [saving, setSaving] = useState<boolean>(false);
+  const kucalc = useTypedRedux("customize", "kucalc");
+  const onCoCalcCom = kucalc === KUCALC_COCALC_COM;
 
   useEffect(() => {
     setSelectedImage(compute_image);
@@ -283,9 +302,11 @@ function ComputeImage({ compute_image, project_id, path, setError }) {
     <>
       <ComputeImageSelector
         disabled={saving}
-        selected_image={selectedImage}
+        current_image={selectedImage}
         layout={"compact"}
-        onSelect={async (img) => {
+        hideCustomImages={!onCoCalcCom}
+        onSelect={async ({ id, type }) => {
+          const img = type === "custom" ? custom_image_name(id) : id;
           setSelectedImage(img);
           try {
             setSaving(true);

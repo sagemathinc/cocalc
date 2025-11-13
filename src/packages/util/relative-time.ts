@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 declare var window;
@@ -9,7 +9,7 @@ function getSkew(): number {
   // this code is shared between frontend and backend. Hence we don't use a local storage wrapper.
   if (typeof window != "undefined" && window.localStorage != null) {
     try {
-      const val = window.localStorage.getItem("cocalc_skew");
+      const val = window.localStorage.getItem("clock_skew");
       return parseFloat(val ?? "0");
     } catch {
       return 0;
@@ -22,7 +22,7 @@ function getSkew(): number {
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
 export function milliseconds_ago(ms): Date {
-  return new Date(new Date().valueOf() - ms);
+  return new Date(Date.now() - ms);
 }
 export function seconds_ago(s): Date {
   return milliseconds_ago(1000 * s);

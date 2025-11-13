@@ -1,38 +1,19 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Switch, Tooltip } from "antd";
+import { Button } from "antd";
 
-import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { redux, useActions } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
+import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
+import { ACTIVITY_BAR_KEY } from "@cocalc/frontend/project/page/activity-bar-consts";
 import track from "@cocalc/frontend/user-tracking";
+import { COLORS } from "@cocalc/util/theme";
 
 export default function HomePageButton({ project_id, active, width }) {
   const actions = useActions({ project_id });
-  const hideActionButtons = useTypedRedux(project_id, "hideActionButtons");
-  if (hideActionButtons)
-    return (
-      <div
-        style={{
-          width,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Tooltip title="Show the action bar" placement="right">
-          <Switch
-            onChange={() => {
-              track("action-bar", { action: "show" });
-              actions?.toggleActionButtons();
-            }}
-          />
-        </Tooltip>
-      </div>
-    );
 
   return (
     <Button
@@ -45,9 +26,22 @@ export default function HomePageButton({ project_id, active, width }) {
         fontSize: "24px",
         color: active ? COLORS.ANTD_LINK_BLUE : COLORS.FILE_ICON,
         transitionDuration: "0s",
+        background: "#fafafa",
       }}
       onClick={() => {
-        actions?.set_active_tab("home");
+        // Showing homepage in flyout only mode, otherwise the files as usual
+        const account_store = redux.getStore("account") as any;
+        const actBar = account_store?.getIn([
+          "other_settings",
+          ACTIVITY_BAR_KEY,
+        ]);
+        const pureFlyoutMode = getValidActivityBarOption(actBar) === "flyout";
+        actions?.set_active_tab(pureFlyoutMode ? "home" : "files");
+
+        actions?.set_current_path("");
+        actions?.setFlyoutExpanded("files", false, false);
+        actions?.set_file_search("");
+
         track("switch_to_fixed_tab", {
           how: "click-on-tab",
           name: "home",

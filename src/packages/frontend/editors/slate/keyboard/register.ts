@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Plugin system for keyboarding handlers.
@@ -39,11 +39,22 @@ const keyHandlers: { [x: string]: KeyHandler } = {};
 
 export function register(
   key: Partial<Key> | Partial<Key>[],
-  handler: KeyHandler
+  handler: KeyHandler,
 ): void {
+  const handlerNoThrow = (opts) => {
+    try {
+      return handler(opts);
+    } catch (err) {
+      // making this a warning -- there's a number of situations where the
+      // it's best to just not do anything special, rather than crash cocalc.
+      console.log("slate key handler throw ", key, err);
+      return false;
+    }
+  };
+
   if (key[0] != null) {
     for (const k of key as Partial<Key>[]) {
-      register(k, handler);
+      register(k, handlerNoThrow);
     }
     return;
   }
@@ -53,7 +64,7 @@ export function register(
     // making this a warning to support hot module reloading.
     console.warn(`WARNING: there is already a handler registered for ${s}`);
   }
-  keyHandlers[s] = handler;
+  keyHandlers[s] = handlerNoThrow;
 }
 
 export function getHandler(event): KeyHandler | undefined {

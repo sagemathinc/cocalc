@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -11,7 +11,10 @@ same code as the frontend (e.g., actions.ts), so we use an interface
 so that Typescript can meaningfully type check everything.
 */
 
-import type { Channels } from "@nteract/messaging";
+import type { JupyterSockets } from "@cocalc/jupyter/zmq";
+import type { KernelInfo } from "@cocalc/util/jupyter/types";
+export type { KernelInfo };
+import type { EventIterator } from "@cocalc/util/event-iterator";
 
 // see https://gist.github.com/rsms/3744301784eb3af8ed80bc746bef5eeb#file-eventlistener-d-ts
 export interface EventEmitterInterface {
@@ -32,12 +35,14 @@ export interface EventEmitterInterface {
 }
 
 export interface BlobStoreInterface {
-  save(data, type, ipynb?): string;
-  readFile(path: string, type: string): Promise<string>;
-  get(sha1: string): undefined | Buffer;
-  get_ipynb(sha1: string): any;
-  keys(): Promise<string[]>;
-  delete_all_blobs(): void;
+  // get base64 encoded binary data out of the blob store.
+  getBase64(sha1: string): string | undefined;
+  // utf8 string
+  getString(sha1: string): string | undefined;
+  // save a string encoded in base64 as binary data in the blob store
+  saveBase64: (base64: string) => string | undefined;
+  // read file from disk and store in blob store.  returns sha1 hash of contents of file.
+  readFile(path: string): Promise<string>;
 }
 
 export interface MessageHeader {
@@ -60,7 +65,7 @@ export interface Message {
 // which case value not in doc and sent via different channel).
 export type StdinFunction = (
   prompt: string,
-  password: boolean
+  password: boolean,
 ) => Promise<string>;
 
 export interface ExecOpts {
@@ -71,44 +76,16 @@ export interface ExecOpts {
   timeout_ms?: number;
 }
 
+export type OutputMessage = object; // todo
+
 export interface CodeExecutionEmitterInterface extends EventEmitterInterface {
-  emit_output(result: object): void;
+  emit_output(result: OutputMessage): void;
   cancel(): void;
   close(): void;
   throw_error(err): void;
-  go(): Promise<object[]>;
-}
-
-interface CodeMirrorMode {
-  name: string;
-  version: number;
-}
-
-interface HelpLink {
-  text: string;
-  url: string;
-}
-
-interface LanguageInfo {
-  name: string;
-  version: string;
-  mimetype: string;
-  codemirror_mode: CodeMirrorMode;
-  pygments_lexer: string;
-  nbconvert_exporter: string;
-  file_extension: string;
-}
-
-export interface KernelInfo {
-  nodejs_version: string;
-  start_time: number;
-  implementation_version: string;
-  banner: string;
-  protocol_version: string;
-  implementation: string;
-  status: string;
-  language_info: LanguageInfo;
-  help_links: HelpLink[];
+  go(): Promise<void>;
+  iter(): EventIterator<OutputMessage>;
+  waitUntilDone: () => Promise<void>;
 }
 
 interface JupyterKernelInterfaceSpawnOpts {
@@ -116,14 +93,14 @@ interface JupyterKernelInterfaceSpawnOpts {
 }
 
 export interface JupyterKernelInterface extends EventEmitterInterface {
-  channel?: Channels;
+  sockets?: JupyterSockets;
   name: string | undefined; // name = undefined implies it is not spawnable.  It's a notebook with no actual jupyter kernel process.
   store: any;
   readonly identity: string;
 
   get_state(): string;
   signal(signal: string): void;
-  close(): Promise<void>;
+  close(): void;
   spawn(opts?: JupyterKernelInterfaceSpawnOpts): Promise<void>;
   execute_code(opts: ExecOpts): CodeExecutionEmitterInterface;
   cancel_execute(id: string): void;
@@ -140,13 +117,19 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   more_output(id: string): any[];
   nbconvert(args: string[], timeout?: number): Promise<void>;
   load_attachment(path: string): Promise<string>;
-  process_attachment(base64, mime): string | undefined;
-  send_comm_message_to_kernel(msg_id: string, comm_id: string, data: any): void;
+  send_comm_message_to_kernel(msg: {
+    msg_id: string;
+    comm_id: string;
+    target_name: string;
+    data: any;
+    buffers?: any[];
+    buffers64?: any[];
+  }): void;
   get_connection_file(): string | undefined;
 
   _execute_code_queue: CodeExecutionEmitterInterface[];
   clear_execute_code_queue(): void;
-  _process_execute_code_queue(): Promise<void>
+  _process_execute_code_queue(): Promise<void>;
 
   chdir(path: string): Promise<void>;
   ensure_running(): Promise<void>;

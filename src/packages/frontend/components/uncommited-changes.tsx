@@ -1,11 +1,19 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-// Component that shows a warning message if has_uncommitted_changes is true for more than a few seconds.
+/*
+Component that shows a warning message if has_uncommitted_changes is true for more than a few seconds.
 
-import { useState, useEffect, memo } from "react";
+In case the project-id is known via file context and the project is not running, this *also* will
+autoamtically start the project running.  This is to **avoid data loss**, since there is no way
+to save what is not getting saved without starting the project.
+*/
+
+import { useState, useEffect } from "react";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
+import { redux } from "@cocalc/frontend/app-framework";
 
 interface Props {
   has_uncommitted_changes?: boolean;
@@ -31,47 +39,59 @@ const STYLE = {
  *
  * Does not work with changes to `delay_ms`
  */
-const UncommittedChangesFC = (props: Props) => {
-  const {
-    has_uncommitted_changes,
-    show_uncommitted_changes,
-    set_show_uncommitted_changes,
-    delay_ms = 5000,
-  } = props;
+export function UncommittedChanges({
+  has_uncommitted_changes,
+  show_uncommitted_changes,
+  set_show_uncommitted_changes,
+  delay_ms = 5000,
+}: Props) {
+  const { project_id } = useFileContext();
   const init = has_uncommitted_changes && (show_uncommitted_changes ?? false);
-  const [show_error, set_error] = useState(init);
+  const [showError, setShowError0] = useState<boolean>(!!init);
+
+  const setShowError = (val) => {
+    setShowError0(val);
+    if (project_id != null && val && !showError) {
+      // changed from no error to showing an error
+      if (
+        redux
+          .getStore("projects")
+          ?.getIn(["project_map", project_id, "state", "state"]) != "running"
+      ) {
+        redux.getActions("projects").start_project(project_id);
+      }
+    }
+  };
 
   // A new interval is created iff has_uncommitted_changes or delay_ms change
   // So error is only set to true when the prop doesn't change for ~delay_ms time
   useEffect(() => {
     if (!init) {
-      set_error(init);
+      setShowError(!!init);
     }
-    const interval_id = setInterval(() => {
+    const intervalId = setInterval(() => {
       if (
         show_uncommitted_changes != null &&
         set_show_uncommitted_changes != null
       ) {
         const next = has_uncommitted_changes;
         set_show_uncommitted_changes(next);
-        set_error(next);
+        setShowError(!!next);
       } else {
         if (has_uncommitted_changes) {
-          set_error(true);
+          setShowError(true);
         }
       }
     }, delay_ms + 10);
 
-    return function cleanup() {
-      clearInterval(interval_id);
+    return () => {
+      clearInterval(intervalId);
     };
   }, [has_uncommitted_changes, delay_ms, show_uncommitted_changes, init]);
 
-  if (show_error) {
+  if (showError) {
     return <span style={STYLE}>NOT saved!</span>;
   } else {
     return null;
   }
-};
-
-export const UncommittedChanges = memo(UncommittedChangesFC);
+}

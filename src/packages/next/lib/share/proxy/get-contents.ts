@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { FileInfo, PathContents } from "lib/share/get-contents";
@@ -11,7 +11,7 @@ import { field_cmp } from "@cocalc/util/cmp";
 export default async function getContents(
   githubOrg: string,
   githubRepo: string,
-  segments: string[]
+  segments: string[],
 ): Promise<PathContents> {
   if (!githubRepo) {
     // get all repos attached to an org
@@ -44,12 +44,12 @@ export default async function getContents(
               "tree",
               branch,
               ...segments,
-              file.name
+              file.name,
             )}`;
           } else {
             url = `/github/${githubOrg}/${githubRepo}/${join(
               ...segments,
-              file.name
+              file.name,
             )}`;
           }
         } else {
@@ -58,14 +58,14 @@ export default async function getContents(
               "blob",
               branch,
               ...segments,
-              file.name
+              file.name,
             )}`;
           } else {
             url = `/github/${githubOrg}/${githubRepo}/${join(
               "blob",
               segments[1],
               ...segments.slice(2),
-              file.name
+              file.name,
             )}`;
           }
         }

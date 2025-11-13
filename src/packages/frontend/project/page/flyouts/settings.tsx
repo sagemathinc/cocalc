@@ -1,10 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { ReloadOutlined } from "@ant-design/icons";
 import { Button, Collapse, CollapseProps, Space, Tooltip } from "antd";
+import { useIntl } from "react-intl";
 
 import {
   redux,
@@ -21,6 +22,7 @@ import {
   Title,
 } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { AboutBox } from "@cocalc/frontend/project/settings/about-box";
 import { ApiKeys } from "@cocalc/frontend/project/settings/api-keys";
@@ -47,12 +49,12 @@ import { getFlyoutSettings, storeFlyoutState } from "./state";
 
 interface Props {
   project_id: string;
-  wrap: (content: JSX.Element) => JSX.Element;
+  wrap: (content: React.JSX.Element) => React.JSX.Element;
 }
 
-export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
+export function SettingsFlyout(_: Readonly<Props>): React.JSX.Element {
   const { project_id, wrap } = _;
-
+  const intl = useIntl();
   const { status, project } = useProjectContext();
   const account_id = useTypedRedux("account", "account_id");
   const actions = useActions({ project_id });
@@ -62,7 +64,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
   const [expandedPanels, setExpandedPanels] = useState<string[]>([]);
   const configuration_loading = useTypedRedux(
     { project_id },
-    "configuration_loading"
+    "configuration_loading",
   );
   const kucalc = useTypedRedux("customize", "kucalc");
   const datastore = useTypedRedux("customize", "datastore");
@@ -79,6 +81,14 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
     setExpandedPanels(state);
   }, []);
 
+  function renderI18N(msg: string | IntlMessage): string {
+    if (isIntlMessage(msg)) {
+      return intl.formatMessage(msg);
+    } else {
+      return msg;
+    }
+  }
+
   function renderState() {
     if (status == null) return <Loading />;
     const s = status?.get("state");
@@ -87,7 +97,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
 
     const display = (
       <>
-        <Icon name={iconName as IconName} /> {str}
+        <Icon name={iconName as IconName} /> {renderI18N(str)}
       </>
     );
 
@@ -112,7 +122,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
     }
   }
 
-  function renderStatus(): JSX.Element | undefined {
+  function renderStatus(): React.JSX.Element | undefined {
     // this prevents the start/stop popup dialog to stick around, if we switch somewhere else
     if (!projectIsVisible) return;
     return (
@@ -125,19 +135,19 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
         <Title level={4}>
           Status: <span style={{ float: "right" }}>{renderState()}</span>
         </Title>
-        <Button.Group>
+        <Space.Compact>
           <RestartProject project_id={project_id} short={true} />
           <StopProject
             project_id={project_id}
             disabled={status.get("state") !== "running"}
             short={true}
           />
-        </Button.Group>
+        </Space.Compact>
       </div>
     );
   }
 
-  function renderOther(): JSX.Element {
+  function renderOther(): React.JSX.Element {
     return (
       <Paragraph
         type="secondary"
@@ -170,7 +180,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
     });
   }
 
-  function featuresRealodButton() {
+  function featuresReloadButton() {
     return (
       <Tooltip title="Reload features and configuration">
         <Button
@@ -187,7 +197,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
     );
   }
 
-  function renderDatastoreRelaod() {
+  function renderDatastoreReload() {
     return (
       <Tooltip title={`Reload ${DATASTORE_TITLE} information`}>
         <Button
@@ -272,7 +282,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
         key: "ssh",
         label: (
           <>
-            <Icon name="list-ul" /> SSH Keys
+            <Icon name="list-ul" /> {intl.formatMessage(labels.ssh_keys)}
           </>
         ),
         children: (
@@ -306,7 +316,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
           </>
         ),
         className: "cc-project-flyout-settings-panel",
-        extra: renderDatastoreRelaod(),
+        extra: renderDatastoreReload(),
         children: (
           <Datastore
             project_id={project_id}
@@ -325,7 +335,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
         </>
       ),
       style: { borderRadius: 0 },
-      extra: featuresRealodButton(),
+      extra: featuresReloadButton(),
       children: (
         <ProjectCapabilities
           project={project}
@@ -340,7 +350,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
         style={{ borderRadius: 0, borderLeft: "none", borderRight: "none" }}
         activeKey={expandedPanels}
         onChange={(keys) => setExpandedPanelsHandler(keys as string[])}
-        destroyInactivePanel={true}
+        destroyOnHidden={true}
         items={items}
       />
     );
@@ -351,6 +361,6 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
       {renderStatus()}
       {renderSettings()}
       {renderOther()}
-    </Space>
+    </Space>,
   );
 }

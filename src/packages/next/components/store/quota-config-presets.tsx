@@ -1,128 +1,131 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { IconName } from "@cocalc/frontend/components/icon";
-import { Uptime } from "@cocalc/util/consts/site-license";
-import { Typography } from "antd";
-import A from "components/misc/A";
 import { ReactNode } from "react";
-const { Text } = Typography;
 
-export type Presets =
-  | "standard"
-  //  | "student"
-  | "student+"
-  | "instructor"
-  | "research"
-  | "development";
-//| "budget";
+import type { IconName } from "@cocalc/frontend/components/icon";
 
-export interface Preset {
-  icon?: IconName;
+import { Uptime } from "@cocalc/util/consts/site-license";
+import { MAX_DISK_GB } from "@cocalc/util/upgrades/consts";
+import { Paragraph } from "components/misc";
+import A from "components/misc/A";
+import { STANDARD_DISK } from "@cocalc/util/consts/billing";
+
+export type Preset = "standard" | "instructor" | "research";
+
+// Fields to be used to match a configured license against a pre-existing preset.
+//
+export const PRESET_MATCH_FIELDS: Record<string, string> = {
+  cpu: "CPU count",
+  disk: "disk space",
+  ram: "memory",
+  uptime: "idle timeout",
+  member: "member hosting",
+} as const;
+
+export interface PresetConfig {
+  icon: IconName;
   name: string;
   descr: ReactNode;
-  details?: ReactNode;
+  details: ReactNode;
   cpu: number;
   ram: number;
   disk: number;
-  uptime?: Uptime;
-  member?: boolean;
+  uptime: Uptime;
+  member: boolean;
+  expect: string[];
+  note?: ReactNode;
 }
 
 type PresetEntries = {
-  [key in Presets]: Preset;
+  [key in Preset]: PresetConfig;
 };
 
 // some constants to keep text and preset in sync
 const STANDARD_CPU = 1;
-const STANDARD_RAM = 2;
-const STANDARD_DISK = 3;
+const STANDARD_RAM = 4;
 
-const WARN_SELECT_NUMBER_PROJECTS = (
-  <Text italic>
-    Each student will work in their own project. Therefore, make sure to select
-    the number of projects (the "Run Limit", above) to match your expected
-    number of students!
-  </Text>
-);
+const PRESET_STANDARD_NAME = "Standard";
 
-const APPLY_LICENSE_COURSE_CONFIG = (
-  <>
-    To apply this license to all student projects, add it in the{" "}
-    <A
-      href={
-        "https://doc.cocalc.com/teaching-upgrade-course.html#install-course-license"
-      }
-    >
-      course configuration
-    </A>
-    .
-  </>
-);
-
-export const PRESETS: PresetEntries = {
+export const SITE_LICENSE: PresetEntries = {
   standard: {
     icon: "line-chart",
-    name: "Standard",
-    descr: "is a good choice for most users and students to get started",
+    name: PRESET_STANDARD_NAME,
+    descr:
+      "is a good choice for most users to get started and students in a course",
+    expect: [
+      "Run 5-10 Jupyter Notebooks at once,",
+      "Edit LaTeX, Markdown, R Documents, and use VS Code,",
+      `${STANDARD_DISK} GB disk space is sufficient to store many files and small datasets.`,
+    ],
+    note: (
+      <Paragraph type="secondary">
+        You can start with a "Run Limit" of one project. Later, when your usage
+        increases, you can easily edit your license at any time to change the
+        "Run Limit" or the quotas. Read more about{" "}
+        <A href={"https://doc.cocalc.com/licenses.html"}>Managing Licenses</A>{" "}
+        in our documentation.
+      </Paragraph>
+    ),
     details: (
       <>
-        You can run two or three Jupyter Notebooks in the same project at the
-        same time, given they do not require a large amount of memory. This
-        quota is fine for editing LaTeX documents, working with Sage Worksheets,
-        and all other document types as well. {STANDARD_DISK}G of disk space are
-        also sufficient to store many files and a few small datasets.
+        You can run 5-10 Jupyter Notebooks in a project at once, depending on
+        the kernel and memory usage. This quota is fine for editing LaTeX
+        documents, working with Sage Worksheets, using VS Code, and editing all
+        other document types. Also, {STANDARD_DISK} GB of disk space is
+        sufficient to store many files and a few small datasets.
       </>
     ),
     cpu: STANDARD_CPU,
     ram: STANDARD_RAM,
     disk: STANDARD_DISK,
-  },
-  //   student: {
-  //     icon: "meh",
-  //     name: "Student",
-  //     descr: "covers student projects in a course",
-  //     details: (
-  //       <>
-  //         If you're teaching a course, this upgrade is suitable for{" "}
-  //         <Text italic>student projects</Text>. The upgrade schema is the same as
-  //         for "Standard" projects, which should be a good choice for doing their
-  //         assignments. {WARN_SELECT_NUMBER_PROJECTS} Each student project will get
-  //         the configured upgrades, internet access, and improved hosting quality.{" "}
-  //         {APPLY_LICENSE_COURSE_CONFIG}
-  //       </>
-  //     ),
-  //     cpu: STANDARD_CPU,
-  //     ram: STANDARD_RAM,
-  //     disk: STANDARD_DISK,
-  //   },
-  "student+": {
-    icon: "smile",
-    name: "Student+",
-    descr: "covers student projects with extra resources",
-    details: (
-      <>
-        This quota preset is very similar as the "Student" quota, although
-        students will get a bit more ram and disk space.{" "}
-        {WARN_SELECT_NUMBER_PROJECTS} The increased idle-timeout will keep their
-        notebooks and worksheets a bit longer running, while not in active use.
-        Choose this schema, if you plan to let them run data and memory
-        intensive calculations, e.g. data-science, machine-learning, etc.{" "}
-        {APPLY_LICENSE_COURSE_CONFIG}
-      </>
-    ),
-    cpu: 1,
-    ram: 2 * STANDARD_RAM,
-    disk: 2 * STANDARD_DISK,
-    uptime: "medium",
+    uptime: "short",
+    member: true,
   },
   instructor: {
-    icon: "highlighter",
+    icon: "slides",
     name: "Instructor",
-    descr:
-      "is a good choice for the instructor's project when teaching a course",
+    descr: "is good for your instructor project when teaching a course",
+    expect: [
+      "Grade the work of students,",
+      "Run 10-20 Jupyter Notebooks at once¹,",
+      "Store the files of all students,",
+      "Make longer breaks without your project being shut down.",
+    ],
+    note: (
+      <>
+        <Paragraph type="secondary">
+          For your instructor project, you only need one such license with a
+          "Run Limit" of 1. Apply that license via the{" "}
+          <A href={"https://doc.cocalc.com/project-settings.html#licenses"}>
+            project settings
+          </A>
+          . For the students, select a "{PRESET_STANDARD_NAME}" license with a
+          "Run Limit" of the number of students and distribute it via the{" "}
+          <A
+            href={
+              "https://doc.cocalc.com/teaching-upgrade-course.html#teacher-or-institute-pays-for-upgrades"
+            }
+          >
+            course configuration
+          </A>
+          .
+        </Paragraph>
+        <Paragraph type="secondary">
+          ¹ Depends on the kernel; also, make sure to use the{" "}
+          <A
+            href={
+              "https://doc.cocalc.com/jupyter.html?highlight=halt%20button#use-the-halt-button-to-conserve-memory"
+            }
+          >
+            Halt button
+          </A>
+          .
+        </Paragraph>
+      </>
+    ),
     details: (
       <>
         The upgrade schema is suitable for grading the work of students: by
@@ -148,61 +151,106 @@ export const PRESETS: PresetEntries = {
       </>
     ),
     cpu: 1,
-    ram: 6,
-    disk: 15,
+    ram: 2 * STANDARD_RAM,
+    disk: Math.min(Math.max(15, 4 * STANDARD_DISK), MAX_DISK_GB),
     uptime: "medium",
+    member: true,
   },
   research: {
-    icon: "rocket",
+    icon: "users",
     name: "Researcher",
-    descr: "is a good choice for a research group",
-    details: (
+    descr:
+      "is a good choice for intense professional usage or a research group",
+    expect: [
+      "Run many Jupyter Notebooks at once,",
+      "Run memory-intensive computations,",
+      "1 day idle-timeout is sufficient to not interrupt your work, and to execute long-running calculations.",
+      "More disk space also allows you to store larger datasets.",
+    ],
+    note: (
       <>
-        This configuration allows the project to run many Jupyter Notebooks and
-        Worksheets at once or run computations that require plenty of memory. An
-        idle-timeout of one day is sufficient to not interrupt your work and you
-        can also run calculations, which take a while to complete. Increasing
-        the disk space quota allows you to store larger datasets as well. If you
-        need vastly more disk space, you can also get a{" "}
-        <A href={"/store/dedicated?type=disk"}>dedicated disk</A>.
+        <Paragraph type="secondary">
+          If you need{" "}
+          <b>much more dedicated disk space, a GPU, more CPU or RAM</b>, you
+          should also{" "}
+          <b>
+            use <A href="/features/compute-server">compute servers</A>.
+          </b>
+        </Paragraph>
       </>
     ),
-    cpu: 1,
-    ram: 6,
-    disk: 10,
-    uptime: "day",
-  },
-  development: {
-    icon: "settings",
-    name: "Development",
-    descr: "is suitable for software development",
     details: (
       <>
-        This configuration helps with parallelizing build tasks across more than
-        one CPU, increases the amount of memory and also disk space.
+        This configuration allows the project to run many Jupyter Notebooks at
+        once and run memory-intensive computations. An idle-timeout of one day
+        is sufficient to not interrupt your work; you can also execute
+        long-running calculations with this configuration. Increasing the disk
+        space quota also allows you to store larger datasets. If you need{" "}
+        <b>much more dedicated disk space, a GPU, more CPU or RAM</b>, you
+        should also{" "}
+        <b>
+          use a <A href="/features/compute-server">compute server</A>.
+        </b>
       </>
     ),
     cpu: 2,
-    ram: 8,
-    disk: 10,
-    uptime: "medium",
+    ram: 2 * STANDARD_RAM,
+    disk: Math.min(Math.max(15, 4 * STANDARD_DISK), MAX_DISK_GB),
+    uptime: "day",
+    member: true,
   },
-  /*budget: {
-    icon: "wallet",
-    name: "Budget",
-    descr: "is the cheapest option",
+} as const;
+
+export const COURSE = {
+  standard: {
+    icon: "line-chart",
+    name: PRESET_STANDARD_NAME,
+    descr: "is a good choice for most use cases in a course",
+    expect: [
+      "Run a couple of Jupyter Notebooks at once,",
+      "Edit LaTeX, Markdown, R Documents, and use VS Code,",
+      `${STANDARD_DISK} GB disk space is sufficient to store many files and small datasets.`,
+    ],
+    note: <>Suitable for most courses.</>,
     details: (
       <>
-        Choose this option if you want to spend as little money as possible,
-        while still getting access to the internet from within a project (to
-        download packages, datasets, or interact with GitHub/GitLab). It also
-        removes the{" "}
-        <A href={"https://doc.cocalc.com/trial.html"}>trial project</A> banner.
+        You can run a couple of Jupyter Notebooks in a project at once,
+        depending on the kernel and memory usage. This quota is fine for editing
+        LaTeX documents, working with Sage Worksheets, using VS Code, and
+        editing all other document types. Also, {STANDARD_DISK} GB of disk space
+        is sufficient to store many files and a few small datasets.
+      </>
+    ),
+    cpu: STANDARD_CPU,
+    ram: STANDARD_RAM,
+    disk: STANDARD_DISK,
+    uptime: "short",
+    member: true,
+  },
+  advanced: {
+    icon: "rocket",
+    name: "Advanced",
+    descr: "provides higher quotas for more intensive course work",
+    expect: [
+      "Run more Jupyter Notebooks simultaneously,",
+      "Handle memory-intensive computations,",
+      "Longer idle timeout for extended work sessions,",
+      "Sufficient resources for advanced coursework.",
+    ],
+    note: <>For intense computations requiring more resources.</>,
+    details: (
+      <>
+        This configuration provides enhanced resources for more demanding
+        coursework. With 1 CPU, 8GB RAM, and a 2-hour idle timeout, students can
+        work on memory-intensive projects and longer computational tasks without
+        interruption. Ideal for advanced programming, data science, and
+        research-oriented courses.
       </>
     ),
     cpu: 1,
-    ram: 1,
-    disk: 3,
-    member: false,
-  },*/
-} as const;
+    ram: 8,
+    disk: Math.min(2 * STANDARD_DISK, MAX_DISK_GB),
+    uptime: "medium",
+    member: true,
+  },
+} as const satisfies { [key in "standard" | "advanced"]: PresetConfig };

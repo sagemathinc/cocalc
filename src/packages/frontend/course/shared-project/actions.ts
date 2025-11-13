@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -11,6 +11,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
+import { delay } from "awaiting";
 
 export class SharedProjectActions {
   private actions: CourseActions;
@@ -19,14 +20,18 @@ export class SharedProjectActions {
     this.actions = actions;
   }
 
-  private get_store(): CourseStore {
+  private get_store = (): CourseStore => {
     const store = this.actions.get_store();
     if (store == null) throw Error("no store");
     return store;
-  }
+  };
 
   // return the default title and description of the shared project.
-  private settings(): { title: string; description: string; image?: string } {
+  private settings = (): {
+    title: string;
+    description: string;
+    image?: string;
+  } => {
     const settings = this.get_store().get("settings");
     return {
       title: `Shared Project -- ${settings.get("title")}`,
@@ -35,18 +40,18 @@ export class SharedProjectActions {
         "\n\n---\n\nThis project is shared with all students in the course.",
       image: settings.get("custom_image"),
     };
-  }
+  };
 
-  public set_project_title(): void {
+  set_project_title = (): void => {
     const store = this.get_store();
     if (store == null) return;
     const shared_id = store.get_shared_project_id();
     if (!shared_id) return;
     const { title } = this.settings();
     redux.getActions("projects").set_project_title(shared_id, title);
-  }
+  };
 
-  public set_project_description(): void {
+  set_project_description = (): void => {
     const store = this.get_store();
     if (store == null) return;
     const shared_id = store.get_shared_project_id();
@@ -56,10 +61,10 @@ export class SharedProjectActions {
     redux
       .getActions("projects")
       .set_project_description(shared_id, description);
-  }
+  };
 
   // start the shared project running, stopping, etc. (if it exists)
-  public async action_shared_project(action: "start" | "stop"): Promise<void> {
+  action_shared_project = async (action: "start" | "stop"): Promise<void> => {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -73,10 +78,10 @@ export class SharedProjectActions {
     const f = a[action + "_project"].bind(a);
     if (f == null) return;
     await f(shared_project_id);
-  }
+  };
 
   // configure the shared project so that it has everybody as collaborators
-  public async configure(): Promise<void> {
+  configure = async (): Promise<void> => {
     const store = this.get_store();
     const shared_project_id = store.get_shared_project_id();
     if (!shared_project_id) {
@@ -94,7 +99,7 @@ export class SharedProjectActions {
         return;
       }
       const course_project_users = projects.get_users(
-        store.get("course_project_id")
+        store.get("course_project_id"),
       );
       if (course_project_users == null) {
         return;
@@ -148,7 +153,7 @@ export class SharedProjectActions {
         try {
           await actions.add_site_license_to_project(
             shared_project_id,
-            site_license_id
+            site_license_id,
           );
         } catch (err) {
           console.warn(`error adding site license to shared project -- ${err}`);
@@ -163,9 +168,9 @@ export class SharedProjectActions {
     } finally {
       this.actions.set_activity({ id });
     }
-  }
+  };
 
-  public async set_project_compute_image(): Promise<void> {
+  set_project_compute_image = async (): Promise<void> => {
     const store = this.get_store();
     const shared_project_id = store.get_shared_project_id();
     if (!shared_project_id) {
@@ -175,9 +180,9 @@ export class SharedProjectActions {
     const img_id = store.get("settings").get("custom_image") ?? dflt_img;
     const actions = redux.getProjectActions(shared_project_id);
     await actions.set_compute_image(img_id);
-  }
+  };
 
-  public async set_datastore_and_envvars(): Promise<void> {
+  set_datastore_and_envvars = async (): Promise<void> => {
     const store = this.get_store();
     const shared_project_id = store.get_shared_project_id();
     if (!shared_project_id) {
@@ -186,31 +191,31 @@ export class SharedProjectActions {
     const datastore: Datastore = store.get_datastore();
     const envvars: EnvVars = store.get_envvars();
     const actions = redux.getActions("projects");
-    await actions.set_project_course_info(
-      shared_project_id,
-      store.get("course_project_id"),
-      store.get("course_filename"),
-      "", // pay
-      null, // payInfo
-      null, // account_id
-      null, // email_address
+    await actions.set_project_course_info({
+      project_id: shared_project_id,
+      course_project_id: store.get("course_project_id"),
+      path: store.get("course_filename"),
+      pay: "", // pay
+      payInfo: null, // payInfo
+      account_id: null, // account_id
+      email_address: null, // email_address
       datastore,
-      "shared", // type of project
-      undefined, // student_project_functionality (not used for shared projects)
-      envvars
-    );
-  }
+      type: "shared", // type of project
+      student_project_functionality: null, // student_project_functionality (not used for shared projects)
+      envvars,
+    });
+  };
 
   // set the shared project id in our syncdb
-  private set_project_id(shared_project_id: string): void {
+  private set_project_id = (shared_project_id: string): void => {
     this.actions.set({
       table: "settings",
       shared_project_id,
     });
-  }
+  };
 
   // create the globally shared project if it doesn't exist
-  public async create(): Promise<void> {
+  create = async (): Promise<void> => {
     const store = this.get_store();
     if (store.get_shared_project_id()) {
       return;
@@ -230,11 +235,14 @@ export class SharedProjectActions {
       this.actions.set_activity({ id });
     }
     this.set_project_id(project_id);
+    // wait for any changes to syncdb to update store, before
+    // calling configure (which relies on the store being updated).
+    await delay(10);
     await this.configure();
-  }
+  };
 
   // Delete the shared project, removing students too.
-  public async delete(): Promise<void> {
+  delete = async (): Promise<void> => {
     const store = this.get_store();
     const shared_id = store.get_shared_project_id();
     if (!shared_id) {
@@ -258,7 +266,7 @@ export class SharedProjectActions {
       if (student_account_id) {
         await project_actions.remove_collaborator(
           shared_id,
-          student_account_id
+          student_account_id,
         );
       }
     }
@@ -267,5 +275,5 @@ export class SharedProjectActions {
       table: "settings",
       shared_project_id: "",
     });
-  }
+  };
 }

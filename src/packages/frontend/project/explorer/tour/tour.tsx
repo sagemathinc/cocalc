@@ -1,19 +1,20 @@
-import { Checkbox, Tour } from "antd";
 import type { TourProps } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Checkbox, Tour } from "antd";
+
 import { redux } from "@cocalc/frontend/app-framework";
+import { Paragraph, Text } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
+import { Icon } from "@cocalc/frontend/components/icon";
 import actionsImage from "./actions.png";
 
 export default function ExplorerTour({
   open,
   project_id,
   newFileRef,
-  searchBarRef,
+  searchAndTerminalBar,
   fileListingRef,
   currentDirectoryRef,
   miscButtonsRef,
-  miniterminalRef,
 }) {
   const steps: TourProps["steps"] = [
     {
@@ -51,17 +52,30 @@ export default function ExplorerTour({
     {
       title: (
         <>
-          <Icon name="search" /> Search or create file
+          <Icon name="search" /> Search bar and Mini Terminal
         </>
       ),
       description: (
         <>
-          Type here to show only files in the current directory whose name
-          matches your search. If nothing matches, a big "Create" button appears
-          and you can easily create a file with that name.
+          <Paragraph>
+            <Text strong>Search files or execute commands</Text>: Toggle between
+            the search bar and mini terminal by clicking these buttons.
+          </Paragraph>
+          <Paragraph>
+            <Text strong>Search Bar:</Text> Type here to show only files in the
+            current directory whose name matches your search. If nothing
+            matches, a big "Create" button appears and you can easily create a
+            file with that name.
+          </Paragraph>
+          <Paragraph>
+            <Text strong>Mini Terminal:</Text> Leverage your knowledge of Linux
+            terminal commands to run any Linux command here to quickly use cp,
+            mv, rm, git, etc., to work with files. If you use cd it will change
+            the current directory.
+          </Paragraph>
         </>
       ),
-      target: searchBarRef.current,
+      target: searchAndTerminalBar.current,
     },
     {
       title: "File Listing",
@@ -89,12 +103,12 @@ export default function ExplorerTour({
       ),
     },
     {
-      title: "Current Directory",
+      title: "Current Folder",
       description: (
         <>
-          The current directory is displayed here. The directory listing below
-          is of this directory. There are breadcrumbs, so you can easily click
-          to visit recent directories further down the tree.
+          The current folder is displayed here. The directory listing below is
+          of this directory. There are breadcrumbs, so you can easily click to
+          visit recent folders further down the tree.
         </>
       ),
       target: currentDirectoryRef.current,
@@ -144,17 +158,6 @@ export default function ExplorerTour({
         </>
       ),
       target: miscButtonsRef.current,
-    },
-    {
-      title: "Mini Terminal",
-      description: (
-        <>
-          Leverage your knowledge of Linux terminal commands to run any Linux
-          command here to quickly use cp, mv, rm, git, etc., to work with files.
-          If you use cd it will change the current directory.
-        </>
-      ),
-      target: miniterminalRef.current,
     },
     {
       title: "Congratulations!",

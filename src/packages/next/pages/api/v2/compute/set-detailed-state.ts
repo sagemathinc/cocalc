@@ -12,7 +12,14 @@ import setDetailedState from "@cocalc/server/compute/set-detailed-state";
 import getParams from "lib/api/get-params";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import { OkStatus } from "lib/api/status";
+import {
+  SetDetailedServerStateInputSchema,
+  SetDetailedServerStateOutputSchema,
+} from "lib/api/schema/compute/set-detailed-state";
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -25,6 +32,8 @@ async function get(req) {
   // This is a bit complicated because it can be used by a project api key,
   // in which case project_id must not be passed in, or it can be auth'd
   // by a normal api key or account, in which case project_id must be passed in.
+  // TODO: I don't think this is ever in practice used by anything but a project -- maybe by
+  // account just for testing?
   const project_or_account_id = await getProjectOrAccountId(req);
   if (!project_or_account_id) {
     throw Error("invalid auth");
@@ -63,5 +72,26 @@ async function get(req) {
     timeout,
     progress,
   });
-  return { status: "ok" };
+  return OkStatus;
 }
+
+export default apiRoute({
+  setDetailedState: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: SetDetailedServerStateInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: SetDetailedServerStateOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

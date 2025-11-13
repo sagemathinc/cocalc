@@ -1,7 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+import { Layout } from "antd";
 
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -10,7 +12,6 @@ import IndexList, { DataSource } from "components/landing/index-list";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { Layout } from "antd";
 
 const dataSource: DataSource = [
   {
@@ -72,29 +73,29 @@ const dataSource: DataSource = [
       </>
     ),
   },
-  {
-    link: "/pricing/dedicated",
-    title: "Dedicated Resources",
-    logo: "server",
-    description: (
-      <>
-        How to{" "}
-        <A href="/pricing/dedicated">
-          rent a dedicated powerful virtual machine or large dedicated disk
-        </A>
-        , which can greatly improve collaboration and scalability in your
-        research group.
-      </>
-    ),
-  },
+  //   {
+  //     link: "/pricing/dedicated",
+  //     title: "Dedicated Resources",
+  //     logo: "server",
+  //     description: (
+  //       <>
+  //         How to{" "}
+  //         <A href="/pricing/dedicated">
+  //           rent a dedicated powerful virtual machine
+  //         </A>
+  //         , which can greatly improve collaboration and scalability in your
+  //         research group.
+  //       </>
+  //     ),
+  //   },
   {
     link: "/pricing/onprem",
     title: "On-Premises Installations",
-    logo: "network-wired",
+    logo: "server",
     description: (
       <>
         You can run CoCalc on{" "}
-        <A href="/pricing/onprem">your own laptop, server or cluster.</A>
+        <A href="/pricing/onprem">your own Kubernetes cluster.</A>
       </>
     ),
   },

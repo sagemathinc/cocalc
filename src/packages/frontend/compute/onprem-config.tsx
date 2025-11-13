@@ -1,9 +1,10 @@
 import type {
-  State,
+  ComputeServerTemplate,
   OnPremCloudConfiguration,
+  State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { ON_PREM_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
-import { Divider, Select, Spin, Checkbox } from "antd";
+import { Checkbox, Divider, Select, Spin } from "antd";
 import { setServerConfiguration } from "./api";
 import { useEffect, useState } from "react";
 import SelectImage, { ImageDescription, ImageLinks } from "./select-image";
@@ -11,26 +12,39 @@ import ExcludeFromSync from "./exclude-from-sync";
 import ShowError from "@cocalc/frontend/components/error";
 import Ephemeral from "./ephemeral";
 import { SELECTOR_WIDTH } from "./google-cloud-config";
+import Proxy from "./proxy";
+import { useImages } from "./images-hook";
+import DNS from "@cocalc/frontend/compute/cloud/common/dns";
+import { A, Icon } from "@cocalc/frontend/components";
+import Template from "@cocalc/frontend/compute/cloud/common/template";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 interface Props {
   configuration: OnPremCloudConfiguration;
   editable?: boolean;
   // if id not set, then doesn't try to save anything to the backend
   id?: number;
+  project_id: string;
   // called whenever changes are made.
   onChange?: (configuration: OnPremCloudConfiguration) => void;
   disabled?: boolean;
   state?: State;
+  data?;
+  template?: ComputeServerTemplate;
 }
 
 export default function OnPremCloudConfiguration({
   configuration: configuration0,
   editable,
   id,
+  project_id,
   onChange,
   disabled,
   state,
+  data,
+  template,
 }: Props) {
+  const [IMAGES, ImagesError] = useImages();
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [configuration, setLocalConfiguration] =
@@ -60,29 +74,43 @@ export default function OnPremCloudConfiguration({
     }
   };
 
-  if (!editable) {
+  if (!editable || !project_id) {
     return (
       <div>
-        On Prem {configuration.arch == "arm64" ? "ARM64" : "x86_64"} Linux VM
+        Self Hosted {configuration.arch == "arm64" ? "ARM64" : "x86_64"} Linux
+        VM
         {configuration.gpu ? " that has an NVIDIA GPU" : ""}.
       </div>
     );
   }
 
+  if (ImagesError != null) {
+    return ImagesError;
+  }
+
   return (
-    <div>
+    <div style={{ marginBottom: "30px" }}>
       <div style={{ color: "#666", marginBottom: "15px" }}>
-        You can connect any{" "}
-        <u>
-          <b>Ubuntu 22.04 Virtual Machine</b>
-        </u>{" "}
-        that you have a root acount on to this CoCalc project and seamlessly run
-        Jupyter notebooks and terminals using it.{" "}
-        <b>
-          On Prem compute servers are currently completely free, and will work
-          even with projects that have no upgrades or licenses. YOU MUST CREATE
-          A VIRTUAL MACHINE ON YOUR OWN COMPUTER.
-        </b>
+        <div style={{ color: "#666", marginBottom: "5px" }}>
+          <b>Self Hosted Compute Server</b>
+        </div>
+        You can connect your own <b>Ubuntu 22.04 Virtual Machine</b> to this
+        CoCalc project and seamlessly run Jupyter notebooks and terminals on it.
+        <ul>
+          <li>
+            Watch the{" "}
+            <A href="https://youtu.be/NkNx6tx3nu0">
+              <Icon name="youtube" style={{ color: "red" }} /> compute server
+              tutorial
+            </A>
+            .
+          </li>
+          <li>Self hosted compute servers are currently free.</li>
+          <li>
+            <A href="https://onprem.cocalc.com/overview.html">CoCalc OnPrem</A>{" "}
+            is a related product for running a self-contained CoCalc cluster.
+          </li>
+        </ul>
       </div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
         <b>Architecture</b>
@@ -131,9 +159,38 @@ export default function OnPremCloudConfiguration({
         configuration={configuration}
       />
       <ShowError error={error} setError={setError} />
+      <Divider />
+      <Proxy
+        id={id}
+        project_id={project_id}
+        setConfig={setConfig}
+        configuration={configuration}
+        data={data}
+        state={state}
+        IMAGES={IMAGES}
+      />
+      {data?.externalIp && (
+        <>
+          <Divider />
+          <DNS
+            setConfig={setConfig}
+            configuration={configuration}
+            loading={loading}
+          />
+        </>
+      )}
       {loading && <Spin style={{ marginLeft: "15px" }} />}
+      <Admin id={id} template={template} />
     </div>
   );
+}
+
+function Admin({ id, template }) {
+  const isAdmin = useTypedRedux("account", "is_admin");
+  if (!isAdmin) {
+    return null;
+  }
+  return <Template id={id} template={template} />;
 }
 
 function Image(props) {
@@ -150,9 +207,10 @@ function Image(props) {
         </div>
       )}
       <SelectImage
-        style={{ width: SELECTOR_WIDTH }}
         {...props}
         gpu={!!props.configuration.gpu}
+        arch={props.configuration.arch}
+        warnBigGb={4}
       />
       <div style={{ color: "#666", marginTop: "5px" }}>
         <ImageDescription configuration={props.configuration} />
@@ -160,15 +218,15 @@ function Image(props) {
           image={props.configuration.image}
           style={{ flexDirection: "row" }}
         />
+        {!(state == "deprovisioned" || state == "off") && (
+          <div style={{ color: "#666", marginTop: "5px" }}>
+            You can only edit the image when server is deprovisioned or off.
+          </div>
+        )}
       </div>
       <ExcludeFromSync {...props} />
       <Divider />
       <Ephemeral style={{ marginTop: "30px" }} {...props} />
-      {!(state == "deprovisioned" || state == "off") && (
-        <div style={{ color: "#666", marginTop: "5px" }}>
-          You can only edit the image when server is deprovisioned or off.
-        </div>
-      )}
     </div>
   );
 }

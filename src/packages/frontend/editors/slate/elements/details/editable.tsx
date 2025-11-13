@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -16,7 +16,7 @@ register({
 
   Element: ({ attributes, children, element }) => {
     const node = element as Details;
-    const ref = useRef<any>();
+    const ref = useRef<any>(undefined);
     const [open, setOpen] = useState<boolean>(!!node.open);
     useEffect(() => {
       if (open != node.open) {

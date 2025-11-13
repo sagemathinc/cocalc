@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -103,7 +103,6 @@ export default function PreflightCheck() {
   }, [allowed]);
 
   if (allowed) {
-    console.log("Browser is supported.");
     return null;
   }
 

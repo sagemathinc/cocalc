@@ -1,6 +1,7 @@
-import { ReactEditor } from "./slate-react";
 import { Range } from "slate";
-import { SyncString } from "@cocalc/sync/editor/string";
+
+import type { SyncString } from "@cocalc/sync/editor/string/sync";
+import { ReactEditor } from "./slate-react";
 
 export interface SlateEditor extends ReactEditor {
   ignoreNextOnChange?: boolean;
@@ -44,7 +45,7 @@ export interface Actions {
     cursor?: boolean,
     focus?: boolean,
     id?: string,
-    ch?: number
+    ch?: number,
   ) => Promise<void>;
   save?: (explicit: boolean) => Promise<void>;
   change_font_size?: (delta?: number, id?: string, zoom?: number) => void;

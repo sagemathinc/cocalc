@@ -1,109 +1,95 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Project information server, doing the heavy lifting of telling the client
 about what's going on in a project.
+
+This is an event emitter that emits a ProjectInfo object periodically when running.
+
+One important aspect is that this avoids spawning subprocesses, which could be problematic
+if there is a limit on the number of processes that can be spawned, or memory pressure, etc.
 */
 
 import { delay } from "awaiting";
 import type { DiskUsage as DF_DiskUsage } from "diskusage";
 import { check as df } from "diskusage";
 import { EventEmitter } from "node:events";
-import { readFile, readdir, readlink } from "node:fs/promises";
-import { join } from "node:path";
+import { access, readFile } from "node:fs/promises";
 
-// import { getOptions } from "../init-program";
-import { get_kernel_by_pid } from "@cocalc/jupyter/kernel";
-import { pidToPath as terminalPidToPath } from "@cocalc/terminal";
-import { get_path_for_pid as x11_pid2path } from "../x11/server";
-import {
+import { ProcessStats } from "@cocalc/backend/process-stats";
+import { pidToPath as terminalPidToPath } from "@cocalc/project/conat/terminal/manager";
+import { getLogger } from "@cocalc/project/logger";
+import { get_path_for_pid as x11_pid2path } from "@cocalc/project/x11/server";
+import type {
   CGroup,
   CoCalcInfo,
-  Cpu,
   DiskUsage,
   Process,
   Processes,
   ProjectInfo,
-  Stat,
-  State,
-} from "@cocalc/comm/project-info/types";
-import { exec } from "./utils";
-//import { get_sage_path } from "../sage_session"
-import { getLogger } from "../logger";
+} from "@cocalc/util/types/project-info/types";
 
 const L = getLogger("project-info:server").debug;
 
-// function is_in_dev_project() {
-//   return process.env.SMC_LOCAL_HUB_HOME != null;
-// }
-
-// this is a hard limit on the number of processes we gather, just to
-// be on the safe side to avoid processing too much data.
-const LIMIT = 200;
 const bytes2MiB = (bytes) => bytes / (1024 * 1024);
+
+/**
+ * Detect if /tmp is mounted as tmpfs (memory-based filesystem) by reading /proc/mounts.
+ * Returns true if /tmp is tmpfs, false otherwise.
+ */
+async function isTmpMemoryBased(): Promise<boolean> {
+  try {
+    const mounts = await readFile("/proc/mounts", "utf8");
+    // Look for lines like: "tmpfs /tmp tmpfs rw,nosuid,nodev,noexec,relatime,size=1024000k 0 0"
+    const tmpfsPattern = /^\S+\s+\/tmp\s+tmpfs\s/m;
+    return tmpfsPattern.test(mounts);
+  } catch (error) {
+    L("Failed to read /proc/mounts, assuming /tmp is disk-based:", error);
+    return false; // Default to safer assumption for development environments
+  }
+}
+
+/**
+ * Safely read a file, returning null if the file doesn't exist.
+ * Throws for other errors.
+ */
+async function safeReadFile(path: string): Promise<string | null> {
+  try {
+    return await readFile(path, "utf8");
+  } catch (error: any) {
+    if (error.code === "ENOENT") {
+      console.warn(`safeReadFile: ${path} not found, skipping`);
+      return null;
+    }
+    throw error;
+  }
+}
 
 export class ProjectInfoServer extends EventEmitter {
   private last?: ProjectInfo = undefined;
   private readonly dbg: Function;
   private running = false;
   private readonly testing: boolean;
-  private ticks: number;
-  private pagesize: number;
   private delay_s: number;
+  private tmpIsMemoryBased?: boolean;
   private cgroupFilesAreMissing: boolean = false;
+  private processStats: ProcessStats;
+  private cgroupVersion: "v1" | "v2" | "unknown" | null;
 
   constructor(testing = false) {
     super();
     this.delay_s = 2;
     this.testing = testing;
     this.dbg = L;
+    // cgroup version will be detected lazily
+    this.cgroupVersion = null;
   }
 
-  public latest(): ProjectInfo | undefined {
-    return this.last;
-  }
-
-  // this is how long the underlying machine is running
-  // we need this information, because the processes' start time is
-  // measured in "ticks" since the machine started
-  private async uptime(): Promise<[number, Date]> {
-    // return uptime in secs
-    const out = await readFile("/proc/uptime", "utf8");
-    const uptime = parseFloat(out.split(" ")[0]);
-    const boottime = new Date(new Date().getTime() - 1000 * uptime);
-    return [uptime, boottime];
-  }
-
-  // the "stat" file contains all the information
-  // this page explains what is what
-  // https://man7.org/linux/man-pages/man5/proc.5.html
-  private async stat(path: string): Promise<Stat> {
-    // all time-values are in seconds
-    const raw = await readFile(path, "utf8");
-    // the "comm" field could contain additional spaces or parents
-    const [i, j] = [raw.indexOf("("), raw.lastIndexOf(")")];
-    const start = raw.slice(0, i - 1).trim();
-    const end = raw.slice(j + 1).trim();
-    const data = `${start} comm ${end}`.split(" ");
-    const get = (idx) => parseInt(data[idx]);
-    // "comm" is now a placeholder to keep indices as they are.
-    // don't forget to account for 0 vs. 1 based indexing.
-    const ret = {
-      ppid: get(3),
-      state: data[2] as State,
-      utime: get(13) / this.ticks, // CPU time spent in user code, measured in clock ticks (#14)
-      stime: get(14) / this.ticks, // CPU time spent in kernel code, measured in clock ticks (#15)
-      cutime: get(15) / this.ticks, // Waited-for children's CPU time spent in user code (in clock ticks) (#16)
-      cstime: get(16) / this.ticks, // Waited-for children's CPU time spent in kernel code (in clock ticks) (#17)
-      starttime: get(21) / this.ticks, // Time when the process started, measured in clock ticks (#22)
-      nice: get(18),
-      num_threads: get(19),
-      mem: { rss: (get(23) * this.pagesize) / (1024 * 1024) }, // MiB
-    };
-    return ret;
+  private async processes(timestamp: number) {
+    return await this.processStats.processes(timestamp);
   }
 
   // delta-time for this and the previous process information
@@ -111,32 +97,23 @@ export class ProjectInfoServer extends EventEmitter {
     return (timestamp - (this.last?.timestamp ?? 0)) / 1000;
   }
 
-  // calculate cpu times
-  private cpu({ pid, stat, timestamp }): Cpu {
-    // we are interested in that processes total usage: user + system
-    const total_cpu = stat.utime + stat.stime;
-    // the fallback is chosen in such a way, that it says 0% if we do not have historic data
-    const prev_cpu = this.last?.processes?.[pid]?.cpu.secs ?? total_cpu;
-    const dt = this.dt(timestamp);
-    // how much cpu time was used since last time we checked this process…
-    const pct = 100 * ((total_cpu - prev_cpu) / dt);
-    return { pct: pct, secs: total_cpu };
-  }
-
-  private async cmdline(path: string): Promise<string[]> {
-    // we split at the null-delimiter and filter all empty elements
-    return (await readFile(path, "utf8"))
-      .split("\0")
-      .filter((c) => c.length > 0);
+  public latest(): ProjectInfo | undefined {
+    return this.last;
   }
 
   // for a process we know (pid, etc.) we try to map to cocalc specific information
-  private cocalc({ pid, cmdline }): CoCalcInfo | undefined {
+  private async cocalc({
+    pid,
+    cmdline,
+  }: Pick<Process, "pid" | "cmdline">): Promise<CoCalcInfo | undefined> {
     //this.dbg("classify", { pid, exe, cmdline });
     if (pid === process.pid) {
       return { type: "project" };
     }
-    // TODO use get_sage_path to get a path to a sagews
+    // SPEED: importing @cocalc/jupyter/kernel is slow, so it MUST NOT BE DONE
+    // on the top level, especially not in any code that is loaded during
+    // project startup
+    const { get_kernel_by_pid } = await import("@cocalc/jupyter/kernel");
     const jupyter_kernel = get_kernel_by_pid(pid);
     if (jupyter_kernel != null) {
       return { type: "jupyter", path: jupyter_kernel.get_path() };
@@ -159,59 +136,77 @@ export class ProjectInfoServer extends EventEmitter {
     }
   }
 
-  // this gathers all the information for a specific process with the given pid
-  private async process({ pid: pid_str, uptime, timestamp }): Promise<Process> {
-    const base = join("/proc", pid_str);
-    const pid = parseInt(pid_str);
-    const fn = (name) => join(base, name);
-    const [cmdline, exe, stat] = await Promise.all([
-      this.cmdline(fn("cmdline")),
-      readlink(fn("exe")),
-      this.stat(fn("stat")),
-    ]);
-    const data = {
-      pid,
-      ppid: stat.ppid,
-      cmdline,
-      exe,
-      stat,
-      cpu: this.cpu({ pid, timestamp, stat }),
-      uptime: uptime - stat.starttime,
-      cocalc: this.cocalc({ pid, cmdline }),
-    };
-    return data;
+  private async lookupCoCalcInfo(processes: Processes) {
+    // iterate over all processes keys (pid) and call this.cocalc({pid, cmdline})
+    // to update the processes coclc field
+    for (const pid in processes) {
+      processes[pid].cocalc = await this.cocalc({
+        pid: parseInt(pid),
+        cmdline: processes[pid].cmdline,
+      });
+    }
   }
 
-  // this is where we gather information about all running processes
-  private async processes({ timestamp, uptime }): Promise<Processes> {
-    const procs: Processes = {};
-    let n = 0;
-    for (const pid of await readdir("/proc")) {
-      if (!pid.match(/^[0-9]+$/)) continue;
-      try {
-        const proc = await this.process({ pid, uptime, timestamp });
-        procs[proc.pid] = proc;
-      } catch (err) {
-        if (this.testing)
-          this.dbg(`process ${pid} likely vanished – could happen – ${err}`);
-      }
-      // we avoid processing and sending too much data
-      if (n > LIMIT) {
-        this.dbg(`too many processes – limit of ${LIMIT} reached!`);
-        break;
+  /**
+   * Detect cgroup version lazily.
+   * Fine to run once, since the cgroup version won't change during the process lifetime.
+   */
+  private async detectCGroupVersion(): Promise<"v1" | "v2" | "unknown" | null> {
+    if (this.cgroupVersion !== null) {
+      return this.cgroupVersion;
+    }
+
+    try {
+      // Check for v2-specific file
+      await access("/sys/fs/cgroup/cgroup.controllers");
+      this.cgroupVersion = "v2";
+    } catch (error: any) {
+      if (error.code === "ENOENT") {
+        // File doesn't exist, so likely v1
+        this.cgroupVersion = "v1";
       } else {
-        n += 1;
+        // Other errors (e.g., permissions): treat as unknown
+        console.error("Error detecting cgroup version:", error);
+        this.cgroupVersion = "unknown";
       }
     }
-    return procs;
+
+    L(`detected cgroup version: ${this.cgroupVersion}`);
+    return this.cgroupVersion;
   }
 
-  // this is specific to running a project in a CGroup container
-  // Harald: however, even without a container this shouldn't fail … just tells
-  // you what the whole system is doing, all your processes.
-  // William: it's constantly failing in cocalc-docker every second, so to avoid
-  // clogging logs and wasting CPU, if the files are missing once, it stops updating.
+  /**
+   * Collect cgroup resource usage information.
+   * This is specific to running a project in a CGroup container.
+   * Harald: however, even without a container this shouldn't fail … just tells
+   * you what the whole system is doing, all your processes.
+   * William: it's constantly failing in cocalc-docker every second, so to avoid
+   * clogging logs and wasting CPU, if the files are missing once, it stops updating.
+   */
   private async cgroup({ timestamp }): Promise<CGroup | undefined> {
+    const version = await this.detectCGroupVersion();
+    switch (version) {
+      case "v1":
+        return this.cgroupV1({ timestamp });
+      case "v2":
+        return this.cgroupV2({ timestamp });
+      default:
+        this.dbg("cgroup: unknown version, skipping");
+        return undefined;
+    }
+  }
+
+  /**
+   * Collect cgroup v1 resource usage information.
+   *
+   * cgroup v1 uses separate hierarchies for different resource controllers:
+   * - /sys/fs/cgroup/memory/memory.stat - memory statistics
+   * - /sys/fs/cgroup/cpu,cpuacct/cpuacct.usage - CPU usage in nanoseconds
+   * - /sys/fs/cgroup/memory/memory.oom_control - OOM kill information
+   * - /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us - CPU quota
+   * - /sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us - CPU period
+   */
+  private async cgroupV1({ timestamp }): Promise<CGroup | undefined> {
     if (this.cgroupFilesAreMissing) {
       return;
     }
@@ -251,15 +246,19 @@ export class ProjectInfoServer extends EventEmitter {
         .split("\n")
         .filter((val) => val.startsWith("oom_kill "))
         .map((val) => parseInt(val.slice("oom_kill ".length)))[0];
+
+      // Handle unlimited CPU quota (-1) correctly
+      const cpu_cores_limit = cfs_quota === -1 ? -1 : cfs_quota / cfs_period;
+
       return {
         mem_stat,
         cpu_usage,
         cpu_usage_rate,
-        cpu_cores_limit: cfs_quota / cfs_period,
+        cpu_cores_limit,
         oom_kills,
       };
     } catch (err) {
-      this.dbg("cgroup: error", err);
+      this.dbg("cgroup v1: error", err);
       if (err.code == "ENOENT") {
         // TODO: instead of shutting this down, we could maybe do a better job
         // figuring out what the correct cgroups files are on a given system.
@@ -267,7 +266,223 @@ export class ProjectInfoServer extends EventEmitter {
         // but I do have /sys/fs/cgroup/memory.stat
         this.cgroupFilesAreMissing = true;
         this.dbg(
-          "cgroup: files are missing so cgroups info will no longer be updated",
+          "cgroup v1: files are missing so cgroups info will no longer be updated",
+        );
+      }
+      return undefined;
+    }
+  }
+
+  /**
+   * Get the current process's cgroup path for v2.
+   */
+  private async getCgroupV2Path(): Promise<string> {
+    try {
+      const cgroupData = await readFile("/proc/self/cgroup", "utf8");
+      // v2 format: "0::/path/to/cgroup"
+      const match = cgroupData.match(/^0::(.+)$/m);
+      if (match) {
+        return `/sys/fs/cgroup${match[1]}`;
+      }
+    } catch (error) {
+      console.warn("Failed to read /proc/self/cgroup, using root cgroup");
+    }
+    return "/sys/fs/cgroup";
+  }
+
+  /**
+   * Get system total memory from /proc/meminfo as fallback.
+   */
+  private async getSystemTotalMemory(): Promise<number> {
+    try {
+      const meminfo = await safeReadFile("/proc/meminfo");
+      if (meminfo) {
+        const match = meminfo.match(/^MemTotal:\s+(\d+)\s+kB$/m);
+        if (match) {
+          return parseInt(match[1]) / 1024; // Convert kB to MiB
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to read system memory info:", error);
+    }
+    return -1; // Fallback to unlimited if can't read
+  }
+
+  /**
+   * Get system CPU core count from /proc/cpuinfo as fallback.
+   */
+  private async getSystemCpuCores(): Promise<number> {
+    try {
+      const cpuinfo = await safeReadFile("/proc/cpuinfo");
+      if (cpuinfo) {
+        const processors = cpuinfo.match(/^processor\s*:/gm);
+        return processors ? processors.length : -1;
+      }
+    } catch (error) {
+      console.warn("Failed to read system CPU info:", error);
+    }
+    return -1; // Fallback to unlimited if can't read
+  }
+
+  /**
+   * Collect cgroup v2 resource usage information.
+   *
+   * cgroup v2 uses a unified hierarchy with process-specific paths:
+   * - {cgroup_path}/memory.stat - comprehensive memory statistics
+   * - {cgroup_path}/cpu.stat - CPU usage statistics in microseconds
+   * - {cgroup_path}/memory.events - memory events including OOM kills
+   * - {cgroup_path}/cpu.max - CPU limits in "quota period" format
+   * - {cgroup_path}/memory.max - memory limit in bytes or "max"
+   *
+   * Memory stat mapping from v2 to v1 equivalent:
+   * - anon: Anonymous memory (private memory, roughly equivalent to v1 total_rss)
+   * - file: Page cache memory (file-backed memory)
+   * - kernel: Kernel memory usage
+   * - slab: Kernel slab memory (reclaimable + unreclaimable)
+   * - total_cache equivalent: file + slab (approximates v1 cached memory)
+   *
+   * ## Testing different cgroup environments
+   *
+   * ### Container with limits (CoCalc production scenario):
+   * ```bash
+   * # Test memory and CPU limits
+   * docker run --rm --memory=512m --cpus=0.5 ubuntu:24.04 sh -c "
+   *   cat /proc/self/cgroup                 # Shows: 0::/
+   *   cat /sys/fs/cgroup/memory.max         # Shows: 536870912 (512MB in bytes)
+   *   cat /sys/fs/cgroup/cpu.max            # Shows: 50000 100000 (0.5 cores)
+   *   cat /sys/fs/cgroup/memory.events      # Shows: low 0, high 0, max 0, oom 0, oom_kill 0, oom_group_kill 0
+   * "
+   * ```
+   *
+   * ### Container without limits:
+   * ```bash
+   * docker run --rm ubuntu:24.04 sh -c "
+   *   cat /proc/self/cgroup                 # Shows: 0::/
+   *   cat /sys/fs/cgroup/memory.max         # Shows: max
+   *   cat /sys/fs/cgroup/cpu.max            # Shows: max 100000
+   * "
+   * ```
+   *
+   * ### Host system (development environment):
+   * ```bash
+   * cat /proc/self/cgroup                   # Shows: 0::/user.slice/user-1000.slice/...
+   * # Files exist in /sys/fs/cgroup/user.slice/... but typically show unlimited values
+   * # System fallback examples:
+   * cat /proc/meminfo | head -1             # MemTotal: 32585044 kB
+   * grep -c "^processor" /proc/cpuinfo      # 8 (CPU cores)
+   * ```
+   *
+   * Expected file formats:
+   * - memory.max: "536870912" (bytes) or "max" (unlimited)
+   * - cpu.max: "50000 100000" (quota period) or "max 100000" (unlimited)
+   * - memory.events: "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0"
+   * - cpu.stat: "usage_usec 1234567\n..." (usage in microseconds)
+   * - memory.stat: "anon 12345\nfile 67890\nkernel 111\nslab 222\n..." (values in bytes)
+   */
+  private async cgroupV2({ timestamp }): Promise<CGroup | undefined> {
+    if (this.cgroupFilesAreMissing) {
+      return;
+    }
+    try {
+      const cgroupPath = await this.getCgroupV2Path();
+
+      const [
+        mem_stat_raw,
+        cpu_stat_raw,
+        mem_events_raw,
+        cpu_max_raw,
+        mem_max_raw,
+      ] = await Promise.all([
+        safeReadFile(`${cgroupPath}/memory.stat`),
+        safeReadFile(`${cgroupPath}/cpu.stat`),
+        safeReadFile(`${cgroupPath}/memory.events`),
+        safeReadFile(`${cgroupPath}/cpu.max`),
+        safeReadFile(`${cgroupPath}/memory.max`),
+      ]);
+
+      // Parse memory.stat - extract key memory statistics
+      // These keys provide the most relevant memory usage information
+      const mem_stat_keys = ["anon", "file", "kernel", "slab"];
+      const mem_stat = mem_stat_raw
+        ? mem_stat_raw
+            .split("\n")
+            .map((line) => line.split(" "))
+            .filter(([k, _]) => mem_stat_keys.includes(k))
+            .reduce((stat, [key, val]) => {
+              stat[key] = bytes2MiB(parseInt(val));
+              return stat;
+            }, {})
+        : {};
+
+      // For compatibility with v1 interface, map v2 stats to v1 equivalents:
+      // - total_rss: Anonymous memory (private/process memory)
+      mem_stat["total_rss"] = mem_stat["anon"] || 0;
+      // - total_cache: File cache + kernel slab memory (shared/cached memory)
+      mem_stat["total_cache"] =
+        (mem_stat["file"] || 0) + (mem_stat["slab"] || 0);
+
+      // - hierarchical_memory_limit: Memory limit from memory.max, with system fallback
+      const mem_max_value = mem_max_raw?.trim();
+      if (mem_max_value === "max" || !mem_max_value) {
+        // Use system total memory as fallback when cgroup limit is unlimited
+        mem_stat["hierarchical_memory_limit"] =
+          await this.getSystemTotalMemory();
+      } else {
+        mem_stat["hierarchical_memory_limit"] = bytes2MiB(
+          parseInt(mem_max_value),
+        );
+      }
+
+      // Parse cpu.stat - extract CPU usage in microseconds, convert to seconds
+      // v2 provides usage_usec (microseconds) vs v1 which provides nanoseconds
+      const cpu_usage_match = cpu_stat_raw?.match(/usage_usec (\d+)/);
+      const cpu_usage = cpu_usage_match
+        ? parseFloat(cpu_usage_match[1]) / 1000000
+        : 0;
+
+      // Calculate CPU usage rate
+      const dt = this.dt(timestamp);
+      const cpu_usage_rate =
+        this.last?.cgroup != null
+          ? (cpu_usage - this.last.cgroup.cpu_usage) / dt
+          : 0;
+
+      // Parse memory.events for OOM kills
+      const oom_kill_match = mem_events_raw?.match(/oom_kill (\d+)/);
+      const oom_kills = oom_kill_match ? parseInt(oom_kill_match[1]) : 0;
+
+      // Parse cpu.max for CPU limit, with system fallback
+      // v2 format: "quota period" (e.g., "50000 100000" = 0.5 cores) or "max" for unlimited
+      // v1 uses separate files: cpu.cfs_quota_us and cpu.cfs_period_us
+      const cpu_max_parts = cpu_max_raw?.trim().split(" ");
+      let cpu_cores_limit = -1; // -1 indicates unlimited
+      if (
+        cpu_max_parts &&
+        cpu_max_parts[0] !== "max" &&
+        cpu_max_parts.length >= 2
+      ) {
+        const quota = parseInt(cpu_max_parts[0]);
+        const period = parseInt(cpu_max_parts[1]);
+        cpu_cores_limit = quota / period;
+      } else {
+        // Use system CPU core count as fallback when cgroup limit is unlimited
+        cpu_cores_limit = await this.getSystemCpuCores();
+      }
+
+      return {
+        mem_stat,
+        cpu_usage,
+        cpu_usage_rate,
+        cpu_cores_limit,
+        oom_kills,
+      };
+    } catch (err) {
+      this.dbg("cgroupV2: error", err);
+      if (err.code == "ENOENT") {
+        // Mark files as missing to avoid repeated failed attempts
+        this.cgroupFilesAreMissing = true;
+        this.dbg(
+          "cgroupV2: files are missing so cgroups info will no longer be updated",
         );
       }
       return undefined;
@@ -290,36 +505,32 @@ export class ProjectInfoServer extends EventEmitter {
       df("/tmp"),
       df(process.env.HOME ?? "/home/user"),
     ]);
-    return { tmp: convert(tmp), project: convert(project) };
-  }
 
-  // this grabs some kernel configuration values we need. they won't change
-  private async init(): Promise<void> {
-    if (this.ticks == null) {
-      const [p_ticks, p_pagesize] = await Promise.all([
-        exec("getconf CLK_TCK"),
-        exec("getconf PAGESIZE"),
-      ]);
-      // should be 100, usually
-      this.ticks = parseInt(p_ticks.stdout.trim());
-      // 4096?
-      this.pagesize = parseInt(p_pagesize.stdout.trim());
+    const tmpData = convert(tmp);
+
+    // If /tmp is not tmpfs (memory-based), don't count its disk usage toward memory
+    // since cgroup_stats adds disk_usage.tmp.usage to memory calculations
+    if (this.tmpIsMemoryBased === false) {
+      tmpData.usage = 0;
     }
+
+    return { tmp: tmpData, project: convert(project) };
   }
 
   // orchestrating where all the information is bundled up for an update
   private async get_info(): Promise<ProjectInfo | undefined> {
     try {
-      const [uptime, boottime] = await this.uptime();
-      const timestamp = new Date().getTime();
+      const timestamp = Date.now();
       const [processes, cgroup, disk_usage] = await Promise.all([
-        this.processes({ uptime, timestamp }),
+        this.processes(timestamp),
         this.cgroup({ timestamp }),
         this.disk_usage(),
       ]);
+      const { procs, boottime, uptime } = processes;
+      await this.lookupCoCalcInfo(procs);
       const info: ProjectInfo = {
         timestamp,
-        processes,
+        processes: procs,
         uptime,
         boottime,
         cgroup,
@@ -335,6 +546,10 @@ export class ProjectInfoServer extends EventEmitter {
     this.running = false;
   }
 
+  close = () => {
+    this.stop();
+  };
+
   public async start(): Promise<void> {
     if (this.running) {
       this.dbg("project-info/server: already running, cannot be started twice");
@@ -348,8 +563,15 @@ export class ProjectInfoServer extends EventEmitter {
     if (this.running) {
       throw Error("Cannot start ProjectInfoServer twice");
     }
+
+    // Initialize tmpfs detection once at startup
+    this.tmpIsMemoryBased = await isTmpMemoryBased();
     this.running = true;
-    await this.init();
+    this.processStats = ProcessStats.getInstance();
+    if (this.testing) {
+      this.processStats.setTesting(true);
+    }
+    await this.processStats.init();
     while (true) {
       //this.dbg(`listeners on 'info': ${this.listenerCount("info")}`);
       const info = await this.get_info();

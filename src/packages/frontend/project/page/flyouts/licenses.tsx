@@ -1,14 +1,16 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+import { FormattedMessage } from "react-intl";
 
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Loading, Paragraph } from "@cocalc/frontend/components";
+import { SandboxProjectSettingsWarning } from "@cocalc/frontend/project/settings/settings";
 import { UpgradeUsage } from "@cocalc/frontend/project/settings/upgrade-usage";
-import { SandboxProjectSettingsWarning } from "../../settings/settings";
-import { useProject } from "../common";
 import Purchases from "@cocalc/frontend/purchases/purchases";
+import { useProject } from "../common";
 
 interface ProjectUpgradesProps {
   project_id: string;
@@ -18,7 +20,7 @@ interface ProjectUpgradesProps {
 export function ProjectUpgradesFlyout({
   project_id,
   wrap,
-}: ProjectUpgradesProps): JSX.Element {
+}: ProjectUpgradesProps): React.JSX.Element {
   const { project, group } = useProject(project_id);
 
   // TODO this duplicates a lot with settings/body.tsx → make this one or more hooks
@@ -46,10 +48,10 @@ export function ProjectUpgradesFlyout({
 
   const all_projects_have_been_loaded = useTypedRedux(
     "projects",
-    "all_projects_have_been_loaded"
+    "all_projects_have_been_loaded",
   );
 
-  function renderUsage(): JSX.Element {
+  function renderUsage(): React.JSX.Element {
     if (project == null) {
       return <Loading theme="medium" transparent />;
     }
@@ -73,7 +75,7 @@ export function ProjectUpgradesFlyout({
           mode="flyout"
         />
         <Purchases project_id={project_id} group={true} />
-      </div>
+      </div>,
     );
   }
 
@@ -83,10 +85,19 @@ export function ProjectUpgradesFlyout({
 
   return (
     <>
-      <Paragraph ellipsis={{ expandable: true, rows: 1, symbol: "more" }}>
-        This project is using the following resource quotas when running. You
-        can add more resources by adding licenses or applying upgrades.
-      </Paragraph>
+      <FormattedMessage
+        id="page.flyouts.licenses.upgrades_explanation"
+        defaultMessage={
+          "<p>This project is using the following resource quotas when running. You can add more resources by adding licenses or applying upgrades.</p>"
+        }
+        values={{
+          p: (ch) => (
+            <Paragraph ellipsis={{ expandable: true, rows: 1, symbol: "more" }}>
+              {ch}
+            </Paragraph>
+          ),
+        }}
+      />
       {renderUsage()}
     </>
   );

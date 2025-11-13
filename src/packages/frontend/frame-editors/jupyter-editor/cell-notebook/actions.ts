@@ -1,20 +1,22 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { delay } from "awaiting";
 import { Set } from "immutable";
 import { isEqual } from "lodash";
-import { delay } from "awaiting";
+
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
-import { move_selected_cells } from "@cocalc/jupyter/util/cell-utils";
 import {
   CommandDescription,
   commands,
 } from "@cocalc/frontend/jupyter/commands";
 import { create_key_handler } from "@cocalc/frontend/jupyter/keyboard";
-import { Cell, CellType, Scroll } from "@cocalc/jupyter/types";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
+import { Cell, Scroll } from "@cocalc/jupyter/types";
+import { move_selected_cells } from "@cocalc/jupyter/util/cell-utils";
+import { CellType } from "@cocalc/util/jupyter/types";
 import {
   bind_methods,
   close,
@@ -43,7 +45,7 @@ declare let DEBUG: boolean;
 export class NotebookFrameActions {
   private _is_closed: boolean = false;
   private frame_tree_actions: JupyterEditorActions;
-  private jupyter_actions: JupyterActions;
+  public jupyter_actions: JupyterActions;
   private key_handler?: (e: any) => void;
   private input_editors: { [id: string]: EditorFunctions } = {};
   private scroll_before_change?: number;
@@ -68,16 +70,20 @@ export class NotebookFrameActions {
     this.frame_id = frame_id;
     this.store = new NotebookFrameStore(frame_tree_actions, frame_id);
 
-    this.jupyter_actions.store.on("cell-list-recompute", this.update_cur_id);
+    // in prod, I observed "actions.ts:72 Uncaught (in promise)
+    // TypeError: Cannot read properties of undefined (reading 'store')"
+    // as a side effect of a problem loading TimeTravel history.
+    // Better to at least not crash:
+    this.jupyter_actions?.store.on("cell-list-recompute", this.update_cur_id);
 
     this.update_cur_id();
     this.init_syncdb_change_hook();
 
-    this.commands = commands(
-      this.jupyter_actions,
-      { current: this },
-      this.frame_tree_actions,
-    );
+    this.commands = commands({
+      jupyter_actions: this.jupyter_actions,
+      frame_actions: this,
+      editor_actions: this.frame_tree_actions,
+    });
 
     this.setState({ scroll: "", scroll_seq: -1 });
   }
@@ -209,7 +215,7 @@ export class NotebookFrameActions {
   }
 
   /***
-   * Debugging related functioanlity
+   * Debugging related functionality
    ***/
 
   private dbg(f: string, ...args): void {
@@ -276,7 +282,7 @@ export class NotebookFrameActions {
   }
 
   /* Run the selected cells; triggered by either clicking the play button or
-     press shift+enter.  Note that this has weird and inconsitent
+     press shift+enter.  Note that this has weird and inconsistent
      behavior in official Jupyter for usability reasons and due to
      their "modal" approach.
      In particular, if the selections goes to the end of the document, we
@@ -295,6 +301,21 @@ export class NotebookFrameActions {
 
     const cell_list = this.jupyter_actions.store.get_cell_list();
     if (cell_list.get(cell_list.size - 1) === last_id) {
+      const new_id = this.insert_cell(1);
+      this.set_cur_id(new_id);
+      this.set_mode("edit");
+    } else {
+      this.set_mode("escape");
+      this.move_cursor(1);
+    }
+  }
+
+  public shift_enter_run_current_cell(): void {
+    this.save_input_editor();
+    const cur_id = this.store.get("cur_id");
+    this.run_cell(cur_id);
+    const cell_list = this.jupyter_actions.store.get_cell_list();
+    if (cell_list.get(cell_list.size - 1) === cur_id) {
       const new_id = this.insert_cell(1);
       this.set_cur_id(new_id);
       this.set_mode("edit");
@@ -341,6 +362,9 @@ export class NotebookFrameActions {
    ***/
 
   set_mode(mode: "escape" | "edit"): void {
+    if (this.jupyter_actions.store.get("read_only") && mode == "edit") {
+      return;
+    }
     if (mode == "edit") {
       // If we're changing to edit mode and current cell is a markdown
       // cell, switch it to the codemirror editor view.
@@ -398,8 +422,7 @@ export class NotebookFrameActions {
       undefined,
       false,
     );
-    let md_edit_ids = this.store.get("md_edit_ids");
-    if (md_edit_ids == null) md_edit_ids = Set();
+    const md_edit_ids = this.store.get("md_edit_ids", Set());
     if (md_edit_ids.contains(id)) {
       return;
     }
@@ -460,31 +483,40 @@ export class NotebookFrameActions {
     return cells.get(id);
   }
 
-  getPreviousCodeCellID(id: string, delta = -1): string | undefined {
-    while (true) {
-      const prevID = this.jupyter_actions.store.get_cell_id(delta, id);
-      if (prevID == null) return;
-      const prevCell = this.get_cell_by_id(prevID);
-      if (prevCell == null) return;
-      if (prevCell.get("cell_type", "code") === "code") {
-        return prevID;
-      } else {
-        delta = delta - 1;
-      }
-    }
-  }
-
   public switch_md_cell_to_edit(id: string): void {
     const cell = this.get_cell_by_id(id);
     if (cell == null) return;
 
-    if (cell.getIn(["metadata", "editable"]) === false) {
+    if (!this.jupyter_actions.store.is_cell_editable(id)) {
       // TODO: NEVER ever silently fail!
       return;
     }
     this.set_md_cell_editing(id);
     this.set_cur_id(id);
     this.set_mode("edit");
+  }
+
+  public cell_md_is_editing(id): boolean {
+    const md_edit_ids = this.store.get("md_edit_ids", Set());
+    return md_edit_ids.contains(id);
+  }
+
+  public toggle_md_cell_edit(id: string): void {
+    const cell = this.get_cell_by_id(id);
+    if (cell == null) return;
+    if (!this.jupyter_actions.store.is_cell_editable(id)) {
+      // TODO: NEVER ever silently fail!
+      return;
+    }
+
+    if (this.cell_md_is_editing(id)) {
+      this.set_md_cell_not_editing(id);
+      this.set_mode("escape");
+    } else {
+      this.switch_md_cell_to_edit(id);
+      this.set_mode("edit");
+    }
+    this.set_cur_id(id);
   }
 
   public switch_code_cell_to_edit(id: string): void {
@@ -584,11 +616,21 @@ export class NotebookFrameActions {
     this.setState({ sel_ids: sel_ids.add(id) });
   }
 
-  public select_all_cells(): void {
-    this.setState({
-      sel_ids: this.jupyter_actions.store.get_cell_list().toSet(),
-    });
-  }
+  // select all cells, possibly of a given type.
+  select_all_cells = (cell_type?: CellType) => {
+    let sel_ids;
+    if (cell_type) {
+      sel_ids =
+        this.jupyter_actions.store
+          .get("cells")
+          ?.filter((x) => x.get("cell_type", "code") == cell_type)
+          .keySeq()
+          .toJS() ?? [];
+    } else {
+      sel_ids = this.jupyter_actions.store.get_cell_list().toSet();
+    }
+    this.setState({ sel_ids });
+  };
 
   /***
    * Cursor movement, which here means "the selected cell",
@@ -784,7 +826,7 @@ export class NotebookFrameActions {
   }
 
   public set_error(error: string): void {
-    this.frame_tree_actions.set_error(error, undefined, this.frame_id);
+    this.frame_tree_actions.set_error(error);
   }
 
   public async command(name: string): Promise<void> {
@@ -827,6 +869,9 @@ export class NotebookFrameActions {
       }
     }
     this.jupyter_actions._sync();
+    setTimeout(() => {
+      this.scroll("cell visible");
+    }, 0);
   }
 
   public toggle_source_hidden(): void {
@@ -869,6 +914,16 @@ export class NotebookFrameActions {
     const cell_ids = this.store.get_selected_cell_ids_list();
     this.jupyter_actions.toggle_write_protection_on_cells(cell_ids);
   }
+
+  write_protect_selected_cells = (value: boolean = true) => {
+    const cell_ids = this.store.get_selected_cell_ids_list();
+    this.jupyter_actions.write_protect_cells(cell_ids, value);
+  };
+
+  delete_protect_selected_cells = (value: boolean = true) => {
+    const cell_ids = this.store.get_selected_cell_ids_list();
+    this.jupyter_actions.delete_protect_cells(cell_ids, value);
+  };
 
   public toggle_delete_protection_on_selected_cells(): void {
     const cell_ids = this.store.get_selected_cell_ids_list();
@@ -970,15 +1025,6 @@ export class NotebookFrameActions {
     }
   }
 
-  public insert_image(): void {
-    const cur_id = this.store.get("cur_id");
-    if (this.jupyter_actions.store.get_cell_type(cur_id) === "markdown") {
-      this.jupyter_actions.insert_image(cur_id); // causes a modal dialog to appear.
-    } else {
-      throw Error(`insert_image -- cell must be a markdown cell`);
-    }
-  }
-
   public toggle_selected_outputs(property: "collapsed" | "scrolled"): void {
     this.jupyter_actions.toggle_outputs(
       this.store.get_selected_cell_ids_list(),
@@ -1036,4 +1082,95 @@ export class NotebookFrameActions {
     });
     this.scroll("cell visible");
   }
+
+  setScrolled = ({ all, scrolled }: { all: boolean; scrolled: boolean }) => {
+    const ids = all
+      ? this.jupyter_actions.store.get_cell_list().toJS()
+      : Object.keys(this.store.get_selected_cell_ids());
+    const cells = this.jupyter_actions.store.get("cells");
+    for (const id of ids) {
+      const cell = cells.get(id);
+      if (cell?.get("cell_type", "code") == "code") {
+        this.jupyter_actions._set(
+          {
+            type: "cell",
+            id,
+            scrolled,
+          },
+          false,
+        );
+      }
+    }
+    this.jupyter_actions.syncdb.commit();
+  };
+
+  setExpandCollapse = ({
+    target,
+    expanded,
+    all,
+  }: {
+    target: "source" | "outputs";
+    expanded?: boolean;
+    all?: boolean; // true = everything; false = selected
+  }) => {
+    const ids = all
+      ? this.jupyter_actions.store.get_cell_list().toJS()
+      : Object.keys(this.store.get_selected_cell_ids());
+
+    for (const id of ids) {
+      this.jupyter_actions.set_jupyter_metadata(
+        id,
+        `${target}_hidden`,
+        !expanded,
+        false,
+      );
+    }
+    this.jupyter_actions.syncdb.commit();
+  };
+
+  private focusFirstChangedCell = (before) => {
+    const store = this.jupyter_actions.store;
+    const after = store.get("cells");
+    const ids = store.get_cell_list();
+    const id = firstChangedCell({ before, after, ids });
+    if (id) {
+      this.set_cur_id(id);
+      this.scroll("cell visible");
+      setTimeout(() => this.scroll("cell visible"), 1);
+    }
+  };
+
+  undo = () => {
+    const before = this.jupyter_actions.store.get("cells");
+    this.jupyter_actions.syncdb.undo();
+    setTimeout(() => this.focusFirstChangedCell(before), 1);
+  };
+
+  redo = () => {
+    const before = this.jupyter_actions.store.get("cells");
+    this.jupyter_actions.syncdb.redo();
+    setTimeout(() => this.focusFirstChangedCell(before), 1);
+  };
+}
+
+// This function returns the id of the first (minimal position)
+// cell that changed going from before to after, or
+// null if no cells changed.  An annoying subtlety is that if
+// you reorder cells then *all* positions may change (to keep them
+// separated and sane) and then all cells are different.  It's
+// an edge case, and handling it in a more expected way would be much
+// more difficult and slower, so we don't.
+function firstChangedCell({ before, after, ids }): string | null {
+  // before and after are immutablejs cells maps, from
+  // cell id to cell description.
+  if (before.equals(after)) {
+    // obviously, nothing changed.
+    return null;
+  }
+  for (const id of ids) {
+    if (!before.get(id)?.equals(after.get(id))) {
+      return id;
+    }
+  }
+  return null;
 }

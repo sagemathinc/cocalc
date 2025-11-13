@@ -1,9 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /**
+
+pnpm test hook.test.ts 
+
  * This tests the core of ./hook.ts
  * It's not using it directly, though, because of the complex dependency of the database.
  * The main purpose of this test is to simulate what happens, if first a partial set of licenses,
@@ -70,13 +73,14 @@ test("allow for much larger max_upgrades", () => {
     {},
     { userX: {} },
     { a: site_licenses.a },
-    site_settings
+    site_settings,
   );
   expect(q1).toEqual({
     quota: {
       network: true,
       member_host: false,
       privileged: false,
+      gpu: false,
       memory_request: 1000,
       cpu_request: 0.1,
       disk_quota: 3000,
@@ -94,7 +98,7 @@ test("allow for much larger max_upgrades", () => {
     {},
     { userX: {} },
     site_licenses,
-    site_settings
+    site_settings,
   );
   expect(q2).toEqual({
     quota: {
@@ -110,6 +114,7 @@ test("allow for much larger max_upgrades", () => {
       memory_request: 1000,
       network: true,
       privileged: false,
+      gpu: false,
     },
     reasons: {},
   });
@@ -155,13 +160,14 @@ test("two licenses", () => {
     {},
     { userX: {} },
     { a: site_licenses.a },
-    site_settings
+    site_settings,
   );
   expect(q1).toEqual({
     quota: {
       network: true,
       member_host: false,
       privileged: false,
+      gpu: false,
       memory_request: 1000,
       cpu_request: 0.05,
       disk_quota: 3000,
@@ -179,13 +185,14 @@ test("two licenses", () => {
     {},
     { userX: {} },
     site_licenses,
-    site_settings
+    site_settings,
   );
   expect(q1).toEqual({
     quota: {
       network: true,
       member_host: false,
       privileged: false,
+      gpu: false,
       memory_request: 1000,
       cpu_request: 0.05,
       disk_quota: 3000,
@@ -213,6 +220,7 @@ test("two licenses", () => {
       memory_request: 1000,
       network: true,
       privileged: false,
+      gpu: false,
     },
     reasons: {},
   });
@@ -311,7 +319,7 @@ test("two licenses", () => {
 //         memory_limit: 1000,
 //         memory_request: 200,
 //         network: false,
-//         privileged: false,
+//            privileged: false,gpu:false,
 //       },
 //       reasons: {},
 //     });

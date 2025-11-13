@@ -15,23 +15,11 @@ const cacheDirectory = join(
   resolve("."),
 );
 
-const removeImports = require("next-remove-imports")();
-
-module.exports = removeImports({
+const config = {
   basePath,
-  swcMinify: true, //  enable faster RUST-based minifier
   env: { BASE_PATH },
-  reactStrictMode: false, // See https://github.com/ant-design/ant-design/issues/26136
   eslint: { ignoreDuringBuilds: true },
-  // typescript: { ignoreBuildErrors: true },
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    config.cache = {
-      type: "filesystem",
-      buildDependencies: {
-        config: [__filename],
-      },
-      cacheDirectory,
-    };
     // Webpack breaks without this pg-native alias, even though it's dead code,
     // due to how the pg module does package detection internally.
     config.resolve.alias["pg-native"] = ".";
@@ -43,31 +31,11 @@ module.exports = removeImports({
       "node_modules",
       "react-dom",
     );
-    config.ignoreWarnings = [
-      // This yargs warning is caused by node-zendesk in the @cocalc/server package
-      // being a generally bad citizen.  Things seem to work fine (we barely use the
-      // zendesk api anyways).
-      { module: /^\.\.\/server\/node_modules\/yargs.*/ },
-    ];
-
+    config.devServer = {
+      hot: true,
+    };
     // Important: return the modified config
     return config;
-  },
-  // This is because the debug module color support would otherwise log this warning constantly:
-  // Module not found: ESM packages (supports-color) need to be imported. Use 'import' to
-  // reference the package instead. https://nextjs.org/docs/messages/import-esm-externals
-  experimental: {
-    esmExternals: "loose",
-    // We raise largePageDataBytes since this was recently added, and breaks a lot of SSR rendering
-    // for cocalc share server.  By default this is 128 * 1000 = "128KB", and we are changing it to
-    // 128 * 1000 * 15 = "1MB" for now.  TODO: Obviously, it would be nice to fix the root causes of this
-    // being too big, but that's for another day, since our production website is broken right now.
-    largePageDataBytes: 128 * 1000 * 10,
-    // If you click the back button in the browser, it should go back to the previous page and restore the scroll position.
-    // With Next.js in the loop, this doesn't happen by default.
-    // besides the ticket about this, here is a blogpost about this
-    // https://www.joshwcomeau.com/react/nextjs-scroll-restoration/
-    scrollRestoration: true,
   },
   // For i18n, see https://nextjs.org/docs/advanced-features/i18n-routing
   // We are doing this at all since it improves our Lighthouse accessibility score.
@@ -75,5 +43,16 @@ module.exports = removeImports({
     locales: ["en-US"],
     defaultLocale: "en-US",
   },
-  poweredByHeader: false, // https://github.com/sagemathinc/cocalc/issues/6101
-});
+  poweredByHeader: false,
+};
+
+const withRspack = require("next-rspack");
+// use NO_RSPACK to build without RSPACK.  This is useful on a machine with a lot
+// of RAM (and patience) since it supports hot module reloading (so you don't have
+// to refresh after making changes).
+
+if (process.env.NO_RSPACK) {
+  module.exports = config;
+} else {
+  module.exports = withRspack(config);
+}

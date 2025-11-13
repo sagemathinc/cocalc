@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Tooltip } from "antd";
@@ -9,7 +9,7 @@ import { CSS } from "@cocalc/frontend/app-framework";
 
 interface Props {
   path: string;
-  display?: string | JSX.Element;
+  display?: string | React.JSX.Element;
   on_click: (path: string) => void;
   full_name?: string;
   history?: boolean;
@@ -20,7 +20,7 @@ interface Props {
 
 export interface PathSegmentItem {
   key: number;
-  title: JSX.Element | string | undefined;
+  title: React.JSX.Element | string | undefined;
   onClick: () => void;
   className: string;
   style?: CSS;
@@ -39,7 +39,7 @@ export function createPathSegmentLink(props: Readonly<Props>): PathSegmentItem {
     style,
   } = props;
 
-  function render_content(): JSX.Element | string | undefined {
+  function render_content(): React.JSX.Element | string | undefined {
     if (full_name && full_name !== display) {
       return (
         <Tooltip title={full_name} placement="bottom">

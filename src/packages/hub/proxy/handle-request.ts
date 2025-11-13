@@ -1,14 +1,17 @@
 /* Handle a proxy request */
 
-import { createProxyServer } from "http-proxy";
+import { createProxyServer, type ProxyServer } from "http-proxy-3";
 import LRU from "lru-cache";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
 import { versionCheckFails } from "./version";
-import { getTarget, invalidateTargetCache } from "./target";
+import { getTarget } from "./target";
 import getLogger from "../logger";
 import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import siteUrl from "@cocalc/database/settings/site-url";
+import { parseReq } from "./parse";
+import hasAccess from "./check-for-access-to-project";
+import { handleFileDownload } from "./file-download";
 
 const logger = getLogger("proxy:handle-request");
 
@@ -28,14 +31,9 @@ export default function init({ projectControl, isPersonal }: Options) {
    a permissions and security point of view.
 */
 
-  const cache = new LRU({
+  const cache = new LRU<string, ProxyServer>({
     max: 5000,
     ttl: 1000 * 60 * 3,
-    dispose: (proxy) => {
-      // important to close the proxy whenever it gets removed
-      // from the cache, to avoid wasting resources.
-      (proxy as any)?.close();
-    },
   });
 
   async function handleProxyRequest(req, res): Promise<void> {
@@ -44,7 +42,8 @@ export default function init({ projectControl, isPersonal }: Options) {
       logger.silly(req.url, ...args);
     };
     dbg("got request");
-    dbg("headers = ", req.headers);
+    // dangerous/verbose to log...?
+    // dbg("headers = ", req.headers);
 
     if (!isPersonal && versionCheckFails(req, res)) {
       dbg("version check failed");
@@ -60,7 +59,7 @@ export default function init({ projectControl, isPersonal }: Options) {
     if (req.headers["cookie"] != null) {
       let cookie;
       ({ cookie, remember_me, api_key } = stripRememberMeCookie(
-        req.headers["cookie"]
+        req.headers["cookie"],
       ));
       req.headers["cookie"] = cookie;
     }
@@ -71,17 +70,37 @@ export default function init({ projectControl, isPersonal }: Options) {
       // definitely block access.  4xx since this is a *client* problem.
       const url = await siteUrl();
       throw Error(
-        `Please login to <a target='_blank' href='${url}'>${url}</a> with cookies enabled, then refresh this page.`
+        `Please login to <a target='_blank' href='${url}'>${url}</a> with cookies enabled, then refresh this page.`,
       );
     }
 
     const url = stripBasePath(req.url);
+    const parsed = parseReq(url, remember_me, api_key);
+    // TODO: parseReq is called again in getTarget so need to refactor...
+    const { type, project_id } = parsed;
+    if (type == "files") {
+      if (
+        !(await hasAccess({
+          project_id,
+          remember_me,
+          api_key,
+          type: "read",
+          isPersonal,
+        }))
+      ) {
+        throw Error(`user does not have read access to project`);
+      }
+      await handleFileDownload(req, res, url, project_id);
+      return;
+    }
+
     const { host, port, internal_url } = await getTarget({
       remember_me,
       api_key,
       url,
       isPersonal,
       projectControl,
+      parsed,
     });
 
     // It's http here because we've already got past the ssl layer.  This is all internal.
@@ -94,28 +113,18 @@ export default function init({ projectControl, isPersonal }: Options) {
       dbg("using cached proxy");
       proxy = cache.get(target);
     } else {
-      dbg("make a new proxy server to", target);
+      logger.debug("make a new proxy server to", target);
       proxy = createProxyServer({
         ws: false,
         target,
-        timeout: 60000,
       });
       // and cache it.
       cache.set(target, proxy);
-      dbg("created new proxy");
-      // setup error handler, so that if something goes wrong with this proxy (it will,
-      // e.g., on project restart), we properly invalidate it.
-      const remove_from_cache = () => {
-        cache.delete(target); // this also closes the proxy.
-        invalidateTargetCache(remember_me, url);
-      };
+      logger.debug("created new proxy");
 
-      proxy.on("error", (e) => {
-        dbg("http proxy error event (ending proxy)", e);
-        remove_from_cache();
+      proxy.on("error", (err) => {
+        logger.debug(`http proxy error -- ${err}`);
       });
-
-      proxy.on("close", remove_from_cache);
     }
 
     if (internal_url != null) {
@@ -131,8 +140,14 @@ export default function init({ projectControl, isPersonal }: Options) {
       await handleProxyRequest(req, res);
     } catch (err) {
       const msg = `WARNING: error proxying request ${req.url} -- ${err}`;
-      res.writeHead(426, { "Content-Type": "text/html" });
-      res.end(msg);
+      try {
+        // this will fail if handleProxyRequest already wrote a header, so we
+        // try/catch it.
+        res.writeHead(500, { "Content-Type": "text/html" });
+      } catch {}
+      try {
+        res.end(msg);
+      } catch {}
       // Not something to log as an error -- just debug; it's normal for it to happen, e.g., when
       // a project isn't running.
       logger.debug(msg);

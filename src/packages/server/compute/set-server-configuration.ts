@@ -24,11 +24,16 @@ import { getServer } from "./get-servers";
 import updatePurchase from "./update-purchase";
 import { isDnsAvailable } from "./dns";
 import { setConfiguration } from "./util";
+import {
+  validatedHealthCheck,
+  validatedSpendLimit,
+  validatedShutdownTime,
+} from "@cocalc/util/db-schema/compute-servers";
 
 export default async function setServerConfiguration({
   account_id,
   id,
-  configuration, // really the partial of changes
+  configuration, // the partial of configuration changes
 }: {
   account_id: string;
   id: number;
@@ -53,8 +58,33 @@ export default async function setServerConfiguration({
     // changing dns to be nontrivial, so need to check it doesn't equal any *other* dns
     // We just do linear scan through db for now.
     if (!(await isDnsAvailable(configuration.dns))) {
-      throw Error(`Subdomain '${configuration.dns}' is not available.`);
+      throw Error(
+        `Subdomain '${configuration.dns}' is not available.    Please change 'DNS: Custom Subdomain' and select a different subdomain.`,
+      );
     }
+  }
+  if (configuration.spendLimit != null) {
+    // ensure the spendLimit is formatted in a valid way
+    configuration = {
+      ...configuration,
+      spendLimit: validatedSpendLimit(configuration.spendLimit),
+    };
+  }
+
+  if (configuration.healthCheck != null) {
+    // ensure the healthCheck is formatted in a valid way
+    configuration = {
+      ...configuration,
+      healthCheck: validatedHealthCheck(configuration.healthCheck),
+    };
+  }
+
+  if (configuration.shutdownTime != null) {
+    // ensure the shutdownTime is formatted in a valid way
+    configuration = {
+      ...configuration,
+      shutdownTime: validatedShutdownTime(configuration.shutdownTime),
+    };
   }
 
   await validateConfigurationChange({

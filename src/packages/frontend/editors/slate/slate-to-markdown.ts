@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 import { Node, Element, Text } from "slate";
 import { serializeLeaf } from "./leaf-to-markdown";
@@ -40,7 +40,7 @@ export function slate_to_markdown(
     noCache?: Set<number>;
   }
 ): string {
-  // const t = new Date().valueOf();
+  // const t = Date.now();
 
   let markdown = "";
   let references: References | undefined = undefined;
@@ -63,7 +63,7 @@ export function slate_to_markdown(
     });
   }
 
-  //console.log("time: slate_to_markdown ", new Date().valueOf() - t, "ms");
+  //console.log("time: slate_to_markdown ", Date.now() - t, "ms");
   //console.log("slate_to_markdown", { slate, markdown });
   return markdown;
 }

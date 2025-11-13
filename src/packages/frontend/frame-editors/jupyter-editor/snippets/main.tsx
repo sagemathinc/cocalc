@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // lazy loading the json file via webpack – using @types/webpack-env doesn't work
@@ -9,10 +9,11 @@ declare var require: {
   (paths: string[], callback: (...modules: any[]) => void): void;
   ensure: (
     paths: string[],
-    callback: (require: <T>(path: string) => T) => void
+    callback: (require: <T>(path: string) => T) => void,
   ) => void;
 };
 
+import { Map } from "immutable";
 import {
   CaretRightOutlined,
   LeftSquareOutlined,
@@ -65,7 +66,7 @@ const BUTTON_TEXT = "pick";
 const HEADER_SORTER = ([k, _]) =>
   -["Introduction", "Tutorial", "Help", CUSTOM_SNIPPETS_TITLE].indexOf(k);
 
-// will be set once in the require.ensure callback
+// will be set once in an await import below
 let hardcoded: any = {};
 
 async function loadData(project_actions, setData, setError, forced = false) {
@@ -78,36 +79,36 @@ async function loadData(project_actions, setData, setError, forced = false) {
     const custom = await loadCustomSnippets(
       project_actions.project_id,
       setError,
-      forced
+      forced,
     );
     setData(merge({}, hardcoded, custom));
   } else {
     setError(
-      "The command line JSON processor 'jq' is not installed in your project; you must install and possibly restart your project."
+      "The command line JSON processor 'jq' is not installed in your project; you must install and possibly restart your project.",
     );
   }
 }
 
 function useData(
   project_actions,
-  setError
+  setError,
 ): [
   { [lang: string]: Snippets | undefined } | undefined,
   Function,
   number,
-  boolean
+  boolean,
 ] {
   const [data, setData] = useState<{ [lang: string]: Snippets | undefined }>();
   const [reloadTS, setReloadTS] = useState<number>(Date.now());
   const [loading, setLoading] = useState<boolean>(false);
   if (data == null) {
-    require.ensure([], () => {
+    (async () => {
+      hardcoded = await import("@cocalc/assets/examples/examples.json");
       // this file is supposed to be in @cocalc/assets/examples/examples.json
       //     follow "./install.py examples" to see how the makefile is called during build
-      hardcoded = require("@cocalc/assets/examples/examples.json");
       setData(hardcoded); // call immediately to show default snippets quickly
       loadData(project_actions, setData, setError);
-    });
+    })();
   }
   // reload has "forced" set to true, which clears the cache
   const reload = async function () {
@@ -155,7 +156,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const [error, setError] = useState<string | null>(null);
   const [data, reload, reloadTS, reloading] = useData(
     project_actions,
-    setError
+    setError,
   );
 
   useEffect(() => {
@@ -184,7 +185,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       "jupyter_cell_notebook",
       "col",
       true,
-      0.7
+      0.7,
     );
     if (jid == null) {
       // this should never happen, since the above should always succeed
@@ -249,7 +250,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   function snippet(
     titleLevel3: string,
     doc: SnippetDoc[1],
-    data: SnippetEntry
+    data: SnippetEntry,
   ) {
     // if there is no code (empty string) → undefined
     // otherwise make sure this is string[]
@@ -293,7 +294,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   // this iterates over all subheaders to render each snippet
-  function level2([titleLevel2, data]): JSX.Element {
+  function level2([titleLevel2, data]): React.JSX.Element {
     // when searching, limit to the first 10 hits, otherwise all this might get too large
     const entries = search === "" ? data.entries : data.entries.slice(0, 10);
     const activeSearch =
@@ -322,8 +323,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   // for each section, iterate over all headers
   function level1([titleLevel1, entries]: [
     string,
-    SnippetEntries
-  ]): JSX.Element {
+    SnippetEntries,
+  ]): React.JSX.Element {
     const lvl2 = sortBy(Object.entries(entries), [
       ([_, v]) => v.sortweight,
       HEADER_SORTER,
@@ -348,7 +349,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         className="cc-jupyter-snippets"
         showArrow={activeSearch == null}
       >
-        <Collapse ghost={true} destroyInactivePanel {...activeSearch}>
+        <Collapse ghost={true} destroyOnHidden {...activeSearch}>
           {lvl2.map(level2)}
         </Collapse>
       </Collapse.Panel>
@@ -426,7 +427,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function noKernel(): JSX.Element {
+  function noKernel(): React.JSX.Element {
     return (
       <Alert
         message="No kernel"
@@ -436,7 +437,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function noSnippet(): JSX.Element {
+  function noSnippet(): React.JSX.Element {
     return (
       <Alert
         message="No Snippets"
@@ -451,7 +452,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function loading(): JSX.Element {
+  function loading(): React.JSX.Element {
     return (
       <div style={{ textAlign: "center", marginTop: "5rem" }}>
         <Loading />
@@ -459,7 +460,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function noSearchResult(): JSX.Element {
+  function noSearchResult(): React.JSX.Element {
     return (
       <Alert
         message="No search results"
@@ -477,7 +478,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   // memoizes the actually rendered snippet (depends only on a few details, in particular the search text)
-  const allSnippets = React.useCallback((): JSX.Element => {
+  const allSnippets = React.useCallback((): React.JSX.Element => {
     if (data == null) return loading();
     if (lang == null) return noKernel();
     if (snippets == null) return noSnippet();
@@ -525,17 +526,17 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   ]);
 
   // introduction at the top
-  function help(): JSX.Element {
+  function help(): React.JSX.Element {
     return (
       <Typography.Paragraph
         type="secondary"
         ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
       >
         <Typography.Text strong>Code Snippets</Typography.Text> is a collection
-        of examples for the current programming language. Go ahead and expand
-        the categories to see them and use the "{BUTTON_TEXT}" button to copy
-        the snippet into your notebook. If there is some text in the search box,
-        it shows you some of the matching snippets. Something missing? Please{" "}
+        of examples for the current programming language. Expand the categories
+        to see them and use the "{BUTTON_TEXT}" button to copy the snippet into
+        your notebook. If there is some text in the search box, it shows you
+        some of the matching snippets. Something missing? Please{" "}
         <A href={URL}>contribute snippets</A> or create your own personal
         "Custom Snippets" as described at the very bottom below.
       </Typography.Paragraph>
@@ -543,7 +544,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   }
 
   // search box and if user also wants to insert the setup cells
-  function controls(): JSX.Element {
+  function controls(): React.JSX.Element {
     const onChange = (e) => {
       const txt = e.target.value;
       setSearchText(txt);

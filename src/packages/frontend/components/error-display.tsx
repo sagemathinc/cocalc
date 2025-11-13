@@ -1,12 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React from "react";
-import * as misc from "@cocalc/util/misc";
-import { Icon } from "./index";
-import { Alert, Button } from "antd";
+import { Alert } from "antd";
 
 // use "style" to customize
 const ELEMENT_STYLE: React.CSSProperties = {
@@ -19,17 +16,9 @@ const BODY_STYLE: React.CSSProperties = {
   whiteSpace: "pre-wrap",
 } as const;
 
-const CLOSE_X: React.CSSProperties = {
-  float: "right",
-  position: "absolute",
-  top: "5px",
-  right: "10px",
-  zIndex: 1,
-} as const;
-
 interface Props {
   error?: string | object;
-  error_component?: JSX.Element | JSX.Element[];
+  error_component?: React.JSX.Element | React.JSX.Element[];
   title?: string;
   style?: React.CSSProperties;
   body_style?: React.CSSProperties;
@@ -39,30 +28,29 @@ interface Props {
   banner?: boolean;
 }
 
-export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
-  const {
-    error,
-    error_component,
-    title,
-    body_style,
-    componentStyle,
-    style,
-    bsStyle,
-    onClose,
-    banner = false,
-  } = props;
-
+export function ErrorDisplay({
+  error,
+  error_component,
+  title,
+  body_style,
+  componentStyle,
+  style,
+  bsStyle,
+  onClose,
+  banner = false,
+}: Props) {
   function render_title() {
     return <h4>{title}</h4>;
   }
 
   function render_error() {
-    if (error != undefined) {
-      if (typeof error === "string") {
-        return error;
-      } else {
-        return misc.to_json(error);
+    if (error) {
+      let e = typeof error == "string" ? error : `${error}`;
+      // common prefix with errors due to how they get constructed
+      while (e.startsWith("Error: Error")) {
+        e = e.slice("Error: ".length);
       }
+      return e;
     } else {
       return error_component;
     }
@@ -81,33 +69,14 @@ export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function msgdesc() {
-    if (title) {
-      return [
-        render_title(),
-        <div style={{ ...BODY_STYLE, ...body_style }}>{render_error()}</div>,
-      ];
-    } else {
-      return [
-        <div style={{ ...BODY_STYLE, ...body_style }}>{render_error()}</div>,
-        undefined,
-      ];
-    }
-  }
-
-  // must be rendered as the first child element!
-  function render_close() {
-    if (onClose == null || banner === false) return;
-    return (
-      <Button
-        style={CLOSE_X}
-        shape="circle"
-        size="small"
-        type="text"
-        onClick={onClose}
-      >
-        <Icon style={style} name="times" />
-      </Button>
+    const body = (
+      <div style={{ ...BODY_STYLE, ...body_style }}>{render_error()}</div>
     );
+    if (title) {
+      return [render_title(), body];
+    } else {
+      return [body, undefined];
+    }
   }
 
   function render_alert() {
@@ -117,22 +86,17 @@ export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
     return (
       <Alert
         banner={banner}
-        showIcon={false}
+        showIcon
         style={{ ...ELEMENT_STYLE, ...style }}
         type={type() as any}
         message={message}
         description={description}
+        onClose={onClose}
+        closable={onClose != null || banner}
         {...extra}
       />
     );
   }
 
-  const divprops = banner ? { className: "cc-error-display" } : undefined;
-
-  return (
-    <div {...divprops} style={componentStyle}>
-      {render_close()}
-      {render_alert()}
-    </div>
-  );
-});
+  return <div style={componentStyle}>{render_alert()}</div>;
+}

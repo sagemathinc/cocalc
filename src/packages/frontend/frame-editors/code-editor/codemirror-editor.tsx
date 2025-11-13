@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -12,39 +12,39 @@ trigger actions when certain props change. This manages the state of a single
 codemirror editor instance mainly for use in a frame tree.
 */
 
-import { SAVE_DEBOUNCE_MS } from "./const";
-import { Map, Set } from "immutable";
-import { is_safari } from "../generic/browser";
 import * as CodeMirror from "codemirror";
+import { Map, Set } from "immutable";
 import {
-  React,
-  ReactDOM,
-  Rendered,
   CSS,
+  React,
+  Rendered,
   useEffect,
   useIsMountedRef,
   useRef,
   useState,
-} from "../../app-framework";
-import { debounce, throttle, isEqual } from "lodash";
+} from "@cocalc/frontend/app-framework";
+import { initFold, saveFold } from "@cocalc/frontend/codemirror/util";
 import { Cursors } from "@cocalc/frontend/jupyter/cursors";
+import { debounce, isEqual, throttle } from "lodash";
 import { cm_options } from "../codemirror/cm-options";
-import { init_style_hacks } from "../codemirror/util";
 import { get_state, set_state } from "../codemirror/codemirror-state";
-import { has_doc, set_doc, get_linked_doc } from "./doc";
-import { GutterMarkers } from "./codemirror-gutter-markers";
-import { Actions } from "./actions";
-import { EditorState } from "../frame-tree/types";
+import { init_style_hacks } from "../codemirror/util";
 import { Path } from "../frame-tree/path";
+import { EditorState } from "../frame-tree/types";
+import { Actions } from "./actions";
+import { GutterMarkers } from "./codemirror-gutter-markers";
+import { SAVE_DEBOUNCE_MS } from "./const";
+import { get_linked_doc, has_doc, set_doc } from "./doc";
+import { AccountState } from "../../account/types";
 
-const STYLE = {
+const STYLE: CSS = {
   width: "100%",
   overflow: "auto",
-  marginbottom: "1ex",
-  minheight: "2em",
+  // marginbottom: "1ex",
+  // minheight: "2em",
   border: "0px",
   background: "#fff",
-} as CSS;
+} as const;
 
 export interface Props {
   id: string;
@@ -52,22 +52,22 @@ export interface Props {
   path: string;
   project_id: string;
   font_size: number;
-  cursors: Map<string, any>;
+  cursors?: Map<string, any>;
   editor_state: EditorState;
   read_only: boolean;
   is_current: boolean;
   is_public: boolean;
   value?: string; // if defined and is_public, use this static value and editor is read-only  (TODO: public was deprecated years ago)
-  misspelled_words: Set<string> | string; // **or** show these words as not spelled correctly
+  misspelled_words?: Set<string> | string; // **or** show these words as not spelled correctly
   resize: number;
-  gutters: string[];
-  gutter_markers: Map<string, any>;
-  editor_settings: Map<string, any>;
+  gutters?: string[];
+  gutter_markers?: Map<string, any>;
+  editor_settings: AccountState["editor_settings"];
   is_subframe?: boolean;
   placeholder?: string;
 }
 
-export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
+export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
   const [has_cm, set_has_cm] = useState<boolean>(false);
 
   const cmRef = useRef<CodeMirror.Editor | undefined>(undefined);
@@ -139,7 +139,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
 
   function cm_highlight_misspelled_words(): void {
     const words = props.misspelled_words;
-    if (cmRef.current == null) return;
+    if (cmRef.current == null || words == null) return;
     if (words == "browser") {
       // just ensure browser spellcheck is enabled
       cmRef.current.setOption("spellcheck", true);
@@ -214,19 +214,11 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     editor_actions()?.syncstring_commit();
   }
 
-  function safari_hack(): void {
-    if (is_safari()) {
-      $(ReactDOM.findDOMNode(divRef.current)).make_height_defined();
-    }
-  }
-
   async function init_codemirror(props: Props): Promise<void> {
-    const node: HTMLTextAreaElement = ReactDOM.findDOMNode(textareaRef.current);
+    const node: HTMLTextAreaElement = textareaRef.current;
     if (node == null) {
       return;
     }
-
-    safari_hack();
 
     const options: any = cm_options(
       props.path,
@@ -234,7 +226,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       props.gutters,
       editor_actions(),
       props.actions,
-      props.id
+      props.id,
     );
     if (options == null) throw Error("bug"); // make typescript happy.
 
@@ -290,6 +282,16 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     }
     cmRef.current.setOption("readOnly", props.read_only);
     cm_refresh();
+
+    const foldKey = `${props.path}\\${props.id}`;
+    const saveFoldState = () => {
+      if (cmRef.current != null) {
+        saveFold(cmRef.current, foldKey);
+      }
+    };
+    cmRef.current.on("fold" as any, saveFoldState);
+    cmRef.current.on("unfold" as any, saveFoldState);
+    initFold(cmRef.current, foldKey);
   }
 
   function init_new_codemirror(): void {
@@ -298,7 +300,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     (cm as any)._actions = editor_actions();
 
     if (props.is_public) {
-      if (props.value !== undefined) {
+      if (props.value != null) {
         // should always be the case if public.
         cm.setValue(props.value);
       }
@@ -325,7 +327,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     // After this only stuff that we use for the non-public version!
     const save_syncstring_debounce = debounce(
       save_syncstring,
-      SAVE_DEBOUNCE_MS
+      SAVE_DEBOUNCE_MS,
     );
 
     cm.on("beforeChange", (_, changeObj) => {
@@ -403,7 +405,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
         props.gutters,
         editor_actions(),
         props.actions,
-        props.id
+        props.id,
       );
     }
     const cm = cmRef.current;
@@ -503,12 +505,13 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
   );
 });
 
-CodemirrorEditor.defaultProps = { value: "" };
-
 // Needed e.g., for vim ":w" support; this is global,
 // so be careful.
 if ((CodeMirror as any).commands.save == null) {
   (CodeMirror as any).commands.save = (cm: any) => {
-    cm.cocalc_actions?.save(true);
+    const f = cm.cocalc_actions?.save;
+    if (typeof f == "function") {
+      f(true);
+    }
   };
 }

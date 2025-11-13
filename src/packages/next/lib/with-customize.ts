@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import getCustomize from "@cocalc/database/settings/customize";
@@ -10,6 +10,8 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { getSoftwareEnvironments } from "@cocalc/server/software-envs";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
+
+import { CustomizeType } from "./customize";
 
 const revalidate = 30;
 
@@ -25,16 +27,16 @@ export default async function withCustomize(
     revalidate?: number;
     context: any;
   },
-  options: Options = {}
+  options: Options = {},
 ) {
-  let customize;
+  let customize: CustomizeType;
   try {
     // NOTE: important to make a (shallow) copy, since customize gets mutated below.
     customize = { ...(await getCustomize()) };
   } catch (_err) {
     // fallback to be empty; during static build
     // this happens.
-    customize = {};
+    customize = {} as CustomizeType;
   }
 
   if (obj.context?.req != null) {
@@ -65,13 +67,46 @@ export default async function withCustomize(
   customize.onCoCalcCom = customize.kucalc === KUCALC_COCALC_COM;
   customize.noindex = obj.props?.unlisted ?? false;
   customize.imprintOrPolicies =
-    (customize.imprint ?? "" + customize.policies ?? "") != "";
+    (customize.imprint ?? "") + (customize.policies ?? "") != "";
   customize.serverTime = Date.now();
 
   // this is used for creating new projects from a share
   const softwareEnvs = await getSoftwareEnvironments("server");
   customize.defaultComputeImage =
     softwareEnvs?.default ?? DEFAULT_COMPUTE_IMAGE;
+
+  customize.enabledPages = {
+    auth: {
+      try: !customize.account && customize.anonymousSignup,
+    },
+    about: {
+      index: customize.landingPages,
+      events: customize.isCommercial,
+      team: customize.landingPages,
+    },
+    compute: customize.computeServersEnabled,
+    contact: !!customize.contactEmail,
+    features: customize.landingPages,
+    info: true,
+    legal: !customize.landingPages && !!customize.termsOfServiceURL,
+    licenses: customize.isCommercial,
+    news: true,
+    onPrem: customize.onCoCalcCom,
+    organization: !!customize.organizationURL,
+    policies: {
+      index: customize.landingPages || customize.imprintOrPolicies,
+      imprint: !!customize.imprint,
+    },
+    pricing: customize.isCommercial,
+    share: customize.shareServer,
+    software: customize.landingPages,
+    store: customize.landingPages && customize.isCommercial,
+    support: true, // always enabled, but for on-prem && settings.support, we render a different page
+    systemActivity: true,
+    status: customize.onCoCalcCom,
+    termsOfService: !customize.landingPages && !!customize.termsOfServiceURL,
+    liveDemo: !!customize.supportVideoCall && customize.isCommercial,
+  };
 
   if (obj == null) {
     return { props: { customize } };

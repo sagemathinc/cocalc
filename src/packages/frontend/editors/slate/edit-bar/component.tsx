@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import React from "react";
@@ -13,7 +13,7 @@ import { Marks } from "./marks";
 import { MarksBar } from "./marks-bar";
 
 interface Props {
-  Search: JSX.Element;
+  Search: React.JSX.Element;
   isCurrent?: boolean;
   marks: Marks;
   linkURL: string | undefined;
@@ -61,6 +61,7 @@ export const EditBar: React.FC<Props> = (props: Props) => {
         height: HEIGHT,
         display: "flex",
         flexDirection: "row",
+        overflow: "hidden",
         ...style,
       }}
     >

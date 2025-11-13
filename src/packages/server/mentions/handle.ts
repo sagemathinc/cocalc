@@ -2,11 +2,15 @@
 Handle all mentions that haven't yet been handled.
 */
 
-import getPool from "@cocalc/database/pool";
 import { delay } from "awaiting";
+
 import { getLogger } from "@cocalc/backend/logger";
-import type { Action, Key } from "./types";
+import getPool from "@cocalc/database/pool";
+import { pii_expire } from "@cocalc/database/postgres/pii";
+import { expire_time } from "@cocalc/util/misc";
+import { isValidUUID } from "@cocalc/util/misc";
 import notify from "./notify";
+import type { Action, Key } from "./types";
 
 const logger = getLogger("mentions - handle");
 
@@ -35,7 +39,7 @@ export default async function init(): Promise<void> {
 async function handleAllMentions(): Promise<void> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT time, project_id, path, source, target, description, fragment_id FROM mentions WHERE action IS null"
+    "SELECT time, project_id, path, source, target, description, fragment_id FROM mentions WHERE action IS null",
   );
   for (const row of rows) {
     const { time, project_id, path, source, target, description, fragment_id } =
@@ -44,11 +48,11 @@ async function handleAllMentions(): Promise<void> {
       await handleMention(
         { project_id, path, time, target, fragment_id },
         source,
-        description ?? ""
+        description ?? "",
       );
     } catch (err) {
       logger.warn(
-        `WARNING -- error handling mention (will try later) -- ${err}`
+        `WARNING -- error handling mention (will try later) -- ${err}`,
       );
     }
   }
@@ -57,10 +61,9 @@ async function handleAllMentions(): Promise<void> {
 async function handleMention(
   key: Key,
   source: string,
-  description: string
+  description: string,
 ): Promise<void> {
-  // Check that source and target are both currently
-  // collaborators on the project.
+  // TODO: check that source and target are both currently collaborators on the project.
   const action: Action = await determineAction(key);
   try {
     switch (action) {
@@ -81,12 +84,17 @@ async function handleMention(
 }
 
 async function determineAction(key: Key): Promise<Action> {
+  // target could be a language model name, we ignore them
+  if (!isValidUUID(key.project_id) || !isValidUUID(key.target)) {
+    return "ignore";
+  }
+
   const pool = getPool();
   const { rows } = await pool.query(
     `SELECT COUNT(*)::INT FROM mentions WHERE project_id=$1 AND path=$2 AND target=$3 AND action = 'email' AND time >= NOW() - INTERVAL '${parseInt(
-      minEmailInterval
+      minEmailInterval,
     )}'`,
-    [key.project_id, key.path, key.target]
+    [key.project_id, key.path, key.target],
   );
   const count: number = rows[0]?.count ?? 0;
   if (count >= maxPerInterval) {
@@ -98,19 +106,32 @@ async function determineAction(key: Key): Promise<Action> {
 async function setAction(key: Key, action: Action): Promise<void> {
   const pool = getPool();
   await pool.query(
-    "UPDATE mentions SET action=$1 WHERE project_id=$2 AND path=$3 AND time=$4 AND target=$5",
-    [action, key.project_id, key.path, key.time, key.target]
+    "UPDATE mentions SET action=$1, expire=$2 WHERE project_id=$3 AND path=$4 AND time=$5 AND target=$6",
+    [action, await getExpire(), key.project_id, key.path, key.time, key.target],
   );
 }
 
 async function setError(
   key: Key,
   action: Action,
-  error: string
+  error: string,
 ): Promise<void> {
   const pool = getPool();
   await pool.query(
-    "UPDATE mentions SET action=$1, error=$2 WHERE project_id=$3 AND path=$4 AND time=$5 AND target=$6",
-    [action, error, key.project_id, key.path, key.time, key.target]
+    "UPDATE mentions SET action=$1, error=$2, expire=$3 WHERE project_id=$4 AND path=$5 AND time=$6 AND target=$7",
+    [
+      action,
+      error,
+      await getExpire(),
+      key.project_id,
+      key.path,
+      key.time,
+      key.target,
+    ],
   );
+}
+
+// expire either after the PII setting or 1 year.
+async function getExpire(): Promise<Date> {
+  return (await pii_expire()) ?? expire_time(365 * 24 * 60 * 60);
 }

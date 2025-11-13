@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button, Tooltip } from "antd";
@@ -15,6 +15,8 @@ import { getHistory } from "./history";
 import { DARK_GREY_BORDER } from "../../util";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { isEqual } from "lodash";
+import Mermaid from "./mermaid";
 
 export interface CodeBlock extends SlateElement {
   type: "code_block";
@@ -24,7 +26,7 @@ export interface CodeBlock extends SlateElement {
   info: string;
 }
 
-const StaticElement: React.FC<RenderElementProps> = ({
+export const StaticElement: React.FC<RenderElementProps> = ({
   attributes,
   element,
 }) => {
@@ -55,7 +57,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
   );
   useEffect(() => {
     const newHistory = getHistory(editor, element);
-    if (newHistory != null) {
+    if (newHistory != null && !isEqual(history, newHistory)) {
       setHistory(newHistory);
     }
   }, [change]);
@@ -86,6 +88,15 @@ const StaticElement: React.FC<RenderElementProps> = ({
       runRef.current?.();
     }, 1);
   };
+
+  const isMermaid = element.info == "mermaid";
+  if (isMermaid) {
+    return (
+      <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
+        <Mermaid value={newValue ?? element.value} />
+      </div>
+    );
+  }
 
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
   // editable since even CodeMirrorStatic is editable, but meant to be *ephemeral* editing.

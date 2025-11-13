@@ -1,7 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+// cSpell:ignore multifile errorstyle subframe rtex popout codegen autobuild titlebar
 
 /*
 Code Editor Actions -- This the base class for all frame editor actions.
@@ -20,38 +22,41 @@ const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
-import type { TourProps } from "antd";
-import { reuseInFlight } from "async-await-utils/hof";
-import { delay } from "awaiting";
-import * as CodeMirror from "codemirror";
-import { List, Map, fromJS, Set as iSet } from "immutable";
-import { debounce } from "lodash";
-
+import { alert_message } from "@cocalc/frontend/alerts";
 import {
   Actions as BaseActions,
   Rendered,
   Store,
   TypedMap,
   createTypedMap,
+  redux,
 } from "@cocalc/frontend/app-framework";
 import type { PageActions } from "@cocalc/frontend/app/actions";
+import { VideoChat } from "@cocalc/frontend/chat/video/video-chat";
+import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { filenameMode } from "@cocalc/frontend/file-associations";
+import {
+  chat,
+  getSideChatActions,
+} from "@cocalc/frontend/frame-editors/generic/chat";
 import { open_new_tab } from "@cocalc/frontend/misc";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import {
   delete_local_storage,
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
+import { log_opened_time } from "@cocalc/frontend/project/open-file";
+import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
-import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
-import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { apply_patch } from "@cocalc/sync/editor/generic/util";
-import { SyncString } from "@cocalc/sync/editor/string";
+import type { SyncString } from "@cocalc/sync/editor/string/sync";
 import { once } from "@cocalc/util/async-utils";
 import {
+  Config as FormatterConfig,
   Exts as FormatterExts,
   Syntax as FormatterSyntax,
   Tool as FormatterTool,
@@ -59,14 +64,24 @@ import {
   syntax2tool,
 } from "@cocalc/util/code-formatter";
 import {
+  TIMEOUT_CALLING_PROJECT_MSG,
+  isTimeoutCallingProject,
+} from "@cocalc/util/consts/project";
+import {
   aux_file,
   filename_extension,
   history_path,
   len,
+  path_split,
   uuid,
 } from "@cocalc/util/misc";
-import languageModelCreateChat, { Options } from "../chatgpt/create-chat";
-import type { Scope as LanguageModelScope } from "../chatgpt/types";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import type { TourProps } from "antd";
+import { delay } from "awaiting";
+import * as CodeMirror from "codemirror";
+import { List, Map, fromJS, Set as iSet } from "immutable";
+import { debounce } from "lodash";
+import { set_account_table } from "../../account/util";
 import { default_opts } from "../codemirror/cm-options";
 import { print_code } from "../frame-tree/print-code";
 import * as tree_ops from "../frame-tree/tree-ops";
@@ -87,6 +102,8 @@ import {
   syncstring2,
 } from "../generic/client";
 import "../generic/codemirror-plugins";
+import languageModelCreateChat, { Options } from "../llm/create-chat";
+import type { Scope as LanguageModelScope } from "../llm/types";
 import { SettingsObject } from "../settings/types";
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
@@ -97,7 +114,6 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
-import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 
 interface gutterMarkerParams {
   line: number;
@@ -148,6 +164,7 @@ export interface CodeEditorState {
   derived_file_types: iSet<string>;
   visible: boolean;
   switch_to_files: string[];
+  pdf_dark_mode_disabled?: { [id: string]: boolean };
 }
 
 export class Actions<
@@ -163,6 +180,8 @@ export class Actions<
 
   protected terminals: TerminalManager<CodeEditorState>;
   private code_editors: CodeEditorManager<CodeEditorState>;
+
+  private videoChat: VideoChat;
 
   protected doctype: string = "syncstring";
 
@@ -211,6 +230,7 @@ export class Actions<
 
     this.project_id = project_id;
     this.path = path;
+    this.videoChat = new VideoChat({ project_id, path });
     this.store = store;
     this.is_public = is_public;
     this.terminals = new TerminalManager<CodeEditorState>(
@@ -220,7 +240,7 @@ export class Actions<
       this as unknown as Actions<CodeEditorState>,
     );
 
-    this.format = reuseInFlight(this.format);
+    this.format = reuseInFlight(this.format.bind(this));
 
     this.set_resize = debounce(this.set_resize.bind(this), 20, {
       leading: false,
@@ -255,11 +275,14 @@ export class Actions<
     }
   }
 
-  // Init setting of value whenever syncstring changes -- only used in derived classes
+  // Init setting of value whenever syncstring changes --
+  // this value in the store is used in derived classes (i.e., other frame editors)
   protected _init_syncstring_value(): void {
     this._syncstring.on("change", () => {
       if (!this._syncstring) {
-        // edge case where actions closed but this event was still triggered.
+        // edge case where actions closed but this event was still triggered, OR
+        // the syncstring changed, but has not actually loaded a version from
+        // disk yet, which happens with compute servers for a second.
         return;
       }
       this.setState({ value: this._syncstring.to_str() });
@@ -280,7 +303,7 @@ export class Actions<
 
   protected _init_syncstring(): void {
     if (this.doctype == "none") {
-      this._syncstring = <SyncString>syncstring({
+      this._syncstring = syncstring({
         project_id: this.project_id,
         path: this.path,
         cursors: !this.disable_cursors,
@@ -288,7 +311,7 @@ export class Actions<
         after_change_hook: () => this.set_codemirror_to_syncstring(),
         fake: true,
         patch_interval: 500,
-      });
+      }) as SyncString;
     } else if (this.doctype == "syncstring") {
       this._syncstring = syncstring2({
         project_id: this.project_id,
@@ -325,28 +348,26 @@ export class Actions<
             )}`,
           );
         }
-        enableSearchEmbeddings({
-          project_id: this.project_id,
-          path: this.path,
-          syncdb: this._syncstring,
-          ...this.searchEmbeddings,
-        });
       }
     } else {
       throw Error(`invalid doctype="${this.doctype}"`);
     }
 
     this._syncstring.once("ready", (err) => {
+      if (this.doctype != "none") {
+        // doctype = 'none' must be handled elsewhere, e.g., terminals.
+        log_opened_time(this.project_id, this.path);
+      }
+
       if (err) {
-        this.set_error(
-          `Fatal error opening file -- ${err}\nFix this, then try opening the file again.`,
-        );
+        this.set_error(`${err}\nFix this, then try opening the file again.`);
         return;
       }
-      if (!this._syncstring || this._state == "closed") {
+      if (!this._syncstring || this.isClosed()) {
         // the doc could perhaps be closed by the time this init is fired, in which case just bail -- no point in trying to initialize anything.
         return;
       }
+
       this._syncstring_init = true;
       this._syncstring_metadata();
       this._init_settings();
@@ -379,15 +400,13 @@ export class Actions<
     });
 
     this._syncstring.on("save-to-disk", () => {
-      // incremenet save_to_disk counter, so that react components can
+      // increment save_to_disk counter, so that react components can
       // react to save_to_disk event happening.
       this.set_reload("save_to_disk");
     });
 
     this._syncstring.once("error", (err) => {
-      this.set_error(
-        `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`,
-      );
+      this.set_error(`${err}\nFix this, then try opening the file again.`);
     });
 
     this._syncstring.once("closed", () => {
@@ -422,9 +441,9 @@ export class Actions<
   }
 
   // Flag that there is activity (causes icon to turn orange).
-  private activity(): void {
+  private activity = (): void => {
     this._get_project_actions().flag_file_activity(this.path);
-  }
+  };
 
   // This is currently NOT used in this base class.  It's used in other
   // editors to store shared configuration or other information.  E.g., it's
@@ -446,9 +465,7 @@ export class Actions<
       file_use_interval: 0, // disable file use, since syncdb is an auxiliary file
     });
     this._syncdb.once("error", (err) => {
-      this.set_error(
-        `Fatal error opening config "${aux}" -- ${err}.\nFix this, then try opening the file again.`,
-      );
+      this.set_error(`${err}.\nFix this, then try opening the file again.`);
     });
 
     this._syncdb.once("closed", () => {
@@ -468,6 +485,10 @@ export class Actions<
     });
 
     this._syncdb.on("change", this.activity);
+  }
+
+  public not_ready(): boolean {
+    return this._syncstring == null || this._syncstring.get_state() != "ready";
   }
 
   // could be overloaded...
@@ -531,8 +552,10 @@ export class Actions<
     cm.setValue(value);
   }
 
+  isClosed = () => this._state == "closed";
+
   public close(): void {
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       return;
     }
     this._state = "closed";
@@ -554,6 +577,7 @@ export class Actions<
     this.terminals.close();
     // Free up stuff related to code editors with different path
     this.code_editors.close();
+    this.videoChat.close();
   }
 
   private async close_syncstring(): Promise<void> {
@@ -564,6 +588,7 @@ export class Actions<
       // lose the very last change user made!
       this.set_syncstring_to_codemirror();
     }
+    // @ts-ignore
     delete this._syncstring;
     s.close(); // this should save synctables in syncstring
   }
@@ -781,11 +806,16 @@ export class Actions<
     }
   }
 
-  _default_frame_tree(): Map<string, any> {
-    let frame_tree = fromJS(this._raw_default_frame_tree()) as Map<string, any>;
+  // Process a raw frame tree: convert to immutable, assign IDs, ensure uniqueness
+  private _process_frame_tree(rawTree: FrameTree): Map<string, any> {
+    let frame_tree = fromJS(rawTree) as Map<string, any>;
     frame_tree = tree_ops.assign_ids(frame_tree);
     frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
     return frame_tree;
+  }
+
+  _default_frame_tree(): Map<string, any> {
+    return this._process_frame_tree(this._raw_default_frame_tree());
   }
 
   // overload this in derived classes to specify the default layout.
@@ -822,11 +852,9 @@ export class Actions<
     return node.get("data-" + key, def);
   }
 
-  // Reset the frame tree layout to the default.
-  reset_frame_tree(): void {
+  // Common logic to apply a processed frame tree and update state
+  private _apply_frame_tree(tree: Map<string, any>): void {
     let local = this.store.get("local_view_state");
-    // Set the frame tree to a new default frame tree.
-    const tree = this._default_frame_tree();
     local = local.set("frame_tree", tree);
     // Also make some id active, since existing active_id is no longer valid.
     local = local.set("active_id", tree_ops.get_some_leaf_id(tree));
@@ -842,6 +870,16 @@ export class Actions<
         this.store.emit("new-frame", { id, type });
       }
     }
+  }
+
+  // Reset the frame tree layout to the default.
+  reset_frame_tree(): void {
+    this._apply_frame_tree(this._default_frame_tree());
+  }
+
+  // Replace the entire frame tree with a custom tree structure
+  replace_frame_tree(customTree: FrameTree): void {
+    this._apply_frame_tree(this._process_frame_tree(customTree));
   }
 
   set_frame_tree_leafs(obj): void {
@@ -1121,22 +1159,30 @@ export class Actions<
     // need to check since this can get called by the close.
     if (!this._syncstring) return;
     // TODO: for now, just for the one syncstring obviously
-    // TOOD: this is probably naive and slow too...
+    // TODO: this is probably naive and slow too...
     let cursors: Map<string, List<Map<string, any>>> = Map();
-    this._syncstring.get_cursors().forEach((info, account_id) => {
-      info.get("locs").forEach((loc) => {
-        loc = loc.set("time", info.get("time"));
-        const locs = cursors.get(account_id, List()).push(loc);
-        cursors = cursors.set(account_id, locs as any);
+    this._syncstring
+      .get_cursors({
+        excludeSelf: redux
+          .getStore("account")
+          .getIn(["editor_settings", "show_my_other_cursors"])
+          ? "heuristic"
+          : "always",
+      })
+      .forEach((info, account_id) => {
+        info.get("locs").forEach((loc) => {
+          loc = loc.set("time", info.get("time"));
+          const locs = cursors.get(account_id, List()).push(loc);
+          cursors = cursors.set(account_id, locs as any);
+        });
       });
-    });
     if (!cursors.equals(this.store.get("cursors"))) {
       this.setState({ cursors });
     }
   }
 
   // Set the location of all of OUR cursors.  This serves many purposes:
-  //  -- propogate to other users via the syncstring.
+  //  -- propagate to other users via the syncstring.
   //  -- setting uri fragment page= at top of browser, so URL link is useful
   //  -- don't delete trailing whitespace in lines with cursors
   set_cursor_locs(locs: any[]): void {
@@ -1166,7 +1212,10 @@ export class Actions<
       return;
     }
     const omit_lines: SetMap = {};
-    const cursors = this._syncstring.get_cursors?.(); // there are situations where get_cursors isn't defined (seen this).
+    const cursors = this._syncstring.get_cursors?.({
+      excludeSelf: "never",
+      maxAge: 3 * 60 * 1000,
+    }); // there are situations where get_cursors isn't defined (seen this).
     if (cursors) {
       cursors.map((user, _) => {
         const locs = user.get("locs");
@@ -1196,7 +1245,8 @@ export class Actions<
     if (
       this.is_public ||
       !this.store.get("is_loaded") ||
-      this._syncstring == null
+      this._syncstring == null ||
+      this._syncstring.get_state() != "ready"
     ) {
       return;
     }
@@ -1205,6 +1255,9 @@ export class Actions<
     // several other formatting actions.
     // Doing this automatically is fraught with error, since cursors aren't precise...
     if (explicit) {
+      if (!(await this.ensureProjectIsRunning(`save ${this.path} to disk`))) {
+        return;
+      }
       const account: any = this.redux.getStore("account");
       if (
         account &&
@@ -1222,7 +1275,7 @@ export class Actions<
       if (this._state !== "closed") {
         this.set_error(`${SAVE_ERROR} -- ${err} -- ${SAVE_WORKAROUND}`);
         log_error({
-          string_id: this._syncstring ? this._syncstring._string_id : "",
+          string_id: this._syncstring?.get_string_id(),
           path: this.path,
           project_id: this.project_id,
           error: "Error saving file -- has_unsaved_changes",
@@ -1268,11 +1321,29 @@ export class Actions<
   }
 
   time_travel(opts: { path?: string; frame?: boolean }): void {
+    const path = opts?.path ?? this.path;
+    if (path.startsWith(".snapshots/")) {
+      // see https://github.com/sagemathinc/cocalc/issues/2588
+      let file = path.slice(".snapshots/".length);
+      // if file's first path segment starts with an iso timestamp like, '2023-06-03-153543', remove that:
+      const parts = file.split("/");
+      if (parts.length > 0 && /^\d{4}-\d{2}-\d{2}-\d{6}$/.test(parts[0])) {
+        parts.shift();
+        file = parts.join("/");
+      }
+      const hist = history_path(file);
+      this._get_project_actions().open_file({
+        path: hist,
+        foreground: true,
+      });
+      return;
+    }
+
     if (opts.frame) {
       this.show_focused_frame_of_type("time_travel");
     } else {
       this._get_project_actions().open_file({
-        path: history_path(opts.path || this.path),
+        path: history_path(path),
         foreground: true,
       });
     }
@@ -1298,6 +1369,12 @@ export class Actions<
 
   set_zoom(zoom: number, id?: string) {
     this.change_font_size(undefined, id, zoom);
+  }
+
+  toggle_pdf_dark_mode(id: string): void {
+    const next = this.store.get("pdf_dark_mode_disabled")?.toJS() ?? {};
+    next[id] = !(next[id] ?? false);
+    this.setState({ pdf_dark_mode_disabled: next });
   }
 
   /* zoom: 1=100%, 1.5=150%, ...*/
@@ -1331,8 +1408,7 @@ export class Actions<
       // to make typescript happy
       return;
     }
-    this.set_frame_tree({ id, font_size });
-    this.focus(id);
+    this.set_font_size(id, font_size);
   }
 
   increase_font_size(id: string): void {
@@ -1343,6 +1419,9 @@ export class Actions<
     this.change_font_size(-1, id);
   }
 
+  // ATTN: this is overloaded in some derived classes, eg. latex to adjust settings
+  // based on font size changing. Code should call this to set the font size instead
+  // of directly modifying frame tree.
   set_font_size(id: string, font_size: number): void {
     this.set_frame_tree({ id, font_size });
     this.focus(id);
@@ -1464,16 +1543,16 @@ export class Actions<
       if (must_create) {
         // Have to wait until after editor gets created
         await delay(1);
-        if (this._state == "closed") return;
+        if (this.isClosed()) return;
       }
-      this.programmatical_goto_line(opts.line, opts.cursor);
+      this.programmatically_goto_line(opts.line, opts.cursor);
     }
 
     if (opts.focus) {
       // Have to wait until after editor gets created, and
       // probably also event that caused this open.
       await delay(1);
-      if (this._state == "closed") return;
+      if (this.isClosed()) return;
       const cm = this._recent_cm();
       if (cm) {
         cm.focus();
@@ -1502,7 +1581,9 @@ export class Actions<
   syncstring_commit(): void {
     // We also skip if the syncstring hasn't yet been initialized.
     // This happens in some cases.
-    if (this._state === "closed" || this._syncstring.state != "ready") return;
+    if (this._state === "closed" || this._syncstring.get_state() != "ready") {
+      return;
+    }
     if (this._syncstring != null) {
       // we pass true since here we want any UI for this or any derived
       // editor to immediately react when we commit. This is particularly
@@ -1540,7 +1621,9 @@ export class Actions<
     // note -- we don't try to set the syncstring if actions are closed
     // or the syncstring isn't initialized yet.  The latter case happens when
     // switching the file that is being edited in a frame, e.g., for latex.
-    if (this._state === "closed" || this._syncstring.state != "ready") return;
+    if (this._state === "closed" || this._syncstring.get_state() != "ready") {
+      return;
+    }
     if (!do_not_exit_undo_mode) {
       // If we are NOT doing an undo operation, then setting the
       // syncstring due to any
@@ -1572,7 +1655,7 @@ export class Actions<
   async set_codemirror_to_syncstring(): Promise<void> {
     if (
       this._syncstring == null ||
-      this._state == "closed" ||
+      this.isClosed() ||
       this._syncstring.get_state() == "closed"
     ) {
       // no point in doing anything further.
@@ -1580,8 +1663,15 @@ export class Actions<
     }
 
     if (this._syncstring.get_state() != "ready") {
-      await once(this._syncstring, "ready");
-      if (this._state == "closed") return;
+      try {
+        await once(this._syncstring, "ready");
+      } catch {
+        // never made it
+        return;
+      }
+      if (this.isClosed()) {
+        return;
+      }
     }
 
     // NOTE: we fallback to getting the underlying CM doc, in case all actual
@@ -1688,15 +1778,20 @@ export class Actions<
     if (syncdoc == null || syncdoc.is_fake) {
       // give up -- don't even have a syncdoc...
       // A derived class that doesn't use a syncdoc
-      // might overload programmatical_goto_line to make
+      // might overload programmatically_goto_line to make
       // sense for whatever it works with.
       return false;
     }
     const state = syncdoc.get_state();
     if (state == "closed") return false;
     if (state == "init") {
-      await once(syncdoc, "ready");
-      if (this._state == "closed") return false;
+      try {
+        await once(syncdoc, "ready");
+      } catch {
+        // never mode it
+        return false;
+      }
+      if (this.isClosed()) return false;
     }
     return true;
   }
@@ -1706,7 +1801,7 @@ export class Actions<
   // If cursor is given, moves the cursor to the line too.
   // *NOTE: This function can be called before
   // the syncstring is initialized and will still work fine!*
-  async programmatical_goto_line(
+  async programmatically_goto_line(
     line: string | number,
     cursor?: boolean,
     focus?: boolean,
@@ -1717,7 +1812,7 @@ export class Actions<
       return;
     }
 
-    // This implentation of goto_line only supports integer line numbers.
+    // This implementation of goto_line only supports integer line numbers.
     // However, derived classes may support id's or other types of more general "lines".
     try {
       if (typeof line == "string") {
@@ -1754,6 +1849,7 @@ export class Actions<
     // this gets a CM editor, which will eventually
     // exist because there's a cm frame.
     let cm = this._get_cm(frameId);
+    const start = Date.now();
     // This is ugly -- react will render the frame with the
     // editor in it, and after that happens the CodeMirror
     // editor that was created gets registered, and finally
@@ -1761,12 +1857,12 @@ export class Actions<
     // we find it (but for way less than a second).  This sort
     // of crappy code is OK here, since it's just for moving the
     // buffer to a line.
-    for (let i = 0; cm == null && i < 10; i++) {
+    while (Date.now() - start <= 15000 && cm == null) {
       cm = this._get_cm(frameId);
       if (cm == null) {
-        await delay(25);
+        await delay(50);
+        if (this.isClosed()) return;
       }
-      if (this._state == "closed") return;
     }
     if (cm == null) {
       // still failed -- give up.
@@ -1774,6 +1870,13 @@ export class Actions<
     }
 
     const doc = cm.getDoc();
+    // there is a moment between when the editor exists and the actual document
+    // is loaded into it.
+    while (line >= doc.lineCount() && Date.now() - start <= 15000) {
+      if (this.isClosed()) return;
+      await delay(50);
+    }
+
     if (line > doc.lineCount()) {
       line = doc.lineCount();
     }
@@ -1785,10 +1888,10 @@ export class Actions<
     }
     if (cursor) {
       doc.setCursor(pos);
-      // TODO: this is VERY CRAPPY CODE -- wait after,
-      // so cm gets state/value fully set.
       await delay(100);
-      if (this._state == "closed") return;
+      if (this.isClosed()) {
+        return;
+      }
       doc.setCursor(pos);
       cm.scrollIntoView(pos, cm.getScrollInfo().clientHeight / 2);
     }
@@ -1836,29 +1939,30 @@ export class Actions<
     }
   }
 
-  // big scary error shown at top
-  public set_error(
-    error?: object | string,
-    style?: ErrorStyles,
-    id?: string,
-  ): void {
-    id = id; // id - not currently used, but would be for frame-specific error.
+  private formatError = (error?: object | string): string | undefined => {
     if (error === undefined) {
-      this.setState({ error });
-    } else {
-      if (typeof error == "object") {
-        const e = (error as any).message;
-        if (e === undefined) {
-          let e = JSON.stringify(error);
-          if (e === "{}") {
-            e = `${error}`;
-          }
-        }
-        if (typeof e != "string") throw Error("bug"); // make typescript happy
-        error = e;
-      }
-      this.setState({ error });
+      return "";
     }
+    if (isTimeoutCallingProject(error)) {
+      return TIMEOUT_CALLING_PROJECT_MSG;
+    }
+    if (typeof error == "string") {
+      return error;
+    }
+    const e = (error as any).message;
+    if (e === undefined) {
+      let e = JSON.stringify(error);
+      if (e === "{}") {
+        e = `${error}`;
+      }
+    }
+    return e;
+  };
+
+  // big scary error shown at top
+  topError(error?: object | string, style?: ErrorStyles): void {
+    const e = this.formatError(error);
+    this.setState({ error: e });
 
     switch (style) {
       case "monospace":
@@ -1869,6 +1973,31 @@ export class Actions<
     }
   }
 
+  set_error(error?: object | string, _style?: ErrorStyles): void {
+    // show the error at the a toast if this path is the focused one; otherwise,
+    // do not show the error at all.  We have shown a lot of useless errors
+    //  and now we will show less, and in a minimally harmful way.
+    if (this.redux.getStore("page").get("active_top_tab") != this.project_id) {
+      return;
+    }
+    if (
+      !this.redux
+        .getProjectStore(this.project_id)
+        .get("active_project_tab")
+        .includes(this.path)
+    ) {
+      return;
+    }
+    const e = this.formatError(error);
+    if (e) {
+      alert_message({
+        type: "error",
+        title: path_split(this.path).tail,
+        message: e,
+      });
+    }
+  }
+
   // status - little status message shown at bottom.
   // timeout -- if status message hasn't changed after
   // this long, then blank it.
@@ -1876,7 +2005,7 @@ export class Actions<
     this.setState({ status });
     if (timeout) {
       await delay(timeout);
-      if (this._state == "closed") return;
+      if (this.isClosed()) return;
       if (this.store.get("status") === status) {
         this.setState({ status: "" });
       }
@@ -1925,10 +2054,10 @@ export class Actions<
   }
 
   // Runs spellchecker on the backend last saved file, then
-  // sets the mispelled_words part of the state to the immutable
+  // sets the misspelled_words part of the state to the immutable
   // Set of those words.  They can then be rendered by any editor/view.
   async update_misspelled_words(time?: number): Promise<void> {
-    if (this._state == "closed") return;
+    if (this.isClosed()) return;
     const proj_store = this.redux.getProjectStore(this.project_id);
     if (proj_store != null) {
       // TODO why is this an immutable map? it's project_configuration/Available
@@ -1975,7 +2104,7 @@ export class Actions<
   // Do a formatting action to whatever code editor
   // is currently active, or the main document if none is
   // focused or force_main is true.
-  async format_action(cmd, args, force_main: boolean = false): Promise<void> {
+  async format_action(cmd, args?, force_main: boolean = false): Promise<void> {
     if (!force_main) {
       const id = this._get_active_id();
       const editor = this.get_code_editor(id);
@@ -1996,7 +2125,7 @@ export class Actions<
       // format bar only makes sense when some cm is there...
       return;
     }
-    await cm.edit_selection({ cmd, args });
+    await cm.edit_selection({ cmd, args, project_id: this.project_id });
     if (this._state !== "closed") {
       cm.focus();
       this.set_syncstring_to_codemirror();
@@ -2042,7 +2171,7 @@ export class Actions<
     const before = gutter_markers;
     gutter_markers.map((info, id) => {
       if (info !== undefined && info.get("gutter_id") === gutter_id && id) {
-        /* && id is to satify typescript */
+        /* && id is to satisfy typescript */
         gutter_markers = gutter_markers.delete(id);
       }
     });
@@ -2072,8 +2201,14 @@ export class Actions<
 
   async ensure_latest_changes_are_saved(): Promise<boolean> {
     this.set_status("Ensuring your latest changes are saved...");
-    this.set_syncstring_to_codemirror();
-    return await this.ensure_syncstring_is_saved();
+    let success = false;
+    for (let i = 0; i < 2; i++) {
+      // TODO: looping/delay is clearly a hack, which I do not think works sufficiently well.
+      this.set_syncstring_to_codemirror();
+      success = await this.ensure_syncstring_is_saved();
+      await delay(25);
+    }
+    return success;
   }
 
   async ensure_syncstring_is_saved(): Promise<boolean> {
@@ -2087,6 +2222,10 @@ export class Actions<
       this.set_status("");
     }
   }
+
+  ensureProjectIsRunning = async (what: string): Promise<boolean> => {
+    return await ensure_project_running(this.project_id, what);
+  };
 
   public format_support_for_syntax(
     available_features: AvailableFeatures,
@@ -2150,10 +2289,13 @@ export class Actions<
     // because it can be called via a keyboard shortcut.  That's why we gracefully
     // handle this case -- see https://github.com/sagemathinc/cocalc/issues/4180
     const s = this.redux.getProjectStore(this.project_id);
-    if (s == null) return;
+    if (s == null) {
+      return;
+    }
     // TODO: Using any here since TypeMap is just not working right...
-    const af: any = s.get("available_features");
-    if (!this.has_format_support(id, af)) return;
+    if (!this.has_format_support(id, s.get("available_features"))) {
+      return;
+    }
 
     // Definitely have format support
     cm.focus();
@@ -2163,6 +2305,7 @@ export class Actions<
       syntax,
       tabWidth: cm.getOption("tabSize") as number,
       useTabs: cm.getOption("indentWithTabs") as boolean,
+      lastChanged: this._syncstring.last_changed(),
     };
 
     this.set_status("Running code formatter...");
@@ -2181,13 +2324,16 @@ export class Actions<
       }
       this.setFormatError("");
     } catch (err) {
-      this.setFormatError(`${err}`, this._syncstring.to_str());
+      this.setFormatError(`${err}`, this._syncstring?.to_str());
     } finally {
       this.set_status("");
     }
   }
 
   setFormatError(formatError: string, formatInput: string = "") {
+    while (formatError.startsWith("Error: ")) {
+      formatError = formatError.slice("Error: ".length);
+    }
     this.setState({ formatError, formatInput });
   }
 
@@ -2244,7 +2390,7 @@ export class Actions<
      Exception if can't be done, e.g., if editor not mounted.
   */
   _get_cm_value(): string {
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       throw Error("editor is closed");
     }
     const cm = this._get_cm();
@@ -2262,7 +2408,7 @@ export class Actions<
      Exception if can't be done.
   */
   _get_syncstring_value(): string {
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       throw Error("editor is closed");
     }
     if (!this._syncstring) {
@@ -2309,10 +2455,10 @@ export class Actions<
 
   _init_settings(): void {
     const settings = this._syncstring.get_settings();
-    this.setState({ settings: settings });
+    this.setState({ settings });
 
     if (this._spellcheck_is_supported) {
-      if (!settings.get("spell")) {
+      if (!settings?.get("spell")) {
         // ensure spellcheck is a possible setting, if necessary.
         // Use browser spellcheck **by default** if that option is
         // is configured, otherwise default backend spellcheck.
@@ -2325,18 +2471,18 @@ export class Actions<
     }
 
     this._syncstring.on("settings-change", (settings) => {
-      this.setState({ settings: settings });
+      this.setState({ settings });
     });
   }
 
   set_title(id: string, title: string): void {
     //console.log("set title of term ", id, " to ", title);
-    this.set_frame_tree({ id: id, title: title });
+    this.set_frame_tree({ id, title });
   }
 
   set_connection_status(id: string, status?: ConnectionStatus): void {
     //console.log("set title of term ", id, " to ", title);
-    this.set_frame_tree({ id: id, connection_status: status });
+    this.set_frame_tree({ id, connection_status: status });
   }
 
   connection_status(_: string): void {
@@ -2410,7 +2556,7 @@ export class Actions<
     });
 
     await delay(0); // wait until next render loop
-    if (this._state == "closed") return;
+    if (this.isClosed()) return;
     this.set_resize();
     this.refresh_visible();
     this.focus();
@@ -2513,7 +2659,7 @@ export class Actions<
     // Have to wait until after editor gets created, and
     // probably also event that caused this open.
     await delay(1);
-    if (this._state == "closed") return;
+    if (this.isClosed()) return;
     this.set_active_id(shell_id);
   }
 
@@ -2535,7 +2681,7 @@ export class Actions<
     // Have to wait until after editor gets created, and
     // probably also event that caused this open.
     await delay(1);
-    if (this._state == "closed") return;
+    if (this.isClosed()) return;
     this.set_active_id(shell_id);
   }
 
@@ -2551,7 +2697,7 @@ export class Actions<
     if (type == "terminal") {
       this.clear_terminal_command(id);
       if (node.get("command") == "jupyter") {
-        // not reseting jupyter
+        // not resetting jupyter
         return;
       }
       // we also wait until it is "back again with a prompt"
@@ -2563,7 +2709,7 @@ export class Actions<
       }
       await t.wait_for_next_render();
       await delay(1); // also wait a little bit
-      t.conn_write("reset\n");
+      t.conn_write("\nreset\n");
     } else {
       throw Error(`"clear" for type="${type}" not implemented`);
     }
@@ -2705,12 +2851,19 @@ export class Actions<
 
   Returns the id of the frame with the code editor in it.
   */
-  public open_code_editor_frame(
-    path: string,
-    dir: FrameDirection = "col",
-    first: boolean = false,
-    pos: number | undefined = undefined,
-  ): string {
+  open_code_editor_frame = ({
+    path,
+    dir = "col",
+    first = false,
+    pos,
+    compute_server_id,
+  }: {
+    path: string;
+    dir?: FrameDirection;
+    first?: boolean;
+    pos?: number;
+    compute_server_id?: number;
+  }): string => {
     // See if there is already a frame for path, and if so show
     // display and focus it.
     for (let id in this._get_leaf_ids()) {
@@ -2739,7 +2892,7 @@ export class Actions<
     if (id == null) {
       throw Error("BUG -- failed to make frame");
     }
-    this.set_frame_to_code_editor(id, path);
+    this.setFrameToCodeEditor({ id, path, compute_server_id });
 
     if (pos != null) {
       const parent_id = this.get_parent_id(id);
@@ -2749,7 +2902,7 @@ export class Actions<
     }
     this.set_active_id(id);
     return id;
-  }
+  };
 
   public async switch_to_file(path: string, id?: string): Promise<string> {
     if (id != null) {
@@ -2757,7 +2910,7 @@ export class Actions<
       if (node == null) return id;
       if (node.get("path") == path) return id; // already done;
       // Change it --
-      await this.set_frame_to_code_editor(id, path);
+      await this.setFrameToCodeEditor({ id, path });
       return id;
     }
 
@@ -2777,17 +2930,24 @@ export class Actions<
     }
     if (node.get("path") == path) return id; // already done.
 
-    this.set_frame_to_code_editor(id, path);
+    this.setFrameToCodeEditor({ id, path });
     return id;
   }
 
   // Init actions and set our new cm frame to the given path.
-  private async set_frame_to_code_editor(
-    id: string,
-    path: string,
-  ): Promise<void> {
+  private setFrameToCodeEditor = async ({
+    id,
+    path,
+    compute_server_id,
+  }: {
+    id: string;
+    path: string;
+    compute_server_id?: number;
+  }): Promise<void> => {
     const node = this._get_frame_node(id);
-    if (node == null) throw Error(`no frame with id ${id}`);
+    if (node == null) {
+      throw Error(`no frame with id ${id}`);
+    }
 
     // This call to init_code_editor ensures the
     // actions/manager is initialized.  We need
@@ -2796,11 +2956,15 @@ export class Actions<
     // while rendering, as that causes a state transition which
     // react does NOT appreciate.
     await this.code_editors.init_code_editor(id, path);
+    await this._get_project_actions().setComputeServerIdForFile({
+      path,
+      compute_server_id,
+    });
 
     // Now actually change the path field of the frame tree, which causes
     // a render.
     this.set_frame_tree({ id, path, type: "cm" });
-  }
+  };
 
   public get_code_editor(id: string): CodeEditor | undefined {
     return this.code_editors.get_code_editor(id);
@@ -2897,10 +3061,10 @@ export class Actions<
     type: string;
   }): Promise<string> {
     const state = (syncdoc ?? this._syncstring).get_state();
-    if (!(await this.wait_until_syncdoc_ready(syncdoc))) {
+    if (state != "ready" && !(await this.wait_until_syncdoc_ready(syncdoc))) {
       return "";
     }
-    const frameId = this.show_focused_frame_of_type(type);
+    const frameId = this.show_focused_frame_of_type(type, "col", true);
     if (state != "ready" && frameId) {
       // TODO: temporary hack until we have gotoFragment
       // as part of constructor!
@@ -2916,6 +3080,8 @@ export class Actions<
     scope: LanguageModelScope = "all",
   ): string {
     switch (scope) {
+      case "none":
+        return "";
       case "selection":
         return this._get_cm(frameId)?.getSelection() ?? "";
       default:
@@ -2957,25 +3123,90 @@ export class Actions<
     return filename_extension(this.path);
   }
 
-  // return the suppoted scopes for this document type.
+  // return the supported scopes for this document type.
   // do not have to include "none" and "all", since they are always supported.
   languageModelGetScopes(): Set<LanguageModelScope> {
     return new Set(["selection"]);
   }
 
-  async languageModel(frameId: string, options: Options, input: string) {
+  languageModel = async (frameId: string, options: Options, input: string) => {
     await languageModelCreateChat({
       actions: this as Actions<CodeEditorState>,
       frameId,
       options,
       input,
     });
-  }
-
-  // TODO: get rid of this. it's used somehow in the title-bar.tsx, without typing
-  chatgpt = this.languageModel;
+  };
 
   tour(_id: string, _refs: any): TourProps["steps"] {
     return [];
+  }
+
+  // toggle autobuild on save via the menu or button
+  public build_on_save(): void {
+    const val = redux
+      .getStore("account")
+      .getIn(["editor_settings", "build_on_save"]);
+    set_account_table({ editor_settings: { build_on_save: !val } });
+  }
+
+  getTrust = () => {
+    return this._syncstring.get_settings()?.get("trust");
+  };
+
+  setTrust = async (trust: boolean) => {
+    await this._syncstring.set_settings({ trust });
+  };
+
+  settings = () => {
+    this.redux.getActions("page").settings("editor-settings");
+  };
+
+  getVideoChat = () => {
+    return this.videoChat;
+  };
+
+  // NOTE: can't be an arrow function because gets called in derived classes
+  async gotoFragment(fragmentId: FragmentId) {
+    if (fragmentId == null) {
+      return;
+    }
+
+    if (fragmentId.line) {
+      if (this.isClosed()) return;
+      this.programmatically_goto_line?.(fragmentId.line, true);
+    }
+
+    if (fragmentId.chat && !this.path.endsWith(".sage-chat")) {
+      // open side chat
+      this.redux
+        .getProjectActions(this.project_id)
+        .open_chat({ path: this.path });
+      this.show_focused_frame_of_type(chat.type);
+      for (const d of [1, 10, 50, 500, 1000]) {
+        const actions = getSideChatActions({
+          project_id: this.project_id,
+          path: this.path,
+        });
+        actions?.scrollToDate(fragmentId.chat);
+        await delay(d);
+      }
+    }
+  }
+
+  foldAIThreads(_id: string) {
+    const actions = getSideChatActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    actions?.foldAllThreads(true);
+  }
+
+  foldAllThreads(_id: string) {
+    const actions = getSideChatActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    actions?.foldAllThreads();
   }
 }

@@ -1,4 +1,4 @@
-import { LanguageModel } from "@cocalc/util/db-schema/openai";
+import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 
 export type History = {
   role: "assistant" | "user" | "system";
@@ -12,7 +12,7 @@ export interface ChatOutput {
   completion_tokens: number;
 }
 
-export interface ChatOptions {
+export interface ChatOptionsApi {
   input: string; // new input that user types
   system?: string; // extra setup that we add for relevance and context
   account_id?: string;
@@ -20,13 +20,27 @@ export interface ChatOptions {
   path?: string;
   analytics_cookie?: string;
   history?: History;
-  model?: LanguageModel; // default is gpt-3.5-turbo (i.e. $DEFAULT_MODEL)
+  model?: LanguageModel; // default is defined by server setting default_llm
   tag?: string;
+  maxTokens?: number;
+  timeout?: number;
+}
+
+export type Stream = (output: string | null) => void;
+
+export interface ChatOptions extends ChatOptionsApi {
   // If stream is set, then everything works as normal with two exceptions:
   // - The stream function is called with bits of the output as they are produced,
   //   until the output is done and then it is called with undefined.
   // - Maybe the total_tokens, which is stored in the database for analytics,
   //   might be off: https://community.openai.com/t/openai-api-get-usage-tokens-in-response-when-set-stream-true/141866
-  stream?: (output?: string) => void;
-  maxTokens?: number;
+  stream?: Stream;
+}
+
+// This could be Ollama or CustomOpenAI
+export interface CustomLLMPublic {
+  model: string;
+  display: string; // name of the model
+  desc?: string; // additional description
+  icon?: string; // fallback to OllamaAvatar
 }

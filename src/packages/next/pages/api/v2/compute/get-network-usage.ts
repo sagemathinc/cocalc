@@ -7,7 +7,14 @@ import { getNetworkUsage } from "@cocalc/server/compute/control";
 import getParams from "lib/api/get-params";
 import { getServer } from "@cocalc/server/compute/get-servers";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GetComputeServerNetworkUsageInputSchema,
+  GetComputeServerNetworkUsageOutputSchema,
+} from "lib/api/schema/compute/get-network-usage";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -35,3 +42,24 @@ async function get(req) {
     end: new Date(end),
   });
 }
+
+export default apiRoute({
+  getNetworkUsage: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: GetComputeServerNetworkUsageInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: GetComputeServerNetworkUsageOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

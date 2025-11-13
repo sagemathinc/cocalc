@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import getPool, { PoolClient } from "@cocalc/database/pool";
@@ -29,8 +29,10 @@ export default async function createLicense(
   if (info.start == null || info.end == null) {
     throw Error("start and end must be defined");
   }
+  // if start is slightly in the past, this shifts things over, leaving the
+  // price unchanged, but maximizing value for the user.
   const [start, end] =
-    info.type !== "disk"
+    info.subscription == "no"
       ? adjustDateRangeEndOnSameDay([info.start, info.end])
       : [info.start, info.end];
 

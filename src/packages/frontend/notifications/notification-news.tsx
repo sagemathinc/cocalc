@@ -1,11 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button, Card, List, Space, Tag } from "antd";
 import React, { useMemo, useRef } from "react";
 import { delay } from "awaiting";
+import { useIntl } from "react-intl";
 
 import {
   useActions,
@@ -25,6 +26,7 @@ import { cmp_Date, getRandomColor } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { CHANNELS_ICONS, NewsItemWebapp } from "@cocalc/util/types/news";
 import { NewsFilter, NewsMap, isNewsFilter } from "./news/types";
+import { MSGS } from "./notification-i18n";
 
 interface NewsPanelProps {
   news: NewsMap;
@@ -33,6 +35,7 @@ interface NewsPanelProps {
 
 export function NewsPanel(props: NewsPanelProps) {
   const { news, filter } = props;
+  const intl = useIntl();
   const news_actions = useActions("news");
   const account_other = useTypedRedux("account", "other_settings");
   const news_read_until: number | undefined =
@@ -71,7 +74,8 @@ export function NewsPanel(props: NewsPanelProps) {
       .sort((a: any, b: any) => -cmp_Date(a.date, b.date)) as any;
     // if any entry in data is unread, then anyUnread is true
     const anyUnread = data.some(
-      (n: any) => news_read_until == null || n?.date.getTime() > news_read_until
+      (n: any) =>
+        news_read_until == null || n?.date.getTime() > news_read_until,
     );
     return [data, anyUnread];
   }, [news, filter, news_read_until]);
@@ -107,15 +111,19 @@ export function NewsPanel(props: NewsPanelProps) {
     );
   }
 
-  function renderNewsPanelExtra(): JSX.Element {
+  function renderNewsPanelExtra(): React.JSX.Element {
+    const read_all = intl.formatMessage(MSGS.read_all);
+
+    const mark_all = intl.formatMessage(MSGS.mark_all, { anyUnread });
+
     return (
       <Space direction="horizontal">
         <Button href={`${BASE_URL}/news`} target="_blank">
-          <Icon name="file-alt" /> Read All
+          <Icon name="file-alt" /> {read_all}
         </Button>
         {anyUnread ? (
           <Button onClick={() => news_actions.markNewsRead()} type="primary">
-            <Icon name="check-square" /> Mark all read
+            <Icon name="check-square" /> {mark_all}
           </Button>
         ) : (
           <Button
@@ -124,7 +132,7 @@ export function NewsPanel(props: NewsPanelProps) {
               news_actions.markNewsUnread();
             }}
           >
-            <Icon name="square" /> Mark all unread
+            <Icon name="square" /> {mark_all}
           </Button>
         )}
       </Space>
@@ -146,7 +154,7 @@ export function NewsPanel(props: NewsPanelProps) {
         actions={[
           <Button
             key="read"
-            type="primary"
+            type="text"
             ghost={true}
             onClick={(e) => newsItemOnClick(e, n)}
           >
@@ -168,18 +176,21 @@ export function NewsPanel(props: NewsPanelProps) {
 
   return (
     <Card
-      title={<Title level={4}>News</Title>}
+      title={<Title level={4}>{intl.formatMessage(MSGS.news)}</Title>}
       extra={renderNewsPanelExtra()}
-      headStyle={{ backgroundColor: COLORS.GRAY_LLL }}
-      bodyStyle={{ padding: "0px" }}
+      styles={{
+        header: { backgroundColor: COLORS.GRAY_LLL },
+        body: { padding: "0px" },
+      }}
     >
       <List
         itemLayout="horizontal"
         size="small"
         dataSource={newsData}
         renderItem={renderNewsItem}
-        pagination={{ position: "bottom", pageSize: 10 }}
       />
     </Card>
   );
 }
+
+/*         pagination={{ position: "bottom", pageSize: 10 }} */

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -20,6 +20,7 @@ import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 import { UpgradeGoal } from "../types";
 import { Result, run_in_all_projects } from "./run-in-all-projects";
+import type { StudentRecord } from "../store";
 
 // for tasks that are "easy" to run in parallel, e.g. starting projects
 export const MAX_PARALLEL_TASKS = 30;
@@ -32,16 +33,16 @@ export class StudentProjectsActions {
     this.course_actions = course_actions;
   }
 
-  private get_store(): CourseStore {
+  private get_store = (): CourseStore => {
     const store = this.course_actions.get_store();
     if (store == null) throw Error("no store");
     return store;
-  }
+  };
 
   // Create and configure a single student project.
-  public async create_student_project(
-    student_id: string
-  ): Promise<string | undefined> {
+  create_student_project = async (
+    student_id: string,
+  ): Promise<string | undefined> => {
     const { store, student } = this.course_actions.resolve({
       student_id,
       finish: this.course_actions.set_error.bind(this),
@@ -49,7 +50,7 @@ export class StudentProjectsActions {
     if (store == null || student == null) return;
     if (store.get("students") == null || store.get("settings") == null) {
       this.course_actions.set_error(
-        "BUG: attempt to create when stores not yet initialized"
+        "BUG: attempt to create when stores not yet initialized",
       );
       return;
     }
@@ -77,8 +78,8 @@ export class StudentProjectsActions {
     } catch (err) {
       this.course_actions.set_error(
         `error creating student project for ${store.get_student_name(
-          student_id
-        )} -- ${err}`
+          student_id,
+        )} -- ${err}`,
       );
       return;
     } finally {
@@ -95,14 +96,14 @@ export class StudentProjectsActions {
       student_project_id: project_id,
     });
     return project_id;
-  }
+  };
 
   // if student is an email address, invite via email – otherwise, if account_id, invite via standard collaborator invite
-  public async invite_student_to_project(props: {
+  invite_student_to_project = async (props: {
     student_id: string;
     student: string; // could be account_id or email_address
     student_project_id?: string;
-  }) {
+  }) => {
     const { student_id, student, student_project_id } = props;
     if (student_project_id == null) return;
 
@@ -129,25 +130,25 @@ export class StudentProjectsActions {
           subject,
           true,
           replyto,
-          name
+          name,
         );
       this.course_actions.set({
         table: "students",
         student_id,
-        last_email_invite: Date.now(),
+        last_email_invite: webapp_client.server_time(),
       });
     } else {
       await redux
         .getActions("projects")
         .invite_collaborator(student_project_id, student);
     }
-  }
+  };
 
-  private async configure_project_users(props: {
+  private configure_project_users = async (props: {
     student_project_id: string;
     student_id: string;
     force_send_invite_by_email?: boolean;
-  }): Promise<void> {
+  }): Promise<void> => {
     const {
       student_project_id,
       student_id,
@@ -171,16 +172,19 @@ export class StudentProjectsActions {
       // This is done once and then on demand by the teacher – only limited to once per day or less
       const last_email_invite = student.get("last_email_invite");
       if (force_send_invite_by_email || !last_email_invite) {
-        await this.invite_student_to_project({
-          student_id,
-          student: student.get("email_address"),
-          student_project_id,
-        });
-        this.course_actions.set({
-          table: "students",
-          student_id,
-          last_email_invite: Date.now(),
-        });
+        const email_address = student.get("email_address");
+        if (email_address) {
+          await this.invite_student_to_project({
+            student_id,
+            student: email_address,
+            student_project_id,
+          });
+          this.course_actions.set({
+            table: "students",
+            student_id,
+            last_email_invite: webapp_client.server_time(),
+          });
+        }
       }
     } else if (
       (users != null ? users.get(student_account_id) : undefined) == null
@@ -232,7 +236,7 @@ export class StudentProjectsActions {
         }
       }
     }
-  }
+  };
 
   // Sets the licenses for the given project to the given licenses
   // from our course configuration.  Any licenses already on the
@@ -240,10 +244,10 @@ export class StudentProjectsActions {
   // list stay unchanged.  This way a student can buy their own extra
   // license and apply it and it stays even when the instructor makes
   // changes to licenses.
-  private async set_project_site_license(
+  private set_project_site_license = async (
     project_id: string,
-    license_ids: string[]
-  ): Promise<void> {
+    license_ids: string[],
+  ): Promise<void> => {
     const project_map = redux.getStore("projects").get("project_map");
     if (project_map == null || project_map.get(project_id) == null) {
       // do nothing if we're not a collab on the project or info about
@@ -253,15 +257,15 @@ export class StudentProjectsActions {
     const store = this.get_store();
     if (store == null) return;
     const currentLicenses: string[] = keys(
-      (project_map.getIn([project_id, "site_license"]) as any)?.toJS() ?? {}
+      (project_map.getIn([project_id, "site_license"]) as any)?.toJS() ?? {},
     );
     const courseLicenses = new Set(
-      ((store.getIn(["settings", "site_license_id"]) as any) ?? "").split(",")
+      ((store.getIn(["settings", "site_license_id"]) as any) ?? "").split(","),
     );
     const removedLicenses = new Set(
       ((store.getIn(["settings", "site_license_removed"]) as any) ?? "").split(
-        ","
-      )
+        ",",
+      ),
     );
     const toApply = [...license_ids];
     for (const id of currentLicenses) {
@@ -271,16 +275,16 @@ export class StudentProjectsActions {
     }
     const actions = redux.getActions("projects");
     await actions.set_site_license(project_id, toApply.join(","));
-  }
+  };
 
-  private async configure_project_license(
+  private configure_project_license = async (
     student_project_id: string,
-    license_id?: string // if not set, all known licenses
-  ): Promise<void> {
+    license_id?: string, // if not set, all known licenses
+  ): Promise<void> => {
     if (license_id != null) {
       await this.set_project_site_license(
         student_project_id,
-        license_id.split(",")
+        license_id.split(","),
       );
       return;
     }
@@ -296,16 +300,16 @@ export class StudentProjectsActions {
       }
     }
     await this.set_project_site_license(student_project_id, license_ids);
-  }
+  };
 
-  private async remove_project_license(
-    student_project_id: string
-  ): Promise<void> {
+  private remove_project_license = async (
+    student_project_id: string,
+  ): Promise<void> => {
     const actions = redux.getActions("projects");
     await actions.set_site_license(student_project_id, "");
-  }
+  };
 
-  public async remove_all_project_licenses(): Promise<void> {
+  remove_all_project_licenses = async (): Promise<void> => {
     const id = this.course_actions.set_activity({
       desc: "Removing all student project licenses...",
     });
@@ -320,11 +324,11 @@ export class StudentProjectsActions {
     } finally {
       this.course_actions.set_activity({ id });
     }
-  }
+  };
 
-  private async configure_project_visibility(
-    student_project_id: string
-  ): Promise<void> {
+  private configure_project_visibility = async (
+    student_project_id: string,
+  ): Promise<void> => {
     const users_of_student_project = redux
       .getStore("projects")
       .get_users(student_project_id);
@@ -350,12 +354,12 @@ export class StudentProjectsActions {
           .set_project_hide(account_id, student_project_id, true);
       }
     }
-  }
+  };
 
-  private async configure_project_title(
+  private configure_project_title = async (
     student_project_id: string,
-    student_id: string
-  ): Promise<void> {
+    student_id: string,
+  ): Promise<void> => {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -366,12 +370,12 @@ export class StudentProjectsActions {
     await redux
       .getActions("projects")
       .set_project_title(student_project_id, title);
-  }
+  };
 
   // start or stop projects of all (non-deleted) students running
-  public async action_all_student_projects(
-    action: "start" | "stop"
-  ): Promise<void> {
+  action_all_student_projects = async (
+    action: "start" | "stop",
+  ): Promise<void> => {
     if (!["start", "stop"].includes(action)) {
       throw new Error(`unknown desired project_action ${action}`);
     }
@@ -406,18 +410,23 @@ export class StudentProjectsActions {
     };
 
     await awaitMap(store.get_student_project_ids(), MAX_PARALLEL_TASKS, task);
-  }
+  };
 
-  public cancel_action_all_student_projects(): void {
+  cancel_action_all_student_projects = (): void => {
     this.course_actions.setState({ action_all_projects_state: "any" });
-  }
+  };
 
-  public async run_in_all_student_projects(
-    command: string,
-    args?: string[],
-    timeout?: number,
-    log?: Function
-  ): Promise<Result[]> {
+  run_in_all_student_projects = async ({
+    command,
+    args,
+    timeout,
+    log,
+  }: {
+    command: string;
+    args?: string[];
+    timeout?: number;
+    log?: Function;
+  }): Promise<Result[]> => {
     // in case "stop all projects" is running
     this.cancel_action_all_student_projects();
 
@@ -455,44 +464,44 @@ export class StudentProjectsActions {
         command,
         args,
         timeout,
-        done
+        done,
       );
     } finally {
       this.course_actions.set_activity({ id });
       clear_id1();
     }
-  }
+  };
 
-  public async set_all_student_project_titles(title: string): Promise<void> {
+  set_all_student_project_titles = async (title: string): Promise<void> => {
     const actions = redux.getActions("projects");
     const store = this.get_store();
     for (const student of store.get_students().valueSeq().toArray()) {
       const student_project_id = student.get("project_id");
       const project_title = `${store.get_student_name(
-        student.get("student_id")
+        student.get("student_id"),
       )} - ${title}`;
       if (student_project_id != null) {
         await actions.set_project_title(student_project_id, project_title);
         if (this.course_actions.is_closed()) return;
       }
     }
-  }
+  };
 
-  private async configure_project_description(
-    student_project_id: string
-  ): Promise<void> {
+  private configure_project_description = async (
+    student_project_id: string,
+  ): Promise<void> => {
     const store = this.get_store();
     await redux
       .getActions("projects")
       .set_project_description(
         student_project_id,
-        store.getIn(["settings", "description"])
+        store.getIn(["settings", "description"]),
       );
-  }
+  };
 
-  public async set_all_student_project_descriptions(
-    description: string
-  ): Promise<void> {
+  set_all_student_project_descriptions = async (
+    description: string,
+  ): Promise<void> => {
     const store = this.get_store();
     const actions = redux.getActions("projects");
     for (const student of store.get_students().valueSeq().toArray()) {
@@ -502,9 +511,9 @@ export class StudentProjectsActions {
         if (this.course_actions.is_closed()) return;
       }
     }
-  }
+  };
 
-  public async set_all_student_project_course_info(): Promise<void> {
+  set_all_student_project_course_info = async (): Promise<void> => {
     const store = this.get_store();
     if (store == null) return;
     let pay = store.get_pay() ?? "";
@@ -533,31 +542,31 @@ export class StudentProjectsActions {
         // hasn't joined cocalc yet, so there is no account_id for them.
         const student_account_id = student.get("account_id");
         const student_email_address = student.get("email_address"); // will be known if account_id isn't known.
-        await actions.set_project_course_info(
-          student_project_id,
-          store.get("course_project_id"),
-          store.get("course_filename"),
+        await actions.set_project_course_info({
+          project_id: student_project_id,
+          course_project_id: store.get("course_project_id"),
+          path: store.get("course_filename"),
           pay,
           payInfo,
-          student_account_id,
-          student_email_address,
+          account_id: student_account_id,
+          email_address: student_email_address,
           datastore,
-          "student", // type of project
+          type: "student",
           student_project_functionality,
-          envvars
-        );
+          envvars,
+        });
       }
     } finally {
       this.course_actions.set_activity({ id });
     }
-  }
+  };
 
-  private async configure_project(props: {
+  private configure_project = async (props: {
     student_id;
     student_project_id?: string;
     force_send_invite_by_email?: boolean;
     license_id?: string; // relevant for serial license strategy only
-  }): Promise<void> {
+  }): Promise<void> => {
     const { student_id, force_send_invite_by_email, license_id } = props;
     let student_project_id = props.student_project_id;
 
@@ -586,23 +595,43 @@ export class StudentProjectsActions {
         this.configure_project_title(student_project_id, student_id),
         this.configure_project_description(student_project_id),
         this.configure_project_compute_image(student_project_id),
+        this.configure_project_envvars(student_project_id),
         this.configure_project_license(student_project_id, license_id),
+        this.configure_project_envvars(student_project_id),
       ]);
     }
-  }
+  };
 
-  private async configure_project_compute_image(
-    student_project_id: string
-  ): Promise<void> {
+  private configure_project_compute_image = async (
+    student_project_id: string,
+  ): Promise<void> => {
     const store = this.get_store();
     if (store == null) return;
     const dflt_img = await redux.getStore("customize").getDefaultComputeImage();
     const img_id = store.get("settings").get("custom_image") ?? dflt_img;
     const actions = redux.getProjectActions(student_project_id);
     await actions.set_compute_image(img_id);
-  }
+  };
 
-  private async delete_student_project(student_id: string): Promise<void> {
+  private configure_project_envvars = async (
+    student_project_id: string,
+  ): Promise<void> => {
+    const store = this.get_store();
+    if (!store?.get_envvars()?.inherit) {
+      return;
+    }
+    const env =
+      redux
+        .getStore("projects")
+        .getIn(["project_map", store.get("course_project_id"), "env"])
+        ?.toJS() ?? {};
+    const actions = redux.getProjectActions(student_project_id);
+    await actions.set_environment(env);
+  };
+
+  private delete_student_project = async (
+    student_id: string,
+  ): Promise<void> => {
     const store = this.get_store();
     const student_project_id = store.getIn([
       "students",
@@ -627,9 +656,9 @@ export class StudentProjectsActions {
       table: "students",
       student_id,
     });
-  }
+  };
 
-  async reinvite_oustanding_students(): Promise<void> {
+  reinvite_oustanding_students = async (): Promise<void> => {
     const store = this.get_store();
     if (store == null) return;
     const id = this.course_actions.set_activity({
@@ -657,11 +686,14 @@ export class StudentProjectsActions {
           !last_email_invite ||
           new Date(last_email_invite) < RESEND_INVITE_BEFORE
         ) {
-          await this.invite_student_to_project({
-            student_id,
-            student: student.get("email_address"),
-            student_project_id: store.get_student_project_id(student_id),
-          });
+          const email_address = student.get("email_address");
+          if (email_address) {
+            await this.invite_student_to_project({
+              student_id,
+              student: email_address,
+              student_project_id: store.get_student_project_id(student_id),
+            });
+          }
         }
         this.course_actions.set_activity({ id: id1 });
         await delay(0); // give UI, etc. a solid chance to render
@@ -673,9 +705,9 @@ export class StudentProjectsActions {
       this.course_actions.setState({ reinviting_students: false });
       this.course_actions.set_activity({ id });
     }
-  }
+  };
 
-  async configure_all_projects(force: boolean = false): Promise<void> {
+  configure_all_projects = async (force: boolean = false): Promise<void> => {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -695,7 +727,7 @@ export class StudentProjectsActions {
     // we want to start with the license with the highest run limit
     const sortedLicenseIDs = sortBy(
       Object.keys(licenses),
-      (l) => -licenses[l].runLimit
+      (l) => -licenses[l].runLimit,
     );
     for (const license_id of sortedLicenseIDs) {
       const license = licenses[license_id];
@@ -728,7 +760,7 @@ export class StudentProjectsActions {
       let project_map = redux.getStore("projects").get("project_map");
       if (project_map == null || webapp_client.account_id == null) {
         throw Error(
-          "BUG -- project_map must be initialized and you must be signed in; try again later."
+          "BUG -- project_map must be initialized and you must be signed in; try again later.",
         );
       }
 
@@ -755,7 +787,7 @@ export class StudentProjectsActions {
         project_map = redux.getStore("projects").get("project_map");
       }
 
-      // we make sure no leftover licenses are used by deleted student projects
+      // we make sure no leftover licenses are used by deleted student's projects
       const deletedIDs = store.get_student_ids({ deleted: true });
       for (const deleted_student_id of deletedIDs) {
         i += 1;
@@ -801,18 +833,19 @@ export class StudentProjectsActions {
       await this.course_actions.shared_project.configure();
       await this.set_all_student_project_course_info();
     } catch (err) {
+      console.warn(err);
       this.course_actions.set_error(
-        `Error configuring student projects - ${err}`
+        `Error configuring student projects - ${err}`,
       );
     } finally {
       if (this.course_actions.is_closed()) return;
       this.course_actions.setState({ configuring_projects: false });
       this.course_actions.set_activity({ id });
     }
-  }
+  };
 
   // Deletes student projects and removes students from those projects
-  public async delete_all_student_projects(): Promise<void> {
+  deleteAllStudentProjects = async (): Promise<void> => {
     const store = this.get_store();
 
     const id = this.course_actions.set_activity({
@@ -828,18 +861,18 @@ export class StudentProjectsActions {
       }
     } catch (err) {
       this.course_actions.set_error(
-        `error deleting a student project... ${err}`
+        `error deleting a student project... ${err}`,
       );
     } finally {
       this.course_actions.set_activity({ id });
     }
-  }
+  };
 
   // upgrade_goal is a map from the quota type to the goal quota the instructor wishes
   // to get all the students to.
-  public async upgrade_all_student_projects(
-    upgrade_goal: UpgradeGoal
-  ): Promise<void> {
+  upgrade_all_student_projects = async (
+    upgrade_goal: UpgradeGoal,
+  ): Promise<void> => {
     const store = this.get_store();
     const plan = store.get_upgrade_plan(upgrade_goal);
     if (len(plan) === 0) {
@@ -861,13 +894,13 @@ export class StudentProjectsActions {
       await a.apply_upgrades_to_project(project_id, upgrades, false);
     }
     this.course_actions.set_activity({ id });
-  }
+  };
 
   // Do an admin upgrade to all student projects.  This changes the base quotas for every student
   // project as indicated by the quotas object.  E.g., to increase the core quota from 1 to 2, do
   //         .admin_upgrade_all_student_projects(cores:2)
   // The quotas are: cores, cpu_shares, disk_quota, memory, mintime, network, member_host
-  public async admin_upgrade_all_student_projects(quotas): Promise<void> {
+  admin_upgrade_all_student_projects = async (quotas): Promise<void> => {
     const account_store = redux.getStore("account");
     const groups = account_store.get("groups");
     if (groups && groups.includes("admin")) {
@@ -880,5 +913,32 @@ export class StudentProjectsActions {
       x.project_id = project_id;
       await webapp_client.project_client.set_quotas(x);
     }
-  }
+  };
+
+  removeFromAllStudentProjects = async (student: StudentRecord) => {
+    /*
+    - Remove student from their project
+    - Remove student from shared project
+    - TODO: Cancel any outstanding invite, in case they haven't even created their account yet.
+      This isn't even implemented yet as an api endpoint... but will cause confusion.
+    */
+    const shared_id = this.get_store()?.get_shared_project_id();
+    const account_id = student.get("account_id");
+    const project_id = student.get("project_id");
+    if (account_id) {
+      if (project_id) {
+        // remove them from their project
+        await redux
+          .getActions("projects")
+          .remove_collaborator(project_id, account_id);
+      }
+
+      if (shared_id) {
+        // remove them from shared project
+        await redux
+          .getActions("projects")
+          .remove_collaborator(shared_id, account_id);
+      }
+    }
+  };
 }

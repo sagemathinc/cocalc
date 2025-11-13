@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -58,11 +58,9 @@ export class Changes extends EventEmitter {
     select: QuerySelect,
     watch: string[],
     where: WhereCondition,
-    cb: Function
+    cb: Function,
   ) {
     super();
-    this.handle_change = this.handle_change.bind(this);
-
     this.db = db;
     this.table = table;
     this.select = select;
@@ -71,11 +69,11 @@ export class Changes extends EventEmitter {
     this.init(cb);
   }
 
-  async init(cb: Function): Promise<void> {
+  init = async (cb: Function): Promise<void> => {
     this.dbg("constructor")(
       `select=${misc.to_json(this.select)}, watch=${misc.to_json(
-        this.watch
-      )}, @_where=${misc.to_json(this.where)}`
+        this.watch,
+      )}, @_where=${misc.to_json(this.where)}`,
     );
 
     try {
@@ -90,7 +88,7 @@ export class Changes extends EventEmitter {
         this.db._listen,
         this.table,
         this.select,
-        this.watch
+        this.watch,
       );
     } catch (err) {
       cb(err);
@@ -112,23 +110,23 @@ export class Changes extends EventEmitter {
 
     this.db.once("connect", this.close);
     cb(undefined, this);
-  }
+  };
 
-  private dbg(f: string): Function {
+  private dbg = (f: string): Function => {
     return this.db._dbg(`Changes(table='${this.table}').${f}`);
-  }
+  };
 
   // this breaks the changefeed -- client must recreate it; nothing further will work at all.
-  private fail(err): void {
+  private fail = (err): void => {
     if (this.closed) {
       return;
     }
     this.dbg("_fail")(`err='${err}'`);
     this.emit("error", new Error(err));
     this.close();
-  }
+  };
 
-  public close(): void {
+  close = (): void => {
     if (this.closed) {
       return;
     }
@@ -141,9 +139,9 @@ export class Changes extends EventEmitter {
     }
     misc.close(this);
     this.closed = true;
-  }
+  };
 
-  public async insert(where): Promise<void> {
+  insert = async (where): Promise<void> => {
     const where0: { [field: string]: any } = {};
     for (const k in where) {
       const v = where[k];
@@ -169,16 +167,16 @@ export class Changes extends EventEmitter {
         this.emit("change", change);
       }
     }
-  }
+  };
 
-  public delete(where): void {
+  delete = (where): void => {
     // listener is meant to delete everything that *matches* the where, so
     // there is no need to actually do a query.
     const change: ChangeEvent = { action: "delete", old_val: where };
     this.emit("change", change);
-  }
+  };
 
-  private async handle_change(mesg): Promise<void> {
+  private handle_change = async (mesg): Promise<void> => {
     if (this.closed) {
       return;
     }
@@ -281,15 +279,15 @@ export class Changes extends EventEmitter {
 
     r = { action, new_val };
     this.emit("change", r);
-  }
+  };
 
-  private new_val_update(
+  private new_val_update = (
     primary_part: { [key: string]: any },
     this_val: { [key: string]: any },
-    key: string
+    key: string,
   ):
     | { new_val: { [key: string]: any }; action: "insert" | "update" }
-    | undefined {
+    | undefined => {
     if (this.closed) {
       return;
     }
@@ -320,9 +318,9 @@ export class Changes extends EventEmitter {
       }
     }
     return { new_val, action: "update" };
-  }
+  };
 
-  private init_where(): void {
+  private init_where = (): void => {
     if (typeof this.where === "function") {
       // user provided function
       this.match_condition = this.where;
@@ -340,7 +338,9 @@ export class Changes extends EventEmitter {
 
     this.condition = {};
     const add_condition = (field: string, op: Operator, val: any): void => {
-      if (this.condition == null) return; // won't happen
+      if (this.condition == null) {
+        return; // won't happen
+      }
       let f: Function, g: Function;
       field = field.trim();
       if (field[0] === '"') {
@@ -349,7 +349,7 @@ export class Changes extends EventEmitter {
       }
       if (this.select[field] == null) {
         throw Error(
-          `'${field}' must be in select="${JSON.stringify(this.select)}"`
+          `'${field}' must be in select="${JSON.stringify(this.select)}"`,
         );
       }
       if (misc.is_object(val)) {
@@ -383,9 +383,9 @@ export class Changes extends EventEmitter {
         // Inputs to condition come back as JSON, which doesn't know
         // about timestamps, so we convert them to date objects.
         if (op == "=" || op == "==") {
-          f = (x) => new Date(x).valueOf() - val === 0;
+          f = (x) => new Date(x).valueOf() - val.valueOf() === 0;
         } else if (op == "!=" || op == "<>") {
-          f = (x) => new Date(x).valueOf() - val !== 0;
+          f = (x) => new Date(x).valueOf() - val.valueOf() !== 0;
         } else {
           g = opToFunction(op);
           f = (x) => g(new Date(x), val);
@@ -406,6 +406,7 @@ export class Changes extends EventEmitter {
              - "field op $::TYPE"
              - "field op $" or
              - "field op any($)"
+             - "$ op any(field)"
              - 'field' (defaults to =)
           where op is one of =, <, >, <=, >=, !=
 
@@ -413,17 +414,52 @@ export class Changes extends EventEmitter {
              - something where javascript === and comparisons works as you expect!
              - or an array, in which case op must be = or !=, and we ALWAYS do inclusion (analogue of any).
           */
-          let found = false;
-          for (const op of OPERATORS) {
-            const i = k.indexOf(op);
-            if (i !== -1) {
-              add_condition(k.slice(0, i).trim(), op, val);
-              found = true;
-              break;
+          if (k.startsWith("$")) {
+            /*
+            The "$ op any(field)" is used, e.g., for having multiple owners
+            of a single thing, e.g.,:
+
+               pg_where: [{ "$::UUID = ANY(owner_account_ids)": "account_id" }]
+
+            where we need to get the field(=owner_account_ids) and check that
+            val(=account_id) is in it, at the javascript level.
+            */
+            if (k.includes("<") || k.includes(">")) {
+              throw Error("only = and != are supported");
             }
-          }
-          if (!found) {
-            throw Error(`unable to parse '${k}'`);
+            const isEquals = !k.includes("!=");
+            const i = k.toLowerCase().indexOf("any(");
+            if (i == -1) {
+              throw Error(
+                "condition must be $=ANY(...) or $!=ANY(...) -- missing close paren",
+              );
+            }
+            const j = k.lastIndexOf(")");
+            if (j == -1) {
+              throw Error(
+                "condition must be $=ANY(...) or $!=ANY(...) -- missing close parent",
+              );
+            }
+            const field = k.slice(i + 4, j);
+            if (isEquals) {
+              this.condition[field] = (x) => !!x?.includes(val);
+            } else {
+              this.condition[field] = (x) => !x?.includes(val);
+            }
+          } else {
+            let found = false;
+            for (const op of OPERATORS) {
+              const i = k.indexOf(op);
+              if (i !== -1) {
+                const field = k.slice(0, i).trim();
+                add_condition(field, op, val);
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              throw Error(`unable to parse '${k}'`);
+            }
           }
         }
       } else if (typeof obj === "string") {
@@ -434,7 +470,7 @@ export class Changes extends EventEmitter {
             add_condition(
               obj.slice(0, i),
               op,
-              eval(obj.slice(i + op.length).trim())
+              eval(obj.slice(i + op.length).trim()),
             );
             found = true;
             break;
@@ -465,5 +501,5 @@ export class Changes extends EventEmitter {
       }
       return true;
     };
-  }
+  };
 }

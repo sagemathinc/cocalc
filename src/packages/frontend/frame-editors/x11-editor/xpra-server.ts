@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -8,7 +8,7 @@ Control backend Xpra server daemon
 */
 
 import { exec, ExecOutput, ExecOpts } from "../generic/client";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { MAX_WIDTH, MAX_HEIGHT } from "./xpra/surface";
 import { splitlines, split } from "@cocalc/util/misc";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -42,11 +42,11 @@ export class XpraServer {
       console.warn("xpra: Failed to get hostname.");
     }
     this.display = opts.display;
-    this.start = reuseInFlight(this.start);
-    this.stop = reuseInFlight(this.stop);
-    this.get_port = reuseInFlight(this.get_port);
-    this.get_hostname = reuseInFlight(this.get_hostname);
-    this.pgrep = reuseInFlight(this.pgrep);
+    this.start = reuseInFlight(this.start.bind(this));
+    this.stop = reuseInFlight(this.stop.bind(this));
+    this.get_port = reuseInFlight(this.get_port.bind(this));
+    this.get_hostname = reuseInFlight(this.get_hostname.bind(this));
+    this.pgrep = reuseInFlight(this.pgrep.bind(this));
   }
 
   destroy(): void {
@@ -224,7 +224,11 @@ export class XpraServer {
     }
     opts.env.DISPLAY = `:${this.display}`;
     (opts as any).project_id = this.project_id;
-    return await exec(opts as ExecOpts);
+    return await exec({
+      ...(opts as ExecOpts),
+      // no support for compute servers yet.
+      compute_server_id: 0,
+    });
   }
 
   // get the current contents of the X11 clipboard

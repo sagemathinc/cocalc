@@ -5,6 +5,7 @@ Resume a subscription.
 import getAccountId from "lib/account/get-account";
 import resumeSubscription from "@cocalc/server/purchases/resume-subscription";
 import getParams from "lib/api/get-params";
+import { OkStatus } from "lib/api/status";
 
 export default async function handle(req, res) {
   try {
@@ -22,5 +23,5 @@ async function get(req) {
   }
   const { subscription_id } = getParams(req);
   await resumeSubscription({ account_id, subscription_id });
-  return { status: "ok" };
+  return OkStatus;
 }

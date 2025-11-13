@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -15,29 +15,24 @@ out a range.
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import Worksheet from "../../sagews/worksheet";
 import { parse_sagews } from "../../sagews/parse-sagews";
-import { Rendered, Component } from "../../app-framework";
 
 interface Props {
   syncdoc: SyncDoc; // syncdoc corresponding to a Sage worksheet
-  version: Date;
+  version: number;
 }
 
-export class SageWorksheetHistory extends Component<Props> {
-  public shouldComponentUpdate(props): boolean {
-    return this.props.version != props.version;
+export function SageWorksheetHistory({ syncdoc, version }: Props) {
+  const v = syncdoc.version(version);
+  if (v == null) {
+    return <span />;
   }
-
-  public render(): Rendered {
-    const v = this.props.syncdoc.version(this.props.version);
-    if (v == null) return <span />;
-    const content: string = v.to_str();
-    return (
-      <div
-        className="smc-vfill"
-        style={{ overflowY: "scroll", margin: "30px 30px 0 30px" }}
-      >
-        <Worksheet sagews={parse_sagews(content)} />
-      </div>
-    );
-  }
+  const content: string = v.to_str();
+  return (
+    <div
+      className="smc-vfill"
+      style={{ overflowY: "scroll", margin: "30px 30px 0 30px" }}
+    >
+      <Worksheet sagews={parse_sagews(content)} />
+    </div>
+  );
 }

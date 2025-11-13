@@ -1,15 +1,20 @@
-import { Icon } from "@cocalc/frontend/components";
-import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
-import type {
-  State,
-  Configuration,
-} from "@cocalc/util/db-schema/compute-servers";
-import { Button, Divider, Popover, Progress, Spin } from "antd";
-import { User } from "@cocalc/frontend/users";
+import { Button, Divider, Popover, Progress, Spin, Tooltip } from "antd";
 import { CSSProperties, useEffect, useState } from "react";
-import { getNetworkUsage, getServerState } from "./api";
-import { useInterval } from "react-interval-hook";
+
+import { A, Icon, isIconName, TimeAgo } from "@cocalc/frontend/components";
+import { GoogleNetworkCost } from "@cocalc/frontend/purchases/pay-as-you-go/cost";
+import { User } from "@cocalc/frontend/users";
+import type {
+  Configuration,
+  State,
+} from "@cocalc/util/db-schema/compute-servers";
+import {
+  GOOGLE_COST_LAG_MS,
+  STATE_INFO,
+} from "@cocalc/util/db-schema/compute-servers";
 import { currency, human_readable_size } from "@cocalc/util/misc";
+import { useInterval } from "react-interval-hook";
+import { getNetworkUsage, getServerState } from "./api";
 
 interface Props {
   style?: CSSProperties;
@@ -32,6 +37,7 @@ export default function State({
   state_changed,
   editable,
   account_id,
+  configuration,
   purchase_id,
 }: Props) {
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -65,40 +71,87 @@ export default function State({
       mouseEnterDelay={0.5}
       title={
         <>
-          <Icon name={icon} /> {label}
+          {isIconName(icon) && <Icon name={icon} />} {label}
         </>
       }
       content={() => {
         return (
           <div style={{ maxWidth: "400px" }}>
-            <Body account_id={account_id} editable={editable} />
-            <NetworkUsage id={id} data={data} state={state} />
+            <Body
+              account_id={account_id}
+              editable={editable}
+              controllable={configuration?.allowCollaboratorControl}
+            />
+            {editable && <NetworkUsage id={id} data={data} state={state} />}
             <div style={{ textAlign: "center", margin: "15px 0" }}>
               {refresh}
             </div>
-            {purchase_id && <div>Purchase Id: {purchase_id} </div>}
+            {editable && purchase_id && (
+              <div>Current Purchase Id: {purchase_id} </div>
+            )}
           </div>
         );
       }}
     >
-      <span style={{ cursor: "pointer", ...style }} onClick={handleRefresh}>
+      <div
+        style={{ cursor: "pointer", display: "inline-block", ...style }}
+        onClick={handleRefresh}
+      >
         <span style={{ color }}>
-          <Icon name={icon} /> {label}
+          {isIconName(icon) && <Icon name={icon} />} {label}
         </span>
         {!stable && (
           <>
             <div style={{ display: "inline-block", width: "10px" }} />
             <Spin />
             {state_changed && (
-              <ProgressBarTimer
-                startTime={state_changed}
-                style={{ marginLeft: "10px" }}
-              />
+              <div>
+                <ProgressBarTimer
+                  startTime={state_changed}
+                  style={{ marginLeft: "10px" }}
+                />
+              </div>
             )}
           </>
         )}
-      </span>
+      </div>
     </Popover>
+  );
+}
+
+export function WhenKnown({ period_end }) {
+  let whenKnown;
+  if (period_end) {
+    const msAgo = Date.now() - period_end.valueOf();
+    const howLong = Math.max(0, GOOGLE_COST_LAG_MS - msAgo);
+    if (howLong == 0) {
+      whenKnown = "soon";
+    } else {
+      whenKnown = (
+        <>
+          around <TimeAgo date={new Date(Date.now() + howLong)} />
+        </>
+      );
+    }
+  } else {
+    whenKnown = "";
+  }
+  return (
+    <span>{whenKnown ? <>The cost will be finalized {whenKnown}.</> : ""}</span>
+  );
+}
+
+function NetworkUsageCostEstimate({ period_end }) {
+  return (
+    <>
+      The{" "}
+      <Tooltip title={<GoogleNetworkCost />}>
+        <span>
+          <A href="https://cloud.google.com/vpc/network-pricing">rate</A>
+        </span>
+      </Tooltip>{" "}
+      depends on the destination. <WhenKnown period_end={period_end} />
+    </>
   );
 }
 
@@ -106,15 +159,24 @@ export function DisplayNetworkUsage({
   amount,
   cost,
   style,
+  period_end,
 }: {
   amount: number;
   cost?: number;
   style?;
+  period_end?: Date;
 }) {
+  if (cost == null) {
+  }
   return (
     <div style={style}>
       <Icon name="network-wired" /> {human_readable_size(amount * 2 ** 30)} of
-      network data transfer out{cost != null && <>: {currency(cost)}</>}
+      network data transfer out.{" "}
+      {cost != null ? (
+        <>Final Cost: {currency(cost)}</>
+      ) : (
+        <NetworkUsageCostEstimate period_end={period_end} />
+      )}
     </div>
   );
 }
@@ -146,7 +208,7 @@ function NetworkUsage({ id, state, data }) {
   return <DisplayNetworkUsage amount={usage.amount} cost={usage.cost} />;
 }
 
-function ProgressBarTimer({
+export function ProgressBarTimer({
   startTime,
   style,
   width = "150px",
@@ -184,7 +246,14 @@ function ProgressBarTimer({
   );
 }
 
-function Body({ account_id, editable }) {
+function Body({ account_id, editable, controllable }) {
+  if (controllable && !editable) {
+    return (
+      <div>
+        Project collaborators can change the state of this compute server.
+      </div>
+    );
+  }
   if (!editable) {
     return (
       <div>
@@ -199,7 +268,6 @@ function Body({ account_id, editable }) {
         )}
       </div>
     );
-  } else {
-    return null;
   }
+  return null;
 }

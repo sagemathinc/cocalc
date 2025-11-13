@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Table } from "./types";
@@ -49,6 +49,10 @@ Table({
     users: {
       type: "map",
       desc: "{account_id1: {read: boolean, saved: boolean}, account_id2: {...}}",
+    },
+    expire: {
+      type: "timestamp",
+      desc: "delete this row after this date, if not null",
     },
   },
   rules: {

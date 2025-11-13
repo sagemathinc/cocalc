@@ -1,18 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { access, readFile, unlink } from "node:fs/promises";
+import { readFile, unlink } from "node:fs/promises";
+import { pathExists } from "fs-extra";
 
-export async function exists(path: string): Promise<boolean> {
-  // fs.exists is deprecated
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export { readFile, unlink };
+export { readFile, unlink, pathExists as exists };

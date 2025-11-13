@@ -1,12 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { callback } from "awaiting";
 import { createRoot } from "react-dom/client";
-
-declare var $: any;
+import $ from "jquery";
 
 /*
 Show a modal defined in React somehow completely outside of any
@@ -39,7 +38,7 @@ await show_react_modal((cb) => {
   });
 */
 export async function show_react_modal(
-  modal_generator: (cb: (err?: any, result?: any) => void) => JSX.Element
+  modal_generator: (cb: (err?: any, result?: any) => void) => React.JSX.Element
 ): Promise<any> {
   const elt = $("<div></div>");
   $("body").append(elt);

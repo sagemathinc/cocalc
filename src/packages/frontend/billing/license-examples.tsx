@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import {
@@ -10,10 +10,9 @@ import {
 } from "@cocalc/util/licenses/purchase/consts";
 import { Cost, User } from "@cocalc/util/licenses/purchase/types";
 import { COLORS } from "@cocalc/util/theme";
-import { Col, Row, Table } from "react-bootstrap";
+import { Col, Row, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { React } from "../app-framework";
 import { Icon, IconName, Gap } from "../components";
-const { Panel } = require("react-bootstrap");
 
 // This component renders 3 price examples for licensed upgrades in a row
 
@@ -60,7 +59,7 @@ export const LicenseExamples: React.FC<Props> = ({
     large,
     emph: boolean,
     online: boolean,
-    descr?: string
+    descr?: string,
   ) {
     const smallpx = `${small}px`;
     const largepx = `${large}px`;
@@ -88,12 +87,12 @@ export const LicenseExamples: React.FC<Props> = ({
         {render_price_number(price.cost, 14, 30, false, false, "retail price")}
         <br />
         {render_price_number(
-          price.discounted_cost,
+          price.cost,
           14,
           30,
           true,
           true,
-          "purchased online"
+          "purchased online",
         )}
       </>
     );
@@ -119,7 +118,7 @@ export const LicenseExamples: React.FC<Props> = ({
     const large = 26;
     return (
       <>
-        <Table className={"cc-price-table"}>
+        <table>
           <tbody>
             <tr>
               <td></td>
@@ -134,17 +133,11 @@ export const LicenseExamples: React.FC<Props> = ({
                   14,
                   large,
                   false,
-                  false
+                  false,
                 )}
               </td>
               <td>
-                {render_price_number(
-                  price_monthly.discounted_cost,
-                  14,
-                  large,
-                  true,
-                  true
-                )}
+                {render_price_number(price_monthly.cost, 14, large, true, true)}
               </td>
             </tr>
             <tr>
@@ -155,21 +148,15 @@ export const LicenseExamples: React.FC<Props> = ({
                   14,
                   large,
                   false,
-                  false
+                  false,
                 )}
               </td>
               <td>
-                {render_price_number(
-                  price_yearly.discounted_cost,
-                  14,
-                  large,
-                  true,
-                  true
-                )}
+                {render_price_number(price_yearly.cost, 14, large, true, true)}
               </td>
             </tr>
           </tbody>
-        </Table>
+        </table>
       </>
     );
   }
@@ -184,7 +171,7 @@ export const LicenseExamples: React.FC<Props> = ({
     );
     return (
       <Col sm={4} key={title}>
-        <Panel header={header} bsStyle={"info"}>
+        <Panel header={header}>
           <Gap />
           {lines.map((line) => render_example_line(line))}
           <Gap />

@@ -1,5 +1,5 @@
 /*
-Mount a remote CoCalc project's filesystem locally over a websocket using FUSE.
+Mount a remote CoCalc project's file system locally over a websocket using FUSE.
 
  await require('.').mount({remote:'wss://cocalc.com/10f0e544-313c-4efe-8718-2142ac97ad11/raw/.smc/websocketfs',path:process.env.HOME + '/dev2', connectOptions:{perMessageDeflate: false,  headers: {Cookie: require('cookie').serialize('api_key', 'sk-at7ALcGBKMbzq7Vc00000P')}}})
 
@@ -11,7 +11,6 @@ import { mount } from "websocketfs";
 import getLogger from "@cocalc/backend/logger";
 import { project } from "@cocalc/api-client";
 import { serialize } from "cookie";
-import { join } from "path";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import syncFS from "@cocalc/sync-fs";
 import {
@@ -22,6 +21,8 @@ import {
 import { apiCall } from "@cocalc/api-client";
 import sendFiles from "./send-files";
 import getFiles from "./get-files";
+// ensure that the conat client is initialized so that syncfs can connect properly.
+import "@cocalc/project/conat";
 
 const logger = getLogger("compute:filesystem");
 
@@ -39,9 +40,9 @@ interface Options {
   unionfs?: {
     upper: string;
     lower: string;
-    // If true, doesn't do anything until the type of the filesystem that lower is
+    // If true, doesn't do anything until the type of the file system that lower is
     // mounted on is of this type, e.g., "fuse". This is done *INSTEAD OF* just
-    // trying to mount that filesystem.  Why? because in docker we hit a deadlock
+    // trying to mount that file system.  Why? because in docker we hit a deadlock
     // when trying to do both in the same process (?), which I can't solve -- maybe
     // a bug in node.  In any case, separating the unionfs into a separate container
     // is nice anyways.
@@ -100,7 +101,7 @@ export async function mountProject({
     // Ping to start project so it's possible to mount.
     await pingProjectUntilSuccess(project_id);
 
-    const remote = join(getProjectWebsocketUrl(project_id), "websocketfs");
+    const remote = getProjectWebsocketUrl(project_id) + "/websocketfs";
     log("connecting to ", remote);
     const headers = { Cookie: serialize(API_COOKIE_NAME, apiKey) };
     // SECURITY: DO NOT log headers and connectOptions, obviously!
@@ -139,7 +140,7 @@ export async function mountProject({
         progress: 30,
       });
 
-      ({ unmount } = await mount({
+      const websocketfsMountOptions = {
         remote,
         path: homeMountPoint,
         ...options,
@@ -149,9 +150,9 @@ export async function mountProject({
           ...options.connectOptions,
         },
         mountOptions: {
-          allowOther: true,
-          nonEmpty: true,
           ...options.mountOptions,
+          allowOther: true, // this is critical to allow for fast bind mounts of scratch etc. as root.
+          nonEmpty: true,
         },
         cacheTimeout,
         hidePath: "/.unionfs",
@@ -160,10 +161,29 @@ export async function mountProject({
         // modified = ignore any file modified with this many seconds (at least);
         //            also ignores any file not in the stat cache.
         readTrackingFile: readTrackingFile,
-        readTrackingExclude: [".*", ...exclude],
+        readTrackingExclude: exclude,
         // metadata file
         metadataFile,
-      }));
+      };
+
+      log("websocketfs -- mount options", websocketfsMountOptions);
+
+      try {
+        ({ unmount } = await mount(websocketfsMountOptions));
+      } catch (err) {
+        log("failed trying to mount -- ", err);
+        log(
+          "try again without allowOther, since some versions of FUSE do not support this option",
+        );
+        websocketfsMountOptions.mountOptions.allowOther = false;
+        ({ unmount } = await mount(websocketfsMountOptions));
+
+        // This worked so the problem is allow_other.
+        throw Error(
+          "fusermount: option allow_other only allowed if 'user_allow_other' is set in /etc/fuse.conf\n\n\nFix this:\n\n    sudo sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf\n\n\n",
+        );
+      }
+
       pingInterval = setInterval(async () => {
         try {
           await project.ping({ project_id });
@@ -182,6 +202,7 @@ export async function mountProject({
       }
 
       syncfs = syncFS({
+        role: "compute_server",
         lower: unionfs.lower,
         upper: unionfs.upper,
         mount: path,

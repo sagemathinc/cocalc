@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { SyncDoc, SyncOpts0, SyncOpts } from "../generic/sync-doc";
@@ -37,7 +37,7 @@ export class SyncDB extends SyncDoc {
     super(opts1 as SyncOpts);
   }
 
-  get_one(arg?) {
+  get_one(arg?) : any {
     // I know it is really of type DBDocument.
     return (this.get_doc() as DBDocument).get_one(arg);
   }

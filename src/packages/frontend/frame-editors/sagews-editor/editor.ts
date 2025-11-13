@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -25,7 +25,7 @@ import { DocumentWorksheet } from "./document-worksheet";
 //import { Print } from "./print";
 import { terminal } from "../terminal-editor/editor";
 
-const worksheet_buttons = set([
+const worksheetCommands = set([
   "print",
   "decrease_font_size",
   "increase_font_size",
@@ -42,21 +42,27 @@ const worksheet_buttons = set([
   "format",
 ]);
 
+const cells: EditorDescription = {
+  type: "sagews-cells",
+  short: "Cells",
+  name: "Cell Worksheet",
+  icon: "minus-square",
+  component: CellWorksheet as any, // TODO: rclass wrapper does not fit the EditorDescription type
+  commands: worksheetCommands,
+} as const;
+
+const document: EditorDescription = {
+  type: "sagews-document",
+  short: "Document",
+  name: "Document Worksheet",
+  icon: "file-alt",
+  component: DocumentWorksheet as any, // TODO: rclass wrapper does not fit the EditorDescription type
+  commands: worksheetCommands,
+} as const;
+
 const EDITOR_SPEC = {
-  cells: {
-    short: "Cells",
-    name: "Cell Worksheet",
-    icon: "minus-square",
-    component: CellWorksheet,
-    buttons: worksheet_buttons,
-  } as EditorDescription,
-  document: {
-    short: "Document",
-    name: "Document Worksheet",
-    icon: "file-alt",
-    component: DocumentWorksheet,
-    buttons: worksheet_buttons,
-  } as EditorDescription,
+  cells,
+  document,
   terminal,
   /*,
   print: {
@@ -64,9 +70,9 @@ const EDITOR_SPEC = {
     name: "Printable View",
     icon: "print",
     component: Print,
-    buttons: set(["print"])
+    commands: set(["print"])
   }*/
-};
+} as const;
 
 /* Ideas:
 

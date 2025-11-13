@@ -1,24 +1,22 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 nbgrader functionality: the create assignment toolbar.
 */
 
-import { Space } from "antd";
+import { Button, Select, Space } from "antd";
 import { Map } from "immutable";
 import { DebounceInput } from "react-debounce-input";
-
-import { Button, FormControl } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { popup } from "@cocalc/frontend/frame-editors/frame-tree/print";
 import { JupyterActions } from "../browser-actions";
 import {
-  CELLTYPE_INFO_LIST,
-  CELLTYPE_INFO_MAP,
+  CELL_TYPE_INFO_LIST,
+  CELL_TYPE_INFO_MAP,
   set_cell_type,
   state_to_value,
   value_to_state,
@@ -26,22 +24,36 @@ import {
 } from "./cell-types";
 import type { Metadata } from "./types";
 
-const OPTIONS_CODE: Rendered[] = [];
-const OPTIONS_NOTCODE: Rendered[] = [];
-
-for (const x of CELLTYPE_INFO_LIST) {
-  const option = (
-    <option key={x.value} value={x.value}>
-      {x.title}
-    </option>
-  );
-  if (!x.markdown_only) {
-    OPTIONS_CODE.push(option);
-  }
-  if (!x.code_only) {
-    OPTIONS_NOTCODE.push(option);
-  }
-}
+const OPTIONS_CODE = CELL_TYPE_INFO_LIST.filter((x) => !x.markdown_only).map(
+  (x) => {
+    return {
+      ...x,
+      label: (
+        <>
+          {x.icon ? (
+            <Icon name={x.icon} style={{ marginRight: "5px" }} />
+          ) : undefined}{" "}
+          {x.title}
+        </>
+      ),
+    };
+  },
+);
+const OPTIONS_NOTCODE = CELL_TYPE_INFO_LIST.filter((x) => !x.code_only).map(
+  (x) => {
+    return {
+      ...x,
+      label: (
+        <>
+          {x.icon ? (
+            <Icon name={x.icon} style={{ marginRight: "5px" }} />
+          ) : undefined}{" "}
+          {x.title}
+        </>
+      ),
+    };
+  },
+);
 
 interface Props {
   actions: JupyterActions;
@@ -61,7 +73,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
     const id = cell.get("id");
     metadata.grade_id = cell.getIn(
       ["metadata", "nbgrader", "grade_id"],
-      ""
+      "",
     ) as string;
     if (!metadata.grade_id) {
       // TODO -- check if default is globally unique...?
@@ -74,7 +86,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
       const input = value_to_template_content(
         value,
         language,
-        cell.get("cell_type", "code")
+        cell.get("cell_type", "code"),
       );
       if (input != "") {
         actions.set_cell_input(id, input);
@@ -108,7 +120,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
   }
 
   function render_icon(value: string): Rendered {
-    const name = CELLTYPE_INFO_MAP[value]?.icon;
+    const name = CELL_TYPE_INFO_MAP[value]?.icon;
     if (name == null) return;
     return <Icon name={name} style={{ float: "left", padding: "5px" }} />;
   }
@@ -188,28 +200,25 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
     const options =
       cell.get("cell_type", "code") == "code" ? OPTIONS_CODE : OPTIONS_NOTCODE;
     return (
-      <FormControl
-        componentClass="select"
-        placeholder="select"
-        onChange={(e) => select((e as any).target.value)}
+      <Select
+        options={options}
+        onChange={select}
         value={get_value()}
-        style={{ marginLeft: "15px" }}
-      >
-        {options}
-      </FormControl>
+        style={{ marginLeft: "15px", width: "225px" }}
+      />
     );
   }
 
   function click_help(): void {
     const value = get_value();
-    const info = CELLTYPE_INFO_MAP[value];
+    const info = CELL_TYPE_INFO_MAP[value];
     if (info == null || info.link == null) return;
     popup(info.link, 750);
   }
 
   function render_help(): Rendered {
     const value = get_value();
-    const info = CELLTYPE_INFO_MAP[value];
+    const info = CELL_TYPE_INFO_MAP[value];
     if (info == null) return;
     return (
       <Button

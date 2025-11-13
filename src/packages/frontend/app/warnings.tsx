@@ -1,95 +1,14 @@
-import { redux, React, TypedMap } from "../app-framework";
-import { webapp_client } from "../webapp-client";
-import { Icon, Gap } from "../components";
-import { SiteName } from "../customize";
-import { get_browser } from "../feature";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
 
-interface VersionWarningProps {
-  new_version: TypedMap<{ min_version: number; version: number }>;
-}
+import { Icon } from "@cocalc/frontend/components";
+import { SiteName } from "@cocalc/frontend/customize";
+import { get_browser } from "@cocalc/frontend/feature";
+import { type CSSProperties } from "react";
 
-const VERSION_WARNING_STYLE: React.CSSProperties = {
-  fontSize: "12pt",
-  position: "fixed",
-  left: 12,
-  backgroundColor: "#fcf8e3",
-  color: "#8a6d3b",
-  top: 20,
-  borderRadius: 4,
-  padding: "15px",
-  zIndex: 900,
-  boxShadow: "8px 8px 4px #888",
-  width: "70%",
-  marginTop: "1em",
-};
-
-export const VersionWarning: React.FC<VersionWarningProps> = React.memo(
-  ({ new_version }) => {
-    function render_critical() {
-      if (new_version.get("min_version") <= webapp_client.version()) {
-        return;
-      }
-      return (
-        <div>
-          <br />
-          THIS IS A CRITICAL UPDATE. YOU MUST <Gap />
-          <a
-            onClick={() => window.location.reload()}
-            style={{
-              cursor: "pointer",
-              color: "white",
-              fontWeight: "bold",
-              textDecoration: "underline",
-            }}
-          >
-            RELOAD THIS PAGE
-          </a>
-          <Gap /> IMMEDIATELY OR YOU WILL BE DISCONNECTED. Sorry for the
-          inconvenience.
-        </div>
-      );
-    }
-
-    function render_close() {
-      if (new_version.get("min_version") <= webapp_client.version()) {
-        return (
-          <Icon
-            name="times"
-            className="pull-right"
-            style={{ cursor: "pointer" }}
-            onClick={() => redux.getActions("page").set_new_version(undefined)}
-          />
-        );
-      }
-    }
-
-    let style: React.CSSProperties = VERSION_WARNING_STYLE;
-    if (new_version.get("min_version") > webapp_client.version()) {
-      style = { ...style, ...{ backgroundColor: "red", color: "#fff" } };
-    }
-
-    return (
-      <div style={style}>
-        <Icon name={"refresh"} /> New Version Available: upgrade by <Gap />
-        <a
-          onClick={() => window.location.reload()}
-          style={{
-            cursor: "pointer",
-            fontWeight: "bold",
-            color: style.color,
-            textDecoration: "underline",
-          }}
-        >
-          reloading this page
-        </a>
-        .{render_close()}
-        {render_critical()}
-      </div>
-    );
-  }
-);
-
-const WARNING_STYLE: React.CSSProperties = {
+const WARNING_STYLE = {
   position: "fixed",
   left: 12,
   backgroundColor: "red",
@@ -102,23 +21,23 @@ const WARNING_STYLE: React.CSSProperties = {
   zIndex: 100000,
   boxShadow: "8px 8px 4px #888",
   width: "70%",
-};
+} as CSSProperties;
 
-export const CookieWarning: React.FC = React.memo(() => {
+export function CookieWarning() {
   return (
     <div style={WARNING_STYLE}>
       <Icon name="warning" /> You <em>must</em> enable cookies to use{" "}
       <SiteName />.
     </div>
   );
-});
+}
 
-const STORAGE_WARNING_STYLE: React.CSSProperties = {
+const STORAGE_WARNING_STYLE = {
   ...WARNING_STYLE,
   top: 55,
-};
+} as CSSProperties;
 
-export const LocalStorageWarning: React.FC = React.memo(() => {
+export function LocalStorageWarning() {
   return (
     <div style={STORAGE_WARNING_STYLE}>
       <Icon name="warning" /> You <em>must</em> enable local storage to use{" "}
@@ -129,4 +48,4 @@ export const LocalStorageWarning: React.FC = React.memo(() => {
       .
     </div>
   );
-});
+}

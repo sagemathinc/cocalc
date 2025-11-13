@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -15,14 +15,10 @@ status updates.
 Hence in particular, information like cpu, memory and disk are smoothed out and throttled.
 */
 
-import { getLogger } from "@cocalc/project/logger";
-import { how_long_ago_m, round1 } from "@cocalc/util/misc";
-import { version as smcVersion } from "@cocalc/util/smc-version";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
-import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
-import { ProjectInfo } from "@cocalc/comm/project-info/types";
+
 import {
   ALERT_DISK_FREE,
   ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,
@@ -36,13 +32,20 @@ import {
   ProjectStatus,
 } from "@cocalc/comm/project-status/types";
 import { cgroup_stats } from "@cocalc/comm/project-status/utils";
+import { createPublisher } from "@cocalc/conat/project/project-status";
+import { compute_server_id, project_id } from "@cocalc/project/data";
+import { getLogger } from "@cocalc/project/logger";
+import { how_long_ago_m, round1 } from "@cocalc/util/misc";
+import { version as smcVersion } from "@cocalc/util/smc-version";
+import { ProjectInfo } from "@cocalc/util/types/project-info/types";
+import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
 
 // TODO: only return the "next" value, if it is significantly different from "prev"
 //function threshold(prev?: number, next?: number): number | undefined {
 //  return next;
 //}
 
-const winston = getLogger("ProjectStatusServer");
+const logger = getLogger("project-status:server");
 
 function quantize(val, order) {
   const q = Math.round(Math.pow(10, order));
@@ -83,7 +86,7 @@ export class ProjectStatusServer extends EventEmitter {
   constructor(testing = false) {
     super();
     this.testing = testing;
-    this.dbg = (...msg) => winston.debug(...msg);
+    this.dbg = (...msg) => logger.debug(...msg);
     this.project_info = get_ProjectInfoServer();
   }
 
@@ -297,11 +300,7 @@ export class ProjectStatusServer extends EventEmitter {
   }
 
   public async start(): Promise<void> {
-    if (this.running) {
-      this.dbg(
-        "project-status/server: already running, cannot be started twice",
-      );
-    } else {
+    if (!this.running) {
       await this._start();
     }
   }
@@ -326,12 +325,19 @@ export class ProjectStatusServer extends EventEmitter {
 }
 
 // singleton, we instantiate it when we need it
-let _status: ProjectStatusServer | undefined = undefined;
+let status: ProjectStatusServer | undefined = undefined;
 
-export function get_ProjectStatusServer(): ProjectStatusServer {
-  if (_status != null) return _status;
-  _status = new ProjectStatusServer();
-  return _status;
+export function init() {
+  logger.debug("initializing project status server, and enabling publishing");
+  if (status == null) {
+    status = new ProjectStatusServer();
+  }
+  createPublisher({
+    projectStatusServer: status,
+    compute_server_id,
+    project_id,
+  });
+  status.start();
 }
 
 // testing: $ ts-node server.ts

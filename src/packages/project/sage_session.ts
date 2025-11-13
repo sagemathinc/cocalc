@@ -1,14 +1,13 @@
 //########################################################################
 // This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-// License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+// License: MS-RSL – see LICENSE.md for details
 //########################################################################
 
 /*
 Start the Sage server and also get a new socket connection to it.
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
-
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getLogger } from "@cocalc/backend/logger";
 import processKill from "@cocalc/backend/misc/process-kill";
 import { abspath } from "@cocalc/backend/misc_node";
@@ -28,11 +27,9 @@ import {
 import { CB } from "@cocalc/util/types/callback";
 import { ISageSession, SageCallOpts } from "@cocalc/util/types/sage";
 import { Client } from "./client";
-import { get_sage_socket } from "./sage_socket";
+import { getSageSocket } from "./sage_socket";
 
-// import { ExecuteCodeOutput } from "@cocalc/util/types/execute-code";
-
-const winston = getLogger("sage-session");
+const logger = getLogger("sage-session");
 
 //##############################################
 // Direct Sage socket session -- used internally in local hub, e.g., to assist CodeMirror editors...
@@ -53,10 +50,6 @@ export function sage_session(opts: Readonly<SageSessionOpts>): SageSessionType {
   // compute and cache if not cached; otherwise, get from cache:
   return (cache[path] = cache[path] ?? new SageSession(opts));
 }
-// TODO for project-info/server we need a function that returns a path to a sage worksheet for a given PID
-//export function get_sage_path(pid) {}
-//    return path
-// }
 
 /*
 Sage Session object
@@ -70,59 +63,52 @@ class SageSession implements ISageSession {
     [key: string]: CB<{ done: boolean; error: string }, any>;
   } = {};
   private _socket: CoCalcSocket | undefined;
-  public init_socket: () => Promise<void>;
 
   constructor(opts: Readonly<SageSessionOpts>) {
     this.dbg = this.dbg.bind(this);
-    this.close = this.close.bind(this);
-    this.is_running = this.is_running.bind(this);
-    this._init_socket = this._init_socket.bind(this);
-    this.init_socket = reuseInFlight(this._init_socket).bind(this);
-    this._init_path = this._init_path.bind(this);
-    this.call = this.call.bind(this);
-    this._handle_mesg_blob = this._handle_mesg_blob.bind(this);
-    this._handle_mesg_json = this._handle_mesg_json.bind(this);
     this.dbg("constructor")();
     this._path = opts.path;
     this._client = opts.client;
     this._output_cb = {};
   }
 
-  private dbg(f: string) {
+  private dbg = (f: string) => {
     return (m?: string) =>
-      winston.debug(`SageSession(path='${this._path}').${f}: ${m}`);
-  }
+      logger.debug(`SageSession(path='${this._path}').${f}: ${m}`);
+  };
 
-  public close(): void {
+  close = (): void => {
     if (this._socket != null) {
       const pid = this._socket.pid;
-      if (pid != null) processKill(pid, 9);
+      if (pid != null) {
+        processKill(pid, 9);
+      }
+      this._socket.end();
+      delete this._socket;
     }
-    this._socket?.end();
-    delete this._socket;
     for (let id in this._output_cb) {
       const cb = this._output_cb[id];
       cb({ done: true, error: "killed" });
     }
     this._output_cb = {};
     delete cache[this._path];
-  }
+  };
 
   // return true if there is a socket connection to a sage server process
-  is_running(): boolean {
+  is_running = (): boolean => {
     return this._socket != null;
-  }
+  };
 
   // NOTE: There can be many simultaneous init_socket calls at the same time,
   // if e.g., the socket doesn't exist and there are a bunch of calls to @call
   // at the same time.
   // See https://github.com/sagemathinc/cocalc/issues/3506
   // wrapped in reuseInFlight !
-  private async _init_socket(): Promise<void> {
+  init_socket = reuseInFlight(async (): Promise<void> => {
     const dbg = this.dbg("init_socket()");
     dbg();
     try {
-      const socket: CoCalcSocket = await get_sage_socket();
+      const socket: CoCalcSocket = await getSageSocket();
 
       dbg("successfully opened a sage session");
       this._socket = socket;
@@ -154,9 +140,9 @@ class SageSession implements ISageSession {
         throw err;
       }
     }
-  }
+  });
 
-  private async _init_path(): Promise<void> {
+  private _init_path = async (): Promise<void> => {
     const dbg = this.dbg("_init_path()");
     dbg();
     return new Promise<void>((resolve, reject) => {
@@ -186,9 +172,12 @@ class SageSession implements ISageSession {
         },
       });
     });
-  }
+  };
 
-  public async call({ input, cb }: Readonly<SageCallOpts>): Promise<void> {
+  public call = async ({
+    input,
+    cb,
+  }: Readonly<SageCallOpts>): Promise<void> => {
     const dbg = this.dbg("call");
     dbg(`input='${trunc(to_json(input), 300)}'`);
     switch (input.event) {
@@ -253,8 +242,8 @@ class SageSession implements ISageSession {
           cb({ done: true, error: err });
         }
     }
-  }
-  private _handle_mesg_blob(mesg: TCPMessage) {
+  };
+  private _handle_mesg_blob = (mesg: TCPMessage) => {
     const { uuid } = mesg;
     let { blob } = mesg;
     const dbg = this.dbg(`_handle_mesg_blob(uuid='${uuid}')`);
@@ -284,9 +273,9 @@ class SageSession implements ISageSession {
         this._socket?.write_mesg("json", resp);
       },
     });
-  }
+  };
 
-  private _handle_mesg_json(mesg: TCPMessage) {
+  private _handle_mesg_json = (mesg: TCPMessage) => {
     const dbg = this.dbg("_handle_mesg_json");
     dbg(`mesg='${trunc_middle(to_json(mesg), 400)}'`);
     if (mesg == null) return; // should not happen
@@ -305,5 +294,5 @@ class SageSession implements ISageSession {
       }
       cb(mesg);
     }
-  }
+  };
 }

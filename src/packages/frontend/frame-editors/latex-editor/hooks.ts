@@ -1,29 +1,41 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Map } from "immutable";
-import { React, useRedux } from "../../app-framework";
-import { BuildLogs } from "./actions";
 
-export function use_build_logs(name): BuildLogs {
-  const build_logs_next: BuildLogs =
-    useRedux([name, "build_logs"]) ?? Map<string, any>();
-  const [build_logs, set_build_logs] = React.useState<BuildLogs>(
-    Map<string, any>()
-  );
+import { React, useRedux } from "@cocalc/frontend/app-framework";
+import {
+  BuildLogs,
+  //  JobInfos
+} from "./types";
 
-  // only update if any parsed logs differ
+export function use_build_logs(name: string): BuildLogs {
+  return use_infos<BuildLogs>(name, "build_logs");
+}
+
+// export function use_job_infos(name: string): JobInfos {
+//   return use_infos<JobInfos>(name, "job_infos");
+// }
+
+function use_infos<T extends Map<string, any>>(
+  name: string,
+  aspect: "build_logs" | "job_infos",
+) {
+  const data_next: T = useRedux([name, aspect]) ?? Map<string, any>();
+  const [data, set_data] = React.useState<T>(Map<string, any>() as any as T);
+
+  // only update if any parsed logs or process infos differ
   for (const key of ["latex", "knitr", "pythontex", "sagetex"]) {
-    if (
-      build_logs_next.getIn([key, "parse"]) != build_logs.getIn([key, "parse"])
-    ) {
-      set_build_logs(build_logs_next);
-      break;
+    // ATTN: previously, this code only checked for changes of the "parse" attribute.
+    // But due to async execution, we update these objects dynamically and hence any change is a difference.
+    // data_next.getIn([key, "parse"]) != data.getIn([key, "parse"])
+    const isDiff = data_next.get(key) != data.get(key);
+    if (isDiff) {
+      set_data(data_next);
     }
   }
 
-  return build_logs;
+  return data;
 }
-

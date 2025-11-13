@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -10,29 +10,18 @@ History viewer for Tasks notebooks  --- very similar to same file in jupyter/ di
 import { Checkbox } from "antd";
 import { fromJS, Map } from "immutable";
 import TaskList from "./list";
-import { CSS, React, useState } from "../../app-framework";
+import { useState } from "../../app-framework";
 import { cmp } from "@cocalc/util/misc";
-import { SyncDB } from "@cocalc/sync/editor/db";
 import { Tasks } from "./types";
 
-const SHOW_DONE_STYLE: CSS = {
+const SHOW_DONE_STYLE = {
   fontSize: "12pt",
   color: "#666",
   padding: "5px 15px",
   borderBottom: "1px solid lightgrey",
 } as const;
 
-interface Props {
-  syncdb: SyncDB;
-  version: Date;
-  font_size: number;
-}
-
-export const TasksHistoryViewer: React.FC<Props> = ({
-  syncdb,
-  version,
-  font_size,
-}) => {
+export function TasksHistoryViewer({ doc, project_id, path, font_size }) {
   const [show_done, set_show_done] = useState(false);
 
   function render_task_list(doc) {
@@ -50,8 +39,8 @@ export const TasksHistoryViewer: React.FC<Props> = ({
 
     return (
       <TaskList
-        path={syncdb.get_path()}
-        project_id={syncdb.get_project_id()}
+        path={path}
+        project_id={project_id}
         tasks={tasks}
         visible={visible}
         read_only={true}
@@ -60,7 +49,6 @@ export const TasksHistoryViewer: React.FC<Props> = ({
     );
   }
 
-  const doc = syncdb.version(version);
   return (
     <div
       style={{
@@ -81,4 +69,4 @@ export const TasksHistoryViewer: React.FC<Props> = ({
       {doc == null ? <span>Unknown version</span> : render_task_list(doc)}
     </div>
   );
-};
+}

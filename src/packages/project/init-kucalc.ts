@@ -1,14 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { init as initJupyterPool } from "@cocalc/jupyter/pool/pool";
+import { init as initJupyterPoolParams } from "@cocalc/jupyter/pool/pool-params";
 import { activate as initAutorenice } from "./autorenice";
 import * as dedicatedDisks from "./dedicated-disks";
 import { getOptions } from "./init-program";
 import * as initScript from "./init-script";
-import { init as initJupyterPool } from "@cocalc/jupyter/pool/pool";
-import { init as initJupyterPoolParams } from "@cocalc/jupyter/pool/pool-params";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
 import * as projectSetup from "./project-setup";
@@ -21,10 +21,6 @@ export default async function init() {
   if (options.kucalc) {
     winston.info("running in kucalc");
     kucalc.setInKucalc(true);
-
-    if (options.testFirewall) {
-      kucalc.init_gce_firewall_test(winston);
-    }
   } else {
     winston.info("NOT running in kucalc");
     kucalc.setInKucalc(false);

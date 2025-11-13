@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Convenience function, mainly to make it easier to make vertical radio components,
@@ -16,7 +16,7 @@ interface Props {
     label: string;
     value: any;
     disabled?: boolean;
-    desc?: string | JSX.Element;
+    desc?: string | React.JSX.Element;
     cost?: string;
     icon?: IconName;
   }[];
@@ -32,7 +32,7 @@ export const RadioGroup: React.FC<Props> = ({
   value,
   radioStyle,
 }) => {
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const x of options) {
     v.push(
       <Radio

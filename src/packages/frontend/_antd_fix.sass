@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Here we revert some of the style changes that antd made.
@@ -8,20 +8,20 @@
 // This is mainly meant to be temporary, so that we keep the
 // overall global bootstrap style.
 
-@import colors
+@use 'colors'
 
 // make the color consistent with antd again, since bootstrap sets
 // it to something else.  We want this to be consistent with our nextjs
 // landing pages.
 a
-  color: $COL_ANTD_LINK_BLUE
+  color: colors.$COL_ANTD_LINK_BLUE
 
 html
   overflow: hidden
 
 .ant-popover-content
   .ant-popover-arrow
-    border-color: $COL_GRAY_L !important
+    border-color: colors.$COL_GRAY_L !important
     z-index: -1 !important
 
 .ant-popover-inner-content>.cocalc-account-button-dropdown-links
@@ -31,26 +31,3 @@ html
   padding: 0
   border: 0
 
-.cc-error-display
-  margin: 0
-  padding: 0
-  max-height: 30%
-  position: relative
-  display: flex
-  flex-direction: column
-  > .ant-alert-banner
-    display: block
-
-// The frame-editor title-bar's "..." popover has a higher z-index than e.g. the "Halt" modal
-// This makes the antd modals appear on top of all other elements
-// Ref: https://github.com/sagemathinc/cocalc/issues/6467
-// I found this ticket: https://github.com/ant-design/ant-design/issues/31513
-// UPDATE: this style hack breaks the CRM's "add additional tables" dialog, and could
-// break all kinds of other things(!?).  This is bad to change generically.
-// The correct fix, which I implemented for the "..." popover in title-bar.tsx is
-//       <Popover overlayStyle={{ zIndex: 990 }}...>
-// which makes the popover lower than the modal (which is at 1000 without the hack below).
-// Then all other popovers are not impacted.
-
-// .ant-modal-root .ant-modal-wrap
-//   z-index: 1100

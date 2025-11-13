@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -21,6 +21,7 @@ nextjs friendly code editor to make it editable.  (This is NOT codemirror.)
 */
 
 import React, { ReactNode } from "react";
+
 import CodeMirror from "@cocalc/frontend/codemirror/static";
 import CodeEditor from "@cocalc/frontend/components/code-editor";
 
@@ -79,7 +80,7 @@ export function CodeMirrorStatic(props: Props) {
   const render_lines = (width: number) => {
     // python3 is a reasonable fallback, given it's CoCalc.
     const mode = props.options?.mode ?? "python3";
-    const v: JSX.Element[] = [];
+    const v: React.JSX.Element[] = [];
     const lineNumbers = !!props.options?.lineNumbers;
     let line = 1;
     if (lineNumbers) {

@@ -2,9 +2,9 @@ import apiPost from "lib/api/post";
 import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Alert } from "antd";
-import Logo from "components/logo";
-import { LOGIN_STYLE } from "./shared";
 import Contact from "components/landing/contact";
+
+import AuthPageContainer from "./fragments/auth-page-container";
 
 interface Props {
   token: string;
@@ -46,23 +46,15 @@ export default function RedeemVerifyEmail({ token, email_address }: Props) {
         </div>
       );
     }
+    if (error) {
+      return (
+        <div>
+          We weren't able to validate your e-mail address. ):
+        </div>
+      );
+    }
     return (
       <div>
-        {error && (
-          <Alert
-            style={{ marginTop: "20px" }}
-            message="Error"
-            description={
-              <div style={{ fontSize: "12pt" }}>
-                <b>{error}</b>
-                <br />
-                If you are stuck <Contact lower />.
-              </div>
-            }
-            type="error"
-            showIcon
-          />
-        )}
         {success && (
           <Alert
             style={{ marginTop: "20px" }}
@@ -76,18 +68,28 @@ export default function RedeemVerifyEmail({ token, email_address }: Props) {
     );
   }
 
+  function renderError() {
+    return error && (
+      <div style={{ fontSize: "12pt" }}>
+        <b>{error}</b>
+        <br/>
+        If you are stuck, please <Contact lower/>.
+      </div>
+    );
+  }
+
+  function renderTitle() {
+    return `${success ? "Successfully " : ""}Verif${success ? "ied" : "y"} Your Email Address`;
+  }
+
   return (
-    <div style={{ padding: "15px" }}>
-      <div style={{ textAlign: "center", marginBottom: "15px" }}>
-        <Logo type="icon" style={{ width: "100px", height: "100px" }} />
-        <h1>
-          {success ? "Successfully " : ""}Verif{success ? "ied" : "y"} Your
-          Email Address
-        </h1>
+    <AuthPageContainer
+      error={renderError()}
+      title={renderTitle()}
+    >
+      <div style={{ marginTop: "8px" }}>
+        <Body/>
       </div>
-      <div style={LOGIN_STYLE}>
-        <Body />
-      </div>
-    </div>
-  );
+    </AuthPageContainer>
+);
 }

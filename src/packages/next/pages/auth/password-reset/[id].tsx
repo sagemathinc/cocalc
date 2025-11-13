@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Password reset page
@@ -18,7 +18,7 @@ export default function PasswordReset({ passwordResetId, customize }) {
     <Customize value={customize}>
       <Head title={"Password Reset"} />
       <Layout>
-        <Header page="sign-in" subPage="password-reset" />
+        <Header page="sign-in" />
         <Layout.Content style={{ backgroundColor: "white" }}>
           <RedeemPasswordReset passwordResetId={passwordResetId} />
           <Footer />

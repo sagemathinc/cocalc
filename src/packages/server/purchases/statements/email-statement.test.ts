@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import emailStatement from "./email-statement";
@@ -64,12 +64,12 @@ describe("creates an account, then creates statements and corresponding emails a
       interval: "day",
     });
     expect(statements.length).toBe(1);
-    const { to, subject } = await emailStatement({
+    const { to_ids, subject } = await emailStatement({
       account_id,
       statement_id: statements[0].id,
       dryRun: true,
     });
-    expect(to).toMatch("@test.com");
+    expect(to_ids).toEqual([account_id]);
     expect(subject).toMatch("Daily Statement");
   });
 
@@ -122,16 +122,14 @@ describe("creates an account, then creates statements and corresponding emails a
       limit: 1,
       interval: "month",
     });
-    const { text, subject } = await emailStatement({
+    const { body, subject } = await emailStatement({
       account_id,
       statement_id: statements[0].id,
       dryRun: true,
       force: true,
     });
     expect(subject).toMatch("Monthly Statement");
-    expect(text).toMatch(
-      "Statement balance is not negative, so no payment is required.",
-    );
+    expect(body).toMatch("NO PAYMENT IS REQUIRED");
   });
 
   it("No payment is currently required. -- it sets min balance and makes a purchase that puts the balance below 0 but above the thresh to 'demand' payment.", async () => {
@@ -145,7 +143,7 @@ describe("creates an account, then creates statements and corresponding emails a
       service: "license",
       description: {} as any,
       client: null,
-      cost: 11,
+      cost: 0.5,
     });
     await delay(100); // avoid clock issues
     await createStatements({
@@ -157,13 +155,13 @@ describe("creates an account, then creates statements and corresponding emails a
       limit: 1,
       interval: "month",
     });
-    const { text } = await emailStatement({
+    const { body } = await emailStatement({
       account_id,
       statement_id: statements[0].id,
       dryRun: true,
       force: true,
     });
-    expect(text).toMatch("No payment is currently required.");
+    expect(body).toMatch("NO PAYMENT IS REQUIRED");
   });
 
   it("Payment required -- makes a bigger purchase, then creates a monthly statement, which explicitly asks the user to make a payment", async () => {
@@ -172,7 +170,7 @@ describe("creates an account, then creates statements and corresponding emails a
       service: "license",
       description: {} as any,
       client: null,
-      cost: 12,
+      cost: 25,
     });
     await delay(100); // avoid clock issues
     await createStatements({
@@ -184,12 +182,13 @@ describe("creates an account, then creates statements and corresponding emails a
       limit: 1,
       interval: "month",
     });
-    const { text } = await emailStatement({
+    const { body } = await emailStatement({
       account_id,
       statement_id: statements[0].id,
       dryRun: true,
       force: true,
     });
-    expect(text).toMatch("Payment required.");
+    expect(body).toMatch("invoice soon");
+    expect(body).not.toMatch("NO PAYMENT IS REQUIRED");
   });
 });

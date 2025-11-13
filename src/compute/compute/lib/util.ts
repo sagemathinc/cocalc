@@ -56,7 +56,7 @@ export async function pingProjectUntilSuccess(project_id: string) {
       return;
     } catch (err) {
       logger.debug(
-        `pingProjectUntilSuccess: '${project_id}' failed.  Will try again in ${d}ms...`,
+        `pingProjectUntilSuccess: '${project_id}' failed (${err}).  Will try again in ${d}ms...`,
       );
     }
     await delay(d);

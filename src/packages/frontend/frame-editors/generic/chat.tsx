@@ -1,55 +1,84 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useActions, redux } from "@cocalc/frontend/app-framework";
-import { useEffect } from "react";
-import SideChat from "@cocalc/frontend/chat/side-chat";
-import { EditorDescription } from "../frame-tree/types";
-import { init as initChat } from "@cocalc/frontend/chat/register";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { hidden_meta_file } from "@cocalc/util/misc";
-import { set } from "@cocalc/util/misc";
+import { useEffect, useState } from "react";
+import { redux } from "@cocalc/frontend/app-framework";
 import type { ChatActions } from "@cocalc/frontend/chat/actions";
+import { initChat } from "@cocalc/frontend/chat/register";
+import SideChat from "@cocalc/frontend/chat/side-chat";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { labels } from "@cocalc/frontend/i18n";
+import { hidden_meta_file } from "@cocalc/util/misc";
+import { EditorComponentProps, EditorDescription } from "../frame-tree/types";
+import { chatroom } from "@cocalc/frontend/frame-editors/chat-editor/editor";
 
-interface Props {
-  font_size: number;
+export function chatFile(path: string): string {
+  return hidden_meta_file(path, "sage-chat");
 }
 
-function Chat({ font_size }: Props) {
-  const { project_id, path: path0 } = useFrameContext();
-  const path = hidden_meta_file(path0, "sage-chat");
-  initChat(project_id, path);
-  const actions = useActions(project_id, path);
+function Chat({ font_size, desc }: EditorComponentProps) {
+  const { project_id, path: path0, actions, id: frameId } = useFrameContext();
+  const path = chatFile(path0);
+  const [sideChatActions, setSideChatActions] = useState<ChatActions | null>(
+    null,
+  );
   useEffect(() => {
-    actions.setState({ font_size });
-  }, [font_size]);
+    (async () => {
+      // properly set the side chat compute server, if necessary
+      await redux
+        .getProjectActions(project_id)
+        .setSideChatComputeServerId(path0);
+      const sideChatActions = initChat(project_id, path);
+      sideChatActions.frameTreeActions = actions;
+      sideChatActions.frameId = frameId;
+      setSideChatActions(sideChatActions);
+    })();
+  }, []);
 
-  return <SideChat project_id={project_id} path={path} />;
+  if (sideChatActions == null) {
+    return null;
+  }
+  return (
+    <SideChat
+      actions={sideChatActions}
+      project_id={project_id}
+      path={path}
+      fontSize={font_size}
+      desc={desc}
+    />
+  );
 }
 
-export const chat = {
-  short: "Chat",
-  name: "Chat",
+export const chat: EditorDescription = {
+  type: "chat",
+  short: labels.chat,
+  name: labels.chat,
   icon: "comment",
-  buttons: set([
-    "decrease_font_size",
-    "increase_font_size",
-    "undo",
-    "redo",
-    "-page",
-    "-actions",
-  ]),
+  commands: chatroom.commands,
   component: Chat,
-} as EditorDescription;
+} as const;
+
+export function getSideChatActions({
+  project_id,
+  path,
+}: {
+  project_id: string;
+  path: string;
+}): ChatActions | null {
+  const actions = redux.getEditorActions(project_id, chatFile(path));
+  if (actions == null) {
+    return null;
+  }
+  return actions as ChatActions;
+}
 
 // TODO: this is an ugly special case for now to make the title bar buttons work.
-export function undo(project_id, path0) {
-  const path = hidden_meta_file(path0, "sage-chat");
-  (redux.getEditorActions(project_id, path) as ChatActions)?.undo();
+// TODO: but wait -- those buttons are gone now, so maybe this can be deleted?!
+export function undo(project_id, path) {
+  return getSideChatActions({ project_id, path })?.undo();
 }
-export function redo(project_id, path0) {
-  const path = hidden_meta_file(path0, "sage-chat");
-  (redux.getEditorActions(project_id, path) as ChatActions)?.redo();
+export function redo(project_id, path) {
+  return getSideChatActions({ project_id, path })?.redo();
 }

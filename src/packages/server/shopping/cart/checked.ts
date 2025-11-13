@@ -12,7 +12,7 @@ import getPool from "@cocalc/database/pool";
 export default async function setCheck(
   account_id: string,
   checked: boolean,
-  id?: number
+  id?: number,
 ): Promise<number> {
   if (!isValidUUID(account_id)) {
     throw Error("account_id is invalid");
@@ -28,5 +28,5 @@ export default async function setCheck(
   }
 
   const { rowCount } = await pool.query(query, params);
-  return rowCount;
+  return rowCount ?? 0;
 }

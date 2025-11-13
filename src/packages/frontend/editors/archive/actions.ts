@@ -1,9 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { webapp_client } from "../../webapp-client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   filename_extension,
   filename_extension_notilde,
@@ -13,7 +13,6 @@ import {
 } from "@cocalc/util/misc";
 import { Actions, redux_name } from "../../app-framework";
 import { register_file_editor } from "../../project-file";
-
 import { Archive } from "./component";
 import { COMMANDS, DOUBLE_EXT } from "./misc";
 
@@ -45,6 +44,9 @@ interface State {
 }
 
 export class ArchiveActions extends Actions<State> {
+  private project_id: string;
+  private path: string;
+
   parse_file_type(file_info: string): string | undefined {
     if (file_info.indexOf("Zip archive data") !== -1) {
       return "zip";
@@ -92,7 +94,24 @@ export class ArchiveActions extends Actions<State> {
     return ext;
   }
 
+  private exec = async (opts) => {
+    const { project_id, path } = this;
+    const compute_server_id =
+      (await webapp_client.project_client.getServerIdForPath({
+        project_id,
+        path,
+      })) ?? 0;
+    return await webapp_client.exec({
+      filesystem: true,
+      compute_server_id,
+      project_id,
+      ...opts,
+    });
+  };
+
   async setArchiveContents(project_id: string, path: string): Promise<void> {
+    this.project_id = project_id;
+    this.path = path;
     const ext = this.extractExtension(path);
     if (ext === null) return;
 
@@ -104,8 +123,7 @@ export class ArchiveActions extends Actions<State> {
     const { command, args } = COMMANDS[ext].list;
 
     try {
-      const output = await webapp_client.exec({
-        project_id,
+      const output = await this.exec({
         command,
         args: args.concat([path]),
         err_on_exit: true,
@@ -125,10 +143,8 @@ export class ArchiveActions extends Actions<State> {
   }
 
   async extractArchiveFiles(
-    project_id: string,
-    path: string,
     type: string | undefined,
-    contents: string | undefined
+    contents: string | undefined,
   ): Promise<void> {
     if (type == null || COMMANDS[type]?.extract == null) {
       this.setUnsupported(type);
@@ -136,7 +152,7 @@ export class ArchiveActions extends Actions<State> {
     }
     let post_args;
     let { command, args } = COMMANDS[type].extract;
-    const path_parts = path_split(path);
+    const path_parts = path_split(this.path);
     let extra_args: string[] = (post_args = []);
     let output: any = undefined;
     let base;
@@ -159,8 +175,7 @@ export class ArchiveActions extends Actions<State> {
         base = path_parts.tail.slice(0, i);
         if (contents.indexOf(base + "/") === -1) {
           post_args = ["-C", base];
-          await webapp_client.exec({
-            project_id,
+          await this.exec({
             path: path_parts.head,
             command: "mkdir",
             args: ["-p", base],
@@ -177,8 +192,7 @@ export class ArchiveActions extends Actions<State> {
         .join(" ");
       const cmd = `cd \"${path_parts.head}\" ; ${command} ${args_str}`; // ONLY for info purposes -- not actually run!
       this.setState({ command: cmd });
-      output = await webapp_client.exec({
-        project_id,
+      output = await this.exec({
         path: path_parts.head,
         command,
         args,

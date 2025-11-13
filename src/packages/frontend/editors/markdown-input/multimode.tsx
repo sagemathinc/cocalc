@@ -3,7 +3,7 @@ Edit with either plain text input **or** WYSIWYG slate-based input.
 */
 
 import { Popover, Radio } from "antd";
-import { fromJS, Map as ImmutableMap } from "immutable";
+import { Map as ImmutableMap, fromJS } from "immutable";
 import LRU from "lru-cache";
 import {
   CSSProperties,
@@ -15,17 +15,16 @@ import {
   useRef,
   useState,
 } from "react";
-
+import { SubmitMentionsRef } from "@cocalc/frontend/chat/types";
+import { Icon } from "@cocalc/frontend/components";
 import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc";
-import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { COLORS } from "@cocalc/util/theme";
 import { BLURED_STYLE, FOCUSED_STYLE, MarkdownInput } from "./component";
-import { Icon } from "@cocalc/frontend/components";
 
 // NOTE: on mobile there is very little suppport for "editor" = "slate", but
 // very good support for "markdown", hence the default below.
@@ -45,6 +44,9 @@ const multimodeStateCache = new LRU<string, MultimodeState>({ max: 500 });
 
 // markdown uses codemirror
 // editor uses slate.  TODO: this should be "text", not "editor".  Oops.
+// UI equivalent:
+// editor = "Text" = Slate/wysiwyg
+// markdown = "Markdown"
 const Modes = ["markdown", "editor"] as const;
 export type Mode = (typeof Modes)[number];
 
@@ -79,15 +81,15 @@ interface Props {
   modeSwitchStyle?: CSSProperties;
   autoFocus?: boolean; // note - this is broken on safari for the slate editor, but works on chrome and firefox.
   enableMentions?: boolean;
-  chatGPT?: boolean; // if true, add @chatgpt as an option for @mentions.
-  vertexAI?: boolean; // if true, add @palm as an option for @mentions.
   enableUpload?: boolean; // whether to enable upload of files via drag-n-drop or paste.  This is on by default! (Note: not possible to disable for slate editor mode anyways.)
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
-  submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>;
+  submitMentionsRef?: SubmitMentionsRef;
   extraHelp?: ReactNode;
   hideHelp?: boolean;
-  saveDebounceMs?: number; // debounce how frequently get updates from onChange; if saveDebounceMs=0 get them on every change.  Default is the global SAVE_DEBOUNCE_MS const.
+  // debounce how frequently get updates from onChange; if saveDebounceMs=0 get them on every change.  Default is the global SAVE_DEBOUNCE_MS const.
+  // can be a little more frequent in case of shift or alt enter, or blur.
+  saveDebounceMs?: number;
   onBlur?: () => void;
   onFocus?: () => void;
   minimal?: boolean;
@@ -121,7 +123,7 @@ interface Props {
   onCursorTop?: () => void;
   onCursorBottom?: () => void;
 
-  // Declarative control of whether or not the editor is focused.  Only has an imput
+  // Declarative control of whether or not the editor is focused.  Only has an impact
   // if it is explicitly set to true or false.
   isFocused?: boolean;
 
@@ -131,59 +133,59 @@ interface Props {
   // refresh codemirror if this changes
   refresh?: any;
 
-  overflowEllipsis?: boolean; // if true, show "..." button popping up all menu entries
+  overflowEllipsis?: boolean; // if true (the default!), show "..." button popping up all menu entries
 
   dirtyRef?: MutableRefObject<boolean>; // a boolean react ref that gets set to true whenever document changes for any reason (client should explicitly set this back to false).
+
+  controlRef?: MutableRefObject<any>;
 }
 
-export default function MultiMarkdownInput(props: Props) {
-  const {
-    cacheId,
-    value,
-    defaultMode,
-    fixedMode,
-    onChange,
-    getValueRef,
-    onModeChange,
-    onShiftEnter,
-    placeholder,
-    fontSize,
-    height = "auto",
-    style,
-    autoFocus,
-    enableMentions,
-    chatGPT,
-    vertexAI,
-    enableUpload = true,
-    onUploadStart,
-    onUploadEnd,
-    submitMentionsRef,
-    extraHelp,
-    saveDebounceMs = SAVE_DEBOUNCE_MS,
-    hideHelp,
-    onBlur,
-    onFocus,
-    minimal,
-    editBarStyle,
-    onCursors,
-    cursors,
-    noVfill,
-    editorDivRef,
-    cmOptions,
-    onUndo,
-    onRedo,
-    onSave,
-    onCursorTop,
-    onCursorBottom,
-    compact,
-    isFocused,
-    registerEditor,
-    unregisterEditor,
-    modeSwitchStyle,
-    refresh,
-    overflowEllipsis = false,
-    dirtyRef,
-  } = props;
+export default function MultiMarkdownInput({
+  autoFocus,
+  cacheId,
+  cmOptions,
+  compact,
+  cursors,
+  defaultMode,
+  dirtyRef,
+  editBarStyle,
+  editorDivRef,
+  enableMentions,
+  enableUpload = true,
+  extraHelp,
+  fixedMode,
+  fontSize,
+  getValueRef,
+  height = "auto",
+  hideHelp,
+  isFocused,
+  minimal,
+  modeSwitchStyle,
+  noVfill,
+  onBlur,
+  onChange,
+  onCursorBottom,
+  onCursors,
+  onCursorTop,
+  onFocus,
+  onModeChange,
+  onRedo,
+  onSave,
+  onShiftEnter,
+  onUndo,
+  onUploadEnd,
+  onUploadStart,
+  overflowEllipsis = true,
+  placeholder,
+  refresh,
+  registerEditor,
+  saveDebounceMs = SAVE_DEBOUNCE_MS,
+  style,
+  submitMentionsRef,
+  unregisterEditor,
+  value,
+  controlRef,
+}: Props) {
   const {
     isFocused: isFocusedFrame,
     isVisible,
@@ -191,12 +193,25 @@ export default function MultiMarkdownInput(props: Props) {
     path,
   } = useFrameContext();
 
-  const editBar2 = useRef<JSX.Element | undefined>(undefined);
+  // We use refs for shiftEnter and onChange to be absolutely
+  // 100% certain that if either of these functions is changed,
+  // then the new function is used, even if the components
+  // implementing our markdown editor mess up somehow and hang on.
+  const onShiftEnterRef = useRef<any>(onShiftEnter);
+  useEffect(() => {
+    onShiftEnterRef.current = onShiftEnter;
+  }, [onShiftEnter]);
+  const onChangeRef = useRef<any>(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  const editBar2 = useRef<React.JSX.Element | undefined>(undefined);
+
+  const getKey = () => `${project_id}${path}:${cacheId}`;
 
   function getCache() {
-    return cacheId === undefined
-      ? undefined
-      : multimodeStateCache.get(`${project_id}${path}:${cacheId}`);
+    return cacheId == null ? undefined : multimodeStateCache.get(getKey());
   }
 
   const [mode, setMode0] = useState<Mode>(
@@ -237,30 +252,41 @@ export default function MultiMarkdownInput(props: Props) {
   } | null>(null);
 
   useEffect(() => {
-    if (cacheId == null) return;
+    if (cacheId == null) {
+      return;
+    }
     const cache = getCache();
     if (cache?.[mode] != null && selectionRef.current != null) {
       // restore selection on mount.
       try {
         selectionRef.current.setSelection(cache?.[mode]);
       } catch (_err) {
-        // console.warn(_err);  // definitely don't need this.
-        // This is expected to fail, since the selection from last
-        // use will be invalid now if another user changed the
-        // document, etc., or you did in a different mode, possibly.
+        // it might just be that the document isn't initialized yet
+        setTimeout(() => {
+          try {
+            selectionRef.current?.setSelection(cache?.[mode]);
+          } catch (_err2) {
+            //  console.warn(_err2); // definitely don't need this.
+            // This is expected to fail, since the selection from last
+            // use will be invalid now if another user changed the
+            // document, etc., or you did in a different mode, possibly.
+          }
+        }, 100);
       }
     }
     return () => {
-      if (selectionRef.current == null || cacheId == null) return;
+      if (selectionRef.current == null || cacheId == null) {
+        return;
+      }
       const selection = selectionRef.current.getSelection();
-      multimodeStateCache.set(`${project_id}${path}:${cacheId}`, {
+      multimodeStateCache.set(getKey(), {
         ...getCache(),
         [mode]: selection,
       });
     };
   }, [mode]);
 
-  function toggleEditBarPopupver() {
+  function toggleEditBarPopover() {
     setEditBarPopover(!editBarPopover);
   }
 
@@ -325,8 +351,8 @@ export default function MultiMarkdownInput(props: Props) {
               color: COLORS.GRAY_M,
               ...(mode == "editor" || hideHelp
                 ? {
-                    position: "absolute",
-                    right: 0,
+                    float: "right",
+                    position: "relative",
                     zIndex: 1,
                   }
                 : { float: "right" }),
@@ -363,7 +389,7 @@ export default function MultiMarkdownInput(props: Props) {
               onChange={(e) => {
                 const mode = e.target.value;
                 if (mode === "menu") {
-                  toggleEditBarPopupver();
+                  toggleEditBarPopover();
                 } else {
                   setMode(mode as Mode);
                 }
@@ -377,12 +403,14 @@ export default function MultiMarkdownInput(props: Props) {
           </div>
         )}
       </div>
-      {mode == "markdown" && (
+      {mode === "markdown" ? (
         <MarkdownInput
           divRef={editorDivRef}
           selectionRef={selectionRef}
           value={value}
-          onChange={onChange}
+          onChange={(value) => {
+            onChangeRef.current?.(value);
+          }}
           saveDebounceMs={saveDebounceMs}
           getValueRef={getValueRef}
           project_id={project_id}
@@ -391,9 +419,9 @@ export default function MultiMarkdownInput(props: Props) {
           onUploadStart={onUploadStart}
           onUploadEnd={onUploadEnd}
           enableMentions={enableMentions}
-          chatGPT={chatGPT}
-          vertexAI={vertexAI}
-          onShiftEnter={onShiftEnter}
+          onShiftEnter={(value) => {
+            onShiftEnterRef.current?.(value);
+          }}
           placeholder={placeholder ?? "Type markdown..."}
           fontSize={fontSize}
           cmOptions={cmOptions}
@@ -404,7 +432,7 @@ export default function MultiMarkdownInput(props: Props) {
           extraHelp={extraHelp}
           hideHelp={hideHelp}
           onBlur={(value) => {
-            onChange?.(value);
+            onChangeRef.current?.(value);
             if (!ignoreBlur.current) {
               onBlur?.();
             }
@@ -424,8 +452,8 @@ export default function MultiMarkdownInput(props: Props) {
           compact={compact}
           dirtyRef={dirtyRef}
         />
-      )}
-      {mode == "editor" && (
+      ) : undefined}
+      {mode === "editor" ? (
         <div
           style={{
             height: height ?? "100%",
@@ -467,14 +495,14 @@ export default function MultiMarkdownInput(props: Props) {
             getValueRef={getValueRef}
             actions={{
               set_value: (value) => {
-                onChange?.(value);
+                onChangeRef.current?.(value);
               },
               shiftEnter: (value) => {
-                onChange?.(value);
-                onShiftEnter?.(value);
+                onChangeRef.current?.(value);
+                onShiftEnterRef.current?.(value);
               },
               altEnter: (value) => {
-                onChange?.(value);
+                onChangeRef.current?.(value);
                 setMode("markdown");
               },
               set_cursor_locs: onCursors,
@@ -503,13 +531,12 @@ export default function MultiMarkdownInput(props: Props) {
             unregisterEditor={unregisterEditor}
             placeholder={placeholder ?? "Type text..."}
             submitMentionsRef={submitMentionsRef}
-            chatGPT={chatGPT}
-            vertexAI={vertexAI}
             editBar2={editBar2}
             dirtyRef={dirtyRef}
+            controlRef={controlRef}
           />
         </div>
-      )}
+      ) : undefined}
     </div>
   );
 }

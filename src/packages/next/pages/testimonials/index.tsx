@@ -1,10 +1,9 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button, Layout, Space } from "antd";
-import { sortBy } from "lodash";
 import { GetServerSidePropsContext } from "next";
 import { join } from "path";
 
@@ -27,11 +26,6 @@ export default function AllNews(props: Props) {
   const { customize } = props;
   const { siteName } = customize;
 
-  // sort by last token (last name) in "name" field
-  const testimonials = sortBy(
-    TESTIMONIALS,
-    (t) => t.name.split(" ").slice(-1)[0],
-  );
 
   function content() {
     return (
@@ -40,7 +34,7 @@ export default function AllNews(props: Props) {
           <Icon name="comments" /> {siteName} Testimonials
         </Title>
         <Space direction="vertical" size="large" style={{ width: "100%" }}>
-          {testimonials.map((testimonial, idx) => (
+          {TESTIMONIALS.map((testimonial, idx) => (
             <TestimonialComponent key={idx} testimonial={testimonial} />
           ))}
         </Space>

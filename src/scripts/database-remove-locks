@@ -1,0 +1,5 @@
+set -ev
+
+rm -vf data/postgres/*.pid
+rm -vf data/postgres/socket/.s.PGSQL.5432
+rm -vf data/postgres/socket/.s.PGSQL.5432.lock

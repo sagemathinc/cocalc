@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -16,7 +16,54 @@ The two helpful async/await libraries I found are:
 */
 
 import * as awaiting from "awaiting";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "./reuse-in-flight";
+
+interface RetryOptions {
+  start?: number;
+  decay?: number;
+  max?: number;
+  min?: number;
+  timeout?: number;
+  log?: (...args) => void;
+}
+
+// loop calling the async function f until it returns true.
+// It optionally can take a timeout, which if hit it will
+// throw Error('timeout').   retry_until_success below is an
+// a variant of this pattern keeps retrying until f doesn't throw.
+// The input function f must always return true or false,
+// which helps a lot to avoid bugs.
+export async function until(
+  f: (() => Promise<boolean>) | (() => boolean),
+  {
+    start = 500,
+    decay = 1.3,
+    max = 15000,
+    min = 50,
+    timeout = 0,
+    log,
+  }: RetryOptions = {},
+) {
+  const end = timeout ? Date.now() + timeout : undefined;
+  let d = Math.max(min, start);
+  while (end === undefined || Date.now() < end) {
+    const x = await f();
+    if (x) {
+      return;
+    }
+    if (end) {
+      d = Math.max(min, Math.min(end - Date.now(), Math.min(max, d * decay)));
+    } else {
+      d = Math.max(min, Math.min(max, d * decay));
+    }
+    log?.(`will retry in ${Math.round(d / 1000)} seconds`);
+    await awaiting.delay(d);
+  }
+  log?.(`FAILED: timeout -- ${timeout} ms`);
+  throw Error(`timeout -- ${timeout} ms`);
+}
+
+export { asyncDebounce, asyncThrottle } from "./async-debounce-throttle";
 
 // turns a function of opts, which has a cb input into
 // an async function that takes an opts with no cb as input; this is just like
@@ -36,17 +83,6 @@ export function callback_opts(f: Function) {
     }
     return await awaiting.callback(g);
   };
-}
-
-/**
- * convert the given error to a string, by either serializing the object or returning the string as it is
- */
-function err2str(err: any): string {
-  if (typeof err === "string") {
-    return err;
-  } else {
-    return JSON.stringify(err);
-  }
 }
 
 /* retry_until_success keeps calling an async function f with
@@ -74,15 +110,12 @@ export async function retry_until_success<T>(
 
   let next_delay: number = opts.start_delay;
   let tries: number = 0;
-  const start_time: number = new Date().valueOf();
+  const start_time: number = Date.now();
   let last_exc: Error | undefined;
 
   // Return nonempty string if time or tries exceeded.
   function check_done(): string {
-    if (
-      opts.max_time &&
-      next_delay + new Date().valueOf() - start_time > opts.max_time
-    ) {
+    if (opts.max_time && next_delay + Date.now() - start_time > opts.max_time) {
       return "maximum time exceeded";
     }
     if (opts.max_tries && tries >= opts.max_tries) {
@@ -108,9 +141,7 @@ export async function retry_until_success<T>(
         // yep -- game over, throw an error
         let e;
         if (last_exc) {
-          e = Error(
-            `${err} -- last error was ${err2str(last_exc)} -- ${opts.desc}`,
-          );
+          e = Error(`${err} -- last error was '${last_exc}' -- ${opts.desc}`);
         } else {
           e = Error(`${err} -- ${opts.desc}`);
         }
@@ -129,6 +160,14 @@ export async function retry_until_success<T>(
 import { EventEmitter } from "events";
 import { CB } from "./types/database";
 
+export class TimeoutError extends Error {
+  code: number;
+  constructor(mesg: string) {
+    super(mesg);
+    this.code = 408;
+  }
+}
+
 /* Wait for an event emitter to emit any event at all once.
    Returns array of args emitted by that event.
    If timeout_ms is 0 (the default) this can wait an unbounded
@@ -136,52 +175,57 @@ import { CB } from "./types/database";
    in our applications.
    If timeout_ms is nonzero and event doesn't happen an
    exception is thrown.
+   If the obj throws 'closed' before the event is emitted,
+   then this throws an error, since clearly event can never be emitted.
    */
 export async function once(
   obj: EventEmitter,
   event: string,
-  timeout_ms: number = 0,
+  timeout_ms: number | undefined = 0,
 ): Promise<any> {
-  if (!(obj instanceof EventEmitter)) {
-    // just in case typescript doesn't catch something:
-    throw Error("obj must be an EventEmitter");
+  if (obj == null) throw Error("once -- obj is undefined");
+  if (timeout_ms == null) {
+    // clients might explicitly pass in undefined, but below we expect 0 to mean "no timeout"
+    timeout_ms = 0;
   }
-  if (timeout_ms > 0) {
-    // just to keep both versions more readable...
-    return once_with_timeout(obj, event, timeout_ms);
-  }
-  let val: any[] = [];
-  function wait(cb: Function): void {
-    obj.once(event, function (...args): void {
-      val = args;
-      cb();
-    });
-  }
-  await awaiting.callback(wait);
-  return val;
-}
+  if (typeof obj.once != "function")
+    throw Error("once -- obj.once must be a function");
 
-async function once_with_timeout(
-  obj: EventEmitter,
-  event: string,
-  timeout_ms: number,
-): Promise<any> {
-  let val: any[] = [];
-  function wait(cb: Function): void {
-    function fail(): void {
-      obj.removeListener(event, handler);
-      cb("timeout");
+  return new Promise((resolve, reject) => {
+    let timer: NodeJS.Timeout | undefined;
+
+    function cleanup() {
+      obj.removeListener(event, onEvent);
+      obj.removeListener("closed", onClosed);
+      if (timer) clearTimeout(timer);
     }
-    const timer = setTimeout(fail, timeout_ms);
-    function handler(...args): void {
-      clearTimeout(timer);
-      val = args;
-      cb();
+
+    function onEvent(...args: any[]) {
+      cleanup();
+      resolve(args);
     }
-    obj.once(event, handler);
-  }
-  await awaiting.callback(wait);
-  return val;
+
+    function onClosed() {
+      cleanup();
+      reject(new TimeoutError(`once: "${event}" not emitted before "closed"`));
+    }
+
+    function onTimeout() {
+      cleanup();
+      reject(
+        new TimeoutError(
+          `once: timeout of ${timeout_ms}ms waiting for "${event}"`,
+        ),
+      );
+    }
+
+    obj.once(event, onEvent);
+    obj.once("closed", onClosed);
+
+    if (timeout_ms > 0) {
+      timer = setTimeout(onTimeout, timeout_ms);
+    }
+  });
 }
 
 // Alternative to callback_opts that behaves like the callback defined in awaiting.
@@ -244,4 +288,55 @@ export async function mapParallelLimit(values, fn, max = 10) {
   }
 
   return Promise.all(promises.values());
+}
+
+export async function parallelHandler({
+  iterable,
+  limit,
+  handle,
+}: {
+  iterable: AsyncIterable<any>;
+  limit: number;
+  handle: (any) => Promise<void>;
+}) {
+  const promiseQueue: Promise<void>[] = [];
+  for await (const mesg of iterable) {
+    const promise = handle(mesg).then(() => {
+      // Remove the promise from the promiseQueue once done
+      promiseQueue.splice(promiseQueue.indexOf(promise), 1);
+    });
+    promiseQueue.push(promise);
+    // If we reached the PARALLEL limit, wait for one of the
+    // promises to resolve
+    if (promiseQueue.length >= limit) {
+      await Promise.race(promiseQueue);
+    }
+  }
+  // Wait for all remaining promises to finish
+  await Promise.all(promiseQueue);
+}
+
+// use it like this:
+//   resp = await withTimeout(promise, 3000);
+// and if will throw a timeout if promise takes more than 3s to resolve,
+// though of course whatever code is running in promise doesn't actually
+// get interrupted.
+export async function withTimeout(p: Promise<any>, ms: number) {
+  let afterFired = false;
+  p.catch((err) => {
+    if (afterFired) {
+      console.warn("WARNING: withTimeout promise rejected", err);
+    }
+  });
+  let to;
+  return Promise.race([
+    p,
+    new Promise(
+      (_, reject) =>
+        (to = setTimeout(() => {
+          afterFired = true;
+          reject(new Error("timeout"));
+        }, ms)),
+    ),
+  ]).finally(() => clearTimeout(to));
 }

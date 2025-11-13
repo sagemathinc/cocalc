@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -41,16 +41,15 @@ and you'll always get back undefined.
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { redux, ProjectActions, ProjectStore } from "../app-framework";
 import { ProjectStoreState } from "../project_store";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import * as types from "./actions-and-stores";
-import useDeepCompareEffect from "use-deep-compare-effect";
 
 export function useReduxNamedStore(path: string[]) {
   const [value, set_value] = React.useState(() => {
     return redux.getStore(path[0])?.getIn(path.slice(1) as any) as any;
   });
 
-  useDeepCompareEffect(() => {
+  useEffect(() => {
     if (path[0] == "") {
       // Special case -- we allow passing "" for the name of the store and get out undefined.
       // This is useful when using the useRedux hook but when the name of the store isn't known initially.
@@ -95,7 +94,7 @@ export function useReduxNamedStore(path: string[]) {
       f.is_mounted = false;
       store.removeListener("change", f);
     };
-  }, [path]);
+  }, path);
 
   return value;
 }
@@ -104,10 +103,10 @@ function useReduxProjectStore(path: string[], project_id: string) {
   const [value, set_value] = React.useState(() =>
     redux
       .getProjectStore(project_id)
-      .getIn(path as [string, string, string, string, string])
+      .getIn(path as [string, string, string, string, string]),
   );
 
-  useDeepCompareEffect(() => {
+  useEffect(() => {
     const store = redux.getProjectStore(project_id);
     let last_value = value;
     const f = (obj) => {
@@ -132,7 +131,7 @@ function useReduxProjectStore(path: string[], project_id: string) {
       f.is_mounted = false;
       store.removeListener("change", f);
     };
-  }, [path, project_id]);
+  }, [...path, project_id]);
 
   return value;
 }
@@ -140,16 +139,16 @@ function useReduxProjectStore(path: string[], project_id: string) {
 function useReduxEditorStore(
   path: string[],
   project_id: string,
-  filename: string
+  filename: string,
 ) {
   const [value, set_value] = React.useState(() =>
     // the editor itself might not be defined hence the ?. below:
     redux
       .getEditorStore(project_id, filename)
-      ?.getIn(path as [string, string, string, string, string])
+      ?.getIn(path as [string, string, string, string, string]),
   );
 
-  useDeepCompareEffect(() => {
+  useEffect(() => {
     let store = redux.getEditorStore(project_id, filename);
     let last_value = value;
     const f = (obj) => {
@@ -191,7 +190,7 @@ function useReduxEditorStore(
       f.is_mounted = false;
       store?.removeListener("change", f);
     };
-  }, [path, project_id, filename]);
+  }, [...path, project_id, filename]);
 
   return value;
 }
@@ -205,6 +204,7 @@ export interface StoreStates {
   customize: types.CustomizeState;
   file_use: types.FileUseState;
   mentions: types.MentionsState;
+  messages: types.MessagesState;
   page: types.PageState;
   projects: types.ProjectsState;
   users: types.UsersState;
@@ -213,20 +213,20 @@ export interface StoreStates {
 
 export function useTypedRedux<
   T extends keyof StoreStates,
-  S extends keyof StoreStates[T]
+  S extends keyof StoreStates[T],
 >(store: T, field: S): StoreStates[T][S];
 
 export function useTypedRedux<S extends keyof ProjectStoreState>(
   project_id: { project_id: string },
-  field: S
+  field: S,
 ): ProjectStoreState[S];
 
 export function useTypedRedux(
   a: keyof StoreStates | { project_id: string },
-  field: string
+  field: string,
 ) {
   if (typeof a == "string") {
-    return useRedux(a, field);
+    return useRedux([a, field]);
   }
   return useRedux(a.project_id, field);
 }
@@ -239,7 +239,7 @@ export function useEditorRedux<State>(editor: {
     return useReduxEditorStore(
       [field as string],
       editor.project_id,
-      editor.path
+      editor.path,
     ) as any;
   }
   return f;
@@ -273,13 +273,13 @@ export function useEditorRedux(
 export function useRedux(
   path: string | string[],
   project_id?: string,
-  filename?: string
+  filename?: string,
 ) {
   if (typeof path == "string") {
     // good typed version!! -- path specifies store
     if (typeof project_id != "string" || typeof filename != "undefined") {
       throw Error(
-        "if first argument of useRedux is a string then second argument must also be and no other arguments can be specified"
+        "if first argument of useRedux is a string then second argument must also be and no other arguments can be specified",
       );
     }
     if (is_valid_uuid_string(path)) {
@@ -289,7 +289,7 @@ export function useRedux(
     }
   }
   if (project_id == null) {
-    return useReduxNamedStore(path);
+    return useReduxNamedStore(typeof path == "string" ? [path] : path);
   }
   if (filename == null) {
     if (!is_valid_uuid_string(project_id)) {
@@ -309,36 +309,20 @@ then it's the project actions or editor actions; otherwise,
 it's one of the other named actions or undefined.
 */
 
-// TODO: very incomplete -- might not even work.
-/*
-export interface ActionsTypes {
-  account: types.AccountActions;
-  "admin-site-licenses": types.SiteLicensesActions;
-  "admin-users": types.AdminUsersActions;
-  billing: types.BillingActions;
-  compute_images: types.ComputeImagesActions;
-  customize: types.CustomizeActions;
-  file_use: types.FileUseActions;
-  mentions: types.MentionsActions;
-  page: types.PageActions;
-  projects: types.ProjectsActions;
-  users: types.UsersActions;
-}
-
-*/
-
 export function useActions(name: "account"): types.AccountActions;
 export function useActions(
-  name: "admin-site-licenses"
+  name: "admin-site-licenses",
 ): types.SiteLicensesActions;
 export function useActions(name: "admin-users"): types.AdminUsersActions;
 export function useActions(name: "billing"): types.BillingActions;
 export function useActions(name: "file_use"): types.FileUseActions;
 export function useActions(name: "mentions"): types.MentionsActions;
+export function useActions(name: "messages"): types.MessagesActions;
 export function useActions(name: "page"): types.PageActions;
 export function useActions(name: "projects"): types.ProjectsActions;
 export function useActions(name: "users"): types.UsersActions;
 export function useActions(name: "news"): types.NewsActions;
+export function useActions(name: "customize"): types.CustomizeActions;
 
 // If it is none of the explicitly named ones... it's a project or just some general actions.
 // That said *always* use {project_id} as below to get the actions for a project, so you
@@ -387,6 +371,7 @@ export function useActions(x, path?: string) {
 // the types just became any or didn't match.  Don't
 // move this unless you also fully test it!!
 import { Store } from "@cocalc/util/redux/Store";
+import { isEqual } from "lodash";
 export interface Stores {
   account: types.AccountStore;
   "admin-site-licenses": types.SiteLicensesStore;
@@ -396,6 +381,7 @@ export interface Stores {
   customize: types.CustomizeStore;
   file_use: types.FileUseStore;
   mentions: types.MentionsStore;
+  messages: types.MessagesStore;
   page: types.PageStore;
   projects: types.ProjectsStore;
   users: types.UsersStore;
@@ -426,4 +412,21 @@ export function useStore(x): any {
     }
     return store;
   }, [x]) as Store<any>;
+}
+
+// Debug which props changed in a component
+export function useTraceUpdate(props) {
+  const prev = useRef(props);
+  useEffect(() => {
+    const changedProps = Object.entries(props).reduce((ps, [k, v]) => {
+      if (!isEqual(prev.current[k], v)) {
+        ps[k] = [prev.current[k], v];
+      }
+      return ps;
+    }, {});
+    if (Object.keys(changedProps).length > 0) {
+      console.log("Changed props:", changedProps);
+    }
+    prev.current = props;
+  });
 }

@@ -1,33 +1,33 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 X11 Window frame.
 */
 
-import { Map, Set } from "immutable";
 import { delay } from "awaiting";
+import { Map, Set } from "immutable";
+import { debounce } from "lodash";
+import { AccountState } from "@cocalc/frontend/account/types";
 import {
-  ReactDOM,
   Rendered,
-  React,
   useEffect,
   useIsMountedRef,
-  useRef,
-  useRedux,
-  useTypedRedux,
-  usePrevious,
   useMemo,
-} from "../../app-framework";
-import { debounce } from "lodash";
-import { cmp, is_different } from "@cocalc/util/misc";
-import { Actions } from "./actions";
-import { WindowTab } from "./window-tab";
-import { TAB_BAR_GREY } from "./theme";
+  usePrevious,
+  useRedux,
+  useRef,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { retry_until_success } from "@cocalc/util/async-utils";
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
+import { cmp } from "@cocalc/util/misc";
+import { Actions } from "./actions";
+import { TAB_BAR_GREY } from "./theme";
+import { WindowTab } from "./window-tab";
 
 interface Props {
   actions: Actions;
@@ -36,49 +36,29 @@ interface Props {
   desc: Map<string, any>;
   is_current: boolean;
   font_size: number;
-  reload: string;
-  editor_settings: Map<string, any>;
+  reload?: number;
+  editor_settings: AccountState["editor_settings"];
   resize: number;
 }
 
-function isSame(prev, next): boolean {
-  // another other change causes re-render (e.g., of tab titles).
-  return (
-    !is_different(prev, next, [
-      "id",
-      "desc",
-      "windows",
-      "is_current",
-      "resize",
-      "reload",
-    ]) &&
-    prev.editor_settings.get("physical_keyboard") ==
-      next.editor_settings.get("physical_keyboard") &&
-    prev.editor_settings.get("keyboard_variant") ==
-      next.editor_settings.get("keyboard_variant") &&
-    prev.desc.get("font_size") == next.desc.get("font_size")
-  );
-}
-
-export const X11: React.FC<Props> = React.memo((props: Props) => {
-  const {
-    actions,
-    name,
-    id,
-    desc,
-    is_current,
-    font_size,
-    reload,
-    editor_settings,
-    resize,
-  } = props;
-
+export function X11({
+  actions,
+  name,
+  id,
+  desc,
+  is_current,
+  font_size,
+  reload,
+  editor_settings,
+  resize,
+}: Props) {
   const is_mounted = useIsMountedRef();
   const is_loaded = useRef<boolean>(false);
-  const windowRef = useRef<HTMLDivElement>(null);
-  const focusRef = useRef<HTMLTextAreaElement>(null);
+  const windowRef = useRef<HTMLDivElement>(null as any);
+  const focusRef = useRef<HTMLTextAreaElement>(null as any);
 
-  const default_font_size = useTypedRedux("account", "font_size") ?? 14;
+  const default_font_size =
+    useTypedRedux("account", "font_size") ?? DEFAULT_FONT_SIZE;
   const windows: Map<string, any> = useRedux(name, "windows");
   const x11_is_idle: boolean = useRedux(name, "x11_is_idle");
   const disabled: boolean = useRedux(name, "disabled");
@@ -93,7 +73,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     // keyboard layout change
     actions.set_physical_keyboard(
       editor_settings.get("physical_keyboard"),
-      editor_settings.get("keyboard_variant")
+      editor_settings.get("keyboard_variant"),
     );
   }, [
     editor_settings.get("physical_keyboard"),
@@ -150,7 +130,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     const load = async () =>
       retry_until_success({
         f: async () => {
-          const node: any = ReactDOM.findDOMNode(windowRef.current);
+          const node: any = windowRef.current;
           if (node == null) {
             throw new Error("x11 window node not yet available");
           } else {
@@ -169,7 +149,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     // set keyboard layout
     actions.set_physical_keyboard(
       editor_settings.get("physical_keyboard"),
-      editor_settings.get("keyboard_variant")
+      editor_settings.get("keyboard_variant"),
     );
 
     return () => {
@@ -178,7 +158,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
   }, []);
 
   function disable_browser_context_menu(): void {
-    const node: any = ReactDOM.findDOMNode(windowRef.current);
+    const node: any = windowRef.current;
     // Get rid of browser context menu, which makes no sense on a canvas.
     // See https://stackoverflow.com/questions/10864249/disabling-right-click-context-menu-on-a-html-canvas
     // NOTE: this would probably make sense in DOM mode instead of canvas mode;
@@ -192,7 +172,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     if (!is_mounted.current) {
       return;
     }
-    const node: any = ReactDOM.findDOMNode(windowRef.current);
+    const node: any = windowRef.current;
     const client = actions.client;
     if (client == null) {
       // will never happen -- to satisfy typescript
@@ -206,7 +186,9 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     }
     try {
       client.insert_window_in_dom(wid, node);
-      await insert_children_in_dom(windows.getIn([wid, "children"], Set()) as any);
+      await insert_children_in_dom(
+        windows.getIn([wid, "children"], Set()) as any,
+      );
     } catch (err) {
       // window not available right now.
       is_loaded.current = false;
@@ -248,7 +230,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     if (wid == null) {
       return;
     }
-    const node = $(ReactDOM.findDOMNode(windowRef.current));
+    const node: any = $(windowRef.current);
     const width = node.width(),
       height = node.height();
     if (width == null || height == null) {
@@ -277,7 +259,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
           is_current={wid === desc.get("wid")}
           info={windows.get(wid)}
           actions={actions}
-        />
+        />,
       );
     }
     return v;
@@ -314,7 +296,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function focus_textarea(): void {
-    const node: any = ReactDOM.findDOMNode(focusRef.current);
+    const node: any = focusRef.current;
     $(node).trigger("focus");
     const client = actions.client;
     if (client == null) {
@@ -411,4 +393,4 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
       {render_window_div()}
     </div>
   );
-}, isSame);
+}

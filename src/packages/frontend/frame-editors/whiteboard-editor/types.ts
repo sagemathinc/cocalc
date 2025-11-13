@@ -1,12 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+import type { IconName } from "@cocalc/frontend/components/icon";
 
 import { List as iList, Map as iMap } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { IconName } from "@cocalc/frontend/components/icon";
 import { TimerState } from "@cocalc/frontend/editors/stopwatch/actions";
 import { AspectRatio } from "./tools/frame";
 

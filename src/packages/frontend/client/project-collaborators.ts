@@ -1,20 +1,16 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import * as message from "@cocalc/util/message";
-import { AsyncCall } from "./client";
+import type { ConatClient } from "@cocalc/frontend/conat/client";
+import type { AddCollaborator } from "@cocalc/conat/hub/api/projects";
 
 export class ProjectCollaborators {
-  private async_call: AsyncCall;
+  private conat: ConatClient;
 
-  constructor(async_call: AsyncCall) {
-    this.async_call = async_call;
-  }
-
-  private async call(message: object): Promise<any> {
-    return await this.async_call({ message });
+  constructor(client) {
+    this.conat = client.conat_client;
   }
 
   public async invite_noncloud(opts: {
@@ -27,7 +23,9 @@ export class ProjectCollaborators {
     email: string; // body in HTML format
     subject?: string;
   }): Promise<any> {
-    return await this.call(message.invite_noncloud_collaborators(opts));
+    return await this.conat.hub.projects.inviteCollaboratorWithoutAccount({
+      opts,
+    });
   }
 
   public async invite(opts: {
@@ -40,32 +38,29 @@ export class ProjectCollaborators {
     email?: string;
     subject?: string;
   }): Promise<any> {
-    return await this.call(message.invite_collaborator(opts));
+    return await this.conat.hub.projects.inviteCollaborator({
+      opts,
+    });
   }
 
   public async remove(opts: {
     project_id: string;
     account_id: string;
   }): Promise<any> {
-    return await this.call(message.remove_collaborator(opts));
+    return await this.conat.hub.projects.removeCollaborator({
+      opts,
+    });
   }
 
   // Directly add one (or more) collaborators to (one or more) projects via
-  // a single API call.  There is no invite process, etc.
+  // a single API call.  There is no defined invite email message.
   public async add_collaborator(
-    opts:
-      | {
-          project_id: string;
-          account_id: string;
-        }
-      | {
-          token_id: string;
-          account_id: string;
-        }
-      | { project_id: string[]; account_id: string[] } // for adding more than one at once
-      | { account_id: string[]; token_id: string[] } // for adding more than one at once
-  ): Promise<{ event: "error" | "ok"; project_id?: string | string[] }> {
-    // project_id is a single string or an array of project id's in case of a token.
-    return await this.call(message.add_collaborator(opts));
+    opts: AddCollaborator,
+  ): Promise<{ project_id?: string | string[] }> {
+    // project_id is a single string or possibly an array of project_id's 
+    // in case of a token.
+    return await this.conat.hub.projects.addCollaborator({
+      opts,
+    });
   }
 }

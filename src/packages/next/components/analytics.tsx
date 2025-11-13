@@ -1,11 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { join } from "path";
 import basePath from "lib/base-path";
 import useCustomize from "lib/use-customize";
+
+import type { JSX } from "react";
 
 function GoogleAnalytics() {
   const { googleAnalytics } = useCustomize();

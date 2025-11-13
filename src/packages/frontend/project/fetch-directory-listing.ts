@@ -1,9 +1,9 @@
 import { is_running_or_starting } from "./project-start-warning";
 import type { ProjectActions } from "@cocalc/frontend/project_actions";
 import { trunc_middle, uuid } from "@cocalc/util/misc";
-import { get_directory_listing2 as get_directory_listing } from "./directory-listing";
-import { fromJS } from "immutable";
-import { reuseInFlight } from "async-await-utils/hof";
+import { get_directory_listing } from "./directory-listing";
+import { fromJS, Map } from "immutable";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 //const log = (...args) => console.log("fetchDirectoryListing", ...args);
 const log = (..._args) => {};
@@ -12,33 +12,44 @@ interface FetchDirectoryListingOpts {
   path?: string;
   // WARNING: THINK VERY HARD BEFORE YOU USE force=true, due to efficiency!
   force?: boolean;
+  // can be explicit here; otherwise will fall back to store.get('compute_server_id')
+  compute_server_id?: number;
 }
 
 function getPath(
   actions,
   opts?: FetchDirectoryListingOpts,
 ): string | undefined {
-  let store = actions.get_store();
-  return opts?.path ?? store?.get("current_path");
+  return opts?.path ?? actions.get_store()?.get("current_path");
+}
+
+function getComputeServerId(actions, opts): number {
+  return (
+    opts?.compute_server_id ??
+    actions.get_store()?.get("compute_server_id") ??
+    0
+  );
 }
 
 const fetchDirectoryListing = reuseInFlight(
   async (
     actions: ProjectActions,
-    { path, force }: FetchDirectoryListingOpts = {},
+    opts: FetchDirectoryListingOpts = {},
   ): Promise<void> => {
     let status;
     let store = actions.get_store();
     if (store == null) {
       return;
     }
-    path = getPath(actions, { path });
+    const { force } = opts;
+    const path = getPath(actions, opts);
+    const compute_server_id = getComputeServerId(actions, opts);
 
     if (force && path != null) {
       // update our interest.
       store.get_listings().watch(path, true);
     }
-    log({ force, path });
+    log({ force, path, compute_server_id });
 
     if (path == null) {
       // nothing to do if path isn't defined -- there is no current path --
@@ -53,7 +64,7 @@ const fetchDirectoryListing = reuseInFlight(
       status = "Loading file list";
     }
 
-    let value;
+    let error = "";
     try {
       // only show actions indicator, if the project is running or starting
       // if it is stopped, we get a stale listing from the database, which is fine.
@@ -72,30 +83,43 @@ const fetchDirectoryListing = reuseInFlight(
         project_id: actions.project_id,
         path,
         hidden: true,
-        max_time_s: 10,
+        max_time_s: 15,
         trigger_start_project: false,
         group: "collaborator", // nothing else is implemented
+        compute_server_id,
       });
       log("got ", listing.files);
-      value = fromJS(listing.files);
-    } catch (err) {
-      log("error", err);
-      value = `${err}`;
-    } finally {
+      const value = fromJS(listing.files);
       log("saving result");
-      actions.set_activity({ id, stop: "" });
       store = actions.get_store();
       if (store == null) {
         return;
       }
-      const map = store.get("directory_listings").set(path, value);
-      actions.setState({ directory_listings: map });
+      const directory_listings = store.get("directory_listings");
+      let listing2 = directory_listings.get(compute_server_id) ?? Map();
+      if (listing.noRunning && (listing2.get(path)?.size ?? 0) > 0) {
+        // do not change it
+        return;
+      }
+      listing2 = listing2.set(path, value);
+      actions.setState({
+        directory_listings: directory_listings.set(compute_server_id, listing2),
+      });
+    } catch (err) {
+      log("error", err);
+      error = `${err}`;
+    } finally {
+      actions.set_activity({ id, stop: "", error });
     }
   },
   {
     createKey: (args) => {
       const actions = args[0];
-      return `${actions.project_id}${getPath(actions, args[1])}`;
+      // reuse in flight on the project id, compute server id and path
+      return `${actions.project_id}-${getComputeServerId(
+        actions,
+        args[1],
+      )}-${getPath(actions, args[1])}`;
     },
   },
 );

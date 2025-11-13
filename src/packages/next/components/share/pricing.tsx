@@ -1,10 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
+
+import type { JSX } from "react";
 
 export function listedPrices(): JSX.Element {
   return (

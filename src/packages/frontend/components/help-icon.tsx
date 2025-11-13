@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -8,9 +8,10 @@ Display a ? "help" icon, which -- when clicked -- shows a help tip
 */
 
 import { Button, Popover } from "antd";
-import { CSSProperties } from "react";
+import type { TooltipPlacement } from "antd/es/tooltip";
+import { CSSProperties, useState } from "react";
 
-import { React, useState } from "@cocalc/frontend/app-framework";
+// ATTN: do not import @cocalc/app-framework or components, because this is also used in next!
 import { COLORS } from "@cocalc/util/theme";
 import { Icon } from "./icon";
 
@@ -19,6 +20,8 @@ interface Props {
   children: React.ReactNode;
   maxWidth?: string; // default is 50vw
   style?: CSSProperties;
+  extra?: string;
+  placement?: TooltipPlacement;
 }
 
 export const HelpIcon: React.FC<Props> = ({
@@ -26,11 +29,20 @@ export const HelpIcon: React.FC<Props> = ({
   title,
   children,
   maxWidth = "50vw",
+  extra = "",
+  placement,
 }: Props) => {
   const [open, setOpen] = useState<boolean>(false);
 
+  const textStyle: CSSProperties = {
+    color: COLORS.BS_BLUE_TEXT,
+    cursor: "pointer",
+    ...style,
+  } as const;
+
   return (
     <Popover
+      placement={placement}
       content={
         <div onClick={(e) => e.stopPropagation()} style={{ maxWidth }}>
           {children}
@@ -55,11 +67,10 @@ export const HelpIcon: React.FC<Props> = ({
       open={open}
       onOpenChange={setOpen}
     >
-      <Icon
-        style={{ color: COLORS.BS_BLUE_TEXT, cursor: "pointer", ...style }}
-        name="question-circle"
-        onClick={(e) => e?.stopPropagation()}
-      />
+      <span style={textStyle}>
+        {extra ? <>{extra} </> : undefined}
+        <Icon style={textStyle} name="question-circle" />
+      </span>
     </Popover>
   );
 };

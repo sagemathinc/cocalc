@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // The keyboard shortcuts and command listing dialog, which:
@@ -11,6 +11,7 @@
 import { Button, Modal } from "antd";
 import { Map } from "immutable";
 import json from "json-stable-stringify";
+import { useIntl } from "react-intl";
 
 import { Col, Grid, Row } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React, Rendered, useState } from "@cocalc/frontend/app-framework";
@@ -18,18 +19,20 @@ import {
   A,
   Icon,
   IconName,
-  r_join,
   SearchInput,
+  r_join,
 } from "@cocalc/frontend/components";
+import { IconRotation } from "@cocalc/frontend/components/icon";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import { ShowSupportLink } from "@cocalc/frontend/support";
 import { capitalize, copy_without, field_cmp, split } from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 import {
   CommandDescription,
-  commands as create_commands,
   KeyboardCommand,
+  commands as create_commands,
 } from "./commands";
 import { evt_to_obj, keyCode_to_chr } from "./keyboard";
 
@@ -48,7 +51,7 @@ const SYMBOLS = {
   delete: "DEL",
 };
 
-function shortcut_to_string(shortcut: KeyboardCommand): string {
+export function shortcut_to_string(shortcut: KeyboardCommand): string {
   const v: string[] = [];
   if (shortcut.shift) {
     v.push(SYMBOLS.shift);
@@ -108,7 +111,7 @@ interface KeyboardShortcutProps {
 }
 
 export const KeyboardShortcut: React.FC<KeyboardShortcutProps> = (
-  props: KeyboardShortcutProps
+  props: KeyboardShortcutProps,
 ) => {
   const { shortcut } = props;
 
@@ -200,9 +203,9 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
       }
       const shortcut = evt_to_obj(e, "escape");
       // Is this shortcut already taken, either in escape mode or both modes?
-      let taken = prop_taken[json(evt_to_obj(e, "edit"))];
+      let taken = prop_taken[json(evt_to_obj(e, "edit"))!];
       if (taken == null) {
-        taken = prop_taken[json(shortcut)];
+        taken = prop_taken[json(shortcut)!];
       }
       set_value(shortcut_to_string(shortcut));
       set_shortcut(shortcut);
@@ -223,7 +226,6 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
         <input
           style={{ width: "3em", backgroundColor: bg, color }}
           autoFocus={true}
-          ref="input"
           type="text"
           value={value}
           onKeyDown={key_down}
@@ -278,7 +280,7 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
         {taken && enable_hover ? render_taken_note() : undefined}
       </div>
     );
-  }
+  },
 );
 
 function capitalize_each_word(s: string): string {
@@ -298,17 +300,20 @@ interface CommandProps {
   name: string;
   desc: string;
   icon?: IconName;
+  iconRotate?: IconRotation;
   shortcuts: KeyboardCommand[];
   taken: string;
 }
 
 const Command: React.FC<CommandProps> = React.memo((props: CommandProps) => {
-  const { actions, name, desc, icon, shortcuts, taken } = props;
+  const { actions, name, desc, icon, iconRotate, shortcuts, taken } = props;
   const frameActions = useNotebookFrameActions();
   const [highlight, set_highlight] = useState<boolean>(false);
 
   function render_icon(): Rendered {
-    return <span>{icon ? <Icon name={icon} /> : undefined}</span>;
+    return (
+      <span>{icon ? <Icon name={icon} rotate={iconRotate} /> : undefined}</span>
+    );
   }
 
   function run_command() {
@@ -384,11 +389,17 @@ function should_memoize(prev, next) {
 const CommandList: React.FC<CommandListProps> = React.memo(
   (props: CommandListProps) => {
     const { actions, editor_actions, taken, search } = props;
+    const intl = useIntl();
     const frameActions = useNotebookFrameActions();
 
     function render_commands(): Rendered[] {
-      const v: any[] = [];
-      const obj = create_commands(actions, frameActions, editor_actions);
+      const v: { name: string; val: CommandDescription }[] = [];
+      const allActions = {
+        jupyter_actions: actions,
+        frame_actions: frameActions.current,
+        editor_actions,
+      };
+      const obj = create_commands(allActions);
       for (const name in obj) {
         const val = obj[name];
         if (val != null) {
@@ -397,13 +408,18 @@ const CommandList: React.FC<CommandListProps> = React.memo(
       }
       v.sort(field_cmp("name"));
       const cmds: Rendered[] = [];
-      const search_str =
-        search != null ? search.toLowerCase() || "" : undefined;
+      const search_str = search?.toLowerCase() ?? "";
       for (const x of v) {
         if (x.val.f == null) {
           continue;
         }
-        const desc = x.val.m != null ? x.val.m : capitalize_each_word(x.name);
+        const m = x.val.m;
+        const desc: string =
+          m == null
+            ? capitalize_each_word(x.name)
+            : isIntlMessage(m)
+            ? intl.formatMessage(m)
+            : m;
         if (desc == null) {
           continue;
         }
@@ -419,9 +435,10 @@ const CommandList: React.FC<CommandListProps> = React.memo(
             actions={actions}
             desc={desc}
             icon={icon}
+            iconRotate={x.val.ir}
             shortcuts={shortcuts}
             taken={taken[x.name]}
-          />
+          />,
         );
       }
       return cmds;
@@ -429,7 +446,7 @@ const CommandList: React.FC<CommandListProps> = React.memo(
 
     return <div style={COMMAND_LIST_STYLE}>{render_commands()}</div>;
   },
-  should_memoize
+  should_memoize,
 );
 
 interface KeyboardShortcutsProps {
@@ -441,13 +458,16 @@ interface KeyboardShortcutsProps {
 export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
   (props: KeyboardShortcutsProps) => {
     const { actions, editor_actions, keyboard_shortcuts } = props;
+    const intl = useIntl();
     const frameActions = useNotebookFrameActions();
     const [search, set_search] = useState<string>("");
-    const commands: { [name: string]: CommandDescription } = create_commands(
-      actions,
-      frameActions,
-      editor_actions
-    );
+    const allActions = {
+      jupyter_actions: actions,
+      frame_actions: frameActions.current,
+      editor_actions,
+    };
+    const commands: { [name: string]: CommandDescription } =
+      create_commands(allActions);
 
     const taken: { [name: string]: string } = {};
     for (const name in commands) {
@@ -458,7 +478,13 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
             // TODO: remove this when we switch from using event.which to event.key!
             s = copy_without(s, ["key"]) as any;
           }
-          taken[json(s)] = val.m || name;
+          const { m } = val;
+          const title = !m
+            ? name
+            : isIntlMessage(m)
+            ? intl.formatMessage(m)
+            : m;
+          taken[json(s)!] = title;
         }
       }
     }
@@ -501,7 +527,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
               Command (click to run)
             </Col>
             <Col md={4} sm={4}>
-              Keyboard shortcuts
+              {intl.formatMessage(labels.keyboard_shortcuts)}
             </Col>
           </Row>
         </Grid>
@@ -561,5 +587,5 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
         </Grid>
       </Modal>
     );
-  }
+  },
 );

@@ -1,26 +1,29 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+// cspell:ignore Questionmark
 
 declare let DEBUG;
 
-import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { Alert, Button, Form, Modal, Popconfirm, Switch, Table } from "antd";
+import { useEffect, useRef, useState } from "react";
 
+import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { A, Loading, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
-import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
+import { field_cmp, seconds2hms } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
-} from "@cocalc/comm/project-info/types";
-import { field_cmp, seconds2hms } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
+} from "@cocalc/util/types/project-info/types";
+import { useProjectContext } from "../context";
+import { ROOT_STYLE } from "../servers/consts";
 import { RestartProject } from "../settings/restart-project";
-import { Channel } from "@cocalc/comm/websocket/types";
 import {
   AboutContent,
   CGroup,
@@ -35,13 +38,12 @@ import { DETAILS_BTN_TEXT, SSH_KEYS_DOC } from "./utils";
 interface Props {
   any_alerts: () => boolean;
   cg_info: CGroupInfo;
-  chan: Channel | null;
-  render_disconnected: () => JSX.Element | undefined;
+  render_disconnected: () => React.JSX.Element | undefined;
   disconnected: boolean;
   disk_usage: DUState;
-  error: JSX.Element | null;
+  error: React.JSX.Element | null;
   status: string;
-  info: ProjectInfoType | undefined;
+  info: ProjectInfoType | null;
   loading: boolean;
   modal: string | Process | undefined;
   project_actions: ProjectActions | undefined;
@@ -58,16 +60,14 @@ interface Props {
   show_explanation: boolean;
   show_long_loading: boolean;
   start_ts: number | undefined;
-  sync: WSProjectInfo | null;
-  render_cocalc: (proc: ProcessRow) => JSX.Element | undefined;
+  render_cocalc: (proc: ProcessRow) => React.JSX.Element | undefined;
   onCellProps;
 }
 
-export function Full(props: Readonly<Props>): JSX.Element {
+export function Full(props: Readonly<Props>): React.JSX.Element {
   const {
     any_alerts,
     cg_info,
-    chan,
     render_disconnected,
     disconnected,
     disk_usage,
@@ -90,10 +90,56 @@ export function Full(props: Readonly<Props>): JSX.Element {
     show_explanation,
     show_long_loading,
     start_ts,
-    sync,
     render_cocalc,
     onCellProps,
   } = props;
+
+  const { contentSize } = useProjectContext();
+
+  const problemsRef = useRef<HTMLDivElement>(null);
+  const cgroupRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const explanationRef = useRef<HTMLDivElement>(null);
+  const generalStatusRef = useRef<HTMLDivElement>(null);
+  const [tableHeight, setTableHeight] = useState<number>(400);
+
+  useEffect(() => {
+    const calculateTableHeight = () => {
+      const parentHeight = contentSize.height;
+      if (parentHeight === 0) return; // Wait until contentSize is measured
+
+      let usedHeight = 0;
+
+      // Add height of ProjectProblems component
+      usedHeight += problemsRef.current?.offsetHeight ?? 0;
+
+      // Add height of CGroup component
+      usedHeight += cgroupRef.current?.offsetHeight ?? 0;
+
+      // Add height of header row
+      usedHeight += headerRef.current?.offsetHeight ?? 0;
+
+      // Add height of explanation row if visible
+      usedHeight += explanationRef.current?.offsetHeight ?? 0;
+
+      // Add height of general status row if DEBUG is enabled
+      if (DEBUG) {
+        usedHeight += generalStatusRef.current?.offsetHeight ?? 0;
+      }
+
+      // Add more buffer for table header, margins, and other spacing
+      usedHeight += 100;
+
+      const availableHeight = Math.max(300, parentHeight - usedHeight);
+      setTableHeight(availableHeight);
+    };
+
+    calculateTableHeight();
+
+    // Recalculate on window resize
+    window.addEventListener("resize", calculateTableHeight);
+    return () => window.removeEventListener("resize", calculateTableHeight);
+  }, [show_explanation, ptree, contentSize.height, contentSize.width]);
 
   function render_help() {
     return (
@@ -146,12 +192,12 @@ export function Full(props: Readonly<Props>): JSX.Element {
       <>
         {render_details()}
         <SignalButtons
-          chan={chan}
           selected={selected}
           set_selected={set_selected}
           loading={loading}
           disabled={disabled}
           processes={info.processes}
+          project_actions={project_actions}
         />
       </>
     );
@@ -286,7 +332,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
         title={"The role of these processes in this project."}
         trigger={["hover", "click"]}
       >
-        <LabelQuestionmark text={"Project"} />
+        <LabelQuestionmark text={"Role of Process"} />
       </Tip>
     );
 
@@ -301,11 +347,16 @@ export function Full(props: Readonly<Props>): JSX.Element {
       </Tip>
     );
 
-    const table_style: CSS = { marginBottom: "2rem" };
+    const table_style: CSS = {
+      marginBottom: "2rem",
+    };
 
     return (
       <>
-        <Row style={{ marginBottom: "10px", marginTop: "20px" }}>
+        <Row
+          ref={headerRef}
+          style={{ marginBottom: "10px", marginTop: "20px" }}
+        >
           <Col md={9}>
             <Form layout="inline">
               <Form.Item label="Table of Processes" />
@@ -320,13 +371,14 @@ export function Full(props: Readonly<Props>): JSX.Element {
             </Form>
           </Col>
         </Row>
-        <Row>{render_explanation()}</Row>
+        <Row ref={explanationRef}>{render_explanation()}</Row>
         <Row>
           <Table<ProcessRow>
+            key={`table-${contentSize.width}-${contentSize.height}`}
             dataSource={ptree}
             size={"small"}
             pagination={false}
-            scroll={{ y: "65vh" }}
+            scroll={{ y: tableHeight }}
             style={table_style}
             expandable={expandable}
             rowSelection={rowSelection}
@@ -401,7 +453,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
               dataIndex="mem"
               width="10%"
               align={"right"}
-              render={onCellProps("cpu_pct", (val) => `${val.toFixed(0)}MiB`)}
+              render={onCellProps("cpu_pct", (val) => `${val.toFixed(0)} MiB`)}
               onCell={onCellProps("mem")}
               sorter={field_cmp("mem")}
             />
@@ -445,7 +497,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
       </div>
     );
     return (
-      <Col lg={8} lgOffset={2} md={12} mdOffset={0}>
+      <Col md={12} mdOffset={0}>
         <Alert
           message={msg}
           style={{ margin: "10px 0" }}
@@ -463,15 +515,16 @@ export function Full(props: Readonly<Props>): JSX.Element {
 
   function render_general_status() {
     return (
-      <Col md={12} style={{ color: COLORS.GRAY }}>
-        Timestamp:{" "}
-        {info?.timestamp != null ? (
-          <code>{new Date(info.timestamp).toISOString()}</code>
-        ) : (
-          "no timestamp"
-        )}{" "}
-        | Connections sync=<code>{`${sync != null}`}</code> chan=
-        <code>{`${chan != null}`}</code> | Status: <code>{status}</code>
+      <Col md={12}>
+        <div ref={generalStatusRef} style={{ color: COLORS.GRAY }}>
+          Timestamp:{" "}
+          {info?.timestamp != null ? (
+            <code>{new Date(info.timestamp).toISOString()}</code>
+          ) : (
+            "no timestamp"
+          )}{" "}
+          | Status: <code>{status}</code>
+        </div>
       </Col>
     );
   }
@@ -479,28 +532,23 @@ export function Full(props: Readonly<Props>): JSX.Element {
   function render_body() {
     return (
       <>
-        <ProjectProblems project_status={project_status} />
-        <CGroup
-          have_cgroup={info?.cgroup != null}
-          cg_info={cg_info}
-          disk_usage={disk_usage}
-          pt_stats={pt_stats}
-          start_ts={start_ts}
-          project_status={project_status}
-        />
+        <div ref={problemsRef}>
+          <ProjectProblems project_status={project_status} />
+        </div>
+        <div ref={cgroupRef}>
+          <CGroup
+            have_cgroup={info?.cgroup != null}
+            cg_info={cg_info}
+            disk_usage={disk_usage}
+            pt_stats={pt_stats}
+            start_ts={start_ts}
+            project_status={project_status}
+          />
+        </div>
         {render_top()}
         {render_modals()}
         {DEBUG && render_general_status()}
       </>
-    );
-  }
-
-  function render_error() {
-    if (error == null) return;
-    return (
-      <Row>
-        <Alert message={error} type="error" />
-      </Row>
     );
   }
 
@@ -518,12 +566,10 @@ export function Full(props: Readonly<Props>): JSX.Element {
   }
 
   return (
-    <Row style={{ padding: "15px 15px 0 15px" }}>
-      <Col md={12}>
-        {render_not_running()}
-        {render_error()}
-        {render_body()}
-      </Col>
-    </Row>
+    <div style={{ ...ROOT_STYLE, maxWidth: undefined }}>
+      {render_not_running()}
+      {error}
+      {render_body()}
+    </div>
   );
 }

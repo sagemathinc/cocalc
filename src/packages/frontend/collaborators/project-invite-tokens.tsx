@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -16,18 +16,30 @@ TODO:
 // Load the code that checks for the PROJECT_INVITE_QUERY_PARAM
 // when user gets signed in, and handles it.
 
+import { Button, Card, DatePicker, Form, Modal, Popconfirm, Table } from "antd";
+import dayjs from "dayjs";
+import { join } from "path";
+
+import { alert_message } from "@cocalc/frontend/alerts";
+import {
+  React,
+  useIsMountedRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import {
+  CopyToClipBoard,
+  Gap,
+  Icon,
+  Loading,
+  TimeAgo,
+} from "@cocalc/frontend/components";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { ProjectInviteToken } from "@cocalc/util/db-schema/project-invite-tokens";
+import { secure_random_token, server_weeks_ago } from "@cocalc/util/misc";
 import { PROJECT_INVITE_QUERY_PARAM } from "./handle-project-invite";
 
-import { Button, Card, Popconfirm, Table, DatePicker, Form, Modal } from "antd";
-import { React, useState, useIsMountedRef } from "../app-framework";
-import { CopyToClipBoard, Icon, Loading, Gap, TimeAgo } from "../components";
-import { ProjectInviteToken } from "@cocalc/util/db-schema/project-invite-tokens";
-import { webapp_client } from "../webapp-client";
-import { alert_message } from "../alerts";
-import { secure_random_token, server_weeks_ago } from "@cocalc/util/misc";
-import { join } from "path";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import dayjs from "dayjs";
 const { useForm } = Form;
 
 const TOKEN_LENGTH = 16;
@@ -55,7 +67,6 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     const [fetching, set_fetching] = useState<boolean>(false);
     const [addModalVisible, setAddModalVisible] = useState<boolean>(false);
     const [form] = useForm();
-  
 
     async function fetch_tokens() {
       try {
@@ -112,7 +123,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
       return heading;
     }
 
-    async function add_token(expires) {
+    async function add_token(expires: Date) {
       if (tokens != null && tokens.length > MAX_TOKENS) {
         // TODO: just in case of some weird abuse... and until we implement
         // deletion of tokens.  Maybe the backend will just purge
@@ -125,7 +136,6 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
         return;
       }
       const token = secure_random_token(TOKEN_LENGTH);
-
       try {
         await webapp_client.async_query({
           query: {
@@ -133,7 +143,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
               token,
               project_id,
               created: webapp_client.server_time(),
-              expires: expires,
+              expires,
             },
           },
         });
@@ -148,8 +158,8 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     }
 
     async function add_token_two_week() {
-        let expires = server_weeks_ago(-2);
-        add_token(expires);
+      let expires = server_weeks_ago(-2);
+      add_token(expires);
     }
 
     function render_create_token() {
@@ -160,43 +170,39 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
           }
           onConfirm={add_token_two_week}
           okText={"Yes, create token"}
-          cancelText={"Cancel"}
+          cancelText={<CancelText />}
         >
           <Button disabled={fetching}>
-          <Icon name="plus-circle" />
+            <Icon name="plus-circle" />
             <Gap /> Create two weeks token
           </Button>
         </Popconfirm>
       );
     }
     const handleAdd = () => {
-        setAddModalVisible(true);
+      setAddModalVisible(true);
     };
-    
-    const handleModalOK = () => {
-        // const name = form.getFieldValue("name");
-        const expire = form.getFieldValue("expire");
-        add_token(expire);
-        setAddModalVisible(false);
-        form.resetFields();
-      };
 
-      const handleModalCancel = () => {
-        setAddModalVisible(false);
-        form.resetFields();
-      };
-    
-    
+    const handleModalOK = () => {
+      // const name = form.getFieldValue("name");
+      const expire = form.getFieldValue("expire");
+      add_token(expire.toDate());
+      setAddModalVisible(false);
+      form.resetFields();
+    };
+
+    const handleModalCancel = () => {
+      setAddModalVisible(false);
+      form.resetFields();
+    };
 
     function render_create_custom_token() {
-        return (
-            <Button onClick={handleAdd}
-            >
-                <Icon name="plus-circle" /> Create custom token 
-              </Button>
-        );
-      }
-  
+      return (
+        <Button onClick={handleAdd}>
+          <Icon name="plus-circle" /> Create custom token
+        </Button>
+      );
+    }
 
     function render_refresh() {
       return (
@@ -294,7 +300,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     }
 
     return (
-      <Card style={{ width: "100%", overflowX: "auto" }}>
+      <Card style={{ minWidth: "800px", width: "100%", overflow: "auto" }}>
         {heading}
         <br />
         <br />
@@ -312,7 +318,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
           open={addModalVisible}
           title="Create a New Inviting Token"
           okText="Create token"
-          cancelText="Cancel"
+          cancelText={<CancelText />}
           onCancel={handleModalCancel}
           onOk={handleModalOK}
         >
@@ -339,7 +345,6 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
             </Form.Item>
           </Form>
         </Modal>
-
       </Card>
     );
   },

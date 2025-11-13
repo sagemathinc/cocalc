@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { DirectoryListingEntry } from "@cocalc/util/types";
@@ -8,6 +8,10 @@ import { NotebookScores } from "../jupyter/nbgrader/autograde";
 import { Datastore, EnvVars } from "../projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type {
+  CopyConfigurationOptions,
+  CopyConfigurationTargets,
+} from "./configuration/configuration-copying";
 
 export interface SyncDBRecordBase {
   table: string;
@@ -19,6 +23,8 @@ export interface SyncDBRecordSettings {
   table: string;
   upgrade_goal?: UpgradeGoal;
   allow_collabs?: boolean;
+  mirror_config?: boolean;
+  mirror_config_path?: string;
   student_project_functionality?: StudentProjectFunctionality;
   shared_project_id?: string;
   pay?: string;
@@ -40,6 +46,8 @@ export interface SyncDBRecordSettings {
   datastore?: Datastore;
   envvars?: EnvVars;
   license_upgrade_host_project?: boolean;
+  copy_config_targets?: CopyConfigurationTargets;
+  copy_config_options?: CopyConfigurationOptions;
 }
 
 // This is closely related to store.AssignmentRecord...
@@ -70,6 +78,7 @@ export interface SyncDBRecordAssignment {
   status?: {
     [student_id: string]: { start?: number; time?: number; error?: string };
   };
+  compute_server?: ComputeServerConfig;
 }
 
 export interface SyncDBRecordHandout {
@@ -83,6 +92,7 @@ export interface SyncDBRecordHandout {
   status?: {
     [student_id: string]: { start?: number; time?: number; error?: string };
   };
+  compute_server?: ComputeServerConfig;
 }
 
 export interface SyncDBRecordStudent {
@@ -91,6 +101,7 @@ export interface SyncDBRecordStudent {
   account_id?: string;
   email_invite?: string;
   deleted?: boolean;
+  deleted_account?: boolean;
   first_name?: string;
   last_name?: string;
   email_address?: string;
@@ -127,7 +138,7 @@ export type AssignmentCopyType =
   | "peer-collected";
 
 export function copy_type_to_last(
-  type: AssignmentCopyType
+  type: AssignmentCopyType,
 ): LastAssignmentCopyType {
   switch (type) {
     case "assigned":
@@ -167,3 +178,16 @@ export interface AssignmentStatus {
   not_peer_collect: number;
   not_return_graded: number;
 }
+
+export interface ComputeServerConfig {
+  server_id?: number;
+  students?: { [student_id: string]: { server_id?: number } };
+}
+
+export type ComputeServerAction =
+  | "start"
+  | "stop"
+  | "create"
+  | "delete"
+  | "deprovision"
+  | "transfer-to-students";

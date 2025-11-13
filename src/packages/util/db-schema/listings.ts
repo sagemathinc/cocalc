@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -103,14 +103,18 @@ Table({
         },
       },
       set: {
-        // users can set that they are interested in this directory and also
-        // remove paths from the list of deleted paths (e.g., in case they want
-        // to edit a file that was deleted).
+        // same privs as project, since compute servers are treated as a user.  Plus listings isn't a
+        // security risk.
+        delete: true,
         fields: {
           project_id: "project_id",
           compute_server_id: true,
           path: true,
+          listing: true,
+          missing: true,
+          time: true,
           interest: true,
+          error: true,
           deleted: true,
         },
       },

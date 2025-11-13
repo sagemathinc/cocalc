@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -11,32 +11,32 @@ shopping cart experience, so most likely to feel familiar to users and easy
 to use.
 */
 
+import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
+import { useRouter } from "next/router";
+import { useEffect, useMemo, useState, type JSX } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import type {
+  ProductDescription,
+  ProductType,
+} from "@cocalc/util/db-schema/shopping-cart-items";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
-import { money } from "@cocalc/util/licenses/purchase/utils";
-import { capitalize, currency, isValidUUID, round2up } from "@cocalc/util/misc";
-import { Alert, Button, Checkbox, Popconfirm, Space, Table } from "antd";
+import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
+import { capitalize, isValidUUID } from "@cocalc/util/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
-import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
-import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import OtherItems from "./other-items";
 import { describeItem, describePeriod, DisplayCost } from "./site-license-cost";
-import type {
-  ProductDescription,
-  ProductType,
-} from "@cocalc/util/db-schema/shopping-cart-items";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
   const [updating, setUpdating] = useState<boolean>(false);
-  const [subTotal, setSubTotal] = useState<number>(0);
+  const [numChecked, setNumChecked] = useState<number>(0);
   const router = useRouter();
 
   // most likely, user will checkout next
@@ -51,7 +51,7 @@ export default function ShoppingCart() {
     // TODO deal with errors returned by useAPI
     if (cart.result.error != null) return undefined;
     const x: any[] = [];
-    let subTotal = 0;
+    let numChecked = 0;
     for (const item of cart.result) {
       try {
         item.cost = computeCost(item.description);
@@ -67,11 +67,11 @@ export default function ShoppingCart() {
         continue;
       }
       if (item.checked) {
-        subTotal += item.cost.discounted_cost;
+        numChecked += 1;
       }
       x.push(item);
     }
-    setSubTotal(subTotal);
+    setNumChecked(numChecked);
     return x;
   }, [cart.result]);
 
@@ -80,7 +80,7 @@ export default function ShoppingCart() {
   }
 
   if (!items) {
-    return <Loading center />;
+    return <Loading large center />;
   }
 
   async function reload() {
@@ -196,43 +196,20 @@ export default function ShoppingCart() {
     );
   }
 
-  function Proceed() {
-    const checkout = (
-      <Button
-        disabled={subTotal == 0 || updating}
-        size="large"
-        type="primary"
-        onClick={() => {
-          router.push("/store/checkout");
-        }}
-      >
-        Proceed to Checkout
-      </Button>
-    );
-    return (
-      <Space>
-        {checkout}
-        <Button
-          disabled={subTotal == 0 || updating}
-          size="large"
-          onClick={() => {
-            router.push("/store/vouchers");
-          }}
-        >
-          Create Vouchers
-        </Button>
-      </Space>
-    );
-  }
-
   function renderItems() {
     return (
       <>
         <div style={{ float: "right" }}>
-          <span style={{ fontSize: "13pt", marginRight: "15px" }}>
-            <TotalCost items={items} />
-          </span>
-          <Proceed />
+          <Button
+            disabled={numChecked == 0 || updating}
+            size="large"
+            type="primary"
+            onClick={() => {
+              router.push("/store/checkout");
+            }}
+          >
+            Proceed to Checkout
+          </Button>
         </div>
         <h3>
           <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />{" "}
@@ -257,18 +234,6 @@ export default function ShoppingCart() {
             pagination={{ hideOnSinglePage: true }}
           />
         </div>
-        <div
-          style={{
-            float: "right",
-            fontSize: "12pt",
-            margin: "15px 15px 0 0",
-          }}
-        >
-          <div style={{ float: "right" }}>
-            <TotalCost items={cart.result} />
-          </div>
-          <br />
-        </div>
       </>
     );
   }
@@ -286,25 +251,6 @@ export default function ShoppingCart() {
       >
         <OtherItems onChange={reload} cart={cart} />
       </div>
-    </>
-  );
-}
-
-function TotalCost({ items }) {
-  let discounted_cost = 0;
-  let n = 0;
-  for (const { cost, checked } of items) {
-    if (checked && cost != null) {
-      discounted_cost += cost.discounted_cost;
-      n += 1;
-    }
-  }
-  if (n == 0) {
-    return <>No items selected</>;
-  }
-  return (
-    <>
-      Subtotal ({n} items): <b>{money(round2up(discounted_cost))}</b>
     </>
   );
 }
@@ -405,22 +351,31 @@ const DESCRIPTION_STYLE = {
 
 // Also used externally for showing what a voucher is for in next/pages/vouchers/[id].tsx
 export function DescriptionColumn(props: DCProps) {
-  const { description, style, readOnly } = props;
+  const router = useRouter();
+  const { id, description, style, readOnly } = props;
   if (
-    description.type == "disk" ||
-    description.type == "vm" ||
-    description.type == "quota"
+    description.type === "disk" ||
+    description.type === "vm" ||
+    description.type === "quota"
   ) {
     return <DescriptionColumnSiteLicense {...props} />;
   } else if (description.type == "cash-voucher") {
     return (
       <div style={style}>
-        <b style={{ fontSize: "12pt" }}>Cash voucher</b>
+        <b style={{ fontSize: "12pt" }}>Cash Voucher: {description.title}</b>
         <div style={DESCRIPTION_STYLE}>
-          Voucher for {currency(description.amount)}.
+          {describeItem({ info: description })}
         </div>
         {!readOnly && (
           <>
+            <Button
+              style={{ marginRight: "5px" }}
+              onClick={() => {
+                router.push(`/store/vouchers?id=${id}`);
+              }}
+            >
+              <Icon name="pencil" /> Edit
+            </Button>
             <SaveForLater {...props} />
             <DeleteItem {...props} />
           </>
@@ -433,19 +388,12 @@ export function DescriptionColumn(props: DCProps) {
 }
 
 function DescriptionColumnSiteLicense(props: DCProps) {
-  const {
-    id,
-    cost,
-    description,
-    compact,
-    project_id,
-    readOnly,
-  } = props;
+  const { id, cost, description, compact, project_id, readOnly } = props;
   if (
     !(
-      description.type == "disk" ||
-      description.type == "vm" ||
-      description.type == "quota"
+      description.type === "disk" ||
+      description.type === "vm" ||
+      description.type === "quota"
     )
   ) {
     throw Error("BUG -- incorrect typing");
@@ -456,7 +404,7 @@ function DescriptionColumnSiteLicense(props: DCProps) {
     return <pre>{JSON.stringify(description, undefined, 2)}</pre>;
   }
   const { input } = cost;
-  if (input.type == "cash-voucher") {
+  if (input.type === "cash-voucher") {
     throw Error("incorrect typing");
   }
 
@@ -476,25 +424,24 @@ function DescriptionColumnSiteLicense(props: DCProps) {
   }
 
   function editableQuota() {
-    if (input.type == "cash-voucher") return null;
+    if (input.type === "cash-voucher") return null;
     return (
       <div>
-        <div>
-          {describeQuotaFromInfo(input)}
-        </div>
+        <div>{describeQuotaFromInfo(input)}</div>
         {renderProjectID()}
       </div>
     );
   }
 
   // this could rely an the "type" field, but we rather check the data directly
-  function editPage(): "site-license" | "boost" | "dedicated" | "vouchers" {
-    if (input.type == "cash-voucher") {
+  function editPage(): "site-license" | "vouchers" | "course" {
+    if (input.type === "cash-voucher") {
       return "vouchers";
-    } else if (input.type === "disk" || input.type === "vm") {
-      return "dedicated";
-    } else if (input.boost) {
-      return "boost";
+    } else if (
+      description.type === "quota" &&
+      description.source === "course"
+    ) {
+      return "course";
     }
     return "site-license";
   }
@@ -507,21 +454,21 @@ function DescriptionColumnSiteLicense(props: DCProps) {
         </div>
       )}
       {description.description && <div>{description.description}</div>}
-      <div style={ DESCRIPTION_STYLE }>
-        <div style={{ marginBottom: '8px' }}>
+      <div style={DESCRIPTION_STYLE}>
+        <div style={{ marginBottom: "8px" }}>
           <b>
-            { input.subscription == "no"
+            {input.subscription === "no"
               ? describePeriod({ quota: input })
-              : capitalize(input.subscription) + " subscription" }
+              : capitalize(input.subscription) + " subscription"}
           </b>
         </div>
-        { compact || readOnly ? describeItem({ info: input }) : editableQuota() }{ " " }
+        {compact || readOnly ? describeItem({ info: input }) : editableQuota()}{" "}
       </div>
-      { !readOnly && (
+      {!readOnly && (
         <>
           <Button
-            style={ { marginRight: "5px" } }
-            onClick={ () => {
+            style={{ marginRight: "5px" }}
+            onClick={() => {
               const page = editPage();
               router.push(`/store/${page}?id=${id}`);
             }}

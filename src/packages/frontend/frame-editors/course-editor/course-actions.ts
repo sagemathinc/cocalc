@@ -1,12 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { CourseActions } from "../../course/actions";
+import { CourseActions } from "@cocalc/frontend/course/actions";
 export { CourseActions };
 
-import { init_redux, remove_redux } from "../../course/redux";
+import { init_redux, remove_redux } from "@cocalc/frontend/course/redux";
 
 export function course_redux_name(project_id: string, path: string): string {
   return `course-editor-${project_id}-${path}`;
@@ -33,6 +33,6 @@ export function close_course_actions_and_store(opts: {
     opts.path,
     opts.redux,
     opts.project_id,
-    course_redux_name(opts.project_id, opts.path)
+    course_redux_name(opts.project_id, opts.path),
   );
 }

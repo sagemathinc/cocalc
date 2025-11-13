@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* This is currently only used to store the answer to the user sign up question
@@ -41,7 +41,7 @@ async function analytics_send(mesg: SignedIn): Promise<void> {
     })
     // .then(response => console.log("Success:", response))
     .catch((error) =>
-      console.error("sign-in-hooks::analytics_send error:", error)
+      console.log("WARNING: sign-in-hooks::analytics_send error:", error),
     );
 }
 

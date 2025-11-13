@@ -1,14 +1,18 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Button, Tooltip } from "antd";
 import { useEffect, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { TourName } from "@cocalc/frontend/account/tours";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
+import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
+import { isIntlMessage } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
 import track from "@cocalc/frontend/user-tracking";
@@ -16,10 +20,10 @@ import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
-import { FIXED_TABS_BG_COLOR } from "../tabs";
+import { FIXED_TABS_BG_COLOR } from "../activity-bar-tabs";
+import { ActiveHeader } from "./active-header";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log-header";
-import { ActiveHeader } from "./active-header";
 
 const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
 
@@ -31,7 +35,9 @@ interface Props {
 
 export function FlyoutHeader(_: Readonly<Props>) {
   const { flyout, flyoutWidth, narrowerPX = 0 } = _;
+  const intl = useIntl();
   const { actions, project_id, is_active } = useProjectContext();
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   // the flyout fullpage button explanation isn't an Antd tour, but has the same effect.
   const tours = useTypedRedux("account", "tours");
   const [highlightFullpage, setHighlightFullpage] = useState<boolean>(false);
@@ -46,9 +52,11 @@ export function FlyoutHeader(_: Readonly<Props>) {
   }, [is_active]);
 
   function renderDefaultTitle() {
-    const title = FIXED_PROJECT_TABS[flyout].flyoutTitle;
+    const title =
+      FIXED_PROJECT_TABS[flyout].flyoutTitle ??
+      FIXED_PROJECT_TABS[flyout].label;
     if (title != null) {
-      return title;
+      return isIntlMessage(title) ? intl.formatMessage(title) : title;
     } else {
       return capitalize(flyout);
     }
@@ -65,7 +73,13 @@ export function FlyoutHeader(_: Readonly<Props>) {
 
   function closeBtn() {
     return (
-      <Tooltip title="Hide this panel" placement="bottom">
+      <Tooltip
+        title={intl.formatMessage({
+          id: "flyouts.header.hide.tooltip",
+          defaultMessage: "Hide this panel",
+        })}
+        placement="bottom"
+      >
         <Icon
           name="times"
           className="cc-project-fixedtab-close"
@@ -89,7 +103,12 @@ export function FlyoutHeader(_: Readonly<Props>) {
   function renderFullpagePopupTitle() {
     return (
       <>
-        <div>Open this flyout panel as a full page.</div>
+        <div>
+          <FormattedMessage
+            id="flyouts.header.fullpage.tooltip.title"
+            defaultMessage={"Open this flyout panel as a full page."}
+          />
+        </div>
         {highlightFullpage ? (
           <>
             <hr />
@@ -150,12 +169,36 @@ export function FlyoutHeader(_: Readonly<Props>) {
     switch (flyout) {
       case "files":
         return (
-          <PathNavigator
-            style={{ flex: 1 }}
-            mode={"flyout"}
-            project_id={project_id}
-            className={"cc-project-flyout-path-navigator"}
-          />
+          <div style={{ width: "100%" }}>
+            <div>
+              <SelectComputeServerForFileExplorer
+                size="small"
+                project_id={project_id}
+                key="compute-server"
+                noLabel={true}
+                style={{
+                  borderRadius: "5px",
+                  marginRight: "5px",
+                }}
+              />
+              <PathNavigator
+                style={{ flex: 1 }}
+                mode={"flyout"}
+                project_id={project_id}
+                className={"cc-project-flyout-path-navigator"}
+              />
+            </div>
+            {!!compute_server_id && (
+              <div style={{ fontSize: "10pt" }}>
+                <ComputeServerDocStatus
+                  id={compute_server_id}
+                  requestedId={compute_server_id}
+                  project_id={project_id}
+                  noSync
+                />
+              </div>
+            )}
+          </div>
         );
       case "log":
         return <LogHeader />;
@@ -175,6 +218,8 @@ export function FlyoutHeader(_: Readonly<Props>) {
   return (
     <div
       style={{
+        height: "40px",
+        overflow: "hidden",
         display: "flex",
         flexDirection: "row",
         alignItems: "start",

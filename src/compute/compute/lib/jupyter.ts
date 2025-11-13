@@ -7,12 +7,11 @@ import SyncClient from "@cocalc/sync-client";
 import { meta_file } from "@cocalc/util/misc";
 import { initJupyterRedux } from "@cocalc/jupyter/kernel";
 import { redux } from "@cocalc/jupyter/redux/app";
-import { COMPUTE_THRESH_MS } from "@cocalc/jupyter/redux/actions";
 import debug from "debug";
 import { once } from "@cocalc/util/async-utils";
-import { COMPUTER_SERVER_CURSOR_TYPE } from "@cocalc/util/compute/manager";
+import { COMPUTE_THRESH_MS } from "@cocalc/util/compute/manager";
 import { SYNCDB_OPTIONS } from "@cocalc/jupyter/redux/sync";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const log = debug("cocalc:compute:jupyter");
 
@@ -24,7 +23,7 @@ class RemoteJupyter {
   private client: SyncClient;
   private websocket;
   private path: string;
-  private sync_db;
+  private syncdb;
   private actions?;
   private store?;
   private interval;
@@ -32,13 +31,11 @@ class RemoteJupyter {
   constructor({ client, path }: { client: SyncClient; path: string }) {
     log("creating remote jupyter session");
     this.client = client;
-    // @ts-ignore: TODO
-    this.client.is_compute_server = true;
     this.path = path;
     this.log("constructor");
     const syncdb_path = meta_file(path, "jupyter2");
 
-    this.sync_db = client.sync_client.sync_db({
+    this.syncdb = client.sync_client.sync_db({
       ...SYNCDB_OPTIONS,
       project_id: client.project_id,
       path: syncdb_path,
@@ -52,7 +49,7 @@ class RemoteJupyter {
   };
 
   close = async () => {
-    if (this.sync_db == null) {
+    if (this.syncdb == null) {
       return;
     }
     this.log("close");
@@ -63,9 +60,9 @@ class RemoteJupyter {
     this.log("halt kernel");
     await this.actions.halt();
 
-    const { sync_db } = this;
-    delete this.sync_db;
-    sync_db.removeAllListeners("message");
+    const { syncdb } = this;
+    delete this.syncdb;
+    syncdb.removeAllListeners("message");
 
     // Stop listening for messages, since as we start to close
     // things before, handling messages would lead to a crash.
@@ -79,8 +76,8 @@ class RemoteJupyter {
     delete this.actions;
     delete this.store;
     this.log("close: clearing cursors...");
-    await sync_db.setCursorLocsNoThrottle([]);
-    await sync_db.close();
+    await syncdb.setCursorLocsNoThrottle([]);
+    await syncdb.close();
     this.log("close: done");
   };
 
@@ -91,7 +88,7 @@ class RemoteJupyter {
   // more attempts to register, and the process crashes and runs
   // out of memory.
   private registerWithProject = reuseInFlight(async () => {
-    if (this.sync_db == null) {
+    if (this.syncdb == null) {
       return;
     }
     this.log("registerWithProject");
@@ -99,15 +96,20 @@ class RemoteJupyter {
       this.client.project_id,
     );
     this.log("registerWithProject: got websocket");
-    if (this.sync_db.get_state() == "init") {
-      await once(this.sync_db, "ready");
+    if (this.syncdb.get_state() == "init") {
+      await once(this.syncdb, "ready");
     }
     this.log("registerWithProject: syncdb ready");
     // Register to handle websocket api requests from frontend
     // clients to the project jupyter instance.
-    await this.sync_db.sendMessageToProject({
-      event: "register-to-handle-api",
-    });
+    try {
+      await this.syncdb.sendMessageToProject({
+        event: "register-to-handle-api",
+      });
+    } catch (err) {
+      this.log("WARNING: failed to register -- ", err);
+      return;
+    }
     this.log("registerWithProject: sent register-to-handle-api");
 
     // Periodically update cursor to indicate that we would like
@@ -118,15 +120,13 @@ class RemoteJupyter {
     }
     const registerAsCellRunner = async () => {
       this.log("registerAsCellRunner");
-      if (this.sync_db == null) {
+      if (this.syncdb == null) {
         return;
       }
-      this.sync_db.setCursorLocsNoThrottle([
-        { type: COMPUTER_SERVER_CURSOR_TYPE },
-      ]);
+      this.syncdb.registerAsComputeServer();
       // we also continually also register to handle messages, just in case
       // the above didn't get through (e.g., right when restarting project).
-      await this.sync_db.sendMessageToProject({
+      await this.syncdb.sendMessageToProject({
         event: "register-to-handle-api",
       });
     };
@@ -151,7 +151,7 @@ class RemoteJupyter {
 
   private initRedux = async () => {
     this.log("initializing jupyter redux...");
-    await initJupyterRedux(this.sync_db, this.client);
+    await initJupyterRedux(this.syncdb, this.client);
     const { project_id } = this.client;
     const { path } = this;
     this.actions = redux.getEditorActions(project_id, path);

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Tooltip } from "antd";
@@ -19,10 +19,10 @@ interface Props {
   add_inner_style?: CSS;
   children?: React.ReactNode;
   hide_label?: boolean;
-  icon?: IconName | JSX.Element;
+  icon?: IconName | React.JSX.Element;
   is_project?: boolean;
   label_class?: string;
-  label?: string | JSX.Element;
+  label?: string | React.JSX.Element;
   name?: string;
   on_click?: () => void;
   style?: CSS;
@@ -51,7 +51,7 @@ export const NavTab: React.FC<Props> = React.memo((props: Props) => {
     if (!hide_label && label != null) {
       return (
         <span
-          style={{ marginLeft: "5px" }}
+          style={icon != null ? { marginLeft: "5px" } : undefined}
           className={label_class}
           cocalc-test={name}
         >
@@ -113,7 +113,7 @@ export const NavTab: React.FC<Props> = React.memo((props: Props) => {
     ...add_inner_style,
   };
 
-  function renderInner(): JSX.Element {
+  function renderInner(): React.JSX.Element {
     const inner = (
       <div style={inner_style}>
         {render_icon()}

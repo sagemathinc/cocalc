@@ -76,7 +76,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     try {
       await studentPay({ account_id, project_id });
     } catch (e) {
-      expect(e.message).toMatch("Please add at least $21.20 to your account.");
+      expect(e.message).toMatch("Please pay");
     }
   });
 
@@ -86,13 +86,16 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     try {
       await studentPay({ account_id, project_id });
     } catch (e) {
-      expect(e.message).toMatch("do not have enough");
+      expect(e.message).toMatch("Please pay");
     }
   });
 
+  let purchase_id_from_student_pay : undefined | number = 0;
   it("add a lot of money, so it finally works -- check that the license is applied to the project", async () => {
     await createCredit({ account_id, amount: 1000 });
     const { purchase_id } = await studentPay({ account_id, project_id });
+    // save for next test below.
+    purchase_id_from_student_pay = purchase_id;
     // there's a purchase
     expect(purchase_id).toBeGreaterThanOrEqual(0);
     // paid field is set
@@ -116,12 +119,8 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     expect(site_license).toEqual({ [license_id]: {} });
   });
 
-  it("try to pay again and get an error that already paid", async () => {
-    expect.assertions(1);
-    try {
-      await studentPay({ account_id, project_id });
-    } catch (e) {
-      expect(e.message).toMatch("already paid");
-    }
+  it("try to pay again and DO NOT get an error that already paid -- it's an idempotent and just doesn't charge user. Allowing this avoids some annoying race condition.", async () => {
+    const { purchase_id } = await studentPay({ account_id, project_id });
+    expect(purchase_id).toBe(purchase_id_from_student_pay);
   });
 });

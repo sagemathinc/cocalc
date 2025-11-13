@@ -1,16 +1,21 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
-import { CopyToClipBoard, Icon, ErrorDisplay } from "@cocalc/frontend/components";
+import {
+  CopyToClipBoard,
+  Icon,
+  ErrorDisplay,
+} from "@cocalc/frontend/components";
 import { webapp_client } from "../../webapp-client";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 interface Props {
-  email_address?: string;
+  account_id: string;
+  email_address: string;
 }
 
 interface State {
@@ -32,12 +37,11 @@ export class PasswordReset extends Component<Props, State> {
   }
 
   async do_request(): Promise<void> {
-    if (!this.props.email_address) throw Error("bug");
     this.setState({ running: true });
     let link: string;
     try {
-      link = await webapp_client.admin_client.admin_reset_password(
-        this.props.email_address
+      link = await webapp_client.conat_client.hub.system.adminResetPasswordLink(
+        { user_account_id: this.props.account_id },
       );
     } catch (err) {
       if (!this.mounted) return;
@@ -74,6 +78,7 @@ export class PasswordReset extends Component<Props, State> {
     }
     return (
       <ErrorDisplay
+        style={{ margin: "30px" }}
         error={this.state.error}
         onClose={() => {
           this.setState({ error: undefined });

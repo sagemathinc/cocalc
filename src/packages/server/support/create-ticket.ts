@@ -1,9 +1,13 @@
-import type { Tickets } from "node-zendesk";
+import type {
+  CreateOrUpdateTicket,
+  Type,
+} from "node-zendesk/dist/types/clients/core/tickets";
+
 import { getLogger } from "@cocalc/backend/logger";
 import siteURL from "@cocalc/database/settings/site-url";
 import getName, { getNameByEmail } from "@cocalc/server/accounts/get-name";
-import getClient from "./zendesk-client";
 import { urlToUserURL } from "./util";
+import getClient from "./zendesk-client";
 
 const log = getLogger("support:create-ticket");
 
@@ -11,7 +15,7 @@ interface Options {
   email: string;
   account_id?: string;
   files?: { project_id: string; path?: string }[];
-  type?: "bug" | "question";
+  type?: Type;
   subject?: string;
   body?: string;
   url?: string;
@@ -27,12 +31,9 @@ export default async function createTicket(options: Options): Promise<string> {
   const client = await getClient();
 
   const { account_id, email, files, type, subject, url, info } = options;
-  const user = await getUser(email, account_id);
+  const name = await getUserName(email, account_id);
 
-  // create corresponding zendesk user, or get current user if already created.
-  const userResult = await client.users.createOrUpdate(user);
-
-  let { body } = options;
+  let body: string = options.body ?? "";
 
   if (url) {
     body += `\n\n\nURL:\n${url}\n`;
@@ -65,11 +66,10 @@ export default async function createTicket(options: Options): Promise<string> {
       comment: { body },
       external_id: account_id,
       subject,
-      type: type as Tickets.TicketType,
-      // @ts-ignore: @types/node-zendesk is wrong:
-      requester_id: userResult.id,
+      type,
+      requester: { name, email },
     },
-  };
+  } as CreateOrUpdateTicket; // ATTN: this is somehow necessary, no idea why
 
   log.debug("ticket ", ticket);
 
@@ -91,12 +91,10 @@ async function toURL({
   return s + encodeURI(`/files/${path}`);
 }
 
-async function getUser(
+async function getUserName(
   email: string,
-  account_id?: string
-): Promise<{
-  user: { name: string; email: string; external_id: string | null };
-}> {
+  account_id?: string,
+): Promise<string> {
   let name: string | undefined = undefined;
   if (account_id) {
     name = await getName(account_id);
@@ -109,7 +107,5 @@ async function getUser(
   if (!name?.trim()) {
     name = email;
   }
-  return {
-    user: { name, email, external_id: account_id ?? null },
-  };
+  return name;
 }

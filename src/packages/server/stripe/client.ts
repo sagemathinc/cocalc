@@ -1,9 +1,8 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
 import Stripe from "stripe";
 export { Stripe };
@@ -18,6 +17,7 @@ import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import getPrivateProfile from "@cocalc/server/accounts/profile/private";
 import { callback2 } from "@cocalc/util/async-utils";
 import * as message from "@cocalc/util/message";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import stripeName from "@cocalc/util/stripe/name";
 import { InvoicesData } from "@cocalc/util/types/stripe";
 import { available_upgrades, get_total_upgrades } from "@cocalc/util/upgrades";
@@ -640,14 +640,6 @@ export class StripeClient {
     }
     dbg("Sync the database to indicate that everything is canceled.");
     await this.update_database();
-  }
-
-  public async getPaymentMethods(): Promise<Message> {
-    const dbg = this.dbg("get_sources");
-    dbg("get a list of all the payment sources that this customer has");
-    const customer = await this.need_customer_id();
-    const conn = await getConn();
-    return await conn.paymentMethods.list({ customer, type: "card" });
   }
 
   public async setDefaultSource(default_source: string): Promise<void> {

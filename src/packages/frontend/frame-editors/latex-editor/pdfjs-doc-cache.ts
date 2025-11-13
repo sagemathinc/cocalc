@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -20,10 +20,11 @@ and things just grow badly (user has tons of docs open).
 const MAX_PAGES = 1000;
 
 import LRU from "lru-cache";
-import { reuseInFlight } from "async-await-utils/hof";
+import "pdfjs-dist/webpack.mjs";
+
 import { versions } from "@cocalc/cdn";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import "pdfjs-dist/webpack";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 /* IMPORTANT:
  - We do NOT install pdfjs-dist into the @cocalc/frontend module at all though we import it here!!
@@ -36,10 +37,10 @@ import "pdfjs-dist/webpack";
    with this package.  That's all in packages/static.
 */
 import { getDocument as pdfjs_getDocument } from "pdfjs-dist";
-import type { PDFDocumentProxy } from "pdfjs-dist/webpack";
-
-import { raw_url } from "../frame-tree/util";
+import type { PDFDocumentProxy } from "pdfjs-dist/webpack.mjs";
+import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
 import { pdf_path } from "./util";
+import { getComputeServerId } from "@cocalc/frontend/frame-editors/generic/client";
 
 const options = {
   maxSize: MAX_PAGES,
@@ -51,10 +52,14 @@ const options = {
 export function url_to_pdf(
   project_id: string,
   path: string,
-  reload: number
+  reload: number,
 ): string {
-  const url = raw_url(project_id, pdf_path(path));
-  return `${url}?param=${reload}`;
+  return raw_url(
+    project_id,
+    pdf_path(path),
+    getComputeServerId({ project_id, path }),
+    `param=${reload}`,
+  );
 }
 
 const doc_cache = new LRU(options);

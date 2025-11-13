@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 let wrapped_editors;
@@ -17,7 +17,6 @@ if (typeof window !== "undefined" && window !== null) {
 
 import * as immutable from "immutable";
 
-import { alert_message } from "@cocalc/frontend/alerts";
 import {
   AppRedux,
   project_redux_name,
@@ -26,11 +25,12 @@ import {
   Table,
   TypedMap,
 } from "@cocalc/frontend/app-framework";
+import { Listings, listings } from "@cocalc/frontend/conat/listings";
+import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
+import { get_local_storage } from "@cocalc/frontend/misc";
+import { QueryParams } from "@cocalc/frontend/misc/query-params";
+import { remove } from "@cocalc/frontend/project-file";
 import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
-import {
-  Listings,
-  listings,
-} from "@cocalc/frontend/project/websocket/listings";
 import {
   FILE_ACTIONS,
   ProjectActions,
@@ -41,7 +41,6 @@ import {
   isMainConfiguration,
   ProjectConfiguration,
 } from "@cocalc/frontend/project_configuration";
-import { deleted_file_variations } from "@cocalc/util/delete-files";
 import * as misc from "@cocalc/util/misc";
 import { compute_file_masks } from "./project/explorer/compute-file-masks";
 import { DirectoryListing } from "./project/explorer/types";
@@ -62,8 +61,8 @@ import {
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
 export type ModalInfo = TypedMap<{
-  title: string | JSX.Element;
-  content: string | JSX.Element;
+  title: string | React.JSX.Element;
+  content: string | React.JSX.Element;
   onOk?: any;
   onCancel?: any;
 }>;
@@ -76,7 +75,9 @@ export interface ProjectStoreState {
   open_files_order: immutable.List<string>;
   just_closed_files: immutable.List<string>;
   public_paths?: immutable.Map<string, immutable.Map<string, any>>;
-  directory_listings: immutable.Map<string, any>;
+
+  // directory_listings is a map from compute_server_id to {path:[listing for that path on the compute server]}
+  directory_listings: immutable.Map<number, any>;
   show_upload: boolean;
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
@@ -87,7 +88,6 @@ export interface ProjectStoreState {
 
   // Project Page
   active_project_tab: string;
-  internet_warning_closed: boolean; // Makes bottom height update
   num_ghost_file_tabs: number;
   flyout: FixedTab | null;
   flyout_log_mode: FlyoutLogMode;
@@ -99,7 +99,8 @@ export interface ProjectStoreState {
   activity: any; // immutable,
   active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   page_number: number;
-  file_action?: string; // undefineds is meaningfully none here
+  starred_files?: immutable.List<string>; // paths to starred files (synced from conat)
+  file_action?: string; // undefined is meaningfully none here
   file_search?: string;
   show_hidden?: boolean;
   show_masked?: boolean;
@@ -112,6 +113,8 @@ export interface ProjectStoreState {
   file_listing_scroll_top?: number;
   new_filename?: string;
   ext_selection?: string;
+  // paths that were deleted
+  recentlyDeletedPaths?: immutable.Map<string, number>;
 
   // Project Log
   project_log?: ProjectLogMap;
@@ -167,12 +170,20 @@ export interface ProjectStoreState {
 
   compute_servers?;
   create_compute_server?: boolean;
+  create_compute_server_template_id?: number;
+
+  // Default compute server id to use when browsing and
+  // working with files.
+  compute_server_id: number;
+  // Map from path to the id of the compute server that the file is supposed to opened on right now.
+  compute_server_ids?: TypedMap<{ [path: string]: number }>;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
   private previous_runstate: string | undefined;
-  private listings: Listings | undefined;
+  private listings: { [compute_server_id: number]: Listings } = {};
+  public readonly computeServerIdLocalStorageKey: string;
 
   // Function to call to initialize one of the tables in this store.
   // This is purely an optimization, so project_log, project_log_all and public_paths
@@ -180,10 +191,15 @@ export class ProjectStore extends Store<ProjectStoreState> {
   // is a little awkward, since I didn't want to change things too
   // much while making this optimization.
   public init_table: (table_name: string) => void;
+  public close_table: (table_name: string) => void;
+  public close_all_tables: () => void;
 
-  // TODO what's a and b ?
-  constructor(a, b) {
-    super(a, b);
+  //  name = 'project-[project-id]' = name of the store
+  //  redux = global redux object
+  constructor(name: string, _redux) {
+    super(name, _redux);
+    this.project_id = name.slice("project-".length);
+    this.computeServerIdLocalStorageKey = `project-compute-server-id-${this.project_id}`;
     this._projects_store_change = this._projects_store_change.bind(this);
     this.setup_selectors();
   }
@@ -211,8 +227,16 @@ export class ProjectStore extends Store<ProjectStoreState> {
     if (projects_store !== undefined) {
       projects_store.removeListener("change", this._projects_store_change);
     }
-    if (this.listings != null) {
-      this.listings.close();
+    for (const id in this.listings) {
+      this.listings[id].close();
+      delete this.listings[id];
+    }
+    // close any open file tabs, properly cleaning up editor state:
+    const open = this.get("open_files")?.toJS();
+    if (open != null) {
+      for (const path in open) {
+        remove(path, redux, this.project_id, false);
+      }
     }
   };
 
@@ -246,7 +270,26 @@ export class ProjectStore extends Store<ProjectStoreState> {
   }
 
   getInitialState = (): ProjectStoreState => {
+    let create_compute_server_template_id: number | undefined = undefined;
+    let create_compute_server: boolean | undefined = undefined;
+    const template = QueryParams.get("compute-server-template");
+    if (template) {
+      const [id, project_id] = template.split(".");
+      if (id && project_id == this.project_id) {
+        create_compute_server_template_id = parseInt(id);
+        create_compute_server = true;
+        QueryParams.remove("compute-server-template");
+      }
+    }
     const other_settings = redux.getStore("account")?.get("other_settings");
+    let compute_server_id;
+    try {
+      const key = this.computeServerIdLocalStorageKey;
+      const value = get_local_storage(key);
+      compute_server_id = parseInt((value as any) ?? "0");
+    } catch (_) {
+      compute_server_id = 0;
+    }
     return {
       // Shared
       current_path: "",
@@ -265,7 +308,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       // Project Page
       active_project_tab: "files",
-      internet_warning_closed: false, // Makes bottom height update
       num_ghost_file_tabs: 0,
       flyout: null,
       flyout_log_mode: FLYOUT_LOG_DEFAULT_MODE,
@@ -302,6 +344,10 @@ export class ProjectStore extends Store<ProjectStoreState> {
       stripped_public_paths: this.selectors.stripped_public_paths.fn,
 
       other_settings: undefined,
+
+      compute_server_id,
+      create_compute_server,
+      create_compute_server_template_id,
     };
   };
 
@@ -338,12 +384,16 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "other_settings",
         "show_hidden",
         "show_masked",
+        "compute_server_id",
+        "starred_files",
       ] as const,
       fn: () => {
         const search_escape_char = "/";
-        const listingStored = this.get("directory_listings").get(
+        const listingStored = this.getIn([
+          "directory_listings",
+          this.get("compute_server_id"),
           this.get("current_path"),
-        );
+        ]);
         if (typeof listingStored === "string") {
           if (
             listingStored.indexOf("ECONNREFUSED") !== -1 ||
@@ -364,8 +414,20 @@ export class ProjectStore extends Store<ProjectStoreState> {
         if (listingStored == null) {
           return {};
         }
-        if ((listingStored != null ? listingStored.errno : undefined) != null) {
-          return { error: misc.to_json(listingStored) };
+        try {
+          if (listingStored?.errno) {
+            return { error: misc.to_json(listingStored) };
+          }
+        } catch (err) {
+          return {
+            error: "Error getting directory listing - please try again.",
+          };
+        }
+
+        if (listingStored?.toJS == null) {
+          return {
+            error: "Unable to get directory listing - please try again.",
+          };
         }
 
         // We can proceed and get the listing as a JS object.
@@ -385,7 +447,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
         }
 
         const sorter = (() => {
-          switch (this.get("active_file_sort").get("column_name")) {
+          const active_col = this.get("active_file_sort").get("column_name");
+          switch (active_col) {
             case "name":
               return _sort_on_string_field("name");
             case "time":
@@ -403,6 +466,32 @@ export class ProjectStore extends Store<ProjectStoreState> {
                     a.name.split(".").reverse(),
                     b.name.split(".").reverse(),
                   );
+                }
+              };
+            case "starred":
+              return (a, b) => {
+                const starredFiles = this.get("starred_files");
+                if (!starredFiles) return 0;
+
+                const pathA = misc.path_to_file(
+                  this.get("current_path"),
+                  a.name,
+                );
+                const pathB = misc.path_to_file(
+                  this.get("current_path"),
+                  b.name,
+                );
+                const starPathA = a.isdir ? `${pathA}/` : pathA;
+                const starPathB = b.isdir ? `${pathB}/` : pathB;
+                const starredA = starredFiles.includes(starPathA);
+                const starredB = starredFiles.includes(starPathB);
+
+                if (starredA && !starredB) {
+                  return -1;
+                } else if (!starredA && starredB) {
+                  return 1;
+                } else {
+                  return misc.cmp(a.name.toLowerCase(), b.name.toLowerCase());
                 }
               };
           }
@@ -519,10 +608,12 @@ export class ProjectStore extends Store<ProjectStoreState> {
     };
   };
 
-  get_raw_link = (path) => {
-    let url = document.URL;
-    url = url.slice(0, url.indexOf("/projects/"));
-    return `${url}/${this.project_id}/raw/${misc.encode_path(path)}`;
+  fileURL = (path, compute_server_id?: number) => {
+    return fileURL({
+      project_id: this.project_id,
+      path,
+      compute_server_id: compute_server_id ?? this.get("compute_server_id"),
+    });
   };
 
   // returns false, if this project isn't capable of opening a file with the given extension
@@ -544,94 +635,61 @@ export class ProjectStore extends Store<ProjectStoreState> {
     return this.getIn(["open_files", path, "component"])?.Editor != null;
   }
 
-  private close_deleted_file(path: string): void {
-    const cur = this.get("current_path");
-    if (path == cur || misc.startswith(cur, path + "/")) {
-      // we are deleting the current directory, so let's cd to HOME.
-      const actions = redux.getProjectActions(this.project_id);
-      if (actions != null) {
-        actions.set_current_path("");
-      }
-    }
-    const all_paths = deleted_file_variations(path);
-    for (const file of this.get("open_files").keys()) {
-      if (all_paths.indexOf(file) != -1 || misc.startswith(file, path + "/")) {
-        if (!this.has_file_been_viewed(file)) {
-          // Hasn't even been viewed yet; when user clicks on the tab
-          // they get a dialog to undelete the file.
-          continue;
-        }
-        const actions = redux.getProjectActions(this.project_id);
-        if (actions != null) {
-          actions.close_tab(file);
-          alert_message({
-            type: "info",
-            message: `Closing '${file}' since it was deleted or moved.`,
-          });
-        }
-      } else {
-        const actions: any = redux.getEditorActions(this.project_id, file);
-        if (actions?.close_frames_with_path != null) {
-          // close subframes with given path.
-          if (actions.close_frames_with_path(path)) {
-            alert_message({
-              type: "info",
-              message: `Closed '${path}' in '${file}' since it was deleted or moved.`,
-            });
-          }
-        }
-      }
-    }
-  }
+  public get_listings(compute_server_id: number | null = null): Listings {
+    const computeServerId = compute_server_id ?? this.get("compute_server_id");
+    if (this.listings[computeServerId] == null) {
+      const listingsTable = listings(this.project_id, computeServerId);
+      this.listings[computeServerId] = listingsTable;
+      listingsTable.watch(this.get("current_path") ?? "", true);
+      listingsTable.on("change", async (paths) => {
+        let directory_listings_for_server =
+          this.getIn(["directory_listings", computeServerId]) ??
+          immutable.Map();
 
-  private async close_deleted_files(paths: string[]): Promise<void> {
-    for (const path of paths) {
-      if (this.listings == null) return; // won't happen
-      const deleted = await this.listings.getDeleted(path);
-      if (deleted != null) {
-        for (let filename of deleted) {
-          if (path != "") {
-            filename = path + "/" + filename;
-          }
-          this.close_deleted_file(filename);
-        }
-      }
-    }
-  }
-
-  public get_listings(): Listings {
-    if (this.listings == null) {
-      this.listings = listings(this.project_id);
-      this.listings.on("deleted", this.close_deleted_files.bind(this));
-      this.listings.on("change", async (paths) => {
-        let directory_listings = this.get("directory_listings");
+        const missing: string[] = [];
         for (const path of paths) {
-          if (this.listings == null) return; // won't happen
-          let files;
-          if (this.listings.getMissing(path)) {
-            try {
-              files = immutable.fromJS(
-                await this.listings.getListingDirectly(path),
-              );
-            } catch (err) {
-              console.warn(
-                `WARNING: problem getting directory listing ${err}; falling back`,
-              );
-              files = await this.listings.getForStore(path);
-            }
-          } else {
-            files = await this.listings.getForStore(path);
+          if (listingsTable.getMissing(path)) {
+            missing.push(path);
           }
-          directory_listings = directory_listings.set(path, files);
+          const files = await listingsTable.getForStore(path);
+          directory_listings_for_server = directory_listings_for_server.set(
+            path,
+            files,
+          );
         }
-        const actions = redux.getProjectActions(this.project_id);
-        actions.setState({ directory_listings });
+        const f = () => {
+          const actions = redux.getProjectActions(this.project_id);
+          const directory_listings = this.get("directory_listings").set(
+            computeServerId,
+            directory_listings_for_server,
+          );
+          actions.setState({ directory_listings });
+        };
+        f();
+
+        if (missing.length > 0) {
+          for (const path of missing) {
+            try {
+              const files = immutable.fromJS(
+                await listingsTable.getListingDirectly(path),
+              );
+              directory_listings_for_server = directory_listings_for_server.set(
+                path,
+                files,
+              );
+            } catch {
+              // happens if e.g., the project is not running
+              continue;
+            }
+          }
+          f();
+        }
       });
     }
-    if (this.listings == null) {
+    if (this.listings[computeServerId] == null) {
       throw Error("bug");
     }
-    return this.listings;
+    return this.listings[computeServerId];
   }
 }
 
@@ -737,6 +795,7 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
   store._init();
 
   const queries = misc.deep_copy(QUERIES);
+
   const create_table = function (table_name, q) {
     //console.log("create_table", table_name)
     return class P extends Table {
@@ -760,9 +819,14 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
   };
 
   function init_table(table_name: string): void {
+    const name = project_redux_name(project_id, table_name);
+    try {
+      // throws error only if it does not exist already
+      redux.getTable(name);
+      return;
+    } catch {}
+
     const q = queries[table_name];
-    if (q == null) return; // already done
-    delete queries[table_name]; // so we do not init again.
     for (const k in q) {
       const v = q[k];
       if (typeof v === "function") {
@@ -770,18 +834,20 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
       }
     }
     q.query.project_id = project_id;
-    redux.createTable(
-      project_redux_name(project_id, table_name),
-      create_table(table_name, q),
-    );
+    redux.createTable(name, create_table(table_name, q));
   }
 
-  // public_paths is needed to show file listing and show
-  // any individual file, so we just load it...
-  init_table("public_paths");
-  // project_log, on the other hand, is only loaded if needed.
-
   store.init_table = init_table;
+
+  store.close_table = (table_name: string) => {
+    redux.removeTable(project_redux_name(project_id, table_name));
+  };
+
+  store.close_all_tables = () => {
+    for (const table_name in queries) {
+      store.close_table(table_name);
+    }
+  };
 
   return store;
 }

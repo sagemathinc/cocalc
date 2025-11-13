@@ -1,11 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Map, Set } from "immutable";
 import { clone } from "lodash";
-
 import {
   CSS,
   React,
@@ -22,9 +21,8 @@ import {
   LoadingEstimate,
 } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
-import { filename_extension, is_different } from "@cocalc/util/misc";
+import { is_different } from "@cocalc/util/misc";
 import { chat } from "../generic/chat";
-import { FormatBar } from "./format-bar";
 import FormatError from "./format-error";
 import { FrameTree } from "./frame-tree";
 import StatusBar from "./status-bar";
@@ -35,10 +33,10 @@ interface FrameTreeEditorProps {
   actions: any;
   path: string;
   project_id: string;
-  format_bar: boolean;
-  format_bar_exclude?: SetMap;
   editor_spec: any;
   tab_is_visible: boolean; // if the editor tab is active -- page/page.tsx
+  format_bar?: boolean;
+  format_bar_exclude?: SetMap;
 }
 
 const LOADING_STYLE: CSS = {
@@ -57,15 +55,7 @@ function shouldMemoize(prev, next): boolean {
 
 const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
   (props: Readonly<FrameTreeEditorProps>) => {
-    const {
-      name,
-      actions,
-      path,
-      project_id,
-      format_bar,
-      format_bar_exclude,
-      tab_is_visible,
-    } = props;
+    const { name, actions, path, project_id, tab_is_visible } = props;
 
     const frameRootRef = useRef<HTMLDivElement>(null);
 
@@ -79,7 +69,7 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     const project_store_name = project_redux_name(project_id);
     const available_features: AvailableFeatures = useRedux(
       project_store_name,
-      "available_features"
+      "available_features",
     );
 
     const editor_settings = useTypedRedux("account", "editor_settings");
@@ -89,13 +79,13 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     const has_unsaved_changes: boolean = useRedux(name, "has_unsaved_changes");
     const has_uncommitted_changes: boolean = useRedux(
       name,
-      "has_uncommitted_changes"
+      "has_uncommitted_changes",
     );
     const read_only: boolean = useRedux(name, "read_only");
     const is_loaded: boolean = useRedux(name, "is_loaded");
     const local_view_state: Map<string, any> = useRedux(
       name,
-      "local_view_state"
+      "local_view_state",
     );
     const error: string = useRedux(name, "error");
     const errorstyle: ErrorStyles = useRedux(name, "errorstyle");
@@ -105,7 +95,7 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     const status: string = useRedux(name, "status");
     const load_time_estimate: LoadingEstimate | undefined = useRedux(
       name,
-      "load_time_estimate"
+      "load_time_estimate",
     );
     const value: string | undefined = useRedux(name, "value");
     const reload: Map<string, number> = useRedux(name, "reload");
@@ -117,7 +107,7 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     const complete: Map<string, any> = useRedux(name, "complete");
     const derived_file_types: Set<string> = useRedux(
       name,
-      "derived_file_types"
+      "derived_file_types",
     );
     const visible: boolean | undefined = useRedux(name, "visible");
 
@@ -125,27 +115,11 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     useEffect(() => {
       if (!frameRootRef.current) return;
       const observer = new ResizeObserver(() => {
-        actions.set_resize();
+        actions.set_resize?.();
       });
       observer.observe(frameRootRef.current);
       return () => observer.disconnect();
     }, [frameRootRef.current]);
-
-    function render_format_bar(): Rendered {
-      if (
-        format_bar &&
-        !is_public &&
-        editor_settings &&
-        editor_settings.get("extra_button_bar")
-      )
-        return (
-          <FormatBar
-            actions={actions}
-            extension={filename_extension(path)}
-            exclude={format_bar_exclude}
-          />
-        );
-    }
 
     function render_frame_tree(): Rendered {
       if (!is_loaded) return;
@@ -231,21 +205,20 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
           <FormatError formatError={formatError} formatInput={formatInput} />
         )}
         {render_error()}
-        {render_format_bar()}
         {render_loading()}
         {render_frame_tree()}
         {render_status_bar()}
       </div>
     );
   },
-  shouldMemoize
+  shouldMemoize,
 );
 
-interface Options {
+interface Options<T = EditorSpec> {
   display_name: string;
   format_bar?: boolean;
   format_bar_exclude?: SetMap;
-  editor_spec: EditorSpec;
+  editor_spec: T;
 }
 
 export interface EditorProps {
@@ -258,7 +231,9 @@ export interface EditorProps {
 
 // this returns a function that creates a FrameTreeEditor for given Options.
 // memoization happens in FrameTreeEditor
-export function createEditor(opts: Options): React.FC<EditorProps> {
+export function createEditor<T = EditorSpec>(
+  opts: Options<T>,
+): React.FC<EditorProps> {
   const Editor = (props: EditorProps) => {
     const { actions, name, path, project_id, is_visible } = props;
     return (
@@ -269,7 +244,11 @@ export function createEditor(opts: Options): React.FC<EditorProps> {
         project_id={project_id}
         format_bar={!!opts.format_bar}
         format_bar_exclude={opts.format_bar_exclude}
-        editor_spec={{ ...opts.editor_spec, chat }}
+        editor_spec={
+          path.endsWith(".sage-chat")
+            ? opts.editor_spec
+            : { ...opts.editor_spec, chat }
+        }
         tab_is_visible={is_visible}
       />
     );

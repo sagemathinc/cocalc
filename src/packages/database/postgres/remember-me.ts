@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -12,7 +12,7 @@ OF course, not everything is rewritten yet...
 import { PostgreSQL } from "./types";
 const { one_result } = require("../postgres-base");
 import { callback } from "awaiting";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 async function _get_remember_me(
   db: PostgreSQL,

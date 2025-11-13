@@ -4,6 +4,8 @@ import { Table } from "./types";
 import { deep_copy, minutes_ago } from "../misc";
 import { SCHEMA as schema } from "./index";
 
+export const DEFAULT_SNAPSHOT_INTERVAL = 300;
+
 Table({
   name: "syncstrings",
   fields: {
@@ -56,6 +58,10 @@ Table({
       type: "timestamp",
       desc: "timestamp of a recent snapshot; if not given, assume no snapshots.  This is used to restrict the range of patches that have to be downloaded in order start editing the file.",
     },
+    last_seq: {
+      type: "number",
+      desc: "sequence number of patch that snapshot was last made for",
+    },
     snapshot_interval: {
       type: "integer",
       desc: "If m=snapshot_interval is given and there are a total of n patches, then we (some user) should make snapshots at patches m, 2*m, ..., k, where k<=n-m.",
@@ -66,7 +72,7 @@ Table({
     },
     doctype: {
       type: "string",
-      desc: "(optional) JSON string describing meaning of the patches (i.e., of this document0 -- e.g., {type:'db', opts:{primary_keys:['id'], string_cols:['name']}}",
+      desc: "(REQUIRED) JSON string describing meaning of the patches (i.e., of this document0 -- e.g., {type:'db', opts:{primary_keys:['id'], string_cols:['name']}}",
     },
     settings: {
       type: "map",
@@ -90,7 +96,8 @@ Table({
           },
           users: null,
           last_snapshot: null,
-          snapshot_interval: 300,
+          last_seq: null,
+          snapshot_interval: DEFAULT_SNAPSHOT_INTERVAL,
           project_id: null,
           path: null,
           deleted: null,
@@ -108,20 +115,7 @@ Table({
           project_id: true,
         },
         check_hook(db, obj, account_id, project_id, cb) {
-          return db._syncstrings_check(
-            obj,
-            account_id,
-            project_id,
-            function (err) {
-              if (!err) {
-                // only calls cb once patch is unarchived, since new sync
-                // rewrite doesn't use changefeed on database.
-                db.unarchive_patches({ string_id: obj.string_id, cb });
-              } else {
-                cb(err);
-              }
-            }
-          );
+          return db._syncstrings_check(obj, account_id, project_id, cb);
         },
       },
 
@@ -135,6 +129,7 @@ Table({
           },
           users: true,
           last_snapshot: true,
+          last_seq: true,
           snapshot_interval: true,
           project_id: true,
           path: true,
@@ -159,7 +154,7 @@ Table({
             old_val,
             new_val,
             account_id,
-            cb
+            cb,
           );
         },
       },
@@ -289,7 +284,11 @@ Table({
     },
     time: {
       type: "timestamp",
-      desc: "the timestamp of the patch",
+      desc: "the logical timestamp of the patch",
+    },
+    wall: {
+      type: "timestamp",
+      desc: "the timestamp that we show to the user",
     },
     user_id: {
       type: "integer",
@@ -301,9 +300,17 @@ Table({
       desc: "JSON string that parses to a patch, which transforms the previous version of the syncstring to this version",
       render: { type: "text" },
     },
+    is_snapshot: {
+      type: "boolean",
+      desc: "True if this is a snapshot (this is only used in NATS).",
+    },
     snapshot: {
       type: "string",
       desc: "Optional -- gives the state of the string at this point in time; this should only be set some time after the patch at this point in time was made. Knowing this snap and all future patches determines all the future versions of the syncstring.",
+    },
+    seq_info: {
+      type: "map",
+      desc: "conat-assigned info about snapshot -- {seq:number; prev_seq?:number; index:number}",
     },
     sent: {
       type: "timestamp",
@@ -317,9 +324,19 @@ Table({
       type: "integer",
       desc: "The format of the patch; NULL = compressed dmp patch (for strings); 1 = db-doc patches on objects.",
     },
+    parents: {
+      type: "array",
+      pg_type: "INTEGER[]",
+      desc: "The parent timestamps as ms since epoch",
+    },
+    version: {
+      type: "integer",
+      desc: "Version number of this patch.  Not necessarily globally unique across branches.  Used only to provide users a convenient way to refer to a particular version.",
+    },
   },
   rules: {
-    primary_key: ["string_id", "time"], // compound primary key
+    primary_key: ["string_id", "time", "is_snapshot"], // compound primary key
+    default_primary_key_value: { is_snapshot: false },
     unique_writes: true, // there is no reason for a user to write exactly the same record twice
     pg_indexes: ["time"],
     user_query: {
@@ -327,12 +344,17 @@ Table({
         fields: {
           string_id: null,
           time: null,
+          wall: null,
           patch: null,
           user_id: null,
           snapshot: null,
+          is_snapshot: null,
+          seq_info: null,
           sent: null,
           prev: null,
+          version: null,
           format: null,
+          parents: null,
         },
         check_hook(db, obj, account_id, project_id, cb) {
           // this verifies that user has read access to these patches
@@ -340,7 +362,7 @@ Table({
             obj,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -348,11 +370,16 @@ Table({
         fields: {
           string_id: true,
           time: true,
+          wall: true,
           patch: true,
           user_id: true,
           snapshot: true,
+          is_snapshot: true,
+          seq_info: true,
           sent: true,
           prev: true,
+          version: true,
+          parents: true,
           format: true,
         },
         required_fields: {
@@ -366,7 +393,7 @@ Table({
             obj,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
         before_change(_db, old_val, new_val, _account_id, cb) {
@@ -381,7 +408,7 @@ Table({
               old_val.user_id !== new_val.user_id
             ) {
               cb(
-                `you may not change the author of a patch from ${old_val.user_id} to ${new_val.user_id}`
+                `you may not change the author of a patch from ${old_val.user_id} to ${new_val.user_id}`,
               );
               return;
             }
@@ -493,7 +520,7 @@ Table({
             obj,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -515,7 +542,7 @@ Table({
             obj,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -566,7 +593,7 @@ Table({
             obj.string_id,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -588,7 +615,7 @@ Table({
             obj.string_id,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -637,7 +664,7 @@ Table({
             obj.string_id,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -659,7 +686,7 @@ Table({
             obj.string_id,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -709,11 +736,12 @@ Table({
             obj.string_id,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
       set: {
+        delete: true,
         fields: {
           string_id: true,
           model_id: true,
@@ -731,7 +759,7 @@ Table({
             obj.string_id,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },

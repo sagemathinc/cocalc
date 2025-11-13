@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 
 process.env.API_SERVER = process.env.API_SERVER ?? "https://cocalc.com";
+console.log("API_SERVER=", process.env.API_SERVER);
+const PROJECT_HOME = process.env.PROJECT_HOME ?? "/tmp/home";
+const project_id = process.env.PROJECT_ID;
+process.env.COCALC_PROJECT_ID = project_id;
+process.env.COCALC_USERNAME = project_id.replace(/-/g, "");
+process.env.HOME = PROJECT_HOME;
 
 console.log("API_SERVER=", process.env.API_SERVER);
 
 const { mountProject } = require("../dist/lib");
 
-const PROJECT_HOME = process.env.PROJECT_HOME ?? "/tmp/home";
 const EXCLUDE_FROM_SYNC = process.env.EXCLUDE_FROM_SYNC ?? "";
 
 async function main() {
@@ -39,16 +44,19 @@ async function main() {
   }
 
   console.log("Mounting project", process.env.PROJECT_ID, "at", PROJECT_HOME);
+  const exclude = [".*"].concat(
+    EXCLUDE_FROM_SYNC ? EXCLUDE_FROM_SYNC.split("|") : [],
+  );
+  console.log("exclude = ", exclude);
   try {
     exports.fs = await mountProject({
       project_id: process.env.PROJECT_ID,
       path: PROJECT_HOME,
-      options: { mountOptions: { allowOther: true, nonEmpty: true } },
+      // NOTE: allowOther is disabled by default on Ubuntu and we do not need it.
+      options: { mountOptions: { allowOther: false, nonEmpty: true } },
       unionfs,
       readTrackingFile: process.env.READ_TRACKING_FILE,
-      exclude: [".*"].concat(
-        EXCLUDE_FROM_SYNC ? EXCLUDE_FROM_SYNC.split("|") : [],
-      ),
+      exclude,
       metadataFile: process.env.METADATA_FILE,
       syncIntervalMin: 60 * 5,
       syncIntervalMax: 60 * 15,
@@ -56,8 +64,9 @@ async function main() {
     });
     unmount = exports.fs.unmount;
   } catch (err) {
-    console.log("something went wrong ", err);
+    console.trace("something went wrong ", err);
     exitHandler();
+    return;
   }
 
   const info = () => {

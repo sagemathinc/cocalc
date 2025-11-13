@@ -1,24 +1,24 @@
-import { useEffect, useRef, useState } from "react";
-import { redux } from "@cocalc/frontend/app-framework";
-import { Icon, TimeAgo } from "@cocalc/frontend/components";
-import { Element } from "../types";
-import { getStyle } from "./text";
-import { useFrameContext } from "../hooks";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { Button, Tooltip } from "antd";
-import { Comment } from "@ant-design/compatible";
-import { len, trunc_middle } from "@cocalc/util/misc";
-import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
-import useEditFocus from "./edit-focus";
+import { useEffect, useRef, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
-import Composing from "./chat-composing";
-import useWheel from "./scroll-wheel";
-import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
-import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
+import { Comment } from "@ant-design/compatible";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { redux } from "@cocalc/frontend/app-framework";
+import { SubmitMentionsFn } from "@cocalc/frontend/chat/types";
+import { Icon, TimeAgo } from "@cocalc/frontend/components";
+import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
+import "@cocalc/frontend/editors/slate/elements/math/math-widget";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
+import { len, trunc_middle } from "@cocalc/util/misc";
+import { useFrameContext } from "../hooks";
+import { Element } from "../types";
+import Composing from "./chat-composing";
 import { ChatLog, getChatStyle, messageStyle } from "./chat-static";
+import useEditFocus from "./edit-focus";
+import useWheel from "./scroll-wheel";
+import { getStyle } from "./text";
 
 const INPUT_HEIGHT = "123px";
 
@@ -43,7 +43,7 @@ function Conversation({ element, focused }: Props) {
   const { actions, desc } = useFrameContext();
   const [editFocus, setEditFocus] = useEditFocus(desc.get("editFocus"));
   const [mode, setMode] = useState<string>("");
-  const submitMentionsRef = useRef<(fragmentId?: FragmentId) => string>();
+  const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
 
   const saveChat = useDebouncedCallback((input) => {
     lastInputRef.current = input;
@@ -84,7 +84,7 @@ function Conversation({ element, focused }: Props) {
     () => () => {
       saveChat.flush();
     },
-    [saveChat]
+    [saveChat],
   );
   const divRef = useRef<any>(null);
   useWheel(divRef);
@@ -222,7 +222,7 @@ export function Message({
   return (
     <div style={messageStyle}>
       <Comment
-        author={sender_id ? getName(sender_id) ?? sender_name : undefined}
+        author={sender_id ? (getName(sender_id) ?? sender_name) : undefined}
         avatar={sender_id ? <Avatar account_id={sender_id} /> : undefined}
         content={
           typeof messageId == "number" ? (

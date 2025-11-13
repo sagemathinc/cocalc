@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -14,6 +14,7 @@ in other code directly, e.g, in supporting use of the slate editor.
 export * from "./types";
 export * from "./table-of-contents";
 
+import * as cheerio from "cheerio";
 import MarkdownIt from "markdown-it";
 import emojiPlugin from "markdown-it-emoji";
 import { checkboxPlugin } from "./checkbox-plugin";
@@ -40,10 +41,11 @@ const PLUGINS = [
       delimiters: "cocalc",
       engine: {
         renderToString: (tex, options) => {
-          // We need to continue to support rendering to MathJax as an option,
+          // We **used to** need to continue to support rendering to MathJax as an option,
           // but texmath only supports katex.  Thus we output by default to
           // html using script tags, which are then parsed later using our
           // katex/mathjax plugin.
+          // We no longer support MathJax, so maybe this can be simplified?
           return `<script type="math/tex${
             options.displayMode ? "; mode=display" : ""
           }">${tex}</script>`;
@@ -169,4 +171,8 @@ export function markdown_to_html_frontmatter(s: string): MD2html {
 
 export function markdown_to_html(s: string, options?: Options): string {
   return process(s, "default", options).html;
+}
+
+export function markdown_to_cheerio(s: string, options?: Options) {
+  return cheerio.load(`<div>${markdown_to_html(s, options)}</div>`);
 }

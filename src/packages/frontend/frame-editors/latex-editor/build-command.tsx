@@ -1,30 +1,26 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Customization and selection of the build command.
 */
 
-import { Alert, Dropdown, Form, Input } from "antd";
+import { SaveOutlined } from "@ant-design/icons";
+import { Alert, Form, Input, Select } from "antd";
 import { List } from "immutable";
 
-import { DownOutlined, SaveOutlined } from "@ant-design/icons";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { React } from "@cocalc/frontend/app-framework";
-import {
-  Icon,
-  Loading,
-  MenuItems,
-  Paragraph,
-} from "@cocalc/frontend/components";
+import { Icon, Loading, Paragraph } from "@cocalc/frontend/components";
 import { split } from "@cocalc/util/misc";
 import { Actions } from "./actions";
+import { BuildControls } from "./output-control-build";
 import {
-  build_command as latexmk_build_command,
   Engine,
   ENGINES,
+  build_command as latexmk_build_command,
 } from "./latexmk";
 
 // cmd could be undefined -- https://github.com/sagemathinc/cocalc/issues/3290
@@ -74,7 +70,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
   const [build_command_prev, set_build_command_prev] =
     React.useState(build_command_orig);
   const [build_command, set_build_command] = React.useState<string>(
-    build_command_string(build_command_orig)
+    build_command_string(build_command_orig),
   );
   const [focus, set_focus] = React.useState<boolean>(false);
   const [dirty, set_dirty] = React.useState<boolean>(false);
@@ -91,7 +87,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
       engine,
       filename,
       knitr,
-      actions.output_directory
+      actions.output_directory,
     );
     actions.set_build_command(cmd);
   }
@@ -100,28 +96,28 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     actions.init_build_directive(true);
   }
 
-  function engineOptions(): MenuItems {
+  function engineOptions() {
     return ENGINES.map((engine) => {
       return {
         key: engine,
+        value: engine,
         label: engine,
-        onClick: () => select_engine(engine),
       };
     });
   }
 
-  function render_engines(): JSX.Element {
+  function render_engines(): React.JSX.Element {
     return (
-      <Dropdown
+      <Select
+        style={{ width: "200px" }}
         placement={"bottomRight"}
-        menu={{ items: engineOptions() }}
-        trigger={["hover", "click"]}
+        options={engineOptions()}
         disabled={build_command_hardcoded}
+        onChange={select_engine}
+        placeholder="Engine..."
       >
-        <Button bsSize={"xsmall"}>
-          Engine <DownOutlined />
-        </Button>
-      </Dropdown>
+        Engine
+      </Select>
     );
   }
 
@@ -171,6 +167,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
         onBlur={() => {
           handle_build_change();
         }}
+        addonBefore={<BuildControls actions={actions} narrow={true} />}
       />
     );
   }
@@ -277,7 +274,14 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
             <Icon name="reload" /> Rescan
           </a>
         </h4>
-        <pre style={{ whiteSpace: "pre-line" }}>{build_command}</pre>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <div>
+            <BuildControls actions={actions} narrow={true} />
+          </div>
+          <pre style={{ whiteSpace: "pre-line", flex: 1, margin: 0 }}>
+            {build_command}
+          </pre>
+        </div>
         {renderHardcodedInfo()}
       </>
     );

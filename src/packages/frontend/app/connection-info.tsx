@@ -1,21 +1,30 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { React, useActions, useTypedRedux } from "../app-framework";
-import { Icon } from "../components";
 import { Modal } from "antd";
-import { Button, Row, Col } from "../antd-bootstrap";
-import { webapp_client } from "../webapp-client";
-import { plural } from "@cocalc/util/misc";
+import { FormattedMessage, useIntl } from "react-intl";
+import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import {
+  React,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { ConnectionStatsDisplay } from "./connection-status";
 
 export const ConnectionInfo: React.FC = React.memo(() => {
+  const intl = useIntl();
+
   const ping = useTypedRedux("page", "ping");
   const avgping = useTypedRedux("page", "avgping");
   const status = useTypedRedux("page", "connection_status");
-  const hub = useTypedRedux("account", "hub");
   const page_actions = useActions("page");
+  const conat = useTypedRedux("page", "conat");
+  const hub = useTypedRedux("account", "hub");
 
   function close() {
     page_actions.show_connection(false);
@@ -23,97 +32,64 @@ export const ConnectionInfo: React.FC = React.memo(() => {
 
   return (
     <Modal
-      width={900}
+      width={700}
       open
       onCancel={close}
       onOk={close}
       title={
-        <>
-          <Icon name="wifi" style={{ marginRight: "1em" }} /> Connection
-        </>
+        <div
+          style={{ display: "flex", alignItems: "center", marginRight: "30px" }}
+        >
+          <Icon name="wifi" style={{ marginRight: "1em" }} />{" "}
+          {intl.formatMessage(labels.connection)}
+          <div style={{ flex: 1 }} />
+          <Button
+            onClick={() => {
+              webapp_client.conat_client.reconnect();
+            }}
+          >
+            <Icon name="repeat" spin={status === "connecting"} />{" "}
+            {intl.formatMessage(labels.reconnect)}
+          </Button>
+        </div>
       }
     >
       <div>
-        {ping ? (
+        {conat != null && (
           <Row>
-            <Col sm={3}>
-              <h4>Ping time</h4>
+            <Col sm={12}>
+              {conat && (
+                <ConnectionStatsDisplay status={conat.toJS()} hub={hub} />
+              )}
             </Col>
-            <Col sm={6}>
+          </Row>
+        )}
+        {ping ? (
+          <Row style={{ marginTop: "30px" }}>
+            <Col sm={3}>
+              <h5>
+                <FormattedMessage
+                  id="connection-info.ping"
+                  defaultMessage="Ping Time"
+                  description={"Ping how long a server takes to respond"}
+                />
+              </h5>
+            </Col>
+            <Col sm={7}>
               <pre>
-                {avgping}ms (latest: {ping}ms)
+                <FormattedMessage
+                  id="connection-info.ping_info"
+                  defaultMessage="{avgping}ms (latest: {ping}ms)"
+                  description={
+                    "Short string stating the average and the most recent ping in milliseconds."
+                  }
+                  values={{ avgping, ping }}
+                />
               </pre>
             </Col>
           </Row>
         ) : undefined}
-        <Row>
-          <Col sm={3}>
-            <h4>Hub server</h4>
-          </Col>
-          <Col sm={6}>
-            <pre>{hub != null ? hub : "Not signed in"}</pre>
-          </Col>
-          <Col sm={2}>
-            <Button onClick={webapp_client.hub_client.fix_connection}>
-              <Icon name="repeat" spin={status === "connecting"} /> Reconnect
-            </Button>
-          </Col>
-        </Row>
-        <Row>
-          <Col sm={3}>
-            <h4>Messages</h4>
-          </Col>
-          <Col sm={6}>
-            <MessageInfo />
-          </Col>
-        </Row>
       </div>
     </Modal>
-  );
-});
-
-function bytes_to_str(bytes: number): string {
-  const x = Math.round(bytes / 1000);
-  if (x < 1000) {
-    return x + "K";
-  }
-  return x / 1000 + "M";
-}
-
-const MessageInfo: React.FC = React.memo(() => {
-  const info = useTypedRedux("account", "mesg_info");
-
-  if (info == null) {
-    return <span></span>;
-  }
-  return (
-    <div>
-      <pre>
-        {info.get("sent")} messages sent (
-        {bytes_to_str(info.get("sent_length"))})
-        <br />
-        {info.get("recv")} messages received (
-        {bytes_to_str(info.get("recv_length"))})
-        <br />
-        <span
-          style={
-            info.get("count") > 0
-              ? { color: "#08e", fontWeight: "bold" }
-              : undefined
-          }
-        >
-          {info.get("count")} {plural(info.get("count"), "message")} in flight
-        </span>
-        <br />
-        {info.get("enqueued")} {plural(info.get("enqueued"), "message")} queued
-        to send
-      </pre>
-      <div style={{ color: "#666" }}>
-        Connection icon color changes as the number of messages in flight to a
-        hub increases. Usually, no action is needed, but the counts are helpful
-        for diagnostic purposes. The maximum number of messages that can be sent
-        at the same time is {info.get("max_concurrent")}.
-      </div>
-    </div>
   );
 });

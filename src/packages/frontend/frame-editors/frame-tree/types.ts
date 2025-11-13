@@ -1,11 +1,18 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
+import type { IconName } from "@cocalc/frontend/components/icon";
 
-import { IconName } from "@cocalc/frontend/components/icon";
+import { Map, Set } from "immutable";
+import { ReactNode } from "react";
+
+import { AccountState } from "@cocalc/frontend/account/types";
+import { IntlMessage } from "@cocalc/frontend/i18n";
+import type { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+
+import type { Command } from "./commands";
 
 export type FrameDirection = "row" | "col";
 
@@ -33,23 +40,91 @@ export type ErrorStyles = undefined | "monospace";
 
 export type ConnectionStatus = "disconnected" | "connected" | "connecting";
 
+// Each editor gets its own unique type. This is useful to check which editor it is.
+// e.g. #7787 was caused by merely checking on the name, which had changed.
+type EditorType =
+  | "chat"
+  | "chatroom"
+  | "cm-lean"
+  | "cm"
+  | "course-assignments"
+  | "course-actions"
+  | "course-configuration"
+  | "course-handouts"
+  | "course-shared_project"
+  | "course-students"
+  | "crm-account"
+  | "crm-tables"
+  | "csv-grid"
+  | "errors"
+  | "iframe"
+  | "jupyter_json_edit"
+  | "jupyter_json_view"
+  | "jupyter-introspect"
+  | "jupyter-toc"
+  | "jupyter"
+  | "latex-build"
+  | "latex-output"
+  | "latex-toc"
+  | "latex-word_count"
+  | "latex"
+  | "lean-help"
+  | "lean-info"
+  | "lean-messages"
+  | "markdown-rendered"
+  | "markdown-toc"
+  | "markdown"
+  | "pdfjs-canvas"
+  | "preview-html"
+  | "preview-pdf-canvas"
+  | "preview-pdf-native"
+  | "qmd-log"
+  | "rmd-build"
+  | "rst-view"
+  | "sagews-cells"
+  | "sagews-document"
+  | "search"
+  | "settings"
+  | "slate"
+  | "slides-notes"
+  | "slides-slideshow"
+  | "slides"
+  | "slideshow-revealjs"
+  | "snippets"
+  | "tasks"
+  | "terminal-guide"
+  | "terminal"
+  | "timetravel"
+  | "whiteboard-overview"
+  | "whiteboard-pages"
+  | "whiteboard-search"
+  | "whiteboard"
+  | "wiki"
+  | "x11-apps"
+  | "x11";
+
 // Editor spec
-
-interface ButtonCustomize {
-  text?: string; // overrides text content of the button
-  title?: string; // overrides tooltip that pops up on hover.
-}
-
-type ButtonFunction = (path: string) => { [button_name: string]: true };
-
 export interface EditorDescription {
-  short: string; // short description of the editor
-  name: string; // slightly longer description
+  type: EditorType;
+  short: string | IntlMessage; // short description of the editor
+  name: string | IntlMessage; // slightly longer description
   icon: IconName;
-  component: any; // React component
-  buttons?: { [button_name: string]: true } | ButtonFunction;
-  // NOTE: customize is only implemented for shell button right now!
-  customize_buttons?: { [button_name: string]: ButtonCustomize };
+  component: (props: EditorComponentProps) => ReactNode | Promise<ReactNode>;
+
+  // commands that will be displayed in the menu (if they exist)
+  commands?: { [commandName: string]: boolean };
+  // | ButtonFunction;
+  // customizeCommands: use this to override label, tooltip, or anything
+  // else about and command, specifically for this editor frame. This gets
+  // merged in to the generic command, or added as a new command.
+  customizeCommands?: { [commandName: string]: Partial<Command> };
+
+  // which commands will also appear in the button bar (if available)
+  // If a command is in a submenu, use '->' to link them together, i.e.,
+  // 'format-font -> bold' means the item named "bold" in the submenu
+  // named 'format-font'.
+  buttons?: { [commandName: string]: boolean };
+
   hide_file_menu?: boolean; // If true, never show the File --> Dropdown menu.
   subframe_init?: Function;
   style?: object;
@@ -60,8 +135,8 @@ export interface EditorDescription {
   gutters?: string[]; // I think it's cm gutters
   hide_public?: boolean; // if true, do not show this editor option (in title bar dropdown) when viewing file publicly.
   clear_info?: { text: string; confirm: string };
-  guide_info?: { title?: string; descr?: string; icon?: IconName };
   placeholder?: string; // placeholder text to use when empty.
+  renderer?: "canvas"; // TODO: is this used at all?
 }
 
 export interface EditorSpec {
@@ -69,3 +144,42 @@ export interface EditorSpec {
 }
 
 export type EditorState = Map<string, any>; // TODO: use TypeMap and do this right.
+
+export interface EditorComponentProps {
+  id: string;
+  actions;
+  available_features: AvailableFeatures;
+  complete;
+  cursors?: Map<string, any>;
+  derived_file_types: Set<string>;
+  desc: NodeDesc;
+  editor_actions;
+  editor_settings: AccountState["editor_settings"];
+  editor_state: Map<string, any>;
+  font_size: number;
+  fullscreen_style: EditorDescription["fullscreen_style"];
+  gutter_markers?: Map<string, any>;
+  gutters?: EditorDescription["gutters"];
+  is_current: boolean;
+  is_fullscreen: boolean;
+  is_public: boolean;
+  is_subframe: boolean;
+  is_visible: boolean;
+  local_view_state: Map<string, any>;
+  misspelled_words?: Set<string> | string;
+  mode: EditorDescription["mode"];
+  name: string;
+  onFocus: () => void;
+  path: string;
+  placeholder?: string;
+  project_id: string;
+  read_only: boolean;
+  reload_images: boolean;
+  reload?: number;
+  resize: number;
+  settings: Map<string, any>;
+  status: string;
+  tab_is_visible: boolean;
+  terminal?: Map<string, any>;
+  value?: string;
+}

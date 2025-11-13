@@ -1,13 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-// Inputing a site license, e.g., for a project, course, etc.
+// Inputting a site license, e.g., for a project, course, etc.
 
 import {
-  CSS,
-  React,
   redux,
   useEffect,
   useTypedRedux,
@@ -25,44 +23,18 @@ export function useManagedLicenses() {
   return managedLicenses;
 }
 
-interface Props {
-  onSave?: (licenseId: string) => void;
-  onCancel?: () => void;
-  onChange?: (licenseId: string) => void;
-  confirmLabel?: string;
-  exclude?: string[];
-  style?: CSS;
-  extra?: React.ReactNode;
-  extraButtons?: React.ReactNode;
-}
-
-export const SiteLicenseInput: React.FC<Props> = (props: Props) => {
-  const {
-    onSave,
-    onCancel,
-    onChange,
-    exclude,
-    style,
-    confirmLabel = "Apply License",
-    extra,
-    extraButtons,
-  } = props;
-
+export function SiteLicenseInput(props) {
   const managedLicenses = useManagedLicenses();
 
-  if (managedLicenses == null) return <Loading />;
+  if (managedLicenses == null) {
+    return <Loading />;
+  }
 
   return (
     <SelectLicense
-      onSave={onSave}
-      onCancel={onCancel}
-      onChange={onChange}
-      exclude={exclude}
       managedLicenses={managedLicenses.toJS() as { [id: string]: License }}
-      confirmLabel={confirmLabel}
-      style={style}
-      extra={extra}
-      extraButtons={extraButtons}
+      confirmLabel="Apply License"
+      {...props}
     />
   );
-};
+}

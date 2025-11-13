@@ -1,13 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Rst Editor Actions
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Actions as CodeEditorActions } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
 import { convert } from "./rst2html";
@@ -17,7 +17,7 @@ import { FrameTree } from "../frame-tree/types";
 
 export class Actions extends CodeEditorActions {
   private run_rst2html: Function;
-  private _last_rst_hash: string = "";
+  private _last_rst_hash: number | undefined = undefined;
 
   _init2(): void {
     if (!this.is_public) {
@@ -41,7 +41,7 @@ export class Actions extends CodeEditorActions {
           this._last_rst_hash = hash;
           await this.run_rst2html();
         }
-      })
+      }),
     );
 
     this._syncstring.once("ready", this.run_rst2html.bind(this));

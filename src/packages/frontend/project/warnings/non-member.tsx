@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
@@ -10,8 +10,9 @@ import { LICENSE_MIN_PRICE } from "@cocalc/util/consts/billing";
 
 export const UPGRADE_HINT = (
   <>
-    <A href={PolicyPricingPageUrl}>Licenses start at ${LICENSE_MIN_PRICE}</A> or
-    upgrade via <A href={PAYGODocsUrl}>Pay-as-you-go</A>.
+    <A href={PolicyPricingPageUrl}>Licenses start at {LICENSE_MIN_PRICE}</A> or
+    temporarily upgrade via <A href={PAYGODocsUrl}>Pay-as-you-go</A> for a few
+    cents per hour.
   </>
 );
 

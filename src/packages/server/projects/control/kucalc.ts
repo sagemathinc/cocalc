@@ -60,6 +60,7 @@ class Project extends BaseProject {
       // Manage has to do the equivalent of this.computeQuota()
       await this.siteLicenseHook(false);
       await this.actionRequest("start");
+      await this.touch(undefined, { noStart: true });
       await this.waitUntilProject(
         (project) =>
           project.state?.state == "running" || project.action_request?.finished,
@@ -187,7 +188,7 @@ class Project extends BaseProject {
     }
   }
 
-  private getProjectSynctable(): any {
+  private getProjectSynctable() {
     // this is all in coffeescript, hence the any type above.
     return db().synctable({
       table: "projects",

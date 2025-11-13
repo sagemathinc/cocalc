@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import getBalance from "./get-balance";
@@ -21,7 +21,7 @@ describe("test computing balance under various conditions", () => {
   const account_id = uuid();
 
   it("get the balance for a new user with no purchases", async () => {
-    expect(await getBalance(account_id)).toBe(0);
+    expect(await getBalance({ account_id })).toBe(0);
   });
 
   it("with one purchase", async () => {
@@ -32,7 +32,7 @@ describe("test computing balance under various conditions", () => {
       client: null,
       cost: 3.89,
     });
-    expect(await getBalance(account_id)).toBeCloseTo(-3.89, 2);
+    expect(await getBalance({ account_id })).toBeCloseTo(-3.89, 2);
   });
 
   it("with an additional credit", async () => {
@@ -43,7 +43,7 @@ describe("test computing balance under various conditions", () => {
       client: null,
       cost: -5,
     });
-    expect(await getBalance(account_id)).toBeCloseTo(-3.89 + 5, 2);
+    expect(await getBalance({ account_id })).toBeCloseTo(-3.89 + 5, 2);
   });
 
   it("with a different account that has a purchase, which shouldn't impact anything", async () => {
@@ -55,8 +55,8 @@ describe("test computing balance under various conditions", () => {
       client: null,
       cost: 1.23,
     });
-    expect(await getBalance(account_id)).toBeCloseTo(-3.89 + 5, 2);
-    expect(await getBalance(account_id2)).toBeCloseTo(-1.23, 2);
+    expect(await getBalance({ account_id })).toBeCloseTo(-3.89 + 5, 2);
+    expect(await getBalance({ account_id: account_id2 })).toBeCloseTo(-1.23, 2);
   });
 
   it("with a purchase that has an open range and a cost_per_hour", async () => {
@@ -71,7 +71,7 @@ describe("test computing balance under various conditions", () => {
       cost_per_hour: 1.25,
       period_start,
     });
-    expect(await getBalance(account_id)).toBeCloseTo(-1.25 * hours, 2);
+    expect(await getBalance({ account_id })).toBeCloseTo(-1.25 * hours, 2);
   });
 
   it("with a purchase that has an open range and a cost_so_far", async () => {
@@ -86,7 +86,7 @@ describe("test computing balance under various conditions", () => {
       cost_so_far: 1.25,
       period_start,
     });
-    expect(await getBalance(account_id)).toBeCloseTo(-1.25, 2);
+    expect(await getBalance({ account_id })).toBeCloseTo(-1.25, 2);
   });
 
   it("with a purchase that has a closed range and a cost_per_hour", async () => {
@@ -102,6 +102,6 @@ describe("test computing balance under various conditions", () => {
       period_start,
       period_end,
     });
-    expect(await getBalance(account_id)).toBeCloseTo(-1.25 * 3, 2);
+    expect(await getBalance({ account_id })).toBeCloseTo(-1.25 * 3, 2);
   });
 });

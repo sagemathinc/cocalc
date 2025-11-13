@@ -27,11 +27,14 @@ import ProjectClient from "./project-client";
 import debug from "debug";
 import { bind_methods, isValidUUID, uuid } from "@cocalc/util/misc";
 import { project } from "@cocalc/api-client";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+
+export type Role = "project" | "browser" | "compute_server";
 
 interface Options {
   project_id: string;
   client_id?: string;
+  role: Role;
 }
 
 export default class Client extends EventEmitter implements AppClient {
@@ -40,11 +43,13 @@ export default class Client extends EventEmitter implements AppClient {
   synctable_project: Function;
   project_id: string;
   _client_id: string;
+  private role: Role;
 
-  constructor({ project_id, client_id = uuid() }: Options) {
+  constructor({ project_id, client_id = uuid(), role }: Options) {
     super();
     this._client_id = client_id;
     this.project_id = project_id;
+    this.role = role;
 
     if (!isValidUUID(project_id)) {
       throw Error("project_id must be a valid uuid");
@@ -52,9 +57,6 @@ export default class Client extends EventEmitter implements AppClient {
 
     this.project_client = bind_methods(new ProjectClient());
     this.sync_client = bind_methods(new SyncClient(this));
-    this.synctable_project = this.sync_client.synctable_project.bind(
-      this.sync_client,
-    );
   }
 
   client_id = () => {
@@ -66,12 +68,24 @@ export default class Client extends EventEmitter implements AppClient {
     return false;
   };
 
+  set_deleted = async (_filename: string, _project_id?: string) => {
+    // TODO -- implement in fs aware clients
+  };
+
   mark_file = async (_opts: any) => {
     // [ ] TODO: should we?
   };
 
   is_project = () => {
-    return false;
+    return this.role == "project";
+  };
+
+  is_browser = () => {
+    return this.role == "browser";
+  };
+
+  is_compute_server = () => {
+    return this.role == "compute_server";
   };
 
   dbg = (str: string) => {
@@ -136,7 +150,7 @@ export default class Client extends EventEmitter implements AppClient {
     }
   });
 
-  touch_project = (project_id: string) => {
+  touch_project = (project_id: string, _compute_server_id?: number) => {
     this._touchProject(project_id);
   };
 }

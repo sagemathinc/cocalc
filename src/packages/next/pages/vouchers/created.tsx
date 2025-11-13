@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { useMemo } from "react";
@@ -29,12 +29,10 @@ const QUERY = {
       created: null,
       active: null,
       expire: null,
-      cancel_by: null,
       title: null,
       count: null,
       cost: null,
       tax: null,
-      cart: null,
       when_pay: null,
       purchased: null,
     },
@@ -113,22 +111,15 @@ export const COLUMNS = [
     dataIndex: "expire",
     key: "expire",
     align: "center",
-    render: (_, { id, expire }) => (
-      <A href={`/vouchers/${id}`}>
-        <TimeAgo datetime={expire} />
-      </A>
-    ),
-  },
-  {
-    title: "Cancel By",
-    dataIndex: "cancel_by",
-    key: "cancel_by",
-    align: "center",
-    render: (_, { id, cancel_by }) => (
-      <A href={`/vouchers/${id}`}>
-        <TimeAgo datetime={cancel_by} />
-      </A>
-    ),
+    render: (_, { id, expire }) => {
+      return expire ? (
+        <A href={`/vouchers/${id}`}>
+          <TimeAgo datetime={expire} />
+        </A>
+      ) : (
+        "never"
+      );
+    },
   },
 ] as any;
 
@@ -157,11 +148,14 @@ export default function Created({ customize }) {
           >
             {profile == null && <Loading />}
             {profile != null && !profile.account_id && (
-              <Card style={{ textAlign: "center" }}>
-                <Icon name="gift2" style={{ fontSize: "75px" }} />
+              <Card>
+                <div style={{ fontSize: "75px", textAlign: "center" }}>
+                  <Icon name="gift2" />
+                </div>
                 <InPlaceSignInOrUp
-                  why="to see your vouchers"
-                  style={{ fontSize: "14pt", width: "450px" }}
+                  title="Created Vouchers"
+                  why="to see vouchers you've created"
+                  style={{ width: "450px" }}
                   onSuccess={() => {
                     router.reload();
                   }}

@@ -1,14 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert } from "antd";
 import { debounce } from "lodash";
-
 import {
   CSS,
-  ReactDOM,
   redux,
   useActions,
   useEffect,
@@ -26,7 +24,6 @@ import { ConnectedTerminalInterface } from "@cocalc/frontend/frame-editors/termi
 import { background_color } from "@cocalc/frontend/frame-editors/terminal-editor/themes";
 import { escapeBashChangeDirPath } from "@cocalc/util/jupyter-api/chdir-commands";
 import { sha1 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { FLYOUT_PADDING } from "./consts";
 
 interface TerminalFlyoutProps {
@@ -61,13 +58,15 @@ export function TerminalFlyout({
   const account_id = useTypedRedux("account", "account_id");
   const terminal = useTypedRedux("account", "terminal");
   const terminalRef = useRef<Terminal | undefined>(undefined);
-  const terminalDOMRef = useRef<any>(null);
+  const terminalDOMRef = useRef<HTMLDivElement>(null);
   const isMountedRef = useIsMountedRef();
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const [status, setStatus] = useState("");
+  const [terminalExists, setTerminalExists] = useState<boolean>(false);
   const [error, setError] = useState("");
   const syncRef = useRef<boolean>(sync);
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
 
   useEffect(() => {
     currentPathRef.current = current_path;
@@ -82,9 +81,19 @@ export function TerminalFlyout({
   // However, if the "current_path" changes, we update the terminal's cwd and vice versa.
   // The last aspect is why it is per user, not one terminal for everyone.
   // Also, having a different terminal for each directory is a bit confusing.
-  const hash = sha1(`${project_id}::${account_id}`);
+  // We do have a different one for each compute server though.
+  const hash = sha1(`${project_id}::${account_id}::${compute_server_id}`);
   const terminal_path = `/tmp/cocalc-${hash}.term`;
   const id = `flyout::${hash}`; // TODO what exactly is the ID? arbitrary or a path?
+  useEffect(() => {
+    if (compute_server_id) {
+      redux.getProjectActions(project_id).setComputeServerIdForFile({
+        path: terminal_path,
+        compute_server_id,
+        confirm: false,
+      });
+    }
+  }, [terminal_path]);
 
   function delete_terminal(): void {
     if (terminalRef.current == null) return; // already deleted or never created
@@ -95,6 +104,7 @@ export function TerminalFlyout({
     terminalRef.current.conn_write({ cmd: "size", rows: 0, cols: 0 });
     terminalRef.current.close();
     terminalRef.current = undefined;
+    setTerminalExists(false);
   }
 
   function getMockTerminalActions(): ConnectedTerminalInterface {
@@ -144,9 +154,18 @@ export function TerminalFlyout({
       _get_project_actions() {
         return actions ?? redux.getProjectActions(project_id);
       },
-      open_code_editor_frame(path: string) {
+      open_code_editor_frame(opts: {
+        path: string;
+        dir?;
+        first?: boolean;
+        pos?: number;
+        compute_server_id?: number;
+      }) {
         // we just open the file
-        actions?.open_file({ path });
+        actions?.open_file({
+          path: opts.path,
+          compute_server_id: opts.compute_server_id,
+        });
       },
     };
   }
@@ -161,20 +180,20 @@ export function TerminalFlyout({
       undefined,
       "", // cwd=home directory, we'll send cd commands later
     );
-    console.log("getTerminal", `$HOME/${currentPathRef.current}`);
     newTerminal.connect();
     return newTerminal;
   }
 
   function init_terminal(): void {
     if (!is_visible) return;
-    const node: any = ReactDOM.findDOMNode(terminalDOMRef.current);
+    const node = terminalDOMRef.current;
     if (node == null) {
       // happens, e.g., when terminals are disabled.
       return;
     }
     try {
       terminalRef.current = getTerminal(id, node);
+      setTerminalExists(true);
     } catch (err) {
       return; // not yet ready -- might be ok
     }
@@ -206,14 +225,17 @@ export function TerminalFlyout({
     // or switches to being visible and was not initialized.
     // See https://github.com/sagemathinc/cocalc/issues/5133
     if (terminalRef.current != null || !is_visible) return;
-    init_terminal();
+    // wait until is actually in the DOM before trying to render,
+    // or it will crash for sure (due to changes in @xterm)
+    setTimeout(init_terminal, 0);
   }, [is_visible]);
 
   useEffect(() => {
     // defensive, like with the frame terminal -- see https://github.com/sagemathinc/cocalc/issues/3819
     if (terminalRef.current == null) return;
     delete_terminal();
-    init_terminal();
+    // see comment about regarding the setTimeout
+    setTimeout(init_terminal, 0);
   }, [id]);
 
   // resize is a counter, increases with debouncing, if size change.
@@ -227,7 +249,7 @@ export function TerminalFlyout({
 
   // the terminal follows changing the directory
   useEffect(() => {
-    if (terminalRef.current == null) return;
+    if (terminalRef.current == null || !terminalExists) return;
     if (syncPath === prevSyncPath && !sync) return;
     // this "line reset" is from the terminal guide,
     // see frame-editors/terminal-editor/actions::run_command
@@ -237,7 +259,7 @@ export function TerminalFlyout({
     const cmd = ` cd "$HOME/${nextCwd}"`;
     // this will end up in a write buffer, hence it should be ok to do right at the beginning
     terminalRef.current.conn_write(`${clean}${cmd}\n`);
-  }, [current_path, syncPath, sync]);
+  }, [current_path, syncPath, sync, terminalExists]);
 
   const set_font_size = debounce(
     () => {
@@ -257,7 +279,7 @@ export function TerminalFlyout({
 
   function measure_size(): void {
     if (isMountedRef.current) {
-      terminalRef.current?.measure_size();
+      terminalRef.current?.measureSize();
     }
   }
 
@@ -308,7 +330,7 @@ export function TerminalFlyout({
       <div
         style={{
           flex: "1 0 auto",
-          background: COLORS.GRAY_LLL,
+          background: backgroundColor,
           height: heightPx,
         }}
         className={"cocalc-xtermjs"}

@@ -1,13 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
-import { Typography } from "antd";
+import { Flex, Typography } from "antd";
 import { MAX_WIDTH } from "lib/config";
 import { AddToCartButton } from "./add-box";
 import { describeItem, DisplayCost } from "./site-license-cost";
+// import { NAVBAR_HEIGHT_PX } from "../landing/header";
 const { Text } = Typography;
 
 const INNER_STYLE: React.CSSProperties = {
@@ -77,18 +78,19 @@ export const InfoBar: React.FC<Props> = (props: Props) => {
   // inside the "Content", i.e. the form itself, such that everything
   // alignes nicely.
   return (
-    <div
+    <Flex
       style={{
-        height: "30px",
+        minHeight: "30px",
         display: "flex", // we want to align the content at the bottom
         backgroundColor: "white",
         position: "fixed",
         textAlign: "right",
+        // top: `${NAVBAR_HEIGHT_PX}px`,
         top: 0,
         left: 0,
         right: 0,
         zIndex: 1000,
-        padding: "10px",
+        padding: "8px",
         boxShadow: "0 4px 4px rgba(0,0,0,0.2)",
         overflow: "hidden",
       }}
@@ -100,11 +102,11 @@ export const InfoBar: React.FC<Props> = (props: Props) => {
           marginRight: "auto",
           alignSelf: "center",
           flex: 1,
-          whiteSpace: "nowrap",
+          // whiteSpace: "nowrap",
         }}
       >
         {renderInfoBarContent()}
       </div>
-    </div>
+    </Flex>
   );
 };

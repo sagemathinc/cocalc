@@ -2,7 +2,6 @@
 Allows admins to get balance for a specific user.
 */
 
-
 import getBalance from "@cocalc/server/purchases/get-balance";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
@@ -27,9 +26,7 @@ async function get(req) {
     throw Error("only admins can use the get-balance-admin endpoint");
   }
 
-  const {
-    account_id,
-  } = getParams(req, { allowGet: true });
+  const { account_id } = getParams(req);
 
-  return await getBalance(account_id);
+  return await getBalance({ account_id });
 }

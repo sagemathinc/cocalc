@@ -1,29 +1,32 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Input, Space, Tag } from "antd";
+import { Button, Flex, Input, Space, Tag } from "antd";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { default_filename } from "@cocalc/frontend/account";
 import {
   React,
   useActions,
   useEffect,
-  useMemo,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
   ErrorDisplay,
+  HelpIcon,
   Icon,
   IconName,
+  Paragraph,
   SelectorInput,
-  Text,
   Tip,
 } from "@cocalc/frontend/components";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
+import ComputeServer from "@cocalc/frontend/compute/inline";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { labels } from "@cocalc/frontend/i18n";
 import { DELAY_SHOW_MS } from "@cocalc/frontend/project//new/consts";
 import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
@@ -42,10 +45,14 @@ import { FIX_BORDER } from "../common";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
 
 function getFileExtension(filename: string): string | null {
-  if (filename.endsWith(" ")) {
-    return null;
+  if (filename.endsWith(".")) {
+    return null; // null signals no extension
   }
   return separate_file_extension(filename).ext;
+}
+
+function isFile(fn: string) {
+  return !(fn && fn.endsWith("/"));
 }
 
 export function NewFlyout({
@@ -56,7 +63,8 @@ export function NewFlyout({
   project_id: string;
   wrap: Function;
   defaultExt?: string;
-}): JSX.Element {
+}): React.JSX.Element {
+  const intl = useIntl();
   const other_settings = useTypedRedux("account", "other_settings");
   const rfn = other_settings.get(NEW_FILENAMES);
   const selected = rfn ?? DEFAULT_NEW_FILENAMES;
@@ -67,56 +75,52 @@ export function NewFlyout({
     { project_id },
     "file_creation_error",
   );
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
 
+  // the controlled value in the filename/basename input box
   const [filename, setFilename] = useState<string>("");
-  const [ext, setExt] = useState<string>(defaultExt);
-  const [manualExt, setManualExt] = useState<boolean>(false);
+  // once the user starts fiddling around in that box, we switch to manually generated filenames
   const [manual, setManual] = useState<boolean>(false);
+  // we set this to the default to visually highlight the button
+  const [ext, setExt] = useState<string>(defaultExt);
+  // if this is true, the entered filename contains a ".ext"
+  const [manualExt, setManualExt] = useState<boolean>(false);
+  // if true, creating a file is currently in progress
   const [creating, setCreating] = useState<boolean>(false);
 
-  // generate a new filename on demand, depends on the selected extension, etc.
-  function makeNewFilename() {
-    const fullname = default_filename(ext, project_id);
+  // generate a new filename on demand, depends on the selected extension, existing files in the current directory, etc.
+  function getNewFilename(ext: string): string {
     if (ext != "/") {
+      const fullname = manual
+        ? `${filename}.${ext}`
+        : default_filename(ext, project_id);
       const { name } = separate_file_extension(fullname);
-      setFilename(name);
+      return name;
     } else {
-      setFilename(`${fullname.slice(0, fullname.length - 2)}/`);
+      return manual ? `${filename}/` : default_filename("/", project_id);
     }
   }
 
-  useEffect(() => {
-    if (!filename) {
-      makeNewFilename();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!manual) {
-      makeNewFilename();
-    }
-  }, [ext, manual, selected]);
-
-  const isFile = useMemo(
-    () => !(filename && filename.endsWith("/")),
-    [filename],
-  );
-
-  // if name is entered manual and contains an extension, set the ext to it
+  // if name is entered manually and contains an extension, set the ext to it
   useEffect(() => {
     if (manual) {
-      if (isFile) {
-        const newExt = getFileExtension(filename);
-        if (newExt) {
-          setExt(newExt);
-          setManualExt(true);
-        } else if (newExt === null) {
-          setExt("");
-          setManualExt(true);
-        }
-      } else {
+      if (filename.endsWith("/")) {
         setExt("/");
-        setManualExt(true);
+      } else {
+        if (filename.includes(".")) {
+          setManualExt(true);
+          const newExt = getFileExtension(filename);
+          if (newExt == null) {
+            setExt("");
+          } else {
+            setExt(newExt);
+          }
+        } else {
+          // directory mode → escape back to no extension
+          if (ext === "/") {
+            setExt("");
+          }
+        }
       }
     } else {
       setManualExt(false);
@@ -125,13 +129,14 @@ export function NewFlyout({
 
   // used to compute the filename to create, based on the current state
   function genNewFilename(): string {
-    if (isFile) {
+    if (filename === "") return "";
+    if (isFile(filename) && ext !== "/") {
       if (manualExt) {
         // extension is typed in explicitly
         return filename;
       } else {
         if (ext === "") {
-          if (manualExt && filename.endsWith(" ")) {
+          if (filename.endsWith(" ")) {
             // if we trigger the "no extension" with a space, trim the name
             // otherwise, use the no extension creation button
             return filename.trim();
@@ -150,30 +155,31 @@ export function NewFlyout({
       }
     }
   }
-  const newFilename = useMemo(
-    () => genNewFilename(),
-    [isFile, filename, ext, manualExt, manual],
-  );
 
-  async function createFile() {
-    if (!filename) return;
+  async function createFile(fn: string) {
+    if (!fn) return; // do nothing for an empty string
+    const { name: newFilename, ext } = separate_file_extension(fn);
+
     try {
       setCreating(true);
-      if (isFile) {
+      if (isFile(fn)) {
         await actions?.create_file({
-          name: newFilename,
-          ext,
+          name: newFilename.trim(),
+          ext: ext.trim(),
           current_path,
         });
       } else {
         await actions?.create_folder({
-          name: newFilename,
+          name: newFilename.trim(),
           current_path,
         });
       }
+      // success: reset the manual flag
       setManual(false);
-      makeNewFilename();
+      // and reset the filename and extension to the defaults
+      setFilename("");
     } finally {
+      // upon error, we keep the state as is, so the user can retry
       setCreating(false);
     }
   }
@@ -181,7 +187,7 @@ export function NewFlyout({
   function onKeyUpHandler(e) {
     switch (e.key) {
       case "Enter":
-        createFile();
+        createFile(manualExt ? filename : `${filename}.${ext}`);
         break;
       case "Escape":
         setFilename("");
@@ -212,28 +218,26 @@ export function NewFlyout({
     );
   }
 
-  function selectType(nextExt?: string) {
-    if (ext === nextExt) {
-      createFile();
-    } else {
+  function handleOnClick(nextExt: string) {
+    let fn = getNewFilename(nextExt);
+    if (nextExt !== "/") {
       // if we had a "/" at the end and now we don't, remove it from the base filename
-      if (nextExt !== "/") {
-        const nextName = filename.endsWith("/")
-          ? filename.slice(0, filename.length - 1)
-          : filename;
-        // if there is an extension in the filename, remove it
-        const { ext: oldExt, name } = separate_file_extension(nextName);
-        if (oldExt !== nextExt || nextExt === "") {
-          setFilename(name);
+      fn = fn.endsWith("/") ? fn.slice(0, fn.length - 1) : fn;
+      // if there is an extension in the filename, replace it with the new one
+      const { ext: oldExt, name } = separate_file_extension(fn);
+      if (oldExt !== nextExt) {
+        if (nextExt === "") {
+          fn = name; // we avoid appending a silly dot
+        } else {
+          fn = `${name}.${nextExt}`;
         }
-      } else if (nextExt === "/" && !filename.endsWith("/")) {
-        setFilename(`${filename}/`);
       }
-      // set the new extension
-      setExt(nextExt ?? "");
-      // since we pressed a file-type button, we switch back to the automatic extension regime
-      setManualExt(false);
+    } else if (nextExt === "/" && !fn.endsWith("/")) {
+      fn = `${fn}/`;
     }
+    // set the new extension
+    setExt(nextExt);
+    createFile(fn);
   }
 
   function getRenderErrorMessage() {
@@ -262,36 +266,108 @@ export function NewFlyout({
     e.target.select();
   }
 
-  function renderExtAddon(): JSX.Element {
+  function handleNewExtDropdown(ext: string) {
+    const nextExt = ext ?? "";
+    if (manualExt) {
+      // have explicit extension in name, but just changed it
+      // via dropdown, so better remove it from the name.
+      const { name } = separate_file_extension(filename);
+      setFilename(name);
+      setManualExt(false);
+    } else {
+      const fn = getNewFilename(nextExt);
+      setFilename(fn);
+    }
+    setExt(nextExt);
+  }
+
+  function renderExtAddon(): React.JSX.Element {
     const title = ext === "/" ? `/` : ext === "" ? "" : `.${ext}`;
     return (
       <NewFileDropdown
         mode="flyout"
-        create_file={(ext) => ext && setExt(ext)}
+        create_file={handleNewExtDropdown}
         title={title}
-        hide_down={true}
+        showDown
         button={false}
+        cacheKey={`${manual}-${manualExt}-${filename}-${ext}`}
       />
     );
   }
 
   function renderCreateFileButton() {
+    const newFilename = genNewFilename();
     const { name, ext } = separate_file_extension(newFilename);
+    const renderedExt =
+      name && ext && isFile(newFilename) && ext !== "/" ? `.${ext}` : "";
+    const disabled = creating || !name || name === "/";
     return (
-      <Button
-        type="primary"
-        disabled={creating || !filename}
-        onClick={createFile}
-        block
-      >
-        <span style={{ whiteSpaceCollapse: "preserve" } as any}>
-          <span>Create</span>{" "}
-          <span style={{ fontWeight: "bold", color: "white" }}>
-            {trunc_middle(name, 30)}
+      <Flex dir="horizontal">
+        <Button
+          type="primary"
+          disabled={disabled}
+          onClick={() => createFile(newFilename)}
+          block
+          style={{ flex: "1" }}
+        >
+          <span style={{ whiteSpaceCollapse: "preserve" } as any}>
+            <span>
+              <FormattedMessage
+                id="project.page.flyouts.new.create.label"
+                defaultMessage={"Create"}
+                description={
+                  "Create a file with the given name in a file-system"
+                }
+              />
+            </span>{" "}
+            <span
+              style={{
+                fontWeight: "bold",
+                color: disabled ? undefined : "white",
+              }}
+            >
+              {trunc_middle(name, 30)}
+            </span>
+            {renderedExt}
           </span>
-          {isFile && ext ? `.${ext}` : ""}
-        </span>
-      </Button>
+        </Button>
+        <HelpIcon
+          title={intl.formatMessage({
+            id: "project.page.flyouts.new.create.help.title",
+            defaultMessage: "Creating files and folders",
+          })}
+          style={{
+            flex: "0 1 auto",
+            padding: FLYOUT_PADDING,
+            fontSize: "18px",
+          }}
+        >
+          <FormattedMessage
+            id="project.page.flyouts.new.create.help.message"
+            description={
+              "Help information about creating a file in a file-system"
+            }
+            defaultMessage={`
+              <Paragraph>
+                The filename is optional. If you don't specify one, a default name
+                will be create for you. You can either select the type explicitly in
+                the dropdown above, or click on one of the buttons below. These
+                buttons will create the file or folder immediately.
+              </Paragraph>
+              <Paragraph>
+                New folders (directories) are created by typing in the name and
+                clicking on "Folder" below or by adding a "/" at the end of the
+                name. Such a forward-slash is used to indicate directories on Linux
+                – that's the underlying operating system.
+              </Paragraph>
+              <Paragraph>
+                You can also just type in the filename with the extension and press Enter to create the file.
+              </Paragraph>
+          `}
+            values={{ Paragraph: (c) => <Paragraph>{c}</Paragraph> }}
+          />
+        </HelpIcon>
+      </Flex>
     );
   }
 
@@ -300,15 +376,28 @@ export function NewFlyout({
     return (
       <Space direction="vertical">
         <Space direction="horizontal" style={padding}>
-          Location:{" "}
+          <FormattedMessage
+            id="project.page.flyouts.new.header_location"
+            defaultMessage={"Location:"}
+            description={"The directory location of files in a file-system"}
+          />{" "}
           <PathNavigator
             mode={"flyout"}
             project_id={project_id}
             className={"cc-project-flyout-path-navigator"}
           />
         </Space>
+        {!!compute_server_id && (
+          <div style={padding}>
+            on <ComputeServer id={compute_server_id} />
+          </div>
+        )}
         <Input
-          placeholder="Basename..."
+          allowClear
+          placeholder={intl.formatMessage({
+            id: "project.page.flyouts.new.filename.placeholder",
+            defaultMessage: "Filename (optional)",
+          })}
           value={filename}
           onChange={onChangeHandler}
           onKeyUp={onKeyUpHandler}
@@ -326,17 +415,7 @@ export function NewFlyout({
           }}
         >
           {renderCreateFileButton()}
-          {creating ? (
-            <ProgressEstimate seconds={5} />
-          ) : (
-            <Text type="secondary" style={{ textAlign: "center" }}>
-              {manualExt ? (
-                <>&nbsp;</>
-              ) : (
-                "(or click the file-type button twice)"
-              )}
-            </Text>
-          )}
+          {creating && <ProgressEstimate seconds={5} />}
         </div>
         {file_creation_error && renderError()}
       </Space>
@@ -353,21 +432,27 @@ export function NewFlyout({
           mode="flyout"
           selectedExt={ext}
           projectActions={actions}
-          create_file={selectType}
+          create_file={handleOnClick}
           availableFeatures={availableFeatures}
           filename={filename}
-          makeNewFilename={makeNewFilename}
+          filenameChanged={manual}
+          makeNewFilename={(ext: string) => setFilename(getNewFilename(ext))}
         />
         <Tag color={COLORS.ANTD_ORANGE}>Additional types</Tag>
         <Tip
           delayShow={DELAY_SHOW_MS}
-          title="Directory"
+          title="Folder (directory)"
           icon={"folder"}
-          tip="Create a subdirectory in the current directory. You can also type in a '/' character at the end of the filename to create a directory."
+          tip={intl.formatMessage({
+            id: "project.page.flyouts.new.folder.tooltip",
+            defaultMessage:
+              "Creating a subdirectory in the current directory instead of a file.",
+            description: "A folder in a file-system",
+          })}
         >
           <NewFileButton
-            name="Directory"
-            on_click={selectType}
+            name={intl.formatMessage(labels.folder)}
+            on_click={handleOnClick}
             ext="/"
             size="small"
             active={ext === "/"}
@@ -375,21 +460,34 @@ export function NewFlyout({
         </Tip>
         <Tip
           delayShow={DELAY_SHOW_MS}
-          title="No file extension"
+          title={intl.formatMessage({
+            id: "project.page.flyouts.new.filename_without_ext.title",
+            defaultMessage: "No file extension",
+            description: "File without an extension in a file-system",
+          })}
           icon={"file"}
-          tip="Create the file without a file extension, for example a 'Makefile'. You can also type in a space character at the end of the filename to create a file without an extension."
+          tip={intl.formatMessage({
+            id: "project.page.flyouts.new.filename_without_ext.tooltip",
+            defaultMessage: `Create a file without a file extension,
+              for example a <code>Makefile</code>.
+              You can also type <code>filename.[space]</code> and backspace once.`,
+          })}
         >
           <NewFileButton
-            name="No file extension"
-            on_click={selectType}
+            name={intl.formatMessage({
+              id: "project.page.flyouts.new.filename_without_ext.label",
+              defaultMessage: "Create file - no extension",
+              description: "File without an extension in a file-system",
+            })}
+            on_click={handleOnClick}
             ext=""
             size="small"
             active={ext === ""}
           />
         </Tip>
-        <NewFileDropdown mode="flyout" create_file={selectType} />
+        <NewFileDropdown mode="flyout" create_file={handleOnClick} />
         <hr />
-        <Tag color={COLORS.GRAY_L}>Name generator</Tag>
+        <Tag color={COLORS.GRAY_L}>Filename generator</Tag>
         <SelectorInput
           style={{ width: "100%", color: COLORS.GRAY }}
           selected={selected}
@@ -400,7 +498,7 @@ export function NewFlyout({
     );
   }
 
-  function renderBottom(): JSX.Element {
+  function renderBottom(): React.JSX.Element {
     return (
       <Space
         style={{

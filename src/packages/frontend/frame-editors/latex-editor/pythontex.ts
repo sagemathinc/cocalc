@@ -1,16 +1,18 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Run PythonTeX
 */
 
-import { exec, ExecOutput } from "../generic/client";
-import { parse_path } from "../frame-tree/util";
-import { ProcessedLatexLog, Error } from "./latex-log-parser";
-import { BuildLog } from "./actions";
+import { parse_path } from "@cocalc/frontend/frame-editors/frame-tree/util";
+import { ExecOutput } from "@cocalc/frontend/frame-editors/generic/client";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+import { Error as ErrorLog, ProcessedLatexLog } from "./latex-log-parser";
+import { BuildLog } from "./types";
+import { runJob } from "./util";
 
 // command documentation
 //
@@ -28,7 +30,8 @@ export async function pythontex(
   time: number,
   force: boolean,
   status: Function,
-  output_directory: string | undefined
+  output_directory: string | undefined,
+  set_job_info: (info: ExecuteCodeOutputAsync) => void,
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path);
   const rerun = force ? "--rerun=always" : ""; // forced build implies to run all snippets
@@ -38,15 +41,16 @@ export async function pythontex(
   const command = `$(which {pythontex3,pythontex} | head -1) ${args}`;
   status(`pythontex[3] ${args}`);
   const aggregate = time && !force ? { value: time } : undefined;
-  return exec({
-    timeout: 360,
-    bash: true, // timeout is enforced by ulimit
-    command,
-    env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4203
-    project_id: project_id,
-    path: output_directory || directory,
-    err_on_exit: false,
+
+  return runJob({
+    project_id,
     aggregate,
+    command,
+    runDir: output_directory || directory,
+    set_job_info,
+    // for python plots -- https://github.com/sagemathinc/cocalc/issues/4203
+    env: { MPLBACKEND: "Agg" },
+    path,
   });
 }
 
@@ -69,11 +73,11 @@ PythonTeX:  pytex-test - 1 error(s), 0 warning(s)
 
 export function pythontex_errors(
   file: string,
-  output: BuildLog
+  output: BuildLog,
 ): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
 
-  let err: Error | undefined = undefined;
+  let err: ErrorLog | undefined = undefined;
 
   for (const line of output.stdout.split("\n")) {
     if (line.search("PythonTeX stderr") > 0) {

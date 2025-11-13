@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -18,11 +18,12 @@ Show a table with links to recently used projects (with most recent first) that
 
 */
 
-import { Component, Rendered, redux } from "@cocalc/frontend/app-framework";
+import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { cmp, keys, trunc_middle } from "@cocalc/util/misc";
 import { Loading, TimeAgo } from "@cocalc/frontend/components";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
-import { Row, Col, Panel } from "@cocalc/frontend/antd-bootstrap";
+import { Card } from "antd";
+import { Row, Col } from "@cocalc/frontend/antd-bootstrap";
 import { Button } from "antd";
 
 interface Project {
@@ -50,7 +51,7 @@ interface State {
 
 function project_sort_key(
   project: Project,
-  account_id?: string
+  account_id?: string,
 ): string | Date {
   if (!account_id) return project.last_edited ?? new Date(0);
   if (project.last_active && project.last_active[account_id]) {
@@ -160,8 +161,8 @@ export class Projects extends Component<Props, State> {
       (a, b) =>
         -cmp(
           project_sort_key(a, this.props.account_id),
-          project_sort_key(b, this.props.account_id)
-        )
+          project_sort_key(b, this.props.account_id),
+        ),
     );
     this.status_mesg("");
     this.setState({ projects: projects, number: projects.length });
@@ -180,9 +181,8 @@ export class Projects extends Component<Props, State> {
         },
       },
     };
-    const { number } = (
-      await query(q)
-    ).query.number_of_projects_using_site_license;
+    const { number } = (await query(q)).query
+      .number_of_projects_using_site_license;
     if (!this.mounted) {
       return;
     }
@@ -259,22 +259,10 @@ export class Projects extends Component<Props, State> {
     return <span>{trunc_middle(project.description, 60)}</span>;
   }
 
-  open_project(project_id: string): void {
-    const projects: any = redux.getActions("projects"); // todo: any?
-    projects.open_project({ project_id: project_id, switch_to: true });
-  }
-
   render_project(project: Project, style?: React.CSSProperties): Rendered {
     return (
       <Row key={project.project_id} style={style}>
-        <Col md={4}>
-          <a
-            style={{ cursor: "pointer" }}
-            onClick={() => this.open_project(project.project_id)}
-          >
-            {trunc_middle(project.title, 60)}
-          </a>
-        </Col>
+        <Col md={4}>{trunc_middle(project.title, 60)}</Col>
         <Col md={4}>{this.render_description(project)}</Col>
         <Col md={4}>{this.render_last_active(project)}</Col>
       </Row>
@@ -300,8 +288,10 @@ export class Projects extends Component<Props, State> {
       </span>
     );
     const title = (
-      <span style={{ fontWeight: "bold", color: "#666" }}>{content}</span>
+      <div style={{ fontWeight: "bold", color: "#666", width: "100%" }}>
+        {content}
+      </div>
     );
-    return <Panel header={title}>{this.render_projects()}</Panel>;
+    return <Card title={title}>{this.render_projects()}</Card>;
   }
 }

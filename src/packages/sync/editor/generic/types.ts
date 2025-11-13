@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -10,19 +10,54 @@
 // A Patch is an entry in the patches table, as represented in memory locally here.
 
 import { SyncTable } from "@cocalc/sync/table/synctable";
+import { type CompressedPatch } from "@cocalc/util/dmp";
+export { type CompressedPatch };
 
 import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
+import type {
+  CallConatServiceFunction,
+  CreateConatServiceFunction,
+} from "@cocalc/conat/service";
 
 export interface Patch {
-  time: Date; // timestamp of when patch made
-  patch: CompressedPatch /* compressed format patch (stored as a
-                   JSON *string* in database, but array/object here) */;
+  // time = LOGICAL time of when patch made; this used to be ms since the epoch, but just
+  // has to an increasing sequence of numbers.  It does distinguish between different users
+  // by the congruence class of the number.
+  time: number;
+  // wall = wallclock time of when patch made; plays no role at all in the algorithm and
+  // is purely to **display to the user**.  For backward compat and display, if wall is
+  // not defined in then this should fall back to the time field.
+  wall?: number;
+  patch?: CompressedPatch /* compressed format patch -- an array/object (not JSON string) */;
   user_id: number /* 0-based integer "id" of user
                      syncstring table has id-->account_id map) */;
-  snapshot?: string; // to_str() applied to the document at this point in time
-  sent?: Date; // when patch actually sent, which may be later than when made
-  prev?: Date; // timestamp of previous patch sent from this session
   size: number; // size of the patch (by defn length of string representation)
+
+  is_snapshot?: boolean;
+  snapshot?: string; // to_str() applied to the document at this point in time
+  seq_info?: {
+    // seq = sequence number of the message with the patch/timestamp of the snapshot.
+    // Load with start_seq = seq to get all patch info back to this snapshot.
+    seq: number;
+    // prev_seq = sequence numbrer of *previous* snapshot patch.
+    // Load with start_seq = prev_seq to get all info about timetravel
+    // back to previous snapshot.  That previous snapshot will itself
+    // have a prev_seq, etc., making it possible to incremental load
+    // patches back in time.
+    prev_seq?: number;
+  };
+
+  // The set of all patches forms a directed acyclic graph.
+  // There is an edge from the patch to its parents, which were all source
+  // vertices that were *known* when the patch was made.
+  // Right now, creating a new patch always
+  // involves merging all parents known to this client.  However, that's not
+  // required by this data structure: instead parents could just be the branches
+  // that we are merging.  I.e., we might only add something when
+  // the user wants to manually do a merge.  That's for later...
+  parents?: number[];
+
+  version?: number;
 }
 
 export interface Document {
@@ -41,8 +76,6 @@ export interface Document {
   count(): number;
 }
 
-export type CompressedPatch = any[];
-
 export interface FileWatcher {
   on: (event: string, handler: Function) => void;
   close: () => void;
@@ -58,6 +91,8 @@ import { EventEmitter } from "events";
 export interface ProjectClient extends EventEmitter {
   server_time: () => Date;
   is_project: () => boolean;
+  is_browser: () => boolean;
+  is_compute_server: () => boolean;
   is_connected: () => boolean;
   is_signed_in: () => boolean;
   dbg: (desc: string) => Function;
@@ -85,7 +120,7 @@ export interface ProjectClient extends EventEmitter {
 
   watch_file: (opts: { path: string }) => FileWatcher;
 
-  synctable_project: (
+  synctable_ephemeral?: (
     project_id: string,
     query: any,
     options: any,
@@ -93,7 +128,12 @@ export interface ProjectClient extends EventEmitter {
     id?: string,
   ) => Promise<SyncTable>;
 
-  // account_id or project_id
+  synctable_conat: (query: any, obj?) => Promise<any>;
+  pubsub_conat: (query: any, obj?) => Promise<any>;
+  callConatService?: CallConatServiceFunction;
+  createConatService?: CreateConatServiceFunction;
+
+  // account_id or project_id or compute_server_id (encoded as a UUID - use decodeUUIDtoNum to decode)
   client_id: () => string;
 
   is_deleted: (
@@ -111,29 +151,31 @@ export interface ProjectClient extends EventEmitter {
 }
 
 export interface Client extends ProjectClient {
-  log_error: (opts: {
+  log_error?: (opts: {
     project_id: string;
     path: string;
     string_id: string;
     error: any;
   }) => void;
 
-  mark_file: (opts: {
+  mark_file?: (opts: {
     project_id: string;
     path: string;
     action: string;
     ttl: number;
   }) => void;
 
-  synctable_database: (
-    query: any,
-    options: any,
-    throttle_changes?: number,
-  ) => Promise<SyncTable>;
-
   shell: (opts: ExecuteCodeOptionsWithCallback) => void;
 
   sage_session: (opts: { path: string }) => any;
+
+  touchOpenFile?: (opts: {
+    project_id: string;
+    path: string;
+    doctype?;
+  }) => Promise<void>;
+
+  touch_project?: (path: string) => void;
 }
 
 export interface DocType {

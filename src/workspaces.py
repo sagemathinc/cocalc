@@ -64,7 +64,10 @@ def cmd(s: str,
     home: str = os.path.abspath(os.curdir)
     try:
         handle_path(s, path, verbose)
-        if os.system(s):
+        n = os.system(s)
+        if n == 2:
+            raise KeyboardInterrupt
+        if n:
             msg = f"Error executing '{s}'"
             if noerr:
                 print(msg)
@@ -103,22 +106,24 @@ def all_packages() -> List[str]:
     # Compute all the packages.  Explicit order in some cases *does* matter as noted in comments,
     # but we use "tsc --build", which automatically builds deps if not built.
     v = [
-        'packages/',  # top level workspace
+        'packages/',  # top level workspace, e.g., typescript
         'packages/cdn',  # packages/hub assumes this is built
         'packages/util',
         'packages/sync',
         'packages/sync-client',
         'packages/sync-fs',
+        'packages/conat',
         'packages/backend',
         'packages/api-client',
         'packages/jupyter',
         'packages/comm',
-        'packages/project',  # project depends on frontend for nbconvert (but NEVER vice versa again)
+        'packages/project',
         'packages/assets',
-        'packages/frontend',  # static depends on frontend
+        'packages/frontend',  # static depends on frontend; frontend depends on assets
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)
         'packages/server',  # packages/next assumes this is built
         'packages/database',  # packages/next also assumes database is built (or at least the coffeescript in it is)
+        'packages/file-server',
         'packages/next',
         'packages/hub',  # hub won't build if next isn't already built
     ]
@@ -236,18 +241,104 @@ def banner(s: str) -> None:
 
 def install(args) -> None:
     v = packages(args)
-    if v == all_packages():
-        print("install all packages -- fast special case")
-        # much faster special case
-        cmd("cd packages && pnpm install")
-        return
 
-    # Do "pnpm i" not in parallel
-    for path in v:
-        c = "pnpm install "
+    # The trick we use to build only a subset of the packages in a pnpm workspace
+    # is to temporarily modify packages/pnpm-workspace.yaml to explicitly remove
+    # the packages that we do NOT want to build.  This should be supported by
+    # pnpm via the --filter option but I can't figure that out in a way that doesn't
+    # break the global lockfile, so this is the hack we have for now.
+    ws = "packages/pnpm-workspace.yaml"
+    tmp = ws + ".tmp"
+    allp = all_packages()
+    try:
+        if v != allp:
+            shutil.copy(ws, tmp)
+            s = open(ws, 'r').read() + '\n'
+            for package in allp:
+                if package not in v:
+                    s += '  - "!%s"\n' % package.split('/')[-1]
+
+            open(ws, 'w').write(s)
+
+        print("install packages")
+        # much faster special case
+        # see https://github.com/pnpm/pnpm/issues/6778 for why we put that confirm option in
+        # for the package-import-method, needed on zfs!, see https://github.com/pnpm/pnpm/issues/7024
+        c = "cd packages && pnpm install --config.confirmModulesPurge=false --package-import-method=hardlink"
         if args.prod:
-            c += ' --prod '
-        cmd(c, path)
+            args.dist_only = False
+            args.node_modules_only = True
+            args.parallel = True
+            clean(args)
+            c += " --prod"
+        cmd(c)
+    finally:
+        if os.path.exists(tmp):
+            shutil.move(tmp, ws)
+
+
+def test(args) -> None:
+    CUR = os.path.abspath('.')
+    flaky = []
+    fails = []
+    success = []
+
+    def status():
+        print("Status: ", {"flaky": flaky, "fails": fails, "success": success})
+
+    v = packages(args)
+    v.sort()
+    n = 0
+    for path in v:
+        n += 1
+        package_path = os.path.join(CUR, path)
+        if package_path.endswith('packages/'):
+            continue
+
+        def f():
+            print("\n" * 3)
+            print("*" * 40)
+            print("*")
+            status()
+            print(f"TESTING {n}/{len(v)}: {path}")
+            print("*")
+            print("*" * 40)
+            test_cmd = "pnpm run --if-present test"
+            if args.report:
+                test_cmd += " --reporters=default --reporters=jest-junit"
+            cmd(test_cmd, package_path)
+            success.append(path)
+
+        worked = False
+        for i in range(args.retries + 1):
+            try:
+                f()
+                worked = True
+                break
+            except KeyboardInterrupt:
+                print("SIGINT -- ending test suite")
+                status()
+                return
+            except Exception as err:
+                print(err)
+                flaky.append(path)
+                print(f"ERROR testing {path}")
+                if args.retries - i >= 1:
+                    print(
+                        f"Trying {path} again at most {args.retries - i} more times"
+                    )
+        if not worked:
+            fails.append(path)
+
+    status()
+    if len(flaky) > 0:
+        print("Flaky test suites:", flaky)
+
+    if len(fails) == 0:
+        print("ALL TESTS PASSED!")
+    else:
+        print("TESTS failed in the following packages -- ", fails)
+        raise RuntimeError(f"Test Suite Failed {fails}")
 
 
 # Build all the packages that need to be built.
@@ -299,7 +390,16 @@ def clean(args) -> None:
 
     def f(path):
         print("rm -rf '%s'" % path)
+        if not os.path.exists(path):
+            return
+        if os.path.isfile(path):
+            os.unlink(path)
+            return
         shutil.rmtree(path, ignore_errors=True)
+        if os.path.exists(path):
+            shutil.rmtree(path, ignore_errors=True)
+        if os.path.exists(path):
+            raise RuntimeError(f'failed to delete {path}')
 
     if (len(paths) == 0):
         banner("No node_modules or dist directories")
@@ -359,6 +459,7 @@ def pnpm_noerror(args) -> None:
 
 def version_check(args):
     cmd("scripts/check_npm_packages.py")
+    cmd("pnpm check-deps", './packages')
 
 
 def node_version_check() -> None:
@@ -470,6 +571,22 @@ def main() -> None:
     subparser = subparsers.add_parser(
         'version-check', help='version consistency checks across packages')
     subparser.set_defaults(func=version_check)
+
+    subparser = subparsers.add_parser('test', help='test all packages')
+    subparser.add_argument(
+        "-r",
+        "--retries",
+        type=int,
+        default=2,
+        help=
+        "how many times to retry a failed test suite before giving up; set to 0 to NOT retry"
+    )
+    subparser.add_argument('--report',
+                           action="store_const",
+                           const=True,
+                           help='if given, generate test reports')
+    packages_arg(subparser)
+    subparser.set_defaults(func=test)
 
     args = parser.parse_args()
     if hasattr(args, 'func'):

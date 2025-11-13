@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Describes how the client course editor syncs with the database
@@ -20,7 +20,7 @@ export function create_sync_db(
   redux: AppRedux,
   actions: CourseActions,
   store: CourseStore,
-  filename: string
+  filename: string,
 ): SyncDB {
   if (redux == null || actions == null || store == null) {
     // just in case non-typescript code uses this...
@@ -84,7 +84,7 @@ export function create_sync_db(
     });
 
     syncdb.on("after-change", () =>
-      redux.getProjectActions(project_id).flag_file_activity(filename)
+      redux.getProjectActions(project_id).flag_file_activity(filename),
     );
 
     const course_project_id = store.get("course_project_id");
@@ -108,8 +108,6 @@ export function create_sync_db(
     if (actions.is_closed()) {
       return;
     }
-    actions.students.lookup_nonregistered_students();
-
     // compute image default setup
     const course_compute_image = store.getIn(["settings", "custom_image"]);
     const inherit_compute_image =
@@ -137,12 +135,12 @@ export function create_sync_db(
       });
     }
 
-    actions.configuration.configure_all_projects();
+    await actions.configuration.configure_all_projects();
 
     // Also
     projects_store.on(
       "change",
-      actions.handle_projects_store_update.bind(actions)
+      actions.handle_projects_store_update.bind(actions),
     );
     actions.handle_projects_store_update(projects_store);
 

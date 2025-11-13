@@ -1,7 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+import { defineMessage } from "react-intl";
+
+import { IntlMessage } from "./i18n/types";
 
 // Compute related schema stuff (see compute.coffee)
 //
@@ -40,24 +44,47 @@ type Operation =
   | "close"
   | "closed";
 
-type ComputeState = Readonly<{
-  [key in State]: {
-    desc: string; // shows up in the UI (default)
-    desc_cocalccom?: string; // if set, use this string instead of desc in "cocalc.com" mode
-    icon: string;
-    display: string;
-    stable?: boolean;
-    to: { [key in Operation]?: State };
-    timeout?: number;
-    commands: Readonly<string[]>;
-  };
+// These icon names must be a subset of the known names in frontend/componten/icon.tsx (we can't import IconName here, though)
+export type ComputeStateIcon =
+  | "file-archive"
+  | "download"
+  | "paper-plane"
+  | "gears"
+  | "stop"
+  | "times-rectangle"
+  | "flash"
+  | "hand-stop"
+  | "run";
+
+export type ComputeState = {
+  desc: IntlMessage; // shows up in the UI (default)
+  desc_cocalccom?: IntlMessage; // if set, use this string instead of desc in "cocalc.com" mode
+  icon: ComputeStateIcon;
+  display: IntlMessage;
+  stable?: boolean;
+  to: { [key in Operation]?: State };
+  timeout?: number;
+  commands: Readonly<string[]>;
+};
+
+type ComputeStates = Readonly<{
+  [key in State]: ComputeState;
 }>;
 
-export const COMPUTE_STATES: ComputeState = {
+// ATTN: in the frontend, all "display" and "desc" strings are translated in the components/project-state file.
+
+export const COMPUTE_STATES: ComputeStates = {
   archived: {
-    desc: "Project is stored in longterm storage, and will take even longer to start.",
+    desc: defineMessage({
+      id: "util.compute-states.archived.desc",
+      defaultMessage:
+        "Project is stored in longterm storage, and will take even longer to start.",
+    }),
     icon: "file-archive",
-    display: "Archived", // displayed name for users
+    display: defineMessage({
+      id: "util.compute-states.archived.display",
+      defaultMessage: "Archived", // displayed name for users
+    }),
     stable: true,
     to: {
       closed: "unarchiving",
@@ -66,27 +93,47 @@ export const COMPUTE_STATES: ComputeState = {
   },
 
   unarchiving: {
-    desc: "Project is being copied from longterm storage; this may take several minutes depending on how many files you have.",
+    desc: defineMessage({
+      id: "util.compute-states.unarchiving.desc",
+      defaultMessage:
+        "Project is being copied from longterm storage; this may take several minutes depending on how many files you have.",
+    }),
     icon: "download",
-    display: "Unarchiving",
+    display: defineMessage({
+      id: "util.compute-states.unarchiving.display",
+      defaultMessage: "Restoring",
+    }),
     to: {},
     timeout: 30 * 60,
     commands: ["status", "mintime"],
   },
 
   archiving: {
-    desc: "Project is being moved to longterm storage.",
+    desc: defineMessage({
+      id: "util.compute-states.archiving.desc",
+      defaultMessage: "Project is being archived to longterm storage.",
+    }),
     icon: "paper-plane",
-    display: "Archiving",
+    display: defineMessage({
+      id: "util.compute-states.archiving.display",
+      defaultMessage: "Archiving",
+    }),
     to: {},
     timeout: 5 * 60,
     commands: ["status", "mintime"],
   },
 
   closed: {
-    desc: "Project is stored only as ZFS streams, which must be imported, so it will take longer to start.",
+    desc: defineMessage({
+      id: "util.compute-states.closed.desc",
+      defaultMessage:
+        "Project is archived and needs to be decompressed, so it will take longer to start.",
+    }),
     icon: "file-archive", // font awesome icon
-    display: "Closed", // displayed name for users
+    display: defineMessage({
+      id: "util.compute-states.closed.display",
+      defaultMessage: "Closed", // displayed name for users
+    }),
     stable: true,
     to: {
       open: "opening",
@@ -96,27 +143,46 @@ export const COMPUTE_STATES: ComputeState = {
   },
 
   opening: {
-    desc: "Project is being imported; this may take several minutes depending on size and history.",
+    desc: defineMessage({
+      id: "util.compute-states.opening.desc",
+      defaultMessage:
+        "Project is being imported; this may take several minutes depending on size.",
+    }),
     icon: "gears",
-    display: "Opening",
+    display: defineMessage({
+      id: "util.compute-states.opening.display",
+      defaultMessage: "Opening",
+    }),
     to: {},
     timeout: 30 * 60,
     commands: ["status", "mintime"],
   },
 
   closing: {
-    desc: "Project is in the process of being closed.",
+    desc: defineMessage({
+      id: "util.compute-states.closing.desc",
+      defaultMessage: "Project is in the process of being closed.",
+    }),
     icon: "download",
-    display: "Closing",
+    display: defineMessage({
+      id: "util.compute-states.closing.display",
+      defaultMessage: "Closing",
+    }),
     to: {},
     timeout: 5 * 60,
     commands: ["status", "mintime"],
   },
 
   opened: {
-    desc: "Project is available and ready to try to run.",
+    desc: defineMessage({
+      id: "util.compute-states.opened.desc",
+      defaultMessage: "Project is available and ready to run.",
+    }),
     icon: "stop",
-    display: "Stopped",
+    display: defineMessage({
+      id: "util.compute-states.opened.display",
+      defaultMessage: "Stopped",
+    }),
     stable: true,
     to: {
       start: "starting",
@@ -142,11 +208,21 @@ export const COMPUTE_STATES: ComputeState = {
   },
 
   pending: {
-    desc_cocalccom:
-      "Finding a place to run your project.  If nothing becomes available, reduce dedicated RAM or CPU, pay for members only hosting, or contact support.",
-    desc: "Finding a place to run your project. If nothing becomes available, contact support.",
+    desc_cocalccom: defineMessage({
+      id: "util.compute-states.pending.desc_cocalccom",
+      defaultMessage:
+        "Finding a place to run your project.  If nothing becomes available, reduce RAM or CPU, pay for members only hosting, or contact support.",
+    }),
+    desc: defineMessage({
+      id: "util.compute-states.pending.desc",
+      defaultMessage:
+        "Finding a place to run your project. If nothing becomes available, contact your administrator.",
+    }),
     icon: "times-rectangle",
-    display: "Pending",
+    display: defineMessage({
+      id: "util.compute-states.pending.display",
+      defaultMessage: "Pending",
+    }),
     stable: true,
     to: {
       stop: "stopping",
@@ -155,9 +231,15 @@ export const COMPUTE_STATES: ComputeState = {
   },
 
   starting: {
-    desc: "Project is starting up.",
+    desc: defineMessage({
+      id: "util.compute-states.starting.desc",
+      defaultMessage: "Project is starting up.",
+    }),
     icon: "flash",
-    display: "Starting",
+    display: defineMessage({
+      id: "util.compute-states.starting.display",
+      defaultMessage: "Starting",
+    }),
     to: {},
     timeout: 60,
     commands: [
@@ -175,9 +257,15 @@ export const COMPUTE_STATES: ComputeState = {
   },
 
   stopping: {
-    desc: "Project is stopping.",
+    desc: defineMessage({
+      id: "util.compute-states.stopping.desc",
+      defaultMessage: "Project is stopping.",
+    }),
     icon: "hand-stop",
-    display: "Stopping",
+    display: defineMessage({
+      id: "util.compute-states.stopping.display",
+      defaultMessage: "Stopping",
+    }),
     timeout: 60,
     to: {},
     commands: [
@@ -195,9 +283,15 @@ export const COMPUTE_STATES: ComputeState = {
   },
 
   running: {
-    desc: "Project is running.",
+    desc: defineMessage({
+      id: "util.compute-states.running.desc",
+      defaultMessage: "Project is running.",
+    }),
     icon: "run",
-    display: "Running",
+    display: defineMessage({
+      id: "util.compute-states.running.display",
+      defaultMessage: "Running",
+    }),
     stable: true,
     to: {
       stop: "stopping",

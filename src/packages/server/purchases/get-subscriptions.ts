@@ -17,7 +17,7 @@ export default async function getSubscriptions({
   }
   const pool = getPool(); // don't cache, e.g., frontend calls this right after paying for subscription and want to see change.
   let query =
-    "SELECT id, account_id, created, cost, interval, current_period_start, current_period_end, latest_purchase_id, status, metadata FROM subscriptions WHERE account_id=$1";
+    "SELECT id, account_id, created, cost, interval, current_period_start, current_period_end, latest_purchase_id, status, metadata, payment FROM subscriptions WHERE account_id=$1";
   const params: any[] = [account_id];
   query += " ORDER BY id DESC";
   if (limit != null) {

@@ -1,14 +1,15 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import NextImage from "next/legacy/image";
-import { join } from "path";
-import { CSSProperties } from "react";
+// NOTE -- at this point, I'm completely giving up on next's image
+// for now. It's always broken and the api keeps changing and it's
+// too hard to work with.
+// import NextImage from "next/image";
 
-import basePath from "lib/base-path";
-import { MediaURL } from "./util";
+import { CSS } from "components/misc";
+import { MediaURL, SHADOW } from "./util";
 
 // copied from https://github.com/vercel/next.js/blob/eb871d30915d668dd9ba897d4d04ced207ce2e6d/packages/next/image-types/global.d.ts
 // since it seems not exported...
@@ -21,79 +22,77 @@ export interface StaticImageData {
 
 interface Props {
   src: string | StaticImageData;
-  style?: CSSProperties;
+  style?: CSS;
   alt: string;
   width?: number;
   height?: number;
   priority?: boolean;
+  shadow?: boolean;
 }
 
+
+
 export default function Image(props: Props) {
-  const { src, style, alt, width, height, priority = false } = props;
+  const { src, style, alt, width, height, shadow = false } = props;
+
+  const imgStyle: CSS = {
+    ...style,
+    ...(shadow ? SHADOW : {}),
+    maxWidth: "100%",
+  } as const;
+
   if (typeof src === "string") {
     return (
       <img
         src={MediaURL(src)}
-        style={{ ...style, maxWidth: "100%" }}
+        style={imgStyle}
         alt={alt}
         width={width}
         height={height}
       />
     );
   }
-  if (basePath.length > 1 && !src.src?.startsWith(basePath)) {
-    // This is a hack to workaround the very annoying fact that
-    // next/image does NOT properly support the nextjs basePath
-    // option.  This is definitely a bug in nextjs, and when it
-    // gets fixed, this workaround will break our site!
-    // The next/image implementation is in packages/next/client/image.tsx of nextjs itself.
-    // Here's the issue: https://github.com/vercel/next.js/issues/22244
-    src.src = join(basePath, src.src);
-  }
-  if (process.env.NODE_ENV == "development") {
-    // The NextImage stuff just totally stopped working
-    // in dev mode recently.  No idea why. So we don't use
-    // it except in production.  See
-    //   https://github.com/sagemathinc/cocalc/issues/7064
+
+  //   if (height != null && width != null) {
+  //     return (
+  //       <NextImage
+  //         src={src.src}
+  //         alt={alt}
+  //         height={height}
+  //         width={width}
+  //         priority={priority}
+  //       />
+  //     );
+  //   }
+
+  if (width != null) {
     return (
       <img
         src={src.src}
         height={height}
         width={width}
         alt={alt}
-        style={{ ...style, maxWidth: "100%" }}
+        style={imgStyle}
       />
     );
   }
-  if (height != null && width != null) {
-    return (
-      <NextImage
-        src={src}
-        alt={alt}
-        height={height}
-        width={width}
-        priority={priority}
-      />
-    );
-  } else {
-    return (
-      <div
-        style={{
-          width: "100%",
-          ...style,
-          display: "inline-block",
-        }}
-      >
-        <div style={{ position: "relative", width: "100%" }}>
-          <NextImage
-            src={src}
-            alt={alt}
-            layout="responsive"
-            width={width}
-            priority={priority}
-          />
-        </div>
+  return (
+    <div
+      style={{
+        width: "100%",
+        ...style,
+        display: "inline-block",
+      }}
+    >
+      <div style={{ position: "relative", width: "100%" }}>
+        <img
+          src={src.src}
+          height={height}
+          width={width}
+          alt={alt}
+          style={imgStyle}
+        />
       </div>
-    );
-  }
+    </div>
+  );
 }

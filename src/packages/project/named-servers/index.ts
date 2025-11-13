@@ -1,12 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { getLogger } from "@cocalc/project/logger";
 import * as message from "@cocalc/util/message";
 import { NamedServerName } from "@cocalc/util/types/servers";
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { start } from "./control";
 
 const winston = getLogger("named-servers");

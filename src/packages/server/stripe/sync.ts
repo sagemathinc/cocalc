@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -34,12 +34,12 @@ export async function stripe_sync({
   }
   const dbg = (m?) => logger.debug(`stripe_sync: ${m}`);
   dbg(
-    "get all customers from the database with stripe_customer set that were active during the last month"
+    "get all customers from the database with stripe_customer_id set that were active during the last month but are older than 2 years (since this is only for legacy upgrades which are from before 2020 and we want to reduce load)",
   );
   const users = (
     await database.async_query({
       query:
-        "SELECT account_id, stripe_customer_id FROM accounts WHERE stripe_customer_id IS NOT NULL AND stripe_customer IS NOT NULL AND banned IS NOT TRUE AND deleted IS NOT TRUE AND last_active >= NOW() - INTERVAL '1 MONTH'",
+        "SELECT account_id, stripe_customer_id FROM accounts WHERE stripe_customer_id IS NOT NULL AND banned IS NOT TRUE AND deleted IS NOT TRUE AND last_active >= NOW() - INTERVAL '1 MONTH' AND (created IS NULL OR created <= NOW() - INTERVAL '4 year')",
     })
   ).rows;
 

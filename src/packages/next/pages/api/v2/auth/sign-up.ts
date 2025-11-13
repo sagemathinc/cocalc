@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -12,32 +12,57 @@ Sign up for a new account:
 3. Generate a random account_id. Do not check it is not already taken, since that's
    highly unlikely, and the insert in 4 would fail anyways.
 4. Write account to the database.
-5. Sign user in
+5. Sign user in (if not being used via the API).
+
+This can also be used via the API, but the client must have a minimum balance
+of at least - $100.
+
+
+API Usage:
+
+curl -u sk_abcdefQWERTY090900000000: \
+  -d firstName=John00 \
+  -d lastName=Doe00 \
+  -d email=jd@example.com \
+  -d password=xyzabc09090 \
+  -d terms=true https://cocalc.com/api/v2/auth/sign-up
+
+TIP: If you want to pass in an email like jd+1@example.com, use '%2B' in place of '+'.
 */
 
-import {
-  len,
-  is_valid_email_address as isValidEmailAddress,
-} from "@cocalc/util/misc";
 import { v4 } from "uuid";
+
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import createAccount from "@cocalc/server/accounts/create-account";
 import isAccountAvailable from "@cocalc/server/auth/is-account-available";
 import isDomainExclusiveSSO from "@cocalc/server/auth/is-domain-exclusive-sso";
-import createAccount from "@cocalc/server/accounts/create-account";
-import { getAccount, signUserIn } from "./sign-in";
-import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
-import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import getParams from "lib/api/get-params";
+import passwordStrength from "@cocalc/server/auth/password-strength";
 import reCaptcha from "@cocalc/server/auth/recaptcha";
+import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
+import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
 import getSiteLicenseId from "@cocalc/server/public-paths/site-license-id";
+import {
+  is_valid_email_address as isValidEmailAddress,
+  len,
+} from "@cocalc/util/misc";
 
-interface Issues {
-  terms?: string;
-  email?: string;
-  password?: string;
-}
+import getAccountId from "lib/account/get-account";
+import { apiRoute, apiRouteOperation } from "lib/api";
+import assertTrusted from "lib/api/assert-trusted";
+import getParams from "lib/api/get-params";
+import {
+  SignUpInputSchema,
+  SignUpOutputSchema,
+} from "lib/api/schema/accounts/sign-up";
+import { SignUpIssues } from "lib/types/sign-up";
+import { getAccount, signUserIn } from "./sign-in";
+import {
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  MIN_PASSWORD_STRENGTH,
+} from "@cocalc/util/auth";
 
-export default async function signUp(req, res) {
+export async function signUp(req, res) {
   let {
     terms,
     email,
@@ -47,13 +72,14 @@ export default async function signUp(req, res) {
     registrationToken,
     tags,
     publicPathId,
+    signupReason,
   } = getParams(req);
 
   password = (password ?? "").trim();
   email = (email ?? "").toLowerCase().trim();
   firstName = (firstName ? firstName : "Anonymous").trim();
   lastName = (
-    lastName ? lastName : `User-${Math.round(new Date().valueOf() / 1000)}`
+    lastName ? lastName : `User-${Math.round(Date.now() / 1000)}`
   ).trim();
   registrationToken = (registrationToken ?? "").trim();
 
@@ -86,15 +112,40 @@ export default async function signUp(req, res) {
   const { email_signup, anonymous_signup, anonymous_signup_licensed_shares } =
     await getServerSettings();
 
-  try {
-    await reCaptcha(req);
-  } catch (err) {
-    res.json({
-      issues: {
-        reCaptcha: err.message,
-      },
-    });
-    return;
+  const owner_id = await getAccountId(req);
+  if (owner_id) {
+    if (isAnonymous) {
+      res.json({
+        issues: {
+          api: "Creation of anonymous accounts via the API is not allowed.",
+        },
+      });
+      return;
+    }
+    // no captcha required -- api access
+    // We ONLY allow creation without checking the captcha
+    // for trusted users.
+    try {
+      await assertTrusted(owner_id);
+    } catch (err) {
+      res.json({
+        issues: {
+          api: `${err}`,
+        },
+      });
+      return;
+    }
+  } else {
+    try {
+      await reCaptcha(req);
+    } catch (err) {
+      res.json({
+        issues: {
+          reCaptcha: err.message,
+        },
+      });
+      return;
+    }
   }
 
   if (isAnonymous) {
@@ -163,6 +214,8 @@ export default async function signUp(req, res) {
       lastName,
       account_id,
       tags,
+      signupReason,
+      owner_id,
     });
 
     if (email) {
@@ -174,24 +227,36 @@ export default async function signUp(req, res) {
         console.log(`WARNING: failed to send welcome email to ${email}`, err);
       }
     }
-
-    await signUserIn(req, res, account_id); // sets a cookie
+    if (!owner_id) {
+      await signUserIn(req, res, account_id); // sets a cookie
+    }
     res.json({ account_id });
   } catch (err) {
     res.json({ error: err.message });
   }
 }
 
-function checkObviousConditions({ terms, email, password }): Issues {
-  const issues: Issues = {};
+export function checkObviousConditions({
+  terms,
+  email,
+  password,
+}): SignUpIssues {
+  const issues: SignUpIssues = {};
   if (!terms) {
     issues.terms = "You must agree to the terms of usage.";
   }
   if (!email || !isValidEmailAddress(email)) {
-    issues.email = "You must provide a valid email address.";
+    issues.email = `You must provide a valid email address -- '${email}' is not valid.`;
   }
-  if (!password || password.length < 6) {
-    issues.password = "Your password must not be trivial to guess.";
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    issues.password = "Your password must not be very easy to guess.";
+  } else if (password.length > MAX_PASSWORD_LENGTH) {
+    issues.password = `Your password must be at most ${MAX_PASSWORD_LENGTH} characters long.`;
+  } else {
+    const { score, help } = passwordStrength(password);
+    if (score <= MIN_PASSWORD_STRENGTH) {
+      issues.password = help ? help : "Your password is too easy to guess.";
+    }
   }
   return issues;
 }
@@ -199,3 +264,24 @@ function checkObviousConditions({ terms, email, password }): Issues {
 async function hasSiteLicenseId(id: string): Promise<boolean> {
   return !!(await getSiteLicenseId(id));
 }
+
+export default apiRoute({
+  signUp: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Accounts", "Admin"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: SignUpInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: SignUpOutputSchema,
+      },
+    ])
+    .handler(signUp),
+});

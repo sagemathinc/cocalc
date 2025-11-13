@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // common configuration for mapping programming languages (lower case) to formatters
@@ -83,7 +83,7 @@ export type Tool =
   | "zig"
   | "DOES_NOT_EXIST"; // use this for testing;
 
-// the set of file extensions where we want to have formatting support
+//  the file extensions where we want to have formatting support
 export const file_extensions = [
   "bib",
   "c",
@@ -115,6 +115,8 @@ export const file_extensions = [
   "yml",
   "zig",
 ] as const;
+
+export const fileExtensionsSet = new Set(file_extensions);
 
 // convert to type
 export type Exts = (typeof file_extensions)[number];
@@ -243,9 +245,20 @@ export interface Config {
   syntax: Syntax;
   tabWidth?: number;
   useTabs?: boolean;
+  // if given and using syncdoc, wait until our version is at least this new.
+  // this ensures we don't format an older version of the document.
+  lastChanged?: number;
 }
 
 export interface Options extends Omit<Config, "syntax"> {
   parser: Syntax; // TODO refactor this to tool
   tabWidth?: number;
+  lastChanged?: number;
+}
+
+export interface FormatResult {
+  status: "ok" | "error";
+  patch?: any;
+  phase?: string;
+  error?: any;
 }

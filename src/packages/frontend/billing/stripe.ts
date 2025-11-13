@@ -1,45 +1,29 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { redux } from "../app-framework";
-import { BillingStore } from "./store";
-
-declare global {
-  interface Window {
-    Stripe: any;
-  }
-}
-
-declare var $: any;
-
-export interface Stripe {
-  elements: Function;
-  createToken: Function;
-}
+import { getStripePublishableKey } from "@cocalc/frontend/purchases/api";
+//import { loadStripe as loadStripe0, type Stripe } from "@stripe/stripe-js";
+import { type Stripe } from "@stripe/stripe-js";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 export interface StripeCard {
   mount: Function;
 }
 
-let stripe: Stripe | undefined = undefined;
-export async function loadStripe(): Promise<Stripe> {
-  if (stripe != null) return stripe;
-  try {
-    await $.getScript("https://js.stripe.com/v3/");
-  } catch (err) {
-    throw Error(
-      `Unable to load Stripe payment support; make sure your browser is not blocking https://js.stripe.com/v3/ -- ${err}`
-    );
+let stripe: Stripe | null = null;
+export const loadStripe = reuseInFlight(async (): Promise<Stripe> => {
+  if (stripe != null) {
+    return stripe;
   }
-  const store: BillingStore = redux.getStore("billing");
-  if (store == null) {
-    throw Error("billing store not initialized");
+  // load only when actually used, since this involves dynamic load over the internet to stripe.com,
+  // and we don't want loading cocalc in an airgapped network to have hung network requests.
+  const { loadStripe: loadStripe0 } = await import("@stripe/stripe-js");
+  const key = await getStripePublishableKey();
+  stripe = await loadStripe0(key);
+  if (stripe == null) {
+    throw Error("failed to initialized Stripe");
   }
-  const key: string | undefined = store.get("stripe_publishable_key");
-  if (!key) {
-    throw Error("stripe not configured -- publishable key not known");
-  }
-  return (stripe = window.Stripe(key));
-}
+  return stripe;
+});

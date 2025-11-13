@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -148,15 +148,17 @@ export interface Fields {
     | FieldSpec;
 }
 
+type PgWhere =
+  | (string | { [key: string]: any })[]
+  | ((obj: any, db: any) => any[]);
+
 export interface UserOrProjectQuery<F extends Fields> {
   get?: {
     fields: { [key in keyof Partial<F>]: any };
     required_fields?: { [key in keyof Partial<F>]: any };
     throttle_changes?: number;
     allow_field_deletes?: boolean; // if true, allow deleting of field in record to be reported.  Do NOT do this if there are any default values (e.g., the projects and accounts tables have default values), since it's just not implemented yet!  This *is* used by all the crm tables.
-    pg_where?:
-      | (string | { [key: string]: any })[]
-      | ((obj: any, db: any) => any[]);
+    pg_where?: PgWhere;
     pg_where_load?: (string | { [key: string]: any })[]; // used instead of pg_where if server is under "heavy load"
     pg_changefeed?: string | Function;
     remove_from_query?: string[];
@@ -218,6 +220,8 @@ export interface UserOrProjectQuery<F extends Fields> {
      * before the actual change to the database is made.
      * If cb(err) then no change is made and error is reported.
      # If cb(undefined, true) then no change is made and no error; any work is considered done.
+     #
+     # NOTE: old_val can be null if no primary key is specified, e.g., when creating a new object.
      */
     before_change?: (
       database,
@@ -237,6 +241,8 @@ export interface UserOrProjectQuery<F extends Fields> {
      * code whenever the user does a certain type of set query.
      * Obviously, if that code doesn't set the query in the
      * database, then query won't be the new val.
+     *
+     * NOTE: old_val can be null if no primary key is specified, e.g., when creating a new object.
      */
     instead_of_change?: (
       database,
@@ -250,6 +256,8 @@ export interface UserOrProjectQuery<F extends Fields> {
      * 3. AFTER:  If set, the on_change is called with
      *   (database, old_val, query, account_id, cb)
      * after everything the database has been modified.
+     *
+     * NOTE: old_val can be null if no primary key is specified, e.g., when creating a new object.
      */
     on_change?: (
       database,
@@ -277,6 +285,9 @@ export interface TableSchema<F extends Fields> {
 
   // One of the fields or array of fields; NOTE: should be required if virtual is not set.
   primary_key?: keyof F | (keyof F)[];
+
+  // Optional keys to also include in the select clause when creating changefeed.  Needed, e.g., when using a serial primary key.
+  changefeed_keys?: (keyof F)[];
 
   // this is only used when migrating when we *add* a new primary key as primary key for the schema for a table (e.g., for listings)
   default_primary_key_value?: { [key: string]: any };

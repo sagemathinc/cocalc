@@ -8,7 +8,6 @@ import Favicons from "./favicons";
 import Manifest from "./manifest";
 import Meta from "./meta";
 import PreflightCheck from "./preflight-checks";
-import Primus from "./primus";
 import StartupBanner from "./startup-banner";
 import initError from "./webapp-error";
 
@@ -18,8 +17,6 @@ const loadContainer = document.getElementById("cocalc-load-container");
 if (loadContainer) {
   createRoot(loadContainer).render(
     <>
-      <Primus />
-      <Manifest />
       <PreflightCheck />
       <StartupBanner />
     </>
@@ -34,6 +31,7 @@ const scriptsContainer = document.getElementById("cocalc-scripts-container");
 if (scriptsContainer != null) {
   createRoot(scriptsContainer).render(
     <span>
+      <Manifest />
       <Meta />
       <Favicons />
     </span>

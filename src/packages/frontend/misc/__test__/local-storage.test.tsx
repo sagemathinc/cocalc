@@ -1,47 +1,42 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-/*
-This fails upon importing misc_page.
-*/
-
-// trivial test, otherwise jest also fails
-describe("Local Storage", () => {
-  test("NOT TESTED: FIXME!", () => {
-    expect(true).toBe(true);
-  });
-});
-
-/*
 import * as LS from "../local-storage";
 
 const KEY = "test";
 
 describe("Local Storage", () => {
   test("set", () => {
-    expect(LS.set(KEY, 123)).toBe(true);
+    LS.set_local_storage(KEY, "123");
   });
 
   test("get", () => {
-    expect(LS.get(KEY)).toBe(123);
+    expect(LS.get_local_storage(KEY)).toBe("123");
+  });
+
+  test("set2", () => {
+    LS.set_local_storage(KEY, "eee");
+  });
+
+  test("get", () => {
+    expect(LS.get_local_storage(KEY)).toBe("eee");
   });
 
   test("exists1", () => {
-    expect(LS.exists(KEY)).toBe(true);
+    expect(LS.exists_local_storage(KEY)).toBe(true);
   });
 
   test("del1", () => {
-    expect(LS.del(KEY)).toBe(123);
+    LS.delete_local_storage(KEY);
   });
 
   test("exists1", () => {
-    expect(LS.exists(KEY)).toBe(false);
+    expect(LS.exists_local_storage(KEY)).toBe(false);
   });
 
   test("del2", () => {
-    expect(LS.del(KEY)).toBe(undefined);
+    expect(LS.delete_local_storage(KEY)).toBe(undefined);
   });
 });
-*/

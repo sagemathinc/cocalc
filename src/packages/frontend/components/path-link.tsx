@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import {
@@ -35,7 +35,7 @@ export const PathLink: React.FC<Props> = ({
   link = true,
   onOpen,
 }: Props) => {
-  function render_link(text): JSX.Element {
+  function render_link(text): React.JSX.Element {
     let s;
     if (!endswith(text, "/")) {
       const { name, ext } = separate_file_extension(text);

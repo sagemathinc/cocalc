@@ -1,9 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
+Watch A DIRECTORY for changes of the files in *that* directory only (not recursive).
+Use ./watcher.ts for a single file.
+
 Slightly generalized fs.watch that works even when the directory doesn't exist,
 but also doesn't provide any information about what changed.
 
@@ -19,7 +22,7 @@ The code below deals with two very different cases:
         NOTE: this case can't happen when path='', which exists, so we can assume to have read perms on parent.
  - when the path does exist: use fs.watch (hence inotify) on the path itself to report when it changes
 
-NOTE: if you are running on a filesystem like NFS, inotify won't work well or not at all.
+NOTE: if you are running on a file system like NFS, inotify won't work well or not at all.
 In that case, set the env variable COCALC_FS_WATCHER=poll to use polling instead.
 You can configure the poll interval by setting COCALC_FS_WATCHER_POLL_INTERVAL_MS.
 
@@ -51,7 +54,7 @@ const logger = getLogger("backend:path-watcher");
 const POLLING = true;
 
 const DEFAULT_POLL_MS = parseInt(
-  process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "1500",
+  process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "2000",
 );
 
 const ChokidarOpts: WatchOptions = {
@@ -80,7 +83,10 @@ export class Watcher extends EventEmitter {
   private debouncedChange: any;
   private log: Function;
 
-  constructor(path: string, debounce_ms: number) {
+  constructor(
+    path: string,
+    { debounce: debounce_ms = DEFAULT_POLL_MS }: { debounce?: number } = {},
+  ) {
     super();
     this.log = logger.extend(path).debug;
     this.log(`initializing: poll=${POLLING}`);
@@ -89,10 +95,12 @@ export class Watcher extends EventEmitter {
     }
     this.path = path.startsWith("/") ? path : join(process.env.HOME, path);
     this.debounce_ms = debounce_ms;
-    this.debouncedChange = debounce(this.change.bind(this), this.debounce_ms, {
-      leading: true,
-      trailing: true,
-    }).bind(this);
+    this.debouncedChange = this.debounce_ms
+      ? debounce(this.change, this.debounce_ms, {
+          leading: true,
+          trailing: true,
+        }).bind(this)
+      : this.change;
     this.init();
   }
 
@@ -120,14 +128,13 @@ export class Watcher extends EventEmitter {
   private async initWatchExistence(): Promise<void> {
     const containing_path = path_split(this.path).head;
     this.watchExistence = watch(containing_path, ChokidarOpts);
-    this.watchExistence.on("all", this.watchExistenceChange(containing_path));
+    this.watchExistence.on("all", this.watchExistenceChange);
     this.watchExistence.on("error", (err) => {
       this.log(`error watching for existence of ${this.path} -- ${err}`);
     });
   }
 
-  private watchExistenceChange = (containing_path) => async (_, filename) => {
-    const path = join(containing_path, filename);
+  private watchExistenceChange = async (_, path) => {
     if (path != this.path) return;
     const e = await exists(this.path);
     if (!this.exists && e) {
@@ -147,13 +154,50 @@ export class Watcher extends EventEmitter {
     }
   };
 
-  private change(): void {
+  private change = (): void => {
     this.emit("change");
-  }
+  };
 
   public close(): void {
     this.watchExistence?.close();
     this.watchContents?.close();
     close(this);
   }
+}
+
+export class MultipathWatcher extends EventEmitter {
+  private paths: { [path: string]: Watcher } = {};
+  private options;
+
+  constructor(options?) {
+    super();
+    this.options = options;
+  }
+
+  has = (path: string) => {
+    return this.paths[path] != null;
+  };
+
+  add = (path: string) => {
+    if (this.has(path)) {
+      // already watching
+      return;
+    }
+    this.paths[path] = new Watcher(path, this.options);
+    this.paths[path].on("change", () => this.emit("change", path));
+  };
+
+  delete = (path: string) => {
+    if (!this.has(path)) {
+      return;
+    }
+    this.paths[path].close();
+    delete this.paths[path];
+  };
+
+  close = () => {
+    for (const path in this.paths) {
+      this.delete(path);
+    }
+  };
 }

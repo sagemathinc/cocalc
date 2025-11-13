@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import LRU from "lru-cache";
@@ -13,8 +13,8 @@ import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import {
-  AllSiteSettingsCached as ServerSettings,
   AllSiteSettingsKeys,
+  AllSiteSettingsCached as ServerSettings,
 } from "@cocalc/util/db-schema/types";
 import { site_settings_conf as CONF } from "@cocalc/util/schema";
 export type { ServerSettings };
@@ -32,7 +32,7 @@ const cache = new LRU<CacheKeys, ServerSettings | PassportStrategyDB[]>({
 const KEY: CacheKeys = "server-settings";
 
 export function resetServerSettingsCache() {
-  cache.reset();
+  cache.clear();
 }
 
 export function getPassportsCached(): PassportStrategyDB[] | undefined {
@@ -90,6 +90,13 @@ export async function load_server_settings_from_env(
   db: PostgreSQL,
 ): Promise<void> {
   const PREFIX = SERVER_SETTINGS_ENV_PREFIX;
+
+  // if none of the envvars starts with the prefix, then we don't do anything
+  if (!Object.keys(process.env).some((k) => k.startsWith(PREFIX))) {
+    return;
+  }
+
+  L.debug("load_server_settings_from_env variables prefixed by ", PREFIX);
   // reset all readonly values
   await db.async_query({
     query: "UPDATE server_settings",

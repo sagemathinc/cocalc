@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* Create the TCP server that communicates with hubs */
@@ -8,14 +8,12 @@
 import { writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import * as uuid from "uuid";
-
 import enableMessagingProtocol, {
   CoCalcSocket,
 } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { unlockSocket } from "@cocalc/backend/tcp/locked-socket";
-import { hubPortFile } from "@cocalc/project/data";
+import { hubPortFile, secretToken } from "@cocalc/project/data";
 import { getOptions } from "@cocalc/project/init-program";
-import { getSecretToken } from "@cocalc/project/servers/secret-token";
 import { once } from "@cocalc/util/async-utils";
 import handleMessage from "./handle-message";
 import { getClient } from "@cocalc/project/client";
@@ -24,13 +22,6 @@ import { getLogger } from "@cocalc/project/logger";
 const winston = getLogger("hub-tcp-server");
 
 export default async function init(): Promise<void> {
-  const secretToken = getSecretToken(); // could throw if not initialized yet
-  if (!secretToken || secretToken.length < 16) {
-    // being extra careful since security
-    throw Error("secret token must be defined and at least 16 characters");
-    return;
-  }
-
   winston.info("starting tcp server: project <--> hub...");
   const server = createServer(handleConnection);
   const options = getOptions();
@@ -58,10 +49,10 @@ async function handleConnection(socket: CoCalcSocket) {
   });
 
   try {
-    await unlockSocket(socket, getSecretToken());
+    await unlockSocket(socket, secretToken);
   } catch (err) {
     winston.error(
-      "failed to unlock socket -- ignoring any future messages and closing connection"
+      "failed to unlock socket -- ignoring any future messages and closing connection",
     );
     socket.destroy(new Error("invalid secret token"));
     return;

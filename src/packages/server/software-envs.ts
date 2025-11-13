@@ -1,9 +1,13 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // This is used by the hub to adjust the "customization" variable for the user visible site, and also by manage in on-prem, to actually get the associated configuration
+
+import { constants } from "node:fs";
+import { access, readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 import getLogger from "@cocalc/backend/logger";
 import {
@@ -11,11 +15,8 @@ import {
   sanitizeSoftwareEnv,
   SoftwareEnvConfig,
 } from "@cocalc/util/sanitize-software-envs";
-import { constants } from "fs";
-import { access, readFile } from "fs/promises";
-import { join } from "path";
 
-const logger = getLogger("hub:webapp-config");
+const logger = getLogger("hub:software-envs");
 const L = logger.debug;
 const W = logger.warn;
 
@@ -28,7 +29,7 @@ const cache: { [key in Purpose]: SoftwareEnvConfig | false | null } = {
  * A configuration for available software environments could be stored at the location of $COCALC_SOFTWARE_ENVIRONMENTS.
  */
 export async function getSoftwareEnvironments(
-  purpose: Purpose
+  purpose: Purpose,
 ): Promise<SoftwareEnvConfig | null> {
   if (cache[purpose] === null) {
     cache[purpose] = (await readConfig(purpose)) ?? false;
@@ -46,14 +47,14 @@ async function readConfig(purpose: Purpose): Promise<SoftwareEnvConfig | null> {
 
   if (!(await isReadable(softwareFn))) {
     W(
-      `WARNING: $COCALC_SOFTWARE_ENVIRONMENTS is defined but ${softwareFn} does not exist`
+      `WARNING: $COCALC_SOFTWARE_ENVIRONMENTS is defined but ${softwareFn} does not exist`,
     );
     return null;
   }
 
   if (!(await isReadable(registryFn))) {
     W(
-      `WARNING: $COCALC_SOFTWARE_ENVIRONMENTS is defined but ${registryFn} does not exist`
+      `WARNING: $COCALC_SOFTWARE_ENVIRONMENTS is defined but ${registryFn} does not exist`,
     );
     return null;
   }

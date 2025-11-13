@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { React, useActions, useTypedRedux, CSS } from "../../app-framework";
@@ -28,11 +28,18 @@ interface Props {
 async function get_mime({ project_id, path, set_mime, set_err, set_snippet }) {
   try {
     let mime = "";
+    const compute_server_id =
+      (await webapp_client.project_client.getServerIdForPath({
+        project_id,
+        path,
+      })) ?? 0;
     const { stdout: mime_raw, exit_code: exit_code1 } =
       await webapp_client.project_client.exec({
         project_id,
         command: "file",
         args: ["-b", "--mime-type", path],
+        compute_server_id,
+        filesystem: true,
       });
     if (exit_code1 != 0) {
       set_err(`Error: exit_code1 = ${exit_code1}`);
@@ -57,7 +64,12 @@ async function get_mime({ project_id, path, set_mime, set_err, set_snippet }) {
         };
 
     const { stdout: raw, exit_code: exit_code2 } =
-      await webapp_client.project_client.exec({ project_id, ...content_cmd });
+      await webapp_client.project_client.exec({
+        project_id,
+        ...content_cmd,
+        compute_server_id,
+        filesystem: true,
+      });
     if (exit_code2 != 0) {
       set_err(`Error: exit_code2 = ${exit_code2}`);
     } else {
@@ -71,7 +83,7 @@ async function get_mime({ project_id, path, set_mime, set_err, set_snippet }) {
             .slice(0, 20 * 80)
             .split(/(.{0,80})/g)
             .filter((x) => !!x)
-            .join("")
+            .join(""),
         );
       }
     }
@@ -176,7 +188,7 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
     }
     if (actions == null) {
       console.warn(
-        `Project Actions for ${project_id} not available – shouldn't happen.`
+        `Project Actions for ${project_id} not available – shouldn't happen.`,
       );
       return;
     }

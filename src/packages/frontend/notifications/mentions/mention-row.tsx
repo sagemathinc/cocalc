@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Tooltip } from "antd";
@@ -49,9 +49,7 @@ export function MentionRow(props: Props) {
   const is_saved = mention.getIn(["users", target, "saved"]);
 
   const read_icon: IconName =
-    (is_read && !clicked) || (!is_read && clicked)
-      ? "check-square-o"
-      : "square-o";
+    (is_read && !clicked) || (!is_read && clicked) ? "eye" : "eye-slash";
 
   // think of "in transition" between read and unread
   const clickedStyle: CSS =
@@ -98,7 +96,7 @@ export function MentionRow(props: Props) {
     //    file.txt#chat=true,id=092ab039
     redux.getProjectActions(project_id).open_file({
       path: path,
-      chat: !fragmentId ? true : fragmentId["chat"],
+      chat: !!fragmentId?.chat,
       fragmentId,
     });
 

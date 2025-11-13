@@ -13,6 +13,7 @@
     { "path": "../next/tsconfig-dist.json" },
     { "path": "../server" },
     { "path": "../static" },
-    { "path": "../util" }
+    { "path": "../util" },
+    { "path": "../conat" }
   ]
 }

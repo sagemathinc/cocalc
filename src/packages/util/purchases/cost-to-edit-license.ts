@@ -9,6 +9,7 @@ import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
 import type { Uptime } from "@cocalc/util/consts/site-license";
 import { MAX } from "@cocalc/util/licenses/purchase/consts";
 import { round2up } from "../misc";
+import { CURRENT_VERSION } from "@cocalc/util/licenses/purchase/consts";
 
 export interface Changes {
   end?: Date;
@@ -104,7 +105,9 @@ export default function costToEditLicense(
   log("editLicense with start date updated:", { origInfo });
 
   // Make copy of data with modified params.
-  const modifiedInfo = cloneDeep(origInfo);
+  // modifiedInfo uses the current default pricing algorithm, since that the cost today
+  // to make this purchase, hence changing version below.
+  const modifiedInfo = { ...cloneDeep(origInfo), version: CURRENT_VERSION };
   if (changes.start != null) {
     modifiedInfo.start = changes.start;
   }
@@ -222,6 +225,8 @@ export default function costToEditLicense(
   log({ modifiedInfo });
 
   // Determine price for the change
+
+  // the value of the license the user currently owned.  The pricing algorithm version is important here.
   const currentValue = currentLicenseValue(origInfo);
 
   if (numChanges > 0 && modifiedInfo.type == "quota") {
@@ -234,6 +239,9 @@ export default function costToEditLicense(
     delete modifiedInfo.cost_per_hour;
   }
 
+  // Determine price for the modified license they would like to switch to.
+  // modifiedInfo uses the current default pricing algorithm, since that the cost today
+  // to make this purchase, hence changing version below.
   const modifiedValue = currentLicenseValue(modifiedInfo);
   // cost can be negative, when we give user a refund.
   // **We round away from zero!**  The reason is because
@@ -256,7 +264,6 @@ export default function costToEditLicense(
   if (modifiedInfo.subscription != "no") {
     modifiedInfo.start = originalInfo.start;
   }
-
   return { cost, modifiedInfo };
 }
 
@@ -279,20 +286,31 @@ function currentLicenseValue(info: PurchaseInfo): number {
     // infinite value?
     return 0;
   }
-  if (info.cost_per_hour) {
-    // if this is set, we use it to compute the value
-    // The value is cost_per_hour times the number of hours left until info.end.
-    const end = dayjs(info.end);
-    const start = dayjs(info.start);
-    const hoursRemaining = end.diff(start, "hours", true);
-    // the hoursRemaining can easily be *negative* if info.end is
-    // in the past.
-    // However the value of a license is never negative, so we max with 0.
-    return Math.max(0, hoursRemaining * info.cost_per_hour);
-  }
 
-  // fall back to computing value using the current rate.
-  // TODO: we want to make it so this NEVER is used.
+  // Depending on cost_per_hour being set properly is a nightmare -- it can
+  // be very subtly wrong or have rounding issues, and this can expose us to abuse.
+  // Instead for NOW we are using the current value of the license.
+  // However, we never change our costs.  When we do, we should
+  // keep our old cost params and use it to compute the value of the
+  // license, based on the date when it was last purchased.
+  // Perhaps we won't raise rates before switching to a full
+  // pay as you go model....
+
+  //   if (info.cost_per_hour) {
+  //     // if this is set, we use it to compute the value
+  //     // The value is cost_per_hour times the number of hours left until info.end.
+  //     const end = dayjs(info.end);
+  //     const start = dayjs(info.start);
+  //     const hoursRemaining = end.diff(start, "hours", true);
+  //     // the hoursRemaining can easily be *negative* if info.end is
+  //     // in the past.
+  //     // However the value of a license is never negative, so we max with 0.
+  //     return Math.max(0, hoursRemaining * info.cost_per_hour);
+  //   }
+
+  // Compute value using the current rate.
+  // As mentioned above, we can keep old rates if/when we change the rate,
+  // and compute costs for refunds using that, when applicable.
   const price = compute_cost(info);
-  return price.discounted_cost;
+  return price.cost;
 }

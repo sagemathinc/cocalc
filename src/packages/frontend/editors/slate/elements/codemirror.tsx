@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import React, {
@@ -94,7 +94,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         } else {
           // everything selected, so now select all editor content.
           // NOTE that this only makes sense if we change focus
-          // to the enclosing select editor, thus loosing the
+          // to the enclosing select editor, thus losing the
           // cm editor focus, which is a bit weird.
           ReactEditor.focus(editor);
           selectAll(editor);
@@ -129,7 +129,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           ...cmOptions?.extraKeys,
           "Shift-Enter": () => {
             Transforms.move(editor, { distance: 1, unit: "line" });
-            ReactEditor.focus(editor);
+            ReactEditor.focus(editor, false, true);
             onShiftEnter?.();
           },
           // We make it so doing select all when not everything is
@@ -147,7 +147,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         if (cmRef.current == null) return;
         $(cmRef.current.getWrapperElement()).css(css);
       },
-      [cmRef]
+      [cmRef],
     );
 
     const focusEditor = useCallback(
@@ -169,7 +169,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           ReactEditor.blur(editor);
         }
       },
-      [collapsed, options.theme]
+      [collapsed, options.theme],
     );
 
     useEffect(() => {
@@ -326,7 +326,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         {addonAfter}
       </div>
     );
-  }
+  },
 );
 
 // TODO: vim version of this...
@@ -342,7 +342,7 @@ function cursorHandlers(editor, isInline: boolean | undefined) {
     if (cur_line === n && cur_ch === line_length) {
       //Transforms.move(editor, { distance: 1, unit: "line" });
       moveCursorDown(editor, true);
-      ReactEditor.focus(editor);
+      ReactEditor.focus(editor, false, true);
       return true;
     } else {
       return false;
@@ -358,7 +358,7 @@ function cursorHandlers(editor, isInline: boolean | undefined) {
         if (!isInline) {
           moveCursorToBeginningOfBlock(editor);
         }
-        ReactEditor.focus(editor);
+        ReactEditor.focus(editor, false, true);
       } else {
         commands.goLineUp(cm);
       }
@@ -367,7 +367,7 @@ function cursorHandlers(editor, isInline: boolean | undefined) {
       const cur = cm.getCursor();
       if (cur?.line === cm.firstLine() && cur?.ch == 0) {
         Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
-        ReactEditor.focus(editor);
+        ReactEditor.focus(editor, false, true);
       } else {
         commands.goCharLeft(cm);
       }

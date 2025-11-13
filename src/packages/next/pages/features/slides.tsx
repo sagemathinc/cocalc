@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Layout } from "antd";
@@ -27,7 +27,7 @@ export default function Slides({ customize }) {
         <Layout.Content>
           <Content
             landing
-            logo={<Icon name="slides" style={{ fontSize: "100px" }} />}
+            body={<Icon name="slides" style={{ fontSize: "100px" }} />}
             startup={"Slides"}
             title={
               "Online Collaborative Slides with Jupyter Code Cells and LaTeX Mathematics"

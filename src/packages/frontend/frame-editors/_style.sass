@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // make buttons and button-groups wrap with a larger vertical space (not 0 px)
@@ -10,23 +10,12 @@
   > button.btn
     margin-bottom: 20px
 
-// same for the format bar, see
-// https://github.com/sagemathinc/cocalc/issues/3419
-.cc-frame-tree-format-bar
-  max-height: 32px
-  overflow: hidden
-
-  >div.btn-group,
-  >button.btn
-    margin-bottom: 20px
-
-
 // latex editor, build panel
 .cocalc-latex-build-content
 
   .ant-tabs-tab
-    margin: 0  !important
-    padding: 0  !important
+    margin: 0 !important
+    padding: 0 !important
     > div
       width: 100%
       padding: 5px 10px
@@ -36,6 +25,42 @@
   .ant-tabs-content-holder
     display: flex
 
+    .ant-tabs-content
+      overflow-y: auto
+
     .ant-tabs-tabpane
-      display        : flex
-      flex-direction : column
+      display: flex
+      flex-direction: column
+
+// latex editor, output panel - full height tabs
+// This ensures the new output panel tabs (Build, Errors, Stats) take full height
+// and their content (like build logs, error lists) fills the available space
+.cocalc-latex-output-tabs
+  // Make the entire tabs container take full height and use flex layout
+  // This is needed because the output panel should fill the available editor space
+  height: 100%
+  display: flex
+  flex-direction: column
+
+  // The content holder contains all tab panes and should expand to fill remaining space
+  // flex: 1 makes it take all space not used by the tab headers
+  .ant-tabs-content-holder
+    flex: 1
+    display: flex
+
+  // The content wrapper needs to pass through the full height to individual tab panes
+  .ant-tabs-content
+    height: 100%
+    display: flex
+    flex-direction: column
+
+  // Individual tab panes (Build content, Errors content, etc.) need full height
+  .ant-tabs-tabpane
+    height: 100%
+
+    // CRITICAL: Only make the active tab pane use flex layout
+    // Hidden tab panes (ant-tabs-tabpane-hidden) must remain hidden
+    // Without this selector, all tab panes would be visible at once
+    &:not(.ant-tabs-tabpane-hidden)
+      display: flex
+      flex-direction: column

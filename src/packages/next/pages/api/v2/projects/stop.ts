@@ -9,7 +9,14 @@ import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  StopProjectInputSchema,
+  StopProjectOutputSchema,
+} from "lib/api/schema/projects/stop";
+import { OkStatus } from "../../../../lib/api/status";
+
+async function handle(req, res) {
   const { project_id } = getParams(req);
   const account_id = await getAccountId(req);
 
@@ -20,13 +27,34 @@ export default async function handle(req, res) {
     if (!account_id) {
       throw Error("must be signed in");
     }
-    if (!isCollaborator({ account_id, project_id })) {
+    if (!(await isCollaborator({ account_id, project_id }))) {
       throw Error("must be a collaborator to stop project");
     }
     const project = getProject(project_id);
     await project.stop();
-    res.json({});
+    res.json(OkStatus);
   } catch (err) {
     res.json({ error: err.message });
   }
 }
+
+export default apiRoute({
+  stopProject: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Projects"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: StopProjectInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: StopProjectOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

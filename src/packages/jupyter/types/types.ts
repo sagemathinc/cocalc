@@ -1,13 +1,16 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import type * as immutable from "immutable";
 
-export type NotebookMode = "edit" | "escape";
+import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 
-export type CellType = "raw" | "markdown" | "code" | "multi";
+import type { KernelMetadata, KernelSpec } from "@cocalc/util/jupyter/types";
+export type { KernelMetadata, KernelSpec };
+
+export type NotebookMode = "edit" | "escape";
 
 export type Scroll =
   | number
@@ -23,6 +26,7 @@ export type CellToolbarName =
   | "slideshow"
   | "attachments"
   | "tags"
+  | "ids"
   | "metadata"
   | "create_assignment";
 
@@ -53,25 +57,11 @@ export type BackendState =
   | "starting"
   | "running";
 
-export interface KernelSpec {
-  name: string;
-  display_name: string;
-  language: string;
-  interrupt_mode: string; // usually "signal"
-  env: { [key: string]: string }; // usually {}
-  metadata?: KernelMetadata;
-  resource_dir: string;
-  argv: string[]; // comamnd+args, how the kernel will be launched
-}
-
-export type KernelMetadata = {
-  // top level could contain a "cocalc" key, containing special settings understood by cocalc
-  cocalc?: {
-    priority?: number; // level 10 means it is important, on short list of choices, etc. 1 is low priority, for older versions
-    description: string; // Explains what the kernel is, eventually visible to the user
-    url: string; // a link to a website with more info about the kernel
-  } & {
-    // nested string/string key/value dictionary
-    [key: string]: string | Record<string, string>;
+export interface LLMTools {
+  model: LanguageModel;
+  setModel: (llm: LanguageModel) => void;
+  toolComponents: {
+    LLMCellTool;
+    LLMError;
   };
-};
+}

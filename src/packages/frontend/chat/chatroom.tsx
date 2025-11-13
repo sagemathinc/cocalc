@@ -1,42 +1,40 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Button, Divider, Input, Select, Space, Tooltip } from "antd";
 import { debounce } from "lodash";
-import { useDebounce } from "use-debounce";
-import { Button as AntdButton } from "antd";
+import { FormattedMessage } from "react-intl";
 
-import {
-  Button,
-  ButtonGroup,
-  Col,
-  Row,
-  Well,
-} from "@cocalc/frontend/antd-bootstrap";
+import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
-  redux,
-  useActions,
+  useEditorRedux,
   useEffect,
-  useRedux,
   useRef,
+  useState,
 } from "@cocalc/frontend/app-framework";
-import {
-  Icon,
-  Loading,
-  SearchInput,
-  Tip,
-  VisibleMDLG,
-} from "@cocalc/frontend/components";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
-import { sanitize_html_safe } from "@cocalc/frontend/misc";
-import { history_path } from "@cocalc/util/misc";
+import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
+import { EditorComponentProps } from "../frame-editors/frame-tree/types";
 import { ChatLog } from "./chat-log";
+import Filter from "./filter";
 import ChatInput from "./input";
+import { LLMCostEstimationChat } from "./llm-cost-estimation";
+import type { ChatState } from "./store";
+import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
-import VideoChatButton from "./video/launch-button";
+
+const FILTER_RECENT_NONE = {
+  value: 0,
+  label: (
+    <>
+      <Icon name="clock" />
+    </>
+  ),
+} as const;
 
 const PREVIEW_STYLE: React.CSSProperties = {
   background: "#f5f5f5",
@@ -57,41 +55,34 @@ const GRID_STYLE: React.CSSProperties = {
 } as const;
 
 const CHAT_LOG_STYLE: React.CSSProperties = {
-  margin: "5px 0",
   padding: "0",
   background: "white",
   flex: "1 0 auto",
   position: "relative",
 } as const;
 
-interface Props {
-  project_id: string;
-  path: string;
-}
+export function ChatRoom({
+  actions,
+  project_id,
+  path,
+  font_size,
+  desc,
+}: EditorComponentProps) {
+  const useEditor = useEditorRedux<ChatState>({ project_id, path });
+  const [input, setInput] = useState("");
+  const search = desc?.get("data-search") ?? "";
+  const filterRecentH: number = desc?.get("data-filterRecentH") ?? 0;
+  const selectedHashtags = desc?.get("data-selectedHashtags");
+  const scrollToIndex = desc?.get("data-scrollToIndex") ?? null;
+  const scrollToDate = desc?.get("data-scrollToDate") ?? null;
+  const fragmentId = desc?.get("data-fragmentId") ?? null;
+  const showPreview = desc?.get("data-showPreview") ?? null;
+  const costEstimate = desc?.get("data-costEstimate");
+  const messages = useEditor("messages");
+  const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
+  const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
 
-export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
-  const actions = useActions(project_id, path);
-
-  const is_uploading = useRedux(["is_uploading"], project_id, path);
-  const is_saving = useRedux(["is_saving"], project_id, path);
-  const is_preview = useRedux(["is_preview"], project_id, path);
-  const has_unsaved_changes = useRedux(
-    ["has_unsaved_changes"],
-    project_id,
-    path,
-  );
-  const has_uncommitted_changes = useRedux(
-    ["has_uncommitted_changes"],
-    project_id,
-    path,
-  );
-  const input: string = useRedux(["input"], project_id, path);
-  const [preview] = useDebounce(input, 250);
-
-  const search = useRedux(["search"], project_id, path);
-  const messages = useRedux(["messages"], project_id, path);
-
-  const submitMentionsRef = useRef<Function>();
+  const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
   const scrollToBottomRef = useRef<any>(null);
 
   // The act of opening/displaying the chat marks it as seen...
@@ -108,21 +99,13 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     on_send();
   }
 
-  function button_scroll_to_bottom(): void {
-    scrollToBottomRef.current?.(true);
-  }
-
-  function show_timetravel(): void {
-    redux.getProjectActions(project_id).open_file({
-      path: history_path(path),
-      foreground: true,
-      foreground_project: true,
-    });
-  }
-
-  function render_preview_message(): JSX.Element | undefined {
-    if (input.length == 0 || preview.length == 0) return;
-    const value = sanitize_html_safe(preview);
+  function render_preview_message(): React.JSX.Element | undefined {
+    if (!showPreview) {
+      return;
+    }
+    if (input.length === 0) {
+      return;
+    }
 
     return (
       <Row style={{ position: "absolute", bottom: "0px", width: "100%" }}>
@@ -138,11 +121,11 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
                 cursor: "pointer",
                 fontSize: "13pt",
               }}
-              onClick={() => actions.set_is_preview(false)}
+              onClick={() => actions.setShowPreview(false)}
             >
               <Icon name="times" />
             </div>
-            <StaticMarkdown value={value} />
+            <StaticMarkdown value={input} />
             <div className="small lighten" style={{ marginTop: "15px" }}>
               Preview (press Shift+Enter to send)
             </div>
@@ -154,178 +137,144 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     );
   }
 
-  function render_timetravel_button(): JSX.Element {
-    return (
-      <Button onClick={show_timetravel} bsStyle="info">
-        <Tip
-          title="TimeTravel"
-          tip={<span>Browse all versions of this chatroom.</span>}
-          placement="left"
-        >
-          <Icon name="history" /> <VisibleMDLG>TimeTravel</VisibleMDLG>
-        </Tip>
-      </Button>
-    );
+  function isValidFilterRecentCustom(): boolean {
+    const v = parseFloat(filterRecentHCustom);
+    return isFinite(v) && v >= 0;
   }
 
-  function render_bottom_button(): JSX.Element {
+  function renderFilterRecent() {
+    if (messages == null || messages.size <= 5) {
+      return null;
+    }
     return (
-      <Button onClick={button_scroll_to_bottom}>
-        <Tip
-          title="Newest Messages"
-          tip={
-            <span>
-              Scrolls the chat to the bottom showing the newest messages
-            </span>
-          }
-          placement="left"
-        >
-          <Icon name="arrow-down" /> <VisibleMDLG>Newest</VisibleMDLG>
-        </Tip>
-      </Button>
-    );
-  }
-
-  function render_increase_font_size(): JSX.Element {
-    return (
-      <Button onClick={() => actions.change_font_size(1)}>
-        <Tip
-          title="Increase font size"
-          tip={<span>Make the font size larger for chat messages</span>}
-          placement="left"
-        >
-          <Icon name="search-plus" />
-        </Tip>
-      </Button>
-    );
-  }
-
-  function render_decrease_font_size(): JSX.Element {
-    return (
-      <Button onClick={() => actions.change_font_size(-1)}>
-        <Tip
-          title="Decrease font size"
-          tip={<span>Make the font size smaller for chat messages</span>}
-          placement="left"
-        >
-          <Icon name="search-minus" />
-        </Tip>
-      </Button>
-    );
-  }
-
-  function render_export_button(): JSX.Element {
-    return (
-      <VisibleMDLG>
-        <Button
-          onClick={() => actions.export_to_markdown()}
-          style={{ marginLeft: "5px" }}
-        >
-          <Icon name="external-link" /> Export
-        </Button>
-      </VisibleMDLG>
-    );
-  }
-
-  function render_save_button() {
-    return (
-      <SaveButton
-        onClick={() => actions.save_to_disk()}
-        is_saving={is_saving}
-        has_unsaved_changes={has_unsaved_changes}
-        has_uncommitted_changes={has_uncommitted_changes}
-      />
-    );
-  }
-
-  function render_video_chat_button() {
-    if (project_id == null || path == null) return;
-    return (
-      <VideoChatButton
-        project_id={project_id}
-        path={path}
-        sendChat={(value) => actions.send_chat({ input: value })}
-      />
-    );
-  }
-
-  function render_search() {
-    return (
-      <SearchInput
-        placeholder={"Filter messages (use /re/ for regexp)..."}
-        default_value={search}
-        on_change={debounce(
-          (value) => actions.setState({ search: value }),
-          250,
-        )}
-        style={{ margin: 0, width: "100%", marginBottom: "5px" }}
-      />
+      <Tooltip title="Only show recent threads.">
+        <Select
+          open={filterRecentOpen}
+          onDropdownVisibleChange={(v) => setFilterRecentOpen(v)}
+          value={filterRecentH}
+          status={filterRecentH > 0 ? "warning" : undefined}
+          allowClear
+          onClear={() => {
+            actions.setFilterRecentH(0);
+            setFilterRecentHCustom("");
+          }}
+          popupMatchSelectWidth={false}
+          onSelect={(val: number) => actions.setFilterRecentH(val)}
+          options={[
+            FILTER_RECENT_NONE,
+            ...[1, 6, 12, 24, 48, 24 * 7, 14 * 24, 28 * 24].map((value) => {
+              const label = hoursToTimeIntervalHuman(value);
+              return { value, label };
+            }),
+          ]}
+          labelRender={({ label, value }) => {
+            if (!label) {
+              if (isValidFilterRecentCustom()) {
+                value = parseFloat(filterRecentHCustom);
+                label = hoursToTimeIntervalHuman(value);
+              } else {
+                ({ label, value } = FILTER_RECENT_NONE);
+              }
+            }
+            return (
+              <Tooltip
+                title={
+                  value === 0
+                    ? undefined
+                    : `Only threads with messages sent in the past ${label}.`
+                }
+              >
+                {label}
+              </Tooltip>
+            );
+          }}
+          dropdownRender={(menu) => (
+            <>
+              {menu}
+              <Divider style={{ margin: "8px 0" }} />
+              <Input
+                placeholder="Number of hours"
+                allowClear
+                value={filterRecentHCustom}
+                status={
+                  filterRecentHCustom == "" || isValidFilterRecentCustom()
+                    ? undefined
+                    : "error"
+                }
+                onChange={debounce(
+                  (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const v = e.target.value;
+                    setFilterRecentHCustom(v);
+                    const val = parseFloat(v);
+                    if (isFinite(val) && val >= 0) {
+                      actions.setFilterRecentH(val);
+                    } else if (v == "") {
+                      actions.setFilterRecentH(FILTER_RECENT_NONE.value);
+                    }
+                  },
+                  150,
+                  { leading: true, trailing: true },
+                )}
+                onKeyDown={(e) => e.stopPropagation()}
+                onPressEnter={() => setFilterRecentOpen(false)}
+                addonAfter={<span style={{ paddingLeft: "5px" }}>hours</span>}
+              />
+            </>
+          )}
+        />
+      </Tooltip>
     );
   }
 
   function render_button_row() {
+    if (messages == null || messages.size <= 5) {
+      return null;
+    }
     return (
-      <Row style={{ marginLeft: 0, marginRight: 0 }}>
-        <Col xs={9} md={9} style={{ padding: "2px" }}>
-          <ButtonGroup>
-            {render_save_button()}
-            {render_timetravel_button()}
-          </ButtonGroup>
-          <ButtonGroup style={{ marginLeft: "5px" }}>
-            {render_video_chat_button()}
-            {render_bottom_button()}
-          </ButtonGroup>
-          <ButtonGroup style={{ marginLeft: "5px" }}>
-            {render_decrease_font_size()}
-            {render_increase_font_size()}
-          </ButtonGroup>
-          {render_export_button()}
-          {actions.syncdb != null && (
-            <VisibleMDLG>
-              <ButtonGroup style={{ marginLeft: "5px" }}>
-                <Button onClick={() => actions.syncdb?.undo()}>
-                  <Icon name="undo" /> Undo
-                </Button>
-                <Button onClick={() => actions.syncdb?.redo()}>
-                  <Icon name="redo" /> Redo
-                </Button>
-              </ButtonGroup>
-            </VisibleMDLG>
-          )}
-          {actions.help != null && (
-            <Button
-              onClick={() => actions.help()}
-              style={{ marginLeft: "5px" }}
-            >
-              <Icon name="question-circle" /> Help
-            </Button>
-          )}
-        </Col>
-        <Col xs={3} md={3} style={{ padding: "2px" }}>
-          {render_search()}
-        </Col>
-      </Row>
+      <Space style={{ marginTop: "5px", marginLeft: "15px" }} wrap>
+        <Filter
+          actions={actions}
+          search={search}
+          style={{
+            margin: 0,
+            width: "100%",
+          }}
+        />
+        {renderFilterRecent()}
+      </Space>
     );
   }
 
   function on_send(): void {
-    const input = submitMentionsRef.current?.({ chatgpt: true });
     scrollToBottomRef.current?.(true);
-    actions.send_chat({ input });
+    actions.sendChat({ submitMentionsRef });
+    setTimeout(() => {
+      scrollToBottomRef.current?.(true);
+    }, 100);
+    setInput("");
   }
 
-  function render_body(): JSX.Element {
+  function render_body(): React.JSX.Element {
     return (
       <div className="smc-vfill" style={GRID_STYLE}>
         {render_button_row()}
         <div className="smc-vfill" style={CHAT_LOG_STYLE}>
           <ChatLog
+            actions={actions}
             project_id={project_id}
             path={path}
             scrollToBottomRef={scrollToBottomRef}
-            show_heads={true}
+            mode={"standalone"}
+            fontSize={font_size}
+            search={search}
+            filterRecentH={filterRecentH}
+            selectedHashtags={selectedHashtags}
+            scrollToIndex={scrollToIndex}
+            scrollToDate={scrollToDate}
+            selectedDate={fragmentId}
+            costEstimate={costEstimate}
           />
-          {is_preview && render_preview_message()}
+          {render_preview_message()}
         </div>
         <div style={{ display: "flex", marginBottom: "5px", overflow: "auto" }}>
           <div
@@ -335,13 +284,18 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             }}
           >
             <ChatInput
+              fontSize={font_size}
               autoFocus
               cacheId={`${path}${project_id}-new`}
               input={input}
               on_send={on_send}
               height={INPUT_HEIGHT}
               onChange={(value) => {
-                actions.set_input(value);
+                setInput(value);
+                // submitMentionsRef will not actually submit mentions; we're only interested in the reply value
+                const input =
+                  submitMentionsRef.current?.(undefined, true) ?? value;
+                actions?.llmEstimateCost({ date: 0, input });
               }}
               submitMentionsRef={submitMentionsRef}
               syncdb={actions.syncdb}
@@ -358,22 +312,59 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             }}
           >
             <div style={{ flex: 1 }} />
-            <AntdButton
-              onClick={on_send_button_click}
-              disabled={input.trim() === "" || is_uploading}
-              type="primary"
-              style={{ height: "47.5px" }}
+            {costEstimate?.get("date") == 0 && (
+              <LLMCostEstimationChat
+                costEstimate={costEstimate?.toJS()}
+                compact
+                style={{
+                  flex: 0,
+                  fontSize: "85%",
+                  textAlign: "center",
+                  margin: "0 0 5px 0",
+                }}
+              />
+            )}
+            <Tooltip
+              title={
+                <FormattedMessage
+                  id="chatroom.chat_input.send_button.tooltip"
+                  defaultMessage={"Send message (shift+enter)"}
+                />
+              }
             >
-              <Icon name="paper-plane" /> Send
-            </AntdButton>
+              <Button
+                onClick={on_send_button_click}
+                disabled={input.trim() === ""}
+                type="primary"
+                style={{ height: "47.5px" }}
+                icon={<Icon name="paper-plane" />}
+              >
+                <FormattedMessage
+                  id="chatroom.chat_input.send_button.label"
+                  defaultMessage={"Send"}
+                />
+              </Button>
+            </Tooltip>
             <div style={{ height: "5px" }} />
-            <AntdButton
-              onClick={() => actions.set_is_preview(true)}
+            <Button
+              type={showPreview ? "dashed" : undefined}
+              onClick={() => actions.setShowPreview(!showPreview)}
               style={{ height: "47.5px" }}
-              disabled={is_preview}
             >
-              Preview
-            </AntdButton>
+              <FormattedMessage
+                id="chatroom.chat_input.preview_button.label"
+                defaultMessage={"Preview"}
+              />
+            </Button>
+            <div style={{ height: "5px" }} />
+            <Button
+              style={{ height: "47.5px" }}
+              onClick={() => {
+                actions?.frameTreeActions?.getVideoChat().startChatting();
+              }}
+            >
+              <Icon name="video-camera" /> Video
+            </Button>
           </div>
         </div>
       </div>
@@ -392,4 +383,4 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
       {render_body()}
     </div>
   );
-};
+}

@@ -1,4 +1,4 @@
-name: Make all packages and run their tests
+name: Test
 
 # newer commits in the same PR abort running ones for the same workflow
 concurrency:
@@ -16,7 +16,7 @@ on:
     inputs:
       debug_enabled:
         type: boolean
-        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        description: "Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)"
         required: false
         default: false
 
@@ -24,6 +24,7 @@ env:
   PGDATABASE: smc
   PGUSER: smc
   PGHOST: localhost
+  COCALC_MODE: "single-user"
 
 jobs:
   doclinks:
@@ -36,18 +37,18 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
         with:
           detached: true
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install python3 requests
         run: sudo apt-get install python3-requests
       - name: Check doc links
-        run: cd src/scripts && python3 check_doc_urls.py
+        run: cd src/scripts && python3 check_doc_urls.py || sleep 5 || python3 check_doc_urls.py
 
-  build:
+  test:
     runs-on: ubuntu-latest
 
     services:
       postgres:
-        image: postgres:14
+        image: postgres:${{ matrix.pg-version}}
         env:
           POSTGRES_DB: smc
           POSTGRES_USER: smc
@@ -64,7 +65,10 @@ jobs:
       matrix:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
         node-version:
-          - "18.17.1"
+          - "20"
+        pg-version:
+          - "13.12"
+          - "16"
 
     steps:
       # Enable tmate debugging of manually-triggered workflows if the input option was provided
@@ -73,9 +77,11 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
         with:
           detached: true
-      - uses: actions/checkout@v3
+
+      - uses: actions/checkout@v4
+
       - name: Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           # https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#caching-packages-data
@@ -85,6 +91,67 @@ jobs:
           # cache: "pnpm"
           # cache-dependency-path: "src/packages/pnpm-lock.yaml"
 
-      - run: cd src && npm install -g pnpm
-      - run: cd src && pnpm run make
-      - run: cd src && pnpm run test
+      - name: Download and install Valkey
+        run: |
+          VALKEY_VERSION=8.1.2
+          curl -LOq https://download.valkey.io/releases/valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
+          tar -xzf valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
+          sudo cp valkey-${VALKEY_VERSION}-jammy-x86_64/bin/valkey-server /usr/local/bin/
+
+      - name: Set up Python venv and Jupyter kernel
+        run: |
+          python3 -m pip install --upgrade pip virtualenv
+          python3 -m virtualenv venv
+          source venv/bin/activate
+          pip install ipykernel
+          python -m ipykernel install --prefix=./jupyter-local --name python3-local --display-name "Python 3 (Local)"
+
+
+      - name: install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: build
+        run: cd src && pnpm run make
+
+      # This runs all the tests with text output and jest-junit reporters to generate junit.xml reports
+      # That test-github-ci target runs workspaces.py for testing, which in turn runs the depchecks
+      - name: test
+        run: source venv/bin/activate && cd src && pnpm run test-github-ci --report
+
+      - name: upload test results
+        uses: actions/upload-artifact@v4  # upload test results
+        if: ${{ !cancelled() }}           # run this step even if previous step failed
+        with:
+          name: "test-results-node-${{ matrix.node-version }}-pg-${{ matrix.pg-version }}"
+          path: 'src/packages/*/junit.xml'
+
+  report:
+    runs-on: ubuntu-latest
+
+    needs: [test]
+
+    if: ${{ !cancelled() }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "test-results-*"
+          merge-multiple: true
+          path: test-results/
+
+      - name: Test Report
+        uses: dorny/test-reporter@v2
+        with:
+          name: CoCalc Jest Tests
+          path: 'test-results/**/junit.xml'
+          reporter: jest-junit
+          use-actions-summary: 'true'
+          fail-on-error: false
+

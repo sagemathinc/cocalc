@@ -1,47 +1,27 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { theme, ThemeConfig } from "antd";
 import { debounce } from "lodash";
-import { createContext, useContext } from "react";
-import type { SizeType } from "antd/es/config-provider/SizeContext";
-import { ThemeConfig, theme } from "antd";
+import { ReactNode, useEffect, useMemo, useState } from "react";
+import { useIntl } from "react-intl";
 
-import {
-  CSS,
-  useEffect,
-  useMemo,
-  useState,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
+import { ACTIVITY_BAR_LABELS } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { COLORS } from "@cocalc/util/theme";
-import {
-  FONT_SIZE_ICONS_NARROW,
-  FONT_SIZE_ICONS_NORMAL,
-  NARROW_THRESHOLD_PX,
-  NAV_HEIGHT_NARROW_PX,
-  NAV_HEIGHT_PX,
-  PageStyle,
-} from "./top-nav-consts";
+import { NARROW_THRESHOLD_PX, PageStyle } from "./top-nav-consts";
+import useAppContext, { AppContext, AppState, calcStyle } from "./use-context";
 
-export interface AppState {
-  pageWidthPx: number;
-  pageStyle: PageStyle;
-  antdComponentSize?: SizeType;
-  antdTheme?: ThemeConfig;
-}
+export { AppContext, useAppContext };
 
-export const AppContext = createContext<AppState>({
-  pageWidthPx: window.innerWidth,
-  pageStyle: calcStyle(isNarrow()),
-});
+export function useAppContextProvider(): AppState {
+  const intl = useIntl();
+  const other_settings = useTypedRedux("account", "other_settings");
+  const showActBarLabels = other_settings.get(ACTIVITY_BAR_LABELS) ?? true;
 
-export function useAppState() {
-  return useContext(AppContext);
-}
-
-export function useAppStateProvider() {
   const [pageWidthPx, setPageWidthPx] = useState<number>(window.innerWidth);
 
   const [narrow, setNarrow] = useState<boolean>(isNarrow());
@@ -68,9 +48,32 @@ export function useAppStateProvider() {
     return calcStyle(narrow);
   }, [narrow]);
 
+  function formatIntl(
+    msg: IntlMessage | ReactNode | string,
+  ): ReactNode | string {
+    if (isIntlMessage(msg)) {
+      return intl.formatMessage(msg);
+    } else {
+      return msg;
+    }
+  }
+
+  function displayI18N(
+    label: string | IntlMessage | ReactNode,
+  ): string | ReactNode {
+    if (isIntlMessage(label)) {
+      return intl.formatMessage(label);
+    } else {
+      return label;
+    }
+  }
+
   return {
+    formatIntl,
+    displayI18N,
     pageWidthPx,
     pageStyle,
+    showActBarLabels,
   };
 }
 
@@ -114,59 +117,4 @@ export function useAntdStyleProvider() {
 
 function isNarrow(): boolean {
   return window.innerWidth != null && window.innerWidth <= NARROW_THRESHOLD_PX;
-}
-
-function calcStyle(isNarrow: boolean): PageStyle {
-  const fontSizeIcons: string = isNarrow
-    ? FONT_SIZE_ICONS_NARROW
-    : FONT_SIZE_ICONS_NORMAL;
-  const topPaddingIcons: string = isNarrow ? "2px" : "5px";
-  const sidePaddingIcons: string = isNarrow ? "7px" : "14px";
-
-  const height = isNarrow ? NAV_HEIGHT_NARROW_PX : NAV_HEIGHT_PX;
-
-  const topBarStyle: CSS = {
-    height: `${height}px`,
-  } as const;
-
-  const fileUseStyle: CSS = {
-    background: "white",
-    border: `2px solid ${COLORS.GRAY_DDD}`,
-    borderRadius: "5px",
-    boxShadow: "0 0 15px #aaa",
-    fontSize: "10pt",
-    height: "90%",
-    margin: 0,
-    overflowX: "hidden",
-    overflowY: "auto",
-    padding: "4px",
-    position: "fixed",
-    right: "5vw",
-    top: `${height}px`,
-    width: isNarrow ? "90vw" : "50vw",
-    zIndex: 110,
-  } as const;
-
-  const projectsNavStyle: CSS | undefined = isNarrow
-    ? {
-        /* this makes it so the projects tabs are on a separate row; otherwise, there is literally no room for them at all... */
-        width: "100vw",
-        marginTop: "4px",
-        height: `${height}px`,
-        // no flex!
-      }
-    : {
-        flex: "1 1 auto", // necessary to stretch out to the full width
-      };
-
-  return {
-    topBarStyle,
-    fileUseStyle,
-    projectsNavStyle,
-    isNarrow,
-    sidePaddingIcons,
-    topPaddingIcons,
-    fontSizeIcons,
-    height,
-  };
 }

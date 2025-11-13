@@ -1,11 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { original_path } from "@cocalc/util/misc";
-import { redux } from "../../app-framework";
-import { webapp_client } from "../../webapp-client";
+import { redux } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { isValidUUID, original_path } from "@cocalc/util/misc";
 
 interface Mention {
   account_id: string;
@@ -16,13 +16,17 @@ interface Mention {
 export async function submit_mentions(
   project_id: string,
   path: string,
-  mentions: Mention[]
+  mentions: Mention[],
 ): Promise<void> {
   const source = redux.getStore("account")?.get("account_id");
   if (source == null) {
     return;
   }
   for (const { account_id, description, fragment_id } of mentions) {
+    if (!isValidUUID(account_id)) {
+      // Ignore all language model mentions, they are processed by the chat actions in the frontend
+      continue;
+    }
     try {
       await webapp_client.query_client.query({
         query: {

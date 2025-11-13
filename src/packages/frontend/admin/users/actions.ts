@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { fromJS, List } from "immutable";
@@ -41,7 +41,7 @@ export class AdminUsersActions extends Actions<StoreState> {
       result = await user_search({
         query: store.get("query").trim().toLowerCase(), // backend assumes lower case
         admin: true,
-        limit: 100,
+        limit: store.get("limit"),
       });
     } catch (err) {
       this.set_status(`ERROR -- ${err}`);

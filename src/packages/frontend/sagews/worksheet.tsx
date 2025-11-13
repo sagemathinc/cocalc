@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -26,7 +26,7 @@ export default function Worksheet({ sagews, style }: Props) {
     }
   }
   cells.sort(field_cmp("pos"));
-  const v: JSX.Element[] = [];
+  const v: React.JSX.Element[] = [];
   for (const cell of cells) {
     const { id, input, output, flags } = cell;
     v.push(

@@ -6,6 +6,7 @@ import { Table } from "@cocalc/frontend/app-framework/Table";
 import { redux } from "@cocalc/frontend/app-framework";
 import { isValidUUID } from "@cocalc/util/misc";
 import { computeServersEnabled } from "./config";
+import { delay } from "awaiting";
 
 const PREFIX = "compute-server-";
 function projectIdToName(project_id) {
@@ -38,6 +39,7 @@ class ComputeServersTable extends Table {
         {
           project_id: nameToProjectId(this.name),
           id: null,
+          project_specific_id: null,
           account_id: null,
           title: null,
           color: null,
@@ -46,7 +48,6 @@ class ComputeServersTable extends Table {
           error: null,
           state: null,
           state_changed: null,
-          idle_timeout: null,
           autorestart: null,
           cloud: null,
           configuration: null,
@@ -54,9 +55,12 @@ class ComputeServersTable extends Table {
           data: null,
           avatar_image_tiny: null,
           last_edited: null,
+          last_edited_user: null,
           purchase_id: null,
           detailed_state: null,
           position: null,
+          template: null,
+          spend: null,
         },
       ],
     };
@@ -71,8 +75,15 @@ class ComputeServersTable extends Table {
 }
 
 const tables: { [project_id: string]: ComputeServersTable } = {};
-export function init(project_id: string) {
-  if (!computeServersEnabled()) {
+export async function init(project_id: string) {
+  let enabled = computeServersEnabled();
+  while (enabled === null) {
+    // customize hasn't been loaded yet, so we don't know.
+    await delay(1000);
+    enabled = computeServersEnabled();
+  }
+
+  if (!enabled) {
     // no need -- would just waste resources
     return;
   }
@@ -89,4 +100,3 @@ export function close(project_id: string) {
   tables[project_id].close();
   delete tables[project_id];
 }
-

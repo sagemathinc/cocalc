@@ -1,25 +1,34 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
-React component that describes a single cella
+React component that describes a single cell
 */
 
 import { Map } from "immutable";
-import { React, Rendered, useDelayedRender } from "../app-framework";
-import { clear_selection } from "../misc/clear-selection";
+import { useState } from "react";
+
+import {
+  CSS,
+  React,
+  Rendered,
+  useDelayedRender,
+} from "@cocalc/frontend/app-framework";
+import { Icon, Tip } from "@cocalc/frontend/components";
+import { IS_TOUCH } from "@cocalc/frontend/feature";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { clear_selection } from "@cocalc/frontend/misc/clear-selection";
+import { LLMTools } from "@cocalc/jupyter/types";
 import { COLORS } from "@cocalc/util/theme";
-import { INPUT_PROMPT_COLOR } from "./prompt/base";
-import { Icon, Tip } from "../components";
+import { JupyterActions } from "./browser-actions";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";
-
-import { JupyterActions } from "./browser-actions";
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
-
+import { InsertCell } from "./insert-cell";
+import { Position } from "./insert-cell/types";
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
+import { INPUT_PROMPT_COLOR } from "./prompt/base";
 
 interface Props {
   cell: Map<string, any>; // TODO: types
@@ -34,6 +43,7 @@ interface Props {
   is_selected?: boolean;
   is_markdown_edit?: boolean;
   project_id?: string;
+  path?: string;
   directory?: string;
   complete?: Map<string, any>; // TODO: types
   is_focused?: boolean;
@@ -44,8 +54,14 @@ interface Props {
   is_scrolling?: boolean;
   height?: number; // optional fixed height
   delayRendering?: number;
-  chatgpt?;
+  llmTools?: LLMTools;
   computeServerId?: number;
+  is_visible?: boolean;
+  isFirst?: boolean;
+  isLast?: boolean;
+  dragHandle?: React.JSX.Element;
+  read_only?: boolean;
+  isDragging?: boolean;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -61,27 +77,32 @@ function areEqual(props: Props, nextProps: Props): boolean {
     nextProps.mode !== props.mode ||
     nextProps.font_size !== props.font_size ||
     nextProps.is_focused !== props.is_focused ||
+    nextProps.is_visible !== props.is_visible ||
     nextProps.more_output !== props.more_output ||
     nextProps.cell_toolbar !== props.cell_toolbar ||
     nextProps.trust !== props.trust ||
     nextProps.is_scrolling !== props.is_scrolling ||
     nextProps.height !== props.height ||
+    nextProps.isFirst !== props.isFirst ||
+    nextProps.isLast !== props.isLast ||
     nextProps.computeServerId !== props.computeServerId ||
+    (nextProps.llmTools?.model ?? "") !== (props.llmTools?.model ?? "") ||
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
-      (nextProps.is_current || props.is_current))
+      (nextProps.is_current || props.is_current)) ||
+    nextProps.dragHandle !== props.dragHandle ||
+    nextProps.read_only !== props.read_only ||
+    nextProps.isDragging !== props.isDragging
   );
 }
 
-export const Cell: React.FC<Props> = React.memo((props) => {
+export const Cell: React.FC<Props> = React.memo((props: Props) => {
+  const [showAICellGen, setShowAICellGen] = useState<Position>(null);
   const id: string = props.id ?? props.cell.get("id");
   const frameActions = useNotebookFrameActions();
   const render = useDelayedRender(props.delayRendering ?? 0);
+
   if (!render) {
     return <></>;
-  }
-
-  function is_editable(): boolean {
-    return props.cell.getIn(["metadata", "editable"], true) as any;
   }
 
   function is_deletable(): boolean {
@@ -110,10 +131,13 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         complete={props.is_current ? props.complete : undefined}
         cell_toolbar={props.cell_toolbar}
         trust={props.trust}
-        is_readonly={!is_editable()}
+        is_readonly={!!props.read_only}
+        input_is_readonly={!props.cell.getIn(["metadata", "editable"], true)}
         is_scrolling={props.is_scrolling}
-        chatgpt={props.chatgpt}
+        llmTools={props.llmTools}
         computeServerId={props.computeServerId}
+        setShowAICellGen={setShowAICellGen}
+        dragHandle={props.dragHandle}
       />
     );
   }
@@ -136,7 +160,8 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         more_output={props.more_output}
         trust={props.trust}
         complete={props.is_current && props.complete != null}
-        chatgpt={props.chatgpt}
+        llmTools={props.llmTools}
+        isDragging={props.isDragging}
       />
     );
   }
@@ -147,11 +172,15 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       frameActions.current?.select_cell_range(id);
       return;
     }
+    frameActions.current?.set_mode("escape");
     frameActions.current?.set_cur_id(id);
     frameActions.current?.unselect_all_cells();
   }
 
   function double_click(event: any): void {
+    if (props.read_only) {
+      return;
+    }
     if (props.cell.getIn(["metadata", "editable"]) === false) {
       return;
     }
@@ -169,29 +198,24 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   function render_not_deletable(): Rendered {
     if (is_deletable()) return;
     return (
-      <Tip
-        title={"Protected from deletion"}
-        placement={"right"}
-        size={"small"}
-        style={{ marginRight: "5px" }}
-      >
+      <Tip title={"Protected from deletion"} placement={"right"} size={"small"}>
         <Icon name="ban" />
       </Tip>
     );
   }
 
   function render_not_editable(): Rendered {
-    if (is_editable()) return;
-    return (
-      <Tip
-        title={"Protected from modifications"}
-        placement={"right"}
-        size={"small"}
-        style={{ marginRight: "5px" }}
-      >
-        <Icon name="lock" />
-      </Tip>
-    );
+    if (props.read_only || !props.cell.getIn(["metadata", "editable"], true)) {
+      return (
+        <Tip
+          title={"Protected from modifications"}
+          placement={"right"}
+          size={"small"}
+        >
+          <Icon name="lock" />
+        </Tip>
+      );
+    }
   }
 
   function render_nbgrader(): Rendered {
@@ -208,7 +232,79 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     );
   }
 
+  function getBorderColor(): string {
+    if (props.is_current) {
+      // is the current cell
+      if (props.mode === "edit") {
+        // edit mode
+        return "#66bb6a";
+      } else {
+        // escape mode
+        if (props.is_focused) {
+          return "#42a5f5";
+        } else {
+          return "#42a5ff";
+        }
+      }
+    } else {
+      if (props.is_selected) {
+        return "#e3f2fd";
+      } else {
+        return "transparent";
+      }
+    }
+  }
+
+  function getCellStyle(): CSS {
+    const color = getBorderColor();
+
+    // 30px -- make room for InsertCell(above)
+    const marginTop = props.isFirst
+      ? "30px"
+      : props.actions != null
+        ? "10px"
+        : "20px";
+
+    const style: React.CSSProperties = {
+      border: `1px solid ${color}`,
+      borderLeft: `10px solid ${color}`,
+      borderRight: `10px solid ${color}`,
+      borderRadius: "10px",
+      position: "relative",
+      // The bigger top margin when in fully read only mode (no props.actions,
+      // e.g., timetravel view) is to deal with the fact that the insert cell
+      // bar isn't rendered, but some of the controls off
+      // to the right assume it is.
+      // The bigger BOTTOM margin when no output is because otherwise the big
+      // top margin makes things look very weirdly unbalanced.
+      ...(props.cell.get("output") || props.actions == null
+        ? {
+            padding: "2px",
+            margin:
+              props.actions != null
+                ? `${marginTop} 15px 2px 5px`
+                : `${marginTop} 15px 2px 5px`,
+          }
+        : {
+            padding: "2px 2px 15px 2px",
+            margin:
+              props.actions != null
+                ? `${marginTop} 15px -15px 5px`
+                : `${marginTop} 15px -15px 5px`,
+          }),
+    };
+
+    if (props.is_selected) {
+      style.background = "#e3f2fd";
+    }
+
+    return style;
+  }
+
   function render_metadata_state(): Rendered {
+    if (props.read_only) {
+      return;
+    }
     let style: React.CSSProperties;
 
     // note -- that second part is because the official
@@ -229,15 +325,24 @@ export const Cell: React.FC<Props> = React.memo((props) => {
       // in the condition above.
       style = {
         position: "absolute",
-        top: "2px",
-        left: "5px",
+        top: 0,
+        left: "2px",
         whiteSpace: "nowrap",
         color: COLORS.GRAY_L,
       };
     } else {
       // Need arbitrarily much horizontal space, so we
       // get our own line.
-      style = { color: COLORS.GRAY_L, marginBottom: "5px" };
+      style = {
+        color: COLORS.GRAY_L,
+        marginBottom: "5px",
+        top: 0,
+        left: "2px",
+      };
+    }
+    if (props.cell.get("cell_type") == "markdown") {
+      // move down to avoid overlap with drag handle
+      style = { ...style, top: "20px" };
     }
 
     if (props.is_current || props.is_selected) {
@@ -259,56 +364,52 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     );
   }
 
-  let color;
-  if (props.is_current) {
-    // is the current cell
-    if (props.mode === "edit") {
-      // edit mode
-      color = "#66bb6a";
-    } else {
-      // escape mode
-      if (props.is_focused) {
-        color = "#42a5f5";
-      } else {
-        color = "#42a5ff";
-      }
+  function render_insert_cell(
+    position: "above" | "below" = "above",
+  ): React.JSX.Element | null {
+    if (props.actions == null || IS_TOUCH) {
+      return null;
     }
-  } else {
-    if (props.is_selected) {
-      color = "#e3f2fd";
-    } else {
-      color = "transparent";
+    if (position === "above" && !props.isFirst) {
+      return null;
     }
-  }
-  const style: React.CSSProperties = {
-    border: `1px solid ${color}`,
-    borderLeft: `10px solid ${color}`,
-    borderRight: `10px solid ${color}`,
-    borderRadius: "10px",
-    padding: "2px",
-    // The bigger top margin when in fully read only mode (no props.actions, e.g., timetravel view)
-    // is to deal with the fact that the insert cell bar isn't rendered, but some of the controls off
-    // to the right assume it is.
-    margin: props.actions != null ? "2px 15px 2px 5px" : "20px 15px 2px 5px",
-    position: "relative",
-  };
-
-  if (props.is_selected) {
-    style.background = "#e3f2fd";
+    return (
+      <InsertCell
+        id={id}
+        project_id={props.project_id}
+        hide={!props.is_visible}
+        llmTools={props.llmTools}
+        key={id + "insert" + position}
+        position={position}
+        actions={props.actions}
+        showAICellGen={
+          showAICellGen === position ||
+          (position === "below" && showAICellGen === "replace")
+            ? showAICellGen
+            : null
+        }
+        setShowAICellGen={setShowAICellGen}
+        alwaysShow={position === "below" && props.isLast}
+      />
+    );
   }
 
   // Note that the cell id is used for scroll functionality, so *is* important.
   return (
-    <div
-      style={style}
-      onMouseUp={props.is_current ? undefined : click_on_cell}
-      onDoubleClick={double_click}
-      id={id}
-      cocalc-test={"jupyter-cell"}
-    >
-      {render_metadata_state()}
-      {render_cell_input(props.cell)}
-      {render_cell_output(props.cell)}
-    </div>
+    <>
+      {!props.read_only && render_insert_cell("above")}
+      <div
+        style={getCellStyle()}
+        onMouseUp={props.is_current ? undefined : click_on_cell}
+        onDoubleClick={double_click}
+        id={id}
+        cocalc-test={"jupyter-cell"}
+      >
+        {render_metadata_state()}
+        {render_cell_input(props.cell)}
+        {render_cell_output(props.cell)}
+      </div>
+      {!props.read_only && render_insert_cell("below")}
+    </>
   );
 }, areEqual);

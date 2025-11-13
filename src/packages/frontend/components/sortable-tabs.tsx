@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import {
@@ -92,11 +92,15 @@ export function SortableTabs(props: Props) {
       lastRef.current.length = items.length;
       return last.itemWidth;
     }
+    // resize?.width - 46 - the minus 46 is to take into account the "..." dropdown.
     const itemWidth =
       Math.max(
-        180,
-        Math.min(250 + 65, (resize?.width ?? 0) / Math.max(1, items.length))
-      ) - 70; // the constant accounts for the margin and x for an antd tab.
+        80,
+        Math.min(
+          250 + 65,
+          ((resize?.width ?? 500) - 46) / Math.max(1, items.length),
+        ),
+      ) - 55; // the constant accounts for the margin and x for an antd tab.
     lastRef.current = {
       width: resize.width ?? 0,
       length: items.length,
@@ -126,13 +130,14 @@ export function SortableTabs(props: Props) {
   );
 }
 
-export function SortableTab({ children, id }) {
+export function SortableTab({ children, id, style }) {
   const { attributes, listeners, setNodeRef, transform, transition, active } =
     useSortable({ id });
   return (
     <div
       ref={setNodeRef}
       style={{
+        ...style,
         transform: transform
           ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
           : undefined,
@@ -147,11 +152,15 @@ export function SortableTab({ children, id }) {
   );
 }
 
-export function renderTabBar(tabBarProps, DefaultTabBar) {
+export function renderTabBar(tabBarProps, DefaultTabBar, styles?) {
   return (
     <DefaultTabBar {...tabBarProps}>
       {(node) => (
-        <SortableTab key={node.key} id={node.key}>
+        <SortableTab
+          key={node.key}
+          id={node.key}
+          style={styles?.[node.key] ?? styles?.[""]}
+        >
           {node}
         </SortableTab>
       )}

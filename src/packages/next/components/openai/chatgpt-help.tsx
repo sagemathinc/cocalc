@@ -1,15 +1,16 @@
+import { Alert, Button, Col, Input, Row } from "antd";
+import { useRouter } from "next/router";
+import { CSSProperties, useRef, useState } from "react";
+
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
-import { Alert, Button, Col, Input, Row } from "antd";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import { useCustomize } from "lib/customize";
-import { useRouter } from "next/router";
-import { CSSProperties, useRef, useState } from "react";
 
 type State = "input" | "wait";
 
@@ -96,11 +97,11 @@ export default function ChatGPTHelp({
         >
           <Input.TextArea
             value={input}
-            maxLength={account?.account_id == null ? 10 : 2000}
+            maxLength={2000}
             onChange={(e) => setInput(e.target.value)}
             size={size}
             autoSize={{ minRows: focus ? 2 : 1, maxRows: 5 }}
-            disabled={state == "wait"}
+            disabled={state == "wait" || account?.account_id == null}
             onFocus={() => setFocus(true)}
             onBlur={() => setFocus(false)}
             placeholder={
@@ -113,10 +114,10 @@ export default function ChatGPTHelp({
               }
             }}
           />
-          {input.trim() && account?.account_id == null && (
+          {account?.account_id == null && (
             <InPlaceSignInOrUp
               title="ChatGPT"
-              why={"to use ChatGPT on " + siteName}
+              why="to use ChatGPT"
               onSuccess={() => {
                 router.reload();
               }}
@@ -130,7 +131,6 @@ export default function ChatGPTHelp({
             marginBottom: "5px",
             display: "flex",
             justifyContent: "center",
-            alignItems: "center",
           }}
         >
           <Button

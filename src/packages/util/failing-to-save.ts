@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -44,7 +44,7 @@ export function failing_to_save(
   hash: number,
   expected_hash?: number
 ): boolean {
-  if (expected_hash == undefined) {
+  if (expected_hash == null) {
     return false;
   }
   if (!state[path]) {

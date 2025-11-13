@@ -1,14 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Component, Rendered, CSS } from "../app-framework";
-const { User } = require("../users");
+import { User } from "@cocalc/frontend/users";
 import { Icon, TimeAgo, r_join } from "../components";
 import { FileUseIcon } from "./icon";
 import { Map as iMap } from "immutable";
-const { Col, Grid, Row } = require("react-bootstrap");
+import { Col, Grid, Row } from "@cocalc/frontend/antd-bootstrap";
 import * as misc from "@cocalc/util/misc";
 import { open_file_use_entry } from "./util";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
@@ -55,7 +55,7 @@ export class FileUseInfo extends Component<Props, {}> {
           name={user.account_id === this.props.account_id ? "You" : undefined}
           user_map={this.props.user_map}
           last_active={user.last_edited ? user.last_edited : user.last_used}
-        />
+        />,
       );
     }
     if (v.length == 0) {
@@ -83,13 +83,13 @@ export class FileUseInfo extends Component<Props, {}> {
       x.get("project_id"),
       x.get("path"),
       x.get("show_chat", false),
-      this.props.redux
+      this.props.redux,
     );
   }
 
   render_path(): Rendered {
     let { name, ext } = misc.separate_file_extension(
-      this.props.info.get("path")
+      this.props.info.get("path"),
     );
     name = misc.trunc_middle(name, TRUNCATE_LENGTH);
     ext = misc.trunc_middle(ext, TRUNCATE_LENGTH);
@@ -154,7 +154,7 @@ export class FileUseInfo extends Component<Props, {}> {
       misc.merge(style, { background: "#08c", color: "white" });
     }
     return (
-      <Grid style={style} onClick={(e) => this.open(e)} fluid={true}>
+      <Grid style={style} onClick={(e) => this.open(e)}>
         <Row style={{ padding: "5px" }}>
           <Col key="action" sm={1} style={{ fontSize: "14pt" }}>
             {this.render_action_icon()}

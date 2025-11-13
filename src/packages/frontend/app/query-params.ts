@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Initialize various things related to the overall page and query params (e.g., fullscreen).
@@ -79,4 +79,5 @@ export function init_query_params(): void {
   // not have session in the URL, so we can share url's without infected
   // other user's session.
   QueryParams.remove("session");
+
 }

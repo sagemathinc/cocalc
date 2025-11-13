@@ -1,22 +1,29 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* Code related to the history and URL in the browser bar.
+See also src/packages/util/routing/app.ts
+and src/packages/hub/servers/app/app-redirect.ts
 
 The URI schema handled by the single page app is as follows:
      Overall settings:
         https://cocalc.com/settings
      Admin only page:
         https://cocalc.com/admin
-     Account settings (default):
-        https://cocalc.com/settings/account
+      Account settings (default):
+         https://cocalc.com/settings/account
+      Account sub-tabs:
+         https://cocalc.com/settings/account/profile
+         https://cocalc.com/settings/account/ai
+         https://cocalc.com/settings/account/security
+         etc.
      Billing:
         https://cocalc.com/settings/billing
      Upgrades:
         https://cocalc.com/settings/upgrades
-     Licenes:
+     Licenses:
         https://cocalc.com/settings/licenses
      Support:
         https://cocalc.com/settings/support
@@ -32,7 +39,7 @@ The URI schema handled by the single page app is as follows:
         https://cocalc.com/projects/project-id/settings
      Log:
         https://cocalc.com/projects/project-id/log
-     Directory listing (must have slash at end):
+     Folder listing (must have slash at end):
        https://cocalc.com/projects/project-id/files/path/to/dir/
      Open file:
        https://cocalc.com/projects/project-id/files/path/to/file
@@ -48,7 +55,22 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
+import {
+  type PreferencesSubTabKey,
+  type PreferencesSubTabType,
+  VALID_PREFERENCES_SUB_TYPES,
+} from "@cocalc/util/types/settings";
 import { getNotificationFilterFromFragment } from "./notifications/fragment";
+
+// Utility function to safely create preferences sub-tab key
+function createPreferencesSubTabKey(
+  subTab: string,
+): PreferencesSubTabKey | null {
+  if (VALID_PREFERENCES_SUB_TYPES.includes(subTab as PreferencesSubTabType)) {
+    return `preferences-${subTab}` as PreferencesSubTabKey;
+  }
+  return null;
+}
 
 // Determine query params part of URL based on state of the project store.
 // This also leaves unchanged any *other* params already there (i.e., not
@@ -81,7 +103,7 @@ export function update_params() {
   }
 }
 
-// the url most already be URI encoded, e.g., "a/b ? c.md" should be encoded as 'a/b%20?%20c.md'
+// the url must already be URI encoded, e.g., "a/b ? c.md" should be encoded as 'a/b%20?%20c.md'
 export function set_url(url: string, hash?: string) {
   if (IS_EMBEDDED) {
     // no need to mess with url in embedded mode.
@@ -91,7 +113,7 @@ export function set_url(url: string, hash?: string) {
   const query_params = params();
   const full_url = join(
     appBasePath,
-    url + query_params + (hash ?? location.hash)
+    url + query_params + (hash ?? location.hash),
   );
   if (full_url === last_full_url) {
     // nothing to do
@@ -105,17 +127,34 @@ export function set_url(url: string, hash?: string) {
 export function load_target(
   target: string,
   ignore_kiosk: boolean = false,
-  change_history: boolean = true
+  change_history: boolean = true,
 ) {
+  if (target?.[0] == "/") {
+    target = target.slice(1);
+  }
+  let hash;
+  const i = target.lastIndexOf("#");
+  if (i != -1) {
+    hash = target.slice(i + 1);
+    target = target.slice(0, i);
+  } else {
+    hash = "";
+  }
   if (!target) {
     return;
   }
-  const logged_in = redux.getStore("account").get("is_logged_in");
+  if (!redux.getStore("account").get("is_logged_in")) {
+    // this will redirect to the sign in page after a brief pause
+    redux.getActions("page").set_active_tab("account", false);
+    return;
+  }
+
   const segments = target.split("/");
   switch (segments[0]) {
     case "help":
       redux.getActions("page").set_active_tab("about", change_history);
       break;
+
     case "projects":
       if (segments.length > 1) {
         redux
@@ -125,51 +164,68 @@ export function load_target(
             true,
             ignore_kiosk,
             change_history,
-            Fragment.get()
+            Fragment.get(),
           );
       } else {
         redux.getActions("page").set_active_tab("projects", change_history);
       }
       break;
+
     case "settings":
-      if (!logged_in) {
-        return;
-      }
       redux.getActions("page").set_active_tab("account", false);
-
-      if (segments[1] === "billing") {
-        const actions = redux.getActions("billing");
-        actions?.update_customer();
-        redux.getActions("account").set_active_tab("billing");
-        if (actions == null) {
-          // ugly temporary hack.
-          setTimeout(() => {
-            redux.getActions("billing")?.update_customer();
-          }, 5000);
+      const actions = redux.getActions("account");
+      if (!segments[1] || segments[1] === "" || segments[1] === "index") {
+        // Handle settings overview: settings/, settings, or settings/index
+        actions.setState({
+          active_page: "index",
+          active_sub_tab: undefined,
+        });
+      } else if (segments[1] === "profile") {
+        // Handle profile: settings/profile
+        actions.setState({
+          active_page: "profile",
+          active_sub_tab: undefined,
+        });
+      } else if (segments[1] === "preferences" && segments[2]) {
+        // Handle preferences sub-tabs: settings/preferences/[sub-tab]
+        const subTabKey = createPreferencesSubTabKey(segments[2]);
+        if (subTabKey) {
+          actions.setState({
+            active_page: "preferences",
+            active_sub_tab: subTabKey,
+          });
+        } else {
+          // Invalid sub-tab, default to appearance
+          actions.setState({
+            active_page: "preferences",
+            active_sub_tab: "preferences-appearance" as PreferencesSubTabKey,
+          });
         }
-        return;
+      } else if (segments[1]) {
+        // Handle main tabs: settings/[tab]
+        actions.set_active_tab(segments[1]);
+      } else {
+        // No specific tab provided, default to index: settings/ -> settings/index
+        actions.setState({
+          active_page: "index",
+          active_sub_tab: undefined,
+        });
       }
-
-      redux.getActions("account").set_active_tab(segments[1]);
+      actions.setFragment(Fragment.decode(hash));
 
       break;
 
     case "notifications":
-      if (!logged_in) return;
-      const filter = getNotificationFilterFromFragment();
-      if (filter) {
-        redux.getActions("mentions").set_filter(filter);
-      }
+      const { filter, id } = getNotificationFilterFromFragment(hash);
+      redux.getActions("mentions").set_filter(filter, id);
       redux.getActions("page").set_active_tab("notifications", change_history);
       break;
 
     case "file-use":
       // not implemented
       break;
+
     case "admin":
-      if (!logged_in) {
-        return;
-      }
       redux.getActions("page").set_active_tab(segments[0], change_history);
       break;
   }
@@ -179,33 +235,32 @@ window.onpopstate = (_) => {
   load_target(
     decodeURIComponent(
       document.location.pathname.slice(
-        appBasePath.length + (appBasePath.endsWith("/") ? 0 : 1)
-      )
+        appBasePath.length + (appBasePath.endsWith("/") ? 0 : 1),
+      ),
     ),
     false,
-    false
+    false,
   );
 };
 
 export function parse_target(target?: string):
   | { page: "projects" | "help" | "file-use" | "notifications" | "admin" }
   | { page: "project"; target: string }
+  | { page: "profile" | "settings" }
+  | {
+      page: "preferences";
+      sub_tab?: PreferencesSubTabKey;
+    }
   | {
       page: "account";
-      tab:
-        | "account"
-        | "billing"
-        | "upgrades"
-        | "licenses"
-        | "support"
-        | "ssh-keys";
+      tab: "billing" | "upgrades" | "licenses" | "support";
     }
   | {
       page: "notifications";
       tab: "mentions";
     } {
   if (target == undefined) {
-    return { page: "account", tab: "account" };
+    return { page: "profile" };
   }
   const segments = target.split("/");
   switch (segments[0]) {
@@ -217,24 +272,33 @@ export function parse_target(target?: string):
       }
     case "settings":
       switch (segments[1]) {
-        case "account":
+        case undefined:
+        case "":
+        case "index":
+          return { page: "settings" };
+        case "profile":
+          return { page: "profile" };
+        case "preferences":
+          if (segments[2]) {
+            // Handle sub-tabs: settings/preferences/[sub-tab]
+            const subTabKey = createPreferencesSubTabKey(segments[2]);
+            return {
+              page: "preferences",
+              sub_tab: subTabKey ?? "preferences-appearance", // Default to appearance if invalid
+            };
+          } else {
+            return { page: "preferences" };
+          }
         case "billing":
         case "upgrades":
         case "licenses":
         case "support":
-        case "ssh-keys":
           return {
             page: "account",
-            tab: segments[1] as
-              | "account"
-              | "billing"
-              | "upgrades"
-              | "licenses"
-              | "support"
-              | "ssh-keys",
+            tab: segments[1] as "billing" | "upgrades" | "licenses" | "support",
           };
         default:
-          return { page: "account", tab: "account" };
+          return { page: "profile" };
       }
     case "notifications":
       return { page: "notifications" };
@@ -245,6 +309,6 @@ export function parse_target(target?: string):
     case "admin":
       return { page: "admin" };
     default:
-      return { page: "account", tab: "account" };
+      return { page: "profile" };
   }
 }

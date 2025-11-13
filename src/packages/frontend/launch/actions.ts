@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -20,10 +20,9 @@ specific "share" on the share server.   This is for implementing
 the "Open in CoCalc" link on the share server, with minimal friction.
 */
 
-import { redux, Actions, Store } from "../app-framework";
-import * as LS from "../misc/local-storage-typed";
-import { QueryParams } from "../misc/query-params";
-import { ShareLauncher } from "./share";
+import { Actions, Store, redux } from "@cocalc/frontend/app-framework";
+import * as LS from "@cocalc/frontend/misc/local-storage-typed";
+import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { CSILauncher } from "./custom-image";
 
 export const NAME = "launch-actions";
@@ -39,7 +38,7 @@ export function is_csi_launchvalue(launch: string) {
 }
 
 export function launch_action_description(
-  type: NonNullable<LaunchTypes>
+  type: NonNullable<LaunchTypes>,
 ): string | undefined {
   switch (type) {
     case "csi":
@@ -117,15 +116,14 @@ export async function launch() {
         new CSILauncher(image_id).launch();
         return;
       case "share":
-        new ShareLauncher(launch).launch();
-        return;
+        throw Error("share launcher is deprecated");
       default:
         console.warn(`launch type "${type}" unknown`);
         return;
     }
   } catch (err) {
     console.warn(
-      `WARNING: launch action "${launch}" of type "${type}" failed -- ${err}`
+      `WARNING: launch action "${launch}" of type "${type}" failed -- ${err}`,
     );
   }
 }

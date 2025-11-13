@@ -1,8 +1,9 @@
 import { Button, Popover, Tooltip } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { useFrameContext } from "./hooks";
-import { COLORS } from "@cocalc/util/theme";
 import { CSSProperties, ReactNode } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
+import { useFrameContext } from "./hooks";
 
 function addPage(actions, afterPageId?) {
   const frameId = actions.show_focused_frame_of_type(actions.mainFrameType);
@@ -57,10 +58,12 @@ export function AddPage({ pageId }: { pageId: string }) {
   const { actions } = useFrameContext();
   return (
     <Tooltip title="Insert new page" placement="right" mouseEnterDelay={1}>
-      <Button type="text" size="small" onClick={() => addPage(actions, pageId)}>
-        <Icon name="plus-circle" style={{ color: COLORS.FILE_ICON }} />
-        <br />
-      </Button>
+      <Button
+        type="text"
+        size="small"
+        onClick={() => addPage(actions, pageId)}
+        icon={<Icon name="plus-circle" style={{ color: COLORS.FILE_ICON }} />}
+      />
     </Tooltip>
   );
 }

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // IMPORTANT: If you change this file, also update this date, which
@@ -219,6 +219,16 @@ export const upgrades = {
       pricing_factor: 1,
       input_type: "string",
       desc: "Modifies the project's specification how it runs in the cluster.",
+    },
+    gpu: {
+      display: "GPU",
+      unit: "GPU",
+      display_unit: "GPU",
+      display_factor: 1,
+      pricing_unit: "GPU",
+      pricing_factor: 1,
+      input_type: "string",
+      desc: "GPU support: if set, this requests access to a GPU in the cluster.",
     },
   },
 

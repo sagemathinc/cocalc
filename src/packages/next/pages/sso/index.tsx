@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Card, Col, Layout, Row, Typography } from "antd";
@@ -17,6 +17,8 @@ import { Customize, CustomizeType } from "lib/customize";
 import { getSSO } from "lib/sso/sso";
 import { SSO } from "lib/sso/types";
 import withCustomize from "lib/with-customize";
+
+import type { JSX } from "react";
 
 const { Paragraph, Text } = Typography;
 

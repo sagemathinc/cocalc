@@ -1,21 +1,21 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert } from "antd";
 import * as immutable from "immutable";
+import * as _ from "lodash";
 import React from "react";
-import { Button, ButtonGroup, Col, Row } from "react-bootstrap";
-import * as underscore from "underscore";
-
+import { FormattedMessage } from "react-intl";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
+import { Button, ButtonGroup, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
-  TypedMap,
   project_redux_name,
   rclass,
   redux,
   rtypes,
+  TypedMap,
 } from "@cocalc/frontend/app-framework";
 import { ShallowTypedMap } from "@cocalc/frontend/app-framework/ShallowTypedMap";
 import {
@@ -26,8 +26,9 @@ import {
   Loading,
   Paragraph,
   SettingBox,
-  VisibleMDLG,
 } from "@cocalc/frontend/components";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
+import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { CustomSoftwareReset } from "@cocalc/frontend/custom-software/reset-bar";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -47,7 +48,6 @@ import { ActionBox } from "./action-box";
 import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { FileListing } from "./file-listing";
 import { default_ext } from "./file-listing/utils";
-import { MiniTerminal } from "./mini-terminal";
 import { MiscSideButtons } from "./misc-side-buttons";
 import { NewButton } from "./new-button";
 import { PathNavigator } from "./path-navigator";
@@ -123,6 +123,7 @@ interface ReduxProps {
   file_listing_scroll_top?: number;
   show_custom_software_reset?: boolean;
   explorerTour?: boolean;
+  compute_server_id: number;
 }
 
 interface State {
@@ -145,11 +146,10 @@ export function Explorer() {
 const Explorer0 = rclass(
   class Explorer extends React.Component<ReactProps & ReduxProps, State> {
     newFileRef = React.createRef<any>();
-    searchBarRef = React.createRef<any>();
+    searchAndTerminalBar = React.createRef<any>();
     fileListingRef = React.createRef<any>();
     currentDirectoryRef = React.createRef<any>();
     miscButtonsRef = React.createRef<any>();
-    miniterminalRef = React.createRef<any>();
 
     static reduxProps = ({ name }) => {
       return {
@@ -198,6 +198,7 @@ const Explorer0 = rclass(
           file_listing_scroll_top: rtypes.number,
           show_custom_software_reset: rtypes.bool,
           explorerTour: rtypes.bool,
+          compute_server_id: rtypes.number,
         },
       };
     };
@@ -294,7 +295,7 @@ const Explorer0 = rclass(
       this.props.actions.setState({ file_search: "", page_number: 0 });
     };
 
-    render_paging_buttons(num_pages: number): JSX.Element | undefined {
+    render_paging_buttons(num_pages: number): React.JSX.Element | undefined {
       if (num_pages > 1) {
         return (
           <Row>
@@ -334,9 +335,10 @@ const Explorer0 = rclass(
             current_path={this.props.current_path}
             project_id={this.props.project_id}
             file_map={file_map}
-            new_name={this.props.new_name}
+            //new_name={this.props.new_name}
             actions={this.props.actions}
             displayed_listing={this.props.displayed_listing}
+            name={project_redux_name(this.props.project_id)}
           />
         </Col>
       );
@@ -407,7 +409,7 @@ const Explorer0 = rclass(
       return (
         <ActivityDisplay
           trunc={80}
-          activity={underscore.values(this.props.activity)}
+          activity={_.values(this.props.activity)}
           on_clear={() => this.props.actions.clear_all_activity()}
           style={{ top: "100px" }}
         />
@@ -437,7 +439,6 @@ const Explorer0 = rclass(
       project_is_running: boolean,
     ) {
       if (fetch_directory_error) {
-        // TODO: the refresh button text is inconsistant
         return (
           <div>
             <FetchDirectoryErrors
@@ -446,7 +447,6 @@ const Explorer0 = rclass(
               quotas={this.props.get_total_project_quotas(
                 this.props.project_id,
               )}
-              is_commercial={require("@cocalc/frontend/customize").commercial}
               is_logged_in={!!this.props.is_logged_in}
             />
             <br />
@@ -479,13 +479,7 @@ const Explorer0 = rclass(
             className="smc-vfill"
           >
             <FileListing
-              isRunning={
-                this.props.project_map?.getIn([
-                  this.props.project_id,
-                  "state",
-                  "state",
-                ]) == "running"
-              }
+              isRunning={project_is_running}
               name={this.props.name}
               active_file_sort={this.props.active_file_sort}
               listing={listing}
@@ -510,6 +504,8 @@ const Explorer0 = rclass(
         );
       } else {
         if (project_is_running) {
+          // ensure directory listing starts getting computed.
+          redux.getProjectStore(this.props.project_id).get_listings();
           return (
             <div style={{ textAlign: "center" }}>
               <Loading theme={"medium"} />
@@ -524,17 +520,23 @@ const Explorer0 = rclass(
               showIcon
               description={
                 <Paragraph>
-                  In order to see the files in this directory, you have to{" "}
-                  <a
-                    onClick={() => {
-                      redux
-                        .getActions("projects")
-                        .start_project(this.props.project_id);
+                  <FormattedMessage
+                    id="project.explorer.start_project.warning"
+                    defaultMessage={`In order to see the files in this directory, you have to <a>start this project</a>.`}
+                    values={{
+                      a: (c) => (
+                        <a
+                          onClick={() => {
+                            redux
+                              .getActions("projects")
+                              .start_project(this.props.project_id);
+                          }}
+                        >
+                          {c}
+                        </a>
+                      ),
                     }}
-                  >
-                    start this project
-                  </a>
-                  .
+                  />
                 </Paragraph>
               }
             />
@@ -552,89 +554,89 @@ const Explorer0 = rclass(
 
     render_control_row(
       visible_listing: ListingItem[] | undefined,
-    ): JSX.Element {
+    ): React.JSX.Element {
       return (
         <div
           style={{
             display: "flex",
-            flexFlow: "row wrap",
+            flexFlow: IS_MOBILE ? undefined : "row wrap",
             justifyContent: "space-between",
             alignItems: "stretch",
+            marginBottom: "15px",
           }}
         >
+          <div
+            style={{
+              flex: "3 1 auto",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div style={{ display: "flex", flex: "1 1 auto" }}>
+              <SelectComputeServerForFileExplorer
+                project_id={this.props.project_id}
+                key="compute-server"
+                style={{ marginRight: "5px", borderRadius: "5px" }}
+              />
+              <div
+                ref={this.currentDirectoryRef}
+                className="cc-project-files-path-nav"
+              >
+                <PathNavigator project_id={this.props.project_id} />
+              </div>
+            </div>
+            {!!this.props.compute_server_id && (
+              <div
+                style={{
+                  fontSize: "10pt",
+                  marginBottom: "5px",
+                }}
+              >
+                <ComputeServerDocStatus
+                  standalone
+                  id={this.props.compute_server_id}
+                  requestedId={this.props.compute_server_id}
+                  project_id={this.props.project_id}
+                />
+              </div>
+            )}
+          </div>
           {!IS_MOBILE && (
             <div
-              ref={this.searchBarRef}
-              style={{ flex: "1 0 20%", marginRight: "10px", minWidth: "20em" }}
+              style={{
+                flex: "0 1 auto",
+                margin: "0 10px",
+              }}
+              className="cc-project-files-create-dropdown"
             >
-              <SearchBar
-                project_id={this.props.project_id}
-                key={this.props.current_path}
-                file_search={this.props.file_search}
-                actions={this.props.actions}
-                current_path={this.props.current_path}
-                selected_file={
-                  visible_listing != undefined
-                    ? visible_listing[this.props.selected_file_index || 0]
-                    : undefined
-                }
-                selected_file_index={this.props.selected_file_index}
-                file_creation_error={this.props.file_creation_error}
-                num_files_displayed={
-                  visible_listing != undefined
-                    ? visible_listing.length
-                    : undefined
-                }
-                create_file={this.create_file}
-                create_folder={this.create_folder}
-              />
+              {this.render_new_file()}
             </div>
+          )}
+          {!IS_MOBILE && (
+            <SearchTerminalBar
+              ref={this.searchAndTerminalBar}
+              actions={this.props.actions}
+              current_path={this.props.current_path}
+              file_search={this.props.file_search}
+              visible_listing={visible_listing}
+              selected_file_index={this.props.selected_file_index}
+              file_creation_error={this.props.file_creation_error}
+              create_file={this.create_file}
+              create_folder={this.create_folder}
+            />
           )}
           <div
             style={{
               flex: "0 1 auto",
-              marginRight: "10px",
-              marginBottom: "15px",
             }}
-            className="cc-project-files-create-dropdown"
           >
-            {this.render_new_file()}
+            <UsersViewing project_id={this.props.project_id} />
           </div>
-          <div
-            ref={this.currentDirectoryRef}
-            className="cc-project-files-path-nav"
-          >
-            <PathNavigator project_id={this.props.project_id} />
-          </div>
-          <>
-            <div
-              style={{
-                flex: "0 1 auto",
-                marginRight: "10px",
-                marginBottom: "15px",
-              }}
-            >
-              <UsersViewing project_id={this.props.project_id} />
-            </div>
-            <VisibleMDLG>
-              <div
-                ref={this.miniterminalRef}
-                style={{ flex: "1 0 auto", marginBottom: "15px" }}
-              >
-                <MiniTerminal
-                  current_path={this.props.current_path}
-                  project_id={this.props.project_id}
-                  actions={this.props.actions}
-                  show_close_x={true}
-                />
-              </div>
-            </VisibleMDLG>
-          </>
         </div>
       );
     }
 
-    render_project_files_buttons(): JSX.Element {
+    render_project_files_buttons(): React.JSX.Element {
       return (
         <div
           ref={this.miscButtonsRef}
@@ -700,12 +702,10 @@ const Explorer0 = rclass(
         project_is_running = true;
         // next, we check if this is a common user (not public)
       } else if (my_group !== "public") {
-        if (this.props.project_map != undefined) {
-          project_state = this.props.project_map.getIn([
-            this.props.project_id,
-            "state",
-          ]) as any;
-        }
+        project_state = this.props.project_map?.getIn([
+          this.props.project_id,
+          "state",
+        ]) as any;
         project_is_running = project_state?.get("state") == "running";
       } else {
         project_is_running = false;
@@ -731,7 +731,7 @@ const Explorer0 = rclass(
         alignItems: "stretch",
       };
 
-      // be careful with adding height:'100%'. it could cause flex to miscalc. see #3904
+      // be careful with adding height:'100%'. it could cause flex to miscalculate. see #3904
       return (
         <div className={"smc-vfill"}>
           <div
@@ -739,7 +739,7 @@ const Explorer0 = rclass(
               flex: "0 0 auto",
               display: "flex",
               flexDirection: "column",
-              padding: "5px 5px 0 5px",
+              padding: "2px 2px 0 2px",
             }}
           >
             {this.render_error()}
@@ -752,7 +752,7 @@ const Explorer0 = rclass(
               <div
                 style={{
                   flex: "1 0 auto",
-                  marginRight: "10px",
+                  marginRight: "5px",
                   minWidth: "20em",
                 }}
               >
@@ -774,6 +774,7 @@ const Explorer0 = rclass(
               <Row>{this.render_files_action_box(file_map)}</Row>
             ) : undefined}
           </div>
+
           <div
             ref={this.fileListingRef}
             className="smc-vfill"
@@ -800,14 +801,62 @@ const Explorer0 = rclass(
             open={this.props.explorerTour}
             project_id={this.props.project_id}
             newFileRef={this.newFileRef}
-            searchBarRef={this.searchBarRef}
+            searchAndTerminalBar={this.searchAndTerminalBar}
             fileListingRef={this.fileListingRef}
             currentDirectoryRef={this.currentDirectoryRef}
             miscButtonsRef={this.miscButtonsRef}
-            miniterminalRef={this.miniterminalRef}
           />
         </div>
       );
     }
+  },
+);
+
+const SearchTerminalBar = React.forwardRef(
+  (
+    {
+      current_path,
+      file_search,
+      actions,
+      visible_listing,
+      selected_file_index,
+      file_creation_error,
+      create_file,
+      create_folder,
+    }: {
+      ref: React.Ref<any>;
+      current_path: string;
+      file_search: string;
+      actions: ProjectActions;
+      visible_listing: ListingItem[] | undefined;
+      selected_file_index?: number;
+      file_creation_error?: string;
+      create_file: (ext?: string, switch_over?: boolean) => void;
+      create_folder: (switch_over?: boolean) => void;
+    },
+    ref: React.LegacyRef<HTMLDivElement> | undefined,
+  ) => {
+    return (
+      <div ref={ref} style={{ flex: "1 1 auto" }}>
+        <SearchBar
+          key={current_path}
+          file_search={file_search}
+          actions={actions}
+          current_path={current_path}
+          selected_file={
+            visible_listing != undefined
+              ? visible_listing[selected_file_index || 0]
+              : undefined
+          }
+          selected_file_index={selected_file_index}
+          file_creation_error={file_creation_error}
+          num_files_displayed={
+            visible_listing != undefined ? visible_listing.length : undefined
+          }
+          create_file={create_file}
+          create_folder={create_folder}
+        />
+      </div>
+    );
   },
 );

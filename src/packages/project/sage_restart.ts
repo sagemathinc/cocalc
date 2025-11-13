@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { executeCode } from "@cocalc/backend/execute-code";
@@ -18,8 +18,8 @@ export const SAGE_SERVER_MAX_STARTUP_TIME_S = 60;
 let restarting = false;
 let restarted = 0; // time when we last restarted it
 
-export async function restart_sage_server() {
-  const dbg = (m) => winston.debug(`restart_sage_server: ${to_json(m)}`);
+export async function restartSageServer() {
+  const dbg = (m) => winston.debug(`restartSageServer: ${to_json(m)}`);
   if (restarting) {
     dbg("hit lock");
     throw new Error("already restarting sage server");

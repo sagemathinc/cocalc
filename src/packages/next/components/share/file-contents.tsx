@@ -1,31 +1,32 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { getExtension } from "lib/share/util";
+import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import {
   isAudio,
   isCodemirror,
-  isImage,
   isHTML,
+  isImage,
   isMarkdown,
   isVideo,
 } from "@cocalc/frontend/file-extensions";
-import rawURL from "lib/share/raw-url";
+import Slides from "@cocalc/frontend/frame-editors/slides-editor/share";
+import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/share/index";
+import JupyterNotebook from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
+import { FileContext } from "@cocalc/frontend/lib/file-context";
+import A from "components/misc/A";
 import { isIOS, isSafari } from "lib/share/feature";
+import rawURL from "lib/share/raw-url";
+import getUrlTransform from "lib/share/url-transform";
+import { containingPath, getExtension } from "lib/share/util";
+import useCustomize from "lib/use-customize";
+import getAnchorTagComponent from "./anchor-tag-component";
 import CodeMirror from "./codemirror";
 import SageWorksheet from "./sage-worksheet";
-import JupyterNotebook from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
-import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
-import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/share/index";
-import Slides from "@cocalc/frontend/frame-editors/slides-editor/share";
-import A from "components/misc/A";
-import { containingPath } from "lib/share/util";
-import getUrlTransform from "lib/share/url-transform";
-import getAnchorTagComponent from "./anchor-tag-component";
-import { FileContext } from "@cocalc/frontend/lib/file-context";
-import useCustomize from "lib/use-customize";
+
+import type { JSX } from "react";
 
 interface Props {
   id: string;
@@ -74,7 +75,7 @@ export default function FileContents({
     );
   } else if (isAudio(ext)) {
     return <audio src={raw} autoPlay={true} controls={true} loop={false} />;
-  } else if (ext == "pdf") {
+  } else if (ext === "pdf") {
     // iOS and iPADOS does not have any way to embed PDF's in pages.
     // I think pretty much every other web browser does, though
     // strangely even desktop Safari seems often broken, so we also block that.

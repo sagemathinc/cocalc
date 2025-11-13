@@ -1,10 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 import { Alert, Layout } from "antd";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import { COLORS } from "@cocalc/util/theme";
@@ -15,36 +15,29 @@ import { StoreBalanceContext } from "lib/balance";
 import { MAX_WIDTH } from "lib/config";
 import useProfile from "lib/hooks/profile";
 import useCustomize from "lib/use-customize";
-import Boost from "./boost";
 import Cart from "./cart";
 import Checkout from "./checkout";
 import Congrats from "./congrats";
-import DedicatedResource from "./dedicated";
 import Menu from "./menu";
 import Overview from "./overview";
+import Processing from "./processing";
 import SiteLicense from "./site-license";
 import { StoreInplaceSignInOrUp } from "./store-inplace-signup";
+import { StorePagesTypes } from "./types";
 import Vouchers from "./vouchers";
 
 const { Content } = Layout;
 
 interface Props {
-  page: (
-    | "site-license"
-    | "boost"
-    | "dedicated"
-    | "cart"
-    | "checkout"
-    | "congrats"
-    | "vouchers"
-    | undefined
-  )[];
+  page: (StorePagesTypes | undefined)[];
 }
 
 export default function StoreLayout({ page }: Props) {
   const { isCommercial } = useCustomize();
   const router = useRouter();
   const profile = useProfile({ noCache: true });
+
+  const [loading, setLoading] = useState<boolean>(false);
 
   const [balance, setBalance] = useState<number>();
 
@@ -56,7 +49,14 @@ export default function StoreLayout({ page }: Props) {
 
     // Set balance if user is logged in
     //
-    setBalance(await purchasesApi.getBalance());
+    try {
+      setLoading(true);
+      setBalance(await purchasesApi.getBalance());
+    } catch (err) {
+      console.warn("Error updating balance", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -123,15 +123,15 @@ export default function StoreLayout({ page }: Props) {
 
     switch (main) {
       case "site-license":
-        return <SiteLicense noAccount={noAccount} />;
-      case "boost":
-        return <Boost noAccount={noAccount} />;
-      case "dedicated":
-        return <DedicatedResource noAccount={noAccount} />;
+        return <SiteLicense noAccount={noAccount} source="site-license" />;
+      case "course":
+        return <SiteLicense noAccount={noAccount} source="course" />;
       case "cart":
         return requireAccount(Cart);
       case "checkout":
         return requireAccount(Checkout);
+      case "processing":
+        return requireAccount(Processing);
       case "vouchers":
         return requireAccount(Vouchers);
       case "congrats":
@@ -158,7 +158,9 @@ export default function StoreLayout({ page }: Props) {
           }}
         >
           <div style={{ maxWidth: MAX_WIDTH, margin: "auto" }}>
-            <StoreBalanceContext.Provider value={{ balance, refreshBalance }}>
+            <StoreBalanceContext.Provider
+              value={{ balance, refreshBalance, loading }}
+            >
               <Menu main={main} />
               {body()}
             </StoreBalanceContext.Provider>

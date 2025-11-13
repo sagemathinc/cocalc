@@ -1,22 +1,23 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Modal } from "antd";
-import { useCallback, useEffect, useState } from "react";
-
+import { useCallback, useState } from "react";
 import { redux } from "@cocalc/frontend/app-framework";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { path_split } from "@cocalc/util/misc";
+import { TimeAgo } from "@cocalc/frontend/components";
+import { log_file_open } from "@cocalc/frontend/project/open-file";
 
 interface Props {
   project_id: string;
   path: string;
-  onOpen?: Function;
+  time: number;
 }
 
-export default function DeletedFile({ project_id, path, onOpen }: Props) {
+export default function DeletedFile({ project_id, path, time }: Props) {
   const [open, setOpen] = useState<boolean>(true);
   const isMountedRef = useIsMountedRef();
   const { tail: filename } = path_split(path);
@@ -24,34 +25,32 @@ export default function DeletedFile({ project_id, path, onOpen }: Props) {
   const openFile = useCallback(async () => {
     if (!isMountedRef.current) return;
     setOpen(false);
-    const store = redux.getProjectStore(project_id);
-    const listings = store.get_listings();
-    await listings.undelete(path);
-    onOpen?.();
-  }, []);
-
-  useEffect(() => {
-    const store = redux.getProjectStore(project_id);
-    const listings = store.get_listings();
-    (async () => {
-      if (await listings.exists(path)) {
-        openFile();
-      }
-    })();
+    const actions = redux.getProjectActions(project_id);
+    actions.setNotDeleted(path);
+    log_file_open(project_id, path, time);
   }, []);
 
   return (
     <div className="smc-vfill" style={{ background: "#aaa" }}>
       <Modal
         open={open}
-        title={`Open previously deleted file "${filename}"?`}
+        title={
+          <div style={{ paddingRight: "15px" }}>
+            The file "{filename}" was deleted or moved{" "}
+            <TimeAgo date={new Date(time)} />. Restore this file?
+          </div>
+        }
         onOk={openFile}
+        okText={"Restore File"}
+        cancelText={"Leave File Closed"}
         onCancel={() => {
           setOpen(false);
           redux.getProjectActions(project_id).close_tab(path);
         }}
       >
-        After you open {path}, use TimeTravel to get past versions.
+        {!path?.endsWith(".term") && (
+          <> You can always restore later using the project log.  If you restore {path}, use TimeTravel to get past versions.</>
+        )}
       </Modal>
     </div>
   );

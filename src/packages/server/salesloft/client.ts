@@ -3,12 +3,13 @@ Get Salesloft client.
 */
 
 import axios from "axios";
+import type { AxiosInstance } from "axios";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 const log = getLogger("salesloft:client");
 
-const clientCache: { [key: string]: any } = {};
+const clientCache: { [key: string]: AxiosInstance } = {};
 const salesloftApiBaseUrl = "https://api.salesloft.com/v2";
 
 export default async function getClient(): Promise<any> {

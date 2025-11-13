@@ -1,13 +1,13 @@
 #########################################################################
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+# License: MS-RSL – see LICENSE.md for details
 #########################################################################
 
 """
 User (and project) client queries
 
 COPYRIGHT : (c) 2017 SageMath, Inc.
-LICENSE   : AGPLv3
+LICENSE   : MS-RSL
 """
 
 MAX_CHANGEFEEDS_PER_CLIENT = 2000
@@ -29,7 +29,6 @@ required = defaults.required
 {PROJECT_UPGRADES, SCHEMA, OPERATORS, isToOperand} = require('@cocalc/util/schema')
 {queryIsCmp, userGetQueryFilter} = require("./user-query/user-get-query")
 
-{file_use_times} = require('./postgres/file-use-times')
 {updateRetentionData} = require('./postgres/retention')
 
 { checkProjectName } = require("@cocalc/util/db-schema/name-rules");
@@ -380,7 +379,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         else if opts.account_id?
             dbg = r.dbg = @_dbg("user_set_query(account_id='#{opts.account_id}', table='#{opts.table}')")
         else
-            return {err:"FATAL: account_id or project_id must be specified"}
+            return {err:"FATAL: account_id or project_id must be specified to set query on table='#{opts.table}'"}
 
         if not SCHEMA[opts.table]?
             return {err:"FATAL: table '#{opts.table}' does not exist"}
@@ -579,7 +578,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if r.on_change_hook? or r.before_change_hook? or r.instead_of_change_hook?
             for primary_key in r.primary_keys
                 if not r.query[primary_key]?
-                    cb("FATAL: query must specify (primary) key '#{primary_key}'")
+                    # this is fine -- it just means the old_val isn't defined.
+                    # this can happen, e.g., when creating a new object with a primary key that is a generated id.
+                    cb()
                     return
             # get the old value before changing it
             # TODO: optimization -- can we restrict columns below?
@@ -898,7 +899,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # This will avoid a possible subtle edge case if user is cheating and always somehow
     # crashes server...?
     _user_set_query_project_change_before: (old_val, new_val, account_id, cb) =>
-        dbg = @_dbg("_user_set_query_project_change_before #{account_id}, #{misc.to_json(old_val)} --> #{misc.to_json(new_val)}")
+        #dbg = @_dbg("_user_set_query_project_change_before #{account_id}, #{misc.to_json(old_val)} --> #{misc.to_json(new_val)}")
+        # I've seen MASSIVE OUTPUT from this, e.g., when setting avatar.
+        dbg = @_dbg("_user_set_query_project_change_before #{account_id}")
         dbg()
 
         if new_val?.name and (new_val?.name != old_val?.name)
@@ -1133,7 +1136,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         subs = {}
         for x in pg_where
             if misc.is_object(x)
-                for key, value of x
+                for _, value of x
                     subs[value] = value
 
         sub_value = (value, cb) =>
@@ -1165,7 +1168,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                                     subs[value] = user_query.project_id
                                     cb()
                                 else
-                                    cb("FATAL: you do not have read access to this project")
+                                    cb("FATAL: you do not have read access to this project -- account_id=#{account_id}, project_id_=#{project_id}")
                 when 'project_id-public'
                     if not user_query.project_id?
                         cb("FATAL: must specify project_id")
@@ -1296,7 +1299,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 delete new_val[key]
 
     _user_get_query_changefeed: (changes, table, primary_keys, user_query,
-                                 where, json_fields, account_id, client_query, cb) =>
+                                 where, json_fields, account_id, client_query, orig_table, cb) =>
         dbg = @_dbg("_user_get_query_changefeed(table='#{table}')")
         dbg()
         # WARNING: always call changes.cb!  Do not do something like f = changes.cb, then call f!!!!
@@ -1311,7 +1314,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb("FATAL: changes.cb must be a function")
             return
         for primary_key in primary_keys
-            if not user_query[primary_key]? and user_query[primary_key] != null  # TODO: this seems slightly off
+            if not user_query[primary_key]? and user_query[primary_key] != null
                 cb("FATAL: changefeed MUST include primary key (='#{primary_key}') in query")
                 return
         watch  = []
@@ -1320,11 +1323,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         possible_time_fields = misc.deep_copy(json_fields)
         feed = undefined
 
+        changefeed_keys = SCHEMA[orig_table]?.changefeed_keys ? SCHEMA[table]?.changefeed_keys ? []
         for field, val of user_query
             type = pg_type(SCHEMA[table]?.fields?[field])
             if type == 'TIMESTAMP'
                 possible_time_fields[field] = 'all'
-            if val == null and field not in primary_keys
+            if val == null and field not in primary_keys and field not in changefeed_keys
                 watch.push(field)
             else
                 select[field] = type
@@ -1362,6 +1366,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 if pg_changefeed == 'projects'
                     tracker_add = (project_id) => feed.insert({project_id:project_id})
                     tracker_remove = (project_id) => feed.delete({project_id:project_id})
+
+                    # Any tracker error means this changefeed is now broken and
+                    # has to be recreated.
+                    tracker_error = () => changes.cb("tracker error - ${err}")
+
                     pg_changefeed =  (db, account_id) =>
                         where  : (obj) =>
                             # Check that this is a project we have read access to
@@ -1379,11 +1388,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         init_tracker : (tracker) =>
                             tracker.on "add_user_to_project-#{account_id}", tracker_add
                             tracker.on "remove_user_from_project-#{account_id}", tracker_remove
+                            tracker.once 'error', tracker_error
+
 
                         free_tracker : (tracker) =>
                             dbg("freeing project tracker events")
                             tracker.removeListener("add_user_to_project-#{account_id}", tracker_add)
                             tracker.removeListener("remove_user_from_project-#{account_id}", tracker_remove)
+                            tracker.removeListener("error", tracker_error)
 
 
                 else if pg_changefeed == 'news'
@@ -1421,6 +1433,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         return
                     tracker_add = (collab_id) => feed.insert({account_id:collab_id})
                     tracker_remove = (collab_id) => feed.delete({account_id:collab_id})
+                    tracker_error = () => changes.cb("tracker error - ${err}")
                     pg_changefeed = (db, account_id) ->
                         shared_tracker = undefined
                         where : (obj) ->  # test of "is a collab with me"
@@ -1429,10 +1442,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             shared_tracker = tracker
                             tracker.on "add_collaborator-#{account_id}", tracker_add
                             tracker.on "remove_collaborator-#{account_id}", tracker_remove
+                            tracker.once 'error', tracker_error
                         free_tracker : (tracker) =>
                             dbg("freeing collab tracker events")
                             tracker.removeListener("add_collaborator-#{account_id}", tracker_add)
                             tracker.removeListener("remove_collaborator-#{account_id}", tracker_remove)
+                            tracker.removeListener("error", tracker_error)
 
 
                 x = pg_changefeed(@, account_id)
@@ -1469,10 +1484,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     where  : where
                     watch  : watch
                     cb     : (err, _feed) =>
+                        # there *is* a glboal variable feed that we set here:
+                        feed = _feed
                         if err
                             cb(err)
                             return
-                        feed = _feed
                         feed.on 'change', (x) ->
                             process(x)
                             changes.cb(undefined, x)
@@ -1482,16 +1498,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             if tracker? and free_tracker?
                                 dbg("free_tracker")
                                 free_tracker(tracker)
-                            dbg("do NOT free_tracker")
+                            else
+                                dbg("do NOT free_tracker")
                         feed.on 'error', (err) ->
                             changes.cb("feed error - #{err}")
                         @_changefeeds ?= {}
                         @_changefeeds[changes.id] = feed
                         init_tracker?(tracker)
-                        # Any tracker error means this changefeed is now broken and
-                        # has to be recreated.
-                        tracker?.once 'error', (err) ->
-                            changes.cb("tracker error - #{err}")
                         cb()
         ], cb)
 
@@ -1589,7 +1602,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     dbg("getting changefeed")
                     @_user_get_query_changefeed(opts.changes, table, primary_keys,
                                                 opts.query, _query_opts.where, json_fields,
-                                                opts.account_id, client_query, cb)
+                                                opts.account_id, client_query, opts.table,
+                                                cb)
                 else
                     cb()
 
@@ -1725,9 +1739,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Other functions that are needed to implement various use queries,
     # e.g., for virtual queries like file_use_times.
     # ASYNC FUNCTION with no callback.
-    file_use_times: (opts) =>  # for docs, see where this is imported from.
-        return await file_use_times(@, opts)
-
     updateRetentionData: (opts) =>
         return await updateRetentionData(opts)
 

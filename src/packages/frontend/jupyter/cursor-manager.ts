@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { List, Map } from "immutable";
@@ -41,9 +41,12 @@ export class CursorManager {
         });
       }
     }
-    if (info == null || info.get("time") == null) return cells;
+    if (info == null || info.get("time") == null) {
+      return cells;
+    }
 
     // set new cursor locations
+    const seen = new Set<string>();
     info.get("locs").forEach((loc) => {
       if (loc == null) return;
       const id = loc.get("id");
@@ -51,7 +54,9 @@ export class CursorManager {
       if (cell == null) return;
       let cursors: CursorMap = cell.get("cursors", Map());
       loc = loc.set("time", info.get("time")).delete("id");
-      const locs = cursors.get(account_id, List()).push(loc);
+      let locs = !seen.has(id) ? List() : cursors.get(account_id, List());
+      locs = locs.push(loc);
+      seen.add(id);
       cursors = cursors.set(account_id, locs);
       cell = cell.set("cursors", cursors);
       cells = cells.set(id, cell);

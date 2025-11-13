@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { ProjectActions } from "@cocalc/frontend/app-framework";
@@ -31,7 +31,13 @@ export interface ConnectedTerminalInterface {
   close_frame(id: string): void;
 
   _get_project_actions(): ProjectActions;
-  open_code_editor_frame(path: string);
+  open_code_editor_frame(opts: {
+    path: string;
+    dir?;
+    first?: boolean;
+    pos?: number;
+    compute_server_id?: number;
+  });
 
   store?;
   setState?;

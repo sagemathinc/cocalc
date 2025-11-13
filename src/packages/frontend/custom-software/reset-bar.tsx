@@ -1,17 +1,20 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Button as AntdButton, Card } from "antd";
 import React from "react";
-import { props2img, RESET_ICON } from "./util";
-import { ComputeImages } from "./init";
-import { A, Icon } from "../components";
-import { COLORS } from "@cocalc/util/theme";
-const { Button, Card } = require("antd");
-import { Available as AvailableFeatures } from "../project_configuration";
+import { FormattedMessage, useIntl } from "react-intl";
+
+import { A, Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
-const { SITE_NAME } = require("@cocalc/util/theme");
+import { COLORS, SITE_NAME } from "@cocalc/util/theme";
+
+import { Available as AvailableFeatures } from "../project_configuration";
+import { ComputeImages } from "./init";
+import { props2img, RESET_ICON } from "./util";
 
 const doc_snap = "https://doc.cocalc.com/project-files.html#snapshots";
 const doc_tt = "https://doc.cocalc.com/time-travel.html";
@@ -40,6 +43,9 @@ interface Props {
 
 export const CustomSoftwareReset: React.FC<Props> = (props: Props) => {
   const { actions, site_name } = props;
+
+  const intl = useIntl();
+
   function reset() {
     actions.custom_software_reset();
   }
@@ -63,29 +69,41 @@ export const CustomSoftwareReset: React.FC<Props> = (props: Props) => {
   return (
     <Card style={{ background: COLORS.GRAY_LLL }} title={title()}>
       <div style={info_style}>
-        <p>
-          Clicking on "Reset" copies all accompanying files of this custom
-          software environment into your home directory. This was done once when
-          this project was created and you can repeat this action right now. If
-          these accompanying files hosted on {NAME} did update in the meantime,
-          you'll recieve the newer versions.
-        </p>
-        <p>
-          Note, that this will overwrite any changes you did to these
-          accompanying files, but does not modify or delete any other files.
-          However, nothing is lost: you can still access the previous version
-          via <A href={doc_snap}>Snapshot Backups</A> or{" "}
-          <A href={doc_tt}>TimeTravel</A>.
-        </p>
-        <p>This action will also restart your project!</p>
+        <FormattedMessage
+          id="custom-software.reset-bar.info"
+          defaultMessage={`
+            <p>
+              Clicking on "Reset" copies all accompanying files of this custom
+              software environment into your home directory. This was done once when
+              this project was created and you can repeat this action right now. If
+              these accompanying files hosted on {NAME} did update in the meantime,
+              you'll recieve the newer versions.
+            </p>
+            <p>
+              Note, that this will overwrite any changes you did to these
+              accompanying files, but does not modify or delete any other files.
+              However, nothing is lost: you can still access the previous version
+              via <A1>Snapshot Backups</A1> or <A2>TimeTravel</A2>.
+            </p>
+            <p>This action will also restart your project!</p>`}
+          values={{
+            NAME,
+            A1: (c) => <A href={doc_snap}>{c}</A>,
+            A2: (c) => <A href={doc_tt}>{c}</A>,
+          }}
+        />
       </div>
       <div style={button_bar_style}>
-        <Button onClick={reset} dnager type="primary">
-          <Icon name={RESET_ICON} /> Reset and Restart
-        </Button>{" "}
-        <Button onClick={cancel}>
-          <Icon name={"times-circle"} /> Cancel
-        </Button>
+        <AntdButton onClick={reset} danger type="primary">
+          <Icon name={RESET_ICON} />{" "}
+          {intl.formatMessage({
+            id: "custom-software.reset-bar.reset-and-restart",
+            defaultMessage: "Reset and Restart",
+          })}
+        </AntdButton>{" "}
+        <AntdButton onClick={cancel}>
+          <Icon name={"times-circle"} /> {intl.formatMessage(labels.cancel)}
+        </AntdButton>
       </div>
     </Card>
   );

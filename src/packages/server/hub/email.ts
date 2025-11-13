@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 //########################################
@@ -9,36 +9,37 @@
 
 const BANNED_DOMAINS = { "qq.com": true };
 
-import { promisify } from "util";
+import sendgrid from "@sendgrid/client";
+import * as async from "async";
 import * as fs from "fs";
+import { isEqual, template } from "lodash";
+import { createTransport } from "nodemailer";
 import * as os_path from "path";
-import { isEqual } from "lodash";
-const fs_readFile_prom = promisify(fs.readFile);
-import { getLogger } from "@cocalc/backend/logger";
-import { template } from "lodash";
-import { AllSiteSettingsCached } from "@cocalc/util/db-schema/types";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import sanitizeHtml from "sanitize-html";
+import { promisify } from "util";
 import base_path from "@cocalc/backend/base-path";
 import { secrets } from "@cocalc/backend/data";
+import { getLogger } from "@cocalc/backend/logger";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { AllSiteSettingsCached } from "@cocalc/util/db-schema/types";
 // sendgrid API: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
-import sendgrid from "@sendgrid/client";
-import { createTransport } from "nodemailer";
-import { defaults, required, split, to_json } from "@cocalc/util/misc";
-import { site_settings_conf } from "@cocalc/util/db-schema/site-defaults";
-import sanitizeHtml from "sanitize-html";
 import { contains_url } from "@cocalc/backend/misc";
+import { site_settings_conf } from "@cocalc/util/db-schema/site-defaults";
+import { defaults, required, split, to_json } from "@cocalc/util/misc";
 import {
-  SENDGRID_TEMPLATE_ID,
-  SENDGRID_ASM_NEWSLETTER,
-  SENDGRID_ASM_INVITES,
-  COMPANY_NAME,
   COMPANY_EMAIL,
-  SITE_NAME,
+  COMPANY_NAME,
   DNS,
   HELP_EMAIL,
   LIVE_DEMO_REQUEST,
+  SENDGRID_ASM_INVITES,
+  SENDGRID_ASM_NEWSLETTER,
+  SENDGRID_TEMPLATE_ID,
+  SITE_NAME,
 } from "@cocalc/util/theme";
-import * as async from "async";
+import siteUrl from "@cocalc/server/hub/site-url";
+
+const fs_readFile_prom = promisify(fs.readFile);
 
 const winston = getLogger("server:hub:email");
 
@@ -493,8 +494,7 @@ export async function send_email(opts: Opts): Promise<void> {
   opts = defaults(opts, opts_default);
   opts.company_name = company_name;
 
-  const dns = fallback(settings.dns, DNS);
-  opts.url = `https://${dns}`;
+  opts.url = await siteUrl();
 
   const dbg = make_dbg(opts);
   dbg(`${opts.body.slice(0, 201)}...`);
@@ -809,14 +809,14 @@ export function welcome_email(opts): void {
 
   if (opts.to == null) {
     // users can sign up without an email address. ignore this.
-    typeof opts.cb === "function" ? opts.cb(undefined) : undefined;
+    opts.cb?.();
     return;
   }
 
   const settings = opts.settings;
   const site_name = fallback(settings.site_name, SITE_NAME);
   const dns = fallback(settings.dns, DNS);
-  const url = `https://${dns}`;
+  const url = dns.startsWith("http") ? dns : `https://${dns}`;
   const token_query = encodeURI(
     `email=${encodeURIComponent(opts.to)}&token=${opts.token}`,
   );
@@ -826,7 +826,10 @@ export function welcome_email(opts): void {
 
   if (opts.only_verify) {
     // only send the verification email, if settings.verify_emails is true
-    if (!verify_emails) return;
+    if (!verify_emails) {
+      opts.cb?.();
+      return;
+    }
     subject = `Verify your email address on ${site_name} (${dns})`;
     body = verify_email_html(token_url);
     category = "verify";

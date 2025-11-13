@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { ID } from "./crm";
@@ -39,6 +39,10 @@ Table({
       type: "boolean",
       desc: "optionally, hide/retract this news item",
     },
+    until: {
+      type: "timestamp",
+      desc: "optional expiration date - news item will not be shown after this date",
+    },
     history: {
       type: "map",
       desc: "history of changes to this news item",
@@ -53,7 +57,9 @@ Table({
         pg_where: [
           "date >= NOW() - INTERVAL '3 months'",
           "date <= NOW() + INTERVAL '1 minute'",
+          "channel != 'event'",
           "hide IS NOT true",
+          "(until IS NULL OR until > NOW())",
         ],
         pg_changefeed: "news",
         options: [{ order_by: "-date" }, { limit: 100 }],

@@ -1,14 +1,16 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert, Layout, List } from "antd";
+import dayjs from "dayjs";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import {
+  CURRENT_VERSION,
   discount_monthly_pct,
   discount_yearly_pct,
   MIN_QUOTE,
@@ -20,6 +22,7 @@ import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import PricingItem, { Line } from "components/landing/pricing-item";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import {
   applyLicense,
@@ -30,8 +33,8 @@ import { LinkToStore, StoreConf } from "components/store/link";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { Paragraph, Title } from "components/misc";
-import dayjs from "dayjs";
+
+import type { JSX } from "react";
 
 function addMonth(date: Date): Date {
   return dayjs(date).add(30, "days").add(12, "hours").toDate();
@@ -64,6 +67,7 @@ const hobby: Item = (() => {
   } as const;
 
   const info: PurchaseInfo = {
+    version: CURRENT_VERSION,
     type: "quota",
     user: conf.user,
     upgrade: "custom",
@@ -92,8 +96,8 @@ const hobby: Item = (() => {
     disk: conf.disk,
     academic: true,
     uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
-    monthly: priceM.discounted_cost,
-    yearly: priceY.discounted_cost,
+    monthly: priceM.cost,
+    yearly: priceY.cost,
     conf,
   };
 })();
@@ -109,6 +113,7 @@ const academic: Item = (() => {
   } as const;
 
   const info: PurchaseInfo = {
+    version: CURRENT_VERSION,
     type: "quota",
     user: conf.user,
     upgrade: "custom",
@@ -138,8 +143,8 @@ const academic: Item = (() => {
     dedicated_cores: 0,
     academic: true,
     uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
-    monthly: priceM.discounted_cost,
-    yearly: priceY.discounted_cost,
+    monthly: priceM.cost,
+    yearly: priceY.cost,
     conf,
   };
 })();
@@ -155,6 +160,7 @@ const business: Item = (() => {
   } as const;
 
   const info: PurchaseInfo = {
+    version: CURRENT_VERSION,
     type: "quota",
     user: conf.user,
     upgrade: "custom",
@@ -183,8 +189,8 @@ const business: Item = (() => {
     disk: conf.disk,
     academic: false,
     uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
-    monthly: priceM.discounted_cost,
-    yearly: priceY.discounted_cost,
+    monthly: priceM.cost,
+    yearly: priceY.cost,
     conf,
   };
 })();
@@ -287,7 +293,7 @@ function Body(): JSX.Element {
             <Line amount={item.shared_cores} desc="Shared CPU per project" />
             <Line amount={item.disk} desc="Disk space per project" />
             <Line amount={item.uptime} desc="Idle timeout" />
-            <Line amount={"Unlimited"} desc="Collaborators" />
+            <Line amount={"∞"} desc="Collaborators" />
             {item.academic ? (
               <Line amount="40%" desc="Academic discount" />
             ) : (

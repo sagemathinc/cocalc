@@ -1,32 +1,34 @@
 ## Issue Triage
+
 Contributors with sufficient permissions on the CoCalc repo can help by adding
 labels to triage issues:
 
-* Yellow, **A**-prefixed labels state which **area** of CoCalc the issue relates to.   
+- Yellow, **A**-prefixed labels state which **area** of CoCalc the issue relates to.  
   Answers the question: "Where should I be looking?"
 
-* Green, **E**-prefixed labels explain the type of **experience** necessary
+- Green, **E**-prefixed labels explain the type of **experience** necessary
   to fix the issue.  
   Answers the question "What kind of effort is necessary?"
 
-* Red, **I**-prefixed labels indicate the **importance** (relevance) of the issue.  
+- Red, **I**-prefixed labels indicate the **importance** (relevance) of the issue.  
   Answers the question: "Why is this important?"
 
-* **M** is market segment priority. 
+- Orange, **P**-prefixed labels indicate a bug's **priority**.
 
-* Orange, **P**-prefixed labels indicate a bug's **priority**.
+- **M** is market segment priority. (ws: these are confusing and should be merged with the P- priorities)
 
-* The purple **meta** label denotes a list of issues collected from other categories.
+- The purple **meta** label denotes a list of issues collected from other categories.
 
-* The black, **blocked** label denotes an issue blocked by another.
+- The black, **blocked** label denotes an issue blocked by another.
 
-* Finally, **upstream** signals the problem is related to a library, usually includes a link to another issue.
+- Finally, **upstream** signals the problem is related to a library, usually includes a link to another issue.
 
 If you're looking for somewhere to start, check out the [E-easy][eeasy] tag.
 
-[eeasy]:https://github.com/sagemathinc/cocalc/labels/E-easy
+[eeasy]: https://github.com/sagemathinc/cocalc/labels/E-easy
 
 ### List of labels and their descriptions
+
 Most tags should be self explanatory but some can be unclear. If you're unsure what a label means how it's different from another email John Jeng at j3@sagemath.com. He'll probably add it to the description here.
 
 - `blocked` -- Always link what the issue is blocked by.
@@ -36,6 +38,5 @@ Most tags should be self explanatory but some can be unclear. If you're unsure w
 - `I-slow` -- Something that seems unnecessarily slow.
 - `I-software request` -- Requests for adding something to be installed in CoCalc by default.
 - `I-UA` -- Text that needs to be reworded or a tip that needs to get written.
-
 
 Inspired by [Rust's triage system](https://github.com/rust-lang/rust/blob/master/CONTRIBUTING.md#issue-triage).

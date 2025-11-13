@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /* Declare CodeMirror plugins we use.
@@ -24,6 +24,7 @@ declare module "codemirror" {
       cmd: string;
       args?: any;
       mode?: string;
+      project_id?: string;
       cb?: Function; // called after done; if there is a dialog, this could be a while.
     }): void;
   }

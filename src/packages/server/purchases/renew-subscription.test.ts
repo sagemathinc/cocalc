@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // test renew-subscriptions
@@ -12,7 +12,7 @@ import renewSubscription, { getSubscription } from "./renew-subscription";
 import { createTestAccount, createTestSubscription } from "./test-data";
 import dayjs from "dayjs";
 import createCredit from "./create-credit";
-import getBalance, { getPendingBalance } from "./get-balance";
+import getBalance from "./get-balance";
 
 beforeAll(async () => {
   await initEphemeralDatabase({});
@@ -36,7 +36,7 @@ describe("create a subscription, then renew it", () => {
     try {
       await renewSubscription({ account_id, subscription_id });
     } catch (e) {
-      expect(e.message).toMatch("Please add");
+      expect(e.message).toMatch("Please pay");
     }
     //const sub = await getSubscription(subscription_id);
   });
@@ -46,19 +46,17 @@ describe("create a subscription, then renew it", () => {
     await renewSubscription({ account_id, subscription_id });
     const sub = await getSubscription(subscription_id);
     expect(
-      dayjs(sub.current_period_end).diff(dayjs(), "day")
+      dayjs(sub.current_period_end).diff(dayjs(), "day"),
     ).toBeGreaterThanOrEqual(50); // another month added...
-    expect(await getBalance(account_id)).toBeCloseTo(0);
+    expect(await getBalance({ account_id })).toBeCloseTo(0);
   });
 
-  it("renews the subscription again but with force set to true, so that the subscription renews (even though we are out of money), but via a *pending* purchase", async () => {
+  it("renews the subscription again but with force set to true, so that the subscription renews (even though we are out of money)", async () => {
     await renewSubscription({ account_id, subscription_id, force: true });
-    // purchase is pending
-    expect(await getBalance(account_id)).toBeCloseTo(0);
-    expect(await getPendingBalance(account_id)).toBeCloseTo(-cost);
+    expect(await getBalance({ account_id })).toBeCloseTo(-cost);
     const sub = await getSubscription(subscription_id);
     expect(
-      dayjs(sub.current_period_end).diff(dayjs(), "day")
+      dayjs(sub.current_period_end).diff(dayjs(), "day"),
     ).toBeGreaterThanOrEqual(80); // about 2 months added...
   });
 });
@@ -68,7 +66,7 @@ describe("adding and subtracting month and year to a date", () => {
     expect(
       test
         .addInterval(new Date("2023-02-02T00:00:00.000Z"), "month")
-        .toISOString()
+        .toISOString(),
     ).toBe("2023-03-02T00:00:00.000Z");
   });
 
@@ -76,7 +74,7 @@ describe("adding and subtracting month and year to a date", () => {
     expect(
       test
         .addInterval(new Date("2023-02-02T00:00:00.000Z"), "year")
-        .toISOString()
+        .toISOString(),
     ).toBe("2024-02-02T00:00:00.000Z");
   });
 
@@ -84,14 +82,14 @@ describe("adding and subtracting month and year to a date", () => {
     expect(
       test
         .subtractInterval(new Date("2023-03-02T00:00:00.000Z"), "month")
-        .toISOString()
+        .toISOString(),
     ).toBe("2023-02-02T00:00:00.000Z");
   });
   it("subtracts a year to Feb 2 and gets Feb 2 a year earlier", () => {
     expect(
       test
         .subtractInterval(new Date("2023-02-02T00:00:00.000Z"), "year")
-        .toISOString()
+        .toISOString(),
     ).toBe("2022-02-02T00:00:00.000Z");
   });
 });

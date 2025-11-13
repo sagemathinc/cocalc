@@ -27,17 +27,23 @@ export default function PayLink({ project_id }: Props) {
 
   return (
     <div>
-      <Button
-        disabled={loading || !!otherPayLink}
-        style={{ marginLeft: "30px" }}
-        onClick={getPayLink}
-      >
+      <Button disabled={loading || !!otherPayLink} onClick={getPayLink}>
         <Icon name="external-link" /> Have somebody else pay for you...
         {loading && <Spin />}
       </Button>
       {!!otherPayLink && (
         <Card
-          title={"Have somebody else pay for you"}
+          title={
+            <>
+              Have somebody else pay for you{" "}
+              <Button
+                style={{ float: "right" }}
+                onClick={() => setOtherPayLink("")}
+              >
+                Close
+              </Button>
+            </>
+          }
           style={{ maxWidth: "650px", margin: "30px auto" }}
         >
           If you would like to have somebody else pay your course fee, please

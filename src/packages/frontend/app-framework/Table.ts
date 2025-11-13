@@ -1,13 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { AppRedux } from "../app-framework";
 import { bind_methods } from "@cocalc/util/misc";
 import { webapp_client } from "../webapp-client";
-
-declare let Primus;
 
 export type TableConstructor<T extends Table> = new (name, redux) => T;
 
@@ -48,7 +46,7 @@ export abstract class Table {
     }
 
     this._table.on("error", (error) => {
-      console.warn(`Synctable error (table='${name}'): ${error}`);
+      console.warn(`Synctable error (table='${name}'):`, error);
     });
 
     if (this._change != null) {

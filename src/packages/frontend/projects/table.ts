@@ -1,8 +1,9 @@
-import { reuseInFlight } from "async-await-utils/hof";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { COCALC_MINIMAL } from "../fullscreen";
 import { parse_query } from "@cocalc/sync/table/util";
 import { once } from "@cocalc/util/async-utils";
 import { redux, Table } from "../app-framework";
+import { isValidUUID } from "@cocalc/util/misc";
 
 declare var DEBUG: boolean;
 
@@ -76,7 +77,7 @@ function initTableError(): void {
 export const load_all_projects = reuseInFlight(async () => {
   if (DEBUG && COCALC_MINIMAL) {
     console.error(
-      "projects/load_all_projects was called in kiosk/minimal mode"
+      "projects/load_all_projects was called in kiosk/minimal mode",
     );
   }
   if (all_projects_have_been_loaded) {
@@ -102,6 +103,7 @@ async function load_recent_projects(): Promise<void> {
     // https://github.com/sagemathinc/cocalc/issues/4306
     await redux.getActions("projects").load_all_projects();
   }
+  ensureMostActiveProjectIsRunning();
 }
 
 export function init() {
@@ -131,5 +133,55 @@ export async function switch_to_project(project_id: string): Promise<void> {
     const pt = redux.createTable("projects", ProjectsTable);
     project_tables[project_id] = pt;
     await once(redux.getTable("projects")._table, "connected");
+  }
+}
+
+/*
+Looks at all non-deleted, non-hidden licensed projects this user
+is a collaborator on, finds the most recently active project,
+and starts it if it is not already running.  This is meant to
+make the experience of using cocalc better for paying users.
+It is called exactly once when they first load cocalc in their
+browser.
+
+It is controversial and you could argue this is a bad idea.
+However, I feel on balance it is a good idea (which BB suggested).
+Students will like it, since they usually are a collab on
+one project.
+*/
+
+function ensureMostActiveProjectIsRunning() {
+  const project_map = redux.getTable("projects")?._table?.get();
+  const account_id = redux.getStore("account").get("account_id");
+  let newest_project: any = null;
+  let last_edited: Date | null = null;
+  for (const [_, project] of project_map) {
+    if (
+      project.getIn(["users", account_id, "hide"]) ||
+      project.get("deleted") ||
+      !project.get("last_edited") ||
+      (project.get("site_license")?.size ?? 0) == 0
+    ) {
+      continue;
+    }
+    if (last_edited == null || last_edited <= project.get("last_edited")) {
+      last_edited = project.get("last_edited");
+      newest_project = project;
+    }
+  }
+  if (newest_project != null) {
+    if (newest_project.getIn(["state", "state"]) != "running") {
+      for (const [license_id] of newest_project.get("site_license")) {
+        if (!isValidUUID(license_id)) {
+          // TODO:  we should also check that the license is currently valid... though that would
+          // put extra load on the backend and slow this step down.  Better might be a way to "start project
+          // only if license is valid and not otherwise".
+          return;
+        }
+      }
+      redux
+        .getActions("projects")
+        .start_project(newest_project.get("project_id"));
+    }
   }
 }

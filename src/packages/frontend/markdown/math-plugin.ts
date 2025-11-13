@@ -112,10 +112,11 @@ const texmath = {
       return res;
     },
   render: (tex, displayMode) => {
-    // We need to continue to support rendering to MathJax as an option,
+    // We **USED TO** need to continue to support rendering to MathJax as an option,
     // but texmath only supports katex.  Thus we output by default to
     // html using script tags, which are then parsed later using our
     // katex/mathjax plugin.
+    // We no longer support MathJax, so maybe this can be simplified?
     return `<script type="math/tex${
       displayMode ? "; mode=display" : ""
     }">${tex}</script>`;

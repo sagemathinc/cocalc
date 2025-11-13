@@ -1,36 +1,30 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Row, Col } from "antd";
-import {
-  React,
-  useMemo,
-  useTypedRedux,
-  useEffect,
-  redux,
-} from "../../app-framework";
-import { Loading, TimeAgo } from "../../components";
-import { projects_with_licenses } from "./util";
-import { plural, trunc_middle } from "@cocalc/util/misc";
-import { LICENSES_STYLE } from "./managed-licenses";
+import { Alert, Col, Row } from "antd";
+import { useEffect, useMemo, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 
-function open_project(project_id: string): void {
-  redux.getActions("projects").open_project({ project_id });
-  redux.getProjectActions(project_id).set_active_tab("settings");
-}
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Loading, TimeAgo } from "@cocalc/frontend/components";
+import { SiteLicense } from "@cocalc/frontend/project/settings/site-license";
+import { SelectProject } from "@cocalc/frontend/projects/select-project";
+import { plural, trunc_middle } from "@cocalc/util/misc";
+import { LICENSES_STYLE } from "./managed-licenses";
+import { projects_with_licenses } from "./util";
 
-export const ProjectsWithLicenses: React.FC = () => {
+export function ProjectsWithLicenses({}) {
+  const [project_id, setProjectId] = useState<string | undefined>(undefined);
   const project_map = useTypedRedux("projects", "project_map");
   const all_projects_have_been_loaded = useTypedRedux(
     "projects",
-    "all_projects_have_been_loaded"
+    "all_projects_have_been_loaded",
   );
   const projects = useMemo(
     () => projects_with_licenses(project_map),
-    [project_map]
+    [project_map],
   );
 
   useEffect(() => {
@@ -40,20 +34,23 @@ export const ProjectsWithLicenses: React.FC = () => {
     }
   }, []);
 
+  function sanitize(s: any): string {
+    return typeof s === "string" ? s : "";
+  }
+
   function row_renderer({ index }) {
     const { project_id, last_edited, num_licenses } = projects[index];
+    const project_title = sanitize(project_map?.getIn([project_id, "title"]));
     return (
       <Row
         key={projects[index]?.project_id}
         style={{ borderBottom: "1px solid lightgrey", cursor: "pointer" }}
         onClick={() => {
-          open_project(project_id);
+          setProjectId(project_id);
         }}
       >
         <Col span={12} style={{ paddingLeft: "15px" }}>
-          <a>
-            {trunc_middle(project_map?.getIn([project_id, "title"]) ?? "", 80)}
-          </a>
+          <a>{trunc_middle(project_title, 80)}</a>
         </Col>
         <Col span={6}>
           {num_licenses} {plural(num_licenses, "License")}
@@ -74,7 +71,7 @@ export const ProjectsWithLicenses: React.FC = () => {
     }
     return (
       <div
-        style={{ ...LICENSES_STYLE, height: "50vh" }}
+        style={{ ...LICENSES_STYLE, height: "175px", marginTop: "5px" }}
         className={"smc-vfill"}
       >
         <Virtuoso
@@ -86,16 +83,32 @@ export const ProjectsWithLicenses: React.FC = () => {
     );
   }
 
-  function render_count() {
-    if (projects == null || projects.length == 0) return;
-    return <>({projects.length})</>;
-  }
-
   return (
     <div>
-      {" "}
-      <h3>Projects with licenses {render_count()}</h3>
+      <h3>Projects</h3>
+      <Alert
+        style={{ marginBottom: "15px" }}
+        banner
+        type="info"
+        message={
+          <>
+            Select a project below to add or remove a license from that project,
+            or to buy a license for that project.
+          </>
+        }
+      />
+      <SelectProject value={project_id} onChange={setProjectId} />
+      {project_id && project_map && (
+        <SiteLicense
+          project_id={project_id}
+          site_license={project_map.getIn([project_id, "site_license"]) as any}
+        />
+      )}
+      <div style={{ marginTop: "10px" }}>
+        The following {projects.length} {plural(projects.length, "project")}{" "}
+        have a license:
+      </div>
       {render_projects_with_license()}
     </div>
   );
-};
+}

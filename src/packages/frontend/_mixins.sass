@@ -1,0 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+=user-select($val:"none")
+  -webkit-user-select : #{$val}
+  -moz-user-select    : #{$val}
+  -ms-user-select     : #{$val}
+  user-select         : #{$val}
+
+=disable-user-select
+  +user-select(none)
+
+=enable-user-select
+  +user-select(text)

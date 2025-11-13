@@ -111,7 +111,7 @@ export async function validateConfigurationChange({
         (newConfiguration.acceleratorCount ?? 0) >= 1
       )
     ) {
-      // Google cloud automatically adds GPU's in cases like the above,
+      // Google cloud automatically adds GPUs in cases like the above,
       // which is VERY bad and would cost us tons but users nothing!
       // Not checking for this could kill us.
       throw Error("the machine type g2- must have an L4 GPU configured");

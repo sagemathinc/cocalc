@@ -9,27 +9,13 @@ import getPool from "@cocalc/database/pool";
 import type { Statement } from "@cocalc/util/db-schema/statements";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import dayjs from "dayjs";
-import type { Message } from "@cocalc/server/email/message";
-import sendEmail from "@cocalc/server/email/send-email";
-import {
-  statementToHtml,
-  purchasesToHtml,
-  statementToText,
-  purchasesToText,
-} from "./to-email";
+import { statementToMarkdown, purchasesToMarkdown } from "./to-email";
 import { getServerSettings } from "@cocalc/database/settings";
 import siteURL from "@cocalc/database/settings/site-url";
-import {
-  disableDailyStatements,
-  makePayment,
-} from "@cocalc/server/token-actions/create";
+import { disableDailyStatements } from "@cocalc/server/token-actions/create";
 import { getTotalBalance } from "../get-balance";
-import { getUsageSubscription } from "../stripe-usage-based-subscription";
-import {
-  currency,
-  is_valid_email_address as isValidEmailAddress,
-} from "@cocalc/util/misc";
 import getLogger from "@cocalc/backend/logger";
+import send, { support } from "@cocalc/server/messages/send";
 
 const logger = getLogger("purchases:email-statement");
 
@@ -37,22 +23,13 @@ export default async function emailStatement(opts: {
   account_id: string;
   statement_id: number;
   force?: boolean; // if not set, will send email at most once every 6 hours.
-  dryRun?: boolean; // if set, returns html content of email only, but doesn't send email (useful for unit testing)
-}): Promise<Message> {
+  dryRun?: boolean; // if set, returns content of message only, but doesn't send message (useful for unit testing)
+}) {
   logger.debug("emailStatement ", opts);
-  const {
-    help_email,
-    site_name: siteName,
-    pay_as_you_go_min_payment,
-  } = await getServerSettings();
+  const { site_name: siteName, pay_as_you_go_min_payment } =
+    await getServerSettings();
   const { account_id, statement_id, force, dryRun } = opts;
-  const { name, email_address: to } = await getUser(account_id);
-  if (!to) {
-    throw Error(`no email address at all on file for ${name} -- ${account_id}`);
-  }
-  if (!isValidEmailAddress(to)) {
-    throw Error(`no valid email address on file for ${name}`);
-  }
+  const { name } = await getUser(account_id);
   const statement = await getStatement(statement_id);
   if (statement.account_id != account_id) {
     throw Error(
@@ -67,29 +44,13 @@ export default async function emailStatement(opts: {
   }
   let pay;
   if (statement.balance >= 0) {
-    pay = "Statement balance is not negative, so no payment is required.";
+    pay = "**NO PAYMENT IS REQUIRED.**";
   } else {
-    const usageSub = await getUsageSubscription(account_id);
-    const toPay = currency(-statement.balance);
-    if (usageSub == null) {
-      const totalBalance = await getTotalBalance(account_id);
-      if (totalBalance >= -pay_as_you_go_min_payment) {
-        pay = "No payment is currently required.";
-      } else {
-        const payUrl = await makePayment({
-          account_id,
-          amount: -statement.balance,
-          reason: `Pay the balance on statement ${statement_id}.`,
-        });
-        pay = `<b>Payment required. <a href="${payUrl}">Click here to pay ${toPay}</a>, since you do NOT have automatic payments setup and your statement balance is negative.  You can also sign in and add money on <a href="${await siteURL()}/settings/purchases">the purchases page</a>.</b>`;
-      }
+    const totalBalance = await getTotalBalance(account_id);
+    if (totalBalance >= -pay_as_you_go_min_payment) {
+      pay = "Your account is **fully paid**.";
     } else {
-      pay = "You have automatic payments setup. ";
-      if (statement.automatic_payment) {
-        pay += ` ${siteName} initiated a payment of ${toPay}.`;
-      } else {
-        pay += ` ${siteName} will soon initiate a payment of ${toPay}.`;
-      }
+      pay = "You may receive an invoice soon.";
     }
   }
 
@@ -107,76 +68,48 @@ export default async function emailStatement(opts: {
   let stop;
   if (statement.interval == "day") {
     const url = await disableDailyStatements(account_id);
-    stop = `<a href="${url}">Disable Daily Statements (you will still receive monthly statements)...</a><br/><br/>`;
+    stop = `\n\n[Disable Daily Statements (you will still receive monthly statements)...](${url})\n\n\n`;
   } else {
     stop = "";
   }
 
-  const html = `
-Hello ${name},
+  const body = `
+Dear ${name},
 
-<br/>
 <br/>
 
 Your ${
     statement.interval == "day" ? "Daily" : "Monthly"
-  } statement is below.  You can browse an interactive
-version of all statements in your local timezone at
-<a href="${link}">${link}</a>
-and download your transactions as a CSV or JSON file.
+  } statement is below.  You can also [browse an interactive
+version of all statements](${link}) in your local timezone and download
+your transactions as a CSV or JSON file.
 
-<br/>
-<br/>
 ${pay}
 
-<br/>
-<br/>
-
-If you have any questions, reply to this email to create
-a support request.
-
-<br/>
 <br/>
 
 ${stop}
 
+<br/>
 
-${statementToHtml(statement, previousStatement, { siteName })}
-
-${purchasesToHtml(purchases)}
-
-`;
-
-  const text = `
-Hello ${name},
-
-Your ${
-    statement.interval == "day" ? "Daily" : "Monthly"
-  } statement is below.  You can browse an interactive
-version of all statements in your local timezone at
-${link}
-and download your transactions as a CSV or JSON file.
-
-${pay}
-
-If you have any questions, reply to this email to create
-a support request.
-
-${stop}
-
-${statementToText(statement, previousStatement, { siteName })}
+${statementToMarkdown(statement, previousStatement, { siteName })}
 
 ---
 
-${purchasesToText(purchases)}
+${purchasesToMarkdown({ statement, purchases })}
+
+
+<br/>
+
+${await support()}
 
 `;
 
-  const mesg = { from: help_email, to, subject, html, text };
+  const mesg = { to_ids: [account_id], subject, body };
 
   if (!dryRun) {
-    // actually send email
-    await sendEmail(mesg);
+    // actually send the message
+    await send(mesg);
   }
 
   return mesg;
@@ -220,7 +153,7 @@ async function getPurchasesOnStatement(
 ): Promise<Purchase[]> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id, time, cost, cost_per_hour, period_start, period_end, pending, service, description, project_id FROM purchases WHERE day_statement_id=$1 OR month_statement_id=$1 ORDER BY time desc",
+    "SELECT id, time, cost, cost_per_hour, period_start, period_end, service, description, project_id FROM purchases WHERE day_statement_id=$1 OR month_statement_id=$1 ORDER BY time desc",
     [statement_id],
   );
   return rows;

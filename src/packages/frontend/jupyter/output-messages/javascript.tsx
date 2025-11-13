@@ -1,14 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { List } from "immutable";
 import $ from "jquery";
-import React, { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { is_array } from "@cocalc/util/misc";
 import { javascript_eval } from "./javascript-eval";
-import { STDERR_STYLE } from "./style";
+import ShowError from "@cocalc/frontend/components/error";
 
 interface JavascriptProps {
   value: string | List<string>;
@@ -16,7 +16,7 @@ interface JavascriptProps {
 
 // ATTN: better don't memoize this, since JS code evaluation happens when this is mounted
 export const Javascript: React.FC<JavascriptProps> = (
-  props: JavascriptProps
+  props: JavascriptProps,
 ) => {
   const { value } = props;
 
@@ -24,7 +24,7 @@ export const Javascript: React.FC<JavascriptProps> = (
 
   const [errors, set_errors] = useState<string | undefined>(undefined);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (value == null || node.current == null) {
       return;
     }
@@ -43,25 +43,21 @@ export const Javascript: React.FC<JavascriptProps> = (
     }
     let block: string;
     let errors: string = "";
-    for (block of blocks) {
-      errors += javascript_eval(block, element);
-      if (errors.length > 0) {
-        set_errors(errors);
+    const doEval = () => {
+      for (block of blocks) {
+        errors += javascript_eval(block, element);
+        if (errors.length > 0) {
+          set_errors(errors);
+        }
       }
-    }
+    };
+    // javascript maybe be run on something that gets rendered in the DOM, so give that
+    // a chance to happen.  Bokeh randomly breaks without this.  **TODO: Obviously, this sucks.**
+    setTimeout(doEval, 300);
   }, [value]);
 
   if (errors) {
-    // This conflicts with official Jupyter
-    return (
-      <div style={STDERR_STYLE}>
-        <span>
-          {errors}
-          <br />
-          See your browser Javascript console for more details.
-        </span>
-      </div>
-    );
+    return <ShowError error={errors} style={{ margin: "10px 0" }} />;
   } else {
     return <div ref={node} />;
   }

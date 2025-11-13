@@ -9,6 +9,7 @@ import {
   computeCost,
   getNetworkUsage,
   hasNetworkUsage,
+  state,
 } from "@cocalc/server/compute/control";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
@@ -23,19 +24,35 @@ import {
   closeAndPossiblyContinueNetworkPurchase,
 } from "./close";
 import lowBalance from "./low-balance";
+import {
+  GOOGLE_COST_LAG_MS,
+  getInstanceTotalCost,
+  haveBigQueryBilling,
+} from "@cocalc/server/compute/cloud/google-cloud/bigquery";
+import { getServerName } from "@cocalc/server/compute/cloud/google-cloud/index";
+import adminAlert from "@cocalc/server/messages/admin-alert";
 
 const logger = getLogger("server:compute:maintenance:purchases:manage");
 
+// we assumein close.ts that MIN_NETWORK_CLOSE_DELAY_MS is well over 1 hour.
 export const MIN_NETWORK_CLOSE_DELAY_MS = 2 * 60 * 1000;
 
 // a single purchase is split once it exceeds this length:
-export const MAX_PURCHASE_LENGTH_MS = 1000 * 60 * 60 * 24; // 1 day
+export const MAX_PURCHASE_LENGTH_MS = 1000 * 60 * 60 * 24;
 
 // network purchasing info is updated this frequently for running servers
-export const MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS = 1000 * 60 * 30; // 30 minutes
+export const MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS = 1000 * 60 * 15;
 
-//every provisioned server gets purchases updated at least this often
-export const PERIODIC_UPDATE_INTERVAL_MS = 1000 * 60 * 60; // 1 hour
+// every *provisioned non-running server* gets purchases updated at least this often.
+// We make this frequent enough to limit damage from abuse, but not too frequent
+// to cause too much load on the database.
+// Use PERIODIC_SHORT_UPDATE_INTERVAL_MS for servers that had some recent change:
+export const PERIODIC_SHORT_UPDATE_INTERVAL_MS = 1000 * 60 * 2;
+
+// Use PERIODIC_LONG_UPDATE_INTERVAL_MS for all servers
+export const PERIODIC_LONG_UPDATE_INTERVAL_MS = 1000 * 60 * 60;
+
+const lastAdminAlert: { [id: number]: number } = {};
 
 export default async function managePurchases() {
   logger.debug("managePurchases");
@@ -78,6 +95,29 @@ export default async function managePurchases() {
         err,
         server: row,
       });
+      // at most one admin alert for a given server per 30 minutes...
+      const now = Date.now();
+      if (now - (lastAdminAlert[row.id] ?? 0) >= 30 * 1000 * 60) {
+        lastAdminAlert[row.id] = now;
+        adminAlert({
+          subject:
+            "Error managing a compute server purchase -- admin should investigate",
+          body: `
+
+Processing this row:
+
+\`\`\`
+${JSON.stringify(row, undefined, 2)}
+\`\`\`
+
+The following error happened: ${err}
+
+This could result in a user not being properly charged or a long purchase being
+left opened.  Please investigate!
+
+`,
+        });
+      }
     }
   }
 }
@@ -111,6 +151,13 @@ export async function updatePurchase(server: ComputeServer) {
   being corrupt due to race conditions or whatever, since I've setup the code
   so there shouldn't be any race conditions.
 
+  **
+  We define an "outstanding purchase" to be one for which the cost field is NULL.
+  The end time may be set so the actual thing being purchase may have ended days
+  ago.  This happens, e.g., with google networking and cloud storage, since we
+  don't know how much the thing cost until days after it happened.
+  **
+
   NOTES:
   - Google charges us from when a server starts starting until it is stopped, i.e., for
     the startup time and shutdown time.  There's probably some very good reasons for that,
@@ -132,10 +179,13 @@ export async function updatePurchase(server: ComputeServer) {
     from the purchase one (e.g., running vs off), end the current purchase.  If not deprovisioned,
     do a recursive call to create new purchase for new state.
 
-  - RULE 4: If there is an ongoing 'compute-server-network-usage' purchase, possibly update it.
+  - RULE 4: If there is a 'compute-server-network-usage' purchase, possibly update it.
     If project is not running and it has been at least X minutes after stopping/deleting,
-    update and close the purchase.  The issue here is just that network usage takes a few minutes to
-    get recorded.
+    update and close the purchase, which means setting the end time (but not necessarily cost!).
+    The issue here is just that network usage takes a few minutes to get recorded.
+    In addition, as part of this step, for purchases that ended days ago, we query
+    google for their actual cost and fill it in (if the appropriate service account, etc.
+    is actually available -- bigquery won't be hit from CI).
 
   - RULE 5: If the total duration of a purchase exceeds MAX_PURCHASE_INTERVAL_MS
     (e.g., 1 day), then we end that purchase and start another.
@@ -148,13 +198,9 @@ export async function updatePurchase(server: ComputeServer) {
        - If balance drops too low, deprovision everything.
   */
 
-  if (!server.state) {
-    logger.debug(
-      "WARNING: server.state should be defined but isn't",
-      server.id,
-    );
-    // nothing is possible
-    return;
+  if (server.state == "unknown" || !server.state) {
+    logger.debug("WARNING: server.state not known so recomputing", server);
+    server.state = await state({ ...server, maintenance: true });
   }
 
   const stableState = STATE_INFO[server.state].stable
@@ -187,7 +233,7 @@ export async function updatePurchase(server: ComputeServer) {
 
   // Rule 4: End any networking purchases that we should end, and also
   // update the total amount of network usage periodically, so user
-  // can see it.  (This is only for google cloud)
+  // can see it.  (This is currently only for google cloud.)
   if (networkPurchases.length > 0) {
     await manageNetworkPurchases({ networkPurchases, server, stableState });
   }
@@ -280,6 +326,19 @@ async function manageNetworkPurchases({
   server,
   stableState,
 }) {
+  logger.debug(
+    "manageNetworkPurchases:",
+    networkPurchases.length,
+    " purchases",
+  );
+  if (networkPurchases.length == 0) {
+    // nothing to do
+    return;
+  }
+
+  // compute final costs of any sufficiently long closed network purchases (via bigquery)
+  await computeNetworkPurchaseCosts({ networkPurchases, server });
+
   if (
     server.state != "running" &&
     stableState != "running" &&
@@ -300,8 +359,64 @@ async function manageNetworkPurchases({
   }
 }
 
+export async function computeNetworkPurchaseCosts({
+  networkPurchases,
+  server,
+}) {
+  const cutoff = Date.now() - GOOGLE_COST_LAG_MS;
+  const purchases = networkPurchases.filter(
+    ({ period_end, cost }) =>
+      period_end != null && cost == null && period_end.valueOf() <= cutoff,
+  );
+  if (purchases.length == 0) {
+    logger.debug(
+      "computeNetworkPurchaseCosts: no purchases needing final cost computation",
+    );
+    return;
+  }
+  if (!(await haveBigQueryBilling())) {
+    // give up
+    logger.debug(
+      "computeNetworkPurchaseCosts: WARNING: we can never close out network purchases until BigQuery detailed billing export is configured.",
+    );
+    return;
+  }
+  for (const purchase of purchases) {
+    logger.debug(
+      "computeNetworkPurchaseCosts: need to compute cost of network usage",
+      purchase,
+    );
+    const name = await getServerName(server);
+    const end = new Date(purchase.period_end.valueOf() + 30000);
+    // for the start, we round down to the previous hour.  Why?
+    //   Rounding down does nothing if this was got by close network
+    //   purchase because we already round those down.
+    //   Rounding down includes the period in the google intervals
+    //   if the server was newly started.
+    let start = new Date(purchase.period_start.valueOf());
+    start.setSeconds(0);
+    start.setMinutes(0);
+    start = new Date(start.valueOf() - 30000);
+    // We always subtract 30 seconds because of the milliseconds:
+    // > a = new Date(); a.setSeconds(0); a.setMinutes(0); a
+    // 2024-06-27T17:00:00.751Z
+    const totalCost = await getInstanceTotalCost({ name, start, end });
+    purchase.cost = totalCost.network;
+    purchase.description.cost = totalCost.network;
+    const pool = getPool();
+    await pool.query(
+      "UPDATE purchases SET cost=$1, description=$2 WHERE id=$3",
+      [purchase.cost, purchase.description, purchase.id],
+    );
+  }
+}
+
 async function endNetworkPurchases({ networkPurchases, server }) {
   for (const purchase of networkPurchases) {
+    if (purchase.period_end != null) {
+      // this has already been ended.
+      continue;
+    }
     // only take purchases that started at least MIN_NETWORK_CLOSE_DELAY_MS ago,
     // since a new one could have started and we don't want to end that.
     if (
@@ -315,15 +430,17 @@ async function endNetworkPurchases({ networkPurchases, server }) {
         start: purchase.period_start,
         end,
       });
-      purchase.cost = Math.max(0.001, network.cost);
       purchase.period_end = end;
       purchase.description.amount = network.amount;
-      purchase.description.cost = network.cost;
       purchase.description.last_updated = end.valueOf();
+      // We very explicitly do NOT set any cost here.  That will only be done 2 days
+      // later via queries to BigQuery based on detailed billing export.
+      // The purchase.description.amount may be used for display and to provide an estimate
+      // and that's it.
       const pool = getPool();
       await pool.query(
-        "UPDATE purchases SET cost=$1, period_end=$2, description=$3 WHERE id=$4",
-        [purchase.cost, purchase.period_end, purchase.description, purchase.id],
+        "UPDATE purchases SET cost=NULL, cost_so_far=NULL, period_end=$1, description=$2 WHERE id=$3",
+        [purchase.period_end, purchase.description, purchase.id],
       );
     }
   }
@@ -354,10 +471,10 @@ async function updateNetworkUsage({ networkPurchases, server }) {
         purchase.description.amount = network.amount;
         purchase.description.last_updated = end.valueOf();
         const pool = getPool();
-        await pool.query(
-          "UPDATE purchases SET cost_so_far=$1, description=$2 WHERE id=$3",
-          [network.cost, purchase.description, purchase.id],
-        );
+        await pool.query("UPDATE purchases SET description=$1 WHERE id=$2", [
+          purchase.description,
+          purchase.id,
+        ]);
       }
     }
   }

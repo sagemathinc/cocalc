@@ -1,11 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // This is a convenience function to provide as a callback when working interactively.
 function _done(n, ...args): Function | void {
-  const start_time = new Date().valueOf();
+  const start_time = Date.now();
   const f = function (...args) {
     if (n !== 1) {
       try {
@@ -15,7 +15,7 @@ function _done(n, ...args): Function | void {
     // do nothing
     console.log(
       `*** TOTALLY DONE! (${
-        (new Date().valueOf() - start_time) / 1000
+        (Date.now() - start_time) / 1000
       }s since start) `,
       ...Array.from(args)
     );

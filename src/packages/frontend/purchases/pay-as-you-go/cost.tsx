@@ -4,12 +4,14 @@ Render the cost of a pay-as-you-go service.
 This gets the cost once via an api call, then uses the cached cost afterwards (until
 user refreshes browser), since costs change VERY rarely.
 */
-
-import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
+import { Alert, Spin, Table, Tooltip } from "antd";
 import LRU from "lru-cache";
 import { useEffect, useState } from "react";
+import { getGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
+import { A } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Alert, Spin, Table, Tooltip } from "antd";
+import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
+import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { currency } from "@cocalc/util/misc";
 import MoneyStatistic from "../money-statistic";
 
@@ -20,10 +22,11 @@ const cache = new LRU<string, any>({
 interface Props {
   service: Service;
   inline?: boolean; // just show minimal cost desc.
+  cost?: any;
 }
 
-export default function Cost({ service, inline }: Props) {
-  const [cost, setCost] = useState<any>(cache.get(service));
+export default function Cost({ inline, service, cost: cost0 }: Props) {
+  const [cost, setCost] = useState<any>(cost0 ?? cache.get(service));
   const [error, setError] = useState<string>("");
 
   const getCost = async () => {
@@ -54,9 +57,9 @@ export default function Cost({ service, inline }: Props) {
 
   if (service == "project-upgrade") {
     return <ProjectUpgradeCost cost={cost} />;
-  } else if (service.startsWith("openai-gpt")) {
+  } else if (isLanguageModelService(service)) {
     return (
-      <OpenAiCost
+      <LLMServiceCost
         prompt_tokens={cost.prompt_tokens}
         completion_tokens={cost.completion_tokens}
       />
@@ -71,29 +74,29 @@ export default function Cost({ service, inline }: Props) {
   } else if (service == "compute-server") {
     return (
       <div style={TEXT_STYLE}>
-        Competitive pay-as-you-go pricing depending on cloud rates, compute
-        server configuration and state. Pay by the second while the compute
-        server is provisioned. When your spend approaches this limit, your
-        compute servers are turned off, but the disk is not deleted (unless you
+        Competitive pay-as-you-go pricing depending on cloud rates and compute
+        server configuration. Pay by the second while the compute server is
+        provisioned. When your spend approaches this limit, your compute servers
+        are turned off, but the disk is not immediately deleted (unless you
         significantly exceed the limit).
       </div>
     );
   } else if (service == "compute-server-network-usage") {
     if (inline) {
-      return (
-        <span>
-          Network data transfered out from Google Cloud is {currency(cost)}/GB,
-          and incoming data is free.
-        </span>
-      );
+      return <GoogleNetworkCost markup={cost} />;
     }
     return (
       <div style={TEXT_STYLE}>
-        Network data transfer out from Google Cloud compute servers is charged
-        at a rate of {currency(cost)}/GB. This is the charge for all data that
-        leaves the compute server over the network. Incoming network data is
-        free. If your usage hits this limit during a month, your compute servers
-        are turned off.
+        <GoogleNetworkCost markup={cost} />
+      </div>
+    );
+  } else if (service == "compute-server-storage") {
+    if (inline) {
+      return <CloudStorageCost markup={cost} />;
+    }
+    return (
+      <div style={TEXT_STYLE}>
+        <CloudStorageCost markup={cost} />
       </div>
     );
   }
@@ -179,7 +182,7 @@ function PricePerUnit({ value, unit, month }: { value; unit; month? }) {
   return body;
 }
 
-function OpenAiCost({ prompt_tokens, completion_tokens }) {
+function LLMServiceCost({ prompt_tokens, completion_tokens }) {
   const inputPrice = currency(prompt_tokens * 1000, 3);
   const outputPrice = currency(completion_tokens * 1000, 3);
   const columns = [
@@ -218,5 +221,48 @@ function PriceWithToken({ text }) {
       <span style={{ color: "#000" }}>{text.split(" ")[0]}</span>
       <span style={{ color: "#666" }}> / 1K tokens</span>
     </span>
+  );
+}
+
+function useMarkup(markup0) {
+  const [markup, setMarkup] = useState<number | undefined>(markup0);
+  useEffect(() => {
+    if (markup == null) {
+      (async () => {
+        try {
+          setMarkup((await getGoogleCloudPriceData()).markup);
+        } catch (err) {
+          console.log(err);
+        }
+      })();
+    }
+  }, []);
+}
+
+export function GoogleNetworkCost({ markup: markup0 }: { markup?: number }) {
+  // the passed in cost is the markup
+  const markup = useMarkup(markup0);
+  return (
+    <>
+      Network pricing is a {markup != null ? `${markup}%` : "small"} markup
+      on exactly what{" "}
+      <A href="https://cloud.google.com/vpc/network-pricing">
+        Google charges for network usage.
+      </A>{" "}
+      It can take up to 3 days for networking charges to be reported.
+    </>
+  );
+}
+
+export function CloudStorageCost({ markup: markup0 }: { markup?: number }) {
+  const markup = useMarkup(markup0);
+  return (
+    <>
+      Cloud storage pricing is a {markup != null ? `${markup}%` : "small"}{" "}
+      markup on exactly what{" "}
+      <A href="https://cloud.google.com/storage/pricing">
+        Google charges for Google Cloud Storage usage.
+      </A>{" "}
+    </>
   );
 }

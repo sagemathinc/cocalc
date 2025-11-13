@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Strategy as SAMLStrategyNew } from "@node-saml/passport-saml";
@@ -12,7 +12,6 @@ import { Strategy as Gitlab2Strategy } from "passport-gitlab2";
 import * as oauth from "passport-oauth"; // this is a wrapper containing version 1 and 2
 import { Strategy as OidcStrategy } from "passport-openidconnect";
 import { Strategy as OrcidStrategy } from "passport-orcid";
-import { Strategy as SAMLStrategyOld } from "passport-saml";
 
 import { getLogger } from "@cocalc/backend/logger";
 import type { PassportTypes } from "@cocalc/database/settings/auth-sso-types";
@@ -21,17 +20,6 @@ import { unreachable } from "@cocalc/util/misc";
 import type { PassportStrategyConstructorType } from "./types";
 
 const L = getLogger("server:auth:sso:extra-strategies");
-
-// by default, we keep the old variant, which has been in use for years
-// the new one has been added as a non-standard variant
-// https://github.com/sagemathinc/cocalc/pull/6572
-// TODO: some day in the future switch over to the new variant
-// NOTE: this only affects the "saml" type. You can also be explicit by setting type to saml-v3 or saml-v4
-export function getSAMLVariant(): "old" | "new" {
-  const ret = process.env.COCALC_SSO_SAML === "new" ? "new" : "old";
-  L.debug(`SAML variant: ${ret}`);
-  return ret;
-}
 
 export function getExtraStrategyConstructor(
   type: PassportTypes,
@@ -42,6 +30,14 @@ export function getExtraStrategyConstructor(
   if (!PassportTypesList.includes(type)) {
     throw Error(`hub/auth: unknown extra strategy "${type}"`);
   }
+
+  // user the L logger to warn if using saml-v3. It is removed and uses the new variant now.
+  if (type === "saml-v3") {
+    L.warn(
+      `The saml-v3 type has been removed. Please use saml or saml-v4 instead. It uses @node-saml/passport-saml now`,
+    );
+  }
+
   switch (type) {
     case "oauth1":
       return oauth.OAuthStrategy;
@@ -52,9 +48,7 @@ export function getExtraStrategyConstructor(
     case "orcid":
       return OrcidStrategy;
     case "saml":
-      return getSAMLVariant() === "new" ? SAMLStrategyNew : SAMLStrategyOld;
     case "saml-v3":
-      return SAMLStrategyOld;
     case "saml-v4":
       return SAMLStrategyNew;
     case "oidc":

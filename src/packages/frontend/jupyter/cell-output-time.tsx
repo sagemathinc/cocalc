@@ -1,33 +1,125 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { TimeAgo } from "../components";
-import { Tooltip } from "antd";
+import { Progress, Space, Tooltip } from "antd";
+import { TimeAgo, Icon } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
+import { capitalize, seconds2hms, server_time } from "@cocalc/util/misc";
+import { useEffect } from "react";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 
 interface CellTimingProps {
   start?: number;
   end?: number;
+  last?: number;
+  state?;
+  isLive?: boolean;
+  kernel?: string;
 }
 
-export default function CellTiming({ start, end }: CellTimingProps) {
-  if (start == null) {
-    return null;
-  }
-  if (end != null) {
-    const seconds = (end - start) / 1000;
+// make this small so smooth.
+const DELAY_MS = 100;
+
+export default function CellTiming({
+  start,
+  end,
+  last,
+  state,
+  isLive,
+  kernel,
+}: CellTimingProps) {
+  const isMountedRef = useIsMountedRef();
+  const { inc } = useCounter();
+
+  useEffect(() => {
+    const active =
+      isLive &&
+      isMountedRef.current &&
+      start != null &&
+      end == null &&
+      state == "busy";
+    if (!active) {
+      return;
+    }
+    setTimeout(inc, DELAY_MS);
+  }, [start, end, state, inc]);
+
+  if (start != null && end != null) {
+    const ms = end - start;
     return (
       <Tooltip
-        title={`This cell took ${seconds} seconds total wall time to run.`}
+        title={
+          <>
+            Evaluated <TimeAgo date={new Date(start)} /> using {capitalize(kernel)} and took
+            about {seconds2hms(ms / 1000, true)}.
+            {last != null ? (
+              <> Previous run took {seconds2hms(last / 1000, true)}.</>
+            ) : undefined}
+          </>
+        }
       >
-        <span>{seconds} seconds</span>
+        <span style={{ cursor: "pointer" }}>{seconds2hms(ms / 1000)}</span>
       </Tooltip>
     );
+  } else if (isLive && start == null && end == null && state == "run") {
+    // it's waiting to run
+    return (
+      <Tooltip title="Waiting for another cell to finish running.">
+        <span>
+          <Icon
+            name="hand"
+            style={{
+              color: "#ff4d4f",
+              marginRight: "5px",
+            }}
+          />{" "}
+          Pending
+        </span>
+      </Tooltip>
+    );
+  } else if (isLive && start != null && end == null && state == "busy") {
+    const ms = server_time().getTime() - start;
+    return (
+      <Tooltip
+        title={
+          <>
+            Started running <TimeAgo date={new Date(start)} /> and has not
+            finished yet.{" "}
+            {last != null ? (
+              <>Previous run took {seconds2hms(last / 1000, true)}.</>
+            ) : undefined}
+          </>
+        }
+      >
+        <Space style={{ cursor: "pointer", marginTop: "-2.5px" }}>
+          {(last ?? 0) > 0 && (
+            <Progress
+              percent={(100 * ms) / (last ?? 0)}
+              showInfo={false}
+              style={{ width: "100px" }}
+              strokeColor="green"
+            />
+          )}
+          <div
+            style={{ minWidth: "50px" /* to avoid jiggle when time small */ }}
+          >
+            <Icon
+              name="plus-circle-filled"
+              style={{
+                color: COLORS.GRAY_M,
+                animation: "loadingCircle 3s infinite linear",
+                marginRight: "5px",
+              }}
+            />
+            {seconds2hms(ms / 1000)}
+          </div>
+        </Space>
+      </Tooltip>
+    );
+  } else {
+    return null;
   }
-  return (
-    <Tooltip title={"When code started running"}>
-      <TimeAgo date={new Date(start)} />
-    </Tooltip>
-  );
 }

@@ -52,8 +52,8 @@ import getPool from "@cocalc/database/pool";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import getLogger from "@cocalc/backend/logger";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
+import { getStripeCustomerId } from "./stripe/util";
 import {
-  getStripeCustomerId,
   getCurrentSession,
   setStripeCheckoutSession,
 } from "./create-stripe-checkout-session";

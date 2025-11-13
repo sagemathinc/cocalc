@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "dist"
+  },
+  "exclude": ["node_modules", "dist", "test"],
+  "references_comment": "Do not define path:../comm because that causes a circular references.",
+  "references": [{ "path": "../util" }]
+}

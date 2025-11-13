@@ -1,6 +1,6 @@
 import Primus from "primus";
 import { join } from "path";
-import * as responder from "primus-responder";
+import * as responder from "@cocalc/primus-responder";
 import * as multiplex from "@cocalc/primus-multiplex";
 import type {
   ProjectWebsocket,

@@ -1,19 +1,20 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // This manages deleting patches. The underlying problem is that there could be a large number of patches, which stalls the DB.
 // It's better to keep the number of row deletions small, to speed up the operation, only lock less rows for a shorter amount of time, etc.
 
-import debug from "debug";
-const L = debug("hub:db:delete-patches");
-import { PostgreSQL } from "./types";
+import getLogger from "@cocalc/backend/logger";
+import type { PostgreSQL } from "./types";
 import { delay } from "awaiting";
+
+const logger = getLogger("database:delete-patches");
 
 // max number of patches to delete at once – 10000 should take a few seconds
 const MAX_AT_ONCE = parseInt(
-  process.env.SYNCSTRING_DELETE_MAX_AT_ONCE ?? "10000"
+  process.env.SYNCSTRING_DELETE_MAX_AT_ONCE ?? "10000",
 );
 // delay between deleting a chunk of patches
 const DELAY_S = parseInt(process.env.SYNCSTRING_DELETE_DELAY_CHUNK_S ?? "1");
@@ -48,7 +49,9 @@ export async function delete_patches(opts: DeletePatchesOpts): Promise<void> {
   while (true) {
     const limit = await patchset_limit({ db, string_id });
 
-    L(`deleting patches string_id='${string_id}' until limit='${limit}'`);
+    logger.debug(
+      `deleting patches string_id='${string_id}' until limit='${limit}'`,
+    );
     const where = { "string_id = $::CHAR(40)": string_id };
     if (limit != null) {
       where["time <= $::TIMESTAMP"] = limit;

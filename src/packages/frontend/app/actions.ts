@@ -1,25 +1,29 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { redux, Actions } from "../app-framework";
-import { set_window_title } from "../browser";
-import { update_params, set_url } from "../history";
-import { disconnect_from_project } from "../project/websocket/connect";
-import { session_manager } from "../session";
-import { PageState } from "./store";
+import { Actions, redux } from "@cocalc/frontend/app-framework";
+import { set_window_title } from "@cocalc/frontend/browser";
+import { set_url, update_params } from "@cocalc/frontend/history";
+import { labels } from "@cocalc/frontend/i18n";
+import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import {
   exitFullscreen,
   isFullscreen,
   requestFullscreen,
 } from "@cocalc/frontend/misc/fullscreen";
+import { disconnect_from_project } from "@cocalc/frontend/project/websocket/connect";
+import { session_manager } from "@cocalc/frontend/session";
 import { once } from "@cocalc/util/async-utils";
+import { PageState } from "./store";
 
 export class PageActions extends Actions<PageState> {
   private session_manager?: any;
   private active_key_handler?: any;
   private suppress_key_handlers: boolean = false;
+  private popconfirmIsOpen: boolean = false;
+  private settingsModalIsOpen: boolean = false;
 
   /* Expects a func which takes a browser keydown event
      Only allows one keyhandler to be active at a time.
@@ -57,7 +61,6 @@ export class PageActions extends Actions<PageState> {
 
     if (this.active_key_handler != null && !this.suppress_key_handlers) {
       $(window).on("keydown", this.active_key_handler);
-    } else {
     }
   }
 
@@ -150,18 +153,21 @@ export class PageActions extends Actions<PageState> {
       redux.getProjectActions(key)?.show();
     }
 
+    const intl = await getIntl();
+
     switch (key) {
       case "projects":
         if (change_history) {
           set_url("/projects");
         }
-        set_window_title("Projects");
+        set_window_title(intl.formatMessage(labels.projects));
         return;
       case "account":
+      case "settings":
         if (change_history) {
           redux.getActions("account").push_state();
         }
-        set_window_title("Account");
+        set_window_title(intl.formatMessage(labels.account));
         return;
       case "file-use": // this doesn't actually get used currently
         if (change_history) {
@@ -173,13 +179,13 @@ export class PageActions extends Actions<PageState> {
         if (change_history) {
           set_url("/admin");
         }
-        set_window_title("Admin");
+        set_window_title(intl.formatMessage(labels.admin));
         return;
       case "notifications":
         if (change_history) {
           set_url("/notifications");
         }
-        set_window_title("Notifications");
+        set_window_title(intl.formatMessage(labels.messages_title));
         return;
       case undefined:
         return;
@@ -228,19 +234,27 @@ export class PageActions extends Actions<PageState> {
     this.setState({ show_connection });
   }
 
+  // Suppress the activation of any new key handlers
+  disableGlobalKeyHandler = () => {
+    this.suppress_key_handlers = true;
+    this.unattach_active_key_handler();
+  };
+  // Enable whatever the current key handler should be
+  enableGlobalKeyHandler = () => {
+    this.suppress_key_handlers = false;
+    this.set_active_key_handler();
+  };
+
   // Toggles visibility of file use widget
   // Temporarily disables window key handlers until closed
   // FUTURE: Develop more general way to make key mappings
   toggle_show_file_use() {
     const currently_shown = redux.getStore("page").get("show_file_use");
     if (currently_shown) {
-      // Enable whatever the current key handler should be
-      this.suppress_key_handlers = false; // HACK: Terrible way to do this.
-      this.set_active_key_handler();
+      this.enableGlobalKeyHandler(); // HACK: Terrible way to do this.
     } else {
       // Suppress the activation of any new key handlers until file_use closes
-      this.suppress_key_handlers = true;
-      this.unattach_active_key_handler();
+      this.disableGlobalKeyHandler(); // HACK: Terrible way to do this.
     }
 
     this.setState({ show_file_use: !currently_shown });
@@ -250,11 +264,9 @@ export class PageActions extends Actions<PageState> {
     this.setState({ ping, avgping });
   }
 
-  set_connection_status(connection_status, time: Date) {
-    if (time > (redux.getStore("page").get("last_status_time") ?? 0)) {
-      this.setState({ connection_status, last_status_time: time });
-    }
-  }
+  set_connection_status = (connection_status, time: Date) => {
+    this.setState({ connection_status, last_status_time: time });
+  };
 
   set_connection_quality(connection_quality) {
     this.setState({ connection_quality });
@@ -379,14 +391,57 @@ export class PageActions extends Actions<PageState> {
     return false;
   }
 
+  // The code below is complicated and tricky because multiple parts of our codebase could
+  // call it at the "same time".  This happens, e.g., when opening several Jupyter notebooks
+  // on a compute server from the terminal using the open command.
+  // By "same time", I mean a second call to popconfirm comes in while the first is async
+  // awaiting to finish.  We handle that below by locking while waiting.  Since only one
+  // thing actually happens at a time in Javascript, the below should always work with
+  // no deadlocks.  It's tricky looking code, but MUCH simpler than alternatives I considered.
   popconfirm = async (opts): Promise<boolean> => {
-    // this causes the modal to appear
-    this.setState({ popconfirm: { open: true, ...opts } });
     const store = redux.getStore("page");
-    while (store.getIn(["popconfirm", "open"])) {
+    // wait for any currently open modal to be done.
+    while (this.popconfirmIsOpen) {
       await once(store, "change");
     }
-    return !!store.getIn(["popconfirm", "ok"]);
+    // we got it, so let's take the lock
+    try {
+      this.popconfirmIsOpen = true;
+      // now we do it -- this causes the modal to appear
+      this.setState({ popconfirm: { open: true, ...opts } });
+      // wait for our to be done
+      while (store.getIn(["popconfirm", "open"])) {
+        await once(store, "change");
+      }
+      // report result of ours.
+      return !!store.getIn(["popconfirm", "ok"]);
+    } finally {
+      // give up the lock
+      this.popconfirmIsOpen = false;
+      // trigger a change, so other code has a chance to get the lock
+      this.setState({ popconfirm: { open: false } });
+    }
+  };
+
+  settings = async (name) => {
+    if (!name) {
+      this.setState({ settingsModal: "" });
+      this.settingsModalIsOpen = false;
+      return;
+    }
+    const store = redux.getStore("page");
+    while (this.settingsModalIsOpen) {
+      await once(store, "change");
+    }
+    try {
+      this.settingsModalIsOpen = true;
+      this.setState({ settingsModal: name });
+      while (store.get("settingsModal")) {
+        await once(store, "change");
+      }
+    } finally {
+      this.settingsModalIsOpen = false;
+    }
   };
 }
 

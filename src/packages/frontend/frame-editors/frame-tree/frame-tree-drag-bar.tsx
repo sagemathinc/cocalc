@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /**
@@ -10,8 +10,7 @@
 
 import { Map } from "immutable";
 import React from "react";
-
-import { CSS, ReactDOM, useState } from "@cocalc/frontend/app-framework";
+import { CSS, useState } from "@cocalc/frontend/app-framework";
 import * as feature from "@cocalc/frontend/feature";
 import {
   drag_start_iframe_disable,
@@ -58,11 +57,10 @@ interface Props {
   // the direction
   dir: "col" | "row";
   frame_tree: Map<string, any>;
-  safari_hack: () => void;
 }
 
 export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
-  const { dir, frame_tree, actions, safari_hack, containerRef } = props;
+  const { dir, frame_tree, actions, containerRef } = props;
 
   const dragBarRef = React.useRef<Draggable>(null);
 
@@ -74,14 +72,17 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
   function reset() {
     if (dragBarRef.current != null) {
       (dragBarRef.current as any).state[axis] = 0;
-      $(ReactDOM.findDOMNode(dragBarRef.current)).css("transform", "");
+      $(dragBarRef.current).css("transform", "");
     }
   }
 
   function calcPosition(_, ui) {
     const offsetNode = dir === "col" ? ui.node.offsetLeft : ui.node.offsetTop;
     const offset = offsetNode + ui[axis] + DRAG_OFFSET;
-    const elt = ReactDOM.findDOMNode(containerRef.current);
+    const elt = containerRef.current;
+    if (elt == null) {
+      return;
+    }
     const pos =
       dir === "col"
         ? (offset - elt.offsetLeft) / elt.offsetWidth
@@ -91,7 +92,7 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
       id: frame_tree.get("id"),
       pos,
     });
-    actions.set_resize();
+    actions.set_resize?.();
     actions.focus(); // see https://github.com/sagemathinc/cocalc/issues/3269
   }
 
@@ -104,7 +105,6 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
     setDragActive(false);
     drag_stop_iframe_enable();
     calcPosition(_, ui);
-    safari_hack();
   }
 
   function style(): CSS | undefined {
@@ -117,8 +117,11 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
+  const nodeRef = React.useRef<any>({});
+
   return (
     <Draggable
+      nodeRef={nodeRef}
       ref={dragBarRef}
       position={{ x: 0, y: 0 }}
       axis={axis}
@@ -126,6 +129,7 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
       onStart={onStart}
     >
       <div
+        ref={nodeRef}
         style={style()}
         onMouseEnter={() => set_drag_hover(true)}
         onMouseLeave={() => set_drag_hover(false)}

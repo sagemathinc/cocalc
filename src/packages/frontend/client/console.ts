@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -24,7 +24,7 @@ you have to change the context to *top*!   See
 http://stackoverflow.com/questions/3275816/debugging-iframes-with-chrome-developer-tools/8581276#8581276
 */
 
-declare const DEBUG; //  this comes from webpack.
+declare const DEBUG; //  this comes from rspack.
 console.log("DEBUG = ", DEBUG);
 
 import { IS_TOUCH } from "../feature";
@@ -45,16 +45,17 @@ export function setup_global_cocalc(client): void {
 
   const cocalc: any = window.cc ?? {};
   cocalc.client = client;
+  cocalc.conat = client.conat_client;
   cocalc.misc = require("@cocalc/util/misc");
   cocalc.immutable = require("immutable");
   cocalc.done = cocalc.misc.done;
-  cocalc.sha1 = require("sha1");
-  cocalc.prom_client = require("../prom-client");
   cocalc.schema = require("@cocalc/util/schema");
   cocalc.redux = redux;
+  cocalc.current = redux.currentEditor;
   cocalc.load_eruda = load_eruda;
+  cocalc.compute = require("@cocalc/frontend/compute/api");
   console.log(
-    "DEBUG: Enabling extra CoCalc library functionality.  Type cocalc or cc.[tab]."
+    "DEBUG: Enabling extra CoCalc library functionality.  Type cocalc or cc.[tab].",
   );
   window.cocalc = window.cc = cocalc;
 

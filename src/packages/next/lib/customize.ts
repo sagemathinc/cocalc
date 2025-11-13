@@ -1,10 +1,48 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { createContext, useContext } from "react";
+
 import type { Customize as ServerCustomize } from "@cocalc/database/settings/customize";
+
+interface EnabledPageBranch {
+  [key: string]: boolean | undefined | EnabledPageBranch;
+}
+
+interface EnabledPageTree extends EnabledPageBranch {
+  auth: {
+    try: boolean | undefined;
+  };
+  about: {
+    index: boolean | undefined;
+    events: boolean | undefined;
+    team: boolean | undefined;
+  };
+  compute: boolean | undefined;
+  contact: boolean | undefined;
+  features: boolean | undefined;
+  info: boolean | undefined;
+  legal: boolean | undefined;
+  licenses: boolean | undefined;
+  news: boolean | undefined;
+  onPrem: boolean | undefined;
+  organization: boolean | undefined;
+  policies: {
+    index: boolean | undefined;
+    imprint: boolean | undefined;
+  };
+  pricing: boolean | undefined;
+  share: boolean | undefined;
+  software: boolean | undefined;
+  store: boolean | undefined;
+  support: boolean | undefined;
+  systemActivity: boolean | undefined;
+  status: boolean | undefined;
+  termsOfService: boolean | undefined;
+  liveDemo: boolean | undefined;
+}
 
 interface Customize extends ServerCustomize {
   account?: {
@@ -28,9 +66,11 @@ interface Customize extends ServerCustomize {
   serverTime?: number; // the time on the server, in milliseconds since the epoch
   openaiEnabled?: boolean; // backend is configured to provide openai integration.
   googleVertexaiEnabled?: boolean; // if enabled, e.g. Google Gemini is available
-
   jupyterApiEnabled?: boolean; // backend configured to use a pool of projects for sandboxed ephemeral jupyter code execution
   computeServersEnabled?: boolean; // backend configured to run on external compute servers
+  enabledPages?: EnabledPageTree; // tree structure which specifies supported routes for this install
+  support?: string; // HTML/MD to replace the generic support pages
+  supportVideoCall?: string;
 }
 
 const CustomizeContext = createContext<Partial<Customize>>({});

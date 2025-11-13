@@ -22,20 +22,32 @@
     "outDir": "dist",
     "baseUrl": ".",
     "incremental": true,
-    "target": "es5"
+    "target": "es2020"
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     "software-inventory/*.json",
-    "components/landing/*.json"
+    "components/landing/*.json",
+    "locales/*/*.json",
+    "locales/en/common.ts"
   ],
-  "exclude": ["node_modules", "public", "styles", "dist"],
+  "exclude": [
+    "node_modules",
+    "public",
+    "styles",
+    "dist",
+    ".next",
+    "target",
+    "locales",
+    "software-inventory"
+  ],
   "references": [
     { "path": "../backend" },
     { "path": "../database" },
     { "path": "../frontend" },
+    { "path": "../conat" },
     { "path": "../server" },
     { "path": "../util" }
   ]

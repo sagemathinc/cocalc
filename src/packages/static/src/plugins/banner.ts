@@ -2,7 +2,7 @@
 Adds a banner to each compiled and minified source .js file.
 */
 
-import { BannerPlugin } from "webpack";
+import { BannerPlugin } from "@rspack/core";
 const DASHES = "--------------------------";
 
 export default function bannerPlugin(registerPlugin, params) {

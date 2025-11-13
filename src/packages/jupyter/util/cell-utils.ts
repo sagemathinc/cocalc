@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -13,7 +13,7 @@ import { field_cmp, len } from "@cocalc/util/misc";
 export function positions_between(
   before_pos: number | undefined,
   after_pos: number | undefined,
-  num: number
+  num: number,
 ) {
   // Return an array of num equally spaced positions starting after
   // before_pos and ending before after_pos, so
@@ -96,10 +96,10 @@ export function ensure_positions_are_unique(cells?: Map<string, any>) {
 }
 
 export function new_cell_pos(
-  cells: Map<string, any>,
+  cells: Map<string, any> | undefined,
   cell_list: List<string>,
   cur_id: string,
-  delta: -1 | 1
+  delta: -1 | 1,
 ): number {
   /*
     Returns pos for a new cell whose position
@@ -113,6 +113,9 @@ export function new_cell_pos(
     Returned undefined whenever don't really know what to do; then caller
     just makes up a pos, and it'll get sorted out.
   */
+  if (cells == null) {
+    return 0;
+  }
   let cell_list_0: List<string>;
   if (cell_list == null) {
     cell_list_0 = sorted_cell_list(cells)!;
@@ -145,7 +148,7 @@ export function new_cell_pos(
 export function move_selected_cells(
   v?: string[],
   selected?: { [id: string]: true },
-  delta?: number
+  delta?: number,
 ) {
   /*
     - v = ordered js array of all cell id's

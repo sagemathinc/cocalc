@@ -1,9 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { fromJS } from "immutable";
+import type * as immutable from "immutable";
 import { useEffect, useMemo, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
@@ -17,7 +18,13 @@ import {
 
 // This returns processed jupyter kernel specs
 // ATTN: this is only valid inside the context of a specific project!
-export function useJupyterKernelsInfo() {
+export function useJupyterKernelsInfo(): {
+  kernel_selection;
+  kernels_by_name: immutable.OrderedMap<string, immutable.Map<string, string>> | null;
+  kernels_by_language: immutable.OrderedMap<string, immutable.List<string>> | null;
+  refresh: Function;
+  error: string;
+} {
   const [cnt, setCnt] = useState<number>(0);
   const [error, setError] = useState<string>("");
   const [kernelSpecs, setKernelSpecs] = useState<Kernels | null>();

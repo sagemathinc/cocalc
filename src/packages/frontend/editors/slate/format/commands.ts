@@ -1,9 +1,14 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { delay } from "awaiting";
 import { isEqual } from "lodash";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import { commands } from "@cocalc/frontend/editors/editor-button-bar";
+import { getLocale } from "@cocalc/frontend/i18n";
 import { is_array, startswith } from "@cocalc/util/misc";
 import {
   BaseRange,
@@ -12,21 +17,20 @@ import {
   Location,
   Node,
   Point,
-  Text,
   Range,
+  Text,
   Transforms,
 } from "slate";
-import { ReactEditor } from "../slate-react";
-import { markdown_to_slate } from "../markdown-to-slate";
-import { commands } from "@cocalc/frontend/editors/editor-button-bar";
-import { removeBlankLines } from "../util";
-import { insertLink } from "./insert-link";
-import { insertImage } from "./insert-image";
-import { insertSpecialChar } from "./insert-special-char";
-import { emptyParagraph } from "../padding";
-import { SlateEditor } from "../editable-markdown";
 import { getMarks } from "../edit-bar/marks";
-import { delay } from "awaiting";
+import { SlateEditor } from "../editable-markdown";
+import { markdown_to_slate } from "../markdown-to-slate";
+import { emptyParagraph } from "../padding";
+import { ReactEditor } from "../slate-react";
+import { removeBlankLines } from "../util";
+import { insertAIFormula } from "./insert-ai-formula";
+import { insertImage } from "./insert-image";
+import { insertLink } from "./insert-link";
+import { insertSpecialChar } from "./insert-special-char";
 
 // currentWord:
 //
@@ -155,7 +159,7 @@ export function formatSelectedText(editor: SlateEditor, mark: string) {
       Transforms.setNodes(
         editor,
         { [mark]: !isAlreadyMarked(editor, mark) ? true : undefined },
-        { at, split: true, match: (node) => Text.isText(node) }
+        { at, split: true, match: (node) => Text.isText(node) },
       );
       return;
     }
@@ -171,13 +175,13 @@ export function formatSelectedText(editor: SlateEditor, mark: string) {
   Transforms.setNodes(
     editor,
     { [mark]: !isAlreadyMarked(editor, mark) ? true : undefined },
-    { at: selection, match: (node) => Text.isText(node), split: true }
+    { at: selection, match: (node) => Text.isText(node), split: true },
   );
 }
 
 function unformatSelectedText(
   editor: SlateEditor,
-  options: { prefix?: string }
+  options: { prefix?: string },
 ): void {
   let at: BaseRange | undefined = getSelection(editor);
   if (at == null) return; // nothing to do.
@@ -196,7 +200,7 @@ function unformatSelectedText(
       Transforms.setNodes(
         editor,
         { [mark]: false },
-        { at, match: (node) => Text.isText(node), split: true }
+        { at, match: (node) => Text.isText(node), split: true },
       );
     }
   }
@@ -207,7 +211,7 @@ function isAlreadyMarked(editor: Editor, mark: string): boolean {
   if (!editor.selection) return false;
   return isFragmentAlreadyMarked(
     Editor.fragment(editor, editor.selection),
-    mark
+    mark,
   );
 }
 
@@ -227,19 +231,19 @@ function isFragmentAlreadyMarked(fragment, mark: string): boolean {
 // returns mark if current selection *starts* with a mark with the given prefix.
 function findMarkWithPrefix(
   editor: Editor,
-  prefix: string
+  prefix: string,
 ): string | undefined {
   if (!editor.selection) return;
   return findMarkedFragmentWithPrefix(
     Editor.fragment(editor, editor.selection),
-    prefix
+    prefix,
   );
 }
 
 // returns mark if fragment *starts* with a mark that starts with prefix
 function findMarkedFragmentWithPrefix(
   fragment,
-  prefix: string
+  prefix: string,
 ): string | undefined {
   if (is_array(fragment)) {
     fragment = fragment[0];
@@ -318,28 +322,29 @@ export function restoreSelectionAndFocus(editor: SlateEditor): void {
   setSelectionAndFocus(editor, lastSelection);
 }
 
-export async function formatAction(editor: SlateEditor, cmd: string, args) {
+export async function formatAction(
+  editor: SlateEditor,
+  cmd: string,
+  args,
+  project_id?: string,
+) {
   const isFocused = ReactEditor.isFocused(editor);
-  if (!isFocused) {
-    ReactEditor.focus(editor);
-    restoreSelectionAndFocus(editor);
-    await delay(1);
-  }
+  const { selection, lastSelection } = editor;
   try {
     if (
-      cmd == "bold" ||
-      cmd == "italic" ||
-      cmd == "underline" ||
-      cmd == "strikethrough" ||
-      cmd == "code" ||
-      cmd == "sup" ||
-      cmd == "sub"
+      cmd === "bold" ||
+      cmd === "italic" ||
+      cmd === "underline" ||
+      cmd === "strikethrough" ||
+      cmd === "code" ||
+      cmd === "sup" ||
+      cmd === "sub"
     ) {
       formatSelectedText(editor, cmd);
       return;
     }
 
-    if (cmd == "color") {
+    if (cmd === "color") {
       // args = #aa00bc (the hex color)
       unformatSelectedText(editor, { prefix: "color:" });
       if (args) {
@@ -354,7 +359,7 @@ export async function formatAction(editor: SlateEditor, cmd: string, args) {
       return;
     }
 
-    if (cmd == "font_family") {
+    if (cmd === "font_family") {
       unformatSelectedText(editor, { prefix: "font-family:" });
       formatSelectedText(editor, `font-family:${args}`);
       return;
@@ -366,57 +371,74 @@ export async function formatAction(editor: SlateEditor, cmd: string, args) {
       return;
     }
 
-    if (cmd == "equation") {
+    if (cmd === "equation") {
       transformToEquation(editor, false);
       return;
     }
 
-    if (cmd == "comment") {
+    if (cmd === "comment") {
       transformToComment(editor);
       return;
     }
 
-    if (cmd == "display_equation") {
+    if (cmd === "display_equation") {
       transformToEquation(editor, true);
       return;
     }
 
-    if (cmd == "quote") {
+    if (cmd === "quote") {
       formatQuote(editor);
       return;
     }
 
     if (
-      cmd == "insertunorderedlist" ||
-      cmd == "insertorderedlist" ||
-      cmd == "table" ||
-      cmd == "horizontalRule" ||
-      cmd == "linebreak"
+      cmd === "insertunorderedlist" ||
+      cmd === "insertorderedlist" ||
+      cmd === "table" ||
+      cmd === "horizontalRule" ||
+      cmd === "linebreak"
     ) {
       insertSnippet(editor, cmd);
       return;
     }
 
-    if (cmd == "link") {
+    if (cmd === "link") {
       insertLink(editor);
       return;
     }
 
-    if (cmd == "image") {
+    if (cmd === "image") {
       insertImage(editor);
       return;
     }
 
-    if (cmd == "SpecialChar") {
+    if (cmd === "SpecialChar") {
       insertSpecialChar(editor);
       return;
     }
 
-    if (cmd == "format_code") {
+    if (cmd === "format_code") {
       insertMarkdown(
         editor,
-        "\n```\n" + selectionToText(editor).trim() + "\n```\n"
+        "\n```\n" + selectionToText(editor).trim() + "\n```\n",
       );
+      return;
+    }
+
+    if (cmd === "ai_formula") {
+      if (project_id == null) throw new Error("ai_formula requires project_id");
+      const account_store = redux.getStore("account")
+      const locale = getLocale(account_store.get("other_settings"))
+      const formula = await insertAIFormula(project_id, locale);
+      const value = removeDollars(removeBlankLines(formula.trim()));
+      const node: Node = {
+        type: "math_inline",
+        value,
+        isVoid: true,
+        isInline: true,
+        children: [{ text: "" }],
+      };
+      Transforms.insertFragment(editor, [node]);
       return;
     }
 
@@ -427,10 +449,16 @@ export async function formatAction(editor: SlateEditor, cmd: string, args) {
       return;
     }
   } finally {
-    ReactEditor.focus(editor);
+    if (!isFocused) {
+      ReactEditor.focus(editor);
+      setSelectionAndFocus(editor, selection ?? lastSelection);
+      await delay(1);
+      ReactEditor.focus(editor);
+      setSelectionAndFocus(editor, selection ?? lastSelection);
+    }
   }
 
-  console.log("WARNING -- slate.format_action not implemented", {
+  console.warn("WARNING -- slate.format_action not implemented", {
     cmd,
     args,
     editor,
@@ -553,7 +581,7 @@ export function formatHeading(editor, level: number): void {
         Transforms.setNodes(
           editor,
           { type: "paragraph", level: undefined } as Partial<Element>,
-          options
+          options,
         );
       } else {
         // change header level
@@ -565,7 +593,7 @@ export function formatHeading(editor, level: number): void {
     Transforms.setNodes(
       editor,
       { type: "heading", level } as Partial<Element>,
-      options
+      options,
     );
   } finally {
     setSelectionAndFocus(editor, at);
@@ -596,7 +624,7 @@ function containingBlocks(editor: Editor, at: Location): Element[] {
 function isExactlyInBlocksOfType(
   editor: Editor,
   at: Location,
-  type: string
+  type: string,
 ): boolean {
   // Get the blocks of the given type containing at:
   const blocksOfType = matchingNodes(editor, {
@@ -647,4 +675,17 @@ function formatQuote(editor): void {
       mode: "lowest",
     });
   }
+}
+
+// Get rid of starting and ending $..$ or $$..$$ dollar signs
+function removeDollars(formula: string): string {
+  if (formula.startsWith("$") && formula.endsWith("$")) {
+    return formula.substring(1, formula.length - 1);
+  }
+
+  if (formula.startsWith("$$") && formula.endsWith("$$")) {
+    return formula.substring(2, formula.length - 2);
+  }
+
+  return formula;
 }

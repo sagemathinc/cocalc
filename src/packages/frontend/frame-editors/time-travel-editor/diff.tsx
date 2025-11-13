@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -14,73 +14,69 @@ and it uses tables)  Codemirror automatically supports large documents, editor t
 so we build something on Codemirror instead
 */
 
-import { debounce } from "lodash";
 import * as CodeMirror from "codemirror";
-import { Component, React, Rendered } from "../../app-framework";
-import { Map } from "immutable";
+import { debounce } from "lodash";
+import { MutableRefObject, useEffect, useRef } from "react";
+
+import { AccountState } from "@cocalc/frontend/account/types";
 import { cm_options } from "../codemirror/cm-options";
 import { init_style_hacks } from "../codemirror/util";
-
 import { set_cm_line_diff } from "./diff-util";
 
 interface Props {
   v0: string;
   v1: string;
   path: string; // filename of doc, which determines what sort of syntax highlighting to use.
-  editor_settings: Map<string, any>;
+  editor_settings: AccountState["editor_settings"];
   font_size: number;
   use_json: boolean;
 }
 
-export class Diff extends Component<Props> {
-  private update: Function;
-  private cm?: CodeMirror.Editor;
-  private textarea_ref: React.RefObject<HTMLTextAreaElement> =
-    React.createRef<HTMLTextAreaElement>();
+export function Diff(props: Props) {
+  const updateRef = useRef<Function>(null) as MutableRefObject<Function>;
+  const cmRef = useRef<CodeMirror.Editor | null>(
+    null,
+  ) as MutableRefObject<CodeMirror.Editor | null>;
+  const textAreaRef = useRef<any>(null);
 
-  private init_codemirror() {
-    const textarea = this.textarea_ref.current;
+  const initCodemirror = () => {
+    const textarea = textAreaRef.current;
     if (textarea == null) return; // can't happen
     const options: any = cm_options(
-      this.props.use_json ? "a.js" : this.props.path,
-      this.props.editor_settings
+      props.use_json ? "a.js" : props.path,
+      props.editor_settings,
     );
     options.readOnly = true;
-    this.cm = CodeMirror.fromTextArea(textarea, options);
-    init_style_hacks(this.cm);
-    set_cm_line_diff(this.cm, this.props.v0, this.props.v1);
+    cmRef.current = CodeMirror.fromTextArea(textarea, options);
+    init_style_hacks(cmRef.current);
+    set_cm_line_diff(cmRef.current, props.v0, props.v1);
     const f = (v0: string, v1: string): void => {
-      if (this.cm == null) return;
-      set_cm_line_diff(this.cm, v0, v1);
+      if (cmRef.current == null) return;
+      set_cm_line_diff(cmRef.current, v0, v1);
     };
-    this.update = debounce(f, 300);
-  }
+    updateRef.current = debounce(f, 300);
+  };
 
-  public componentDidMount(): void {
-    this.init_codemirror();
-  }
+  useEffect(() => {
+    initCodemirror();
+    return () => {
+      if (cmRef.current == null) return;
+      $(cmRef.current.getWrapperElement()).remove();
+      cmRef.current = null;
+    };
+  }, []);
 
-  public componentWillUnmount(): void {
-    if (this.cm == null) return;
-    $(this.cm.getWrapperElement()).remove();
-    delete this.cm;
-  }
+  useEffect(() => {
+    updateRef.current?.(props.v0, props.v1);
+    cmRef.current?.refresh();
+  }, [props.v0, props.v1]);
 
-  public UNSAFE_componentWillReceiveProps(props): void {
-    if (props.v0 != this.props.v0 || props.v1 != this.props.v1) {
-      this.update(props.v0, props.v1);
-    }
-    this.cm?.refresh();
-  }
-
-  public render(): Rendered {
-    return (
-      <div
-        className="smc-vfill"
-        style={{ fontSize: `${this.props.font_size}px`, overflow: "auto" }}
-      >
-        <textarea ref={this.textarea_ref} style={{ display: "none" }} />
-      </div>
-    );
-  }
+  return (
+    <div
+      className="smc-vfill"
+      style={{ fontSize: `${props.font_size}px`, overflow: "auto" }}
+    >
+      <textarea ref={textAreaRef} style={{ display: "none" }} />
+    </div>
+  );
 }

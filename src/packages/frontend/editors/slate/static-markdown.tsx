@@ -12,8 +12,8 @@ application.
 import { CSSProperties, useEffect, useState } from "react";
 import "./elements/init-ssr";
 import { getStaticRender } from "./elements/register";
-import { markdown_to_slate as markdownToSlate } from "./markdown-to-slate";
 import Leaf from "./leaf";
+import { markdown_to_slate as markdownToSlate } from "./markdown-to-slate";
 import { ChangeContext } from "./use-change";
 
 interface Props {
@@ -63,7 +63,7 @@ export default function StaticMarkdown({ value, style, className }: Props) {
 }
 
 function RenderElement({ element }) {
-  let children: JSX.Element[] = [];
+  let children: React.JSX.Element[] = [];
   if (element["children"]) {
     let n = 0;
     for (const child of element["children"]) {

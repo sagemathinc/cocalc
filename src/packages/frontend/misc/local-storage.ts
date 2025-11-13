@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { LocalStorageLRU } from "@cocalc/local-storage-lru";
@@ -32,7 +32,7 @@ export const LS = new LocalStorageLRU({
   fallback: true,
 });
 
-export function set_local_storage(key: string, val: string): void {
+export function set_local_storage(key: string, val: string | object): void {
   LS.set(key, val);
 }
 
@@ -42,6 +42,10 @@ export function get_local_storage(key: string): string | object | null {
 
 export function delete_local_storage(key: string): void {
   LS.delete(key);
+}
+
+export function exists_local_storage(key: string): boolean {
+  return LS.has(key);
 }
 
 export function has_local_storage(): boolean {

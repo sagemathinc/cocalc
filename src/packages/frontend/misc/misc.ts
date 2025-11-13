@@ -1,12 +1,11 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { QueryParams } from "../misc/query-params";
 import target from "@cocalc/frontend/client/handle-target";
-
-declare var $: any;
+import { QueryParams } from "@cocalc/frontend/misc/query-params";
+import $ from "jquery";
 
 /*
 Misc random code that I don't really know how to classify further.  It's misc

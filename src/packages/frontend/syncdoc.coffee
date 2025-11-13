@@ -1,6 +1,6 @@
 #########################################################################
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+# License: MS-RSL – see LICENSE.md for details
 #########################################################################
 
 {SAVE_DEBOUNCE_MS} = require("@cocalc/frontend/frame-editors/code-editor/const")
@@ -447,7 +447,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
     delete_trailing_whitespace: =>
         cm = @focused_codemirror()
         omit_lines = {}
-        @_syncstring.get_cursors()?.map (x, _) =>
+        @_syncstring.get_cursors(excludeSelf:'never')?.map (x, _) =>
             x.get('locs')?.map (loc) =>
                 y = loc.get('y')
                 if y?

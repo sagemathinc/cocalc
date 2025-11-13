@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 import { Editor, Operation, Point } from "slate";
 import { isEqual } from "lodash";
@@ -15,7 +15,7 @@ export function applyOperations(
 
   // window.operations = operations;
 
-  // const t0 = new Date().valueOf();
+  // const t0 = Date.now();
 
   // This cursor gets mutated during the for loop below!
   const cursor: { focus: Point | null } = {
@@ -54,7 +54,7 @@ export function applyOperations(
 
     /* console.log(
       `time: apply ${operations.length} operations`,
-      new Date().valueOf() - t0,
+      Date.now() - t0,
       "ms"
     );*/
   } finally {

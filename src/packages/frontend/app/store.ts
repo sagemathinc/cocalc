@@ -1,11 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import target from "@cocalc/frontend/client/handle-target";
 import { parse_target } from "../history";
+import type { ConatConnectionStatus } from "@cocalc/frontend/conat/client";
 
 type TopTab =
   | "about" // the "/help" page
@@ -50,6 +51,9 @@ export interface PageState {
     cancelText?: string;
     okText?: string;
   };
+
+  settingsModal?: string;
+  conat?: TypedMap<ConatConnectionStatus>;
 }
 
 export class PageStore extends Store<PageState> {}

@@ -17,7 +17,7 @@ what is publicly shared (at some unit), and it's nice if it is useful (e.g., for
 
 import getProxyProjectId from "lib/share/proxy/project";
 import getPool from "@cocalc/database/pool";
-import * as sha1 from "sha1";
+import { sha1 } from "@cocalc/util/misc";
 import { fileInGist } from "./api";
 
 export function shouldUseProxy(owner: string): boolean {
@@ -115,8 +115,8 @@ export default async function getProxyPublicPath({
 
   const now = new Date();
   await pool.query(
-    "INSERT INTO public_paths (id, url, project_id, path, description, last_edited, last_saved, created) VALUES($1, $2, $3, $4, $5, $6, $7, $8)",
-    [id, publicPathUrl, project_id, path, description, now, now, now]
+    "INSERT INTO public_paths (id, url, project_id, path, description, last_edited, last_saved, created, unlisted) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+    [id, publicPathUrl, project_id, path, description, now, now, now, true],
   );
   return {
     id,

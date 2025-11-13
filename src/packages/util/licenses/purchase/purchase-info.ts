@@ -1,13 +1,16 @@
+import dayjs from "dayjs";
+
+import type { Date0 } from "@cocalc/util/types/store";
 import type {
   Period,
   SiteLicenseDescriptionDB,
 } from "@cocalc/util/upgrades/shopping";
+import { CURRENT_VERSION } from "./consts";
 import type { PurchaseInfo, StartEndDates, Subscription } from "./types";
-import type { Date0 } from "@cocalc/util/types/store";
-import dayjs from "dayjs";
 
+// this ALWAYS returns purchaseInfo that is the *current* version.
 export default function getPurchaseInfo(
-  conf: SiteLicenseDescriptionDB
+  conf: SiteLicenseDescriptionDB,
 ): PurchaseInfo {
   conf.type = conf.type ?? "quota"; // backwards compatibility
 
@@ -25,9 +28,11 @@ export default function getPurchaseInfo(
         disk,
         member,
         uptime,
+        source,
         boost = false,
       } = conf;
       return {
+        version: CURRENT_VERSION,
         type, // "quota"
         user,
         upgrade: "custom" as "custom",
@@ -44,10 +49,12 @@ export default function getPurchaseInfo(
         boost,
         title,
         description,
+        source,
       };
 
     case "vm":
       return {
+        version: CURRENT_VERSION,
         type: "vm",
         quantity: 1,
         dedicated_vm: conf.dedicated_vm,
@@ -59,6 +66,7 @@ export default function getPurchaseInfo(
 
     case "disk":
       return {
+        version: CURRENT_VERSION,
         type: "disk",
         quantity: 1,
         dedicated_disk: conf.dedicated_disk,
@@ -78,16 +86,33 @@ export default function getPurchaseInfo(
 // a portion of the start which is in the past.
 export function fixRange(
   rangeOrig: readonly [Date0 | string, Date0 | string] | undefined | null,
-  period: Period
+  period: Period,
+  noRangeShift?: boolean,
 ): StartEndDates {
+  if (period != "range" && !noRangeShift) {
+    // ATTN! -- we messed up and didn't deal with this case before, and a user
+    // could in theory:
+    //  1. set the period to 'range', and put in a week period via start and end
+    //  2. set the period to 'yearly'.
+    // Then rangeOrig is still a week, so they pay for one week instead of one year!
+    // Instead, in whenever the period is 'monthly' or 'yearly' (anything but 'range',
+    // we unset rangeOrig here so we use start=now and end=now + a year (say) for
+    // the price computation.
+    rangeOrig = null;
+  }
   const now = new Date();
   if (rangeOrig == null) {
     if (period == "range") {
       throw Error(
-        "if period is 'range', then start and end dates must be explicitly given"
+        "if period is 'range', then start and end dates must be explicitly given",
       );
     }
-    return { start: now, end: addPeriod(now, period) };
+    // we expand the dates to be as inclusive as possible for subscriptions, since
+    // that doesn't result in any more charge to the user.
+    return {
+      start: dayjs(now).startOf("day").toDate(),
+      end: dayjs(addPeriod(now, period)).endOf("day").toDate(),
+    };
   }
 
   return {

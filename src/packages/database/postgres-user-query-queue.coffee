@@ -1,6 +1,6 @@
 #########################################################################
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+# License: MS-RSL – see LICENSE.md for details
 #########################################################################
 
 ###
@@ -40,15 +40,15 @@ GLOBAL_LIMIT = 250
 MAX_QUEUE_SIZE = 150  # client isn't supposed to send more than around 25-50 at once.
 
 # setup metrics
-metrics = require('./metrics')
+metrics = require('@cocalc/backend/metrics')
 
 getMetrics = () =>
     try
-        query_queue_exec = metrics.newCounter('query_queue_executed_total',
+        query_queue_exec = metrics.newCounter('db', 'query_queue_executed_total',
                             'Executed queries and their status', ['status'])
-        query_queue_duration = metrics.newCounter('query_queue_duration_seconds_total',
+        query_queue_duration = metrics.newCounter('db', 'query_queue_duration_seconds_total',
                             'Total time it took to evaluate queries')
-        query_queue_done = metrics.newCounter('query_queue_done_total',
+        query_queue_done = metrics.newCounter('db', 'query_queue_done_total',
                             'Total number of evaluated queries')
         return {query_queue_exec, query_queue_duration, query_queue_done}
     catch err

@@ -1,12 +1,15 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React from "react";
 import { Popconfirm, Popover } from "antd";
+import React from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 
-import { AccountActions } from "../account";
+import { AccountActions } from "@cocalc/frontend/account";
+import { labels } from "@cocalc/frontend/i18n";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 
 interface Props {
   icon: React.ReactNode; // When clicked, show popover
@@ -28,6 +31,9 @@ interface AccountTabProps {
 
 export const AccountTabDropdown: React.FC<Props> = (props: AccountTabProps) => {
   const { icon, links, label_class, show_label, is_active, user_label } = props;
+  const intl = useIntl();
+
+  const label = intl.formatMessage(labels.account);
 
   // If icon is a string then use the Icon component
   // Else (it is a node already) just render icon
@@ -52,7 +58,7 @@ export const AccountTabDropdown: React.FC<Props> = (props: AccountTabProps) => {
       >
         {icon}
         <span style={{ marginLeft: 5 }} className={label_class}>
-          {show_label ? "Account" : undefined}
+          {show_label ? label : undefined}
         </span>
       </div>
     </Popover>
@@ -145,10 +151,20 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
         </li>
         <li>
           <Popconfirm
-            title={"Sign out of your account?"}
+            title={
+              <FormattedMessage
+                id="account.account-button.confirm.title"
+                defaultMessage={"Sign out of your account?"}
+              />
+            }
             onConfirm={() => account_actions.sign_out(false, false)}
-            okText={"Yes, sign out"}
-            cancelText={"Cancel"}
+            okText={
+              <FormattedMessage
+                id="account.account-button.confirm.ok"
+                defaultMessage={"Yes, sign out"}
+              />
+            }
+            cancelText={<CancelText />}
           >
             <a
               style={{
@@ -162,7 +178,6 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
               Sign out...
             </a>
           </Popconfirm>
-          ;
         </li>
       </div>
     </>

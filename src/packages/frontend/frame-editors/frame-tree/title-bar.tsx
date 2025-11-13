@@ -1,69 +1,81 @@
 /*
+
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 FrameTitleBar - title bar in a frame, in the frame tree
 */
 
-import {
-  Button as AntdButton0,
-  Input,
-  InputNumber,
-  Popconfirm,
-  Popover,
-  Tooltip,
-} from "antd";
+// cSpell:ignore rescan subframe
+
+import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
+import { Button, Dropdown, Input, InputNumber, Popover, Tooltip } from "antd";
+import type { MenuProps } from "antd/lib";
 import { List } from "immutable";
-import { debounce } from "lodash";
-import { ReactNode, useEffect, useMemo, useRef } from "react";
-import {
-  Button as AntdBootstrapButton,
-  ButtonGroup,
-  ButtonStyle,
-} from "@cocalc/frontend/antd-bootstrap";
+import { useMemo, useRef } from "react";
+import { useIntl } from "react-intl";
+
 import {
   CSS,
-  React,
   redux,
   Rendered,
-  useForceUpdate,
   useRedux,
   useState,
 } from "@cocalc/frontend/app-framework";
 import {
-  DropdownMenu,
+  Gap,
   Icon,
-  IconName,
+  MenuItem,
   MenuItems,
   r_join,
-  Gap,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
-import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
-import { IS_MACOS } from "@cocalc/frontend/feature";
-import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";
-import { Actions } from "../code-editor/actions";
-import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
-import { is_safari } from "../generic/browser";
-import { get_default_font_size } from "../generic/client";
-import { SaveButton } from "./save-button";
-import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
-import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
-import LanguageModel from "../chatgpt/title-bar-button";
-import userTracking from "@cocalc/frontend/user-tracking";
-import TitleBarTour from "./title-bar-tour";
-import { IS_MOBILE } from "@cocalc/frontend/feature";
-import SelectComputeServer from "@cocalc/frontend/compute/select-server";
+import { DropdownMenu } from "@cocalc/frontend/components/dropdown-menu";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
+import { StandaloneComputeServerDocStatus } from "@cocalc/frontend/compute/standalone-doc-status";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
+import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
+import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { ACTIVITY_BAR_TOGGLE_LABELS } from "@cocalc/frontend/project/page/activity-bar-consts";
+import { AIGenerateDocumentModal } from "@cocalc/frontend/project/page/home-page/ai-generate-document";
+import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
+import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+import userTracking from "@cocalc/frontend/user-tracking";
+import {
+  copy,
+  field_cmp,
+  filename_extension,
+  path_split,
+  trunc_middle,
+} from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { Actions } from "../code-editor/actions";
+import { is_safari } from "../generic/browser";
+import LanguageModelTitleBarButton from "../llm/llm-assistant-button";
+import {
+  APPLICATION_MENU,
+  COMMANDS,
+  GROUPS,
+  ManageCommands,
+  MENUS,
+  SEARCH_COMMANDS,
+} from "./commands";
+import { SaveButton } from "./save-button";
+import TitleBarTour from "./title-bar-tour";
+import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
+import { TITLE_BAR_BORDER } from "./style";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
 // In all cases, we check these are actually defined before calling
 // them to avoid a runtime stacktrace.
-interface FrameActions extends Actions {
+export interface FrameActions extends Actions {
   zoom_page_width?: (id: string) => void;
   zoom_page_height?: (id: string) => void;
   sync?: (id: string, editor_actions: EditorActions) => void;
@@ -73,6 +85,11 @@ interface FrameActions extends Actions {
   clean?: (id: string) => void;
   word_count?: (time: number, force: boolean) => void;
   close_and_halt?: (id: string) => void;
+  stop_build?: (id: string) => void;
+
+  // optional, set in frame-editors/jupyter-editor/editor.ts → initMenus
+  jupyter_actions?: JupyterActions;
+  frame_actions?: NotebookFrameActions;
 }
 
 interface EditorActions extends Actions {
@@ -82,11 +99,11 @@ interface EditorActions extends Actions {
   halt_jupyter?: () => void;
 }
 
-import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
-import { COLORS } from "@cocalc/util/theme";
+const MAX_SEARCH_RESULTS = 10;
 
 const COL_BAR_BACKGROUND = "#f8f8f8";
-const COL_BAR_BACKGROUND_DARK = "#ddd";
+const COL_BAR_BACKGROUND_DARK = COL_BAR_BACKGROUND;
+//const COL_BAR_BACKGROUND_DARK = "#ddd";
 const COL_BAR_BORDER = "rgb(204,204,204)";
 
 const title_bar_style: CSS = {
@@ -99,15 +116,18 @@ const title_bar_style: CSS = {
   display: "flex",
 } as const;
 
-const MAX_TITLE_WIDTH = 25;
+// This is characters
+const MAX_TITLE_WIDTH = 20;
+const MAX_TITLE_WIDTH_INACTIVE = 40;
 
 const TITLE_STYLE: CSS = {
-  background: COL_BAR_BACKGROUND,
   margin: "7.5px 5px",
-  fontSize: "10pt",
+  fontSize: "11pt",
   whiteSpace: "nowrap",
   display: "inline-block",
-  maxWidth: `${MAX_TITLE_WIDTH + 2}ex`,
+  maxWidth: "100%",
+  overflow: "hidden",
+  fontWeight: 500,
 } as const;
 
 const CONNECTION_STATUS_STYLE: CSS = {
@@ -140,12 +160,7 @@ export function ConnectionStatusIcon({ status }: { status: ConnectionStatus }) {
   );
 }
 
-const ICON_STYLE: CSS = {
-  width: "20px",
-  display: "inline-block",
-} as const;
-
-interface Props {
+export interface FrameTitleBarProps {
   actions: FrameActions;
   editor_actions: EditorActions;
   path: string;
@@ -156,7 +171,7 @@ interface Props {
   is_only?: boolean; // is the only frame
   is_public?: boolean; // public view of a file
   is_paused?: boolean;
-  type: string;
+  type: string; // type of editor
   spec: EditorDescription;
   editor_spec: EditorSpec;
   status: string;
@@ -170,7 +185,8 @@ interface Props {
   tab_is_visible?: boolean;
 }
 
-export const FrameTitleBar: React.FC<Props> = (props: Props) => {
+export function FrameTitleBar(props: FrameTitleBarProps) {
+  // Whether this is *the* active currently focused frame:
   const is_active = props.active_id === props.id;
   const track = useMemo(() => {
     const { project_id, path } = props;
@@ -183,24 +199,22 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       });
     };
   }, [props.project_id, props.path]);
-  const buttons_ref = useRef<
-    { [button_name: string]: true } | null | undefined
-  >(null);
 
-  const force_update = useForceUpdate();
+  const intl = useIntl();
 
   const [showMainButtonsPopover, setShowMainButtonsPopover] =
     useState<boolean>(false);
 
-  useEffect(() => {
-    // clear button cache whenever type changes; otherwise,
-    // the buttons at the top wouldn't change.
-    buttons_ref.current = null;
-    force_update();
-  }, [props.type]);
-
   const [close_and_halt_confirm, set_close_and_halt_confirm] =
     useState<boolean>(false);
+
+  const [showAIDialogs, setShowAIDialogs] = useState<{
+    main: boolean;
+    popover: boolean;
+  }>({ main: false, popover: false });
+  const [showNewAI, setShowNewAI] = useState<boolean>(false);
+
+  const [helpSearch, setHelpSearch] = useState<string>("");
 
   const student_project_functionality = useStudentProjectFunctionality(
     props.project_id,
@@ -213,6 +227,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     throw Error("actions must have name attribute");
   }
 
+  const editorSettings = useRedux(["account", "editor_settings"]);
   // REDUX:
   // state that is associated with the file being edited, not the
   // frame tree/tab in which this sits.  Note some more should
@@ -220,6 +235,34 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   // These come from editor_actions's store:
   const read_only: boolean = useRedux([props.editor_actions.name, "read_only"]);
+
+  const manageCommands = useMemo(
+    () =>
+      new ManageCommands({
+        props,
+        studentProjectFunctionality: student_project_functionality,
+        setShowAI: (val: boolean) =>
+          setShowAIDialogs((prev) => ({ ...prev, main: val })),
+        setShowNewAI,
+        helpSearch,
+        setHelpSearch,
+        readOnly: read_only,
+        editorSettings,
+        intl,
+      }),
+    [
+      props,
+      student_project_functionality,
+      helpSearch,
+      setHelpSearch,
+      setShowAIDialogs,
+      setShowNewAI,
+      read_only,
+      editorSettings,
+      intl,
+    ],
+  );
+
   const has_unsaved_changes: boolean = useRedux([
     props.editor_actions.name,
     "has_unsaved_changes",
@@ -234,14 +277,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   ]);
   const is_saving: boolean = useRedux([props.editor_actions.name, "is_saving"]);
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
-  const fullscreen: undefined | "default" | "kiosk" = useRedux(
-    "page",
-    "fullscreen",
-  );
-
   const otherSettings = useRedux(["account", "other_settings"]);
-  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
+  //  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
   const darkMode = otherSettings.get("dark_mode");
+  const showSymbolBarLabels = otherSettings.get(
+    "show_symbol_bar_labels",
+    false,
+  );
   const disableTourRefs = useRef<boolean>(false);
   const tourRefs = useRef<{ [name: string]: { current: any } }>({});
   const getTourRef = (name: string) => {
@@ -253,7 +295,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   };
   const tours = useRedux(["account", "tours"]);
   const hasTour = useMemo(() => {
-    if (IS_MOBILE || !is_visible("tour", true)) {
+    if (IS_MOBILE || !manageCommands.isVisible("tour")) {
       return false;
     }
     if (tours?.includes("all") || tours?.includes(`frame-${props.type}`)) {
@@ -272,77 +314,15 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     return props.is_only || props.is_full ? "34px" : "30px";
   }
 
+  const MENU_STYLE = {
+    padding: "0 10px",
+  };
+
   function button_style(style?: CSS): CSS {
     return {
       ...style,
       ...{ height: button_height(), marginBottom: "5px" },
     };
-  }
-
-  function wrapOnClick(props1, props0) {
-    if (props0.onClick != null) {
-      props1.onClick = async (...args) => {
-        try {
-          await props0.onClick(...args);
-        } catch (err) {
-          console.trace(`${err}`);
-          props.actions.set_error(
-            `${err}. Try reopening this file, refreshing your browser, or restarting your project.  If nothing works, click Help above and make a support request.`,
-          );
-        }
-      };
-    }
-  }
-
-  function StyledButton(props0) {
-    let props1;
-    if (hideButtonTooltips) {
-      props1 = { ...props0 };
-      delete props1.title;
-    } else {
-      props1 = { ...props0 };
-    }
-    wrapOnClick(props1, props0);
-    return (
-      <AntdBootstrapButton {...props1} style={button_style(props1.style)}>
-        {props1.children}
-      </AntdBootstrapButton>
-    );
-  }
-
-  function Button(props) {
-    return <StyledButton {...props}>{props.children}</StyledButton>;
-  }
-
-  function AntdButton(props0) {
-    const props1 = { ...props0 };
-    wrapOnClick(props1, props0);
-    return <AntdButton0 {...props1} />;
-  }
-  AntdButton.Group = AntdButton0.Group;
-
-  function is_visible(action_name: string, explicit?: boolean): boolean {
-    if (props.editor_actions[action_name] == null) {
-      return false;
-    }
-    if (isExplicitlyHidden(action_name)) {
-      return false;
-    }
-
-    if (buttons_ref.current == null) {
-      if (!explicit) {
-        return true;
-      }
-      let buttons = props.spec.buttons ?? {};
-      buttons_ref.current =
-        typeof buttons == "function" ? buttons(props.path) : buttons;
-    }
-
-    return !!buttons_ref.current?.[action_name];
-  }
-
-  function isExplicitlyHidden(actionName: string): boolean {
-    return !!props.spec.buttons?.[`-${actionName}`];
   }
 
   function click_close(): void {
@@ -359,113 +339,46 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function render_x(): Rendered {
     return (
-      <StyledButton
-        title={"Close this frame"}
-        key={"close"}
-        bsSize={button_size()}
-        onClick={click_close}
+      <Tooltip
+        title={intl.formatMessage({
+          id: "frame_editors.frame_tree.title_bar.close",
+          defaultMessage:
+            "Close this frame. To restore the default layout, close all frames.",
+          description: "Click this X button to close the frame",
+        })}
       >
-        <Icon name={"times"} />
-      </StyledButton>
+        <Button key={"close"} size="small" type="text" onClick={click_close}>
+          <Icon name={"times"} />
+        </Button>
+      </Tooltip>
     );
   }
 
-  function select_type(type: string): void {
-    props.actions.set_frame_type(props.id, type);
-  }
-
-  function render_types(): Rendered {
-    const selected_type: string = props.type;
-    let selected_icon: IconName | undefined = undefined;
-    let selected_short = "";
-    const items: MenuItems = [];
-    for (const type in props.editor_spec) {
-      const spec = props.editor_spec[type];
-      if (spec == null) {
-        // typescript should prevent this but, also double checking
-        // makes this easier to debug.
-        console.log(props.editor_spec);
-        throw Error(
-          `BUG -- ${type} must be defined by the editor_spec, but is not`,
-        );
-      }
-      if (is_public && spec.hide_public) {
-        // editor that is explicitly excluded from public view for file,
-        // e.g., settings or terminal might use this.
-        continue;
-      }
-      if (selected_type === type) {
-        selected_icon = spec.icon;
-        selected_short = spec.short;
-      }
-      items.push({
-        key: type,
-        label: (
-          <>
-            <Icon name={spec.icon ? spec.icon : "file"} style={ICON_STYLE} />{" "}
-            {spec.name}
-          </>
-        ),
-        onClick: () => select_type(type),
-      });
-    }
-
-    let title;
-    if (selected_short) {
-      title = (
-        <span cocalc-test={"short-" + selected_short}>
-          <Icon name={selected_icon} style={{ marginRight: "5px" }} />
-          {title} {selected_short}
-        </span>
-      );
-    } else if (selected_icon != null) {
-      title = <Icon name={selected_icon} />;
-    }
-
-    // TODO: The "float: left" below is a hack
-    // to workaround that this is still in a bootstrap button group.
-    return (
-      <DropdownMenu
-        key="types"
-        cocalc-test={"types-dropdown"}
-        button={true}
-        style={{
-          float: "left",
-          height: button_height(),
-          marginBottom: "5px",
-          marginRight: "3px",
-        }}
-        title={title}
-        items={items}
-      />
-    );
-  }
-
-  function render_control(): Rendered {
-    const style: CSS = {
-      padding: 0,
-      background: is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK,
-      height: button_height(),
-      float: "right",
-    };
+  function renderFrameControls(): Rendered {
     return (
       <div
-        key="control"
+        key="control-buttons-group"
         style={{
           overflow: "hidden",
           display: "inline-block",
-          opacity: is_active ? undefined : 0.5,
         }}
         ref={getTourRef("control")}
       >
-        <ButtonGroup style={style} key={"close"}>
-          {!props.is_full ? render_split_row() : undefined}
-          {!props.is_full ? render_split_col() : undefined}
-          {!props.is_only ? render_full() : undefined}
-          {render_x()}
+        <ButtonGroup
+          style={{
+            padding: "3.5px 0 0 0",
+            height: button_height(),
+            float: "right",
+          }}
+          key={"control-buttons"}
+        >
+          <span style={is_active ? undefined : { opacity: 0.3 }}>
+            {!props.is_full ? render_split_row() : undefined}
+            {!props.is_full ? render_split_col() : undefined}
+            {!props.is_only ? render_full() : undefined}
+            {render_x()}
+          </span>
         </ButtonGroup>
-
-        {render_types()}
       </div>
     );
   }
@@ -473,191 +386,110 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function render_full(): Rendered {
     if (props.is_full) {
       return (
-        <StyledButton
-          disabled={props.is_only}
-          title={"Show all frames"}
-          key={"compress"}
-          bsSize={button_size()}
-          onClick={() => {
-            track("unset-full");
-            props.actions.unset_frame_full();
-          }}
-          bsStyle={!darkMode ? "warning" : undefined}
-          style={{ color: darkMode ? "orange" : undefined }}
+        <Tooltip
+          title={intl.formatMessage({
+            id: "frame_editors.frame_tree.title_bar.minimize",
+            defaultMessage: "Show all frames",
+            description: "Minimize this frame to show all frames",
+          })}
         >
-          <Icon name={"compress"} />
-        </StyledButton>
+          <Button
+            disabled={props.is_only}
+            key={"full-screen-button"}
+            size="small"
+            type="text"
+            onClick={() => {
+              track("unset-full");
+              props.actions.unset_frame_full();
+            }}
+            style={{
+              color: darkMode ? "yellowgreen" : undefined,
+              background: !darkMode ? "yellowgreen" : undefined,
+            }}
+          >
+            <Icon name={"compress"} />
+          </Button>
+        </Tooltip>
       );
     } else {
       return (
-        <StyledButton
-          disabled={props.is_only}
-          key={"expand"}
-          title={"Show only this frame"}
-          bsSize={button_size()}
-          onClick={() => {
-            track("set-full");
-            props.actions.set_frame_full(props.id);
-          }}
+        <Tooltip
+          title={intl.formatMessage({
+            id: "frame_editors.frame_tree.title_bar.maximize",
+            defaultMessage: "Show only this frame",
+            description: "Maximize this frame to show only this one",
+          })}
         >
-          <Icon name={"expand"} />
-        </StyledButton>
+          <Button
+            disabled={props.is_only}
+            key={"full-screen-button"}
+            size="small"
+            type="text"
+            onClick={() => {
+              track("set-full");
+              props.actions.set_frame_full(props.id);
+            }}
+          >
+            <Icon name={"expand"} />
+          </Button>
+        </Tooltip>
       );
     }
   }
+
   function render_split_row(): Rendered {
     return (
-      <StyledButton
-        key={"split-row"}
-        title={"Split frame horizontally into two rows"}
-        bsSize={button_size()}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (props.is_full) {
-            track("unset-full");
-            return props.actions.unset_frame_full();
-          } else {
-            track("split-row");
-            return props.actions.split_frame("row", props.id);
-          }
-        }}
+      <Tooltip
+        title={intl.formatMessage(labels.split_frame_horizontally_title)}
       >
-        <Icon name="horizontal-split" />
-      </StyledButton>
+        <Button
+          key={"split-row-button"}
+          size="small"
+          type="text"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (props.is_full) {
+              track("unset-full");
+              return props.actions.unset_frame_full();
+            } else {
+              track("split-row");
+              return props.actions.split_frame("row", props.id);
+            }
+          }}
+        >
+          <Icon name="horizontal-split" />
+        </Button>
+      </Tooltip>
     );
   }
 
   function render_split_col(): Rendered {
     return (
-      <StyledButton
-        key={"split-col"}
-        title={"Split frame vertically into two columns"}
-        bsSize={button_size()}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (props.is_full) {
-            track("unset-full");
-            return props.actions.unset_frame_full();
-          } else {
-            track("split-col");
-            return props.actions.split_frame("col", props.id);
-          }
-        }}
-      >
-        <Icon name="vertical-split" />
-      </StyledButton>
+      <Tooltip title={intl.formatMessage(labels.split_frame_vertically_title)}>
+        <Button
+          key={"split-col-button"}
+          size="small"
+          type="text"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (props.is_full) {
+              track("unset-full");
+              return props.actions.unset_frame_full();
+            } else {
+              track("split-col");
+              return props.actions.split_frame("col", props.id);
+            }
+          }}
+        >
+          <Icon name="vertical-split" />
+        </Button>
+      </Tooltip>
     );
   }
 
-  function render_zoom_out(): Rendered {
-    if (!is_visible("decrease_font_size", true)) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"font-increase"}
-        title={"Decrease font size (control + <)"}
-        bsSize={button_size()}
-        onClick={() => props.actions.decrease_font_size(props.id)}
-      >
-        <Icon name={"search-minus"} />
-      </StyledButton>
-    );
-  }
-
-  function render_zoom_in(): Rendered {
-    if (!is_visible("increase_font_size", true)) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"font-decrease"}
-        title={"Increase font size (control + >)"}
-        onClick={() => props.actions.increase_font_size(props.id)}
-        bsSize={button_size()}
-      >
-        <Icon name={"search-plus"} />
-      </StyledButton>
-    );
-  }
-
-  function render_set_zoom(): Rendered {
-    if (!is_visible("set_zoom", true)) {
-      return;
-    }
-
-    const items: MenuItems = [50, 85, 100, 115, 125, 150, 200].map((zoom) => {
-      return {
-        key: `${zoom}`,
-        label: `${zoom}%`,
-        onClick: () => {
-          props.actions.set_zoom(zoom / 100, props.id);
-        },
-      };
-    });
-
-    const title =
-      props.font_size == null
-        ? "Zoom"
-        : `${Math.round((100 * props.font_size) / get_default_font_size())}%`;
-
-    return (
-      <DropdownMenu
-        key={"zoom-levels"}
-        button={true}
-        title={title}
-        style={{ height: button_height() }}
-        items={items}
-      />
-    );
-  }
-
-  function render_zoom_page_width(): Rendered {
-    return (
-      <StyledButton
-        key={"text-width"}
-        title={"Zoom to page width"}
-        bsSize={button_size()}
-        onClick={() => props.actions.zoom_page_width?.(props.id)}
-      >
-        <Icon name={"ColumnWidthOutlined"} />
-      </StyledButton>
-    );
-  }
-
-  function render_zoom_page_height(): Rendered {
-    return (
-      <StyledButton
-        key={"text-height"}
-        title={"Zoom to page height"}
-        bsSize={button_size()}
-        onClick={() => props.actions.zoom_page_height?.(props.id)}
-      >
-        <Icon name={"ColumnHeightOutlined"} />
-      </StyledButton>
-    );
-  }
-
-  function render_sync(labels): Rendered {
-    if (!is_visible("sync") || props.actions.sync == null) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"sync"}
-        title={`Synchronize views (${IS_MACOS ? "⌘" : "Alt"} + Enter)`}
-        bsSize={button_size()}
-        onClick={() => props.actions.sync?.(props.id, props.editor_actions)}
-      >
-        <Icon name="sync" />{" "}
-        {labels ? <VisibleMDLG>Sync</VisibleMDLG> : undefined}
-      </StyledButton>
-    );
-  }
-
-  function render_switch_to_file(): Rendered {
+  function renderSwitchToFile(): Rendered {
     if (
-      !is_visible("switch_to_file") ||
+      !manageCommands.isVisible("switch_to_file") ||
       props.actions.switch_to_file == null ||
       switch_to_files == null ||
       switch_to_files.size <= 1
@@ -681,536 +513,117 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     return (
       <DropdownMenu
         key={"switch-to-file"}
-        button={true}
         style={{
+          margin: "0 -5px",
           height: button_height(),
         }}
-        title={path_split(props.path).tail}
+        title={<>File: {path_split(props.path).tail}</>}
         items={items}
       />
     );
   }
 
-  function render_download(labels): Rendered {
-    if (
-      !is_visible("download") ||
-      props.editor_actions.download == null ||
-      student_project_functionality.disableActions
-    ) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"download"}
-        title={"Download this file"}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions.download?.(props.id)}
-      >
-        <Icon name={"cloud-download"} />{" "}
-        {labels ? <VisibleMDLG>Download</VisibleMDLG> : undefined}
-      </StyledButton>
-    );
-  }
-
-  function render_replace(): Rendered {
-    if (!is_visible("replace")) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"replace"}
-        title={"Replace text"}
-        onClick={() => props.editor_actions.replace(props.id)}
-        disabled={read_only}
-        bsSize={button_size()}
-      >
-        <Icon name="replace" />
-      </StyledButton>
-    );
-  }
-
-  function render_find(): Rendered {
-    if (!is_visible("find")) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"find"}
-        title={"Find text"}
-        onClick={() => props.editor_actions.find(props.id)}
-        bsSize={button_size()}
-      >
-        <Icon name="search" />
-      </StyledButton>
-    );
-  }
-
-  function render_goto_line(): Rendered {
-    if (!is_visible("goto_line")) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"goto-line"}
-        title={"Jump to line"}
-        onClick={() => props.editor_actions.goto_line(props.id)}
-        bsSize={button_size()}
-      >
-        <Icon name="bolt" />
-      </StyledButton>
-    );
-  }
-
-  function render_find_replace_group(): Rendered {
-    const v: Rendered[] = [];
-    let x: Rendered;
-    x = render_find();
-    if (x) {
-      v.push(x);
-    }
-    if (!is_public) {
-      x = render_replace();
-      if (x) {
-        v.push(x);
-      }
-    }
-    x = render_goto_line();
-    if (x) {
-      v.push(x);
-    }
-    if (v.length > 0) {
-      return <ButtonGroup key={"find-group"}>{v}</ButtonGroup>;
-    }
-  }
-
-  function render_cut(): Rendered {
-    if (!is_visible("cut")) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"cut"}
-        title={"Cut selected"}
-        onClick={() => props.editor_actions.cut(props.id)}
-        disabled={read_only}
-        bsSize={button_size()}
-      >
-        <Icon name={"scissors"} />
-      </StyledButton>
-    );
-  }
-
-  function render_paste(): Rendered {
-    if (!is_visible("paste")) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"paste"}
-        title={"Paste buffer"}
-        onClick={debounce(
-          () => props.editor_actions.paste(props.id, true),
-          200,
-          { leading: true, trailing: false },
-        )}
-        disabled={read_only}
-        bsSize={button_size()}
-      >
-        <Icon name={"paste"} />
-      </StyledButton>
-    );
-  }
-
-  function render_copy(): Rendered {
-    if (!is_visible("copy")) {
-      return;
-    }
-    return (
-      <StyledButton
-        key={"copy"}
-        title={"Copy selected"}
-        onClick={() => props.editor_actions.copy(props.id)}
-        bsSize={button_size()}
-      >
-        <Icon name={"copy"} />
-      </StyledButton>
-    );
-  }
-
-  function render_copy_group(): Rendered {
-    const v: Rendered[] = [];
-    let x: Rendered;
-    if (!is_public) {
-      x = render_cut();
-      if (x) {
-        v.push(x);
-      }
-    }
-    if (is_visible("copy")) {
-      v.push(render_copy());
-    }
-    if (!is_public) {
-      x = render_paste();
-      if (x) {
-        v.push(x);
-      }
-    }
-    if (v.length > 0) {
-      return (
-        <div
-          key="copy"
-          ref={getTourRef("copy")}
-          style={{ display: "inline-block" }}
-        >
-          <ButtonGroup>{v}</ButtonGroup>
-        </div>
-      );
-    }
-  }
-
-  function render_zoom_group(): Rendered {
-    return (
-      <div
-        key="zoom"
-        ref={getTourRef("zoom")}
-        style={{ display: "inline-block" }}
-      >
-        <AntdButton.Group>
-          {render_set_zoom()}
-          {render_zoom_out()}
-          {render_zoom_in()}
-        </AntdButton.Group>
-      </div>
-    );
-  }
-
-  function render_page_width_height_group(): Rendered {
-    const v: ReactNode[] = [];
-    if (
-      is_visible("zoom_page_height") &&
-      props.actions.zoom_page_height != null
-    ) {
-      v.push(render_zoom_page_height());
-    }
-    if (
-      is_visible("zoom_page_width") &&
-      props.actions.zoom_page_width != null
-    ) {
-      v.push(render_zoom_page_width());
-    }
-    if (v.length == 2) {
-      return <ButtonGroup key={"height-width"}>{v}</ButtonGroup>;
-    }
-    if (v.length == 1) {
-      return <span key={"height-width"}>{v}</span>;
-    }
-  }
-
-  function render_undo(): Rendered {
-    if (!is_visible("undo")) {
+  function renderTimeTravel(noLabel): Rendered {
+    if (!manageCommands.isVisible("time_travel")) {
       return;
     }
     return (
       <Button
-        key={"undo"}
-        title={"Undo last thing you did"}
-        onClick={() => {
-          if (props.type == "chat") {
-            // we have to special case this until we come up with a better way of having
-            // different kinds of actions for other frames.
-            chatUndo(props.project_id, props.path);
-          } else {
-            props.editor_actions.undo(props.id);
-          }
-        }}
-        disabled={read_only}
-        bsSize={button_size()}
-      >
-        <Icon name="undo" />
-      </Button>
-    );
-  }
-
-  function render_redo(): Rendered {
-    if (!is_visible("redo")) {
-      return;
-    }
-    return (
-      <Button
-        key={"redo"}
-        title={"Redo last thing you undid"}
-        onClick={() => {
-          if (props.type == "chat") {
-            // see undo comment above
-            chatRedo(props.project_id, props.path);
-          } else {
-            props.editor_actions.redo(props.id);
-          }
-        }}
-        disabled={read_only}
-        bsSize={button_size()}
-      >
-        <Icon name="repeat" />
-      </Button>
-    );
-  }
-
-  function render_undo_redo_group(): Rendered {
-    const v: Rendered[] = [];
-    let x: Rendered;
-    if ((x = render_undo())) v.push(x);
-    if ((x = render_redo())) v.push(x);
-    if (v.length > 0) {
-      return <ButtonGroup key={"undo-group"}>{v}</ButtonGroup>;
-    }
-  }
-
-  function render_format_group(): Rendered {
-    if (!is_visible("auto_indent")) {
-      return;
-    }
-    return (
-      <Button
-        key={"auto-indent"}
-        title={"Automatically format selected code"}
-        onClick={() => props.editor_actions.auto_indent(props.id)}
-        disabled={read_only}
-        bsSize={button_size()}
-      >
-        <Icon name="indent" />
-      </Button>
-    );
-  }
-
-  function show_labels(): boolean {
-    return !!(props.is_only || props.is_full);
-  }
-
-  function button_text(
-    button_name: string,
-    labels?: boolean,
-  ): string | undefined {
-    if (!labels) return;
-    const custom = props.editor_spec[props.type].customize_buttons;
-    if (custom != null) {
-      const x = custom[button_name];
-      if (x != null && x.text != null) {
-        return x.text;
-      }
-    }
-    return capitalize(button_name);
-  }
-
-  function button_title(button_name: string, def?: string): string | undefined {
-    const custom = props.editor_spec[props.type].customize_buttons;
-    if (custom != null) {
-      const x = custom[button_name];
-      if (x != null && x.title != null) {
-        return x.title;
-      }
-    }
-    if (def != undefined) {
-      return def;
-    }
-    return;
-  }
-
-  function render_timetravel(labels): Rendered {
-    if (!is_visible("time_travel")) {
-      return;
-    }
-    return (
-      <AntdButton
-        key={"timetravel"}
-        title={"Show edit history"}
+        key={"time-travel-button"}
         style={{
           ...button_style(),
-          ...(!darkMode
-            ? { color: "white", background: "#5bc0de" }
-            : undefined),
+          ...(!darkMode ? { color: "#333", background: "#5bc0de" } : undefined),
         }}
         size={button_size()}
         onClick={(event) => {
-          track("time-travel");
-          if (props.actions.name != props.editor_actions.name) {
-            // a subframe editor -- always open time travel in a name tab.
-            props.editor_actions.time_travel({ frame: false });
-            return;
+          try {
+            track("time-travel");
+            if (props.actions.name != props.editor_actions.name) {
+              // a subframe editor -- always open time travel in a name tab.
+              props.editor_actions.time_travel({ frame: false });
+              return;
+            }
+            // If a time_travel frame type is available and the
+            // user does NOT shift+click, then open as a frame.
+            // Otherwise, it opens as a new tab.
+            const frame =
+              !event.shiftKey && props.editor_spec["time_travel"] != null;
+            props.actions.time_travel({
+              frame,
+            });
+          } catch (err) {
+            props.actions.set_error(
+              `${err}. Try reopening this file, refreshing your browser, or restarting your project.  If nothing works, click Help above and make a support request.`,
+            );
           }
-          // If a time_travel frame type is available and the
-          // user does NOT shift+click, then open as a frame.
-          // Otherwise, it opens as a new tab.
-          const frame =
-            !event.shiftKey && props.editor_spec["time_travel"] != null;
-          props.actions.time_travel({
-            frame,
-          });
         }}
       >
         <Icon name="history" />
-        <VisibleMDLG>{labels ? " TimeTravel" : undefined}</VisibleMDLG>
-      </AntdButton>
+        {noLabel ? undefined : (
+          <VisibleMDLG>
+            <span style={{ marginLeft: "5px" }}>
+              {intl.formatMessage(labels.timetravel)}
+            </span>
+          </VisibleMDLG>
+        )}
+      </Button>
     );
   }
 
-  function render_chatgpt(labels): Rendered {
+  function renderNewAI() {
+    const { path, project_id } = props;
+    const ext = filename_extension(path);
+    if (!isSupportedExtension(ext)) return;
+
+    return (
+      <AIGenerateDocumentModal
+        key={"new-ai"}
+        ext={ext}
+        show={showNewAI}
+        setShow={setShowNewAI}
+        project_id={project_id}
+      />
+    );
+  }
+
+  function renderAssistant(noLabel, where: "main" | "popover"): Rendered {
     if (
-      !is_visible("chatgpt") ||
+      !manageCommands.isVisible("chatgpt") ||
       !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
     ) {
       return;
     }
     return (
-      <LanguageModel
+      <LanguageModelTitleBarButton
+        path={props.path}
+        type={props.type}
+        showDialog={showAIDialogs[where]}
+        setShowDialog={(value: boolean) => {
+          setShowAIDialogs((prev) => ({ ...prev, [where]: value }));
+        }}
         project_id={props.project_id}
         buttonRef={getTourRef("chatgpt")}
-        key={"chatgpt"}
+        key={`ai-button-${where}`}
         id={props.id}
         actions={props.actions}
-        path={props.path}
         buttonSize={button_size()}
         buttonStyle={{
           ...button_style(),
           ...(!darkMode
-            ? { backgroundColor: "rgb(16, 163, 127)", color: "white" }
+            ? {
+                backgroundColor: COLORS.AI_ASSISTANT_BG,
+                color: COLORS.AI_ASSISTANT_TXT,
+              }
             : undefined),
         }}
-        labels={labels}
         visible={props.tab_is_visible && props.is_visible}
+        noLabel={noLabel}
       />
     );
   }
 
-  function render_tour(labels): Rendered {
-    if (!hasTour) {
-      return;
-    }
-    return (
-      <div ref={getTourRef("tour")} key={"tour"}>
-        <AntdButton
-          type="primary"
-          title={"Take the tour!"}
-          size={button_size()}
-          onClick={() => {
-            track("tour");
-            userTracking("tour", { name: `frame-${props.type}` });
-            props.actions.set_frame_full(props.id);
-            // we have to wait until the frame renders before
-            // setting the tour; otherwise, the references won't
-            // be defined and it won't work.
-            setTimeout(
-              () => props.actions.set_frame_tree({ id: props.id, tour: true }),
-              1,
-            );
-          }}
-          style={{ border: "1px solid rgb(217, 217, 217)", ...button_style() }}
-        >
-          <div style={{ display: "inline-block" }}>
-            <Icon name="map" />
-            <VisibleMDLG>{labels ? " Tour" : undefined}</VisibleMDLG>
-          </div>
-        </AntdButton>
-      </div>
-    );
-  }
-
-  function render_reload(labels): Rendered {
-    if (!is_visible("reload", true)) {
-      return;
-    }
-    return (
-      <Button
-        key={"reload"}
-        title={"Reload this file"}
-        bsSize={button_size()}
-        onClick={() => props.actions.reload(props.id)}
-      >
-        <Icon name="reload" />
-        <VisibleMDLG>{labels ? " Reload" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_help(labels: boolean): Rendered {
-    if (!is_visible("help", true) || is_public) {
-      return;
-    }
-    return (
-      <div
-        key="help"
-        ref={getTourRef("help")}
-        style={{ display: "inline-block" }}
-      >
-        <Button
-          title={"Show documentation for working with this editor"}
-          bsSize={button_size()}
-          onClick={() =>
-            typeof props.actions.help === "function"
-              ? props.actions.help(props.type)
-              : undefined
-          }
-        >
-          <Icon name="question-circle" />{" "}
-          <VisibleMDLG>{labels ? "Docs…" : undefined}</VisibleMDLG>
-        </Button>
-      </div>
-    );
-  }
-
-  function render_guide(labels: boolean): Rendered {
-    if (!is_visible("guide", true) || is_public) {
-      return;
-    }
-    const { title, descr, icon } = {
-      ...{
-        title: "Guide",
-        descr: "Show guidebook",
-        icon: "magic" as IconName,
-      },
-      ...props.editor_spec[props.type].guide_info,
-    };
-    return (
-      <div
-        key="guide"
-        ref={getTourRef("guide")}
-        style={{ display: "inline-block" }}
-      >
-        <Button
-          title={descr}
-          bsSize={button_size()}
-          onClick={() => {
-            if (typeof props.actions.help === "function") {
-              props.actions.guide(props.id, props.type);
-              track("guide");
-            }
-          }}
-        >
-          <Icon name={icon} />{" "}
-          <VisibleMDLG>{labels ? title : undefined}</VisibleMDLG>
-        </Button>
-      </div>
-    );
-  }
-
-  function render_restart(labels): Rendered {
-    if (!is_visible("restart", true)) {
-      return;
-    }
-    return (
-      <Button
-        key={"restart"}
-        title={"Restart service"}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions.restart?.()}
-      >
-        <Icon name="sync" />{" "}
-        {labels ? <VisibleMDLG>Restart</VisibleMDLG> : undefined}
-      </Button>
-    );
-  }
-
-  function render_save(labels: boolean): Rendered {
-    if (!is_visible("save", true)) {
+  function renderSaveButton(noLabel): Rendered {
+    if (!manageCommands.isVisible("save")) {
       return;
     }
     return (
@@ -1225,7 +638,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         read_only={read_only}
         is_public={is_public}
         is_saving={is_saving}
-        no_labels={!labels}
+        no_labels={noLabel}
         size={button_size()}
         style={button_style()}
         onClick={() => {
@@ -1237,512 +650,139 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_save_timetravel_group(labels): Rendered {
-    const v: Rendered[] = [];
-    let x: Rendered;
-    if ((x = render_save(labels))) v.push(x);
-    if (!is_public) {
-      if ((x = render_timetravel(labels))) v.push(x);
+  function renderSaveTimetravelGroup(where: "main" | "popover"): Rendered {
+    if (props.type == "chat") {
+      // these buttons don't make much sense for side chat.
+      return;
     }
-    if ((x = render_chatgpt(labels))) v.push(x);
-    if ((x = render_reload(labels))) v.push(x);
+    const noLabel = IS_MOBILE || !(props.is_only || props.is_full);
+    const v: React.JSX.Element[] = [];
+    let x;
+    if ((x = renderSaveButton(noLabel))) v.push(x);
+    if ((x = renderTimeTravel(noLabel))) v.push(x);
+    if ((x = renderAssistant(noLabel, where))) v.push(x);
+    if ((x = renderComputeServer(noLabel))) v.push(x);
     if (v.length == 1) return v[0];
     if (v.length > 0) {
-      return <ButtonGroup key={"save-group"}>{v}</ButtonGroup>;
+      return (
+        <ButtonGroup key={"save-timetravel-button-group"}>{v}</ButtonGroup>
+      );
     }
   }
 
-  function render_format(labels): Rendered {
-    if (
-      !is_visible("format") ||
-      !props.editor_actions.has_format_support(
-        props.id,
-        props.available_features,
-      )
-    ) {
-      return;
-    }
-    return (
-      <Button
-        key={"format"}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions.format(props.id)}
-        title={"Syntactically format the document."}
-      >
-        <Icon name={FORMAT_SOURCE_ICON} />{" "}
-        <VisibleMDLG>{labels ? "Format" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_table_of_contents(labels): Rendered {
-    if (!is_visible("show_table_of_contents")) return;
-    return (
-      <Button
-        key={"contents"}
-        bsSize={button_size()}
-        onClick={() => {
-          track("table-of-contents");
-          props.actions.show_table_of_contents?.(props.id);
-        }}
-        title={"Show the Table of Contents"}
-      >
-        <Icon name={"align-right"} />{" "}
-        <VisibleMDLG>{labels ? "Contents" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_show_pages(labels): Rendered {
-    if (!is_visible("show_pages")) return;
-    return (
-      <Button
-        key={"pages"}
-        bsSize={button_size()}
-        onClick={() => props.actions.show_pages?.(props.id)}
-        title={"Show Pages"}
-      >
-        <Icon name={"pic-centered"} />{" "}
-        <VisibleMDLG>{labels ? "Pages" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_show_overview(labels): Rendered {
-    if (!is_visible("show_overview")) return;
-    return (
-      <Button
-        key={"overview"}
-        bsSize={button_size()}
-        onClick={() => props.actions.show_overview?.(props.id)}
-        title={"Show Overview of all Pages"}
-      >
-        <Icon name={"overview"} />{" "}
-        <VisibleMDLG>{labels ? "Overview" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_show_slideshow(labels): Rendered {
-    if (!is_visible("show_slideshow")) return;
-    return (
-      <Button
-        key={"slideshow"}
-        bsSize={button_size()}
-        onClick={() => props.actions.show_slideshow?.(props.id)}
-        title={"Display Slideshow Presentation"}
-      >
-        <Icon name={"play-square"} />{" "}
-        <VisibleMDLG>{labels ? "Slideshow" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_show_speaker_notes(labels): Rendered {
-    if (!is_visible("show_speaker_notes")) return;
-    return (
-      <Button
-        key={"speaker_notes"}
-        bsSize={button_size()}
-        onClick={() => props.actions.show_speaker_notes?.(props.id)}
-        title={"Show Speaker Notes"}
-      >
-        <Icon name={"pencil"} />{" "}
-        <VisibleMDLG>{labels ? "Speaker" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_show_search(labels): Rendered {
-    if (!is_visible("show_search")) return;
-    return (
-      <Button
-        key={"search"}
-        bsSize={button_size()}
-        onClick={() => props.actions.show_search?.(props.id)}
-        title={"Show Search"}
-      >
-        <Icon name={"search"} />{" "}
-        <VisibleMDLG>{labels ? "Search" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-  function render_build(): Rendered {
-    if (!is_visible("build", true)) {
-      return;
-    }
-    const title =
-      "Build (disable automatic builds in Account → Editor → 'Build on save')";
-    return (
-      <Button
-        key={"build"}
-        disabled={!!props.status}
-        bsSize={button_size()}
-        onClick={() => props.actions.build?.(props.id, false)}
-        title={title}
-      >
-        <Icon name={"play-circle"} /> <VisibleMDLG>Build</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_force_build(): Rendered {
-    if (!is_visible("force_build", true)) {
-      return;
-    }
-    return (
-      <Button
-        key={"force-build"}
-        disabled={!!props.status}
-        bsSize={button_size()}
-        onClick={() => props.actions.force_build?.(props.id)}
-        title={"Force rebuild entire project"}
-      >
-        <Icon name={"play"} /> <VisibleMDLG>Force Rebuild</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_rescan_latex_directives(): Rendered {
-    if (!is_visible("rescan_latex_directive", true)) return;
-    return (
-      <Button
-        key={"rescan-latex-directive"}
-        disabled={!!props.status}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions.rescan_latex_directive?.()}
-        title={"Rescan document for build directive"}
-      >
-        <Icon name={"reload"} /> <VisibleMDLG>Directive</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_clean(labels): Rendered {
-    if (!is_visible("clean", true)) {
-      return;
-    }
-    return (
-      <Button
-        key={"clean"}
-        bsSize={button_size()}
-        onClick={() => props.actions.clean?.(props.id)}
-        title={"Clean auxiliary build files"}
-      >
-        <Icon name={"trash"} />{" "}
-        <VisibleMDLG>{labels ? "Clean" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_count_words(): Rendered {
-    if (!is_visible("word_count", true)) {
-      return;
-    }
-    return (
-      <Button
-        key={"word_count"}
-        bsSize={button_size()}
-        onClick={() => props.actions.word_count?.(0, true)}
-        title={"Runs texcount"}
-      >
-        <Icon name={"file-alt"} /> <VisibleMDLG>Count words</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_kick_other_users_out(): Rendered {
-    if (!is_visible("kick_other_users_out")) {
-      return;
-    }
-    return (
-      <div
-        key={"kick_other_users_out"}
-        ref={getTourRef("kick_other_users_out")}
-        style={{ display: "inline-block" }}
-      >
-        <Button
-          bsSize={button_size()}
-          onClick={() => props.actions.kick_other_users_out(props.id)}
-          title={"Kick all other users out"}
-        >
-          <Icon name={"skull-crossbones"} />
-        </Button>
-      </div>
-    );
-  }
-
-  function render_pause(labels): Rendered {
-    if (!is_visible("pause")) {
-      return;
-    }
-    let icon: IconName, title: string, style: ButtonStyle | undefined;
-    if (props.is_paused) {
-      icon = "play";
-      title = "Play";
-      style = "success";
-    } else {
-      icon = "pause";
-      title = "Pause";
-    }
-    return (
-      <div
-        key="pause"
-        ref={getTourRef("pause")}
-        style={{ display: "inline-block" }}
-      >
-        <Button
-          bsSize={button_size()}
-          bsStyle={style}
-          onClick={() => {
-            if (props.is_paused) {
-              props.actions.unpause(props.id);
-            } else {
-              props.actions.pause(props.id);
+  function renderMenu(name: string) {
+    const { label, pos, groups } = MENUS[name];
+    const v: MenuItem[] = [];
+    for (const group of groups) {
+      let i = 0;
+      const w: { pos?: number; item: MenuItem }[] = [];
+      for (const commandName of GROUPS[group]) {
+        const item = manageCommands.menuItem(commandName);
+        if (item != null) {
+          w.push({ item, pos: COMMANDS[commandName].pos ?? 1e6 });
+        }
+        if (helpSearch.trim() && commandName == SEARCH_COMMANDS) {
+          const search = helpSearch.trim().toLowerCase();
+          // special case -- the search menu item
+          for (const commandName in COMMANDS) {
+            for (const item of manageCommands.searchCommands(
+              commandName,
+              search,
+            )) {
+              i += 1;
+              w.push({
+                item: { ...item, key: `__search-${commandName}-${i}` },
+                pos: COMMANDS[commandName].pos ?? 1e6,
+              });
+              if (w.length >= MAX_SEARCH_RESULTS) {
+                break;
+              }
             }
-          }}
-          title={title}
-        >
-          <Icon name={icon} />
-          <VisibleMDLG>{labels ? " " + title : undefined}</VisibleMDLG>
-        </Button>
-      </div>
-    );
+            if (w.length >= MAX_SEARCH_RESULTS) {
+              break;
+            }
+          }
+        }
+      }
+      if (w.length > 0) {
+        if (w.length > 1) {
+          w.sort(field_cmp("pos"));
+        }
+        if (v.length > 0) {
+          v.push({ type: "divider", key: `divider-${v.length}` });
+        }
+        v.push(...w.map((x) => x.item));
+      }
+    }
+    if (v.length == 0) {
+      return null;
+    }
+    return {
+      menu: (
+        <DropdownMenu
+          key={`menu-${name}`}
+          style={MENU_STYLE}
+          title={
+            label === APPLICATION_MENU
+              ? manageCommands.applicationMenuTitle()
+              : isIntlMessage(label)
+              ? intl.formatMessage(label)
+              : label
+          }
+          items={v}
+        />
+      ),
+      pos,
+    };
   }
 
-  function render_edit_init_script(): Rendered {
-    if (!is_visible("edit_init_script")) {
-      return;
+  function renderMenus() {
+    if (!is_active) return;
+
+    const v: { menu: React.JSX.Element; pos: number }[] = [];
+    for (const name in MENUS) {
+      const x = renderMenu(name);
+      if (x != null) {
+        v.push(x);
+      }
     }
+    v.sort(field_cmp("pos"));
     return (
       <div
-        key="edit_init_script"
-        ref={getTourRef("edit_init_script")}
-        style={{ display: "inline-block" }}
+        key="dropdown-menus"
+        style={{
+          display: "inline-block",
+          marginTop: props.is_only || props.is_full ? "1px" : undefined,
+        }}
       >
-        <Button
-          bsSize={button_size()}
-          onClick={() => props.actions.edit_init_script(props.id)}
-          title={"Edit initialization script"}
-        >
-          <Icon name={"rocket"} />{" "}
-        </Button>
+        {v.slice(0, -1).map((x) => x.menu)}
+        {v[v.length - 1]?.menu}
       </div>
     );
+    // todo move compute server as earlier menu, when it is a menu.
+    // seems too horrible right now since it is a selector.
   }
 
-  function render_clear(): Rendered {
-    if (!is_visible("clear")) {
-      return;
-    }
-    const info = props.editor_spec[props.type].clear_info ?? {
-      text: "Clear this frame?",
-      confirm: "Yes",
-    };
-    const title = <div style={{ maxWidth: "250px" }}>{info.text}</div>;
-    const icon = <Icon unicode={0x2620} />;
-    return (
-      <Popconfirm
-        key={"clear"}
-        placement={"bottom"}
-        title={title}
-        icon={icon}
-        onConfirm={() => props.actions.clear?.(props.id)}
-        okText={info.confirm}
-        cancelText={"Cancel"}
-      >
-        <div ref={getTourRef("clear")} style={{ display: "inline-block" }}>
-          <Button bsSize={button_size()} title={"Clear"}>
-            {icon}{" "}
-          </Button>
-        </div>
-      </Popconfirm>
-    );
-  }
-
-  function render_close_and_halt(labels: boolean): Rendered {
-    if (!is_visible("close_and_halt")) {
-      return;
-    }
-    return (
-      <Button
-        key={"close_and_halt"}
-        disabled={close_and_halt_confirm}
-        bsSize={button_size()}
-        onClick={() => set_close_and_halt_confirm(true)}
-        title={"Close and halt server"}
-      >
-        <Icon name={"PoweroffOutlined"} />{" "}
-        <VisibleMDLG>{labels ? "Halt" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_halt_jupyter(): Rendered {
-    if (!is_visible("halt_jupyter")) return;
-    return (
-      <Button
-        key={"halt_jupyter"}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions.halt_jupyter?.()}
-      >
-        <Icon name={"PoweroffOutlined"} /> <VisibleMDLG>Halt</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_export_to_markdown(labels): Rendered {
-    if (
-      !is_visible("export_to_markdown") ||
-      student_project_functionality.disableActions
-    ) {
-      return;
-    }
-    return (
-      <Button
-        key={"export"}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions["export_to_markdown"]?.(props.id)}
-        title={"Export to Markdown File..."}
-      >
-        <Icon name={"markdown"} />{" "}
-        <VisibleMDLG>{labels ? "Export" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_print(labels): Rendered {
-    if (!is_visible("print") || student_project_functionality.disableActions) {
-      return;
-    }
-    return (
-      <Button
-        key={"print"}
-        bsSize={button_size()}
-        onClick={() => props.editor_actions.print(props.id)}
-        title={"Print file..."}
-      >
-        <Icon name={"print"} />{" "}
-        <VisibleMDLG>{labels ? "Print" : undefined}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_terminal(labels): Rendered {
-    if (
-      !is_visible("terminal") ||
-      is_public ||
-      student_project_functionality.disableTerminals
-    ) {
-      return;
-    }
-    return (
-      <Button
-        key={"terminal"}
-        bsSize={button_size()}
-        onClick={() => {
-          props.actions.terminal(props.id);
-          track("terminal");
-        }}
-        title={button_title("terminal", "Open a command line terminal")}
-      >
-        <Icon name={"terminal"} />{" "}
-        <VisibleMDLG>{button_text("terminal", labels)}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_shell(labels): Rendered {
-    if (
-      !is_visible("shell") ||
-      is_public ||
-      student_project_functionality.disableTerminals
-    ) {
-      return;
-    }
-    return (
-      <Button
-        key={"shell"}
-        bsSize={button_size()}
-        onClick={() => props.actions.shell(props.id)}
-        title={button_title("shell", "Open a shell for running this code")}
-      >
-        <Icon name={"terminal"} />{" "}
-        <VisibleMDLG>{button_text("shell", labels)}</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_edit(): Rendered {
-    if (!is_visible("edit") || is_public) {
-      return;
-    }
-    return (
-      <Button
-        key={"edit"}
-        bsSize={button_size()}
-        onClick={() => props.actions["edit"]?.(props.id)}
-        title={button_title("shell", "Click to edit file directly here")}
-      >
-        <Icon name={"lock"} /> <VisibleMDLG>Locked</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_readonly_view(): Rendered {
-    if (!is_visible("readonly_view") || is_public) {
-      return;
-    }
-    return (
-      <Button
-        key={"readonly-view"}
-        bsSize={button_size()}
-        onClick={() => props.actions["readonly_view"]?.(props.id)}
-        title={button_title("shell", "Click to switch to readonly view")}
-      >
-        <Icon name={"pencil"} /> <VisibleMDLG>Editable</VisibleMDLG>
-      </Button>
-    );
-  }
-
-  function render_actions_dropdown(labels: boolean): Rendered {
-    if (isExplicitlyHidden("actions")) return;
-    // We don't show this menu in kiosk mode, where none of the options make sense,
-    // because they are all file management, which should be handled a different way.
-    if (fullscreen == "kiosk") return;
-    // Also, instructors can disable this for students:
-    if (student_project_functionality.disableActions) return;
-    const spec = props.editor_spec[props.type];
-    if (spec != null && spec.hide_file_menu) return;
-    return (
-      <EditorFileInfoDropdown
-        key={"info"}
-        filename={props.path}
-        project_id={props.project_id}
-        is_public={false}
-        label={labels ? "Actions" : ""}
-        style={{ height: button_height() }}
-      />
-    );
-  }
-
-  function render_buttons(
-    forceLabels?: boolean,
+  function renderButtons(
     style?: CSS,
     noRefs?,
+    where: "main" | "popover" = "main",
   ): Rendered {
+    if (!is_active) {
+      return (
+        <div style={{ display: "flex", width: "100%" }}>
+          <div style={{ flex: 1, textAlign: "center" }}>{renderTitle()}</div>
+        </div>
+      );
+    }
     if (!(props.is_only || props.is_full)) {
-      // When in split view, we let the buttonbar flow around and hide, so that
-      // extra buttons are cleanly not visible when frame is thin.
       style = {
         display: "flex",
-        maxHeight: "30px",
         ...style,
       };
     } else {
       style = {
         display: "flex",
-        maxHeight: "34px",
         marginLeft: "2px",
         ...style,
       };
@@ -1756,57 +796,15 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         disableTourRefs.current = true;
       }
 
-      const labels: boolean = forceLabels ?? show_labels();
-
-      const v: Rendered[] = [];
+      const v: (React.JSX.Element | undefined | null)[] = [];
+      v.push(renderSaveTimetravelGroup(where));
+      if (props.title != null) {
+        v.push(renderTitle());
+      }
       v.push(renderPage());
-      let x;
-      if ((x = render_tour(labels))) {
-        v.push(x);
-      }
-      v.push(render_save_timetravel_group(labels));
-      v.push(render_actions_dropdown(labels));
-      v.push(render_build());
-      v.push(render_force_build());
-      v.push(render_edit());
-      v.push(render_readonly_view());
-      v.push(render_sync(labels));
-      v.push(render_switch_to_file());
-      v.push(render_clean(labels));
-      v.push(render_zoom_group());
-      v.push(render_rescan_latex_directives());
-      if (!is_public) {
-        v.push(render_undo_redo_group());
-      }
-      v.push(render_terminal(labels));
-      v.push(render_format(labels));
-      v.push(render_restart(labels));
-      v.push(render_close_and_halt(labels));
-
-      v.push(render_page_width_height_group());
-      v.push(render_download(labels));
-      v.push(render_pause(labels));
-      v.push(render_copy_group());
-      v.push(render_find_replace_group());
-      if (!is_public) {
-        v.push(render_format_group());
-      }
-      v.push(render_halt_jupyter());
-      v.push(render_clear());
-      v.push(render_kick_other_users_out());
-      v.push(render_edit_init_script());
-      v.push(render_count_words());
-      v.push(render_shell(labels));
-      v.push(render_print(labels));
-      v.push(render_export_to_markdown(labels));
-      v.push(render_table_of_contents(labels));
-      v.push(render_show_pages(labels));
-      v.push(render_show_overview(labels));
-      v.push(render_show_slideshow(labels));
-      v.push(render_show_speaker_notes(labels));
-      v.push(render_show_search(labels));
-      v.push(render_guide(labels));
-      v.push(render_help(labels));
+      v.push(renderNewAI());
+      v.push(renderSwitchToFile());
+      v.push(renderMenus());
 
       const w: Rendered[] = [];
       for (const c of v) {
@@ -1831,51 +829,66 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_main_buttons(): Rendered {
-    // This is complicated below (with the flex display) in order to have a drop down menu that actually appears
+  function renderMainMenusAndButtons(): Rendered {
+    // This is complicated below (with the flex display) in order to have
+    // a drop down menu that actually appears
     // and *ALSO* have buttons that vanish when there are many of them.
-    const style: CSS = {
-      flexFlow: "row nowrap",
-      display: "flex",
-      flex: 1,
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-    };
-    return <div style={style}>{render_buttons()}</div>;
+    return (
+      <div
+        style={{
+          flexFlow: "row nowrap",
+          display: "flex",
+          flex: 1,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+        }}
+      >
+        {renderButtons()}
+      </div>
+    );
   }
 
   function allButtonsPopover() {
+    if (!is_active) {
+      return null;
+    }
     return (
       <Popover
-        overlayStyle={{ zIndex: 990 }}
+        styles={{ root: { zIndex: 990 } }}
         open={
           props.tab_is_visible && props.is_visible && showMainButtonsPopover
         }
         content={() => {
           return (
-            <div style={{ display: "flex", maxWidth: "100vw" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                maxWidth: "100vw",
+              }}
+            >
               <div
                 style={{
                   marginLeft: "3px",
                   marginRight: "3px",
                 }}
               >
-                {render_buttons(
-                  true,
+                {renderButtons(
                   { maxHeight: "50vh", display: "block" },
                   true,
+                  "popover",
                 )}
               </div>
-              <div>{render_types()}</div>
-              <Icon
-                onClick={() => setShowMainButtonsPopover(false)}
-                name="times"
-                style={{
-                  color: COLORS.GRAY_M,
-                  marginTop: "10px",
-                  marginLeft: "10px",
-                }}
-              />
+              <div>
+                {renderFrameControls()}
+                <Button
+                  style={{ float: "right" }}
+                  onClick={() => setShowMainButtonsPopover(false)}
+                >
+                  {intl.formatMessage(labels.close)}
+                </Button>
+              </div>
+              {renderButtonBar(true)}
             </div>
           );
         }}
@@ -1885,26 +898,31 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           ref={getTourRef("all-buttons")}
           style={{ display: "inline-block" }}
         >
-          <AntdButton
+          <Button
             type="text"
             style={{
-              margin: "0 3px",
+              fontSize: "14pt",
+              padding: "0 5px",
               height: props.is_only || props.is_full ? "34px" : "30px",
+              background: showMainButtonsPopover ? "#eee" : undefined,
             }}
             onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
           >
-            <Icon name="ellipsis" />
-          </AntdButton>
+            <Icon name="ellipsis" rotate="90" />
+          </Button>
         </div>
       </Popover>
     );
   }
 
-  function render_connection_status(): Rendered | undefined {
-    if (!props.connection_status || !is_visible("connection_status", true)) {
+  function renderConnectionStatus(): Rendered | undefined {
+    if (
+      !props.connection_status ||
+      !manageCommands.isVisible("connection_status")
+    ) {
       return;
     }
-    if (props.connection_status == "connected") {
+    if (props.connection_status === "connected") {
       // To reduce clutter show nothing when connected.
       // NOTE: Keep this consistent with
       // cocalc/src/@cocalc/frontend/project/websocket/websocket-indicator.tsx
@@ -1924,70 +942,96 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function renderComputeServer() {
-    if (!is_visible("compute_server") || !computeServersEnabled()) {
+  function renderComputeServer(noLabel) {
+    if (!computeServersEnabled() || excludeFromComputeServer(props.path)) {
       return null;
     }
     const { type } = props;
-    if (type != "terminal" && type != "jupyter_cell_notebook") {
-      // ONLY terminal and jupyter are supported
-      return null;
-    }
     return (
-      <SelectComputeServer
+      <SelectComputeServerForFile
         actions={props.actions}
         frame_id={props.id}
+        key="compute-server-selector"
         type={type}
-        style={{
-          marginRight: "3px",
-          marginTop: "1px",
-          height: button_height(),
-        }}
         project_id={props.project_id}
         path={props.path}
+        style={{
+          height: button_height(),
+          overflow: "hidden",
+          borderRight: TITLE_BAR_BORDER,
+          borderTop: TITLE_BAR_BORDER,
+          borderBottom: TITLE_BAR_BORDER,
+          borderTopRightRadius: "5px",
+          borderBottomRightRadius: "5px",
+        }}
+        noLabel={noLabel}
       />
     );
   }
 
-  function render_title(): Rendered {
+  function spec2display(
+    spec: EditorDescription,
+    aspect: "name" | "short",
+  ): string {
+    const label: string | IntlMessage = spec[aspect];
+    if (isIntlMessage(label)) {
+      return intl.formatMessage(label);
+    } else {
+      return label;
+    }
+  }
+
+  function renderTitle(): Rendered {
     let title: string = "";
-    let icon: IconName | undefined = undefined;
     if (props.title !== undefined) {
       title = props.title;
     }
     if (props.editor_spec != null) {
       const spec = props.editor_spec[props.type];
       if (spec != null) {
-        icon = spec.icon;
         if (!title) {
           if (spec.name) {
-            title = spec.name;
+            title = spec2display(spec, "name");
           } else if (spec.short) {
-            title = spec.short;
+            title = spec2display(spec, "short");
           }
         }
       }
     }
 
+    const label = trunc_middle(
+      title,
+      is_active ? MAX_TITLE_WIDTH : MAX_TITLE_WIDTH_INACTIVE,
+    );
+
+    if (props.title == null && is_active) {
+      return <>{label}</>;
+    }
+
     const body = (
       <div
+        key="title"
         ref={getTourRef("title")}
         style={{
           ...TITLE_STYLE,
-          color: is_active ? undefined : "#777",
+          margin: `${props.is_only || props.is_full ? "7px" : "5px"} 5px`,
         }}
       >
-        {icon && <Icon name={icon} style={{ marginRight: "5px" }} />}
-        {trunc_middle(title, MAX_TITLE_WIDTH)}
+        {label}
       </div>
     );
+
     if (title.length >= MAX_TITLE_WIDTH) {
-      return <Tooltip title={title}>{body}</Tooltip>;
+      return (
+        <Tooltip title={title} key="title">
+          {body}
+        </Tooltip>
+      );
     }
     return body;
   }
 
-  function render_close_and_halt_confirm(): Rendered {
+  function renderCloseAndHaltConfirm(): Rendered {
     if (!close_and_halt_confirm) return;
     return (
       <div
@@ -2002,7 +1046,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         }}
       >
         Halt the server and close this?
+        <Button onClick={() => set_close_and_halt_confirm(false)}>
+          {intl.formatMessage(labels.cancel)}
+        </Button>
         <Button
+          danger
           onClick={() => {
             set_close_and_halt_confirm(false);
             props.actions.close_and_halt?.(props.id);
@@ -2011,22 +1059,155 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
             marginLeft: "20px",
             marginRight: "5px",
           }}
-          bsStyle="danger"
         >
           <Icon name={"PoweroffOutlined"} /> Close and Halt
-        </Button>
-        <Button onClick={() => set_close_and_halt_confirm(false)}>
-          Cancel
         </Button>
       </div>
     );
   }
 
-  function render_confirm_bar(): Rendered {
+  function renderConfirmBar(): Rendered {
     return (
-      <div style={{ position: "relative" }}>
-        {render_close_and_halt_confirm()}
-      </div>
+      <div style={{ position: "relative" }}>{renderCloseAndHaltConfirm()}</div>
+    );
+  }
+
+  function renderButtonBarButton(name) {
+    let item;
+    try {
+      item = manageCommands.button(name);
+    } catch (err) {
+      console.warn(`no command ${name} -- ${err}`);
+      return null;
+    }
+    if (item == null) {
+      return null;
+    }
+    const { disabled, label, key, children, onClick } = item;
+    const style: CSS = {
+      color: "#333",
+      padding: showSymbolBarLabels ? "0" : "7.5px 0 0 0",
+      height: showSymbolBarLabels ? "36px" : undefined,
+    } as const;
+    if (children != null) {
+      return (
+        <DropdownMenu
+          size="small"
+          key={`button-${name}`}
+          title={label}
+          items={children}
+          button={false}
+          style={style}
+        />
+      );
+    } else {
+      return (
+        <Button
+          size="small"
+          type="text"
+          key={key}
+          disabled={disabled}
+          onClick={onClick}
+          style={style}
+        >
+          {label}
+        </Button>
+      );
+    }
+  }
+
+  function wrapButtonBarContextMenu(bar: React.JSX.Element) {
+    const showSymbolLabel = (
+      <>
+        <Tooltip
+          title={intl.formatMessage({
+            id: "frame_editors.frame_tree.title_bar.symbols.label.explanation",
+            defaultMessage:
+              "If labels are shown, the symbol bar is placed in its own row beneath the menu – otherwise it is smaller and next to the menu.",
+          })}
+        >
+          <Icon name="signature-outlined" />{" "}
+          {intl.formatMessage(ACTIVITY_BAR_TOGGLE_LABELS, {
+            show: showSymbolBarLabels,
+          })}
+        </Tooltip>
+      </>
+    );
+    const items: MenuProps["items"] = [
+      {
+        key: "toggle-labels",
+        label: showSymbolLabel,
+        onClick: () => {
+          redux
+            .getActions("account")
+            .set_other_settings("show_symbol_bar_labels", !showSymbolBarLabels);
+        },
+      },
+    ];
+    return (
+      <Dropdown
+        trigger={["contextMenu"]}
+        menu={{ items }}
+        overlayStyle={{ maxWidth: "400px" }}
+      >
+        {bar}
+      </Dropdown>
+    );
+  }
+
+  function renderButtonBar(popup = false) {
+    if (!is_active) {
+      return null;
+    }
+    if (!popup && !editorSettings?.get("extra_button_bar")) {
+      return null;
+    }
+    const w = manageCommands.getToolbarButtons();
+    const v: React.JSX.Element[] = [];
+    for (const name of w) {
+      const b = renderButtonBarButton(name);
+      if (b != null) {
+        v.push(b);
+      }
+    }
+    if (v.length == 0) {
+      return null;
+    }
+    // if labels are shown, we render two rows – otherwise symbols are next to the menu and frame controls
+    if (showSymbolBarLabels) {
+      return wrapButtonBarContextMenu(
+        <div
+          style={{
+            borderBottom: popup ? undefined : "1px solid #ccc",
+            background: "#fafafa",
+            opacity: is_active ? undefined : 0.3,
+          }}
+        >
+          <div style={{ marginBottom: "-1px", marginTop: "1px" }}>{v}</div>
+        </div>,
+      );
+    } else {
+      return wrapButtonBarContextMenu(
+        <div style={{ marginTop: "3px" }}>{v}</div>,
+      );
+    }
+  }
+
+  function renderComputeServerDocStatus() {
+    if (!computeServersEnabled() || excludeFromComputeServer(props.path)) {
+      return null;
+    }
+    const { type } = props;
+    if (type == "terminal" || type == "jupyter_cell_notebook") {
+      // these are handled in a more sophisticated way due to compute
+      // in their own editor.
+      return null;
+    }
+    return (
+      <StandaloneComputeServerDocStatus
+        project_id={props.project_id}
+        path={props.path}
+      />
     );
   }
 
@@ -2034,11 +1215,15 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (
       props.page == null ||
       props.pages == null ||
-      isExplicitlyHidden("page")
+      manageCommands.isExplicitlyHidden("page") ||
+      props.type === "output"
     ) {
       // do not render anything unless both page and pages are set
+      // also don't render for latex output panels (they have their own page controls)
+      // but DO render for standalone pdfjs viewers
       return;
     }
+
     let content;
     if (typeof props.pages == "number") {
       // pages contains the number of pages and page must also be a number
@@ -2123,10 +1308,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  // Whether this is *the* active currently focused frame:
   let style;
   style = copy(title_bar_style);
-  style.background = COL_BAR_BACKGROUND;
+  style.background = is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK;
   if (!props.is_only && !props.is_full) {
     style.maxHeight = "34px";
   } else {
@@ -2149,22 +1333,25 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   return (
     <>
-      <div
-        style={style}
-        id={`titlebar-${props.id}`}
-        className={"cc-frame-tree-title-bar"}
-      >
-        {renderComputeServer()}
-        {render_title()}
-        {render_main_buttons()}
-        {render_connection_status()}
-        {allButtonsPopover()}
-        {render_control()}
+      <div style={{ opacity: !is_active ? 0.6 : undefined }}>
+        <div
+          style={style}
+          id={`titlebar-${props.id}`}
+          className={"cc-frame-tree-title-bar"}
+        >
+          {renderMainMenusAndButtons()}
+          {is_active && renderConnectionStatus()}
+          {is_active && allButtonsPopover()}
+          {!showSymbolBarLabels ? renderButtonBar() : undefined}
+          {renderFrameControls()}
+        </div>
+        {showSymbolBarLabels ? renderButtonBar() : undefined}
+        {renderConfirmBar()}
+        {hasTour && props.is_visible && props.tab_is_visible && (
+          <TitleBarTour refs={tourRefs} />
+        )}
       </div>
-      {render_confirm_bar()}
-      {hasTour && props.is_visible && props.tab_is_visible && (
-        <TitleBarTour refs={tourRefs} />
-      )}
+      {renderComputeServerDocStatus()}
     </>
   );
-};
+}

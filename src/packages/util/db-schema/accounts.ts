@@ -1,18 +1,144 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Table } from "./types";
-import { checkAccountName } from "./name-rules";
-import { SCHEMA as schema } from "./index";
 import { NOTES } from "./crm";
+import { SCHEMA as schema } from "./index";
+import { checkAccountName } from "./name-rules";
+import { Table } from "./types";
 
 import {
   DEFAULT_FONT_SIZE,
-  NEW_FILENAMES,
   DEFAULT_NEW_FILENAMES,
+  NEW_FILENAMES,
+  OTHER_SETTINGS_USERDEFINED_LLM,
 } from "./defaults";
+
+import { DEFAULT_LOCALE } from "@cocalc/util/consts/locale";
+
+export const USER_SEARCH_LIMIT = 250;
+export const ADMIN_SEARCH_LIMIT = 2500;
+
+export const USE_BALANCE_TOWARD_SUBSCRIPTIONS =
+  "use_balance_toward_subscriptions";
+export const USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT = true;
+
+// AutoBalance: Every parameter is in dollars.
+export interface AutoBalance {
+  // deposit money when the balance goes below this
+  trigger: number;
+  // amount to automatically add
+  amount: number;
+  // max amount of money to add per day
+  max_day: number;
+  // max amount of money to add per week
+  max_week: number;
+  // max amount of money to add per month
+  max_month: number;
+  // period -- which of max_day, max_week, or max_month to actually enforce.
+  // we always enforce **exactly one of them**.
+  period: "day" | "week" | "month";
+  // switch to disable/enable this.
+  enabled: boolean;
+  // if credit was not added, last reason why (at most 1024 characters)
+  reason?: string;
+  // ms since epoch of last attempt
+  time?: number;
+  // how much has been added at the moment when we last updated.
+  status?: { day: number; week: number; month: number };
+}
+
+// each of the parameters above must be a number in the
+// given interval below.
+// All fields should always be explicitly specified.
+export const AUTOBALANCE_RANGES = {
+  trigger: [5, 250],
+  amount: [10, 250],
+  max_day: [5, 1000],
+  max_week: [5, 5000],
+  max_month: [5, 10000],
+};
+
+export const AUTOBALANCE_DEFAULTS = {
+  trigger: 10,
+  amount: 20,
+  max_day: 200,
+  max_week: 1000,
+  max_month: 2500,
+  period: "week",
+  enabled: true,
+} as AutoBalance;
+
+export const DARK_MODE_DEFAULTS = {
+  brightness: 100,
+  contrast: 90,
+  sepia: 0,
+} as const;
+
+// throw error if not valid
+export function ensureAutoBalanceValid(obj) {
+  if (obj == null) {
+    return;
+  }
+  if (typeof obj != "object") {
+    throw Error("must be an object");
+  }
+  for (const key in AUTOBALANCE_RANGES) {
+    if (obj[key] == null) {
+      throw Error(`${key} must be specified`);
+    }
+  }
+  for (const key in obj) {
+    if (key == "period") {
+      if (!["day", "week", "month"].includes(obj[key])) {
+        throw Error(`${key} must be 'day', 'week' or 'month'`);
+      }
+      continue;
+    }
+    if (key == "enabled") {
+      if (typeof obj[key] != "boolean") {
+        throw Error(`${key} must be boolean`);
+      }
+      continue;
+    }
+    if (key == "reason") {
+      if (typeof obj[key] != "string") {
+        throw Error(`${key} must be a string`);
+      }
+      if (obj[key].length > 1024) {
+        throw Error(`${key} must be at most 1024 characters`);
+      }
+      continue;
+    }
+    if (key == "time") {
+      if (typeof obj[key] != "number") {
+        throw Error(`${key} must be a number`);
+      }
+      continue;
+    }
+    if (key == "status") {
+      if (typeof obj[key] != "object") {
+        throw Error(`${key} must be an object`);
+      }
+      continue;
+    }
+    const range = AUTOBALANCE_RANGES[key];
+    if (range == null) {
+      throw Error(`invalid key '${key}'`);
+    }
+    const value = obj[key];
+    if (typeof value != "number") {
+      throw Error("every value must be a number");
+    }
+    if (value < range[0]) {
+      throw Error(`${key} must be at least ${range[0]}`);
+    }
+    if (value > range[1]) {
+      throw Error(`${key} must be at most ${range[1]}`);
+    }
+  }
+}
 
 Table({
   name: "accounts",
@@ -50,6 +176,11 @@ Table({
       pg_type: "VARCHAR(39)",
       desc: "The username of this user.  This is optional but globally unique across all accoutns *and* organizations.  It can be between 1 and 39 characters from a-z A-Z 0-9 - and must not start with a dash.",
     },
+    org: {
+      type: "string",
+      prg_type: "VARCHAR(39)",
+      desc: "If this account is associated to an organization, then this is the *name* of the organization.  An account may be associated with at most one organization.",
+    },
     email_address: {
       type: "string",
       pg_type: "VARCHAR(254)", // see http://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address
@@ -83,7 +214,7 @@ Table({
     },
     other_settings: {
       type: "map",
-      desc: "Miscellaneous overall configuration settings for SMC, e.g., confirm close on exit?",
+      desc: "Miscellaneous overall configuration settings for CoCalc, e.g., confirm close on exit?",
     },
     first_name: {
       type: "string",
@@ -158,6 +289,7 @@ Table({
     sign_up_usage_intent: {
       type: "string",
       desc: "What user intended to use CoCalc for at sign up",
+      render: { type: "text" },
     },
     lti_id: {
       type: "array",
@@ -221,6 +353,29 @@ Table({
         max: 0,
       },
     },
+    balance: {
+      type: "number",
+      pg_type: "REAL",
+      desc: "Last computed balance for this user.  NOT a source of truth.  Meant to ensure all frontend clients show the same thing.  Probably also useful for db queries and maybe analytics.",
+      render: {
+        title: "Account Balance (USD)",
+        type: "number",
+        integer: false,
+        editable: false,
+      },
+    },
+    balance_alert: {
+      type: "boolean",
+      desc: "If true, the UI will very strongly encourage user to open their balance modal.",
+      render: {
+        type: "boolean",
+        editable: true,
+      },
+    },
+    auto_balance: {
+      type: "map",
+      desc: "Determines protocol for automatically adding money to account.  This is relevant for pay as you go users.  The interface AutoBalance describes the parameters.  The user can in theory set this to anything, but ]",
+    },
     stripe_checkout_session: {
       type: "map",
       desc: "Part of the current open stripe checkout session object, namely {id:?, url:?}, but none of the other info.  When user is going to add credit to their account, we create a stripe checkout session and store it here until they complete checking out.  This makes it possible to guide them back to the checkout session, in case anything goes wrong, and also avoids confusion with potentially multiple checkout sessions at once.",
@@ -232,11 +387,30 @@ Table({
     },
     email_daily_statements: {
       type: "boolean",
-      desc: "If true (or not set), try to email daily statements to user showing all of their purchases.  NOTE: we always try to email monthly statements to users.",
+      desc: "If true, try to send daily statements to user showing all of their purchases.  If false or not set, then do not.  NOTE: we always try to email monthly statements to users.",
       render: {
         type: "boolean",
         editable: true,
       },
+    },
+    owner_id: {
+      type: "uuid",
+      desc: "If one user (owner_id) creates an account for another user via the API, then this records who created the account.  They may have special privileges at some point.",
+      render: { type: "account" },
+      title: "Owner",
+    },
+    unread_message_count: {
+      type: "integer",
+      desc: "Number of unread messages in the messages table for this user.  This gets updated whenever the messages table for this user gets changed, making it easier to have UI etc when there are unread messages.",
+      render: {
+        type: "number",
+        editable: false,
+        min: 0,
+      },
+    },
+    last_message_summary: {
+      type: "timestamp",
+      desc: "The last time the system sent an email to this user with a summary about new messages (see messages.ts).",
     },
   },
   rules: {
@@ -276,6 +450,7 @@ Table({
           // listed in frontend/account/table.ts
           account_id: null,
           email_address: null,
+          org: null,
           lti_id: null,
           stripe_checkout_session: null,
           email_address_verified: null,
@@ -308,19 +483,20 @@ Table({
             undo_depth: 300,
             jupyter_classic: false,
             jupyter_window: false,
-            disable_jupyter_windowing: false,
+            disable_jupyter_windowing: true,
             show_exec_warning: true,
             physical_keyboard: "default",
             keyboard_variant: "",
             ask_jupyter_kernel: true,
-            disable_jupyter_virtualization: false,
+            show_my_other_cursors: false,
+            disable_jupyter_virtualization: true,
           },
           other_settings: {
             katex: true,
             confirm_close: false,
             mask_files: true,
             page_size: 500,
-            standby_timeout_m: 5,
+            standby_timeout_m: 15,
             default_file_sort: "name",
             [NEW_FILENAMES]: DEFAULT_NEW_FILENAMES,
             show_global_info2: null,
@@ -331,14 +507,19 @@ Table({
             no_free_warnings: false,
             allow_mentions: true,
             dark_mode: false,
-            dark_mode_brightness: 100,
-            dark_mode_contrast: 90,
-            dark_mode_sepia: 0,
-            dark_mode_grayscale: 0,
+            dark_mode_brightness: DARK_MODE_DEFAULTS.brightness,
+            dark_mode_contrast: DARK_MODE_DEFAULTS.contrast,
+            dark_mode_sepia: DARK_MODE_DEFAULTS.sepia,
             news_read_until: 0,
             hide_project_popovers: false,
             hide_file_popovers: false,
             hide_button_tooltips: false,
+            [OTHER_SETTINGS_USERDEFINED_LLM]: "[]",
+            i18n: DEFAULT_LOCALE,
+            no_email_new_messages: false,
+            [USE_BALANCE_TOWARD_SUBSCRIPTIONS]:
+              USE_BALANCE_TOWARD_SUBSCRIPTIONS_DEFAULT,
+            hide_navbar_balance: false,
           },
           name: null,
           first_name: "",
@@ -366,9 +547,13 @@ Table({
           tags: null,
           tours: null,
           min_balance: null,
+          balance: null,
+          balance_alert: null,
+          auto_balance: null,
           purchase_closing_day: null,
           stripe_usage_subscription: null,
           email_daily_statements: null,
+          unread_message_count: null,
         },
       },
       set: {
@@ -391,6 +576,7 @@ Table({
           tours: true,
           email_daily_statements: true,
           // obviously min_balance can't be set!
+          auto_balance: true,
         },
         async check_hook(db, obj, account_id, _project_id, cb) {
           if (obj["name"] != null) {
@@ -421,6 +607,16 @@ Table({
               }
             }
           }
+
+          // Make sure auto_balance is valid.
+          if (obj["auto_balance"] != null) {
+            try {
+              ensureAutoBalanceValid(obj["auto_balance"]);
+            } catch (err) {
+              cb(`${err}`);
+              return;
+            }
+          }
           cb();
         },
       },
@@ -440,12 +636,17 @@ export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   "3024-day": "3024 day",
   "3024-night": "3024 night",
   abcdef: "abcdef",
+  abbott: "Abbott",
+  "ayu-dark": "Ayu dark",
+  "ayu-mirage": "Ayu mirage",
   //'ambiance-mobile'         : 'Ambiance mobile'  # doesn't highlight python, confusing
   ambiance: "Ambiance",
   "base16-dark": "Base 16 dark",
   "base16-light": "Base 16 light",
   bespin: "Bespin",
   blackboard: "Blackboard",
+  "cocalc-dark": "CoCalc Dark",
+  "cocalc-light": "CoCalc Light",
   cobalt: "Cobalt",
   colorforth: "Colorforth",
   darcula: "Darcula",
@@ -460,10 +661,14 @@ export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   icecoder: "Icecoder",
   idea: "Idea", // this messes with the global hinter CSS!
   isotope: "Isotope",
+  juejin: "Juejin",
   "lesser-dark": "Lesser dark",
   liquibyte: "Liquibyte",
   lucario: "Lucario",
   material: "Material",
+  "material-darker": "Material darker",
+  "material-ocean": "Material ocean",
+  "material-palenight": "Material palenight",
   mbo: "mbo",
   "mdn-like": "MDN like",
   midnight: "Midnight",
@@ -492,6 +697,7 @@ export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   "xq-dark": "Xq dark",
   "xq-light": "Xq light",
   yeti: "Yeti",
+  yonce: "Yonce",
   zenburn: "Zenburn",
 };
 
@@ -510,6 +716,9 @@ Table({
           groups: null,
           notes: null,
           salesloft_id: null,
+          sign_up_usage_intent: null,
+          owner_id: null,
+          deleted: null,
         },
       },
       set: {
@@ -524,6 +733,7 @@ Table({
           banned: true,
           unlisted: true,
           notes: true,
+          tags: true,
           salesloft_id: true,
           purchase_closing_day: true,
           min_balance: true, // admins can set this
@@ -561,9 +771,11 @@ interface Tag {
   jupyterExtra?: string;
   torun?: string; // how to run this in a terminal (e.g., for a .py file).
   color?: string;
+  description?: string;
 }
 
-export const TAGS: Tag[] = [
+// They were used up until 2024-01-05
+export const TAGS_FEATURES: Tag[] = [
   { label: "Jupyter", tag: "ipynb", color: "magenta" },
   {
     label: "Python",
@@ -574,7 +786,7 @@ export const TAGS: Tag[] = [
     color: "red",
   },
   {
-    label: "AI / GPU's",
+    label: "AI / GPUs",
     tag: "gpu",
     color: "volcano",
     icon: "gpu",
@@ -591,7 +803,7 @@ export const TAGS: Tag[] = [
     label: "SageMath",
     tag: "sage",
     language: "sagemath",
-    welcome: "print('Welcome to CoCalc from Sage!', factor(2023))",
+    welcome: "print('Welcome to CoCalc from Sage!', factor(2024))",
     torun: "# Click Terminal, then type 'sage welcome.sage'",
     color: "gold",
   },
@@ -662,7 +874,64 @@ int main() {
   { label: "Teaching", tag: "course", color: "green" },
 ];
 
-export const TAGS_MAP: { [key: string]: Tag } = {};
+export const TAG_TO_FEATURE: { [key: string]: Readonly<Tag> } = {};
+for (const t of TAGS_FEATURES) {
+  TAG_TO_FEATURE[t.tag] = t;
+}
+
+const professional = "professional";
+
+// Tags specific to user roles or if they want to be contacted
+export const TAGS_USERS: Readonly<Tag[]> = [
+  {
+    label: "Personal",
+    tag: "personal",
+    icon: "user",
+    description: "You are interesting in using CoCalc for personal use.",
+  },
+  {
+    label: "Professional",
+    tag: professional,
+    icon: "coffee",
+    description: "You are using CoCalc as an employee or freelancer.",
+  },
+  {
+    label: "Instructor",
+    tag: "instructor",
+    icon: "graduation-cap",
+    description: "You are teaching a course.",
+  },
+  {
+    label: "Student",
+    tag: "student",
+    icon: "smile",
+    description: "You are a student in a course.",
+  },
+] as const;
+
+export const TAGS = TAGS_USERS;
+
+export const TAGS_MAP: { [key: string]: Readonly<Tag> } = {};
 for (const x of TAGS) {
   TAGS_MAP[x.tag] = x;
 }
+
+export const CONTACT_TAG = "contact";
+export const CONTACT_THESE_TAGS = [professional];
+
+export interface UserSearchResult {
+  account_id: string;
+  first_name?: string;
+  last_name?: string;
+  name?: string; // "vanity" username
+  last_active?: number; // ms since epoch -- when account was last active
+  created?: number; // ms since epoch -- when account created
+  banned?: boolean; // true if this user has been banned (only set for admin searches, obviously)
+  email_address_verified?: boolean; // true if their email has been verified (a sign they are more trustworthy).
+  // For security reasons, the email_address *only* occurs in search queries that
+  // are by email_address (or for admins); we must not reveal email addresses
+  // of users queried by substring searches, obviously.
+  email_address?: string;
+}
+
+export const ACCOUNT_ID_COOKIE_NAME = "account_id";

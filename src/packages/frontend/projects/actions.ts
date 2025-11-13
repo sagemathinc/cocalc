@@ -1,37 +1,37 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Set } from "immutable";
 import { isEqual } from "lodash";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { set_window_title } from "@cocalc/frontend/browser";
+import api from "@cocalc/frontend/client/api";
 import { COCALC_MINIMAL } from "@cocalc/frontend/fullscreen";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
+import startProjectPayg from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
 import { site_license_public_info } from "@cocalc/frontend/site-licenses/util";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { once } from "@cocalc/util/async-utils";
+import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import {
   assert_uuid,
   copy,
   defaults,
   is_valid_uuid_string,
   len,
-  server_minutes_ago,
 } from "@cocalc/util/misc";
 import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Upgrades } from "@cocalc/util/upgrades/types";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import api from "@cocalc/frontend/client/api";
-import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
-import startProjectPayg from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
 
 import type {
   CourseInfo,
@@ -43,17 +43,28 @@ export type { Datastore, EnvVars, EnvVarsRecord };
 
 // Define projects actions
 export class ProjectsActions extends Actions<ProjectsState> {
-  private async projects_table_set(
-    obj: object,
-    merge: "deep" | "shallow" | "none" | undefined = "deep",
-  ): Promise<void> {
+  private getProjectTable = async () => {
     const the_table = this.redux.getTable("projects");
     if (the_table == null) {
-      // silently ignore -- this could only happen maybe right when closing the page...?
-      return;
+      return null;
     }
-    await the_table.set(obj, merge);
-  }
+    const state = the_table._table.get_state();
+    if (state == "closed") {
+      return null;
+    }
+    if (state == "disconnected") {
+      await once(the_table._table, "connected");
+    }
+    return the_table;
+  };
+
+  private projects_table_set = async (
+    obj: object,
+    merge: "deep" | "shallow" | "none" | undefined = "deep",
+  ): Promise<void> => {
+    const table = await this.getProjectTable();
+    await table?.set(obj, merge);
+  };
 
   // Set something in the projects table of the database directly
   // using a query, instead of using sync'd table mechanism, which
@@ -108,20 +119,11 @@ export class ProjectsActions extends Actions<ProjectsState> {
   This may also trigger load_all_projects.
   */
   private async have_project(project_id: string): Promise<boolean> {
-    const t = this.redux.getTable("projects")?._table;
-    if (t == null) {
-      // called before initialization... -- shouldn't ever happen,
-      // but we don't have the project at this point:
+    const table = await this.getProjectTable();
+    if (!table) {
       return false;
     }
-    if (!t.is_ready()) {
-      if (t.get_state() == "closed") {
-        throw Error("can't use projects table after it is closed");
-      }
-      // table isn't ready to be used yet -- wait for it.
-      await once(t, "connected");
-    }
-    // now t is ready and we can query it.
+    const t = table._table;
     if (t.get(project_id) != null) {
       // we know this project
       return true;
@@ -136,70 +138,115 @@ export class ProjectsActions extends Actions<ProjectsState> {
     return await this.have_project(project_id);
   }
 
-  public async set_project_title(
+  set_project_title = async (
     project_id: string,
     title: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     if (!(await this.have_project(project_id))) {
       console.warn(
         `Can't set title -- you are not a collaborator on project '${project_id}'.`,
       );
       return;
     }
-    if (store.get_title(project_id) === title) {
+    const before = store.get_title(project_id);
+    if (before === title) {
       // title is already set as requested; nothing to do
       return;
     }
-    // set in the Table
-    await this.projects_table_set({ project_id, title });
-    // create entry in the project's log
-    await this.redux.getProjectActions(project_id).async_log({
-      event: "set",
-      title,
-    });
-  }
+    try {
+      // set in the Table
+      await this.projects_table_set({ project_id, title });
+      // create entry in the project's log
+      await this.redux.getProjectActions(project_id).async_log({
+        event: "set",
+        title,
+      });
+    } catch (err) {
+      this.projects_table_set({ project_id, title: before });
+      throw err;
+    }
+  };
 
-  public async set_project_description(
+  set_project_description = async (
     project_id: string,
     description: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     if (!(await this.have_project(project_id))) {
       console.warn(
         `Can't set description -- you are not a collaborator on project '${project_id}'.`,
       );
       return;
     }
-    if (store.get_description(project_id) === description) {
+    const before = store.get_description(project_id);
+    if (before === description) {
       // description is already set as requested; nothing to do
       return;
     }
-    // set in the Table
-    await this.projects_table_set({ project_id, description });
-    // create entry in the project's log
-    await this.redux.getProjectActions(project_id).async_log({
-      event: "set",
-      description,
-    });
-  }
+    try {
+      // set in the Table
+      await this.projects_table_set({ project_id, description });
+      // create entry in the project's log
+      await this.redux.getProjectActions(project_id).async_log({
+        event: "set",
+        description,
+      });
+    } catch (err) {
+      this.projects_table_set({ project_id, description: before });
+      throw err;
+    }
+  };
 
-  public async set_project_name(
+  set_project_name = async (
     project_id: string,
     name: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     if (!(await this.have_project(project_id))) {
       console.warn(
         `Can't set project name -- you are not a collaborator on project '${project_id}'.`,
       );
       return;
     }
-    // set in the Table
-    await this.projects_table_set({ project_id, name });
-    // create entry in the project's log
-    await this.redux.getProjectActions(project_id).async_log({
-      event: "set",
-      name,
-    });
-  }
+    const before = store.getIn(["project_map", project_id, "name"]);
+    if (before == name) return;
+    try {
+      // set in the Table
+      await this.projects_table_set({ project_id, name });
+      // create entry in the project's log
+      await this.redux.getProjectActions(project_id).async_log({
+        event: "set",
+        name,
+      });
+    } catch (err) {
+      this.projects_table_set({ project_id, name: before });
+      throw err;
+    }
+  };
+
+  setProjectColor = async (
+    project_id: string,
+    color: string,
+  ): Promise<void> => {
+    if (!(await this.have_project(project_id))) {
+      console.warn(
+        `Can't set project color -- you are not a collaborator on project '${project_id}'.`,
+      );
+      return;
+    }
+    const before = store.getIn(["project_map", project_id, "color"]);
+    if (before === color) return;
+    try {
+      // set in the Table
+      await this.projects_table_set({ project_id, color });
+      // create entry in the project's log
+      await this.redux.getProjectActions(project_id).async_log({
+        event: "set",
+        color,
+      });
+    } catch (err) {
+      this.projects_table_set({ project_id, color: before });
+      throw err;
+    }
+  };
 
   // creates and stores image as a blob in the database.
   // stores sha1 of that blog in projects map and also returns
@@ -240,7 +287,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
             [opts.fingerprint]: {
               title: opts.title,
               value: opts.value,
-              creation_date: new Date().valueOf(),
+              creation_date: Date.now(),
             },
           },
         },
@@ -290,19 +337,31 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
   }
 
-  public async set_project_course_info(
-    project_id: string,
-    course_project_id: string,
-    path: string,
-    pay: Date | "",
-    payInfo: PurchaseInfo | null | undefined,
-    account_id: string | null,
-    email_address: string | null,
-    datastore: Datastore,
-    type: "student" | "shared" | "nbgrader",
-    student_project_functionality?: StudentProjectFunctionality,
-    envvars?: EnvVars,
-  ): Promise<void | { course: null | CourseInfo }> {
+  public async set_project_course_info({
+    project_id,
+    course_project_id,
+    path,
+    pay,
+    payInfo,
+    account_id,
+    email_address,
+    datastore,
+    type,
+    student_project_functionality,
+    envvars,
+  }: {
+    project_id: string;
+    course_project_id: string;
+    path: string;
+    pay: Date | string;
+    payInfo?: PurchaseInfo | null;
+    account_id?: string | null;
+    email_address?: string | null;
+    datastore: Datastore;
+    type: "student" | "shared" | "nbgrader";
+    student_project_functionality?: StudentProjectFunctionality | null;
+    envvars?: EnvVars;
+  }): Promise<void | { course: null | CourseInfo }> {
     if (!(await this.have_project(project_id))) {
       const msg = `Can't set course info -- you are not a collaborator on project '${project_id}'.`;
       console.warn(msg);
@@ -347,6 +406,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     image?: string; // if given, sets the compute image (the ID string)
     start?: boolean; // immediately start on create
     noPool?: boolean; // never use the pool
+    license?: string;
   }): Promise<string> {
     const image = await redux.getStore("customize").getDefaultComputeImage();
 
@@ -356,12 +416,14 @@ export class ProjectsActions extends Actions<ProjectsState> {
       image?: string;
       start: boolean;
       noPool?: boolean;
+      license?: string;
     } = defaults(opts, {
       title: "No Title",
       description: "No Description",
       image,
       start: false,
       noPool: undefined,
+      license: undefined,
     });
     if (!opts2.image) {
       // make falseish same as not specified.
@@ -576,13 +638,13 @@ export class ProjectsActions extends Actions<ProjectsState> {
   ): Promise<void> {
     const removed_name = redux.getStore("users").get_name(account_id);
     try {
+      await this.redux
+        .getProjectActions(project_id)
+        .async_log({ event: "remove_collaborator", removed_name });
       await webapp_client.project_collaborators.remove({
         project_id,
         account_id,
       });
-      await this.redux
-        .getProjectActions(project_id)
-        .async_log({ event: "remove_collaborator", removed_name });
     } catch (err) {
       const message = `Error removing ${removed_name} from project ${project_id} -- ${err}`;
       alert_message({ type: "error", message });
@@ -652,7 +714,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     const email = markdown_to_html(body);
 
     try {
-      const resp = await webapp_client.project_collaborators.invite_noncloud({
+      await webapp_client.project_collaborators.invite_noncloud({
         project_id,
         title,
         link2proj,
@@ -663,7 +725,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
         subject,
       });
       if (!silent) {
-        alert_message({ message: resp.mesg });
+        alert_message({
+          message: `Invited ${to} to collaborate on project.`,
+        });
       }
     } catch (err) {
       if (!silent) {
@@ -888,40 +952,15 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
   }
 
-  private current_action_request(project_id: string): string | undefined {
-    const action_request = store.getIn([
-      "project_map",
-      project_id,
-      "action_request",
-    ]);
-    if (action_request == null || action_request.get("action") == null) {
-      // definitely nothing going on now.
-      return undefined;
-    }
-    const request_time = new Date(action_request.get("time"));
-    if (action_request.get("finished") >= request_time) {
-      // also definitely nothing going on, since finished time is greater than
-      // when we requested an action.
-      return undefined;
-    }
-    if (request_time <= server_minutes_ago(10)) {
-      // action_requst is old; just ignore it.
-      return undefined;
-    }
-
-    return action_request.get("action");
-  }
-
   // return true, if it actually started the project
-  public async start_project(
+  start_project = async (
     project_id: string,
     options: { disablePayAsYouGo?: boolean } = {},
-  ): Promise<boolean> {
-    if (!(await allow_project_to_run(project_id))) {
-      return false;
-    }
-    const state = store.get_state(project_id);
-    if (state == "starting" || state == "running" || state == "stopping") {
+  ): Promise<boolean> => {
+    if (
+      !(await allow_project_to_run(project_id)) ||
+      !store.getIn(["project_map", project_id])
+    ) {
       return false;
     }
     if (!options.disablePayAsYouGo) {
@@ -938,23 +977,19 @@ export class ProjectsActions extends Actions<ProjectsState> {
       }
     }
 
-    let did_start = false;
     const t0 = webapp_client.server_time().getTime();
-    const action_request = this.current_action_request(project_id);
-    if (action_request == null || action_request != "start") {
-      // need to make an action request:
-      this.project_log(project_id, {
-        event: "project_start_requested",
-      });
-      await this.projects_table_set({
-        project_id,
-        action_request: {
-          action: "start",
-          time: webapp_client.server_time(),
-        },
-      });
-      did_start = true;
-    }
+    // make an action request:
+    this.project_log(project_id, {
+      event: "project_start_requested",
+    });
+    await this.projects_table_set({
+      project_id,
+      action_request: {
+        action: "start",
+        time: webapp_client.server_time(),
+      },
+    });
+
     // Wait until it is running
     await store.async_wait({
       timeout: 120,
@@ -967,29 +1002,20 @@ export class ProjectsActions extends Actions<ProjectsState> {
       duration_ms: webapp_client.server_time().getTime() - t0,
       ...store.classify_project(project_id),
     });
-    return did_start;
-  }
 
-  // returns true, if it acutally stopped the project
-  public async stop_project(project_id: string): Promise<boolean> {
-    const state = store.get_state(project_id);
-    if (state == "stopping" || state == "opened" || state == "starting") {
-      return false;
-    }
-    let did_stop = false;
+    return true;
+  };
+
+  // returns true, if it actually stopped the project
+  stop_project = async (project_id: string): Promise<boolean> => {
     const t0 = webapp_client.server_time().getTime();
-    const action_request = this.current_action_request(project_id);
-    if (action_request == null || action_request != "stop") {
-      // need to do it!
-      this.project_log(project_id, {
-        event: "project_stop_requested",
-      });
-      await this.projects_table_set({
-        project_id,
-        action_request: { action: "stop", time: webapp_client.server_time() },
-      });
-      did_stop = true;
-    }
+    this.project_log(project_id, {
+      event: "project_stop_requested",
+    });
+    await this.projects_table_set({
+      project_id,
+      action_request: { action: "stop", time: webapp_client.server_time() },
+    });
 
     // Wait until it is no longer running or stopping.  We don't
     // wait for "opened" because something or somebody else could
@@ -1007,10 +1033,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
       duration_ms: webapp_client.server_time().getTime() - t0,
       ...store.classify_project(project_id),
     });
-    return did_stop;
-  }
+    return true;
+  };
 
-  public async restart_project(project_id: string, options?): Promise<void> {
+  restart_project = async (project_id: string, options?): Promise<void> => {
     if (!(await allow_project_to_run(project_id))) {
       return;
     }
@@ -1022,7 +1048,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       await this.stop_project(project_id);
     }
     await this.start_project(project_id, options);
-  }
+  };
 
   // Explcitly set whether or not project is hidden for the given account
   // (hide=true means hidden)
@@ -1113,6 +1139,21 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
     selected_hashtags = selected_hashtags.set(filter, hashtags);
     this.setState({ selected_hashtags });
+  }
+
+  // Set which project row is expanded in the projects table
+  public set_expanded_project(project_id?: string): void {
+    this.setState({ expanded_project_id: project_id });
+  }
+
+  // Toggle expanded state for a project row in the projects table
+  public toggle_expanded_project(project_id: string): void {
+    const current = store.get("expanded_project_id");
+    if (current === project_id) {
+      this.setState({ expanded_project_id: undefined });
+    } else {
+      this.setState({ expanded_project_id: project_id });
+    }
   }
 }
 

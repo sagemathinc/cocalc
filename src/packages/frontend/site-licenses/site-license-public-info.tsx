@@ -1,14 +1,15 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { QuestionCircleOutlined } from "@ant-design/icons";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Alert, Button, Popconfirm, Popover, Table, Tag, Tooltip } from "antd";
-import { reuseInFlight } from "async-await-utils/hof";
 import { isEqual } from "lodash";
-
-import Export from "@cocalc/frontend/purchases/export";
+import { ReactNode } from "react";
+import { useIntl } from "react-intl";
+import { isValidUUID } from "@cocalc/util/misc";
 
 import {
   React,
@@ -24,7 +25,9 @@ import {
   QuestionMarkText,
   TimeAgo,
 } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { useProjectState } from "@cocalc/frontend/project/page/project-state-hook";
+import Export from "@cocalc/frontend/purchases/export";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import { cmp, plural, trunc, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -47,7 +50,7 @@ interface PropsTable {
   restartAfterRemove?: boolean; // default false
   showRemoveWarning?: boolean; // default true
   onRemove?: (license_id: string) => void; // called *before* the license is removed!
-  warn_if?: (info, license_id) => void | string;
+  warn_if?: (info, license_id) => void | string | ReactNode;
   mode?: "project" | "flyout";
 }
 
@@ -77,6 +80,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   } = props;
 
   const isFlyout = mode === "flyout";
+  const intl = useIntl();
   const isMountedRef = useIsMountedRef();
   const [loading, setLoading] = useState<boolean>(true);
   // string is an error, Info the actual license data
@@ -124,9 +128,12 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     await Promise.all(
       Object.keys(site_licenses).map(async function (license_id) {
         try {
+          if(!isValidUUID(license_id)) {
+            return;
+          }
           const info = await site_license_public_info(license_id, force);
           if (info == null) {
-            throw new Error(`license ${license_id} not found`);
+            throw new Error(`license '${license_id}' not found`);
           }
           infos[license_id] = info;
         } catch (err) {
@@ -229,8 +236,8 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
             status === "expired"
               ? true
               : v?.expires != null
-              ? new Date() >= v.expires
-              : false;
+                ? new Date() >= v.expires
+                : false;
           return {
             key: idx,
             license_id: k,
@@ -247,7 +254,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }, [site_licenses, infos]);
 
-  function rowInfo(rec: TableRow): JSX.Element {
+  function rowInfo(rec: TableRow): React.JSX.Element {
     return (
       <SiteLicensePublicInfo
         license_id={rec.license_id}
@@ -302,7 +309,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
-  function runLimitAndExpiration(rec: TableRow): JSX.Element {
+  function runLimitAndExpiration(rec: TableRow): React.JSX.Element {
     const delimiter = isFlyout ? <br /> : " ";
     const runLimit = infos?.[rec.license_id]?.run_limit ?? 1;
 
@@ -342,7 +349,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
       if (rec.expired) {
         return (
           <>
-            Expired {when}.{delimiter}Could update {runLimit} running{" "}
+            Expired {when}.{delimiter}Could upgrade {runLimit} running{" "}
             {plural(runLimit, "project")}.
           </>
         );
@@ -350,13 +357,13 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
 
       return (
         <>
-          {runLimitTxt} Paid through {when}.
+          {runLimitTxt} Valid through {when}.
         </>
       );
     }
   }
 
-  function renderStatusText(rec: TableRow): JSX.Element {
+  function renderStatusText(rec: TableRow): React.JSX.Element {
     const licenseInfo = infos?.[rec.license_id];
     if (!licenseInfo) return <></>;
     const quota: SiteLicenseQuota | undefined = licenseInfo.quota;
@@ -377,7 +384,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     return <>{rec.status}</>;
   }
 
-  function renderLicense(rec: TableRow): JSX.Element {
+  function renderLicense(rec: TableRow): React.JSX.Element {
     // as a fallback, we show the truncated license id
     const title = rec.title ? rec.title : trunc_license_id(rec.license_id);
     return (
@@ -454,7 +461,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
-  function renderRemoveButton(license_id: string): JSX.Element {
+  function renderRemoveButton(license_id: string): React.JSX.Element {
     return (
       <Popconfirm
         title={
@@ -480,7 +487,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
-  function renderRemove(license_id: string): JSX.Element | undefined {
+  function renderRemove(license_id: string): React.JSX.Element | undefined {
     // we can only remove from within a project
     if (!project_id && onRemove == null) return;
     // div hack: https://github.com/ant-design/ant-design/issues/7233#issuecomment-356894956
@@ -507,12 +514,12 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     ));
   }
 
-  function renderButtons(): JSX.Element {
+  function renderButtons(): React.JSX.Element {
     return (
       <div style={{ display: "flex" }}>
         <Tooltip placement="bottom" title={"Reload license information"}>
-          <Button onClick={() => fetchInfos(true)}>
-            <Icon name="refresh" /> Refresh
+          <Button type="link" onClick={() => fetchInfos(true)}>
+            <Icon name="refresh" /> {intl.formatMessage(labels.refresh)}
           </Button>
         </Tooltip>
         <Export data={data} name="licenses" style={{ marginLeft: "8px" }} />
@@ -540,7 +547,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         {isFlyout ? undefined : (
           <Table.Column<TableRow>
             key="status"
-            title="Status"
+            title={intl.formatMessage(labels.status)}
             dataIndex="status"
             align="center"
             render={(_, rec) => renderStatus(rec)}
@@ -549,8 +556,14 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         <Table.Column<TableRow>
           key="title"
           title={
-            <QuestionMarkText tip="License information. Click on a row to expand details.">
-              License
+            <QuestionMarkText
+              tip={intl.formatMessage({
+                id: "site-licenses-public-info.license-column.help",
+                defaultMessage:
+                  "License information. Click on a row to expand details.",
+              })}
+            >
+              {intl.formatMessage(labels.license)}
             </QuestionMarkText>
           }
           dataIndex="title"

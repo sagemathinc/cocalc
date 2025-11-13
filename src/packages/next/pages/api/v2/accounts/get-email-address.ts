@@ -11,7 +11,13 @@ import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GetAccountEmailAddressInputSchema,
+  GetAccountEmailAddressOutputSchema,
+} from "lib/api/schema/accounts/get-email-address";
+
+async function handle(req, res) {
   const { account_id } = getParams(req);
   const user_account_id = await getAccountId(req);
   try {
@@ -23,7 +29,7 @@ export default async function handle(req, res) {
 
 async function getAddress(
   user_account_id: string | undefined,
-  account_id: string | undefined
+  account_id: string | undefined,
 ): Promise<string | undefined> {
   if (account_id == null) return undefined;
   // check that user_account_id is admin or partner
@@ -33,10 +39,31 @@ async function getAddress(
       !(await userIsInGroup(user_account_id, "admin")))
   ) {
     throw Error(
-      "you must be an admin or partner to get the email address of any account_id"
+      "you must be an admin or partner to get the email address of any account_id",
     );
   }
 
   // get the address
   return await getEmailAddress(account_id);
 }
+
+export default apiRoute({
+  getEmailAddress: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Accounts", "Admin"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: GetAccountEmailAddressInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: GetAccountEmailAddressOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

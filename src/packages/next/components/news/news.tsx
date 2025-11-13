@@ -1,15 +1,22 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Card, Space, Tag, Tooltip } from "antd";
+import { Alert, Button, Card, Flex, Space, Tag, Tooltip } from "antd";
 import { useRouter } from "next/router";
 import { Fragment } from "react";
+import TimeAgo from "timeago-react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { capitalize, getRandomColor, plural } from "@cocalc/util/misc";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import {
+  capitalize,
+  getRandomColor,
+  plural,
+  unreachable,
+} from "@cocalc/util/misc";
 import { slugURL } from "@cocalc/util/news";
 import { COLORS } from "@cocalc/util/theme";
 import {
@@ -19,10 +26,9 @@ import {
 } from "@cocalc/util/types/news";
 import { CSS, Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
-import TimeAgo from "timeago-react";
-import { useDateStr } from "./useDateStr";
 import { useCustomize } from "lib/customize";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { SocialMediaShareLinks } from "../landing/social-media-share-links";
+import { useDateStr } from "./useDateStr";
 
 const STYLE: CSS = {
   borderColor: COLORS.GRAY_M,
@@ -30,8 +36,8 @@ const STYLE: CSS = {
 } as const;
 
 interface Props {
-  // NewsWithFuture with optional future property
-  news: NewsItem & { future?: boolean };
+  // NewsWithStatus with optional future and expired properties
+  news: NewsItem & { future?: boolean; expired?: boolean };
   dns?: string;
   showEdit?: boolean;
   small?: boolean; // limit height, essentially
@@ -49,12 +55,24 @@ export function News(props: Props) {
     historyMode = false,
     onTagClick,
   } = props;
-  const { id, url, tags, title, date, channel, text, future, hide } = news;
+  const {
+    id,
+    url,
+    tags,
+    title,
+    date,
+    channel,
+    text,
+    future,
+    hide,
+    expired,
+    until,
+  } = news;
   const dateStr = useDateStr(news, historyMode);
   const permalink = slugURL(news);
-  const { kucalc, dns } = useCustomize();
+  const { kucalc, siteURL } = useCustomize();
   const isCoCalcCom = kucalc === KUCALC_COCALC_COM;
-  const showShareLinks = typeof dns === "string" && isCoCalcCom;
+  const showShareLinks = typeof siteURL === "string" && isCoCalcCom;
 
   const bottomLinkStyle: CSS = {
     color: COLORS.ANTD_LINK_BLUE,
@@ -108,7 +126,7 @@ export function News(props: Props) {
     }
   }
 
-  function reanderOpenLink() {
+  function renderOpenLink() {
     return (
       <A
         key="permalink"
@@ -125,35 +143,17 @@ export function News(props: Props) {
 
   function shareLinks(text = false) {
     return (
-      <Space size="middle" direction="horizontal">
-        <A
-          key="tweet"
-          href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-            title
-          )}&url=${encodeURIComponent(
-            `https://${dns}${permalink}`
-          )}&via=cocalc_com`}
-          style={{ color: COLORS.ANTD_LINK_BLUE, ...bottomLinkStyle }}
-        >
-          <Icon name="twitter" />
-          {text ? " Tweet" : ""}
-        </A>
-        <A
-          key="facebook"
-          href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-            `https://${dns}${permalink}`
-          )}`}
-          style={{ ...bottomLinkStyle }}
-        >
-          <Icon name="facebook" />
-          {text ? " Share" : ""}
-        </A>
-      </Space>
+      <SocialMediaShareLinks
+        title={title}
+        url={encodeURIComponent(`${siteURL}${permalink}`)}
+        showText={text}
+        standalone={standalone}
+      />
     );
   }
 
   function actions() {
-    const actions = [reanderOpenLink()];
+    const actions = [renderOpenLink()];
     if (url) actions.push(readMoreLink());
     if (showEdit) actions.push(editLink());
     if (showShareLinks) actions.push(shareLinks());
@@ -195,8 +195,30 @@ export function News(props: Props) {
     }
   }
 
+  function renderExpired() {
+    if (expired) {
+      return (
+        <Alert
+          banner
+          type="warning"
+          message={
+            <>
+              Expired news item, not shown to users.
+              {typeof until === "number" && (
+                <>
+                  {" "}
+                  Expired <TimeAgo datetime={new Date(1000 * until)} />.
+                </>
+              )}
+            </>
+          }
+        />
+      );
+    }
+  }
+
   function renderTags() {
-    return <NewsTags tags={tags} onTagClick={onTagClick} />;
+    return <TagList mode="news" tags={tags} onTagClick={onTagClick} />;
   }
 
   function extra() {
@@ -281,25 +303,28 @@ export function News(props: Props) {
         </Title>
         {renderFuture()}
         {renderHidden()}
-        <Markdown value={text} style={{ ...style, minHeight: "30vh" }} />
-        {url && (
-          <Paragraph style={{ textAlign: "center" }}>
-            {readMoreLink(false, true)}
+        {renderExpired()}
+        <Markdown value={text} style={{ ...style, minHeight: "20vh" }} />
+
+        <Flex align="baseline" justify="space-between" wrap="wrap">
+          {url && (
+            <Paragraph style={{ textAlign: "center" }}>
+              {readMoreLink(false, true)}
+            </Paragraph>
+          )}
+          <Paragraph
+            style={{
+              fontWeight: "bold",
+              textAlign: "center",
+            }}
+          >
+            <Space size="middle" direction="horizontal">
+              {showEdit ? editLink() : undefined}
+              {showShareLinks ? shareLinks(true) : undefined}
+            </Space>
           </Paragraph>
-        )}
-        <Paragraph
-          style={{
-            fontSize: "150%",
-            fontWeight: "bold",
-            textAlign: "center",
-          }}
-        >
-          <Space size="middle" direction="horizontal">
-            {showEdit ? editLink() : undefined}
-            {showShareLinks ? shareLinks(true) : undefined}
-          </Space>
-        </Paragraph>
-        {renderHistory()}
+          {renderHistory()}
+        </Flex>
       </>
     );
   } else {
@@ -313,6 +338,7 @@ export function News(props: Props) {
         >
           {renderFuture()}
           {renderHidden()}
+          {renderExpired()}
           <Markdown value={text} style={style} />
         </Card>
       </>
@@ -320,14 +346,21 @@ export function News(props: Props) {
   }
 }
 
-interface NewsTagsProps {
+interface TagListProps {
   tags?: string[];
   onTagClick?: (tag: string) => void;
   style?: CSS;
   styleTag?: CSS;
+  mode: "news" | "event";
 }
 
-export function NewsTags({ tags, onTagClick, style, styleTag }: NewsTagsProps) {
+export function TagList({
+  tags,
+  onTagClick,
+  style,
+  styleTag,
+  mode,
+}: TagListProps) {
   if (tags == null || !Array.isArray(tags) || tags.length === 0) return null;
 
   const router = useRouter();
@@ -336,14 +369,32 @@ export function NewsTags({ tags, onTagClick, style, styleTag }: NewsTagsProps) {
     router.push(`/news?tag=${tag}`);
   }
 
+  function onClick(tag) {
+    switch (mode) {
+      case "news":
+        (onTagClick ?? onTagClickStandalone)(tag);
+      case "event":
+        return;
+      default:
+        unreachable(mode);
+    }
+  }
+
+  function getStyle(): CSS {
+    return {
+      ...(mode === "news" ? { cursor: "pointer" } : {}),
+      ...styleTag,
+    };
+  }
+
   return (
     <Space size={[0, 4]} wrap={false} style={style}>
       {tags.sort().map((tag) => (
         <Tag
           color={getRandomColor(tag)}
           key={tag}
-          style={{ cursor: "pointer", ...styleTag }}
-          onClick={() => (onTagClick ?? onTagClickStandalone)(tag)}
+          style={getStyle()}
+          onClick={() => onClick(tag)}
         >
           {tag}
         </Tag>

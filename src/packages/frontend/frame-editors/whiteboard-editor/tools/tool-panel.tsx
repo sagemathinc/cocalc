@@ -50,12 +50,12 @@ type ParamName = keyof AllParams;
 interface Props<Params> {
   tool: Tool;
   presetManager: PresetManager<Params>;
-  Preview: (Params) => JSX.Element;
-  ButtonPreview?: (Params) => JSX.Element;
+  Preview: (Params) => React.JSX.Element;
+  ButtonPreview?: (Params) => React.JSX.Element;
   AlternateTop?: (props: {
     setSelected: (number) => void;
     selected: number;
-  }) => JSX.Element;
+  }) => React.JSX.Element;
   style?: CSSProperties;
   editParamsStyle?: CSSProperties;
   presetStyle?: CSSProperties;
@@ -102,7 +102,7 @@ export default function ToolPanel<Params>({
       <Button
         style={{
           padding: "5px",
-          height: "35px",
+          height: "50px",
           ...presetStyle,
         }}
         type="text"

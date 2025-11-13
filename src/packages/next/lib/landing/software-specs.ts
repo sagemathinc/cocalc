@@ -1,18 +1,17 @@
 /*
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { reuseInFlight } from "async-await-utils/hof";
 import { keys, map, sortBy, zipObject } from "lodash";
 import { promises } from "node:fs";
-import { basename } from "node:path";
 
 import {
   SOFTWARE_ENV_NAMES,
   SoftwareEnvNames,
 } from "@cocalc/util/consts/software-envs";
 import { hours_ago } from "@cocalc/util/relative-time";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import withCustomize from "lib/with-customize";
 import { SOFTWARE_FALLBACK, SOFTWARE_URLS } from "./software-data";
 import {
@@ -56,7 +55,6 @@ async function downloadInventoryJson(name: SoftwareEnvNames): Promise<EnvData> {
 }
 
 // load the current version of the software specs – if there is a problem, use the locally stored files as fallback.
-// both files go hand-in-hand, hence either both work or both are the fallback!
 async function fetchInventory(): Promise<SoftwareEnvironments> {
   // for development, set the env variable to directory, where this files are
   const localSpec = process.env.COCALC_SOFTWARE_ENVIRONMENTS;
@@ -66,14 +64,14 @@ async function fetchInventory(): Promise<SoftwareEnvironments> {
     return await makeObject(
       SOFTWARE_ENV_NAMES,
       async (name) =>
-        await file2json(`${localSpec}/software-inventory-${name}.json`)
+        await file2json(`${localSpec}/software-inventory-${name}.json`),
     );
   }
   try {
     // download the files for the newest information from the server
     const ret = await makeObject(
       SOFTWARE_ENV_NAMES,
-      async (name) => await downloadInventoryJson(name)
+      async (name) => await downloadInventoryJson(name),
     );
     return ret;
   } catch (err) {
@@ -110,7 +108,7 @@ async function getSoftwareInfo(name: SoftwareEnvNames): Promise<EnvData> {
 
 async function getSoftwareInfoLang(
   name: SoftwareEnvNames,
-  lang: LanguageName
+  lang: LanguageName,
 ): Promise<{
   inventory: ComputeInventory[LanguageName];
   components: ComputeComponents[LanguageName];
@@ -138,9 +136,8 @@ async function getSoftwareSpec(name: SoftwareEnvNames): Promise<SoftwareSpec> {
     if (nextSpec[info.lang] == null) {
       nextSpec[info.lang] = {};
     }
-    // the basename of the cmd path
-    const base = cmd.indexOf(" ") > 0 ? cmd : basename(cmd);
-    nextSpec[info.lang][base] = {
+    // use the full command as key to avoid basename collisions
+    nextSpec[info.lang][cmd] = {
       cmd,
       name: info.name,
       doc: info.doc,
@@ -172,7 +169,7 @@ function getLanguageExecutables({ lang, inventory }): string[] {
 // this is for the server side getServerSideProps function
 export async function withCustomizedAndSoftwareSpec(
   context,
-  lang: LanguageName | "executables"
+  lang: LanguageName | "executables",
 ) {
   const { name } = context.params;
 
@@ -200,7 +197,7 @@ export async function withCustomizedAndSoftwareSpec(
     // this is instant because specs are already in the cache
     const { inventory, components, timestamp } = await getSoftwareInfoLang(
       name,
-      lang
+      lang,
     );
     customize.props.inventory = inventory;
     customize.props.components = components;

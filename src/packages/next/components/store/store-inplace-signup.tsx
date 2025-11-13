@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
@@ -11,8 +11,8 @@ export const StoreInplaceSignInOrUp = () => {
 
   return (
     <InPlaceSignInOrUp
-      title="Account Configuration"
-      why="to shop in the store"
+      title="Store"
+      why="to make store purchases"
       onSuccess={() => {
         router.reload();
       }}

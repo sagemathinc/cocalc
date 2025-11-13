@@ -1,64 +1,80 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Rendered, Component } from "../../app-framework";
-import { TimeAgo } from "../../components";
+import { Tooltip } from "antd";
+import { TimeAgo } from "@cocalc/frontend/components";
 
 interface Props {
   date: Date;
   number: number;
-  max: number;
+  user?: number;
 }
 
-export class Version extends Component<Props> {
-  private render_time(): Rendered {
-    return (
-      <span
-        style={{
-          fontWeight: "bold",
-          fontSize: "12pt",
-          color: "#666",
-          whiteSpace: "nowrap",
-        }}
+export function Version({ date, number, user }: Props) {
+  return (
+    <span>
+      <Tooltip
+        title={
+          <>
+            You are looking at <b>the exact document</b> that the author was
+            editing at <TimeAgo date={date} time_ago_absolute />. Version
+            numbers are unique within a given branch, and the letter code after
+            the number indicates the user.
+          </>
+        }
       >
-        <TimeAgo date={this.props.date} />
-      </span>
-    );
-  }
-  private render_number(): Rendered {
-    return (
-      <span style={{ whiteSpace: "nowrap" }}>
-        revision {this.props.number} (of {this.props.max})
-      </span>
-    );
-  }
-
-  public render(): Rendered {
-    if (this.props.max == 0) return <span />;
-    return (
-      <span>
-        {this.render_time()}, {this.render_number()}
-      </span>
-    );
-  }
+        <span
+          style={{
+            fontWeight: "bold",
+            fontSize: "12pt",
+            color: "#666",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <TimeAgo date={date} />
+        </span>
+        ,{" "}
+        <span style={{ whiteSpace: "nowrap" }}>
+          Revision{" "}
+          <b>
+            {number}
+            {toLetterCode(user)}
+          </b>
+        </span>
+      </Tooltip>
+    </span>
+  );
 }
 
 interface RangeProps {
   version0: number;
   version1: number;
-  max: number;
+  user0?: number;
+  user1?: number;
 }
 
-export class VersionRange extends Component<RangeProps> {
-  public render(): Rendered {
-    if (this.props.max == 0) return <span />;
-    return (
-      <span style={{ whiteSpace: "nowrap" }}>
-        Versions {this.props.version0 + 1} to {this.props.version1 + 1} (of{" "}
-        {this.props.max})
-      </span>
-    );
+export function VersionRange({ version0, version1, user0, user1 }: RangeProps) {
+  return (
+    <span style={{ whiteSpace: "nowrap" }}>
+      Versions{" "}
+      <b>
+        {version0}
+        {toLetterCode(user0)}
+      </b>{" "}
+      to{" "}
+      <b>
+        {version1}
+        {toLetterCode(user1)}
+      </b>
+    </span>
+  );
+}
+
+function toLetterCode(user?: number): string {
+  if (user == null) {
+    return "";
   }
+  return String.fromCharCode(97 + (user % 26));
 }

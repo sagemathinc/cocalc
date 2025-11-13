@@ -1,14 +1,18 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { React, useTypedRedux } from "../app-framework";
-import { COMPUTE_STATES } from "@cocalc/util/schema";
-import { ProjectStatus } from "../todo-types";
-import { Gap } from "./gap";
-import { Icon } from "./icon";
+import { useIntl } from "react-intl";
+
+import { React, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
+import { ProjectStatus } from "@cocalc/frontend/todo-types";
+import { ComputeState } from "@cocalc/util/compute-states";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { COMPUTE_STATES } from "@cocalc/util/schema";
+import { Gap } from "./gap";
+import { Icon, isIconName } from "./icon";
 
 interface Props {
   state?: ProjectStatus;
@@ -18,6 +22,7 @@ interface Props {
 export const ProjectState: React.FC<Props> = (props: Props) => {
   const { state, show_desc } = props;
 
+  const intl = useIntl();
   const kucalc = useTypedRedux("customize", "kucalc");
   const showCoCalcCom = kucalc === KUCALC_COCALC_COM;
 
@@ -29,27 +34,38 @@ export const ProjectState: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function renderDescription({ desc, desc_cocalccom }) {
+  function renderI18N(msg: string | IntlMessage): string {
+    if (isIntlMessage(msg)) {
+      return intl.formatMessage(msg);
+    } else {
+      return msg;
+    }
+  }
+
+  function renderDescription({ desc_cocalccom, desc }: ComputeState) {
     if (!show_desc) {
       return;
     }
     const text =
       showCoCalcCom && desc_cocalccom != null ? desc_cocalccom : desc;
+
     return (
       <span>
-        <span style={{ fontSize: "11pt" }}>{text}</span>
+        <span style={{ fontSize: "11pt" }}>{renderI18N(text)}</span>
       </span>
     );
   }
 
-  const s = COMPUTE_STATES[state?.get("state") ?? ""];
+  const current_state = state?.get("state") ?? "";
+  const s: ComputeState = COMPUTE_STATES[current_state];
   if (s == null) {
     return <></>;
   }
   const { display, icon, stable } = s;
   return (
     <span>
-      <Icon name={icon} /> {display}
+      {isIconName(icon) ? <Icon name={icon} /> : undefined}{" "}
+      {renderI18N(display)}
       <Gap />
       {!stable && renderSpinner()}
       {renderDescription(s)}

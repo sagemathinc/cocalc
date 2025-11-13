@@ -1,20 +1,17 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
 Viewer for public ipynb files.
 */
 
-import { CSSProperties, useMemo } from "react";
 import { Alert } from "antd";
-import CellList from "./cell-list";
-import { path_split } from "@cocalc/util/misc";
+import { CSSProperties, useMemo } from "react";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import parse from "@cocalc/jupyter/ipynb/parse";
-import { CodeMirrorStatic } from "../codemirror-static";
-import "../output-messages/mime-types/init-nbviewer";
-import { JupyterContext } from "../jupyter-context";
+import Notebook from "./notebook";
 
 interface Props {
   content: string;
@@ -22,52 +19,34 @@ interface Props {
   path?: string;
   fontSize?: number;
   style?: CSSProperties;
+  cellListStyle?: CSSProperties;
+  scrollBottom?: boolean;
 }
 
 export default function NBViewer({
   content, // JSON string of an ipynb notebook
-  project_id,
-  path,
-  fontSize,
-  style,
+  ...props
 }: Props) {
-  const x = useMemo(() => {
+  const cocalcJupyter = useMemo(() => {
     try {
       return parse(content);
     } catch (error) {
       return error;
     }
   }, [content]);
-  if (x instanceof Error) {
+
+  if (cocalcJupyter instanceof Error) {
     return (
       <div>
         <Alert
           message="Error Parsing Jupyter Notebook"
-          description={`${x}`}
+          description={`${cocalcJupyter}`}
           type="error"
         />
         <CodeMirrorStatic value={content} options={{ mode: "javascript" }} />
       </div>
     );
   }
-  const { cellList, cells, cmOptions, kernelspec } = x;
 
-  return (
-    <JupyterContext.Provider value={{ kernelspec }}>
-      <div style={style}>
-        <div style={{ marginBottom: "15px" }}>
-          <b>Kernel:</b> {kernelspec.display_name}
-        </div>
-        <CellList
-          cellList={cellList}
-          cells={cells}
-          fontSize={fontSize}
-          cmOptions={cmOptions}
-          project_id={project_id}
-          directory={path ? path_split(path).head : undefined}
-          kernel={kernelspec.name}
-        />
-      </div>
-    </JupyterContext.Provider>
-  );
+  return <Notebook cocalcJupyter={cocalcJupyter} {...props} />;
 }

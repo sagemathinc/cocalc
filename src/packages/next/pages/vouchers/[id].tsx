@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -27,14 +27,13 @@ import apiPost from "lib/api/post";
 import Avatar from "components/account/avatar";
 import type { VoucherCode } from "@cocalc/util/db-schema/vouchers";
 import { stringify as csvStringify } from "csv-stringify/sync";
-import { human_readable_size } from "@cocalc/util/misc";
+import { currency, human_readable_size } from "@cocalc/util/misc";
 import CodeMirror from "components/share/codemirror";
 import { trunc } from "lib/share/util";
 import useDatabase from "lib/hooks/database";
 import Notes from "./notes";
 import Help from "components/vouchers/help";
 import Copyable from "components/misc/copyable";
-import { DescriptionColumn } from "components/store/cart";
 
 function RedeemURL({ code }) {
   const [url, setUrl] = useState<string>("");
@@ -112,7 +111,7 @@ const COLUMNS = [
 type DownloadType = "csv" | "json";
 
 export default function VoucherCodes({ customize, id }) {
-  const database = useDatabase({ vouchers: { id, title: null, cart: null } });
+  const database = useDatabase({ vouchers: { id, title: null, cost: null } });
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [data, setData] = useState<VoucherCode[] | null>(null);
@@ -176,17 +175,19 @@ export default function VoucherCodes({ customize, id }) {
                 {database.value?.vouchers?.title && (
                   <h3>Title: {database.value.vouchers.title}</h3>
                 )}
-                <div
-                  style={{
-                    width: "min(600px, 100vw)",
-                    margin: "auto",
-                    padding: "15px",
-                  }}
-                >
-                  {database.value?.vouchers?.cart?.map((item, n) => (
-                    <DescriptionColumn key={n} {...item} readOnly />
-                  ))}
-                </div>
+                {database.value?.vouchers != null && (
+                  <div
+                    style={{
+                      margin: "auto",
+                      padding: "15px",
+                      textAlign: "center",
+                      fontSize: "14pt",
+                    }}
+                  >
+                    Each Voucher is Worth{" "}
+                    {currency(database.value?.vouchers?.cost)} in credit.
+                  </div>
+                )}
                 <Divider />
 
                 {error && (

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 //##############################################
@@ -10,13 +10,10 @@
 import { unlink, writeFile } from "node:fs/promises";
 import { path as temp_path } from "temp";
 
-import { execute_code } from "@cocalc/backend/misc_node";
+import { executeCode } from "@cocalc/backend/execute-code";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import * as message from "@cocalc/util/message";
 import { defaults, filename_extension, required } from "@cocalc/util/misc";
-
-import { getLogger } from "@cocalc/backend/logger";
-const winston = getLogger("print-to-pdf");
 
 interface SagewsPrintOpts {
   path: string;
@@ -31,7 +28,7 @@ interface SagewsPrintOpts {
   timeout?: number;
 }
 
-async function print_sagews(opts: SagewsPrintOpts) {
+export async function printSageWS(opts: SagewsPrintOpts) {
   opts = defaults(opts, {
     path: required,
     outfile: required,
@@ -65,8 +62,6 @@ async function print_sagews(opts: SagewsPrintOpts) {
     args = args.concat(["--base_url", opts.base_url]);
   }
 
-  let err: Error | undefined = undefined;
-
   try {
     if (opts.extra_data != null) {
       extra_data_file = temp_path() + ".json";
@@ -77,33 +72,17 @@ async function print_sagews(opts: SagewsPrintOpts) {
     }
 
     // run the converter script
-    await new Promise<void>((resolve, reject) => {
-      execute_code({
-        command: "smc-sagews2pdf",
-        args,
-        err_on_exit: true,
-        bash: false,
-        timeout: opts.timeout,
-        cb: (err) => {
-          if (err) {
-            winston.debug(`Issue running smc-sagews2pdf: ${err}`);
-            reject(err);
-          } else {
-            resolve();
-          }
-        },
-      });
+    await executeCode({
+      command: "smc-sagews2pdf",
+      args,
+      err_on_exit: true,
+      bash: false,
+      timeout: opts.timeout,
     });
-  } catch (err) {
-    err = err;
-  }
-
-  if (extra_data_file != null) {
-    unlink(extra_data_file); // no need to wait for completion before calling opts.cb
-  }
-
-  if (err) {
-    throw err;
+  } finally {
+    if (extra_data_file != null) {
+      unlink(extra_data_file); // no need to wait
+    }
   }
 }
 
@@ -119,7 +98,7 @@ export async function print_to_pdf(socket: CoCalcSocket, mesg) {
   try {
     switch (ext) {
       case "sagews":
-        await print_sagews({
+        await printSageWS({
           path: mesg.path,
           outfile: pdf,
           title: mesg.options.title,
@@ -139,12 +118,12 @@ export async function print_to_pdf(socket: CoCalcSocket, mesg) {
     // all good
     return socket.write_mesg(
       "json",
-      message.printed_to_pdf({ id: mesg.id, path: pdf })
+      message.printed_to_pdf({ id: mesg.id, path: pdf }),
     );
   } catch (err) {
     return socket.write_mesg(
       "json",
-      message.error({ id: mesg.id, error: err })
+      message.error({ id: mesg.id, error: err }),
     );
   }
 }

@@ -1,25 +1,22 @@
-/*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
- */
-
 import React from "react";
-import { shallow } from "enzyme";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MoreOutput } from "../more-output";
 import { fromJS } from "immutable";
 import { JupyterActions } from "@cocalc/jupyter/redux/actions";
 
 describe("test More Output button with no actions (so not enabled)", () => {
-  const wrapper = shallow(<MoreOutput message={fromJS({})} id={""} />);
-
-  it("checks the output", () => {
-    expect(wrapper.find("Button").html()).toContain(
-      "Additional output not available"
+  it("shows 'Additional output not available'", () => {
+    render(<MoreOutput message={fromJS({})} id={""} />);
+    expect(screen.getByRole("button")).toHaveTextContent(
+      "Additional output not available",
     );
   });
 
-  it("clicks and nothing happens (no traceback/error)", () => {
-    wrapper.find("Button").simulate("click");
+  it("clicks the disabled button; nothing happens", () => {
+    render(<MoreOutput message={fromJS({})} id={""} />);
+    const button = screen.getByRole("button");
+    fireEvent.click(button);
+    // No error expected, nothing to assert
   });
 });
 
@@ -27,21 +24,35 @@ describe("test More Output button with actions", () => {
   const actions = {
     fetch_more_output: jest.fn(),
   };
-  const wrapper = shallow(
-    <MoreOutput
-      actions={(actions as unknown) as JupyterActions}
-      message={fromJS({})}
-      id={"id"}
-    />
-  );
 
-  it("checks the button text", () => {
-    expect(wrapper.find("Button").html()).toContain("Fetch additional output");
+  beforeEach(() => {
+    actions.fetch_more_output.mockClear();
   });
 
-  it("clicks and sees that fetch_more_output is properly called", () => {
-    wrapper.find("Button").simulate("click");
-    expect(actions.fetch_more_output.mock.calls.length).toBe(1);
-    expect(actions.fetch_more_output.mock.calls[0][0]).toBe("id");
+  it("shows 'Fetch additional output'", () => {
+    render(
+      <MoreOutput
+        actions={actions as unknown as JupyterActions}
+        message={fromJS({})}
+        id="id"
+      />,
+    );
+    expect(screen.getByRole("button")).toHaveTextContent(
+      "Fetch additional output",
+    );
+  });
+
+  it("calls fetch_more_output on click", () => {
+    render(
+      <MoreOutput
+        actions={actions as unknown as JupyterActions}
+        message={fromJS({})}
+        id="id"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button"));
+    expect(actions.fetch_more_output).toHaveBeenCalledTimes(1);
+    expect(actions.fetch_more_output).toHaveBeenCalledWith("id");
   });
 });
+

@@ -1,26 +1,24 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // Use Xpra to provide X11 server.
 
 import { join } from "path";
+import { throttle } from "underscore";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { open_new_tab } from "@cocalc/frontend/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
-import { reuseInFlight } from "async-await-utils/hof";
+import { close, hash_string, sha1 } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { ConnectionStatus } from "../frame-tree/types";
+import { ExecOutput, touch, touch_project } from "../generic/client";
+import { ExecOpts0, XpraServer } from "./xpra-server";
 import { Client } from "./xpra/client";
 import { Surface } from "./xpra/surface";
-import { XpraServer, ExecOpts0 } from "./xpra-server";
-import { ExecOutput } from "../generic/client";
-import { touch, touch_project } from "../generic/client";
-import { throttle } from "underscore";
-import { open_new_tab } from "../../misc";
 import { is_copy } from "./xpra/util";
-import { alert_message } from "@cocalc/frontend/alerts";
-const sha1 = require("sha1");
-import { close, hash_string } from "@cocalc/util/misc";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const BASE_DPI: number = 96;
 
@@ -63,7 +61,7 @@ export class XpraClient extends EventEmitter {
   constructor(options: Options) {
     super();
     this.record_active = throttle(this.record_active.bind(this), 30000);
-    this.connect = reuseInFlight(this.connect);
+    this.connect = reuseInFlight(this.connect.bind(this));
     this.options = options;
     this.init_display();
     this.client = new Client();
@@ -136,7 +134,7 @@ export class XpraClient extends EventEmitter {
 
   async connect(): Promise<void> {
     this.idle_timed_out = false;
-    this.last_active = new Date().valueOf();
+    this.last_active = Date.now();
     this.emit("ws:idle", false);
     // use this is dumb, but will do **for now**.  It's
     // dumb since instead when we reconnect to the network,
@@ -166,7 +164,7 @@ export class XpraClient extends EventEmitter {
       appBasePath,
       this.options.project_id,
       "server",
-      `${port}`
+      `${port}`,
     );
     const uri = `wss${origin}${path}`;
     const dpi = Math.round(BASE_DPI * window.devicePixelRatio);
@@ -183,11 +181,11 @@ export class XpraClient extends EventEmitter {
     this.client.on("overlay:destroy", this.overlay_destroy.bind(this));
     this.client.on(
       "notification:create",
-      this.handle_notification_create.bind(this)
+      this.handle_notification_create.bind(this),
     );
     this.client.on(
       "notification:destroy",
-      this.handle_notification_destroy.bind(this)
+      this.handle_notification_destroy.bind(this),
     );
     this.client.on("ws:status", this.ws_status.bind(this));
     this.client.on("key", this.record_active);
@@ -326,7 +324,7 @@ export class XpraClient extends EventEmitter {
         "window:create",
         surface.wid,
         surface.metadata.title,
-        !!surface.metadata["modal"]
+        !!surface.metadata["modal"],
       );
     }
   }
@@ -337,7 +335,7 @@ export class XpraClient extends EventEmitter {
     wid: number,
     width: number,
     height: number,
-    frame_scale: number = 1
+    frame_scale: number = 1,
   ): void {
     //console.log("resize_window", wid, width, height, frame_scale);
     const surface: Surface | undefined = this.client.findSurface(wid);
@@ -462,12 +460,14 @@ export class XpraClient extends EventEmitter {
 
   // call this when stuff is happening
   record_active(): void {
-    this.last_active = new Date().valueOf();
+    this.last_active = Date.now();
   }
 
   async touch_if_active(): Promise<void> {
-    if (new Date().valueOf() - this.last_active < 70000) {
+    if (Date.now() - this.last_active < 70000) {
       try {
+        // NOTE/TODO: we don't support compute servers yet with xpra, but if we do, then
+        // we would pass second argument that is the compute server id below:
         await touch_project(this.options.project_id);
         await touch(this.options.project_id, this.options.path);
       } catch (err) {
@@ -510,7 +510,7 @@ export class XpraClient extends EventEmitter {
     }
     this.idle_interval = setInterval(
       this.idle_timeout_if_inactive.bind(this),
-      idle_timeout / 2
+      idle_timeout / 2,
     );
   }
 
@@ -518,10 +518,7 @@ export class XpraClient extends EventEmitter {
     if (this.idle_timed_out) {
       return;
     }
-    if (
-      new Date().valueOf() - this.last_active >=
-      this.options.idle_timeout_ms
-    ) {
+    if (Date.now() - this.last_active >= this.options.idle_timeout_ms) {
       // inactive
       this.idle_timed_out = true;
       this.emit("ws:idle", true);
@@ -533,7 +530,10 @@ export class XpraClient extends EventEmitter {
     return await this.server.exec(opts);
   }
 
-  public set_physical_keyboard(layout: string, variant: string): void {
+  public set_physical_keyboard(
+    layout: string | undefined,
+    variant: string | undefined,
+  ): void {
     this.client.set_physical_keyboard(layout, variant);
   }
 }

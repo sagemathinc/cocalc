@@ -1,21 +1,24 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { delay } from "awaiting";
+
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import {
-  filename_extension_notilde,
+  filename_extension,
   meta_file,
   path_split,
   defaults,
   required,
 } from "@cocalc/util/misc";
 
-import { React } from "./app-framework";
+import { React } from "@cocalc/frontend/app-framework";
 
-import { delay } from "awaiting";
-import { getStudentProjectFunctionality } from "./course";
-import { IconName } from "./components/icon";
+import { alert_message } from "./alerts";
+import { EditorLoadError } from "./file-editors-error";
 
 declare let DEBUG: boolean;
 
@@ -131,6 +134,22 @@ export function register_file_editor(opts: FileEditorInfo): void {
   }
 }
 
+/**
+ * Logs when a file extension falls back to the unknown editor.
+ * This helps with debugging why an editor failed to load.
+ */
+function logFallback(
+  ext: string | undefined,
+  path: string,
+  is_public: boolean,
+): void {
+  console.warn(
+    `Editor fallback triggered: No editor found for ext '${
+      ext ?? "unknown"
+    }' on path '${path}' (is_public: ${is_public}), using unknown editor catchall`,
+  );
+}
+
 // Get editor for given path and is_public state.
 
 function get_ed(
@@ -149,23 +168,15 @@ function get_ed(
   ext =
     ext ??
     altExt[key(project_id, path)] ??
-    filename_extension_notilde(path).toLowerCase();
-
-  // TODO: temporary hack because we have two kinds of ipynb editors.  This will go away.
-  if (
-    project_id != null &&
-    ext == "ipynb" &&
-    getStudentProjectFunctionality(project_id).disableJupyterClassicMode
-  ) {
-    // This ipynb-cocalc-jupyter just ensures we get the right editor below.
-    ext = "ipynb-cocalc-jupyter";
-  }
+    filename_extension(path).toLowerCase();
 
   // either use the one given by ext, or if there isn't one, use the '' fallback.
-  const spec =
-    file_editors[is_pub][ext] != null
-      ? file_editors[is_pub][ext]
-      : file_editors[is_pub][""];
+  let spec = file_editors[is_pub][ext];
+  if (spec == null) {
+    // Log when falling back to unknown editor
+    logFallback(ext, path, !!is_public);
+    spec = file_editors[is_pub][""];
+  }
   if (spec == null) {
     // This happens if the editors haven't been loaded yet.  A valid use
     // case is you open a project and session restore creates one *background*
@@ -193,7 +204,19 @@ export async function initializeAsync(
     return editor.init(path, redux, project_id, content);
   }
   if (editor.initAsync != null) {
-    return await editor.initAsync(path, redux, project_id, content);
+    try {
+      return await editor.initAsync(path, redux, project_id, content);
+    } catch (err) {
+      console.error(`Failed to initialize async editor for ${path}: ${err}`);
+      // Single point where all async editor load errors are reported to user
+      alert_message({
+        type: "error",
+        title: "Editor Load Failed",
+        message: `Failed to load editor for ${path}: ${err}. Please check your internet connection and refresh the page.`,
+        timeout: 10,
+      });
+      throw err;
+    }
   }
 }
 
@@ -233,7 +256,21 @@ export async function generateAsync(
   const { component, componentAsync } = e;
   if (component == null) {
     if (componentAsync != null) {
-      return await componentAsync();
+      try {
+        return await componentAsync();
+      } catch (err) {
+        const error = err as Error;
+        console.error(`Failed to load editor component for ${path}: ${error}`);
+        // Single point where all async editor load errors are reported to user
+        alert_message({
+          type: "error",
+          title: "Editor Load Failed",
+          message: `Failed to load editor for ${path}: ${error}. Please check your internet connection and refresh the page.`,
+          timeout: 10,
+        });
+        // Return error component with refresh button
+        return () => React.createElement(EditorLoadError, { path, error });
+      }
     }
     return () =>
       React.createElement(

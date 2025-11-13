@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Layout } from "antd";
@@ -35,24 +35,28 @@ export default function Overview({ customize }) {
             <div style={{ fontSize: "12pt" }}>
               <div style={{ maxWidth: "700px", margin: "auto" }}>
                 <A href="https://doc.cocalc.com/vouchers.html">Vouchers</A> are
-                a convenient way to send <A href="/settings/purchases">money</A>{" "}
-                to somebody or to resell <SiteName />{" "}
-                <A href="/settings/licenses">licenses</A>.
+                like a digital gift card, which can be used to purchase anything
+                on <SiteName />.
               </div>
             </div>
             <OverviewRow>
+              <Product
+                href={"/store/vouchers"}
+                icon="shopping-cart"
+                title="Buy Vouchers"
+              >
+                Create voucher codes that you can share, resell, or use later.
+              </Product>
               <Product icon="gift2" title="Redeem a Voucher" href="/redeem">
                 Redeem a voucher code to add{" "}
-                <A href="/settings/purchases">money</A> or{" "}
-                <A href="/settings/licenses">licenses</A> to your account.
+                <A href="/settings/purchases">money</A> to your account.
               </Product>
               <Product
                 icon="table"
                 title="Vouchers You Redeemed"
                 href="/vouchers/redeemed"
               >
-                See a list of all vouchers you have redeemed and links to the
-                corresponding <A href="/settings/licenses">licenses</A>.
+                See a list of all vouchers you have redeemed.
               </Product>
               <Product
                 href={"/vouchers/created"}
@@ -60,13 +64,6 @@ export default function Overview({ customize }) {
                 title="Your Vouchers"
               >
                 Browse all vouchers you have created and see their status.
-              </Product>
-              <Product
-                href={"/store/vouchers"}
-                icon="shopping-cart"
-                title="Create New Vouchers"
-              >
-                Create voucher codes that you can share, resell, or use later.
               </Product>
             </OverviewRow>
             {profile?.is_admin && (

@@ -1,4 +1,4 @@
-import Plot from "react-plotly.js";
+import Plot from "@cocalc/frontend/components/plotly";
 import { Data } from "./update";
 import dayjs from "dayjs";
 import { createColors, rgbHex } from "color-map";
@@ -13,6 +13,7 @@ export default function PlotRetention({ retentionData }: Props) {
   const plotData = getPlotData(retentionData);
 
   const layout = {
+    autosize: true,
     xaxis: { title: "Period" },
     yaxis: { title: "Percent Retained Users" },
   };
@@ -37,7 +38,7 @@ function getPlotData(retentionData) {
       mode: "lines",
       marker: { color: rgbHex(colors[i]) },
       name: `${dayjs(start).format("dd MMM D, YYYY h:mm A")} to ${dayjs(
-        stop
+        stop,
       ).format("dd MMM D, YYYY h:mm A")}`,
     });
     i += 1;

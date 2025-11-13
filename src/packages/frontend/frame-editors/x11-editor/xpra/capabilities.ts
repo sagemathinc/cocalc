@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -24,7 +24,6 @@
 import { md } from "node-forge";
 import { CHARCODE_TO_NAME } from "./constants";
 import { supportsWebp, calculateColorGamut, calculateScreens } from "./util";
-import * as lz4 from "@cocalc/xpra-lz4";
 
 const platformMap = {
   Win: {
@@ -61,7 +60,7 @@ function getPlatform(): {
       processor: oscpu || cpuClass || "unknown", // unlikely to work with modern browsers
       platform: appVersion,
     },
-    found ? platformMap[found] : {}
+    found ? platformMap[found] : {},
   );
 }
 
@@ -149,7 +148,7 @@ function getClientCapabilities(config) {
       ...result,
       [parseInt(c, 10), CHARCODE_TO_NAME[c], parseInt(c, 10), 0, 0],
     ],
-    []
+    [],
   );
 
   return {
@@ -212,7 +211,7 @@ function getClientCapabilities(config) {
     screen_sizes: calculateScreens(
       config.screen[0],
       config.screen[1],
-      config.dpi
+      config.dpi,
     ),
     dpi: config.dpi,
 
@@ -269,7 +268,7 @@ export function getCapabilities(config, soundCodecs) {
       lzi: false,
       lz4: config.lz4,
       "encoding.rgb_lz4": true,
-      "lz4.js.version": lz4.version,
+      "lz4.js.version": "0.5.1", //lz4.version,
       compression_level: config.compression_level,
 
       // Packet encoders
@@ -280,6 +279,6 @@ export function getCapabilities(config, soundCodecs) {
     },
     client,
     encoding,
-    extras
+    extras,
   );
 }

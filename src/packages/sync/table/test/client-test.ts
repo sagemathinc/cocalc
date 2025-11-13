@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -22,6 +22,14 @@ export class ClientTest extends EventEmitter {
   }
 
   public is_project(): boolean {
+    return false;
+  }
+
+  public is_browser(): boolean {
+    return true;
+  }
+
+  public is_compute_server(): boolean {
     return false;
   }
 

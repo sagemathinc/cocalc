@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Map } from "immutable";
@@ -8,7 +8,10 @@ import { Map } from "immutable";
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { CHANNELS, NewsItemWebapp } from "@cocalc/util/types/news";
 
-export const NEWS_CHANNELS = ["allNews", ...CHANNELS] as const;
+export const NEWS_CHANNELS = [
+  "allNews",
+  ...CHANNELS.filter((c) => c !== "event"),
+] as const;
 
 export type NewsFilter = typeof NEWS_CHANNELS[number];
 

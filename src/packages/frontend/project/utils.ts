@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import * as catNames from "cat-names";
@@ -8,8 +8,6 @@ import * as dogNames from "dog-names";
 import * as os_path from "path";
 import { generate as heroku } from "project-name-generator";
 import * as superb from "superb";
-
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { BASE_URL } from "@cocalc/frontend/misc";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -26,6 +24,11 @@ import {
   unreachable,
   uuid,
 } from "@cocalc/util/misc";
+import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
+
+export function randomPetName() {
+  return Math.random() > 0.5 ? catNames.random() : dogNames.allRandom();
+}
 
 export const NewFilenameFamilies: { [name in NewFilenameTypes]: string } = {
   iso: "Current time",
@@ -75,7 +78,7 @@ export class NewFilenames {
   // generate a new filename, by optionally avoiding the keys in the dictionary
   public gen(
     type?: NewFilenameTypes,
-    avoid?: { [name: string]: boolean }
+    avoid?: { [name: string]: boolean },
   ): string {
     type = this.sanitize_type(type);
     // reset the enumeration if type changes
@@ -87,7 +90,7 @@ export class NewFilenames {
       // ignore all extensions in avoid "set", if we do not know the file extension
       if (this.effective_ext == null) {
         const noexts = Object.keys(avoid).map(
-          (x) => separate_file_extension(x).name
+          (x) => separate_file_extension(x).name,
         );
         avoid = Object.assign({}, ...noexts.map((x) => ({ [x]: true })));
       }
@@ -142,7 +145,7 @@ export class NewFilenames {
         // e.g. for python, join using "_"
         let fn = tokens.join(this.filler());
         if (fullname && this.ext != null && this.ext !== "") {
-          fn += `.${this.ext}`;
+          fn += this.ext === "/" ? "/" : `.${this.ext}`;
         }
         return fn;
     }
@@ -176,7 +179,9 @@ export class NewFilenames {
         // the "Spec" for file associations makes sure that "name" != null
         // but for unkown files "name" == "" → fallback "file"
         const name = info.name;
-        return name === "" ? ["file"] : name.toLowerCase().split(" ");
+        return name === ""
+          ? ["file"]
+          : name.replace(/\//g, "_").toLowerCase().split(" ");
     }
   }
 
@@ -198,8 +203,7 @@ export class NewFilenames {
 
       case "pet":
       case "ymd_pet":
-        const n =
-          Math.random() > 0.5 ? catNames.random() : dogNames.allRandom();
+        const n = randomPetName();
         const p = this.get_superb();
         return [p, n.toLowerCase()];
 
@@ -232,7 +236,20 @@ export function editor_id(project_id: string, path: string): string {
 }
 
 // Normalize path as in node, except '' is the home dir, not '.'.
+// Also, if ~/ is somewhere in the path, start over at home.
 export function normalize(path: string): string {
+  while (true) {
+    const pattern = "/~/";
+    const i = path.indexOf(pattern);
+    if (i == -1) {
+      break;
+    }
+    path = path.slice(i + pattern.length);
+  }
+  if (path.startsWith("~/")) {
+    path = path.slice(2);
+  }
+
   path = os_path.normalize(path);
   if (path === ".") {
     return "";
@@ -244,7 +261,7 @@ export function normalize(path: string): string {
 // test, if the given file exists and has nonzero size
 export async function file_nonzero_size(
   project_id: string,
-  path: string
+  path: string,
 ): Promise<boolean> {
   const f = path_split(path);
   try {
@@ -268,18 +285,31 @@ export function url_fullpath(project_id: string, path: string): string {
     "projects",
     project_id,
     "files",
-    `${encode_path(path)}`
+    `${encode_path(path)}`,
   );
 }
 
 // returns the URL for the file at the given path
-export function url_href(project_id: string, path: string): string {
-  return os_path.join(appBasePath, project_id, "raw", encode_path(path));
+export function url_href(
+  project_id: string,
+  path: string,
+  compute_server_id?: number,
+): string {
+  return fileURL({ project_id, path, compute_server_id });
 }
 
 // returns the download URL for a file at a given path
-export function download_href(project_id: string, path: string): string {
-  return `${url_href(project_id, path)}?download`;
+export function download_href(
+  project_id: string,
+  path: string,
+  compute_server_id?: number,
+): string {
+  const u = url_href(project_id, path, compute_server_id);
+  if (!compute_server_id) {
+    return `${u}?download`;
+  }
+  // there's already a ?id=[number], so use &.
+  return `${u}&download`;
 }
 
 export function in_snapshot_path(path: string): boolean {

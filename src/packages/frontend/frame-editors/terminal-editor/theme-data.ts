@@ -1,6 +1,6 @@
 import { replace_all } from "@cocalc/util/misc";
 
-export const color_themes = {
+export const COLOR_THEMES = {
   "solarized-dark": {
     comment: "Solarized dark",
     colors: [
@@ -45,6 +45,52 @@ export const color_themes = {
       "#fdf6e3",
       "#073642",
       "#fdf6e3",
+    ],
+  },
+  "cocalc-light": {
+    comment: "CoCalc Light",
+    colors: [
+      "#1a3a6b", // color0: stronger dark blue
+      "#c41c08", // color1: stronger red for errors
+      "#3d6b2f", // color2: stronger green
+      "#d97706", // color3: stronger yellow/gold
+      "#2a5aa6", // color4: BLUE_DD (stronger blue accent)
+      "#663d99", // color5: stronger purple
+      "#0088a0", // color6: stronger cyan
+      "#c0c0c0", // color7: light gray
+      "#606060", // color8: stronger medium gray
+      "#e65100", // color9: stronger bright orange
+      "#558b2f", // color10: stronger bright green
+      "#f39c12", // color11: stronger golden yellow
+      "#4474c0", // color12: COCALC_BLUE (blue accent)
+      "#9d4edd", // color13: stronger bright purple
+      "#0096c7", // color14: stronger bright cyan
+      "#d9d9d9", // color15: lighter gray
+      "#1a3a6b", // foreground: darker blue for main text
+      "#fbfbfb", // background
+    ],
+  },
+  "cocalc-dark": {
+    comment: "CoCalc Dark",
+    colors: [
+      "#c0d4f0", // color0: light blue-gray (for dark bg)
+      "#ff9966", // color1: soft orange for errors (lightened COCALC_ORANGE)
+      "#88c070", // color2: soft green
+      "#fcc861", // color3: COCALC_ORANGE (yellow/gold)
+      "#80afff", // color4: BLUE_L from theme.ts (main text accent)
+      "#b89dd8", // color5: light purple
+      "#66cccc", // color6: bright cyan
+      "#808080", // color7: medium gray
+      "#a0a0a0", // color8: lighter gray
+      "#ffb380", // color9: bright orange (for numbers, lightened COCALC_ORANGE)
+      "#a5d68a", // color10: brighter green
+      "#ffdb99", // color11: very light orange/gold
+      "#94b3e5", // color12: BLUE_LL from theme.ts
+      "#d4b8f0", // color13: bright purple
+      "#88e8e8", // color14: very bright cyan
+      "#e0e0e0", // color15: light gray (GRAY_L0)
+      "#c0d4f0", // foreground: light blue-gray (main text)
+      "#434343", // background: GRAY_D from theme.ts
     ],
   },
   "low-contrast": {
@@ -208,24 +254,37 @@ export const color_themes = {
       "#faf0e6",
     ],
   },
-};
+} as const;
 
 // Use theme_desc for UI to select a theme.
 
 export const theme_desc = {};
-for (const name in color_themes) {
-  theme_desc[name] = color_themes[name].comment;
+for (const name in COLOR_THEMES) {
+  theme_desc[name] = COLOR_THEMES[name].comment;
 }
 
-// This is a stupid cheap example that I hardcoded for
-// use in configuration/settings.  That's it.  It will get
-// replaced by a real renderer at some point.
+// This is a cheap hardcoded example for use in configuration/settings.
+// It shows a terminal prompt, cat command, file output, and final prompt.
 export function example(theme: string): string {
-  let html = `<div style="background-color: #ffffff; color: #000000; font-family: monospace, monospace; line-height: 120%; width: 100%; border:1px solid grey;padding:5px"><div><span style="color:#c4a000;">def</span>&nbsp;<span style="color:#06989a;">is_prime_lucas_lehmer</span>(p):</div><div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#cc0000;">"""</span></div><div><span style="color:#cc0000;">&nbsp;&nbsp;&nbsp;&nbsp;Test&nbsp;primality&nbsp;of&nbsp;Mersenne&nbsp;number&nbsp;2**p&nbsp;-&nbsp;1.</span></div><div>&nbsp;</div><div><span style="color:#75507b;">&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;&gt;&nbsp;is_prime_lucas_lehmer(</span><span style="color:#cc0000;">107</span><span style="color:#75507b;">)</span></div><div><span style="color:#75507b;">&nbsp;&nbsp;&nbsp;&nbsp;True</span></div><div><span style="color:#75507b;">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#cc0000;">"""</span></div><div>&nbsp;&nbsp;&nbsp;&nbsp;k&nbsp;=&nbsp;<span style="color:#cc0000;">2</span>**p&nbsp;-&nbsp;<span style="color:#cc0000;">1</span>;&nbsp;s&nbsp;=&nbsp;<span style="color:#cc0000;">4</span></div><div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#c4a000;">for</span>&nbsp;i&nbsp;<span style="color:#c4a000;">in</span>&nbsp;<span style="color:#06989a;">range</span>(<span style="color:#cc0000;">3</span>,&nbsp;p+<span style="color:#cc0000;">1</span>):</div><div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s&nbsp;=&nbsp;(s*s&nbsp;-&nbsp;<span style="color:#cc0000;">2</span>)&nbsp;%&nbsp;k</div><div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#c4a000;">return</span>&nbsp;s&nbsp;==&nbsp;<span style="color:#cc0000;">0</span></div><div><span style="font-weight:bold;color:#729fcf;">~&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div><div><span style="font-weight:bold;color:#729fcf;">~&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></div><div>&nbsp;</div></div>`;
-  // The above snippet was created by using the ancient xterm.js (from mobile) with the default theme.
+  let html = `<div style="background-color: #ffffff; color: #000000; font-family: monospace, monospace; line-height: 120%; width: 100%; border:1px solid grey;padding:5px">
+<div><span style="color:#4e9a06;">user@cocalc</span>:<span style="color:#3465a4;">~/project</span>$ cat prime_test.py</div>
+<div><span style="color:#c4a000;">def</span>&nbsp;<span style="color:#06989a;">is_prime_lucas_lehmer</span>(p):</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#cc0000;">"""</span></div>
+<div><span style="color:#cc0000;">&nbsp;&nbsp;&nbsp;&nbsp;Test&nbsp;primality&nbsp;of&nbsp;Mersenne&nbsp;number&nbsp;2**p&nbsp;-&nbsp;1.</span></div>
+<div>&nbsp;</div>
+<div><span style="color:#75507b;">&nbsp;&nbsp;&nbsp;&nbsp;&gt;&gt;&gt;&nbsp;is_prime_lucas_lehmer(</span><span style="color:#cc0000;">107</span><span style="color:#75507b;">)</span></div>
+<div><span style="color:#75507b;">&nbsp;&nbsp;&nbsp;&nbsp;True</span></div>
+<div><span style="color:#75507b;">&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#cc0000;">"""</span></div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;k&nbsp;=&nbsp;<span style="color:#cc0000;">2</span>**p&nbsp;-&nbsp;<span style="color:#cc0000;">1</span>;&nbsp;s&nbsp;=&nbsp;<span style="color:#cc0000;">4</span></div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#c4a000;">for</span>&nbsp;i&nbsp;<span style="color:#c4a000;">in</span>&nbsp;<span style="color:#06989a;">range</span>(<span style="color:#cc0000;">3</span>,&nbsp;p+<span style="color:#cc0000;">1</span>):</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s&nbsp;=&nbsp;(s*s&nbsp;-&nbsp;<span style="color:#cc0000;">2</span>)&nbsp;%&nbsp;k</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#c4a000;">return</span>&nbsp;s&nbsp;==&nbsp;<span style="color:#cc0000;">0</span></div>
+<div><span style="color:#4e9a06;">user@cocalc</span>:<span style="color:#3465a4;">~/project</span>$</div>
+</div>`;
+  // The above snippet was created by using xterm.js with the default theme.
   // To get an example for our theme, we substitute the colors.
-  const a = color_themes.default.colors;
-  const b = color_themes[theme]?.colors;
+  const a = COLOR_THEMES.default.colors;
+  const b = COLOR_THEMES[theme]?.colors;
   if (!b) throw Error(`unknown theme ${theme}`);
   for (let i = 0; i < a.length; i++) {
     html = replace_all(html, a[i], b[i]);

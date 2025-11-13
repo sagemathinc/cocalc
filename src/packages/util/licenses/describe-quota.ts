@@ -1,14 +1,24 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+/*
+To avoid inconsistency, we are going to follow the style guide/table from
+the "Microsoft Writing Style Guide" for things like "3 GB":
+
+https://learn.microsoft.com/en-us/style-guide/a-z-word-list-term-collections/term-collections/bits-bytes-terms
+
+We were just making stuff up all over in CoCalc based on what other sites
+do, and the net result was things got inconsistent.
+*/
 
 import {
   LicenseIdleTimeouts,
   untangleUptime,
   Uptime,
 } from "../consts/site-license";
-import { capitalize, plural } from "../misc";
+import { capitalize, is_array, plural, round2 } from "../misc";
 import { SiteLicenseQuota } from "../types/site-licenses";
 import { loadPatch } from "../upgrades/quota";
 import { dedicatedDiskDisplay, dedicatedVmDisplay } from "../upgrades/utils";
@@ -112,21 +122,26 @@ export function describe_quota(
   hideNetwork ||= onPremQuota;
 
   if (onPremQuota ? (quota.ram ?? 1) > 2 : quota.ram) {
-    v.push(`${quota.ram}G RAM`);
+    v.push(`${quota.ram} GB RAM`);
   }
   if (onPremQuota ? (quota.cpu ?? 1) > 1 : quota.cpu) {
-    v.push(`${quota.cpu} shared ${plural(quota.cpu, "CPU")}`);
+    v.push(`${quota.cpu} shared ${plural(quota.cpu, "vCPU")}`);
   }
   if (quota.disk) {
-    v.push(`${quota.disk}G disk`);
+    v.push(`${quota.disk} GB disk`);
   }
   if (quota.dedicated_ram) {
-    v.push(`${quota.dedicated_ram}G dedicated RAM`);
+    v.push(`${quota.dedicated_ram} GB dedicated RAM`);
   }
   if (quota.dedicated_cpu) {
     v.push(
-      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "CPU")}`,
+      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "vCPU")}`,
     );
+  }
+  if (quota.gpu) {
+    const { gpu } = quota;
+    const num = gpu === true ? 1 : (gpu.num ?? 1);
+    v.push(`${num} GPU(s)`);
   }
 
   if (
@@ -168,13 +183,34 @@ export function describe_quota(
   }
   if (quota.run_limit) {
     v.push(
-      `up to ${quota.run_limit} simultaneous running ${plural(
-        quota.run_limit,
-        "project",
-      )}`,
+      `up to ${quota.run_limit} running ${plural(quota.run_limit, "project")}`,
     );
   }
-  return `${intro} ${v.join(", ")}`;
+  let describePeriod = "";
+  const period = quota["period"];
+  const range = quota["range"];
+  if (period) {
+    if (period == "monthly") {
+      describePeriod = " (monthly subscription)";
+    } else if (period == "yearly") {
+      describePeriod = " (yearly subscription)";
+    } else if (
+      period == "range" &&
+      range != null &&
+      is_array(range) &&
+      range.length == 2
+    ) {
+      // specific range
+      const v = range.map((x) => new Date(x).toLocaleString());
+      const days = round2(
+        (new Date(range[1]).valueOf() - new Date(range[0]).valueOf()) /
+          (1000 * 60 * 60 * 24),
+      );
+      describePeriod = ` (${v[0]} - ${v[1]}, ${days} ${plural(Math.round(days), "day")})`;
+    }
+  }
+
+  return `${intro} ${v.join(", ")}${describePeriod}`;
 }
 
 // similar to the above, but very short for the info bar on those store purchase pages.
@@ -187,20 +223,20 @@ export function describeQuotaOnLine(
   const v: string[] = [];
 
   if (quota.ram) {
-    v.push(`${quota.ram}G RAM`);
+    v.push(`${quota.ram} GB RAM`);
   }
   if (quota.cpu) {
-    v.push(`${quota.cpu} ${plural(quota.cpu, "CPU")}`);
+    v.push(`${quota.cpu} ${plural(quota.cpu, "vCPU")}`);
   }
   if (quota.disk) {
-    v.push(`${quota.disk}G disk`);
+    v.push(`${quota.disk} GB disk`);
   }
   if (quota.dedicated_ram) {
-    v.push(`${quota.dedicated_ram}G dedicated RAM`);
+    v.push(`${quota.dedicated_ram} GB dedicated RAM`);
   }
   if (quota.dedicated_cpu) {
     v.push(
-      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "CPU")}`,
+      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "vCPU")}`,
     );
   }
 

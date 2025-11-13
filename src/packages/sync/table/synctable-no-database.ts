@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -67,6 +67,14 @@ class ClientNoDatabase extends EventEmitter {
 
   public is_project(): boolean {
     return this.client.is_project();
+  }
+
+  public is_browser(): boolean {
+    return this.client.is_browser();
+  }
+
+  public is_compute_server(): boolean {
+    return this.client.is_compute_server();
   }
 
   public async touch_project(project_id: string): Promise<void> {

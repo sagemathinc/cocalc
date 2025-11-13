@@ -16,7 +16,7 @@ import getPool from "@cocalc/database/pool";
 // Returns number of items "deleted".
 export default async function deleteItem(
   account_id: string,
-  id: number
+  id: number,
 ): Promise<number> {
   if (!isValidUUID(account_id)) {
     throw Error("account_id is invalid");
@@ -24,7 +24,7 @@ export default async function deleteItem(
   const pool = getPool();
   const { rowCount } = await pool.query(
     "DELETE FROM shopping_cart_items WHERE account_id=$1 AND id=$2 AND purchased IS NULL",
-    [account_id, id]
+    [account_id, id],
   );
-  return rowCount;
+  return rowCount ?? 0;
 }

@@ -11,12 +11,11 @@
   "references": [
     { "path": "../backend" },
     { "path": "../comm" },
-    { "path": "../frontend" },
     { "path": "../jupyter" },
+    { "path": "../conat" },
     { "path": "../sync" },
     { "path": "../sync-client" },
     { "path": "../sync-fs" },
-    { "path": "../terminal" },
     { "path": "../util" }
   ]
 }

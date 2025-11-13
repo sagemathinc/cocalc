@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Col, Panel, Row } from "@cocalc/frontend/antd-bootstrap";
@@ -17,10 +17,11 @@ import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Progress } from "antd";
 import { Map } from "immutable";
 import { join } from "path";
-import { Footer, PolicyPricingPageUrl, SiteName } from "../../customize";
+import { PolicyPricingPageUrl, SiteName } from "../../customize";
 import "./project-upgrades-table";
 import { ProjectUpgradesTable } from "./project-upgrades-table";
 export { tmp as UpgradesPage };
+declare var DEBUG: boolean;
 
 interface reduxProps {
   stripe_customer?: Map<string, any>;
@@ -41,18 +42,21 @@ class UpgradesPage extends Component<reduxProps> {
     };
   }
 
-  private render_no_upgrades(): JSX.Element {
+  private render_no_upgrades(): React.JSX.Element {
     return (
       <div>
         <h3>Upgrades are no longer available</h3>
-        Please visit <A href={join(appBasePath, "store")}>the new store</A> and
-        the <A href="https://cocalc.com/pricing">pricing pages</A>.
-        <Footer />
+        Please visit <A href={join(appBasePath, "store")}>the new store</A>,
+        explore <A href={join(appBasePath, "pricing")}>our products</A>, or{" "}
+        <A href={join(appBasePath, "billing/subscriptions")}>
+          view your legacy upgrade subscriptions
+        </A>
+        .
       </div>
     );
   }
 
-  private render_have_upgrades(): JSX.Element {
+  private render_have_upgrades(): React.JSX.Element {
     return (
       <div style={{ margin: "10px 0" }}>
         <h3>
@@ -77,7 +81,7 @@ class UpgradesPage extends Component<reduxProps> {
     );
   }
 
-  private render_upgrade(param, amount, used, darker): JSX.Element {
+  private render_upgrade(param, amount, used, darker): React.JSX.Element {
     const info = PROJECT_UPGRADES.params[param];
     const n = round1(amount != null ? info.display_factor * amount : 0);
     let u = round1(used != null ? info.display_factor * used : 0);
@@ -116,9 +120,9 @@ class UpgradesPage extends Component<reduxProps> {
     );
   }
 
-  private render_upgrade_rows(upgrades, used): JSX.Element[] {
+  private render_upgrade_rows(upgrades, used): React.JSX.Element[] {
     let i = 1;
-    const result: JSX.Element[] = [];
+    const result: React.JSX.Element[] = [];
     for (let prop of PROJECT_UPGRADES.field_order) {
       const amount = upgrades[prop];
       i += 1;
@@ -127,7 +131,7 @@ class UpgradesPage extends Component<reduxProps> {
     return result;
   }
 
-  private render_upgrades(): JSX.Element {
+  private render_upgrades(): React.JSX.Element {
     const upgrades = redux.getStore("account").get_total_upgrades();
     const used = redux
       .getStore("projects")
@@ -169,7 +173,7 @@ class UpgradesPage extends Component<reduxProps> {
     );
   }
 
-  public render(): JSX.Element {
+  public render(): React.JSX.Element {
     if (this.props.project_map == null) {
       return <Loading theme={"medium"} />;
     }
@@ -178,7 +182,10 @@ class UpgradesPage extends Component<reduxProps> {
       redux.getActions("projects").load_all_projects();
       return <Loading theme={"medium"} />;
     }
-    if (!this.props.stripe_customer?.getIn(["subscriptions", "total_count"])) {
+    if (
+      !DEBUG &&
+      !this.props.stripe_customer?.getIn(["subscriptions", "total_count"])
+    ) {
       return this.render_no_upgrades();
     } else {
       return (
@@ -186,7 +193,6 @@ class UpgradesPage extends Component<reduxProps> {
           {this.render_have_upgrades()}
           {this.render_upgrades()}
           <ProjectUpgradesTable />
-          <Footer />
         </div>
       );
     }

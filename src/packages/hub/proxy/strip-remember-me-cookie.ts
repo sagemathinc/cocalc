@@ -18,7 +18,11 @@ export default function stripRememberMeCookie(cookie): {
   api_key: string | undefined;
 } {
   if (cookie == null) {
-    return { cookie, remember_me: undefined, api_key: undefined };
+    return {
+      cookie,
+      remember_me: undefined,
+      api_key: undefined,
+    };
   } else {
     const v: string[] = [];
     let remember_me: string | undefined = undefined;

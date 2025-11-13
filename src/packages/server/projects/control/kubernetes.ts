@@ -1,7 +1,6 @@
 /*
 cocalc-kubernetes support.
 
-
 TODO/CRITICAL: I deleted this from target.ts, so be sure to make this.host be actually right!
 
   if (project._kubernetes) {
@@ -31,7 +30,7 @@ const winston = getLogger("project-control-kubernetes");
 
 class Project extends BaseProject {
   async state(): Promise<ProjectState> {
-    console.log("state");
+    winston.debug("state ", this.project_id);
     throw Error("implement me");
   }
 
@@ -42,6 +41,7 @@ class Project extends BaseProject {
 
   async start(): Promise<void> {
     winston.debug("start ", this.project_id);
+    //await this.touch(undefined, { noStart: true });
     throw Error("implement me");
   }
 
