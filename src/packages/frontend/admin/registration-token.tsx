@@ -38,6 +38,7 @@ import {
   Saving,
   TimeAgo,
 } from "@cocalc/frontend/components";
+import Copyable from "@cocalc/frontend/components/copy-to-clipboard";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { RegistrationTokenSetFields } from "@cocalc/util/db-schema/types";
@@ -78,6 +79,15 @@ function findPresetKey(value?: number): string | undefined {
 function formatEphemeralHours(value?: number): string {
   const hours = msToHours(value);
   return hours == null ? "" : `${round1(hours)} h`;
+}
+
+function ephemeralSignupUrl(token?: string): string {
+  if (!token) return "";
+  if (typeof window === "undefined") {
+    return `/ephemeral?token=${token}`;
+  }
+  const { protocol, host } = window.location;
+  return `${protocol}//${host}/ephemeral?token=${token}`;
 }
 
 function use_registration_tokens() {
@@ -501,6 +511,22 @@ export function RegistrationToken() {
             dataIndex="token"
             defaultSortOrder={"ascend"}
             sorter={(a, b) => a.token.localeCompare(b.token)}
+          />
+          <Table.Column<Token>
+            title="Ephemeral link"
+            width={240}
+            render={(_, token) => {
+              if (!token?.ephemeral) return null;
+              const url = ephemeralSignupUrl(token.token);
+              if (!url) return null;
+              return (
+                <Copyable
+                  value={url}
+                  inputWidth="14em"
+                  outerStyle={{ width: "100%" }}
+                />
+              );
+            }}
           />
           <Table.Column<Token> title="Description" dataIndex="descr" />
           <Table.Column<Token>
