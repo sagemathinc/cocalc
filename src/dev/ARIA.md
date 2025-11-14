@@ -248,7 +248,7 @@ These phases outline areas that need further accessibility work. Explore in deta
 
 **Phase 24 ✅**: Editor content landmark navigation. Full keyboard navigation (Tab/Shift+Tab) between split editor frames. Content landmark focusable via Alt+Shift+M, Return key enters editor. Design system color feedback.
 
-**Phase 25 ✅**: Hotkey quick navigation dialog. Global hotkey (Shift+Shift, Alt+Shift+H, Alt+Shift+Space) with hierarchical tree showing frames, files, pages, account. Multi-term search with visual highlighting. Full keyboard navigation support.
+**Phase 25 ✅**: Hotkey quick navigation dialog. Global hotkey (Shift+Shift, Alt+Shift+H, Alt+Shift+Space) with hierarchical tree showing frames, files, pages, account. Multi-term search with visual highlighting. Full keyboard navigation support. Numeric shortcuts: Key 0 toggles side chat, Keys 1–9 focus frames.
 
 ---
 
@@ -257,6 +257,7 @@ These phases outline areas that need further accessibility work. Explore in deta
 ### Application Entry Points
 
 **Flow:**
+
 1. **`packages/static/src/app.html`** - Minimal HTML template with empty `<head>` and container divs
 2. **`packages/static/src/webapp-cocalc.ts`** - Entry point that calls `init()`
 3. **`packages/frontend/entry-point.ts`** - Initializes Redux, stores, and all app subsystems
@@ -264,6 +265,7 @@ These phases outline areas that need further accessibility work. Explore in deta
 5. **`packages/frontend/app/page.tsx`** - Main App component with navigation, content layout
 
 ### Current Structure
+
 - **static** package: Builds static assets (webpack) for the SPA
 - **frontend** package: React components, Redux state, app logic
 - **app.html**: Base template (extremely minimal - needs enhancement)
@@ -272,6 +274,7 @@ These phases outline areas that need further accessibility work. Explore in deta
 ### WCAG AA Improvements Needed
 
 #### 1. HTML Root & Head Elements (`app.html` & `meta.tsx`)
+
 - [x] ✅ Add `lang` attribute to `<html>` for screen reader language detection - **Fixed in `packages/frontend/app/localize.tsx`** (dynamically set from i18n locale)
 - [x] ✅ Remove `user-scalable=no` from viewport meta tag (WCAG AA: low vision users must be able to zoom) - **Fixed in `packages/static/src/meta.tsx`**
 - [x] ✅ Add `<title>` tag (can be updated dynamically via React) - **Already implemented in `packages/frontend/browser.ts`** with `set_window_title()` function called throughout app navigation
@@ -280,6 +283,7 @@ These phases outline areas that need further accessibility work. Explore in deta
 - [ ] Add **skip links** for keyboard navigation (skip to main content, skip nav)
 
 #### 2. Document Structure
+
 - [ ] Ensure React app renders proper semantic HTML structure
 - [ ] Root `<main>` landmark for primary content (✅ partially done in page.tsx)
 - [ ] `<nav>` for top navigation (✅ done in page.tsx)
@@ -287,6 +291,7 @@ These phases outline areas that need further accessibility work. Explore in deta
 - [ ] Dynamic page `<title>` based on context (projects, files, pages)
 
 #### 3. Focus Management & Keyboard
+
 - [ ] Skip to main content link (functional, keyboard-accessible)
 - [ ] Focus visible styles for keyboard users (`:focus-visible`)
 - [ ] Focus trap for modals (ensure focus doesn't escape)
@@ -294,27 +299,32 @@ These phases outline areas that need further accessibility work. Explore in deta
 - [ ] Return key handling for interactive elements
 
 #### 4. Color & Contrast
+
 - [ ] Verify WCAG AA contrast ratios (4.5:1 for normal text, 3:1 for large text)
 - [ ] Test with color blindness simulators
 - [ ] Ensure no information conveyed by color alone
 
 #### 5. Images & Icons
+
 - [ ] All decorative images: `aria-hidden="true"` or empty `alt=""`
 - [ ] Functional images: meaningful `alt` text
 - [ ] Icon-only buttons: `aria-label` (✅ mostly done)
 
 #### 6. Forms & Inputs
+
 - [ ] All `<input>` elements have associated `<label>` or `aria-label`
 - [ ] Required fields marked with `aria-required="true"`
 - [ ] Error messages linked via `aria-describedby`
 - [ ] Form validation messages announced to screen readers
 
 #### 7. Headings & Structure
+
 - [ ] Proper heading hierarchy (h1 → h2 → h3, no skips)
 - [ ] Meaningful heading text (not "Click here", "More")
 - [ ] One h1 per page (main topic/title)
 
 #### 8. Alerts & Notifications
+
 - [ ] Success/error messages: `role="alert"` with `aria-live="assertive"`
 - [ ] Info messages: `aria-live="polite"`
 - [ ] Notification timeout announcements
@@ -340,6 +350,7 @@ These phases outline areas that need further accessibility work. Explore in deta
 ### Implementation Priority
 
 **High Priority** (impacts many users):
+
 - HTML lang attribute and meta tags
 - Skip links
 - Color contrast fixes
@@ -347,12 +358,14 @@ These phases outline areas that need further accessibility work. Explore in deta
 - Heading hierarchy
 
 **Medium Priority** (improves usability):
+
 - Focus visible styles
 - Modal focus traps
 - Dynamic page titles
 - Confirmation dialogs
 
 **Low Priority** (nice to have):
+
 - Advanced ARIA patterns
 - Internationalization meta tags
 - Schema.org microdata
@@ -507,17 +520,20 @@ jq '.audits["aria-required-parent"].details.failed[].node.selector' dev/localhos
 **Final Fixes Applied:**
 
 **label-content-name-mismatch** (3 items) ✅ **FIXED**
+
 - Removed duplicate aria-labels from Switch components (kept only visible text)
 - Removed mismatched aria-label from Create button (visible text is sufficient)
 - Switches now use checkedChildren/unCheckedChildren for visible text only
 - Create button uses visible text without aria-label override
 
 **aria-required-children** (2 items) ✅ **FIXED**
+
 - Added `role="tab"` to SortableTab wrapper in `packages/frontend/components/sortable-tabs.tsx` (line 154)
 - This overrides the `role="button"` that dnd-kit attributes add via spread operator
 - Now tablist only has role="tab" children (both wrapper and inner Ant Design tab)
 
 **aria-required-parent** (4 items) 🔄 **PENDING VERIFICATION**
+
 - May be auto-fixed by the SortableTab role="tab" change
 - Need to run Lighthouse again to verify
 
@@ -526,6 +542,7 @@ jq '.audits["aria-required-parent"].details.failed[].node.selector' dev/localhos
 **Report**: localhost_5000-20251113T152932.json
 
 After all fixes:
+
 - ✅ aria-command-name: PASS
 - ✅ image-alt: PASS
 - ✅ link-name: PASS
@@ -541,6 +558,7 @@ After all fixes:
 **Root Cause**: The actual Ant Design tab elements (`div role="tab"`) are nested too deeply inside the tablist wrapper due to how renderTabBar wraps each tab in SortableTab.
 
 **Structure Problem**:
+
 ```
 SortableTabs role="tablist"
   └─ Ant Design Tabs component
@@ -562,7 +580,7 @@ SortableTabs role="tablist"
 ### Remaining Work
 
 **Immediate**:
+
 1. Decide on approach to fix aria-required-parent/children (requires deeper restructuring)
 
-**Future**:
-2. **DEFER**: color-contrast (8+ items) - plan custom antd theme with accessibility option
+**Future**: 2. **DEFER**: color-contrast (8+ items) - plan custom antd theme with accessibility option

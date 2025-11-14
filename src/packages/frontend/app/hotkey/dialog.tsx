@@ -10,8 +10,9 @@ import { Input, Modal, Tree } from "antd";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { redux } from "@cocalc/frontend/app-framework";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Paragraph } from "@cocalc/frontend/components";
+import { toggleChat } from "@cocalc/frontend/chat/chat-indicator";
 import { getSideChatActions } from "@cocalc/frontend/frame-editors/generic/chat";
 import {
   get_local_storage,
@@ -266,6 +267,11 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
   const treeData = useEnhancedNavigationTreeData(!visible);
   const { frameTreeStructure, activeFrames, activeFileName, activeProjectId } =
     useActiveFrameData(!visible);
+  // Get open_files state to check chat state
+  const open_files = useTypedRedux(
+    { project_id: activeProjectId ?? "" },
+    "open_files",
+  );
   const searchInputRef = useRef<any>(null);
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const [searchValue, setSearchValue] = useState("");
@@ -585,12 +591,27 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
     // Number shortcuts (0-9) - always available to jump to frames
     const num = parseInt(e.key, 10);
     if (!isNaN(num) && num >= 0 && num <= 9) {
-      // Special handling for chat frame (key 0)
+      // Special handling for chat frame (key 0) - toggle chat
       if (num === 0) {
         if (activeFileName && activeProjectId) {
-          const projectActions = redux.getProjectActions(activeProjectId);
-          projectActions?.open_chat({ path: activeFileName });
-          focusChatInputWithRetry(activeProjectId, activeFileName, 0, true);
+          // Check if chat is already open for this file
+          const fileInfo = open_files?.get(activeFileName);
+          const chatState = fileInfo?.get("chatState");
+          const isChatOpen = !!chatState; // truthy chatState means chat is open
+
+          if (DEBUG) {
+            console.log("Chat toggle key 0 pressed:", {
+              activeFileName,
+              activeProjectId,
+              fileInfo: fileInfo?.toJS?.() || fileInfo,
+              chatState,
+              isChatOpen,
+            });
+          }
+
+          // Toggle chat using shared function
+          toggleChat(activeProjectId, activeFileName, chatState, "hotkey-0");
+
           onClose();
           e.preventDefault();
           return;
@@ -779,7 +800,6 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
           onChange={handleSearch}
           value={searchValue}
           autoFocus
-          onKeyDown={handleKeyDown}
           allowClear
           style={{ marginBottom: 16 }}
         />
@@ -867,7 +887,7 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
         <Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
           <FormattedMessage
             id="app.hotkey.dialog.help_text"
-            defaultMessage="Click frames above • Key 0 shows/focuses chat • Keys 1–9 focus frames • Type to search • ↑↓ navigate • Return to open • ESC to close"
+            defaultMessage="Click frames above • Key 0 toggles chat • Keys 1–9 focus frames • Type to search • ↑↓ navigate • Return to open • ESC to close"
             description="Help text showing keyboard shortcuts in the quick navigation dialog"
           />
         </Paragraph>

@@ -61,8 +61,13 @@
       "mcp__github__get_pull_request_files",
       "mcp__github__get_pull_request_status",
       "mcp__github__list_workflow_runs",
-      "mcp__github__list_workflows"
-      "mcp__chrome-devtools__*"
+      "mcp__github__list_workflows",
+      "mcp__chrome-devtools__new_page",
+      "mcp__chrome-devtools__wait_for",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__list_pages",
+      "mcp__chrome-devtools__click",
+      "mcp__chrome-devtools__press_key"
     ],
     "deny": []
   }
