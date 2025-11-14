@@ -11,12 +11,13 @@ interface Query {
   expires?: Date;
   limit?: number;
   disabled?: boolean;
+  ephemeral?: boolean;
 }
 
 export default async function registrationTokensQuery(
   db: PostgreSQL,
   options: { delete?: boolean }[],
-  query: Query
+  query: Query,
 ) {
   if (isDelete(options) && query.token) {
     // delete if option is set and there is a token which is defined and not an empty string
@@ -37,22 +38,24 @@ export default async function registrationTokensQuery(
     return rows;
   } else if (query.token) {
     // upsert an existing one
-    const { token, descr, expires, limit, disabled } = query;
+    const { token, descr, expires, limit, disabled, ephemeral } = query;
     const { rows } = await callback2(db._query, {
-      query: `INSERT INTO registration_tokens ("token","descr","expires","limit","disabled")
-                VALUES ($1, $2, $3, $4, $5) ON CONFLICT (token)
+      query: `INSERT INTO registration_tokens ("token","descr","expires","limit","disabled","ephemeral")
+                VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (token)
                 DO UPDATE SET
                   "token"    = EXCLUDED.token,
                   "descr"    = EXCLUDED.descr,
                   "expires"  = EXCLUDED.expires,
                   "limit"    = EXCLUDED.limit,
-                  "disabled" = EXCLUDED.disabled`,
+                  "disabled" = EXCLUDED.disabled,
+                  "ephemeral" = EXCLUDED.ephemeral`,
       params: [
         token,
         descr ? descr : null,
         expires ? expires : null,
         limit == null ? null : limit, // if undefined make it null
         disabled != null ? disabled : false,
+        ephemeral == null ? null : ephemeral,
       ],
     });
     return rows;

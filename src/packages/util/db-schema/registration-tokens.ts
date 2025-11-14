@@ -40,6 +40,7 @@ Table({
           expires: null,
           limit: null,
           disabled: null,
+          ephemeral: null,
         } as { [key in RegistrationTokenSetFields]: null },
       },
       get: {
@@ -53,6 +54,7 @@ Table({
           counter: null,
           limit: null,
           disabled: null,
+          ephemeral: null,
         } as { [key in RegistrationTokenGetFields]: null },
       },
     },
@@ -67,5 +69,9 @@ Table({
     },
     limit: { type: "number", desc: "optional – maximum number of accounts" },
     disabled: { type: "boolean", desc: "set to true to disable this token" },
+    ephemeral: {
+      type: "number",
+      desc: "optional – lifetime in milliseconds for accounts/projects created via this token",
+    },
   },
 });

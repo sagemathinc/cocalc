@@ -52,6 +52,7 @@ interface Token {
   limit?: number;
   counter?: number; // readonly
   expires?: dayjs.Dayjs; // DB uses Date objects, watch out!
+  ephemeral?: number;
 }
 
 function use_registration_tokens() {
@@ -84,6 +85,7 @@ function use_registration_tokens() {
             expires: null,
             limit: null,
             disabled: null,
+            ephemeral: null,
           },
         },
       });
@@ -140,9 +142,10 @@ function use_registration_tokens() {
       "expires",
       "limit",
       "descr",
+      "ephemeral",
     ] as RegistrationTokenSetFields[]);
     // set optional field to undefined (to get rid of it)
-    ["descr", "limit", "expires"].forEach(
+    ["descr", "limit", "expires", "ephemeral"].forEach(
       (k: RegistrationTokenSetFields) => (val[k] = val[k] ?? undefined),
     );
     try {
@@ -278,7 +281,7 @@ export function RegistrationToken() {
 
     const onFinish = (values) => save(values);
     const onRandom = () => form.setFieldsValue({ token: new_random_token() });
-    const limit_min = editing != null ? editing.counter ?? 0 : 0;
+    const limit_min = editing != null ? (editing.counter ?? 0) : 0;
 
     return (
       <Form
@@ -303,6 +306,13 @@ export function RegistrationToken() {
         </Form.Item>
         <Form.Item name="limit" label="Limit" rules={[{ required: false }]}>
           <InputNumber min={limit_min} step={1} />
+        </Form.Item>
+        <Form.Item
+          name="ephemeral"
+          label="Ephemeral (ms)"
+          rules={[{ required: false }]}
+        >
+          <InputNumber min={0} step={1000} />
         </Form.Item>
         <Form.Item name="active" label="Active" valuePropName="checked">
           <Switch />
@@ -410,6 +420,11 @@ export function RegistrationToken() {
             title="Limit"
             dataIndex="limit"
             render={(text) => (text != null ? text : "∞")}
+          />
+          <Table.Column<Token>
+            title="Ephemeral (ms)"
+            dataIndex="ephemeral"
+            render={(value) => (value != null ? value : "")}
           />
           <Table.Column<Token>
             title="% Used"
