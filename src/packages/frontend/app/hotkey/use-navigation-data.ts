@@ -8,20 +8,24 @@ declare var DEBUG: boolean;
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 
+import { switchAccountPage } from "@cocalc/frontend/account/util";
 import {
   redux,
   useActions,
-  useTypedRedux,
   useRedux,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import type { EditorSpec } from "@cocalc/frontend/frame-editors/frame-tree/types";
+import { labels } from "@cocalc/frontend/i18n";
+import type { FixedTab } from "@cocalc/frontend/project/page/file-tab";
+import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
 import { useBookmarkedProjects } from "@cocalc/frontend/projects/use-bookmarked-projects";
 import {
+  getRandomColor,
   path_to_tab,
   trunc_middle,
   unreachable,
-  getRandomColor,
 } from "@cocalc/util/misc";
-
 import {
   buildNavigationTree,
   PageInfo,
@@ -32,11 +36,6 @@ import {
   type ProjectInfo,
 } from "./build-tree";
 import type { NavigationTreeNode } from "./dialog";
-import { switchAccountPage } from "@cocalc/frontend/account/util";
-import { labels } from "@cocalc/frontend/i18n";
-import type { EditorSpec } from "@cocalc/frontend/frame-editors/frame-tree/types";
-import type { FixedTab } from "@cocalc/frontend/project/page/file-tab";
-import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
 import {
   ensureFrameFilePath,
   focusFrameWithRetry,
@@ -171,8 +170,12 @@ function extractFramesFromTree(
  * - Current project (prioritized)
  * - All other projects
  * - Account pages (hardcoded, always available)
+ *
+ * @param skip - If true, skip computation and return empty array (used to avoid updates when dialog is closed)
  */
-export function useNavigationTreeData(): NavigationTreeNode[] {
+export function useNavigationTreeData(
+  skip: boolean = false,
+): NavigationTreeNode[] {
   const intl = useIntl();
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
@@ -216,6 +219,10 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
   // This would improve navigation for frequently-used files across all projects,
   // following accessibility best practices for quick navigation dialogs
   const projectsData = useMemo(() => {
+    // Short-circuit if dialog is closed
+    if (skip) {
+      return [];
+    }
     // if (DEBUG) {
     //   console.log("useNavigationTreeData - Building projectsData:", {
     //     openProjectsLength: open_projects?.size,
@@ -308,7 +315,7 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
           if (starred_files) {
             const allStarred = Array.isArray(starred_files)
               ? starred_files
-              : (starred_files.toArray?.() ?? []);
+              : starred_files.toArray?.() ?? [];
             starredFiles = allStarred.filter(
               (path) => !openFilePaths.has(path),
             );
@@ -321,7 +328,7 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
             if (otherStarredFiles) {
               const allStarred = Array.isArray(otherStarredFiles)
                 ? otherStarredFiles
-                : (otherStarredFiles.toArray?.() ?? []);
+                : otherStarredFiles.toArray?.() ?? [];
               starredFiles = allStarred.filter(
                 (path) => !openFilePaths.has(path),
               );
@@ -339,6 +346,7 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
       })
       .filter((p): p is ProjectInfo => p !== null);
   }, [
+    skip,
     project_map,
     open_projects,
     project_id,
@@ -355,7 +363,7 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
 
   // Build ProjectInfo for bookmarked projects (excluding open projects)
   const bookmarkedProjectsData = useMemo(() => {
-    if (!bookmarksInitialized || !project_map) {
+    if (skip || !bookmarksInitialized || !project_map) {
       return [];
     }
 
@@ -377,9 +385,13 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
         } as ProjectInfo;
       })
       .filter((p): p is ProjectInfo => p !== null);
-  }, [bookmarkedProjectIds, project_map, bookmarksInitialized]);
+  }, [skip, bookmarkedProjectIds, project_map, bookmarksInitialized]);
 
   const appPages: AppPageInfo[] = useMemo(() => {
+    if (skip) {
+      return [];
+    }
+
     const pages: AppPageInfo[] = [];
 
     const projectsLabel = intl.formatMessage(labels.projects);
@@ -412,10 +424,14 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
     }
 
     return pages;
-  }, [intl, is_logged_in, is_anonymous]);
+  }, [skip, intl, is_logged_in, is_anonymous]);
 
   // Build the complete navigation tree
   const treeData = useMemo(() => {
+    if (skip) {
+      return [];
+    }
+
     const currentProject =
       projectsData.find((p) => p.id === project_id) || null;
     const otherProjects = projectsData.filter((p) => p.id !== project_id);
@@ -427,7 +443,7 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
       appPages,
       intl,
     );
-  }, [projectsData, project_id, bookmarkedProjectsData, appPages, intl]);
+  }, [skip, projectsData, project_id, bookmarkedProjectsData, appPages, intl]);
 
   return treeData;
 }
@@ -435,8 +451,10 @@ export function useNavigationTreeData(): NavigationTreeNode[] {
 /**
  * Hook that returns just the frame tree structure and active frames
  * (without the full tree data)
+ *
+ * @param skip - If true, skip computation and return empty values (used to avoid updates when dialog is closed)
  */
-export function useActiveFrameData(): {
+export function useActiveFrameData(skip: boolean = false): {
   frameTreeStructure: FrameTreeStructure | null;
   activeFrames: FrameInfo[];
   activeFileName?: string;
@@ -514,7 +532,8 @@ export function useActiveFrameData(): {
   const activeFrameTree = useRedux(frameTreePath);
 
   const { activeFrames, frameTreeStructure } = useMemo(() => {
-    if (!activeEditorContext.activeFileName || !activeFrameTree) {
+    // Short-circuit if dialog is closed
+    if (skip || !activeEditorContext.activeFileName || !activeFrameTree) {
       return {
         activeFrames: [],
         frameTreeStructure: null,
@@ -549,6 +568,7 @@ export function useActiveFrameData(): {
       frameTreeStructure: result.treeStructure,
     };
   }, [
+    skip,
     activeFrameTree,
     activeEditorContext.activeFileName,
     activeEditorContext.editorSpec,
@@ -567,9 +587,13 @@ export function useActiveFrameData(): {
 /**
  * Hook that adds action handlers to tree nodes
  * Ties navigation to Redux actions and routing
+ *
+ * @param skip - If true, skip computation and return empty array (used to avoid updates when dialog is closed)
  */
-export function useEnhancedNavigationTreeData(): NavigationTreeNode[] {
-  const treeData = useNavigationTreeData();
+export function useEnhancedNavigationTreeData(
+  skip: boolean = false,
+): NavigationTreeNode[] {
+  const treeData = useNavigationTreeData(skip);
   const active_top_tab = useTypedRedux("page", "active_top_tab");
 
   // Get project_id from active_top_tab (same logic as useNavigationTreeData)
@@ -582,6 +606,10 @@ export function useEnhancedNavigationTreeData(): NavigationTreeNode[] {
 
   // Enhance tree nodes with action handlers
   const enhancedTreeData = useMemo(() => {
+    if (skip || treeData.length === 0) {
+      return [];
+    }
+
     const enhanceNode = (node: NavigationTreeNode): NavigationTreeNode => {
       if (node.navigationData) {
         const navData = node.navigationData;
@@ -720,7 +748,7 @@ export function useEnhancedNavigationTreeData(): NavigationTreeNode[] {
     };
 
     return treeData.map(enhanceNode);
-  }, [treeData, project_id, page_actions]);
+  }, [skip, treeData, project_id, page_actions]);
 
   return enhancedTreeData;
 }

@@ -19,6 +19,10 @@ import {
 } from "@cocalc/frontend/misc/local-storage";
 import { RenderFrameTree } from "./render-frame-tree";
 import type { AppPageAction, FrameInfo } from "./build-tree";
+import {
+  useActiveFrameData,
+  useEnhancedNavigationTreeData,
+} from "./use-navigation-data";
 import { focusFrameWithRetry } from "./util";
 
 // Extended TreeDataNode with navigation data
@@ -53,11 +57,6 @@ export interface NavigationTreeNode extends TreeDataNode {
 interface QuickNavigationDialogProps {
   visible: boolean;
   onClose: () => void;
-  treeData: NavigationTreeNode[];
-  frameTreeStructure?: any; // Frame tree visualization structure
-  activeFrames?: FrameInfo[]; // Current active frames for keyboard shortcuts
-  activeFileName?: string; // Path to currently open file
-  activeProjectId?: string; // ID of currently active project
 }
 
 /**
@@ -260,13 +259,13 @@ function saveExpandedKeys(
 export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
   visible,
   onClose,
-  treeData,
-  frameTreeStructure,
-  activeFrames,
-  activeFileName,
-  activeProjectId,
 }) => {
   const intl = useIntl();
+  // Compute navigation tree data only when dialog is visible
+  // Pass skip=!visible to skip computation when dialog is closed
+  const treeData = useEnhancedNavigationTreeData(!visible);
+  const { frameTreeStructure, activeFrames, activeFileName, activeProjectId } =
+    useActiveFrameData(!visible);
   const searchInputRef = useRef<any>(null);
   const treeContainerRef = useRef<HTMLDivElement>(null);
   const [searchValue, setSearchValue] = useState("");

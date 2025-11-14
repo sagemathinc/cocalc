@@ -9,11 +9,11 @@ import {
   ACCOUNT_MAIN_MENU_ITEMS,
   PREFERENCES_SUB_TABS,
 } from "@cocalc/frontend/account/account-preferences-config";
-import { isIntlMessage, labels } from "@cocalc/frontend/i18n";
-import type { IntlMessage } from "@cocalc/frontend/i18n";
-import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon, IconName } from "@cocalc/frontend/components";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { filenameIcon } from "@cocalc/frontend/file-associations";
+import type { IntlMessage } from "@cocalc/frontend/i18n";
+import { isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import type { FixedTab } from "@cocalc/frontend/project/page/file-tab";
 import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
 import { COLORS } from "@cocalc/util/theme";

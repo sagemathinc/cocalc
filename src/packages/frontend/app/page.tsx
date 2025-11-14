@@ -29,8 +29,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import {
   GlobalHotkeyDetector,
   QuickNavigationDialog,
-  useActiveFrameData,
-  useEnhancedNavigationTreeData,
 } from "@cocalc/frontend/app/hotkey";
 import Next from "@cocalc/frontend/components/next";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
@@ -131,9 +129,6 @@ export const Page: React.FC = () => {
   const quick_nav_hotkey_delay =
     other_settings?.get("quick_nav_hotkey_delay") ?? DEFAULT_HOTKEY_DELAY_MS;
   const [quick_nav_visible, setQuickNavVisible] = useState<boolean>(false);
-  const quick_nav_tree_data = useEnhancedNavigationTreeData();
-  const { frameTreeStructure, activeFrames, activeFileName, activeProjectId } =
-    useActiveFrameData();
 
   const accountIsReady = useTypedRedux("account", "is_ready");
   const account_id = useTypedRedux("account", "account_id");
@@ -427,11 +422,6 @@ export const Page: React.FC = () => {
       <QuickNavigationDialog
         visible={quick_nav_visible}
         onClose={() => setQuickNavVisible(false)}
-        treeData={quick_nav_tree_data}
-        frameTreeStructure={frameTreeStructure}
-        activeFrames={activeFrames}
-        activeFileName={activeFileName}
-        activeProjectId={activeProjectId}
       />
     </div>
   );
