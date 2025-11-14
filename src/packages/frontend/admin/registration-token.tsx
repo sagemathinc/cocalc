@@ -15,9 +15,11 @@ import {
   Input,
   InputNumber,
   Popconfirm,
+  Radio,
   Switch,
   Table,
 } from "antd";
+import type { RadioChangeEvent } from "antd";
 import dayjs from "dayjs";
 import { List } from "immutable";
 import { pick, sortBy } from "lodash";
@@ -53,6 +55,29 @@ interface Token {
   counter?: number; // readonly
   expires?: dayjs.Dayjs; // DB uses Date objects, watch out!
   ephemeral?: number;
+}
+
+const HOUR_MS = 60 * 60 * 1000;
+const EPHEMERAL_PRESETS = [
+  { key: "6h", label: "6 hours", value: 6 * HOUR_MS },
+  { key: "1d", label: "1 day", value: 24 * HOUR_MS },
+  { key: "1w", label: "1 week", value: 7 * 24 * HOUR_MS },
+] as const;
+const CUSTOM_PRESET_KEY = "custom";
+
+function msToHours(value?: number): number | undefined {
+  if (value == null) return undefined;
+  return value / HOUR_MS;
+}
+
+function findPresetKey(value?: number): string | undefined {
+  if (value == null) return undefined;
+  return EPHEMERAL_PRESETS.find((preset) => preset.value === value)?.key;
+}
+
+function formatEphemeralHours(value?: number): string {
+  const hours = msToHours(value);
+  return hours == null ? "" : `${round1(hours)} h`;
 }
 
 function use_registration_tokens() {
@@ -307,12 +332,79 @@ export function RegistrationToken() {
         <Form.Item name="limit" label="Limit" rules={[{ required: false }]}>
           <InputNumber min={limit_min} step={1} />
         </Form.Item>
-        <Form.Item
-          name="ephemeral"
-          label="Ephemeral (ms)"
-          rules={[{ required: false }]}
-        >
-          <InputNumber min={0} step={1000} />
+        <Form.Item name="ephemeral" hidden>
+          <InputNumber />
+        </Form.Item>
+        <Form.Item label="Ephemeral lifetime">
+          <Form.Item
+            noStyle
+            shouldUpdate={(prev, curr) => prev.ephemeral !== curr.ephemeral}
+          >
+            {(formInstance) => {
+              const ephemeral = formInstance.getFieldValue("ephemeral");
+              const presetKey = findPresetKey(ephemeral);
+              const selection =
+                presetKey ??
+                (ephemeral != null ? CUSTOM_PRESET_KEY : undefined);
+              const customHours = msToHours(ephemeral);
+
+              const handleRadioChange = ({
+                target: { value },
+              }: RadioChangeEvent) => {
+                if (value === CUSTOM_PRESET_KEY) {
+                  if (ephemeral == null) {
+                    formInstance.setFieldsValue({ ephemeral: HOUR_MS });
+                  }
+                  return;
+                }
+                const preset = EPHEMERAL_PRESETS.find(
+                  (option) => option.key === value,
+                );
+                formInstance.setFieldsValue({
+                  ephemeral: preset?.value,
+                });
+              };
+
+              const handleCustomHoursChange = (
+                hours: number | string | null,
+              ) => {
+                const numeric =
+                  typeof hours === "string" ? parseFloat(hours) : hours;
+                if (typeof numeric === "number" && !isNaN(numeric)) {
+                  formInstance.setFieldsValue({
+                    ephemeral: numeric >= 0 ? numeric * HOUR_MS : undefined,
+                  });
+                } else {
+                  formInstance.setFieldsValue({ ephemeral: undefined });
+                }
+              };
+
+              return (
+                <>
+                  <Radio.Group value={selection} onChange={handleRadioChange}>
+                    {EPHEMERAL_PRESETS.map(({ key, label }) => (
+                      <Radio key={key} value={key}>
+                        {label}
+                      </Radio>
+                    ))}
+                    <Radio value={CUSTOM_PRESET_KEY}>Custom</Radio>
+                  </Radio.Group>
+                  {selection === CUSTOM_PRESET_KEY && (
+                    <div style={{ marginTop: "10px" }}>
+                      <InputNumber
+                        min={0}
+                        step={1}
+                        value={customHours ?? undefined}
+                        onChange={handleCustomHoursChange}
+                        placeholder="Enter hours"
+                      />{" "}
+                      hours
+                    </div>
+                  )}
+                </>
+              );
+            }}
+          </Form.Item>
         </Form.Item>
         <Form.Item name="active" label="Active" valuePropName="checked">
           <Switch />
@@ -422,9 +514,9 @@ export function RegistrationToken() {
             render={(text) => (text != null ? text : "∞")}
           />
           <Table.Column<Token>
-            title="Ephemeral (ms)"
+            title="Ephemeral (hours)"
             dataIndex="ephemeral"
-            render={(value) => (value != null ? value : "")}
+            render={(value) => formatEphemeralHours(value)}
           />
           <Table.Column<Token>
             title="% Used"
