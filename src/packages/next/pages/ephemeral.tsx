@@ -48,12 +48,18 @@ export default function EphemeralPage({ customize, token }: Props) {
     setInfo("");
     setError("");
     try {
-      await apiPost("/auth/ephemeral", {
+      const result = await apiPost("/auth/ephemeral", {
         registrationToken: trimmedToken,
       });
       setStatus("redirecting");
       setInfo("Success! Redirecting you to your workspace…");
-      await router.push("/app");
+      if (result?.project_id) {
+        await router.push(
+          `/static/app.html?target=projects/${result.project_id}/files/`,
+        );
+      } else {
+        await router.push("/static/app.html?target=projects");
+      }
     } catch (err) {
       setError(err?.message ?? `${err}`);
       setStatus("idle");

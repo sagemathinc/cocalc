@@ -7,6 +7,7 @@ import { v4 } from "uuid";
 
 import createAccount from "@cocalc/server/accounts/create-account";
 import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
+import getProjects from "@cocalc/server/projects/get";
 import { signUserIn } from "./sign-in";
 import getParams from "lib/api/get-params";
 
@@ -54,5 +55,17 @@ export default async function createEphemeralAccount(req, res) {
     return;
   }
 
+  let project_id: string | undefined;
+  try {
+    const [project] = await getProjects({ account_id, limit: 1 });
+    project_id = project?.project_id;
+  } catch (err) {
+    // non-fatal; we just won't return a redirect target
+  }
+
   await signUserIn(req, res, account_id, { maxAge: tokenInfo.ephemeral });
+  res.json({
+    account_id,
+    project_id,
+  });
 }
