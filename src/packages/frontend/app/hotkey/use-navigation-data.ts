@@ -5,7 +5,7 @@
 
 declare var DEBUG: boolean;
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 
 import { switchAccountPage } from "@cocalc/frontend/account/util";
@@ -41,6 +41,7 @@ import {
   focusFrameWithRetry,
   resolveSpecLabel,
 } from "./util";
+import { getRecentFilesList } from "@cocalc/frontend/projects/util";
 
 const PROJECT_PAGE_INFOS: PageInfo[] = Object.entries(FIXED_PROJECT_TABS)
   .filter(([tabId]) => tabId !== "active")
@@ -210,6 +211,10 @@ export function useNavigationTreeData(
     { project_id: project_id ?? "" },
     "starred_files",
   );
+  const project_log = useTypedRedux(
+    { project_id: project_id ?? "" },
+    "project_log",
+  );
 
   // Only use these if we're in a project view
   const starred_files = isProjectView ? starred_files_raw : undefined;
@@ -315,7 +320,7 @@ export function useNavigationTreeData(
           if (starred_files) {
             const allStarred = Array.isArray(starred_files)
               ? starred_files
-              : starred_files.toArray?.() ?? [];
+              : (starred_files.toArray?.() ?? []);
             starredFiles = allStarred.filter(
               (path) => !openFilePaths.has(path),
             );
@@ -328,8 +333,30 @@ export function useNavigationTreeData(
             if (otherStarredFiles) {
               const allStarred = Array.isArray(otherStarredFiles)
                 ? otherStarredFiles
-                : otherStarredFiles.toArray?.() ?? [];
+                : (otherStarredFiles.toArray?.() ?? []);
               starredFiles = allStarred.filter(
+                (path) => !openFilePaths.has(path),
+              );
+            }
+          }
+        }
+
+        // Get recent files for this project (excluding already-open files)
+        let recentFiles: string[] = [];
+        if (isCurrentProject) {
+          // Current project: get from Redux project_log
+          if (project_log) {
+            const allRecent = getRecentFilesList(project_log, 10);
+            recentFiles = allRecent.filter((path) => !openFilePaths.has(path));
+          }
+        } else {
+          // Other projects: get from their project store if available
+          const otherProjectStore = redux.getProjectStore(projectId);
+          if (otherProjectStore) {
+            const otherProjectLog = otherProjectStore.get("project_log");
+            if (otherProjectLog) {
+              const allRecent = getRecentFilesList(otherProjectLog, 10);
+              recentFiles = allRecent.filter(
                 (path) => !openFilePaths.has(path),
               );
             }
@@ -342,6 +369,7 @@ export function useNavigationTreeData(
           files,
           pages: PROJECT_PAGE_INFOS,
           starredFiles,
+          recentFiles,
         } as ProjectInfo;
       })
       .filter((p): p is ProjectInfo => p !== null);
@@ -353,6 +381,7 @@ export function useNavigationTreeData(
     open_files,
     open_files_order,
     starred_files,
+    project_log,
   ]);
 
   // Get bookmarked projects
@@ -374,7 +403,7 @@ export function useNavigationTreeData(
           return null;
         }
 
-        // For bookmarked projects, we don't need open files, pages, or starred files
+        // For bookmarked projects, we don't need open files, pages, starred files, or recent files
         // (they're not open, so those are unavailable)
         return {
           id: projectId,
@@ -382,6 +411,7 @@ export function useNavigationTreeData(
           files: [],
           pages: [],
           starredFiles: [],
+          recentFiles: [],
         } as ProjectInfo;
       })
       .filter((p): p is ProjectInfo => p !== null);
@@ -425,6 +455,32 @@ export function useNavigationTreeData(
 
     return pages;
   }, [skip, intl, is_logged_in, is_anonymous]);
+
+  // Initialize project_log for all open projects so recent files are available
+  // This needs to happen in useEffect (not useMemo) because init_table is a side effect
+  useEffect(() => {
+    if (skip || !open_projects) {
+      return;
+    }
+
+    // Initialize project_log for the current project
+    if (project_id) {
+      const store = redux.getProjectStore(project_id);
+      if (store) {
+        store.init_table("project_log");
+      }
+    }
+
+    // Initialize project_log for all other open projects
+    open_projects.forEach((projectId: string) => {
+      if (projectId !== project_id) {
+        const store = redux.getProjectStore(projectId);
+        if (store) {
+          store.init_table("project_log");
+        }
+      }
+    });
+  }, [skip, project_id, open_projects]);
 
   // Build the complete navigation tree
   const treeData = useMemo(() => {
@@ -719,15 +775,9 @@ export function useEnhancedNavigationTreeData(
                 case "tab":
                   page_actions?.set_active_tab(navData.id);
                   break;
-                case "toggle-file-use": {
-                  const showFileUse = redux
-                    .getStore("page")
-                    ?.get("show_file_use");
-                  if (!showFileUse) {
-                    page_actions?.toggle_show_file_use();
-                  }
+                case "toggle-file-use":
+                  page_actions?.toggle_show_file_use();
                   break;
-                }
                 default:
                   unreachable(navData.appPageAction);
               }

@@ -58,6 +58,7 @@ export interface ProjectInfo {
   files: FileInfo[];
   pages: PageInfo[];
   starredFiles?: string[]; // Paths to starred files in this project
+  recentFiles?: string[]; // Paths to recently opened files in this project (limit 10)
 }
 
 export type AppPageAction = "tab" | "toggle-file-use";
@@ -355,7 +356,46 @@ function buildProjectNode(
     });
   }
 
-  // 3. Pages section with nested pages list
+  // 3. Recent files section (if any)
+  if (project.recentFiles && project.recentFiles.length > 0) {
+    const recentFileChildren: NavigationTreeNode[] = project.recentFiles.map(
+      (filePath) => {
+        const fileName = filePath.split("/").pop() || filePath;
+        const fileIcon = filenameIcon(filePath);
+        return {
+          key: `recent-file-${project.id}-${filePath}`,
+          title: (
+            <span className="tree-node-ellipsis" title={filePath}>
+              {fileName}
+            </span>
+          ),
+          icon: <Icon name={fileIcon} />,
+          navigationData: {
+            type: "file",
+            id: filePath,
+            projectId: project.id,
+            filePath,
+            searchText: filePath,
+            action: async () => {
+              // Will be set by caller with actual actions
+            },
+          },
+        };
+      },
+    );
+
+    children.push({
+      key: `project-${project.id}-recent-files`,
+      title: (
+        <>
+          <Icon name="history" /> Recent
+        </>
+      ),
+      children: recentFileChildren,
+    });
+  }
+
+  // 4. Pages section with nested pages list
   if (project.pages.length > 0) {
     const pageChildren: NavigationTreeNode[] = [];
 

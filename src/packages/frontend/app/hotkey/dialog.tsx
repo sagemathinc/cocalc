@@ -806,13 +806,12 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
 
         <div
           ref={treeContainerRef}
+          onClick={(e) => e.stopPropagation()}
           style={{
             flex: 1,
             overflow: "auto",
             minHeight: 0,
             minWidth: 0,
-            // Suppress Ant Design Tree's default selection styling (border/background)
-            // We only use bold text for selection
           }}
           className="quick-nav-tree"
         >
@@ -828,7 +827,7 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
             onSelect={async (keys, info) => {
               const newKey = keys[0] || null;
 
-              // Search in transformedTreeData (full tree with parents) not searchList (only leaves)
+              // Search in transformedTreeData (full tree with parents) to check if leaf
               const findNode = (
                 nodes: NavigationTreeNode[],
               ): NavigationTreeNode | undefined => {
@@ -842,11 +841,11 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
                 return undefined;
               };
 
-              const targetNode = findNode(transformedTreeData);
+              const treeNode = findNode(transformedTreeData);
 
               // Check if this is a leaf node (no children)
               const isLeaf =
-                !targetNode?.children || targetNode.children.length === 0;
+                !treeNode?.children || treeNode.children.length === 0;
 
               // Only allow selection and interaction for leaf nodes
               if (!isLeaf) {
@@ -876,9 +875,16 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
 
               // If selected via mouse click on a leaf node, activate it immediately
               // The info.event object is only present when user clicks
-              if (info.event && targetNode?.navigationData) {
-                await triggerAction(targetNode.navigationData.action);
-                onClose();
+              if (info.event) {
+                // Use filteredSearchList (same source as Return key handler)
+                // This ensures navigationData is properly populated
+                const listNode = filteredSearchList.find(
+                  (item) => item.key === newKey,
+                );
+                if (listNode?.node.navigationData) {
+                  await triggerAction(listNode.node.navigationData.action);
+                  onClose();
+                }
               }
             }}
           />
