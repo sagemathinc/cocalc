@@ -43,6 +43,7 @@ import initProjectControl, {
 import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
 import initNewProjectPoolMaintenanceLoop from "@cocalc/server/projects/pool/maintain";
 import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
+import initEphemeralMaintenance from "@cocalc/server/ephemeral-maintenance";
 import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
@@ -295,6 +296,7 @@ async function startServer(): Promise<void> {
     // Starts periodic maintenance on pay-as-you-go purchases, e.g., quota
     // upgrades of projects.
     initPurchasesMaintenanceLoop();
+    initEphemeralMaintenance();
     initSalesloftMaintenance();
     // Migrate bookmarks from database to conat (runs once at startup)
     migrateBookmarksToConat().catch((err) => {
