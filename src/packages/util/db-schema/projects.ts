@@ -743,6 +743,8 @@ export interface CreateProjectOptions {
 
   // admins can specify the project_id - nobody else can -- useful for debugging.
   project_id?: string;
+  // if set, project should be treated as expiring after this many milliseconds since creation
+  ephemeral?: number;
 }
 
 interface BaseCopyOptions {

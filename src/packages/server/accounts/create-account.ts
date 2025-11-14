@@ -81,6 +81,7 @@ export default async function createAccount({
       account_id,
       tags,
       noFirstProject,
+      ephemeral,
     });
     await creationActionsDone(account_id);
   } catch (error) {
