@@ -9,12 +9,14 @@ import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
 import { Icon } from "@cocalc/frontend/components/icon";
+import apiPost from "lib/api/post";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import { useRouter } from "next/router";
 
 const { Paragraph, Text, Title } = Typography;
 
-type Status = "idle" | "verifying";
+type Status = "idle" | "verifying" | "redirecting";
 
 interface Props {
   customize;
@@ -22,11 +24,13 @@ interface Props {
 }
 
 export default function EphemeralPage({ customize, token }: Props) {
+  const router = useRouter();
   const [registrationToken, setRegistrationToken] = useState<string>(
     token ?? "",
   );
   const [status, setStatus] = useState<Status>("idle");
   const [info, setInfo] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     if (token) {
@@ -34,17 +38,26 @@ export default function EphemeralPage({ customize, token }: Props) {
     }
   }, [token]);
 
-  const disabled = registrationToken.trim().length === 0 || status !== "idle";
+  const trimmedToken = registrationToken.trim();
+  const working = status !== "idle";
+  const disabled = trimmedToken.length === 0 || working;
 
-  function handleConfirm(): void {
+  async function handleConfirm(): Promise<void> {
+    if (disabled) return;
     setStatus("verifying");
-    // Placeholder wiring – actual validation happens in the next task.
-    setTimeout(() => {
+    setInfo("");
+    setError("");
+    try {
+      await apiPost("/auth/ephemeral", {
+        registrationToken: trimmedToken,
+      });
+      setStatus("redirecting");
+      setInfo("Success! Redirecting you to your workspace…");
+      await router.push("/app");
+    } catch (err) {
+      setError(err?.message ?? `${err}`);
       setStatus("idle");
-      setInfo(
-        "Token validation isn't wired up yet. Once implemented, this button will create an ephemeral account.",
-      );
-    }, 250);
+    }
   }
 
   return (
@@ -94,10 +107,22 @@ export default function EphemeralPage({ customize, token }: Props) {
                     onChange={(e) => {
                       setRegistrationToken(e.target.value);
                       if (info) setInfo("");
+                      if (error) setError("");
                     }}
                     onPressEnter={disabled ? undefined : handleConfirm}
                   />
                 </div>
+
+                {error && (
+                  <Alert
+                    type="error"
+                    message="Unable to create account"
+                    description={error}
+                    showIcon
+                    closable
+                    onClose={() => setError("")}
+                  />
+                )}
 
                 {info && (
                   <Alert
@@ -113,11 +138,11 @@ export default function EphemeralPage({ customize, token }: Props) {
                   type="primary"
                   size="large"
                   disabled={disabled}
-                  loading={status === "verifying"}
+                  loading={working}
                   onClick={handleConfirm}
                   block
                 >
-                  Continue
+                  {status === "redirecting" ? "Redirecting…" : "Continue"}
                 </Button>
 
                 <Alert
@@ -127,9 +152,10 @@ export default function EphemeralPage({ customize, token }: Props) {
                   description={
                     <Paragraph style={{ marginBottom: 0 }}>
                       Ephemeral accounts automatically expire after the duration
-                      configured with their registration token. You will be
-                      signed in automatically and redirected to your workspace
-                      as soon as token verification is implemented.
+                      configured with their registration token. When the token
+                      is valid you'll be signed in automatically and redirected
+                      to your workspace with a cookie that expires at the same
+                      time.
                     </Paragraph>
                   }
                 />

@@ -9,7 +9,14 @@ then returns no matter what the input is.
 import getRequiresTokens from "./get-requires-token";
 import { getTransactionClient } from "@cocalc/database/pool";
 
-export default async function redeem(token: string): Promise<void> {
+export interface RegistrationTokenInfo {
+  token: string;
+  ephemeral?: number;
+}
+
+export default async function redeem(
+  token: string,
+): Promise<RegistrationTokenInfo | undefined> {
   const required = await getRequiresTokens();
   if (!required) {
     // no token required, so nothing to do.
@@ -29,7 +36,7 @@ export default async function redeem(token: string): Promise<void> {
     // → if counter, check counter vs. limit
     //   → true: increase the counter → ok
     //   → false: ok
-    const q_match = `SELECT "expires", "counter", "limit", "disabled"
+    const q_match = `SELECT "expires", "counter", "limit", "disabled", "ephemeral"
                      FROM registration_tokens
                      WHERE token = $1::TEXT
                      FOR UPDATE`;
@@ -44,6 +51,7 @@ export default async function redeem(token: string): Promise<void> {
       counter: counter_raw,
       limit,
       disabled: disabled_raw,
+      ephemeral,
     } = match.rows[0];
     const counter = counter_raw ?? 0;
     const disabled = disabled_raw ?? false;
@@ -68,6 +76,10 @@ export default async function redeem(token: string): Promise<void> {
 
     // all good, let's commit
     await client.query("COMMIT");
+    return {
+      token,
+      ephemeral: typeof ephemeral === "number" ? ephemeral : undefined,
+    };
   } catch (err) {
     await client.query("ROLLBACK");
     throw err;
