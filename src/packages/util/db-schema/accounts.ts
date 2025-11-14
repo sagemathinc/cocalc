@@ -153,6 +153,10 @@ Table({
       type: "timestamp",
       desc: "When the account was created.",
     },
+    ephemeral: {
+      type: "number",
+      desc: "If set, number of milliseconds this account is allowed to exist after creation.",
+    },
     created_by: {
       type: "string",
       pg_type: "inet",
@@ -543,6 +547,7 @@ Table({
           },
           ssh_keys: {},
           created: null,
+          ephemeral: null,
           unlisted: false,
           tags: null,
           tours: null,

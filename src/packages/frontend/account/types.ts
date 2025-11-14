@@ -90,6 +90,7 @@ export interface AccountState {
   is_ready: boolean; // user signed in and account settings have been loaded.
   lti_id?: List<string>;
   created?: Date;
+  ephemeral?: number;
   strategies?: List<TypedMap<PassportStrategyFrontend>>;
   token?: boolean; // whether or not a registration token is required when creating an account
   keyboard_variant_options?: List<any>;
