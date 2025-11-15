@@ -37,6 +37,7 @@ export default async function createProject(opts: CreateProjectOptions) {
     public_path_id,
     start,
     src_project_id,
+    ephemeral,
   } = opts;
 
   let license = opts.license;
@@ -76,7 +77,6 @@ export default async function createProject(opts: CreateProjectOptions) {
     const fs = fsClient({ subject: fsSubject({ project_id }) });
     await fs.rm(".ssh/.cocalc", { recursive: true, force: true });
   }
-
   const users =
     account_id == null ? null : { [account_id]: { group: "owner" } };
   let site_license;
@@ -93,7 +93,7 @@ export default async function createProject(opts: CreateProjectOptions) {
 
   const pool = getPool();
   await pool.query(
-    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited, rootfs_image) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7)",
+    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited, rootfs_image, ephemeral) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8::BIGINT)",
     [
       project_id,
       title ?? "No Title",
@@ -102,6 +102,7 @@ export default async function createProject(opts: CreateProjectOptions) {
       site_license != null ? JSON.stringify(site_license) : undefined,
       image ?? envs?.default ?? DEFAULT_COMPUTE_IMAGE,
       rootfs_image,
+      ephemeral ?? null,
     ],
   );
 

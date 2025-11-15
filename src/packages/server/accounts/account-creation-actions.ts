@@ -3,7 +3,11 @@
 
 import getPool from "@cocalc/database/pool";
 import addUserToProject from "@cocalc/server/projects/add-user-to-project";
+import firstProject from "./first-project";
+import getOneProject from "@cocalc/server/projects/get-one";
+import { getProject } from "@cocalc/server/projects/control";
 import { getLogger } from "@cocalc/backend/logger";
+import getProjects from "@cocalc/server/projects/get";
 
 const log = getLogger("server:accounts:creation-actions");
 
@@ -11,10 +15,15 @@ export default async function accountCreationActions({
   email_address,
   account_id,
   tags,
+  noFirstProject,
+  ephemeral,
 }: {
   email_address?: string;
   account_id: string;
   tags?: string[];
+  // if set, don't do any initial project actions (i.e., creating or starting projects)
+  noFirstProject?: boolean;
+  ephemeral?: number;
 }): Promise<void> {
   log.debug({ account_id, email_address, tags });
 
@@ -36,6 +45,43 @@ export default async function accountCreationActions({
     }
   }
   log.debug("added user to", numProjects, "projects");
+  if (!noFirstProject) {
+    if (numProjects == 0) {
+      // didn't get added to any projects
+      // You may be a new user with no known "reason"
+      // to use CoCalc, except that you found the page and signed up.  You are
+      // VERY likely to create a project next, or you wouldn't be here.
+      // So we create a project for you now to increase your chance of success.
+      // NOTE -- wrapped in closure, since do NOT block on this:
+      (async () => {
+        try {
+          const projects = await getProjects({ account_id, limit: 1 });
+          if (projects.length == 0) {
+            // you really have no projects at all.
+            await firstProject({ account_id, tags, ephemeral });
+          }
+        } catch (err) {
+          // non-fatal; they can make their own project
+          log.error("problem configuring first project", account_id, err);
+        }
+      })();
+    } else if (numProjects > 0) {
+      // Make sure project is running so they have a good first experience.
+      (async () => {
+        try {
+          const { project_id } = await getOneProject(account_id);
+          const project = getProject(project_id);
+          await project.start();
+        } catch (err) {
+          log.error(
+            "failed to start newest project invited to",
+            err,
+            account_id,
+          );
+        }
+      })();
+    }
+  }
 }
 
 export async function creationActionsDone(account_id: string): Promise<void> {

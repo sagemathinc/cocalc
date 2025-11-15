@@ -19,6 +19,24 @@ import {
 import { Icon, Gap } from "../components";
 import { SiteName } from "../customize";
 import { lite } from "@cocalc/frontend/lite";
+const HOUR_MS = 60 * 60 * 1000;
+
+function formatTimeDelta(ms: number | undefined): string {
+  if (ms == null || !isFinite(ms) || ms <= 0) {
+    return "soon";
+  }
+  const hours = ms / HOUR_MS;
+  if (hours >= 48) {
+    const days = Math.round(hours / 24);
+    return `in ${days} day${days === 1 ? "" : "s"}`;
+  }
+  if (hours >= 1) {
+    const rounded = Math.round(hours * 10) / 10;
+    return `in ${rounded} hour${rounded === 1 ? "" : "s"}`;
+  }
+  const minutes = Math.max(1, Math.round(ms / 60000));
+  return `in ${minutes} minute${minutes === 1 ? "" : "s"}`;
+}
 
 interface Props {
   project_id: string;
@@ -39,6 +57,8 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
   const project = useRedux(["project_map", project_id], "projects");
   const first_name = useTypedRedux("account", "first_name");
   const last_name = useTypedRedux("account", "last_name");
+  const ephemeral = useTypedRedux("account", "ephemeral");
+  const created = useTypedRedux("account", "created");
   const [editingName, setEditingName] = useState<boolean>(false);
   const actions = useActions("account");
   if (first_name == null || last_name == null || lite) {
@@ -55,7 +75,18 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
     </>
   );
   let mesg;
-  if ((project?.get("users")?.size ?? 1) <= 1) {
+  if (ephemeral) {
+    const expiresAt =
+      created != null ? created.valueOf() + ephemeral : Date.now() + ephemeral;
+    const timeText = formatTimeDelta(expiresAt - Date.now());
+    mesg = (
+      <div>
+        {icon}
+        You are using <SiteName /> with an ephemeral account. This account will
+        be deleted {timeText}.
+      </div>
+    );
+  } else if ((project?.get("users")?.size ?? 1) <= 1) {
     // no need to encourage a name -- they are alone; also, emphasize
     // that they could lose their work:
     mesg = (

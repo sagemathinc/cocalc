@@ -10,13 +10,15 @@
     "declaration": true
   },
   "exclude": ["dist", "node_modules"],
+  "include": ["./images.d.ts"],
   "types": ["jest", "@testing-library/jest-dom"],
   "references": [
     {
       "path": "../util",
       "path": "../conat",
       "path": "../backend",
-      "path": "../frontend"
+      "path": "../frontend",
+      "path": "../lite"
     }
   ]
 }

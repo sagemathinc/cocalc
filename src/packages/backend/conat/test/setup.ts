@@ -267,6 +267,7 @@ export async function waitForConsistentState(
             if (!isEqual(a, x) /*|| !isEqual(b, y) */) {
               // @ts-ignore
               const seqs0 = servers[i].clusterStreams.interest.seqs();
+              // @ts-ignore
               const seqs1 = link.streams.interest.seqs();
               if (
                 !isEqual(

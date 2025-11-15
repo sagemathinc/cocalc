@@ -1,12 +1,14 @@
 /*
-Implementation of path sync *inside* volumes on the file server.
+Implementation of path sync *inside* volumes on the file server,
+using reflect-sync.
 
-NOTE: I'm aware that we could use bind mounts instead of mutagen
+NOTE: I'm aware that we could use bind mounts instead of sync
 to accomplish something very similar.  There are a huge list of pros
-and cons to using mutagen versus bind mounts to solve this problem.
-We've gone with mutagen, since it's entirely in user space (so maximally
+and cons to using sync versus bind mounts to solve this problem.
+We've gone with sync, since it's entirely in user space (so maximally
 flexible), and doesn't involve any cross filesystem mount issues.
-Basically, for security it's better.
+Basically, for security it's better.  Also, it smoothly supports
+scaling to multiple file servers.
 
 */
 

@@ -85,6 +85,7 @@ Table({
           // if the value is not set, we have to use the old default prior to summer 2020 (Ubuntu 18.04, not 20.04!)
           compute_image: FALLBACK_COMPUTE_IMAGE,
           created: null,
+          ephemeral: null,
           env: null,
           sandbox: null,
           avatar_image_tiny: null,
@@ -249,6 +250,10 @@ Table({
     created: {
       type: "timestamp",
       desc: "When the project was created.",
+    },
+    ephemeral: {
+      type: "number",
+      desc: "If set, number of milliseconds this project may exist after creation.",
     },
     action_request: {
       type: "map",
@@ -756,6 +761,8 @@ export interface CreateProjectOptions {
 
   // admins can specify the project_id - nobody else can -- useful for debugging.
   project_id?: string;
+  // if set, project should be treated as expiring after this many milliseconds since creation
+  ephemeral?: number;
 
   // If given, files will be exact clone of those from src_project_id.
   // account_id must be a collab on src_project_id.

@@ -117,6 +117,7 @@ export const Page: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
+  const ephemeral = useTypedRedux("account", "ephemeral");
   const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
   const show_i18n = useShowI18NBanner();
@@ -150,7 +151,7 @@ export const Page: React.FC = () => {
     }
     const icon = account_tab_icon();
     let label, style;
-    if (is_anonymous) {
+    if (is_anonymous && !ephemeral) {
       let mesg;
       style = { fontWeight: "bold", opacity: 0 };
       if (
