@@ -47,6 +47,7 @@ export class AccountTable extends Table {
           ssh_keys: null,
           created: null,
           ephemeral: null,
+          customize: null,
           unlisted: null,
           tags: null,
           tours: null,

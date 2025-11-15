@@ -16,6 +16,7 @@ import {
   InputNumber,
   Popconfirm,
   Radio,
+  Space,
   Switch,
   Table,
 } from "antd";
@@ -56,6 +57,10 @@ interface Token {
   counter?: number; // readonly
   expires?: dayjs.Dayjs; // DB uses Date objects, watch out!
   ephemeral?: number;
+  customize?: {
+    disableCollaborators?: boolean;
+    disableAI?: boolean;
+  };
 }
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -121,6 +126,7 @@ function use_registration_tokens() {
             limit: null,
             disabled: null,
             ephemeral: null,
+            customize: null,
           },
         },
       });
@@ -178,11 +184,18 @@ function use_registration_tokens() {
       "limit",
       "descr",
       "ephemeral",
+      "customize",
     ] as RegistrationTokenSetFields[]);
     // set optional field to undefined (to get rid of it)
     ["descr", "limit", "expires", "ephemeral"].forEach(
       (k: RegistrationTokenSetFields) => (val[k] = val[k] ?? undefined),
     );
+    if (val.customize != null) {
+      const { disableCollaborators, disableAI } = val.customize;
+      if (!disableCollaborators && !disableAI) {
+        val.customize = undefined;
+      }
+    }
     try {
       set_saving(true);
       await query({
@@ -416,6 +429,24 @@ export function RegistrationToken() {
             }}
           </Form.Item>
         </Form.Item>
+        <Form.Item label="Restrictions">
+          <Space direction="vertical">
+            <Form.Item
+              name={["customize", "disableCollaborators"]}
+              valuePropName="checked"
+              noStyle
+            >
+              <Checkbox>Disable configuring collaborators</Checkbox>
+            </Form.Item>
+            <Form.Item
+              name={["customize", "disableAI"]}
+              valuePropName="checked"
+              noStyle
+            >
+              <Checkbox>Disable artificial intelligence</Checkbox>
+            </Form.Item>
+          </Space>
+        </Form.Item>
         <Form.Item name="active" label="Active" valuePropName="checked">
           <Switch />
         </Form.Item>
@@ -543,6 +574,16 @@ export function RegistrationToken() {
             title="Ephemeral (hours)"
             dataIndex="ephemeral"
             render={(value) => formatEphemeralHours(value)}
+          />
+          <Table.Column<Token>
+            title="Restrict collaborators"
+            render={(_, token) =>
+              token.customize?.disableCollaborators ? "Yes" : ""
+            }
+          />
+          <Table.Column<Token>
+            title="Disable AI"
+            render={(_, token) => (token.customize?.disableAI ? "Yes" : "")}
           />
           <Table.Column<Token>
             title="% Used"

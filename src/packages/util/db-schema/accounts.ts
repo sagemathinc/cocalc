@@ -276,6 +276,10 @@ Table({
       type: "map",
       desc: "Information related to displaying an avatar for this user's location and presence in a document or chatroom.",
     },
+    customize: {
+      type: "map",
+      desc: "Admin-managed configuration overrides for this account.",
+    },
     groups: {
       type: "array",
       pg_type: "TEXT[]",
@@ -549,6 +553,7 @@ Table({
             image: undefined,
             color: "rgb(170,170,170)",
           },
+          customize: null,
           ssh_keys: {},
           created: null,
           ephemeral: null,

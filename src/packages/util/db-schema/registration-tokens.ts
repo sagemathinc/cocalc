@@ -41,6 +41,7 @@ Table({
           limit: null,
           disabled: null,
           ephemeral: null,
+          customize: null,
         } as { [key in RegistrationTokenSetFields]: null },
       },
       get: {
@@ -55,6 +56,7 @@ Table({
           limit: null,
           disabled: null,
           ephemeral: null,
+          customize: null,
         } as { [key in RegistrationTokenGetFields]: null },
       },
     },
@@ -72,6 +74,10 @@ Table({
     ephemeral: {
       type: "number",
       desc: "optional – lifetime in milliseconds for accounts/projects created via this token",
+    },
+    customize: {
+      type: "map",
+      desc: "Optional account customization overrides applied when redeeming this token.",
     },
   },
 });

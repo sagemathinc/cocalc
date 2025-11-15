@@ -47,6 +47,7 @@ export default async function createEphemeralAccount(req, res) {
       tags: ["ephemeral"],
       signupReason: "ephemeral",
       ephemeral: tokenInfo.ephemeral,
+      customize: tokenInfo.customize,
     });
   } catch (err) {
     res.json({

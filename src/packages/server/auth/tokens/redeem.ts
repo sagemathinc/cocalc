@@ -12,6 +12,7 @@ import { getTransactionClient } from "@cocalc/database/pool";
 export interface RegistrationTokenInfo {
   token: string;
   ephemeral?: number;
+  customize?: any;
 }
 
 export default async function redeem(
@@ -36,7 +37,7 @@ export default async function redeem(
     // → if counter, check counter vs. limit
     //   → true: increase the counter → ok
     //   → false: ok
-    const q_match = `SELECT "expires", "counter", "limit", "disabled", "ephemeral"
+    const q_match = `SELECT "expires", "counter", "limit", "disabled", "ephemeral", "customize"
                      FROM registration_tokens
                      WHERE token = $1::TEXT
                      FOR UPDATE`;
@@ -52,6 +53,7 @@ export default async function redeem(
       limit,
       disabled: disabled_raw,
       ephemeral,
+      customize,
     } = match.rows[0];
     const counter = counter_raw ?? 0;
     const disabled = disabled_raw ?? false;
@@ -79,6 +81,7 @@ export default async function redeem(
     return {
       token,
       ephemeral: typeof ephemeral === "number" ? ephemeral : undefined,
+      customize,
     };
   } catch (err) {
     await client.query("ROLLBACK");

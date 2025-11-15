@@ -36,6 +36,11 @@ export interface AccountState {
   name?: string;
   unlisted?: boolean;
   profile: TypedMap<{ color: string }>;
+  customize?: {
+    disableCollaborators?: boolean;
+    disableAI?: boolean;
+    [key: string]: any;
+  };
   email_address?: string;
   editor_settings: TypedMap<{
     jupyter_classic?: boolean;

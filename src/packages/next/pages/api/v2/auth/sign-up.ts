@@ -194,8 +194,9 @@ export async function signUp(req, res) {
     }
   }
 
+  let tokenInfo;
   try {
-    await redeemRegistrationToken(registrationToken);
+    tokenInfo = await redeemRegistrationToken(registrationToken);
   } catch (err) {
     res.json({
       issues: {
@@ -216,6 +217,8 @@ export async function signUp(req, res) {
       tags,
       signupReason,
       owner_id,
+      ephemeral: tokenInfo?.ephemeral,
+      customize: tokenInfo?.customize,
     });
 
     if (email) {

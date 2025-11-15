@@ -12,6 +12,7 @@ interface Query {
   limit?: number;
   disabled?: boolean;
   ephemeral?: boolean;
+  customize?;
 }
 
 export default async function registrationTokensQuery(
@@ -38,17 +39,19 @@ export default async function registrationTokensQuery(
     return rows;
   } else if (query.token) {
     // upsert an existing one
-    const { token, descr, expires, limit, disabled, ephemeral } = query;
+    const { token, descr, expires, limit, disabled, ephemeral, customize } =
+      query;
     const { rows } = await callback2(db._query, {
-      query: `INSERT INTO registration_tokens ("token","descr","expires","limit","disabled","ephemeral")
-                VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (token)
+      query: `INSERT INTO registration_tokens ("token","descr","expires","limit","disabled","ephemeral","customize")
+                VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (token)
                 DO UPDATE SET
                   "token"    = EXCLUDED.token,
                   "descr"    = EXCLUDED.descr,
                   "expires"  = EXCLUDED.expires,
                   "limit"    = EXCLUDED.limit,
                   "disabled" = EXCLUDED.disabled,
-                  "ephemeral" = EXCLUDED.ephemeral`,
+                  "ephemeral" = EXCLUDED.ephemeral,
+                  "customize" = EXCLUDED.customize`,
       params: [
         token,
         descr ? descr : null,
@@ -56,6 +59,7 @@ export default async function registrationTokensQuery(
         limit == null ? null : limit, // if undefined make it null
         disabled != null ? disabled : false,
         ephemeral == null ? null : ephemeral,
+        customize == null ? null : customize,
       ],
     });
     return rows;
