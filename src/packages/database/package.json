@@ -44,7 +44,6 @@
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc  --build && coffee -c -o dist/ ./",
     "clean": "rm -rf dist",
-    "tsc": "../node_modules/.bin/tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit --runInBand",
     "depcheck": "pnpx depcheck | grep -Ev '\\.coffee|coffee$'",
     "prepublishOnly": "pnpm test"
