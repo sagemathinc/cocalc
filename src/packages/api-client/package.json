@@ -6,7 +6,6 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
-    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
     "depcheck": "pnpx depcheck --ignores @cocalc/api-client "
   },
   "files": [

@@ -62,7 +62,6 @@
     "hub-docker-dev": "export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && NODE_ENV=development NODE_OPTIONS='--max_old_space_size=8000 --enable-source-maps --trace-warnings --inspect' cocalc-hub-server --mode=multi-user --all --hostname=0.0.0.0 --https-key=/data/conf/cert/key.pem --https-cert=/data/conf/cert/cert.pem",
     "hub-docker-prod": "export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} &&  NODE_ENV=production NODE_OPTIONS='--max_old_space_size=8000 --enable-source-maps' cocalc-hub-server --mode=multi-user --all --hostname=0.0.0.0 --https-key=/data/conf/cert/key.pem --https-cert=/data/conf/cert/cert.pem",
     "hub-docker-prod-nossl": "export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} &&  NODE_ENV=production NODE_OPTIONS='--max_old_space_size=8000 --enable-source-maps' cocalc-hub-server --mode=multi-user --all --hostname=0.0.0.0",
-    "tsc": "tsc --watch  --pretty --preserveWatchOutput",
     "test": "jest dist/",
     "depcheck": "pnpx depcheck | grep -Ev '\\.coffee|coffee$'",
     "prepublishOnly": "test"
