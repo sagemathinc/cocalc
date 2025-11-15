@@ -811,6 +811,10 @@ export class ProjectsStore extends Store<ProjectsState> {
     tag?: string,
     vendor: LLMServiceName | "any" = "any",
   ): boolean {
+    if (redux.getStore("account").getIn(["customize", "disableAI"])) {
+      // admin account-wide AI is disabled for this user.
+      return false;
+    }
     const courseLimited = this.limitAIinCourseProject(tag);
 
     // cache answer for a few seconds, in case this gets called a lot:
