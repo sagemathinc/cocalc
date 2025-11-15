@@ -68,11 +68,24 @@ export class ChatActions extends Actions<ChatState> {
   public frameId: string = "";
   // this might not be set e.g., for deprecated side chat on sagews:
   public frameTreeActions?: CodeEditorActions;
+  private focusInputHandler?: () => void;
 
   set_syncdb = (syncdb: SyncDB, store: ChatStore): void => {
     this.syncdb = syncdb;
     this.store = store;
   };
+
+  setFocusInputHandler(handler?: () => void): void {
+    this.focusInputHandler = handler;
+  }
+
+  focusInput(opts?: { keepActiveFrame?: boolean }): void {
+    const keepFrame = opts?.keepActiveFrame ?? false;
+    if (!keepFrame && this.frameId && this.frameTreeActions?.set_active_id) {
+      this.frameTreeActions.set_active_id(this.frameId);
+    }
+    this.focusInputHandler?.();
+  }
 
   // Initialize the state of the store from the contents of the syncdb.
   init_from_syncdb = (): void => {

@@ -111,6 +111,7 @@ export function NewFileButton({
       style={style}
       className={className}
       disabled={disabled || loading}
+      {...(typeof name === "string" ? { "aria-label": name } : {})}
     >
       {renderBody()}
     </Button>

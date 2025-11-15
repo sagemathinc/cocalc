@@ -186,7 +186,8 @@ function ProjectTab({ project_id }: ProjectTabProps) {
             border: color ? `2px solid ${color}` : undefined,
           }}
           shape="circle"
-          icon={<img src={project.get("avatar_image_tiny")} />}
+          src={project.get("avatar_image_tiny")}
+          alt="Project avatar"
           size={20}
         />
       );
@@ -326,7 +327,12 @@ export function ProjectsNav(props: ProjectsNavProps) {
           // });
 
           return (
-            <SortableTab key={node.key} id={node.key} style={wrapperStyle}>
+            <SortableTab
+              key={node.key}
+              id={node.key}
+              style={wrapperStyle}
+              onKeyReturn={() => actions.set_active_tab(project_id)}
+            >
               {node}
             </SortableTab>
           );
@@ -336,9 +342,10 @@ export function ProjectsNav(props: ProjectsNavProps) {
   }
 
   return (
-    <div
+    <nav
+      role="main"
+      aria-label="Open projects"
       style={{
-        overflow: "hidden",
         height: `${height}px`,
         ...style,
       }}
@@ -363,6 +370,6 @@ export function ProjectsNav(props: ProjectsNavProps) {
           />
         </SortableTabs>
       )}
-    </div>
+    </nav>
   );
 }

@@ -9,6 +9,7 @@ import { List, Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import type { Locale, OTHER_SETTINGS_LOCALE_KEY } from "@cocalc/frontend/i18n";
+import type { Hotkey } from "./hotkey-selector";
 import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
 import {
   NEW_FILENAMES,
@@ -63,6 +64,8 @@ export interface AccountState {
     use_balance_toward_subscriptions?: boolean;
     show_symbol_bar_labels?: boolean; // whether to show labels on the menu buttons
     [ACTIVITY_BAR_LABELS]?: boolean; // whether to show labels on the vertical activity bar
+    quick_nav_hotkey?: Hotkey; // hotkey for quick navigation dialog
+    quick_nav_hotkey_delay?: number; // delay threshold in milliseconds for shift+shift detection
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };

@@ -22,6 +22,7 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { ariaKeyDown } from "@cocalc/frontend/app/aria";
 import { Icon, IconName, r_join } from "@cocalc/frontend/components";
 import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -184,6 +185,11 @@ interface Props0 {
   flyout?: FixedTab;
   condensed?: boolean;
   showLabel?: boolean; // only relevant for the vertical activity bar. still showing alert tags!
+  // ARIA attributes for tab semantics
+  role?: string;
+  "aria-selected"?: boolean;
+  "aria-controls"?: string;
+  tabIndex?: number;
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -215,10 +221,10 @@ export function FileTab(props: Readonly<Props>) {
   // alerts only work on non-docker projects (for now) -- #7077
   const status_alerts: string[] =
     !onCoCalcDocker && name === "info"
-      ? project_status
+      ? (project_status
           ?.get("alerts")
           ?.map((a) => a.get("type"))
-          .toJS() ?? []
+          .toJS() ?? [])
       : [];
 
   const other_settings = useTypedRedux("account", "other_settings");
@@ -296,6 +302,28 @@ export function FileTab(props: Readonly<Props>) {
     }
   }
 
+  function handleKeyActivation() {
+    if (actions == null) return;
+    if (path != null) {
+      actions.set_active_tab(path_to_tab(path));
+      track("switch-to-file-tab", {
+        project_id,
+        path,
+        how: "keyboard",
+      });
+    } else if (name != null) {
+      if (flyout != null && FIXED_PROJECT_TABS[flyout].noFullPage) {
+        // this tab can't be opened in a full page
+        actions?.toggleFlyout(flyout);
+      } else if (flyout != null && actBar !== "both") {
+        // keyboard activation just activates, no modifier key logic
+        setActiveTab(name);
+      } else {
+        setActiveTab(name);
+      }
+    }
+  }
+
   function renderFlyoutCaret() {
     if (flyout == null || actBar !== "both") return;
 
@@ -303,8 +331,8 @@ export function FileTab(props: Readonly<Props>) {
       flyout === active_flyout
         ? COLORS.PROJECT.FIXED_LEFT_ACTIVE
         : active_flyout == null
-        ? COLORS.GRAY_L
-        : COLORS.GRAY_L0;
+          ? COLORS.GRAY_L
+          : COLORS.GRAY_L0;
     const bg = flyout === active_flyout ? COLORS.GRAY_L0 : undefined;
 
     return (
@@ -368,7 +396,7 @@ export function FileTab(props: Readonly<Props>) {
 
   const icon =
     path != null
-      ? file_options(path)?.icon ?? "code-o"
+      ? (file_options(path)?.icon ?? "code-o")
       : FIXED_PROJECT_TABS[name!].icon;
 
   const tags =
@@ -466,6 +494,15 @@ export function FileTab(props: Readonly<Props>) {
       cocalc-test={label}
       onClick={click}
       onMouseUp={onMouseUp}
+      onKeyDown={
+        props.tabIndex != null
+          ? ariaKeyDown(handleKeyActivation, false)
+          : undefined
+      }
+      tabIndex={props.tabIndex}
+      role={props.role}
+      aria-selected={props["aria-selected"]}
+      aria-controls={props["aria-controls"]}
     >
       <div
         style={{

@@ -158,7 +158,6 @@ CoCalc is organized as a monorepo with key packages:
 - Prefix git commits with the package and general area. e.g. 'frontend/latex: ...' if it concerns latex editor changes in the packages/frontend/... code.
 - When pushing a new branch to Github, track it upstream. e.g. `git push --set-upstream origin feature-foo` for branch "feature-foo".
 
-
 ## React-intl / Internationalization (i18n)
 
 CoCalc uses react-intl for internationalization with SimpleLocalize as the translation platform.
@@ -209,6 +208,24 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 - `packages/frontend/i18n/trans/[locale].json` - downloaded translations from SimpleLocalize
 - `packages/frontend/i18n/trans/[locale].compiled.json` - compiled translation files for runtime
 - `packages/frontend/i18n/index.ts` - exports and locale loading logic
+
+## ARIA Landmarks and Accessibility
+
+The CoCalc frontend should implement ARIA landmarks to enable proper landmark-based navigation for users with assistive technologies (screen readers, keyboard navigation tools, etc.).
+
+**Important**: See [./dev/ARIA.md](./dev/ARIA.md) for comprehensive documentation on:
+
+- What ARIA landmarks are and why they matter
+- CoCalc's three-level navigation hierarchy
+- How to implement landmarks in React/TSX components
+- Best practices and implementation guidelines
+
+Key points:
+
+- Use semantic HTML elements (`<main>`, `<nav>`, `<aside>`, `<footer>`) which automatically create landmarks
+- Use `role="region"` with `aria-label` for custom sections (toolbars, symbol panels, etc.)
+- Use `aria-label` to distinguish between multiple regions of the same type
+- Keep landmarks to 7 or fewer per page for optimal usability
 
 # Ignore
 

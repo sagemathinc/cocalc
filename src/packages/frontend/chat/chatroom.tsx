@@ -286,6 +286,8 @@ export function ChatRoom({
             <ChatInput
               fontSize={font_size}
               autoFocus
+              focusWhenFrameFocused
+              actions={actions}
               cacheId={`${path}${project_id}-new`}
               input={input}
               on_send={on_send}

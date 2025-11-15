@@ -54,6 +54,12 @@ export function NumberInput(props: Props) {
             }
           }}
           disabled={props.disabled}
+          aria-label={`Enter number${props.unit ? ` in ${props.unit}` : ""}`}
+          aria-describedby={
+            props.min != null || props.max != null
+              ? "number-input-constraints"
+              : undefined
+          }
         />
       </Col>
       <Col xs={8} className="lighten">
