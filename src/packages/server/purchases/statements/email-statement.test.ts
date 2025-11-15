@@ -4,21 +4,18 @@
  */
 
 import emailStatement from "./email-statement";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { createTestAccount } from "@cocalc/server/purchases/test-data";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { createStatements } from "./create-statements";
 import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import getStatements from "./get-statements";
+import { before, after, getPool } from "@cocalc/server/test";
 
 beforeAll(async () => {
-  await initEphemeralDatabase();
+  await before({ noConat: true });
 }, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+afterAll(after);
 
 describe("creates an account, then creates statements and corresponding emails and test that everything matches up", () => {
   const account_id = uuid();
@@ -74,7 +71,6 @@ describe("creates an account, then creates statements and corresponding emails a
   });
 
   it("trying to send same statement immediately again is an error, but works with force", async () => {
-    expect.assertions(1);
     const statements = await getStatements({
       account_id,
       limit: 1,

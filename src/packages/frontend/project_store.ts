@@ -3,20 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-let wrapped_editors;
-
-// TODO: we should refactor our code to now have these window/document references
-// in *this* file.  This very code (all the redux/store stuff) is used via node.js
-// in projects, so should not reference window or document.
-
-declare let window, document;
-if (typeof window !== "undefined" && window !== null) {
-  // don't import in case not in browser (for testing)
-  wrapped_editors = require("./editors/react-wrapper");
-}
-
 import * as immutable from "immutable";
-
 import {
   AppRedux,
   project_redux_name,
@@ -24,8 +11,9 @@ import {
   Store,
   Table,
   TypedMap,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Listings, listings } from "@cocalc/frontend/conat/listings";
+import { useMemo } from "react";
 import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
 import { get_local_storage } from "@cocalc/frontend/misc";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
@@ -35,15 +23,14 @@ import {
   FILE_ACTIONS,
   ProjectActions,
   QUERIES,
+  type FileAction,
 } from "@cocalc/frontend/project_actions";
 import {
   Available as AvailableFeatures,
   isMainConfiguration,
   ProjectConfiguration,
 } from "@cocalc/frontend/project_configuration";
-import * as misc from "@cocalc/util/misc";
-import { compute_file_masks } from "./project/explorer/compute-file-masks";
-import { DirectoryListing } from "./project/explorer/types";
+import { containing_public_path, deep_copy } from "@cocalc/util/misc";
 import { FixedTab } from "./project/page/file-tab";
 import {
   FlyoutActiveMode,
@@ -57,8 +44,10 @@ import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
 } from "./project/page/flyouts/utils";
-
-export { FILE_ACTIONS as file_actions, ProjectActions };
+import { type PublicPath } from "@cocalc/util/db-schema/public-paths";
+import { DirectoryListing } from "@cocalc/frontend/project/explorer/types";
+export { FILE_ACTIONS as file_actions, type FileAction, ProjectActions };
+import { SCHEMA, client_db } from "@cocalc/util/schema";
 
 export type ModalInfo = TypedMap<{
   title: string | React.JSX.Element;
@@ -74,13 +63,10 @@ export interface ProjectStoreState {
   open_files: immutable.Map<string, immutable.Map<string, any>>;
   open_files_order: immutable.List<string>;
   just_closed_files: immutable.List<string>;
-  public_paths?: immutable.Map<string, immutable.Map<string, any>>;
+  public_paths?: immutable.Map<string, TypedMap<PublicPath>>;
 
-  // directory_listings is a map from compute_server_id to {path:[listing for that path on the compute server]}
-  directory_listings: immutable.Map<number, any>;
   show_upload: boolean;
   create_file_alert: boolean;
-  displayed_listing?: any; // computed(object),
   configuration?: ProjectConfiguration;
   configuration_loading: boolean; // for UI feedback
   available_features?: TypedMap<AvailableFeatures>;
@@ -97,16 +83,19 @@ export interface ProjectStoreState {
 
   // Project Files
   activity: any; // immutable,
-  active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
-  page_number: number;
+  file_action?: FileAction;
   starred_files?: immutable.List<string>; // paths to starred files (synced from conat)
-  file_action?: string; // undefined is meaningfully none here
   file_search?: string;
   show_hidden?: boolean;
   show_masked?: boolean;
   error?: string;
   checked_files: immutable.Set<string>;
+
   selected_file_index?: number; // Index on file listing to highlight starting at 0. undefined means none highlighted
+  // the number of visible files in the listing for the current directory; this is needed
+  // for cursor based navigation by the search bar. This is the number after hiding hidden files and search filtering.
+  numDisplayedFiles?: number;
+
   new_name?: string;
   most_recent_file_click?: string;
   show_library: boolean;
@@ -139,16 +128,12 @@ export interface ProjectStoreState {
   command?: string;
   most_recent_search?: string;
   most_recent_path: string;
-  subdirectories?: boolean;
-  case_sensitive?: boolean;
-  hidden_files?: boolean;
-  git_grep: boolean;
-  info_visible?: boolean;
-  neural_search?: boolean;
+
+  // Search page -- update this when params change
+  search_page?: number;
 
   // Project Settings
   get_public_path_id?: (path: string) => any;
-  stripped_public_paths: any; //computed(immutable.List)
 
   // Project Info
   show_project_info_explanation?: boolean;
@@ -177,12 +162,20 @@ export interface ProjectStoreState {
   compute_server_id: number;
   // Map from path to the id of the compute server that the file is supposed to opened on right now.
   compute_server_ids?: TypedMap<{ [path: string]: number }>;
+
+  // while true, explorer keyhandler will not be enabled
+  disableExplorerKeyhandler?: boolean;
+
+  // whe change this when any sort changes, so the UI can update
+  active_file_sort?: number;
+
+  // error controlling the state of a project, e.g., starting or stopping it.
+  control_error?: string;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
   private previous_runstate: string | undefined;
-  private listings: { [compute_server_id: number]: Listings } = {};
   public readonly computeServerIdLocalStorageKey: string;
 
   // Function to call to initialize one of the tables in this store.
@@ -226,10 +219,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
     const projects_store = this.redux.getStore("projects");
     if (projects_store !== undefined) {
       projects_store.removeListener("change", this._projects_store_change);
-    }
-    for (const id in this.listings) {
-      this.listings[id].close();
-      delete this.listings[id];
     }
     // close any open file tabs, properly cleaning up editor state:
     const open = this.get("open_files")?.toJS();
@@ -281,7 +270,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
         QueryParams.remove("compute-server-template");
       }
     }
-    const other_settings = redux.getStore("account")?.get("other_settings");
     let compute_server_id;
     try {
       const key = this.computeServerIdLocalStorageKey;
@@ -297,10 +285,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
       open_files: immutable.Map<immutable.Map<string, any>>({}),
       open_files_order: immutable.List([]),
       just_closed_files: immutable.List([]),
-      directory_listings: immutable.Map(), // immutable,
       show_upload: false,
       create_file_alert: false,
-      displayed_listing: undefined, // computed(object),
       show_masked: true,
       configuration: undefined,
       configuration_loading: false, // for UI feedback
@@ -317,14 +303,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       // Project Files
       activity: undefined,
-      page_number: 0,
       checked_files: immutable.Set(),
       show_library: false,
       file_listing_scroll_top: undefined,
-      active_file_sort: TypedMap({
-        is_descending: false,
-        column_name: other_settings?.get("default_file_sort") ?? "time",
-      }),
 
       // Project New
       library: immutable.Map({}),
@@ -333,21 +314,17 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       // Project Find
       user_input: "",
-      git_grep: other_settings?.get("find_git_grep") ?? true,
-      subdirectories: other_settings?.get("find_subdirectories"),
-      case_sensitive: other_settings?.get("find_case_sensitive"),
-      hidden_files: other_settings?.get("find_hidden_files"),
-
+      search_page: 0,
       most_recent_path: "",
 
       // Project Settings
-      stripped_public_paths: this.selectors.stripped_public_paths.fn,
-
       other_settings: undefined,
 
       compute_server_id,
       create_compute_server,
       create_compute_server_template_id,
+      // compute_server_ids -- starts out NOT set so we know the data is NOT known:
+      compute_server_ids: undefined,
     };
   };
 
@@ -362,212 +339,11 @@ export class ProjectStore extends Store<ProjectStoreState> {
       fn: () => {
         const project_id = this.project_id;
         return function (path) {
-          // (this exists because rethinkdb doesn't have compound primary keys)
-          const { SCHEMA, client_db } = require("@cocalc/util/schema");
-          return SCHEMA.public_paths.user_query.set.fields.id(
+          return SCHEMA.public_paths.user_query?.set?.fields.id(
             { project_id, path },
             client_db,
           );
         };
-      },
-    },
-
-    // cached pre-processed file listing, which should always be up to date when
-    // called, and properly depends on dependencies.
-    displayed_listing: {
-      dependencies: [
-        "active_file_sort",
-        "current_path",
-        "directory_listings",
-        "stripped_public_paths",
-        "file_search",
-        "other_settings",
-        "show_hidden",
-        "show_masked",
-        "compute_server_id",
-        "starred_files",
-      ] as const,
-      fn: () => {
-        const search_escape_char = "/";
-        const listingStored = this.getIn([
-          "directory_listings",
-          this.get("compute_server_id"),
-          this.get("current_path"),
-        ]);
-        if (typeof listingStored === "string") {
-          if (
-            listingStored.indexOf("ECONNREFUSED") !== -1 ||
-            listingStored.indexOf("ENOTFOUND") !== -1
-          ) {
-            return { error: "no_instance" }; // the host VM is down
-          } else if (listingStored.indexOf("o such path") !== -1) {
-            return { error: "no_dir" };
-          } else if (listingStored.indexOf("ot a directory") !== -1) {
-            return { error: "not_a_dir" };
-          } else if (listingStored.indexOf("not running") !== -1) {
-            // yes, no underscore.
-            return { error: "not_running" };
-          } else {
-            return { error: listingStored };
-          }
-        }
-        if (listingStored == null) {
-          return {};
-        }
-        try {
-          if (listingStored?.errno) {
-            return { error: misc.to_json(listingStored) };
-          }
-        } catch (err) {
-          return {
-            error: "Error getting directory listing - please try again.",
-          };
-        }
-
-        if (listingStored?.toJS == null) {
-          return {
-            error: "Unable to get directory listing - please try again.",
-          };
-        }
-
-        // We can proceed and get the listing as a JS object.
-        let listing: DirectoryListing = listingStored.toJS();
-
-        if (this.get("other_settings").get("mask_files")) {
-          compute_file_masks(listing);
-        }
-
-        if (this.get("current_path") === ".snapshots") {
-          compute_snapshot_display_names(listing);
-        }
-
-        const search = this.get("file_search");
-        if (search && search[0] !== search_escape_char) {
-          listing = _matched_files(search.toLowerCase(), listing);
-        }
-
-        const sorter = (() => {
-          const active_col = this.get("active_file_sort").get("column_name");
-          switch (active_col) {
-            case "name":
-              return _sort_on_string_field("name");
-            case "time":
-              return _sort_on_numerical_field("mtime", -1);
-            case "size":
-              return _sort_on_numerical_field("size");
-            case "type":
-              return (a, b) => {
-                if (a.isdir && !b.isdir) {
-                  return -1;
-                } else if (b.isdir && !a.isdir) {
-                  return 1;
-                } else {
-                  return misc.cmp_array(
-                    a.name.split(".").reverse(),
-                    b.name.split(".").reverse(),
-                  );
-                }
-              };
-            case "starred":
-              return (a, b) => {
-                const starredFiles = this.get("starred_files");
-                if (!starredFiles) return 0;
-
-                const pathA = misc.path_to_file(
-                  this.get("current_path"),
-                  a.name,
-                );
-                const pathB = misc.path_to_file(
-                  this.get("current_path"),
-                  b.name,
-                );
-                const starPathA = a.isdir ? `${pathA}/` : pathA;
-                const starPathB = b.isdir ? `${pathB}/` : pathB;
-                const starredA = starredFiles.includes(starPathA);
-                const starredB = starredFiles.includes(starPathB);
-
-                if (starredA && !starredB) {
-                  return -1;
-                } else if (!starredA && starredB) {
-                  return 1;
-                } else {
-                  return misc.cmp(a.name.toLowerCase(), b.name.toLowerCase());
-                }
-              };
-          }
-        })();
-
-        listing.sort(sorter);
-
-        if (this.get("active_file_sort").get("is_descending")) {
-          listing.reverse();
-        }
-
-        if (!this.get("show_hidden")) {
-          listing = (() => {
-            const result: DirectoryListing = [];
-            for (const l of listing) {
-              if (!l.name.startsWith(".")) {
-                result.push(l);
-              }
-            }
-            return result;
-          })();
-        }
-
-        if (!this.get("show_masked", true)) {
-          // if we do not gray out files (and hence haven't computed the file mask yet)
-          // we do it now!
-          if (!this.get("other_settings").get("mask_files")) {
-            compute_file_masks(listing);
-          }
-
-          const filtered: DirectoryListing = [];
-          for (const f of listing) {
-            if (!f.mask) filtered.push(f);
-          }
-          listing = filtered;
-        }
-
-        const file_map = {};
-        for (const v of listing) {
-          file_map[v.name] = v;
-        }
-
-        const data = {
-          listing,
-          public: {},
-          path: this.get("current_path"),
-          file_map,
-        };
-
-        mutate_data_to_compute_public_files(
-          data,
-          this.get("stripped_public_paths"),
-          this.get("current_path"),
-        );
-
-        return data;
-      },
-    },
-
-    stripped_public_paths: {
-      dependencies: ["public_paths"] as const,
-      fn: () => {
-        const public_paths = this.get("public_paths");
-        if (public_paths != null) {
-          return immutable.fromJS(
-            (() => {
-              const result: any[] = [];
-              const object = public_paths.toJS();
-              for (const id in object) {
-                const x = object[id];
-                result.push(misc.copy_without(x, ["id", "project_id"]));
-              }
-              return result;
-            })(),
-          );
-        }
       },
     },
   };
@@ -577,35 +353,11 @@ export class ProjectStore extends Store<ProjectStoreState> {
   // is in react and has store with a cursors key.
   get_users_cursors = (path, account_id) => {
     const store: any = redux.getEditorStore(this.project_id, path);
-    if (store == null) {
-      // try non-react editor
-      const editors = wrapped_editors.get_editor(this.project_id, path);
-      if (editors && editors.get_users_cursors) {
-        return editors.get_users_cursors(account_id);
-      } else {
-        return undefined;
-      }
-    } else {
-      return store.get("cursors") && store.get("cursors").get(account_id);
-    }
+    return store?.get("cursors") && store.get("cursors").get(account_id);
   };
 
   is_file_open = (path) => {
     return this.getIn(["open_files", path]) != null;
-  };
-
-  get_item_in_path = (name, path) => {
-    const listing = this.get("directory_listings").get(path);
-    if (typeof listing === "string") {
-      // must be an error
-      return { err: listing };
-    }
-    return {
-      item:
-        listing != null
-          ? listing.find((val) => val.get("name") === name)
-          : undefined,
-    };
   };
 
   fileURL = (path, compute_server_id?: number) => {
@@ -617,160 +369,64 @@ export class ProjectStore extends Store<ProjectStoreState> {
   };
 
   // returns false, if this project isn't capable of opening a file with the given extension
-  async can_open_file_ext(
+  can_open_file_ext = async (
     ext: string,
     actions: ProjectActions,
-  ): Promise<boolean> {
+  ): Promise<boolean> => {
     // to make sure we know about disabled file types
     const conf = await actions.init_configuration("main");
-    // if we don't know anything, we're optimistic and skip this check
-    if (conf == null) return true;
-    if (!isMainConfiguration(conf)) return true;
+    // if we don't know anything; we're optimistic and skip this check
+    if (conf == null) {
+      return true;
+    }
+    if (!isMainConfiguration(conf)) {
+      return true;
+    }
     const disabled_ext = conf.disabled_ext;
     return !disabled_ext.includes(ext);
-  }
+  };
 
   public has_file_been_viewed(path: string): boolean {
     // note that component is NOT an immutable.js object:
     return this.getIn(["open_files", path, "component"])?.Editor != null;
   }
-
-  public get_listings(compute_server_id: number | null = null): Listings {
-    const computeServerId = compute_server_id ?? this.get("compute_server_id");
-    if (this.listings[computeServerId] == null) {
-      const listingsTable = listings(this.project_id, computeServerId);
-      this.listings[computeServerId] = listingsTable;
-      listingsTable.watch(this.get("current_path") ?? "", true);
-      listingsTable.on("change", async (paths) => {
-        let directory_listings_for_server =
-          this.getIn(["directory_listings", computeServerId]) ??
-          immutable.Map();
-
-        const missing: string[] = [];
-        for (const path of paths) {
-          if (listingsTable.getMissing(path)) {
-            missing.push(path);
-          }
-          const files = await listingsTable.getForStore(path);
-          directory_listings_for_server = directory_listings_for_server.set(
-            path,
-            files,
-          );
-        }
-        const f = () => {
-          const actions = redux.getProjectActions(this.project_id);
-          const directory_listings = this.get("directory_listings").set(
-            computeServerId,
-            directory_listings_for_server,
-          );
-          actions.setState({ directory_listings });
-        };
-        f();
-
-        if (missing.length > 0) {
-          for (const path of missing) {
-            try {
-              const files = immutable.fromJS(
-                await listingsTable.getListingDirectly(path),
-              );
-              directory_listings_for_server = directory_listings_for_server.set(
-                path,
-                files,
-              );
-            } catch {
-              // happens if e.g., the project is not running
-              continue;
-            }
-          }
-          f();
-        }
-      });
-    }
-    if (this.listings[computeServerId] == null) {
-      throw Error("bug");
-    }
-    return this.listings[computeServerId];
-  }
 }
 
-function _matched_files(search: string, listing: DirectoryListing) {
-  if (listing == null) {
-    return [];
+// Returns set of paths that are public in the given
+// listing, because they are in a public folder or are themselves public.
+// This is used entirely to put an extra "public" label in the row of the file,
+// when displaying it in a listing.
+export function getPublicFiles(
+  listing: DirectoryListing,
+  public_paths: PublicPath[],
+  current_path: string,
+): Set<string> {
+  if ((public_paths?.length ?? 0) == 0) {
+    return new Set();
   }
-  const words = misc.search_split(search);
-  const v: DirectoryListing = [];
-  for (const x of listing) {
-    const name = (x.display_name ?? x.name ?? "").toLowerCase();
-    if (
-      misc.search_match(name, words) ||
-      (x.isdir && misc.search_match(name + "/", words))
-    ) {
-      v.push(x);
+  const paths = public_paths
+    .filter(({ disabled }) => !disabled)
+    .map(({ path }) => path);
+
+  if (paths.length == 0) {
+    return new Set();
+  }
+
+  const head = current_path ? current_path + "/" : "";
+  if (containing_public_path(current_path, paths)) {
+    // fast special case: *every* file is public
+    return new Set(listing.map(({ name }) => name));
+  }
+
+  // maybe some files are public?
+  const X = new Set<string>();
+  for (const file of listing) {
+    const full = head + file.name;
+    if (containing_public_path(full, paths) != null) {
+      X.add(file.name);
     }
   }
-  return v;
-}
-
-function compute_snapshot_display_names(listing): void {
-  for (const item of listing) {
-    const tm = misc.parse_bup_timestamp(item.name);
-    item.display_name = `${tm}`;
-    item.mtime = tm.valueOf() / 1000;
-  }
-}
-
-// Mutates data to include info on public paths.
-export function mutate_data_to_compute_public_files(
-  data,
-  public_paths,
-  current_path,
-) {
-  const { listing } = data;
-  const pub = data.public;
-  if (public_paths != null && public_paths.size > 0) {
-    const head = current_path ? current_path + "/" : "";
-    const paths: string[] = [];
-    const public_path_data = {};
-    for (const x of public_paths.toJS()) {
-      if (x.disabled) {
-        // Do not include disabled paths.  Otherwise, it causes this confusing bug:
-        //    https://github.com/sagemathinc/cocalc/issues/6159
-        continue;
-      }
-      public_path_data[x.path] = x;
-      paths.push(x.path);
-    }
-    for (const x of listing) {
-      const full = head + x.name;
-      const p = misc.containing_public_path(full, paths);
-      if (p != null) {
-        x.public = public_path_data[p];
-        x.is_public = !x.public.disabled;
-        pub[x.name] = public_path_data[p];
-      }
-    }
-  }
-}
-
-function _sort_on_string_field(field) {
-  return function (a, b) {
-    return misc.cmp(
-      a[field] !== undefined ? a[field].toLowerCase() : "",
-      b[field] !== undefined ? b[field].toLowerCase() : "",
-    );
-  };
-}
-
-function _sort_on_numerical_field(field, factor = 1) {
-  return (a, b) => {
-    const c = misc.cmp(
-      (a[field] != null ? a[field] : -1) * factor,
-      (b[field] != null ? b[field] : -1) * factor,
-    );
-    if (c) return c;
-    // break ties using the name, so well defined.
-    return misc.cmp(a.name, b.name) * factor;
-  };
+  return X;
 }
 
 export function init(project_id: string, redux: AppRedux): ProjectStore {
@@ -794,7 +450,7 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
   actions.project_id = project_id; // so actions can assume this is available on the object
   store._init();
 
-  const queries = misc.deep_copy(QUERIES);
+  const queries = deep_copy(QUERIES);
 
   const create_table = function (table_name, q) {
     //console.log("create_table", table_name)
@@ -850,4 +506,12 @@ export function init(project_id: string, redux: AppRedux): ProjectStore {
   };
 
   return store;
+}
+
+export function useStrippedPublicPaths(project_id: string): PublicPath[] {
+  const public_paths = useTypedRedux({ project_id }, "public_paths");
+  return useMemo(() => {
+    const rows = public_paths?.valueSeq()?.toJS() ?? [];
+    return rows as unknown as PublicPath[];
+  }, [public_paths]);
 }

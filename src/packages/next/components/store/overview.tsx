@@ -48,8 +48,7 @@ export default function Overview() {
       ) : undefined}
       <OverviewRow>
         <Product icon="key" title="License" href="/store/site-license">
-          Buy a license to upgrade projects, get internet access, more CPU, disk
-          and memory.
+          Buy a license to upgrade projects to have more disk space and memory.
         </Product>
         <Product icon="graduation-cap" title="Course" href="/store/course">
           Purchase a license for teaching a course.

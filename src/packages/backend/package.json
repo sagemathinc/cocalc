@@ -6,9 +6,13 @@
     "./*": "./dist/*.js",
     "./database": "./dist/database/index.js",
     "./conat": "./dist/conat/index.js",
+    "./files/*": "./dist/files/*.js",
+    "./sandbox": "./dist/sandbox/index.js",
+    "./conat/sync/*": "./dist/conat/sync/*.js",
     "./server-settings": "./dist/server-settings/index.js",
     "./auth/*": "./dist/auth/*.js",
-    "./auth/tokens/*": "./dist/auth/tokens/*.js"
+    "./auth/tokens/*": "./dist/auth/tokens/*.js",
+    "./podman": "./dist/podman/index.js"
   },
   "keywords": [
     "utilities",
@@ -17,11 +21,13 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
-    "build": "pnpm exec tsc --build",
+    "install-sandbox-tools": "echo 'require(\"@cocalc/backend/sandbox/install\").install()' | node",
+    "install-all-tools": "echo 'require(\"@cocalc/backend/sandbox/install\").install(null,{optional:true})' | node",
+    "install-bin-tools": "./bin/install.sh",
+    "build": "pnpm exec tsc --build && pnpm install-sandbox-tools && pnpm install-bin-tools",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit",
     "test-conat": " pnpm exec jest --forceExit conat",
-    "testp": "pnpm exec jest --forceExit",
     "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test",
     "conat-watch": "node ./bin/conat-watch.cjs",
@@ -43,17 +49,19 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/debug": "^4.1.12",
-    "@types/jest": "^30.0.0",
+    "@isaacs/ttlcache": "^1.4.1",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^12.4.1",
-    "chokidar": "^3.6.0",
+    "chokidar": "^4.0.3",
     "debug": "^4.4.0",
-    "fs-extra": "^11.2.0",
+    "fs-extra": "^11.3.1",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
+    "micro-key-producer": "^0.8.1",
     "password-hash": "^1.2.2",
+    "pkg-dir": "^5.0.0",
     "prom-client": "^15.1.3",
+    "reflect-sync": "^0.10.2",
     "rimraf": "^5.0.5",
     "shell-escape": "^0.2.0",
     "tmp-promise": "^3.0.3",
@@ -65,6 +73,8 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
   "devDependencies": {
+    "@types/debug": "^4.1.12",
+    "@types/jest": "^30.0.0",
     "@types/node": "^18.16.14"
   }
 }

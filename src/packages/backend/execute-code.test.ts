@@ -40,7 +40,7 @@ describe("tests involving bash mode", () => {
   it("reports missing executable in non-bash mode", async () => {
     try {
       await executeCode({
-        command: "this_does_not_exist",
+        command: "/usr/bin/this_does_not_exist",
         args: ["nothing"],
         bash: false,
       });
@@ -52,7 +52,7 @@ describe("tests involving bash mode", () => {
   it("reports missing executable in non-bash mode when ignoring on exit", async () => {
     try {
       await executeCode({
-        command: "this_does_not_exist",
+        command: "/usr/bin/this_does_not_exist",
         args: ["nothing"],
         err_on_exit: false,
         bash: false,
@@ -268,7 +268,7 @@ describe("async", () => {
 
   // This test screws up running multiple tests in parallel.
   // ** HENCE SKIPPING THIS - enable it if you edit the executeCode code...**
-  it.skip("longer running async job", async () => {
+  it.skip("(BAD TEST) longer running async job", async () => {
     setMonitorIntervalSeconds(1);
     const c = await executeCode({
       command: "sh",
@@ -376,7 +376,7 @@ describe("await", () => {
 
   it("deal with unknown executables", async () => {
     const c = await executeCode({
-      command: "random123unknown99",
+      command: "/usr/bin/random123unknown99",
       err_on_exit: false,
       async_call: true,
     });

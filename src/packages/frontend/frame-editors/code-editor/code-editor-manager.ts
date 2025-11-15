@@ -47,8 +47,16 @@ export class CodeEditor {
   }
 
   close(): void {
-    const editor = get_file_editor("txt", false);
-    if (editor == null) throw Error("bug -- editor must exist");
+    const ext = filename_extension(this.path);
+    let editor = get_file_editor(ext, false);
+    if (editor == null) {
+      // fallback to text
+      editor = get_file_editor("txt", false);
+    }
+    if (editor == null) {
+      console.warn("WARNING: editor should exist");
+      return;
+    }
     editor.remove(this.path, redux, this.project_id);
   }
 
@@ -74,8 +82,8 @@ export class CodeEditorManager<T extends CodeEditorState = CodeEditorState> {
   }
 
   close_code_editor(id: string): void {
-    if (this.code_editors[id] == null) {
-      // graceful no-op if no such terminal.
+    if (this.code_editors?.[id] == null) {
+      // graceful no-op if no such terminal or closed
       return;
     }
     this.code_editors[id].close();

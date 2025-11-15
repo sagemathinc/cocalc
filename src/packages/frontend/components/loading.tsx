@@ -6,7 +6,8 @@
 import { CSSProperties } from "react";
 import { useIntl } from "react-intl";
 import FakeProgress from "@cocalc/frontend/components/fake-progress";
-import { TypedMap, useDelayedRender } from "@cocalc/frontend/app-framework";
+import { TypedMap } from "@cocalc/frontend/app-framework";
+import useDelayedRender from "@cocalc/frontend/app-framework/delayed-render-hook";
 import { labels } from "@cocalc/frontend/i18n";
 import { Icon } from "./icon";
 
@@ -19,9 +20,9 @@ export const Estimate = null; // webpack + TS es2020 modules need this
 interface Props {
   style?: CSSProperties;
   text?: string;
-  estimate?: Estimate;
+  estimate?: Estimate | number;
   theme?: "medium" | undefined;
-  delay?: number; // if given, don't show anything until after delay milliseconds.  The component could easily unmount by then, and hence never annoyingly flicker on screen.
+  delay?: number; // (default:1000) don't show anything until after delay milliseconds.  The component could easily unmount by then, and hence never annoyingly flicker on screen.
   transparent?: boolean;
 }
 
@@ -40,14 +41,13 @@ export function Loading({
   text,
   estimate,
   theme,
-  delay,
+  delay = 1000,
   transparent = false,
 }: Props) {
   const intl = useIntl();
 
-  const render = useDelayedRender(delay ?? 0);
-  if (!render) {
-    return <></>;
+  if (!useDelayedRender(delay ?? 0)) {
+    return null;
   }
 
   return (
@@ -64,7 +64,13 @@ export function Loading({
       </span>
       {estimate != undefined && (
         <div>
-          <FakeProgress time={1000 * estimate.get("time")} />
+          <FakeProgress
+            time={
+              typeof estimate == "number"
+                ? estimate
+                : 1000 * estimate.get("time")
+            }
+          />
         </div>
       )}
     </div>

@@ -10,7 +10,6 @@ import { Form, Input } from "antd";
 import { isEmpty } from "lodash";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
-
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod, User } from "@cocalc/util/licenses/purchase/types";
@@ -292,14 +291,14 @@ function CreateSiteLicense({
       })();
     } else {
       const vals = decodeFormValues(router, "regular");
-      const dflt = presets[DEFAULT_PRESET];
+      const defaultPreset = presets[DEFAULT_PRESET];
       // Only use the configuration fields from the default preset, not the entire object
       const defaultConfig = {
-        cpu: dflt.cpu,
-        ram: dflt.ram,
-        disk: dflt.disk,
-        uptime: dflt.uptime,
-        member: dflt.member,
+        cpu: defaultPreset.cpu,
+        ram: defaultPreset.ram,
+        disk: defaultPreset.disk,
+        uptime: defaultPreset.uptime,
+        member: defaultPreset.member,
         // Add other form fields that might be needed
         period: source === "course" ? "range" : "monthly",
         user: source === "course" ? "academic" : "business",

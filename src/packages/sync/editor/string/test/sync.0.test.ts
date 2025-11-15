@@ -11,7 +11,7 @@ pnpm test sync.0.test.ts
 
 */
 
-import { Client } from "./client-test";
+import { Client, fs } from "./client-test";
 import { SyncString } from "../sync";
 import { a_txt } from "./data";
 import { once } from "@cocalc/util/async-utils";
@@ -23,7 +23,7 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
   let syncstring: SyncString;
 
   it("creates the syncstring and wait for it to be ready", async () => {
-    syncstring = new SyncString({ project_id, path, client });
+    syncstring = new SyncString({ project_id, path, client, fs });
     expect(syncstring.get_state()).toBe("init");
     await once(syncstring, "ready");
     expect(syncstring.get_state()).toBe("ready");
@@ -142,12 +142,11 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
   });
 
   it("read only checks", async () => {
-    await syncstring.wait_until_read_only_known(); // no-op
     expect(syncstring.is_read_only()).toBe(false);
   });
 
   it("hashes of versions", () => {
-    expect(syncstring.hash_of_saved_version()).toBe(0);
+    expect(syncstring.hash_of_saved_version()).toBe(undefined);
     expect(syncstring.hash_of_live_version()).toBe(0);
     expect(syncstring.has_uncommitted_changes()).toBe(false);
   });

@@ -10,6 +10,7 @@ import { redux } from "../app-framework";
 import { IS_TOUCH } from "../feature";
 import { WebappClient } from "./client";
 import { disconnect_from_all_projects } from "../project/websocket/connect";
+import { lite } from "@cocalc/frontend/lite";
 
 // set to true when there are no load issues.
 const NEVER_TIMEOUT_VISIBLE = false;
@@ -40,7 +41,8 @@ export class IdleClient {
     // Do not bother on touch devices, since they already automatically tend to
     // disconnect themselves very aggressively to save battery life, and it's
     // sketchy trying to ensure that banner will dismiss properly.
-    if (IS_TOUCH) {
+    if (IS_TOUCH || lite) {
+      // never use idle timeout on touch devices (phones) or in lite mode
       return;
     }
 
@@ -98,7 +100,7 @@ export class IdleClient {
   };
 
   private idle_check = (): void => {
-    if (!this.idle_time) return;
+    if (!this.idle_time || lite) return;
     const remaining = this.idle_time - Date.now();
     if (remaining > 0) {
       // console.log(`Standby in ${Math.round(remaining / 1000)}s if not active`);
@@ -171,7 +173,7 @@ export class IdleClient {
   };
 
   show_notification = (): void => {
-    if (this.notification_is_visible) return;
+    if (this.notification_is_visible || lite) return;
     const idle = $("#cocalc-idle-notification");
     if (idle.length === 0) {
       const content = this.notification_html();

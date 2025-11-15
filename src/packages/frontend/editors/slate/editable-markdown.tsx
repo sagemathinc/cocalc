@@ -739,7 +739,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   };
 
   if ((window as any).cc != null) {
-    // This only gets set when running in cc-in-cc dev mode.
+    // This only gets set when running in cc-in-cc dev mode -- i.e., it is for low level
+    // interactive debugging and dev work.
     const { Editor, Node, Path, Range, Text } = require("slate");
     (window as any).cc.slate = {
       slateDiff,

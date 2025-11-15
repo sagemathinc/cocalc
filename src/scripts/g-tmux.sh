@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 echo "Spawning tmux windows with: hub, database, rspack or memory monitor..."
+export DEBUG_CONSOLE='no'
 
 export PWD=`pwd`
 tmux new-session -d -s mysession

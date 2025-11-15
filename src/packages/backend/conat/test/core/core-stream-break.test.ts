@@ -70,7 +70,7 @@ describe("stop persist server, create a client, create an ephemeral core-stream,
     try {
       await stream.publish("y", { timeout: 100 });
     } catch (err) {
-      expect(`${err}`).toContain("timeout");
+      expect(`${err}`).toContain("timed out");
     }
   });
 

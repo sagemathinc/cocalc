@@ -338,11 +338,10 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
         <Descriptions.Item label={intl.formatMessage(labels.state)}>
           <ProjectState state={project.get("state")} />{" "}
           <Space.Compact>
-            <RestartProject project_id={project_id} short={true} size="small" />
+            <RestartProject project_id={project_id} size="small" />
             <StopProject
               project_id={project_id}
               disabled={project.getIn(["state", "state"]) !== "running"}
-              short={true}
               size="small"
             />
           </Space.Compact>

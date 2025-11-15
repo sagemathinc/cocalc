@@ -27,7 +27,6 @@ import { Syntax } from "@cocalc/util/code-formatter";
 import { startswith } from "@cocalc/util/misc";
 import { Store } from "@cocalc/util/redux/Store";
 import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
-import { cloneDeep } from "lodash";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -60,7 +59,6 @@ export interface JupyterStoreState {
   cm_options: any;
   complete: any;
   confirm_dialog: any;
-  connection_file?: string;
   contents?: List<Map<string, any>>; // optional global contents info (about sections, problems, etc.)
   default_kernel?: string;
   directory: string;
@@ -103,6 +101,13 @@ export interface JupyterStoreState {
   // run progress = Percent (0-100) of runnable cells that have been run since the last
   // kernel restart. (Thus markdown and empty cells are excluded.)
   runProgress?: number;
+
+  // cells that this particular client has queued up to run. This is
+  // only known to this client, goes away on browser refresh, and is used
+  // only visually for the user to see.
+  pendingCells: Set<string>;
+
+  stdin?: { id: string; prompt: string; password?: boolean };
 }
 
 export const initial_jupyter_store_state: {
@@ -213,13 +218,6 @@ export class JupyterStore extends Store<JupyterStoreState> {
     }
 
     const cell_list = this.get("cell_list");
-    const more_output: { [id: string]: any } = {};
-    for (const id of cell_list.toJS()) {
-      const x = this.get_more_output(id);
-      if (x != null) {
-        more_output[id] = x;
-      }
-    }
 
     // export_to_ipynb mutates its input... mostly not a problem, since
     // we're toJS'ing most of it, but be careful with more_output.
@@ -230,7 +228,6 @@ export class JupyterStore extends Store<JupyterStoreState> {
       kernelspec: this.get_kernel_info(this.get("kernel")),
       language_info: this.get_language_info(),
       blob_store,
-      more_output: cloneDeep(more_output),
     });
   };
 
@@ -446,10 +443,10 @@ export class JupyterStore extends Store<JupyterStoreState> {
       // (??)
       return `${project_id}-${computeServerId}-default`;
     }
-    const dflt_img = await customize.getDefaultComputeImage();
+    const defaultImage = await customize.getDefaultComputeImage();
     const compute_image = projects_store.getIn(
       ["project_map", project_id, "compute_image"],
-      dflt_img,
+      defaultImage,
     );
     const key = [project_id, `${computeServerId}`, compute_image].join("::");
     // console.log("jupyter store / jupyter_kernel_key", key);

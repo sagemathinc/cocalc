@@ -19,6 +19,7 @@ import { Actions } from "@cocalc/util/redux/Actions";
 import { show_announce_end, show_announce_start } from "./dates";
 import { AccountStore } from "./store";
 import { AccountState } from "./types";
+import { lite } from "@cocalc/frontend/lite";
 
 // Define account actions
 export class AccountActions extends Actions<AccountState> {
@@ -140,8 +141,10 @@ export class AccountActions extends Actions<AccountState> {
     this.push_state("/" + tab);
   }
 
-  // Add an ssh key for this user, with the given fingerprint, title, and value
-  public add_ssh_key(unsafe_opts: unknown): void {
+  // Add an ssh key for this user, with the given fingerprint,
+  // title, and value. Also updates authorized_keys for all running
+  // projects.
+  add_ssh_key = async (unsafe_opts: unknown): Promise<void> => {
     const opts = define<{
       fingerprint: string;
       title: string;
@@ -151,7 +154,7 @@ export class AccountActions extends Actions<AccountState> {
       title: required,
       value: required,
     });
-    this.redux.getTable("account").set({
+    await this.redux.getTable("account").set({
       ssh_keys: {
         [opts.fingerprint]: {
           title: opts.title,
@@ -160,16 +163,37 @@ export class AccountActions extends Actions<AccountState> {
         },
       },
     });
-  }
+    await this.updateAuthorizedKeysForRunningProjects(true);
+  };
 
   // Delete the ssh key with given fingerprint for this user.
-  public delete_ssh_key(fingerprint): void {
-    this.redux.getTable("account").set({
+  // Also updates authorized_keys for all running projects.
+  delete_ssh_key = async (fingerprint): Promise<void> => {
+    await this.redux.getTable("account").set({
       ssh_keys: {
         [fingerprint]: null,
       },
     }); // null is how to tell the backend/synctable to delete this...
-  }
+    await this.updateAuthorizedKeysForRunningProjects(true);
+  };
+
+  // call after adding/removing global ssh keys
+  updateAuthorizedKeysForRunningProjects = async (ignoreErrors = true) => {
+    const store = this.redux.getStore("projects");
+    const f = async (project_id) => {
+      const api = webapp_client.conat_client.projectApi({ project_id });
+      try {
+        await api.system.updateSshKeys();
+      } catch (err) {
+        if (!ignoreErrors) {
+          throw err;
+        }
+        // it is expected for these to sometimes fail, e.g., because
+        // the state is listed as "running" but it is stale.
+      }
+    };
+    await Promise.all(store.getRunningProjects().map(f));
+  };
 
   public set_account_table(obj: object): void {
     this.redux.getTable("account").set(obj);
@@ -246,6 +270,9 @@ export class AccountActions extends Actions<AccountState> {
   };
 
   addTag = async (tag: string) => {
+    if (lite) {
+      return;
+    }
     const store = this.redux.getStore("account");
     if (!store) return;
     const tags = store.get("tags");

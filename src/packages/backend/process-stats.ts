@@ -7,7 +7,7 @@ import { exec as cp_exec } from "node:child_process";
 import { readFile, readdir, readlink } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
-
+import { uptime } from "node:os";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
   Cpu,
@@ -22,6 +22,8 @@ import { envToInt } from "./misc/env-to-number";
 const dbg = getLogger("process-stats").debug;
 
 const exec = promisify(cp_exec);
+
+export const MIN_WARN_INTERVAL = 30_000;
 
 /**
  * Return information about all processes (up to a limit or filter) in the environment, where this node.js process runs.
@@ -152,13 +154,14 @@ export class ProcessStats {
   // measured in "ticks" since the machine started
   private async uptime(): Promise<[number, Date]> {
     // return uptime in secs
-    const out = await readFile("/proc/uptime", "utf8");
-    const uptime = parseFloat(out.split(" ")[0]);
-    const boottime = new Date(new Date().getTime() - 1000 * uptime);
-    return [uptime, boottime];
+    // macOS, Windows, etc.: seconds (integer)
+    const u = uptime();
+    const boottime = new Date(Date.now() - u * 1000);
+    return [u, boottime];
   }
 
   // this is where we gather information about all running processes
+  private lastWarn: number = 0;
   public async processes(
     timestamp?: number,
   ): Promise<{ procs: Processes; uptime: number; boottime: Date }> {
@@ -178,7 +181,11 @@ export class ProcessStats {
       }
       // we avoid processing and sending too much data
       if (n > this.procLimit) {
-        dbg(`too many processes – limit of ${this.procLimit} reached!`);
+        // only log this once in while, otherwise it totally spams the logs
+        if (this.lastWarn <= Date.now() - MIN_WARN_INTERVAL) {
+          this.lastWarn = Date.now();
+          dbg(`too many processes – limit of ${this.procLimit} reached!`);
+        }
         break;
       } else {
         n += 1;

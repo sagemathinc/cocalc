@@ -4,13 +4,16 @@
   "description": "CoCalc File Server",
   "exports": {
     "./btrfs": "./dist/btrfs/index.js",
-    "./btrfs/*": "./dist/btrfs/*.js"
+    "./btrfs/*": "./dist/btrfs/*.js",
+    "./ssh/*": "./dist/ssh/*.js",
+    "./conat/*": "./dist/conat/*.js",
+    "./fs/*": "./dist/fs/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
-    "test": "pnpm exec jest",
+    "test": "pnpm exec jest  --maxWorkers=1 --forceExit",
     "depcheck": "pnpx depcheck",
     "clean": "rm -rf node_modules dist"
   },
@@ -28,9 +31,14 @@
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/file-server": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "awaiting": "^3.0.0"
+    "@isaacs/ttlcache": "^1.4.1",
+    "awaiting": "^3.0.0",
+    "express": "^4.21.2",
+    "http-proxy-3": "^1.22.0",
+    "micro-key-producer": "^0.8.1"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

@@ -176,10 +176,10 @@ export class SharedProjectActions {
     if (!shared_project_id) {
       return; // no shared project
     }
-    const dflt_img = await redux.getStore("customize").getDefaultComputeImage();
-    const img_id = store.get("settings").get("custom_image") ?? dflt_img;
+    const defaultImage = await redux.getStore("customize").getDefaultComputeImage();
+    const imageId = store.get("settings").get("custom_image") ?? defaultImage;
     const actions = redux.getProjectActions(shared_project_id);
-    await actions.set_compute_image(img_id);
+    await actions.set_compute_image(imageId);
   };
 
   set_datastore_and_envvars = async (): Promise<void> => {

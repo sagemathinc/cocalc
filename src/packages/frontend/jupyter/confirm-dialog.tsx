@@ -36,13 +36,12 @@ interface ConfirmDialogProps {
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = (
-  props: ConfirmDialogProps
+  props: ConfirmDialogProps,
 ) => {
   const { actions, confirm_dialog } = props;
 
   function close(): void {
     actions.close_confirm_dialog();
-    actions.focus(true);
   }
 
   function renderButton(choice: ConfirmDialogChoice) {

@@ -23,6 +23,8 @@ const config = {
     // Webpack breaks without this pg-native alias, even though it's dead code,
     // due to how the pg module does package detection internally.
     config.resolve.alias["pg-native"] = ".";
+    // Some backend code uses @lydell/node-pty but it won't be used in next:
+    config.resolve.alias["@lydell/node-pty"] = ".";
     // These aliases are so we don't end up with two distinct copies
     // of React in our application, since this doesn't work at all!
     config.resolve.alias["react"] = resolve(__dirname, "node_modules", "react");
@@ -44,6 +46,14 @@ const config = {
     defaultLocale: "en-US",
   },
   poweredByHeader: false,
+  experimental: {
+    // I added this so micro-key-producer/ssh.js can be imported.  It's ESM only
+    // and breaks the bundler. https://github.com/paulmillr/micro-key-producer/issues/20
+    // But with this config option, things seem fine.  Note that micro-key-producer/ssh.js
+    // is NOT actually used ever by nextjs -- it's used by our backend file-server
+    // to generate an ssh key.
+    esmExternals: "loose",
+  },
 };
 
 const withRspack = require("next-rspack");

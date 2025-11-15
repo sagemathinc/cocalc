@@ -8,6 +8,8 @@ import { handleErrorMessage } from "@cocalc/conat/util";
 import { type Sync, sync } from "./sync";
 import { type Org, org } from "./org";
 import { type Messages, messages } from "./messages";
+import { type Compute, compute } from "./compute";
+import { type FileSync, fileSync } from "./file-sync";
 
 export interface HubApi {
   system: System;
@@ -18,6 +20,8 @@ export interface HubApi {
   sync: Sync;
   org: Org;
   messages: Messages;
+  compute: Compute;
+  fileSync: FileSync;
 }
 
 const HubApiStructure = {
@@ -29,6 +33,8 @@ const HubApiStructure = {
   sync,
   org,
   messages,
+  compute,
+  fileSync,
 } as const;
 
 export function transformArgs({ name, args, account_id, project_id }) {

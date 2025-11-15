@@ -12,7 +12,6 @@ import {
   useState,
 } from "react";
 import * as immutable from "immutable";
-
 import {
   ProjectActions,
   redux,
@@ -58,6 +57,8 @@ export interface ProjectContextState {
   project?: Project;
   setContentSize: (size: { width: number; height: number }) => void;
   status: ProjectStatus;
+
+  compute_server_id: number;
 }
 
 export const emptyProjectContext = {
@@ -90,6 +91,7 @@ export const emptyProjectContext = {
   project_id: "",
   setContentSize: () => {},
   status: INIT_PROJECT_STATE,
+  compute_server_id: 0,
 } as ProjectContextState;
 
 export const ProjectContext: Context<ProjectContextState> =
@@ -120,6 +122,7 @@ export function useProjectContextProvider({
     { project_id },
     "active_project_tab",
   );
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   // shared data: used to flip through the open tabs in the active files flyout
   const flipTabs = useState<number>(0);
 
@@ -179,6 +182,7 @@ export function useProjectContextProvider({
     manageStarredFiles,
     onCoCalcCom,
     onCoCalcDocker,
+    compute_server_id,
     project_id,
     project,
     setContentSize,

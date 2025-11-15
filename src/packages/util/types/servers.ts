@@ -11,6 +11,7 @@ export const NAMED_SERVER_NAMES = [
   "code",
   "pluto",
   "rserver",
+  "xpra",
 ] as const;
 
 export type NamedServerName = (typeof NAMED_SERVER_NAMES)[number];

@@ -94,7 +94,6 @@ export default function CellInput({
         </Tooltip>
       )}
       <ActionButtons
-        auto={false}
         size="small"
         input={newValue}
         output={output}

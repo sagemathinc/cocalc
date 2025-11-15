@@ -31,25 +31,24 @@ declare const localStorage: any;
 import * as immutable from "immutable";
 import { Actions } from "@cocalc/util/redux/Actions";
 import { three_way_merge } from "@cocalc/sync/editor/generic/util";
-import { callback2, retry_until_success } from "@cocalc/util/async-utils";
+import { callback2 } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
 import { JupyterStore, JupyterStoreState } from "@cocalc/jupyter/redux/store";
-import { Cell, KernelInfo } from "@cocalc/jupyter/types";
+import { Cell } from "@cocalc/jupyter/types";
 import { IPynbImporter } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
-import {
-  char_idx_to_js_idx,
-  codemirror_to_jupyter_pos,
-  js_idx_to_char_idx,
-} from "@cocalc/jupyter/util/misc";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type { Client } from "@cocalc/sync/client/types";
 import latexEnvs from "@cocalc/util/latex-envs";
-import { jupyterApiClient } from "@cocalc/conat/service/jupyter";
 import { type AKV, akv } from "@cocalc/conat/sync/akv";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import {
+  JUPYTER_MIMETYPES,
+  isJupyterBase64MimeType,
+} from "@cocalc/jupyter/util/misc";
+import { isSha1, sha1 } from "@cocalc/util/misc";
+import { shouldUseIframe } from "@cocalc/jupyter/util/iframe";
 
 const { close, required, defaults } = misc;
 
@@ -64,16 +63,13 @@ const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
 type State = "init" | "load" | "ready" | "closed";
 
-export abstract class JupyterActions extends Actions<JupyterStoreState> {
+export class JupyterActions extends Actions<JupyterStoreState> {
   public is_project: boolean;
   public is_compute_server?: boolean;
   readonly path: string;
   readonly project_id: string;
-  private _last_start?: number;
   public jupyter_kernel?: JupyterKernelInterface;
-  private last_cursor_move_time: Date = new Date(0);
-  private _cursor_locs?: any;
-  private _introspect_request?: any;
+  public _cursor_locs?: any;
   protected set_save_status: any;
   protected _client: Client;
   protected _file_watcher: any;
@@ -81,7 +77,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   protected restartKernelOnClose?: (...args: any[]) => void;
   public asyncBlobStore: AKV;
 
-  public _complete_request?: number;
   public store: JupyterStore;
   public syncdb: SyncDB;
   private labels?: {
@@ -114,20 +109,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.path = path;
     store.syncdb = syncdb;
     this.syncdb = syncdb;
-    // the project client is designated to manage execution/conflict, etc.
     this.is_project = client.is_project();
-    if (this.is_project) {
-      this.syncdb.on("first-load", () => {
-        dbg("handling first load of syncdb in project");
-        // Clear settings the first time the syncdb is ever
-        // loaded, since it has settings like "ipynb last save"
-        // and trust, which shouldn't be initialized to
-        // what they were before. Not doing this caused
-        // https://github.com/sagemathinc/cocalc/issues/7074
-        this.syncdb.delete({ type: "settings" });
-        this.syncdb.commit();
-      });
-    }
     this.is_compute_server = client.is_compute_server();
 
     let directory: any;
@@ -189,14 +171,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  protected api = (opts: { timeout?: number } = {}) => {
-    return jupyterApiClient({
-      project_id: this.project_id,
-      path: this.path,
-      timeout: opts.timeout,
-    });
-  };
-
   protected dbg(f: string) {
     if (this.is_closed()) {
       // calling dbg after the actions are closed is possible; this.store would
@@ -212,43 +186,29 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // an account_change listener.
   }
 
-  public is_closed(): boolean {
-    return this._state === "closed" || this._state === undefined;
-  }
+  isClosed = () => (this._state ?? "closed") == "closed";
+  is_closed = () => (this._state ?? "closed") == "closed";
 
-  public async close({ noSave }: { noSave?: boolean } = {}): Promise<void> {
-    if (this.is_closed()) {
-      return;
-    }
-    // ensure save to disk happens:
-    //   - it will automatically happen for the sync-doc file, but
-    //     we also need it for the ipynb file... as ipynb is unique
-    //     in having two formats.
-    if (!noSave) {
-      await this.save();
-    }
-    if (this.is_closed()) {
-      return;
-    }
-
-    if (this.syncdb != null) {
-      this.syncdb.close();
-    }
-    if (this._file_watcher != null) {
-      this._file_watcher.close();
-    }
-    if (this.is_project || this.is_compute_server) {
-      this.close_project_only();
-    } else {
-      this.close_client_only();
-    }
-    // We *must* destroy the action before calling close,
-    // since otherwise this.redux and this.name are gone,
-    // which makes destroying the actions properly impossible.
-    this.destroy();
-    this.store.destroy();
-    close(this);
-    this._state = "closed";
+  close() {
+    try {
+      if (this.is_closed()) {
+        return;
+      }
+      this.syncdb?.close();
+      this._file_watcher?.close();
+      if (this.is_project || this.is_compute_server) {
+        this.close_project_only();
+      } else {
+        this.close_client_only();
+      }
+      // We *must* destroy the action before calling close,
+      // since otherwise this.redux and this.name are gone,
+      // which makes destroying the actions properly impossible.
+      this.destroy();
+      this.store?.destroy();
+      close(this);
+      this._state = "closed";
+    } catch {}
   }
 
   public close_project_only() {
@@ -256,6 +216,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   set_error = (err: any): void => {
+    // console.trace("set_error", err);
     if (this._state === "closed") return;
     if (err == null) {
       this.setState({ error: undefined }); // delete from store
@@ -340,7 +301,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       const cell = cells.get(id);
       if (cell == null) continue;
       if (cell.get("output") != null || cell.get("exec_count")) {
-        this._set({ type: "cell", id, output: null, exec_count: null }, false);
+        this._set(
+          { type: "cell", id, output: null, exec_count: null, done: null },
+          false,
+        );
       }
     }
     if (save) {
@@ -541,7 +505,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
 
-    this.onCellChange(id, new_cell, old_cell);
     this.store.emit("cell_change", id, new_cell, old_cell);
 
     return cell_list_needs_recompute;
@@ -670,7 +633,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
               kernel_state: record.get("kernel_state"),
               kernel_error: record.get("kernel_error"),
               metadata: record.get("metadata"), // extra custom user-specified metadata
-              connection_file: record.get("connection_file") ?? "",
               max_output_length: bounded_integer(
                 record.get("max_output_length"),
                 100,
@@ -713,17 +675,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // things in project, browser, etc.
   }
 
-  protected onCellChange(_id: string, _new_cell: any, _old_cell: any) {
-    // no-op in base class.  This is a hook though
-    // for potentially doing things when any cell changes.
-  }
-
   ensure_backend_kernel_setup() {
     // nontrivial in the project, but not in client or here.
-  }
-
-  protected _output_handler(_cell: any) {
-    throw Error("define in a derived class.");
   }
 
   /*
@@ -756,7 +709,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         }
       }
     }
-    //@dbg("_set")("obj=#{misc.to_json(obj)}")
     this.syncdb.set(obj);
     if (save) {
       this.syncdb.commit();
@@ -790,60 +742,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     this.syncdb.commit();
-  };
-
-  public save = async (): Promise<void> => {
-    if (this.store.get("read_only") || this.isDeleted()) {
-      // can't save when readonly or deleted
-      return;
-    }
-    // Save the .ipynb file to disk.  Note that this
-    // *changes* the syncdb by updating the last save time.
-    try {
-      // Make sure syncdb content is all sent to the project.
-      // This does not actually save the syncdb file to disk.
-      // This "save" means save state to backend.
-      // We save two things -- first the syncdb state:
-      await this.syncdb.save();
-      if (this._state === "closed") return;
-
-      // Second the .ipynb file state:
-      // Export the ipynb file to disk, being careful not to actually
-      // save it until the backend actually gets the given version and
-      // has processed it!
-      const version = this.syncdb.newestVersion();
-      try {
-        await this.api({ timeout: 5 * 60 * 1000 }).save_ipynb_file({ version });
-      } catch (err) {
-        console.log(`WARNING: ${err}`);
-        throw Error(
-          `There was a problem writing the ipynb file to disk -- ${err}`,
-        );
-      }
-      if (this._state === ("closed" as State)) return;
-      // Save our custom-format syncdb to disk.
-      await this.syncdb.save_to_disk();
-    } catch (err) {
-      if (this._state === ("closed" as State)) return;
-      if (err.toString().indexOf("no kernel with path") != -1) {
-        // This means that the kernel simply hasn't been initialized yet.
-        // User can try to save later, once it has.
-        return;
-      }
-      if (err.toString().indexOf("unknown endpoint") != -1) {
-        this.set_error(
-          "You MUST restart your project to run the latest Jupyter server! Click 'Restart Project' in your project's settings.",
-        );
-        return;
-      }
-      this.set_error(err.toString());
-    } finally {
-      if (this._state === "closed") return;
-      // And update the save status finally.
-      if (typeof this.set_save_status === "function") {
-        this.set_save_status();
-      }
-    }
   };
 
   save_asap = async (): Promise<void> => {
@@ -910,10 +808,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return this.insert_cell_at(pos, save);
   }
 
-  delete_selected_cells = (sync = true): void => {
-    this.deprecated("delete_selected_cells", sync);
-  };
-
   delete_cells(cells: string[], sync: boolean = true): void {
     let not_deletable: number = 0;
     for (const id of cells) {
@@ -971,64 +865,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return this.syncdb?.in_undo_mode() ?? false;
   }
 
-  public run_code_cell(
-    id: string,
-    save: boolean = true,
-    no_halt: boolean = false,
-  ): void {
-    const cell = this.store.getIn(["cells", id]);
-    if (cell == null) {
-      // it is trivial to run a cell that does not exist -- nothing needs to be done.
-      return;
-    }
-    const kernel = this.store.get("kernel");
-    if (kernel == null || kernel === "") {
-      // just in case, we clear any "running" indicators
-      this._set({ type: "cell", id, state: "done" });
-      // don't attempt to run a code-cell if there is no kernel defined
-      this.set_error(
-        "No kernel set for running cells. Therefore it is not possible to run a code cell. You have to select a kernel!",
-      );
-      return;
-    }
-
-    if (cell.get("state", "done") != "done") {
-      // already running -- stop it first somehow if you want to run it again...
-      return;
-    }
-
-    // We mark the start timestamp uniquely, so that the backend can sort
-    // multiple cells with a simultaneous time to start request.
-
-    let start: number = this._client.server_time().valueOf();
-    if (this._last_start != null && start <= this._last_start) {
-      start = this._last_start + 1;
-    }
-    this._last_start = start;
-    this.set_jupyter_metadata(id, "outputs_hidden", undefined, false);
-
-    this._set(
-      {
-        type: "cell",
-        id,
-        state: "start",
-        start,
-        end: null,
-        // time last evaluation took
-        last:
-          cell.get("start") != null && cell.get("end") != null
-            ? cell.get("end") - cell.get("start")
-            : cell.get("last"),
-        output: null,
-        exec_count: null,
-        collapsed: null,
-        no_halt: no_halt ? no_halt : null,
-      },
-      save,
-    );
-    this.set_trust_notebook(true, save);
-  }
-
   clear_cell = (id: string, save = true) => {
     const cell = this.store.getIn(["cells", id]);
 
@@ -1051,20 +887,21 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
-  run_selected_cells = (): void => {
-    this.deprecated("run_selected_cells");
-  };
-
-  public abstract run_cell(id: string, save?: boolean, no_halt?: boolean): void;
+  runCells(_ids: string[], _opts?: { noHalt?: boolean }): Promise<void> {
+    // defined in derived class (e.g., frontend browser).
+    throw Error("DEPRECATED");
+  }
 
   run_all_cells = (no_halt: boolean = false): void => {
-    this.store.get_cell_list().forEach((id) => {
-      this.run_cell(id, false, no_halt);
-    });
-    this.save_asap();
+    this.runCells(this.store.get_cell_list().toJS(), { noHalt: no_halt });
   };
 
+  protected clearRunQueue() {
+    // implemented in frontend browser actions
+  }
+
   clear_all_cell_run_state = (): void => {
+    this.clearRunQueue();
     const { store } = this;
     if (!store) {
       return;
@@ -1090,34 +927,14 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   run_all_above_cell(id: string): void {
     const i: number = this.store.get_cell_index(id);
     const v: string[] = this.store.get_cell_list().toJS();
-    for (const id of v.slice(0, i)) {
-      this.run_cell(id, false);
-    }
-    this.save_asap();
+    this.runCells(v.slice(0, i));
   }
 
   // Run all cells below (and *including*) the specified cell.
   public run_all_below_cell(id: string): void {
     const i: number = this.store.get_cell_index(id);
     const v: string[] = this.store.get_cell_list().toJS();
-    for (const id of v.slice(i)) {
-      this.run_cell(id, false);
-    }
-    this.save_asap();
-  }
-
-  public set_cursor_locs(locs: any[] = [], side_effect: boolean = false): void {
-    this.last_cursor_move_time = new Date();
-    if (this.syncdb == null) {
-      // syncdb not always set -- https://github.com/sagemathinc/cocalc/issues/2107
-      return;
-    }
-    if (locs.length === 0) {
-      // don't remove on blur -- cursor will fade out just fine
-      return;
-    }
-    this._cursor_locs = locs; // remember our own cursors for splitting cell
-    this.syncdb.set_cursor_locs(locs, side_effect);
+    this.runCells(v.slice(i));
   }
 
   public split_cell(id: string, cursor: { line: number; ch: number }): void {
@@ -1400,7 +1217,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         cell = cell.set("pos", i);
         this._set(cell, false);
       });
-      this.ensure_positions_are_unique();
+      this.ensurePositionsAreUnique();
       this._sync();
       return;
     }
@@ -1485,155 +1302,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return this.store.getIn(["cells", id, "input"], "");
   }
 
-  // Attempt to fetch completions for give code and cursor_pos
-  // If successful, the completions are put in store.get('completions') and looks like
-  // this (as an immutable map):
-  //    cursor_end   : 2
-  //    cursor_start : 0
-  //    matches      : ['the', 'completions', ...]
-  //    status       : "ok"
-  //    code         : code
-  //    cursor_pos   : cursor_pos
-  //
-  // If not successful, result is:
-  //    status       : "error"
-  //    code         : code
-  //    cursor_pos   : cursor_pos
-  //    error        : 'an error message'
-  //
-  // Only the most recent fetch has any impact, and calling
-  // clear_complete() ensures any fetch made before that
-  // is ignored.
-
-  // Returns true if a dialog with options appears, and false otherwise.
-  public async complete(
-    code: string,
-    pos?: { line: number; ch: number } | number,
-    id?: string,
-    offset?: any,
-  ): Promise<boolean> {
-    let cursor_pos;
-    const req = (this._complete_request =
-      (this._complete_request != null ? this._complete_request : 0) + 1);
-
-    this.setState({ complete: undefined });
-
-    // pos can be either a {line:?, ch:?} object as in codemirror,
-    // or a number.
-    if (pos == null || typeof pos == "number") {
-      cursor_pos = pos;
-    } else {
-      cursor_pos = codemirror_to_jupyter_pos(code, pos);
-    }
-    cursor_pos = js_idx_to_char_idx(cursor_pos, code);
-
-    const start = new Date();
-    let complete;
-    try {
-      complete = await this.api().complete({
-        code,
-        cursor_pos,
-      });
-    } catch (err) {
-      if (this._complete_request > req) return false;
-      this.setState({ complete: { error: err } });
-      // no op for now...
-      throw Error(`ignore -- ${err}`);
-      //return false;
-    }
-
-    if (this.last_cursor_move_time >= start) {
-      // see https://github.com/sagemathinc/cocalc/issues/3611
-      throw Error("ignore");
-      //return false;
-    }
-    if (this._complete_request > req) {
-      // future completion or clear happened; so ignore this result.
-      throw Error("ignore");
-      //return false;
-    }
-
-    if (complete.status !== "ok") {
-      this.setState({
-        complete: {
-          error: complete.error ? complete.error : "completion failed",
-        },
-      });
-      return false;
-    }
-
-    if (complete.matches == 0) {
-      return false;
-    }
-
-    delete complete.status;
-    complete.base = code;
-    complete.code = code;
-    complete.pos = char_idx_to_js_idx(cursor_pos, code);
-    complete.cursor_start = char_idx_to_js_idx(complete.cursor_start, code);
-    complete.cursor_end = char_idx_to_js_idx(complete.cursor_end, code);
-    complete.id = id;
-    // Set the result so the UI can then react to the change.
-    if (offset != null) {
-      complete.offset = offset;
-    }
-    // For some reason, sometimes complete.matches are not unique, which is annoying/confusing,
-    // and breaks an assumption in our react code too.
-    // I think the reason is e.g., a filename and a variable could be the same.   We're not
-    // worrying about that now.
-    complete.matches = Array.from(new Set(complete.matches));
-    // sort in a way that matches how JupyterLab sorts completions, which
-    // is case insensitive with % magics at the bottom
-    complete.matches.sort((x, y) => {
-      const c = misc.cmp(getCompletionGroup(x), getCompletionGroup(y));
-      if (c) {
-        return c;
-      }
-      return misc.cmp(x.toLowerCase(), y.toLowerCase());
-    });
-    const i_complete = immutable.fromJS(complete);
-    if (complete.matches && complete.matches.length === 1 && id != null) {
-      // special case -- a unique completion and we know id of cell in which completing is given.
-      this.select_complete(id, complete.matches[0], i_complete);
-      return false;
-    } else {
-      this.setState({ complete: i_complete });
-      return true;
-    }
-  }
-
-  clear_complete = (): void => {
-    this._complete_request =
-      (this._complete_request != null ? this._complete_request : 0) + 1;
-    this.setState({ complete: undefined });
-  };
-
-  public select_complete(
-    id: string,
-    item: string,
-    complete?: immutable.Map<string, any>,
-  ): void {
-    if (complete == null) {
-      complete = this.store.get("complete");
-    }
-    this.clear_complete();
-    if (complete == null) {
-      return;
-    }
-    const input = complete.get("code");
-    if (input != null && complete.get("error") == null) {
-      const starting = input.slice(0, complete.get("cursor_start"));
-      const ending = input.slice(complete.get("cursor_end"));
-      const new_input = starting + item + ending;
-      const base = complete.get("base");
-      this.complete_cell(id, base, new_input);
-    }
-  }
-
-  complete_cell(id: string, base: string, new_input: string): void {
-    this.merge_cell_input(id, base, new_input);
-  }
-
   merge_cell_input(
     id: string,
     base: string,
@@ -1651,194 +1319,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     });
     this.set_cell_input(id, new_input, save);
   }
-
-  is_introspecting(): boolean {
-    const actions = this.getFrameActions() as any;
-    return actions?.store?.get("introspect") != null;
-  }
-
-  introspect_close = () => {
-    if (this.is_introspecting()) {
-      this.getFrameActions()?.setState({ introspect: undefined });
-    }
-  };
-
-  introspect_at_pos = async (
-    code: string,
-    level: 0 | 1 = 0,
-    pos: { ch: number; line: number },
-  ): Promise<void> => {
-    if (code === "") return; // no-op if there is no code (should never happen)
-    await this.introspect(code, level, codemirror_to_jupyter_pos(code, pos));
-  };
-
-  introspect = async (
-    code: string,
-    level: 0 | 1,
-    cursor_pos?: number,
-  ): Promise<immutable.Map<string, any> | undefined> => {
-    const req = (this._introspect_request =
-      (this._introspect_request != null ? this._introspect_request : 0) + 1);
-
-    if (cursor_pos == null) {
-      cursor_pos = code.length;
-    }
-    cursor_pos = js_idx_to_char_idx(cursor_pos, code);
-
-    let introspect;
-    try {
-      introspect = await this.api().introspect({
-        code,
-        cursor_pos,
-        level,
-      });
-      if (introspect.status !== "ok") {
-        introspect = { error: "completion failed" };
-      }
-      delete introspect.status;
-    } catch (err) {
-      introspect = { error: err };
-    }
-    if (this._introspect_request > req) return;
-    const i = immutable.fromJS(introspect);
-    this.getFrameActions()?.setState({
-      introspect: i,
-    });
-    return i; // convenient / useful, e.g., for use by whiteboard.
-  };
-
-  clear_introspect = (): void => {
-    this._introspect_request =
-      (this._introspect_request != null ? this._introspect_request : 0) + 1;
-    this.getFrameActions()?.setState({ introspect: undefined });
-  };
-
-  public async signal(signal = "SIGINT"): Promise<void> {
-    const api = this.api({ timeout: 5000 });
-    try {
-      await api.signal(signal);
-    } catch (err) {
-      this.set_error(err);
-    }
-  }
-
-  // Kill the running kernel and does NOT start it up again.
-  halt = reuseInFlight(async (): Promise<void> => {
-    if (this.restartKernelOnClose != null && this.jupyter_kernel != null) {
-      this.jupyter_kernel.removeListener("closed", this.restartKernelOnClose);
-      delete this.restartKernelOnClose;
-    }
-    this.clear_all_cell_run_state();
-    await this.signal("SIGKILL");
-    // Wait a little, since SIGKILL has to really happen on backend,
-    // and server has to respond and change state.
-    const not_running = (s): boolean => {
-      if (this._state === "closed") return true;
-      const t = s.get_one({ type: "settings" });
-      return t != null && t.get("backend_state") != "running";
-    };
-    try {
-      await this.syncdb.wait(not_running, 30);
-      // worked -- and also no need to show "kernel got killed" message since this was intentional.
-      this.set_error("");
-    } catch (err) {
-      // failed
-      this.set_error(err);
-    }
-  });
-
-  restart = reuseInFlight(async (): Promise<void> => {
-    await this.halt();
-    if (this._state === "closed") return;
-    this.clear_all_cell_run_state();
-    // Actually start it running again (rather than waiting for
-    // user to do something), since this is called "restart".
-    try {
-      await this.set_backend_kernel_info(); // causes kernel to start
-    } catch (err) {
-      this.set_error(err);
-    }
-  });
-
-  public shutdown = reuseInFlight(async (): Promise<void> => {
-    if (this._state === ("closed" as State)) {
-      return;
-    }
-    await this.signal("SIGKILL");
-    if (this._state === ("closed" as State)) {
-      return;
-    }
-    this.clear_all_cell_run_state();
-    await this.save_asap();
-  });
-
-  set_backend_kernel_info = async (): Promise<void> => {
-    if (this._state === "closed" || this.syncdb.is_read_only()) {
-      return;
-    }
-
-    if (this.is_project || this.is_compute_server) {
-      const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
-      if (
-        this.jupyter_kernel == null ||
-        this.jupyter_kernel.get_state() == "closed"
-      ) {
-        dbg("no Jupyter kernel defined");
-        return;
-      }
-      dbg("getting kernel_info...");
-      let backend_kernel_info: KernelInfo;
-      try {
-        backend_kernel_info = immutable.fromJS(
-          await this.jupyter_kernel.kernel_info(),
-        );
-      } catch (err) {
-        dbg(`error = ${err}`);
-        return;
-      }
-      this.setState({ backend_kernel_info });
-    } else {
-      await this._set_backend_kernel_info_client();
-    }
-  };
-
-  _set_backend_kernel_info_client = reuseInFlight(async (): Promise<void> => {
-    await retry_until_success({
-      max_time: 120000,
-      start_delay: 1000,
-      max_delay: 10000,
-      f: this._fetch_backend_kernel_info_from_server,
-      desc: "jupyter:_set_backend_kernel_info_client",
-    });
-  });
-
-  _fetch_backend_kernel_info_from_server = async (): Promise<void> => {
-    const f = async () => {
-      if (this._state === "closed") {
-        return;
-      }
-      const data = await this.api().kernel_info();
-      this.setState({
-        backend_kernel_info: immutable.fromJS(data),
-        // this is when the server for this doc started, not when kernel last started!
-        start_time: data.start_time,
-      });
-    };
-    try {
-      await retry_until_success({
-        max_time: 1000 * 60 * 30,
-        start_delay: 500,
-        max_delay: 3000,
-        f,
-        desc: "jupyter:_fetch_backend_kernel_info_from_server",
-      });
-    } catch (err) {
-      this.set_error(err);
-    }
-    if (this.is_closed()) return;
-    // Update the codemirror editor options.
-    this.set_cm_options();
-  };
 
   // Do a file action, e.g., 'compress', 'delete', 'rename', 'duplicate', 'move',
   // 'copy', 'share', 'download', 'open_file', 'close_file', 'reopen_file'
@@ -1890,20 +1370,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  fetch_more_output = async (id: string): Promise<void> => {
-    const time = this._client.server_time().valueOf();
-    try {
-      const more_output = await this.api({ timeout: 60000 }).more_output(id);
-      if (!this.store.getIn(["cells", id, "scrolled"])) {
-        // make output area scrolled, since there is going to be a lot of output
-        this.toggle_output(id, "scrolled");
-      }
-      this.set_more_output(id, { time, mesg_list: more_output });
-    } catch (err) {
-      this.set_error(err);
-    }
-  };
-
   // NOTE: set_more_output on project-actions is different
   set_more_output = (id: string, more_output: any, _?: any): void => {
     if (this.store.getIn(["cells", id]) == null) {
@@ -1935,172 +1401,14 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         trust: !!trust,
       },
       save,
-    ); // case to bool
+    );
   };
 
   scroll(pos): any {
     this.deprecated("scroll", pos);
   }
 
-  // submit input for a particular cell -- this is used by the
-  // Input component output message type for interactive input.
-  public async submit_input(id: string, value: string): Promise<void> {
-    const output = this.store.getIn(["cells", id, "output"]);
-    if (output == null) {
-      return;
-    }
-    const n = `${output.size - 1}`;
-    const mesg = output.get(n);
-    if (mesg == null) {
-      return;
-    }
-
-    if (mesg.getIn(["opts", "password"])) {
-      // handle password input separately by first submitting to the backend.
-      try {
-        await this.submit_password(id, value);
-      } catch (err) {
-        this.set_error(`Error setting backend key/value store (${err})`);
-        return;
-      }
-      const m = value.length;
-      value = "";
-      for (let i = 0; i < m; i++) {
-        value == "●";
-      }
-      this.set_cell_output(id, output.set(n, mesg.set("value", value)), false);
-      this.save_asap();
-      return;
-    }
-
-    this.set_cell_output(id, output.set(n, mesg.set("value", value)), false);
-    this.save_asap();
-  }
-
-  submit_password = async (id: string, value: any): Promise<void> => {
-    await this.set_in_backend_key_value_store(id, value);
-  };
-
-  set_in_backend_key_value_store = async (
-    key: any,
-    value: any,
-  ): Promise<void> => {
-    try {
-      await this.api().store({ key, value });
-    } catch (err) {
-      this.set_error(err);
-    }
-  };
-
-  set_to_ipynb = async (
-    ipynb: any,
-    data_only: boolean = false,
-  ): Promise<void> => {
-    /*
-     * set_to_ipynb - set from ipynb object.  This is
-     * mainly meant to be run on the backend in the project,
-     * but is also run on the frontend too, e.g.,
-     * for client-side nbviewer (in which case it won't remove images, etc.).
-     *
-     * See the documentation for load_ipynb_file in project-actions.ts for
-     * documentation about the data_only input variable.
-     */
-    if (typeof ipynb != "object") {
-      throw Error("ipynb must be an object");
-    }
-
-    this._state = "load";
-
-    //dbg(misc.to_json(ipynb))
-
-    // We try to parse out the kernel so we can use process_output below.
-    // (TODO: rewrite so process_output is not associated with a specific kernel)
-    let kernel: string | undefined;
-    const ipynb_metadata = ipynb.metadata;
-    if (ipynb_metadata != null) {
-      const kernelspec = ipynb_metadata.kernelspec;
-      if (kernelspec != null) {
-        kernel = kernelspec.name;
-      }
-    }
-    //dbg("kernel in ipynb: name='#{kernel}'")
-
-    const existing_ids = this.store.get_cell_list().toJS();
-
-    let set, trust;
-    if (data_only) {
-      trust = undefined;
-      set = function () {};
-    } else {
-      if (typeof this.reset_more_output === "function") {
-        this.reset_more_output();
-        // clear the more output handler (only on backend)
-      }
-      // We delete all of the cells.
-      // We do NOT delete everything, namely the last_loaded and
-      // the settings entry in the database, because that would
-      // throw away important information, e.g., the current kernel
-      // and its state.  NOTe: Some of that extra info *should* be
-      // moved to a different ephemeral table, but I haven't got
-      // around to doing so.
-      this.syncdb.delete({ type: "cell" });
-      // preserve trust state across file updates/loads
-      trust = this.store.get("trust");
-      set = (obj) => {
-        this.syncdb.set(obj);
-      };
-    }
-
-    // Change kernel to what is in the file if necessary:
-    set({ type: "settings", kernel });
-    this.ensure_backend_kernel_setup();
-
-    const importer = new IPynbImporter();
-
-    // NOTE: Below we re-use any existing ids to make the patch that defines changing
-    // to the contents of ipynb more efficient.   In case of a very slight change
-    // on disk, this can be massively more efficient.
-
-    importer.import({
-      ipynb,
-      existing_ids,
-      new_id: this.new_id.bind(this),
-      output_handler:
-        this.jupyter_kernel != null
-          ? this._output_handler.bind(this)
-          : undefined, // undefined in client; defined in project
-    });
-
-    if (data_only) {
-      importer.close();
-      return;
-    }
-
-    // Set all the cells
-    const object = importer.cells();
-    for (const _ in object) {
-      const cell = object[_];
-      set(cell);
-    }
-
-    // Set the settings
-    set({ type: "settings", kernel: importer.kernel(), trust });
-
-    // Set extra user-defined metadata
-    const metadata = importer.metadata();
-    if (metadata != null) {
-      set({ type: "settings", metadata });
-    }
-
-    importer.close();
-
-    this.syncdb.commit();
-    await this.syncdb.save();
-    this.ensure_backend_kernel_setup();
-    this._state = "ready";
-  };
-
-  public set_cell_slide(id: string, value: any): void {
+  set_cell_slide = (id: string, value: any) => {
     if (!value) {
       value = null; // delete
     }
@@ -2112,15 +1420,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       id,
       slide: value,
     });
-  }
+  };
 
-  public ensure_positions_are_unique(): void {
-    if (this._state != "ready" || this.store == null) {
-      // because of debouncing, this ensure_positions_are_unique can
-      // be called after jupyter actions are closed.
-      return;
-    }
-    const changes = cell_utils.ensure_positions_are_unique(
+  ensurePositionsAreUnique = () => {
+    if (this.isClosed()) return;
+    const changes = cell_utils.ensurePositionsAreUnique(
       this.store.get("cells"),
     );
     if (changes != null) {
@@ -2130,9 +1434,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
     this._sync();
-  }
+  };
 
-  public set_default_kernel(kernel?: string): void {
+  set_default_kernel = (kernel?: string) => {
     if (kernel == null || kernel === "") return;
     // doesn't make sense for project (right now at least)
     if (this.is_project || this.is_compute_server) return;
@@ -2149,7 +1453,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     (this.redux.getTable("account") as any).set({
       editor_settings: { jupyter: cur },
     });
-  }
+  };
 
   edit_attachments = (id: string): void => {
     this.setState({ edit_attachments: id });
@@ -2582,6 +1886,219 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
     this.setState({ runProgress: total > 0 ? (100 * ran) / total : 100 });
   };
+
+  ensureThereIsACell = () => {
+    if (this._state !== "ready") {
+      return;
+    }
+    const cells = this.store.get("cells");
+    if (cells == null || cells.size === 0) {
+      this._set({
+        type: "cell",
+        // by using the same id across clients we solve the problem of multiple
+        // clients creating a cell at the same time.
+        id: "alpha",
+        pos: 0,
+        input: "",
+      });
+      // It is safe to trust an empty notebook.
+      this.set_trust_notebook(true);
+    }
+  };
+
+  processOutput = (content: any) => {
+    if (this.isClosed()) {
+      return;
+    }
+    const dbg = this.dbg("process_output");
+    dbg();
+    if (content.data == null) {
+      // No data -- https://github.com/sagemathinc/cocalc/issues/6665
+      // NO do not do this sort of thing.  This is exactly the sort of situation where
+      // content could be very large, and JSON.stringify could use huge amounts of memory.
+      // If you need to see this for debugging, uncomment it.
+      // dbg(trunc(JSON.stringify(content), 300));
+      // todo: FOR now -- later may remove large stdout, stderr, etc...
+      // dbg("no data, so nothing to do");
+      return;
+    }
+
+    // Here we compute sha1 and start saving the blob to the blob store
+    // over the network.  There is no guarantee that will work and this
+    // won't just be lost. It's unlikely but could happen.  This is
+    // always output images in notebooks, so not critical data.
+    // By doing this, the blobs gets saved in parallel and code that
+    // uses this for import etc. is non-async, so simpler.
+    const saveBlob = (data: string, type: string) => {
+      const buf = Buffer.from(
+        data,
+        isJupyterBase64MimeType(type) ? "base64" : undefined,
+      );
+      const s: string = sha1(buf);
+      (async () => {
+        try {
+          await this.asyncBlobStore.set(s, buf);
+        } catch (err) {
+          dbg("WARNING: Jupyter blob store not working -- skipping use", err);
+          // i think it'll just send the large data on in the usual way instead
+          // via the output, instead of using the blob store.  It's probably just
+          // less efficient.
+        }
+      })();
+      return s;
+    };
+
+    let type: string;
+    for (type of JUPYTER_MIMETYPES) {
+      if (content.data[type] == null) {
+        continue;
+      }
+      if (
+        type.split("/")[0] === "image" ||
+        type === "application/pdf" ||
+        type === "text/html"
+      ) {
+        // Store all images and PDF and text/html in a binary blob store, so we don't have
+        // to involve it in realtime sync.  It tends to be large, etc.
+        if (isSha1(content.data[type])) {
+          // it was already processed, e.g., this happens when a browser that was
+          // processing output closes and we cutoff to the project processing output.
+          continue;
+        }
+        if (type == "text/html" && !shouldUseIframe(content.data[type])) {
+          continue;
+        }
+        const s = saveBlob(content.data[type], type);
+        if (s) {
+          dbg("put content in blob store: ", { type, sha1: s });
+          // only remove if the save actually worked -- we don't want to break output
+          // for the user for a little optimization!
+          if (type == "text/html") {
+            // NOTE: in general, this may or may not get rendered as an iframe --
+            // we use iframe for backward compatibility.
+            content.data["iframe"] = s;
+            delete content.data["text/html"];
+          } else {
+            content.data[type] = s;
+          }
+        }
+      }
+    }
+  };
+
+  private cellOutputHandler = (cell) => {
+    return {
+      message: (content, k) => {
+        this.processOutput(content);
+        cell.output[k] = content;
+      },
+    };
+  };
+
+  setToIpynb = async (
+    ipynb: any,
+    data_only: boolean = false,
+  ): Promise<void> => {
+    /*
+     * set_to_ipynb - set from ipynb object.  This is
+     * mainly meant to be run on the backend in the project,
+     * but is also run on the frontend too, e.g.,
+     * for client-side nbviewer (in which case it won't remove images, etc.).
+     *
+     * See the documentation for load_ipynb_file in project-actions.ts for
+     * documentation about the data_only input variable.
+     */
+    if (typeof ipynb != "object") {
+      throw Error("ipynb must be an object");
+    }
+
+    this._state = "load";
+
+    //dbg(misc.to_json(ipynb))
+
+    // We try to parse out the kernel so we can use process_output below.
+    // (TODO: rewrite so process_output is not associated with a specific kernel)
+    let kernel: string | undefined;
+    const ipynb_metadata = ipynb.metadata;
+    if (ipynb_metadata != null) {
+      const kernelspec = ipynb_metadata.kernelspec;
+      if (kernelspec != null) {
+        kernel = kernelspec.name;
+      }
+    }
+    //dbg("kernel in ipynb: name='#{kernel}'")
+
+    const existing_ids = this.store.get_cell_list().toJS();
+
+    let set, trust;
+    if (data_only) {
+      trust = undefined;
+      set = function () {};
+    } else {
+      if (typeof this.reset_more_output === "function") {
+        this.reset_more_output();
+        // clear the more output handler (only on backend)
+      }
+      // We delete all of the cells.
+      // We do NOT delete everything, namely the last_loaded and
+      // the settings entry in the database, because that would
+      // throw away important information, e.g., the current kernel
+      // and its state.  NOTe: Some of that extra info *should* be
+      // moved to a different ephemeral table, but I haven't got
+      // around to doing so.
+      this.syncdb.delete({ type: "cell" });
+      // preserve trust state across file updates/loads
+      trust = this.store.get("trust");
+      set = (obj) => {
+        this.syncdb.set(obj);
+      };
+    }
+
+    // Change kernel to what is in the file if necessary:
+    set({ type: "settings", kernel });
+    this.ensure_backend_kernel_setup();
+
+    const importer = new IPynbImporter();
+
+    // NOTE: Below we re-use any existing ids to make the patch that defines changing
+    // to the contents of ipynb more efficient.   In case of a very slight change
+    // on disk, this can be massively more efficient.
+
+    importer.import({
+      ipynb,
+      existing_ids,
+      new_id: this.new_id.bind(this),
+      cellOutputHandler: this.cellOutputHandler,
+    });
+
+    if (data_only) {
+      importer.close();
+      return;
+    }
+
+    // Set all the cells
+    const object = importer.cells();
+    for (const _ in object) {
+      const cell = object[_];
+      set(cell);
+    }
+
+    // Set the settings
+    set({ type: "settings", kernel: importer.kernel(), trust });
+
+    // Set extra user-defined metadata
+    const metadata = importer.metadata();
+    if (metadata != null) {
+      set({ type: "settings", metadata });
+    }
+
+    importer.close();
+
+    this.syncdb.commit();
+    await this.syncdb.save();
+    this.ensure_backend_kernel_setup();
+    this._state = "ready";
+  };
 }
 
 function extractLabel(content: string): string {
@@ -2605,15 +2122,4 @@ function bounded_integer(n: any, min: any, max: any, def: any) {
     return max;
   }
   return n;
-}
-
-function getCompletionGroup(x: string): number {
-  switch (x[0]) {
-    case "_":
-      return 1;
-    case "%":
-      return 2;
-    default:
-      return 0;
-  }
 }

@@ -9,12 +9,14 @@ import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 import { v4 } from "uuid";
 import { associatedLicense } from "@cocalc/server/licenses/public-path";
-import getFromPool from "@cocalc/server/projects/pool/get-project";
 import getLogger from "@cocalc/backend/logger";
 import { getProject } from "@cocalc/server/projects/control";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
 import { delay } from "awaiting";
 import isAdmin from "@cocalc/server/accounts/is-admin";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { client as filesystemClient } from "@cocalc/conat/files/file-server";
+import { fsSubject, fsClient } from "@cocalc/conat/files/fs";
 
 const log = getLogger("server:projects:create");
 
@@ -31,11 +33,13 @@ export default async function createProject(opts: CreateProjectOptions) {
     title,
     description,
     image,
+    rootfs_image,
     public_path_id,
-    noPool,
     start,
+    src_project_id,
     ephemeral,
   } = opts;
+
   let license = opts.license;
   if (public_path_id) {
     const site_license_id = await associatedLicense(public_path_id);
@@ -54,25 +58,25 @@ export default async function createProject(opts: CreateProjectOptions) {
     }
     project_id = opts.project_id;
   } else {
-    // Try to get from pool if no license and no image specified (so the default),
-    // and not "noPool".  NOTE: we may improve the pool to also provide some
-    // basic licensed projects later, and better support for images.  Maybe.
-    if (!noPool && !license && account_id != null) {
-      project_id = await getFromPool({
-        account_id,
-        title,
-        description,
-        image,
-      });
-      if (project_id != null) {
-        return project_id;
-      }
-    }
-
     project_id = v4();
   }
 
-  const pool = getPool();
+  if (src_project_id) {
+    if (
+      !account_id ||
+      !(await isCollaborator({ account_id, project_id: src_project_id }))
+    ) {
+      throw Error("user must be a collaborator on src_project_id");
+    }
+    // create filesystem for new project as a clone.
+    const client = filesystemClient();
+    await client.clone({ project_id, src_project_id });
+    // CRITICAL to delete the ssh config info because (1) it's sensitive, but
+    // (2) it'll confuse things on the first startup when mutagen will overwrite
+    // the correct new version, due to a file conflict on init.
+    const fs = fsClient({ subject: fsSubject({ project_id }) });
+    await fs.rm(".ssh/.cocalc", { recursive: true, force: true });
+  }
   const users =
     account_id == null ? null : { [account_id]: { group: "owner" } };
   let site_license;
@@ -87,8 +91,9 @@ export default async function createProject(opts: CreateProjectOptions) {
 
   const envs = await getSoftwareEnvironments("server");
 
+  const pool = getPool();
   await pool.query(
-    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited, ephemeral) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7::BIGINT)",
+    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited, rootfs_image, ephemeral) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8::BIGINT)",
     [
       project_id,
       title ?? "No Title",
@@ -96,13 +101,13 @@ export default async function createProject(opts: CreateProjectOptions) {
       users != null ? JSON.stringify(users) : users,
       site_license != null ? JSON.stringify(site_license) : undefined,
       image ?? envs?.default ?? DEFAULT_COMPUTE_IMAGE,
+      rootfs_image,
       ephemeral ?? null,
     ],
   );
 
-  const project = getProject(project_id);
-  await project.state();
   if (start) {
+    const project = getProject(project_id);
     // intentionally not blocking
     startNewProject(project, project_id);
   }

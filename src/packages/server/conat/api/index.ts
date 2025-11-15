@@ -40,13 +40,39 @@ pnpm conat-watch 'hub.*.*.api' --match-replies
 
 */
 
+import * as purchases from "./purchases";
+import * as db from "./db";
+import * as system from "./system";
+import * as projects from "./projects";
+import * as jupyter from "./jupyter";
+import * as sync from "./sync";
+import * as org from "./org";
+import * as messages from "./messages";
+import * as compute from "./compute";
+import * as fileSync from "./file-sync";
+
 import getLogger from "@cocalc/backend/logger";
 import { type HubApi, getUserId, transformArgs } from "@cocalc/conat/hub/api";
 import { conat } from "@cocalc/backend/conat";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { close as terminateChangefeedServer } from "@cocalc/database/conat/changefeed-api";
 import { close as terminatePersistServer } from "@cocalc/backend/conat/persist";
+import { close as terminateProjectRunner } from "@cocalc/server/conat/project/run";
+import { close as terminateProjectRunnerLoadBalancer } from "@cocalc/server/conat/project/load-balancer";
 import { delay } from "awaiting";
+
+export const hubApi: HubApi = {
+  system,
+  projects,
+  db,
+  purchases,
+  jupyter,
+  sync,
+  org,
+  messages,
+  compute,
+  fileSync,
+};
 
 const logger = getLogger("server:conat:api");
 
@@ -117,6 +143,14 @@ async function handleMessage({ api, subject, mesg }) {
       terminatePersistServer();
       mesg.respond({ status: "terminated", service }, { noThrow: true });
       return;
+    } else if (service == "project-runner") {
+      terminateProjectRunner();
+      mesg.respond({ status: "terminated", service }, { noThrow: true });
+      return;
+    } else if (service == "project-runner-load-balancer") {
+      terminateProjectRunnerLoadBalancer();
+      mesg.respond({ status: "terminated", service }, { noThrow: true });
+      return;
     } else if (service == "api") {
       // special hook so admin can terminate handling. This is useful for development.
       console.warn("TERMINATING listening on ", subject);
@@ -136,7 +170,7 @@ async function handleMessage({ api, subject, mesg }) {
 }
 
 async function handleApiRequest({ request, mesg }) {
-  let resp;
+  let resp, headers;
   try {
     const { account_id, project_id } = getUserId(mesg.subject);
     const { name, args } = request as any;
@@ -146,11 +180,16 @@ async function handleApiRequest({ request, mesg }) {
       name,
     });
     resp = (await getResponse({ name, args, account_id, project_id })) ?? null;
+    headers = undefined;
   } catch (err) {
-    resp = { error: `${err}` };
+    resp = null;
+    headers = {
+      error: err.message ? err.message : `${err}`,
+      error_attrs: { code: err.code, subject: err.subject },
+    };
   }
   try {
-    await mesg.respond(resp);
+    await mesg.respond(resp, { headers });
   } catch (err) {
     // there's nothing we can do here, e.g., maybe NATS just died.
     logger.debug(
@@ -158,26 +197,6 @@ async function handleApiRequest({ request, mesg }) {
     );
   }
 }
-
-import * as purchases from "./purchases";
-import * as db from "./db";
-import * as system from "./system";
-import * as projects from "./projects";
-import * as jupyter from "./jupyter";
-import * as sync from "./sync";
-import * as org from "./org";
-import * as messages from "./messages";
-
-export const hubApi: HubApi = {
-  system,
-  projects,
-  db,
-  purchases,
-  jupyter,
-  sync,
-  org,
-  messages,
-};
 
 async function getResponse({ name, args, account_id, project_id }) {
   const [group, functionName] = name.split(".");

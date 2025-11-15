@@ -8,7 +8,7 @@ import isCollaborator, {
 import { getProjectSpecificId } from "./project-specific-id";
 
 interface Options {
-  account_id: string; // user making the request
+  account_id?: string; // user making the request
   id?: number; // id of the compute server
   project_id?: string;
 }
@@ -23,7 +23,7 @@ export default async function getServers({
   id,
   project_id,
 }: Options): Promise<ComputeServerUserInfo[]> {
-  if (!(await isValidUUID(account_id))) {
+  if (!account_id || !(await isValidUUID(account_id))) {
     throw Error("account_id is not a valid uuid");
   }
   let query = `SELECT ${FIELDS.join(",")} FROM compute_servers`;
@@ -128,11 +128,11 @@ export async function getServersById({
   ids,
   fields,
 }: {
-  account_id: string;
+  account_id?: string;
   ids: number[];
   fields?: string[];
 }): Promise<Partial<ComputeServerUserInfo>[]> {
-  if (!(await isValidUUID(account_id))) {
+  if (!account_id || !(await isValidUUID(account_id))) {
     throw Error("account_id is not a valid uuid");
   }
   if (fields == null) {
@@ -161,4 +161,3 @@ export async function getServersById({
   }
   return stripNullFields(rows);
 }
-
