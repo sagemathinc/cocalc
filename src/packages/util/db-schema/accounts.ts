@@ -579,7 +579,6 @@ Table({
           evaluate_key: true,
           font_size: true,
           profile: true,
-          customize: true,
           ssh_keys: true,
           sign_up_usage_intent: true,
           unlisted: true,
