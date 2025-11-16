@@ -60,7 +60,12 @@ export async function getEnvironment({
 
   const USER = "root";
   const DATA = dataPath(HOME);
-  let PATH = `${HOME}/bin:${HOME}/.local/bin:${COCALC_BIN}:${imageEnv.PATH ? imageEnv.PATH + ":" : ""}/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${COCALC_SRC}/packages/backend/node_modules/.bin`;
+  // NOTE: we put ${COCALC_SRC}/packages/backend/node_modules/.bin ahead of the system-wide
+  // paths, since otherwise, e.g., the 'open' command and other things will get shadowed by
+  // system-wide commands with the same name, e.g., after "apt install run-mailcap".
+  // This can get tricky though since it means we're always using our own rsync, ssh, etc.
+  // Maybe we should divide this into two paths.
+  let PATH = `${HOME}/bin:${HOME}/.local/bin:${COCALC_BIN}:${COCALC_SRC}/packages/backend/node_modules/.bin:${imageEnv.PATH ? imageEnv.PATH + ":" : ""}/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`;
   const already = new Set<string>();
   const w: string[] = [];
   for (const segment of PATH.split(":")) {
