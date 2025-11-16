@@ -33,13 +33,10 @@
     "@lydell/node-pty": "^1.1.0",
     "@types/jest": "^30.0.0",
     "awaiting": "^3.0.0",
-    "body-parser": "^1.20.3",
     "commander": "^7.2.0",
-    "compression": "^1.7.4",
     "daemonize-process": "^3.0.0",
     "diskusage": "^1.1.3",
     "express": "^4.21.2",
-    "express-rate-limit": "^7.4.0",
     "get-port": "^5.1.1",
     "http-proxy-3": "^1.22.0",
     "lodash": "^4.17.21",
@@ -49,11 +46,9 @@
     "rimraf": "^5.0.5",
     "temp": "^0.9.4",
     "tmp": "0.2.4",
-    "which": "^2.0.2",
-    "ws": "^8.18.0"
+    "which": "^2.0.2"
   },
   "devDependencies": {
-    "@types/body-parser": "^1.19.5",
     "@types/express": "^4.17.23",
     "@types/lodash": "^4.17.20",
     "@types/node": "^18.16.14",
@@ -65,7 +60,7 @@
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' pnpm cocalc-project",
     "build": "../node_modules/.bin/tsc --build",
     "test": "COCALC_PROJECT_ID=812abe34-a382-4bd1-9071-29b6f4334f03 COCALC_USERNAME=user NODE_OPTIONS='--experimental-vm-modules' pnpm exec jest",
-    "depcheck": "pnpx depcheck",
+    "depcheck": "pnpx depcheck --ignores=@vercel/ncc",
     "prepublishOnly": "pnpm test",
     "clean": "rm -rf dist build",
     "build:bundle": "cd sea && ./build-bundle.sh",
@@ -75,7 +70,9 @@
     "build:all": "pnpm build && pnpm build:tarball && pnpm build:sea"
   },
   "author": "SageMath, Inc.",
-  "contributors": ["William Stein <wstein@sagemath.com>"],
+  "contributors": [
+    "William Stein <wstein@sagemath.com>"
+  ],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"

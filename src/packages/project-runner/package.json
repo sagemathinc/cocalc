@@ -10,7 +10,7 @@
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc  --pretty --preserveWatchOutput",
-    "depcheck": "pnpx depcheck",
+    "depcheck": "pnpx depcheck --ignores @vercel/ncc",
     "clean": "rm -rf node_modules dist build",
     "start": "pnpm exec cocalc-project-runner",
     "build:bundle": "cd sea && ./build-bundle.sh",
