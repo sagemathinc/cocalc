@@ -65,16 +65,16 @@ password = ""
     );
     const s = JSON.parse(stdout);
     expect(s.length).toEqual(1);
-    expect(s[0][0].hostname).toEqual("my-host");
+    expect(s[0].group_key.hostname).toEqual("my-host");
   });
 
-  //   it("it appears in the snapshots list", async () => {
-  //     const { stdout, truncated } = await rustic(
-  //       ["snapshots", "--json"],
-  //       options,
-  //     );
-  //     const s = JSON.parse(Buffer.from(stdout).toString());
-  //     expect(s).toEqual([]);
-  //     expect(truncated).toBe(false);
-  //   });
+  it("it appears in the snapshots list", async () => {
+    const { stdout, truncated } = await rustic(
+      ["snapshots", "--json"],
+      options,
+    );
+    const s = JSON.parse(Buffer.from(stdout).toString());
+    expect(s[0].snapshots[0].paths).toEqual(["a.txt"]);
+    expect(truncated).toBe(false);
+  });
 });
