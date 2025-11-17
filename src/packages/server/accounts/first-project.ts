@@ -23,10 +23,12 @@ export default async function firstProject({
   account_id,
   tags,
   dontStartProject,
+  ephemeral,
 }: {
   account_id: string;
   tags?: string[];
   dontStartProject?: boolean;
+  ephemeral?: number;
 }): Promise<string> {
   log.debug(account_id, tags);
   if (!isValidUUID(account_id)) {
@@ -35,6 +37,7 @@ export default async function firstProject({
   const project_id = await createProject({
     account_id,
     title: "My First Project",
+    ephemeral,
   });
   log.debug("created new project", project_id);
   if (!dontStartProject) {

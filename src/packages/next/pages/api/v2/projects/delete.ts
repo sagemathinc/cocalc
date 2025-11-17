@@ -1,9 +1,7 @@
 /*
 API endpoint to delete a project, which sets the "delete" flag to `true` in the database.
 */
-
 import deleteProject from "@cocalc/server/projects/delete";
-
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 import { apiRoute, apiRouteOperation } from "lib/api";
