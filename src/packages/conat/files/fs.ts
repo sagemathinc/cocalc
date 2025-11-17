@@ -103,13 +103,11 @@ export interface PatchWriteRequest {
   patch: CompressedPatch | string;
   sha256: string;
   encoding?: TextEncoding;
-  maxPatchRatio?: number;
 }
 
 export interface WriteFileDeltaOptions {
   baseContents?: string;
   encoding?: TextEncoding;
-  maxPatchRatio?: number;
   saveLast?: boolean;
   minLength?: number;
 }
@@ -572,8 +570,6 @@ async function writeFileDeltaImpl(
     baseContents,
     encoding = "utf8",
     // serialized patch length must be at most
-    // original string length divided by maxPatchRatio:
-    maxPatchRatio = 2,
     // if content is <= than minLength, never use patching
     minLength = 1024,
     saveLast,
@@ -591,15 +587,12 @@ async function writeFileDeltaImpl(
     return;
   }
 
-  const patch = make_patch(baseContents, content);
-  const serializedSize = JSON.stringify(patch).length;
-  if (
-    baseContents.length > 0 &&
-    serializedSize * maxPatchRatio > baseContents.length
-  ) {
+  if (!baseContents.length || !content.length) {
     await writeFile(path, content, saveLast);
     return;
   }
+
+  const patch = make_patch(baseContents, content);
   try {
     const sha = await sha256Hex(baseContents, encoding);
     await writeFile(
@@ -608,7 +601,6 @@ async function writeFileDeltaImpl(
         patch,
         sha256: sha,
         encoding,
-        maxPatchRatio,
       },
       saveLast,
     );

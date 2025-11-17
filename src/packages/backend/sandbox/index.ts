@@ -577,17 +577,6 @@ export class SandboxedFilesystem {
         err.path = p;
         throw err;
       }
-      const serializedSize =
-        typeof data.patch === "string"
-          ? data.patch.length
-          : JSON.stringify(compressedPatch).length;
-      const maxRatio = data.maxPatchRatio ?? 2;
-      if (current.length > 0 && serializedSize > current.length * maxRatio) {
-        const err: NodeJS.ErrnoException = new Error("Patch too large");
-        err.code = "PATCH_TOO_LARGE";
-        err.path = p;
-        throw err;
-      }
       const [patched, clean] = apply_patch(compressedPatch, current);
       if (!clean) {
         const err: NodeJS.ErrnoException = new Error(
