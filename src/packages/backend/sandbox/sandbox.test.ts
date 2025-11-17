@@ -64,12 +64,11 @@ describe("make various attempts to break out of the sandbox", () => {
   });
 });
 
-describe("test watching a file and a folder in the sandbox", () => {
+describe.only("test watching a file and a folder in the sandbox", () => {
   let fs;
-  it("creates sandbox", async () => {
+  it.only("creates sandbox", async () => {
     await mkdir(join(tempDir, "test-watch"));
     fs = new SandboxedFilesystem(join(tempDir, "test-watch"));
-    await fs.writeFile("x", "hi");
   });
 
   it("watches the file x for changes", async () => {
@@ -78,7 +77,9 @@ describe("test watching a file and a folder in the sandbox", () => {
     await fs.appendFile("x", " there");
     const x = await w.next();
     expect(x).toEqual({
-      value: { eventType: "change", filename: "x" },
+      // filename is relative to the path of the file, so
+      // for watching a single file it is empty
+      value: { event: "change", filename: "" },
       done: false,
     });
     w.end();

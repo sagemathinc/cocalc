@@ -97,6 +97,7 @@ class Watcher extends EventEmitter {
     if (!this.ready) {
       return;
     }
+    // note: if this.path *is* a file, then filename:"" below.
     let filename = path.slice(this.path.length);
     if (filename.startsWith("/")) {
       filename = filename.slice(1);
