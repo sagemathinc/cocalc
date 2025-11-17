@@ -256,209 +256,96 @@ These phases outline areas that need further accessibility work. Explore in deta
 
 ### Application Entry Points
 
-**Flow:**
+CoCalc is a single-page application with this startup flow:
 
-1. **`packages/static/src/app.html`** - Minimal HTML template with empty `<head>` and container divs
-2. **`packages/static/src/webapp-cocalc.ts`** - Entry point that calls `init()`
-3. **`packages/frontend/entry-point.ts`** - Initializes Redux, stores, and all app subsystems
+1. **`packages/static/src/app.html`** - Base HTML template with React container div
+2. **`packages/static/src/webapp-cocalc.ts`** - Entry point that initializes the app
+3. **`packages/frontend/entry-point.ts`** - Initializes Redux stores and app subsystems
 4. **`packages/frontend/app/render.tsx`** - Mounts React app to `#cocalc-webapp-container`
-5. **`packages/frontend/app/page.tsx`** - Main App component with navigation, content layout
+5. **`packages/frontend/app/page.tsx`** - Main App component with navigation and layout
 
-### Current Structure
+Key files implementing WCAG AA compliance:
 
-- **static** package: Builds static assets (webpack) for the SPA
-- **frontend** package: React components, Redux state, app logic
-- **app.html**: Base template (extremely minimal - needs enhancement)
-- **Entry**: Uses React 18 `createRoot()` for client-side rendering
+- `packages/frontend/app/localize.tsx` - Dynamic `lang` attribute on `<html>`
+- `packages/frontend/browser.ts` - `set_window_title()` and `set_meta_description()` functions
+- `packages/static/src/meta.tsx` - Viewport and meta tags
+- `packages/frontend/customize.tsx` - Page description from customization settings
 
-### WCAG AA Improvements Needed
+### Running Lighthouse Accessibility Audits
 
-#### 1. HTML Root & Head Elements (`app.html` & `meta.tsx`)
+**In Chrome DevTools:**
 
-- [x] ✅ Add `lang` attribute to `<html>` for screen reader language detection - **Fixed in `packages/frontend/app/localize.tsx`** (dynamically set from i18n locale)
-- [x] ✅ Remove `user-scalable=no` from viewport meta tag (WCAG AA: low vision users must be able to zoom) - **Fixed in `packages/static/src/meta.tsx`**
-- [x] ✅ Add `<title>` tag (can be updated dynamically via React) - **Already implemented in `packages/frontend/browser.ts`** with `set_window_title()` function called throughout app navigation
-- [x] ✅ Add `<meta name="description">` for page description - **Fixed in `packages/frontend/browser.ts`** (added `set_meta_description()` function) and **`packages/frontend/customize.tsx`** (called on customize init with format `{site_name}: {site_description}`)
-- [ ] Link favicon and apple-touch-icon
-- [ ] Add **skip links** for keyboard navigation (skip to main content, skip nav)
+1. Open your local CoCalc instance (e.g., `http://localhost:5000`)
+2. Open DevTools (F12)
+3. Go to **Lighthouse** tab
+4. Select **Desktop** device
+5. Select only **Accessibility** (uncheck Performance, Best Practices, SEO)
+6. Click **Analyze page load**
+7. Save the report as JSON: click menu → **Save as JSON**
 
-#### 2. Document Structure
-
-- [ ] Ensure React app renders proper semantic HTML structure
-- [ ] Root `<main>` landmark for primary content (✅ partially done in page.tsx)
-- [ ] `<nav>` for top navigation (✅ done in page.tsx)
-- [ ] `<aside>` for sidebars (need to verify)
-- [ ] Dynamic page `<title>` based on context (projects, files, pages)
-
-#### 3. Focus Management & Keyboard
-
-- [ ] Skip to main content link (functional, keyboard-accessible)
-- [ ] Focus visible styles for keyboard users (`:focus-visible`)
-- [ ] Focus trap for modals (ensure focus doesn't escape)
-- [ ] Tab order validation (logical flow through page)
-- [ ] Return key handling for interactive elements
-
-#### 4. Color & Contrast
-
-- [ ] Verify WCAG AA contrast ratios (4.5:1 for normal text, 3:1 for large text)
-- [ ] Test with color blindness simulators
-- [ ] Ensure no information conveyed by color alone
-
-#### 5. Images & Icons
-
-- [ ] All decorative images: `aria-hidden="true"` or empty `alt=""`
-- [ ] Functional images: meaningful `alt` text
-- [ ] Icon-only buttons: `aria-label` (✅ mostly done)
-
-#### 6. Forms & Inputs
-
-- [ ] All `<input>` elements have associated `<label>` or `aria-label`
-- [ ] Required fields marked with `aria-required="true"`
-- [ ] Error messages linked via `aria-describedby`
-- [ ] Form validation messages announced to screen readers
-
-#### 7. Headings & Structure
-
-- [ ] Proper heading hierarchy (h1 → h2 → h3, no skips)
-- [ ] Meaningful heading text (not "Click here", "More")
-- [ ] One h1 per page (main topic/title)
-
-#### 8. Alerts & Notifications
-
-- [ ] Success/error messages: `role="alert"` with `aria-live="assertive"`
-- [ ] Info messages: `aria-live="polite"`
-- [ ] Notification timeout announcements
-
-### Testing Strategy
-
-1. **Chrome DevTools Accessibility Audit**
-   - Run DevTools → Lighthouse → Accessibility
-   - Document all failures and warnings
-   - Prioritize by impact and frequency
-
-2. **Manual Testing**
-   - Keyboard navigation (Tab, Shift+Tab, Enter, Escape)
-   - Screen reader testing (NVDA, JAWS, or macOS VoiceOver)
-   - Color contrast checking (use WebAIM contrast checker)
-   - Zoom testing (up to 200% at 1280px width)
-
-3. **Automated Testing**
-   - axe DevTools browser extension
-   - WAVE browser extension
-   - Pa11y CLI tool for batch testing
-
-### Implementation Priority
-
-**High Priority** (impacts many users):
-
-- HTML lang attribute and meta tags
-- Skip links
-- Color contrast fixes
-- Form label associations
-- Heading hierarchy
-
-**Medium Priority** (improves usability):
-
-- Focus visible styles
-- Modal focus traps
-- Dynamic page titles
-- Confirmation dialogs
-
-**Low Priority** (nice to have):
-
-- Advanced ARIA patterns
-- Internationalization meta tags
-- Schema.org microdata
+Reports are automatically timestamped (e.g., `localhost_5000-20251113T152932.json`) - save to `dev/` directory.
 
 ## Processing Lighthouse JSON Reports
 
-When analyzing Lighthouse accessibility audit reports, use Python and `jq` to extract data:
-
-### Quick Summary of Audit Results
+### Extract Summary of Results
 
 ```bash
-# Parse Lighthouse report to see pass/fail counts for key audits
 python3 << 'EOF'
 import json
 
 with open('dev/localhost_5000-TIMESTAMP.json') as f:
     report = json.load(f)
 
-audits_to_check = [
-    'aria-required-parent',
-    'aria-required-children',
-    'aria-command-name',
-    'image-alt',
-    'label-content-name-mismatch',
-    'link-name',
-    'color-contrast',
-]
+audits = ['aria-required-parent', 'aria-required-children', 'aria-command-name',
+          'image-alt', 'label-content-name-mismatch', 'link-name', 'color-contrast']
 
-print("Lighthouse Accessibility Audit Results")
+print("Lighthouse Accessibility Audit Summary")
 print("=" * 70)
 
-for audit_id in audits_to_check:
+for audit_id in audits:
     if audit_id in report['audits']:
         audit = report['audits'][audit_id]
         score = audit.get('score')
-        passed = len(audit.get('details', {}).get('passed', []))
         failed = len(audit.get('details', {}).get('failed', []))
-        status = "✓ PASS" if score == 1 else f"✗ FAIL ({score})"
-        print(f"{audit_id:35} | {status:12} | Pass: {passed:2} | Fail: {failed:2}")
-
+        status = "✓ PASS" if score == 1 else f"✗ FAIL ({failed} issues)"
+        print(f"{audit_id:35} {status}")
 EOF
 ```
 
-### Detailed Failure Analysis
+### Extract Failure Details
 
 ```bash
-# Show failure details for specific audit
 python3 << 'EOF'
 import json
 
 with open('dev/localhost_5000-TIMESTAMP.json') as f:
     report = json.load(f)
 
-audit_id = 'aria-required-parent'  # Change to audit you want to inspect
+# Change audit_id to inspect a specific audit
+audit_id = 'aria-required-parent'
 if audit_id in report['audits']:
-    audit = report['audits'][audit_id]
-    failed = audit.get('details', {}).get('failed', [])
-
-    print(f"\nAudit: {audit_id}")
-    print(f"Failed items: {len(failed)}\n")
-
-    for item in failed[:5]:  # Show first 5
-        selector = item.get('node', {}).get('selector', 'unknown')
-        snippet = item.get('node', {}).get('snippet', '')
-        explanation = item.get('node', {}).get('explanation', '')
-        print(f"Selector: {selector}")
-        print(f"HTML: {snippet[:100]}")
-        print(f"Issue: {explanation[:150]}")
-        print()
-
+    failed = report['audits'][audit_id].get('details', {}).get('failed', [])
+    print(f"Audit: {audit_id} - {len(failed)} issues\n")
+    for item in failed[:5]:
+        print(f"Selector: {item['node']['selector']}")
+        print(f"Issue: {item['node']['explanation'][:150]}\n")
 EOF
 ```
 
-### Using jq for Quick Inspection
+### Quick jq Inspection
 
 ```bash
-# List all audit IDs in the report
+# List all audit IDs
 jq '.audits | keys[]' dev/localhost_5000-TIMESTAMP.json
 
-# Count failed items for specific audit
+# Count failures for specific audit
 jq '.audits["aria-required-parent"].details.failed | length' dev/localhost_5000-TIMESTAMP.json
 
-# Show failed node selectors
+# Show failure selectors
 jq '.audits["aria-required-parent"].details.failed[].node.selector' dev/localhost_5000-TIMESTAMP.json
 ```
 
-### Key Points
-
-1. **File location**: Reports are saved to `dev/localhost_5000-TIMESTAMP.json` after each Lighthouse run
-2. **Structure**: `report['audits'][audit_id]['details']['failed']` contains failure array
-3. **Node info**: Each failure has `.node` with selector, snippet, explanation
-4. **Score values**: score = 1 means PASS, score = 0 means FAIL
-5. **Performance**: Python scripts are faster than jq for summary reports
+**Key**: `report['audits'][audit_id]['details']['failed']` contains the failure array with `.node.selector`, `.node.snippet`, and `.node.explanation`.
 
 ## Lighthouse Accessibility Audit Results (Desktop)
 
@@ -468,78 +355,24 @@ jq '.audits["aria-required-parent"].details.failed[].node.selector' dev/localhos
 
 ### Failures Found (7 issues)
 
-1. **[color-contrast](https://dequeuniversity.com/rules/axe/4.11/color-contrast)** (14 items) ⚠️ **DEFER**
-   - Background and foreground colors don't meet WCAG AA ratios (4.5:1 normal, 3:1 large)
-   - **Plan**: Handle via custom antd theme with 3 options: "Antd (standard)", "Cocalc", "Accessibility"
-   - Store in preferences/appearance config
-   - Ignore contrast requirements for ornamental details (e.g., footer)
+#. **[color-contrast](https://dequeuniversity.com/rules/axe/4.11/color-contrast)** (14 items) ⚠️ **DEFER**
 
-2. **[aria-required-parent](https://dequeuniversity.com/rules/axe/4.11/aria-required-parent)** (4 items) ✅ **FIXED**
-   - Ant Design Tabs: `role="tab"` elements missing required `tablist` parent role
-   - Fixed by adding `role="tablist"` to SortableTabs container in `packages/frontend/components/sortable-tabs.tsx` (line 115)
-   - Creates proper ARIA hierarchy: tablist parent → Ant Design's role="tab" children
-   - Fixes tabs in projects-nav and file-tabs components
+- Background and foreground colors don't meet WCAG AA ratios (4.5:1 normal, 3:1 large)
+- **Plan**: Handle via custom antd theme with 3 options: "Antd (standard)", "Cocalc", "Accessibility"
+- Store in preferences/appearance config
+- Ignore contrast requirements for ornamental details (e.g., footer)
 
-3. **[image-alt](https://dequeuniversity.com/rules/axe/4.11/image-alt)** (3 items) ✅ **FIXED**
-   - All avatar images inside `.ant-avatar` components missing `[alt]` attributes
-   - These images convey meaningful information about users/projects/models, not decorative
-   - Fixed in:
-     - `packages/frontend/account/avatar/avatar.tsx` - user avatar images with `alt="User {username}"` (used in collaborators, etc.)
-     - `packages/frontend/components/language-model-icon.tsx` - LLM model icons with `alt="{vendorName} language model"`
-     - `packages/frontend/projects/project-title.tsx` - project avatar in titles with `src={avatar} alt="Project avatar"`
-     - `packages/frontend/projects/project-avatar.tsx` - project avatar display with `src={avatarImage} alt="Project avatar"`
-     - `packages/frontend/projects/projects-nav.tsx` - project avatar in nav with `src={...} alt="Project avatar"`
-     - `packages/frontend/projects/projects-table-columns.tsx` - project avatars in table and collaborator avatars in filters with appropriate alt text
-   - Changed from `icon={<img src={...} />}` to `src={...} alt="..."` to properly expose alt attribute to Ant Design Avatar
+#. **[aria-required-children](https://dequeuniversity.com/rules/axe/4.11/aria-required-children)** (2 items) 🔄 **IN PROGRESS**
 
-4. **[label-content-name-mismatch](https://dequeuniversity.com/rules/axe/4.11/label-content-name-mismatch)** (3 items) ✅ **FIXED**
-   - Fixed in `packages/frontend/projects/projects-table-controls.tsx`:
-     - "Hidden" switch: `aria-label="Toggle hidden projects"` (was "Show hidden projects")
-     - "Deleted" switch: `aria-label="Toggle deleted projects"` (was "Show deleted projects")
-     - "Create Project" button: `aria-label="Create a new project ..."` (was "Create a new project")
-   - Visible text now matches or is included in accessible names
+- tablist parent has invalid children (role=button, buttons that should be role=tab)
+- Root cause: SortableTab wrapper adds `role="button"` which is invalid inside tablist
+- Issue in: Projects nav tabs and file tabs where SortableTab (with dnd-kit) wraps the tab elements
+- Solution needed: Adjust SortableTab wrapper to use `role="tab"` or restructure to avoid role conflict
 
-5. **[aria-command-name](https://dequeuniversity.com/rules/axe/4.11/aria-command-name)** (1 item) ✅ **FIXED**
-   - Fixed by adding `aria-label="Admin"` to admin NavTab in `packages/frontend/app/page.tsx` (line 233)
-   - Now admin button has accessible name for screen readers
-
-6. **[link-name](https://dequeuniversity.com/rules/axe/4.11/link-name)** (1 item) ✅ **FIXED**
-   - CoCalc logo link was missing accessible name
-   - Fixed by:
-     - Adding `aria-label="CoCalc homepage"` to AppLogo in `packages/frontend/app/logo.tsx` (line 39)
-     - Updated `<A>` component in `packages/frontend/components/A.tsx` to accept and forward `aria-label` prop
-
-7. **[aria-required-children](https://dequeuniversity.com/rules/axe/4.11/aria-required-children)** (2 items) 🔄 **IN PROGRESS**
-   - tablist parent has invalid children (role=button, buttons that should be role=tab)
-   - Root cause: SortableTab wrapper adds `role="button"` which is invalid inside tablist
-   - Issue in: Projects nav tabs and file tabs where SortableTab (with dnd-kit) wraps the tab elements
-   - Solution needed: Adjust SortableTab wrapper to use `role="tab"` or restructure to avoid role conflict
-
-### Latest Report Analysis (2025-11-13 15:22:38 UTC)
-
-**Final Fixes Applied:**
-
-**label-content-name-mismatch** (3 items) ✅ **FIXED**
-
-- Removed duplicate aria-labels from Switch components (kept only visible text)
-- Removed mismatched aria-label from Create button (visible text is sufficient)
-- Switches now use checkedChildren/unCheckedChildren for visible text only
-- Create button uses visible text without aria-label override
-
-**aria-required-children** (2 items) ✅ **FIXED**
-
-- Added `role="tab"` to SortableTab wrapper in `packages/frontend/components/sortable-tabs.tsx` (line 154)
-- This overrides the `role="button"` that dnd-kit attributes add via spread operator
-- Now tablist only has role="tab" children (both wrapper and inner Ant Design tab)
-
-**aria-required-parent** (4 items) 🔄 **PENDING VERIFICATION**
+#. **aria-required-parent** (4 items) 🔄 **PENDING VERIFICATION**
 
 - May be auto-fixed by the SortableTab role="tab" change
 - Need to run Lighthouse again to verify
-
-### Current Status Summary (2025-11-13 15:29:32 UTC)
-
-**Report**: localhost_5000-20251113T152932.json
 
 After all fixes:
 
@@ -550,8 +383,6 @@ After all fixes:
 - ❌ aria-required-parent: 4 failures (tabs still not direct children of tablist)
 - ❌ aria-required-children: 2 failures (tablist has non-tab/status children)
 - ⚠️ color-contrast: 8+ items - DEFERRED to custom antd theme implementation
-
-**Score**: 5/7 audits passing (71% of issues fixed)
 
 ### Remaining Issue: aria-required-parent & aria-required-children
 
