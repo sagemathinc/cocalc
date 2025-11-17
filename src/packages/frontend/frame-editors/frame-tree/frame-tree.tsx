@@ -56,6 +56,10 @@ import { FrameTitleBar } from "./title-bar";
 import * as tree_ops from "./tree-ops";
 import { EditorDescription, EditorSpec, EditorState, NodeDesc } from "./types";
 
+// Editors that must receive a raw Enter key (e.g., Jupyter notebooks) so they can
+// handle mode changes like entering edit mode themselves.
+const ENTER_HANDLER_SKIP_TYPES = ["jupyter_cell_notebook"] as const;
+
 interface FrameTreeProps {
   actions: Actions; // The Actions object for dispatching state changes
   active_id: string; // ID of the currently active frame
@@ -395,8 +399,22 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       }
 
       function handleFrameKeyDown(e: React.KeyboardEvent) {
-        // Return/Enter: focus the editor content within this frame
-        if (e.key === "Enter") {
+        // Only handle a plain Enter pressed directly on the frame container.
+        // Let modified Enter keys (Shift/Ctrl/Cmd/Alt) and descendant inputs
+        // handle the event themselves so notebook shortcuts keep working.
+        const isPlainEnter =
+          e.key === "Enter" &&
+          !e.shiftKey &&
+          !e.ctrlKey &&
+          !e.metaKey &&
+          !e.altKey;
+        const canHandleEnter =
+          !ENTER_HANDLER_SKIP_TYPES.includes(type) &&
+          isPlainEnter &&
+          !e.defaultPrevented &&
+          e.target === e.currentTarget;
+        if (canHandleEnter) {
+          // Return/Enter: focus the editor content within this frame
           e.preventDefault();
           e.stopPropagation();
           const frameContainer = e.currentTarget as HTMLElement;

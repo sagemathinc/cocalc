@@ -588,6 +588,16 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
 
   // Keyboard handler - handle number shortcuts and navigation
   const handleKeyDown = async (e: React.KeyboardEvent) => {
+    // Only handle keyboard events when dialog is visible
+    if (!visible) {
+      return;
+    }
+
+    const blockEvent = () => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
     // Number shortcuts (0-9) - always available to jump to frames
     const num = parseInt(e.key, 10);
     if (!isNaN(num) && num >= 0 && num <= 9) {
@@ -597,25 +607,15 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
           // Check if chat is already open for this file
           const fileInfo = open_files?.get(activeFileName);
           const chatState = fileInfo?.get("chatState");
-          const isChatOpen = !!chatState; // truthy chatState means chat is open
-
-          if (DEBUG) {
-            console.log("Chat toggle key 0 pressed:", {
-              activeFileName,
-              activeProjectId,
-              fileInfo: fileInfo?.toJS?.() || fileInfo,
-              chatState,
-              isChatOpen,
-            });
-          }
 
           // Toggle chat using shared function
           toggleChat(activeProjectId, activeFileName, chatState, "hotkey-0");
 
           onClose();
-          e.preventDefault();
+          blockEvent();
           return;
         }
+        blockEvent();
         return;
       }
 
@@ -630,14 +630,17 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
 
       if (targetFrameId) {
         await handleFrameClick(targetFrameId);
-        e.preventDefault();
+        blockEvent();
         return;
       }
+      blockEvent();
+      return;
     }
 
     // Arrow keys and Return - navigate through filtered leaf nodes only
     if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       if (!searchValue || filteredSearchList.length === 0) {
+        blockEvent();
         return;
       }
       // filteredSearchList contains only leaf nodes matching the search (if any)
@@ -670,7 +673,7 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
           });
         }
       }
-      e.preventDefault();
+      blockEvent();
     } else if (e.key === "Enter") {
       // Activate selected node
       const node = filteredSearchList.find((item) => item.key === selectedKey);
@@ -678,10 +681,10 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
         await triggerAction(node.node.navigationData.action);
         onClose();
       }
-      e.preventDefault();
+      blockEvent();
     } else if (e.key === "Escape") {
       onClose();
-      e.preventDefault();
+      blockEvent();
     }
   };
 
@@ -798,6 +801,7 @@ export const QuickNavigationDialog: React.FC<QuickNavigationDialogProps> = ({
               "Placeholder text for the search input in quick navigation",
           })}
           onChange={handleSearch}
+          onKeyDown={handleKeyDown}
           value={searchValue}
           autoFocus
           allowClear

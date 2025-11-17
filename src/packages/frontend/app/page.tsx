@@ -80,8 +80,8 @@ const PAGE_STYLE: CSS = {
   display: "flex",
   flexDirection: "column",
   height: PAGE_HEIGHT, // see note
-  width: "100vw",
-  overflow: "hidden",
+  width: "100%",
+  overflow: "auto",
   background: "white",
 } as const;
 

@@ -65,8 +65,12 @@ export function calcStyle(isNarrow: boolean): PageStyle {
   const height = isNarrow ? NAV_HEIGHT_NARROW_PX : NAV_HEIGHT_PX;
 
   const topBarStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: "5px",
     height: `${height}px`,
     background: "#fafafa",
+    width: "100vw",
   } as const;
 
   const fileUseStyle = {
@@ -97,6 +101,8 @@ export function calcStyle(isNarrow: boolean): PageStyle {
       } as const)
     : ({
         flex: "1 1 auto", // necessary to stretch out to the full width
+        minWidth: 0, // allow tabs to shrink below content size
+        overflow: "hidden", // prevent tabs from overflowing the nav
       } as const);
 
   return {

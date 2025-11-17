@@ -414,4 +414,13 @@ SortableTabs role="tablist"
 
 1. Decide on approach to fix aria-required-parent/children (requires deeper restructuring)
 
-**Future**: 2. **DEFER**: color-contrast (8+ items) - plan custom antd theme with accessibility option
+**Future**:
+
+2. **DEFER**: color-contrast (8+ items) - plan custom antd theme with accessibility option
+
+3. **DEFER**: Browser zoom scaling issue - When users enable zoom (`user-scalable=yes`), the page scales but doesn't properly overflow/scroll. Changed PAGE_STYLE width from `100vw` to `100%`, but issue persists. Need to investigate:
+   - Whether content is actually overflowing or being reflowed
+   - If parent containers (html/body) need explicit overflow handling
+   - Possible interactions with fixed positioning elements (nav bar, sidebars)
+   - Test on mobile vs desktop browsers
+   - May require restructuring how viewport constraints are applied

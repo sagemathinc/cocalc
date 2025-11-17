@@ -59,8 +59,28 @@ const DOM_ONLY_EDITOR_TYPES = new Set([
   "latex_table_of_contents",
 ]);
 
+// Editors that still need DOM focus even after their internal focus()
+// logic runs (e.g., to move keyboard events to the correct frame).
+const NEEDS_DOM_FOCUS_EDITOR_TYPES = new Set(["jupyter_cell_notebook"]);
+
 interface FocusOptions {
   editorType?: string;
+}
+
+function isDomOnlyEditorType(editorType?: string): boolean {
+  if (!editorType) {
+    return false;
+  }
+  if (DOM_ONLY_EDITOR_TYPES.has(editorType)) {
+    return true;
+  }
+  if (editorType.startsWith("pdf")) {
+    return true;
+  }
+  if (editorType.endsWith("_preview")) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -71,16 +91,17 @@ function shouldUseEditorFocus(editorType?: string): boolean {
   if (!editorType) {
     return true;
   }
-  if (DOM_ONLY_EDITOR_TYPES.has(editorType)) {
+  return !isDomOnlyEditorType(editorType);
+}
+
+function needsDomFocus(editorType?: string): boolean {
+  if (!editorType) {
     return false;
   }
-  if (editorType.startsWith("pdf")) {
-    return false;
+  if (NEEDS_DOM_FOCUS_EDITOR_TYPES.has(editorType)) {
+    return true;
   }
-  if (editorType.endsWith("_preview")) {
-    return false;
-  }
-  return true;
+  return isDomOnlyEditorType(editorType);
 }
 
 /**
@@ -140,9 +161,10 @@ export function focusFrameWithRetry(
       return false;
     };
 
+    const requireDomFocus = needsDomFocus(options?.editorType);
     setTimeout(() => {
       const handled = focusEditor();
-      if (!handled) {
+      if (!handled || requireDomFocus) {
         focusDomFallback();
       }
     }, 50);

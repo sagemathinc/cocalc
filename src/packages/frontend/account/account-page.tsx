@@ -501,16 +501,6 @@ export const AccountPage: React.FC = () => {
         </nav>
         <div
           className="smc-vfill"
-          role="region"
-          aria-label={
-            active_page === "preferences" && active_sub_tab
-              ? `${
-                  titles[active_sub_tab]?.props?.children?.[1] || active_sub_tab
-                } settings`
-              : `${
-                  titles[active_page]?.props?.children?.[1] || active_page
-                } settings`
-          }
           style={{
             overflow: "auto",
             paddingLeft: "15px",
@@ -532,7 +522,7 @@ export const AccountPage: React.FC = () => {
   }
 
   return (
-    <div className="smc-vfill" role="main" aria-label="Account page">
+    <div className="smc-vfill">
       {is_logged_in && !get_api_key ? (
         render_logged_in_view()
       ) : (
