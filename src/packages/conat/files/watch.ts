@@ -41,6 +41,9 @@ export interface WatchOptions {
   stats?: boolean;
 
   patch?: boolean;
+
+  stabilityThreshold?: number;
+  pollInterval?: number; // explicitly set to 0 to disable polling
 }
 
 export function watchServer({

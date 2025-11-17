@@ -11,6 +11,7 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "path";
 import { make_patch } from "@cocalc/util/dmp";
+import { delay } from "awaiting";
 
 let tempDir;
 beforeAll(async () => {
@@ -64,9 +65,9 @@ describe("make various attempts to break out of the sandbox", () => {
   });
 });
 
-describe.only("test watching a file and a folder in the sandbox", () => {
+describe("test watching a file and a folder in the sandbox", () => {
   let fs;
-  it.only("creates sandbox", async () => {
+  it("creates sandbox", async () => {
     await mkdir(join(tempDir, "test-watch"));
     fs = new SandboxedFilesystem(join(tempDir, "test-watch"));
   });
@@ -87,23 +88,31 @@ describe.only("test watching a file and a folder in the sandbox", () => {
 
   it("the maxQueue parameter limits the number of queue events", async () => {
     await fs.writeFile("x", "hi");
-    const w = await fs.watch("x", { maxQueue: 2 });
+    const w = await fs.watch("x", {
+      maxQueue: 2,
+      stabilityThreshold: 20,
+      pollInterval: 10,
+    });
     expect(w.queueSize()).toBe(0);
     // make many changes
     await fs.appendFile("x", "0");
+    await delay(100);
     await fs.appendFile("x", "0");
+    await delay(100);
     await fs.appendFile("x", "0");
+    await delay(100);
     await fs.appendFile("x", "0");
+    await delay(100);
     // there will only be 2 available:
     expect(w.queueSize()).toBe(2);
     const x0 = await w.next();
     expect(x0).toEqual({
-      value: { eventType: "change", filename: "x" },
+      value: { event: "change", filename: "" },
       done: false,
     });
     const x1 = await w.next();
     expect(x1).toEqual({
-      value: { eventType: "change", filename: "x" },
+      value: { event: "change", filename: "" },
       done: false,
     });
     // one more next would hang...
@@ -113,13 +122,24 @@ describe.only("test watching a file and a folder in the sandbox", () => {
 
   it("maxQueue with overflow throw", async () => {
     await fs.writeFile("x", "hi");
-    const w = await fs.watch("x", { maxQueue: 2, overflow: "throw" });
+    const w = await fs.watch("x", {
+      maxQueue: 2,
+      overflow: "throw",
+      stabilityThreshold: 0,
+      pollInterval: 0,
+    });
     await fs.appendFile("x", "0");
+    await delay(100);
     await fs.appendFile("x", "0");
+    await delay(100);
     await fs.appendFile("x", "0");
-    expect(async () => {
+    await delay(100);
+    try {
       await w.next();
-    }).rejects.toThrow("maxQueue overflow");
+      expect(false).toBe(true);
+    } catch (err) {
+      expect(`${err}`).toContain("maxQueue");
+    }
     w.end();
   });
 
@@ -127,7 +147,11 @@ describe.only("test watching a file and a folder in the sandbox", () => {
     const ac = new AbortController();
     const { signal } = ac;
     await fs.writeFile("x", "hi");
-    const w = await fs.watch("x", { signal });
+    const w = await fs.watch("x", {
+      signal,
+      pollInterval: 0,
+      stabilityThreshold: 0,
+    });
     await fs.appendFile("x", "0");
     const e = await w.next();
     expect(e.done).toBe(false);
@@ -140,39 +164,32 @@ describe.only("test watching a file and a folder in the sandbox", () => {
 
   it("watches a directory", async () => {
     await fs.mkdir("folder");
-    const w = await fs.watch("folder");
+    const w = await fs.watch("folder", {
+      pollInterval: 0,
+      stabilityThreshold: 0,
+    });
 
     await fs.writeFile("folder/x", "hi");
     expect(await w.next()).toEqual({
       done: false,
-      value: { eventType: "rename", filename: "x" },
+      value: { event: "add", filename: "x" },
     });
-    expect(await w.next()).toEqual({
-      done: false,
-      value: { eventType: "change", filename: "x" },
-    });
-
     await fs.appendFile("folder/x", "xxx");
     expect(await w.next()).toEqual({
       done: false,
-      value: { eventType: "change", filename: "x" },
+      value: { event: "change", filename: "x" },
     });
 
     await fs.writeFile("folder/z", "there");
     expect(await w.next()).toEqual({
       done: false,
-      value: { eventType: "rename", filename: "z" },
-    });
-    expect(await w.next()).toEqual({
-      done: false,
-      value: { eventType: "change", filename: "z" },
+      value: { event: "add", filename: "z" },
     });
 
-    // this is correct -- from the node docs "On most platforms, 'rename' is emitted whenever a filename appears or disappears in the directory."
     await fs.unlink("folder/z");
     expect(await w.next()).toEqual({
       done: false,
-      value: { eventType: "rename", filename: "z" },
+      value: { event: "unlink", filename: "z" },
     });
   });
 });

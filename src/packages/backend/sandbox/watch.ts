@@ -49,6 +49,12 @@ export default function watch(
       watcher.close();
     },
   });
+  if (options.signal) {
+    options.signal.addEventListener("abort", () => {
+      iter.end();
+    });
+  }
+
   return iter;
 }
 
@@ -64,20 +70,25 @@ class Watcher extends EventEmitter {
     private lastOnDiskHash: TTL<string, boolean>,
   ) {
     super();
-    this.watcher = chokidarWatch(path, {
+
+    const stabilityThreshold = options.stabilityThreshold ?? 500;
+    const pollInterval = options.pollInterval ?? 250;
+    const chokidarConfig = {
       depth: 0,
       ignoreInitial: true,
       followSymlinks: false,
       alwaysStat: options.stats ?? false,
       atomic: true,
-      usePolling: true,
-      interval: 250,
-      awaitWriteFinish: {
-        stabilityThreshold: 500,
-        pollInterval: 150,
-      },
-    });
-    log("creating watcher ", path, options);
+      usePolling: !!pollInterval,
+      interval: pollInterval,
+      awaitWriteFinish: stabilityThreshold
+        ? {
+            stabilityThreshold,
+            pollInterval: stabilityThreshold / 2,
+          }
+        : undefined,
+    };
+    this.watcher = chokidarWatch(path, chokidarConfig);
 
     this.watcher.once("ready", () => {
       this.ready = true;
