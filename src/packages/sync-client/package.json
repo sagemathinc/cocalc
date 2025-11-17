@@ -13,7 +13,6 @@
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
     "clean": "rm -rf node_modules dist",
-    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
     "depcheck": "pnpx depcheck"
   },
   "author": "SageMath, Inc.",
