@@ -263,4 +263,59 @@ describe("evaluateWithLangChain", () => {
       ),
     ).rejects.toThrow("Custom OpenAI requested but no getCustomOpenAI provider supplied");
   });
+
+  it("streams chunks and terminates with null", async () => {
+    const chunksEmitted: string[] = [];
+    const streamSpy = (chunk: string | null) => {
+      if (chunk !== null) chunksEmitted.push(chunk);
+      else chunksEmitted.push("null");
+    };
+
+    // Mock OpenAI to return an async iterator for streaming
+    jest.doMock("@langchain/openai", () => {
+      return {
+        ChatOpenAI: class {
+          constructor(public readonly opts: any) {}
+          async *stream(): AsyncGenerator<any> {
+            yield { content: [{ type: "text", text: "A" }] };
+            yield { content: [{ type: "text", text: "B" }] };
+          }
+        },
+      };
+    });
+
+    // Minimal prompt/runnable scaffold for streaming handling
+    jest.doMock("@langchain/core/prompts", () => {
+      return {
+        ChatPromptTemplate: {
+          fromMessages: (_messages: any[]) => ({
+            pipe: (runnable: any) => runnable,
+          }),
+        },
+        MessagesPlaceholder: class {},
+      };
+    });
+
+    jest.doMock("@langchain/core/runnables", () => {
+      return {
+        RunnableWithMessageHistory: class {
+          constructor(private readonly opts: any) {}
+          async stream(input: any): Promise<AsyncGenerator<any>> {
+            // Delegate to underlying runnable's stream
+            return this.opts.runnable.stream(input);
+          }
+        },
+      };
+    });
+
+    const { evaluateWithLangChain } = await import("../evaluate-lc");
+
+    const result = await evaluateWithLangChain(
+      { input: "hi", model: "gpt-4o", stream: streamSpy },
+      { settings: {}, tokenCounter: (s) => s.length },
+    );
+
+    expect(chunksEmitted).toEqual(["A", "B", "null"]);
+    expect(result.output).toBe("AB");
+  });
 });
