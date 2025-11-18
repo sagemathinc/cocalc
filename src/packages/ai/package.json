@@ -4,6 +4,19 @@
   "description": "AI helpers (LangChain, LLM) shared between server and lite",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./llm": {
+      "import": "./dist/llm/index.js",
+      "require": "./dist/llm/index.js",
+      "types": "./dist/llm/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch --pretty --preserveWatchOutput",

@@ -13,8 +13,7 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { isValidUUID, unreachable } from "@cocalc/util/misc";
 import type { History, Stream } from "@cocalc/util/types/llm";
-import { evaluateWithLangChain } from "./evaluate-lc";
-import { evaluateOllama } from "./ollama";
+import { evaluateWithLangChain, evaluateOllama } from "@cocalc/ai/llm";
 
 const log = getLogger("llm:userdefined");
 
@@ -64,7 +63,11 @@ export async function evaluateUserDefinedLLM(
           apiKey,
           endpoint,
         },
-        "user",
+        {
+          settings: {},
+          mode: "user",
+          tokenCounter: (s: string) => s.length,
+        },
       );
     case "anthropic":
     case "mistralai":
@@ -77,7 +80,11 @@ export async function evaluateUserDefinedLLM(
           apiKey,
           endpoint,
         },
-        "user",
+        {
+          settings: {},
+          mode: "user",
+          tokenCounter: (s: string) => s.length,
+        },
       );
     case "ollama":
       return await evaluateOllama({

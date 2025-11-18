@@ -17,7 +17,7 @@ import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
 import { OTHER_SETTINGS_USERDEFINED_LLM } from "@cocalc/util/db-schema/defaults";
 import { uuid } from "@cocalc/util/misc";
-import { evaluateWithLangChain } from "../evaluate-lc";
+import { evaluateWithLangChain, type LLMContext } from "@cocalc/ai/llm";
 import { evaluateUserDefinedLLM } from "../user-defined";
 import { enableModels, setupAPIKeys, test_llm } from "./shared";
 import { before, after, getPool } from "@cocalc/server/test";
@@ -49,15 +49,23 @@ function checkAnswer(answer) {
   expect(completion_tokens).toBeGreaterThan(0);
 }
 
+const CONTEXT: LLMContext = {
+  settings: {},
+  tokenCounter: (s: string) => s.length,
+};
+
 async function llmOpenAI(model: LanguageModelCore) {
   if (!isOpenAIModel(model)) {
     throw new Error(`model: ${model} is not an OpenAI model`);
   }
 
-  const answer = await evaluateWithLangChain({
-    model,
-    ...QUERY,
-  });
+  const answer = await evaluateWithLangChain(
+    {
+      model,
+      ...QUERY,
+    },
+    CONTEXT,
+  );
 
   checkAnswer(answer);
 }
@@ -67,10 +75,13 @@ async function llmGoogle(model: LanguageModelCore) {
     throw new Error(`model: ${model} is not a Google model`);
   }
 
-  const answer = await evaluateWithLangChain({
-    model,
-    ...QUERY,
-  });
+  const answer = await evaluateWithLangChain(
+    {
+      model,
+      ...QUERY,
+    },
+    CONTEXT,
+  );
 
   checkAnswer(answer);
 }
@@ -191,7 +202,10 @@ test_llm("mistralai")("Mistral AI", () => {
   test(
     "medium",
     async () => {
-      const answer = await evaluateWithLangChain({ model: medium, ...QUERY });
+      const answer = await evaluateWithLangChain(
+        { model: medium, ...QUERY },
+        CONTEXT,
+      );
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -200,7 +214,10 @@ test_llm("mistralai")("Mistral AI", () => {
   test(
     "large",
     async () => {
-      const answer = await evaluateWithLangChain({ model: large, ...QUERY });
+      const answer = await evaluateWithLangChain(
+        { model: large, ...QUERY },
+        CONTEXT,
+      );
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -209,7 +226,10 @@ test_llm("mistralai")("Mistral AI", () => {
   test(
     "devstral",
     async () => {
-      const answer = await evaluateWithLangChain({ model: devstral, ...QUERY });
+      const answer = await evaluateWithLangChain(
+        { model: devstral, ...QUERY },
+        CONTEXT,
+      );
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -241,7 +261,10 @@ test_llm("anthropic")("Anthropic", () => {
   test(
     "haiku",
     async () => {
-      const answer = await evaluateWithLangChain({ model: haiku, ...QUERY });
+      const answer = await evaluateWithLangChain(
+        { model: haiku, ...QUERY },
+        CONTEXT,
+      );
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -250,7 +273,10 @@ test_llm("anthropic")("Anthropic", () => {
   test(
     "sonnet",
     async () => {
-      const answer = await evaluateWithLangChain({ model: sonnet, ...QUERY });
+      const answer = await evaluateWithLangChain(
+        { model: sonnet, ...QUERY },
+        CONTEXT,
+      );
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -259,7 +285,10 @@ test_llm("anthropic")("Anthropic", () => {
   test(
     "opus",
     async () => {
-      const answer = await evaluateWithLangChain({ model: opus, ...QUERY });
+      const answer = await evaluateWithLangChain(
+        { model: opus, ...QUERY },
+        CONTEXT,
+      );
       checkAnswer(answer);
     },
     LLM_TIMEOUT,

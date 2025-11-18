@@ -156,6 +156,8 @@ async function evaluateImpl({
       ) {
         const settings = await getServerSettings();
         const { getCustomOpenAI } = await import("./client");
+        const customOpenAI = async (m: string) =>
+          (await getCustomOpenAI(m)) as any;
         return await evaluateWithLangChain(params, {
           settings: {
             openai_api_key: settings.openai_api_key,
@@ -164,7 +166,7 @@ async function evaluateImpl({
             mistral_api_key: settings.mistral_api_key,
           },
           mode: account_id ? "user" : "cocalc",
-          getCustomOpenAI,
+          getCustomOpenAI: customOpenAI,
           tokenCounter: (text: string) => text.length, // lightweight default; OpenAI returns usage
         });
       }

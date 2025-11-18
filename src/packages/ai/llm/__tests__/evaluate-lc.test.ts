@@ -726,7 +726,7 @@ describe("evaluateOllama", () => {
 
     const result = await evaluateOllama(
       { input: "abc", model: "ollama-foo", stream: streamSpy },
-      { getOllama: async () => ({}) },
+      { getOllama: async () => ({}) as any },
       undefined,
     );
 

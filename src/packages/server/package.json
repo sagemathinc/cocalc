@@ -31,7 +31,10 @@
     "./test": "./dist/test/index.js",
     "./test/*": "./dist/test/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
@@ -57,12 +60,8 @@
     "@google-cloud/monitoring": "^4.1.0",
     "@google-cloud/storage": "^7.11.1",
     "@google-cloud/storage-transfer": "^3.3.0",
-    "@google/generative-ai": "^0.24.1",
     "@isaacs/ttlcache": "^1.4.1",
-    "@langchain/anthropic": "^1.0.0",
     "@langchain/core": "^1.0.1",
-    "@langchain/google-genai": "^1.0.0",
-    "@langchain/mistralai": "^1.0.0",
     "@langchain/ollama": "^1.0.0",
     "@langchain/openai": "^1.0.0",
     "@node-saml/passport-saml": "^5.1.0",
@@ -88,7 +87,6 @@
     "express-session": "^1.18.1",
     "google-auth-library": "^9.4.1",
     "googleapis": "^137.1.0",
-    "gpt3-tokenizer": "^1.1.5",
     "json-stable-stringify": "^1.0.1",
     "jwt-decode": "^3.1.2",
     "lambda-cloud-node-api": "^1.0.1",
@@ -100,7 +98,6 @@
     "nanoid": "^3.3.8",
     "node-zendesk": "^5.0.13",
     "nodemailer": "^7.0.9",
-    "openai": "^6.5.0",
     "parse-domain": "^5.0.0",
     "passport": "^0.6.0",
     "passport-activedirectory": "^1.0.4",
