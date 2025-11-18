@@ -41,6 +41,7 @@ describe("create syncstring without setting fs, so saving to disk and loading fr
       project_id,
       path: "a.txt",
       service: server.service,
+      firstReadLockTimeout: 1,
     });
     await once(s, "ready");
     expect(s.fs).not.toEqual(undefined);
@@ -59,6 +60,7 @@ describe("create syncstring without setting fs, so saving to disk and loading fr
 
   it("save value to disk", async () => {
     await s.save_to_disk();
+    await delay(100); // after the read lock is gone
     const disk = await fs.readFile("a.txt", "utf8");
     expect(disk).toEqual("test");
   });
@@ -135,7 +137,7 @@ describe("synchronized editing with two copies of a syncstring", () => {
   });
 });
 
-describe.only("opening a new syncstring for a file that does NOT exist on disk does not emit a 'deleted' event", () => {
+describe("opening a new syncstring for a file that does NOT exist on disk does not emit a 'deleted' event", () => {
   let s;
   const project_id = uuid();
   let deleted = 0;
@@ -150,6 +152,9 @@ describe.only("opening a new syncstring for a file that does NOT exist on disk d
       deletedCheckInterval: 50,
       watchRecreateWait: 50,
     });
+    // file has to exist in order for us to delete it:
+    await s.fs.writeFile(s.path, "foo");
+    await s.readFile();
     s.on("deleted", () => {
       deleted++;
     });
