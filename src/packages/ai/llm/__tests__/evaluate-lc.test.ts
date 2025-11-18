@@ -318,4 +318,57 @@ describe("evaluateWithLangChain", () => {
     expect(chunksEmitted).toEqual(["A", "B", "null"]);
     expect(result.output).toBe("AB");
   });
+
+  it("adds history tokens reported by transformHistoryToMessages in fallback path", async () => {
+    const historyTokens = 5;
+    mockOpenAIWithoutUsage();
+
+    jest.doMock("../chat-history", () => ({
+      transformHistoryToMessages: async (_history: any) => ({
+        messageHistory: [],
+        tokens: historyTokens,
+      }),
+    }));
+
+    // Provide a lightweight prompt/runnable scaffolding so invoke() is available
+    jest.doMock("@langchain/core/prompts", () => {
+      return {
+        ChatPromptTemplate: {
+          fromMessages: (_messages: any[]) => ({
+            pipe: (runnable: any) => runnable,
+          }),
+        },
+        MessagesPlaceholder: class {},
+      };
+    });
+    jest.doMock("@langchain/core/runnables", () => {
+      return {
+        RunnableWithMessageHistory: class {
+          constructor(private readonly opts: any) {}
+          async invoke(input: any): Promise<any> {
+            // Trigger history loading so evaluateWithLangChain sees tokens
+            await this.opts.getMessageHistory?.();
+            return this.opts.runnable.invoke
+              ? this.opts.runnable.invoke(input)
+              : this.opts.runnable(input);
+          }
+        },
+      };
+    });
+
+    const { evaluateWithLangChain } = await import("../evaluate-lc");
+
+    const ctx: LLMContext = {
+      settings: {},
+      tokenCounter: (s) => s.length,
+    };
+
+    const result = await evaluateWithLangChain(
+      { input: "abc", model: "gpt-4o", history: [{ role: "user", content: "h" }] },
+      ctx,
+    );
+
+    // tokenCounter counts "abc" as 3, plus historyTokens from transformHistoryToMessages
+    expect(result.prompt_tokens).toBe(historyTokens + 3);
+  });
 });
