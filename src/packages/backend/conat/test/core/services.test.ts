@@ -76,7 +76,7 @@ describe("more service tests", () => {
       // bound to the calling mesg, which lets us get the subject.
       // Because user identity and permissions are done via wildcard
       // subjects, having access to the calling message is critical
-      async subject(a, b) {
+      async getSubj(a, b) {
         const mesg: Message = this as any;
         return `${mesg.subject}-${a}-${b}`;
       },
@@ -87,7 +87,7 @@ describe("more service tests", () => {
     expect(await arith.add(2, 3)).toBe(5);
 
     const arith2 = client2.call<Api>("arith.two");
-    expect(await arith2.subject(2, 3)).toBe("arith.two-2-3");
+    expect(await arith2.getSubj(2, 3)).toBe("arith.two-2-3");
   });
 
   it("tests disconnect", async () => {
