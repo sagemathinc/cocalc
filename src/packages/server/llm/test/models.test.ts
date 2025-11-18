@@ -12,19 +12,12 @@ import {
   UserDefinedLLM,
   toUserLLMModelName,
 } from "@cocalc/util/db-schema/llm-utils";
-import { evaluateGoogleGenAI } from "..";
-import { evaluateAnthropic } from "../anthropic";
-import { getClient } from "../client";
 import createAccount from "../../accounts/create-account";
 import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
 import { OTHER_SETTINGS_USERDEFINED_LLM } from "@cocalc/util/db-schema/defaults";
 import { uuid } from "@cocalc/util/misc";
 import { evaluateWithLangChain } from "../evaluate-lc";
-import { GoogleGenAIClient } from "../google-genai-client";
-import { USE_NEWER_LC_IMPL } from "../index";
-import { evaluateMistral } from "../mistral";
-import { evaluateOpenAILC } from "../openai-lc";
 import { evaluateUserDefinedLLM } from "../user-defined";
 import { enableModels, setupAPIKeys, test_llm } from "./shared";
 import { before, after, getPool } from "@cocalc/server/test";
@@ -61,15 +54,10 @@ async function llmOpenAI(model: LanguageModelCore) {
     throw new Error(`model: ${model} is not an OpenAI model`);
   }
 
-  const answer = USE_NEWER_LC_IMPL
-    ? await evaluateWithLangChain({
-        model,
-        ...QUERY,
-      })
-    : await evaluateOpenAILC({
-        model,
-        ...QUERY,
-      });
+  const answer = await evaluateWithLangChain({
+    model,
+    ...QUERY,
+  });
 
   checkAnswer(answer);
 }
@@ -79,19 +67,10 @@ async function llmGoogle(model: LanguageModelCore) {
     throw new Error(`model: ${model} is not a Google model`);
   }
 
-  const answer = USE_NEWER_LC_IMPL
-    ? await evaluateWithLangChain({
-        model,
-        ...QUERY,
-      })
-    : await (async () => {
-        const client = (await getClient(model)) as GoogleGenAIClient;
-        return await evaluateGoogleGenAI({
-          model,
-          client,
-          ...QUERY,
-        });
-      })();
+  const answer = await evaluateWithLangChain({
+    model,
+    ...QUERY,
+  });
 
   checkAnswer(answer);
 }
@@ -212,9 +191,7 @@ test_llm("mistralai")("Mistral AI", () => {
   test(
     "medium",
     async () => {
-      const answer = USE_NEWER_LC_IMPL
-        ? await evaluateWithLangChain({ model: medium, ...QUERY })
-        : await evaluateMistral({ model: medium, ...QUERY });
+      const answer = await evaluateWithLangChain({ model: medium, ...QUERY });
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -223,9 +200,7 @@ test_llm("mistralai")("Mistral AI", () => {
   test(
     "large",
     async () => {
-      const answer = USE_NEWER_LC_IMPL
-        ? await evaluateWithLangChain({ model: large, ...QUERY })
-        : await evaluateMistral({ model: large, ...QUERY });
+      const answer = await evaluateWithLangChain({ model: large, ...QUERY });
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -234,9 +209,7 @@ test_llm("mistralai")("Mistral AI", () => {
   test(
     "devstral",
     async () => {
-      const answer = USE_NEWER_LC_IMPL
-        ? await evaluateWithLangChain({ model: devstral, ...QUERY })
-        : await evaluateMistral({ model: devstral, ...QUERY });
+      const answer = await evaluateWithLangChain({ model: devstral, ...QUERY });
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -268,9 +241,7 @@ test_llm("anthropic")("Anthropic", () => {
   test(
     "haiku",
     async () => {
-      const answer = USE_NEWER_LC_IMPL
-        ? await evaluateWithLangChain({ model: haiku, ...QUERY })
-        : await evaluateAnthropic({ model: haiku, ...QUERY });
+      const answer = await evaluateWithLangChain({ model: haiku, ...QUERY });
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -279,9 +250,7 @@ test_llm("anthropic")("Anthropic", () => {
   test(
     "sonnet",
     async () => {
-      const answer = USE_NEWER_LC_IMPL
-        ? await evaluateWithLangChain({ model: sonnet, ...QUERY })
-        : await evaluateAnthropic({ model: sonnet, ...QUERY });
+      const answer = await evaluateWithLangChain({ model: sonnet, ...QUERY });
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
@@ -290,9 +259,7 @@ test_llm("anthropic")("Anthropic", () => {
   test(
     "opus",
     async () => {
-      const answer = USE_NEWER_LC_IMPL
-        ? await evaluateWithLangChain({ model: opus, ...QUERY })
-        : await evaluateAnthropic({ model: opus, ...QUERY });
+      const answer = await evaluateWithLangChain({ model: opus, ...QUERY });
       checkAnswer(answer);
     },
     LLM_TIMEOUT,
