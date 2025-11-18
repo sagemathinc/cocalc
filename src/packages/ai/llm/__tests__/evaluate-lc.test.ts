@@ -39,6 +39,32 @@ const mockOpenAIWithoutUsage = (capture: any[] = []) => {
   });
 };
 
+const mockPromptAndRunnablesInvoke = () => {
+  jest.doMock("@langchain/core/prompts", () => {
+    return {
+      ChatPromptTemplate: {
+        fromMessages: (_messages: any[]) => ({
+          pipe: (runnable: any) => runnable,
+        }),
+      },
+      MessagesPlaceholder: class {},
+    };
+  });
+  jest.doMock("@langchain/core/runnables", () => {
+    return {
+      RunnableWithMessageHistory: class {
+        constructor(private readonly opts: any) {}
+        async invoke(input: any): Promise<any> {
+          await this.opts.getMessageHistory?.();
+          return this.opts.runnable.invoke
+            ? this.opts.runnable.invoke(input)
+            : this.opts.runnable(input);
+        }
+      },
+    };
+  });
+};
+
 jest.mock("@langchain/core/prompts", () => {
   return {
     ChatPromptTemplate: {
@@ -486,5 +512,235 @@ describe("evaluateWithLangChain", () => {
     expect(result.prompt_tokens).toBe(2 + historyTokens);
     expect(result.completion_tokens).toBe(1);
     expect(result.total_tokens).toBe(result.prompt_tokens + result.completion_tokens);
+  });
+
+  it("uses user-provided apiKey when mode=user (OpenAI)", async () => {
+    const captures: any[] = [];
+    mockOpenAIWithUsage(captures);
+    mockPromptAndRunnablesInvoke();
+    const { evaluateWithLangChain } = await import("../evaluate-lc");
+
+    await evaluateWithLangChain(
+      { input: "hi", model: "gpt-4o", apiKey: "user-key" },
+      { settings: { openai_api_key: "server-key" }, mode: "user", tokenCounter: (s) => s.length },
+    );
+
+    expect(captures[0].apiKey).toBe("user-key");
+  });
+
+  it("uses user-provided apiKey when mode=user (Google)", async () => {
+    const googleArgs: any[] = [];
+    jest.doMock("@langchain/google-genai", () => ({
+      ChatGoogleGenerativeAI: class {
+        constructor(args: any) {
+          googleArgs.push(args);
+        }
+        async invoke() {
+          return { content: "google" };
+        }
+      },
+    }));
+    mockOpenAIWithUsage();
+    mockPromptAndRunnablesInvoke();
+    const { evaluateWithLangChain } = await import("../evaluate-lc");
+
+    await evaluateWithLangChain(
+      { input: "hi", model: "gemini-2.5-flash-8k", apiKey: "user-key" },
+      { settings: { google_vertexai_key: "server-key" }, mode: "user", tokenCounter: (s) => s.length },
+    );
+
+    expect(googleArgs[0].apiKey).toBe("user-key");
+  });
+
+  it("uses user-provided apiKey when mode=user (Anthropic)", async () => {
+    const anthropicArgs: any[] = [];
+    jest.doMock("@langchain/anthropic", () => ({
+      ChatAnthropic: class {
+        constructor(args: any) {
+          anthropicArgs.push(args);
+        }
+        async invoke() {
+          return { content: "anthropic" };
+        }
+      },
+    }));
+    mockOpenAIWithUsage();
+    mockPromptAndRunnablesInvoke();
+    const { evaluateWithLangChain } = await import("../evaluate-lc");
+
+    await evaluateWithLangChain(
+      { input: "hi", model: "claude-4-sonnet-8k", apiKey: "user-key" },
+      { settings: { anthropic_api_key: "server-key" }, mode: "user", tokenCounter: (s) => s.length },
+    );
+
+    expect(anthropicArgs[0].apiKey).toBe("user-key");
+  });
+
+  it("normalizes OpenAI model aliases (direct helper)", async () => {
+    const { normalizeOpenAIModel } = await import("../normalize-openai");
+    expect(normalizeOpenAIModel("gpt-4o-2024-07-15")).toBe("gpt-4o");
+  });
+
+  it("omits system message for o1/o1-mini models", async () => {
+    const messagesCaptured: any[] = [];
+    let Placeholder: any;
+    await jest.isolateModulesAsync(async () => {
+      jest.doMock("@langchain/core/prompts", () => {
+        Placeholder = class {};
+        return {
+          ChatPromptTemplate: {
+            fromMessages: (msgs: any[]) => {
+              messagesCaptured.push(msgs);
+              return { pipe: (runnable: any) => runnable };
+            },
+          },
+          MessagesPlaceholder: Placeholder,
+        };
+      });
+      jest.doMock("@langchain/core/runnables", () => {
+        return {
+          RunnableWithMessageHistory: class {
+            constructor(private readonly opts: any) {}
+            async invoke(input: any): Promise<any> {
+              await this.opts.getMessageHistory?.();
+              return this.opts.runnable.invoke
+                ? this.opts.runnable.invoke(input)
+                : this.opts.runnable(input);
+            }
+          },
+        };
+      });
+      mockOpenAIWithUsage();
+      const { evaluateWithLangChain } = require("../evaluate-lc");
+      await evaluateWithLangChain(
+        { input: "hi", model: "o1-mini" },
+        { settings: { openai_api_key: "server-key" }, tokenCounter: (s: string) => s.length },
+      );
+    });
+
+    const usedMessages = messagesCaptured[0];
+    expect(usedMessages[0]).toBeInstanceOf(Placeholder);
+  });
+
+  it("uses direct ChatOpenAI when endpoint is provided for custom openai", async () => {
+    const captures: any[] = [];
+    jest.doMock("@langchain/openai", () => {
+      return {
+        ChatOpenAI: class {
+          constructor(args: any) {
+            captures.push(args);
+          }
+          async invoke() {
+            return { content: "direct-endpoint" };
+          }
+        },
+      };
+    });
+    mockPromptAndRunnablesInvoke();
+    // ensure custom provider isn't used
+    const { evaluateWithLangChain } = await import("../evaluate-lc");
+
+    const result = await evaluateWithLangChain(
+      {
+        input: "hi",
+        model: "custom_openai-gpt-4o-mini",
+        apiKey: "user-key",
+        endpoint: "https://example.com",
+      },
+      { settings: {}, tokenCounter: (s) => s.length, getCustomOpenAI: async () => { throw new Error("should not be called"); } },
+    );
+
+    expect(captures[0].configuration?.baseURL).toBe("https://example.com");
+    expect(result.output).toBe("direct-endpoint");
+  });
+
+  it("throws when context.settings is missing", async () => {
+    mockOpenAIWithUsage();
+    const { evaluateWithLangChain } = await import("../evaluate-lc");
+
+    await expect(
+      evaluateWithLangChain({ input: "hi", model: "gpt-4o" } as any, {} as any),
+    ).rejects.toThrow("LLM context with settings is required");
+  });
+
+  it("throws on unknown model", async () => {
+    mockOpenAIWithUsage();
+    const { evaluateWithLangChain } = await import("../evaluate-lc");
+
+    await expect(
+      evaluateWithLangChain(
+        { input: "hi", model: "not-a-model" },
+        { settings: {}, tokenCounter: (s) => s.length },
+      ),
+    ).rejects.toThrow("Unknown model provider for: not-a-model");
+  });
+});
+
+describe("evaluateOllama", () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+  });
+
+  it("uses getOllama from context and streams output", async () => {
+    const streamChunks: string[] = [];
+    const streamSpy = (chunk: string | null) => {
+      if (chunk !== null) streamChunks.push(chunk);
+      else streamChunks.push("null");
+    };
+
+    jest.doMock("@langchain/core/prompts", () => {
+      return {
+        ChatPromptTemplate: {
+          fromMessages: (_msgs: any[]) => ({
+            pipe: (_ollama: any) => ({
+              stream: async function* () {
+                yield "O";
+                yield "K";
+              },
+            }),
+          }),
+        },
+        MessagesPlaceholder: class {},
+      };
+    });
+    jest.doMock("@langchain/core/runnables", () => {
+      return {
+        RunnableWithMessageHistory: class {
+          constructor(private readonly opts: any) {}
+          async stream(input: any): Promise<AsyncGenerator<any>> {
+            await this.opts.getMessageHistory?.();
+            return this.opts.runnable.stream(input);
+          }
+        },
+      };
+    });
+    jest.doMock("../chat-history", () => ({
+      transformHistoryToMessages: async (_history: any) => ({
+        messageHistory: [],
+        tokens: 2,
+      }),
+    }));
+
+    const { evaluateOllama } = await import("../ollama");
+
+    const result = await evaluateOllama(
+      { input: "abc", model: "ollama-foo", stream: streamSpy },
+      { getOllama: async () => ({}) },
+      undefined,
+    );
+
+    expect(streamChunks).toEqual(["O", "K", "null"]);
+    // token heuristic: ceil(len/4)
+    expect(result.prompt_tokens).toBe(Math.ceil("abc".length / 4) + 2);
+    expect(result.completion_tokens).toBe(Math.ceil("OK".length / 4));
+    expect(result.total_tokens).toBe(result.prompt_tokens + result.completion_tokens);
+  });
+
+  it("throws when Ollama client is unavailable", async () => {
+    const { evaluateOllama } = await import("../ollama");
+    await expect(
+      evaluateOllama({ input: "abc", model: "ollama-foo" }, {}, undefined),
+    ).rejects.toThrow("No Ollama client available");
   });
 });
