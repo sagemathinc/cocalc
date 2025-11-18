@@ -11,6 +11,7 @@ import getLogger from "@cocalc/backend/logger";
 import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
+import { evaluateWithLangChain, evaluateOllama } from "@cocalc/ai/llm";
 import {
   DEFAULT_MODEL,
   LLM_USERNAMES,
@@ -33,8 +34,6 @@ import {
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
-import { evaluateWithLangChain } from "./evaluate-lc";
-import { evaluateOllama } from "./ollama";
 import { saveResponse } from "./save-response";
 import { evaluateUserDefinedLLM } from "./user-defined";
 
@@ -141,7 +140,12 @@ async function evaluateImpl({
         return await evaluateUserDefinedLLM(params, account_id);
       }
       if (isOllamaLLM(model)) {
-        return await evaluateOllama(params);
+        return await evaluateOllama(params, {
+          getOllama: async (m: string) => {
+            const { getOllama } = await import("./client");
+            return getOllama(m);
+          },
+        });
       }
       if (
         isCustomOpenAI(model) ||
@@ -150,7 +154,19 @@ async function evaluateImpl({
         isGoogleModel(model) ||
         isOpenAIModel(model)
       ) {
-        return await evaluateWithLangChain(params);
+        const settings = await getServerSettings();
+        const { getCustomOpenAI } = await import("./client");
+        return await evaluateWithLangChain(params, {
+          settings: {
+            openai_api_key: settings.openai_api_key,
+            google_vertexai_key: settings.google_vertexai_key,
+            anthropic_api_key: settings.anthropic_api_key,
+            mistral_api_key: settings.mistral_api_key,
+          },
+          mode: account_id ? "user" : "cocalc",
+          getCustomOpenAI,
+          tokenCounter: (text: string) => text.length, // lightweight default; OpenAI returns usage
+        });
       }
       throw new Error(`Unable to handle model '${model}'.`);
     })();
