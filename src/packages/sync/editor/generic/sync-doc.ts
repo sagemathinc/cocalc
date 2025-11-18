@@ -2332,6 +2332,7 @@ export class SyncDoc extends EventEmitter {
     }
     // save new version to stream, which we just set via from_str
     this.commit({ emitChangeImmediately: true, file: true });
+    this.emit("handle-file-change");
     await this.save();
     this.emit("after-change");
   });
@@ -2863,14 +2864,20 @@ export class SyncDoc extends EventEmitter {
         this.emit("watching");
         for await (const { event, ignore, patch, patchSeq } of this
           .fileWatcher) {
-          // console.log({ path: this.path, event, patch, patchSeq, expectedSeq });
+          //           console.log("watch", {
+          //             path: this.path,
+          //             event,
+          //             patch,
+          //             patchSeq,
+          //             expectedSeq,
+          //             ignore,
+          //           });
           if (this.isClosed()) return;
           if (event.startsWith("unlink")) {
             break;
           }
           if (!ignore) {
             if (patch != null && expectedSeq == patchSeq) {
-              console.log(this.path, "loading from disk using patch", patch);
               // sequence number match and there is a patch
               this.emit("before-change");
               const value = this.to_str();
@@ -2880,6 +2887,8 @@ export class SyncDoc extends EventEmitter {
               );
               this.from_str(newValue);
               this.commit({ emitChangeImmediately: true, file: true });
+              this.emit("handle-file-change");
+              await this.save();
               this.emit("after-change");
             } else {
               // we don't know what's on disk anymore, so record
