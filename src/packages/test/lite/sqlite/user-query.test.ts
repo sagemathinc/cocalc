@@ -74,7 +74,7 @@ describe("lite sqlite user query", () => {
         changes: changefeedId,
         cb: (_err: any, row: any) => {
           updates.push(row);
-          if (updates.length === 1) {
+          if (row && row.first_name === "Bob") {
             resolve();
           }
         },
@@ -91,7 +91,8 @@ describe("lite sqlite user query", () => {
       });
     });
 
-    expect(updates[0].first_name).toBe("Bob");
+    const latest = updates.find((u) => u?.first_name === "Bob");
+    expect(latest.first_name).toBe("Bob");
 
     cancelQuery(changefeedId);
   });

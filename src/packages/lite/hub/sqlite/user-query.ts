@@ -114,9 +114,15 @@ export default function userQuery(opts: QueryOpts): any {
   isSetQuery ??=
     misc.is_array(query) || !misc.has_null_leaf(query);
 
-  return isSetQuery
+  const result = isSetQuery
     ? userSetQuery(query, options)
     : userGetQuery(query, options, changes, cb);
+
+  if (!changes && cb != null) {
+    cb(undefined, result);
+  }
+
+  return result;
 }
 
 function resolveTableName(query: Record<string, any>): string {
@@ -209,6 +215,7 @@ function userGetQuery(
     if (!cb) {
       throw Error("callback required for changefeed");
     }
+    cb(undefined, { [table]: projected });
     serveChangefeed({ table: dbTable, id: changes, callback: cb });
   }
 

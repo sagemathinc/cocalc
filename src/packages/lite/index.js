@@ -91,7 +91,12 @@ function buildMenu() {
 async function main() {
   // Spin up CoCalc Lite and Electron
   process.env.PORT ??= await require("@cocalc/backend/get-port").default();
-  process.env.DATA = join(process.env.HOME ?? process.cwd(), ".cocalc", "lite");
+  process.env.DATA = join(
+    process.env.HOME ?? process.cwd(),
+    ".local",
+    "share",
+    "cocalc-lite",
+  );
 
   const startCoCalcLite = require("@cocalc/lite/main").main;
 

@@ -4,7 +4,12 @@ const { dirname, join } = require("path");
 
 (async () => {
   process.env.PORT ??= await require("@cocalc/backend/get-port").default();
-  process.env.DATA = join(process.env.HOME ?? process.cwd(), ".cocalc", "lite");
+  process.env.DATA = join(
+    process.env.HOME ?? process.cwd(),
+    ".local",
+    "share",
+    "cocalc-lite",
+  );
 
   // put path to special node binaries:
   const { bin } = require("@cocalc/backend/data");
