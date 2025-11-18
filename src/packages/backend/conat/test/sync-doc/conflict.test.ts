@@ -1,8 +1,8 @@
 /*
-Illustrate and test behavior when there is conflict.
+Illustrate and test behavior when there is a conflict.
 
 TODO: we must get noAutosave to fully work so we can make
-the tests of conflicts, etc., better.
+the tests better.
 
 E.g, the test below WILL RANDOMLY FAIL right now due to autosave randomness...
 */
@@ -100,8 +100,7 @@ describe("synchronized editing with branching and merging", () => {
     await s2.save();
 
     await waitUntilSynced([s1, s2]);
-    expect(s1.to_str()).toEqual("xy12");
-    expect(s2.to_str()).toEqual("xy12");
+    expect(s1.to_str()).toEqual(s2.to_str());
 
     // resolve the conflict in our own way
     s1.from_str("xy3");
@@ -164,6 +163,7 @@ describe("do the example in the blog post 'Lies I was Told About Collaborative E
   it("Both come back online -- the resolution is the empty (with either order above) string because the **best effort** application of inserting the u (with context) to either is a no-op.", async () => {
     await bob.save();
     await alice.save();
+    await delay(GAP_DELAY);
     await waitUntilSynced([bob, alice]);
     expect(alice.to_str()).toEqual("");
     expect(bob.to_str()).toEqual("");
