@@ -74,7 +74,6 @@ export interface ProjectStoreState {
 
   // Project Page
   active_project_tab: string;
-  num_ghost_file_tabs: number;
   flyout: FixedTab | null;
   flyout_log_mode: FlyoutLogMode;
   flyout_log_deduplicate: FlyoutLogDeduplicate;
@@ -294,7 +293,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       // Project Page
       active_project_tab: "files",
-      num_ghost_file_tabs: 0,
       flyout: null,
       flyout_log_mode: FLYOUT_LOG_DEFAULT_MODE,
       flyout_log_deduplicate: FLYOUT_LOG_DEFAULT_DEDUP,

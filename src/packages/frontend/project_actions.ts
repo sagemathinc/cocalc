@@ -299,7 +299,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public state: "ready" | "closed" = "ready";
   public project_id: string;
   private _last_history_state: string;
-  private last_close_timer: number;
   private _activity_indicator_timers: { [key: string]: number } = {};
   private _init_done = false;
   private new_filename_generator = new NewFilenames("", false);
@@ -609,13 +608,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_active_tab(next_active_tab);
       }
     }
-    if (closed_index === size - 1) {
-      this.clear_ghost_file_tabs();
-    } else {
-      this.add_a_ghost_file_tab();
-    }
-    window.clearTimeout(this.last_close_timer);
-    this.last_close_timer = window.setTimeout(this.clear_ghost_file_tabs, 5000);
     this.close_file(path);
   }
 
@@ -874,19 +866,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public setFlyoutActiveMode(mode: FlyoutActiveMode): void {
     this.setState({ flyout_active_mode: mode });
     storeFlyoutState(this.project_id, "active", { active: mode });
-  }
-
-  add_a_ghost_file_tab(): void {
-    const store = this.get_store();
-    if (store == undefined) {
-      return;
-    }
-    const current_num = store.get("num_ghost_file_tabs");
-    this.setState({ num_ghost_file_tabs: current_num + 1 });
-  }
-
-  clear_ghost_file_tabs(): void {
-    this.setState({ num_ghost_file_tabs: 0 });
   }
 
   set_next_default_filename(next): void {
