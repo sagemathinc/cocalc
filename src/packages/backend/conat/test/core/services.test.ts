@@ -67,7 +67,7 @@ describe("more service tests", () => {
     interface Api {
       add: (a: number, b: number) => Promise<number>;
       mul: (a: number, b: number) => Promise<number>;
-      subject: (a: number, b: number) => Promise<string>;
+      getSubj: (a: number, b: number) => Promise<string>;
     }
     service = await client1.service<Api>("arith.*", {
       add: async (a, b) => a + b,
