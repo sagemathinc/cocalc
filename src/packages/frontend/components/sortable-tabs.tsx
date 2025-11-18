@@ -81,17 +81,12 @@ export function SortableTabs(props: Props) {
       lastRef.current = null;
       return undefined;
     }
-    const last = lastRef.current;
-    if (
-      last != null &&
-      last.width == resize.width &&
-      items.length <= last.length &&
-      isOver
-    ) {
-      // @ts-ignore
-      lastRef.current.length = items.length;
-      return last.itemWidth;
+    if (isOver && lastRef.current?.itemWidth) {
+      // The mouse is over the tab bar, so do NOT change the size of the tabs -- just leave it.
+      // This makes it so you can easily close a bunch of tabs.
+      return lastRef.current?.itemWidth;
     }
+
     // resize?.width - 46 - the minus 46 is to take into account the "..." dropdown.
     const itemWidth =
       Math.max(
