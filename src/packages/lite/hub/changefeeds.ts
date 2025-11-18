@@ -25,7 +25,7 @@ import {
   type ConatSocketServer,
 } from "@cocalc/conat/hub/changefeeds";
 import { type Client } from "@cocalc/conat/core/client";
-import userQuery, { cancelQuery } from "./user-query";
+import userQuery, { cancelQuery } from "./sqlite/user-query";
 import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("lite:hub:changefeeds");
 

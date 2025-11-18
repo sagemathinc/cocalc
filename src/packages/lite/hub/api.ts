@@ -4,22 +4,25 @@ This is a very lightweight small subset of the hub's API for browser clients.
 
 import getLogger from "@cocalc/backend/logger";
 import { type HubApi, transformArgs } from "@cocalc/conat/hub/api";
-import userQuery, { init as initUserQuery } from "./user-query";
-import { account_id as ACCOUNT_ID } from "@cocalc/backend/data";
+import userQuery, { init as initUserQuery } from "./sqlite/user-query";
+import { account_id as ACCOUNT_ID, data } from "@cocalc/backend/data";
 import {
   FALLBACK_PROJECT_UUID,
   FALLBACK_ACCOUNT_UUID,
 } from "@cocalc/util/misc";
 import { callRemoteHub, hasRemote, project_id } from "../remote";
+import { join } from "node:path";
 
 const logger = getLogger("lite:hub:api");
 
 export async function init({ client }) {
   const subject = "hub.*.*.api";
+  const filename = join(data, "hub.db");
   logger.debug(`init -- subject='${subject}', options=`, {
     queue: "0",
+    filename,
   });
-  await initUserQuery(client);
+  await initUserQuery({ filename });
   const api = await client.subscribe(subject, { queue: "0" });
   listen(api);
 }
