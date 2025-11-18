@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 
@@ -11,11 +11,8 @@ type Statement = {
 export type SqliteDatabase = {
   exec: (sql: string) => void;
   prepare: (sql: string) => Statement;
-  pragma: (name: string) => void;
   close: () => void;
 };
-
-const SqliteDatabaseCtor = Database as unknown as new (filename: string) => SqliteDatabase;
 
 let db: SqliteDatabase | undefined;
 
@@ -44,8 +41,8 @@ export function initDatabase(options: DatabaseOptions = {}): SqliteDatabase {
   if (filename !== ":memory:") {
     ensureDirectory(filename);
   }
-  db = new SqliteDatabaseCtor(filename);
-  db.pragma("journal_mode = WAL");
+  db = new DatabaseSync(filename) as unknown as SqliteDatabase;
+  db.exec("PRAGMA journal_mode=WAL");
   db.exec(`
     CREATE TABLE IF NOT EXISTS data (
       table_name TEXT NOT NULL,

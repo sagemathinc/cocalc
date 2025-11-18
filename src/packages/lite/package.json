@@ -40,7 +40,6 @@
     "@types/compression": "^1.8.1",
     "@types/express": "^4.17.23",
     "@types/lodash": "^4.17.20",
-    "better-sqlite3": "^12.4.1",
     "compression": "^1.8.1",
     "express": "^4.21.2",
     "formidable": "^3.5.4",
