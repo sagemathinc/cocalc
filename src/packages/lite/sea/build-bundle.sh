@@ -18,6 +18,8 @@ set -euo pipefail
 ROOT="$(realpath "$(dirname "$0")/../../..")"
 OUT="${1:-$ROOT/packages/lite/build/bundle}"
 
+echo "WARNING: be sure to 'cd static && pnpm clean && pnpm install && pnpm build' to reset the static content!"
+
 echo "Building CoCalc Lite bundle..."
 echo "  root: $ROOT"
 echo "  out : $OUT"

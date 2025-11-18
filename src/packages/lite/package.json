@@ -19,8 +19,8 @@
     "build:bundle": "cd sea && ./build-bundle.sh",
     "build:tarball": "pnpm build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
     "run:bundle": "node ./build/bundle/bundle/index.js",
-    "build:sea": "cd sea && ./build-sea.sh",
-    "build:all": "pnpm build && pnpm build:tarball && pnpm build:sea",
+    "sea": "cd sea && ./build-sea.sh",
+    "build:all": "pnpm build && pnpm build:tarball && pnpm sea",
     "app": "pnpm exec cocalc-lite",
     "app-electron": "pnpm electron-rebuild && electron ."
   },

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-export NAME="cocalc-lite"
+export NAME="cocalc-plus"
 export MAIN="bundle/index.js"
 export VERSION="$npm_package_version"
 
