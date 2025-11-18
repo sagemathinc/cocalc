@@ -1,4 +1,10 @@
-import { before, after, client, wait } from "@cocalc/backend/conat/test/setup";
+import {
+  before,
+  after,
+  client,
+  wait,
+  delay,
+} from "@cocalc/backend/conat/test/setup";
 import { watchServer, watchClient } from "@cocalc/conat/files/watch";
 import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -42,13 +48,13 @@ describe("basic core of the async path watch functionality", () => {
     await fs.appendFile("a.txt", "foo");
     expect(await w.next()).toEqual({
       done: false,
-      value: { eventType: "change", filename: "a.txt" },
+      value: { event: "change", filename: "" },
     });
 
     await fs.appendFile("a.txt", "bar");
     expect(await w.next()).toEqual({
       done: false,
-      value: { eventType: "change", filename: "a.txt" },
+      value: { event: "change", filename: "" },
     });
   });
 
@@ -59,17 +65,13 @@ describe("basic core of the async path watch functionality", () => {
     expect(Object.keys(server.sockets).length).toEqual(0);
   });
 
-  it("trying to watch file that does not exist throws error", async () => {
-    await expect(async () => {
-      await watchClient({ client, subject: "foo", path: "b.txt", fs });
-    }).rejects.toThrow(
-      "Error: ENOENT: no such file or directory, watch 'b.txt'",
-    );
-
-    try {
-      await watchClient({ client, subject: "foo", path: "b.txt", fs });
-    } catch (err) {
-      expect(err.code).toEqual("ENOENT");
-    }
+  it("trying to watch file that does not exist is fine; it notices the file when it does exist", async () => {
+    const w = await watchClient({ client, subject: "foo", path: "b.txt", fs });
+    await delay(100);
+    await fs.writeFile("b.txt", "foo");
+    expect(await w.next()).toEqual({
+      done: false,
+      value: { event: "add", filename: "" },
+    });
   });
 });
