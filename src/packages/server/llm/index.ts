@@ -13,7 +13,6 @@ High level summary:
 import { delay } from "awaiting";
 import { throttle } from "lodash";
 import OpenAI from "openai";
-
 import getLogger from "@cocalc/backend/logger";
 import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -74,7 +73,6 @@ async function getDefaultModel(): Promise<LanguageModel> {
     DEFAULT_MODEL) as LanguageModel;
 }
 
-// ATTN: do not move/rename this function, because it is used in hub/client.coffee!
 export async function evaluate(opts: ChatOptions): Promise<string> {
   // We mainly wrap the high level call to keep all error messages hidden
   const model = opts.model ?? (await getDefaultModel());

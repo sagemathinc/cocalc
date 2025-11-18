@@ -110,7 +110,7 @@ async function getNames(account_ids: string[]) {
 export const hubApi: HubApi = {
   system: { getNames },
   projects: {},
-  db: { userQuery },
+  db: { touch: () => {}, userQuery },
   purchases: {},
   jupyter: {},
 } as any;
