@@ -34,6 +34,7 @@ import {
 } from "./page/project-state-hook";
 import { useProjectHasInternetAccess } from "./settings/has-internet-access-hook";
 import { Project } from "./settings/types";
+import { lite } from "@cocalc/frontend/lite";
 
 export interface ProjectContextState {
   actions?: ProjectActions;
@@ -79,7 +80,7 @@ export const emptyProjectContext = {
   group: undefined,
   hasInternet: undefined,
   is_active: false,
-  isRunning: undefined,
+  isRunning: lite,
   mainWidthPx: 0,
   manageStarredFiles: {
     starred: [],
@@ -113,11 +114,10 @@ export function useProjectContextProvider({
   const actions = useActions({ project_id });
   const { project, group, compute_image } = useProject(project_id);
   const status: ProjectStatus = useProjectState(project_id);
-  const hasInternet = useProjectHasInternetAccess(project_id);
-  const isRunning = useMemo(
-    () => status.get("state") === "running",
-    [status.get("state")],
-  );
+  const hasInternet = useProjectHasInternetAccess(project_id) || lite;
+  const isRunning =
+    useMemo(() => status.get("state") === "running", [status.get("state")]) ||
+    lite;
   const active_project_tab = useTypedRedux(
     { project_id },
     "active_project_tab",

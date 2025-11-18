@@ -161,7 +161,7 @@ export function FilesBottom({
   }, [collapseRef.current]);
 
   function renderTerminal() {
-    if (projectIsRunning === false) {
+    if (!projectIsRunning) {
       return (
         <div style={{ padding: FLYOUT_PADDING }}>
           You have to start the project to be able to run a terminal.
