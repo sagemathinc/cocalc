@@ -74,9 +74,6 @@ importers:
       '@langchain/openai':
         specifier: ^0.3.3
         version: 0.3.17(@langchain/core@0.3.79(@opentelemetry/api@1.9.0)(openai@6.7.0(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)))(encoding@0.1.13)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))
-      gpt3-tokenizer:
-        specifier: ^1.1.5
-        version: 1.1.5
     devDependencies:
       '@types/debug':
         specifier: ^4.1.12

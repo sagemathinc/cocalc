@@ -1,15 +1,14 @@
-import GPT3Tokenizer from "gpt3-tokenizer";
+export type TokenCounter = (content: string) => number;
 
-// a little bit of this code is replicated in
-// packages/frontend/misc/openai.ts
-const APPROX_CHARACTERS_PER_TOKEN = 8;
-const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
+// Lightweight heuristic fallback: assume ~4 characters per token, capped to
+// an upper bound to avoid pathological inputs.
+const APPROX_CHARACTERS_PER_TOKEN = 4;
 
-export function numTokens(content: string): number {
-  // slice to avoid extreme slowdown "attack".
-  return tokenizer.encode(content.slice(0, 32000 * APPROX_CHARACTERS_PER_TOKEN))
-    .text.length;
-}
+export const heuristicNumTokens: TokenCounter = (content: string) => {
+  return Math.ceil(content.length / APPROX_CHARACTERS_PER_TOKEN);
+};
+
+export const numTokens = heuristicNumTokens;
 
 export function totalNumTokens(messages: { content: string }[]): number {
   let s = 0;

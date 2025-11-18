@@ -31,7 +31,10 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { ChatMistralAI } from "@langchain/mistralai";
 import { ChatOpenAI } from "@langchain/openai";
 import { transformHistoryToMessages } from "./chat-history";
-import { numTokens } from "./chatgpt-numtokens";
+import {
+  heuristicNumTokens,
+  type TokenCounter,
+} from "./chatgpt-numtokens";
 import { normalizeOpenAIModel } from "./normalize-openai";
 
 const log = getLogger("llm:evaluate-lc");
@@ -49,6 +52,7 @@ export interface LLMContext {
   settings: LLMSettings;
   mode?: "cocalc" | "user";
   getCustomOpenAI?: (model: string) => Promise<ChatOpenAI>;
+  tokenCounter?: TokenCounter;
 }
 
 // Common interface for all LLM evaluation options
@@ -81,13 +85,13 @@ export interface LLMProviderConfig {
   getSystemRole?: (model: string) => string;
 
   // Token counting fallback
-  getTokenCountFallback?: (
-    input: string,
-    output: string,
-    historyTokens: number,
-    model: string,
-    ctx: LLMContext,
-  ) => Promise<{ prompt_tokens: number; completion_tokens: number }>;
+    getTokenCountFallback?: (
+      input: string,
+      output: string,
+      historyTokens: number,
+      model: string,
+      ctx: LLMContext,
+    ) => Promise<{ prompt_tokens: number; completion_tokens: number }>;
 }
 
 function isO1Model(normalizedModel) {
@@ -121,10 +125,13 @@ export const PROVIDER_CONFIGS = {
     },
     canonicalModel: (model) => normalizeOpenAIModel(model),
     getSystemRole: (_model) => "system",
-    getTokenCountFallback: async (input, output, historyTokens) => ({
-      prompt_tokens: numTokens(input) + historyTokens,
-      completion_tokens: numTokens(output),
-    }),
+    getTokenCountFallback: async (input, output, historyTokens, _model, ctx) => {
+      const count = ctx.tokenCounter ?? heuristicNumTokens;
+      return {
+        prompt_tokens: count(input) + historyTokens,
+        completion_tokens: count(output),
+      };
+    },
   },
 
   google: {
@@ -157,10 +164,13 @@ export const PROVIDER_CONFIGS = {
     },
     canonicalModel: (model) =>
       GOOGLE_MODEL_TO_ID[model as GoogleModel] ?? model,
-    getTokenCountFallback: async (input, output, historyTokens) => ({
-      prompt_tokens: numTokens(input) + historyTokens,
-      completion_tokens: numTokens(output),
-    }),
+    getTokenCountFallback: async (input, output, historyTokens, _model, ctx) => {
+      const count = ctx.tokenCounter ?? heuristicNumTokens;
+      return {
+        prompt_tokens: count(input) + historyTokens,
+        completion_tokens: count(output),
+      };
+    },
   },
 
   anthropic: {
@@ -197,10 +207,13 @@ export const PROVIDER_CONFIGS = {
       }
       return version;
     },
-    getTokenCountFallback: async (input, output, historyTokens) => ({
-      prompt_tokens: numTokens(input) + historyTokens,
-      completion_tokens: numTokens(output),
-    }),
+    getTokenCountFallback: async (input, output, historyTokens, _model, ctx) => {
+      const count = ctx.tokenCounter ?? heuristicNumTokens;
+      return {
+        prompt_tokens: count(input) + historyTokens,
+        completion_tokens: count(output),
+      };
+    },
   },
 
   mistral: {
@@ -247,10 +260,13 @@ export const PROVIDER_CONFIGS = {
       return await ctx.getCustomOpenAI(transformedModel);
     },
     canonicalModel: (model) => fromCustomOpenAIModel(model),
-    getTokenCountFallback: async (input, output, historyTokens) => ({
-      prompt_tokens: numTokens(input) + historyTokens,
-      completion_tokens: numTokens(output),
-    }),
+    getTokenCountFallback: async (input, output, historyTokens, _model, ctx) => {
+      const count = ctx.tokenCounter ?? heuristicNumTokens;
+      return {
+        prompt_tokens: count(input) + historyTokens,
+        completion_tokens: count(output),
+      };
+    },
   },
 } as const satisfies Record<string, LLMProviderConfig>;
 
@@ -294,6 +310,7 @@ export async function evaluateWithLangChain(
   if (context == null || context.settings == null) {
     throw new Error("LLM context with settings is required");
   }
+  const countTokens = context.tokenCounter ?? heuristicNumTokens;
   const { input, system, history = [], model, stream, maxTokens } = options;
 
   log.debug("evaluateWithLangChain", {
@@ -421,8 +438,8 @@ export async function evaluateWithLangChain(
           context,
         )
       : {
-          prompt_tokens: numTokens(input) + historyTokens,
-          completion_tokens: numTokens(output),
+          prompt_tokens: countTokens(input) + historyTokens,
+          completion_tokens: countTokens(output),
         };
 
     log.debug(`${config.name} successful (using manual counting)`, tokenCount);
