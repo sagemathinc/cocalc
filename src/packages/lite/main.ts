@@ -28,6 +28,7 @@ import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { init as initBugCounter } from "@cocalc/project/bug-counter";
 import { init as initChangefeeds } from "./hub/changefeeds";
 import { init as initHubApi } from "./hub/api";
+import { init as initLLM } from "./hub/llm";
 import { account_id } from "@cocalc/backend/data";
 import { init as initRemote } from "./remote";
 import { getAuthToken } from "./auth-token";
@@ -95,6 +96,9 @@ export async function main(): Promise<number> {
 
   logger.debug("start changefeed server");
   initChangefeeds({ client: conatClient });
+
+  logger.debug("start llm conat server");
+  await initLLM();
 
   const path = process.cwd();
 
