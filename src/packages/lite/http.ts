@@ -28,6 +28,7 @@ import fs from "node:fs";
 import os from "node:os";
 import { initAuth } from "./auth-token";
 import { hasRemote } from "./remote";
+import { getCustomizePayload } from "./hub/settings";
 
 const logger = getLogger("lite:static");
 
@@ -122,16 +123,12 @@ export async function initApp({ app, conatClient, AUTH_TOKEN, isHttps }) {
   );
 
   app.get("/customize", async (_, res) => {
-    res.json({
-      configuration: {
-        lite: true,
-        site_name: "",
-        project_id,
-        account_id,
-        compute_server_id,
-        remote_sync: hasRemote,
-      },
-    });
+    const payload = await getCustomizePayload();
+    payload.configuration.project_id = project_id;
+    payload.configuration.account_id = account_id;
+    payload.configuration.compute_server_id = compute_server_id;
+    payload.configuration.remote_sync = hasRemote;
+    res.json(payload);
   });
 
   // file download
