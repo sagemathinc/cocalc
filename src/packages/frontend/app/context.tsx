@@ -96,9 +96,12 @@ export function useAntdStyleProvider() {
 
   const algorithm = compact ? { algorithm: theme.compactAlgorithm } : undefined;
 
+  const textColors = { colorTextDescription: COLORS.GRAY_DD };
+
   const antdTheme: ThemeConfig = {
     ...algorithm,
     token: {
+      ...textColors,
       ...brandedColors,
       ...borderStyle,
       ...animationStyle,
