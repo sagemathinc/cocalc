@@ -34,6 +34,7 @@ export default async function createProject(opts: CreateProjectOptions) {
     public_path_id,
     noPool,
     start,
+    ephemeral,
   } = opts;
   let license = opts.license;
   if (public_path_id) {
@@ -70,7 +71,7 @@ export default async function createProject(opts: CreateProjectOptions) {
 
     project_id = v4();
   }
-  
+
   const pool = getPool();
   const users =
     account_id == null ? null : { [account_id]: { group: "owner" } };
@@ -87,7 +88,7 @@ export default async function createProject(opts: CreateProjectOptions) {
   const envs = await getSoftwareEnvironments("server");
 
   await pool.query(
-    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW())",
+    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited, ephemeral) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7::BIGINT)",
     [
       project_id,
       title ?? "No Title",
@@ -95,6 +96,7 @@ export default async function createProject(opts: CreateProjectOptions) {
       users != null ? JSON.stringify(users) : users,
       site_license != null ? JSON.stringify(site_license) : undefined,
       image ?? envs?.default ?? DEFAULT_COMPUTE_IMAGE,
+      ephemeral ?? null,
     ],
   );
 

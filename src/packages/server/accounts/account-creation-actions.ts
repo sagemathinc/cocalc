@@ -16,12 +16,14 @@ export default async function accountCreationActions({
   account_id,
   tags,
   noFirstProject,
+  ephemeral,
 }: {
   email_address?: string;
   account_id: string;
   tags?: string[];
   // if set, don't do any initial project actions (i.e., creating or starting projects)
   noFirstProject?: boolean;
+  ephemeral?: number;
 }): Promise<void> {
   log.debug({ account_id, email_address, tags });
 
@@ -56,7 +58,7 @@ export default async function accountCreationActions({
           const projects = await getProjects({ account_id, limit: 1 });
           if (projects.length == 0) {
             // you really have no projects at all.
-            await firstProject({ account_id, tags });
+            await firstProject({ account_id, tags, ephemeral });
           }
         } catch (err) {
           // non-fatal; they can make their own project
