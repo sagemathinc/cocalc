@@ -10,10 +10,53 @@ import pytest
 from cocalc_api import Hub, Project
 
 from psycopg2 import pool as pg_pool
+from typing import Callable, TypeVar, Any
 
 # Database configuration examples (DRY principle)
 PGHOST_SOCKET_EXAMPLE = "/path/to/cocalc-data/socket"
 PGHOST_NETWORK_EXAMPLE = "localhost"
+
+T = TypeVar('T')
+
+
+def retry_with_backoff(
+    func: Callable[[], T],
+    max_retries: int = 3,
+    retry_delay: int = 5,
+    error_condition: Callable[[RuntimeError], bool] = lambda e: any(
+        keyword in str(e).lower() for keyword in ["timeout", "closed", "connection", "reset", "broken"]
+    ),
+) -> T:
+    """
+    Retry a function call with exponential backoff for timeout and connection errors.
+
+    This helper is useful for operations that may timeout or fail on first attempt due to
+    cold starts (e.g., kernel launches) or transient connection issues.
+
+    Args:
+        func: Callable that performs the operation
+        max_retries: Maximum number of attempts (default: 3)
+        retry_delay: Delay in seconds between retries (default: 5)
+        error_condition: Function to determine if an error should trigger retry.
+                        Defaults to checking for timeout/connection-related keywords.
+
+    Returns:
+        The result of the function call
+
+    Raises:
+        RuntimeError: If all retries fail or error condition doesn't match
+    """
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except RuntimeError as e:
+            error_msg = str(e).lower()
+            is_retryable = error_condition(e)
+            if is_retryable and attempt < max_retries - 1:
+                print(f"Attempt {attempt + 1} failed ({error_msg[:50]}...), retrying in {retry_delay}s...")
+                time.sleep(retry_delay)
+            else:
+                raise
 
 
 def assert_valid_uuid(value, description="value"):
@@ -125,6 +168,62 @@ def project_client(temporary_project, api_key, cocalc_host):
     return Project(project_id=temporary_project['project_id'], api_key=api_key, host=cocalc_host)
 
 
+@pytest.fixture(autouse=True)
+def cleanup_kernels_after_test(request, project_client):
+    """
+    Clean up excess Jupyter kernels after test classes that use them.
+
+    Kernel accumulation happens because the kernel pool reuses kernels, but under
+    heavy test load, old kernels aren't always properly cleaned up by the pool.
+    This fixture cleans up accumulated kernels BETWEEN test classes (not between
+    individual tests) to avoid interfering with the pool's reuse strategy.
+
+    The fixture only runs for tests in classes that deal with Jupyter kernels
+    (TestJupyterExecuteViaHub, TestJupyterExecuteViaProject, TestJupyterKernelManagement)
+    to avoid interfering with other tests.
+    """
+    yield  # Allow test to run
+
+    # Only cleanup for Jupyter-related tests
+    test_class = request.cls
+    if test_class is None:
+        return
+
+    jupyter_test_classes = {
+        'TestJupyterExecuteViaHub',
+        'TestJupyterExecuteViaProject',
+        'TestJupyterKernelManagement',
+    }
+
+    if test_class.__name__ not in jupyter_test_classes:
+        return
+
+    # Clean up accumulated kernels carefully
+    # Only cleanup if we have more kernels than the pool can manage (> 3)
+    # This gives some buffer to the pool's reuse mechanism
+    try:
+        import time
+        kernels = project_client.system.list_jupyter_kernels()
+
+        # Only cleanup if significantly over pool size (pool size is 2)
+        # We use threshold of 3 to trigger cleanup
+        if len(kernels) > 3:
+            # Keep the 2 most recent kernels (higher PIDs), stop older ones
+            kernels_sorted = sorted(kernels, key=lambda k: k.get("pid", 0))
+            kernels_to_stop = kernels_sorted[:-2]  # All but the 2 newest
+
+            for kernel in kernels_to_stop:
+                try:
+                    project_client.system.stop_jupyter_kernel(pid=kernel["pid"])
+                    time.sleep(0.1)  # Small delay between kills
+                except Exception:
+                    # Silently ignore individual kernel failures
+                    pass
+    except Exception:
+        # If listing kernels fails, just continue
+        pass
+
+
 def ensure_python3_kernel(project_client: Project):
     """
     Ensure the default python3 Jupyter kernel is installed in the project.
@@ -132,32 +231,47 @@ def ensure_python3_kernel(project_client: Project):
     If not available, install ipykernel and register the kernelspec.
     """
 
-    def has_python_kernel() -> bool:
+    def try_exec(command: list[str], timeout: int = 60, capture_stdout: bool = False):
         try:
             result = project_client.system.exec(
-                command="python3",
-                args=["-m", "jupyter", "kernelspec", "list", "--json"],
-                timeout=60,
+                command=command[0],
+                args=command[1:],
+                timeout=timeout,
             )
-            data = json.loads(result["stdout"])
-            kernelspecs = data.get("kernelspecs", {})
-            return "python3" in kernelspecs
+            return (True, result["stdout"] if capture_stdout else None)
         except Exception as err:
-            print(f"Warning: Failed to list kernelspecs: {err}")
+            print(f"Warning: command {command} failed: {err}")
+            return (False, None)
+
+    def has_python_kernel() -> bool:
+        ok, stdout = try_exec(
+            ["python3", "-m", "jupyter", "kernelspec", "list", "--json"],
+            capture_stdout=True,
+        )
+        if not ok or stdout is None:
+            return False
+        try:
+            data = json.loads(stdout)
+            return "python3" in data.get("kernelspecs", {})
+        except Exception as err:
+            print(f"Warning: Failed to parse kernelspec list: {err}")
             return False
 
     if has_python_kernel():
         return
 
     print("Installing python3 kernelspec in project...")
-    project_client.system.exec(
-        command="python3",
-        args=["-m", "pip", "install", "--user", "ipykernel"],
-        timeout=300,
-    )
-    project_client.system.exec(
-        command="python3",
-        args=[
+    # Install pip if needed
+    try_exec(["python3", "-m", "ensurepip", "--user"], timeout=120)
+    # Upgrade pip but ignore errors (not fatal)
+    try_exec(["python3", "-m", "pip", "install", "--user", "--upgrade", "pip"], timeout=120)
+
+    if not try_exec(["python3", "-m", "pip", "install", "--user", "ipykernel"], timeout=300):
+        raise RuntimeError("Failed to install ipykernel via pip")
+
+    if not try_exec(
+        [
+            "python3",
             "-m",
             "ipykernel",
             "install",
@@ -166,7 +280,8 @@ def ensure_python3_kernel(project_client: Project):
             "--display-name=Python 3",
         ],
         timeout=120,
-    )
+    ):
+        raise RuntimeError("Failed to install python3 kernelspec")
 
     if not has_python_kernel():
         raise RuntimeError("Failed to ensure python3 kernelspec is installed in project")
@@ -500,3 +615,39 @@ def cleanup_all_test_resources(hub, resource_tracker, db_pool, request):
     request.addfinalizer(cleanup)
 
     yield
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_jupyter_kernels_session(project_client):
+    """
+    Clean up all Jupyter kernels created during the test session.
+
+    This session-scoped fixture ensures that all kernels spawned during testing
+    are properly terminated at the end of the test session. This prevents
+    orphaned processes from accumulating in the system.
+
+    The fixture runs AFTER all tests complete (via yield), ensuring no
+    interference with test execution while still guaranteeing cleanup.
+    """
+    yield  # Allow all tests to run first
+
+    # After all tests complete, clean up all remaining kernels
+    try:
+        kernels = project_client.system.list_jupyter_kernels()
+        if kernels:
+            print(f"\n{'='*70}")
+            print(f"CLEANING UP {len(kernels)} JUPYTER KERNELS FROM TEST SESSION")
+            print(f"{'='*70}")
+            for kernel in kernels:
+                try:
+                    pid = kernel.get("pid")
+                    result = project_client.system.stop_jupyter_kernel(pid=pid)
+                    if result.get("success"):
+                        print(f"✓ Stopped kernel PID {pid}")
+                    else:
+                        print(f"✗ Failed to stop kernel PID {pid}")
+                except Exception as e:
+                    print(f"✗ Error stopping kernel: {e}")
+            print(f"{'='*70}\n")
+    except Exception as e:
+        print(f"Warning: Failed to clean up jupyter kernels: {e}")
