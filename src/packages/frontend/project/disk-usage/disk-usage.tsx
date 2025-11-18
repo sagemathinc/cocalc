@@ -22,6 +22,10 @@ export default function DiskUsage({
     compute_server_id,
   });
 
+  if (!quota?.size) {
+    return null;
+  }
+
   const percent =
     usage == null || quota == null
       ? 0
