@@ -154,7 +154,6 @@ export interface SyncOpts0 {
   watchRecreateWait?: number;
 
   watchDebounce?: number;
-  readLockTimeout?: number;
   firstReadLockTimeout?: number;
 }
 
@@ -2520,8 +2519,6 @@ export class SyncDoc extends EventEmitter {
     this.last_save_to_disk_time = new Date();
     this.emit("before-save-to-disk");
     try {
-      // saveLast = lock so no other client can read the file
-      // (which is a waste and confusing).
       // writeFileDelta so efficient even if file is huge.
       await this.fs.writeFileDelta(this.path, value, {
         baseContents: this.valueOnDisk,

@@ -2,6 +2,7 @@ import {
   before,
   after,
   uuid,
+  delay,
   wait,
   connect,
   server,
@@ -26,6 +27,7 @@ describe("loading/saving syncstring to disk and setting values", () => {
       path: "new.syncdb",
       service: server.service,
       primary_keys: ["name"],
+      firstReadLockTimeout: 1,
     });
     await once(s, "ready");
     expect(s.to_str()).toBe("");
@@ -52,6 +54,7 @@ describe("loading/saving syncstring to disk and setting values", () => {
       path: "new.syncdb",
       service: server.service,
       primary_keys: ["name"],
+      firstReadLockTimeout: 1,
     });
     await once(s2, "ready");
     expect(s2).not.toBe(s);
@@ -87,6 +90,7 @@ describe("loading/saving syncstring to disk and setting values", () => {
 
   it("confirm file saves to disk with many lines", async () => {
     await s.save_to_disk();
+    await delay(50); // wait for lock to go away
     const v = (await s.fs.readFile("new.syncdb", "utf8")).split("\n");
     expect(v.length).toBe(s.get().size);
   });
