@@ -9,9 +9,10 @@
   "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../backend" },
-    { "path": "../database" },
     { "path": "../conat" },
-    { "path": "../util" },
-    { "path": "../project-runner" }
+    { "path": "../database" },
+    { "path": "../file-server" },
+    { "path": "../project-runner" },
+    { "path": "../util" }
   ]
 }

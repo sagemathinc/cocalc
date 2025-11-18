@@ -333,7 +333,7 @@ importers:
         specifier: ^1.22.0
         version: 1.22.0
       micro-key-producer:
-        specifier: ^0.8.1
+        specifier: ^0.8.2
         version: 0.8.2
     devDependencies:
       '@types/jest':
