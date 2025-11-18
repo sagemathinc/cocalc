@@ -371,4 +371,120 @@ describe("evaluateWithLangChain", () => {
     // tokenCounter counts "abc" as 3, plus historyTokens from transformHistoryToMessages
     expect(result.prompt_tokens).toBe(historyTokens + 3);
   });
+
+  it("prefers usage_metadata in streaming mode when provided on final chunk", async () => {
+    const streamArgs: string[] = [];
+    const streamSpy = (chunk: string | null) => {
+      if (chunk !== null) streamArgs.push(chunk);
+      else streamArgs.push("null");
+    };
+
+    jest.doMock("@langchain/openai", () => {
+      return {
+        ChatOpenAI: class {
+          async *stream(): AsyncGenerator<any> {
+            yield { content: [{ type: "text", text: "A" }] };
+            yield {
+              content: [{ type: "text", text: "B" }],
+              usage_metadata: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
+            };
+          }
+        },
+      };
+    });
+
+    jest.doMock("@langchain/core/prompts", () => {
+      return {
+        ChatPromptTemplate: {
+          fromMessages: (_messages: any[]) => ({
+            pipe: (runnable: any) => runnable,
+          }),
+        },
+        MessagesPlaceholder: class {},
+      };
+    });
+    jest.doMock("@langchain/core/runnables", () => {
+      return {
+        RunnableWithMessageHistory: class {
+          constructor(private readonly opts: any) {}
+          async stream(input: any): Promise<AsyncGenerator<any>> {
+            return this.opts.runnable.stream(input);
+          }
+        },
+      };
+    });
+
+    const { evaluateWithLangChain } = await import("../evaluate-lc");
+
+    const result = await evaluateWithLangChain(
+      { input: "hi", model: "gpt-4o", stream: streamSpy },
+      { settings: {}, tokenCounter: (s) => s.length },
+    );
+
+    expect(streamArgs).toEqual(["A", "B", "null"]);
+    expect(result.total_tokens).toBe(30); // from usage_metadata
+    expect(result.prompt_tokens).toBe(10);
+    expect(result.completion_tokens).toBe(20);
+  });
+
+  it("adds history tokens in streaming fallback when usage_metadata is absent", async () => {
+    const streamArgs: string[] = [];
+    const streamSpy = (chunk: string | null) => {
+      if (chunk !== null) streamArgs.push(chunk);
+      else streamArgs.push("null");
+    };
+
+    const historyTokens = 7;
+
+    jest.doMock("@langchain/openai", () => {
+      return {
+        ChatOpenAI: class {
+          async *stream(): AsyncGenerator<any> {
+            yield { content: [{ type: "text", text: "X" }] };
+          }
+        },
+      };
+    });
+
+    jest.doMock("@langchain/core/prompts", () => {
+      return {
+        ChatPromptTemplate: {
+          fromMessages: (_messages: any[]) => ({
+            pipe: (runnable: any) => runnable,
+          }),
+        },
+        MessagesPlaceholder: class {},
+      };
+    });
+    jest.doMock("@langchain/core/runnables", () => {
+      return {
+        RunnableWithMessageHistory: class {
+          constructor(private readonly opts: any) {}
+          async stream(input: any): Promise<AsyncGenerator<any>> {
+            await this.opts.getMessageHistory?.();
+            return this.opts.runnable.stream(input);
+          }
+        },
+      };
+    });
+    jest.doMock("../chat-history", () => ({
+      transformHistoryToMessages: async (_history: any) => ({
+        messageHistory: [],
+        tokens: historyTokens,
+      }),
+    }));
+
+    const { evaluateWithLangChain } = await import("../evaluate-lc");
+
+    const result = await evaluateWithLangChain(
+      { input: "hi", model: "gpt-4o", stream: streamSpy },
+      { settings: {}, tokenCounter: (s) => s.length },
+    );
+
+    expect(streamArgs).toEqual(["X", "null"]);
+    // prompt_tokens = len("hi") + historyTokens, completion_tokens = len("X")
+    expect(result.prompt_tokens).toBe(2 + historyTokens);
+    expect(result.completion_tokens).toBe(1);
+    expect(result.total_tokens).toBe(result.prompt_tokens + result.completion_tokens);
+  });
 });
