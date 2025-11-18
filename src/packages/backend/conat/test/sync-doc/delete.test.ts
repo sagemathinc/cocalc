@@ -38,11 +38,23 @@ describe("deleting a file that is open as a syncdoc", () => {
     await once(s2, "ready");
   });
 
+  // [ ] TODO: this is broken because s2's deleted never fires, because...
+  // only one client is a watcher at once.  We need way for everybody to
+  // learn about deletion of file, not just one client.
   it(`delete 'a.txt' from disk and both clients emit 'deleted' event in about ${deletedThreshold}ms`, async () => {
+    expect(s1.isDeleted).toBe(false);
+    expect(s2.isDeleted).toBe(false);
+
     const start = Date.now();
+    s1.on("deleted", () => {
+      console.log("s1 deleted");
+    });
+    s2.on("deleted", () => {
+      console.log("s2 deleted");
+    });
     const d1 = once(s1, "deleted");
     const d2 = once(s2, "deleted");
-    await fs.unlink("a.txt");
+    await fs.unlink(path);
     await d1;
     await d2;
     expect(Date.now() - start).toBeLessThan(deletedThreshold + 1000);
