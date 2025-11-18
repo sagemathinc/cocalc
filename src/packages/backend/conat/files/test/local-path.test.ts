@@ -352,7 +352,7 @@ describe("use all the standard api functions of fs", () => {
     await fs.appendFile("a.txt", " there");
     expect(await w.next()).toEqual({
       done: false,
-      value: { eventType: "change", filename: "a.txt" },
+      value: { event: "change", filename: "" },
     });
   });
 
@@ -364,34 +364,26 @@ describe("use all the standard api functions of fs", () => {
     await fs.writeFile(join(FOLDER, "x"), "hi");
     expect(await w.next()).toEqual({
       done: false,
-      value: { eventType: "rename", filename: "x" },
-    });
-    expect(await w.next()).toEqual({
-      done: false,
-      value: { eventType: "change", filename: "x" },
+      value: { event: "add", filename: "x" },
     });
 
     await fs.appendFile(join(FOLDER, "x"), "xxx");
     expect(await w.next()).toEqual({
       done: false,
-      value: { eventType: "change", filename: "x" },
+      value: { event: "change", filename: "x" },
     });
 
     await fs.writeFile(join(FOLDER, "z"), "there");
     expect(await w.next()).toEqual({
       done: false,
-      value: { eventType: "rename", filename: "z" },
-    });
-    expect(await w.next()).toEqual({
-      done: false,
-      value: { eventType: "change", filename: "z" },
+      value: { event: "add", filename: "z" },
     });
 
     // this is correct -- from the node docs "On most platforms, 'rename' is emitted whenever a filename appears or disappears in the directory."
     await fs.unlink(join(FOLDER, "z"));
     expect(await w.next()).toEqual({
       done: false,
-      value: { eventType: "rename", filename: "z" },
+      value: { event: "unlink", filename: "z" },
     });
   });
 });
