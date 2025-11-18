@@ -124,13 +124,14 @@ class System:
         """
         ...
 
-    @api_method("system.jupyterExecute")
+    @api_method("system.jupyterExecute", timeout_seconds=True)
     def jupyter_execute(
         self,
         input: str,
         kernel: str,
         history: Optional[list[str]] = None,
         path: Optional[str] = None,
+        timeout: Optional[int] = 30,
     ) -> list[dict[str, Any]]:  # type: ignore[empty-body]
         """
         Execute code using a Jupyter kernel.
@@ -140,6 +141,7 @@ class System:
             kernel (str): Name of kernel to use. Get options using hub.jupyter.kernels().
             history (Optional[list[str]]): Array of previous inputs (they get evaluated every time, but without output being captured).
             path (Optional[str]): File path context for execution.
+            timeout (Optional[int]): Timeout in SECONDS for the execute call (defaults to 30 seconds).
 
         Returns:
             list[dict[str, Any]]: List of output items. Each output item contains

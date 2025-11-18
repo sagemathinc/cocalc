@@ -295,8 +295,9 @@ export async function getAccountWithApiKey(
     return;
   }
 
-  // Check for legacy account api key (format: sk_*)
-  if (secret.startsWith("sk_")) {
+  // Check for legacy account api key (format historically documented as sk-*, but
+  // some deployments used sk_*, so accept both to avoid breaking existing keys)
+  if (secret.startsWith(API_KEY_PREFIX) || secret.startsWith("sk_")) {
     const { rows } = await pool.query(
       "SELECT account_id FROM accounts WHERE api_key = $1::TEXT",
       [secret],

@@ -1,6 +1,7 @@
 """
 Pytest configuration and fixtures for cocalc-api tests.
 """
+import json
 import os
 import time
 import uuid
@@ -93,16 +94,20 @@ def temporary_project(hub, resource_tracker, request):
         # Wait for project to be ready (can take 10-15 seconds)
         from cocalc_api import Project
 
+        test_project = Project(project_id=project_id, api_key=hub.api_key, host=hub.host)
         for attempt in range(10):
             time.sleep(5)  # Wait 5 seconds before checking
             try:
                 # Try to ping the project to see if it's ready
-                test_project = Project(project_id=project_id, api_key=hub.api_key, host=hub.host)
                 test_project.system.ping()  # If this succeeds, project is ready
                 break
             except Exception:
                 if attempt == 9:  # Last attempt
                     print(f"Warning: Project {project_id} did not become ready within 50 seconds")
+        else:
+            print(f"Warning: Project {project_id} may not be ready yet")
+
+        ensure_python3_kernel(test_project)
 
     except Exception as e:
         print(f"Warning: Failed to start project {project_id}: {e}")
@@ -118,6 +123,53 @@ def temporary_project(hub, resource_tracker, request):
 def project_client(temporary_project, api_key, cocalc_host):
     """Create Project client instance using temporary project."""
     return Project(project_id=temporary_project['project_id'], api_key=api_key, host=cocalc_host)
+
+
+def ensure_python3_kernel(project_client: Project):
+    """
+    Ensure the default python3 Jupyter kernel is installed in the project.
+
+    If not available, install ipykernel and register the kernelspec.
+    """
+
+    def has_python_kernel() -> bool:
+        try:
+            result = project_client.system.exec(
+                command="python3",
+                args=["-m", "jupyter", "kernelspec", "list", "--json"],
+                timeout=60,
+            )
+            data = json.loads(result["stdout"])
+            kernelspecs = data.get("kernelspecs", {})
+            return "python3" in kernelspecs
+        except Exception as err:
+            print(f"Warning: Failed to list kernelspecs: {err}")
+            return False
+
+    if has_python_kernel():
+        return
+
+    print("Installing python3 kernelspec in project...")
+    project_client.system.exec(
+        command="python3",
+        args=["-m", "pip", "install", "--user", "ipykernel"],
+        timeout=300,
+    )
+    project_client.system.exec(
+        command="python3",
+        args=[
+            "-m",
+            "ipykernel",
+            "install",
+            "--user",
+            "--name=python3",
+            "--display-name=Python 3",
+        ],
+        timeout=120,
+    )
+
+    if not has_python_kernel():
+        raise RuntimeError("Failed to ensure python3 kernelspec is installed in project")
 
 
 # ============================================================================
@@ -218,7 +270,8 @@ def db_pool(check_cleanup_config):
     if not cleanup_enabled:
         print("\n⚠ Database cleanup DISABLED via COCALC_TESTS_CLEANUP=false")
         print("   Test resources will remain in the database.")
-        return None
+        yield None
+        return
 
     # Get connection parameters with defaults
     pguser = os.environ.get("PGUSER", "smc")
