@@ -48,6 +48,7 @@ export interface LLMEvaluationOptions {
   stream?: Stream;
   maxTokens?: number;
   apiKey?: string;
+  endpoint?: string;
 }
 
 // Provider-specific client configuration
@@ -213,6 +214,15 @@ export const PROVIDER_CONFIGS = {
       log.debug(
         `Custom OpenAI createClient: original=${options.model}, transformed=${transformedModel}`,
       );
+      if (options.apiKey || options.endpoint) {
+        return new ChatOpenAI({
+          model: transformedModel,
+          apiKey: options.apiKey,
+          configuration: options.endpoint
+            ? { baseURL: options.endpoint }
+            : undefined,
+        });
+      }
       return await getCustomOpenAI(transformedModel);
     },
     canonicalModel: (model) => fromCustomOpenAIModel(model),
