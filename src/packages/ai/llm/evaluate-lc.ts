@@ -230,10 +230,13 @@ export const PROVIDER_CONFIGS = {
         apiKey,
       });
     },
-    getTokenCountFallback: async (input, output, historyTokens) => ({
-      prompt_tokens: numTokens(input) + historyTokens,
-      completion_tokens: numTokens(output),
-    }),
+    getTokenCountFallback: async (input, output, historyTokens, _model, ctx) => {
+      const count = ctx.tokenCounter ?? heuristicNumTokens;
+      return {
+        prompt_tokens: count(input) + historyTokens,
+        completion_tokens: count(output),
+      };
+    },
   },
 
   "custom-openai": {
