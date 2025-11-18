@@ -7,7 +7,6 @@ import type { MenuProps } from "antd";
 import { Button, Dropdown } from "antd";
 import copy from "copy-to-clipboard";
 import { useIntl } from "react-intl";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Icon } from "@cocalc/frontend/components";
 import { jupyter, labels } from "@cocalc/frontend/i18n";

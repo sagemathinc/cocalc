@@ -712,7 +712,7 @@ export const site_settings_conf: SiteSettings = {
   },
   ssh_gateway_dns: {
     name: "SSH Gateway's DNS",
-    desc: "This is the DNS name of the SSH gateway server. It is used to construct the SSH login to connect to a project. In doubt, set this to the DNS value.",
+    desc: "This is the DNS name of the SSH gateway server.  It is displayed to users as the ssh target to connect to a project.",
     default: "",
     valid: valid_dns_name,
     show: only_ssh_gateway,

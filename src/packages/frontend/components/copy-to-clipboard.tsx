@@ -20,7 +20,6 @@ interface Props {
   outerStyle?: CSS;
   inputWidth?: string;
   size?: "large" | "middle" | "small";
-  before?: boolean;
   copyTip?: string;
 }
 
@@ -46,7 +45,6 @@ export default function CopyToClipBoard({
   outerStyle,
   inputWidth,
   copyTip,
-  before,
 }: Props) {
   const [copied, setCopied] = useState<boolean>(false);
 
@@ -73,7 +71,7 @@ export default function CopyToClipBoard({
   // hsy: Input.Group is deprecated, using Space.Compact instead
   const input = (
     <Space.Compact style={outerStyle}>
-      {before ? copy : undefined}
+      {copy}
       <Input
         style={{
           width: inputWidth ?? `${(display ?? value).length + 8}ex`,
@@ -85,7 +83,6 @@ export default function CopyToClipBoard({
         value={display ?? value}
         onFocus={(e) => e.target.select()}
       />
-      {!before ? copy : undefined}
     </Space.Compact>
   );
   if (!label) {

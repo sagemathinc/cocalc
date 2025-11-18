@@ -77,7 +77,6 @@ export function Impersonate({ first_name, last_name, account_id }: Props) {
           <br />
           <br />
           <CopyToClipBoard
-            before
             inputWidth="500px"
             value={`${location.origin}${link}`}
           />

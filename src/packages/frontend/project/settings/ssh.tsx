@@ -20,11 +20,16 @@ interface Props {
 }
 
 export function SSHPanel({ project, mode = "project" }: Props) {
+  const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const ssh_gateway_dns = useTypedRedux("customize", "ssh_gateway_dns");
   const ssh_gateway_fingerprint = useTypedRedux(
     "customize",
     "ssh_gateway_fingerprint",
   );
+
+  if (!ssh_gateway) {
+    return null;
+  }
 
   const project_id = project.get("project_id");
 
@@ -52,6 +57,7 @@ export function SSHPanel({ project, mode = "project" }: Props) {
             style={{
               textAlign: "center",
             }}
+            inputWidth="450px"
             value={text}
             inputStyle={{ margin: "auto" }}
           />
