@@ -10,7 +10,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
 import { isOpenAIModel } from "@cocalc/util/db-schema/llm-utils";
 import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
-import { normalizeOpenAIModel } from ".";
+import { normalizeOpenAIModel } from "./normalize-openai";
 import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
 

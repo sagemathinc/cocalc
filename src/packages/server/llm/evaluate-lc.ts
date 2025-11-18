@@ -35,7 +35,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
 import { getCustomOpenAI } from "./client";
-import { normalizeOpenAIModel } from "./index";
+import { normalizeOpenAIModel } from "./normalize-openai";
 
 const log = getLogger("llm:evaluate-lc");
 
