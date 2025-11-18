@@ -419,6 +419,7 @@ function AIGenerateDocument({
 
   function processAnswerIpynb(answer: string): Ipynb {
     if (spec == null) {
+      // this happens e.g., if the user closes the modal dialog
       throw new Error("processAnswerIpynb: spec is null");
     }
     const cells = splitCells(answer, (line) => line.startsWith("filename:"));
@@ -537,11 +538,20 @@ function AIGenerateDocument({
     // ATTN: do not call this concurrently, see throttle below
     function updateContent(answer) {
       if (cancel.current) return;
-      if (ext === "ipynb" || ext === "ipynb-sagemath") {
-        setPreview("Jupyter Notebook");
-        setIpynb(processAnswerIpynb(answer));
-      } else {
-        setPreview(processAnswer(answer));
+      try {
+        if (ext === "ipynb" || ext === "ipynb-sagemath") {
+          setPreview("Jupyter Notebook");
+          setIpynb(processAnswerIpynb(answer));
+        } else {
+          setPreview(processAnswer(answer));
+        }
+      } catch (err) {
+        // happens , e.g., if user closes Modal right after making request
+        console.log(err);
+        cancel.current = true;
+        setQuerying(false);
+        setSaving(false);
+        setPreview(null);
       }
     }
 
@@ -652,7 +662,7 @@ function AIGenerateDocument({
         case "ipynb":
         case "ipynb-sagemath":
           return spec != null
-            ? JUPYTER[spec.language?.toLowerCase()] ?? []
+            ? (JUPYTER[spec.language?.toLowerCase()] ?? [])
             : [];
         default:
           return DOCUMENT[ext];
@@ -873,7 +883,13 @@ function AIGenerateDocument({
           <Paragraph style={{ textAlign: "center", marginTop: "15px" }}>
             <Space>
               <LLMQueryDropdownButton
-                disabled={!fullPrompt || !!error || querying || !prompt?.trim()}
+                disabled={
+                  !fullPrompt ||
+                  !!error ||
+                  querying ||
+                  !prompt?.trim() ||
+                  (ext == "ipynb" && spec == null)
+                }
                 loading={querying}
                 onClick={generate}
                 llmTools={{ model, setModel }}
