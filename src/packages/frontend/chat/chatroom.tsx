@@ -106,13 +106,6 @@ const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
   gap: "10px",
 } as const;
 
-const THREAD_ITEM_STYLE: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-  width: "100%",
-} as const;
-
 const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {
   flex: 1,
   minWidth: 0,
@@ -162,6 +155,7 @@ export function ChatRoom({
   const [threadTitles, setThreadTitles] = useState<Record<string, string>>({});
   const [renamingThread, setRenamingThread] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState<string>("");
+  const [hoveredThread, setHoveredThread] = useState<string | null>(null);
   const [allowAutoSelectThread, setAllowAutoSelectThread] =
     useState<boolean>(true);
   const selectedThreadDate = useMemo(() => {
@@ -514,26 +508,41 @@ export function ChatRoom({
         ? []
         : threads.map(({ key, label, messageCount }) => {
             const displayLabel = threadTitles[key] ?? label;
+            const isHovered = hoveredThread === key;
+            const showMenu = isHovered || selectedThreadKey === key;
             return {
               key,
               label: (
-                <div style={THREAD_ITEM_STYLE}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    width: "100%",
+                  }}
+                  onMouseEnter={() => setHoveredThread(key)}
+                  onMouseLeave={() =>
+                    setHoveredThread((prev) => (prev === key ? null : prev))
+                  }
+                >
                   <StaticMarkdown
                     value={displayLabel}
                     style={THREAD_ITEM_LABEL_STYLE}
                   />
                   <span style={THREAD_ITEM_COUNT_STYLE}>{messageCount}</span>
-                  <Dropdown
-                    menu={threadMenuProps(key, displayLabel)}
-                    trigger={["click"]}
-                  >
-                    <Button
-                      type="text"
-                      size="small"
-                      onClick={(event) => event.stopPropagation()}
-                      icon={<Icon name="ellipsis" />}
-                    />
-                  </Dropdown>
+                  {showMenu && (
+                    <Dropdown
+                      menu={threadMenuProps(key, displayLabel)}
+                      trigger={["click"]}
+                    >
+                      <Button
+                        type="text"
+                        size="small"
+                        onClick={(event) => event.stopPropagation()}
+                        icon={<Icon name="ellipsis" />}
+                      />
+                    </Dropdown>
+                  )}
                 </div>
               ),
             };
