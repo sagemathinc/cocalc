@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Col, Input, Row, Space } from "antd";
 import { getLogger } from "@cocalc/frontend/logger";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
 import { Gap, Loading } from "@cocalc/frontend/components";
+import { redux } from "@cocalc/frontend/app-framework";
 
 const log = getLogger("account:lite-ai-settings");
 
@@ -42,6 +43,7 @@ type State = "load" | "ready" | "save" | "error";
 
 export default function LiteAISettings() {
   const [values, setValues] = useState<Record<string, string>>({});
+  const [savedValues, setSavedValues] = useState<Record<string, string>>({});
   const [state, setState] = useState<State>("load");
   const [error, setError] = useState<string>("");
 
@@ -62,6 +64,7 @@ export default function LiteAISettings() {
         next[row.name] = row.value;
       }
       setValues(next);
+      setSavedValues(next);
       setError("");
       setState("ready");
     } catch (err) {
@@ -75,13 +78,24 @@ export default function LiteAISettings() {
     setValues((cur) => ({ ...cur, [key]: val }));
   }
 
+  const saving = state === "save";
+  const dirty = useMemo(() => {
+    for (const { keyField } of PROVIDERS) {
+      if ((values[keyField] ?? "") !== (savedValues[keyField] ?? "")) {
+        return true;
+      }
+    }
+    return false;
+  }, [values, savedValues]);
+
   async function save(): Promise<void> {
+    if (saving || !dirty) return;
     setState("save");
     try {
       for (const { keyField, enableField } of PROVIDERS) {
         const val = values[keyField] ?? "";
         await query({
-          query: { server_settings: { name: keyField, value: val } },
+          query: { site_settings: { name: keyField, value: val } },
         });
         await query({
           query: {
@@ -92,6 +106,10 @@ export default function LiteAISettings() {
           },
         });
       }
+      redux.getStore("projects").clearOpenAICache();
+      // @ts-ignore
+      await redux.getActions("customize")?.reload();
+      setSavedValues(values);
       setState("ready");
     } catch (err) {
       log.info("failed to save llm settings", err);
@@ -126,8 +144,13 @@ export default function LiteAISettings() {
         ))}
       </Space>
       <Gap />
-      <Button type="primary" onClick={save} disabled={state === "save"}>
-        {state === "save" ? <Loading text="Saving" /> : "Save"}
+      <Button
+        type="primary"
+        onClick={save}
+        disabled={saving || !dirty}
+        style={{ marginTop: 8 }}
+      >
+        {saving ? <Loading text="Saving" /> : "Save"}
       </Button>
     </div>
   );
