@@ -1190,13 +1190,15 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   setFragment = (date?) => {
+    let fragmentId;
     if (!date) {
       Fragment.clear();
+      fragmentId = "";
     } else {
-      const fragmentId = toMsString(date);
+      fragmentId = toMsString(date);
       Fragment.set({ chat: fragmentId });
-      this.frameTreeActions?.set_frame_data({ id: this.frameId, fragmentId });
     }
+    this.frameTreeActions?.set_frame_data({ id: this.frameId, fragmentId });
   };
 
   setShowPreview = (showPreview) => {

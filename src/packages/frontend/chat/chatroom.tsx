@@ -146,6 +146,7 @@ export function ChatRoom({
   const setSelectedThreadKey = (x) => {
     if (x != null && x != ALL_THREADS_KEY) {
       actions.clearAllFilters();
+      actions.setFragment();
     }
     setSelectedThreadKey0(x);
   };
@@ -601,6 +602,7 @@ export function ChatRoom({
             onClick={() => {
               setAllowAutoSelectThread(false);
               setSelectedThreadKey(null);
+              actions.setFragment();
             }}
           >
             New Chat
