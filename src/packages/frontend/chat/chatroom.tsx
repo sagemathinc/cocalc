@@ -56,6 +56,7 @@ type ThreadMeta = ThreadListItem & {
   hasCustomName: boolean;
   readCount: number;
   unreadCount: number;
+  isAI: boolean;
 };
 
 const FILTER_RECENT_NONE = {
@@ -146,6 +147,7 @@ export function ChatRoom({
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
   const rawThreads = useThreadList(messages);
+  const llmCacheRef = useRef<Map<string, boolean>>(new Map());
   const threads = useMemo<ThreadMeta[]>(() => {
     return rawThreads.map((thread) => {
       const rootMessage = thread.rootMessage;
@@ -167,15 +169,28 @@ export function ChatRoom({
       const readCount =
         Number.isFinite(readValue) && readValue > 0 ? readValue : 0;
       const unreadCount = Math.max(thread.messageCount - readCount, 0);
+      let isAI = llmCacheRef.current.get(thread.key);
+      if (isAI == null) {
+        if (actions?.isLanguageModelThread) {
+          const result = actions.isLanguageModelThread(
+            new Date(parseInt(thread.key, 10)),
+          );
+          isAI = result !== false;
+        } else {
+          isAI = false;
+        }
+        llmCacheRef.current.set(thread.key, isAI);
+      }
       return {
         ...thread,
         displayLabel,
         hasCustomName,
         readCount,
         unreadCount,
+        isAI: !!isAI,
       };
     });
-  }, [rawThreads, account_id]);
+  }, [rawThreads, account_id, actions]);
   const [selectedThreadKey, setSelectedThreadKey0] = useState<string | null>(
     desc?.get("data-selectedThreadKey") ?? null,
   );
@@ -567,61 +582,135 @@ export function ChatRoom({
     sendMessage();
   }
 
+  function renderThreadRow(thread: ThreadMeta) {
+    const { key, displayLabel, hasCustomName, unreadCount, isAI } = thread;
+    const isHovered = hoveredThread === key;
+    const showMenu = isHovered || selectedThreadKey === key;
+    return {
+      key,
+      label: (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            width: "100%",
+          }}
+          onMouseEnter={() => setHoveredThread(key)}
+          onMouseLeave={() =>
+            setHoveredThread((prev) => (prev === key ? null : prev))
+          }
+        >
+          <StaticMarkdown
+            value={displayLabel}
+            style={THREAD_ITEM_LABEL_STYLE}
+          />
+          {unreadCount > 0 && (
+            <Badge
+              count={unreadCount}
+              size="small"
+              overflowCount={99}
+              style={{
+                backgroundColor: COLORS.GRAY_L0,
+                color: COLORS.GRAY_D,
+              }}
+            />
+          )}
+          {showMenu && (
+            <Dropdown
+              menu={threadMenuProps(key, displayLabel, hasCustomName)}
+              trigger={["click"]}
+            >
+              <Button
+                type="text"
+                size="small"
+                onClick={(event) => event.stopPropagation()}
+                icon={<Icon name="ellipsis" />}
+              />
+            </Dropdown>
+          )}
+        </div>
+      ),
+    };
+  }
+
+  function renderThreadSection({
+    title,
+    icon,
+    threads: list,
+    maxHeight,
+  }: {
+    title: string;
+    icon: React.ComponentProps<typeof Icon>["name"];
+    threads: ThreadMeta[];
+    maxHeight?: string;
+  }) {
+    const unreadTotal = list.reduce(
+      (sum, thread) => sum + thread.unreadCount,
+      0,
+    );
+    const items = list.map(renderThreadRow);
+    return (
+      <div style={{ marginBottom: "15px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "6px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              paddingLeft: "10px",
+            }}
+          >
+            <Icon name={icon} />
+            <span style={{ fontWeight: 600 }}>{title}</span>
+          </div>
+          {unreadTotal > 0 && (
+            <Badge
+              count={unreadTotal}
+              size="small"
+              style={{
+                backgroundColor: COLORS.GRAY_L0,
+                color: COLORS.GRAY_D,
+              }}
+            />
+          )}
+        </div>
+        {list.length === 0 ? (
+          <div style={{ color: "#999", fontSize: "12px", marginLeft: "4px" }}>
+            No chats
+          </div>
+        ) : (
+          <Menu
+            mode="inline"
+            selectedKeys={selectedThreadKey ? [selectedThreadKey] : []}
+            onClick={({ key }) => {
+              setAllowAutoSelectThread(true);
+              setSelectedThreadKey(String(key));
+            }}
+            items={items}
+            style={{
+              border: "none",
+              background: "transparent",
+              padding: 0,
+              maxHeight: maxHeight ?? "28vh",
+              overflowY: "auto",
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
   function renderThreadSidebar(): React.JSX.Element {
-    const menuItems =
-      threads.length === 0
-        ? []
-        : threads.map((thread) => {
-            const { key, displayLabel, hasCustomName, unreadCount } = thread;
-            const isHovered = hoveredThread === key;
-            const showMenu = isHovered || selectedThreadKey === key;
-            return {
-              key,
-              label: (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    width: "100%",
-                  }}
-                  onMouseEnter={() => setHoveredThread(key)}
-                  onMouseLeave={() =>
-                    setHoveredThread((prev) => (prev === key ? null : prev))
-                  }
-                >
-                  <StaticMarkdown
-                    value={displayLabel}
-                    style={THREAD_ITEM_LABEL_STYLE}
-                  />
-                  {unreadCount > 0 && !isHovered && (
-                    <Badge
-                      count={unreadCount}
-                      size="small"
-                      overflowCount={99}
-                      style={{
-                        backgroundColor: COLORS.GRAY_L0,
-                        color: COLORS.GRAY_D,
-                      }}
-                    />
-                  )}
-                  {showMenu && (
-                    <Dropdown
-                      menu={threadMenuProps(key, displayLabel, hasCustomName)}
-                      trigger={["click"]}
-                    >
-                      <Button
-                        type="text"
-                        size="small"
-                        onClick={(event) => event.stopPropagation()}
-                        icon={<Icon name="ellipsis" />}
-                      />
-                    </Dropdown>
-                  )}
-                </div>
-              ),
-            };
-          });
+    const humanThreads = threads.filter((thread) => !thread.isAI);
+    const aiThreads = threads.filter((thread) => thread.isAI);
 
     return (
       <Layout.Sider width={THREAD_SIDEBAR_WIDTH} style={THREAD_SIDEBAR_STYLE}>
@@ -678,15 +767,20 @@ export function ChatRoom({
             No messages yet.
           </div>
         ) : (
-          <Menu
-            mode="inline"
-            selectedKeys={selectedThreadKey ? [selectedThreadKey] : []}
-            onClick={({ key }) => {
-              setAllowAutoSelectThread(true);
-              setSelectedThreadKey(String(key));
-            }}
-            items={menuItems}
-          />
+          <>
+            {renderThreadSection({
+              title: "Humans",
+              icon: "users",
+              threads: humanThreads,
+              maxHeight: "30vh",
+            })}
+            {renderThreadSection({
+              title: "AI",
+              icon: "robot",
+              threads: aiThreads,
+              maxHeight: "30vh",
+            })}
+          </>
         )}
       </Layout.Sider>
     );
