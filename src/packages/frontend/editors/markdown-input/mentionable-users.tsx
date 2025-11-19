@@ -41,6 +41,7 @@ import {
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { Item as CompleteItem } from "./complete";
+import { lite } from "@cocalc/frontend/lite";
 
 // we make the show_llm_main_menu field required, to avoid forgetting to set it ;-)
 type Item = CompleteItem & Required<Pick<CompleteItem, "show_llm_main_menu">>;
@@ -114,8 +115,6 @@ function mentionableUsers({
     .getStore("projects")
     .getIn(["project_map", project_id, "last_active"]);
 
-  if (users == null || last_active == null) return []; // e.g., for an admin
-
   const my_account_id = redux.getStore("account").get("account_id");
 
   function getProjectUsers() {
@@ -123,7 +122,7 @@ function mentionableUsers({
       account_id: string;
       last_active: Date | undefined;
     }[] = [];
-    for (const [account_id] of users) {
+    for (const [account_id] of users ?? []) {
       project_users.push({
         account_id,
         last_active: last_active.get(account_id),
