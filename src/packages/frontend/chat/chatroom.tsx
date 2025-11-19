@@ -22,6 +22,7 @@ import {
   useEditorRedux,
   useEffect,
   useRef,
+  useMemo,
   useState,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
@@ -137,6 +138,12 @@ export function ChatRoom({
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
   const threads = useThreadList(messages);
   const [selectedThreadKey, setSelectedThreadKey] = useState<string>("");
+  const selectedThreadDate = useMemo(() => {
+    if (!selectedThreadKey) return undefined;
+    const millis = parseInt(selectedThreadKey, 10);
+    if (!isFinite(millis)) return undefined;
+    return new Date(millis);
+  }, [selectedThreadKey]);
 
   useEffect(() => {
     if (threads.length === 0) {
@@ -165,7 +172,7 @@ export function ChatRoom({
 
   function on_send_button_click(e): void {
     e.preventDefault();
-    on_send();
+    sendMessage();
   }
 
   function render_preview_message(): React.JSX.Element | undefined {
@@ -314,13 +321,20 @@ export function ChatRoom({
     );
   }
 
-  function on_send(): void {
+  function sendMessage(replyToOverride?: Date | null): void {
+    const reply_to =
+      replyToOverride === undefined
+        ? selectedThreadDate
+        : replyToOverride ?? undefined;
     scrollToBottomRef.current?.(true);
-    actions.sendChat({ submitMentionsRef });
+    actions.sendChat({ submitMentionsRef, reply_to });
     setTimeout(() => {
       scrollToBottomRef.current?.(true);
     }, 100);
     setInput("");
+  }
+  function on_send(): void {
+    sendMessage();
   }
 
   function renderThreadSidebar(): React.JSX.Element {
