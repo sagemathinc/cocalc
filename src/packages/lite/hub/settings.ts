@@ -48,21 +48,52 @@ const ALLOWED_SETTINGS = new Set(
   keys(SITE_SETTINGS_CONF).concat(keys(SITE_SETTINGS_EXTRAS)),
 );
 
-function getSettingsRows(table: string): Record<string, any> {
-  const rows = listRows(table);
-  const out: Record<string, any> = {};
-  for (const row of rows) {
-    const { name, value } = row as { name?: string; value?: any };
-    if (!name || !ALLOWED_SETTINGS.has(name)) continue;
-    out[name] = value;
+function getProcessedSettings(table: string): Record<string, any> {
+  const rows = listRows(table) as { name?: string; value?: any }[];
+  const allRaw: Record<string, any> = {};
+  for (const { name, value } of rows) {
+    if (name) allRaw[name] = value;
   }
+
+  const out: Record<string, any> = {};
+
+  for (const { name, value } of rows) {
+    if (!name || !ALLOWED_SETTINGS.has(name)) continue;
+    const spec = SITE_SETTINGS_CONF[name] ?? SITE_SETTINGS_EXTRAS[name];
+    if (typeof spec?.to_val === "function") {
+      out[name] = spec.to_val(value, allRaw);
+    } else {
+      out[name] = value;
+    }
+  }
+
+  // fill defaults for missing fields
+  for (const config of [SITE_SETTINGS_CONF, SITE_SETTINGS_EXTRAS]) {
+    for (const name in config) {
+      if (!ALLOWED_SETTINGS.has(name)) continue;
+      if (out[name] != null) continue;
+      const spec = (config as any)[name];
+      const fallback =
+        typeof spec?.to_val === "function"
+          ? spec.to_val(spec.default, allRaw)
+          : spec.default;
+      if (
+        (typeof fallback === "string" && fallback === "") ||
+        (Array.isArray(fallback) && fallback.length === 0)
+      ) {
+        continue;
+      }
+      out[name] = fallback;
+    }
+  }
+
   return out;
 }
 
 export async function getCustomizePayload(): Promise<CustomizePayload> {
   const configuration: Record<string, any> = {
     ...DEFAULT_CONFIGURATION,
-    ...getSettingsRows("server_settings"),
+    ...getProcessedSettings("server_settings"),
   };
 
   return {
