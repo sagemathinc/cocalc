@@ -6,6 +6,8 @@ This MCP server gives you direct access to a CoCalc project or account environme
 AVAILABLE TOOLS (actions you can perform):
 - exec: Run shell commands, scripts, and programs in the project
   Use for: running code, data processing, build/test commands, git operations, etc.
+- jupyter_execute: Execute code using Jupyter kernels (Python, R, Julia, etc.)
+  Use for: interactive code execution, data analysis, visualization, scientific computing
 
 AVAILABLE RESOURCES (information you can read):
 - project-files: Browse the project file structure
@@ -33,11 +35,38 @@ The server will validate your API key on startup and report whether it's account
 
 import os
 import sys
+import time
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
 from cocalc_api import Project, Hub
+
+
+def _retry_with_backoff(func, max_retries: int = 3, retry_delay: int = 2):
+    """
+    Retry a function with exponential backoff for transient failures.
+
+    Used during server initialization for operations that may timeout on cold starts.
+    """
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except Exception as e:
+            error_msg = str(e).lower()
+            is_retryable = any(
+                keyword in error_msg
+                for keyword in ["timeout", "closed", "connection", "reset", "broken"]
+            )
+            if is_retryable and attempt < max_retries - 1:
+                print(
+                    f"Initialization attempt {attempt + 1} failed ({error_msg[:50]}...), "
+                    f"retrying in {retry_delay}s...",
+                    file=sys.stderr,
+                )
+                time.sleep(retry_delay)
+            else:
+                raise
 
 
 def get_config() -> tuple[str, str, Optional[str]]:
@@ -106,6 +135,7 @@ mcp = FastMCP(
 This server gives you direct access to a CoCalc project or account environment through the Model Context Protocol (MCP).
 
 WHAT YOU CAN DO:
+- Execute code using Jupyter kernels (Python, R, Julia, etc.) with rich output and visualization support
 - Execute arbitrary shell commands in a Linux environment with Python, Node.js, R, Julia, and 100+ tools
 - Browse and explore project files to understand structure and contents
 - Run code, scripts, and build/test commands
@@ -114,11 +144,14 @@ WHAT YOU CAN DO:
 
 HOW TO USE:
 1. Start by exploring the project structure using the project-files resource
-2. Use the exec tool to run commands, scripts, or programs
-3. Combine multiple commands to accomplish complex workflows
+2. Use jupyter_execute for interactive code execution with rich output (plots, tables, etc.)
+3. Use exec tool to run shell commands, scripts, or programs
+4. Combine multiple commands to accomplish complex workflows
 
 EXAMPLES:
-- Execute Python: exec with command="python3 script.py --verbose"
+- Execute Python interactively: jupyter_execute with input="import pandas as pd; df = pd.read_csv('data.csv'); df.describe()"
+- Data visualization: jupyter_execute with input="import matplotlib.pyplot as plt; plt.plot([1,2,3]); plt.show()"
+- Execute shell command: exec with command="python3 script.py --verbose"
 - List files: use project-files resource or exec with command="ls -la"
 - Run tests: exec with command="pytest tests/" bash=true
 - Git operations: exec with command="git log --oneline" in your repository
@@ -157,22 +190,12 @@ def _initialize_config() -> None:
         try:
             _api_key_scope = check_api_key_scope(_api_key, _host)
         except RuntimeError as check_error:
-            # If it's a project-scoped key error, try the project API to discover the project_id
+            # If it's a project-scoped key error, use a placeholder project_id
+            # Project-scoped keys have the project_id embedded in the key itself
             if "project-scoped" in str(check_error):
-                try:
-                    # Try with empty project_id - project-scoped keys will use their own
-                    project = Project(api_key=_api_key, project_id="", host=_host)
-                    result = project.system.ping()
-                    # Check if the response includes project_id (it shouldn't from ping, but try anyway)
-                    if isinstance(result, dict) and "project_id" in result:
-                        _api_key_scope = {"project_id": result["project_id"]}
-                    else:
-                        # If we still don't have it, this is an error
-                        raise RuntimeError("Could not determine project_id from project-scoped API key. "
-                                           "Please restart with COCALC_PROJECT_ID environment variable.")
-                except Exception as project_error:
-                    raise RuntimeError(f"Project-scoped API key detected but could not determine project_id. "
-                                       f"Error: {project_error}") from project_error
+                # Use empty string as project_id - the Project client will extract it from the API key
+                _api_key_scope = {"project_id": ""}
+                print("✓ Connected with project-scoped API key", file=sys.stderr)
             else:
                 raise
 
@@ -181,12 +204,15 @@ def _initialize_config() -> None:
             print(f"✓ Connected with account-scoped API key (account: {account_id})", file=sys.stderr)
         elif "project_id" in _api_key_scope:
             project_id = _api_key_scope["project_id"]
-            if not project_id:
-                raise RuntimeError("Project ID not found for project-scoped API key")
-            print(f"✓ Connected with project-scoped API key (project: {project_id})", file=sys.stderr)
-            # For project-scoped keys, eagerly create the project client
-            client = Project(api_key=_api_key, project_id=project_id, host=_host)
-            _project_clients[project_id] = client
+            # For project-scoped keys with empty/None project_id, the Project client will extract it from the API key
+            if project_id:
+                print(f"✓ Connected with project-scoped API key (project: {project_id})", file=sys.stderr)
+                # For project-scoped keys, eagerly create the project client
+                client = Project(api_key=_api_key, project_id=project_id, host=_host)
+                _project_clients[project_id] = client
+            else:
+                # Project-scoped key with empty project_id - will be discovered on first use
+                print("✓ Connected with project-scoped API key (project ID will be discovered on first use)", file=sys.stderr)
         else:
             # If we got here with no project_id but it might be project-scoped, check if COCALC_PROJECT_ID was provided
             if project_id_config:
@@ -232,19 +258,24 @@ def get_project_client(project_id: Optional[str] = None) -> Project:
             raise RuntimeError("Account-scoped API key requires an explicit project_id argument. "
                                "No project_id provided to get_project_client().")
 
-    if not project_id:
-        raise RuntimeError("Project ID cannot be empty")
+    # For project-scoped keys with None/empty project_id, the Project client will extract it from the API key
+    # For account-scoped keys, project_id must be non-empty
+    if not project_id and _api_key_scope and "account_id" in _api_key_scope:
+        raise RuntimeError("Account-scoped API key requires a non-empty project_id")
+
+    # Use a cache key that handles None/empty project_id for project-scoped keys
+    cache_key = project_id if project_id else "_default_project"
 
     # Return cached client if available
-    if project_id in _project_clients:
-        return _project_clients[project_id]
+    if cache_key in _project_clients:
+        return _project_clients[cache_key]
 
     # Create new project client
     # At this point, _api_key and _host are guaranteed to be non-None (set in _initialize_config)
     assert _api_key is not None
     assert _host is not None
     client = Project(api_key=_api_key, project_id=project_id, host=_host)
-    _project_clients[project_id] = client
+    _project_clients[cache_key] = client
     return client
 
 

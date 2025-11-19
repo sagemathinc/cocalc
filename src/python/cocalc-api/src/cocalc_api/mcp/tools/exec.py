@@ -26,16 +26,27 @@ def register_exec_tool(mcp) -> None:
         Execute shell commands in a CoCalc project environment.
 
         A CoCalc project is a containerized Linux environment (Ubuntu-based) where you can run
-        arbitrary command-line tools and scripts. This tool allows you to execute any shell
-        command available in that environment, including:
-        - Programming language interpreters (Python, Node.js, R, Julia, etc.)
-        - System utilities (grep, awk, sed, find, etc.)
+        arbitrary command-line tools and scripts. This tool is best for system operations,
+        installing packages, and running compiled programs. For executing Python, R, or Julia code
+        with rich output (plots, dataframes, etc.), use the jupyter_execute tool instead.
+
+        This tool allows you to execute any shell command available in that environment, including:
+        - System utilities (grep, awk, sed, find, ls, etc.)
         - Development tools (git, npm, pip, cargo, etc.)
         - Data processing tools (bc, jq, imagemagick, etc.)
         - Custom scripts and compiled programs
+        - Package management and environment setup
 
         The command executes in the project's Linux shell environment with access to the
         project's file system and all installed packages/tools.
+
+        Common use cases:
+        - List available Jupyter kernels: exec(command="jupyter kernelspec list")
+        - Install packages: exec(command="pip", args=["install", "pandas"])
+        - Setup Jupyter kernel: exec(command="python3", args=["-m", "ipykernel", "install", "--user", "--name=python3", "--display-name=Python 3"])
+        - Git operations: exec(command="git", args=["status"])
+        - File operations: exec(command="find", args=[".", "-name", "*.py"])
+        - Execute complex pipelines: exec(command="cat data.txt | grep pattern | wc -l", bash=True)
 
         Args:
             command: The command to execute (e.g., 'ls -la', 'python script.py', 'echo 2 + 3 | bc')

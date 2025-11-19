@@ -10,7 +10,7 @@ import pytest
 from cocalc_api import Hub, Project
 
 from psycopg2 import pool as pg_pool
-from typing import Callable, TypeVar, Any
+from typing import Callable, TypeVar
 
 # Database configuration examples (DRY principle)
 PGHOST_SOCKET_EXAMPLE = "/path/to/cocalc-data/socket"
@@ -57,6 +57,9 @@ def retry_with_backoff(
                 time.sleep(retry_delay)
             else:
                 raise
+
+    # This should never be reached due to the loop, but mypy needs this
+    raise RuntimeError("Retry loop exhausted without returning")
 
 
 def assert_valid_uuid(value, description="value"):

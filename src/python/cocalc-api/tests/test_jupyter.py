@@ -2,8 +2,6 @@
 Tests for Jupyter kernel functionality.
 """
 
-import pytest
-
 # Import helper from conftest
 from tests.conftest import retry_with_backoff
 
@@ -238,7 +236,9 @@ class TestJupyterKernelManagement:
     def test_stop_jupyter_kernel(self, project_client):
         """Test stopping a specific Jupyter kernel."""
         # Execute code to start a kernel
-        project_client.system.jupyter_execute(input="1+1", kernel="python3")
+        retry_with_backoff(
+            lambda: project_client.system.jupyter_execute(input="1+1", kernel="python3")
+        )
 
         # List kernels
         kernels = project_client.system.list_jupyter_kernels()

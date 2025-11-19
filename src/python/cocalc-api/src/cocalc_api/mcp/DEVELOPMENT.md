@@ -123,6 +123,7 @@ The MCP server exposes high-level metadata that clients can query to understand 
 **Protocol Version** - MCP 2025-06-18
 
 Clients can retrieve this metadata using the MCP `initialize` call, which returns:
+
 - `serverInfo.name` - "cocalc-api"
 - `serverInfo.version` - Version from package metadata
 - `instructions` - High-level guide (see above)
@@ -192,6 +193,41 @@ Execute arbitrary shell commands in the CoCalc project.
 {"command": "echo 'Hello'"}
 {"command": "python", "args": ["script.py", "--verbose"]}
 {"command": "for i in {1..3}; do echo $i; done", "bash": true}
+{"command": "jupyter kernelspec list"}
+{"command": "python3", "args": ["-m", "pip", "install", "--user", "ipykernel"]}
+```
+
+#### `jupyter_execute` - Execute Code in Jupyter Kernels
+
+Execute code using Jupyter kernels with rich output, preserved state, and support for multiple languages.
+
+**Parameters:**
+
+- `input` (string, required): Code to execute
+- `kernel` (string, optional): Kernel name (default: "python3")
+  - Common kernels: `python3`, `ir` (R), `julia-1.9`
+  - Use `exec` tool with `jupyter kernelspec list` to discover available kernels
+- `history` (list, optional): Previous code inputs to establish context
+  - Executed without capturing output, allows setting up variables and imports
+
+**Returns:** Formatted execution output (text, plots, dataframes, images, errors, etc.)
+
+**Examples:**
+
+```json
+{"input": "2 + 2", "kernel": "python3"}
+{"input": "import pandas as pd\ndf = pd.DataFrame({'a': [1,2,3]})\ndf", "kernel": "python3"}
+{"input": "import matplotlib.pyplot as plt\nplt.plot([1,2,3])\nplt.show()", "kernel": "python3"}
+{"input": "summary(cars)", "kernel": "ir"}
+```
+
+**Setup Instructions:**
+
+Before using Jupyter kernels, set them up with the `exec` tool:
+
+```json
+{"command": "python3", "args": ["-m", "pip", "install", "--user", "ipykernel"], "timeout": 300}
+{"command": "python3", "args": ["-m", "ipykernel", "install", "--user", "--name=python3", "--display-name=Python 3"], "timeout": 120}
 ```
 
 ### Resources

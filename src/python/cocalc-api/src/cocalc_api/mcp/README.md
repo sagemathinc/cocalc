@@ -55,6 +55,7 @@ claude mcp add-json cocalc '{
 ```
 
 **Important:**
+
 - Replace `/path/to/cocalc/src/python/cocalc-api` with the absolute path to your cocalc-api directory.
 - Replace `http://localhost:5000` with your CoCalc instance URL (defaults to `https://cocalc.com` if not set).
 
@@ -67,7 +68,12 @@ Add to `~/.config/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "cocalc": {
       "command": "uv",
-      "args": ["--directory", "/path/to/cocalc/src/python/cocalc-api", "run", "cocalc-mcp-server"],
+      "args": [
+        "--directory",
+        "/path/to/cocalc/src/python/cocalc-api",
+        "run",
+        "cocalc-mcp-server"
+      ],
       "env": {
         "COCALC_API_KEY": "sk-your-api-key-here",
         "COCALC_PROJECT_ID": "[UUID]",
@@ -79,6 +85,7 @@ Add to `~/.config/Claude/claude_desktop_config.json`:
 ```
 
 **Important:**
+
 - Replace `/path/to/cocalc/src/python/cocalc-api` with the absolute path to your cocalc-api directory.
 - Replace `http://localhost:5000` with your CoCalc instance URL (defaults to `https://cocalc.com` if not set).
 
@@ -88,13 +95,12 @@ To automatically allow all CoCalc MCP tools without prompts, add this to `.claud
 
 ```json
 {
-  "allowedTools": [
-    "mcp__cocalc__*"
-  ]
+  "allowedTools": ["mcp__cocalc__*"]
 }
 ```
 
 This wildcard pattern (`mcp__cocalc__*`) automatically allows:
+
 - `mcp__cocalc__exec` - Execute shell commands
 - `mcp__cocalc__project_files` - Browse project files
 - Any future tools added to the MCP server
@@ -104,10 +110,18 @@ This wildcard pattern (`mcp__cocalc__*`) automatically allows:
 ### Tools
 
 - **`exec`** - Execute shell commands in the project
+
   ```
   Tool: exec
   Params: command (required), args, bash, timeout, cwd
   Returns: {stdout, stderr, exit_code}
+  ```
+
+- **`jupyter_execute`** - Execute code using Jupyter kernels
+  ```
+  Tool: jupyter_execute
+  Params: input (required), kernel (default: "python3"), history
+  Returns: Formatted execution output (text, plots, errors, etc.)
   ```
 
 ### Resources
@@ -121,6 +135,7 @@ This wildcard pattern (`mcp__cocalc__*`) automatically allows:
 ## Documentation
 
 See [DEVELOPMENT.md](./DEVELOPMENT.md) for:
+
 - Architecture and design principles
 - Detailed API specifications
 - Configuration options

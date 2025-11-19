@@ -3,6 +3,7 @@
 import { projectSubject } from "@cocalc/conat/names";
 import { conat } from "@cocalc/backend/conat";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
+import { getProject } from "@cocalc/server/projects/control";
 const DEFAULT_TIMEOUT = 15000;
 
 let client: ConatClient | null = null;
@@ -51,6 +52,12 @@ async function callProject({
     service: "api",
   });
   try {
+    // Ensure the project is running before making the API call
+    const project = getProject(project_id);
+    if (project) {
+      await project.start();
+    }
+
     // For system.test(), inject project_id into args[0] if not already present
     let finalArgs = args;
     if (name === "system.test" && (!args || args.length === 0)) {
