@@ -7,6 +7,8 @@ import { React } from "@cocalc/frontend/app-framework";
 import type { ChatMessageTyped, ChatMessages } from "./types";
 import { newest_content } from "./utils";
 
+export const ALL_THREADS_KEY = "__ALL_THREADS__";
+
 export interface ThreadListItem {
   key: string;
   label: string;

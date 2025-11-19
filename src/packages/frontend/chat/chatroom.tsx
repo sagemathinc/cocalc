@@ -36,7 +36,7 @@ import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import type { ChatState } from "./store";
 import type { ChatMessages, SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
-import { useThreadList } from "./threads";
+import { ALL_THREADS_KEY, useThreadList } from "./threads";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -112,6 +112,7 @@ const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+  marginTop: "10px",
 } as const;
 
 const THREAD_ITEM_COUNT_STYLE: React.CSSProperties = {
@@ -140,20 +141,26 @@ export function ChatRoom({
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
   const threads = useThreadList(messages);
-  const [selectedThreadKey, setSelectedThreadKey] = useState<string>("");
+  const [selectedThreadKey, setSelectedThreadKey] = useState<string | null>(
+    null,
+  );
   const [allowAutoSelectThread, setAllowAutoSelectThread] =
     useState<boolean>(true);
   const selectedThreadDate = useMemo(() => {
-    if (!selectedThreadKey) return undefined;
+    if (!selectedThreadKey || selectedThreadKey === ALL_THREADS_KEY) {
+      return undefined;
+    }
     const millis = parseInt(selectedThreadKey, 10);
     if (!isFinite(millis)) return undefined;
     return new Date(millis);
   }, [selectedThreadKey]);
 
+  const showThreadFilters = selectedThreadKey === ALL_THREADS_KEY;
+
   useEffect(() => {
     if (threads.length === 0) {
-      if (selectedThreadKey !== "") {
-        setSelectedThreadKey("");
+      if (selectedThreadKey !== null) {
+        setSelectedThreadKey(null);
       }
       setAllowAutoSelectThread(true);
       return;
@@ -309,6 +316,9 @@ export function ChatRoom({
   }
 
   function render_button_row() {
+    if (!showThreadFilters) {
+      return null;
+    }
     if (messages == null || messages.size <= 5) {
       return null;
     }
@@ -376,7 +386,7 @@ export function ChatRoom({
             type={!selectedThreadKey ? "primary" : "default"}
             onClick={() => {
               setAllowAutoSelectThread(false);
-              setSelectedThreadKey("");
+              setSelectedThreadKey(null);
             }}
           >
             New Chat
@@ -447,7 +457,7 @@ export function ChatRoom({
                     type="primary"
                     onClick={() => {
                       setAllowAutoSelectThread(false);
-                      setSelectedThreadKey("");
+                      setSelectedThreadKey(null);
                     }}
                   >
                     new conversation
