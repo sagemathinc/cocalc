@@ -5,6 +5,7 @@
 
 import type { MenuProps } from "antd";
 import {
+  Badge,
   Button,
   Divider,
   Dropdown,
@@ -29,6 +30,7 @@ import {
   useRef,
   useMemo,
   useState,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
@@ -47,6 +49,14 @@ import {
   getThreadRootDate,
 } from "./utils";
 import { ALL_THREADS_KEY, useThreadList } from "./threads";
+import type { ThreadListItem } from "./threads";
+
+type ThreadMeta = ThreadListItem & {
+  displayLabel: string;
+  hasCustomName: boolean;
+  readCount: number;
+  unreadCount: number;
+};
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -114,11 +124,6 @@ const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {
   pointerEvents: "none",
 } as const;
 
-const THREAD_ITEM_COUNT_STYLE: React.CSSProperties = {
-  fontSize: "11px",
-  color: "#999",
-} as const;
-
 export function ChatRoom({
   actions,
   project_id,
@@ -127,6 +132,7 @@ export function ChatRoom({
   desc,
 }: EditorComponentProps) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
+  const account_id = useTypedRedux("account", "account_id");
   const [input, setInput] = useState("");
   const search = desc?.get("data-search") ?? "";
   const filterRecentH: number = desc?.get("data-filterRecentH") ?? 0;
@@ -139,7 +145,37 @@ export function ChatRoom({
   const messages = useEditor("messages") as ChatMessages | undefined;
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
-  const threads = useThreadList(messages);
+  const rawThreads = useThreadList(messages);
+  const threads = useMemo<ThreadMeta[]>(() => {
+    return rawThreads.map((thread) => {
+      const rootMessage = thread.rootMessage;
+      const storedName = (
+        rootMessage?.get("name") as string | undefined
+      )?.trim();
+      const hasCustomName = !!storedName;
+      const displayLabel = storedName || thread.label;
+      const readField =
+        account_id && rootMessage
+          ? rootMessage.get(`read-${account_id}`)
+          : null;
+      const readValue =
+        typeof readField === "number"
+          ? readField
+          : typeof readField === "string"
+            ? parseInt(readField, 10)
+            : 0;
+      const readCount =
+        Number.isFinite(readValue) && readValue > 0 ? readValue : 0;
+      const unreadCount = Math.max(thread.messageCount - readCount, 0);
+      return {
+        ...thread,
+        displayLabel,
+        hasCustomName,
+        readCount,
+        unreadCount,
+      };
+    });
+  }, [rawThreads, account_id]);
   const [selectedThreadKey, setSelectedThreadKey0] = useState<string | null>(
     desc?.get("data-selectedThreadKey") ?? null,
   );
@@ -189,6 +225,20 @@ export function ChatRoom({
       setLastThreadKey(selectedThreadKey);
     }
   }, [selectedThreadKey]);
+
+  useEffect(() => {
+    if (!singleThreadView || !selectedThreadKey) {
+      return;
+    }
+    const thread = threads.find((t) => t.key === selectedThreadKey);
+    if (!thread) {
+      return;
+    }
+    if (thread.unreadCount <= 0) {
+      return;
+    }
+    actions.markThreadRead?.(thread.key, thread.messageCount);
+  }, [singleThreadView, selectedThreadKey, threads, actions]);
 
   useEffect(() => {
     if (!fragmentId || isAllThreadsSelected || messages == null) {
@@ -522,12 +572,7 @@ export function ChatRoom({
       threads.length === 0
         ? []
         : threads.map((thread) => {
-            const { key, label, messageCount, rootMessage } = thread;
-            const customName = rootMessage?.get("name") as string | undefined;
-            const trimmedName =
-              typeof customName === "string" ? customName.trim() : "";
-            const hasCustomName = trimmedName.length > 0;
-            const displayLabel = hasCustomName ? trimmedName : label;
+            const { key, displayLabel, hasCustomName, unreadCount } = thread;
             const isHovered = hoveredThread === key;
             const showMenu = isHovered || selectedThreadKey === key;
             return {
@@ -549,7 +594,17 @@ export function ChatRoom({
                     value={displayLabel}
                     style={THREAD_ITEM_LABEL_STYLE}
                   />
-                  <span style={THREAD_ITEM_COUNT_STYLE}>{messageCount}</span>
+                  {unreadCount > 0 && !isHovered && (
+                    <Badge
+                      count={unreadCount}
+                      size="small"
+                      overflowCount={99}
+                      style={{
+                        backgroundColor: COLORS.GRAY_L0,
+                        color: COLORS.GRAY_D,
+                      }}
+                    />
+                  )}
                   {showMenu && (
                     <Dropdown
                       menu={threadMenuProps(key, displayLabel, hasCustomName)}

@@ -530,15 +530,55 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   renameThread = (threadKey: string, name: string): boolean => {
-    if (this.syncdb == null || this.store == null) {
+    if (this.syncdb == null) {
       return false;
+    }
+    const entry = this.getThreadRootDoc(threadKey);
+    if (entry == null) {
+      return false;
+    }
+    const trimmed = name.trim();
+    if (trimmed) {
+      entry.doc.name = trimmed;
+    } else {
+      delete entry.doc.name;
+    }
+    this.syncdb.set(entry.doc);
+    this.syncdb.commit();
+    return true;
+  };
+
+  markThreadRead = (threadKey: string, count: number): boolean => {
+    if (this.syncdb == null) {
+      return false;
+    }
+    const account_id = this.redux.getStore("account").get_account_id();
+    if (!account_id || !Number.isFinite(count)) {
+      return false;
+    }
+    const entry = this.getThreadRootDoc(threadKey);
+    if (entry == null) {
+      return false;
+    }
+    entry.doc[`read-${account_id}`] = count;
+    this.syncdb.set(entry.doc);
+    this.syncdb.commit();
+    return true;
+  };
+
+  private getThreadRootDoc = (
+    threadKey: string,
+  ): { doc: any; message: ChatMessageTyped } | null => {
+    if (this.store == null) {
+      return null;
     }
     const messages = this.store.get("messages");
     if (messages == null) {
-      return false;
+      return null;
     }
     const normalizedKey = toMsString(threadKey);
-    const candidates = [normalizedKey, threadKey, `${parseInt(threadKey, 10)}`];
+    const fallbackKey = `${parseInt(threadKey, 10)}`;
+    const candidates = [normalizedKey, threadKey, fallbackKey];
     let message: ChatMessageTyped | undefined;
     for (const key of candidates) {
       if (!key) continue;
@@ -546,7 +586,7 @@ export class ChatActions extends Actions<ChatState> {
       if (message != null) break;
     }
     if (message == null) {
-      return false;
+      return null;
     }
     const dateField = message.get("date");
     const dateIso =
@@ -555,16 +595,11 @@ export class ChatActions extends Actions<ChatState> {
         : typeof dateField === "string"
           ? dateField
           : new Date(dateField).toISOString();
-    const doc = message.toJS() as any;
-    if (name.trim()) {
-      doc.name = name.trim();
-    } else {
-      delete doc.name;
+    if (!dateIso) {
+      return null;
     }
-    doc.date = dateIso;
-    this.syncdb.set(doc);
-    this.syncdb.commit();
-    return true;
+    const doc = { ...message.toJS(), date: dateIso };
+    return { doc, message };
   };
 
   save_scroll_state = (position, height, offset): void => {
