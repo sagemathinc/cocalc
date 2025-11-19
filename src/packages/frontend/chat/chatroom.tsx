@@ -141,14 +141,15 @@ export function ChatRoom({
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
   const threads = useThreadList(messages);
   const [selectedThreadKey, setSelectedThreadKey0] = useState<string | null>(
-    null,
+    desc?.get("data-selectedThreadKey") ?? null,
   );
-  const setSelectedThreadKey = (x) => {
+  const setSelectedThreadKey = (x: string | null) => {
     if (x != null && x != ALL_THREADS_KEY) {
       actions.clearAllFilters();
       actions.setFragment();
     }
     setSelectedThreadKey0(x);
+    actions.setSelectedThread?.(x);
   };
   const [lastThreadKey, setLastThreadKey] = useState<string | null>(null);
   const [renamingThread, setRenamingThread] = useState<string | null>(null);
