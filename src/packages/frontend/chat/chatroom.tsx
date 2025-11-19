@@ -374,6 +374,7 @@ export function ChatRoom({
                 search={search}
                 filterRecentH={filterRecentH}
                 selectedHashtags={selectedHashtags}
+                selectedThread={selectedThreadKey || undefined}
                 scrollToIndex={scrollToIndex}
                 scrollToDate={scrollToDate}
                 selectedDate={fragmentId}

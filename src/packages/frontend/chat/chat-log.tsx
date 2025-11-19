@@ -56,6 +56,7 @@ interface Props {
   filterRecentH?;
   selectedHashtags;
   disableFilters?: boolean;
+  selectedThread?: string;
   scrollToIndex?: null | number | undefined;
   // scrollToDate = string ms from epoch
   scrollToDate?: null | undefined | string;
@@ -75,12 +76,31 @@ export function ChatLog({
   filterRecentH,
   selectedHashtags: selectedHashtags0,
   disableFilters,
+  selectedThread,
   scrollToIndex,
   scrollToDate,
   selectedDate,
   costEstimate,
 }: Props) {
-  const messages = useRedux(["messages"], project_id, path) as ChatMessages;
+  const storeMessages = useRedux(
+    ["messages"],
+    project_id,
+    path,
+  ) as ChatMessages;
+  const messages = useMemo(() => {
+    if (!selectedThread || storeMessages == null) {
+      return storeMessages;
+    }
+    return storeMessages.filter((message) => {
+      if (message == null) return false;
+      const replyTo = message.get("reply_to");
+      if (replyTo != null) {
+        return `${new Date(replyTo).valueOf()}` === selectedThread;
+      }
+      const dateValue = message.get("date")?.valueOf();
+      return dateValue != null ? `${dateValue}` === selectedThread : false;
+    }) as ChatMessages;
+  }, [storeMessages, selectedThread]);
   // see similar code in task list:
   const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
     return getSelectedHashtagsSearch(selectedHashtags0);
