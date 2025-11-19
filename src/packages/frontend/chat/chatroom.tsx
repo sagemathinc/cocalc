@@ -3,16 +3,20 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { MenuProps } from "antd";
 import {
   Button,
   Divider,
+  Dropdown,
   Input,
   Layout,
   Menu,
+  Modal,
   Select,
   Space,
   Switch,
   Tooltip,
+  message as antdMessage,
 } from "antd";
 import { debounce } from "lodash";
 import { FormattedMessage } from "react-intl";
@@ -29,13 +33,14 @@ import {
 import { Icon, Loading } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { EditorComponentProps } from "../frame-editors/frame-tree/types";
 import { ChatLog } from "./chat-log";
 import Filter from "./filter";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import type { ChatState } from "./store";
-import type { ChatMessages, SubmitMentionsFn } from "./types";
+import type { ChatMessageTyped, ChatMessages, SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import { ALL_THREADS_KEY, useThreadList } from "./threads";
 
@@ -154,6 +159,9 @@ export function ChatRoom({
     setSelectedThreadKey0(x);
   };
   const [lastThreadKey, setLastThreadKey] = useState<string | null>(null);
+  const [threadTitles, setThreadTitles] = useState<Record<string, string>>({});
+  const [renamingThread, setRenamingThread] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState<string>("");
   const [allowAutoSelectThread, setAllowAutoSelectThread] =
     useState<boolean>(true);
   const selectedThreadDate = useMemo(() => {
@@ -204,6 +212,109 @@ export function ChatRoom({
       }
     }
   };
+
+  const getThreadKeyForMessage = (
+    dateKey: string | number,
+    message: ChatMessageTyped,
+  ): string => {
+    const replyTo = message.get("reply_to");
+    if (replyTo != null) {
+      return `${new Date(replyTo).valueOf()}`;
+    }
+    return typeof dateKey === "string" ? dateKey : `${dateKey}`;
+  };
+
+  const performDeleteThread = (threadKey: string) => {
+    if (messages == null || actions == null) {
+      return;
+    }
+    const toDelete: ChatMessageTyped[] = [];
+    for (const [time, message] of messages) {
+      if (message == null) continue;
+      const rootKey = getThreadKeyForMessage(time, message);
+      if (rootKey === threadKey) {
+        toDelete.push(message);
+      }
+    }
+    if (toDelete.length === 0) {
+      antdMessage.info("This chat has no messages to delete.");
+      return;
+    }
+    for (const message of toDelete) {
+      actions.sendEdit(message, "");
+    }
+    setThreadTitles((prev) => {
+      const next = { ...prev };
+      delete next[threadKey];
+      return next;
+    });
+    if (selectedThreadKey === threadKey) {
+      setSelectedThreadKey(null);
+    }
+    antdMessage.success("Chat deleted.");
+  };
+
+  const confirmDeleteThread = (threadKey: string) => {
+    Modal.confirm({
+      title: "Delete chat?",
+      content:
+        "This removes all messages in this chat for everyone. This can only be undone using 'Edit --> Undo'",
+      okText: "Delete",
+      okType: "danger",
+      cancelText: "Cancel",
+      onOk: () => performDeleteThread(threadKey),
+    });
+  };
+
+  const openRenameModal = (threadKey: string, currentLabel: string) => {
+    setRenamingThread(threadKey);
+    setRenameValue(currentLabel);
+  };
+
+  const closeRenameModal = () => {
+    setRenamingThread(null);
+    setRenameValue("");
+  };
+
+  const handleRenameSave = () => {
+    if (!renamingThread) return;
+    const trimmed = renameValue.trim();
+    if (!trimmed) {
+      antdMessage.error("Chat name cannot be empty.");
+      return;
+    }
+    setThreadTitles((prev) => ({
+      ...prev,
+      [renamingThread]: trimmed,
+    }));
+    closeRenameModal();
+  };
+
+  const threadMenuProps = (
+    threadKey: string,
+    displayLabel: string,
+  ): MenuProps => ({
+    items: [
+      {
+        key: "rename",
+        label: "Rename chat",
+      },
+      {
+        type: "divider",
+      },
+      {
+        key: "delete",
+        label: <span style={{ color: COLORS.ANTD_RED }}>Delete chat</span>,
+      },
+    ],
+    onClick: ({ key }) => {
+      if (key === "rename") {
+        openRenameModal(threadKey, displayLabel);
+      } else if (key === "delete") {
+        confirmDeleteThread(threadKey);
+      }
+    },
+  });
 
   const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
   const scrollToBottomRef = useRef<any>(null);
@@ -401,15 +512,32 @@ export function ChatRoom({
     const menuItems =
       threads.length === 0
         ? []
-        : threads.map(({ key, label, messageCount }) => ({
-            key,
-            label: (
-              <div style={THREAD_ITEM_STYLE}>
-                <StaticMarkdown value={label} style={THREAD_ITEM_LABEL_STYLE} />
-                <span style={THREAD_ITEM_COUNT_STYLE}>{messageCount}</span>
-              </div>
-            ),
-          }));
+        : threads.map(({ key, label, messageCount }) => {
+            const displayLabel = threadTitles[key] ?? label;
+            return {
+              key,
+              label: (
+                <div style={THREAD_ITEM_STYLE}>
+                  <StaticMarkdown
+                    value={displayLabel}
+                    style={THREAD_ITEM_LABEL_STYLE}
+                  />
+                  <span style={THREAD_ITEM_COUNT_STYLE}>{messageCount}</span>
+                  <Dropdown
+                    menu={threadMenuProps(key, displayLabel)}
+                    trigger={["click"]}
+                  >
+                    <Button
+                      type="text"
+                      size="small"
+                      onClick={(event) => event.stopPropagation()}
+                      icon={<Icon name="ellipsis" />}
+                    />
+                  </Dropdown>
+                </div>
+              ),
+            };
+          });
 
     return (
       <Layout.Sider width={THREAD_SIDEBAR_WIDTH} style={THREAD_SIDEBAR_STYLE}>
@@ -620,6 +748,23 @@ export function ChatRoom({
       className="smc-vfill"
     >
       {render_body()}
+      <Modal
+        title="Rename chat"
+        open={renamingThread != null}
+        onCancel={closeRenameModal}
+        onOk={handleRenameSave}
+        okText="Save"
+        destroyOnClose
+      >
+        <Input
+          placeholder="Chat name"
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onPressEnter={handleRenameSave}
+          allowClear
+          autoFocus
+        />
+      </Modal>
     </div>
   );
 }
