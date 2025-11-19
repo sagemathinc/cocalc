@@ -153,10 +153,10 @@ export function RegenerateLLM({
     entries.unshift({ key: "divider", type: "divider" });
     const display =
       isOllamaLLM(model) && ollama?.get(model) != null
-        ? ollama?.getIn([model, "display"]) ?? model
+        ? (ollama?.getIn([model, "display"]) ?? model)
         : isCustomOpenAI(model) && custom_openai?.get(model) != null
-        ? custom_openai?.getIn([model, "display"]) ?? model
-        : modelToName(model);
+          ? (custom_openai?.getIn([model, "display"]) ?? model)
+          : modelToName(model);
     entries.unshift({
       key: "same",
       label: (
