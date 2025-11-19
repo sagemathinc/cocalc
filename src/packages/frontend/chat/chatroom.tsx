@@ -452,10 +452,7 @@ export function ChatPanel({
           }
         >
           <Icon name={isAI ? "robot" : "users"} style={{ color: "#888" }} />
-          <StaticMarkdown
-            value={displayLabel}
-            style={THREAD_ITEM_LABEL_STYLE}
-          />
+          <div style={THREAD_ITEM_LABEL_STYLE}>{displayLabel}</div>
           {unreadCount > 0 && (
             <Badge
               count={unreadCount}
