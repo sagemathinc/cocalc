@@ -152,7 +152,6 @@ export function ChatRoom({
     setSelectedThreadKey0(x);
   };
   const [lastThreadKey, setLastThreadKey] = useState<string | null>(null);
-  const [threadTitles, setThreadTitles] = useState<Record<string, string>>({});
   const [renamingThread, setRenamingThread] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState<string>("");
   const [hoveredThread, setHoveredThread] = useState<string | null>(null);
@@ -217,11 +216,6 @@ export function ChatRoom({
       antdMessage.info("This chat has no messages to delete.");
       return;
     }
-    setThreadTitles((prev) => {
-      const next = { ...prev };
-      delete next[threadKey];
-      return next;
-    });
     if (selectedThreadKey === threadKey) {
       setSelectedThreadKey(null);
     }
@@ -232,7 +226,7 @@ export function ChatRoom({
     Modal.confirm({
       title: "Delete chat?",
       content:
-        "This removes all messages in this chat for everyone. This can only be undone using 'Edit --> Undo'",
+        "This removes all messages in this chat for everyone. This can only be undone using 'Edit --> Undo', or by browsing TimeTravel.",
       okText: "Delete",
       okType: "danger",
       cancelText: "Cancel",
@@ -240,9 +234,13 @@ export function ChatRoom({
     });
   };
 
-  const openRenameModal = (threadKey: string, currentLabel: string) => {
+  const openRenameModal = (
+    threadKey: string,
+    currentLabel: string,
+    useCurrentLabel: boolean,
+  ) => {
     setRenamingThread(threadKey);
-    setRenameValue(currentLabel);
+    setRenameValue(useCurrentLabel ? currentLabel : "");
   };
 
   const closeRenameModal = () => {
@@ -252,21 +250,26 @@ export function ChatRoom({
 
   const handleRenameSave = () => {
     if (!renamingThread) return;
-    const trimmed = renameValue.trim();
-    if (!trimmed) {
-      antdMessage.error("Chat name cannot be empty.");
+    if (actions?.renameThread == null) {
+      antdMessage.error("Renaming chats is not available.");
       return;
     }
-    setThreadTitles((prev) => ({
-      ...prev,
-      [renamingThread]: trimmed,
-    }));
+    const trimmed = renameValue.trim();
+    const success = actions.renameThread(renamingThread, trimmed);
+    if (!success) {
+      antdMessage.error("Unable to rename chat.");
+      return;
+    }
+    antdMessage.success(
+      trimmed ? "Chat renamed." : "Chat name reset to default.",
+    );
     closeRenameModal();
   };
 
   const threadMenuProps = (
     threadKey: string,
     displayLabel: string,
+    hasCustomName: boolean,
   ): MenuProps => ({
     items: [
       {
@@ -283,7 +286,7 @@ export function ChatRoom({
     ],
     onClick: ({ key }) => {
       if (key === "rename") {
-        openRenameModal(threadKey, displayLabel);
+        openRenameModal(threadKey, displayLabel, hasCustomName);
       } else if (key === "delete") {
         confirmDeleteThread(threadKey);
       }
@@ -486,8 +489,13 @@ export function ChatRoom({
     const menuItems =
       threads.length === 0
         ? []
-        : threads.map(({ key, label, messageCount }) => {
-            const displayLabel = threadTitles[key] ?? label;
+        : threads.map((thread) => {
+            const { key, label, messageCount, rootMessage } = thread;
+            const customName = rootMessage?.get("name") as string | undefined;
+            const trimmedName =
+              typeof customName === "string" ? customName.trim() : "";
+            const hasCustomName = trimmedName.length > 0;
+            const displayLabel = hasCustomName ? trimmedName : label;
             const isHovered = hoveredThread === key;
             const showMenu = isHovered || selectedThreadKey === key;
             return {
@@ -512,7 +520,7 @@ export function ChatRoom({
                   <span style={THREAD_ITEM_COUNT_STYLE}>{messageCount}</span>
                   {showMenu && (
                     <Dropdown
-                      menu={threadMenuProps(key, displayLabel)}
+                      menu={threadMenuProps(key, displayLabel, hasCustomName)}
                       trigger={["click"]}
                     >
                       <Button

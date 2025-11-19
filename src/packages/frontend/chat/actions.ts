@@ -529,6 +529,44 @@ export class ChatActions extends Actions<ChatState> {
     return deleted;
   };
 
+  renameThread = (threadKey: string, name: string): boolean => {
+    if (this.syncdb == null || this.store == null) {
+      return false;
+    }
+    const messages = this.store.get("messages");
+    if (messages == null) {
+      return false;
+    }
+    const normalizedKey = toMsString(threadKey);
+    const candidates = [normalizedKey, threadKey, `${parseInt(threadKey, 10)}`];
+    let message: ChatMessageTyped | undefined;
+    for (const key of candidates) {
+      if (!key) continue;
+      message = messages.get(key);
+      if (message != null) break;
+    }
+    if (message == null) {
+      return false;
+    }
+    const dateField = message.get("date");
+    const dateIso =
+      dateField instanceof Date
+        ? dateField.toISOString()
+        : typeof dateField === "string"
+          ? dateField
+          : new Date(dateField).toISOString();
+    const doc = message.toJS() as any;
+    if (name.trim()) {
+      doc.name = name.trim();
+    } else {
+      delete doc.name;
+    }
+    doc.date = dateIso;
+    this.syncdb.set(doc);
+    this.syncdb.commit();
+    return true;
+  };
+
   save_scroll_state = (position, height, offset): void => {
     if (height == 0) {
       // height == 0 means chat room is not rendered

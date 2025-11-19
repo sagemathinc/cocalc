@@ -14,6 +14,7 @@ export interface ThreadListItem {
   label: string;
   newestTime: number;
   messageCount: number;
+  rootMessage?: ChatMessageTyped;
 }
 
 export function useThreadList(messages?: ChatMessages): ThreadListItem[] {
@@ -70,6 +71,7 @@ export function useThreadList(messages?: ChatMessages): ThreadListItem[] {
         label: deriveThreadLabel(entry.rootMessage, entry.key),
         newestTime: entry.newestTime,
         messageCount: entry.messageCount,
+        rootMessage: entry.rootMessage,
       });
     }
 
@@ -82,6 +84,13 @@ export function deriveThreadLabel(
   rootMessage: ChatMessageTyped | undefined,
   fallbackKey: string,
 ): string {
+  const explicitName = rootMessage?.get("name") as string | undefined;
+  if (typeof explicitName === "string") {
+    const trimmed = explicitName.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
   const content = rootMessage ? newest_content(rootMessage) : "";
   const normalized = content.replace(/\s+/g, " ").trim();
   if (normalized) {
