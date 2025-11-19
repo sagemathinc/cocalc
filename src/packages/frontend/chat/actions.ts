@@ -481,6 +481,54 @@ export class ChatActions extends Actions<ChatState> {
     });
   };
 
+  // returns number of deleted messages
+  // threadKey = iso timestamp root of thread.
+  deleteThread = (threadKey: string): number => {
+    if (this.syncdb == null || this.store == null) {
+      return 0;
+    }
+    const messages = this.store.get("messages");
+    if (messages == null) {
+      return 0;
+    }
+    const rootTarget = parseInt(`${threadKey}`);
+    if (!isFinite(rootTarget)) {
+      return 0;
+    }
+    let deleted = 0;
+    for (const [_, message] of messages) {
+      if (message == null) continue;
+      const dateField = message.get("date");
+      let dateValue: number | undefined;
+      let dateIso: string | undefined;
+      if (dateField instanceof Date) {
+        dateValue = dateField.valueOf();
+        dateIso = dateField.toISOString();
+      } else if (typeof dateField === "number") {
+        dateValue = dateField;
+        dateIso = new Date(dateField).toISOString();
+      } else if (typeof dateField === "string") {
+        const t = Date.parse(dateField);
+        dateValue = isNaN(t) ? undefined : t;
+        dateIso = dateField;
+      }
+      if (dateValue == null || dateIso == null) {
+        continue;
+      }
+      const rootDate =
+        getThreadRootDate({ date: dateValue, messages }) || dateValue;
+      if (rootDate !== rootTarget) {
+        continue;
+      }
+      this.syncdb.delete({ event: "chat", date: dateIso });
+      deleted++;
+    }
+    if (deleted > 0) {
+      this.syncdb.commit();
+    }
+    return deleted;
+  };
+
   save_scroll_state = (position, height, offset): void => {
     if (height == 0) {
       // height == 0 means chat room is not rendered

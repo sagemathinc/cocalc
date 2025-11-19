@@ -40,7 +40,7 @@ import Filter from "./filter";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import type { ChatState } from "./store";
-import type { ChatMessageTyped, ChatMessages, SubmitMentionsFn } from "./types";
+import type { ChatMessages, SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import { ALL_THREADS_KEY, useThreadList } from "./threads";
 
@@ -207,35 +207,15 @@ export function ChatRoom({
     }
   };
 
-  const getThreadKeyForMessage = (
-    dateKey: string | number,
-    message: ChatMessageTyped,
-  ): string => {
-    const replyTo = message.get("reply_to");
-    if (replyTo != null) {
-      return `${new Date(replyTo).valueOf()}`;
-    }
-    return typeof dateKey === "string" ? dateKey : `${dateKey}`;
-  };
-
   const performDeleteThread = (threadKey: string) => {
-    if (messages == null || actions == null) {
+    if (actions?.deleteThread == null) {
+      antdMessage.error("Deleting chats is not available.");
       return;
     }
-    const toDelete: ChatMessageTyped[] = [];
-    for (const [time, message] of messages) {
-      if (message == null) continue;
-      const rootKey = getThreadKeyForMessage(time, message);
-      if (rootKey === threadKey) {
-        toDelete.push(message);
-      }
-    }
-    if (toDelete.length === 0) {
+    const deleted = actions.deleteThread(threadKey);
+    if (deleted === 0) {
       antdMessage.info("This chat has no messages to delete.");
       return;
-    }
-    for (const message of toDelete) {
-      actions.sendEdit(message, "");
     }
     setThreadTitles((prev) => {
       const next = { ...prev };
