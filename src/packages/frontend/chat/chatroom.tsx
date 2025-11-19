@@ -172,8 +172,10 @@ export function ChatPanel({
   const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
   const isCompact = variant === "compact";
   const disableFilters = disableFiltersProp ?? isCompact;
+  const storedThreadFromDesc =
+    getDescValue(desc, "data-selectedThreadKey") ?? null;
   const [selectedThreadKey, setSelectedThreadKey0] = useState<string | null>(
-    getDescValue(desc, "data-selectedThreadKey") ?? null,
+    storedThreadFromDesc,
   );
   const setSelectedThreadKey = (x: string | null) => {
     if (x != null && x != ALL_THREADS_KEY) {
@@ -249,6 +251,16 @@ export function ChatPanel({
       };
     });
   }, [rawThreads, account_id, actions]);
+
+  useEffect(() => {
+    if (
+      storedThreadFromDesc != null &&
+      storedThreadFromDesc !== selectedThreadKey
+    ) {
+      setSelectedThreadKey(storedThreadFromDesc);
+      setAllowAutoSelectThread(false);
+    }
+  }, [storedThreadFromDesc]);
 
   useEffect(() => {
     if (threads.length === 0) {

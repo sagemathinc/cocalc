@@ -211,6 +211,8 @@ export class ChatActions extends Actions<ChatState> {
       editing: {},
     };
     this.syncdb.set(message);
+    const messagesState = this.store.get("messages");
+    let selectedThreadKey: string;
     if (!reply_to) {
       this.deleteDraft(0);
       // NOTE: we also clear search, since it's confusing to send a message and not
@@ -219,17 +221,26 @@ export class ChatActions extends Actions<ChatState> {
       // Also, only do this clearing when not replying.
       // For replies search find full threads not individual messages.
       this.clearAllFilters();
+      selectedThreadKey = `${time_stamp.valueOf()}`;
     } else {
       // when replying we make sure that the thread is expanded, since otherwise
       // our reply won't be visible
-      const messages = this.store.get("messages");
       if (
-        messages
+        messagesState
           ?.getIn([`${reply_to.valueOf()}`, "folding"])
           ?.includes(sender_id)
       ) {
         this.toggleFoldThread(reply_to);
       }
+      const root =
+        getThreadRootDate({
+          date: reply_to.valueOf(),
+          messages: messagesState,
+        }) ?? reply_to.valueOf();
+      selectedThreadKey = `${root}`;
+    }
+    if (selectedThreadKey != "0") {
+      this.setSelectedThread(selectedThreadKey);
     }
 
     const project_id = this.store?.get("project_id");
@@ -1249,6 +1260,7 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   setSelectedThread = (threadKey: string | null) => {
+    console.log("setSelectedThread", { threadKey });
     this.frameTreeActions?.set_frame_data({
       id: this.frameId,
       selectedThreadKey: threadKey,
