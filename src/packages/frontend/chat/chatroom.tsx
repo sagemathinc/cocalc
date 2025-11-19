@@ -607,7 +607,13 @@ export function ChatRoom({
           >
             New Chat
           </Button>
-          <Button block style={{ marginTop: "8px" }}>
+          <Button
+            block
+            style={{ marginTop: "8px" }}
+            onClick={() => {
+              actions?.frameTreeActions?.show_search();
+            }}
+          >
             Search
           </Button>
         </div>
