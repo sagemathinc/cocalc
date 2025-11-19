@@ -87,6 +87,7 @@ export function ChatLog({
     project_id,
     path,
   ) as ChatMessages;
+  const singleThreadView = selectedThread != null;
   const messages = useMemo(() => {
     if (!selectedThread || storeMessages == null) {
       return storeMessages;
@@ -275,6 +276,7 @@ export function ChatLog({
           mode,
           selectedDate,
           numChildren,
+          singleThreadView,
         }}
       />
       <Composing
@@ -351,6 +353,7 @@ export function getSortedDates(
   search: string | undefined,
   account_id: string,
   filterRecentH?: number,
+  disableFolding?: boolean,
 ): {
   dates: string[];
   numFolded: number;
@@ -386,7 +389,7 @@ export function getSortedDates(
     if (message == null) continue;
 
     // If we search for a message, we treat all threads as unfolded
-    if (!search) {
+    if (!disableFolding && !search) {
       const is_thread = isThread(message, numChildren);
       const is_folded = is_thread && isFolded(messages, message, account_id);
       const is_thread_body = is_thread && message.get("reply_to") != null;
@@ -515,6 +518,7 @@ export function MessageList({
   mode,
   selectedDate,
   numChildren,
+  singleThreadView,
 }: {
   messages: ChatMessages;
   account_id: string;
@@ -531,6 +535,7 @@ export function MessageList({
   manualScrollRef?;
   selectedDate?: string;
   numChildren?: NumChildren;
+  singleThreadView?: boolean;
 }) {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   const virtuosoScroll = useVirtuosoScrollHook({
@@ -567,7 +572,10 @@ export function MessageList({
         const is_thread = numChildren != null && isThread(message, numChildren);
         // optimization: only threads can be folded, so don't waste time
         // checking on folding state if it isn't a thread.
-        const is_folded = is_thread && isFolded(messages, message, account_id);
+        const is_folded =
+          !singleThreadView &&
+          is_thread &&
+          isFolded(messages, message, account_id);
         const is_thread_body = is_thread && message.get("reply_to") != null;
         const h = virtuosoHeightsRef.current?.[index];
 
@@ -615,9 +623,11 @@ export function MessageList({
                     : undefined
                 }
                 allowReply={
+                  !singleThreadView &&
                   messages.getIn([sortedDates[index + 1], "reply_to"]) == null
                 }
                 costEstimate={costEstimate}
+                threadViewMode={singleThreadView}
               />
             </DivTempHeight>
           </div>

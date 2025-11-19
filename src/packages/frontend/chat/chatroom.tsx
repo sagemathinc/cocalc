@@ -11,6 +11,7 @@ import {
   Menu,
   Select,
   Space,
+  Switch,
   Tooltip,
 } from "antd";
 import { debounce } from "lodash";
@@ -75,6 +76,7 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
   background: "white",
   flex: "1 0 auto",
   position: "relative",
+  marginBottom: "10px",
 } as const;
 
 const THREAD_SIDEBAR_WIDTH = 260;
@@ -142,9 +144,16 @@ export function ChatRoom({
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
   const threads = useThreadList(messages);
-  const [selectedThreadKey, setSelectedThreadKey] = useState<string | null>(
+  const [selectedThreadKey, setSelectedThreadKey0] = useState<string | null>(
     null,
   );
+  const setSelectedThreadKey = (x) => {
+    if (x != null && x != ALL_THREADS_KEY) {
+      actions.clearAllFilters();
+    }
+    setSelectedThreadKey0(x);
+  };
+  const [lastThreadKey, setLastThreadKey] = useState<string | null>(null);
   const [allowAutoSelectThread, setAllowAutoSelectThread] =
     useState<boolean>(true);
   const selectedThreadDate = useMemo(() => {
@@ -156,7 +165,9 @@ export function ChatRoom({
     return new Date(millis);
   }, [selectedThreadKey]);
 
-  const showThreadFilters = selectedThreadKey === ALL_THREADS_KEY;
+  const isAllThreadsSelected = selectedThreadKey === ALL_THREADS_KEY;
+  const singleThreadView = selectedThreadKey != null && !isAllThreadsSelected;
+  const showThreadFilters = isAllThreadsSelected;
 
   useEffect(() => {
     if (threads.length === 0) {
@@ -171,6 +182,28 @@ export function ChatRoom({
       setSelectedThreadKey(threads[0].key);
     }
   }, [threads, selectedThreadKey, allowAutoSelectThread]);
+
+  useEffect(() => {
+    if (selectedThreadKey != null && selectedThreadKey !== ALL_THREADS_KEY) {
+      setLastThreadKey(selectedThreadKey);
+    }
+  }, [selectedThreadKey]);
+
+  const handleToggleAllChats = (checked: boolean) => {
+    if (checked) {
+      setAllowAutoSelectThread(false);
+      setSelectedThreadKey(ALL_THREADS_KEY);
+    } else {
+      setAllowAutoSelectThread(true);
+      if (lastThreadKey != null) {
+        setSelectedThreadKey(lastThreadKey);
+      } else if (threads[0]?.key) {
+        setSelectedThreadKey(threads[0].key);
+      } else {
+        setSelectedThreadKey(null);
+      }
+    }
+  };
 
   const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
   const scrollToBottomRef = useRef<any>(null);
@@ -382,6 +415,15 @@ export function ChatRoom({
       <Layout.Sider width={THREAD_SIDEBAR_WIDTH} style={THREAD_SIDEBAR_STYLE}>
         <div style={THREAD_SIDEBAR_HEADER}>
           <span style={{ flex: 1 }}>Chats</span>
+          <Space size="small">
+            <Switch
+              unCheckedChildren="All"
+              checkedChildren=""
+              size="small"
+              checked={isAllThreadsSelected}
+              onChange={handleToggleAllChats}
+            />
+          </Space>
           <Button
             size="small"
             type={!selectedThreadKey ? "primary" : "default"}
@@ -431,7 +473,9 @@ export function ChatRoom({
                   search={search}
                   filterRecentH={filterRecentH}
                   selectedHashtags={selectedHashtags}
-                  selectedThread={selectedThreadKey}
+                  selectedThread={
+                    singleThreadView ? selectedThreadKey : undefined
+                  }
                   scrollToIndex={scrollToIndex}
                   scrollToDate={scrollToDate}
                   selectedDate={fragmentId}
