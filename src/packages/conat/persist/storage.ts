@@ -21,8 +21,7 @@ less than 1 read/write per second for each.  Thus memory is critical, and
 supporting at least 1000 writes/second is what we need.
 Fortunately, this implementation can do ~50,000+ writes per second and read
 over 500,000 per second.  Yes, it blocks the main thread, but by using
-better-sqlite3 and zstd-napi, we get 10x speed increases over async code,
-so this is worth it.
+better-sqlite3, we get speed increases over async code, so this is worth it.
 
 
 COMPRESSION:
@@ -36,6 +35,7 @@ https://github.com/antoniomuso/lz4-napi/issues/678
 I also tried the rust sync snappy and it had a similar memory leak.  Finally,
 I tried zstd-napi and it has a very fast sync implementation that does *not*
 need async pauses to not leak memory. So zstd-napi it is.
+I then switched to the zstd built into nodejs.
 And I like zstandard anyways.
 
 TIERED STORAGE:

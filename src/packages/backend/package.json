@@ -63,8 +63,7 @@
     "reflect-sync": "^0.14.4",
     "rimraf": "^5.0.5",
     "shell-escape": "^0.2.0",
-    "tmp-promise": "^3.0.3",
-    "zstd-napi": "^0.0.12"
+    "tmp-promise": "^3.0.3"
   },
   "repository": {
     "type": "git",

@@ -5,10 +5,7 @@
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": [
-    "lite",
-    "cocalc"
-  ],
+  "keywords": ["lite", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf build dist node_modules sea/sea-prep.blob",
@@ -16,7 +13,8 @@
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "exit 0",
     "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node,@vercel/ncc",
-    "build:bundle": "cd sea && ./build-bundle.sh",
+    "build:static": "cd ../static && pnpm clean && pnpm install && pnpm build",
+    "build:bundle": "pnpm build:static && cd sea && ./build-bundle.sh",
     "build:tarball": "pnpm build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
     "run:bundle": "node ./build/bundle/bundle/index.js",
     "sea": "cd sea && ./build-sea.sh",
