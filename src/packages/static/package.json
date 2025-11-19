@@ -102,7 +102,6 @@
     "stream-browserify": "^3.0.0",
     "style-loader": "^2.0.0",
     "timeago": "^1.6.3",
-    "ts-jest": "^29.2.3",
     "tsd": "^0.22.0",
     "util": "^0.12.3",
     "webpack-hot-middleware": "^2.26.1",

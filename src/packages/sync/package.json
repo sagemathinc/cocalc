@@ -15,17 +15,9 @@
     "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "realtime synchronization"
-  ],
+  "keywords": ["cocalc", "realtime synchronization"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/conat": "workspace:*",
@@ -46,7 +38,6 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.17.20",
-    "@types/node": "^22.10.10",
-    "ts-jest": "^29.2.3"
+    "@types/node": "^22.10.10"
   }
 }
