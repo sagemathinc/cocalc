@@ -169,6 +169,7 @@ export class ChatActions extends Actions<ChatState> {
     noNotification,
     submitMentionsRef,
     extraInput,
+    name,
   }: {
     input?: string;
     sender_id?: string;
@@ -177,6 +178,8 @@ export class ChatActions extends Actions<ChatState> {
     noNotification?: boolean;
     submitMentionsRef?;
     extraInput?: string;
+    // if name is given, rename thread to have that name
+    name?: string;
   }): string => {
     if (this.syncdb == null || this.store == null) {
       console.warn("attempt to sendChat before chat actions initialized");
@@ -196,6 +199,7 @@ export class ChatActions extends Actions<ChatState> {
       // do not send when there is nothing to send.
       return "";
     }
+    const trimmedName = name?.trim();
     const message: ChatMessage = {
       sender_id,
       event: "chat",
@@ -210,6 +214,9 @@ export class ChatActions extends Actions<ChatState> {
       reply_to: reply_to?.toISOString(),
       editing: {},
     };
+    if (trimmedName && !reply_to) {
+      (message as any).name = trimmedName;
+    }
     this.syncdb.set(message);
     const messagesState = this.store.get("messages");
     let selectedThreadKey: string;
@@ -241,6 +248,9 @@ export class ChatActions extends Actions<ChatState> {
     }
     if (selectedThreadKey != "0") {
       this.setSelectedThread(selectedThreadKey);
+    }
+    if (trimmedName && reply_to) {
+      this.renameThread(selectedThreadKey, trimmedName);
     }
 
     const project_id = this.store?.get("project_id");
