@@ -537,6 +537,19 @@ export function ChatPanel({
     );
   };
 
+  const humanThreads = useMemo(
+    () => threads.filter((thread) => !thread.isAI),
+    [threads],
+  );
+  const aiThreads = useMemo(
+    () => threads.filter((thread) => thread.isAI),
+    [threads],
+  );
+  const totalUnread = useMemo(
+    () => threads.reduce((sum, thread) => sum + thread.unreadCount, 0),
+    [threads],
+  );
+
   const renderSidebarContent = () => (
     <>
       <div style={THREAD_SIDEBAR_HEADER}>
@@ -592,16 +605,8 @@ export function ChatPanel({
           </>
         )}
       </div>
-      {renderThreadSection(
-        "Humans",
-        "users",
-        threads.filter((thread) => !thread.isAI),
-      )}
-      {renderThreadSection(
-        "AI",
-        "robot",
-        threads.filter((thread) => thread.isAI),
-      )}
+      {renderThreadSection("Humans", "users", humanThreads)}
+      {renderThreadSection("AI", "robot", aiThreads)}
     </>
   );
 
@@ -812,7 +817,7 @@ export function ChatPanel({
             fontSize: "14px",
           }}
         >
-          <div>
+          <div style={{ textAlign: "center" }}>
             {threads.length === 0
               ? "No chats yet. Start a new conversation."
               : "Select a chat or start a new conversation."}
@@ -957,6 +962,14 @@ export function ChatPanel({
           onClick={() => setSidebarVisible(true)}
         >
           Chats
+          <Badge
+            count={totalUnread}
+            overflowCount={99}
+            style={{
+              backgroundColor: COLORS.GRAY_L0,
+              color: COLORS.GRAY_D,
+            }}
+          />
         </Button>
         <Button
           type={!selectedThreadKey ? "primary" : "default"}
