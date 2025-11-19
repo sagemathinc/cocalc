@@ -168,6 +168,7 @@ export class ChatActions extends Actions<ChatState> {
     tag,
     noNotification,
     submitMentionsRef,
+    extraInput,
   }: {
     input?: string;
     sender_id?: string;
@@ -175,6 +176,7 @@ export class ChatActions extends Actions<ChatState> {
     tag?: string;
     noNotification?: boolean;
     submitMentionsRef?;
+    extraInput?: string;
   }): string => {
     if (this.syncdb == null || this.store == null) {
       console.warn("attempt to sendChat before chat actions initialized");
@@ -185,6 +187,9 @@ export class ChatActions extends Actions<ChatState> {
     const time_stamp_str = time_stamp.toISOString();
     if (submitMentionsRef?.current != null) {
       input = submitMentionsRef.current?.({ chat: `${time_stamp.valueOf()}` });
+    }
+    if (extraInput) {
+      input = (input ?? "") + extraInput;
     }
     input = input?.trim();
     if (!input) {

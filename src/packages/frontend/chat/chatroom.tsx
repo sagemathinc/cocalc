@@ -724,7 +724,10 @@ export function ChatPanel({
     );
   }
 
-  function sendMessage(replyToOverride?: Date | null): void {
+  function sendMessage(
+    replyToOverride?: Date | null,
+    extraInput?: string,
+  ): void {
     const reply_to =
       replyToOverride === undefined
         ? selectedThreadDate
@@ -732,7 +735,11 @@ export function ChatPanel({
     if (!reply_to) {
       setAllowAutoSelectThread(true);
     }
-    const timeStamp = actions.sendChat({ submitMentionsRef, reply_to });
+    const timeStamp = actions.sendChat({
+      submitMentionsRef,
+      reply_to,
+      extraInput,
+    });
     if (!reply_to && timeStamp) {
       setSelectedThreadKey(timeStamp);
       setTimeout(() => {
@@ -918,7 +925,14 @@ export function ChatPanel({
           <Button
             style={{ height: "47.5px" }}
             onClick={() => {
-              actions?.frameTreeActions?.getVideoChat().startChatting();
+              const message = actions?.frameTreeActions
+                ?.getVideoChat()
+                .startChatting(actions);
+              if (!message) {
+                return;
+              }
+              console.log("start video chat returned", { message });
+              sendMessage(undefined, "\n\n" + message);
             }}
           >
             <Icon name="video-camera" /> Video
