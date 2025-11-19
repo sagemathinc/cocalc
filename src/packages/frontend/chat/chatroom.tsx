@@ -3,7 +3,16 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Divider, Input, Select, Space, Tooltip } from "antd";
+import {
+  Button,
+  Divider,
+  Input,
+  Layout,
+  Menu,
+  Select,
+  Space,
+  Tooltip,
+} from "antd";
 import { debounce } from "lodash";
 import { FormattedMessage } from "react-intl";
 
@@ -54,12 +63,41 @@ const GRID_STYLE: React.CSSProperties = {
   margin: "auto",
 } as const;
 
+const CHAT_LAYOUT_STYLE: React.CSSProperties = {
+  height: "100%",
+  background: "white",
+} as const;
+
 const CHAT_LOG_STYLE: React.CSSProperties = {
   padding: "0",
   background: "white",
   flex: "1 0 auto",
   position: "relative",
 } as const;
+
+const THREAD_SIDEBAR_WIDTH = 260;
+
+const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
+  background: "#fafafa",
+  borderRight: "1px solid #eee",
+  padding: "15px 0",
+  display: "flex",
+  flexDirection: "column",
+} as const;
+
+const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
+  padding: "0 20px 10px",
+  fontWeight: 600,
+  fontSize: "14px",
+  textTransform: "uppercase",
+  color: "#666",
+} as const;
+
+const PLACEHOLDER_THREADS = [
+  { key: "thread-1", label: "Welcome Thread" },
+  { key: "thread-2", label: "Homework Q&A" },
+  { key: "thread-3", label: "Exam Logistics" },
+];
 
 export function ChatRoom({
   actions,
@@ -81,6 +119,9 @@ export function ChatRoom({
   const messages = useEditor("messages");
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
+  const [selectedThreadKey, setSelectedThreadKey] = useState<string>(
+    PLACEHOLDER_THREADS[0]?.key ?? "",
+  );
 
   const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
   const scrollToBottomRef = useRef<any>(null);
@@ -254,120 +295,145 @@ export function ChatRoom({
     setInput("");
   }
 
+  function renderThreadSidebar(): React.JSX.Element | null {
+    if (PLACEHOLDER_THREADS.length === 0) return null;
+    return (
+      <Layout.Sider width={THREAD_SIDEBAR_WIDTH} style={THREAD_SIDEBAR_STYLE}>
+        <div style={THREAD_SIDEBAR_HEADER}>Threads</div>
+        <Menu
+          mode="inline"
+          selectedKeys={[selectedThreadKey]}
+          onClick={({ key }) => setSelectedThreadKey(String(key))}
+          items={PLACEHOLDER_THREADS.map(({ key, label }) => ({
+            key,
+            label,
+          }))}
+        />
+      </Layout.Sider>
+    );
+  }
+
   function render_body(): React.JSX.Element {
     return (
-      <div className="smc-vfill" style={GRID_STYLE}>
-        {render_button_row()}
-        <div className="smc-vfill" style={CHAT_LOG_STYLE}>
-          <ChatLog
-            actions={actions}
-            project_id={project_id}
-            path={path}
-            scrollToBottomRef={scrollToBottomRef}
-            mode={"standalone"}
-            fontSize={font_size}
-            search={search}
-            filterRecentH={filterRecentH}
-            selectedHashtags={selectedHashtags}
-            scrollToIndex={scrollToIndex}
-            scrollToDate={scrollToDate}
-            selectedDate={fragmentId}
-            costEstimate={costEstimate}
-          />
-          {render_preview_message()}
-        </div>
-        <div style={{ display: "flex", marginBottom: "5px", overflow: "auto" }}>
-          <div
-            style={{
-              flex: "1",
-              padding: "0px 5px 0px 2px",
-            }}
-          >
-            <ChatInput
-              fontSize={font_size}
-              autoFocus
-              cacheId={`${path}${project_id}-new`}
-              input={input}
-              on_send={on_send}
-              height={INPUT_HEIGHT}
-              onChange={(value) => {
-                setInput(value);
-                // submitMentionsRef will not actually submit mentions; we're only interested in the reply value
-                const input =
-                  submitMentionsRef.current?.(undefined, true) ?? value;
-                actions?.llmEstimateCost({ date: 0, input });
-              }}
-              submitMentionsRef={submitMentionsRef}
-              syncdb={actions.syncdb}
-              date={0}
-              editBarStyle={{ overflow: "auto" }}
-            />
-          </div>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              padding: "0",
-              marginBottom: "0",
-            }}
-          >
-            <div style={{ flex: 1 }} />
-            {costEstimate?.get("date") == 0 && (
-              <LLMCostEstimationChat
-                costEstimate={costEstimate?.toJS()}
-                compact
+      <Layout style={CHAT_LAYOUT_STYLE}>
+        {renderThreadSidebar()}
+        <Layout.Content className="smc-vfill" style={{ background: "white" }}>
+          <div className="smc-vfill" style={GRID_STYLE}>
+            {render_button_row()}
+            <div className="smc-vfill" style={CHAT_LOG_STYLE}>
+              <ChatLog
+                actions={actions}
+                project_id={project_id}
+                path={path}
+                scrollToBottomRef={scrollToBottomRef}
+                mode={"standalone"}
+                fontSize={font_size}
+                search={search}
+                filterRecentH={filterRecentH}
+                selectedHashtags={selectedHashtags}
+                scrollToIndex={scrollToIndex}
+                scrollToDate={scrollToDate}
+                selectedDate={fragmentId}
+                costEstimate={costEstimate}
+              />
+              {render_preview_message()}
+            </div>
+            <div
+              style={{ display: "flex", marginBottom: "5px", overflow: "auto" }}
+            >
+              <div
                 style={{
-                  flex: 0,
-                  fontSize: "85%",
-                  textAlign: "center",
-                  margin: "0 0 5px 0",
+                  flex: "1",
+                  padding: "0px 5px 0px 2px",
                 }}
-              />
-            )}
-            <Tooltip
-              title={
-                <FormattedMessage
-                  id="chatroom.chat_input.send_button.tooltip"
-                  defaultMessage={"Send message (shift+enter)"}
-                />
-              }
-            >
-              <Button
-                onClick={on_send_button_click}
-                disabled={input.trim() === ""}
-                type="primary"
-                style={{ height: "47.5px" }}
-                icon={<Icon name="paper-plane" />}
               >
-                <FormattedMessage
-                  id="chatroom.chat_input.send_button.label"
-                  defaultMessage={"Send"}
+                <ChatInput
+                  fontSize={font_size}
+                  autoFocus
+                  cacheId={`${path}${project_id}-new`}
+                  input={input}
+                  on_send={on_send}
+                  height={INPUT_HEIGHT}
+                  onChange={(value) => {
+                    setInput(value);
+                    // submitMentionsRef will not actually submit mentions; we're only interested in the reply value
+                    const input =
+                      submitMentionsRef.current?.(undefined, true) ?? value;
+                    actions?.llmEstimateCost({ date: 0, input });
+                  }}
+                  submitMentionsRef={submitMentionsRef}
+                  syncdb={actions.syncdb}
+                  date={0}
+                  editBarStyle={{ overflow: "auto" }}
                 />
-              </Button>
-            </Tooltip>
-            <div style={{ height: "5px" }} />
-            <Button
-              type={showPreview ? "dashed" : undefined}
-              onClick={() => actions.setShowPreview(!showPreview)}
-              style={{ height: "47.5px" }}
-            >
-              <FormattedMessage
-                id="chatroom.chat_input.preview_button.label"
-                defaultMessage={"Preview"}
-              />
-            </Button>
-            <div style={{ height: "5px" }} />
-            <Button
-              style={{ height: "47.5px" }}
-              onClick={() => {
-                actions?.frameTreeActions?.getVideoChat().startChatting();
-              }}
-            >
-              <Icon name="video-camera" /> Video
-            </Button>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  padding: "0",
+                  marginBottom: "0",
+                }}
+              >
+                <div style={{ flex: 1 }} />
+                {costEstimate?.get("date") == 0 && (
+                  <LLMCostEstimationChat
+                    costEstimate={costEstimate?.toJS()}
+                    compact
+                    style={{
+                      flex: 0,
+                      fontSize: "85%",
+                      textAlign: "center",
+                      margin: "0 0 5px 0",
+                    }}
+                  />
+                )}
+                <Tooltip
+                  title={
+                    <FormattedMessage
+                      id="chatroom.chat_input.send_button.tooltip"
+                      defaultMessage={"Send message (shift+enter)"}
+                    />
+                  }
+                >
+                  <Button
+                    onClick={on_send_button_click}
+                    disabled={input.trim() === ""}
+                    type="primary"
+                    style={{ height: "47.5px" }}
+                    icon={<Icon name="paper-plane" />}
+                  >
+                    <FormattedMessage
+                      id="chatroom.chat_input.send_button.label"
+                      defaultMessage={"Send"}
+                    />
+                  </Button>
+                </Tooltip>
+                <div style={{ height: "5px" }} />
+                <Button
+                  type={showPreview ? "dashed" : undefined}
+                  onClick={() => actions.setShowPreview(!showPreview)}
+                  style={{ height: "47.5px" }}
+                >
+                  <FormattedMessage
+                    id="chatroom.chat_input.preview_button.label"
+                    defaultMessage={"Preview"}
+                  />
+                </Button>
+                <div style={{ height: "5px" }} />
+                <Button
+                  style={{ height: "47.5px" }}
+                  onClick={() => {
+                    actions?.frameTreeActions?.getVideoChat().startChatting();
+                  }}
+                >
+                  <Icon name="video-camera" /> Video
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </Layout.Content>
+      </Layout>
     );
   }
 
