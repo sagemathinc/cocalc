@@ -113,6 +113,7 @@ const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   marginTop: "10px",
+  pointerEvents: "none",
 } as const;
 
 const THREAD_ITEM_COUNT_STYLE: React.CSSProperties = {
