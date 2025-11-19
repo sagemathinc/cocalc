@@ -10,7 +10,7 @@
 # packages/lite/bin/start.js (which calls @cocalc/lite/main),
 # and copies the static frontend assets.
 #
-# Native addons copied by ncc (e.g. zeromq, better-sqlite3) are preserved.
+# Native addons copied by ncc (e.g. zeromq, node-pty) are preserved.
 # Additional assets can be copied after this script if needed.
 
 set -euo pipefail

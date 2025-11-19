@@ -9,7 +9,7 @@ additional persist server:
 */
 
 import "./index";
-import betterSqlite3 from "better-sqlite3";
+import sqlite from "node:sqlite";
 import { initContext } from "@cocalc/conat/persist/context";
 const { zstdCompressSync, zstdDecompressSync } = require("node:zlib");
 import { syncFiles } from "@cocalc/backend/data";
@@ -17,7 +17,7 @@ import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-contain
 import { statSync, copyFileSync } from "node:fs";
 
 initContext({
-  betterSqlite3,
+  sqlite,
   compress: zstdCompressSync,
   decompress: zstdDecompressSync,
   syncFiles,

@@ -15,7 +15,7 @@ import { pathExists } from "fs-extra";
 import { join } from "path";
 import * as fs from "fs/promises";
 import { messageData } from "@cocalc/conat/core/client";
-import sqlite from "better-sqlite3";
+import { DatabaseSync as sqlite } from "node:sqlite";
 import { openPaths } from "@cocalc/conat/persist/storage";
 
 beforeAll(async () => {

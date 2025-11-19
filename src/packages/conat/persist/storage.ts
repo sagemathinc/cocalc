@@ -21,7 +21,7 @@ less than 1 read/write per second for each.  Thus memory is critical, and
 supporting at least 1000 writes/second is what we need.
 Fortunately, this implementation can do ~50,000+ writes per second and read
 over 500,000 per second.  Yes, it blocks the main thread, but by using
-better-sqlite3, we get speed increases over async code, so this is worth it.
+sync node:sqlite, we get speed increases over async code, so this is worth it.
 
 
 COMPRESSION:
@@ -69,6 +69,7 @@ import {
   decompress,
   statSync,
   copyFileSync,
+  ensureContainingDirectoryExists,
 } from "./context";
 import type { JSONValue } from "@cocalc/util/types";
 import { EventEmitter } from "events";
@@ -252,6 +253,7 @@ export interface StorageOptions {
 export class PersistentStream extends EventEmitter {
   private readonly options: StorageOptions;
   private readonly db: Database;
+  private readonly dbPath?: string;
   private readonly msgIDs = new TTL({ ttl: 2 * 60 * 1000 });
   private conf: Configuration;
   private throttledBackup?;
@@ -266,6 +268,9 @@ export class PersistentStream extends EventEmitter {
     const location = this.options.ephemeral
       ? ":memory:"
       : this.options.path + ".db";
+    if (location !== ":memory:") {
+      this.dbPath = location;
+    }
     this.initArchive();
     this.db = createDatabase(location);
     this.initSchema();
@@ -362,17 +367,35 @@ export class PersistentStream extends EventEmitter {
     if (path === undefined && !this.options.archive) {
       return;
     }
-    path = (path ?? this.options.archive) + ".db";
+    if (!this.dbPath) {
+      return;
+    }
+    const dest = (path ?? this.options.archive) + ".db";
     //console.log("backup", { path });
     try {
-      await this.db.backup(path);
+      await ensureContainingDirectoryExists(dest);
+      copyFileSync(this.dbPath, dest);
     } catch (err) {
       if (!process.env.COCALC_TEST_MODE) {
         console.log(err);
       }
-      logger.debug("WARNING: error creating a backup", path, err);
+      logger.debug("WARNING: error creating a backup", dest, err);
     }
   });
+
+  private runTransaction = <T>(fn: () => T): T => {
+    this.db.exec("BEGIN");
+    try {
+      const result = fn();
+      this.db.exec("COMMIT");
+      return result;
+    } catch (err) {
+      try {
+        this.db.exec("ROLLBACK");
+      } catch {}
+      throw err;
+    }
+  };
 
   private compress = (
     raw: Buffer,
@@ -442,30 +465,25 @@ export class PersistentStream extends EventEmitter {
 
     this.enforceLimits(size);
 
-    const tx = this.db.transaction(
-      (time, compress, encoding, raw, headers, key, size, ttl) => {
-        if (key !== undefined) {
-          // insert with key -- delete all previous messages, as they will
-          // never be needed again and waste space.
-          this.db.prepare("DELETE FROM messages WHERE key = ?").run(key);
-        }
-        return this.db
-          .prepare(
-            "INSERT INTO messages(time, compress, encoding, raw, headers, key, size, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)  RETURNING seq",
-          )
-          .get(time / 1000, compress, encoding, raw, headers, key, size, ttl);
-      },
-    );
-    const row = tx(
-      time,
-      compressedRaw.compress,
-      encoding,
-      compressedRaw.raw,
-      serializedHeaders,
-      key,
-      size,
-      ttl,
-    );
+    const row = this.runTransaction(() => {
+      if (key !== undefined) {
+        this.db.prepare("DELETE FROM messages WHERE key = ?").run(key);
+      }
+      return this.db
+        .prepare(
+          "INSERT INTO messages(time, compress, encoding, raw, headers, key, size, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)  RETURNING seq",
+        )
+        .get(
+          time / 1000,
+          compressedRaw.compress,
+          encoding,
+          compressedRaw.raw,
+          serializedHeaders,
+          key ?? null,
+          size,
+          ttl ?? null,
+        );
+    });
     const seq = Number((row as any).seq);
     // lastInsertRowid - is a bigint from sqlite, but we won't hit that limit
     this.emit("change", {
@@ -572,12 +590,11 @@ export class PersistentStream extends EventEmitter {
       this.db.prepare("DELETE FROM messages WHERE seq=?").run(seq);
     } else if (seqs0) {
       const statement = this.db.prepare("DELETE FROM messages WHERE seq=?");
-      const transaction = this.db.transaction((seqs) => {
-        for (const s of seqs) {
+      this.runTransaction(() => {
+        for (const s of seqs0) {
           statement.run(s);
         }
       });
-      transaction(seqs0);
       seqs = seqs0;
     }
     this.emit("change", { op: "delete", seqs });
