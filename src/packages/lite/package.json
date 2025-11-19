@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/lite",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "CoCalc Lite Standalone Server that Optional Syncs with an existing CoCalc instance",
   "exports": {
     "./*": "./dist/*.js"
