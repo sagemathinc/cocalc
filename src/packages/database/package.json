@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.17.20",
-    "@types/node": "^18.16.14",
+    "@types/node": "^22.10.10",
     "@types/pg": "^8.6.1",
     "coffeescript": "^2.5.1"
   },

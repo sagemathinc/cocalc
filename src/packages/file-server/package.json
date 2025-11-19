@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "@types/node": "^18.16.14"
+    "@types/node": "^22.10.10"
   },
   "repository": {
     "type": "git",

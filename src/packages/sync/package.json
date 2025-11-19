@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.17.20",
-    "@types/node": "^22.10.01",
+    "@types/node": "^22.10.10",
     "ts-jest": "^29.2.3"
   }
 }

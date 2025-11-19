@@ -21,26 +21,24 @@
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch --pretty --preserveWatchOutput",
     "clean": "rm -rf dist node_modules",
-    "test": "pnpm exec jest"
+    "test": "pnpm exec jest",
+    "depcheck": "pnpx depcheck --ignores=@types/jest,@types/node"
   },
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@langchain/anthropic": "^0.3.4",
-    "@langchain/core": "^0.3.13",
-    "@langchain/google-genai": "^0.1.5",
+    "@langchain/anthropic": "^1.1.0",
+    "@langchain/core": "^1.0.6",
+    "@langchain/google-genai": "^1.0.3",
     "@langchain/mistralai": "^1.0.0",
-    "@langchain/openai": "^0.3.3",
-    "@langchain/ollama": "^0.1.6"
+    "@langchain/ollama": "^1.0.1",
+    "@langchain/openai": "^1.1.2"
   },
   "devDependencies": {
-    "@types/debug": "^4.1.12",
-    "@types/lodash": "^4.17.12",
-    "@types/jest": "^29.5.14",
-    "@types/node": "^18.16.14",
-    "@types/pkg-dir": "^2.0.1",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.3.4"
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.10.10",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5"
   },
   "repository": {
     "type": "git",

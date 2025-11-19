@@ -55,7 +55,7 @@
     "zeromq": "^6.4.2"
   },
   "devDependencies": {
-    "@types/node": "^18.16.14",
+    "@types/node": "^22.10.10",
     "@types/node-cleanup": "^2.1.2"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/jupyter",

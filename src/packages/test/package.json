@@ -35,7 +35,7 @@
     "@testing-library/react": "^16.3.0",
     "@types/debug": "^4.1.12",
     "@types/jest": "^30.0.0",
-    "@types/node": "^18.16.14",
+    "@types/node": "^22.10.10",
     "jest-environment-jsdom": "^30.0.2"
   }
 }

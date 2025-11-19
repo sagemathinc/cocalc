@@ -56,7 +56,7 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.17.20",
-    "@types/node": "^22.10.1"
+    "@types/node": "^22.10.10"
   },
   "repository": {
     "type": "git",

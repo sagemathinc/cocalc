@@ -56,7 +56,7 @@
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/test",
   "devDependencies": {
     "@electron/rebuild": "^4.0.1",
-    "@types/node": "^22.10.01",
+    "@types/node": "^22.10.10",
     "@vercel/ncc": "^0.38.4",
     "electron": "^37.3.1"
   }
