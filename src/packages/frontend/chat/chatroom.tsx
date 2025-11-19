@@ -40,12 +40,12 @@ import Filter from "./filter";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import type { ChatState } from "./store";
-import type {
-  ChatMessageTyped,
-  ChatMessages,
-  SubmitMentionsFn,
-} from "./types";
-import { INPUT_HEIGHT, markChatAsReadIfUnseen, getThreadRootDate } from "./utils";
+import type { ChatMessageTyped, ChatMessages, SubmitMentionsFn } from "./types";
+import {
+  INPUT_HEIGHT,
+  markChatAsReadIfUnseen,
+  getThreadRootDate,
+} from "./utils";
 import { ALL_THREADS_KEY, useThreadList } from "./threads";
 
 const FILTER_RECENT_NONE = {
@@ -100,14 +100,8 @@ const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
 } as const;
 
 const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
-  padding: "0 20px 10px",
-  fontWeight: 600,
-  fontSize: "14px",
-  textTransform: "uppercase",
+  padding: "0 20px 15px",
   color: "#666",
-  display: "flex",
-  alignItems: "center",
-  gap: "10px",
 } as const;
 
 const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {
@@ -575,18 +569,34 @@ export function ChatRoom({
     return (
       <Layout.Sider width={THREAD_SIDEBAR_WIDTH} style={THREAD_SIDEBAR_STYLE}>
         <div style={THREAD_SIDEBAR_HEADER}>
-          <span style={{ flex: 1 }}>Chats</span>
-          <Space size="small">
-            <Switch
-              unCheckedChildren="All"
-              checkedChildren=""
-              size="small"
-              checked={isAllThreadsSelected}
-              onChange={handleToggleAllChats}
-            />
-          </Space>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "8px",
+            }}
+          >
+            <span
+              style={{
+                fontWeight: 600,
+                fontSize: "15px",
+                textTransform: "uppercase",
+              }}
+            >
+              Chats
+            </span>
+            <Space size="small">
+              <span style={{ fontSize: "12px" }}>All</span>
+              <Switch
+                size="small"
+                checked={isAllThreadsSelected}
+                onChange={handleToggleAllChats}
+              />
+            </Space>
+          </div>
           <Button
-            size="small"
+            block
             type={!selectedThreadKey ? "primary" : "default"}
             onClick={() => {
               setAllowAutoSelectThread(false);
@@ -594,6 +604,9 @@ export function ChatRoom({
             }}
           >
             New Chat
+          </Button>
+          <Button block style={{ marginTop: "8px" }}>
+            Search
           </Button>
         </div>
         {threads.length === 0 ? (
