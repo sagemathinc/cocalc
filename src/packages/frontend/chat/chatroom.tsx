@@ -94,6 +94,9 @@ const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
   fontSize: "14px",
   textTransform: "uppercase",
   color: "#666",
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
 } as const;
 
 const THREAD_ITEM_STYLE: React.CSSProperties = {
@@ -138,6 +141,8 @@ export function ChatRoom({
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
   const threads = useThreadList(messages);
   const [selectedThreadKey, setSelectedThreadKey] = useState<string>("");
+  const [allowAutoSelectThread, setAllowAutoSelectThread] =
+    useState<boolean>(true);
   const selectedThreadDate = useMemo(() => {
     if (!selectedThreadKey) return undefined;
     const millis = parseInt(selectedThreadKey, 10);
@@ -150,13 +155,14 @@ export function ChatRoom({
       if (selectedThreadKey !== "") {
         setSelectedThreadKey("");
       }
+      setAllowAutoSelectThread(true);
       return;
     }
     const exists = threads.some((thread) => thread.key === selectedThreadKey);
-    if (!exists) {
+    if (!exists && allowAutoSelectThread) {
       setSelectedThreadKey(threads[0].key);
     }
-  }, [threads, selectedThreadKey]);
+  }, [threads, selectedThreadKey, allowAutoSelectThread]);
 
   const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
   const scrollToBottomRef = useRef<any>(null);
@@ -325,12 +331,22 @@ export function ChatRoom({
     const reply_to =
       replyToOverride === undefined
         ? selectedThreadDate
-        : replyToOverride ?? undefined;
+        : (replyToOverride ?? undefined);
+    if (!reply_to) {
+      setAllowAutoSelectThread(true);
+    }
     scrollToBottomRef.current?.(true);
-    actions.sendChat({ submitMentionsRef, reply_to });
+    const timeStamp = actions.sendChat({ submitMentionsRef, reply_to });
+    if (!reply_to && timeStamp) {
+      setSelectedThreadKey(timeStamp);
+      setTimeout(() => {
+        setSelectedThreadKey(timeStamp);
+      }, 100);
+    }
     setTimeout(() => {
       scrollToBottomRef.current?.(true);
     }, 100);
+    actions.deleteDraft(0);
     setInput("");
   }
   function on_send(): void {
@@ -353,7 +369,19 @@ export function ChatRoom({
 
     return (
       <Layout.Sider width={THREAD_SIDEBAR_WIDTH} style={THREAD_SIDEBAR_STYLE}>
-        <div style={THREAD_SIDEBAR_HEADER}>Threads</div>
+        <div style={THREAD_SIDEBAR_HEADER}>
+          <span style={{ flex: 1 }}>Chats</span>
+          <Button
+            size="small"
+            type={!selectedThreadKey ? "primary" : "default"}
+            onClick={() => {
+              setAllowAutoSelectThread(false);
+              setSelectedThreadKey("");
+            }}
+          >
+            New Chat
+          </Button>
+        </div>
         {threads.length === 0 ? (
           <div style={{ padding: "0 20px", color: "#888", fontSize: "13px" }}>
             No messages yet.
@@ -362,7 +390,10 @@ export function ChatRoom({
           <Menu
             mode="inline"
             selectedKeys={selectedThreadKey ? [selectedThreadKey] : []}
-            onClick={({ key }) => setSelectedThreadKey(String(key))}
+            onClick={({ key }) => {
+              setAllowAutoSelectThread(true);
+              setSelectedThreadKey(String(key));
+            }}
             items={menuItems}
           />
         )}
@@ -377,25 +408,54 @@ export function ChatRoom({
         <Layout.Content className="smc-vfill" style={{ background: "white" }}>
           <div className="smc-vfill" style={GRID_STYLE}>
             {render_button_row()}
-            <div className="smc-vfill" style={CHAT_LOG_STYLE}>
-              <ChatLog
-                actions={actions}
-                project_id={project_id}
-                path={path}
-                scrollToBottomRef={scrollToBottomRef}
-                mode={"standalone"}
-                fontSize={font_size}
-                search={search}
-                filterRecentH={filterRecentH}
-                selectedHashtags={selectedHashtags}
-                selectedThread={selectedThreadKey || undefined}
-                scrollToIndex={scrollToIndex}
-                scrollToDate={scrollToDate}
-                selectedDate={fragmentId}
-                costEstimate={costEstimate}
-              />
-              {render_preview_message()}
-            </div>
+            {selectedThreadKey ? (
+              <div className="smc-vfill" style={CHAT_LOG_STYLE}>
+                <ChatLog
+                  actions={actions}
+                  project_id={project_id}
+                  path={path}
+                  scrollToBottomRef={scrollToBottomRef}
+                  mode={"standalone"}
+                  fontSize={font_size}
+                  search={search}
+                  filterRecentH={filterRecentH}
+                  selectedHashtags={selectedHashtags}
+                  selectedThread={selectedThreadKey}
+                  scrollToIndex={scrollToIndex}
+                  scrollToDate={scrollToDate}
+                  selectedDate={fragmentId}
+                  costEstimate={costEstimate}
+                />
+                {render_preview_message()}
+              </div>
+            ) : (
+              <div
+                className="smc-vfill"
+                style={{
+                  ...CHAT_LOG_STYLE,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#888",
+                  fontSize: "14px",
+                }}
+              >
+                <div>
+                  Select a chat on the left or start a{" "}
+                  <Button
+                    size="small"
+                    type="primary"
+                    onClick={() => {
+                      setAllowAutoSelectThread(false);
+                      setSelectedThreadKey("");
+                    }}
+                  >
+                    new conversation
+                  </Button>
+                  .
+                </div>
+              </div>
+            )}
             <div
               style={{ display: "flex", marginBottom: "5px", overflow: "auto" }}
             >
