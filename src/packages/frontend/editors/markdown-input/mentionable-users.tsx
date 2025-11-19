@@ -41,7 +41,6 @@ import {
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { Item as CompleteItem } from "./complete";
-import { lite } from "@cocalc/frontend/lite";
 
 // we make the show_llm_main_menu field required, to avoid forgetting to set it ;-)
 type Item = CompleteItem & Required<Pick<CompleteItem, "show_llm_main_menu">>;

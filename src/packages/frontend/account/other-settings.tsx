@@ -42,6 +42,7 @@ import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
 import { UserDefinedLLMComponent } from "./user-defined-llm";
+import LiteAISettings from "./lite-ai-settings";
 import { lite } from "@cocalc/frontend/lite";
 
 // Icon constants for account preferences sections
@@ -293,8 +294,8 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       >
         <FormattedMessage
           id="account.other-settings.llm.disable_all"
-          defaultMessage={`<strong>Disable all AI integrations</strong>,
-            e.g., code generation or explanation buttons in Jupyter, @chatgpt mentions, etc.`}
+          defaultMessage={`<strong>Disable all AI integrations</strong>:
+            code generation, explanation buttons in Jupyter, @chatgpt mentions, etc.`}
         />
       </Switch>
     );
@@ -324,7 +325,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         <FormattedMessage
           id="account.other-settings.llm.reply_language"
           defaultMessage={`<strong>Always reply in English:</strong>
-          If set, the replies are always in English. Otherwise, it replies in your language ({lang}).`}
+          If set, the replies are always in English; otherwise, replies in your language ({lang}).`}
           values={{ lang: intl.formatMessage(LOCALIZATIONS[locale].trans) }}
         />
       </Switch>
@@ -332,6 +333,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   }
 
   function render_custom_llm(): Rendered {
+    if (lite) return;
     // on cocalc.com, do not even show that they're disabled
     if (isCoCalcCom && !user_defined_llm) return;
     return (
@@ -347,7 +349,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     const customize = redux.getStore("customize");
     const enabledLLMs = customize.getEnabledLLMs();
     const anyLLMenabled = Object.values(enabledLLMs).some((v) => v);
-    if (!anyLLMenabled) return <></>;
+    if (!anyLLMenabled && !lite) return <></>;
     return (
       <Panel
         header={
@@ -360,10 +362,11 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           </>
         }
       >
-        {render_disable_all_llm()}
-        {render_language_model()}
-        {render_llm_reply_language()}
-        {render_custom_llm()}
+        {anyLLMenabled && render_disable_all_llm()}
+        {anyLLMenabled && render_llm_reply_language()}
+        {anyLLMenabled && render_language_model()}
+        {!lite && render_custom_llm()}
+        {lite && <LiteAISettings />}
       </Panel>
     );
   }
