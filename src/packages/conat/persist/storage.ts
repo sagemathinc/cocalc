@@ -383,7 +383,7 @@ export class PersistentStream extends EventEmitter {
     }
   });
 
-  private runTransaction = <T>(fn: () => T): T => {
+  private runTransaction = <T,>(fn: () => T): T => {
     this.db.exec("BEGIN");
     try {
       const result = fn();
@@ -478,7 +478,7 @@ export class PersistentStream extends EventEmitter {
           compressedRaw.compress,
           encoding,
           compressedRaw.raw,
-          serializedHeaders,
+          serializedHeaders ?? null,
           key ?? null,
           size,
           ttl ?? null,
