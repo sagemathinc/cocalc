@@ -33,8 +33,9 @@ import Filter from "./filter";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import type { ChatState } from "./store";
-import { SubmitMentionsFn } from "./types";
+import type { ChatMessages, SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
+import { useThreadList } from "./threads";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -83,6 +84,7 @@ const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
   padding: "15px 0",
   display: "flex",
   flexDirection: "column",
+  overflow: "auto",
 } as const;
 
 const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
@@ -93,11 +95,25 @@ const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
   color: "#666",
 } as const;
 
-const PLACEHOLDER_THREADS = [
-  { key: "thread-1", label: "Welcome Thread" },
-  { key: "thread-2", label: "Homework Q&A" },
-  { key: "thread-3", label: "Exam Logistics" },
-];
+const THREAD_ITEM_STYLE: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  width: "100%",
+} as const;
+
+const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {
+  flex: 1,
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+} as const;
+
+const THREAD_ITEM_COUNT_STYLE: React.CSSProperties = {
+  fontSize: "11px",
+  color: "#999",
+} as const;
 
 export function ChatRoom({
   actions,
@@ -116,12 +132,24 @@ export function ChatRoom({
   const fragmentId = desc?.get("data-fragmentId") ?? null;
   const showPreview = desc?.get("data-showPreview") ?? null;
   const costEstimate = desc?.get("data-costEstimate");
-  const messages = useEditor("messages");
+  const messages = useEditor("messages") as ChatMessages | undefined;
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
-  const [selectedThreadKey, setSelectedThreadKey] = useState<string>(
-    PLACEHOLDER_THREADS[0]?.key ?? "",
-  );
+  const threads = useThreadList(messages);
+  const [selectedThreadKey, setSelectedThreadKey] = useState<string>("");
+
+  useEffect(() => {
+    if (threads.length === 0) {
+      if (selectedThreadKey !== "") {
+        setSelectedThreadKey("");
+      }
+      return;
+    }
+    const exists = threads.some((thread) => thread.key === selectedThreadKey);
+    if (!exists) {
+      setSelectedThreadKey(threads[0].key);
+    }
+  }, [threads, selectedThreadKey]);
 
   const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
   const scrollToBottomRef = useRef<any>(null);
@@ -295,20 +323,35 @@ export function ChatRoom({
     setInput("");
   }
 
-  function renderThreadSidebar(): React.JSX.Element | null {
-    if (PLACEHOLDER_THREADS.length === 0) return null;
+  function renderThreadSidebar(): React.JSX.Element {
+    const menuItems =
+      threads.length === 0
+        ? []
+        : threads.map(({ key, label, messageCount }) => ({
+            key,
+            label: (
+              <div style={THREAD_ITEM_STYLE}>
+                <StaticMarkdown value={label} style={THREAD_ITEM_LABEL_STYLE} />
+                <span style={THREAD_ITEM_COUNT_STYLE}>{messageCount}</span>
+              </div>
+            ),
+          }));
+
     return (
       <Layout.Sider width={THREAD_SIDEBAR_WIDTH} style={THREAD_SIDEBAR_STYLE}>
         <div style={THREAD_SIDEBAR_HEADER}>Threads</div>
-        <Menu
-          mode="inline"
-          selectedKeys={[selectedThreadKey]}
-          onClick={({ key }) => setSelectedThreadKey(String(key))}
-          items={PLACEHOLDER_THREADS.map(({ key, label }) => ({
-            key,
-            label,
-          }))}
-        />
+        {threads.length === 0 ? (
+          <div style={{ padding: "0 20px", color: "#888", fontSize: "13px" }}>
+            No messages yet.
+          </div>
+        ) : (
+          <Menu
+            mode="inline"
+            selectedKeys={selectedThreadKey ? [selectedThreadKey] : []}
+            onClick={({ key }) => setSelectedThreadKey(String(key))}
+            items={menuItems}
+          />
+        )}
       </Layout.Sider>
     );
   }
