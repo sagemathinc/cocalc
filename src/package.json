@@ -2,6 +2,9 @@
   "name": "cocalc",
   "version": "1.0.0",
   "description": "CoCalc: Collaborative Calculation",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "make": "pnpm run build",
     "make-dev": "pnpm run build-dev",

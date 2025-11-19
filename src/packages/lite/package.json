@@ -25,6 +25,9 @@
   "bin": {
     "cocalc-lite": "./bin/start.js"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
