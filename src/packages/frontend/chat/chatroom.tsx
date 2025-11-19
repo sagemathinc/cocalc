@@ -937,18 +937,35 @@ export function ChatPanel({
       <Drawer
         open={sidebarVisible}
         onClose={() => setSidebarVisible(false)}
-        placement="left"
+        placement="right"
         width={THREAD_SIDEBAR_WIDTH + 40}
         title="Chats"
+        destroyOnClose
       >
         {renderSidebarContent()}
       </Drawer>
-      <div style={{ padding: "10px" }}>
+      <div
+        style={{
+          padding: "10px",
+          display: "flex",
+          gap: "8px",
+          justifyContent: "flex-end",
+        }}
+      >
         <Button
           icon={<Icon name="bars" />}
           onClick={() => setSidebarVisible(true)}
         >
           Chats
+        </Button>
+        <Button
+          type={!selectedThreadKey ? "primary" : "default"}
+          onClick={() => {
+            setAllowAutoSelectThread(false);
+            setSelectedThreadKey(null);
+          }}
+        >
+          New Chat
         </Button>
       </div>
       {renderChatContent()}
