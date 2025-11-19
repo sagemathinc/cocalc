@@ -115,7 +115,6 @@ const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  marginTop: "10px",
   pointerEvents: "none",
 } as const;
 
@@ -126,6 +125,11 @@ export type ThreadMeta = ThreadListItem & {
   unreadCount: number;
   isAI: boolean;
 };
+
+function stripHtml(value: string): string {
+  if (!value) return "";
+  return value.replace(/<[^>]*>/g, "");
+}
 
 export interface ChatPanelProps {
   actions: ChatActions;
@@ -434,6 +438,7 @@ export function ChatPanel({
 
   const renderThreadRow = (thread: ThreadMeta) => {
     const { key, displayLabel, hasCustomName, unreadCount, isAI } = thread;
+    const plainLabel = stripHtml(displayLabel);
     const isHovered = hoveredThread === key;
     const showMenu = isHovered || selectedThreadKey === key;
     return {
@@ -452,7 +457,7 @@ export function ChatPanel({
           }
         >
           <Icon name={isAI ? "robot" : "users"} style={{ color: "#888" }} />
-          <div style={THREAD_ITEM_LABEL_STYLE}>{displayLabel}</div>
+          <div style={THREAD_ITEM_LABEL_STYLE}>{plainLabel}</div>
           {unreadCount > 0 && (
             <Badge
               count={unreadCount}
@@ -466,7 +471,7 @@ export function ChatPanel({
           )}
           {showMenu && (
             <Dropdown
-              menu={threadMenuProps(key, displayLabel, hasCustomName)}
+              menu={threadMenuProps(key, plainLabel, hasCustomName)}
               trigger={["click"]}
             >
               <Button
