@@ -124,6 +124,7 @@ export function ChatLog({
       search,
       account_id!,
       filterRecentH,
+      singleThreadView,
     );
     // TODO: This is an ugly hack because I'm tired and need to finish this.
     // The right solution would be to move this filtering to the store.
@@ -136,7 +137,7 @@ export function ChatLog({
       );
     }, 1);
     return { dates, numFolded, numChildren };
-  }, [messages, search, project_id, path, filterRecentH]);
+  }, [messages, search, project_id, path, filterRecentH, singleThreadView]);
 
   useEffect(() => {
     scrollToBottomRef?.current?.(true);
