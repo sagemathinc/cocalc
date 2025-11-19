@@ -8,6 +8,7 @@ import {
   Badge,
   Button,
   Divider,
+  Drawer,
   Dropdown,
   Input,
   Layout,
@@ -27,8 +28,8 @@ import {
   React,
   useEditorRedux,
   useEffect,
-  useRef,
   useMemo,
+  useRef,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -36,7 +37,9 @@ import { Icon, Loading } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import type { NodeDesc } from "../frame-editors/frame-tree/types";
 import { EditorComponentProps } from "../frame-editors/frame-tree/types";
+import type { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import Filter from "./filter";
 import ChatInput from "./input";
@@ -45,19 +48,11 @@ import type { ChatState } from "./store";
 import type { ChatMessageTyped, ChatMessages, SubmitMentionsFn } from "./types";
 import {
   INPUT_HEIGHT,
-  markChatAsReadIfUnseen,
   getThreadRootDate,
+  markChatAsReadIfUnseen,
 } from "./utils";
 import { ALL_THREADS_KEY, useThreadList } from "./threads";
 import type { ThreadListItem } from "./threads";
-
-type ThreadMeta = ThreadListItem & {
-  displayLabel: string;
-  hasCustomName: boolean;
-  readCount: number;
-  unreadCount: number;
-  isAI: boolean;
-};
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -96,7 +91,6 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
   background: "white",
   flex: "1 0 auto",
   position: "relative",
-  marginBottom: "10px",
 } as const;
 
 const THREAD_SIDEBAR_WIDTH = 260;
@@ -125,29 +119,93 @@ const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {
   pointerEvents: "none",
 } as const;
 
-export function ChatRoom({
+export type ThreadMeta = ThreadListItem & {
+  displayLabel: string;
+  hasCustomName: boolean;
+  readCount: number;
+  unreadCount: number;
+  isAI: boolean;
+};
+
+export interface ChatPanelProps {
+  actions: ChatActions;
+  project_id: string;
+  path: string;
+  messages?: ChatMessages;
+  fontSize?: number;
+  desc?: NodeDesc;
+  variant?: "default" | "compact";
+  disableFilters?: boolean;
+}
+
+function getDescValue(desc: NodeDesc | undefined, key: string) {
+  if (desc == null) return undefined;
+  const getter: any = (desc as any).get;
+  if (typeof getter === "function") {
+    return getter.call(desc, key);
+  }
+  return (desc as any)[key];
+}
+
+export function ChatPanel({
   actions,
   project_id,
   path,
-  font_size,
+  messages,
+  fontSize = 13,
   desc,
-}: EditorComponentProps) {
-  const useEditor = useEditorRedux<ChatState>({ project_id, path });
+  variant = "default",
+  disableFilters: disableFiltersProp,
+}: ChatPanelProps) {
   const account_id = useTypedRedux("account", "account_id");
   const [input, setInput] = useState("");
-  const search = desc?.get("data-search") ?? "";
-  const filterRecentH: number = desc?.get("data-filterRecentH") ?? 0;
-  const selectedHashtags = desc?.get("data-selectedHashtags");
-  const scrollToIndex = desc?.get("data-scrollToIndex") ?? null;
-  const scrollToDate = desc?.get("data-scrollToDate") ?? null;
-  const fragmentId = desc?.get("data-fragmentId") ?? null;
-  const showPreview = desc?.get("data-showPreview") ?? null;
-  const costEstimate = desc?.get("data-costEstimate");
-  const messages = useEditor("messages") as ChatMessages | undefined;
+  const search = getDescValue(desc, "data-search") ?? "";
+  const filterRecentH: number = getDescValue(desc, "data-filterRecentH") ?? 0;
+  const selectedHashtags = getDescValue(desc, "data-selectedHashtags");
+  const scrollToIndex = getDescValue(desc, "data-scrollToIndex") ?? null;
+  const scrollToDate = getDescValue(desc, "data-scrollToDate") ?? null;
+  const fragmentId = getDescValue(desc, "data-fragmentId") ?? null;
+  const showPreview = getDescValue(desc, "data-showPreview") ?? null;
+  const costEstimate = getDescValue(desc, "data-costEstimate");
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
-  const rawThreads = useThreadList(messages);
+  const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
+  const isCompact = variant === "compact";
+  const disableFilters = disableFiltersProp ?? isCompact;
+  const [selectedThreadKey, setSelectedThreadKey0] = useState<string | null>(
+    getDescValue(desc, "data-selectedThreadKey") ?? null,
+  );
+  const setSelectedThreadKey = (x: string | null) => {
+    if (x != null && x != ALL_THREADS_KEY) {
+      actions.clearAllFilters();
+      actions.setFragment();
+    }
+    setSelectedThreadKey0(x);
+    actions.setSelectedThread?.(x);
+  };
+  const [lastThreadKey, setLastThreadKey] = useState<string | null>(null);
+  const [renamingThread, setRenamingThread] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState<string>("");
+  const [hoveredThread, setHoveredThread] = useState<string | null>(null);
+  const [allowAutoSelectThread, setAllowAutoSelectThread] =
+    useState<boolean>(true);
+  const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
+  const scrollToBottomRef = useRef<any>(null);
+  const selectedThreadDate = useMemo(() => {
+    if (!selectedThreadKey || selectedThreadKey === ALL_THREADS_KEY) {
+      return undefined;
+    }
+    const millis = parseInt(selectedThreadKey, 10);
+    if (!isFinite(millis)) return undefined;
+    return new Date(millis);
+  }, [selectedThreadKey]);
+
+  const isAllThreadsSelected = selectedThreadKey === ALL_THREADS_KEY;
+  const singleThreadView = selectedThreadKey != null && !isAllThreadsSelected;
+  const showThreadFilters = !isCompact && isAllThreadsSelected;
+
   const llmCacheRef = useRef<Map<string, boolean>>(new Map());
+  const rawThreads = useThreadList(messages);
   const threads = useMemo<ThreadMeta[]>(() => {
     return rawThreads.map((thread) => {
       const rootMessage = thread.rootMessage;
@@ -191,35 +249,6 @@ export function ChatRoom({
       };
     });
   }, [rawThreads, account_id, actions]);
-  const [selectedThreadKey, setSelectedThreadKey0] = useState<string | null>(
-    desc?.get("data-selectedThreadKey") ?? null,
-  );
-  const setSelectedThreadKey = (x: string | null) => {
-    if (x != null && x != ALL_THREADS_KEY) {
-      actions.clearAllFilters();
-      actions.setFragment();
-    }
-    setSelectedThreadKey0(x);
-    actions.setSelectedThread?.(x);
-  };
-  const [lastThreadKey, setLastThreadKey] = useState<string | null>(null);
-  const [renamingThread, setRenamingThread] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState<string>("");
-  const [hoveredThread, setHoveredThread] = useState<string | null>(null);
-  const [allowAutoSelectThread, setAllowAutoSelectThread] =
-    useState<boolean>(true);
-  const selectedThreadDate = useMemo(() => {
-    if (!selectedThreadKey || selectedThreadKey === ALL_THREADS_KEY) {
-      return undefined;
-    }
-    const millis = parseInt(selectedThreadKey, 10);
-    if (!isFinite(millis)) return undefined;
-    return new Date(millis);
-  }, [selectedThreadKey]);
-
-  const isAllThreadsSelected = selectedThreadKey === ALL_THREADS_KEY;
-  const singleThreadView = selectedThreadKey != null && !isAllThreadsSelected;
-  const showThreadFilters = isAllThreadsSelected;
 
   useEffect(() => {
     if (threads.length === 0) {
@@ -240,20 +269,6 @@ export function ChatRoom({
       setLastThreadKey(selectedThreadKey);
     }
   }, [selectedThreadKey]);
-
-  useEffect(() => {
-    if (!singleThreadView || !selectedThreadKey) {
-      return;
-    }
-    const thread = threads.find((t) => t.key === selectedThreadKey);
-    if (!thread) {
-      return;
-    }
-    if (thread.unreadCount <= 0) {
-      return;
-    }
-    actions.markThreadRead?.(thread.key, thread.messageCount);
-  }, [singleThreadView, selectedThreadKey, threads, actions]);
 
   useEffect(() => {
     if (!fragmentId || isAllThreadsSelected || messages == null) {
@@ -286,6 +301,22 @@ export function ChatRoom({
       setSelectedThreadKey(threadKey);
     }
   }, [fragmentId, isAllThreadsSelected, messages, selectedThreadKey]);
+
+  const mark_as_read = () => markChatAsReadIfUnseen(project_id, path);
+
+  useEffect(() => {
+    if (!singleThreadView || !selectedThreadKey) {
+      return;
+    }
+    const thread = threads.find((t) => t.key === selectedThreadKey);
+    if (!thread) {
+      return;
+    }
+    if (thread.unreadCount <= 0) {
+      return;
+    }
+    actions.markThreadRead?.(thread.key, thread.messageCount);
+  }, [singleThreadView, selectedThreadKey, threads, actions]);
 
   const handleToggleAllChats = (checked: boolean) => {
     if (checked) {
@@ -351,14 +382,13 @@ export function ChatRoom({
       antdMessage.error("Renaming chats is not available.");
       return;
     }
-    const trimmed = renameValue.trim();
-    const success = actions.renameThread(renamingThread, trimmed);
+    const success = actions.renameThread(renamingThread, renameValue.trim());
     if (!success) {
       antdMessage.error("Unable to rename chat.");
       return;
     }
     antdMessage.success(
-      trimmed ? "Chat renamed." : "Chat name reset to default.",
+      renameValue.trim() ? "Chat renamed." : "Chat name reset to default.",
     );
     closeRenameModal();
   };
@@ -390,60 +420,190 @@ export function ChatRoom({
     },
   });
 
-  const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
-  const scrollToBottomRef = useRef<any>(null);
-
-  // The act of opening/displaying the chat marks it as seen...
-  useEffect(() => {
-    mark_as_read();
-  }, []);
-
-  function mark_as_read() {
-    markChatAsReadIfUnseen(project_id, path);
-  }
-
-  function on_send_button_click(e): void {
-    e.preventDefault();
-    sendMessage();
-  }
-
-  function render_preview_message(): React.JSX.Element | undefined {
-    if (!showPreview) {
-      return;
-    }
-    if (input.length === 0) {
-      return;
-    }
-
-    return (
-      <Row style={{ position: "absolute", bottom: "0px", width: "100%" }}>
-        <Col xs={0} sm={2} />
-
-        <Col xs={10} sm={9}>
-          <Well style={PREVIEW_STYLE}>
-            <div
-              className="pull-right lighten"
+  const renderThreadRow = (thread: ThreadMeta) => {
+    const { key, displayLabel, hasCustomName, unreadCount, isAI } = thread;
+    const isHovered = hoveredThread === key;
+    const showMenu = isHovered || selectedThreadKey === key;
+    return {
+      key,
+      label: (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            width: "100%",
+          }}
+          onMouseEnter={() => setHoveredThread(key)}
+          onMouseLeave={() =>
+            setHoveredThread((prev) => (prev === key ? null : prev))
+          }
+        >
+          <Icon name={isAI ? "robot" : "users"} style={{ color: "#888" }} />
+          <StaticMarkdown
+            value={displayLabel}
+            style={THREAD_ITEM_LABEL_STYLE}
+          />
+          {unreadCount > 0 && (
+            <Badge
+              count={unreadCount}
+              size="small"
+              overflowCount={99}
               style={{
-                marginRight: "-8px",
-                marginTop: "-10px",
-                cursor: "pointer",
-                fontSize: "13pt",
+                backgroundColor: COLORS.GRAY_L0,
+                color: COLORS.GRAY_D,
               }}
-              onClick={() => actions.setShowPreview(false)}
+            />
+          )}
+          {showMenu && (
+            <Dropdown
+              menu={threadMenuProps(key, displayLabel, hasCustomName)}
+              trigger={["click"]}
             >
-              <Icon name="times" />
-            </div>
-            <StaticMarkdown value={input} />
-            <div className="small lighten" style={{ marginTop: "15px" }}>
-              Preview (press Shift+Enter to send)
-            </div>
-          </Well>
-        </Col>
+              <Button
+                type="text"
+                size="small"
+                onClick={(event) => event.stopPropagation()}
+                icon={<Icon name="ellipsis" />}
+              />
+            </Dropdown>
+          )}
+        </div>
+      ),
+    };
+  };
 
-        <Col sm={1} />
-      </Row>
+  const renderThreadSection = (
+    title: string,
+    icon: "users" | "robot",
+    list: ThreadMeta[],
+  ) => {
+    const unreadTotal = list.reduce(
+      (sum, thread) => sum + thread.unreadCount,
+      0,
     );
-  }
+    const items = list.map(renderThreadRow);
+    return (
+      <div style={{ marginBottom: "15px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "6px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Icon name={icon} />
+            <span style={{ fontWeight: 600 }}>{title}</span>
+          </div>
+          {unreadTotal > 0 && (
+            <Badge
+              count={unreadTotal}
+              size="small"
+              style={{
+                backgroundColor: COLORS.GRAY_L0,
+                color: COLORS.GRAY_D,
+              }}
+            />
+          )}
+        </div>
+        {list.length === 0 ? (
+          <div style={{ color: "#999", fontSize: "12px", marginLeft: "4px" }}>
+            No chats
+          </div>
+        ) : (
+          <Menu
+            mode="inline"
+            selectedKeys={selectedThreadKey ? [selectedThreadKey] : []}
+            onClick={({ key }) => {
+              setAllowAutoSelectThread(true);
+              setSelectedThreadKey(String(key));
+              if (isCompact) {
+                setSidebarVisible(false);
+              }
+            }}
+            items={items}
+            style={{
+              border: "none",
+              background: "transparent",
+              padding: 0,
+              maxHeight: "28vh",
+              overflowY: "auto",
+            }}
+          />
+        )}
+      </div>
+    );
+  };
+
+  const renderSidebarContent = () => (
+    <>
+      <div style={THREAD_SIDEBAR_HEADER}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "8px",
+          }}
+        >
+          <span
+            style={{
+              fontWeight: 600,
+              fontSize: "15px",
+              textTransform: "uppercase",
+            }}
+          >
+            Chats
+          </span>
+          {!isCompact && (
+            <Space size="small">
+              <span style={{ fontSize: "12px" }}>All</span>
+              <Switch
+                size="small"
+                checked={isAllThreadsSelected}
+                onChange={handleToggleAllChats}
+              />
+            </Space>
+          )}
+        </div>
+        {!isCompact && (
+          <>
+            <Button
+              block
+              type={!selectedThreadKey ? "primary" : "default"}
+              onClick={() => {
+                setAllowAutoSelectThread(false);
+                setSelectedThreadKey(null);
+              }}
+            >
+              New Chat
+            </Button>
+            <Button
+              block
+              style={{ marginTop: "8px" }}
+              onClick={() => {
+                actions?.frameTreeActions?.show_search();
+              }}
+            >
+              Search
+            </Button>
+          </>
+        )}
+      </div>
+      {renderThreadSection(
+        "Humans",
+        "users",
+        threads.filter((thread) => !thread.isAI),
+      )}
+      {renderThreadSection(
+        "AI",
+        "robot",
+        threads.filter((thread) => thread.isAI),
+      )}
+    </>
+  );
 
   function isValidFilterRecentCustom(): boolean {
     const v = parseFloat(filterRecentHCustom);
@@ -452,6 +612,9 @@ export function ChatRoom({
 
   function renderFilterRecent() {
     if (messages == null || messages.size <= 5) {
+      return null;
+    }
+    if (disableFilters) {
       return null;
     }
     return (
@@ -535,7 +698,7 @@ export function ChatRoom({
   }
 
   function render_button_row() {
-    if (!showThreadFilters) {
+    if (!showThreadFilters || disableFilters) {
       return null;
     }
     if (messages == null || messages.size <= 5) {
@@ -564,7 +727,6 @@ export function ChatRoom({
     if (!reply_to) {
       setAllowAutoSelectThread(true);
     }
-    scrollToBottomRef.current?.(true);
     const timeStamp = actions.sendChat({ submitMentionsRef, reply_to });
     if (!reply_to && timeStamp) {
       setSelectedThreadKey(timeStamp);
@@ -582,376 +744,228 @@ export function ChatRoom({
     sendMessage();
   }
 
-  function renderThreadRow(thread: ThreadMeta) {
-    const { key, displayLabel, hasCustomName, unreadCount, isAI } = thread;
-    const isHovered = hoveredThread === key;
-    const showMenu = isHovered || selectedThreadKey === key;
-    return {
-      key,
-      label: (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            width: "100%",
-          }}
-          onMouseEnter={() => setHoveredThread(key)}
-          onMouseLeave={() =>
-            setHoveredThread((prev) => (prev === key ? null : prev))
-          }
-        >
-          <StaticMarkdown
-            value={displayLabel}
-            style={THREAD_ITEM_LABEL_STYLE}
+  const renderThreadSidebar = () => (
+    <Layout.Sider width={THREAD_SIDEBAR_WIDTH} style={THREAD_SIDEBAR_STYLE}>
+      {renderSidebarContent()}
+    </Layout.Sider>
+  );
+
+  const renderChatContent = () => (
+    <div className="smc-vfill" style={GRID_STYLE}>
+      {render_button_row()}
+      {selectedThreadKey ? (
+        <div className="smc-vfill" style={CHAT_LOG_STYLE}>
+          <ChatLog
+            actions={actions}
+            project_id={project_id}
+            path={path}
+            scrollToBottomRef={scrollToBottomRef}
+            mode={variant === "compact" ? "sidechat" : "standalone"}
+            fontSize={fontSize}
+            search={search}
+            filterRecentH={filterRecentH}
+            selectedHashtags={selectedHashtags}
+            selectedThread={
+              singleThreadView ? (selectedThreadKey ?? undefined) : undefined
+            }
+            scrollToIndex={scrollToIndex}
+            scrollToDate={scrollToDate}
+            selectedDate={fragmentId}
+            costEstimate={costEstimate}
           />
-          {unreadCount > 0 && (
-            <Badge
-              count={unreadCount}
-              size="small"
-              overflowCount={99}
-              style={{
-                backgroundColor: COLORS.GRAY_L0,
-                color: COLORS.GRAY_D,
-              }}
-            />
-          )}
-          {showMenu && (
-            <Dropdown
-              menu={threadMenuProps(key, displayLabel, hasCustomName)}
-              trigger={["click"]}
-            >
-              <Button
-                type="text"
-                size="small"
-                onClick={(event) => event.stopPropagation()}
-                icon={<Icon name="ellipsis" />}
-              />
-            </Dropdown>
-          )}
-        </div>
-      ),
-    };
-  }
-
-  function renderThreadSection({
-    title,
-    icon,
-    threads: list,
-    maxHeight,
-  }: {
-    title: string;
-    icon: React.ComponentProps<typeof Icon>["name"];
-    threads: ThreadMeta[];
-    maxHeight?: string;
-  }) {
-    const unreadTotal = list.reduce(
-      (sum, thread) => sum + thread.unreadCount,
-      0,
-    );
-    const items = list.map(renderThreadRow);
-    return (
-      <div style={{ marginBottom: "15px" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: "6px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              paddingLeft: "10px",
-            }}
-          >
-            <Icon name={icon} />
-            <span style={{ fontWeight: 600 }}>{title}</span>
-          </div>
-          {unreadTotal > 0 && (
-            <Badge
-              count={unreadTotal}
-              size="small"
-              style={{
-                backgroundColor: COLORS.GRAY_L0,
-                color: COLORS.GRAY_D,
-              }}
-            />
-          )}
-        </div>
-        {list.length === 0 ? (
-          <div style={{ color: "#999", fontSize: "12px", marginLeft: "4px" }}>
-            No chats
-          </div>
-        ) : (
-          <Menu
-            mode="inline"
-            selectedKeys={selectedThreadKey ? [selectedThreadKey] : []}
-            onClick={({ key }) => {
-              setAllowAutoSelectThread(true);
-              setSelectedThreadKey(String(key));
-            }}
-            items={items}
-            style={{
-              border: "none",
-              background: "transparent",
-              padding: 0,
-              maxHeight: maxHeight ?? "28vh",
-              overflowY: "auto",
-            }}
-          />
-        )}
-      </div>
-    );
-  }
-
-  function renderThreadSidebar(): React.JSX.Element {
-    const humanThreads = threads.filter((thread) => !thread.isAI);
-    const aiThreads = threads.filter((thread) => thread.isAI);
-
-    return (
-      <Layout.Sider width={THREAD_SIDEBAR_WIDTH} style={THREAD_SIDEBAR_STYLE}>
-        <div style={THREAD_SIDEBAR_HEADER}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: "8px",
-            }}
-          >
-            <span
-              style={{
-                fontWeight: 600,
-                fontSize: "15px",
-                textTransform: "uppercase",
-              }}
-            >
-              Chats
-            </span>
-            <Space size="small">
-              <span style={{ fontSize: "12px" }}>All</span>
-              <Switch
-                size="small"
-                checked={isAllThreadsSelected}
-                onChange={handleToggleAllChats}
-              />
-            </Space>
-          </div>
-          <Button
-            block
-            type={!selectedThreadKey ? "primary" : "default"}
-            onClick={() => {
-              setAllowAutoSelectThread(false);
-              setSelectedThreadKey(null);
-              actions.setFragment();
-            }}
-          >
-            New Chat
-          </Button>
-          <Button
-            block
-            style={{ marginTop: "8px" }}
-            onClick={() => {
-              actions?.frameTreeActions?.show_search();
-            }}
-          >
-            Search
-          </Button>
-        </div>
-        {threads.length === 0 ? (
-          <div style={{ padding: "0 20px", color: "#888", fontSize: "13px" }}>
-            No messages yet.
-          </div>
-        ) : (
-          <>
-            {renderThreadSection({
-              title: "Humans",
-              icon: "users",
-              threads: humanThreads,
-              maxHeight: "30vh",
-            })}
-            {renderThreadSection({
-              title: "AI",
-              icon: "robot",
-              threads: aiThreads,
-              maxHeight: "30vh",
-            })}
-          </>
-        )}
-      </Layout.Sider>
-    );
-  }
-
-  function render_body(): React.JSX.Element {
-    return (
-      <Layout style={CHAT_LAYOUT_STYLE}>
-        {renderThreadSidebar()}
-        <Layout.Content className="smc-vfill" style={{ background: "white" }}>
-          <div className="smc-vfill" style={GRID_STYLE}>
-            {render_button_row()}
-            {selectedThreadKey ? (
-              <div className="smc-vfill" style={CHAT_LOG_STYLE}>
-                <ChatLog
-                  actions={actions}
-                  project_id={project_id}
-                  path={path}
-                  scrollToBottomRef={scrollToBottomRef}
-                  mode={"standalone"}
-                  fontSize={font_size}
-                  search={search}
-                  filterRecentH={filterRecentH}
-                  selectedHashtags={selectedHashtags}
-                  selectedThread={
-                    singleThreadView ? selectedThreadKey : undefined
-                  }
-                  scrollToIndex={scrollToIndex}
-                  scrollToDate={scrollToDate}
-                  selectedDate={fragmentId}
-                  costEstimate={costEstimate}
-                />
-                {render_preview_message()}
-              </div>
-            ) : (
-              <div
-                className="smc-vfill"
-                style={{
-                  ...CHAT_LOG_STYLE,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#888",
-                  fontSize: "14px",
-                }}
-              >
-                <div>
-                  Select a chat on the left or start a{" "}
-                  <Button
-                    size="small"
-                    type="primary"
-                    onClick={() => {
-                      setAllowAutoSelectThread(false);
-                      setSelectedThreadKey(null);
-                    }}
-                  >
-                    new conversation
-                  </Button>
-                  .
-                </div>
-              </div>
-            )}
-            <div
-              style={{ display: "flex", marginBottom: "5px", overflow: "auto" }}
-            >
-              <div
-                style={{
-                  flex: "1",
-                  padding: "0px 5px 0px 2px",
-                }}
-              >
-                <ChatInput
-                  fontSize={font_size}
-                  autoFocus
-                  cacheId={`${path}${project_id}-new`}
-                  input={input}
-                  on_send={on_send}
-                  height={INPUT_HEIGHT}
-                  onChange={(value) => {
-                    setInput(value);
-                    // submitMentionsRef will not actually submit mentions; we're only interested in the reply value
-                    const input =
-                      submitMentionsRef.current?.(undefined, true) ?? value;
-                    actions?.llmEstimateCost({ date: 0, input });
-                  }}
-                  submitMentionsRef={submitMentionsRef}
-                  syncdb={actions.syncdb}
-                  date={0}
-                  editBarStyle={{ overflow: "auto" }}
-                />
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  padding: "0",
-                  marginBottom: "0",
-                }}
-              >
-                <div style={{ flex: 1 }} />
-                {costEstimate?.get("date") == 0 && (
-                  <LLMCostEstimationChat
-                    costEstimate={costEstimate?.toJS()}
-                    compact
+          {showPreview && input.length > 0 && (
+            <Row style={{ position: "absolute", bottom: "0px", width: "100%" }}>
+              <Col xs={0} sm={2} />
+              <Col xs={10} sm={9}>
+                <Well style={PREVIEW_STYLE}>
+                  <div
+                    className="pull-right lighten"
                     style={{
-                      flex: 0,
-                      fontSize: "85%",
-                      textAlign: "center",
-                      margin: "0 0 5px 0",
+                      marginRight: "-8px",
+                      marginTop: "-10px",
+                      cursor: "pointer",
+                      fontSize: "13pt",
                     }}
-                  />
-                )}
-                <Tooltip
-                  title={
-                    <FormattedMessage
-                      id="chatroom.chat_input.send_button.tooltip"
-                      defaultMessage={"Send message (shift+enter)"}
-                    />
-                  }
-                >
-                  <Button
-                    onClick={on_send_button_click}
-                    disabled={input.trim() === ""}
-                    type="primary"
-                    style={{ height: "47.5px" }}
-                    icon={<Icon name="paper-plane" />}
+                    onClick={() => actions.setShowPreview(false)}
                   >
-                    <FormattedMessage
-                      id="chatroom.chat_input.send_button.label"
-                      defaultMessage={"Send"}
-                    />
-                  </Button>
-                </Tooltip>
-                <div style={{ height: "5px" }} />
-                <Button
-                  type={showPreview ? "dashed" : undefined}
-                  onClick={() => actions.setShowPreview(!showPreview)}
-                  style={{ height: "47.5px" }}
-                >
-                  <FormattedMessage
-                    id="chatroom.chat_input.preview_button.label"
-                    defaultMessage={"Preview"}
-                  />
-                </Button>
-                <div style={{ height: "5px" }} />
-                <Button
-                  style={{ height: "47.5px" }}
-                  onClick={() => {
-                    actions?.frameTreeActions?.getVideoChat().startChatting();
-                  }}
-                >
-                  <Icon name="video-camera" /> Video
-                </Button>
-              </div>
-            </div>
+                    <Icon name="times" />
+                  </div>
+                  <StaticMarkdown value={input} />
+                  <div className="small lighten" style={{ marginTop: "15px" }}>
+                    Preview (press Shift+Enter to send)
+                  </div>
+                </Well>
+              </Col>
+              <Col sm={1} />
+            </Row>
+          )}
+        </div>
+      ) : (
+        <div
+          className="smc-vfill"
+          style={{
+            ...CHAT_LOG_STYLE,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#888",
+            fontSize: "14px",
+          }}
+        >
+          <div>
+            {threads.length === 0
+              ? "No chats yet. Start a new conversation."
+              : "Select a chat or start a new conversation."}
+            <Button
+              size="small"
+              type="primary"
+              style={{ marginLeft: "8px" }}
+              onClick={() => {
+                setAllowAutoSelectThread(false);
+                setSelectedThreadKey(null);
+              }}
+            >
+              New Chat
+            </Button>
           </div>
-        </Layout.Content>
-      </Layout>
-    );
-  }
+        </div>
+      )}
+      <div style={{ display: "flex", marginBottom: "5px", overflow: "auto" }}>
+        <div
+          style={{
+            flex: "1",
+            padding: "0px 5px 0px 2px",
+          }}
+        >
+          <ChatInput
+            fontSize={fontSize}
+            autoFocus
+            cacheId={`${path}${project_id}-new`}
+            input={input}
+            on_send={on_send}
+            height={INPUT_HEIGHT}
+            onChange={(value) => {
+              setInput(value);
+              const inputText =
+                submitMentionsRef.current?.(undefined, true) ?? value;
+              actions?.llmEstimateCost({ date: 0, input: inputText });
+            }}
+            submitMentionsRef={submitMentionsRef}
+            syncdb={actions.syncdb}
+            date={0}
+            editBarStyle={{ overflow: "auto" }}
+          />
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            padding: "0",
+            marginBottom: "0",
+          }}
+        >
+          <div style={{ flex: 1 }} />
+          {costEstimate?.get("date") == 0 && (
+            <LLMCostEstimationChat
+              costEstimate={costEstimate?.toJS()}
+              compact
+              style={{
+                flex: 0,
+                fontSize: "85%",
+                textAlign: "center",
+                margin: "0 0 5px 0",
+              }}
+            />
+          )}
+          <Tooltip
+            title={
+              <FormattedMessage
+                id="chatroom.chat_input.send_button.tooltip"
+                defaultMessage={"Send message (shift+enter)"}
+              />
+            }
+          >
+            <Button
+              onClick={() => sendMessage()}
+              disabled={input.trim() === ""}
+              type="primary"
+              style={{ height: "47.5px" }}
+              icon={<Icon name="paper-plane" />}
+            >
+              <FormattedMessage
+                id="chatroom.chat_input.send_button.label"
+                defaultMessage={"Send"}
+              />
+            </Button>
+          </Tooltip>
+          <div style={{ height: "5px" }} />
+          <Button
+            type={showPreview ? "dashed" : undefined}
+            onClick={() => actions.setShowPreview(!showPreview)}
+            style={{ height: "47.5px" }}
+          >
+            <FormattedMessage
+              id="chatroom.chat_input.preview_button.label"
+              defaultMessage={"Preview"}
+            />
+          </Button>
+          <div style={{ height: "5px" }} />
+          <Button
+            style={{ height: "47.5px" }}
+            onClick={() => {
+              actions?.frameTreeActions?.getVideoChat().startChatting();
+            }}
+          >
+            <Icon name="video-camera" /> Video
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 
-  if (messages == null || input == null) {
+  const renderDefaultLayout = () => (
+    <Layout style={CHAT_LAYOUT_STYLE}>
+      {renderThreadSidebar()}
+      <Layout.Content className="smc-vfill" style={{ background: "white" }}>
+        {renderChatContent()}
+      </Layout.Content>
+    </Layout>
+  );
+
+  const renderCompactLayout = () => (
+    <div className="smc-vfill" style={{ background: "white" }}>
+      <Drawer
+        open={sidebarVisible}
+        onClose={() => setSidebarVisible(false)}
+        placement="left"
+        width={THREAD_SIDEBAR_WIDTH + 40}
+        title="Chats"
+      >
+        {renderSidebarContent()}
+      </Drawer>
+      <div style={{ padding: "10px" }}>
+        <Button
+          icon={<Icon name="bars" />}
+          onClick={() => setSidebarVisible(true)}
+        >
+          Chats
+        </Button>
+      </div>
+      {renderChatContent()}
+    </div>
+  );
+
+  if (messages == null) {
     return <Loading theme={"medium"} />;
   }
+
   return (
     <div
       onMouseMove={mark_as_read}
       onClick={mark_as_read}
       className="smc-vfill"
     >
-      {render_body()}
+      {variant === "compact" ? renderCompactLayout() : renderDefaultLayout()}
       <Modal
         title="Rename chat"
         open={renamingThread != null}
@@ -965,10 +979,30 @@ export function ChatRoom({
           value={renameValue}
           onChange={(e) => setRenameValue(e.target.value)}
           onPressEnter={handleRenameSave}
-          allowClear
-          autoFocus
         />
       </Modal>
     </div>
+  );
+}
+
+export function ChatRoom({
+  actions,
+  project_id,
+  path,
+  font_size,
+  desc,
+}: EditorComponentProps) {
+  const useEditor = useEditorRedux<ChatState>({ project_id, path });
+  const messages = useEditor("messages") as ChatMessages | undefined;
+  return (
+    <ChatPanel
+      actions={actions}
+      project_id={project_id}
+      path={path}
+      messages={messages}
+      fontSize={font_size}
+      desc={desc}
+      variant="default"
+    />
   );
 }
