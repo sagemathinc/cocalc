@@ -55,6 +55,7 @@ interface Props {
   filterRecentH?;
   selectedHashtags;
   disableFilters?: boolean;
+  selectedThread?: string;
   scrollToIndex?: null | number | undefined;
   // scrollToDate = string ms from epoch
   scrollToDate?: null | undefined | string;
@@ -74,12 +75,32 @@ export function ChatLog({
   filterRecentH,
   selectedHashtags: selectedHashtags0,
   disableFilters,
+  selectedThread,
   scrollToIndex,
   scrollToDate,
   selectedDate,
   costEstimate,
 }: Props) {
-  const messages = useRedux(["messages"], project_id, path) as ChatMessages;
+  const storeMessages = useRedux(
+    ["messages"],
+    project_id,
+    path,
+  ) as ChatMessages;
+  const singleThreadView = selectedThread != null;
+  const messages = useMemo(() => {
+    if (!selectedThread || storeMessages == null) {
+      return storeMessages;
+    }
+    return storeMessages.filter((message) => {
+      if (message == null) return false;
+      const replyTo = message.get("reply_to");
+      if (replyTo != null) {
+        return `${new Date(replyTo).valueOf()}` === selectedThread;
+      }
+      const dateValue = message.get("date")?.valueOf();
+      return dateValue != null ? `${dateValue}` === selectedThread : false;
+    }) as ChatMessages;
+  }, [storeMessages, selectedThread]);
   // see similar code in task list:
   const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
     return getSelectedHashtagsSearch(selectedHashtags0);
@@ -102,6 +123,7 @@ export function ChatLog({
       search,
       account_id!,
       filterRecentH,
+      singleThreadView,
     );
     // TODO: This is an ugly hack because I'm tired and need to finish this.
     // The right solution would be to move this filtering to the store.
@@ -114,7 +136,7 @@ export function ChatLog({
       );
     }, 1);
     return { dates, numFolded, numChildren };
-  }, [messages, search, project_id, path, filterRecentH]);
+  }, [messages, search, project_id, path, filterRecentH, singleThreadView]);
 
   useEffect(() => {
     scrollToBottomRef?.current?.(true);
@@ -254,6 +276,7 @@ export function ChatLog({
           mode,
           selectedDate,
           numChildren,
+          singleThreadView,
         }}
       />
       <Composing
@@ -330,6 +353,7 @@ export function getSortedDates(
   search: string | undefined,
   account_id: string,
   filterRecentH?: number,
+  disableFolding?: boolean,
 ): {
   dates: string[];
   numFolded: number;
@@ -365,7 +389,7 @@ export function getSortedDates(
     if (message == null) continue;
 
     // If we search for a message, we treat all threads as unfolded
-    if (!search) {
+    if (!disableFolding && !search) {
       const is_thread = isThread(message, numChildren);
       const is_folded = is_thread && isFolded(messages, message, account_id);
       const is_thread_body = is_thread && message.get("reply_to") != null;
@@ -494,6 +518,7 @@ export function MessageList({
   mode,
   selectedDate,
   numChildren,
+  singleThreadView,
 }: {
   messages: ChatMessages;
   account_id: string;
@@ -510,6 +535,7 @@ export function MessageList({
   manualScrollRef?;
   selectedDate?: string;
   numChildren?: NumChildren;
+  singleThreadView?: boolean;
 }) {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   const virtuosoScroll = useVirtuosoScrollHook({
@@ -546,7 +572,10 @@ export function MessageList({
         const is_thread = numChildren != null && isThread(message, numChildren);
         // optimization: only threads can be folded, so don't waste time
         // checking on folding state if it isn't a thread.
-        const is_folded = is_thread && isFolded(messages, message, account_id);
+        const is_folded =
+          !singleThreadView &&
+          is_thread &&
+          isFolded(messages, message, account_id);
         const is_thread_body = is_thread && message.get("reply_to") != null;
         const h = virtuosoHeightsRef.current?.[index];
 
@@ -594,9 +623,11 @@ export function MessageList({
                     : undefined
                 }
                 allowReply={
+                  !singleThreadView &&
                   messages.getIn([sortedDates[index + 1], "reply_to"]) == null
                 }
                 costEstimate={costEstimate}
+                threadViewMode={singleThreadView}
               />
             </DivTempHeight>
           </div>

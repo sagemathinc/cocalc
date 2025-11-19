@@ -129,6 +129,7 @@ interface Props {
   // for the root of a folded thread, optionally give this number of a
   // more informative message to the user.
   numChildren?: number;
+  threadViewMode?: boolean;
 }
 
 export default function Message({
@@ -154,6 +155,7 @@ export default function Message({
   costEstimate,
   selected,
   numChildren,
+  threadViewMode = false,
 }: Props) {
   const intl = useIntl();
 
@@ -891,6 +893,9 @@ export default function Message({
   }
 
   function getStyleBase(): CSS {
+    if (threadViewMode) {
+      return THREAD_STYLE_SINGLE;
+    }
     if (!is_thread_body) {
       if (is_thread) {
         if (is_folded) {
@@ -926,7 +931,14 @@ export default function Message({
   }
 
   function renderReplyRow() {
-    if (replying || generating || !allowReply || is_folded || actions == null) {
+    if (
+      threadViewMode ||
+      replying ||
+      generating ||
+      !allowReply ||
+      is_folded ||
+      actions == null
+    ) {
       return;
     }
 
@@ -964,7 +976,7 @@ export default function Message({
         {showAISummarize && is_thread ? (
           <SummarizeThread message={message} actions={actions} />
         ) : undefined}
-        {is_thread && (
+        {is_thread && !threadViewMode && (
           <Tip
             placement={"bottom"}
             title={
@@ -990,7 +1002,7 @@ export default function Message({
   }
 
   function renderFoldedRow() {
-    if (!is_folded || !is_thread || is_thread_body) {
+    if (threadViewMode || !is_folded || !is_thread || is_thread_body) {
       return;
     }
 
@@ -1023,7 +1035,7 @@ export default function Message({
 
   function getThreadFoldOrBlank() {
     const xs = 2;
-    if (is_thread_body || (!is_thread_body && !is_thread)) {
+    if (threadViewMode || is_thread_body || (!is_thread_body && !is_thread)) {
       return BLANK_COLUMN(xs);
     } else {
       const style: CSS =
@@ -1095,7 +1107,10 @@ export default function Message({
 
   function renderCols(): React.JSX.Element[] | React.JSX.Element {
     // these columns should be filtered in the first place, this here is just an extra check
-    if (is_folded || (is_thread && is_folded && is_thread_body)) {
+    if (
+      (!threadViewMode && is_folded) ||
+      (is_thread && is_folded && is_thread_body)
+    ) {
       return <></>;
     }
 

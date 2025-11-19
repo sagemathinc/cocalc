@@ -21,6 +21,7 @@ import {
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 import { Entries } from "type-fest";
+import { trunc } from "@cocalc/util/misc";
 import { LanguageSelector } from "@cocalc/frontend/account/i18n-selector";
 import { useAsyncEffect } from "@cocalc/frontend/app-framework";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
@@ -600,7 +601,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
 
   async function getExplanation(preview: boolean) {
     if (actions == null) return; // shouldn't happen
-    const { message } = await createMessage(preview);
+    const { message, name } = await createMessage(preview);
     if (!message) {
       console.warn("getExplanation -- no cell with id", id);
       return;
@@ -612,6 +613,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
       input: message,
       tag: `jupyter-cell-llm:${mode}`,
       noNotification: true,
+      name,
     });
 
     // we also log this
@@ -627,7 +629,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
 
   async function createMessage(
     preview: boolean,
-  ): Promise<{ message: string; tokens: number }> {
+  ): Promise<{ message: string; tokens: number; name?: string }> {
     const empty = { message: "", tokens: 0 };
     if (actions == null || mode == null || llmTools == null) return empty;
     const { model } = llmTools;
@@ -636,7 +638,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     const cell = actions.store.get("cells").get(id);
     if (!cell) return empty;
 
-    const { message, tokens } = await createMessageText({
+    const { message, tokens, name } = await createMessageText({
       cell,
       model,
       preview,
@@ -644,6 +646,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     return {
       message: preview ? message : `${modelToMention(model)} ${message}`,
       tokens,
+      name,
     };
   }
 
@@ -655,7 +658,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     model: LanguageModel;
     preview: boolean;
     cell: any;
-  }): Promise<{ message: string; tokens: number }> {
+  }): Promise<{ message: string; tokens: number; name?: string }> {
     if (mode == null || actions == null)
       return { message: "Error: no mode selected.", tokens: 0 };
 
@@ -738,6 +741,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     return {
       message,
       tokens: numTokensUpperBound(message, getMaxTokens(model)),
+      name: trunc(input),
     };
   }
 
