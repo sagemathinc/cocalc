@@ -40,8 +40,12 @@ import Filter from "./filter";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import type { ChatState } from "./store";
-import type { ChatMessages, SubmitMentionsFn } from "./types";
-import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
+import type {
+  ChatMessageTyped,
+  ChatMessages,
+  SubmitMentionsFn,
+} from "./types";
+import { INPUT_HEIGHT, markChatAsReadIfUnseen, getThreadRootDate } from "./utils";
 import { ALL_THREADS_KEY, useThreadList } from "./threads";
 
 const FILTER_RECENT_NONE = {
@@ -189,6 +193,38 @@ export function ChatRoom({
       setLastThreadKey(selectedThreadKey);
     }
   }, [selectedThreadKey]);
+
+  useEffect(() => {
+    if (!fragmentId || isAllThreadsSelected || messages == null) {
+      return;
+    }
+    const parsed = parseFloat(fragmentId);
+    if (!isFinite(parsed)) {
+      return;
+    }
+    const keyStr = `${parsed}`;
+    let message = messages.get(keyStr) as ChatMessageTyped | undefined;
+    if (message == null) {
+      for (const [, msg] of messages) {
+        const dateField = msg?.get("date");
+        if (
+          dateField != null &&
+          typeof dateField.valueOf === "function" &&
+          dateField.valueOf() === parsed
+        ) {
+          message = msg;
+          break;
+        }
+      }
+    }
+    if (message == null) return;
+    const root = getThreadRootDate({ date: parsed, messages }) || parsed;
+    const threadKey = `${root}`;
+    if (threadKey !== selectedThreadKey) {
+      setAllowAutoSelectThread(false);
+      setSelectedThreadKey(threadKey);
+    }
+  }, [fragmentId, isAllThreadsSelected, messages, selectedThreadKey]);
 
   const handleToggleAllChats = (checked: boolean) => {
     if (checked) {
