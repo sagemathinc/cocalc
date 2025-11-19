@@ -137,6 +137,8 @@ export default function LiteAISettings() {
                 allowClear
                 value={values[keyField] ?? ""}
                 placeholder={placeholder}
+                name={`llm-${keyField}`}
+                autoComplete="off"
                 onChange={(e) => onChange(keyField, e.target.value)}
               />
             </Col>
