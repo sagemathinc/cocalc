@@ -585,7 +585,7 @@ export class ChatActions extends Actions<ChatState> {
     if (pinned) {
       entry.doc.pin = true;
     } else {
-      delete entry.doc.pin;
+      entry.doc.pin = false;
     }
     this.syncdb.set(entry.doc);
     this.syncdb.commit();

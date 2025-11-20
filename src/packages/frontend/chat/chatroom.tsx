@@ -214,6 +214,9 @@ export function ChatPanel({
   const [renamingThread, setRenamingThread] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState<string>("");
   const [hoveredThread, setHoveredThread] = useState<string | null>(null);
+  const [openThreadMenuKey, setOpenThreadMenuKey] = useState<string | null>(
+    null,
+  );
   const [allowAutoSelectThread, setAllowAutoSelectThread] =
     useState<boolean>(true);
   const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
@@ -497,7 +500,8 @@ export function ChatPanel({
       thread;
     const plainLabel = stripHtml(displayLabel);
     const isHovered = hoveredThread === key;
-    const showMenu = isHovered || selectedThreadKey === key;
+    const isMenuOpen = openThreadMenuKey === key;
+    const showMenu = isHovered || selectedThreadKey === key || isMenuOpen;
     return {
       key,
       label: (
@@ -530,6 +534,13 @@ export function ChatPanel({
             <Dropdown
               menu={threadMenuProps(key, plainLabel, hasCustomName, isPinned)}
               trigger={["click"]}
+              open={openThreadMenuKey === key}
+              onOpenChange={(open) => {
+                setOpenThreadMenuKey(open ? key : null);
+                if (!open) {
+                  setHoveredThread((prev) => (prev === key ? null : prev));
+                }
+              }}
             >
               <Button
                 type="text"
