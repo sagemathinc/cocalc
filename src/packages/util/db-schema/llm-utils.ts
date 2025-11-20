@@ -132,6 +132,7 @@ export const MODELS_OPENAI = [
   "gpt-5",
   "gpt-5-mini-8k", // context limited
   "gpt-5-mini",
+  "codex-agent",
 ] as const;
 
 export type OpenAIModel = (typeof MODELS_OPENAI)[number];
@@ -259,7 +260,8 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m === "o3-8k" ||
       m === "o4-mini-8k" ||
       m === "gpt-5-8k" ||
-      m === "gpt-5-mini-8k",
+      m === "gpt-5-mini-8k" ||
+      m === "codex-agent",
   ),
   google: GOOGLE_MODELS.filter(
     (m) =>
@@ -721,8 +723,7 @@ type LLM2String = {
     | "chatgpt4"
     | "gpt-4-32k"
     | "text-bison-001"
-    | "chat-bison-001"
-    | "openai-codex-agent"]: string;
+    | "chat-bison-001"]: string;
 };
 
 // Map from psuedo account_id to what should be displayed to user.
@@ -787,7 +788,7 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-5": "GPT-5 128k",
   "gpt-5-mini-8k": "GPT-5 Mini",
   "gpt-5-mini": "GPT-5 Mini 128k",
-  "openai-codex-agent": "Codex Agent",
+  "codex-agent": "Codex Agent",
 } as const;
 
 // similar to the above, we map to short user-visible description texts
@@ -817,7 +818,7 @@ export const LLM_DESCR: LLM2String = {
     "Most cost-efficient small model (OpenAI, 8k token context)",
   "gpt-4.1-mini": "Most cost-efficient small model (OpenAI, 8k token context)",
   "gpt-4o-mini": "Most cost-efficient small model (OpenAI, 128k token context)",
-  "openai-codex-agent": "OpenAI Codex local coding agent (uses Codex CLI)",
+  "codex-agent": "OpenAI Codex local coding agent (uses Codex CLI)",
   "text-embedding-ada-002": "Text embedding Ada 002 by OpenAI", // TODO: this is for embeddings, should be moved to a different place
   "o1-8k": "Spends more time thinking (8k token context)",
   "o1-mini-8k": "A cost-efficient reasoning model (8k token context)",
@@ -963,6 +964,13 @@ function usd1Mtokens(usd: number): number {
 // https://openai.com/pricing#language-models
 // There appears to be no api that provides the prices, unfortunately.
 export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
+  "codex-agent": {
+    // fields are placeholders since this isn't used directly
+    prompt_tokens: 0,
+    completion_tokens: 0,
+    max_tokens: 0,
+    free: true,
+  },
   "gpt-4": {
     prompt_tokens: usd1Mtokens(30),
     completion_tokens: usd1Mtokens(60),

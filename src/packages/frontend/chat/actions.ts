@@ -6,7 +6,6 @@
 import { List, Map, Seq, Map as immutableMap } from "immutable";
 import { debounce } from "lodash";
 import { Optional } from "utility-types";
-
 import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
@@ -46,6 +45,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
+import { processCodexLLM } from "./codex-api";
 import { handleSyncDBChange, initFromSyncDB, processSyncDBObj } from "./sync";
 import type {
   ChatMessage,
@@ -904,6 +904,27 @@ export class ChatActions extends Actions<ChatState> {
     input = stripMentions(input);
     // also important to strip details, since they tend to confuse an LLM:
     //input = stripDetails(input);
+
+    if (typeof model === "string" && model.includes("codex")) {
+      await processCodexLLM({
+        message,
+        reply_to,
+        tag,
+        model,
+        input,
+        dateLimit,
+        context: {
+          syncdb: this.syncdb,
+          path: store.get("path"),
+          chatStreams: this.chatStreams,
+          sendReply: this.sendReply,
+          saveHistory: this.saveHistory,
+          getLLMHistory: this.getLLMHistory,
+        },
+      });
+      return;
+    }
+
     const sender_id = (function () {
       try {
         return model2service(model);
