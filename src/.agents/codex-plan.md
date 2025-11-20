@@ -112,3 +112,16 @@ NOTE:
 2. Define conat message schema for Codex threads.
 3. Update customize/settings to advertise `codex_enabled` and surface initial models.
 
+## Progress Snapshot (Nov 20)
+
+- **SDK integration:** `@cocalc/ai/codex` now wraps the official TypeScript SDK with a CJS-safe dynamic import, and exposes `CodexThreadRunner` for `run`/`runStreamed`.
+- **Conat bridge:** Added `packages/conat/codex/{types,server,client}.ts` with a dedicated subject (`codex.account-*.api`), streaming `ThreadEvent` payloads and final summaries.
+- **Lite hub:** `packages/lite/hub/codex.ts` wires Codex into the lite conat server; streaming works end-to-end when the Codex CLI is logged in and env is set.
+- **Runtime env fix:** lite launcher preserves host `HOME`/`PATH` (`HOST_HOME`, `HOST_PATH`); Codex runner can take `codexOptions.env` to find the user’s `~/.codex` and CLI path, preventing “Reconnecting…” auth errors.
+- **Hello world confirmed:** From browser via `runCodex/streamCodex`, returns “Hello from Codex!” when HOME/PATH point to the logged-in Codex config.
+
+## Next Steps (remaining)
+
+- Surface Codex flags/models in `/customize` (site settings) so frontend lists Codex in selectable LLMs.
+- Frontend chat integration: consume `streamCodex` events, render command/file-change items, finalize thread UX.
+- Hosted mode: launch Codex inside project containers (podman), pass env/paths accordingly, and decide auth flow (user vs shared key).

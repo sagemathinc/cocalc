@@ -30,6 +30,7 @@ const DEFAULT_CONFIGURATION = {
   anthropic_enabled: false,
   custom_openai_enabled: false,
   ollama_enabled: false,
+  agent_openai_codex_enabled: false,
   jupyter_api_enabled: false,
   organization_name: "",
   organization_email: "",

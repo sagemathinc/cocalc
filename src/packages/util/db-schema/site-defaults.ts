@@ -65,6 +65,7 @@ export type SiteSettingsKeys =
   | "support"
   | "support_video_call"
   | "openai_enabled"
+  | "agent_openai_codex_enabled"
   | "google_vertexai_enabled"
   | "mistral_enabled"
   | "anthropic_enabled"
@@ -801,6 +802,14 @@ export const site_settings_conf: SiteSettings = {
   openai_enabled: {
     name: "OpenAI ChatGPT UI",
     desc: "Controls visibility of UI elements related to OpenAI ChatGPT integration.  You must **also set your OpenAI API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["OpenAI", "AI LLM"],
+  },
+  agent_openai_codex_enabled: {
+    name: "OpenAI Codex Agent UI",
+    desc: "Controls visibility of UI elements related to the OpenAI Codex coding agent. You must have the Codex CLI installed and configured for this to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
