@@ -1,135 +1,10 @@
-# CoCalc API MCP Server - Development Guide
+# CoCalc MCP Server - Development Guide
 
 ## Overview
 
-This directory contains the **Model Context Protocol (MCP) server** for CoCalc API. It allows LLMs (via Claude Code, Claude Desktop) to interact with CoCalc projects through a standardized protocol.
+This is the Model Context Protocol (MCP) server for CoCalc, allowing LLMs to interact with CoCalc accounts and projects through a standardized interface.
 
-Learn more: https://modelcontextprotocol.io/docs/getting-started/intro
-
-## Configuration
-
-### Required Environment Variables
-
-- **`COCALC_API_KEY`** - API key for CoCalc authentication (format: `sk-...`, can be account-scoped or project-scoped)
-- **`COCALC_HOST`** (optional) - CoCalc instance URL (default: `https://cocalc.com`)
-
-### Setup Examples
-
-**Local Development (Recommended: Project-Scoped API Key):**
-
-Create a project-scoped API key in your CoCalc project settings:
-
-```bash
-export COCALC_API_KEY="sk-your-project-api-key-here"
-export COCALC_HOST="http://localhost:5000"  # For local CoCalc, or omit for cocalc.com
-uv run cocalc-mcp-server
-```
-
-When started, the server will report:
-
-```
-✓ Connected with project-scoped API key (project: 6e75dbf1-0342-4249-9dce-6b21648656e9)
-```
-
-**Alternative: Account-Scoped API Key:**
-
-Create an account-scoped API key in your CoCalc account settings (Settings → API keys):
-
-```bash
-export COCALC_API_KEY="sk-your-account-api-key-here"
-uv run cocalc-mcp-server
-```
-
-When started, the server will report:
-
-```
-✓ Connected with account-scoped API key (account: d0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb)
-```
-
-**Claude Code CLI (Project-Scoped Key - Recommended):**
-
-```bash
-claude mcp add \
-  --transport stdio \
-  cocalc \
-  --env COCALC_API_KEY="sk-your-project-api-key-here" \
-  -- uv --directory /path/to/cocalc-api run cocalc-mcp-server
-```
-
-**Claude Code CLI (Account-Scoped Key):**
-
-```bash
-claude mcp add \
-  --transport stdio \
-  cocalc \
-  --env COCALC_API_KEY="sk-your-account-api-key-here" \
-  -- uv --directory /path/to/cocalc-api run cocalc-mcp-server
-```
-
-**Claude Desktop (Project-Scoped Key - Recommended):**
-
-Add to `~/.config/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "cocalc": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "/path/to/cocalc-api",
-        "run",
-        "cocalc-mcp-server"
-      ],
-      "env": {
-        "COCALC_API_KEY": "sk-your-project-api-key-here"
-      }
-    }
-  }
-}
-```
-
-**Claude Desktop (Account-Scoped Key):**
-
-Add to `~/.config/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "cocalc": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "/path/to/cocalc-api",
-        "run",
-        "cocalc-mcp-server"
-      ],
-      "env": {
-        "COCALC_API_KEY": "sk-your-account-api-key-here"
-      }
-    }
-  }
-}
-```
-
-## Server Metadata
-
-The MCP server exposes high-level metadata that clients can query to understand what the server provides:
-
-**Server Instructions** - A comprehensive guide to the server's capabilities, usage, and examples. Sent to LLMs to provide context about what tools and resources are available.
-
-**Website URL** - Link to documentation (https://cocalc.com/api/python)
-
-**Protocol Version** - MCP 2025-06-18
-
-Clients can retrieve this metadata using the MCP `initialize` call, which returns:
-
-- `serverInfo.name` - "cocalc-api"
-- `serverInfo.version` - Version from package metadata
-- `instructions` - High-level guide (see above)
-- `capabilities` - What features the server supports (tools, resources, etc.)
-
-This allows LLM clients to understand the server's purpose and capabilities before making any requests.
+Learn more about MCP: https://modelcontextprotocol.io/
 
 ## Architecture
 
@@ -137,183 +12,200 @@ This allows LLM clients to understand the server's purpose and capabilities befo
 
 ```
 src/cocalc_api/mcp/
-├── server.py          # Entry point, imports mcp_server
-├── mcp_server.py      # Central coordination hub
+├── server.py                    # Entry point
+├── mcp_server.py               # Core initialization & dynamic registration
 ├── tools/
-│   ├── __init__.py    # register_tools(mcp)
-│   └── exec.py        # register_exec_tool(mcp)
+│   ├── __init__.py            # Dynamic tool registration
+│   ├── exec.py                # Shell command tool (project-scoped)
+│   ├── jupyter.py             # Jupyter execution tool (project-scoped)
+│   └── projects_search.py      # Project search tool (account-scoped)
 └── resources/
-    ├── __init__.py    # register_resources(mcp)
-    └── file_listing.py # register_file_listing_resource(mcp)
+    ├── __init__.py            # Dynamic resource registration
+    ├── file_listing.py        # File browsing (project-scoped)
+    └── account_profile.py      # Account info (account-scoped)
 ```
+
+### Key Design: Dynamic Registration
+
+The server detects your API key type at startup and registers **only the appropriate tools and resources**:
+
+**Account-Scoped Keys** (can access multiple projects):
+- Tool: `projects_search` - Find and list projects
+- Resource: `account-profile` - View account settings
+
+**Project-Scoped Keys** (limited to one project):
+- Tools: `exec`, `jupyter_execute` - Run code in project
+- Resource: `project-files` - Browse project files
+
+This design prevents exposing tools that cannot work with a given API key type.
 
 ### Initialization Flow
 
-1. **`server.py`** imports `mcp_server` module
-2. **`mcp_server.py`** initializes at import time:
-   - Creates `FastMCP("cocalc-api")` instance with:
-     - `instructions` - High-level guide for LLM clients
-     - `website_url` - Link to documentation
-   - Initializes `Project` client (lazy, cached)
-   - Calls `tools.register_tools(mcp)`
-   - Calls `resources.register_resources(mcp)`
-3. **`tools/` and `resources/`** register their handlers with the shared `mcp` object
-4. **`server.py`** calls `mcp.run(transport="stdio")`
-5. When clients connect, the server responds to `initialize` with metadata including instructions
+1. `server.py` calls `mcp.run()` which imports `mcp_server`
+2. `mcp_server.py` initializes at import time:
+   - Creates `FastMCP` instance with instructions and metadata
+   - Calls `_initialize_config()` to validate API key and determine scope
+   - Calls `_register_tools_and_resources()` which:
+     - Checks if key is account-scoped or project-scoped
+     - Imports and registers only matching tools/resources
+3. Server is ready to handle client requests
 
-### Key Design Decisions
+### Key Components
 
-- **Single Project Client**: Initialized once, shared across all tools/resources
-- **FastMCP Framework**: Automatic JSON-RPC handling, clean decorator pattern
-- **No Wrapper Functions**: Tools/resources decorated directly in their modules
-- **Dependency Injection**: mcp object passed to registration functions
-- **Easy Extension**: Add new tool by creating `tools/my_tool.py` with `register_my_tool(mcp)` function
+**`mcp_server.py`:**
+- `_initialize_config()` - Validates API key and detects scope
+- `_register_tools_and_resources()` - Registers tools based on scope
+- `get_project_client()` - Lazy-loads Project client (for project-scoped keys)
+- Global state: `_api_key`, `_host`, `_api_key_scope`
 
-## Available Tools & Resources
+**Tool/Resource Functions:**
+- Must be **synchronous** (not async) for FastMCP
+- Decorated with `@mcp.tool()` or `@mcp.resource()`
+- Access configuration via: `from ..mcp_server import _api_key, _host, _api_key_scope`
 
-### Tools
+## Adding a New Tool
 
-#### `exec` - Execute Shell Commands
+### For Project-Scoped Keys
 
-Execute arbitrary shell commands in the CoCalc project.
-
-**Parameters:**
-
-- `command` (string, required): Command to execute
-- `args` (list, optional): Command arguments
-- `bash` (boolean, optional): Interpret as bash script
-- `timeout` (integer, optional): Timeout in seconds
-- `cwd` (string, optional): Working directory
-
-**Returns:** stdout, stderr, and exit_code
-
-**Examples:**
-
-```json
-{"command": "echo 'Hello'"}
-{"command": "python", "args": ["script.py", "--verbose"]}
-{"command": "for i in {1..3}; do echo $i; done", "bash": true}
-{"command": "jupyter kernelspec list"}
-{"command": "python3", "args": ["-m", "pip", "install", "--user", "ipykernel"]}
-```
-
-#### `jupyter_execute` - Execute Code in Jupyter Kernels
-
-Execute code using Jupyter kernels with rich output, preserved state, and support for multiple languages.
-
-**Parameters:**
-
-- `input` (string, required): Code to execute
-- `kernel` (string, optional): Kernel name (default: "python3")
-  - Common kernels: `python3`, `ir` (R), `julia-1.9`
-  - Use `exec` tool with `jupyter kernelspec list` to discover available kernels
-- `history` (list, optional): Previous code inputs to establish context
-  - Executed without capturing output, allows setting up variables and imports
-
-**Returns:** Formatted execution output (text, plots, dataframes, images, errors, etc.)
-
-**Examples:**
-
-```json
-{"input": "2 + 2", "kernel": "python3"}
-{"input": "import pandas as pd\ndf = pd.DataFrame({'a': [1,2,3]})\ndf", "kernel": "python3"}
-{"input": "import matplotlib.pyplot as plt\nplt.plot([1,2,3])\nplt.show()", "kernel": "python3"}
-{"input": "summary(cars)", "kernel": "ir"}
-```
-
-**Setup Instructions:**
-
-Before using Jupyter kernels, set them up with the `exec` tool:
-
-```json
-{"command": "python3", "args": ["-m", "pip", "install", "--user", "ipykernel"], "timeout": 300}
-{"command": "python3", "args": ["-m", "ipykernel", "install", "--user", "--name=python3", "--display-name=Python 3"], "timeout": 120}
-```
-
-### Resources
-
-#### `project-files` - List Files
-
-Browse project directory structure.
-
-**URI:** `cocalc://project-files/{path}`
-
-**Parameters:**
-
-- `path` (string, optional): Directory path (default: `.`)
-
-**Returns:** Formatted list of files and directories
-
-## Development Workflow
-
-### Adding a New Tool
-
-1. Create `tools/my_tool.py`:
+Create `tools/my_tool.py`:
 
 ```python
 def register_my_tool(mcp) -> None:
-    """Register my tool with FastMCP instance."""
+    """Register my tool with FastMCP."""
+
     @mcp.tool()
-    async def my_tool(param: str) -> str:
+    def my_tool(param: str) -> str:
         """Tool description."""
         from ..mcp_server import get_project_client
         project = get_project_client()
-        # Implementation using project client
+        # Use project.system.exec(), project.system.jupyter_execute(), etc.
         return result
 ```
 
-2. Update `tools/__init__.py`:
+### For Account-Scoped Keys
+
+Create `tools/my_account_tool.py`:
 
 ```python
-def register_tools(mcp) -> None:
-    from .exec import register_exec_tool
-    from .my_tool import register_my_tool  # Add this
+def register_my_account_tool(mcp) -> None:
+    """Register my account tool with FastMCP."""
 
-    register_exec_tool(mcp)
-    register_my_tool(mcp)  # Add this
+    @mcp.tool()
+    def my_account_tool(param: str) -> str:
+        """Tool description."""
+        from ..mcp_server import _api_key, _host
+        from cocalc_api import Hub
+
+        hub = Hub(api_key=_api_key, host=_host)
+        # Use hub.projects.get(), hub.system.user_search(), etc.
+        return result
 ```
 
-3. Done! The tool is automatically registered when `mcp_server` imports tools.
+### Register the Tool
 
-### Testing
+Update `tools/__init__.py` to import and register in `_register_tools_and_resources()` in `mcp_server.py`:
+
+```python
+# In mcp_server.py _register_tools_and_resources()
+if account_scoped:
+    from .tools.my_account_tool import register_my_account_tool
+    register_my_account_tool(mcp)
+```
+
+## Testing
+
+### Run Tests
 
 ```bash
-# Run MCP server in one terminal
-make mcp
-
-# Test with another terminal (example)
-python3 << 'EOF'
-import json, subprocess
-proc = subprocess.Popen(['uv', 'run', 'cocalc-mcp-server'], ...)
-init = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {...}}
-proc.stdin.write(json.dumps(init) + '\n')
-# ... test tool calls
-EOF
+make test          # Run pytest
+make check         # Run ruff, mypy, pyright
 ```
 
-## Error Handling
+### Manual Testing
 
-- Configuration errors → Exit with error message
-- Project authentication errors → Connection failure
-- Tool runtime errors → Returned as error in response
+```bash
+# Terminal 1: Start the server
+export COCALC_API_KEY="sk-your-key"
+uv run cocalc-mcp-server
 
-## Security Notes
+# Terminal 2: Debug the server
+uv run cocalc-mcp-debug
+```
 
-1. **API Keys** - Never commit to version control; use environment variables
-2. **Project Isolation** - Each server instance is bound to one project
-3. **Command Execution** - `exec` tool runs arbitrary commands; verify API key permissions
-4. **File Access** - File listing respects project filesystem permissions
+## Implementation Notes
 
-## Future Enhancements
+### Important: Sync, Not Async
 
-- File read/write operations
-- Jupyter code execution
-- Git repository operations
-- Directory caching and recursion
-- Rate limiting
+MCP tools and resources in FastMCP must be **synchronous functions**, not async:
+
+```python
+# ✅ Correct
+@mcp.tool()
+def my_tool(param: str) -> str:
+    return "result"
+
+# ❌ Wrong - will not be callable
+@mcp.tool()
+async def my_tool(param: str) -> str:
+    return "result"
+```
+
+### Error Handling
+
+Tools should return error messages as strings, not raise exceptions:
+
+```python
+try:
+    # Do something
+    return result
+except Exception as e:
+    return f"Error: {str(e)}"
+```
+
+### Type Annotations
+
+- All function parameters and return types must be fully typed
+- Use `Optional[str]` or `str | None` for optional parameters
+- Avoid `Any` type where possible
+
+## Configuration
+
+### Environment Variables
+
+- `COCALC_API_KEY` - API key (required)
+- `COCALC_HOST` - CoCalc instance URL (optional, defaults to `https://cocalc.com`)
+- `COCALC_PROJECT_ID` - Project ID for project-scoped keys (optional, embedded in key)
+
+### API Key Scope Detection
+
+The server calls `hub.system.test()` to determine scope:
+- If returns `account_id` → Account-scoped key
+- If returns `project_id` → Project-scoped key
+
+## Available CoCalc APIs
+
+See `../../hub.py` for full API reference:
+
+**Account-Scoped:**
+- `hub.projects.get()` - List projects
+- `hub.system.user_search()` - Search users
+- `hub.db.query()` - Query account data
+- `hub.messages.get()` - Get messages
+
+**Project-Scoped:**
+- `project.system.exec()` - Run shell commands
+- `project.system.jupyter_execute()` - Run code in Jupyter
+
+## Security
+
+1. **API Keys** - Never hardcode; use environment variables
+2. **Input Validation** - Validate all user inputs
+3. **Error Messages** - Don't leak sensitive info in errors
+4. **Permissions** - Check API key has required permissions
+5. **Timeouts** - Use reasonable timeouts for long operations
 
 ## References
 
-- **MCP Spec**: https://modelcontextprotocol.io/
-- **FastMCP Docs**: https://github.com/modelcontextprotocol/python-sdk
-- **CoCalc API**: See parent directory README
+- [MCP Specification](https://modelcontextprotocol.io/)
+- [FastMCP SDK](https://github.com/modelcontextprotocol/python-sdk)
+- [CoCalc API](https://github.com/sagemathinc/cocalc)

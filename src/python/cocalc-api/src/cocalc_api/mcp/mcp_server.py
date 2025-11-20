@@ -2,35 +2,39 @@
 CoCalc MCP (Model Context Protocol) Server - Central Coordination Module
 
 This MCP server gives you direct access to a CoCalc project or account environment.
+The available tools and resources depend on your API key type (account-scoped or project-scoped).
 
-AVAILABLE TOOLS (actions you can perform):
+AVAILABLE TOOLS - PROJECT-SCOPED KEYS:
 - exec: Run shell commands, scripts, and programs in the project
   Use for: running code, data processing, build/test commands, git operations, etc.
 - jupyter_execute: Execute code using Jupyter kernels (Python, R, Julia, etc.)
   Use for: interactive code execution, data analysis, visualization, scientific computing
 
-AVAILABLE RESOURCES (information you can read):
+AVAILABLE TOOLS - ACCOUNT-SCOPED KEYS:
+- projects_search: Search for and list projects you have access to
+  Use for: discovering projects, seeing collaborators, checking project states
+
+AVAILABLE RESOURCES - PROJECT-SCOPED KEYS:
 - project-files: Browse the project file structure
   Use for: exploring what files exist, understanding project layout, locating files to work with
 
-HOW IT WORKS:
-- You can use these tools and resources to understand, modify, and manage files in the project
-- The project runs in an Ubuntu Linux container with common development tools pre-installed
-- Commands execute with the permissions of the CoCalc project user
-- All operations are scoped to this single project
+AVAILABLE RESOURCES - ACCOUNT-SCOPED KEYS:
+- account-profile: View your account profile and settings
+  Use for: checking personal info, account settings, preferences
 
-WHEN TO USE WHICH:
-1. First, use project-files to explore and understand the project structure
-2. Then, use exec to run commands, edit files, run tests, etc.
-3. Use project-files again if you need to navigate to new directories
-4. Use exec for anything the project-files resource can't show (recursive listings, complex queries, etc.)
+HOW IT WORKS:
+- Account-scoped keys: Access your account information, manage projects, view profile
+- Project-scoped keys: Execute code, run commands, and manage files in a specific project
+- All operations are secure and scoped to what your API key authorizes
 
 AUTHENTICATION & CONFIGURATION:
 Required environment variables (already set when this server is running):
 - COCALC_API_KEY: Your CoCalc API authentication token (account-scoped or project-scoped)
 - COCALC_HOST: (optional) Your CoCalc instance URL (defaults to https://cocalc.com)
+- COCALC_PROJECT_ID: (optional) Project ID for project-scoped keys
 
-The server will validate your API key on startup and report whether it's account-scoped or project-scoped.
+The server will validate your API key on startup and automatically register the appropriate
+tools and resources based on whether it's account-scoped or project-scoped.
 """
 
 import os
@@ -279,13 +283,33 @@ def get_project_client(project_id: Optional[str] = None) -> Project:
     return client
 
 
-# Register tools and resources
-# This happens at module import time, auto-registering with the mcp instance
-from . import tools as tools_module  # noqa: E402
-from . import resources as resources_module  # noqa: E402
+def _register_tools_and_resources() -> None:
+    """Register tools and resources based on API key scope."""
+    global _api_key_scope
 
-tools_module.register_tools(mcp)
-resources_module.register_resources(mcp)
+    _initialize_config()
 
-# Initialize configuration and validate API key at startup
-_initialize_config()
+    # Determine which tools/resources to register based on API key scope
+    if _api_key_scope and "account_id" in _api_key_scope:
+        # Account-scoped key: register account-scoped tools/resources
+        print("Registering account-scoped tools and resources...", file=sys.stderr)
+        from .tools.projects_search import register_projects_search_tool
+        from .resources.account_profile import register_account_profile_resource
+
+        register_projects_search_tool(mcp)
+        register_account_profile_resource(mcp)
+
+    elif _api_key_scope and "project_id" in _api_key_scope:
+        # Project-scoped key: register project-scoped tools/resources
+        print("Registering project-scoped tools and resources...", file=sys.stderr)
+        from .tools.exec import register_exec_tool
+        from .tools.jupyter import register_jupyter_tool
+        from .resources.file_listing import register_file_listing_resource
+
+        register_exec_tool(mcp)
+        register_jupyter_tool(mcp)
+        register_file_listing_resource(mcp)
+
+
+# Initialize configuration and validate API key at startup, then register tools/resources
+_register_tools_and_resources()

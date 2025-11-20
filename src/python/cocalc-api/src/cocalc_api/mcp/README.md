@@ -1,17 +1,14 @@
 # CoCalc API MCP Server
 
-A Model Context Protocol (MCP) server that allows LLMs to interact with CoCalc projects.
+A Model Context Protocol (MCP) server that provides LLMs (Claude, etc.) with direct access to CoCalc accounts and projects.
 
 ## Quick Start
 
-### 1. Configuration
-
-Set environment variables:
+### 1. Set Environment Variables
 
 ```bash
-export COCALC_API_KEY="sk-your-api-key"
-export COCALC_PROJECT_ID="your-project-uuid"
-export COCALC_HOST="https://cocalc.com"  # optional, defaults to https://cocalc.com
+export COCALC_API_KEY="sk-your-api-key"  # Account or project-scoped
+export COCALC_HOST="http://localhost:5000"  # Optional, defaults to https://cocalc.com
 ```
 
 ### 2. Run the Server
@@ -20,46 +17,31 @@ export COCALC_HOST="https://cocalc.com"  # optional, defaults to https://cocalc.
 uv run cocalc-mcp-server
 ```
 
-### 3. Setup with Claude Code CLI
+The server will detect your API key type and automatically register the appropriate tools/resources.
+
+## Setup with Claude Code
+
+### Quick Registration
 
 ```bash
-# Set your credentials
-export COCALC_API_KEY="sk-your-api-key-here"
-export COCALC_PROJECT_ID="[UUID]"
-export COCALC_API_PATH="/path/to/cocalc/src/python/cocalc-api"
-# OPTIONAL: set the host, defaults to cocalc.com. for development use localhost:5000
-export COCALC_HOST="http://localhost:5000"
-
-# Add the MCP server to Claude Code
 claude mcp add \
   --transport stdio \
   cocalc \
-  --env COCALC_API_KEY="$COCALC_API_KEY" \
-  --env COCALC_PROJECT_ID="$COCALC_PROJECT_ID" \
-  --env COCALC_HOST="$COCALC_HOST" \
-  -- uv --directory "$COCALC_API_PATH" run cocalc-mcp-server
+  --env COCALC_API_KEY="sk-your-api-key" \
+  -- uv --directory /path/to/cocalc-api run cocalc-mcp-server
 ```
 
-Alternatively, using JSON configuration:
+### Via JSON Config
 
 ```bash
 claude mcp add-json cocalc '{
   "command": "uv",
-  "args": ["--directory", "/path/to/cocalc/src/python/cocalc-api", "run", "cocalc-mcp-server"],
-  "env": {
-    "COCALC_API_KEY": "sk-your-api-key-here",
-    "COCALC_PROJECT_ID": "[UUID]",
-    "COCALC_HOST": "http://localhost:5000"
-  }
+  "args": ["--directory", "/path/to/cocalc-api", "run", "cocalc-mcp-server"],
+  "env": {"COCALC_API_KEY": "sk-your-api-key"}
 }'
 ```
 
-**Important:**
-
-- Replace `/path/to/cocalc/src/python/cocalc-api` with the absolute path to your cocalc-api directory.
-- Replace `http://localhost:5000` with your CoCalc instance URL (defaults to `https://cocalc.com` if not set).
-
-### 4. Setup with Claude Desktop
+## Setup with Claude Desktop
 
 Add to `~/.config/Claude/claude_desktop_config.json`:
 
@@ -68,30 +50,16 @@ Add to `~/.config/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "cocalc": {
       "command": "uv",
-      "args": [
-        "--directory",
-        "/path/to/cocalc/src/python/cocalc-api",
-        "run",
-        "cocalc-mcp-server"
-      ],
-      "env": {
-        "COCALC_API_KEY": "sk-your-api-key-here",
-        "COCALC_PROJECT_ID": "[UUID]",
-        "COCALC_HOST": "http://localhost:5000"
-      }
+      "args": ["--directory", "/path/to/cocalc-api", "run", "cocalc-mcp-server"],
+      "env": {"COCALC_API_KEY": "sk-your-api-key"}
     }
   }
 }
 ```
 
-**Important:**
+## Allow Tools in Claude Code Settings
 
-- Replace `/path/to/cocalc/src/python/cocalc-api` with the absolute path to your cocalc-api directory.
-- Replace `http://localhost:5000` with your CoCalc instance URL (defaults to `https://cocalc.com` if not set).
-
-### 5. Allow MCP Tools in Claude Code Settings
-
-To automatically allow all CoCalc MCP tools without prompts, add this to `.claude/settings.json`:
+Add to `.claude/settings.json`:
 
 ```json
 {
@@ -99,80 +67,45 @@ To automatically allow all CoCalc MCP tools without prompts, add this to `.claud
 }
 ```
 
-This wildcard pattern (`mcp__cocalc__*`) automatically allows:
+## Available Tools & Resources
 
-- `mcp__cocalc__exec` - Execute shell commands
-- `mcp__cocalc__project_files` - Browse project files
-- Any future tools added to the MCP server
+The server automatically provides different tools based on your API key type:
 
-## Features
+### Account-Scoped API Keys
 
-### Tools
+**Tools:**
+- `projects_search(query="")` - Search and list your projects with collaborator info
 
-- **`exec`** - Execute shell commands in the project
+**Resources:**
+- `cocalc://account-profile` - View your account info, settings, and preferences
 
-  ```
-  Tool: exec
-  Params: command (required), args, bash, timeout, cwd
-  Returns: {stdout, stderr, exit_code}
-  ```
+### Project-Scoped API Keys
 
-- **`jupyter_execute`** - Execute code using Jupyter kernels
-  ```
-  Tool: jupyter_execute
-  Params: input (required), kernel (default: "python3"), history
-  Returns: Formatted execution output (text, plots, errors, etc.)
-  ```
+**Tools:**
+- `exec(command)` - Execute shell commands in the project
+- `jupyter_execute(input, kernel="python3")` - Run code using Jupyter kernels
 
-### Resources
+**Resources:**
+- `cocalc://project-files` - Browse the project directory structure
 
-- **`project-files`** - Browse project files with filtering and pagination
-  ```
-  URI: cocalc://project-files/{path}?glob=*.py&limit=100&recurse=true
-  Returns: File listing with metadata
-  ```
+## API Keys
 
-## Documentation
-
-See [DEVELOPMENT.md](./DEVELOPMENT.md) for:
-
-- Architecture and design principles
-- Detailed API specifications
-- Configuration options
-- Testing strategy
-- Future roadmap
-
-## Directory Structure
-
-```
-src/cocalc_api/mcp/
-├── README.md                 # This file
-├── DEVELOPMENT.md            # Architecture & design documentation
-├── server.py                 # Main MCP server
-├── mcp_server.py            # MCP instance and project client coordination
-├── __main__.py              # Module entry point
-├── tools/
-│   ├── exec.py              # Shell command execution tool
-│   └── __init__.py
-└── resources/
-    ├── file_listing.py      # File listing resource
-    └── __init__.py
-```
-
-## Requirements
-
-- Python 3.10+
-- mcp>=1.0
-- httpx
-- pydantic (via mcp)
+Create API keys at:
+- **Account-scoped**: CoCalc Settings → API keys → Create API key
+- **Project-scoped**: Project Settings → API keys → Create API key
 
 ## Security
 
-- API keys should never be committed to version control
-- Use restricted file permissions (600) on config files containing API keys
-- Each server instance is scoped to a single project
-- Commands execute with the permissions of the CoCalc project user
+- Never commit API keys to version control
+- Use restricted file permissions (600) on config files with API keys
+- Each server instance is isolated to its scope (account or project)
+- Commands execute with the permissions of your API key
 
-## Next Steps
+## Development
 
-See [DEVELOPMENT.md](./DEVELOPMENT.md#next-steps) for implementation roadmap and upcoming features.
+See [DEVELOPMENT.md](./DEVELOPMENT.md) for architecture, design patterns, and adding new tools.
+
+## References
+
+- [MCP Specification](https://modelcontextprotocol.io/)
+- [CoCalc API Documentation](https://github.com/sagemathinc/cocalc)

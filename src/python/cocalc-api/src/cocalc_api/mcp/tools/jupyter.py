@@ -14,14 +14,20 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
+def _is_retryable_error(error: Exception) -> bool:
+    """Check if an error is retryable (transient connection issue)."""
+    error_msg = str(error).lower()
+    return any(
+        keyword in error_msg
+        for keyword in ["timeout", "closed", "connection", "reset", "broken"]
+    )
+
+
 def _retry_with_backoff(
     func: Callable[[], T],
     max_retries: int = 3,
     retry_delay: int = 5,
-    error_condition: Callable[[Exception], bool] = lambda e: any(
-        keyword in str(e).lower()
-        for keyword in ["timeout", "closed", "connection", "reset", "broken"]
-    ),
+    error_condition: Callable[[Exception], bool] | None = None,
 ) -> T:
     """
     Retry a function call with exponential backoff for transient failures.
@@ -29,6 +35,9 @@ def _retry_with_backoff(
     Useful for operations that may timeout on cold starts (e.g., kernel launches)
     or fail due to transient connection issues.
     """
+    if error_condition is None:
+        error_condition = _is_retryable_error
+
     for attempt in range(max_retries):
         try:
             return func()

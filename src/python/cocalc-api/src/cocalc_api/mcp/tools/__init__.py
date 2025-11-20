@@ -1,21 +1,18 @@
 """
 CoCalc MCP Tools - Available Actions
 
-Tools are actions you can perform in the CoCalc project.
+Tools are actions you can perform in the CoCalc project or account.
 
-Available Tools:
+Tools are dynamically registered based on API key scope:
+
+PROJECT-SCOPED KEYS:
 - exec: Execute shell commands, scripts, and programs in the project environment
 - jupyter_execute: Execute code using Jupyter kernels with rich output and interactive state
 
-See mcp_server.py for overview of all available tools and resources, and guidance
-on when to use each one.
+ACCOUNT-SCOPED KEYS:
+- projects_search: Search for and list projects you have access to
+
+See mcp_server.py for overview of all available tools and resources.
+
+Note: Individual tool registration functions are imported directly by mcp_server.py.
 """
-
-
-def register_tools(mcp) -> None:
-    """Register all tools with the given FastMCP instance."""
-    from .exec import register_exec_tool
-    from .jupyter import register_jupyter_tool
-
-    register_exec_tool(mcp)
-    register_jupyter_tool(mcp)
