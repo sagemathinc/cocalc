@@ -5,11 +5,10 @@
 
 // cSpell:ignore blankcolumn
 
-import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
+import { Badge, Button, Col, Row, Space, Tooltip } from "antd";
 import { List, Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { useIntl } from "react-intl";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -48,8 +47,6 @@ import {
   newest_content,
   sender_is_viewer,
 } from "./utils";
-
-const DELETE_BUTTON = false;
 
 const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
@@ -129,6 +126,7 @@ interface Props {
   // for the root of a folded thread, optionally give this number of a
   // more informative message to the user.
   numChildren?: number;
+  threadViewMode?: boolean;
 }
 
 export default function Message({
@@ -154,6 +152,7 @@ export default function Message({
   costEstimate,
   selected,
   numChildren,
+  threadViewMode = false,
 }: Props) {
   const intl = useIntl();
 
@@ -390,8 +389,6 @@ export default function Message({
     if (isEditing) {
       return null;
     }
-    const showDeleteButton =
-      DELETE_BUTTON && newest_content(message).trim().length > 0;
     const showEditingStatus =
       (message.get("history")?.size ?? 0) > 1 ||
       (message.get("editing")?.size ?? 0) > 0;
@@ -402,11 +399,7 @@ export default function Message({
     // vertical space, so only do it if there is a good reason to.
     // Getting rid of this might be nice.
     const show =
-      showEditButton ||
-      showDeleteButton ||
-      showEditingStatus ||
-      showHistory ||
-      showLLMFeedback;
+      showEditButton || showEditingStatus || showHistory || showLLMFeedback;
     if (!show) {
       // important to explicitly check this before rendering below, since otherwise we get a big BLANK space.
       return null;
@@ -439,32 +432,6 @@ export default function Message({
               </Button>
             </Tip>
           ) : undefined}
-          {showDeleteButton && (
-            <Tip
-              title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
-              placement="left"
-            >
-              <Popconfirm
-                title="Delete this message"
-                description="Are you sure you want to delete this message?"
-                onConfirm={() => {
-                  actions?.setEditing(message, true);
-                  setTimeout(() => actions?.sendEdit(message, ""), 1);
-                }}
-              >
-                <Button
-                  disabled={replying}
-                  style={{
-                    color: is_viewers_message ? "white" : "#555",
-                  }}
-                  type="text"
-                  size="small"
-                >
-                  <Icon name="trash" /> Delete
-                </Button>
-              </Popconfirm>
-            </Tip>
-          )}
           {showEditingStatus && render_editing_status(isEditing)}
           {showHistory && (
             <Button
@@ -891,6 +858,9 @@ export default function Message({
   }
 
   function getStyleBase(): CSS {
+    if (threadViewMode) {
+      return THREAD_STYLE_SINGLE;
+    }
     if (!is_thread_body) {
       if (is_thread) {
         if (is_folded) {
@@ -926,7 +896,14 @@ export default function Message({
   }
 
   function renderReplyRow() {
-    if (replying || generating || !allowReply || is_folded || actions == null) {
+    if (
+      threadViewMode ||
+      replying ||
+      generating ||
+      !allowReply ||
+      is_folded ||
+      actions == null
+    ) {
       return;
     }
 
@@ -964,7 +941,7 @@ export default function Message({
         {showAISummarize && is_thread ? (
           <SummarizeThread message={message} actions={actions} />
         ) : undefined}
-        {is_thread && (
+        {is_thread && !threadViewMode && (
           <Tip
             placement={"bottom"}
             title={
@@ -990,7 +967,7 @@ export default function Message({
   }
 
   function renderFoldedRow() {
-    if (!is_folded || !is_thread || is_thread_body) {
+    if (threadViewMode || !is_folded || !is_thread || is_thread_body) {
       return;
     }
 
@@ -1023,7 +1000,7 @@ export default function Message({
 
   function getThreadFoldOrBlank() {
     const xs = 2;
-    if (is_thread_body || (!is_thread_body && !is_thread)) {
+    if (threadViewMode || is_thread_body || (!is_thread_body && !is_thread)) {
       return BLANK_COLUMN(xs);
     } else {
       const style: CSS =
@@ -1095,7 +1072,10 @@ export default function Message({
 
   function renderCols(): React.JSX.Element[] | React.JSX.Element {
     // these columns should be filtered in the first place, this here is just an extra check
-    if (is_folded || (is_thread && is_folded && is_thread_body)) {
+    if (
+      (!threadViewMode && is_folded) ||
+      (is_thread && is_folded && is_thread_body)
+    ) {
       return <></>;
     }
 

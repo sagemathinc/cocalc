@@ -16,7 +16,7 @@ Note: There are a couple of ways to represent a time in Javascript:
 
 The data structures for chat have somehow evolved since that
 crazy Sage Days by the Ocean in WA to use all of these at once, which is
-confusing and annoying.  Be careful!
+confusing and annoying. Be careful!
 
 ## Overview
 

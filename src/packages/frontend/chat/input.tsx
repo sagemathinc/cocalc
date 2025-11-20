@@ -12,7 +12,6 @@ import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { SyncDB } from "@cocalc/sync/editor/db";
-import type { ChatActions } from "./actions";
 import { SubmitMentionsRef } from "./types";
 
 interface Props {
@@ -39,7 +38,6 @@ interface Props {
   autoFocus?: boolean;
   moveCursorToEndOfLine?: boolean;
   focusWhenFrameFocused?: boolean;
-  actions?: ChatActions;
 }
 
 export default function ChatInput({
@@ -61,7 +59,6 @@ export default function ChatInput({
   syncdb,
   moveCursorToEndOfLine,
   focusWhenFrameFocused,
-  actions,
 }: Props) {
   const intl = useIntl();
   const onSendRef = useRef<Function>(on_send);
@@ -204,13 +201,6 @@ export default function ChatInput({
       syncdb.removeListener("change", onSyncdbChange);
     };
   }, [syncdb]);
-
-  useEffect(() => {
-    if (!actions) return;
-    const handler = () => controlRef.current?.focus?.();
-    actions.setFocusInputHandler(handler);
-    return () => actions.setFocusInputHandler(undefined);
-  }, [actions]);
 
   useEffect(() => {
     if (!focusWhenFrameFocused) return;
