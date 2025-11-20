@@ -5,11 +5,10 @@
 
 // cSpell:ignore blankcolumn
 
-import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
+import { Badge, Button, Col, Row, Space, Tooltip } from "antd";
 import { List, Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { useIntl } from "react-intl";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -48,8 +47,6 @@ import {
   newest_content,
   sender_is_viewer,
 } from "./utils";
-
-const DELETE_BUTTON = false;
 
 const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
@@ -392,8 +389,6 @@ export default function Message({
     if (isEditing) {
       return null;
     }
-    const showDeleteButton =
-      DELETE_BUTTON && newest_content(message).trim().length > 0;
     const showEditingStatus =
       (message.get("history")?.size ?? 0) > 1 ||
       (message.get("editing")?.size ?? 0) > 0;
@@ -404,11 +399,7 @@ export default function Message({
     // vertical space, so only do it if there is a good reason to.
     // Getting rid of this might be nice.
     const show =
-      showEditButton ||
-      showDeleteButton ||
-      showEditingStatus ||
-      showHistory ||
-      showLLMFeedback;
+      showEditButton || showEditingStatus || showHistory || showLLMFeedback;
     if (!show) {
       // important to explicitly check this before rendering below, since otherwise we get a big BLANK space.
       return null;
@@ -441,32 +432,6 @@ export default function Message({
               </Button>
             </Tip>
           ) : undefined}
-          {showDeleteButton && (
-            <Tip
-              title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
-              placement="left"
-            >
-              <Popconfirm
-                title="Delete this message"
-                description="Are you sure you want to delete this message?"
-                onConfirm={() => {
-                  actions?.setEditing(message, true);
-                  setTimeout(() => actions?.sendEdit(message, ""), 1);
-                }}
-              >
-                <Button
-                  disabled={replying}
-                  style={{
-                    color: is_viewers_message ? "white" : "#555",
-                  }}
-                  type="text"
-                  size="small"
-                >
-                  <Icon name="trash" /> Delete
-                </Button>
-              </Popconfirm>
-            </Tip>
-          )}
           {showEditingStatus && render_editing_status(isEditing)}
           {showHistory && (
             <Button
