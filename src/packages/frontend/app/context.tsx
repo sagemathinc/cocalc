@@ -12,6 +12,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { ACTIVITY_BAR_LABELS } from "@cocalc/frontend/project/page/activity-bar-consts";
 import { COLORS } from "@cocalc/util/theme";
+import { getBaseAntdTheme } from "./antd-base-theme";
 import { NARROW_THRESHOLD_PX, PageStyle } from "./top-nav-consts";
 import useAppContext, { AppContext, AppState, calcStyle } from "./use-context";
 
@@ -79,6 +80,7 @@ export function useAppContextProvider(): AppState {
 
 export function useAntdStyleProvider() {
   const other_settings = useTypedRedux("account", "other_settings");
+  const baseTheme = getBaseAntdTheme();
   const rounded = other_settings?.get("antd_rounded", true);
   const animate = other_settings?.get("antd_animate", true);
   const branded = other_settings?.get("antd_brandcolors", false);
@@ -96,12 +98,11 @@ export function useAntdStyleProvider() {
 
   const algorithm = compact ? { algorithm: theme.compactAlgorithm } : undefined;
 
-  const textColors = { colorTextDescription: COLORS.GRAY_DD };
-
   const antdTheme: ThemeConfig = {
+    ...baseTheme,
     ...algorithm,
     token: {
-      ...textColors,
+      ...(baseTheme.token ?? {}),
       ...brandedColors,
       ...borderStyle,
       ...animationStyle,

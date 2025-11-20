@@ -10,6 +10,7 @@
 import "antd/dist/reset.css";
 import "@ant-design/v5-patch-for-react-19";
 
+import { ConfigProvider } from "antd";
 import { Locale } from "locales/misc";
 
 // Initialize the appBasePath for the frontend codebase.
@@ -20,6 +21,7 @@ import "@cocalc/cdn/dist/codemirror/lib/codemirror.css";
 import "@cocalc/cdn/dist/katex/katex.min.css";
 import "@cocalc/frontend/editors/slate/elements/elements.css";
 import { AppContext, DEFAULT_CONTEXT } from "@cocalc/frontend/app/use-context";
+import { getBaseAntdTheme } from "@cocalc/frontend/app/antd-base-theme";
 
 // The IntlProvider makes translated components from the frontend work.
 // It's english only, using the fallback defaultMessage.
@@ -35,16 +37,19 @@ function MyApp({
   pageProps,
 }: // router,
 AppProps & { locale: Locale }) {
+  const antdTheme = getBaseAntdTheme();
   return (
     <AppContext.Provider value={{ ...DEFAULT_CONTEXT }}>
-      <IntlProvider
-        locale={DEFAULT_LOCALE}
-        messages={{}}
-        defaultLocale={DEFAULT_LOCALE}
-        defaultRichTextElements={LOCALIZE_DEFAULT_ELEMENTS}
-      >
-        <Component {...pageProps} />
-      </IntlProvider>
+      <ConfigProvider theme={antdTheme}>
+        <IntlProvider
+          locale={DEFAULT_LOCALE}
+          messages={{}}
+          defaultLocale={DEFAULT_LOCALE}
+          defaultRichTextElements={LOCALIZE_DEFAULT_ELEMENTS}
+        >
+          <Component {...pageProps} />
+        </IntlProvider>
+      </ConfigProvider>
     </AppContext.Provider>
   );
 }
