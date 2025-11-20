@@ -14,6 +14,7 @@ import {
   Layout,
   Menu,
   Modal,
+  Popconfirm,
   Select,
   Space,
   Switch,
@@ -51,8 +52,12 @@ import {
   getThreadRootDate,
   markChatAsReadIfUnseen,
 } from "./utils";
-import { ALL_THREADS_KEY, useThreadList } from "./threads";
-import type { ThreadListItem } from "./threads";
+import {
+  ALL_THREADS_KEY,
+  groupThreadsByRecency,
+  useThreadList,
+} from "./threads";
+import type { ThreadListItem, ThreadSection } from "./threads";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -118,17 +123,30 @@ const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {
   pointerEvents: "none",
 } as const;
 
+const THREAD_SECTION_HEADER_STYLE: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "0 20px 6px",
+  color: COLORS.GRAY_D,
+} as const;
+
 export type ThreadMeta = ThreadListItem & {
   displayLabel: string;
   hasCustomName: boolean;
   readCount: number;
   unreadCount: number;
   isAI: boolean;
+  isPinned: boolean;
 };
 
 function stripHtml(value: string): string {
   if (!value) return "";
   return value.replace(/<[^>]*>/g, "");
+}
+
+interface ThreadSectionWithUnread extends ThreadSection<ThreadMeta> {
+  unreadCount: number;
 }
 
 export interface ChatPanelProps {
@@ -223,6 +241,12 @@ export function ChatPanel({
       )?.trim();
       const hasCustomName = !!storedName;
       const displayLabel = storedName || thread.label;
+      const pinValue = rootMessage?.get("pin");
+      const isPinned =
+        pinValue === true ||
+        pinValue === "true" ||
+        pinValue === 1 ||
+        pinValue === "1";
       const readField =
         account_id && rootMessage
           ? rootMessage.get(`read-${account_id}`)
@@ -255,9 +279,21 @@ export function ChatPanel({
         readCount,
         unreadCount,
         isAI: !!isAI,
+        isPinned,
       };
     });
   }, [rawThreads, account_id, actions]);
+
+  const threadSections = useMemo<ThreadSectionWithUnread[]>(() => {
+    const grouped = groupThreadsByRecency(threads);
+    return grouped.map((section) => ({
+      ...section,
+      unreadCount: section.threads.reduce(
+        (sum, thread) => sum + thread.unreadCount,
+        0,
+      ),
+    }));
+  }, [threads]);
 
   useEffect(() => {
     if (
@@ -461,7 +497,7 @@ export function ChatPanel({
         >
           <Icon name={isAI ? "robot" : "users"} style={{ color: "#888" }} />
           <div style={THREAD_ITEM_LABEL_STYLE}>{plainLabel}</div>
-          {unreadCount > 0 && (
+          {unreadCount > 0 && !isHovered && (
             <Badge
               count={unreadCount}
               size="small"
@@ -490,82 +526,99 @@ export function ChatPanel({
     };
   };
 
-  const renderThreadSection = (
-    title: string,
-    icon: "users" | "robot",
-    list: ThreadMeta[],
+  const renderUnreadBadge = (
+    count: number,
+    section: ThreadSectionWithUnread,
   ) => {
-    const unreadTotal = list.reduce(
-      (sum, thread) => sum + thread.unreadCount,
-      0,
+    if (count <= 0) {
+      return null;
+    }
+    const badge = (
+      <Badge
+        count={count}
+        size="small"
+        style={{
+          backgroundColor: COLORS.GRAY_L0,
+          color: COLORS.GRAY_D,
+        }}
+      />
     );
+    if (!actions?.markThreadRead) {
+      return badge;
+    }
+    return (
+      <Popconfirm
+        title="Mark all read?"
+        description="Mark every chat in this section as read."
+        okText="Mark read"
+        cancelText="Cancel"
+        placement="left"
+        onConfirm={(e) => {
+          e?.stopPropagation?.();
+          handleMarkSectionRead(section);
+        }}
+      >
+        <span
+          onClick={(e) => e.stopPropagation()}
+          style={{ cursor: "pointer", display: "inline-flex" }}
+        >
+          {badge}
+        </span>
+      </Popconfirm>
+    );
+  };
+
+  const renderThreadSection = (section: ThreadSectionWithUnread) => {
+    const { title, threads: list, unreadCount, key } = section;
+    if (!list || list.length === 0) {
+      return null;
+    }
     const items = list.map(renderThreadRow);
     return (
-      <div style={{ marginBottom: "15px" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: "6px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <Icon name={icon} />
-            <span style={{ fontWeight: 600 }}>{title}</span>
-          </div>
-          {unreadTotal > 0 && (
-            <Badge
-              count={unreadTotal}
-              size="small"
-              style={{
-                backgroundColor: COLORS.GRAY_L0,
-                color: COLORS.GRAY_D,
-              }}
-            />
-          )}
+      <div key={key} style={{ marginBottom: "18px" }}>
+        <div style={THREAD_SECTION_HEADER_STYLE}>
+          <span style={{ fontWeight: 600 }}>{title}</span>
+          {renderUnreadBadge(unreadCount, section)}
         </div>
-        {list.length === 0 ? (
-          <div style={{ color: "#999", fontSize: "12px", marginLeft: "4px" }}>
-            No chats
-          </div>
-        ) : (
-          <Menu
-            mode="inline"
-            selectedKeys={selectedThreadKey ? [selectedThreadKey] : []}
-            onClick={({ key }) => {
-              setAllowAutoSelectThread(true);
-              setSelectedThreadKey(String(key));
-              if (isCompact) {
-                setSidebarVisible(false);
-              }
-            }}
-            items={items}
-            style={{
-              border: "none",
-              background: "transparent",
-              padding: 0,
-              maxHeight: "28vh",
-              overflowY: "auto",
-            }}
-          />
-        )}
+        <Menu
+          mode="inline"
+          selectedKeys={selectedThreadKey ? [selectedThreadKey] : []}
+          onClick={({ key: menuKey }) => {
+            setAllowAutoSelectThread(true);
+            setSelectedThreadKey(String(menuKey));
+            if (isCompact) {
+              setSidebarVisible(false);
+            }
+          }}
+          items={items}
+          style={{
+            border: "none",
+            background: "transparent",
+            padding: "0 10px",
+          }}
+        />
       </div>
     );
   };
 
-  const humanThreads = useMemo(
-    () => threads.filter((thread) => !thread.isAI),
-    [threads],
-  );
-  const aiThreads = useMemo(
-    () => threads.filter((thread) => thread.isAI),
-    [threads],
-  );
   const totalUnread = useMemo(
-    () => threads.reduce((sum, thread) => sum + thread.unreadCount, 0),
-    [threads],
+    () => threadSections.reduce((sum, section) => sum + section.unreadCount, 0),
+    [threadSections],
   );
+
+  const handleMarkSectionRead = (section: ThreadSectionWithUnread): void => {
+    if (!actions?.markThreadRead) return;
+    const v: { key: string; messageCount: number }[] = [];
+    for (const thread of section.threads) {
+      if (thread.unreadCount > 0) {
+        v.push({ key: thread.key, messageCount: thread.messageCount });
+      }
+    }
+    for (let i = 0; i < v.length; i++) {
+      const { key, messageCount } = v[i];
+      actions.markThreadRead(key, messageCount, i == v.length - 1);
+    }
+  };
 
   const renderSidebarContent = () => (
     <>
@@ -622,8 +675,13 @@ export function ChatPanel({
           </>
         )}
       </div>
-      {renderThreadSection("Humans", "users", humanThreads)}
-      {renderThreadSection("AI", "robot", aiThreads)}
+      {threadSections.length === 0 ? (
+        <div style={{ color: "#999", fontSize: "12px", padding: "0 20px" }}>
+          No chats yet.
+        </div>
+      ) : (
+        threadSections.map((section) => renderThreadSection(section))
+      )}
     </>
   );
 

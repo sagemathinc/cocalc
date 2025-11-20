@@ -574,7 +574,11 @@ export class ChatActions extends Actions<ChatState> {
     return true;
   };
 
-  markThreadRead = (threadKey: string, count: number): boolean => {
+  markThreadRead = (
+    threadKey: string,
+    count: number,
+    commit = true,
+  ): boolean => {
     if (this.syncdb == null) {
       return false;
     }
@@ -588,7 +592,9 @@ export class ChatActions extends Actions<ChatState> {
     }
     entry.doc[`read-${account_id}`] = count;
     this.syncdb.set(entry.doc);
-    this.syncdb.commit();
+    if (commit) {
+      this.syncdb.commit();
+    }
     return true;
   };
 

@@ -17,6 +17,19 @@ export interface ThreadListItem {
   rootMessage?: ChatMessageTyped;
 }
 
+export type ThreadSectionKey =
+  | "pinned"
+  | "today"
+  | "yesterday"
+  | "last7days"
+  | "older";
+
+export interface ThreadSection<T extends ThreadListItem = ThreadListItem> {
+  key: ThreadSectionKey;
+  title: string;
+  threads: T[];
+}
+
 export function useThreadList(messages?: ChatMessages): ThreadListItem[] {
   return React.useMemo(() => {
     if (messages == null || messages.size === 0) {
@@ -103,4 +116,66 @@ export function deriveThreadLabel(
     return new Date(timestamp).toLocaleString();
   }
   return "Untitled Thread";
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+interface GroupOptions {
+  now?: number;
+}
+
+type RecencyKey = Exclude<ThreadSectionKey, "pinned">;
+
+const RECENCY_SECTIONS: { key: RecencyKey; title: string }[] = [
+  { key: "today", title: "Today" },
+  { key: "yesterday", title: "Yesterday" },
+  { key: "last7days", title: "Last 7 Days" },
+  { key: "older", title: "Older" },
+];
+
+function recencyKeyForDelta(delta: number): RecencyKey {
+  if (delta < DAY_MS) {
+    return "today";
+  }
+  if (delta < 2 * DAY_MS) {
+    return "yesterday";
+  }
+  if (delta < 7 * DAY_MS) {
+    return "last7days";
+  }
+  return "older";
+}
+
+export function groupThreadsByRecency<T extends ThreadListItem & { isPinned?: boolean }>(
+  threads: T[],
+  options: GroupOptions = {},
+): ThreadSection<T>[] {
+  if (!threads || threads.length === 0) {
+    return [];
+  }
+  const now = options.now ?? Date.now();
+  const sections: ThreadSection<T>[] = [];
+  const pinned = threads.filter((thread) => !!thread.isPinned);
+  const remainder = threads.filter((thread) => !thread.isPinned);
+  if (pinned.length > 0) {
+    sections.push({ key: "pinned", title: "Pinned", threads: pinned });
+  }
+  const buckets: Record<RecencyKey, T[]> = {
+    today: [],
+    yesterday: [],
+    last7days: [],
+    older: [],
+  };
+  for (const thread of remainder) {
+    const delta = now - thread.newestTime;
+    const key = recencyKeyForDelta(delta);
+    buckets[key].push(thread);
+  }
+  for (const def of RECENCY_SECTIONS) {
+    const list = buckets[def.key];
+    if (list.length > 0) {
+      sections.push({ key: def.key, title: def.title, threads: list });
+    }
+  }
+  return sections;
 }
