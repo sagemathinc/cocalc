@@ -502,6 +502,9 @@ export function ChatPanel({
     const isHovered = hoveredThread === key;
     const isMenuOpen = openThreadMenuKey === key;
     const showMenu = isHovered || selectedThreadKey === key || isMenuOpen;
+    const iconTooltip = thread.isAI
+      ? "This thread started with an AI request, so the AI responds automatically."
+      : "This thread started as human-only. AI replies only when explicitly mentioned.";
     return {
       key,
       label: (
@@ -517,7 +520,9 @@ export function ChatPanel({
             setHoveredThread((prev) => (prev === key ? null : prev))
           }
         >
-          <Icon name={isAI ? "robot" : "users"} style={{ color: "#888" }} />
+          <Tooltip title={iconTooltip}>
+            <Icon name={isAI ? "robot" : "users"} style={{ color: "#888" }} />
+          </Tooltip>
           <div style={THREAD_ITEM_LABEL_STYLE}>{plainLabel}</div>
           {unreadCount > 0 && !isHovered && (
             <Badge
