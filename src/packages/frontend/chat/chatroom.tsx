@@ -22,7 +22,7 @@ import {
 } from "antd";
 import { debounce } from "lodash";
 import { FormattedMessage } from "react-intl";
-
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
@@ -161,6 +161,9 @@ export function ChatPanel({
   variant = "default",
   disableFilters: disableFiltersProp,
 }: ChatPanelProps) {
+  if (IS_MOBILE) {
+    variant = "compact";
+  }
   const account_id = useTypedRedux("account", "account_id");
   const [input, setInput] = useState("");
   const search = getDescValue(desc, "data-search") ?? "";
