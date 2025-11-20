@@ -10,8 +10,8 @@ class Project:
         self.project_id = project_id
         self.api_key = api_key
         self.host = host
-        # Use longer timeout for API calls (60 seconds to handle slow kernel startups in CI)
-        self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"}, timeout=60.0)
+        # Use longer timeout for API calls (120 seconds to handle slow kernel startups in CI)
+        self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"}, timeout=120.0)
 
     def call(self, name: str, arguments: list[Any], timeout: Optional[int] = None) -> Any:
         """
@@ -131,7 +131,7 @@ class System:
         kernel: str,
         history: Optional[list[str]] = None,
         path: Optional[str] = None,
-        timeout: Optional[int] = 30,
+        timeout: Optional[int] = 90,
     ) -> list[dict[str, Any]]:  # type: ignore[empty-body]
         """
         Execute code using a Jupyter kernel.
@@ -141,7 +141,7 @@ class System:
             kernel (str): Name of kernel to use. Get options using hub.jupyter.kernels().
             history (Optional[list[str]]): Array of previous inputs (they get evaluated every time, but without output being captured).
             path (Optional[str]): File path context for execution.
-            timeout (Optional[int]): Timeout in SECONDS for the execute call (defaults to 30 seconds).
+            timeout (Optional[int]): Timeout in SECONDS for the execute call (defaults to 90 seconds).
 
         Returns:
             list[dict[str, Any]]: List of output items. Each output item contains

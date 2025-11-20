@@ -10,8 +10,8 @@ class Hub:
     def __init__(self, api_key: str, host: str = "https://cocalc.com"):
         self.api_key = api_key
         self.host = host
-        # Use longer timeout for API calls (90 seconds instead of default 5) to handle slow operations like Jupyter
-        self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"}, timeout=90.0)
+        # Use longer timeout for API calls (120 seconds instead of default 5) to handle slow operations like Jupyter
+        self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"}, timeout=120.0)
 
     def call(self, name: str, arguments: list[Any], timeout: Optional[int] = None) -> Any:
         """
@@ -334,7 +334,7 @@ class Jupyter:
         history: Optional[list[str]] = None,
         project_id: Optional[str] = None,
         path: Optional[str] = None,
-        timeout: Optional[int] = 30,
+        timeout: Optional[int] = 90,
     ) -> dict[str, Any]:  # type: ignore[empty-body]
         """
         Execute code using a Jupyter kernel.
@@ -345,7 +345,7 @@ class Jupyter:
             history (Optional[list[str]]): Array of previous inputs (they get evaluated every time, but without output being captured).
             project_id (Optional[str]): Project in which to run the code -- if not given, global anonymous project is used, if available.
             path (Optional[str]): File path context for execution.
-            timeout (Optional[int]): Timeout in SECONDS for the execute call (defaults to 30 seconds).
+            timeout (Optional[int]): Timeout in SECONDS for the execute call (defaults to 90 seconds).
 
         Returns:
             dict[str, Any]: JSON response containing execution results.
