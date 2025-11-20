@@ -11,7 +11,7 @@ export default async function getChatActions(
   project_id: string,
   path: string,
   maxWaitSeconds: number = 10,
-  width: number = 0.7
+  width: number = 0.7,
 ): Promise<ChatActions> {
   const projectActions = redux.getProjectActions(project_id);
   projectActions.open_chat({ path, width });
@@ -20,7 +20,7 @@ export default async function getChatActions(
   while (Date.now() - start <= 1000 * maxWaitSeconds) {
     const chatActions = redux.getEditorActions(
       project_id,
-      meta_file(path, "chat")
+      meta_file(path, "chat"),
     ) as ChatActions;
     if (chatActions?.syncdb?.get_state() == "ready") {
       return chatActions;
