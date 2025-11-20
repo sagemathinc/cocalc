@@ -22,7 +22,10 @@
     "outDir": "dist",
     "baseUrl": ".",
     "incremental": true,
-    "target": "es2020"
+    "target": "es2020",
+    "paths": {
+      "@langchain/core/*": ["../ai/node_modules/@langchain/core/dist/*"]
+    }
   },
   "include": [
     "next-env.d.ts",
