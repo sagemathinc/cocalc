@@ -58,6 +58,7 @@ import {
   useThreadList,
 } from "./threads";
 import type { ThreadListItem, ThreadSection } from "./threads";
+import CodexConfigButton from "./codex";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -297,6 +298,11 @@ export function ChatPanel({
       ),
     }));
   }, [threads]);
+
+  const selectedThread = React.useMemo(
+    () => threads.find((t) => t.key === selectedThreadKey),
+    [threads, selectedThreadKey],
+  );
 
   useEffect(() => {
     if (
@@ -875,7 +881,23 @@ export function ChatPanel({
     <div className="smc-vfill" style={GRID_STYLE}>
       {render_button_row()}
       {selectedThreadKey ? (
-        <div className="smc-vfill" style={CHAT_LOG_STYLE}>
+        <div
+          className="smc-vfill"
+          style={{ ...CHAT_LOG_STYLE, position: "relative" }}
+        >
+          {selectedThread?.rootMessage &&
+            actions?.isCodexThread(
+              new Date(parseInt(selectedThread.key, 10)),
+            ) && (
+              <div
+                style={{ position: "absolute", top: 8, right: 16, zIndex: 10 }}
+              >
+                <CodexConfigButton
+                  threadKey={selectedThread.key}
+                  chatPath={path}
+                />
+              </div>
+            )}
           <ChatLog
             actions={actions}
             project_id={project_id}

@@ -817,6 +817,11 @@ export class ChatActions extends Actions<ChatState> {
     return false;
   };
 
+  isCodexThread = (date?: Date): boolean => {
+    const model = this.isLanguageModelThread(date);
+    return model ? model.includes("codex") : false;
+  };
+
   private processLLM = async ({
     message,
     reply_to,
