@@ -66,7 +66,10 @@ export type ComputeService =
   | "voucher"
   | "edit-license";
 
-export type Service = LanguageServiceCore | ComputeService;
+// NOTE: we keep Codex under the openai prefix since it uses OpenAI billing.
+export type CodexService = "openai-codex-agent";
+
+export type Service = LanguageServiceCore | ComputeService | CodexService;
 
 export interface LLMDescription {
   type: LanguageServiceCore;
