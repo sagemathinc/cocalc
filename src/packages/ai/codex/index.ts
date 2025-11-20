@@ -1,15 +1,14 @@
-export {
-  Codex,
-  Thread,
-  type CodexOptions,
-  type ThreadOptions,
-  type ThreadEvent,
-  type TurnOptions,
-  type RunResult,
-  type Input,
-  type Usage,
-  type AgentMessageItem,
-  type ThreadItem,
+// Re-export types only to avoid pulling the ESM SDK into CJS at runtime.
+export type {
+  CodexOptions,
+  ThreadOptions,
+  ThreadEvent,
+  TurnOptions,
+  RunResult,
+  Input,
+  Usage,
+  AgentMessageItem,
+  ThreadItem,
 } from "@openai/codex-sdk";
 
 export * from "./runner";

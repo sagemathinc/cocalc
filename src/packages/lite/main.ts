@@ -29,6 +29,7 @@ import { init as initBugCounter } from "@cocalc/project/bug-counter";
 import { init as initChangefeeds } from "./hub/changefeeds";
 import { init as initHubApi } from "./hub/api";
 import { init as initLLM } from "./hub/llm";
+import { init as initCodex } from "./hub/codex";
 import { account_id } from "@cocalc/backend/data";
 import { init as initRemote } from "./remote";
 import { getAuthToken } from "./auth-token";
@@ -99,6 +100,9 @@ export async function main(): Promise<number> {
 
   logger.debug("start llm conat server");
   await initLLM();
+
+  logger.debug("start codex conat server");
+  await initCodex();
 
   const path = process.cwd();
 

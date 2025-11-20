@@ -1,15 +1,14 @@
-import {
+import type {
   Codex,
-  Thread,
-  type CodexOptions,
-  type Input,
-  type RunResult,
-  type ThreadEvent,
-  type ThreadOptions,
-  type TurnOptions,
-  type Usage,
-  type AgentMessageItem,
-  type ThreadItem,
+  CodexOptions,
+  Input,
+  RunResult,
+  ThreadEvent,
+  ThreadOptions,
+  TurnOptions,
+  Usage,
+  AgentMessageItem,
+  ThreadItem,
 } from "@openai/codex-sdk";
 
 export interface CodexThreadRunnerOptions {
@@ -54,25 +53,45 @@ function handleTerminalEvent(event: ThreadEvent): never {
 }
 
 export class CodexThreadRunner {
-  private readonly codex: Codex;
-  private readonly thread: Thread;
+  private codex: any;
+  private thread: any;
+  private readonly ready: Promise<void>;
+  private readonly importEsm: (specifier: string) => Promise<any>;
 
   constructor(options: CodexThreadRunnerOptions = {}) {
-    this.codex = options.codex ?? new Codex(options.codexOptions);
+    // Use a dynamic import helper to avoid CommonJS require attempting to load the ESM-only SDK.
+    this.importEsm = (specifier: string) =>
+      new Function("specifier", "return import(specifier);")(specifier);
+    this.ready = this.init(options);
+  }
+
+  private async init(options: CodexThreadRunnerOptions): Promise<void> {
+    if (options.codex) {
+      this.codex = options.codex;
+    } else {
+      const mod = await this.importEsm("@openai/codex-sdk");
+      this.codex = new mod.Codex(options.codexOptions);
+    }
     this.thread = options.resumeThreadId
       ? this.codex.resumeThread(options.resumeThreadId, options.threadOptions)
       : this.codex.startThread(options.threadOptions);
   }
 
+  private async ensureReady(): Promise<void> {
+    await this.ready;
+  }
+
   get id(): string | null {
-    return this.thread.id;
+    return this.thread?.id ?? null;
   }
 
   async run(input: Input, turnOptions?: TurnOptions): Promise<RunResult> {
+    await this.ensureReady();
     return this.thread.run(input, turnOptions);
   }
 
   async runStreamed(options: CodexStreamOptions): Promise<CodexStreamResult> {
+    await this.ensureReady();
     const { events } = await this.thread.runStreamed(
       options.input,
       options.turnOptions,
@@ -85,7 +104,9 @@ export class CodexThreadRunner {
     try {
       for await (const event of events) {
         collected.push(event);
-        options.onEvent?.(event);
+        if (options.onEvent) {
+          await options.onEvent(event);
+        }
         switch (event.type) {
           case "item.completed":
             if (isAgentMessage(event.item)) {
