@@ -840,9 +840,8 @@ export function MarkdownInput(props: Props) {
         onCancel={close_mentions}
         onSelect={(account_id) => {
           if (mentions_cursor_ref.current == null) return;
-          const text =
-            "@" +
-            trunc_middle(redux.getStore("users").get_name(account_id), 64);
+          const name = redux.getStore("users").get_name(account_id) ?? account_id;
+          const text = "@" + trunc_middle(name, 64);
           if (cm.current == null) return;
           const from = mentions_cursor_ref.current.from;
           const to = cm.current.getCursor();

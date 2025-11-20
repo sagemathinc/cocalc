@@ -721,7 +721,8 @@ type LLM2String = {
     | "chatgpt4"
     | "gpt-4-32k"
     | "text-bison-001"
-    | "chat-bison-001"]: string;
+    | "chat-bison-001"
+    | "openai-codex-agent"]: string;
 };
 
 // Map from psuedo account_id to what should be displayed to user.
@@ -786,6 +787,7 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-5": "GPT-5 128k",
   "gpt-5-mini-8k": "GPT-5 Mini",
   "gpt-5-mini": "GPT-5 Mini 128k",
+  "openai-codex-agent": "Codex Agent",
 } as const;
 
 // similar to the above, we map to short user-visible description texts
@@ -815,6 +817,7 @@ export const LLM_DESCR: LLM2String = {
     "Most cost-efficient small model (OpenAI, 8k token context)",
   "gpt-4.1-mini": "Most cost-efficient small model (OpenAI, 8k token context)",
   "gpt-4o-mini": "Most cost-efficient small model (OpenAI, 128k token context)",
+  "openai-codex-agent": "OpenAI Codex local coding agent (uses Codex CLI)",
   "text-embedding-ada-002": "Text embedding Ada 002 by OpenAI", // TODO: this is for embeddings, should be moved to a different place
   "o1-8k": "Spends more time thinking (8k token context)",
   "o1-mini-8k": "A cost-efficient reasoning model (8k token context)",

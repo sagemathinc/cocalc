@@ -194,7 +194,7 @@ function mentionableUsers({
     const search_term = "openaicodexagent";
     if (!search || search_term.includes(search)) {
       mentions.push({
-        value: "codex",
+        value: "openai-codex-agent",
         label: (
           <Tooltip title="OpenAI Codex Agent">
             <span>

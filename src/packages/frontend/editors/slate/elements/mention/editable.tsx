@@ -45,6 +45,9 @@ export function createMention(account_id: string, name?: string) {
   if (name == null) {
     name = truncMiddle(redux.getStore("users").get_name(account_id), 64);
   }
+  if (!name) {
+    name = account_id;
+  }
   return createMentionStatic(account_id, name);
 }
 
