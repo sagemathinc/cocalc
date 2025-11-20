@@ -9,11 +9,12 @@ a = require('@cocalc/lite/hub/codex')
 a.evaluate({stream:console.log, input:'Say hello from Codex!',thread_options: {workingDirectory:'/tmp',skipGitRepoCheck: true}})
 
 
-{
+a.evaluate({
+stream:console.log, 
     account_id: '00000000-1000-4000-8000-000000000001',
     input: 'Say hello from Codex!',
     thread_options: { workingDirectory: '/tmp', skipGitRepoCheck: true }
-  }
+  })
 
 */
 
@@ -77,9 +78,19 @@ export async function evaluate({
 }: CodexRequest & {
   stream: (payload?: CodexStreamPayload | null) => Promise<void>;
 }) {
-  logger.debug("evaluate ", { request });
+  logger.debug("evaluate ", { request }, process.env);
   const runner = new CodexThreadRunner({
-    codexOptions: request.codex_options,
+    codexOptions: {
+      ...request.codex_options,
+      env: {
+        ...process.env,
+        HOME: process.env.COCALC_ORIGINAL_HOME ?? process.env.HOME ?? "",
+        PATH: process.env.COCALC_ORIGINAL_PATH ?? process.env.PATH ?? "",
+      },
+      codexPathOverride: request.codex_options?.codexPathOverride as
+        | string
+        | undefined,
+    },
     resumeThreadId: request.thread_id ?? undefined,
     threadOptions: withDefaults(request.thread_options),
   });

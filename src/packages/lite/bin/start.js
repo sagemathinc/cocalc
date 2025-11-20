@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 const { dirname, join } = require("path");
 
 (async () => {
