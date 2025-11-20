@@ -4,7 +4,11 @@
     "rootDir": "./",
     "outDir": "dist",
     "lib": ["ES2021", "dom"],
-    "target": "ES2021"
+    "target": "ES2021",
+    "baseUrl": ".",
+    "paths": {
+      "@langchain/core/*": ["../ai/node_modules/@langchain/core/dist/*"]
+    }
   },
   "exclude": ["dist", "node_modules", "build"],
   "references": [

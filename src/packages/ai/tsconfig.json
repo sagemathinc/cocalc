@@ -5,7 +5,12 @@
     "outDir": "dist",
     "lib": ["es2020"],
     "module": "commonjs",
-    "target": "es2020"
+    "moduleResolution": "node",
+    "target": "es2020",
+    "baseUrl": ".",
+    "paths": {
+      "@langchain/core/*": ["node_modules/@langchain/core/dist/*"]
+    }
   },
   "include": ["./**/*.ts"],
   "exclude": ["dist", "node_modules"]
