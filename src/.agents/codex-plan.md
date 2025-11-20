@@ -125,3 +125,11 @@ NOTE:
 - Surface Codex flags/models in `/customize` (site settings) so frontend lists Codex in selectable LLMs.
 - Frontend chat integration: consume `streamCodex` events, render command/file-change items, finalize thread UX.
 - Hosted mode: launch Codex inside project containers (podman), pass env/paths accordingly, and decide auth flow (user vs shared key).
+
+## Upcoming UI work (lite chat)
+
+- Add a Codex config modal + button in chat (e.g., `packages/frontend/chat/codex.tsx`):
+  - Trigger when viewing a Codex thread with missing config, and via a persistent “Codex” button in the chat header; later, also on a leading `/`.
+  - Fields: working directory (default to chat’s directory), optional session_id (reuse/continue), model selection, any CLI env overrides (HOME/PATH), and future options (sandbox/approval/network).
+  - Store config in the first chat message metadata so subsequent loads can rehydrate the session.
+  - Once config is present, send messages over the conat Codex route using that session, then iterate on event rendering.
