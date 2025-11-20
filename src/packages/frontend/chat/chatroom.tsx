@@ -437,7 +437,7 @@ export function ChatPanel({
   });
 
   const renderThreadRow = (thread: ThreadMeta) => {
-    const { key, displayLabel, hasCustomName, unreadCount } = thread;
+    const { key, displayLabel, hasCustomName, unreadCount, isAI } = thread;
     const plainLabel = stripHtml(displayLabel);
     const isHovered = hoveredThread === key;
     const showMenu = isHovered || selectedThreadKey === key;
@@ -456,6 +456,7 @@ export function ChatPanel({
             setHoveredThread((prev) => (prev === key ? null : prev))
           }
         >
+          <Icon name={isAI ? "robot" : "users"} style={{ color: "#888" }} />
           <div style={THREAD_ITEM_LABEL_STYLE}>{plainLabel}</div>
           {unreadCount > 0 && (
             <Badge
