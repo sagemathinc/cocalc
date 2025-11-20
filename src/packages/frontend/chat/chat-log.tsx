@@ -546,7 +546,7 @@ export function MessageList({
   return (
     <Virtuoso
       ref={virtuosoRef}
-      totalCount={sortedDates.length}
+      totalCount={sortedDates.length + 1}
       itemSize={(el) => {
         // see comment in jupyter/cell-list.tsx
         const h = el.getBoundingClientRect().height;
@@ -558,6 +558,9 @@ export function MessageList({
         return h;
       }}
       itemContent={(index) => {
+        if (sortedDates.length == index) {
+          return <div style={{ height: "25vh" }} />;
+        }
         const date = sortedDates[index];
         const message: ChatMessageTyped | undefined = messages.get(date);
         if (message == null) {
