@@ -776,30 +776,44 @@ export class ChatActions extends Actions<ChatState> {
    * This checks a thread of messages to see if it is a language model thread and if so, returns it.
    */
   isLanguageModelThread = (date?: Date): false | LanguageModel => {
-    if (date == null) {
+    if (date == null || this.store == null) {
       return false;
     }
-    const thread = this.getMessagesInThread(date.toISOString());
+    const messages = this.store.get("messages");
+    if (messages == null) {
+      return false;
+    }
+    const rootMs =
+      getThreadRootDate({ date: date.valueOf(), messages }) || date.valueOf();
+    const entry = this.getThreadRootDoc(`${rootMs}`);
+    const rootMessage = entry?.message;
+    if (rootMessage == null) {
+      return false;
+    }
+
+    const thread = this.getMessagesInThread(
+      rootMessage.get("date")?.toISOString?.() ?? `${rootMs}`,
+    );
     if (thread == null) {
       return false;
     }
 
-    // We deliberately start at the last most recent message.
-    // Why? If we use the LLM regenerate dropdown button to change the LLM, we want to keep it.
-    for (const message of thread.reverse()) {
-      const lastHistory = message.get("history")?.first();
-      // this must be an invalid message, because there is no history
-      if (lastHistory == null) continue;
-      const sender_id = lastHistory.get("author_id");
-      if (isLanguageModelService(sender_id)) {
-        return service2model(sender_id);
-      }
-      const input = lastHistory.get("content")?.toLowerCase();
-      if (mentionsLanguageModel(input)) {
-        return getLanguageModel(input);
-      }
+    const firstMessage = thread.first();
+    if (firstMessage == null) {
+      return false;
     }
-
+    const firstHistory = firstMessage.get("history")?.first();
+    if (firstHistory == null) {
+      return false;
+    }
+    const sender_id = firstHistory.get("author_id");
+    if (isLanguageModelService(sender_id)) {
+      return service2model(sender_id);
+    }
+    const input = firstHistory.get("content")?.toLowerCase();
+    if (mentionsLanguageModel(input)) {
+      return getLanguageModel(input);
+    }
     return false;
   };
 
