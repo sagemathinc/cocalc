@@ -452,11 +452,16 @@ export function ChatPanel({
     threadKey: string,
     displayLabel: string,
     hasCustomName: boolean,
+    isPinned: boolean,
   ): MenuProps => ({
     items: [
       {
         key: "rename",
         label: "Rename chat",
+      },
+      {
+        key: isPinned ? "unpin" : "pin",
+        label: isPinned ? "Unpin chat" : "Pin chat",
       },
       {
         type: "divider",
@@ -469,6 +474,18 @@ export function ChatPanel({
     onClick: ({ key }) => {
       if (key === "rename") {
         openRenameModal(threadKey, displayLabel, hasCustomName);
+      } else if (key === "pin" || key === "unpin") {
+        if (!actions?.setThreadPin) {
+          antdMessage.error("Pinning chats is not available.");
+          return;
+        }
+        const pinned = key === "pin";
+        const success = actions.setThreadPin(threadKey, pinned);
+        if (!success) {
+          antdMessage.error("Unable to update chat pin state.");
+          return;
+        }
+        antdMessage.success(pinned ? "Chat pinned." : "Chat unpinned.");
       } else if (key === "delete") {
         confirmDeleteThread(threadKey);
       }
@@ -476,7 +493,8 @@ export function ChatPanel({
   });
 
   const renderThreadRow = (thread: ThreadMeta) => {
-    const { key, displayLabel, hasCustomName, unreadCount, isAI } = thread;
+    const { key, displayLabel, hasCustomName, unreadCount, isAI, isPinned } =
+      thread;
     const plainLabel = stripHtml(displayLabel);
     const isHovered = hoveredThread === key;
     const showMenu = isHovered || selectedThreadKey === key;
@@ -510,7 +528,7 @@ export function ChatPanel({
           )}
           {showMenu && (
             <Dropdown
-              menu={threadMenuProps(key, plainLabel, hasCustomName)}
+              menu={threadMenuProps(key, plainLabel, hasCustomName, isPinned)}
               trigger={["click"]}
             >
               <Button
@@ -1006,7 +1024,6 @@ export function ChatPanel({
               if (!message) {
                 return;
               }
-              console.log("start video chat returned", { message });
               sendMessage(undefined, "\n\n" + message);
             }}
           >

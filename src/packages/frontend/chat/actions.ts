@@ -574,6 +574,24 @@ export class ChatActions extends Actions<ChatState> {
     return true;
   };
 
+  setThreadPin = (threadKey: string, pinned: boolean): boolean => {
+    if (this.syncdb == null) {
+      return false;
+    }
+    const entry = this.getThreadRootDoc(threadKey);
+    if (entry == null) {
+      return false;
+    }
+    if (pinned) {
+      entry.doc.pin = true;
+    } else {
+      delete entry.doc.pin;
+    }
+    this.syncdb.set(entry.doc);
+    this.syncdb.commit();
+    return true;
+  };
+
   markThreadRead = (
     threadKey: string,
     count: number,
@@ -1276,7 +1294,6 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   setSelectedThread = (threadKey: string | null) => {
-    console.log("setSelectedThread", { threadKey });
     this.frameTreeActions?.set_frame_data({
       id: this.frameId,
       selectedThreadKey: threadKey,
