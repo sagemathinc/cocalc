@@ -74,6 +74,13 @@ export class ChatActions extends Actions<ChatState> {
     this.store = store;
   };
 
+  focusInput(opts?: { keepActiveFrame?: boolean }): void {
+    const keepFrame = opts?.keepActiveFrame ?? false;
+    if (!keepFrame && this.frameId && this.frameTreeActions?.set_active_id) {
+      this.frameTreeActions.set_active_id(this.frameId);
+    }
+  }
+
   // Initialize the state of the store from the contents of the syncdb.
   init_from_syncdb = (): void => {
     if (this.syncdb == null) {

@@ -303,6 +303,14 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
   if (build_command == null) {
     return <Loading />;
   } else {
-    return <div style={{ paddingRight: "5px" }}>{render_body()}</div>;
+    return (
+      <div
+        style={{ paddingRight: "5px" }}
+        role="region"
+        aria-label="Build command"
+      >
+        {render_body()}
+      </div>
+    );
   }
 });

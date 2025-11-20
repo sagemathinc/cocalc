@@ -20,6 +20,7 @@ interface AProps {
   style?: CSSProperties;
   onClick?: (any) => void;
   onMouseDown?: (any) => void;
+  "aria-label"?: string;
 }
 
 export function A({
@@ -30,6 +31,7 @@ export function A({
   placement,
   onClick,
   onMouseDown,
+  "aria-label": ariaLabel,
 }: AProps) {
   if (title) {
     // use nicer antd tooltip.
@@ -40,6 +42,7 @@ export function A({
           target={"_blank"}
           rel={"noopener"}
           style={style}
+          aria-label={ariaLabel}
           onClick={onClick}
           onMouseDown={onMouseDown}
         >
@@ -55,6 +58,7 @@ export function A({
       rel={"noopener"}
       style={style}
       title={title}
+      aria-label={ariaLabel}
       onClick={onClick}
       onMouseDown={onMouseDown}
     >

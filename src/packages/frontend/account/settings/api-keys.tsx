@@ -20,7 +20,7 @@ export default function ApiKeys() {
   });
 
   return (
-    <SettingBox title={title} icon={"api"}>
+    <SettingBox title={title} icon={"api"} role="region" aria-label="API keys">
       <ApiKeysTables manage={manage} />
       <Paragraph>
         <FormattedMessage

@@ -26,7 +26,7 @@ import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { BLURED_STYLE, FOCUSED_STYLE, MarkdownInput } from "./component";
 
-// NOTE: on mobile there is very little suppport for "editor" = "slate", but
+// NOTE: on mobile there is very little support for "editor" = "slate", but
 // very good support for "markdown", hence the default below.
 
 export interface EditorFunctions {
