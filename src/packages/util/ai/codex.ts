@@ -11,39 +11,7 @@ export interface CodexModelInfo {
   reasoning?: CodexReasoningLevel[];
 }
 
-// in my experience so far gpt-5.1-codex is vastly superior to gpt-5.1-codex-max.
-const DEFAULT_CODEX_MODEL = "gpt-5.1-codex";
-
 export const DEFAULT_CODEX_MODELS: CodexModelInfo[] = [
-  {
-    name: "gpt-5.1-codex-max",
-    description: "Latest Codex-optimized flagship for deep and fast reasoning.",
-    reasoning: [
-      {
-        id: "low",
-        label: "Low",
-        description: "Fastest responses with limited reasoning.",
-      },
-      {
-        id: "medium",
-        label: "Medium",
-        description:
-          "Balanced speed and depth; dynamically adjusts to the task.",
-        default: true,
-      },
-      {
-        id: "high",
-        label: "High",
-        description:
-          "Maximizes reasoning depth for complex or ambiguous problems.",
-      },
-      {
-        id: "extra_high",
-        label: "Extra high",
-        description: "Highest depth for especially challenging tasks.",
-      },
-    ],
-  },
   {
     name: "gpt-5.1-codex",
     description: "Optimized for Codex.",
@@ -106,6 +74,35 @@ export const DEFAULT_CODEX_MODELS: CodexModelInfo[] = [
         label: "High",
         description:
           "Maximizes reasoning depth for complex or ambiguous problems.",
+      },
+    ],
+  },
+  {
+    name: "gpt-5.1-codex-max",
+    description: "Latest Codex-optimized flagship for deep and fast reasoning.",
+    reasoning: [
+      {
+        id: "low",
+        label: "Low",
+        description: "Fastest responses with limited reasoning.",
+      },
+      {
+        id: "medium",
+        label: "Medium",
+        description:
+          "Balanced speed and depth; dynamically adjusts to the task.",
+        default: true,
+      },
+      {
+        id: "high",
+        label: "High",
+        description:
+          "Maximizes reasoning depth for complex or ambiguous problems.",
+      },
+      {
+        id: "extra_high",
+        label: "Extra high",
+        description: "Highest depth for especially challenging tasks.",
       },
     ],
   },

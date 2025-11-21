@@ -7,6 +7,7 @@ import {
   Typography,
   Select,
   Switch,
+  Progress,
 } from "antd";
 import {
   React,
@@ -21,7 +22,7 @@ import {
 import type { ChatActions } from "./actions";
 
 const { Paragraph, Text } = Typography;
-const DEFAULT_MODEL_NAME = DEFAULT_CODEX_MODELS[0]?.name ?? "gpt-5.1-codex-max";
+const DEFAULT_MODEL_NAME = DEFAULT_CODEX_MODELS[0].name;
 
 export interface CodexConfigButtonProps {
   threadKey: string;
@@ -96,6 +97,8 @@ export function CodexConfigButton({
   }, [models, threadKey, chatPath, actions, form]);
 
   const selectedModelValue = Form.useWatch("model", form);
+  const selectedReasoningValue = Form.useWatch("reasoning", form);
+  const currentUsage = Form.useWatch("codex_usage", form);
   const reasoningOptions = useMemo(() => {
     const selected =
       models.find((m) => m.value === selectedModelValue) ?? models[0];
@@ -115,10 +118,55 @@ export function CodexConfigButton({
     setOpen(false);
   };
 
+  const selectedModelLabel =
+    models.find((m) => m.value === selectedModelValue)?.label ??
+    DEFAULT_MODEL_NAME;
+  const selectedReasoningLabel =
+    reasoningOptions.find((r) => r.value === selectedReasoningValue)?.label ??
+    "";
+
+  const remainingPercent = currentUsage?.input_tokens
+    ? Math.max(
+        0,
+        100 -
+          Math.round(
+            (currentUsage.input_tokens /
+              (currentUsage.input_tokens + (currentUsage.output_tokens ?? 0))) *
+              100,
+          ),
+      )
+    : null;
+
+  const contextLeft =
+    remainingPercent != null ? (
+      <div>
+        <Text style={{ fontSize: 12, color: "#666" }}>
+          {remainingPercent}% context left
+        </Text>
+        <Progress
+          percent={remainingPercent}
+          status={
+            remainingPercent < 20
+              ? "exception"
+              : remainingPercent < 40
+                ? "active"
+                : "normal"
+          }
+          showInfo={false}
+          size="small"
+        />
+      </div>
+    ) : null;
+
   return (
     <>
       <Button size="small" onClick={() => setOpen(true)}>
         Codex Config
+        <div style={{ fontSize: 11, color: "#999" }}>
+          {selectedModelLabel}
+          {selectedReasoningLabel ? ` · ${selectedReasoningLabel}` : ""}
+          {contextLeft}
+        </div>
       </Button>
       <Modal
         open={open}
@@ -128,6 +176,7 @@ export function CodexConfigButton({
         onCancel={() => setOpen(false)}
       >
         <Space direction="vertical" style={{ width: "100%" }}>
+          {contextLeft}
           <Paragraph type="secondary">
             Configure how this chat connects to Codex. Values are stored in the
             first message metadata (future work); for now this modal is a
@@ -150,9 +199,7 @@ export function CodexConfigButton({
                 options={models}
                 optionRender={(option) =>
                   renderOptionWithDescription({
-                    title: `${option.data.label}${
-                      option.data.thinking ? ` (${option.data.thinking})` : ""
-                    }`,
+                    title: option.data.label,
                     description: option.data.description,
                   })
                 }
