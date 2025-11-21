@@ -16,12 +16,12 @@ import {
 } from "@cocalc/frontend/app-framework";
 import {
   DEFAULT_CODEX_MODELS,
-  DEFAULT_CODEX_MODEL,
   type CodexReasoningLevel,
 } from "@cocalc/util/ai/codex";
 import type { ChatActions } from "./actions";
 
 const { Paragraph, Text } = Typography;
+const DEFAULT_MODEL_NAME = DEFAULT_CODEX_MODELS[0]?.name ?? "gpt-5.1-codex-max";
 
 export interface CodexConfigButtonProps {
   threadKey: string;
@@ -55,19 +55,45 @@ export function CodexConfigButton({
       reasoning: m.reasoning,
     }));
     setModels(initialModels);
-    form.resetFields();
-    form.setFieldsValue({
+  }, []);
+
+  useEffect(() => {
+    if (!models.length) return;
+    const baseModel = models[0]?.value ?? DEFAULT_MODEL_NAME;
+    const baseReasoning = getReasoningForModel({
+      models,
+      modelValue: baseModel,
+    });
+    const defaults = {
       workingDirectory: defaultWorkingDir(chatPath),
       sessionId: "",
-      model: initialModels[0]?.value ?? DEFAULT_CODEX_MODEL,
-      reasoning:
-        initialModels[0]?.reasoning?.find((r) => r.default)?.id ??
-        initialModels[0]?.reasoning?.[0]?.id,
+      model: baseModel,
+      reasoning: baseReasoning,
       envHome: "",
       envPath: "",
       allowWrite: false,
+    };
+    const ms = parseInt(threadKey, 10);
+    const saved =
+      !Number.isNaN(ms) && actions?.getCodexConfig
+        ? actions.getCodexConfig(new Date(ms))
+        : undefined;
+    const merged = { ...defaults, ...(saved ?? {}) };
+    const model = models.some((m) => m.value === merged.model)
+      ? merged.model
+      : baseModel;
+    const reasoning = getReasoningForModel({
+      models,
+      modelValue: model,
+      desired: merged.reasoning,
     });
-  }, [threadKey, chatPath, form]);
+    form.resetFields();
+    form.setFieldsValue({
+      ...merged,
+      model,
+      reasoning,
+    });
+  }, [models, threadKey, chatPath, actions, form]);
 
   const selectedModelValue = Form.useWatch("model", form);
   const reasoningOptions = useMemo(() => {
@@ -85,9 +111,7 @@ export function CodexConfigButton({
 
   const onSave = () => {
     const values = form.getFieldsValue();
-    if (actions) {
-      actions.setCodexConfig(threadKey, values);
-    }
+    actions?.setCodexConfig?.(threadKey, values);
     setOpen(false);
   };
 
@@ -126,9 +150,7 @@ export function CodexConfigButton({
                 options={models}
                 optionRender={(option) =>
                   renderOptionWithDescription({
-                    title: `${option.data.label}${
-                      option.data.thinking ? ` (${option.data.thinking})` : ""
-                    }`,
+                    title: option.data.label,
                     description: option.data.description,
                   })
                 }
@@ -193,6 +215,24 @@ export function CodexConfigButton({
 }
 
 export default CodexConfigButton;
+
+function getReasoningForModel({
+  models,
+  modelValue,
+  desired,
+}: {
+  models: ModelOption[];
+  modelValue?: string;
+  desired?: string;
+}): string | undefined {
+  if (!models.length) return undefined;
+  const model =
+    models.find((m) => m.value === modelValue) ?? models[0] ?? undefined;
+  const options = model?.reasoning;
+  if (!options?.length) return undefined;
+  const match = options.find((r) => r.id === desired);
+  return match?.id ?? options.find((r) => r.default)?.id ?? options[0]?.id;
+}
 
 function renderOptionWithDescription({
   title,
