@@ -1134,7 +1134,7 @@ export class ChatActions extends Actions<ChatState> {
    * @param dateStr - the ISO date of the message to get the thread for
    * @returns  - the messages in the thread, sorted by date
    */
-  private getMessagesInThread = (
+  getMessagesInThread = (
     dateStr: string,
   ): Seq.Indexed<ChatMessageTyped> | undefined => {
     const messages = this.store?.get("messages");
