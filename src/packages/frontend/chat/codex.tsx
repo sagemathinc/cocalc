@@ -150,7 +150,9 @@ export function CodexConfigButton({
                 options={models}
                 optionRender={(option) =>
                   renderOptionWithDescription({
-                    title: option.data.label,
+                    title: `${option.data.label}${
+                      option.data.thinking ? ` (${option.data.thinking})` : ""
+                    }`,
                     description: option.data.description,
                   })
                 }

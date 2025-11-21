@@ -53,7 +53,14 @@ export async function processCodexLLM({
   context,
   dateLimit,
 }: ProcessCodexRequest): Promise<void> {
-  const { syncdb, path, chatStreams, sendReply, saveHistory, getLLMHistory } =
+  const {
+    syncdb,
+    path,
+    chatStreams,
+    sendReply,
+    saveHistory,
+    getLLMHistory,
+  } =
     context;
   if (syncdb == null) return;
 
@@ -65,6 +72,7 @@ export async function processCodexLLM({
   const config = context.getCodexConfig
     ? context.getCodexConfig(reply_to)
     : undefined;
+  const selectedModel = config?.model ?? model;
 
   if (tag === "regenerate") {
     const history = reply_to ? getLLMHistory(reply_to) : [];
@@ -138,10 +146,11 @@ export async function processCodexLLM({
   try {
     const stream = await webapp_client.conat_client.streamCodex({
       input: workingInput,
-      thread_options: {
-        workingDirectory: resolveWorkingDir(path),
-        skipGitRepoCheck: true,
-      },
+      thread_options: buildThreadOptions({
+        path,
+        config,
+        model: selectedModel,
+      }),
       codex_options: buildCodexOptions(config),
     });
 
@@ -221,6 +230,32 @@ function resolveWorkingDir(chatPath?: string): string {
   const i = chatPath.lastIndexOf("/");
   if (i <= 0) return ".";
   return chatPath.slice(0, i);
+}
+
+function buildThreadOptions({
+  path,
+  config,
+  model,
+}: {
+  path?: string;
+  config?: any;
+  model?: string;
+}) {
+  const opts: any = {
+    workingDirectory: resolveWorkingDir(path),
+    skipGitRepoCheck: true,
+  };
+  if (model) {
+    opts.model = model;
+  }
+  const reasoning = config?.reasoning;
+  if (reasoning) {
+    opts.modelReasoningEffort = reasoning;
+  }
+  if (config?.allowWrite != null) {
+    opts.sandboxMode = config.allowWrite ? "workspace-write" : "read-only";
+  }
+  return opts;
 }
 
 function buildCodexOptions(config?: any) {
