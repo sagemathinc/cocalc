@@ -13,6 +13,7 @@ import type {
   CodexStreamMessage,
   ThreadItem,
 } from "@cocalc/conat/codex/types";
+import { plural } from "@cocalc/util/misc";
 
 const { Text } = Typography;
 const MAX_COMMAND_OUTPUT = 10_000;
@@ -26,6 +27,7 @@ export interface CodexActivityProps {
 type CommandEntry = Extract<ActivityEntry, { kind: "command" }>;
 type ReasoningEntry = Extract<ActivityEntry, { kind: "reasoning" }>;
 type AgentEntry = Extract<ActivityEntry, { kind: "agent" }>;
+type FileChangeEntry = Extract<ActivityEntry, { kind: "file_change" }>;
 
 type ActivityEntry =
   | {
@@ -48,6 +50,13 @@ type ActivityEntry =
       id: string;
       seq: number;
       text?: string;
+    }
+  | {
+      kind: "file_change";
+      id: string;
+      seq: number;
+      status?: string;
+      changes: { path?: string; kind?: string }[];
     }
   | {
       kind: "status";
@@ -77,19 +86,23 @@ export function CodexActivity({
 
   const header = (
     <Space size={6} align="center" wrap>
-      <Text strong style={{ color: COLORS.GRAY }}>
-        Codex activity
-      </Text>
-      {threadId ? (
-        <Tag color="blue" style={{ margin: 0 }}>
-          {threadId}
-        </Tag>
-      ) : null}
-      {!generating ? (
-        <Button size="small" type="link" onClick={() => setExpanded((v) => !v)}>
-          {expanded ? "Hide log" : "Show log"}
-        </Button>
-      ) : null}
+      {expanded && (
+        <>
+          <Text strong style={{ color: COLORS.GRAY }}>
+            Activity
+          </Text>
+          {threadId ? (
+            <Tag color="blue" style={{ margin: 0 }}>
+              {threadId}
+            </Tag>
+          ) : null}
+        </>
+      )}
+      <Button size="small" type="link" onClick={() => setExpanded((v) => !v)}>
+        {expanded
+          ? "Hide log"
+          : `Show log (${entries.length} ${plural(entries.length, "step")})`}
+      </Button>
     </Space>
   );
 
@@ -104,10 +117,7 @@ export function CodexActivity({
         }}
         bodyStyle={{ padding: "6px 10px" }}
       >
-        <Space direction="vertical" size={4}>
-          {header}
-          <Text type="secondary">{entries.length} steps recorded</Text>
-        </Space>
+        {header}
       </Card>
     );
   }
@@ -167,9 +177,7 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
         </div>
       );
     case "command": {
-      const cmdLabel = entry.command?.trim()
-        ? entry.command.trim()
-        : "command";
+      const cmdLabel = entry.command?.trim() ? entry.command.trim() : "command";
       const terminalText = formatTerminalText(entry);
       return (
         <div>
@@ -196,8 +204,28 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
       );
     }
     case "status":
+    case "file_change":
     default:
-      return (
+      return entry.kind === "file_change" ? (
+        <div>
+          <Space size={6} align="baseline">
+            <Tag color="orange">Files</Tag>
+            {entry.status ? <Tag>{entry.status}</Tag> : null}
+          </Space>
+          <Space
+            direction="vertical"
+            size={2}
+            style={{ marginTop: 4, fontSize: 12 }}
+          >
+            {entry.changes.map((change, idx) => (
+              <Text key={idx} style={{ color: COLORS.GRAY_D }}>
+                {change.kind ? `${change.kind}: ` : ""}
+                {change.path}
+              </Text>
+            ))}
+          </Space>
+        </div>
+      ) : (
         <Space size={6} align="center">
           <Tag color={entry.level === "error" ? "red" : "default"}>
             {entry.label}
@@ -337,6 +365,20 @@ function normalizeEvents(events: CodexStreamMessage[]): ActivityEntry[] {
           if (!rows.includes(existing)) {
             rows.push(existing);
           }
+        } else if (isFileChangeItem(item)) {
+          const existing = getOrCreate<FileChangeEntry>(map, key, {
+            kind: "file_change",
+            id: key,
+            seq,
+            status: item.status,
+            changes: normalizeFileChanges(item.changes),
+          });
+          existing.seq = seq;
+          existing.status = item.status ?? existing.status;
+          existing.changes = normalizeFileChanges(item.changes);
+          if (!rows.includes(existing)) {
+            rows.push(existing);
+          }
         } else {
           rows.push({
             kind: "status",
@@ -375,7 +417,9 @@ function truncate(text: string, max: number): string {
   return `${text.slice(0, max - 1)}…`;
 }
 
-function formatTerminalText(entry: Extract<ActivityEntry, { kind: "command" }>) {
+function formatTerminalText(
+  entry: Extract<ActivityEntry, { kind: "command" }>,
+) {
   const command = entry.command ? `$ ${entry.command.trim()}` : "$";
   const output = entry.output ?? "";
   const exit =
@@ -392,7 +436,10 @@ function estimateHeight(text: string): number {
   return Math.min(40, Math.max(6, lines));
 }
 
-function formatUsage(usage?: { input_tokens?: number; output_tokens?: number }) {
+function formatUsage(usage?: {
+  input_tokens?: number;
+  output_tokens?: number;
+}) {
   if (!usage) return "";
   const parts: string[] = [];
   if (usage.input_tokens != null) parts.push(`${usage.input_tokens} in`);
@@ -425,6 +472,13 @@ type ReasoningItem = {
   text?: string;
 };
 
+type FileChangeItem = {
+  id?: string;
+  type: "file_change";
+  status?: string;
+  changes?: { path?: string; kind?: string }[];
+};
+
 function isCommandExecutionItem(
   item: ThreadItem,
 ): item is CommandExecutionItem {
@@ -439,8 +493,22 @@ function isAgentMessageItem(item: ThreadItem): item is AgentMessageItem {
   return isRecord(item) && item.type === "agent_message";
 }
 
+function isFileChangeItem(item: ThreadItem): item is FileChangeItem {
+  return isRecord(item) && item.type === "file_change";
+}
+
 function isRecord(value: any): value is Record<string, any> {
   return value != null && typeof value === "object";
+}
+
+function normalizeFileChanges(
+  changes: FileChangeItem["changes"],
+): { path?: string; kind?: string }[] {
+  if (!Array.isArray(changes)) return [];
+  return changes.map((change) => ({
+    path: change?.path,
+    kind: change?.kind,
+  }));
 }
 
 export default CodexActivity;
