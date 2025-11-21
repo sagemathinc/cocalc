@@ -57,6 +57,7 @@ export default async function handle(req, res) {
       name,
       args,
       timeout,
+      account_id,
     });
     res.json(resp);
   } catch (err) {

@@ -14,12 +14,14 @@ export default async function projectBridge({
   name,
   args,
   timeout,
+  account_id,
 }: {
   project_id: string;
   compute_server_id?: number;
   name: string;
   args?: any[];
   timeout?: number;
+  account_id?: string;
 }) {
   client ??= conat();
   return await callProject({
@@ -29,6 +31,7 @@ export default async function projectBridge({
     name,
     args,
     timeout,
+    account_id,
   });
 }
 
@@ -39,6 +42,7 @@ async function callProject({
   name,
   args = [],
   timeout = DEFAULT_TIMEOUT,
+  account_id,
 }: {
   client: ConatClient;
   project_id: string;
@@ -46,6 +50,7 @@ async function callProject({
   name: string;
   args?: any[];
   timeout?: number;
+  account_id?: string;
 }) {
   const subject = projectSubject({
     project_id,
@@ -53,10 +58,10 @@ async function callProject({
     service: "api",
   });
   try {
-    // Ensure the project is running before making the API call
+    // Ensure the project is running and signal activity before making the API call
     const project = getProject(project_id);
     if (project) {
-      await project.start();
+      await project.touch(account_id);
     }
 
     // For discovery-style calls, inject identifiers so the project can report scope
