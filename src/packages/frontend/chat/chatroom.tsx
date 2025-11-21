@@ -893,7 +893,7 @@ export function ChatPanel({
                 style={{ position: "absolute", top: 8, left: 8, zIndex: 10 }}
               >
                 <CodexConfigButton
-                  threadKey={selectedThread.key}
+                  threadKey={selectedThreadKey}
                   chatPath={path}
                   actions={actions}
                 />

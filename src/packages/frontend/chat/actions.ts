@@ -1201,7 +1201,9 @@ export class ChatActions extends Actions<ChatState> {
   setCodexConfig = (threadKey: string, config: any): void => {
     if (this.syncdb == null) return;
     const dateNum = parseInt(threadKey, 10);
-    if (Number.isNaN(dateNum)) return;
+    if (!dateNum || Number.isNaN(dateNum)) {
+      throw Error(`setCodexConfig: invalid threadKey ${threadKey}`);
+    }
     this.syncdb.set({
       event: "chat",
       date: new Date(dateNum),

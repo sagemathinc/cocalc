@@ -86,7 +86,7 @@ export function CodexConfigButton({
   const onSave = () => {
     const values = form.getFieldsValue();
     if (actions) {
-      actions.setCodexConfig?.(threadKey, values);
+      actions.setCodexConfig(threadKey, values);
     }
     setOpen(false);
   };
