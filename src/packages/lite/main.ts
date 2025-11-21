@@ -30,6 +30,7 @@ import { init as initChangefeeds } from "./hub/changefeeds";
 import { init as initHubApi } from "./hub/api";
 import { init as initLLM } from "./hub/llm";
 import { init as initCodex } from "./hub/codex";
+import { init as initAcp } from "./hub/acp";
 import { account_id } from "@cocalc/backend/data";
 import { init as initRemote } from "./remote";
 import { getAuthToken } from "./auth-token";
@@ -103,6 +104,9 @@ export async function main(): Promise<number> {
 
   logger.debug("start codex conat server");
   await initCodex();
+
+  logger.debug("start acp conat server");
+  await initAcp();
 
   const path = process.cwd();
 

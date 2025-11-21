@@ -20,6 +20,11 @@
       "require": "./dist/codex/index.js",
       "types": "./dist/codex/index.d.ts"
     },
+    "./acp": {
+      "import": "./dist/acp/index.js",
+      "require": "./dist/acp/index.js",
+      "types": "./dist/acp/index.d.ts"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -30,6 +35,7 @@
     "depcheck": "pnpx depcheck --ignores=@types/jest,@types/node"
   },
   "dependencies": {
+    "@agentclientprotocol/sdk": "^0.5.1",
     "@cocalc/backend": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@langchain/anthropic": "^1.1.0",

@@ -27,6 +27,7 @@ import { listingsClient } from "@cocalc/conat/service/listings";
 import getTime, { getSkew, init as initTime } from "@cocalc/conat/time";
 import { llm } from "@cocalc/conat/llm/client";
 import * as codex from "@cocalc/conat/codex/client";
+import * as acp from "@cocalc/conat/ai/acp/client";
 import { inventory } from "@cocalc/conat/sync/inventory";
 import { EventEmitter } from "events";
 import {
@@ -454,6 +455,22 @@ export class ConatClient extends EventEmitter {
 
   runCodex = async (request, options?) => {
     return await codex.runCodex(
+      { account_id: this.client.account_id, ...request },
+      options,
+      this.conat(),
+    );
+  };
+
+  streamAcp = async (request, options?) => {
+    return await acp.streamAcp(
+      { account_id: this.client.account_id, ...request },
+      options,
+      this.conat(),
+    );
+  };
+
+  runAcp = async (request, options?) => {
+    return await acp.runAcp(
       { account_id: this.client.account_id, ...request },
       options,
       this.conat(),
