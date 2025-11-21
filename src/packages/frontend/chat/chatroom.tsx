@@ -895,6 +895,7 @@ export function ChatPanel({
                 <CodexConfigButton
                   threadKey={selectedThread.key}
                   chatPath={path}
+                  actions={actions}
                 />
               </div>
             )}

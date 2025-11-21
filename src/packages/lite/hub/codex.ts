@@ -79,6 +79,7 @@ export async function evaluate({
   stream: (payload?: CodexStreamPayload | null) => Promise<void>;
 }) {
   logger.debug("evaluate ", { request }, process.env);
+
   const runner = new CodexThreadRunner({
     codexOptions: {
       ...request.codex_options,

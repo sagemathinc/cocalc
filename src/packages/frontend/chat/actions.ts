@@ -920,6 +920,8 @@ export class ChatActions extends Actions<ChatState> {
           sendReply: this.sendReply,
           saveHistory: this.saveHistory,
           getLLMHistory: this.getLLMHistory,
+          getCodexConfig: (reply_to_date?: Date) =>
+            this.getCodexConfig(reply_to_date ?? reply_to ?? undefined),
         },
       });
       return;
@@ -1177,6 +1179,35 @@ export class ChatActions extends Actions<ChatState> {
       history.push({ content, role, date });
     }
     return history;
+  };
+
+  getCodexConfig = (reply_to?: Date): any => {
+    if (reply_to == null || this.store == null) return;
+    const messages = this.store.get("messages");
+    if (!messages) return;
+    const rootMs =
+      getThreadRootDate({ date: reply_to.valueOf(), messages }) ||
+      reply_to.valueOf();
+    const entry = this.getThreadRootDoc(`${rootMs}`);
+    const rootMessage = entry?.message;
+    if (!rootMessage) return;
+    const cfg = rootMessage.get("codex_config");
+    if (cfg && typeof (cfg as any).toJS === "function") {
+      return (cfg as any).toJS();
+    }
+    return cfg;
+  };
+
+  setCodexConfig = (threadKey: string, config: any): void => {
+    if (this.syncdb == null) return;
+    const dateNum = parseInt(threadKey, 10);
+    if (Number.isNaN(dateNum)) return;
+    this.syncdb.set({
+      event: "chat",
+      date: new Date(dateNum),
+      codex_config: config,
+    });
+    this.syncdb.commit();
   };
 
   languageModelStopGenerating = (date: Date) => {

@@ -42,6 +42,7 @@ export interface ChatMessage {
   codex_events?: any[];
   codex_thread_id?: string | null;
   codex_usage?: any;
+  codex_config?: any;
 }
 
 // this type isn't explicitly used anywhere yet, but the actual structure is and I just

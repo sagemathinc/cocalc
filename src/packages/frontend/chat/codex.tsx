@@ -1,31 +1,61 @@
-import { Button, Form, Input, Modal, Space, Typography } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  Space,
+  Typography,
+  Select,
+  Switch,
+} from "antd";
 import { React, useEffect, useState } from "@cocalc/frontend/app-framework";
+import { DEFAULT_CODEX_MODELS } from "@cocalc/util/ai/codex";
+import type { ChatActions } from "./actions";
 
 const { Paragraph, Text } = Typography;
 
 export interface CodexConfigButtonProps {
   threadKey: string;
   chatPath: string;
+  actions?: ChatActions;
 }
 
 export function CodexConfigButton({
   threadKey,
   chatPath,
+  actions,
 }: CodexConfigButtonProps): React.ReactElement {
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm();
+  const [models, setModels] = useState<
+    { name: string; thinking?: string; description?: string }[]
+  >([]);
 
   useEffect(() => {
-    // Reset form when switching threads.
+    const initialModels = DEFAULT_CODEX_MODELS.map((m) => ({
+      name: m.name,
+      thinking: m.reasoning?.find((r) => r.default)?.label,
+      description: m.description,
+    }));
+    setModels(initialModels);
     form.resetFields();
     form.setFieldsValue({
-      workingDirectory: chatPath,
+      workingDirectory: defaultWorkingDir(chatPath),
       sessionId: "",
-      model: "gpt-5.1-codex-max",
+      model: initialModels[0]?.name ?? "gpt-5.1-codex-max",
       envHome: "",
       envPath: "",
+      allowWrite: false,
     });
   }, [threadKey, chatPath, form]);
+
+  const onSave = () => {
+    const values = form.getFieldsValue();
+    if (actions) {
+      actions.setCodexConfig?.(threadKey, values);
+    }
+    setOpen(false);
+  };
 
   return (
     <>
@@ -35,9 +65,8 @@ export function CodexConfigButton({
       <Modal
         open={open}
         title="Codex Session Configuration"
-        okText="Close"
-        cancelButtonProps={{ style: { display: "none" } }}
-        onOk={() => setOpen(false)}
+        okText="Save"
+        onOk={onSave}
         onCancel={() => setOpen(false)}
       >
         <Space direction="vertical" style={{ width: "100%" }}>
@@ -58,7 +87,18 @@ export function CodexConfigButton({
               <Input placeholder="Leave blank to create a new session" />
             </Form.Item>
             <Form.Item label="Model" name="model">
-              <Input placeholder="e.g., gpt-5.1-codex-max" />
+              <Select
+                placeholder="e.g., gpt-5.1-codex-max"
+                options={models.map((m) => ({
+                  value: m.name,
+                  label: m.thinking
+                    ? `${m.name} (${m.thinking})`
+                    : m.name,
+                  title: m.description,
+                }))}
+                showSearch
+                allowClear
+              />
             </Form.Item>
             <Form.Item
               label="HOME override"
@@ -74,6 +114,14 @@ export function CodexConfigButton({
             >
               <Input placeholder="Custom PATH for codex binary" />
             </Form.Item>
+            <Form.Item
+              label="Allow write access"
+              name="allowWrite"
+              valuePropName="checked"
+              tooltip="Enable Codex to write files. Use with care."
+            >
+              <Switch />
+            </Form.Item>
           </Form>
           <Text type="secondary">
             Coming soon: Save/apply these settings and drive Codex via conat
@@ -86,3 +134,10 @@ export function CodexConfigButton({
 }
 
 export default CodexConfigButton;
+
+function defaultWorkingDir(chatPath: string): string {
+  if (!chatPath) return ".";
+  const i = chatPath.lastIndexOf("/");
+  if (i <= 0) return ".";
+  return chatPath.slice(0, i);
+}

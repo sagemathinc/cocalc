@@ -31,6 +31,7 @@ interface CodexContext {
     prevHistory: MessageHistory[];
   };
   getLLMHistory: (reply_to: Date) => LanguageModelHistory;
+  getCodexConfig?: (reply_to?: Date) => any;
 }
 
 type ProcessCodexRequest = {
@@ -57,6 +58,10 @@ export async function processCodexLLM({
   if (syncdb == null) return;
 
   let workingInput = input;
+
+  const config = context.getCodexConfig
+    ? context.getCodexConfig(reply_to)
+    : undefined;
 
   if (tag === "regenerate") {
     const history = reply_to ? getLLMHistory(reply_to) : [];
@@ -131,9 +136,10 @@ export async function processCodexLLM({
     const stream = await webapp_client.conat_client.streamCodex({
       input: workingInput,
       thread_options: {
-        workingDirectory: path ?? ".",
+        workingDirectory: resolveWorkingDir(path),
         skipGitRepoCheck: true,
       },
+      codex_options: buildCodexOptions(config),
     });
 
     for await (const message of stream) {
@@ -205,4 +211,27 @@ function addToHistory(
 ): MessageHistory[] {
   const { author_id, content, date = new Date().toISOString() } = next;
   return [{ author_id, content, date }, ...history];
+}
+
+function resolveWorkingDir(chatPath?: string): string {
+  if (!chatPath) return ".";
+  const i = chatPath.lastIndexOf("/");
+  if (i <= 0) return ".";
+  return chatPath.slice(0, i);
+}
+
+function buildCodexOptions(config?: any) {
+  if (!config) return undefined;
+  const env: any = {};
+  if (config.envHome) env.HOME = config.envHome;
+  if (config.envPath) env.PATH = config.envPath;
+  const options: any = {};
+  if (Object.keys(env).length) options.env = env;
+  if (config.allowWrite != null) {
+    options.permissions = { write: !!config.allowWrite };
+  }
+  if (config.codexPathOverride) {
+    options.codexPathOverride = config.codexPathOverride;
+  }
+  return Object.keys(options).length ? options : undefined;
 }
