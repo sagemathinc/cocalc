@@ -31,7 +31,7 @@ import { plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
-import CodexEvents from "./codex-events";
+import CodexActivity from "./codex-activity";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
@@ -631,7 +631,11 @@ export default function Message({
           }
         />
         {codexEvents?.length ? (
-          <CodexEvents events={codexEvents} threadId={codexThreadId} />
+          <CodexActivity
+            events={codexEvents}
+            threadId={codexThreadId}
+            generating={generating === true}
+          />
         ) : null}
         {renderEditControlRow()}
       </>

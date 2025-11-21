@@ -156,6 +156,8 @@ export async function processCodexLLM({
 
     for await (const message of stream) {
       if (halted) break;
+      // leave in for now to see what is happening.
+      console.log(JSON.stringify(message,undefined,2));
 
       events = [...events, message];
 
