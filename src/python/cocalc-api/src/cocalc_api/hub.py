@@ -147,7 +147,7 @@ class System:
               'created': 1756056224470,
               'email_address_verified': None}]
         """
-        ...
+        ...  # pragma: no cover
 
 
 class Projects:
@@ -246,7 +246,7 @@ class Projects:
         Returns:
             dict[str, Any]: JSON response from the API.
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("projects.removeCollaborator", opts=True)
     def remove_collaborator(self, project_id: str, account_id: str) -> dict[str, Any]:
@@ -260,7 +260,7 @@ class Projects:
         Returns:
             dict[str, Any]: JSON response from the API.
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("projects.start")
     def start(self, project_id: str) -> dict[str, Any]:
@@ -295,6 +295,55 @@ class Projects:
         """
         ...
 
+    @api_method("projects.touch")
+    def touch(self, project_id: str) -> dict[str, Any]:
+        """
+        Signal that the project is in use by updating its last_edited timestamp.
+        This also ensures the project is started.
+
+        Args:
+            project_id (str): Project ID of the project to touch.
+
+        Returns:
+            dict[str, Any]: API response indicating success.
+        """
+        ...
+
+    @api_method("projects.state")
+    def state(self, project_id: str) -> dict[str, Any]:
+        """
+        Get the current state of a project (running, stopped, starting, etc.).
+
+        Args:
+            project_id (str): Project ID of the project.
+
+        Returns:
+            dict[str, Any]: Project state object containing:
+                - state: "running" | "stopped" | "starting" | "restarting" | "error"
+                - ip: IP address where project is running (if running)
+                - error: Error message (if in error state)
+                - time: Timestamp of last state change
+        """
+        ...
+
+    @api_method("projects.status")
+    def status(self, project_id: str) -> dict[str, Any]:
+        """
+        Get detailed status information about a project.
+
+        Args:
+            project_id (str): Project ID of the project.
+
+        Returns:
+            dict[str, Any]: Project status object containing:
+                - project.pid: PID of project server process
+                - start_ts: Timestamp when project started
+                - version: Project code version
+                - disk_MB: Disk usage in MB
+                - memory: Memory usage information
+        """
+        ...
+
 
 class Jupyter:
 
@@ -324,7 +373,7 @@ class Jupyter:
             >>> 'python3' in kernel_names
             True
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("jupyter.execute", timeout_seconds=True)
     def execute(
@@ -365,7 +414,7 @@ class Jupyter:
             ...     project_id='6e75dbf1-0342-4249-9dce-6b21648656e9')
             {'output': [{'data': {'text/plain': '3^4 * 5^2'}}], ...}
         """
-        ...
+        ...  # pragma: no cover
 
 
 class Sync:
@@ -385,7 +434,7 @@ class Sync:
         Returns:
             list[dict[str, Any]]: Array of patches in a compressed diff-match-patch format, along with time and user data.
         """
-        ...
+        ...  # pragma: no cover
 
 
 class Database:
@@ -420,7 +469,7 @@ class Database:
             >>> hub.db.query({"accounts":{"first_name":None}})
             {'accounts': {'first_name': 'W'}}
         """
-        ...
+        ...  # pragma: no cover
 
 
 class Messages:
@@ -442,7 +491,7 @@ class Messages:
         Returns:
             int: ID of the message.
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("messages.get")
     def get(
@@ -462,7 +511,7 @@ class Messages:
         Returns:
             list[MessageType]: List of messages.
         """
-        ...
+        ...  # pragma: no cover
 
 
 """

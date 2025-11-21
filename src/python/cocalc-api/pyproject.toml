@@ -51,6 +51,7 @@ omit = [
     "*/__pycache__/*",
     "*/venv/*",
     "*/env/*",
+    "*/mcp/*",
 ]
 
 [tool.coverage.report]

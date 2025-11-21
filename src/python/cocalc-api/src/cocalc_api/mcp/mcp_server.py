@@ -40,7 +40,7 @@ tools and resources based on whether it's account-scoped or project-scoped.
 import os
 import sys
 import time
-from typing import Optional, TypedDict, Union, cast
+from typing import Any, Optional, TypedDict, Union, cast
 
 from mcp.server.fastmcp import FastMCP
 
@@ -58,10 +58,7 @@ def _retry_with_backoff(func, max_retries: int = 3, retry_delay: int = 2):
             return func()
         except Exception as e:
             error_msg = str(e).lower()
-            is_retryable = any(
-                keyword in error_msg
-                for keyword in ["timeout", "closed", "connection", "reset", "broken"]
-            )
+            is_retryable = any(keyword in error_msg for keyword in ["timeout", "closed", "connection", "reset", "broken"])
             if is_retryable and attempt < max_retries - 1:
                 print(
                     f"Initialization attempt {attempt + 1} failed ({error_msg[:50]}...), "
@@ -181,10 +178,20 @@ _api_key_scope: Optional[Scope] = None  # Either {"account_id": ...} or {"projec
 # Lazy-initialized project clients map: project_id -> Project
 _project_clients: dict[str, Project] = {}
 
+# Current project management (for account-scoped keys to switch between projects)
+_current_project_id: Optional[str] = None
+
+
+def _update_scope_with_current_project() -> None:
+    """Update _api_key_scope to include current_project_id for account-scoped keys."""
+    global _api_key_scope, _current_project_id
+    if _api_key_scope and "account_id" in _api_key_scope and _current_project_id:
+        _api_key_scope["project_id"] = _current_project_id  # type: ignore
+
 
 def _initialize_config() -> None:
     """Initialize configuration and validate API key at startup."""
-    global _api_key, _host, _api_key_scope, _project_clients
+    global _api_key, _host, _api_key_scope, _project_clients, _current_project_id
 
     if _api_key is not None:
         return  # Already initialized
@@ -213,6 +220,7 @@ def _initialize_config() -> None:
                 # Store project_id in scope so tools/resources can use it as fallback
                 scope["project_id"] = project_id_config  # type: ignore
                 _api_key_scope = scope
+                _current_project_id = project_id_config
                 client = Project(api_key=_api_key, project_id=project_id_config, host=_host)
                 _project_clients[project_id_config] = client
                 print(
@@ -279,37 +287,139 @@ def get_project_client(project_id: Optional[str] = None) -> Project:
     return client
 
 
+def set_current_project(project_id: str) -> dict[str, Any]:
+    """
+    Set the current project for an account-scoped API key.
+    This creates/caches a project client and updates the scope.
+
+    Args:
+        project_id: The UUID of the project to set as current
+
+    Returns:
+        dict with project info: project_id, title, status
+
+    Raises:
+        RuntimeError: If API key is not account-scoped or project cannot be accessed
+    """
+    global _current_project_id, _api_key_scope, _project_clients
+
+    _initialize_config()
+
+    # Only account-scoped keys can switch projects
+    if not _api_key_scope or "account_id" not in _api_key_scope:
+        raise RuntimeError("Only account-scoped API keys can switch projects")
+
+    # Validate that user is collaborator on this project
+    assert _api_key is not None
+    assert _host is not None
+    from cocalc_api import Hub
+
+    try:
+        hub = Hub(api_key=_api_key, host=_host)
+        projects = hub.projects.get(project_id=project_id)
+        if not projects:
+            raise RuntimeError(f"Project {project_id} not found or not accessible")
+        project_info = projects[0]
+    except Exception as e:
+        raise RuntimeError(f"Cannot access project {project_id}: {str(e)}") from e
+
+    # Set as current project
+    _current_project_id = project_id
+    _update_scope_with_current_project()
+
+    # Create/cache the project client for this project
+    assert _api_key is not None
+    assert _host is not None
+    client = Project(api_key=_api_key, project_id=project_id, host=_host)
+    _project_clients[project_id] = client
+
+    # Return project info
+    return {
+        "project_id": project_info.get("project_id"),
+        "title": project_info.get("title", "Untitled"),
+        "state": project_info.get("state", {}).get("state", "unknown"),
+    }
+
+
+def get_current_project() -> dict[str, Any]:
+    """
+    Get information about the current project (if set).
+
+    Returns:
+        dict with project info if a project is current, else empty dict
+
+    Raises:
+        RuntimeError: If API key is not account-scoped
+    """
+    global _current_project_id, _api_key_scope
+
+    _initialize_config()
+
+    # Only account-scoped keys have "current project" concept
+    if not _api_key_scope or "account_id" not in _api_key_scope:
+        raise RuntimeError("Only account-scoped API keys have a current project concept")
+
+    if not _current_project_id:
+        return {}
+
+    # Fetch current project info
+    assert _api_key is not None
+    assert _host is not None
+    from cocalc_api import Hub
+
+    try:
+        hub = Hub(api_key=_api_key, host=_host)
+        projects = hub.projects.get(project_id=_current_project_id)
+        if not projects:
+            return {"error": f"Project {_current_project_id} no longer accessible"}
+        project_info = projects[0]
+        return {
+            "project_id": project_info.get("project_id"),
+            "title": project_info.get("title", "Untitled"),
+            "state": project_info.get("state", {}).get("state", "unknown"),
+            "last_edited": project_info.get("last_edited"),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def _register_tools_and_resources() -> None:
     """Register tools and resources based on API key scope."""
     global _api_key_scope
 
     _initialize_config()
 
-    # Determine what needs to be registered
-    register_account_tools = _api_key_scope and "account_id" in _api_key_scope
-    register_project_tools = _api_key_scope and "project_id" in _api_key_scope
-    # Also register project tools if account-scoped key has explicit project
-    if register_account_tools and _project_clients:
-        register_project_tools = True
+    # Register tools based on API key type
+    is_account_scoped = _api_key_scope and "account_id" in _api_key_scope
+    is_project_scoped = _api_key_scope and "project_id" in _api_key_scope
 
-    # Register account-scoped tools/resources
-    if register_account_tools:
+    if is_account_scoped:
         print("Registering account-scoped tools and resources...", file=sys.stderr)
         from .tools.projects_search import register_projects_search_tool
+        from .tools.project_state import (
+            register_set_current_project_tool,
+            register_get_current_project_tool,
+        )
         from .resources.account_profile import register_account_profile_resource
 
         register_projects_search_tool(mcp)
+        register_set_current_project_tool(mcp)
+        register_get_current_project_tool(mcp)
         register_account_profile_resource(mcp)
 
-    # Register project-scoped tools/resources
-    if register_project_tools:
+    # Register project tools if:
+    # - It's a project-scoped key, OR
+    # - It's an account-scoped key (so users can switch projects after initial setup)
+    if is_project_scoped or is_account_scoped:
         print("Registering project-scoped tools and resources...", file=sys.stderr)
         from .tools.exec import register_exec_tool
         from .tools.jupyter import register_jupyter_tool
+        from .tools.project_status import register_project_status_tool
         from .resources.file_listing import register_file_listing_resource
 
         register_exec_tool(mcp)
         register_jupyter_tool(mcp)
+        register_project_status_tool(mcp)
         register_file_listing_resource(mcp)
 
 

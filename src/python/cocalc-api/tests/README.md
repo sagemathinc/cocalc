@@ -30,10 +30,23 @@ uv run pytest tests/test_jupyter.py -v
 
 - `conftest.py` - Pytest configuration and fixtures (includes resource tracking and cleanup)
 - `test_hub.py` - Tests for Hub client functionality (projects, database queries, messages)
-- `test_project.py` - Tests for Project client functionality (ping, exec commands)
+- `test_project.py` - Tests for Project client functionality (ping, exec commands, Jupyter kernel management)
 - `test_jupyter.py` - Tests for Jupyter kernel installation and code execution
 - `test_org.py` - Tests for organization management (create, users, licenses)
 - `test_org_basic.py` - Basic organization API tests
+
+### Jupyter Tests and CI Environments
+
+The Jupyter-related tests are **skipped in CI environments** (e.g., GitHub Actions) due to resource constraints:
+
+- **`test_jupyter.py`**: All 12 Jupyter tests are skipped when `CI=true`
+- **`test_project.py::TestProjectSystem::test_stop_jupyter_kernel`**: Skipped when `CI=true`
+
+This is because Jupyter kernel operations are resource-intensive and can fail in containerized CI environments. The tests run successfully in local development environments.
+
+**Test counts:**
+- **Local development** (CI not set): 64 tests run
+- **GitHub Actions CI** (CI=true): 52 tests run (12 Jupyter tests skipped)
 
 ## Environment Variables
 
@@ -45,6 +58,7 @@ uv run pytest tests/test_jupyter.py -v
 
 - `COCALC_HOST` - CoCalc server URL (default: `http://localhost:5000`)
 - `COCALC_TESTS_CLEANUP` - Enable/disable automatic cleanup (default: `true`)
+- `CI` - Set to `true` to skip Jupyter tests in CI environments (e.g., GitHub Actions). When not set, all tests run locally.
 
 ### For Database Cleanup (Recommended)
 

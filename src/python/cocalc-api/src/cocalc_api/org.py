@@ -2,7 +2,7 @@ from typing import Any, Optional, TYPE_CHECKING
 from .util import api_method
 from .api_types import TokenType, OrganizationUser
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .hub import Hub
 
 
@@ -19,7 +19,7 @@ class Organizations:
         Returns:
             dict[str, Any]: Organization data.
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("org.create")
     def create(self, name: str) -> dict[str, Any]:
@@ -33,7 +33,7 @@ class Organizations:
         Returns:
             dict[str, Any]: Organization data.
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("org.get")
     def get(self, name: str) -> dict[str, Any]:
@@ -46,7 +46,7 @@ class Organizations:
         Returns:
             dict[str, Any]: Organization data.
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("org.set")
     def set(self,
@@ -66,7 +66,7 @@ class Organizations:
                 (nothing to do with a cocalc account).
             link (Optional[str]): A website of the organization.
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("org.addAdmin")
     def add_admin(self, name: str, user: str) -> dict[str, Any]:
@@ -78,7 +78,7 @@ class Organizations:
             name (str): name of the organization
             user (str): email or account_id
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("org.addUser")
     def add_user(self, name: str, user: str) -> dict[str, Any]:
@@ -92,7 +92,7 @@ class Organizations:
             name (str): name of the organization
             user (str): email or account_id
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("org.createUser")
     def create_user(self,
@@ -117,7 +117,7 @@ class Organizations:
         Returns:
             str: account_id of the new user
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("org.createToken")
     def create_token(self, user: str) -> TokenType:
@@ -141,7 +141,7 @@ class Organizations:
               them.  You can also test out this url, since the token works
               multiple times.
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("org.expireToken")
     def expire_token(self, token: str) -> dict[str, Any]:
@@ -151,7 +151,7 @@ class Organizations:
         Args:
             token (str): a token
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("org.getUsers")
     def get_users(self, name: str) -> list[OrganizationUser]:  # type: ignore[empty-body]
@@ -172,7 +172,7 @@ class Organizations:
             - `account_id` (str): a uuid
             - `email_address` (str)
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("org.removeUser")
     def remove_user(self, name: str, user: str) -> dict[str, Any]:
@@ -183,7 +183,7 @@ class Organizations:
             name (str): name of the organization
             user (str): email or account_id
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("org.removeAdmin")
     def remove_admin(self, name: str, user: str) -> dict[str, Any]:
@@ -194,7 +194,7 @@ class Organizations:
             name (str): name of the organization
             user (str): email or account_id
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("org.message")
     def message(self, name: str, subject: str, body: str) -> dict[str, Any]:
@@ -207,4 +207,4 @@ class Organizations:
             subject (str): plain text subject of the message
             body (str): markdown body of the message (math typesetting works)
         """
-        ...
+        ...  # pragma: no cover

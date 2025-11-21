@@ -62,18 +62,14 @@ def register_projects_search_tool(mcp) -> None:
                     "state",
                     "deleted",
                     "users",  # collaborators
-                ]
-            )
+                ])
 
             if not projects:
                 return "No projects found"
 
             # Filter by query if provided
             if query:
-                projects = [
-                    p for p in projects
-                    if query.lower() in (p.get("title", "") or "").lower()
-                ]
+                projects = [p for p in projects if query.lower() in (p.get("title", "") or "").lower()]
                 if not projects:
                     return f"No projects found matching query: '{query}'"
 

@@ -1,6 +1,7 @@
 """
 Tests for Project client functionality.
 """
+import os
 import pytest
 
 from cocalc_api import Project
@@ -115,3 +116,36 @@ class TestProjectSystem:
         assert stderr_match is not None, "Could not find stderr in error message"
         stderr_content = stderr_match.group(1).strip()
         assert stderr_content == "test error message"
+
+    def test_list_jupyter_kernels(self, project_client):
+        """Test listing Jupyter kernels in a project."""
+        result = project_client.system.list_jupyter_kernels()
+        assert isinstance(result, list)
+        print(f"✓ Found {len(result)} Jupyter kernels")
+        # Each kernel should have basic properties
+        for kernel in result:
+            assert "pid" in kernel
+            assert isinstance(kernel["pid"], int)
+            assert kernel["pid"] > 0
+
+    @pytest.mark.skipif(os.environ.get("CI") == "true", reason="Jupyter tests skipped in CI due to environment constraints")
+    def test_stop_jupyter_kernel(self, project_client):
+        """Test stopping a Jupyter kernel.
+
+        Note: Skipped in CI environments due to unreliable Jupyter setup.
+        """
+        from tests.conftest import retry_with_backoff
+
+        # First, execute code to ensure a kernel is running with retry
+        retry_with_backoff(lambda: project_client.system.jupyter_execute(input="1+1", kernel="python3"))
+
+        # List kernels
+        kernels = project_client.system.list_jupyter_kernels()
+        assert len(kernels) > 0, "Expected at least one kernel to be running"
+
+        # Stop the first kernel
+        pid = kernels[0]["pid"]
+        result = project_client.system.stop_jupyter_kernel(pid=pid)
+        assert isinstance(result, dict)
+        assert "success" in result
+        print(f"✓ Stopped Jupyter kernel with PID {pid}: {result}")

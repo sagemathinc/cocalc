@@ -106,3 +106,45 @@ export async function stop({
 
 import deleteProject from "@cocalc/server/projects/delete";
 export { deleteProject };
+
+export async function touch({
+  account_id,
+  project_id,
+}: {
+  account_id: string;
+  project_id: string;
+}): Promise<void> {
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("must be collaborator on project to touch it");
+  }
+  const project = await getProject(project_id);
+  await project.touch(account_id);
+}
+
+export async function state({
+  account_id,
+  project_id,
+}: {
+  account_id: string;
+  project_id: string;
+}): Promise<any> {
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("must be collaborator on project to get state");
+  }
+  const project = await getProject(project_id);
+  return await project.state();
+}
+
+export async function status({
+  account_id,
+  project_id,
+}: {
+  account_id: string;
+  project_id: string;
+}): Promise<any> {
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("must be collaborator on project to get status");
+  }
+  const project = await getProject(project_id);
+  return await project.status();
+}

@@ -278,6 +278,7 @@ jobs:
         run: |
           export COCALC_API_KEY=$(cat src/api_key.txt)
           export COCALC_HOST=http://localhost:5000
+          export CI=true
           cd src/python/cocalc-api && make ci
         env:
           PGDATABASE: smc

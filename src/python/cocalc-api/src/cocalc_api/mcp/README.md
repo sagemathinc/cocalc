@@ -27,7 +27,7 @@ If you supply `COCALC_PROJECT_ID` with an account-scoped key, the MCP server wil
 ### Quick Registration
 
 ```bash
-claude mcp add \
+claude mcp add [ --scope user ] \
   --transport stdio \
   cocalc \
   --env COCALC_API_KEY="sk-your-api-key" \
