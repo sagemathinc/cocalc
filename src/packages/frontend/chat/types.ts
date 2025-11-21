@@ -39,6 +39,9 @@ export interface ChatMessage {
   editing?: { [author_id: string]: "FUTURE" | null };
   folding?: string[];
   feedback?: { [account_id: string]: Feedback };
+  codex_events?: any[];
+  codex_thread_id?: string | null;
+  codex_usage?: any;
 }
 
 // this type isn't explicitly used anywhere yet, but the actual structure is and I just

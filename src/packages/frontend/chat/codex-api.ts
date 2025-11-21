@@ -1,5 +1,6 @@
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { CodexStreamMessage, Usage } from "@cocalc/conat/codex/types";
 import { uuid } from "@cocalc/util/misc";
 
 import type { ChatMessage, MessageHistory } from "./types";
@@ -78,7 +79,7 @@ export async function processCodexLLM({
     }
   }
 
-  const sender_id = "openai-codex-agent";
+  const sender_id = model || "openai-codex-agent";
   const thinking = ":robot: Thinking...";
   const { date, prevHistory = [] } =
     tag === "regenerate"
@@ -100,6 +101,9 @@ export async function processCodexLLM({
 
   let content = "";
   let halted = false;
+  let events: CodexStreamMessage[] = [];
+  let threadId: string | null = null;
+  let usage: Usage | null = null;
 
   const update = (generating: boolean) => {
     if (syncdb == null) return;
@@ -113,6 +117,9 @@ export async function processCodexLLM({
       }),
       generating,
       reply_to: reply_to?.toISOString(),
+      codex_events: events,
+      codex_thread_id: threadId,
+      codex_usage: usage,
     };
     syncdb.set(msg);
     if (!generating) {
@@ -132,7 +139,7 @@ export async function processCodexLLM({
     for await (const message of stream) {
       if (halted) break;
 
-      console.log("got", message);
+      events = [...events, message];
 
       const cur = syncdb.get_one({ event: "chat", date });
       if (cur?.get("generating") === false) {
@@ -148,6 +155,12 @@ export async function processCodexLLM({
 
       if (message.type === "event") {
         const text = extractAgentText(message.event);
+        if (message.event?.type === "thread.started") {
+          threadId = message.event.thread_id;
+        }
+        if (message.event?.type === "turn.completed" && message.event.usage) {
+          usage = message.event.usage;
+        }
         if (text) {
           content = text;
           update(true);
@@ -156,6 +169,12 @@ export async function processCodexLLM({
       }
 
       if (message.type === "summary") {
+        if (message.threadId) {
+          threadId = message.threadId;
+        }
+        if (message.usage) {
+          usage = message.usage;
+        }
         content = message.finalResponse ?? content;
         break;
       }
