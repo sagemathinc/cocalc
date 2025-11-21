@@ -9,6 +9,8 @@ A Model Context Protocol (MCP) server that provides LLMs (Claude, etc.) with dir
 ```bash
 export COCALC_API_KEY="sk-your-api-key"  # Account or project-scoped
 export COCALC_HOST="http://localhost:5000"  # Optional, defaults to https://cocalc.com
+# Optional: only used with account-scoped keys to target a specific project
+# export COCALC_PROJECT_ID="your-project-uuid"
 ```
 
 ### 2. Run the Server
@@ -18,6 +20,7 @@ uv run cocalc-mcp-server
 ```
 
 The server will detect your API key type and automatically register the appropriate tools/resources.
+If you supply `COCALC_PROJECT_ID` with an account-scoped key, the MCP server will also prepare a project client for that project. For project-scoped keys, `COCALC_PROJECT_ID` is ignored because the project is embedded in the key.
 
 ## Setup with Claude Code
 

@@ -156,7 +156,9 @@ class Project extends BaseProject {
 
       // First attempt: graceful shutdown with SIGTERM
       // This allows the process to clean up child processes (e.g., Jupyter kernels)
-      let usedSigterm = false;
+      const stopStartedAt = Date.now();
+      const SIGKILL_GRACE_MS = 5000;
+      let sigkillSent = false;
       const killProject = (signal: NodeJS.Signals = "SIGTERM") => {
         try {
           logger.debug(`stop: sending kill -${pid} with ${signal}`);
@@ -169,16 +171,15 @@ class Project extends BaseProject {
 
       // Try SIGTERM first for graceful shutdown
       killProject("SIGTERM");
-      usedSigterm = true;
 
       await this.wait({
         until: async () => {
           if (await isProjectRunning(this.HOME)) {
-            // After 5 seconds, escalate to SIGKILL
-            if (usedSigterm) {
+            // After a grace period, escalate to SIGKILL
+            if (!sigkillSent && Date.now() - stopStartedAt >= SIGKILL_GRACE_MS) {
               logger.debug("stop: escalating to SIGKILL");
               killProject("SIGKILL");
-              usedSigterm = false;
+              sigkillSent = true;
             }
             return false;
           } else {

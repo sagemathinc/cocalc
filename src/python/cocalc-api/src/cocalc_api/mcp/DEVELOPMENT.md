@@ -174,13 +174,15 @@ except Exception as e:
 
 - `COCALC_API_KEY` - API key (required)
 - `COCALC_HOST` - CoCalc instance URL (optional, defaults to `https://cocalc.com`)
-- `COCALC_PROJECT_ID` - Project ID for project-scoped keys (optional, embedded in key)
+- `COCALC_PROJECT_ID` - Optional project ID used only with **account-scoped** keys to target a specific project. Ignored for project-scoped keys (project_id comes from the key itself).
 
 ### API Key Scope Detection
 
-The server calls `hub.system.test()` to determine scope:
-- If returns `account_id` → Account-scoped key
-- If returns `project_id` → Project-scoped key
+The server detects scope in two steps:
+- Call `hub.system.test()` (account-scoped keys only) → returns `account_id`.
+- If that fails, call `project.system.test()` → returns `project_id` for project-scoped keys.
+
+If `COCALC_PROJECT_ID` is provided with an account-scoped key, it is used as the default project target; it is ignored for project-scoped keys.
 
 ## Available CoCalc APIs
 

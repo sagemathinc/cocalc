@@ -32,8 +32,8 @@ export interface System {
   getCustomize: (fields?: string[]) => Promise<Customize>;
   // ping server and get back the current time
   ping: () => { now: number };
-  // test API key and return scope information (account_id or project_id) and server time
-  test: () => Promise<{ account_id?: string; project_id?: string; server_time: number }>;
+  // test API key and return scope information (account_id) and server time
+  test: () => Promise<{ account_id: string; server_time: number }>;
   // terminate a service:
   //   - only admin can do this.
   //   - useful for development

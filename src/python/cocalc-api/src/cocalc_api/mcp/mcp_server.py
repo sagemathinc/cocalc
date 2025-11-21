@@ -40,7 +40,7 @@ tools and resources based on whether it's account-scoped or project-scoped.
 import os
 import sys
 import time
-from typing import Optional
+from typing import Optional, TypedDict, Union, cast
 
 from mcp.server.fastmcp import FastMCP
 
@@ -93,7 +93,18 @@ def get_config() -> tuple[str, str, Optional[str]]:
     return api_key, host, project_id
 
 
-def check_api_key_scope(api_key: str, host: str) -> dict[str, str]:
+class AccountScope(TypedDict):
+    account_id: str
+
+
+class ProjectScope(TypedDict):
+    project_id: str
+
+
+Scope = Union[AccountScope, ProjectScope]
+
+
+def check_api_key_scope(api_key: str, host: str) -> Scope:
     """
     Check if the API key is account-scoped or project-scoped.
 
@@ -107,28 +118,25 @@ def check_api_key_scope(api_key: str, host: str) -> dict[str, str]:
     Raises:
         RuntimeError: If the API key is invalid or scope cannot be determined
     """
+    # Try account scope first; hub.system.test only works for account-scoped keys
     try:
-        hub = Hub(api_key=api_key, host=host)
+        result = Hub(api_key=api_key, host=host).system.test()
+        account_id = result.get("account_id")
+        if account_id:
+            return {"account_id": account_id}
+    except Exception:
+        pass
 
-        # Try the hub.system.test() method (only works for account-scoped keys)
-        result = hub.system.test()
-
-        # Check which scope is returned
-        if "account_id" in result and result["account_id"]:
-            return {"account_id": result["account_id"]}
-        elif "project_id" in result and result["project_id"]:
-            return {"project_id": result["project_id"]}
-        else:
-            raise RuntimeError("API key test returned neither account_id nor project_id")
-
+    # Fall back to project scope
+    try:
+        result = Project(api_key=api_key, host=host).system.test()
+        project_id = result.get("project_id")
+        if project_id:
+            return {"project_id": project_id}
     except Exception as e:
-        # Check if this looks like a project-scoped key error
-        error_msg = str(e)
-        if "must be signed in and MUST provide an api key" in error_msg:
-            raise RuntimeError("API key appears to be project-scoped. "
-                               "Project-scoped keys require the project_id to be specified at the OS level. "
-                               "Please set the COCALC_PROJECT_ID environment variable and try again.") from e
         raise RuntimeError(f"API key validation failed: {e}") from e
+
+    raise RuntimeError("API key test returned neither account_id nor project_id")
 
 
 # Initialize FastMCP server with instructions and documentation
@@ -168,7 +176,7 @@ All operations are scoped to this single project and execute with project user p
 # Configuration (initialized at startup)
 _api_key: Optional[str] = None
 _host: Optional[str] = None
-_api_key_scope: Optional[dict[str, str]] = None  # Either {"account_id": ...} or {"project_id": ...}
+_api_key_scope: Optional[Scope] = None  # Either {"account_id": ...} or {"project_id": ...}
 
 # Lazy-initialized project clients map: project_id -> Project
 _project_clients: dict[str, Project] = {}
@@ -191,41 +199,31 @@ def _initialize_config() -> None:
 
     # Validate API key and determine scope
     try:
-        try:
-            _api_key_scope = check_api_key_scope(_api_key, _host)
-        except RuntimeError as check_error:
-            # If it's a project-scoped key error, use a placeholder project_id
-            # Project-scoped keys have the project_id embedded in the key itself
-            if "project-scoped" in str(check_error):
-                # Use empty string as project_id - the Project client will extract it from the API key
-                _api_key_scope = {"project_id": ""}
-                print("✓ Connected with project-scoped API key", file=sys.stderr)
-            else:
-                raise
+        _api_key_scope = check_api_key_scope(_api_key, _host)
 
-        if "account_id" in _api_key_scope:
-            account_id = _api_key_scope["account_id"]
+        scope = _api_key_scope
+        if scope is None:
+            raise RuntimeError("Could not determine API key scope")
+
+        if "account_id" in scope:
+            account_id = cast(AccountScope, scope)["account_id"]
             print(f"✓ Connected with account-scoped API key (account: {account_id})", file=sys.stderr)
-        elif "project_id" in _api_key_scope:
-            project_id = _api_key_scope["project_id"]
-            # For project-scoped keys with empty/None project_id, the Project client will extract it from the API key
-            if project_id:
-                print(f"✓ Connected with project-scoped API key (project: {project_id})", file=sys.stderr)
-                # For project-scoped keys, eagerly create the project client
-                client = Project(api_key=_api_key, project_id=project_id, host=_host)
-                _project_clients[project_id] = client
-            else:
-                # Project-scoped key with empty project_id - will be discovered on first use
-                print("✓ Connected with project-scoped API key (project ID will be discovered on first use)", file=sys.stderr)
-        else:
-            # If we got here with no project_id but it might be project-scoped, check if COCALC_PROJECT_ID was provided
+            # If a project_id is explicitly provided via env, prepare a client for it
             if project_id_config:
-                _api_key_scope = {"project_id": project_id_config}
-                print(f"✓ Using project-scoped API key with explicitly provided project_id (project: {project_id_config})", file=sys.stderr)
                 client = Project(api_key=_api_key, project_id=project_id_config, host=_host)
                 _project_clients[project_id_config] = client
-            else:
-                raise RuntimeError("Could not determine API key scope")
+                print(
+                    f"✓ Using account-scoped API key with explicitly provided project_id (project: {project_id_config})",
+                    file=sys.stderr,
+                )
+        elif "project_id" in scope:
+            project_id = cast(ProjectScope, scope)["project_id"]
+            print(f"✓ Connected with project-scoped API key (project: {project_id})", file=sys.stderr)
+            # For project-scoped keys, eagerly create the project client
+            client = Project(api_key=_api_key, project_id=project_id, host=_host)
+            _project_clients[project_id] = client
+        else:
+            raise RuntimeError("Could not determine API key scope")
 
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -255,8 +253,9 @@ def get_project_client(project_id: Optional[str] = None) -> Project:
     # Determine which project_id to use
     if project_id is None:
         # If no project_id provided, try to use the one from project-scoped key
-        if _api_key_scope and "project_id" in _api_key_scope:
-            project_id = _api_key_scope["project_id"]
+        scope = _api_key_scope
+        if scope and "project_id" in scope:
+            project_id = cast(ProjectScope, scope)["project_id"]
         else:
             # Account-scoped key requires explicit project_id
             raise RuntimeError("Account-scoped API key requires an explicit project_id argument. "

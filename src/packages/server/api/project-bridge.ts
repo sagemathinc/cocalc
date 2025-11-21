@@ -4,6 +4,7 @@ import { projectSubject } from "@cocalc/conat/names";
 import { conat } from "@cocalc/backend/conat";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { getProject } from "@cocalc/server/projects/control";
+
 const DEFAULT_TIMEOUT = 15000;
 
 let client: ConatClient | null = null;
@@ -58,10 +59,17 @@ async function callProject({
       await project.start();
     }
 
-    // For system.test(), inject project_id into args[0] if not already present
+    // For discovery-style calls, inject identifiers so the project can report scope
     let finalArgs = args;
-    if (name === "system.test" && (!args || args.length === 0)) {
-      finalArgs = [{ project_id }];
+    if (name === "system.test") {
+      if (!args || args.length === 0 || typeof args[0] !== "object") {
+        finalArgs = [{}];
+      }
+      if (finalArgs[0] == null || typeof finalArgs[0] !== "object") {
+        finalArgs = [{ project_id }];
+      } else {
+        finalArgs = [{ ...finalArgs[0], project_id }];
+      }
     }
     const data = { name, args: finalArgs };
     // we use waitForInterest because often the project hasn't
