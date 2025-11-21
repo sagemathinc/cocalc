@@ -57,7 +57,10 @@ export async function processCodexLLM({
     context;
   if (syncdb == null) return;
 
-  let workingInput = input;
+  let workingInput = input?.trim();
+  if (!workingInput) {
+    return;
+  }
 
   const config = context.getCodexConfig
     ? context.getCodexConfig(reply_to)

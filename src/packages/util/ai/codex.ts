@@ -1,0 +1,112 @@
+export interface CodexReasoningLevel {
+  id: "low" | "medium" | "high" | "extra_high";
+  label: string;
+  description: string;
+  default?: boolean;
+}
+
+export interface CodexModelInfo {
+  name: string;
+  description?: string;
+  reasoning?: CodexReasoningLevel[];
+}
+
+// in my experience so far gpt-5.1-codex is vastly superior to gpt-5.1-codex-max.
+const DEFAULT_CODEX_MODEL = "gpt-5.1-codex";
+
+export const DEFAULT_CODEX_MODELS: CodexModelInfo[] = [
+  {
+    name: "gpt-5.1-codex-max",
+    description: "Latest Codex-optimized flagship for deep and fast reasoning.",
+    reasoning: [
+      {
+        id: "low",
+        label: "Low",
+        description: "Fastest responses with limited reasoning.",
+      },
+      {
+        id: "medium",
+        label: "Medium",
+        description:
+          "Balanced speed and depth; dynamically adjusts to the task.",
+        default: true,
+      },
+      {
+        id: "high",
+        label: "High",
+        description:
+          "Maximizes reasoning depth for complex or ambiguous problems.",
+      },
+      {
+        id: "extra_high",
+        label: "Extra high",
+        description: "Highest depth for especially challenging tasks.",
+      },
+    ],
+  },
+  {
+    name: "gpt-5.1-codex",
+    description: "Optimized for Codex.",
+    reasoning: [
+      {
+        id: "low",
+        label: "Low",
+        description: "Fastest responses with limited reasoning.",
+      },
+      {
+        id: "medium",
+        label: "Medium",
+        description: "Dynamically adjusts reasoning based on the task.",
+        default: true,
+      },
+      {
+        id: "high",
+        label: "High",
+        description: "Maximizes reasoning depth for complex problems.",
+      },
+    ],
+  },
+  {
+    name: "gpt-5.1-codex-mini",
+    description: "Optimized for Codex. Cheaper and faster.",
+    reasoning: [
+      {
+        id: "medium",
+        label: "Medium",
+        description: "Dynamically adjusts reasoning based on the task.",
+        default: true,
+      },
+      {
+        id: "high",
+        label: "High",
+        description:
+          "Maximizes reasoning depth for complex or ambiguous problems.",
+      },
+    ],
+  },
+  {
+    name: "gpt-5.1",
+    description: "Broad world knowledge with strong general reasoning.",
+    reasoning: [
+      {
+        id: "low",
+        label: "Low",
+        description:
+          "Balances speed with some reasoning; useful for straightforward queries and short explanations.",
+      },
+      {
+        id: "medium",
+        label: "Medium",
+        description:
+          "Provides a solid balance of reasoning depth and latency for general-purpose tasks.",
+        default: true,
+      },
+      {
+        id: "high",
+        label: "High",
+        description:
+          "Maximizes reasoning depth for complex or ambiguous problems.",
+      },
+    ],
+  },
+];

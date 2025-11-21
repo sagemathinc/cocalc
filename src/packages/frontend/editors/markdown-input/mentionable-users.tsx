@@ -59,7 +59,6 @@ export function useMentionableUsers(): (
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
   const ollama = useTypedRedux("customize", "ollama");
   const custom_openai = useTypedRedux("customize", "custom_openai");
-  const codexEnabled = useTypedRedux("customize", "agent_openai_codex_enabled");
   const user_llm = useUserDefinedLLM();
 
   // the current default model. This is always a valid LLM, even if none has ever been selected.
@@ -76,7 +75,6 @@ export function useMentionableUsers(): (
         custom_openai: custom_openai?.toJS() ?? {},
         user_llm,
         selectableLLMs,
-        codexEnabled: Boolean(codexEnabled),
         opts,
       });
     };
@@ -86,7 +84,6 @@ export function useMentionableUsers(): (
     ollama,
     custom_openai,
     model,
-    codexEnabled,
   ]);
 }
 
@@ -99,7 +96,6 @@ interface Props {
   enabledLLMs: LLMServicesAvailable;
   selectableLLMs: List<string>;
   user_llm: UserDefinedLLM[];
-  codexEnabled: boolean;
   opts?: Opts;
 }
 
@@ -112,7 +108,6 @@ function mentionableUsers({
   custom_openai,
   selectableLLMs,
   user_llm,
-  codexEnabled,
   opts,
 }: Props): Item[] {
   const { avatarUserSize = 24, avatarLLMSize = 24 } = opts ?? {};
@@ -186,26 +181,6 @@ function mentionableUsers({
           show_llm_main_menu,
         });
       }
-    }
-  }
-
-  if (codexEnabled) {
-    const size = avatarLLMSize;
-    const search_term = "openaicodexagent";
-    if (!search || search_term.includes(search)) {
-      mentions.push({
-        value: "openai-codex-agent",
-        label: (
-          <Tooltip title="OpenAI Codex Agent">
-            <span>
-              <OpenAIAvatar size={size} /> Codex Agent
-            </span>
-          </Tooltip>
-        ),
-        search: search_term,
-        is_llm: true,
-        show_llm_main_menu: true,
-      });
     }
   }
 

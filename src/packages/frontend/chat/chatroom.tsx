@@ -890,7 +890,7 @@ export function ChatPanel({
               new Date(parseInt(selectedThread.key, 10)),
             ) && (
               <div
-                style={{ position: "absolute", top: 8, right: 16, zIndex: 10 }}
+                style={{ position: "absolute", top: 8, left: 8, zIndex: 10 }}
               >
                 <CodexConfigButton
                   threadKey={selectedThread.key}
