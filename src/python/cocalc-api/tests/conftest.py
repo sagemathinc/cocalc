@@ -23,9 +23,8 @@ def retry_with_backoff(
     func: Callable[[], T],
     max_retries: int = 3,
     retry_delay: int = 5,
-    error_condition: Callable[[RuntimeError], bool] = lambda e: any(
-        keyword in str(e).lower() for keyword in ["timeout", "closed", "connection", "reset", "broken"]
-    ),
+    error_condition: Callable[[RuntimeError],
+                              bool] = lambda e: any(keyword in str(e).lower() for keyword in ["timeout", "closed", "connection", "reset", "broken"]),
 ) -> T:
     """
     Retry a function call with exponential backoff for timeout and connection errors.
@@ -120,7 +119,36 @@ def hub(api_key, cocalc_host):
 
 
 @pytest.fixture(scope="session")
-def temporary_project(hub, resource_tracker, request):
+def validate_api_key_config(hub):
+    """
+    Validate that the API key is properly configured for testing.
+
+    For account-scoped keys, requires COCALC_PROJECT_ID to be set.
+    For project-scoped keys, no additional configuration needed.
+    """
+    try:
+        scope = hub.system.test()
+    except Exception as e:
+        pytest.fail(f"Failed to determine API key scope: {e}")
+
+    is_account_scoped = "account_id" in scope
+    is_project_scoped = "project_id" in scope
+
+    if is_account_scoped:
+        # Account-scoped key requires COCALC_PROJECT_ID for project tests
+        project_id = os.environ.get("COCALC_PROJECT_ID")
+        if not project_id:
+            pytest.fail("Account-scoped API key detected, but COCALC_PROJECT_ID is not set.\n\n"
+                        "For testing with an account-scoped key, you must provide a project ID:\n"
+                        "  export COCALC_PROJECT_ID=<your-project-uuid>\n\n"
+                        "Alternatively, use a project-scoped API key which has the project ID embedded.")
+    elif not is_project_scoped:
+        pytest.fail(f"Could not determine API key scope. Response: {scope}\n"
+                    "Expected either 'account_id' (account-scoped) or 'project_id' (project-scoped).")
+
+
+@pytest.fixture(scope="session")
+def temporary_project(hub, resource_tracker, request, validate_api_key_config):
     """
     Create a temporary project for testing and return project info.
     Uses a session-scoped fixture so only ONE project is created for the entire test suite.
@@ -282,7 +310,7 @@ def ensure_python3_kernel(project_client: Project):
             "--name=python3",
             "--display-name=Python 3",
         ],
-        timeout=120,
+            timeout=120,
     ):
         raise RuntimeError("Failed to install python3 kernelspec")
 

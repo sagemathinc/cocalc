@@ -43,8 +43,7 @@ async def debug_mcp_server() -> None:
             read_stream, write_stream = client
             async with ClientSession(read_stream, write_stream) as session:
                 # Initialize the connection
-                print("\n=== MCP Server Debug Information ===\n",
-                      file=sys.stderr)
+                print("\n=== MCP Server Debug Information ===\n", file=sys.stderr)
 
                 # Get capabilities
                 info = await session.initialize()
@@ -105,16 +104,13 @@ async def debug_mcp_server() -> None:
     except Exception as e:
         error_str = str(e)
         if "COCALC_API_KEY" in error_str or "not set" in error_str:
-            print("Error: COCALC_API_KEY environment variable is not set",
-                  file=sys.stderr)
+            print("Error: COCALC_API_KEY environment variable is not set", file=sys.stderr)
             print("\nUsage:", file=sys.stderr)
             print("  export COCALC_API_KEY='sk-...'", file=sys.stderr)
             print("  make mcp-debug", file=sys.stderr)
         elif "project_id" in error_str.lower():
-            print("Error: Project-scoped API key requires COCALC_PROJECT_ID",
-                  file=sys.stderr)
-            print("\nFor project-scoped API keys, provide the project ID:",
-                  file=sys.stderr)
+            print("Error: Project-scoped API key requires COCALC_PROJECT_ID", file=sys.stderr)
+            print("\nFor project-scoped API keys, provide the project ID:", file=sys.stderr)
             print("  export COCALC_API_KEY='sk-...'", file=sys.stderr)
             print("  export COCALC_PROJECT_ID='uuid-...'", file=sys.stderr)
             print("  make mcp-debug", file=sys.stderr)

@@ -72,5 +72,10 @@ def register_file_listing_resource(mcp) -> None:
             header = "Files in project home directory:\n" + "=" * 60 + "\n"
             return header + "\n".join(formatted_lines)
 
+        except RuntimeError as e:
+            error_msg = str(e)
+            if "No current project set" in error_msg or "project_id" in error_msg:
+                return "Error: No project set. Use set_current_project(project_id) to select a project first."
+            return f"Error listing files: {error_msg}"
         except Exception as e:
             return f"Error listing files: {str(e)}"

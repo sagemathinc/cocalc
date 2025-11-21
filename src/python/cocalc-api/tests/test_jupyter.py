@@ -74,9 +74,7 @@ class TestJupyterExecuteViaHub:
         """
         project_id = temporary_project["project_id"]
 
-        result = retry_with_backoff(
-            lambda: hub.jupyter.execute(input="sum(range(100))", kernel="python3", project_id=project_id)
-        )
+        result = retry_with_backoff(lambda: hub.jupyter.execute(input="sum(range(100))", kernel="python3", project_id=project_id))
 
         # Check the result structure
         assert isinstance(result, dict)
@@ -98,8 +96,7 @@ class TestJupyterExecuteViaHub:
         project_id = temporary_project["project_id"]
 
         result = retry_with_backoff(
-            lambda: hub.jupyter.execute(history=["a = 100"], input="sum(range(a + 1))", kernel="python3", project_id=project_id)
-        )
+            lambda: hub.jupyter.execute(history=["a = 100"], input="sum(range(a + 1))", kernel="python3", project_id=project_id))
 
         # Check the result (sum of 0..100 = 5050)
         assert isinstance(result, dict)
@@ -120,9 +117,7 @@ class TestJupyterExecuteViaHub:
         """
         project_id = temporary_project["project_id"]
 
-        result = retry_with_backoff(
-            lambda: hub.jupyter.execute(input='print("Hello from Jupyter")', kernel="python3", project_id=project_id)
-        )
+        result = retry_with_backoff(lambda: hub.jupyter.execute(input='print("Hello from Jupyter")', kernel="python3", project_id=project_id))
 
         # Check that we got output
         assert isinstance(result, dict)
@@ -150,9 +145,7 @@ class TestJupyterExecuteViaProject:
 
         Note: First execution may take longer as kernel needs to start up (30+ seconds).
         """
-        result = retry_with_backoff(
-            lambda: project_client.system.jupyter_execute(input="sum(range(100))", kernel="python3")
-        )
+        result = retry_with_backoff(lambda: project_client.system.jupyter_execute(input="sum(range(100))", kernel="python3"))
 
         # Result is a list, not a dict with 'output' key
         assert isinstance(result, list)
@@ -172,9 +165,7 @@ class TestJupyterExecuteViaProject:
 
         Note: First execution may take longer as kernel needs to start up (30+ seconds).
         """
-        result = retry_with_backoff(
-            lambda: project_client.system.jupyter_execute(history=["b = 50"], input="b * 2", kernel="python3")
-        )
+        result = retry_with_backoff(lambda: project_client.system.jupyter_execute(history=["b = 50"], input="b * 2", kernel="python3"))
 
         # Result is a list
         assert isinstance(result, list)
@@ -192,9 +183,7 @@ class TestJupyterExecuteViaProject:
 
         The result is a list of output items directly.
         """
-        result = retry_with_backoff(
-            lambda: project_client.system.jupyter_execute(input="[x**2 for x in range(5)]", kernel="python3")
-        )
+        result = retry_with_backoff(lambda: project_client.system.jupyter_execute(input="[x**2 for x in range(5)]", kernel="python3"))
 
         # Result is a list
         assert isinstance(result, list)
@@ -213,9 +202,7 @@ class TestJupyterKernelManagement:
     def test_list_jupyter_kernels(self, project_client):
         """Test listing running Jupyter kernels."""
         # First execute some code to ensure a kernel is running
-        retry_with_backoff(
-            lambda: project_client.system.jupyter_execute(input="1+1", kernel="python3")
-        )
+        retry_with_backoff(lambda: project_client.system.jupyter_execute(input="1+1", kernel="python3"))
 
         # List kernels
         kernels = project_client.system.list_jupyter_kernels()
@@ -236,9 +223,7 @@ class TestJupyterKernelManagement:
     def test_stop_jupyter_kernel(self, project_client):
         """Test stopping a specific Jupyter kernel."""
         # Execute code to start a kernel
-        retry_with_backoff(
-            lambda: project_client.system.jupyter_execute(input="1+1", kernel="python3")
-        )
+        retry_with_backoff(lambda: project_client.system.jupyter_execute(input="1+1", kernel="python3"))
 
         # List kernels
         kernels = project_client.system.list_jupyter_kernels()

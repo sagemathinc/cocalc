@@ -170,6 +170,39 @@ class TestHubProjects:
         # Note: We don't actually delete anything in this test since
         # deletion is tested in the project lifecycle via temporary_project fixture
 
+    def test_project_state_and_status(self, hub, temporary_project, project_client):
+        """Test retrieving state and status information for a project."""
+        project_id = temporary_project["project_id"]
+
+        # Ensure project is responsive before checking its status
+        project_client.system.ping()
+
+        state_info = hub.projects.state(project_id)
+        assert isinstance(state_info, dict)
+        state = state_info.get("state")
+        assert isinstance(state, str)
+        assert state, "Expected a non-empty state string"
+
+        status_info = hub.projects.status(project_id)
+        assert isinstance(status_info, dict)
+        informative_keys = ("project", "start_ts", "version", "disk_MB", "memory")
+        assert any(key in status_info for key in informative_keys), "Status response should include resource information"
+
+        project_status = status_info.get("project")
+        if isinstance(project_status, dict):
+            pid = project_status.get("pid")
+            if pid is not None:
+                assert isinstance(pid, int)
+                assert pid > 0
+
+        if "disk_MB" in status_info:
+            disk_usage = status_info["disk_MB"]
+            assert isinstance(disk_usage, (int, float))
+
+        memory_info = status_info.get("memory")
+        if memory_info is not None:
+            assert isinstance(memory_info, dict)
+
     def test_project_lifecycle(self, hub, resource_tracker):
         """Test complete project lifecycle: create, wait for ready, run command, delete, verify deletion."""
 
@@ -345,3 +378,118 @@ class TestHubProjects:
         print("\n✅ Collaborator management test completed successfully!")
 
         # Note: No cleanup needed - hard-delete happens automatically at session end
+
+    def test_stop_project(self, hub, temporary_project):
+        """Test stopping a running project."""
+        project_id = temporary_project["project_id"]
+        result = hub.projects.stop(project_id)
+        # Stop can return None or a dict, both are valid
+        assert result is None or isinstance(result, dict)
+        print(f"✓ Project stop request sent")
+
+    def test_touch_project(self, hub, temporary_project):
+        """Test touching a project to signal it's in use."""
+        project_id = temporary_project["project_id"]
+        result = hub.projects.touch(project_id)
+        # Touch can return None or a dict, both are valid
+        assert result is None or isinstance(result, dict)
+        print(f"✓ Project touched successfully")
+
+    def test_get_names(self, hub, resource_tracker):
+        """Test getting account names."""
+        import time
+        timestamp = int(time.time())
+        org_name = f"names-test-org-{timestamp}"
+
+        # Create a test user first
+        user_id = create_tracked_user(hub, resource_tracker, org_name, email=f"names-test-{timestamp}@test.local")
+
+        # Get the name(s) - returns a dict mapping user_id to display name
+        result = hub.system.get_names([user_id])
+        assert isinstance(result, dict)
+        # The result should have the user_id as a key
+        assert user_id in result or len(result) > 0
+        print(f"✓ Got names for user: {result}")
+
+    def test_copy_path_between_projects(self, hub, temporary_project, resource_tracker, project_client):
+        """Test copying paths between projects."""
+        import time
+        import uuid
+        timestamp = int(time.time())
+
+        # Create a second project
+        project2_id = create_tracked_project(hub, resource_tracker, title=f"copy-target-{timestamp}")
+        project2_client = Project(project_id=project2_id, api_key=hub.api_key, host=hub.host)
+
+        # Create a unique test string
+        test_string = str(uuid.uuid4())
+        src_filename = f"testfile-copy-{timestamp}.txt"
+        dst_filename = f"testfile-copied-{timestamp}.txt"
+
+        # Create a test file in the first project
+        project_client.system.exec(f"echo '{test_string}' > {src_filename}")
+
+        # Copy the file to the second project
+        result = hub.projects.copy_path_between_projects(src_project_id=temporary_project["project_id"],
+                                                         src_path=src_filename,
+                                                         target_project_id=project2_id,
+                                                         target_path=dst_filename)
+        # copy_path_between_projects can return None or a dict
+        assert result is None or isinstance(result, dict)
+        print(f"✓ File copy request sent")
+
+        # Verify the file was copied by reading it
+        verify_result = project2_client.system.exec(f"cat {dst_filename}")
+        assert verify_result["exit_code"] == 0
+        assert test_string in verify_result["stdout"]
+        print(f"✓ Verified copied file contains expected content")
+
+    def test_sync_history(self, hub, temporary_project, project_client):
+        """Test getting sync history of a file."""
+        import time
+        timestamp = int(time.time())
+        filename = f"history-test-{timestamp}.txt"
+
+        # Create a test file
+        project_client.system.exec(f"echo 'initial' > {filename}")
+
+        result = hub.sync.history(project_id=temporary_project["project_id"], path=filename)
+        # Result can be a list or a dict with patches and info
+        if isinstance(result, dict):
+            patches = result.get('patches', [])
+            assert isinstance(patches, list)
+        else:
+            assert isinstance(result, list)
+        print(f"✓ Got sync history")
+
+    def test_db_query(self, hub):
+        """Test database query for user info."""
+        result = hub.db.query({"accounts": {"first_name": None}})
+        assert isinstance(result, dict)
+        assert "accounts" in result
+        first_name = result["accounts"].get("first_name")
+        assert first_name is not None
+        print(f"✓ DB query successful, first_name: {first_name}")
+
+    def test_messages_send(self, hub, resource_tracker):
+        """Test sending a message."""
+        import time
+        timestamp = int(time.time())
+        org_name = f"msg-test-org-{timestamp}"
+
+        # Create a test user to send message to
+        user_id = create_tracked_user(hub, resource_tracker, org_name, email=f"msg-test-{timestamp}@test.local")
+
+        result = hub.messages.send(subject="Test Message", body="This is a test message", to_ids=[user_id])
+        assert isinstance(result, int)
+        assert result > 0
+        print(f"✓ Message sent with ID: {result}")
+
+    def test_jupyter_kernels(self, hub, temporary_project):
+        """Test getting available Jupyter kernels."""
+        result = hub.jupyter.kernels(project_id=temporary_project["project_id"])
+        assert isinstance(result, list)
+        # Should have at least python3
+        kernel_names = [k.get("name") for k in result]
+        assert "python3" in kernel_names or len(result) > 0
+        print(f"✓ Found {len(result)} Jupyter kernels: {kernel_names}")

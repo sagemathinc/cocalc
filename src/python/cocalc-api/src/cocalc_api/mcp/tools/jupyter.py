@@ -17,10 +17,7 @@ T = TypeVar("T")
 def _is_retryable_error(error: Exception) -> bool:
     """Check if an error is retryable (transient connection issue)."""
     error_msg = str(error).lower()
-    return any(
-        keyword in error_msg
-        for keyword in ["timeout", "closed", "connection", "reset", "broken"]
-    )
+    return any(keyword in error_msg for keyword in ["timeout", "closed", "connection", "reset", "broken"])
 
 
 def _retry_with_backoff(
@@ -150,5 +147,10 @@ def register_jupyter_tool(mcp) -> None:
 
             return "\n".join(output_lines)
 
+        except RuntimeError as e:
+            error_msg = str(e)
+            if "No current project set" in error_msg or "project_id" in error_msg:
+                return "Error: No project set. Use set_current_project(project_id) to select a project first."
+            return f"Error executing code in kernel: {error_msg}"
         except Exception as e:
             return f"Error executing code in kernel: {str(e)}"

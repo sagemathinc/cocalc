@@ -73,5 +73,10 @@ def register_exec_tool(mcp) -> None:
             output = f"stdout:\n{result['stdout']}\n\nstderr:\n{result['stderr']}\n\nexit_code: {result['exit_code']}"
             return output
 
+        except RuntimeError as e:
+            error_msg = str(e)
+            if "No current project set" in error_msg or "project_id" in error_msg:
+                return "Error: No project set. Use set_current_project(project_id) to select a project first."
+            return f"Error executing command: {error_msg}"
         except Exception as e:
             return f"Error executing command: {str(e)}"

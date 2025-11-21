@@ -37,8 +37,11 @@ test:
 test-verbose:
 	uv run pytest -v
 
-ci:
-	uv run pytest --junitxml=test-results.xml --cov=src --cov-report=term-missing --cov-report=html
+ci-create-project:
+	@uv run python3 scripts/ci-create-project.py
+
+ci: ci-create-project
+	export COCALC_PROJECT_ID=$$($(MAKE) ci-create-project) && uv run pytest --junitxml=test-results.xml --cov=src --cov-report=term-missing --cov-report=html
 
 coverage:
 	uv run pytest --cov=src --cov-report=term-missing --cov-report=html

@@ -64,7 +64,7 @@ class System:
             {'now': 1756489740133}
 
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("system.test")
     def test(self) -> dict[str, Any]:
@@ -75,7 +75,7 @@ class System:
             dict: JSON object containing project_id and server_time.
 
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("system.exec", timeout_seconds=True)
     def exec(
@@ -122,7 +122,7 @@ class System:
             >>> project.system.exec(command="echo 'hello from cocalc'")
             {'stdout': 'hello from cocalc\\n', 'stderr':'', 'exit_code': 0}
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("system.jupyterExecute", timeout_seconds=True)
     def jupyter_execute(
@@ -172,7 +172,7 @@ class System:
             >>> result
             [{'name': 'stdout', 'text': 'Hello\\n'}]
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("system.listJupyterKernels")
     def list_jupyter_kernels(self) -> list[dict[str, Any]]:  # type: ignore[empty-body]
@@ -193,7 +193,7 @@ class System:
             >>> kernels
             [{'pid': 12345, 'connectionFile': '/run/user/1000/jupyter/kernel-abc123.json', 'kernel_name': 'python3'}]
         """
-        ...
+        ...  # pragma: no cover
 
     @api_method("system.stopJupyterKernel")
     def stop_jupyter_kernel(self, pid: int) -> dict[str, bool]:  # type: ignore[empty-body]
@@ -213,4 +213,4 @@ class System:
             >>> project.system.stop_jupyter_kernel(pid=12345)
             {'success': True}
         """
-        ...
+        ...  # pragma: no cover
