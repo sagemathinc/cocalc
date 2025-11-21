@@ -28,12 +28,17 @@ export const system = {
   configuration: true,
 
   ping: true,
+  test: true,
   exec: true,
 
   signal: true,
 
   // jupyter stateless API
   jupyterExecute: true,
+
+  // jupyter kernel management
+  listJupyterKernels: true,
+  stopJupyterKernel: true,
 };
 
 export interface System {
@@ -65,6 +70,8 @@ export interface System {
 
   ping: () => Promise<{ now: number }>;
 
+  test: () => Promise<{ project_id: string; server_time: number }>;
+
   exec: (opts: ExecuteCodeOptions) => Promise<ExecuteCodeOutput>;
 
   signal: (opts: {
@@ -74,4 +81,9 @@ export interface System {
   }) => Promise<void>;
 
   jupyterExecute: (opts: ProjectJupyterApiOptions) => Promise<object[]>;
+
+  listJupyterKernels: () => Promise<
+    { pid: number; connectionFile: string; kernel_name?: string }[]
+  >;
+  stopJupyterKernel: (opts: { pid: number }) => Promise<{ success: boolean }>;
 }

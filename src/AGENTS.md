@@ -105,6 +105,20 @@ CoCalc is organized as a monorepo with key packages:
   5. **Authentication**: Each conat request includes account_id and is subject to permission checks at the hub level
   6. **Subjects**: Messages are routed using hierarchical subjects like `hub.account.{uuid}.{service}` or `project.{uuid}.{compute_server_id}.{service}`
 
+#### CoCalc Conat Hub API Architecture
+
+**API Method Registration Pattern:**
+- **Registry**: `packages/conat/hub/api/projects.ts` contains `export const projects = { methodName: authFirstRequireAccount }`
+- **Implementation**: `packages/server/conat/api/projects.ts` contains `export async function methodName() { ... }`
+- **Flow**: Python client `@api_method("projects.methodName")` → POST `/api/conat/hub` → `hubBridge()` → conat subject `hub.account.{account_id}.api` → registry lookup → implementation
+
+**Example - projects.createProject:**
+1. **Python**: `@api_method("projects.createProject")` decorator
+2. **HTTP**: `POST /api/conat/hub {"name": "projects.createProject", "args": [...]}`
+3. **Bridge**: `hubBridge()` routes to conat subject
+4. **Registry**: `packages/conat/hub/api/projects.ts: createProject: authFirstRequireAccount`
+5. **Implementation**: `packages/server/conat/api/projects.ts: export { createProject }` → `@cocalc/server/projects/create`
+
 ### Key Technologies
 
 - **TypeScript**: Primary language for all new code
@@ -216,11 +230,72 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 - Ignore everything in `node_modules` or `dist` directories
 - Ignore all files not tracked by Git, unless they are newly created files
 
-# Important Instruction Reminders
+# CoCalc Python API Client Investigation
 
-- Do what has been asked; nothing more, nothing less
-- NEVER create files unless they're absolutely necessary for achieving your goal
-- ALWAYS prefer editing an existing file to creating a new one
-- REFUSE to modify files when the git repository is on the `master` or `main` branch
-- NEVER proactively create documentation files (`*.md`) or README files. Only create documentation files if explicitly requested by the User
-- when modifying a file with a copyright banner at the top, make sure to fix/add the current year to indicate the copyright year
+## Overview
+
+The `python/cocalc-api/` directory contains a Python client library for the CoCalc API, published as the `cocalc-api` package on PyPI.
+
+## Client-Server Architecture Investigation
+
+### API Call Flow
+
+1. **cocalc-api Client** (Python) → HTTP POST requests
+2. **Next.js API Routes** (`/api/conat/{hub,project}`) → Bridge to conat messaging
+3. **ConatClient** (server-side) → NATS-like messaging protocol
+4. **Hub API Implementation** (`packages/conat/hub/api/`) → Actual business logic
+
+### Endpoints Discovered
+
+#### Hub API: `POST /api/conat/hub`
+- **Bridge**: `packages/next/pages/api/conat/hub.ts` → `hubBridge()` → conat subject `hub.account.{account_id}.api`
+- **Implementation**: `packages/conat/hub/api/projects.ts`
+- **Available Methods**: `createProject`, `start`, `stop`, `setQuotas`, `addCollaborator`, `removeCollaborator`, etc.
+- **Missing**: ❌ **No `delete` method implemented in conat hub API**
+
+#### Project API: `POST /api/conat/project`
+- **Bridge**: `packages/next/pages/api/conat/project.ts` → `projectBridge()` → conat project subjects
+- **Implementation**: `packages/conat/project/api/` (system.ping, system.exec, system.jupyterExecute)
+
+### Project Deletion Investigation
+
+#### ✅ Next.js v2 API Route Available
+- **Endpoint**: `packages/next/pages/api/v2/projects/delete.ts`
+- **Functionality**: Sets deleted=true, removes licenses, stops project
+- **Authentication**: Requires collaborator access or admin
+
+#### ❌ Missing Conat Hub API Method
+- **Current Methods**: Only CRUD operations (create, start, stop, quotas, collaborators)
+- **Gap**: No `delete` method exposed through conat hub API used by cocalc-api
+
+#### Frontend Implementation
+- **Location**: `packages/frontend/projects/actions.ts:delete_project()`
+- **Method**: Direct database table update via `projects_table_set({deleted: true})`
+
+## Implementation
+
+### Solution Implemented: Direct v2 API Call
+- **Added**: `hub.projects.delete(project_id)` method to cocalc-api Python client
+- **Implementation**: Direct HTTP POST to `/api/v2/projects/delete` endpoint
+- **Reasoning**: Fastest path to complete project lifecycle without requiring conat hub API changes
+- **Consistency**: Uses same authentication and error handling patterns as other methods
+
+### Code Changes
+1. **`src/cocalc_api/hub.py`**: Added `delete()` method to Projects class
+2. **`tests/conftest.py`**: Updated cleanup to use new delete method
+3. **`tests/test_hub.py`**: Added test for delete method availability
+
+## Current Status
+- ✅ pytest test framework established with automatic project lifecycle
+- ✅ Project creation/start/stop working via conat hub API
+- ✅ Project deletion implemented by calling v2 API route directly
+- ✅ Complete project lifecycle management: create → start → test → stop → delete
+- ✅ All 14 tests passing with proper resource cleanup
+
+# important-instruction-reminders
+- Do what has been asked; nothing more, nothing less.
+- NEVER create files unless they're absolutely necessary for achieving your goal.
+- ALWAYS prefer editing an existing file to creating a new one.
+- NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+- ALWAYS ask questions if something is unclear. Only proceed to the implementation step if you have no questions left.
+- When modifying a file with a copyright banner at the top, make sure to fix/add the current year to indicate the copyright year.

@@ -1,3 +1,14 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+/*
+Project delete functionality
+
+Extracted from the v2 API to be reusable by both REST API and Conat API.
+*/
+
 import getPool from "@cocalc/database/pool";
 import userQuery from "@cocalc/database/user-query";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
@@ -21,15 +32,18 @@ export default async function deleteProject({
   skipPermissionCheck = false,
 }: DeleteProjectOptions): Promise<void> {
   if (!isValidUUID(project_id)) {
-    throw Error("project_id must be a valid uuid");
+    throw Error("project_id must be a valid UUID");
   }
 
   if (!skipPermissionCheck) {
     if (!account_id) {
       throw Error("must be signed in");
     }
-    const admin = await userIsInGroup(account_id, "admin");
-    const collaborator = admin
+    if (!isValidUUID(account_id)) {
+      throw Error("account_id must be a valid UUID");
+    }
+    const isAdmin = await userIsInGroup(account_id, "admin");
+    const collaborator = isAdmin
       ? true
       : await isCollaborator({ account_id, project_id });
     if (!collaborator) {
