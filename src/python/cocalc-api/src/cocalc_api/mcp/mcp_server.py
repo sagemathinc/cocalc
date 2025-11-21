@@ -208,8 +208,11 @@ def _initialize_config() -> None:
         if "account_id" in scope:
             account_id = cast(AccountScope, scope)["account_id"]
             print(f"✓ Connected with account-scoped API key (account: {account_id})", file=sys.stderr)
-            # If a project_id is explicitly provided via env, prepare a client for it
+            # If a project_id is explicitly provided via env, add it to scope
             if project_id_config:
+                # Store project_id in scope so tools/resources can use it as fallback
+                scope["project_id"] = project_id_config  # type: ignore
+                _api_key_scope = scope
                 client = Project(api_key=_api_key, project_id=project_id_config, host=_host)
                 _project_clients[project_id_config] = client
                 print(
@@ -234,17 +237,19 @@ def get_project_client(project_id: Optional[str] = None) -> Project:
     """
     Get or create a Project client for the given project.
 
-    For project-scoped API keys, project_id is optional (uses the key's project).
-    For account-scoped API keys, project_id is required.
+    Project ID resolution (in order of priority):
+    1. Explicit project_id parameter
+    2. project_id from _api_key_scope (for project-scoped keys or account-scoped keys with COCALC_PROJECT_ID)
+    3. Project client extracts it from the API key (for project-scoped keys)
 
     Args:
-        project_id: The project UUID. If None, uses the project-scoped key's project.
+        project_id: The project UUID. If None, uses the value from _api_key_scope or the API key itself.
 
     Returns:
         Project client for the specified project
 
     Raises:
-        RuntimeError: If project_id cannot be determined or account-scoped key without project_id
+        RuntimeError: If project_id cannot be determined
     """
     global _project_clients
 
@@ -252,19 +257,11 @@ def get_project_client(project_id: Optional[str] = None) -> Project:
 
     # Determine which project_id to use
     if project_id is None:
-        # If no project_id provided, try to use the one from project-scoped key
+        # Try to use project_id from scope (works for both project-scoped keys
+        # and account-scoped keys with explicit COCALC_PROJECT_ID)
         scope = _api_key_scope
         if scope and "project_id" in scope:
             project_id = cast(ProjectScope, scope)["project_id"]
-        else:
-            # Account-scoped key requires explicit project_id
-            raise RuntimeError("Account-scoped API key requires an explicit project_id argument. "
-                               "No project_id provided to get_project_client().")
-
-    # For project-scoped keys with None/empty project_id, the Project client will extract it from the API key
-    # For account-scoped keys, project_id must be non-empty
-    if not project_id and _api_key_scope and "account_id" in _api_key_scope:
-        raise RuntimeError("Account-scoped API key requires a non-empty project_id")
 
     # Use a cache key that handles None/empty project_id for project-scoped keys
     cache_key = project_id if project_id else "_default_project"
@@ -288,9 +285,15 @@ def _register_tools_and_resources() -> None:
 
     _initialize_config()
 
-    # Determine which tools/resources to register based on API key scope
-    if _api_key_scope and "account_id" in _api_key_scope:
-        # Account-scoped key: register account-scoped tools/resources
+    # Determine what needs to be registered
+    register_account_tools = _api_key_scope and "account_id" in _api_key_scope
+    register_project_tools = _api_key_scope and "project_id" in _api_key_scope
+    # Also register project tools if account-scoped key has explicit project
+    if register_account_tools and _project_clients:
+        register_project_tools = True
+
+    # Register account-scoped tools/resources
+    if register_account_tools:
         print("Registering account-scoped tools and resources...", file=sys.stderr)
         from .tools.projects_search import register_projects_search_tool
         from .resources.account_profile import register_account_profile_resource
@@ -298,8 +301,8 @@ def _register_tools_and_resources() -> None:
         register_projects_search_tool(mcp)
         register_account_profile_resource(mcp)
 
-    elif _api_key_scope and "project_id" in _api_key_scope:
-        # Project-scoped key: register project-scoped tools/resources
+    # Register project-scoped tools/resources
+    if register_project_tools:
         print("Registering project-scoped tools and resources...", file=sys.stderr)
         from .tools.exec import register_exec_tool
         from .tools.jupyter import register_jupyter_tool

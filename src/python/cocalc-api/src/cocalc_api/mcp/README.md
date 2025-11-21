@@ -53,12 +53,32 @@ Add to `~/.config/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "cocalc": {
       "command": "uv",
-      "args": ["--directory", "/path/to/cocalc-api", "run", "cocalc-mcp-server"],
-      "env": {"COCALC_API_KEY": "sk-your-api-key"}
+      "args": [
+        "--directory",
+        "/path/to/cocalc-api",
+        "run",
+        "cocalc-mcp-server"
+      ],
+      "env": { "COCALC_API_KEY": "sk-your-api-key" }
     }
   }
 }
 ```
+
+## Setup with Codex CLI
+
+```bash
+cd /path/to/cocalc-api
+export COCALC_API_KEY="sk-your-api-key"
+export COCALC_HOST="https://cocalc.com"          # or your local hub, e.g. http://localhost:5000
+# optional (account keys only): export COCALC_PROJECT_ID="your-project-uuid"
+
+codex mcp add --env COCALC_API_KEY="$COCALC_API_KEY" \
+  --env COCALC_HOST="$COCALC_HOST" \
+  cocalc -- uv --directory "$(pwd)" run cocalc-mcp-server
+```
+
+The MCP name (`cocalc` above) is the first positional argument; use `--` before command flags like `--directory`.
 
 ## Allow Tools in Claude Code Settings
 
@@ -77,23 +97,28 @@ The server automatically provides different tools based on your API key type:
 ### Account-Scoped API Keys
 
 **Tools:**
+
 - `projects_search(query="")` - Search and list your projects with collaborator info
 
 **Resources:**
+
 - `cocalc://account-profile` - View your account info, settings, and preferences
 
 ### Project-Scoped API Keys
 
 **Tools:**
+
 - `exec(command)` - Execute shell commands in the project
 - `jupyter_execute(input, kernel="python3")` - Run code using Jupyter kernels
 
 **Resources:**
+
 - `cocalc://project-files` - Browse the project directory structure
 
 ## API Keys
 
 Create API keys at:
+
 - **Account-scoped**: CoCalc Settings → API keys → Create API key
 - **Project-scoped**: Project Settings → API keys → Create API key
 
