@@ -208,22 +208,31 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
     default:
       return entry.kind === "file_change" ? (
         <div>
+          <pre>{JSON.stringify(entry.changes, undefined, 2)}</pre>
           <Space size={6} align="baseline">
             <Tag color="orange">Files</Tag>
             {entry.status ? <Tag>{entry.status}</Tag> : null}
           </Space>
-          <Space
-            direction="vertical"
-            size={2}
-            style={{ marginTop: 4, fontSize: 12 }}
+          <pre
+            style={{
+              background: COLORS.GRAY_L,
+              padding: "6px 8px",
+              borderRadius: 4,
+              marginTop: 6,
+              fontSize: 12,
+              overflowX: "auto",
+            }}
           >
-            {entry.changes.map((change, idx) => (
-              <Text key={idx} style={{ color: COLORS.GRAY_D }}>
-                {change.kind ? `${change.kind}: ` : ""}
-                {change.path}
-              </Text>
-            ))}
-          </Space>
+            {entry.changes.map((change, idx) => {
+              const { prefix, color } = formatFileDiffLine(change.kind);
+              return (
+                <div key={idx} style={{ color }}>
+                  {prefix}
+                  {change.path ?? ""}
+                </div>
+              );
+            })}
+          </pre>
         </div>
       ) : (
         <Space size={6} align="center">
@@ -455,6 +464,21 @@ function clipCommandOutput(value: string): string {
 
 function convertTerminalNewlines(value: string): string {
   return value.replace(/\n/g, "\r\n");
+}
+
+function formatFileDiffLine(kind?: string): { prefix: string; color: string } {
+  const normalized = kind?.toLowerCase();
+  if (
+    normalized === "create" ||
+    normalized === "add" ||
+    normalized === "insert"
+  ) {
+    return { prefix: "+ ", color: "#2e7d32" };
+  }
+  if (normalized === "delete" || normalized === "remove") {
+    return { prefix: "- ", color: "#c62828" };
+  }
+  return { prefix: "· ", color: COLORS.GRAY_D };
 }
 
 type CommandExecutionItem = {
