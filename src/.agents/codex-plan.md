@@ -133,3 +133,13 @@ NOTE:
   - Fields: working directory (default to chat’s directory), optional session_id (reuse/continue), model selection, any CLI env overrides (HOME/PATH), and future options (sandbox/approval/network).
   - Store config in the first chat message metadata so subsequent loads can rehydrate the session.
   - Once config is present, send messages over the conat Codex route using that session, then iterate on event rendering.
+
+## Live activity rendering plan (new)
+
+- Introduce `packages/frontend/chat/codex-activity.tsx` that takes normalized Codex events (`reasoning`, `command_execution`, `agent_message`, `turn.*`, errors) and renders:
+  - reasoning → `StaticMarkdown` so markdown links/files stay clickable.
+  - command executions → `Terminal` component (`packages/frontend/components/terminal.tsx`) seeded with the command plus streamed output so it inherits user terminal themes.
+  - agent messages → existing chat markdown renderer.
+  - generic status/error rows for `thread/turn` events.
+- Enhance `codex-api.ts` to normalize every streamed message into an `ActivityEntry` stored via new action helpers; keep entries during the run, then collapse them to an expandable log once summary arrives.
+- Update `chatroom.tsx` to show the live activity list where “Thinking…” currently appears, and keep the log accessible after completion (e.g., “Codex run log” badge that expands to the saved activity list).
