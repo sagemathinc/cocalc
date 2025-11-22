@@ -51,11 +51,15 @@ export interface Usage {
 export type AlertLevel = "low" | "mid" | "high" | "none";
 
 export type BackendState =
-  | "init"
-  | "ready"
+  | "failed"
+  | "off"
   | "spawning"
   | "starting"
-  | "running";
+  | "running"
+  | "closed";
+
+// When the backend_state is 'running', then the kernel_state is one of these:
+export type KernelState = "idle" | "busy" | "running";
 
 export interface LLMTools {
   model: LanguageModel;

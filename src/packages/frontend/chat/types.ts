@@ -39,6 +39,10 @@ export interface ChatMessage {
   editing?: { [author_id: string]: "FUTURE" | null };
   folding?: string[];
   feedback?: { [account_id: string]: Feedback };
+  acp_events?: any[];
+  acp_thread_id?: string | null;
+  acp_usage?: any;
+  acp_config?: any;
 }
 
 // this type isn't explicitly used anywhere yet, but the actual structure is and I just

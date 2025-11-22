@@ -5,6 +5,7 @@ import { LabeledRow, Tip } from "@cocalc/frontend/components";
 import EditQuota from "./edit-quota";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Button } from "antd";
+import { FAIR_CPU_MODE } from "@cocalc/util/upgrade-spec";
 
 interface Props {
   name: keyof QuotaParams;
@@ -22,8 +23,10 @@ export default function QuotaRow({
   disabled,
 }: Props) {
   const kucalc: string = useTypedRedux("customize", "kucalc");
+  if (FAIR_CPU_MODE && (name == "cores" || name.startsWith("cpu"))) {
+    return null;
+  }
   const params_data = PROJECT_UPGRADES.params[name];
-
   if (
     kucalc == KUCALC_DISABLED &&
     name != "mintime" &&

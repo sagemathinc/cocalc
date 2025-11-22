@@ -309,20 +309,23 @@ export class IpywidgetsState extends EventEmitter {
     return { buffers, buffer_paths };
   };
 
-  private clientGetBuffer = async (model_id: string, path: string) => {
-    // async get of the buffer from backend
+  // async get of the buffer from backend
+  private clientGetBuffer = async (
+    model_id: string,
+    buffer_path: string | string[],
+  ) => {
     if (this.client.ipywidgetsGetBuffer == null) {
       throw Error(
         "NotImplementedError: frontend client must implement ipywidgetsGetBuffer in order to support binary buffers",
       );
     }
-    const b = await this.client.ipywidgetsGetBuffer(
-      this.syncdoc.project_id,
-      auxFileToOriginal(this.syncdoc.path),
+    return await this.client.ipywidgetsGetBuffer({
+      project_id: this.syncdoc.project_id,
+      compute_server_id: this.syncdoc.compute_server_id,
+      path: auxFileToOriginal(this.syncdoc.path),
       model_id,
-      path,
-    );
-    return b;
+      buffer_path,
+    });
   };
 
   // Used on the backend by the project http server

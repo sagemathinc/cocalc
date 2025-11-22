@@ -5,6 +5,7 @@
 
 import React from "react";
 import { SystemEvent } from "./types";
+import { lite } from "@cocalc/frontend/lite";
 
 /**
  * This is used for these cases, where `account_id` isn't set.
@@ -16,6 +17,9 @@ interface Props {
 }
 
 export const SystemProcess: React.FC<Props> = ({ event }) => {
+  if (lite) {
+    return <span>You</span>;
+  }
   if (event.by != null) {
     return (
       <span>

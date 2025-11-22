@@ -188,6 +188,7 @@ export type ProjectControlEvent = {
     | "project_start_requested"
     | "project_restart_requested"
     | "project_stopped"
+    | "project_moved"
     | "project_started";
   time?: number;
   duration_ms?: number;

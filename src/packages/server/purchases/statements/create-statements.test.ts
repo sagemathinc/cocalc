@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { createTestAccount } from "@cocalc/server/purchases/test-data";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { createStatements, _TEST_ } from "./create-statements";
@@ -13,14 +12,12 @@ import getStatements from "./get-statements";
 import getPurchases from "../get-purchases";
 import dayjs from "dayjs";
 import { closeAndContinuePurchase } from "../project-quotas";
+import { before, after, getPool } from "@cocalc/server/test";
 
 beforeAll(async () => {
-  await initEphemeralDatabase();
+  await before({ noConat: true });
 }, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+afterAll(after);
 
 describe("creates an account, then creates purchases and statements", () => {
   const account_id = uuid();

@@ -35,8 +35,8 @@
     "validator": "^13.15.20"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.202",
-    "@types/node": "^18.16.14",
+    "@types/lodash": "^4.17.20",
+    "@types/node": "^22.10.10",
     "@types/pg": "^8.6.1",
     "coffeescript": "^2.5.1"
   },
@@ -44,7 +44,7 @@
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc  --build && coffee -c -o dist/ ./",
     "clean": "rm -rf dist",
-    "test": "pnpm exec jest --forceExit --runInBand",
+    "test": "pnpm exec jest --forceExit --maxWorkers=1",
     "depcheck": "pnpx depcheck | grep -Ev '\\.coffee|coffee$'",
     "prepublishOnly": "pnpm test"
   },

@@ -31,6 +31,7 @@ import { plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
+import CodexActivity from "./codex-activity";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
@@ -249,6 +250,22 @@ export default function Message({
   const msgWrittenByLLM = useMemo(() => {
     const author_id = message.get("history")?.first()?.get("author_id");
     return typeof author_id === "string" && isLanguageModelService(author_id);
+  }, [message]);
+
+  const codexEvents = useMemo(() => {
+    const ev = message.get("acp_events") ?? message.get("codex_events");
+    if (!ev) return undefined;
+    // Immutable.js collections have toJS
+    if (typeof (ev as any)?.toJS === "function") {
+      return (ev as any).toJS();
+    }
+    return ev;
+  }, [message]);
+
+  const codexThreadId = useMemo(() => {
+    return (
+      message.get("acp_thread_id") ?? message.get("codex_thread_id") ?? undefined
+    );
   }, [message]);
 
   useLayoutEffect(() => {
@@ -615,6 +632,13 @@ export default function Message({
               : undefined
           }
         />
+        {codexEvents?.length ? (
+          <CodexActivity
+            events={codexEvents}
+            threadId={codexThreadId}
+            generating={generating === true}
+          />
+        ) : null}
         {renderEditControlRow()}
       </>
     );

@@ -2,16 +2,18 @@ import { type Subvolume } from "./subvolume";
 import { btrfs } from "./util";
 import getLogger from "@cocalc/backend/logger";
 import { join } from "path";
-import { type DirectoryListingEntry } from "@cocalc/util/types";
-import { SnapshotCounts, updateRollingSnapshots } from "./snapshots";
+import { type SnapshotCounts, updateRollingSnapshots } from "./snapshots";
+import { ConatError } from "@cocalc/conat/core/client";
+import { type SnapshotUsage } from "@cocalc/conat/files/file-server";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+import { getSubvolumeField, getSubvolumeId } from "./subvolume";
 
-export const SNAPSHOTS = ".snapshots";
 const logger = getLogger("file-server:btrfs:subvolume-snapshots");
 
 export class SubvolumeSnapshots {
   public readonly snapshotsDir: string;
 
-  constructor(public subvolume: Subvolume) {
+  constructor(public readonly subvolume: Subvolume) {
     this.snapshotsDir = join(this.subvolume.path, SNAPSHOTS);
   }
 
@@ -27,30 +29,55 @@ export class SubvolumeSnapshots {
       return;
     }
     await this.subvolume.fs.mkdir(SNAPSHOTS);
-    await this.subvolume.fs.chmod(SNAPSHOTS, "0550");
+    await this.subvolume.fs.chmod(SNAPSHOTS, "0700");
   };
 
-  create = async (name?: string) => {
+  create = async (
+    name?: string,
+    { limit, readOnly }: { limit?: number; readOnly?: boolean } = {},
+  ) => {
     if (name?.startsWith(".")) {
       throw Error("snapshot name must not start with '.'");
     }
     name ??= new Date().toISOString();
     logger.debug("create", { name, subvolume: this.subvolume.name });
     await this.makeSnapshotsDir();
+
+    if (limit != null) {
+      if ((await this.readdir()).length >= limit) {
+        // 507 = "insufficient storage" for http
+        throw new ConatError(`there is a limit of ${limit} snapshots`, {
+          code: 507,
+        });
+      }
+    }
+
+    const args = ["subvolume", "snapshot"];
+    if (readOnly) {
+      args.push("-r");
+    }
+    const snapshotPath = join(this.snapshotsDir, name);
+    args.push(this.subvolume.path, snapshotPath);
+
+    await btrfs({ args });
+
+    // also add snapshot to the snapshot quota group
+    const snapshotId = await getSubvolumeId(snapshotPath);
+    const subvolumeId = await this.subvolume.getSubvolumeId();
     await btrfs({
       args: [
-        "subvolume",
-        "snapshot",
-        "-r",
+        "qgroup",
+        "assign",
+        `0/${snapshotId}`,
+        `1/${subvolumeId}`,
         this.subvolume.path,
-        join(this.snapshotsDir, name),
       ],
     });
   };
 
-  ls = async (): Promise<DirectoryListingEntry[]> => {
+  readdir = async (): Promise<string[]> => {
     await this.makeSnapshotsDir();
-    return await this.subvolume.fs.ls(SNAPSHOTS, { hidden: false });
+    return await this.subvolume.fs.readdir(SNAPSHOTS);
   };
 
   lock = async (name: string) => {
@@ -78,34 +105,47 @@ export class SubvolumeSnapshots {
     });
   };
 
-  // update the rolling snapshots schedule
-  update = async (counts?: Partial<SnapshotCounts>) => {
-    return await updateRollingSnapshots({ snapshots: this, counts });
+  // update the rolling snapshots scheduleGener
+  update = async (counts?: Partial<SnapshotCounts>, opts?) => {
+    return await updateRollingSnapshots({ snapshots: this, counts, opts });
   };
 
   // has newly written changes since last snapshot
   hasUnsavedChanges = async (): Promise<boolean> => {
-    const s = await this.ls();
+    const s = await this.readdir();
     if (s.length == 0) {
       // more than just the SNAPSHOTS directory?
-      const v = await this.subvolume.fs.ls("", { hidden: true });
-      if (v.length == 0 || (v.length == 1 && v[0].name == SNAPSHOTS)) {
+      const v = await this.subvolume.fs.readdir("");
+      if (v.length == 0 || (v.length == 1 && v[0] == SNAPSHOTS)) {
         return false;
       }
       return true;
     }
     const pathGen = await getGeneration(this.subvolume.path);
     const snapGen = await getGeneration(
-      join(this.snapshotsDir, s[s.length - 1].name),
+      join(this.snapshotsDir, s[s.length - 1]),
     );
     return snapGen < pathGen;
   };
+
+  usage = async (name: string): Promise<SnapshotUsage> => {
+    // btrfs --format=json qgroup show -reF --raw project-eac5b48a-70aa-4401-a54d-0f58c5eb09ba/.snapshots/cocalc
+    const snapshotPath = join(this.snapshotsDir, name);
+    const { stdout } = await btrfs({
+      args: ["--format=json", "qgroup", "show", "-ref", "--raw", snapshotPath],
+    });
+    const x = JSON.parse(stdout);
+    const { referenced, max_referenced, exclusive } = x["qgroup-show"][0];
+    return { name, used: referenced, quota: max_referenced, exclusive };
+  };
+
+  allUsage = async (): Promise<SnapshotUsage[]> => {
+    // get quota/usage information about all snapshots
+    const snaps = await this.readdir();
+    return Promise.all(snaps.map(this.usage));
+  };
 }
 
-async function getGeneration(path: string): Promise<number> {
-  const { stdout } = await btrfs({
-    args: ["subvolume", "show", path],
-    verbose: false,
-  });
-  return parseInt(stdout.split("Generation:")[1].split("\n")[0].trim());
+export async function getGeneration(path: string): Promise<number> {
+  return parseInt(await getSubvolumeField(path, "Generation"));
 }

@@ -14,9 +14,11 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
+  CopyToClipBoard,
   HelpIcon,
   Icon,
   LabeledRow,
+  Paragraph,
   SettingBox,
   TextInput,
   TimeAgo,
@@ -349,10 +351,37 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
           <LabeledRow
             label={intl.formatMessage(labels.created)}
             vertical={isFlyout}
+            style={{ marginBottom: "15px" }}
           >
             <TimeAgo date={created} />
           </LabeledRow>
         )}
+
+        <LabeledRow
+          key="project_id"
+          label="Project ID"
+          vertical={isFlyout}
+          style={{ marginTop: "15px" }}
+        >
+          {!isFlyout ? (
+            <CopyToClipBoard
+              inputWidth={"330px"}
+              value={project_id}
+              style={{ display: "inline-block", width: "100%", margin: 0 }}
+            />
+          ) : (
+            <Paragraph
+              copyable={{
+                text: project_id,
+                tooltips: ["Copy Project ID", "Copied!"],
+              }}
+              code
+              style={{ marginBottom: 0 }}
+            >
+              {project_id}
+            </Paragraph>
+          )}
+        </LabeledRow>
       </>
     );
   }

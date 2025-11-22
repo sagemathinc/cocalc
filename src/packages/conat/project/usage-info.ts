@@ -9,6 +9,7 @@ there is no request for a while.
 import { projectSubject } from "@cocalc/conat/names";
 import { conat } from "@cocalc/conat/client";
 import { getLogger } from "@cocalc/conat/client";
+import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { type UsageInfo } from "@cocalc/util/types/project-usage-info";
 import TTL from "@isaacs/ttlcache";
 
@@ -36,20 +37,22 @@ interface Api {
 }
 
 export async function get({
+  client = conat(),
   project_id,
   compute_server_id = 0,
   path,
 }: {
+  client?: ConatClient;
   project_id: string;
   compute_server_id?: number;
   path: string;
 }) {
-  const c = await conat();
   const subject = getSubject({ project_id, compute_server_id });
-  return await c.call(subject).get(path);
+  return await client.call(subject).get(path);
 }
 
 interface Options {
+  client?: ConatClient;
   project_id: string;
   compute_server_id: number;
   createUsageInfoServer: Function;
@@ -70,7 +73,7 @@ export class UsageInfoService {
   private createService = async () => {
     const subject = getSubject(this.options);
     logger.debug("starting usage-info service", { subject });
-    const client = await conat();
+    const client = this.options.client ?? conat();
     this.service = await client.service<Api>(subject, {
       get: this.get,
     });

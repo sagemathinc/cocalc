@@ -65,6 +65,7 @@ export type SiteSettingsKeys =
   | "support"
   | "support_video_call"
   | "openai_enabled"
+  | "agent_openai_codex_enabled"
   | "google_vertexai_enabled"
   | "mistral_enabled"
   | "anthropic_enabled"
@@ -115,7 +116,6 @@ export type SiteSettingsKeys =
   | "landing_pages"
   | "sandbox_projects_enabled"
   | "sandbox_project_id"
-  | "new_project_pool"
   | "compute_servers_enabled"
   | "compute_servers_google-cloud_enabled"
   | "compute_servers_onprem_enabled"
@@ -713,7 +713,7 @@ export const site_settings_conf: SiteSettings = {
   },
   ssh_gateway_dns: {
     name: "SSH Gateway's DNS",
-    desc: "This is the DNS name of the SSH gateway server. It is used to construct the SSH login to connect to a project. In doubt, set this to the DNS value.",
+    desc: "This is the DNS name of the SSH gateway server.  It is displayed to users as the ssh target to connect to a project.",
     default: "",
     valid: valid_dns_name,
     show: only_ssh_gateway,
@@ -799,16 +799,17 @@ export const site_settings_conf: SiteSettings = {
     desc: "The `project_id` (a UUIDv4) of a sandbox project on your server for people who visit CoCalc to play around with.  This is potentially dangerous, so use with care!  This project MUST have 'Sandbox' enabled in project settings, so that anybody can access it.",
     default: "",
   },
-  new_project_pool: {
-    name: "New Project Pool",
-    desc: "Number of new non-upgraded running projects to have at the ready to speed up the experience of creating new projects for users in interactive settings (where they are likely to immediately open the project).",
-    default: "0",
-    valid: only_nonneg_int,
-    show: () => true,
-  },
   openai_enabled: {
     name: "OpenAI ChatGPT UI",
     desc: "Controls visibility of UI elements related to OpenAI ChatGPT integration.  You must **also set your OpenAI API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["OpenAI", "AI LLM"],
+  },
+  agent_openai_codex_enabled: {
+    name: "OpenAI Codex Agent UI",
+    desc: "Controls visibility of UI elements related to the OpenAI Codex coding agent. You must have the Codex CLI installed and configured for this to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

@@ -45,11 +45,6 @@ export default function moduleRules(
           },
         ],
       },
-      { test: /\.coffee$/, loader: "coffee-loader" },
-      {
-        test: /\.cjsx$/,
-        use: [{ loader: "coffee-loader" }, { loader: "cjsx-loader" }],
-      },
       {
         test: /\.less$/,
         use: [

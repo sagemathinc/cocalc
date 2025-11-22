@@ -4,7 +4,7 @@
  */
 
 import { filename_extension_notilde } from "@cocalc/util/misc";
-const { file_icon_class } = require("../editor");
+import { file_icon_class } from "../editor-tmp";
 import { Component } from "../app-framework";
 import { Icon } from "../components";
 

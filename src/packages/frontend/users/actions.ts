@@ -24,6 +24,7 @@ export class UsersActions extends Actions<UsersState> {
         warned.add(account_id);
         console.warn(
           `WARNING: unable to get username for account with id '${account_id}'`,
+          err,
         );
       }
       return;

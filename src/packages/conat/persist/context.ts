@@ -5,11 +5,11 @@ not from a browser.    Making this explicit helps clarify the dependence
 on the backend and make the code more unit testable.
 */
 
-import type BetterSqlite3 from "better-sqlite3";
-type Database = BetterSqlite3.Database;
-export { type Database };
+import type { DatabaseSync } from "node:sqlite";
+export type Database = DatabaseSync;
 
-let betterSqlite3: any = null;
+let sqliteModule: { DatabaseSync: new (...args: any[]) => DatabaseSync } | null =
+  null;
 
 export let compress: (data: Buffer) => Buffer = () => {
   throw Error("must initialize persist context");
@@ -41,7 +41,7 @@ export let copyFileSync = (_src: string, _desc: string): void => {
 };
 
 export function initContext(opts: {
-  betterSqlite3;
+  sqlite: { DatabaseSync: new (...args: any[]) => DatabaseSync };
   compress: (Buffer) => Buffer;
   decompress: (Buffer) => Buffer;
   syncFiles: {
@@ -54,7 +54,7 @@ export function initContext(opts: {
   statSync: (path: string) => { mtimeMs: number };
   copyFileSync: (src: string, desc: string) => void;
 }) {
-  betterSqlite3 = opts.betterSqlite3;
+  sqliteModule = opts.sqlite;
   compress = opts.compress;
   decompress = opts.decompress;
   syncFiles = opts.syncFiles;
@@ -64,10 +64,10 @@ export function initContext(opts: {
 }
 
 export function createDatabase(...args): Database {
-  if (betterSqlite3 == null) {
+  if (sqliteModule == null) {
     throw Error(
-      "conat/persist must be initialized with the better-sqlite3 module -- import from backend/conat/persist instead",
+      "conat/persist must be initialized with node:sqlite -- import from backend/conat/persist instead",
     );
   }
-  return new betterSqlite3(...args);
+  return new sqliteModule.DatabaseSync(...args);
 }

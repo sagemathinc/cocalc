@@ -1,4 +1,4 @@
-import { noAuth, authFirst, requireAccount } from "./util";
+import { noAuth, authFirst, requireSignedIn } from "./util";
 import type { Customize } from "@cocalc/util/db-schema/server-settings";
 import type {
   ApiKey,
@@ -17,7 +17,7 @@ export const system = {
   generateUserAuthToken: authFirst,
   revokeUserAuthToken: noAuth,
   userSearch: authFirst,
-  getNames: requireAccount,
+  getNames: requireSignedIn,
   adminResetPasswordLink: authFirst,
   sendEmailVerification: authFirst,
   deletePassport: authFirst,

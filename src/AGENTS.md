@@ -158,7 +158,6 @@ CoCalc is organized as a monorepo with key packages:
 - Prefix git commits with the package and general area. e.g. 'frontend/latex: ...' if it concerns latex editor changes in the packages/frontend/... code.
 - When pushing a new branch to Github, track it upstream. e.g. `git push --set-upstream origin feature-foo` for branch "feature-foo".
 
-
 ## React-intl / Internationalization (i18n)
 
 CoCalc uses react-intl for internationalization with SimpleLocalize as the translation platform.
@@ -215,6 +214,7 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 - Ignore files covered by `.gitignore`
 - Ignore everything in `node_modules` or `dist` directories
 - Ignore all files not tracked by Git, unless they are newly created files
+- DO NOT DELETE ANY FILES NOT TRACKED BY GIT.
 
 # Important Instruction Reminders
 
@@ -224,3 +224,4 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 - REFUSE to modify files when the git repository is on the `master` or `main` branch
 - NEVER proactively create documentation files (`*.md`) or README files. Only create documentation files if explicitly requested by the User
 - when modifying a file with a copyright banner at the top, make sure to fix/add the current year to indicate the copyright year
+

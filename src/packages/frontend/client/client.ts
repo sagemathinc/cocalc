@@ -35,6 +35,7 @@ import type {
   CreateConatServiceFunction,
 } from "@cocalc/conat/service";
 import { randomId } from "@cocalc/conat/names";
+import api from "./api";
 
 // This DEBUG variable comes from webpack:
 declare const DEBUG;
@@ -91,12 +92,6 @@ export interface WebappClient extends EventEmitter {
   prettier: Function;
   exec: Function;
   touch_project: (project_id: string, compute_server_id?: number) => void;
-  ipywidgetsGetBuffer: (
-    project_id: string,
-    path: string,
-    model_id: string,
-    buffer_path: string,
-  ) => Promise<ArrayBuffer>;
   log_error: (any) => void;
   user_tracking: Function;
   send: Function;
@@ -114,6 +109,7 @@ export interface WebappClient extends EventEmitter {
   set_connected?: Function;
   version: Function;
   alert_message: Function;
+  nextjsApi?: typeof api;
 }
 
 export const WebappClient = null; // webpack + TS es2020 modules need this
@@ -171,12 +167,6 @@ class Client extends EventEmitter implements WebappClient {
   prettier: Function;
   exec: Function;
   touch_project: (project_id: string, compute_server_id?: number) => void;
-  ipywidgetsGetBuffer: (
-    project_id: string,
-    path: string,
-    model_id: string,
-    buffer_path: string,
-  ) => Promise<ArrayBuffer>;
 
   log_error: (any) => void;
   user_tracking: Function;
@@ -194,6 +184,7 @@ class Client extends EventEmitter implements WebappClient {
   synctable_database: Function;
   async_query: Function;
   alert_message: Function;
+  nextjsApi = api;
 
   constructor() {
     super();
@@ -233,9 +224,6 @@ class Client extends EventEmitter implements WebappClient {
 
     this.exec = this.project_client.exec.bind(this.project_client);
     this.touch_project = this.project_client.touch_project.bind(
-      this.project_client,
-    );
-    this.ipywidgetsGetBuffer = this.project_client.ipywidgetsGetBuffer.bind(
       this.project_client,
     );
 
@@ -317,26 +305,6 @@ class Client extends EventEmitter implements WebappClient {
   public set_deleted(): void {
     throw Error("not implemented for frontend");
   }
-
-  touchOpenFile = async ({
-    project_id,
-    path,
-    setNotDeleted,
-    doctype,
-  }: {
-    project_id: string;
-    path: string;
-    id?: number;
-    doctype?;
-    // if file is deleted, this explicitly undeletes it.
-    setNotDeleted?: boolean;
-  }) => {
-    const x = await this.conat_client.openFiles(project_id);
-    if (setNotDeleted) {
-      x.setNotDeleted(path);
-    }
-    x.touch(path, doctype);
-  };
 }
 
 export const webapp_client = new Client();

@@ -51,8 +51,7 @@ import { ActiveFlyout } from "./flyouts/active";
 import { shouldOpenFileInNewWindow } from "./utils";
 import { getValidActivityBarOption } from "./activity-bar";
 import { ACTIVITY_BAR_KEY } from "./activity-bar-consts";
-
-const { file_options } = require("@cocalc/frontend/editor");
+import { file_options } from "@cocalc/frontend/editor-tmp";
 
 export type FixedTab =
   | "active"
@@ -81,6 +80,7 @@ type FixedTabs = {
     }) => React.JSX.Element;
     flyoutTitle?: string | ReactNode | IntlMessage;
     noAnonymous?: boolean;
+    noLite?: boolean;
     noFullPage?: boolean; // if true, then this tab can't be opened in a full page
   };
 };
@@ -113,6 +113,15 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     flyout: NewFlyout,
     noAnonymous: false,
   },
+  search: {
+    label: defineMessage({
+      id: "project.page.file-tab.search_file.label",
+      defaultMessage: "Find",
+    }),
+    icon: "search",
+    flyout: SearchFlyout,
+    noAnonymous: false,
+  },
   log: {
     label: labels.log,
     icon: "history",
@@ -123,26 +132,19 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     }),
     noAnonymous: false,
   },
-  search: {
-    label: defineMessage({
-      id: "project.page.file-tab.search_file.label",
-      defaultMessage: "Find",
-    }),
-    icon: "search",
-    flyout: SearchFlyout,
-    noAnonymous: false,
-  },
   servers: {
     label: SERVERS_TITLE,
     icon: "server",
     flyout: ServersFlyout,
     noAnonymous: false,
+    noLite: true,
   },
   users: {
     label: labels.users,
     icon: ICON_USERS,
     flyout: CollabsFlyout,
     noAnonymous: false,
+    noLite: true,
   },
   upgrades: {
     label: labels.upgrades,
@@ -153,12 +155,14 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
       defaultMessage: `Project Upgrades`,
     }),
     noAnonymous: false,
+    noLite: true,
   },
   info: {
     label: labels.project_info_title,
     icon: "microchip",
     flyout: ProjectInfoFlyout,
     noAnonymous: false,
+    noLite: true, // process monitor doesn't work at all yet for some reason
   },
   settings: {
     label: labels.settings,
@@ -215,10 +219,10 @@ export function FileTab(props: Readonly<Props>) {
   // alerts only work on non-docker projects (for now) -- #7077
   const status_alerts: string[] =
     !onCoCalcDocker && name === "info"
-      ? project_status
+      ? (project_status
           ?.get("alerts")
           ?.map((a) => a.get("type"))
-          .toJS() ?? []
+          .toJS() ?? [])
       : [];
 
   const other_settings = useTypedRedux("account", "other_settings");
@@ -303,8 +307,8 @@ export function FileTab(props: Readonly<Props>) {
       flyout === active_flyout
         ? COLORS.PROJECT.FIXED_LEFT_ACTIVE
         : active_flyout == null
-        ? COLORS.GRAY_L
-        : COLORS.GRAY_L0;
+          ? COLORS.GRAY_L
+          : COLORS.GRAY_L0;
     const bg = flyout === active_flyout ? COLORS.GRAY_L0 : undefined;
 
     return (
@@ -368,7 +372,7 @@ export function FileTab(props: Readonly<Props>) {
 
   const icon =
     path != null
-      ? file_options(path)?.icon ?? "code-o"
+      ? (file_options(path)?.icon ?? "code-o")
       : FIXED_PROJECT_TABS[name!].icon;
 
   const tags =

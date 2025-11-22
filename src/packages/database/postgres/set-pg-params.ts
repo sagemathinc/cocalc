@@ -8,6 +8,7 @@
 
 import { Client } from "pg";
 import { getLogger } from "@cocalc/backend/logger";
+import { normalizeValues } from "../pool/pg-utc-normalize";
 
 const L = getLogger("db:set-pg-params").debug;
 
@@ -33,7 +34,7 @@ export async function do_query_with_pg_params(opts: Opts): Promise<void> {
       L(`Setting query param: ${k}=${v}`);
       await client.query(q);
     }
-    const res = await client.query(query, params);
+    const res = await client.query(query, normalizeValues(params));
     await client.query("COMMIT");
     cb(undefined, res);
   } catch (err) {

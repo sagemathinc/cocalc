@@ -4,7 +4,7 @@ import { path_split } from "@cocalc/util/misc";
 import { console_init_filename, len } from "@cocalc/util/misc";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { getLogger } from "@cocalc/project/logger";
-import { readlink, realpath } from "node:fs/promises";
+import { readlink, realpath, rm } from "node:fs/promises";
 import { dstream, type DStream } from "@cocalc/project/conat/sync";
 import {
   createBrowserClient,
@@ -12,10 +12,13 @@ import {
 } from "@cocalc/conat/service/terminal";
 import { project_id, compute_server_id } from "@cocalc/project/data";
 import { throttle } from "lodash";
-import { ThrottleString as Throttle } from "@cocalc/util/throttle";
+import { ThrottleString } from "@cocalc/util/throttle";
 import { join } from "path";
 import type { CreateTerminalOptions } from "@cocalc/conat/project/api/editor";
 import { delay } from "awaiting";
+import { SpoolWatcher } from "@cocalc/backend/spool-watcher";
+import { data } from "@cocalc/backend/data";
+import { randomId } from "@cocalc/conat/names";
 
 const logger = getLogger("project:conat:terminal:session");
 
@@ -28,14 +31,13 @@ const INPUT_CHUNK_SIZE = 50;
 
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 
-const SOFT_RESET =
-  "tput rmcup; printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l\e[?1l'; clear -x; sleep 0.1; clear -x; sleep 0.1; clear -x";
+const HARD_RESET = "reset";
 
-const COMPUTE_SERVER_INIT = `PS1="(\\h) \\w$ "; ${SOFT_RESET}; history -d $(history 1);\n`;
+const COMPUTE_SERVER_INIT = `PS1="(\\h) \\w$ "; ${HARD_RESET}; history -d $(history 1);\n`;
 
-const PROJECT_INIT = `${SOFT_RESET}; history -d $(history 1);\n`;
+const PROJECT_INIT = `${HARD_RESET}; history -d $(history 1);\n`;
 
-const DEFAULT_COMMAND = "/bin/bash";
+const DEFAULT_COMMAND = "bash";
 const INFINITY = 999999;
 
 const HISTORY_LIMIT_BYTES = parseInt(
@@ -55,7 +57,7 @@ const MAX_BYTES_PER_SECOND = parseInt(
 // having to discard writes.  This is basically the "frame rate"
 // we are supporting for users.
 const MAX_MSGS_PER_SECOND = parseInt(
-  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "24",
+  process.env.COCALC_TERMINAL_MAX_MSGS_PER_SECOND ?? "20",
 );
 
 type State = "running" | "off" | "closed";
@@ -73,13 +75,22 @@ export class Session {
     [browser_id: string]: { rows: number; cols: number; time: number };
   } = {};
   public pid: number;
+  private messageSpool?: SpoolWatcher;
+  private spoolDirectory?: string;
 
-  constructor({ termPath, options }) {
+  constructor({
+    termPath,
+    options,
+  }: {
+    termPath: string;
+    options: CreateTerminalOptions;
+  }) {
     logger.debug("create session ", { termPath, options });
     this.termPath = termPath;
     this.browserApi = createBrowserClient({ project_id, termPath });
     this.options = options;
     this.streamName = `terminal-${termPath}`;
+    this.spoolDirectory = join(data, "term-spool", randomId());
   }
 
   kill = async () => {
@@ -121,6 +132,7 @@ export class Session {
   restart = async () => {
     this.pty?.destroy();
     this.stream?.close();
+    this.messageSpool?.close();
     delete this.pty;
     await this.init();
   };
@@ -131,8 +143,18 @@ export class Session {
     }
     this.pty?.destroy();
     this.stream?.close();
+    this.messageSpool?.close();
     delete this.pty;
     delete this.stream;
+    delete this.messageSpool;
+    (async () => {
+      try {
+        if (this.spoolDirectory) {
+          await rm(this.spoolDirectory, { force: true, recursive: true });
+        }
+      } catch {}
+    })();
+    delete this.spoolDirectory;
     this.state = "closed";
     this.clientSizes = {};
   };
@@ -171,7 +193,7 @@ export class Session {
         max_msgs_per_second: 5 * MAX_MSGS_PER_SECOND,
       },
     });
-    this.stream.publish("\r\n".repeat((this.size?.rows ?? 40) + 40));
+    // this.stream.publish("\r\n".repeat((this.size?.rows ?? 40) + 40));
     this.stream.on("reject", () => {
       this.throttledEllipses();
     });
@@ -194,10 +216,11 @@ export class Session {
       ...this.options.env,
       ...envForSpawn(),
       COCALC_TERMINAL_FILENAME: tail,
+      COCALC_CONTROL_DIR: this.spoolDirectory,
       TMUX: undefined, // ensure not set
     };
-    const command = this.options.command ?? DEFAULT_COMMAND;
-    const args = this.options.args ?? [];
+    let command = this.options.command ?? DEFAULT_COMMAND;
+    let args = this.options.args ?? [];
     const initFilename: string = console_init_filename(this.termPath);
     if (await exists(initFilename)) {
       args.push("--init-file");
@@ -236,10 +259,8 @@ export class Session {
 
     // use slighlty less than MAX_MSGS_PER_SECOND to avoid reject
     // due to being *slightly* off.
-    const throttle = new Throttle(1000 / (MAX_MSGS_PER_SECOND - 3));
+    const throttle = new ThrottleString(MAX_MSGS_PER_SECOND - 3);
     throttle.on("data", (data: string) => {
-      // logger.debug("got data out of pty");
-      this.handleBackendMessages(data);
       this.stream?.publish(data);
     });
     this.pty.onData(throttle.write);
@@ -248,6 +269,8 @@ export class Session {
       this.stream?.publish(EXIT_MESSAGE);
       this.state = "off";
     });
+
+    await this.initMessageSpool();
   };
 
   setSize = ({
@@ -342,67 +365,23 @@ export class Session {
     return { rows, cols };
   };
 
-  private backendMessagesBuffer = "";
-  private backendMessagesState = "none";
-
-  private resetBackendMessagesBuffer = () => {
-    this.backendMessagesBuffer = "";
-    this.backendMessagesState = "none";
-  };
-
-  private handleBackendMessages = (data: string) => {
-    /* parse out messages like this:
-            \x1b]49;"valid JSON string here"\x07
-         and format and send them via our json channel.
-      */
-    if (this.backendMessagesState === "none") {
-      const i = data.indexOf("\x1b]49;");
-      if (i == -1) {
-        return; // nothing to worry about
-      }
-      // stringify it so it is easy to see what is there:
-      this.backendMessagesState = "reading";
-      this.backendMessagesBuffer = data.slice(i);
-    } else {
-      this.backendMessagesBuffer += data;
+  private initMessageSpool = async () => {
+    if (!this.spoolDirectory) {
+      throw Error("no spool directory");
     }
-    if (this.backendMessagesBuffer.length >= 6) {
-      const i = this.backendMessagesBuffer.indexOf("\x07");
-      if (i == -1) {
-        // continue to wait... unless too long
-        if (this.backendMessagesBuffer.length > 10000) {
-          this.resetBackendMessagesBuffer();
-        }
-        return;
-      }
-      const s = this.backendMessagesBuffer.slice(5, i);
-      this.resetBackendMessagesBuffer();
-      logger.debug(
-        `handle_backend_message: parsing JSON payload ${JSON.stringify(s)}`,
-      );
-      let mesg;
+    this.messageSpool = new SpoolWatcher(this.spoolDirectory, async (msg) => {
       try {
-        mesg = JSON.parse(s);
+        await this.browserApi.command(msg);
       } catch (err) {
-        logger.warn(
-          `handle_backend_message: error sending JSON payload ${JSON.stringify(
-            s,
-          )}, ${err}`,
+        // could fail, e.g., if there are no browser clients suddenly.
+        logger.debug(
+          "WARNING: problem sending command to browser clients",
+          err,
         );
-        return;
       }
-      (async () => {
-        try {
-          await this.browserApi.command(mesg);
-        } catch (err) {
-          // could fail, e.g., if there are no browser clients suddenly.
-          logger.debug(
-            "WARNING: problem sending command to browser clients",
-            err,
-          );
-        }
-      })();
-    }
+    });
+
+    await this.messageSpool.start();
   };
 }
 

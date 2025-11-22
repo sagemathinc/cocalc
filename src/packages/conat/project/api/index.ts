@@ -1,21 +1,34 @@
 import { type System, system } from "./system";
 import { type Editor, editor } from "./editor";
+import { type Jupyter, jupyter } from "./jupyter";
 import { type Sync, sync } from "./sync";
+import { type Apps, apps } from "./apps";
 import { handleErrorMessage } from "@cocalc/conat/util";
+export { projectApiClient } from "./project-client";
 
 export interface ProjectApi {
   system: System;
   editor: Editor;
+  jupyter: Jupyter;
   sync: Sync;
+  apps: Apps;
+  isReady: () => Promise<boolean>;
+  waitUntilReady: (opts?: { timeout?: number }) => Promise<void>;
 }
 
 const ProjectApiStructure = {
   system,
   editor,
+  jupyter,
   sync,
+  apps,
 } as const;
 
-export function initProjectApi(callProjectApi): ProjectApi {
+export function initProjectApi({
+  callProjectApi,
+  isReady,
+  waitUntilReady,
+}): ProjectApi {
   const projectApi: any = {};
   for (const group in ProjectApiStructure) {
     if (projectApi[group] == null) {
@@ -31,5 +44,7 @@ export function initProjectApi(callProjectApi): ProjectApi {
         );
     }
   }
+  projectApi.isReady = isReady;
+  projectApi.waitUntilReady = waitUntilReady;
   return projectApi as ProjectApi;
 }

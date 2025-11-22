@@ -13,11 +13,10 @@ import { Alert, Button } from "antd";
 import { Set as immutableSet } from "immutable";
 import { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
 import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
 import {

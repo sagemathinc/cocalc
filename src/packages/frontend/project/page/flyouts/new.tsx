@@ -163,13 +163,13 @@ export function NewFlyout({
     try {
       setCreating(true);
       if (isFile(fn)) {
-        await actions?.create_file({
+        await actions?.createFile({
           name: newFilename.trim(),
           ext: ext.trim(),
           current_path,
         });
       } else {
-        await actions?.create_folder({
+        await actions?.createFolder({
           name: newFilename.trim(),
           current_path,
         });

@@ -6,14 +6,14 @@
 /*
 Wrapper object around xterm.js's Terminal, which adds
 extra support for being connected to:
-  - a backend project via NATS
+  - a backend server pty via a sonat socket, which can be on a
+    project or compute server
   - react/redux
   - frame-editor (via actions)
 */
 
 import { callback, delay } from "awaiting";
 import { Map } from "immutable";
-import { debounce } from "lodash";
 import { Terminal as XTerminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -24,33 +24,36 @@ import { ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
-import {
-  close,
-  endswith,
-  filename_extension,
-  replace_all,
-} from "@cocalc/util/misc";
+import { close, filename_extension, replace_all } from "@cocalc/util/misc";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { ConnectionStatus } from "../frame-tree/types";
 import { touch, touch_project } from "../generic/client";
 import { ConnectedTerminalInterface } from "./connected-terminal-interface";
 import { open_init_file } from "./init-file";
 import { setTheme } from "./themes";
-import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
-import { ConatTerminal } from "./conat-terminal";
 import { termPath } from "@cocalc/util/terminal/names";
+import { dirname } from "path";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { type TerminalClient } from "@cocalc/conat/project/terminal";
+import { asyncDebounce, asyncThrottle } from "@cocalc/util/async-utils";
+import { path_split } from "@cocalc/util/misc";
+import { join } from "path";
+import { randomId } from "@cocalc/conat/names";
+import { lite } from "@cocalc/frontend/lite";
 
 declare const $: any;
 
-// NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
-const ENABLE_WEBGL = true;
+const SPAWN_TIMEOUT = 5000;
 
-// ephemeral = faster, less load on servers, but if project and browser all
-// close, the history is gone... which may be good and less confusing.
-const EPHEMERAL = true;
+const EXIT_MESSAGE = "\r\n[Process completed - press any key]\r\n";
+const CONNECTING_MESSAGE = `\r\n\x1b[1;37m[\x1b[0m\x1b[36m CONNECTING{TARGET}... \x1b[0m\x1b[1;37m]\x1b[0m\r\n\r\n`;
+
+const ENABLE_WEBGL = false;
+
+const MAX_AUTO_BUFFER = 32768;
 
 interface Path {
   file?: string;
@@ -58,6 +61,13 @@ interface Path {
 }
 
 type State = "ready" | "closed";
+
+type TerminalMessageKind = "user" | "auto";
+
+interface TerminalTransmit {
+  data: string;
+  kind: TerminalMessageKind;
+}
 
 export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private state: State = "ready";
@@ -71,6 +81,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private id: string;
   readonly rendererType: "dom" | "canvas";
   private terminal: XTerminal;
+  private pty: TerminalClient | null = null;
   private is_paused: boolean = false;
   private pauseKeyCount: number = 0;
   private keyhandler_initialized: boolean = false;
@@ -87,15 +98,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     do something, then exit.
     */
 
-  private ignore_terminal_data: boolean = true;
   private render_buffer: string = "";
-  private conn_write_buffer: string[] = [];
   private history: string = "";
-  private last_geom: { rows: number; cols: number } | undefined;
-  private resize_after_no_ignore: { rows: number; cols: number } | undefined;
-  private last_active: number = 0;
-  private conn?: ConatTerminal;
-  private touch_interval;
+  private autoResponseBuffer: string = "";
+  private historyReplayDepth: number = 0;
+  private historyBufferIncludesReplay: boolean = false;
 
   public is_visible: boolean = false;
   public element: HTMLElement;
@@ -109,8 +116,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   private render_done: Function[] = [];
   private ignoreData: number = 0;
+  private writeBuffer: TerminalTransmit[] = [];
 
-  private firstOpen = true;
+  private title?: string;
 
   constructor(
     actions: Actions<T>,
@@ -173,26 +181,72 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         // potentially not cleaned up properly.  I read the code of webglAddon.dispose
         // and it doesn't do anything if the addon wasn't initialized.
         webglAddon.dispose = () => {};
-        console.log(`WebGL Terminal not available (using fallback). -- ${err}`);
+        console.warn(
+          `WebGL Terminal not available (using fallback). -- ${err}`,
+        );
       }
     }
 
     this.element = this.terminal.element;
     this.update_settings();
     this.init_title();
-    this.init_terminal_data();
     this.init_settings();
-    this.init_touch();
     this.set_connection_status("disconnected");
-    // this.reconnectIfNotResponding();
 
-    // The docs https://xtermjs.org/docs/api/terminal/classes/terminal/#resize say
-    // "It’s best practice to debounce calls to resize, this will help ensure that
-    //  the pty can respond to the resize event before another one occurs."
-    // We do NOT debounce, because it strangely breaks everything,
-    // as you can see by just resizing the window.
-    // this.terminal_resize = debounce(this.terminal_resize, 2000);
+    const handleData = (data: string, kind: TerminalMessageKind) => {
+      this.sendMessage({ data, kind }, { touch: kind === "user" });
+    };
+
+    this.terminal.onKey(({ key }) => {
+      if (!this.ignoreData) return;
+      // onKey events even while ignoreData is set absolutely
+      // need to be handled! Otherwise, characters while typing (esp.
+      // over a slower connection) will randomly get dropped when
+      // rendering data!   This whole notion of ignoreData is needed
+      // mainly because our terminals are **collaborative**.
+      // A good way to see why we need this onKey handler is
+      // to type "123456789" repeatedly by running your fingers
+      // accross the number row of the keyboard.  Often 4 gets
+      // dropped while the output of 123 get processed.
+      handleData(key, "user");
+    });
+
+    this.terminal.onData((data) => {
+      if (!this.ignoreData) {
+        this.autoResponseBuffer = "";
+        handleData(data, "user");
+        return;
+      }
+      this.handleAutoGeneratedData(data);
+    });
+
+    this.initKeyHandler();
+
+    this.connect();
   }
+
+  // If the pty is configured and the socket is connected, but
+  // for some reason the actual process is dead, then connect
+  // again, which will start the process or reconnect to it.
+  private reconnectIfNotRunning = asyncThrottle(
+    async () => {
+      if (this.lastReceivedData >= Date.now() - 10000) {
+        // we received data from the pty in the last 10 seconds,
+        // so consider it as obviously running fine.
+        return;
+      }
+      if (this.pty?.socket.state != "ready") {
+        // not supposed to be running
+        return;
+      }
+      // make a call to the backend to check on the pty itself
+      if ((await this.pty.state()) != "running") {
+        this.connect();
+      }
+    },
+    5000,
+    { leading: false, trailing: true },
+  );
 
   isClosed = () => (this.state ?? "closed") === "closed";
 
@@ -226,30 +280,58 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
   };
 
+  private sendMessage = (
+    message: TerminalTransmit,
+    { touch = false }: { touch?: boolean } = {},
+  ): void => {
+    if (!message?.data) {
+      return;
+    }
+    if (this.isClosed()) {
+      return;
+    }
+    if (touch) {
+      touch_project(this.project_id, this.compute_server_id);
+    }
+    if (this.ptyExited) {
+      this.ptyExited = false;
+      this.connect();
+      return;
+    }
+    if (!this.pty || this.pty.socket.state != "ready") {
+      this.writeBuffer.push(message);
+      return;
+    }
+    this.pty.socket.write(message);
+    this.reconnectIfNotRunning();
+  };
+
+  private flushWriteBuffer = (): void => {
+    if (this.writeBuffer.length === 0) {
+      return;
+    }
+    if (!this.pty || this.pty.socket.state != "ready") {
+      return;
+    }
+    for (const message of this.writeBuffer) {
+      this.pty.socket.write(message);
+    }
+    this.writeBuffer.length = 0;
+  };
+
   close = (): void => {
     if (this.isClosed()) {
       return;
     }
+    this.pty?.close();
+    this.pty = null;
+    this.compute_server_id = null;
     this.set_connection_status("disconnected");
     this.state = "closed";
-    clearInterval(this.touch_interval);
     this.account_store.removeListener("change", this.update_settings);
     this.terminal.dispose();
-    if (this.conn != null) {
-      this.disconnect();
-    }
     close(this);
     this.state = "closed";
-  };
-
-  private disconnect = (): void => {
-    if (this.conn === undefined) {
-      return;
-    }
-    this.conn.removeAllListeners();
-    this.conn.end();
-    delete this.conn;
-    this.set_connection_status("disconnected");
   };
 
   private update_settings = (): void => {
@@ -281,122 +363,296 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.terminal_settings = settings;
   };
 
-  connect = async () => {
+  private ptyExited = false;
+  private compute_server_id: number | null = null;
+
+  connect = reuseInFlight(async () => {
+    if (this.isClosed() || this.ptyExited) return;
+
     try {
-      if (this.conn != null) {
-        this.conn.removeListener("closed", this.connect); // avoid infinite loop
-        this.conn.close();
-        delete this.conn;
+      this.compute_server_id = null;
+      if (this.pty != null) {
+        this.pty.close();
+        this.pty = null;
       }
-      this.ignore_terminal_data = true;
-      this.set_connection_status("connecting");
+
+      this.terminal.reset();
+      this.compute_server_id = await this.getComputeServerId();
+      await this.handleDataFromProject(
+        CONNECTING_MESSAGE.replace(
+          "{TARGET}",
+          lite
+            ? ""
+            : this.compute_server_id
+              ? " TO COMPUTE SERVER"
+              : " TO HOME BASE",
+        ),
+      );
+
+      const pty = webapp_client.conat_client.terminalClient({
+        project_id: this.project_id,
+        compute_server_id: this.compute_server_id!,
+        getSize: () => {
+          if (this.is_visible) {
+            return this.fitAddon.proposeDimensions();
+          }
+        },
+      });
+      this.pty = pty;
+      pty.socket.on("data", (data) => {
+        void this.handleDataFromProject(data);
+      });
+
+      pty.on("exit", async () => {
+        if (this.isClosed()) return;
+        await this.handleDataFromProject(EXIT_MESSAGE);
+        this.ptyExited = true;
+        pty?.close();
+      });
+
+      pty.on("user-command", (payload) => {
+        switch (payload.event) {
+          case "open":
+            this.openPaths(payload.paths);
+            return;
+          case "close":
+            this.closePaths(payload.paths);
+            return;
+          default:
+            console.warn("unknown user-command:", payload);
+        }
+      });
+
+      pty.on("kick", (id) => {
+        if (this.kickId != id) {
+          // not us
+          this.close_request();
+        }
+      });
+
+      pty.on("update-cwd", this.setCwd);
+
+      pty.socket.on("disconnected", async () => {
+        setTimeout(this.connect, 1);
+      });
+
+      pty.socket.on("closed", async () => {
+        setTimeout(this.connect, 1);
+      });
+
+      pty.on("resize", ({ rows, cols }) => {
+        this.terminal.resize(cols, rows);
+      });
+
+      pty.on("leave", () => {
+        // a user left the session so resize terminal
+        this.measureSize();
+      });
+
+      const HISTFILE = historyFile(this.path);
+      const env0 = {
+        ...this.actions.get_term_env(),
+        // setting COCALC_CONTROL_DIR enables the open and close
+        // commands. The backend sets this variable to the actual
+        // spool directory.
+        COCALC_CONTROL_DIR: "set-by-backend",
+        COCALC_TERMINAL_FILENAME: this.termPath,
+        PROMPT_COMMAND: "history -a",
+        ...(HISTFILE ? { HISTFILE } : undefined),
+      };
       try {
-        await this.configureComputeServerId();
-      } catch {
-        // expected to throw sometimes, e.g., if the project tab closes
-        // right when the terminal is being created, in which case this.state
-        // will be closed and we exit.
+        this.ignoreData++;
+        const options = {
+          id: this.termPath,
+          cwd: this.workingDir ?? dirname(this.path),
+          env0,
+          timeout: SPAWN_TIMEOUT,
+        };
+        const history = await pty.spawn(
+          this.command ?? "bash",
+          this.args,
+          options,
+        );
+        this.set_connection_status("connected");
+        this.terminal.reset();
+        if (history) {
+          await this.handleDataFromProject(history, { fromHistory: true });
+        }
+        this.flushWriteBuffer();
+        pty.once("ready", () => {
+          this.flushWriteBuffer();
+        });
+        this.measureSize();
+      } finally {
+        this.ignoreData--;
       }
-      if (this.state == "closed") {
+      if (this.isClosed()) {
         return;
       }
-      const conn = new ConatTerminal({
-        termPath: this.termPath,
-        path: this.path,
-        project_id: this.project_id,
-        terminalResize: this.terminal_resize,
-        openPaths: this.open_paths,
-        closePaths: this.close_paths,
-        measureSize: this.measureSize,
-        options: {
-          command: this.command,
-          args: this.args,
-          cwd: this.workingDir,
-          env: this.actions.get_term_env(),
-        },
-        ephemeral: EPHEMERAL,
-      });
-      this.conn = conn as any;
-      conn.once("closed", this.connect);
-      conn.on("kick", this.close_request);
-      conn.on("data", this.handleDataFromProject);
-      conn.once("initialize", (data) => {
-        this.terminal.clear();
-        this.render(data);
-      });
-      conn.once("ready", () => {
-        delete this.last_geom;
-        this.ignore_terminal_data = false;
-        this.set_connection_status("connected");
-        this.terminal.refresh(0, this.terminal.rows - 1);
-        this.init_keyhandler();
-        this.measureSize();
-        if (this.conn != null && this.conn_write_buffer.length > 0) {
-          const buf = this.conn_write_buffer.join("");
-          if (buf) {
-            this.conn.write(buf);
-            this.conn_write_buffer.length = 0;
-          }
-        }
-        if (this.firstOpen) {
-          this.firstOpen = false;
-          this.project_actions.log_opened_time(this.path);
-        }
-      });
-      if (endswith(this.path, ".term")) {
+      if (this.path?.endsWith(".term")) {
         touchPath(this.project_id, this.path); // no need to await
       }
-      await conn.init();
     } catch (err) {
-      this.set_connection_status("disconnected");
-      throw err;
+      // This will happen regularly, of course, when the project
+      // is not running or offline.
+      //      console.log("error spawning pty", err);
+      setTimeout(this.connect, 2000);
+    } finally {
+      if (this.isClosed()) {
+        return;
+      }
+      // NOTE: a tricky situation is that a user will start connect with one
+      // compute server id, it doesn't work, so they change it - thus they
+      // change the compute server id midway through connecting. So we always
+      // call this update after connecting, in case something changed.
+      if (this.compute_server_id != (await this.getComputeServerId())) {
+        // it changed during connect, so connect again with the right one.
+        setTimeout(this.connect, 1000);
+        this.connect();
+      }
     }
-  };
+  });
 
   reload = async (): Promise<void> => {
     await this.connect();
   };
 
-  conn_write = (data): void => {
-    if (this.state == "closed") {
-      return; // no-op  -- see #4918
+  conn_write = (data: string): void => {
+    if (typeof data != "string") {
+      throw Error("conn_write - only strings");
     }
-    if (this.conn === undefined) {
-      if (typeof data == "string") {
-        this.conn_write_buffer.push(data);
-      }
-      return;
-    }
-    this.conn.write(data);
-    //this.lastSend = Date.now();
+    if (this.isClosed()) return;
+    this.sendMessage({ data, kind: "user" }, { touch: true });
   };
 
-  // this should never ever be necessary.  It's a just-in-case things
-  // were myseriously totally broken measure...
-  //   private reconnectIfNotResponding = async () => {
-  //     while (this.state != "closed") {
-  //       if (this.lastSend - this.lastReceive >= MAX_DELAY) {
-  //         await this.connect();
-  //       }
-  //       await delay(MAX_DELAY / 2);
-  //     }
-  //   };
-
-  private handleDataFromProject = (data: any): void => {
+  private lastReceivedData: number = 0;
+  private handleDataFromProject = async (
+    data: any,
+    opts?: { fromHistory?: boolean },
+  ): Promise<void> => {
+    this.lastReceivedData = Date.now();
     this.assert_not_closed();
     if (!data || typeof data != "string") {
       return;
     }
     this.activity();
-    if (this.is_paused && !this.ignore_terminal_data) {
+    const fromHistory = opts?.fromHistory === true;
+    if (this.is_paused) {
+      if (fromHistory) {
+        this.historyBufferIncludesReplay = true;
+      }
       this.render_buffer += data;
-    } else {
-      this.render(data);
+      return;
+    }
+    if (fromHistory) {
+      this.historyReplayDepth++;
+    }
+    try {
+      await this.render(data);
+    } finally {
+      if (fromHistory && this.historyReplayDepth > 0) {
+        this.historyReplayDepth--;
+      }
     }
   };
 
+  private handleAutoGeneratedData = (data: string): void => {
+    if (!data) {
+      return;
+    }
+    if (this.historyReplayDepth > 0) {
+      this.autoResponseBuffer = "";
+      return;
+    }
+    if (
+      !data.includes("\x1b") &&
+      !data.includes("\x9b") &&
+      !this.autoResponseBuffer.includes("\x1b") &&
+      !this.autoResponseBuffer.includes("\x9b")
+    ) {
+      return;
+    }
+    this.autoResponseBuffer += data;
+    if (this.autoResponseBuffer.length > MAX_AUTO_BUFFER) {
+      this.autoResponseBuffer = this.autoResponseBuffer.slice(-MAX_AUTO_BUFFER);
+    }
+    const responses = this.extractAutoResponses();
+    for (const response of responses) {
+      this.sendMessage({ data: response, kind: "auto" });
+    }
+  };
+
+  private extractAutoResponses = (): string[] => {
+    const responses: string[] = [];
+    let buffer = this.autoResponseBuffer;
+    while (buffer.length > 0) {
+      const escIndex = buffer.indexOf("\x1b");
+      if (escIndex === -1) {
+        buffer = "";
+        break;
+      }
+      if (escIndex > 0) {
+        buffer = buffer.slice(escIndex);
+      }
+      if (buffer.length < 2) {
+        break;
+      }
+      const prefix = buffer[1];
+      let consumed = 0;
+      if (prefix === "[") {
+        const match = buffer.match(/^\x1b\[[0-9:;<=>?]*[ -/]*[@-~]/);
+        if (match) {
+          consumed = match[0].length;
+          responses.push(match[0]);
+        }
+      } else if (prefix === "]") {
+        const belIndex = buffer.indexOf("\x07", 2);
+        const stIndex = buffer.indexOf("\x1b\\", 2);
+        let endIndex = -1;
+        if (belIndex !== -1 && (stIndex === -1 || belIndex < stIndex)) {
+          endIndex = belIndex + 1;
+        } else if (stIndex !== -1) {
+          endIndex = stIndex + 2;
+        }
+        if (endIndex !== -1) {
+          consumed = endIndex;
+          responses.push(buffer.slice(0, endIndex));
+        }
+      } else if (prefix === "P" || prefix === "^" || prefix === "_") {
+        const stIndex = buffer.indexOf("\x1b\\", 2);
+        if (stIndex !== -1) {
+          consumed = stIndex + 2;
+          responses.push(buffer.slice(0, consumed));
+        }
+      } else {
+        const charCode = prefix.charCodeAt(0);
+        if (charCode >= 0x20 && charCode <= 0x2f) {
+          // ESC followed by intermediate byte; wait for more data.
+          if (buffer.length < 3) {
+            consumed = 0;
+          } else {
+            // attempt to match general escape with intermediate + final
+            const match = buffer.match(/^\x1b[ -/]+[0-~]/);
+            if (match) {
+              consumed = match[0].length;
+              responses.push(match[0]);
+            }
+          }
+        } else if (charCode >= 0x40 && charCode <= 0x7e) {
+          consumed = 2;
+          responses.push(buffer.slice(0, consumed));
+        }
+      }
+      if (consumed === 0) {
+        break;
+      }
+      buffer = buffer.slice(consumed);
+    }
+    this.autoResponseBuffer = buffer;
+    return responses;
+  };
+
   private activity = () => {
-    //this.lastReceive = Date.now();
     this.project_actions.flag_file_activity(this.path);
   };
 
@@ -441,9 +697,11 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   init_title = (): void => {
     this.terminal.onTitleChange((title) => {
-      if (title != null) {
+      this.title = title;
+      if (title) {
         this.actions.set_title(this.id, title);
-        this.update_cwd();
+      } else {
+        this.updateCwd(); // just in case reverting back to cwd
       }
     });
   };
@@ -454,21 +712,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
   };
 
-  touch = async () => {
-    if (this.isClosed()) return;
-    if (Date.now() - this.last_active < 70000) {
-      if (this.project_actions.isTabClosed()) {
-        return;
-      }
-      touch_project(this.project_id, await this.getComputeServerId());
-    }
-  };
-
-  init_touch = (): void => {
-    this.touch_interval = setInterval(this.touch, 60000);
-  };
-
-  init_keyhandler = (): void => {
+  initKeyHandler = (): void => {
     if (this.isClosed()) {
       return;
     }
@@ -488,10 +732,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       //         shiftKey: event.shiftKey,
       //         key: event.key,
       //       });
-
-      // record that terminal is being actively used.
-      this.last_active = Date.now();
-      this.ignore_terminal_data = false;
 
       if (this.is_paused) {
         this.pauseKeyCount += 1;
@@ -575,41 +815,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
   };
 
-  i;
-
-  // Stop ignoring terminal data... but ONLY once
-  // the render buffer is also empty.
-  no_ignore = async (): Promise<void> => {
-    if (this.isClosed()) {
-      return;
-    }
-    const g = (cb) => {
-      const f = async () => {
-        x.dispose();
-        if (this.resize_after_no_ignore !== undefined) {
-          this.terminal_resize(this.resize_after_no_ignore);
-          delete this.resize_after_no_ignore;
-        }
-        // cause render to actually appear now.
-        await delay(0);
-        if (this.isClosed()) {
-          return;
-        }
-        try {
-          this.terminal.refresh(0, this.terminal.rows - 1);
-        } catch (err) {
-          // See https://github.com/sagemathinc/cocalc/issues/3572
-          console.warn(`TERMINAL WARNING -- ${err}`);
-        }
-        // Finally start listening to user input.
-        this.init_keyhandler();
-        cb();
-      };
-      const x = this.terminal.onRender(f);
-    };
-    await callback(g);
-  };
-
   close_request = (): void => {
     this.actions.set_error("Terminal closed by another session.");
     // If there is only one frame, we close the
@@ -617,9 +822,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     // this frame.
     if (
       this.actions._tree_is_single_leaf() &&
-      endswith(this.actions.path, ".term")
+      this.actions.path?.endsWith(".term")
     ) {
-      this._close_path(this.path);
+      this.closePath(this.path);
     } else {
       this.actions.close_frame(this.id);
     }
@@ -646,7 +851,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     return false;
   };
 
-  private open_paths = async (paths: Path[]) => {
+  private openPaths = async (paths: Path[]) => {
     if (!this.is_visible) {
       return;
     }
@@ -656,7 +861,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     let i = 0;
     let foreground = false;
-    const compute_server_id = await this.getComputeServerId();
+    const compute_server_id = this.compute_server_id ?? 0;
     for (const x of paths) {
       i += 1;
       if (i === paths.length) {
@@ -682,18 +887,18 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
   };
 
-  _close_path = (path: string): void => {
+  private closePath = (path: string): void => {
     const project_actions = this.actions._get_project_actions();
     project_actions.close_tab(path);
   };
 
-  close_paths = (paths: Path[]): void => {
+  private closePaths = (paths: Path[]): void => {
     if (!this.is_visible) {
       return;
     }
     for (const x of paths) {
       if (x.file != null) {
-        this._close_path(x.file);
+        this.closePath(x.file);
       }
     }
   };
@@ -701,14 +906,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   resize = (rows: number, cols: number): void => {
     if (this.terminal.cols === cols && this.terminal.rows === rows) {
       // no need to resize
-      return;
-    }
-    if (this.ignore_terminal_data) {
-      // CRITICAL -- we must wait until after the
-      // next call to no_ignore before doing
-      // the resize; otherwise, the resize causes
-      // no_ignore to trigger prematurely (#3277).
-      this.resize_after_no_ignore = { rows, cols };
       return;
     }
     this.terminal_resize({ rows, cols });
@@ -721,57 +918,70 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   unpause = (): void => {
     this.is_paused = false;
-    this.render(this.render_buffer);
+    const data = this.render_buffer;
+    const replayHistory = this.historyBufferIncludesReplay;
     this.render_buffer = "";
+    this.historyBufferIncludesReplay = false;
+    if (!data) {
+      return;
+    }
+    if (replayHistory) {
+      this.historyReplayDepth++;
+    }
+    void (async () => {
+      try {
+        await this.render(data);
+      } finally {
+        if (replayHistory && this.historyReplayDepth > 0) {
+          this.historyReplayDepth--;
+        }
+      }
+    })();
   };
 
-  update_cwd = debounce(
+  private updateCwd = asyncDebounce(
     async () => {
-      if (this.isClosed()) return;
+      if (this.isClosed() || this.pty == null) return;
       let cwd;
       try {
-        cwd = await this.conn?.api.cwd();
+        cwd = await this.pty.cwd();
       } catch {
         return;
       }
       if (this.isClosed()) return;
-      if (cwd != null) {
-        this.actions.set_terminal_cwd(this.id, cwd);
-      }
+      this.setCwd(cwd);
     },
-    1000,
+    3000,
     { leading: true, trailing: true },
   );
 
+  private setCwd = (cwd?: string) => {
+    if (this.title) {
+      this.actions.set_title(this.id, this.title);
+    } else if (cwd?.startsWith("/")) {
+      this.actions.set_title(this.id, cwd);
+    } else {
+      this.actions.set_title(this.id, join("~", cwd ?? ""));
+    }
+  };
+
+  private kickId: string = "";
   kick_other_users_out(): void {
-    // @ts-ignore
-    this.conn?.kick();
-    this.measureSize({ kick: true });
+    this.kickId = randomId();
+    this.pty?.broadcast("kick", this.kickId);
   }
 
   kill = async () => {
+    this.pty?.destroy();
     this.terminal?.clear();
-    this.conn_write({ cmd: "kill" });
+    await delay(1);
     await this.connect();
   };
 
   set_command(command: string | undefined, args: string[] | undefined): void {
     this.command = command;
     this.args = args;
-    this.conn_write({ cmd: "set_command", command, args });
-  }
-
-  init_terminal_data(): void {
-    this.terminal.onKey(({ key }) => {
-      if (this.ignoreData) {
-        this.conn_write(key);
-      }
-    });
-    this.terminal.onData((data) => {
-      if (!this.ignoreData) {
-        this.conn_write(data);
-      }
-    });
+    // TODO: this.conn_write({ cmd: "set_command", command, args });
   }
 
   init_settings(): void {
@@ -811,32 +1021,63 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   set_font_size(font_size: number): void {
     this.terminal.options.fontSize = font_size;
+    this.measureSize();
   }
 
   getOption(option: string): any {
     return this.terminal.options[option];
   }
 
-  measureSize = ({ kick }: { kick?: boolean } = {}): void => {
-    if (this.ignore_terminal_data) {
-      // during initial load
+  measureSize = async (): Promise<void> => {
+    if (this.isClosed() || !this.is_visible) return;
+    let geom;
+    try {
+      geom = this.fitAddon.proposeDimensions();
+    } catch {
       return;
     }
-    const geom = this.fitAddon?.proposeDimensions();
-    if (geom == null) {
+    if (geom == null || this.pty == null || this.pty.socket.state == "closed") {
       return;
     }
     const { rows, cols } = geom;
-    if (
-      !kick &&
-      this.last_geom?.rows === rows &&
-      this.last_geom?.cols === cols
-    ) {
+    if (isNaN(rows) || isNaN(cols)) {
+      // e.g., when terminal is hidden
       return;
     }
-    this.last_geom = { rows, cols };
-    this.conn_write({ cmd: "size", rows, cols, kick });
+    try {
+      await this.pty.resize(geom);
+    } catch (err) {
+      //console.log("WARNING: unable to resize pty", err);
+      return;
+    }
+    if (this.isClosed()) return;
+    this.terminal.resize(cols, rows);
+    try {
+      await this.resizeToFitAllClients();
+    } catch (err) {
+      console.log("WARNING: unable to resize clients", err);
+      return;
+    }
   };
+
+  resizeToFitAllClients = asyncThrottle(
+    async () => {
+      const sizes = await this.pty?.sizes(2000);
+      if (sizes == null || sizes.length < 2) {
+        return;
+      }
+      let { rows, cols } = sizes[0];
+      for (const size of sizes.slice(1)) {
+        rows = Math.min(size.rows, rows);
+        cols = Math.min(size.cols, cols);
+      }
+      if (sizes[0].rows != rows || sizes[0].cols != cols) {
+        await this.pty?.resize({ rows, cols });
+      }
+    },
+    3000,
+    { leading: true, trailing: true },
+  );
 
   copy = (): void => {
     const sel: string = this.terminal.getSelection();
@@ -861,7 +1102,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.terminal.scrollToBottom();
   };
 
-  getComputeServerId = async (): Promise<number> => {
+  // definitely gets the correct assigned compute server, even if it has to wait:
+  private getComputeServerId = async (): Promise<number> => {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     return (
@@ -869,39 +1111,13 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     );
   };
 
-  // This is called when connecting to in some cases give the user the option
-  // to run the terminal on a different compute server if the compute server
-  // is not set for this terminal frame and:
-  //   - the ambient path has the compute server set to a positive number
-  //   - or the current default compute server (what's selected in the file explorer) is positive.
-  private configureComputeServerId = async () => {
-    const computeServerAssociations =
-      webapp_client.project_client.computeServers(this.project_id);
-    const cur = await computeServerAssociations.getServerIdForPath(
-      this.termPath,
-    );
-    if (cur != null) {
-      // nothing to do -- it's already explicitly set.
-      return;
-    }
-    const id = await computeServerAssociations.getServerIdForPath(this.path);
-    if (!id) {
-      // the ambient path is on the project, so nothing to do
-      return;
-    }
+  updateComputeServerId = async () => {
     if (
-      await redux
-        .getActions("page")
-        .popconfirm(
-          modalParams({ current: 0, target: id, path: this.termPath }),
-        )
+      !this.isClosed() &&
+      (await this.getComputeServerId()) != this.compute_server_id
     ) {
-      // yes, switch it
-      computeServerAssociations.connectComputeServerToPath({
-        id,
-        path: this.termPath,
-      });
-      await computeServerAssociations.save();
+      // it changed
+      this.connect();
     }
   };
 }
@@ -918,7 +1134,7 @@ async function touchPath(project_id: string, path: string): Promise<void> {
   }
 }
 
-function handleLink(_: MouseEvent, uri: string): void {
+export function handleLink(_: MouseEvent, uri: string): void {
   if (!isCoCalcURL(uri)) {
     window.open(uri, "_blank");
     return;
@@ -929,4 +1145,15 @@ function handleLink(_: MouseEvent, uri: string): void {
   const e = $(`<div><a href='${uri}'>x</a></div>`);
   e.process_smc_links();
   e.find("a").click();
+}
+
+function historyFile(path: string): string | undefined {
+  if (path.startsWith("/")) {
+    // only set histFile for paths in the home directory i.e.,
+    // relative to HOME. Absolute paths -- we just leave it alone.
+    // E.g., the miniterminal uses /tmp/... for its path.
+    return undefined;
+  }
+  const { head, tail } = path_split(path);
+  return join("$HOME", head, tail.endsWith(".term") ? tail : ".bash_history");
 }

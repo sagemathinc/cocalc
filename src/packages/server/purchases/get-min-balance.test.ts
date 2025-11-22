@@ -1,15 +1,12 @@
 import { uuid } from "@cocalc/util/misc";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { createTestAccount } from "./test-data";
 import getMinBalance from "./get-min-balance";
+import { before, after, getPool } from "@cocalc/server/test";
 
 beforeAll(async () => {
-  await initEphemeralDatabase({});
+  await before({ noConat: true });
 }, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+afterAll(after);
 
 describe("test that getMinBalance works", () => {
   const account_id = uuid();

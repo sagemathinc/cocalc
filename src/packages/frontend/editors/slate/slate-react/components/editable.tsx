@@ -707,7 +707,6 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
                   }
                 }
               }
-              1;
             }
           },
           [readOnly, attributes.onCut],

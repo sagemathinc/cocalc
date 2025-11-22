@@ -66,22 +66,22 @@ export function sorted_cell_list(cells: Map<string, any>): List<string> {
     .toList();
 }
 
-export function ensure_positions_are_unique(cells?: Map<string, any>) {
+export function ensurePositionsAreUnique(cells?: Map<string, any>) {
   // Verify that pos's of cells are distinct.  If not
   // return map from id's to new unique positions.
   if (cells == null) {
     return;
   }
-  const v: any = {};
+  const v = new Set<number>();
   let all_unique = true;
   cells.forEach((cell) => {
     const pos = cell.get("pos");
-    if (pos == null || v[pos]) {
+    if (pos == null || v.has(pos)) {
       // dup! (or not defined)
       all_unique = false;
       return false;
     }
-    v[pos] = true;
+    v.add(pos);
   });
   if (all_unique) {
     return;

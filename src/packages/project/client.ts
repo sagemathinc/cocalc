@@ -27,7 +27,6 @@ import { join } from "node:path";
 import { FileSystemClient } from "@cocalc/sync-client/lib/client-fs";
 import { execute_code, uuidsha1 } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
-import type { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import type { ProjectClient as ProjectClientInterface } from "@cocalc/sync/editor/generic/types";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import * as synctable2 from "@cocalc/sync/table";
@@ -43,7 +42,6 @@ import * as data from "./data";
 import initJupyter from "./jupyter/init";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
-import * as sage_session from "./sage_session";
 import synctable_conat from "@cocalc/project/conat/synctable";
 import pubsub from "@cocalc/project/conat/pubsub";
 import type { ConatSyncTableFunction } from "@cocalc/conat/sync/synctable";
@@ -54,7 +52,6 @@ import {
   type CreateConatServiceFunction,
 } from "@cocalc/conat/service";
 import { connectToConat } from "./conat/connection";
-import { getSyncDoc } from "@cocalc/project/conat/open-files";
 import { isDeleted } from "@cocalc/project/conat/listings";
 
 const winston = getLogger("client");
@@ -520,15 +517,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     });
   };
 
-  // WARNING: making two of the exact same sync_string or sync_db will definitely
-  // lead to corruption!
-
-  // Get the synchronized doc with the given path.  Returns undefined
-  // if currently no such sync-doc.
-  syncdoc = ({ path }: { path: string }): SyncDoc | undefined => {
-    return getSyncDoc(path);
-  };
-
   public path_access(opts: { path: string; mode: string; cb: CB }): void {
     // mode: sub-sequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
     // cb(err); err = if any access fails; err=undefined if all access is OK
@@ -564,16 +552,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   // execute a command using the shell or a subprocess -- see docs for execute_code in misc_node.
   public shell(opts: ExecuteCodeOptionsWithCallback): void {
     execute_code(opts);
-  }
-
-  // return new sage session -- the code that actually calls this is in the @cocalc/sync package
-  // in "packages/sync/editor/generic/evaluator.ts"
-  public sage_session({
-    path,
-  }: {
-    path: string; // the path to the *worksheet* file
-  }): sage_session.SageSessionType {
-    return sage_session.sage_session({ path, client: this });
   }
 
   // Save a blob to the central db blobstore.

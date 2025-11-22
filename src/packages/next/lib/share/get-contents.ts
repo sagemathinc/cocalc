@@ -3,12 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import pathToFiles from "./path-to-files";
-import { promises as fs } from "fs";
-import { join } from "path";
 import { sortBy } from "lodash";
 import { hasSpecialViewer } from "@cocalc/frontend/file-extensions";
 import { getExtension } from "./util";
+import { fsClient, fsSubject } from "@cocalc/conat/files/fs";
+import "@cocalc/backend/conat";
 
 const MB: number = 1000000;
 
@@ -70,26 +69,26 @@ export default async function getContents(
   path: string,
   unlisted?: boolean, // if true, higher size limits, since much less likely to be abused
 ): Promise<PathContents> {
-  const fsPath = pathToFiles(project_id, path);
   const obj: PathContents = {};
+  const fs = fsClient({ subject: fsSubject({ project_id }) });
 
   // use lstat instead of stat so it works on symlinks too
-  const stats = await fs.lstat(fsPath);
+  const stats = await fs.lstat(path);
   obj.isdir = stats.isDirectory();
-  obj.mtime = stats.mtime.valueOf();
+  obj.mtime = stats.mtime?.valueOf() ?? null;
   if (obj.isdir) {
     // get listing
-    const { listing, truncated } = await getDirectoryListing(fsPath);
+    const { listing, truncated } = await getDirectoryListing(path, fs);
     obj.listing = listing;
     if (truncated) {
       obj.truncated = truncated;
     }
   } else {
     // get actual file content
-    if (stats.size >= getSizeLimit(fsPath, unlisted)) {
+    if (stats.size >= getSizeLimit(path, unlisted)) {
       obj.truncated = "File too big to be displayed; download it instead.";
     } else {
-      obj.content = (await fs.readFile(fsPath)).toString();
+      obj.content = (await fs.readFile(path)).toString();
     }
     obj.size = stats.size;
   }
@@ -98,35 +97,20 @@ export default async function getContents(
 
 async function getDirectoryListing(
   path: string,
+  fs,
 ): Promise<{ listing: FileInfo[]; truncated?: string }> {
   const listing: FileInfo[] = [];
-  let truncated: string | undefined = undefined;
-  for (const name of await fs.readdir(path)) {
+  const { files, truncated: isTruncate } = await fs.getListing(path);
+  for (const name in files) {
+    const { mtime, size, isDir } = files[name];
     if (name.startsWith(".")) {
-      // We never grab hidden files.  This is a public share server after all.
+      // We never show hidden files.  This is a public share server after all.
       continue;
     }
-    const obj: FileInfo = { name };
-    // use lstat instead of stat so it works on symlinks too
-    try {
-      const stats = await fs.lstat(join(path, name));
-      if (stats.isDirectory()) {
-        obj.isdir = true;
-        // For a directory, we define "size" to be the number of items
-        // in the directory.
-        obj.size = (await fs.readdir(join(path, name))).length;
-      } else {
-        obj.size = stats.size;
-      }
-      obj.mtime = stats.mtime.valueOf();
-    } catch (err) {
-      obj.error = err;
-    }
+    const obj: FileInfo = { name, isdir: !!isDir, size, mtime };
     listing.push(obj);
-    if (listing.length >= LISTED_LIMITS.listing) {
-      truncated = `Too many files -- only showing ${LISTED_LIMITS.listing} of them.`;
-      break;
-    }
   }
+  const truncated = isTruncate ? "Not showing all files" : "";
+
   return { listing: sortBy(listing, ["name"]), truncated };
 }

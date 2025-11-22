@@ -17,7 +17,8 @@ import {
   useTypedRedux,
 } from "../app-framework";
 import { Icon, Gap } from "../components";
-const { SiteName } = require("../customize");
+import { SiteName } from "../customize";
+import { lite } from "@cocalc/frontend/lite";
 const HOUR_MS = 60 * 60 * 1000;
 
 function formatTimeDelta(ms: number | undefined): string {
@@ -60,7 +61,7 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
   const created = useTypedRedux("account", "created");
   const [editingName, setEditingName] = useState<boolean>(false);
   const actions = useActions("account");
-  if (first_name == null || last_name == null) {
+  if (first_name == null || last_name == null || lite) {
     // loading?
     return <></>;
   }

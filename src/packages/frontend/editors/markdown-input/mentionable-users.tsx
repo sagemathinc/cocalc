@@ -78,7 +78,13 @@ export function useMentionableUsers(): (
         opts,
       });
     };
-  }, [project_id, JSON.stringify(enabledLLMs), ollama, custom_openai, model]);
+  }, [
+    project_id,
+    JSON.stringify(enabledLLMs),
+    ollama,
+    custom_openai,
+    model,
+  ]);
 }
 
 interface Props {
@@ -114,8 +120,6 @@ function mentionableUsers({
     .getStore("projects")
     .getIn(["project_map", project_id, "last_active"]);
 
-  if (users == null || last_active == null) return []; // e.g., for an admin
-
   const my_account_id = redux.getStore("account").get("account_id");
 
   function getProjectUsers() {
@@ -123,7 +127,7 @@ function mentionableUsers({
       account_id: string;
       last_active: Date | undefined;
     }[] = [];
-    for (const [account_id] of users) {
+    for (const [account_id] of users ?? []) {
       project_users.push({
         account_id,
         last_active: last_active.get(account_id),

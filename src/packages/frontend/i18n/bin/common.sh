@@ -20,11 +20,11 @@ run_for_each_lang() {
     start_time=$(date +%s)
 
     if command -v parallel &>/dev/null; then
-        echo "Parallel is installed. Running $func_name in parallel."
+        echo "The 'parallel' command is installed. Running $func_name in parallel."
         export -f "$func_name"
         echo "$LANGS" | tr ' ' '\n' | parallel -j8 --delay 0.1 --will-cite "$func_name"
     else
-        echo "Parallel is not installed. Running $func_name sequentially."
+        echo "The 'parallel' command is not installed (install it with 'sudo apt-get install parallel'). Running $func_name sequentially."
         for L in $LANGS; do
             "$func_name" "$L"
         done

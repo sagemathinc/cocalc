@@ -91,8 +91,8 @@ export function message_colors(
   account_id: string,
   message: ChatMessageTyped,
 ): {
-  background: string;
-  color: string;
+  background?: string;
+  color?: string;
   message_class: string;
   lighten?: { color: string };
 } {
@@ -104,8 +104,6 @@ export function message_colors(
     };
   } else {
     return {
-      background: "#f8f8f8",
-      color: "#000",
       lighten: { color: "#888" },
       message_class: "smc-message-from-other",
     };

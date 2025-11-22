@@ -6,7 +6,6 @@
 import { List, Map, Seq, Map as immutableMap } from "immutable";
 import { debounce } from "lodash";
 import { Optional } from "utility-types";
-
 import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
@@ -46,6 +45,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
+import { processAcpLLM } from "./acp-api";
 import { handleSyncDBChange, initFromSyncDB, processSyncDBObj } from "./sync";
 import type {
   ChatMessage,
@@ -817,6 +817,46 @@ export class ChatActions extends Actions<ChatState> {
     return false;
   };
 
+  isCodexThread = (date?: Date): boolean => {
+    const model = this.isLanguageModelThread(date);
+    return model ? model.includes("codex") : false;
+  };
+
+  runCodexCompact = async (threadKey?: string): Promise<void> => {
+    if (!threadKey) return;
+    const entry = this.getThreadRootDoc(threadKey);
+    if (entry == null) return;
+    const dateField = entry.message.get("date");
+    const replyDate =
+      dateField instanceof Date
+        ? dateField
+        : typeof dateField === "string"
+          ? new Date(dateField)
+          : new Date(dateField ?? Date.now());
+    if (!(replyDate instanceof Date) || isNaN(replyDate.valueOf())) {
+      return;
+    }
+    const account_id = redux.getStore("account").get_account_id();
+    if (!account_id) return;
+    const now = new Date();
+    const message: ChatMessage = {
+      event: "chat",
+      sender_id: account_id,
+      history: [
+        {
+          author_id: account_id,
+          content: "/compact",
+          date: now.toISOString(),
+        },
+      ],
+      date: now,
+    };
+    await this.processLLM({
+      message,
+      reply_to: replyDate,
+    });
+  };
+
   private processLLM = async ({
     message,
     reply_to,
@@ -899,6 +939,29 @@ export class ChatActions extends Actions<ChatState> {
     input = stripMentions(input);
     // also important to strip details, since they tend to confuse an LLM:
     //input = stripDetails(input);
+
+    if (typeof model === "string" && model.includes("codex")) {
+      await processAcpLLM({
+        message,
+        reply_to,
+        tag,
+        model,
+        input,
+        dateLimit,
+        context: {
+          syncdb: this.syncdb,
+          path: store.get("path"),
+          chatStreams: this.chatStreams,
+          sendReply: this.sendReply,
+          saveHistory: this.saveHistory,
+          getLLMHistory: this.getLLMHistory,
+          getCodexConfig: (reply_to_date?: Date) =>
+            this.getCodexConfig(reply_to_date ?? reply_to ?? undefined),
+        },
+      });
+      return;
+    }
+
     const sender_id = (function () {
       try {
         return model2service(model);
@@ -1106,7 +1169,7 @@ export class ChatActions extends Actions<ChatState> {
    * @param dateStr - the ISO date of the message to get the thread for
    * @returns  - the messages in the thread, sorted by date
    */
-  private getMessagesInThread = (
+  getMessagesInThread = (
     dateStr: string,
   ): Seq.Indexed<ChatMessageTyped> | undefined => {
     const messages = this.store?.get("messages");
@@ -1151,6 +1214,38 @@ export class ChatActions extends Actions<ChatState> {
       history.push({ content, role, date });
     }
     return history;
+  };
+
+  getCodexConfig = (reply_to?: Date): any => {
+    if (reply_to == null || this.store == null) return;
+    const messages = this.store.get("messages");
+    if (!messages) return;
+    const rootMs =
+      getThreadRootDate({ date: reply_to.valueOf(), messages }) ||
+      reply_to.valueOf();
+    const entry = this.getThreadRootDoc(`${rootMs}`);
+    const rootMessage = entry?.message;
+    if (!rootMessage) return;
+    const cfg =
+      rootMessage.get("acp_config") ?? rootMessage.get("codex_config");
+    if (cfg && typeof (cfg as any).toJS === "function") {
+      return (cfg as any).toJS();
+    }
+    return cfg;
+  };
+
+  setCodexConfig = (threadKey: string, config: any): void => {
+    if (this.syncdb == null) return;
+    const dateNum = parseInt(threadKey, 10);
+    if (!dateNum || Number.isNaN(dateNum)) {
+      throw Error(`setCodexConfig: invalid threadKey ${threadKey}`);
+    }
+    this.syncdb.set({
+      event: "chat",
+      date: new Date(dateNum),
+      acp_config: config,
+    });
+    this.syncdb.commit();
   };
 
   languageModelStopGenerating = (date: Date) => {

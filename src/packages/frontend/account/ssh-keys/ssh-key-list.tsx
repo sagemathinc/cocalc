@@ -13,12 +13,13 @@ import {
   HelpIcon,
   Icon,
   SettingBox,
-  TimeAgo,
+  //TimeAgo,
 } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { cmp } from "@cocalc/util/misc";
 import SSHKeyAdder from "./ssh-key-adder";
+import { CopyToClipBoard } from "@cocalc/frontend/components";
 
 interface SSHKeyListProps {
   ssh_keys?: Map<string, any>;
@@ -75,7 +76,7 @@ export default function SSHKeyList({
   function render_header() {
     return (
       <Flex style={{ width: "100%" }}>
-        {project_id ? "Project Specific " : "Global "}
+        {project_id ? "Project " : ""}
         {intl.formatMessage(labels.ssh_keys)} <Gap />
         {help && <HelpIcon title="Using SSH Keys">{help}</HelpIcon>}
         <div style={{ flex: 1 }} />
@@ -165,18 +166,18 @@ interface OneSSHKeyProps {
 function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
   const isFlyout = mode === "flyout";
 
-  function render_last_use(): React.JSX.Element {
-    const d = ssh_key.get("last_use_date");
-    if (d) {
-      return (
-        <span style={{ color: "#1e7e34" }}>
-          Last used <TimeAgo date={new Date(d)} />
-        </span>
-      );
-    } else {
-      return <span style={{ color: "#333" }}>Never used</span>;
-    }
-  }
+  //   function render_last_use(): React.JSX.Element {
+  //     const d = ssh_key.get("last_use_date");
+  //     if (d) {
+  //       return (
+  //         <span style={{ color: "#1e7e34" }}>
+  //           Last used <TimeAgo date={new Date(d)} />
+  //         </span>
+  //       );
+  //     } else {
+  //       return <span style={{ color: "#333" }}>Never used</span>;
+  //     }
+  //   }
 
   function delete_key(): void {
     const fingerprint = ssh_key.get("fingerprint");
@@ -233,8 +234,14 @@ function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
           {ssh_key.get("fingerprint")}
         </Typography.Text>
         <br />
+        <CopyToClipBoard
+          size="small"
+          inputWidth="400px"
+          value={ssh_key.get("value")}
+          style={{ width: "100%", margin: "5px 0" }}
+        />
         Added on {new Date(ssh_key.get("creation_date")).toLocaleDateString()}
-        <div> {render_last_use()} (NOTE: not all usage is tracked.)</div>
+        {/*<div> {render_last_use()} (NOTE: not all usage is tracked.)</div>*/}
       </div>
     </div>
   );

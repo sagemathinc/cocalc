@@ -4,13 +4,19 @@
     "types": ["node", "jest"],
     "lib": ["ESNext"],
     "rootDir": "./",
-    "outDir": "dist"
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@langchain/core/*": ["../ai/node_modules/@langchain/core/dist/*"]
+    }
   },
   "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../backend" },
-    { "path": "../database" },
     { "path": "../conat" },
+    { "path": "../database" },
+    { "path": "../file-server" },
+    { "path": "../project-runner" },
     { "path": "../util" }
   ]
 }

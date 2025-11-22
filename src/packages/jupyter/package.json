@@ -24,7 +24,7 @@
     "build": "../node_modules/.bin/tsc --build",
     "clean": "rm -rf node_modules dist",
     "test": "pnpm exec jest --forceExit --maxWorkers=1",
-    "depcheck": "pnpx depcheck"
+    "depcheck": "pnpx depcheck --ignores events"
   },
   "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
@@ -38,6 +38,7 @@
     "@cocalc/util": "workspace:*",
     "awaiting": "^3.0.0",
     "debug": "^4.4.0",
+    "events": "3.3.0",
     "expect": "^26.6.2",
     "he": "^1.2.0",
     "immutable": "^4.3.0",
@@ -54,8 +55,7 @@
     "zeromq": "^6.4.2"
   },
   "devDependencies": {
-    "@types/json-stable-stringify": "^1.0.32",
-    "@types/node": "^18.16.14",
+    "@types/node": "^22.10.10",
     "@types/node-cleanup": "^2.1.2"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/jupyter",
