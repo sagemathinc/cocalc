@@ -1,4 +1,4 @@
-import { DiffMatchPatch, type PatchObject } from "@cocalc/diff-match-patch";
+import { DiffMatchPatch, PatchObject } from "@cocalc/diff-match-patch";
 export { DiffMatchPatch };
 
 export type CompressedPatch = [
@@ -27,13 +27,15 @@ export function compressPatch(patch: PatchObject[]): CompressedPatch {
 }
 
 export function decompressPatch(patch: CompressedPatch): PatchObject[] {
-  return patch.map((p) => ({
-    diffs: p[0],
-    start1: p[1],
-    start2: p[2],
-    length1: p[3],
-    length2: p[4],
-  }));
+  return patch.map((p) => {
+    const obj = new PatchObject();
+    obj.diffs = p[0].map(([op, text]) => [op, text]);
+    obj.start1 = p[1];
+    obj.start2 = p[2];
+    obj.length1 = p[3];
+    obj.length2 = p[4];
+    return obj;
+  });
 }
 
 // return *a* compressed patch that transforms string s0 into string s1.
