@@ -9,10 +9,21 @@ import {
   type Client,
 } from "@agentclientprotocol/sdk";
 import type {
+  CreateTerminalRequest,
+  CreateTerminalResponse,
+  KillTerminalCommandRequest,
+  KillTerminalResponse,
   PromptRequest,
+  ReleaseTerminalRequest,
+  ReleaseTerminalResponse,
   RequestPermissionRequest,
   RequestPermissionResponse,
   SessionNotification,
+  TerminalExitStatus,
+  TerminalOutputRequest,
+  TerminalOutputResponse,
+  WaitForTerminalExitRequest,
+  WaitForTerminalExitResponse,
 } from "@agentclientprotocol/sdk/dist/schema";
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
 
@@ -116,10 +127,33 @@ interface CodexAcpAgentOptions {
   cwd?: string;
 }
 
-class CodexClientHandler implements Client {
+interface TerminalClient extends Client {
+  createTerminal(args: CreateTerminalRequest): Promise<CreateTerminalResponse>;
+  terminalOutput(args: TerminalOutputRequest): Promise<TerminalOutputResponse>;
+  waitForTerminalExit(
+    args: WaitForTerminalExitRequest,
+  ): Promise<WaitForTerminalExitResponse>;
+  killTerminal(args: KillTerminalCommandRequest): Promise<KillTerminalResponse>;
+  releaseTerminal(
+    args: ReleaseTerminalRequest,
+  ): Promise<ReleaseTerminalResponse>;
+}
+
+class CodexClientHandler implements TerminalClient {
   private stream?: AcpStreamHandler;
   private lastResponse = "";
   private latestUsage?: AcpStreamUsage;
+  private terminals = new Map<
+    string,
+    {
+      child: ChildProcess;
+      output: string;
+      truncated: boolean;
+      exitStatus?: TerminalExitStatus;
+      waiters: Array<(status: TerminalExitStatus) => void>;
+      limit?: number;
+    }
+  >();
 
   setStream(stream?: AcpStreamHandler) {
     this.stream = stream;
@@ -190,6 +224,129 @@ class CodexClientHandler implements Client {
     }
   }
 
+  async createTerminal({
+    sessionId: _sessionId,
+    command,
+    args,
+    env,
+    cwd,
+    outputByteLimit,
+  }: CreateTerminalRequest): Promise<CreateTerminalResponse> {
+    const terminalId = randomUUID();
+    const envVars: NodeJS.ProcessEnv = {
+      ...process.env,
+    };
+    for (const variable of env ?? []) {
+      envVars[variable.name] = variable.value;
+    }
+    const child = spawn(command, args ?? [], {
+      cwd: cwd ?? process.cwd(),
+      env: envVars,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    const state = {
+      child,
+      output: "",
+      truncated: false,
+      exitStatus: undefined as TerminalExitStatus | undefined,
+      waiters: [] as Array<(status: TerminalExitStatus) => void>,
+      limit: outputByteLimit != null ? Number(outputByteLimit) : undefined,
+    };
+
+    const handleChunk = (chunk: Buffer) => {
+      const text = chunk.toString("utf8");
+      state.output += text;
+      if (state.limit != null && state.output.length > state.limit) {
+        state.output = state.output.slice(state.output.length - state.limit);
+        state.truncated = true;
+      }
+    };
+
+    child.stdout?.on("data", handleChunk);
+    child.stderr?.on("data", handleChunk);
+    child.once("exit", (code, signal) => {
+      state.exitStatus = {
+        exitCode: code == null ? undefined : Number(code),
+        signal: signal ?? undefined,
+      };
+      for (const waiter of state.waiters) {
+        waiter(state.exitStatus);
+      }
+      state.waiters.length = 0;
+    });
+
+    child.once("error", (err) => {
+      state.exitStatus = {
+        exitCode: undefined,
+        signal: err.message,
+      };
+      for (const waiter of state.waiters) {
+        waiter(state.exitStatus);
+      }
+      state.waiters.length = 0;
+    });
+
+    this.terminals.set(terminalId, state);
+    return {
+      terminalId,
+    };
+  }
+
+  async terminalOutput({
+    terminalId,
+  }: TerminalOutputRequest): Promise<TerminalOutputResponse> {
+    const state = this.terminals.get(terminalId);
+    if (state == null) {
+      throw new Error(`Unknown terminal ${terminalId}`);
+    }
+    return {
+      output: state.output,
+      truncated: state.truncated,
+      exitStatus: state.exitStatus,
+    };
+  }
+
+  async waitForTerminalExit({
+    terminalId,
+  }: WaitForTerminalExitRequest): Promise<WaitForTerminalExitResponse> {
+    const state = this.terminals.get(terminalId);
+    if (state == null) {
+      throw new Error(`Unknown terminal ${terminalId}`);
+    }
+    if (state.exitStatus != null) {
+      return toWaitResponse(state.exitStatus);
+    }
+    return await new Promise((resolve) => {
+      state.waiters.push((status) => {
+        resolve(toWaitResponse(status));
+      });
+    });
+  }
+
+  async killTerminal({
+    terminalId,
+  }: KillTerminalCommandRequest): Promise<KillTerminalResponse> {
+    const state = this.terminals.get(terminalId);
+    if (state == null) {
+      throw new Error(`Unknown terminal ${terminalId}`);
+    }
+    state.child.kill();
+    return {};
+  }
+
+  async releaseTerminal({
+    terminalId,
+  }: ReleaseTerminalRequest): Promise<ReleaseTerminalResponse> {
+    const state = this.terminals.get(terminalId);
+    if (state == null) {
+      return {};
+    }
+    state.child.kill();
+    this.terminals.delete(terminalId);
+    return {};
+  }
+
   resetUsage(): void {
     this.latestUsage = undefined;
   }
@@ -224,6 +381,20 @@ function mapTokenUsage(payload: any): AcpStreamUsage | undefined {
   const contextWindow = setNumber(payload.model_context_window);
   if (contextWindow != null) usage.model_context_window = contextWindow;
   return Object.keys(usage).length > 0 ? usage : undefined;
+}
+
+function toWaitResponse(
+  status?: TerminalExitStatus,
+): WaitForTerminalExitResponse {
+  if (status == null) return {};
+  const response: WaitForTerminalExitResponse = {};
+  if (status.exitCode != null) {
+    response.exitCode = status.exitCode;
+  }
+  if (status.signal != null) {
+    response.signal = status.signal;
+  }
+  return response;
 }
 
 type SessionState = {
@@ -286,7 +457,7 @@ export class CodexAcpAgent implements AcpAgent {
           readTextFile: false,
           writeTextFile: false,
         },
-        terminal: false,
+        terminal: true,
       },
     });
 
@@ -307,7 +478,7 @@ export class CodexAcpAgent implements AcpAgent {
       throw new Error("ACP agent is already processing a request");
     }
     this.running = true;
-     this.handler.resetUsage();
+    this.handler.resetUsage();
     const key = session_id ?? CodexAcpAgent.DEFAULT_SESSION_KEY;
     const session = await this.ensureSession(key, config);
     this.handler.setStream(stream);
