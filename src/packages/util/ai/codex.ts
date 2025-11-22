@@ -11,6 +11,17 @@ export interface CodexModelInfo {
   reasoning?: CodexReasoningLevel[];
 }
 
+export type CodexReasoningId = CodexReasoningLevel["id"];
+
+export interface CodexSessionConfig {
+  workingDirectory?: string;
+  model?: string;
+  reasoning?: CodexReasoningId;
+  allowWrite?: boolean;
+  env?: Record<string, string>;
+  codexPathOverride?: string;
+}
+
 export const DEFAULT_CODEX_MODELS: CodexModelInfo[] = [
   {
     name: "gpt-5.1-codex",

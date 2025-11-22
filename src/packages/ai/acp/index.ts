@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
+import path from "node:path";
 import { Writable, Readable } from "node:stream";
 import {
   ClientSideConnection,
@@ -13,6 +14,7 @@ import type {
   RequestPermissionResponse,
   SessionNotification,
 } from "@agentclientprotocol/sdk/dist/schema";
+import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
 
 export type AcpStreamUsage = {
   input_tokens?: number;
@@ -56,7 +58,7 @@ export interface AcpEvaluateRequest {
   prompt: string;
   session_id?: string;
   stream: AcpStreamHandler;
-  config?: any;
+  config?: CodexSessionConfig;
 }
 
 export interface AcpAgent {
@@ -174,23 +176,29 @@ class CodexClientHandler implements Client {
   }
 }
 
+type SessionState = {
+  sessionId: string;
+  cwd: string;
+  modelId?: string;
+  modeId?: string;
+};
+
 export class CodexAcpAgent implements AcpAgent {
   private readonly child: ChildProcess;
   private readonly connection: ClientSideConnection;
   private readonly handler: CodexClientHandler;
-  private sessionId: string;
   private running = false;
+  private readonly sessions = new Map<string, SessionState>();
+  private static readonly DEFAULT_SESSION_KEY = "__default__";
 
   private constructor(options: {
     child: ChildProcess;
     connection: ClientSideConnection;
     handler: CodexClientHandler;
-    sessionId: string;
   }) {
     this.child = options.child;
     this.connection = options.connection;
     this.handler = options.handler;
-    this.sessionId = options.sessionId;
   }
 
   static async create(
@@ -232,29 +240,30 @@ export class CodexAcpAgent implements AcpAgent {
       },
     });
 
-    const newSession = await connection.newSession({
-      cwd: options.cwd ?? process.cwd(),
-      mcpServers: [],
-    });
-
     return new CodexAcpAgent({
       child,
       connection,
       handler,
-      sessionId: newSession.sessionId,
     });
   }
 
-  async evaluate({ prompt, stream }: AcpEvaluateRequest): Promise<void> {
+  async evaluate({
+    prompt,
+    stream,
+    session_id,
+    config,
+  }: AcpEvaluateRequest): Promise<void> {
     if (this.running) {
       throw new Error("ACP agent is already processing a request");
     }
     this.running = true;
+    const key = session_id ?? CodexAcpAgent.DEFAULT_SESSION_KEY;
+    const session = await this.ensureSession(key, config);
     this.handler.setStream(stream);
 
     try {
       const request: PromptRequest = {
-        sessionId: this.sessionId,
+        sessionId: session.sessionId,
         prompt: [
           {
             type: "text",
@@ -266,12 +275,112 @@ export class CodexAcpAgent implements AcpAgent {
       await stream({
         type: "summary",
         finalResponse: this.handler.getFinalResponse(),
-        threadId: this.sessionId,
+        threadId: session_id ?? session.sessionId,
       });
     } finally {
       this.handler.clearStream();
       this.running = false;
     }
+  }
+
+  private normalizeSessionKey(key?: string): string {
+    const trimmed = key?.trim();
+    return trimmed && trimmed.length > 0
+      ? trimmed
+      : CodexAcpAgent.DEFAULT_SESSION_KEY;
+  }
+
+  private normalizeWorkingDirectory(config?: CodexSessionConfig): string {
+    const dir = config?.workingDirectory ?? process.cwd();
+    return path.resolve(dir);
+  }
+
+  private async ensureSession(
+    sessionKey: string,
+    config?: CodexSessionConfig,
+  ): Promise<SessionState> {
+    const normalizedKey = this.normalizeSessionKey(sessionKey);
+    const cwd = this.normalizeWorkingDirectory(config);
+    let session = this.sessions.get(normalizedKey);
+    if (session == null || session.cwd !== cwd) {
+      session = await this.createSession(cwd);
+      this.sessions.set(normalizedKey, session);
+    }
+    await this.applySessionConfig(session, config);
+    return session;
+  }
+
+  private async createSession(cwd: string): Promise<SessionState> {
+    const response = await this.connection.newSession({
+      cwd,
+      mcpServers: [],
+    });
+    return {
+      sessionId: response.sessionId,
+      cwd,
+      modelId: response.models?.currentModelId ?? undefined,
+      modeId: response.modes?.currentModeId ?? undefined,
+    };
+  }
+
+  private async applySessionConfig(
+    session: SessionState,
+    config?: CodexSessionConfig,
+  ): Promise<void> {
+    await this.applySessionMode(session, config);
+    await this.applySessionModel(session, config);
+  }
+
+  private desiredModeId(config?: CodexSessionConfig): string {
+    return config?.allowWrite ? "auto" : "read-only";
+  }
+
+  private async applySessionMode(
+    session: SessionState,
+    config?: CodexSessionConfig,
+  ): Promise<void> {
+    const desiredMode = this.desiredModeId(config);
+    if (session.modeId === desiredMode) {
+      return;
+    }
+    await this.connection.setSessionMode({
+      sessionId: session.sessionId,
+      modeId: desiredMode,
+    });
+    session.modeId = desiredMode;
+  }
+
+  private mapReasoning(
+    value?: CodexSessionConfig["reasoning"],
+  ): string | undefined {
+    if (!value) return undefined;
+    if (value === "extra_high") {
+      return "xhigh";
+    }
+    return value;
+  }
+
+  private buildModelId(config?: CodexSessionConfig): string | undefined {
+    if (!config?.model) {
+      return undefined;
+    }
+    const reasoning = this.mapReasoning(config.reasoning);
+    return reasoning ? `${config.model}/${reasoning}` : config.model;
+  }
+
+  private async applySessionModel(
+    session: SessionState,
+    config?: CodexSessionConfig,
+  ): Promise<void> {
+    const desiredModel = this.buildModelId(config);
+    if (!desiredModel || session.modelId === desiredModel) {
+      return;
+    }
+    await this.connection.setSessionModel({
+      sessionId: session.sessionId,
+      modelId: desiredModel,
+    });
+    session.modelId = desiredModel;
   }
 
   async dispose(): Promise<void> {

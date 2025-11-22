@@ -1,8 +1,10 @@
+import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
+
 export type AcpRequest = {
   account_id: string;
   prompt: string;
   session_id?: string;
-  config?: any;
+  config?: CodexSessionConfig;
 };
 
 export type AcpStreamUsage = {

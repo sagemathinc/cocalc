@@ -4,6 +4,10 @@ import type {
   AcpStreamMessage,
   AcpStreamUsage,
 } from "@cocalc/conat/ai/acp/types";
+import {
+  DEFAULT_CODEX_MODELS,
+  type CodexSessionConfig,
+} from "@cocalc/util/ai/codex";
 import { uuid } from "@cocalc/util/misc";
 
 import type { ChatMessage, MessageHistory } from "./types";
@@ -233,21 +237,28 @@ function buildAcpConfig({
   path?: string;
   config?: any;
   model?: string;
-}) {
+}): CodexSessionConfig {
   const baseWorkingDir = resolveWorkingDir(path);
   const workingDirectory = config?.workingDirectory || baseWorkingDir;
-  const opts: any = {
+  const opts: CodexSessionConfig = {
     workingDirectory,
   };
-  if (model) {
-    opts.model = model;
+  const defaultModel =
+    DEFAULT_CODEX_MODELS[0]?.name ?? "gpt-5.1-codex-max";
+  const selectedModel = config?.model ?? model ?? defaultModel;
+  if (selectedModel) {
+    opts.model = selectedModel;
   }
-  if (config?.reasoning) {
-    opts.reasoning = config.reasoning;
+  const modelInfo = DEFAULT_CODEX_MODELS.find(
+    (m) => m.name === selectedModel,
+  );
+  const selectedReasoning =
+    config?.reasoning ??
+    modelInfo?.reasoning?.find((r) => r.default)?.id;
+  if (selectedReasoning) {
+    opts.reasoning = selectedReasoning;
   }
-  if (config?.allowWrite != null) {
-    opts.allowWrite = !!config.allowWrite;
-  }
+  opts.allowWrite = !!config?.allowWrite;
   const env: Record<string, string> = {};
   if (config?.envHome) env.HOME = config.envHome;
   if (config?.envPath) env.PATH = config.envPath;
