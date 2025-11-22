@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { promises as fs } from "node:fs";
 import { spawn, type ChildProcess } from "node:child_process";
 import path from "node:path";
 import { Writable, Readable } from "node:stream";
@@ -13,6 +14,8 @@ import type {
   CreateTerminalResponse,
   KillTerminalCommandRequest,
   KillTerminalResponse,
+  ReadTextFileRequest,
+  ReadTextFileResponse,
   PromptRequest,
   ReleaseTerminalRequest,
   ReleaseTerminalResponse,
@@ -24,6 +27,8 @@ import type {
   TerminalOutputResponse,
   WaitForTerminalExitRequest,
   WaitForTerminalExitResponse,
+  WriteTextFileRequest,
+  WriteTextFileResponse,
 } from "@agentclientprotocol/sdk/dist/schema";
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
 
@@ -128,6 +133,8 @@ interface CodexAcpAgentOptions {
 }
 
 interface TerminalClient extends Client {
+  readTextFile(args: ReadTextFileRequest): Promise<ReadTextFileResponse>;
+  writeTextFile(args: WriteTextFileRequest): Promise<WriteTextFileResponse>;
   createTerminal(args: CreateTerminalRequest): Promise<CreateTerminalResponse>;
   terminalOutput(args: TerminalOutputRequest): Promise<TerminalOutputResponse>;
   waitForTerminalExit(
@@ -222,6 +229,34 @@ class CodexClientHandler implements TerminalClient {
       default:
         break;
     }
+  }
+
+  private resolvePath(filePath: string): string {
+    return path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
+  }
+
+  async readTextFile({
+    path: targetPath,
+    limit,
+    line,
+  }: ReadTextFileRequest): Promise<ReadTextFileResponse> {
+    const absolute = this.resolvePath(targetPath);
+    const data = await fs.readFile(absolute, "utf8");
+    const content =
+      line != null || limit != null
+        ? sliceByLines(data, line ?? undefined, limit ?? undefined)
+        : data;
+    return { content };
+  }
+
+  async writeTextFile({
+    path: targetPath,
+    content,
+  }: WriteTextFileRequest): Promise<WriteTextFileResponse> {
+    const absolute = this.resolvePath(targetPath);
+    await fs.mkdir(path.dirname(absolute), { recursive: true });
+    await fs.writeFile(absolute, content, "utf8");
+    return {};
   }
 
   async createTerminal({
@@ -397,6 +432,52 @@ function toWaitResponse(
   return response;
 }
 
+function sliceByLines(
+  text: string,
+  startLine?: number | null,
+  limit?: number | null,
+): string {
+  const normalizedStart =
+    startLine != null && startLine > 1 ? Math.floor(startLine) : 1;
+  const normalizedLimit =
+    limit != null && limit > 0 ? Math.floor(limit) : undefined;
+  if (normalizedStart === 1 && normalizedLimit == null) {
+    return text;
+  }
+  if (normalizedLimit === 0) {
+    return "";
+  }
+  let idx = 0;
+  let currentLine = 1;
+  while (currentLine < normalizedStart && idx < text.length) {
+    const next = text.indexOf("\n", idx);
+    if (next === -1) {
+      return "";
+    }
+    idx = next + 1;
+    currentLine += 1;
+  }
+  if (currentLine < normalizedStart) {
+    return "";
+  }
+  const startIdx = idx;
+  if (normalizedLimit == null) {
+    return text.slice(startIdx);
+  }
+  let remaining = normalizedLimit;
+  let endIdx = startIdx;
+  while (remaining > 0 && endIdx < text.length) {
+    const next = text.indexOf("\n", endIdx);
+    if (next === -1) {
+      endIdx = text.length;
+      break;
+    }
+    endIdx = next + 1;
+    remaining -= 1;
+  }
+  return text.slice(startIdx, endIdx);
+}
+
 type SessionState = {
   sessionId: string;
   cwd: string;
@@ -454,8 +535,8 @@ export class CodexAcpAgent implements AcpAgent {
       protocolVersion: PROTOCOL_VERSION,
       clientCapabilities: {
         fs: {
-          readTextFile: false,
-          writeTextFile: false,
+          readTextFile: true,
+          writeTextFile: true,
         },
         terminal: true,
       },
