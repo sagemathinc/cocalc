@@ -306,7 +306,7 @@ function formatErrorDetail(error: unknown): string {
 
 function patchToText(patch: CompressedPatch): string {
   try {
-    return diffPrinter.patch_toText([decompressPatch(normalizePatch(patch))]);
+    return diffPrinter.patch_toText(decompressPatch(normalizePatch(patch)));
   } catch (err) {
     return `Failed to render diff: ${err}`;
   }
