@@ -19,6 +19,10 @@ import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
 export type AcpStreamUsage = {
   input_tokens?: number;
   output_tokens?: number;
+  cached_input_tokens?: number;
+  reasoning_output_tokens?: number;
+  total_tokens?: number;
+  model_context_window?: number;
 };
 
 export type AcpThinkingEvent = {
@@ -115,6 +119,7 @@ interface CodexAcpAgentOptions {
 class CodexClientHandler implements Client {
   private stream?: AcpStreamHandler;
   private lastResponse = "";
+  private latestUsage?: AcpStreamUsage;
 
   setStream(stream?: AcpStreamHandler) {
     this.stream = stream;
@@ -150,6 +155,16 @@ class CodexClientHandler implements Client {
 
   async sessionUpdate(params: SessionNotification): Promise<void> {
     if (!this.stream) return;
+    const usageMeta =
+      (params.update as any)?.meta?.token_usage ??
+      (params.update as any)?._meta?.token_usage;
+    if (usageMeta != null) {
+      const usage = mapTokenUsage(usageMeta);
+      if (usage) {
+        this.latestUsage = usage;
+      }
+      return;
+    }
     const update = params.update;
     switch (update.sessionUpdate) {
       case "agent_message_chunk":
@@ -174,6 +189,41 @@ class CodexClientHandler implements Client {
         break;
     }
   }
+
+  resetUsage(): void {
+    this.latestUsage = undefined;
+  }
+
+  consumeLatestUsage(): AcpStreamUsage | undefined {
+    const usage = this.latestUsage;
+    this.latestUsage = undefined;
+    return usage;
+  }
+}
+
+function mapTokenUsage(payload: any): AcpStreamUsage | undefined {
+  if (payload == null || typeof payload !== "object") {
+    return undefined;
+  }
+  const last = payload.last_token_usage ?? {};
+  const total = payload.total_token_usage ?? {};
+  const usage: AcpStreamUsage = {};
+  const setNumber = (value: any): number | undefined =>
+    typeof value === "number" && Number.isFinite(value) ? value : undefined;
+
+  const input = setNumber(last.input_tokens);
+  if (input != null) usage.input_tokens = input;
+  const cached = setNumber(last.cached_input_tokens);
+  if (cached != null) usage.cached_input_tokens = cached;
+  const output = setNumber(last.output_tokens);
+  if (output != null) usage.output_tokens = output;
+  const reasoning = setNumber(last.reasoning_output_tokens);
+  if (reasoning != null) usage.reasoning_output_tokens = reasoning;
+  const totalTokens = setNumber(total.total_tokens);
+  if (totalTokens != null) usage.total_tokens = totalTokens;
+  const contextWindow = setNumber(payload.model_context_window);
+  if (contextWindow != null) usage.model_context_window = contextWindow;
+  return Object.keys(usage).length > 0 ? usage : undefined;
 }
 
 type SessionState = {
@@ -257,6 +307,7 @@ export class CodexAcpAgent implements AcpAgent {
       throw new Error("ACP agent is already processing a request");
     }
     this.running = true;
+     this.handler.resetUsage();
     const key = session_id ?? CodexAcpAgent.DEFAULT_SESSION_KEY;
     const session = await this.ensureSession(key, config);
     this.handler.setStream(stream);
@@ -272,10 +323,12 @@ export class CodexAcpAgent implements AcpAgent {
         ],
       };
       await this.connection.prompt(request);
+      const usage = this.handler.consumeLatestUsage();
       await stream({
         type: "summary",
         finalResponse: this.handler.getFinalResponse(),
         threadId: session_id ?? session.sessionId,
+        usage: usage ?? undefined,
       });
     } finally {
       this.handler.clearStream();

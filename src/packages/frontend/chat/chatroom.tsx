@@ -892,11 +892,22 @@ export function ChatPanel({
               <div
                 style={{ position: "absolute", top: 8, left: 8, zIndex: 10 }}
               >
-                <CodexConfigButton
-                  threadKey={selectedThreadKey}
-                  chatPath={path}
-                  actions={actions}
-                />
+                <Space size={6}>
+                  <CodexConfigButton
+                    threadKey={selectedThreadKey}
+                    chatPath={path}
+                    actions={actions}
+                  />
+                  <Button
+                    size="small"
+                    onClick={() =>
+                      actions?.runCodexCompact(selectedThreadKey ?? undefined)
+                    }
+                    disabled={!selectedThreadKey}
+                  >
+                    Compact
+                  </Button>
+                </Space>
               </div>
             )}
           <ChatLog

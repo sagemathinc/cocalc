@@ -10,6 +10,10 @@ export type AcpRequest = {
 export type AcpStreamUsage = {
   input_tokens?: number;
   output_tokens?: number;
+  cached_input_tokens?: number;
+  reasoning_output_tokens?: number;
+  total_tokens?: number;
+  model_context_window?: number;
 };
 
 export type AcpStreamEvent =

@@ -130,14 +130,16 @@ export function CodexConfigButton({
     reasoningOptions.find((r) => r.value === selectedReasoningValue)?.label ??
     "";
 
-  const contextWindow = getModelContextWindow(selectedModelValue);
+  const contextWindow =
+    usageSummary?.contextWindow ??
+    getModelContextWindow(selectedModelValue);
+  const usageTotal =
+    usageSummary?.totalTokens != null ? usageSummary.totalTokens : 0;
   const remainingPercent =
     usageSummary != null && contextWindow != null
       ? Math.max(
           0,
-          Math.round(
-            ((contextWindow - usageSummary.totalTokens) / contextWindow) * 100,
-          ),
+          Math.round(((contextWindow - usageTotal) / contextWindow) * 100),
         )
       : null;
 
@@ -274,6 +276,7 @@ export default CodexConfigButton;
 type UsageSummary = {
   latest?: any;
   totalTokens: number;
+  contextWindow?: number;
 };
 
 function getCodexUsageSummary(
@@ -298,19 +301,29 @@ function getCodexUsageSummary(
     typeof seq.toArray === "function" ? seq.toArray() : Array.from(seq);
   let latest;
   let totalTokens = 0;
+  let contextWindow: number | undefined;
+  let hasAggregate = false;
   for (const entry of threadMessages) {
     const usage: any =
       entry.get("acp_usage") ?? entry.get("codex_usage");
     if (!usage) continue;
     const usageData = typeof usage?.toJS === "function" ? usage.toJS() : usage;
-    totalTokens +=
-      (usageData?.input_tokens ?? 0) + (usageData?.cached_input_tokens ?? 0);
+    if (usageData?.total_tokens != null) {
+      totalTokens = usageData.total_tokens;
+      hasAggregate = true;
+    } else if (!hasAggregate) {
+      totalTokens +=
+        (usageData?.input_tokens ?? 0) + (usageData?.cached_input_tokens ?? 0);
+    }
+    if (usageData?.model_context_window != null) {
+      contextWindow = usageData.model_context_window;
+    }
     latest = usageData;
   }
   if (!latest && totalTokens === 0) {
     return undefined;
   }
-  return { latest, totalTokens };
+  return { latest, totalTokens, contextWindow };
 }
 
 function getMessageByKey(map, key: string): ChatMessageTyped | undefined {
