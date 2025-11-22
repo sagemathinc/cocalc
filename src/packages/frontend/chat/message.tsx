@@ -253,7 +253,7 @@ export default function Message({
   }, [message]);
 
   const codexEvents = useMemo(() => {
-    const ev = message.get("codex_events");
+    const ev = message.get("acp_events") ?? message.get("codex_events");
     if (!ev) return undefined;
     // Immutable.js collections have toJS
     if (typeof (ev as any)?.toJS === "function") {
@@ -263,7 +263,9 @@ export default function Message({
   }, [message]);
 
   const codexThreadId = useMemo(() => {
-    return message.get("codex_thread_id") ?? undefined;
+    return (
+      message.get("acp_thread_id") ?? message.get("codex_thread_id") ?? undefined
+    );
   }, [message]);
 
   useLayoutEffect(() => {

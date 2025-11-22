@@ -45,7 +45,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
-import { processCodexLLM } from "./codex-api";
+import { processAcpLLM } from "./acp-api";
 import { handleSyncDBChange, initFromSyncDB, processSyncDBObj } from "./sync";
 import type {
   ChatMessage,
@@ -906,7 +906,7 @@ export class ChatActions extends Actions<ChatState> {
     //input = stripDetails(input);
 
     if (typeof model === "string" && model.includes("codex")) {
-      await processCodexLLM({
+      await processAcpLLM({
         message,
         reply_to,
         tag,
@@ -1191,7 +1191,8 @@ export class ChatActions extends Actions<ChatState> {
     const entry = this.getThreadRootDoc(`${rootMs}`);
     const rootMessage = entry?.message;
     if (!rootMessage) return;
-    const cfg = rootMessage.get("codex_config");
+    const cfg =
+      rootMessage.get("acp_config") ?? rootMessage.get("codex_config");
     if (cfg && typeof (cfg as any).toJS === "function") {
       return (cfg as any).toJS();
     }
@@ -1207,7 +1208,7 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb.set({
       event: "chat",
       date: new Date(dateNum),
-      codex_config: config,
+      acp_config: config,
     });
     this.syncdb.commit();
   };

@@ -203,7 +203,12 @@ export function CodexConfigButton({
                 optionRender={(option) =>
                   renderOptionWithDescription({
                     title: `${option.data.label}${
-                      option.data.thinking ? ` (${option.data.thinking})` : ""
+                      option.data.value === selectedModelValue &&
+                      selectedReasoningLabel
+                        ? ` (${selectedReasoningLabel})`
+                        : option.data.thinking
+                          ? ` (${option.data.thinking})`
+                          : ""
                     }`,
                     description: option.data.description,
                   })
@@ -294,7 +299,8 @@ function getCodexUsageSummary(
   let latest;
   let totalTokens = 0;
   for (const entry of threadMessages) {
-    const usage: any = entry.get("codex_usage");
+    const usage: any =
+      entry.get("acp_usage") ?? entry.get("codex_usage");
     if (!usage) continue;
     const usageData = typeof usage?.toJS === "function" ? usage.toJS() : usage;
     totalTokens +=

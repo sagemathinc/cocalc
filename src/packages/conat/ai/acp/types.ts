@@ -2,6 +2,7 @@ export type AcpRequest = {
   account_id: string;
   prompt: string;
   session_id?: string;
+  config?: any;
 };
 
 export type AcpStreamUsage = {
@@ -29,6 +30,10 @@ export type AcpStreamPayload =
       finalResponse: string;
       usage?: AcpStreamUsage | null;
       threadId?: string | null;
+    }
+  | {
+      type: "error";
+      error: string;
     };
 
 export type AcpStreamMessage = AcpStreamPayload & { seq: number };

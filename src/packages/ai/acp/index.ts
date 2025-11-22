@@ -41,6 +41,10 @@ export type AcpStreamPayload =
       finalResponse: string;
       usage?: AcpStreamUsage | null;
       threadId?: string | null;
+    }
+  | {
+      type: "error";
+      error: string;
     };
 
 export type AcpStreamHandler = (
@@ -52,6 +56,7 @@ export interface AcpEvaluateRequest {
   prompt: string;
   session_id?: string;
   stream: AcpStreamHandler;
+  config?: any;
 }
 
 export interface AcpAgent {

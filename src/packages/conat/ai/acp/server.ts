@@ -115,6 +115,7 @@ async function handleMessage(mesg, evaluate: EvaluateHandler) {
       account_id: options.account_id,
       prompt: options.prompt ?? "",
       session_id: options.session_id,
+      config: options.config,
       stream,
     });
     await stream(null);

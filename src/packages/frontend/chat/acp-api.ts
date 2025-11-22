@@ -1,11 +1,14 @@
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { CodexStreamMessage, Usage } from "@cocalc/conat/codex/types";
+import type {
+  AcpStreamMessage,
+  AcpStreamUsage,
+} from "@cocalc/conat/ai/acp/types";
 import { uuid } from "@cocalc/util/misc";
 
 import type { ChatMessage, MessageHistory } from "./types";
 
-interface CodexContext {
+interface AcpContext {
   syncdb?: {
     set: (opts: any) => void;
     commit: () => void;
@@ -34,17 +37,17 @@ interface CodexContext {
   getCodexConfig?: (reply_to?: Date) => any;
 }
 
-type ProcessCodexRequest = {
+type ProcessAcpRequest = {
   message: ChatMessage;
   reply_to?: Date;
   tag?: string;
   model: string;
   input: string;
-  context: CodexContext;
+  context: AcpContext;
   dateLimit?: Date;
 };
 
-export async function processCodexLLM({
+export async function processAcpLLM({
   message,
   reply_to,
   tag,
@@ -52,7 +55,7 @@ export async function processCodexLLM({
   input,
   context,
   dateLimit,
-}: ProcessCodexRequest): Promise<void> {
+}: ProcessAcpRequest): Promise<void> {
   const {
     syncdb,
     path,
@@ -60,8 +63,7 @@ export async function processCodexLLM({
     sendReply,
     saveHistory,
     getLLMHistory,
-  } =
-    context;
+  } = context;
   if (syncdb == null) return;
 
   let workingInput = input?.trim();
@@ -117,9 +119,9 @@ export async function processCodexLLM({
 
   let content = "";
   let halted = false;
-  let events: CodexStreamMessage[] = [];
+  let events: AcpStreamMessage[] = [];
   let threadId: string | null = null;
-  let usage: Usage | null = null;
+  let usage: AcpStreamUsage | null = null;
 
   const update = (generating: boolean) => {
     if (syncdb == null) return;
@@ -133,9 +135,9 @@ export async function processCodexLLM({
       }),
       generating,
       reply_to: reply_to?.toISOString(),
-      codex_events: events,
-      codex_thread_id: threadId,
-      codex_usage: usage,
+      acp_events: events,
+      acp_thread_id: threadId,
+      acp_usage: usage,
     };
     syncdb.set(msg);
     if (!generating) {
@@ -144,20 +146,18 @@ export async function processCodexLLM({
   };
 
   try {
-    const stream = await webapp_client.conat_client.streamCodex({
-      input: workingInput,
-      thread_options: buildThreadOptions({
+    const stream = await webapp_client.conat_client.streamAcp({
+      prompt: workingInput,
+      session_id: config?.sessionId,
+      config: buildAcpConfig({
         path,
         config,
         model: selectedModel,
       }),
-      codex_options: buildCodexOptions(config),
     });
 
     for await (const message of stream) {
       if (halted) break;
-      // leave in for now to see what is happening.
-      console.log(JSON.stringify(message,undefined,2));
 
       events = [...events, message];
 
@@ -168,19 +168,14 @@ export async function processCodexLLM({
         break;
       }
 
-      if (message.type === "error") {
-        content += `\n\n<span style='color:#b71c1c'>${message.error}</span>\n\n`;
+      if ((message as any).type === "error") {
+        const errorText = (message as any).error ?? "Unknown error";
+        content += `\n\n<span style='color:#b71c1c'>${errorText}</span>\n\n`;
         break;
       }
 
       if (message.type === "event") {
-        const text = extractAgentText(message.event);
-        if (message.event?.type === "thread.started") {
-          threadId = message.event.thread_id;
-        }
-        if (message.event?.type === "turn.completed" && message.event.usage) {
-          usage = message.event.usage;
-        }
+        const text = extractEventText(message.event);
         if (text) {
           content = text;
           update(true);
@@ -207,14 +202,10 @@ export async function processCodexLLM({
   }
 }
 
-function extractAgentText(event: any): string | undefined {
+function extractEventText(event: any): string | undefined {
   if (event == null || typeof event !== "object") return;
-  const item = event.item;
-  if (item?.type === "agent_message") {
-    return item.text;
-  }
-  if (typeof event.message === "string") {
-    return event.message;
+  if (typeof event.text === "string") {
+    return event.text;
   }
   return;
 }
@@ -234,7 +225,7 @@ function resolveWorkingDir(chatPath?: string): string {
   return chatPath.slice(0, i);
 }
 
-function buildThreadOptions({
+function buildAcpConfig({
   path,
   config,
   model,
@@ -243,35 +234,28 @@ function buildThreadOptions({
   config?: any;
   model?: string;
 }) {
+  const baseWorkingDir = resolveWorkingDir(path);
+  const workingDirectory = config?.workingDirectory || baseWorkingDir;
   const opts: any = {
-    workingDirectory: resolveWorkingDir(path),
-    skipGitRepoCheck: true,
+    workingDirectory,
   };
   if (model) {
     opts.model = model;
   }
-  const reasoning = config?.reasoning;
-  if (reasoning) {
-    opts.modelReasoningEffort = reasoning;
+  if (config?.reasoning) {
+    opts.reasoning = config.reasoning;
   }
   if (config?.allowWrite != null) {
-    opts.sandboxMode = config.allowWrite ? "workspace-write" : "read-only";
+    opts.allowWrite = !!config.allowWrite;
+  }
+  const env: Record<string, string> = {};
+  if (config?.envHome) env.HOME = config.envHome;
+  if (config?.envPath) env.PATH = config.envPath;
+  if (Object.keys(env).length) {
+    opts.env = env;
+  }
+  if (config?.codexPathOverride) {
+    opts.codexPathOverride = config.codexPathOverride;
   }
   return opts;
-}
-
-function buildCodexOptions(config?: any) {
-  if (!config) return undefined;
-  const env: any = {};
-  if (config.envHome) env.HOME = config.envHome;
-  if (config.envPath) env.PATH = config.envPath;
-  const options: any = {};
-  if (Object.keys(env).length) options.env = env;
-  if (config.allowWrite != null) {
-    options.permissions = { write: !!config.allowWrite };
-  }
-  if (config.codexPathOverride) {
-    options.codexPathOverride = config.codexPathOverride;
-  }
-  return Object.keys(options).length ? options : undefined;
 }

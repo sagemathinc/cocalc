@@ -8,6 +8,7 @@ import {
 import Terminal from "@cocalc/frontend/components/terminal";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { COLORS } from "@cocalc/util/theme";
+import type { AcpStreamMessage } from "@cocalc/conat/ai/acp/types";
 import type {
   AgentMessageItem,
   CodexStreamMessage,
@@ -18,8 +19,13 @@ import { plural } from "@cocalc/util/misc";
 const { Text } = Typography;
 const MAX_COMMAND_OUTPUT = 10_000;
 
+type ActivityMessage = CodexStreamMessage | AcpStreamMessage;
+type SimpleAcpEvent =
+  | { type: "thinking"; text?: string }
+  | { type: "message"; text?: string };
+
 export interface CodexActivityProps {
-  events?: CodexStreamMessage[];
+  events?: ActivityMessage[];
   threadId?: string | null;
   generating?: boolean;
 }
@@ -249,7 +255,7 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
   }
 }
 
-function normalizeEvents(events: CodexStreamMessage[]): ActivityEntry[] {
+function normalizeEvents(events: ActivityMessage[]): ActivityEntry[] {
   const map = new Map<string, ActivityEntry>();
   const rows: ActivityEntry[] = [];
   let fallbackId = 0;
@@ -278,6 +284,10 @@ function normalizeEvents(events: CodexStreamMessage[]): ActivityEntry[] {
     }
     const event = message.event;
     if (!event) continue;
+    if (event.type === "thinking" || event.type === "message") {
+      rows.push(createAcpEntry(event as SimpleAcpEvent, seq));
+      continue;
+    }
     switch (event.type) {
       case "thread.started":
         rows.push({
@@ -405,6 +415,23 @@ function normalizeEvents(events: CodexStreamMessage[]): ActivityEntry[] {
   }
   rows.sort((a, b) => a.seq - b.seq);
   return rows;
+}
+
+function createAcpEntry(event: SimpleAcpEvent, seq: number): ActivityEntry {
+  if (event.type === "thinking") {
+    return {
+      kind: "reasoning",
+      id: `acp-thinking-${seq}`,
+      seq,
+      text: event.text,
+    };
+  }
+  return {
+    kind: "agent",
+    id: `acp-message-${seq}`,
+    seq,
+    text: event.text,
+  };
 }
 
 function getOrCreate<T extends ActivityEntry>(
