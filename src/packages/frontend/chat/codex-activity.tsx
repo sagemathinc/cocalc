@@ -179,7 +179,7 @@ function normalizeEvents(events: AcpStreamMessage[]): ActivityEntry[] {
         id: `error-${seq}`,
         seq,
         label: "Error",
-        detail: message.error,
+        detail: formatErrorDetail(message.error),
         level: "error",
       });
       continue;
@@ -248,6 +248,17 @@ function truncate(text: string, max: number): string {
   if (!text) return "";
   if (text.length <= max) return text;
   return `${text.slice(0, max - 1)}…`;
+}
+
+function formatErrorDetail(error: unknown): string {
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  if (error == null) return "Unknown error";
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
 }
 
 export default CodexActivity;

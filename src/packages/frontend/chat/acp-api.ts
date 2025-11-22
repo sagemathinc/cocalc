@@ -60,14 +60,8 @@ export async function processAcpLLM({
   context,
   dateLimit,
 }: ProcessAcpRequest): Promise<void> {
-  const {
-    syncdb,
-    path,
-    chatStreams,
-    sendReply,
-    saveHistory,
-    getLLMHistory,
-  } = context;
+  const { syncdb, path, chatStreams, sendReply, saveHistory, getLLMHistory } =
+    context;
   if (syncdb == null) return;
 
   let workingInput = input?.trim();
@@ -78,7 +72,8 @@ export async function processAcpLLM({
   const config = context.getCodexConfig
     ? context.getCodexConfig(reply_to)
     : undefined;
-  const selectedModel = config?.model ?? model;
+  const normalizedModel =
+    typeof model === "string" ? normalizeCodexMention(model) : undefined;
 
   if (tag === "regenerate") {
     const history = reply_to ? getLLMHistory(reply_to) : [];
@@ -156,14 +151,14 @@ export async function processAcpLLM({
       config: buildAcpConfig({
         path,
         config,
-        model: selectedModel,
+        model: normalizedModel,
       }),
     });
 
     for await (const message of stream) {
       if (halted) break;
 
-      events = [...events, message];
+      events = appendStreamMessage(events, message);
 
       const cur = syncdb.get_one({ event: "chat", date });
       if (cur?.get("generating") === false) {
@@ -214,6 +209,42 @@ function extractEventText(event: any): string | undefined {
   return;
 }
 
+function appendStreamMessage(
+  events: AcpStreamMessage[],
+  message: AcpStreamMessage,
+): AcpStreamMessage[] {
+  if (message.type !== "event") {
+    return [...events, message];
+  }
+  const last = events[events.length - 1];
+  const nextEvent = message.event;
+  if (
+    last?.type === "event" &&
+    last.event?.type === nextEvent?.type &&
+    typeof last.event?.text === "string" &&
+    typeof nextEvent?.text === "string"
+  ) {
+    const merged: AcpStreamMessage = {
+      ...last,
+      event: {
+        ...last.event,
+        text: last.event.text + nextEvent.text,
+      },
+      seq: message.seq ?? last.seq,
+    };
+    return [...events.slice(0, -1), merged];
+  }
+  return [...events, message];
+}
+
+function normalizeCodexMention(model?: string): string | undefined {
+  if (!model) return undefined;
+  if (model === "codex-agent") {
+    return undefined;
+  }
+  return model;
+}
+
 function addToHistory(
   history: MessageHistory[],
   next: Partial<MessageHistory> & { author_id: string; content: string },
@@ -243,18 +274,14 @@ function buildAcpConfig({
   const opts: CodexSessionConfig = {
     workingDirectory,
   };
-  const defaultModel =
-    DEFAULT_CODEX_MODELS[0]?.name ?? "gpt-5.1-codex-max";
+  const defaultModel = DEFAULT_CODEX_MODELS[0]?.name ?? "gpt-5.1-codex-max";
   const selectedModel = config?.model ?? model ?? defaultModel;
   if (selectedModel) {
     opts.model = selectedModel;
   }
-  const modelInfo = DEFAULT_CODEX_MODELS.find(
-    (m) => m.name === selectedModel,
-  );
+  const modelInfo = DEFAULT_CODEX_MODELS.find((m) => m.name === selectedModel);
   const selectedReasoning =
-    config?.reasoning ??
-    modelInfo?.reasoning?.find((r) => r.default)?.id;
+    config?.reasoning ?? modelInfo?.reasoning?.find((r) => r.default)?.id;
   if (selectedReasoning) {
     opts.reasoning = selectedReasoning;
   }
