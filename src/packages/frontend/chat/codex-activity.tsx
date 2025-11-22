@@ -1,22 +1,24 @@
 import { Button, Card, Space, Tag, Typography } from "antd";
+
+import type {
+  AcpStreamEvent,
+  AcpStreamMessage,
+} from "@cocalc/conat/ai/acp/types";
 import {
   React,
   useEffect,
   useMemo,
   useState,
 } from "@cocalc/frontend/app-framework";
+import Ansi from "@cocalc/frontend/components/ansi-to-react";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import {
   DiffMatchPatch,
   decompressPatch,
   type CompressedPatch,
 } from "@cocalc/util/dmp";
-import { COLORS } from "@cocalc/util/theme";
-import type {
-  AcpStreamEvent,
-  AcpStreamMessage,
-} from "@cocalc/conat/ai/acp/types";
 import { plural } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 
 const { Text } = Typography;
 const diffPrinter = new DiffMatchPatch();
@@ -48,6 +50,21 @@ type ActivityEntry =
       seq: number;
       path: string;
       patch: CompressedPatch;
+    }
+  | {
+      kind: "terminal";
+      id: string;
+      seq: number;
+      terminalId: string;
+      command?: string;
+      args?: string[];
+      cwd?: string;
+      output: string;
+      truncated?: boolean;
+      exitStatus?: {
+        exitCode?: number;
+        signal?: string;
+      };
     };
 
 export interface CodexActivityProps {
@@ -134,7 +151,7 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
   switch (entry.kind) {
     case "reasoning":
       return (
-        <div>
+        <Space>
           <Tag color="purple" style={{ marginBottom: 4 }}>
             Reasoning
           </Tag>
@@ -146,7 +163,7 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
           ) : (
             <Text type="secondary">…</Text>
           )}
-        </div>
+        </Space>
       );
     case "agent":
       return (
@@ -185,6 +202,8 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
           </pre>
         </div>
       );
+    case "terminal":
+      return <TerminalRow entry={entry} />;
     case "status":
     default:
       return (
@@ -205,6 +224,7 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
 function normalizeEvents(events: AcpStreamMessage[]): ActivityEntry[] {
   const rows: ActivityEntry[] = [];
   let fallbackId = 0;
+  const terminals = new Map<string, ActivityEntry & { kind: "terminal" }>();
   for (const message of events) {
     const seq = message.seq ?? ++fallbackId;
     if (message.type === "error") {
@@ -233,13 +253,31 @@ function normalizeEvents(events: AcpStreamMessage[]): ActivityEntry[] {
       "event" in message &&
       message.event != null
     ) {
-      rows.push(createEventEntry(message.event, seq));
+      const entry = createEventEntry({
+        event: message.event,
+        seq,
+        rows,
+        terminals,
+      });
+      if (entry) {
+        rows.push(entry);
+      }
     }
   }
   return rows.sort((a, b) => a.seq - b.seq);
 }
 
-function createEventEntry(event: AcpStreamEvent, seq: number): ActivityEntry {
+function createEventEntry({
+  event,
+  seq,
+  rows,
+  terminals,
+}: {
+  event: AcpStreamEvent;
+  seq: number;
+  rows: ActivityEntry[];
+  terminals: Map<string, ActivityEntry & { kind: "terminal" }>;
+}): ActivityEntry | undefined {
   if (event?.type === "diff") {
     return {
       kind: "diff",
@@ -248,6 +286,40 @@ function createEventEntry(event: AcpStreamEvent, seq: number): ActivityEntry {
       path: stringifyPath(event.path),
       patch: normalizePatch(event.patch),
     };
+  }
+  if (event?.type === "terminal" && event.terminalId) {
+    let entry = terminals.get(event.terminalId);
+    if (entry == null) {
+      entry = {
+        kind: "terminal",
+        id: `terminal-${event.terminalId}`,
+        seq,
+        terminalId: event.terminalId,
+        command: event.command,
+        args: event.args,
+        cwd: event.cwd,
+        output: "",
+        truncated: event.truncated,
+        exitStatus: event.exitStatus,
+      };
+      terminals.set(event.terminalId, entry);
+      rows.push(entry);
+    }
+    if (event.phase === "start") {
+      entry.command = event.command ?? entry.command;
+      entry.args = event.args ?? entry.args;
+      entry.cwd = event.cwd ?? entry.cwd;
+    } else if (event.phase === "data") {
+      entry.output = (entry.output ?? "") + (event.chunk ?? "");
+      entry.truncated = event.truncated ?? entry.truncated;
+    } else if (event.phase === "exit") {
+      entry.exitStatus = event.exitStatus ?? entry.exitStatus;
+      if (event.output != null) {
+        entry.output = event.output;
+      }
+      entry.truncated = event.truncated ?? entry.truncated;
+    }
+    return undefined;
   }
   if (event?.type === "thinking") {
     return {
@@ -337,6 +409,98 @@ function stringifyPath(pathValue: any): string {
   } catch {
     return String(pathValue);
   }
+}
+
+function TerminalRow({
+  entry,
+}: {
+  entry: Extract<ActivityEntry, { kind: "terminal" }>;
+}) {
+  const commandLine = formatCommand(entry.command, entry.args);
+  const status = formatTerminalStatus(entry);
+  const hasOutput = Boolean(entry.output && entry.output.length > 0);
+  return (
+    <div>
+      <Space size={6} wrap align="center" style={{ marginBottom: 6 }}>
+        <Tag color={COLORS.STAR}>Terminal</Tag>
+        {commandLine ? (
+          <code style={{ fontSize: 12 }}>{commandLine}</code>
+        ) : (
+          <Text type="secondary">Command</Text>
+        )}
+        {entry.cwd ? (
+          <Tag color="default" style={{ margin: 0 }}>
+            {entry.cwd}
+          </Tag>
+        ) : null}
+        {status ? (
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {status}
+          </Text>
+        ) : null}
+        {entry.truncated ? (
+          <Tag color="red" style={{ margin: 0 }}>
+            Output truncated
+          </Tag>
+        ) : null}
+      </Space>
+      {hasOutput ? (
+        <div
+          style={{
+            background: "white",
+            borderRadius: 4,
+            padding: "8px 10px",
+            whiteSpace: "pre-wrap",
+            fontFamily: "monospace",
+            fontSize: 12,
+            maxHeight: 300,
+            overflowY: "auto",
+          }}
+        >
+          <pre
+            style={{
+              margin: 0,
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            <Ansi>{entry.output}</Ansi>
+          </pre>
+        </div>
+      ) : (
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          {entry.exitStatus ? "No output captured." : "Waiting for output…"}
+        </Text>
+      )}
+    </div>
+  );
+}
+
+function formatCommand(command?: string, args?: string[]): string | undefined {
+  if (!command) return undefined;
+  const parts = [command, ...(args ?? [])].filter(
+    (part): part is string => typeof part === "string",
+  );
+  return parts
+    .map((part) => (/\s/.test(part) ? JSON.stringify(part) : part))
+    .join(" ");
+}
+
+function formatTerminalStatus(entry: {
+  exitStatus?: { exitCode?: number; signal?: string };
+}): string | undefined {
+  const status = entry.exitStatus;
+  if (status == null) {
+    return "Running…";
+  }
+  if (status.signal) {
+    return `Terminated (${status.signal})`;
+  }
+  if (typeof status.exitCode === "number") {
+    return status.exitCode === 0
+      ? "Exited with code 0"
+      : `Exited with code ${status.exitCode}`;
+  }
+  return "Completed";
 }
 
 export default CodexActivity;

@@ -30,6 +30,21 @@ export type AcpStreamEvent =
       type: "diff";
       path: string;
       patch: CompressedPatch;
+    }
+  | {
+      type: "terminal";
+      terminalId: string;
+      phase: "start" | "data" | "exit";
+      command?: string;
+      args?: string[];
+      cwd?: string;
+      chunk?: string;
+      truncated?: boolean;
+      exitStatus?: {
+        exitCode?: number;
+        signal?: string;
+      };
+      output?: string;
     };
 
 export type AcpStreamPayload =

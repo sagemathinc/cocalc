@@ -63,10 +63,24 @@ export type AcpDiffEvent = {
   patch: CompressedPatch;
 };
 
+export type AcpTerminalEvent = {
+  type: "terminal";
+  terminalId: string;
+  phase: "start" | "data" | "exit";
+  command?: string;
+  args?: string[];
+  cwd?: string;
+  chunk?: string;
+  truncated?: boolean;
+  exitStatus?: TerminalExitStatus;
+  output?: string;
+};
+
 export type AcpStreamEvent =
   | AcpThinkingEvent
   | AcpMessageEvent
-  | AcpDiffEvent;
+  | AcpDiffEvent
+  | AcpTerminalEvent;
 
 export type AcpStreamPayload =
   | {
@@ -339,6 +353,11 @@ class CodexClientHandler implements TerminalClient {
         state.output = state.output.slice(state.output.length - state.limit);
         state.truncated = true;
       }
+      void this.emitTerminalEvent(terminalId, {
+        phase: "data",
+        chunk: text,
+        truncated: state.truncated,
+      });
     };
 
     child.stdout?.on("data", handleChunk);
@@ -352,6 +371,12 @@ class CodexClientHandler implements TerminalClient {
         waiter(state.exitStatus);
       }
       state.waiters.length = 0;
+      void this.emitTerminalEvent(terminalId, {
+        phase: "exit",
+        exitStatus: state.exitStatus,
+        output: state.output,
+        truncated: state.truncated,
+      });
     });
 
     child.once("error", (err) => {
@@ -363,9 +388,21 @@ class CodexClientHandler implements TerminalClient {
         waiter(state.exitStatus);
       }
       state.waiters.length = 0;
+      void this.emitTerminalEvent(terminalId, {
+        phase: "exit",
+        exitStatus: state.exitStatus,
+        output: state.output,
+        truncated: state.truncated,
+      });
     });
 
     this.terminals.set(terminalId, state);
+    await this.emitTerminalEvent(terminalId, {
+      phase: "start",
+      command,
+      args,
+      cwd: cwd ?? process.cwd(),
+    });
     return {
       terminalId,
     };
@@ -437,6 +474,21 @@ class CodexClientHandler implements TerminalClient {
     const usage = this.latestUsage;
     this.latestUsage = undefined;
     return usage;
+  }
+
+  private async emitTerminalEvent(
+    terminalId: string,
+    payload: Omit<AcpTerminalEvent, "type" | "terminalId">,
+  ): Promise<void> {
+    if (!this.stream) return;
+    await this.stream({
+      type: "event",
+      event: {
+        type: "terminal",
+        terminalId,
+        ...payload,
+      },
+    });
   }
 
   private async emitDiffEvent(
