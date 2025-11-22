@@ -6,7 +6,6 @@
     "./sync/*": "./dist/sync/*.js",
     "./llm/*": "./dist/llm/*.js",
     "./files/*": "./dist/files/*.js",
-    "./codex/*": "./dist/codex/*.js",
     "./ai/acp/*": "./dist/ai/acp/*.js",
     "./socket": "./dist/socket/index.js",
     "./socket/*": "./dist/socket/*.js",

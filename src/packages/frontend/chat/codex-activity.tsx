@@ -9,15 +9,66 @@ import Terminal from "@cocalc/frontend/components/terminal";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { COLORS } from "@cocalc/util/theme";
 import type { AcpStreamMessage } from "@cocalc/conat/ai/acp/types";
-import type {
-  AgentMessageItem,
-  CodexStreamMessage,
-  ThreadItem,
-} from "@cocalc/conat/codex/types";
 import { plural } from "@cocalc/util/misc";
 
 const { Text } = Typography;
 const MAX_COMMAND_OUTPUT = 10_000;
+
+type LegacyUsage = {
+  input_tokens?: number;
+  cached_input_tokens?: number;
+  output_tokens?: number;
+};
+
+type LegacyEventError = { message?: string };
+
+type LegacyThreadItem = {
+  id?: string;
+  type?: string;
+  command?: string;
+  aggregated_output?: string;
+  exit_code?: number;
+  status?: string;
+  text?: string;
+  changes?: { path?: string; kind?: string }[];
+};
+
+type LegacyEvent = {
+  type?: string;
+  thread_id?: string;
+  usage?: LegacyUsage;
+  error?: LegacyEventError;
+  message?: string;
+  item?: LegacyThreadItem;
+  [key: string]: any;
+};
+
+type CodexStreamMessage =
+  | {
+      seq?: number;
+      type: "event";
+      event?: LegacyEvent;
+    }
+  | {
+      seq?: number;
+      type: "summary";
+      finalResponse?: string;
+      usage?: LegacyUsage | null;
+      threadId?: string | null;
+    }
+  | {
+      seq?: number;
+      type: "error";
+      error: string;
+    };
+
+type AgentMessageItem = {
+  id?: string;
+  type: "agent_message";
+  text?: string;
+};
+
+type ThreadItem = LegacyThreadItem;
 
 type ActivityMessage = CodexStreamMessage | AcpStreamMessage;
 type SimpleAcpEvent =

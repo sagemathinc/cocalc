@@ -15,11 +15,6 @@
       "require": "./dist/llm/index.js",
       "types": "./dist/llm/index.d.ts"
     },
-    "./codex": {
-      "import": "./dist/codex/index.js",
-      "require": "./dist/codex/index.js",
-      "types": "./dist/codex/index.d.ts"
-    },
     "./acp": {
       "import": "./dist/acp/index.js",
       "require": "./dist/acp/index.js",
@@ -43,8 +38,7 @@
     "@langchain/google-genai": "^1.0.3",
     "@langchain/mistralai": "^1.0.0",
     "@langchain/ollama": "^1.0.1",
-    "@langchain/openai": "^1.1.2",
-    "@openai/codex-sdk": "^0.60.1"
+    "@langchain/openai": "^1.1.2"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
