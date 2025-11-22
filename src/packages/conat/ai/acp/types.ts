@@ -1,4 +1,5 @@
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
+import type { CompressedPatch } from "@cocalc/util/dmp";
 
 export type AcpRequest = {
   account_id: string;
@@ -24,6 +25,11 @@ export type AcpStreamEvent =
   | {
       type: "message";
       text: string;
+    }
+  | {
+      type: "diff";
+      path: string;
+      patch: CompressedPatch;
     };
 
 export type AcpStreamPayload =

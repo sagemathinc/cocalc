@@ -32,6 +32,8 @@ import type {
 } from "@agentclientprotocol/sdk/dist/schema";
 
 import getLogger from "@cocalc/backend/logger";
+import { make_patch } from "@cocalc/util/dmp";
+import type { CompressedPatch } from "@cocalc/util/dmp";
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
 
 const log = getLogger("ai:acp");
@@ -55,7 +57,16 @@ export type AcpMessageEvent = {
   text: string;
 };
 
-export type AcpStreamEvent = AcpThinkingEvent | AcpMessageEvent;
+export type AcpDiffEvent = {
+  type: "diff";
+  path: string;
+  patch: CompressedPatch;
+};
+
+export type AcpStreamEvent =
+  | AcpThinkingEvent
+  | AcpMessageEvent
+  | AcpDiffEvent;
 
 export type AcpStreamPayload =
   | {
@@ -154,6 +165,7 @@ class CodexClientHandler implements TerminalClient {
   private stream?: AcpStreamHandler;
   private lastResponse = "";
   private latestUsage?: AcpStreamUsage;
+  private fileSnapshots = new Map<string, string>();
   private terminals = new Map<
     string,
     {
@@ -255,6 +267,7 @@ class CodexClientHandler implements TerminalClient {
       limit,
     });
     const data = await fs.readFile(absolute, "utf8");
+    this.fileSnapshots.set(absolute, data);
     const content =
       line != null || limit != null
         ? sliceByLines(data, line ?? undefined, limit ?? undefined)
@@ -271,12 +284,15 @@ class CodexClientHandler implements TerminalClient {
     content,
   }: WriteTextFileRequest): Promise<WriteTextFileResponse> {
     const absolute = this.resolvePath(targetPath);
+    const previous = this.fileSnapshots.get(absolute);
     log.debug("acp.write_text_file", {
       path: absolute,
       bytes: content.length,
     });
     await fs.mkdir(path.dirname(absolute), { recursive: true });
     await fs.writeFile(absolute, content, "utf8");
+    this.fileSnapshots.set(absolute, content);
+    await this.emitDiffEvent(absolute, previous, content);
     return {};
   }
 
@@ -421,6 +437,27 @@ class CodexClientHandler implements TerminalClient {
     const usage = this.latestUsage;
     this.latestUsage = undefined;
     return usage;
+  }
+
+  private async emitDiffEvent(
+    path: string,
+    previous?: string,
+    next?: string,
+  ): Promise<void> {
+    if (!this.stream || previous == null || next == null) {
+      return;
+    }
+    if (previous === next) return;
+    const patch = make_patch(previous, next);
+    if (!patch.length) return;
+    await this.stream({
+      type: "event",
+      event: {
+        type: "diff",
+        path,
+        patch,
+      },
+    });
   }
 }
 

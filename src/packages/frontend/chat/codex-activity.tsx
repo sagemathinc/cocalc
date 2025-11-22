@@ -6,6 +6,11 @@ import {
   useState,
 } from "@cocalc/frontend/app-framework";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import {
+  DiffMatchPatch,
+  decompressPatch,
+  type CompressedPatch,
+} from "@cocalc/util/dmp";
 import { COLORS } from "@cocalc/util/theme";
 import type {
   AcpStreamEvent,
@@ -14,6 +19,7 @@ import type {
 import { plural } from "@cocalc/util/misc";
 
 const { Text } = Typography;
+const diffPrinter = new DiffMatchPatch();
 
 type ActivityEntry =
   | {
@@ -35,6 +41,13 @@ type ActivityEntry =
       label: string;
       detail?: string;
       level?: "info" | "error";
+    }
+  | {
+      kind: "diff";
+      id: string;
+      seq: number;
+      path: string;
+      patch: CompressedPatch;
     };
 
 export interface CodexActivityProps {
@@ -151,6 +164,27 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
           )}
         </div>
       );
+    case "diff":
+      return (
+        <div>
+          <Tag color="geekblue" style={{ marginBottom: 4 }}>
+            Diff
+          </Tag>
+          <Text strong>{entry.path}</Text>
+          <pre
+            style={{
+              background: "white",
+              color: "#333",
+              padding: "8px",
+              borderRadius: 4,
+              marginTop: 6,
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {patchToText(entry.patch)}
+          </pre>
+        </div>
+      );
     case "status":
     default:
       return (
@@ -206,6 +240,15 @@ function normalizeEvents(events: AcpStreamMessage[]): ActivityEntry[] {
 }
 
 function createEventEntry(event: AcpStreamEvent, seq: number): ActivityEntry {
+  if (event?.type === "diff") {
+    return {
+      kind: "diff",
+      id: `diff-${seq}`,
+      seq,
+      path: stringifyPath(event.path),
+      patch: normalizePatch(event.patch),
+    };
+  }
   if (event?.type === "thinking") {
     return {
       kind: "reasoning",
@@ -218,7 +261,7 @@ function createEventEntry(event: AcpStreamEvent, seq: number): ActivityEntry {
     kind: "agent",
     id: `agent-${seq}`,
     seq,
-    text: event?.text ?? "",
+    text: eventHasText(event) ? (event.text ?? "") : "",
   };
 }
 
@@ -258,6 +301,41 @@ function formatErrorDetail(error: unknown): string {
     return JSON.stringify(error);
   } catch {
     return String(error);
+  }
+}
+
+function patchToText(patch: CompressedPatch): string {
+  try {
+    return diffPrinter.patch_toText([decompressPatch(normalizePatch(patch))]);
+  } catch (err) {
+    return `Failed to render diff: ${err}`;
+  }
+}
+
+function eventHasText(
+  event?: AcpStreamEvent,
+): event is Extract<AcpStreamEvent, { text: string }> {
+  return event?.type === "thinking" || event?.type === "message";
+}
+
+function normalizePatch(patch: any): CompressedPatch {
+  if (patch == null) return [];
+  if (typeof patch.toJS === "function") {
+    return patch.toJS();
+  }
+  return patch as CompressedPatch;
+}
+
+function stringifyPath(pathValue: any): string {
+  if (typeof pathValue === "string") return pathValue;
+  if (pathValue == null) return "";
+  if (typeof pathValue.toString === "function") {
+    return pathValue.toString();
+  }
+  try {
+    return JSON.stringify(pathValue);
+  } catch {
+    return String(pathValue);
   }
 }
 

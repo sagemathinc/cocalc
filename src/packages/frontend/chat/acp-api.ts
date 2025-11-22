@@ -1,6 +1,7 @@
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type {
+  AcpStreamEvent,
   AcpStreamMessage,
   AcpStreamUsage,
 } from "@cocalc/conat/ai/acp/types";
@@ -201,12 +202,9 @@ export async function processAcpLLM({
   }
 }
 
-function extractEventText(event: any): string | undefined {
-  if (event == null || typeof event !== "object") return;
-  if (typeof event.text === "string") {
-    return event.text;
-  }
-  return;
+function extractEventText(event?: AcpStreamEvent): string | undefined {
+  if (!eventHasText(event)) return;
+  return event.text;
 }
 
 function appendStreamMessage(
@@ -220,9 +218,9 @@ function appendStreamMessage(
   const nextEvent = message.event;
   if (
     last?.type === "event" &&
-    last.event?.type === nextEvent?.type &&
-    typeof last.event?.text === "string" &&
-    typeof nextEvent?.text === "string"
+    eventHasText(last.event) &&
+    eventHasText(nextEvent) &&
+    last.event.type === nextEvent.type
   ) {
     const merged: AcpStreamMessage = {
       ...last,
@@ -235,6 +233,12 @@ function appendStreamMessage(
     return [...events.slice(0, -1), merged];
   }
   return [...events, message];
+}
+
+function eventHasText(
+  event?: AcpStreamEvent,
+): event is Extract<AcpStreamEvent, { text: string }> {
+  return event?.type === "thinking" || event?.type === "message";
 }
 
 function normalizeCodexMention(model?: string): string | undefined {
