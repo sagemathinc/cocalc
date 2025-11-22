@@ -30,7 +30,11 @@ import type {
   WriteTextFileRequest,
   WriteTextFileResponse,
 } from "@agentclientprotocol/sdk/dist/schema";
+
+import getLogger from "@cocalc/backend/logger";
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
+
+const log = getLogger("ai:acp");
 
 export type AcpStreamUsage = {
   input_tokens?: number;
@@ -195,6 +199,10 @@ class CodexClientHandler implements TerminalClient {
   }
 
   async sessionUpdate(params: SessionNotification): Promise<void> {
+    log.debug("acp.sessionUpdate", {
+      sessionId: params.sessionId,
+      update: params.update.sessionUpdate,
+    });
     if (!this.stream) return;
     const usageMeta =
       (params.update as any)?.meta?.token_usage ??
@@ -241,11 +249,20 @@ class CodexClientHandler implements TerminalClient {
     line,
   }: ReadTextFileRequest): Promise<ReadTextFileResponse> {
     const absolute = this.resolvePath(targetPath);
+    log.debug("acp.read_text_file", {
+      path: absolute,
+      line,
+      limit,
+    });
     const data = await fs.readFile(absolute, "utf8");
     const content =
       line != null || limit != null
         ? sliceByLines(data, line ?? undefined, limit ?? undefined)
         : data;
+    log.debug("acp.read_text_file.ok", {
+      path: absolute,
+      bytes: content.length,
+    });
     return { content };
   }
 
@@ -254,6 +271,10 @@ class CodexClientHandler implements TerminalClient {
     content,
   }: WriteTextFileRequest): Promise<WriteTextFileResponse> {
     const absolute = this.resolvePath(targetPath);
+    log.debug("acp.write_text_file", {
+      path: absolute,
+      bytes: content.length,
+    });
     await fs.mkdir(path.dirname(absolute), { recursive: true });
     await fs.writeFile(absolute, content, "utf8");
     return {};
@@ -268,6 +289,12 @@ class CodexClientHandler implements TerminalClient {
     outputByteLimit,
   }: CreateTerminalRequest): Promise<CreateTerminalResponse> {
     const terminalId = randomUUID();
+    log.debug("acp.create_terminal", {
+      command,
+      args,
+      cwd,
+      terminalId,
+    });
     const envVars: NodeJS.ProcessEnv = {
       ...process.env,
     };
@@ -331,6 +358,7 @@ class CodexClientHandler implements TerminalClient {
   async terminalOutput({
     terminalId,
   }: TerminalOutputRequest): Promise<TerminalOutputResponse> {
+    log.debug("acp.terminal_output", { terminalId });
     const state = this.terminals.get(terminalId);
     if (state == null) {
       throw new Error(`Unknown terminal ${terminalId}`);
@@ -345,6 +373,7 @@ class CodexClientHandler implements TerminalClient {
   async waitForTerminalExit({
     terminalId,
   }: WaitForTerminalExitRequest): Promise<WaitForTerminalExitResponse> {
+    log.debug("acp.wait_for_terminal_exit", { terminalId });
     const state = this.terminals.get(terminalId);
     if (state == null) {
       throw new Error(`Unknown terminal ${terminalId}`);
@@ -362,6 +391,7 @@ class CodexClientHandler implements TerminalClient {
   async killTerminal({
     terminalId,
   }: KillTerminalCommandRequest): Promise<KillTerminalResponse> {
+    log.debug("acp.kill_terminal", { terminalId });
     const state = this.terminals.get(terminalId);
     if (state == null) {
       throw new Error(`Unknown terminal ${terminalId}`);
@@ -373,6 +403,7 @@ class CodexClientHandler implements TerminalClient {
   async releaseTerminal({
     terminalId,
   }: ReleaseTerminalRequest): Promise<ReleaseTerminalResponse> {
+    log.debug("acp.release_terminal", { terminalId });
     const state = this.terminals.get(terminalId);
     if (state == null) {
       return {};
@@ -555,6 +586,9 @@ export class CodexAcpAgent implements AcpAgent {
     session_id,
     config,
   }: AcpEvaluateRequest): Promise<void> {
+    log.debug("acp.prompt.start", {
+      session: session_id,
+    });
     if (this.running) {
       throw new Error("ACP agent is already processing a request");
     }
@@ -574,6 +608,10 @@ export class CodexAcpAgent implements AcpAgent {
           },
         ],
       };
+      log.debug("acp.prompt.send", {
+        sessionId: session.sessionId,
+        bytes: prompt.length,
+      });
       await this.connection.prompt(request);
       const usage = this.handler.consumeLatestUsage();
       await stream({
@@ -583,6 +621,9 @@ export class CodexAcpAgent implements AcpAgent {
         usage: usage ?? undefined,
       });
     } finally {
+      log.debug("acp.prompt.end", {
+        session: session_id ?? session.sessionId,
+      });
       this.handler.clearStream();
       this.running = false;
     }
