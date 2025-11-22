@@ -32,6 +32,16 @@ export type AcpStreamEvent =
       patch: CompressedPatch;
     }
   | {
+      type: "file";
+      path: string;
+      operation: "read" | "write";
+      bytes?: number;
+      truncated?: boolean;
+      line?: number;
+      limit?: number;
+      existed?: boolean;
+    }
+  | {
       type: "terminal";
       terminalId: string;
       phase: "start" | "data" | "exit";

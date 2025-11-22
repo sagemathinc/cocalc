@@ -63,6 +63,17 @@ export type AcpDiffEvent = {
   patch: CompressedPatch;
 };
 
+export type AcpFileEvent = {
+  type: "file";
+  path: string;
+  operation: "read" | "write";
+  bytes?: number;
+  truncated?: boolean;
+  line?: number;
+  limit?: number;
+  existed?: boolean;
+};
+
 export type AcpTerminalEvent = {
   type: "terminal";
   terminalId: string;
@@ -80,6 +91,7 @@ export type AcpStreamEvent =
   | AcpThinkingEvent
   | AcpMessageEvent
   | AcpDiffEvent
+  | AcpFileEvent
   | AcpTerminalEvent;
 
 export type AcpStreamPayload =
@@ -290,6 +302,15 @@ class CodexClientHandler implements TerminalClient {
       path: absolute,
       bytes: content.length,
     });
+    const truncated =
+      content.length !== data.length || (line != null && line > 1);
+    await this.emitFileEvent(absolute, {
+      operation: "read",
+      bytes: content.length,
+      truncated,
+      line: line ?? undefined,
+      limit: limit ?? undefined,
+    });
     return { content };
   }
 
@@ -306,7 +327,15 @@ class CodexClientHandler implements TerminalClient {
     await fs.mkdir(path.dirname(absolute), { recursive: true });
     await fs.writeFile(absolute, content, "utf8");
     this.fileSnapshots.set(absolute, content);
-    await this.emitDiffEvent(absolute, previous, content);
+    const emittedDiff = await this.emitDiffEvent(absolute, previous, content);
+    if (!emittedDiff) {
+      await this.emitFileEvent(absolute, {
+        operation: "write",
+        bytes: content.length,
+        existed: previous != null,
+        truncated: false,
+      });
+    }
     return {};
   }
 
@@ -495,19 +524,35 @@ class CodexClientHandler implements TerminalClient {
     path: string,
     previous?: string,
     next?: string,
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (!this.stream || previous == null || next == null) {
-      return;
+      return false;
     }
-    if (previous === next) return;
+    if (previous === next) return false;
     const patch = make_patch(previous, next);
-    if (!patch.length) return;
+    if (!patch.length) return false;
     await this.stream({
       type: "event",
       event: {
         type: "diff",
         path,
         patch,
+      },
+    });
+    return true;
+  }
+
+  private async emitFileEvent(
+    path: string,
+    payload: Omit<AcpFileEvent, "type" | "path">,
+  ): Promise<void> {
+    if (!this.stream) return;
+    await this.stream({
+      type: "event",
+      event: {
+        type: "file",
+        path,
+        ...payload,
       },
     });
   }

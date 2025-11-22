@@ -65,6 +65,18 @@ type ActivityEntry =
         exitCode?: number;
         signal?: string;
       };
+    }
+  | {
+      kind: "file";
+      id: string;
+      seq: number;
+      path: string;
+      operation: "read" | "write";
+      bytes?: number;
+      truncated?: boolean;
+      line?: number;
+      limit?: number;
+      existed?: boolean;
     };
 
 export interface CodexActivityProps {
@@ -204,6 +216,8 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
       );
     case "terminal":
       return <TerminalRow entry={entry} />;
+    case "file":
+      return <FileRow entry={entry} />;
     case "status":
     default:
       return (
@@ -320,6 +334,20 @@ function createEventEntry({
       entry.truncated = event.truncated ?? entry.truncated;
     }
     return undefined;
+  }
+  if (event?.type === "file") {
+    return {
+      kind: "file",
+      id: `file-${seq}`,
+      seq,
+      path: stringifyPath(event.path),
+      operation: event.operation,
+      bytes: event.bytes,
+      truncated: event.truncated,
+      line: event.line,
+      limit: event.limit,
+      existed: event.existed,
+    };
   }
   if (event?.type === "thinking") {
     return {
@@ -475,6 +503,56 @@ function TerminalRow({
   );
 }
 
+function FileRow({
+  entry,
+}: {
+  entry: Extract<ActivityEntry, { kind: "file" }>;
+}) {
+  const isRead = entry.operation === "read";
+  const actionLabel = isRead
+    ? "Read"
+    : entry.existed === false
+      ? "Created"
+      : "Wrote";
+  const scope = formatReadScope(entry);
+  const sizeLabel =
+    typeof entry.bytes === "number" ? formatByteCount(entry.bytes) : undefined;
+  return (
+    <div>
+      <Space size={6} wrap align="center" style={{ marginBottom: 6 }}>
+        <Tag color={isRead ? "blue" : "green"}>File</Tag>
+        <Text strong>{actionLabel}</Text>
+        <code
+          style={{
+            fontSize: 12,
+            color: COLORS.GRAY_D,
+            background: COLORS.GRAY_LL,
+            padding: "0 4px",
+            borderRadius: 3,
+          }}
+        >
+          {entry.path || "(unknown)"}
+        </code>
+        {sizeLabel ? (
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {sizeLabel}
+          </Text>
+        ) : null}
+        {scope ? (
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {scope}
+          </Text>
+        ) : null}
+        {entry.truncated ? (
+          <Tag color="orange" style={{ margin: 0 }}>
+            Partial content
+          </Tag>
+        ) : null}
+      </Space>
+    </div>
+  );
+}
+
 function formatCommand(command?: string, args?: string[]): string | undefined {
   if (!command) return undefined;
   const parts = [command, ...(args ?? [])].filter(
@@ -501,6 +579,39 @@ function formatTerminalStatus(entry: {
       : `Exited with code ${status.exitCode}`;
   }
   return "Completed";
+}
+
+function formatByteCount(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} ${plural(bytes, "byte")}`;
+  }
+  if (bytes < 1024 * 1024) {
+    const kb = bytes / 1024;
+    return `${kb.toFixed(kb >= 10 ? 0 : 1)} KB`;
+  }
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toFixed(mb >= 10 ? 1 : 2)} MB`;
+}
+
+function formatReadScope(entry: {
+  operation: "read" | "write";
+  line?: number;
+  limit?: number;
+}): string | undefined {
+  if (entry.operation !== "read") return undefined;
+  const lineInfo =
+    typeof entry.line === "number" && entry.line > 1
+      ? `from line ${entry.line}`
+      : undefined;
+  const limitInfo =
+    typeof entry.limit === "number" && entry.limit > 0
+      ? `${entry.limit} ${plural(entry.limit, "line")}`
+      : undefined;
+  if (!lineInfo && !limitInfo) return undefined;
+  if (lineInfo && limitInfo) {
+    return `${lineInfo}, ${limitInfo}`;
+  }
+  return lineInfo ?? limitInfo;
 }
 
 export default CodexActivity;
