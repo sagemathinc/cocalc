@@ -14,11 +14,14 @@
   },
   "scripts": {
     "build": "pnpm exec tsc --build",
+    "test": "pnpm exec jest",
     "clean": "rm -rf dist node_modules",
     "depcheck": "pnpx depcheck --ignores=@types/node"
   },
   "dependencies": {},
   "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "ts-jest": "^29.4.5",
     "@types/node": "^22.10.10"
   },
   "license": "SEE LICENSE.md"
