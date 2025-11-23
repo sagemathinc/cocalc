@@ -129,7 +129,7 @@ export function CodexActivity({
         size="small"
         style={{
           marginTop: 8,
-          background: COLORS.GRAY_LL,
+          background: COLORS.GRAY_LLL,
           borderColor: COLORS.GRAY_L,
         }}
         bodyStyle={{ padding: "6px 10px" }}
@@ -144,7 +144,7 @@ export function CodexActivity({
       size="small"
       style={{
         marginTop: 8,
-        background: COLORS.GRAY_LL,
+        background: COLORS.GRAY_LLL,
         borderColor: COLORS.GRAY_L,
       }}
       bodyStyle={{ padding: "8px 10px" }}
@@ -526,7 +526,7 @@ function FileRow({
           style={{
             fontSize: 12,
             color: COLORS.GRAY_D,
-            background: COLORS.GRAY_LL,
+            background: COLORS.GRAY_LLL,
             padding: "0 4px",
             borderRadius: 3,
           }}
