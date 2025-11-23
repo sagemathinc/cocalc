@@ -62,7 +62,7 @@
     "test": "COCALC_PROJECT_ID=812abe34-a382-4bd1-9071-29b6f4334f03 COCALC_USERNAME=user NODE_OPTIONS='--experimental-vm-modules' pnpm exec jest",
     "depcheck": "pnpx depcheck --ignores=@vercel/ncc",
     "prepublishOnly": "pnpm test",
-    "clean": "rm -rf dist build",
+    "clean": "rm -rf dist build tsconfig.tsbuildinfo",
     "build:bundle": "cd sea && ./build-bundle.sh",
     "build:tarball": "pnpm run build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
     "run:bundle": "node ./build/bundle/bundle/index.js",

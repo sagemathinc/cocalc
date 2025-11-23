@@ -7,6 +7,7 @@
     "./llm/*": "./dist/llm/*.js",
     "./files/*": "./dist/files/*.js",
     "./ai/acp/*": "./dist/ai/acp/*.js",
+    "./ai/acp/types": "./dist/ai/acp/types.js",
     "./socket": "./dist/socket/index.js",
     "./socket/*": "./dist/socket/*.js",
     "./sync-doc": "./dist/sync-doc/index.js",
@@ -26,7 +27,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc --build",
-    "clean": "rm -rf dist node_modules",
+    "clean": "rm -rf dist node_modules tsconfig.tsbuildinfo",
     "test": "pnpm exec jest",
     "depcheck": "pnpx depcheck --ignores events,bufferutil,utf-8-validate"
   },

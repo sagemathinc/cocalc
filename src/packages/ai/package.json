@@ -24,7 +24,7 @@
   },
   "scripts": {
     "build": "pnpm exec tsc --build",
-    "clean": "rm -rf dist node_modules",
+    "clean": "rm -rf dist node_modules tsconfig.tsbuildinfo",
     "test": "pnpm exec jest",
     "depcheck": "pnpx depcheck --ignores=@types/jest,@types/node"
   },

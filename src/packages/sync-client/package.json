@@ -8,15 +8,23 @@
     "./*": "./dist/*.js",
     "./lib/*": "./dist/lib/*.js"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
-    "clean": "rm -rf node_modules dist",
+    "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo",
     "depcheck": "pnpx depcheck"
   },
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",

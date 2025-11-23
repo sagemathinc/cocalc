@@ -37,7 +37,7 @@
   ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "clean": "rm -rf node_modules dist",
+    "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo",
     "build": "../node_modules/.bin/tsc --build",
     "test": "TZ=UTC jest --forceExit --maxWorkers=1",
     "depcheck": "pnpx depcheck",

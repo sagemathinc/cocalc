@@ -173,7 +173,7 @@
     "depcheck": "pnpx depcheck --ignores cspell,@cspell/dict-typescript,events,@formatjs/cli,react-test-renderer,jest-environment-jsdom",
     "prepublishOnly": "pnpm test",
     "update-color-scheme": "node ./update-color-scheme.js",
-    "clean": "rm -rf dist node_modules i18n/trans/*.compiled.json",
+    "clean": "rm -rf dist node_modules i18n/trans/*.compiled.json tsconfig.tsbuildinfo",
     "i18n:extract": "bash ./i18n/bin/extract.sh",
     "i18n:upload": "bash ./i18n/bin/upload.sh",
     "i18n:download": "bash ./i18n/bin/download.sh",

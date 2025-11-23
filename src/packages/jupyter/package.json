@@ -22,13 +22,21 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
-    "clean": "rm -rf node_modules dist",
+    "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo",
     "test": "pnpm exec jest --forceExit --maxWorkers=1",
     "depcheck": "pnpx depcheck --ignores events"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",

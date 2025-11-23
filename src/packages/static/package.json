@@ -9,7 +9,7 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "clean": "rm -rf dist dist-ts node_modules",
+    "clean": "rm -rf dist dist-ts node_modules tsconfig.tsbuildinfo",
     "copy-css": "mkdir -p dist-ts/src && cp -v src/*.css dist-ts/src/ && cp -v src/*.svg dist-ts/src/ && cp -v src/*.html dist-ts/src/",
     "tsc": "pnpm run copy-css && cd src && ../../node_modules/.bin/tsc",
     "webpack-prod": "NODE_OPTIONS=--max_old_space_size=8000 NODE_ENV=production npx webpack --progress --color --watch",

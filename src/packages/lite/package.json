@@ -5,10 +5,13 @@
   "exports": {
     "./*": "./dist/*.js"
   },
-  "keywords": ["lite", "cocalc"],
+  "keywords": [
+    "lite",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "clean": "rm -rf build dist node_modules sea/sea-prep.blob",
+    "clean": "rm -rf build dist node_modules sea/sea-prep.blob tsconfig.tsbuildinfo",
     "build": "pnpm exec tsc --build",
     "test": "exit 0",
     "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node,@vercel/ncc",

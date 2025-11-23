@@ -12,7 +12,7 @@
     "katex": "^0.16.21"
   },
   "scripts": {
-    "clean": "rm -rf build node_modules dist",
+    "clean": "rm -rf build node_modules dist tsconfig.tsbuildinfo",
     "build": "rm -rf build dist && mkdir build && cp -rv *.json *.py *.js build/ && cp -rv cm-custom-theme build/ && cd build && npm ci && mkdir dist && ./setup.py && mv dist .. && cd .. && rm -rf build ",
     "postinstall": "./postinstall.js",
     "test": "../node_modules/.bin/jest",

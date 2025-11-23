@@ -11,7 +11,7 @@
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc  --pretty --preserveWatchOutput",
     "depcheck": "pnpx depcheck --ignores @vercel/ncc",
-    "clean": "rm -rf node_modules dist build",
+    "clean": "rm -rf node_modules dist build tsconfig.tsbuildinfo",
     "start": "pnpm exec cocalc-project-runner",
     "build:bundle": "cd sea && ./build-bundle.sh",
     "build:tarball": "pnpm run build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
@@ -22,9 +22,17 @@
   "bin": {
     "cocalc-project-runner": "./bin/start.js"
   },
-  "files": ["dist/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "btrfs", "cocalc"],
+  "keywords": [
+    "utilities",
+    "btrfs",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",

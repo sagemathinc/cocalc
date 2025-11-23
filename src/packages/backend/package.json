@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "clean": "rm -rf dist node_modules",
+    "clean": "rm -rf dist node_modules tsconfig.tsbuildinfo",
     "install-sandbox-tools": "echo 'require(\"@cocalc/backend/sandbox/install\").install()' | node",
     "install-all-tools": "echo 'require(\"@cocalc/backend/sandbox/install\").install(null,{optional:true})' | node",
     "install-bin-tools": "./bin/install.sh",
