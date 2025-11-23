@@ -40,6 +40,8 @@ interface AcpContext {
   };
   getLLMHistory: (reply_to: Date) => LanguageModelHistory;
   getCodexConfig?: (reply_to?: Date) => any;
+  setCodexConfig?: (threadKey: string, config: any) => void;
+  threadKey?: string;
 }
 
 type ProcessAcpRequest = {
@@ -70,8 +72,15 @@ export async function processAcpLLM({
     return;
   }
 
+  const threadDate =
+    context.threadKey != null
+      ? new Date(Number(context.threadKey))
+      : undefined;
+  const configDate =
+    reply_to ??
+    (threadDate && !Number.isNaN(threadDate.valueOf()) ? threadDate : undefined);
   const config = context.getCodexConfig
-    ? context.getCodexConfig(reply_to)
+    ? context.getCodexConfig(configDate)
     : undefined;
   const normalizedModel =
     typeof model === "string" ? normalizeCodexMention(model) : undefined;
@@ -186,6 +195,16 @@ export async function processAcpLLM({
       if (message.type === "summary") {
         if (message.threadId) {
           threadId = message.threadId;
+          if (
+            context.threadKey &&
+            context.setCodexConfig &&
+            threadId !== config?.sessionId
+          ) {
+            context.setCodexConfig(context.threadKey, {
+              ...(config ?? {}),
+              sessionId: threadId,
+            });
+          }
         }
         if (message.usage) {
           usage = message.usage;
@@ -298,6 +317,9 @@ function buildAcpConfig({
   }
   if (config?.codexPathOverride) {
     opts.codexPathOverride = config.codexPathOverride;
+  }
+  if (config?.sessionId) {
+    opts.sessionId = config.sessionId;
   }
   return opts;
 }

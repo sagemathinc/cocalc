@@ -98,8 +98,7 @@ export function message_colors(
 } {
   if (sender_is_viewer(account_id, message)) {
     return {
-      background: "#46b1f6",
-      color: "#fff",
+      background: "#f4f4f4",
       message_class: "smc-message-from-viewer",
     };
   } else {

@@ -75,9 +75,6 @@ importers:
       '@langchain/openai':
         specifier: ^1.1.2
         version: 1.1.2(@langchain/core@1.0.6(@opentelemetry/api@1.9.0)(openai@6.9.1(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@4.1.12)))(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))
-      '@openai/codex-sdk':
-        specifier: ^0.60.1
-        version: 0.60.1
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -3704,10 +3701,6 @@ packages:
   '@oozcitak/util@8.3.8':
     resolution: {integrity: sha512-T8TbSnGsxo6TDBJx/Sgv/BlVJL3tshxZP7Aq5R1mSnM5OcHY2dQaxLMu2+E8u3gN0MLOzdjurqN4ZRVuzQycOQ==}
     engines: {node: '>=8.0'}
-
-  '@openai/codex-sdk@0.60.1':
-    resolution: {integrity: sha512-w7FhUXfqpzw9igTZFfKS7cUNW1FK+tT426ZkClG2X8vufW0jyGqfgPd6Uq8+gJgSTLxayF9I802FDW2KjYcfYQ==}
-    engines: {node: '>=18'}
 
   '@openapitools/openapi-generator-cli@2.25.0':
     resolution: {integrity: sha512-u/3VAbF8c68AXBgm8nBAdDPLPW/KgrtHz28yemf92zNB0iDZFGdRUX2W80Lzf177g6ctYLz0GIPHCOU0LTJegQ==}
@@ -14669,8 +14662,6 @@ snapshots:
       '@oozcitak/util': 8.3.8
 
   '@oozcitak/util@8.3.8': {}
-
-  '@openai/codex-sdk@0.60.1': {}
 
   '@openapitools/openapi-generator-cli@2.25.0(@types/node@22.19.1)(encoding@0.1.13)':
     dependencies:

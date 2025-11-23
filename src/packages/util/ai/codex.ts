@@ -15,6 +15,7 @@ export type CodexReasoningId = CodexReasoningLevel["id"];
 
 export interface CodexSessionConfig {
   workingDirectory?: string;
+  sessionId?: string;
   model?: string;
   reasoning?: CodexReasoningId;
   allowWrite?: boolean;

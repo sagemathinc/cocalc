@@ -13,6 +13,9 @@ async function ensureAgent(): Promise<AcpAgent> {
   if (agent != null) return agent;
   const mode = process.env.COCALC_ACP_MODE;
   logger.debug("ensureAgent", { mode });
+  const sessionsDir =
+    process.env.COCALC_ACP_SESSIONS_DIR ??
+    path.join(process.cwd(), "data/codex-sessions");
   if (mode === "echo") {
     logger.debug("ensureAgent: creating echo agent");
     agent = new EchoAgent();
@@ -23,6 +26,7 @@ async function ensureAgent(): Promise<AcpAgent> {
     agent = await CodexAcpAgent.create({
       binaryPath: process.env.COCALC_ACP_AGENT_BIN,
       cwd: process.cwd(),
+      sessionPersistPath: sessionsDir,
     });
     logger.info("codex-acp agent ready");
   } catch (err) {

@@ -941,6 +941,22 @@ export class ChatActions extends Actions<ChatState> {
     //input = stripDetails(input);
 
     if (typeof model === "string" && model.includes("codex")) {
+      const messagesMap = store.get("messages");
+      let threadKey: string | undefined;
+      const baseDate =
+        reply_to?.valueOf() ??
+        (message.date instanceof Date
+          ? message.date.valueOf()
+          : new Date(message.date ?? Date.now()).valueOf());
+      if (baseDate != null && !Number.isNaN(baseDate) && messagesMap) {
+        const rootMs =
+          getThreadRootDate({ date: baseDate, messages: messagesMap }) ??
+          baseDate;
+        threadKey = `${rootMs}`;
+      } else if (baseDate != null && !Number.isNaN(baseDate)) {
+        threadKey = `${baseDate}`;
+      }
+
       await processAcpLLM({
         message,
         reply_to,
@@ -957,6 +973,8 @@ export class ChatActions extends Actions<ChatState> {
           getLLMHistory: this.getLLMHistory,
           getCodexConfig: (reply_to_date?: Date) =>
             this.getCodexConfig(reply_to_date ?? reply_to ?? undefined),
+          setCodexConfig: this.setCodexConfig,
+          threadKey,
         },
       });
       return;

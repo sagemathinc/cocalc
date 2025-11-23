@@ -24,7 +24,6 @@
   },
   "scripts": {
     "build": "pnpm exec tsc --build",
-    "tsc": "pnpm exec tsc --watch --pretty --preserveWatchOutput",
     "clean": "rm -rf dist node_modules",
     "test": "pnpm exec jest",
     "depcheck": "pnpx depcheck --ignores=@types/jest,@types/node"

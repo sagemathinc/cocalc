@@ -171,6 +171,8 @@ interface CodexAcpAgentOptions {
   binaryPath?: string;
   env?: NodeJS.ProcessEnv;
   cwd?: string;
+  sessionPersistPath?: string;
+  disableSessionPersist?: boolean;
 }
 
 interface TerminalClient extends Client {
@@ -674,10 +676,18 @@ export class CodexAcpAgent implements AcpAgent {
     const binary =
       options.binaryPath ?? process.env.COCALC_ACP_AGENT_BIN ?? "codex-acp";
 
+    const args: string[] = [];
+    if (options.disableSessionPersist) {
+      args.push("--no-session-persist");
+    } else if (options.sessionPersistPath) {
+      args.push("--session-persist", options.sessionPersistPath);
+    }
+
     const HOME = process.env.COCALC_ORIGINAL_HOME ?? process.env.HOME;
-    const child = spawn(binary, [], {
+    const child = spawn(binary, args, {
       stdio: ["pipe", "pipe", "inherit"],
       env: { ...process.env, HOME, ...options.env },
+      cwd: options.cwd ?? process.cwd(),
     });
 
     await new Promise<void>((resolve, reject) => {
@@ -785,12 +795,27 @@ export class CodexAcpAgent implements AcpAgent {
     const normalizedKey = this.normalizeSessionKey(sessionKey);
     const cwd = this.normalizeWorkingDirectory(config);
     let session = this.sessions.get(normalizedKey);
+    if (session == null && config?.sessionId) {
+      session = this.findSessionById(config.sessionId);
+    }
     if (session == null || session.cwd !== cwd) {
-      session = await this.createSession(cwd);
+      session = (await this.tryResumeSession(cwd, config)) ?? (await this.createSession(cwd));
       this.sessions.set(normalizedKey, session);
+    }
+    if (!this.sessions.has(session.sessionId)) {
+      this.sessions.set(session.sessionId, session);
     }
     await this.applySessionConfig(session, config);
     return session;
+  }
+
+  private findSessionById(sessionId: string): SessionState | undefined {
+    for (const state of this.sessions.values()) {
+      if (state.sessionId === sessionId) {
+        return state;
+      }
+    }
+    return undefined;
   }
 
   private async createSession(cwd: string): Promise<SessionState> {
@@ -804,6 +829,31 @@ export class CodexAcpAgent implements AcpAgent {
       modelId: response.models?.currentModelId ?? undefined,
       modeId: response.modes?.currentModeId ?? undefined,
     };
+  }
+
+  private async tryResumeSession(
+    cwd: string,
+    config?: CodexSessionConfig,
+  ): Promise<SessionState | undefined> {
+    const target = config?.sessionId?.trim();
+    if (!target) return undefined;
+    try {
+      const response = await this.connection.loadSession({
+        sessionId: target,
+        cwd,
+        mcpServers: [],
+      });
+      log.info("acp.session.resume", { sessionId: target });
+      return {
+        sessionId: target,
+        cwd,
+        modelId: response.models?.currentModelId ?? undefined,
+        modeId: response.modes?.currentModeId ?? undefined,
+      };
+    } catch (err) {
+      log.warn("acp.session.resume_failed", { sessionId: target, err });
+      return undefined;
+    }
   }
 
   private async applySessionConfig(
