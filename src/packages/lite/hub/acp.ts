@@ -4,11 +4,7 @@ import os from "node:os";
 import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import getLogger from "@cocalc/backend/logger";
-import {
-  CodexAcpAgent,
-  EchoAgent,
-  type AcpAgent,
-} from "@cocalc/ai/acp";
+import { CodexAcpAgent, EchoAgent, type AcpAgent } from "@cocalc/ai/acp";
 import { init as initConatAcp } from "@cocalc/conat/ai/acp/server";
 import type {
   AcpRequest,
@@ -22,13 +18,15 @@ import { getBlobstore } from "./blobs/download";
 import { type AKV } from "@cocalc/conat/sync/akv";
 import { buildChatMessage, type MessageHistory } from "@cocalc/chat";
 import { createChatSyncDB } from "@cocalc/chat/server";
-import {
-  appendStreamMessage,
-  extractEventText,
-} from "@cocalc/chat";
+import { appendStreamMessage, extractEventText } from "@cocalc/chat";
 import type { SyncDB } from "@cocalc/conat/sync-doc/syncdb";
 import type { AcpStreamUsage } from "@cocalc/ai/acp";
 import { once } from "@cocalc/util/async-utils";
+import {
+  enqueueAcpPayload,
+  listAcpPayloads,
+  clearAcpPayloads,
+} from "./sqlite/acp-queue";
 
 const logger = getLogger("lite:hub:acp");
 
@@ -48,6 +46,7 @@ class ChatStreamWriter {
   private threadId: string | null = null;
   private seq = 0;
   private hasSummary = false;
+  private finished = false;
 
   constructor({
     metadata,
@@ -62,16 +61,27 @@ class ChatStreamWriter {
       project_id: metadata.project_id,
       path: metadata.path,
     });
-    this.ready = this.initialize();
+    // ensure initialization rejections are observed immediately
+    this.ready = this.initialize().catch((err) => {
+      logger.warn("chat stream writer failed to initialize", err);
+      this.closed = true;
+      throw err;
+    });
   }
 
   private async initialize(): Promise<void> {
-    if (typeof (this.syncdb as any).isReady === "function") {
-      if (!(this.syncdb as any).isReady()) {
+    if (!this.syncdb.isReady()) {
+      try {
         await once(this.syncdb, "ready");
+        logger.debug(
+          "ready to write to",
+          this.metadata.path,
+          this.metadata.project_id,
+        );
+      } catch (err) {
+        logger.warn("chat syncdb failed to become ready", err);
+        throw err;
       }
-    } else {
-      await once(this.syncdb, "ready");
     }
     const current = this.syncdb.get_one({
       event: "chat",
@@ -82,6 +92,10 @@ class ChatStreamWriter {
     const arr = this.historyToArray(history);
     if (arr.length > 0) {
       this.prevHistory = arr.slice(1);
+    }
+    const queued = listAcpPayloads(this.metadata);
+    for (const payload of queued) {
+      this.processPayload(payload, { persist: false });
     }
   }
 
@@ -99,16 +113,34 @@ class ChatStreamWriter {
     if (this.closed) return;
     if (payload == null) {
       if (!this.hasSummary && this.content) {
-        await this.commit(false);
+        this.commit(false);
       }
-      await this.dispose();
+      this.dispose();
       return;
     }
     const message: AcpStreamMessage = {
       ...(payload as AcpStreamMessage),
       seq: this.seq++,
     };
-    this.events = appendStreamMessage(this.events, message);
+    this.processPayload(message, { persist: true });
+  }
+
+  private processPayload(
+    payload: AcpStreamMessage,
+    { persist }: { persist: boolean },
+  ): void {
+    if (this.closed) return;
+    if ((payload.seq ?? -1) >= this.seq) {
+      this.seq = (payload.seq ?? -1) + 1;
+    }
+    if (persist) {
+      try {
+        enqueueAcpPayload(this.metadata, payload);
+      } catch (err) {
+        logger.warn("failed to enqueue acp payload", err);
+      }
+    }
+    this.events = appendStreamMessage(this.events, payload);
     if (payload.type === "event") {
       const text = extractEventText(payload.event);
       if (text) {
@@ -127,16 +159,20 @@ class ChatStreamWriter {
       if (payload.threadId != null) {
         this.threadId = payload.threadId;
       }
-      await this.commit(false);
+      this.commit(false);
+      clearAcpPayloads(this.metadata);
+      this.finished = true;
       return;
     }
     if (payload.type === "error") {
       this.content = `\n\n<span style='color:#b71c1c'>${payload.error}</span>\n\n`;
-      await this.commit(false);
+      this.commit(false);
+      clearAcpPayloads(this.metadata);
+      this.finished = true;
     }
   }
 
-  private async commit(generating: boolean): Promise<void> {
+  private commit(generating: boolean): void {
     if (!this.content && !this.events.length) return;
     const message = buildChatMessage({
       sender_id: this.metadata.sender_id,
@@ -155,9 +191,12 @@ class ChatStreamWriter {
     }
   }
 
-  async dispose(): Promise<void> {
+  dispose(): void {
     if (this.closed) return;
     this.closed = true;
+    if (!this.finished) {
+      clearAcpPayloads(this.metadata);
+    }
     try {
       this.syncdb.close();
     } catch (err) {
@@ -209,6 +248,11 @@ export async function evaluate({
           client: conatClient,
         })
       : null;
+  logger.debug("evaluate", {
+    conatClient: !!conatClient,
+    request,
+    chatWriter: !!chatWriter,
+  });
   const wrappedStream = async (payload?: AcpStreamPayload | null) => {
     if (chatWriter != null) {
       try {
@@ -227,7 +271,7 @@ export async function evaluate({
       stream: wrappedStream,
     });
   } finally {
-    await chatWriter?.dispose();
+    chatWriter?.dispose();
     await cleanup();
   }
 }
