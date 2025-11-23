@@ -35,6 +35,7 @@ import getLogger from "@cocalc/backend/logger";
 import { make_patch } from "@cocalc/util/dmp";
 import type { CompressedPatch } from "@cocalc/util/dmp";
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
+import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
 
 const log = getLogger("ai:acp");
 const MAX_TERMINAL_STREAM_CHARS = 4000;
@@ -144,6 +145,7 @@ export interface AcpEvaluateRequest {
   session_id?: string;
   stream: AcpStreamHandler;
   config?: CodexSessionConfig;
+  chat?: AcpChatContext;
 }
 
 export interface AcpAgent {

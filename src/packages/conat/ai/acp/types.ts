@@ -1,11 +1,20 @@
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
 import type { CompressedPatch } from "@cocalc/util/dmp";
 
+export interface AcpChatContext {
+  project_id: string;
+  path: string;
+  message_date: string;
+  sender_id: string;
+  reply_to?: string;
+}
+
 export type AcpRequest = {
   account_id: string;
   prompt: string;
   session_id?: string;
   config?: CodexSessionConfig;
+  chat?: AcpChatContext;
 };
 
 export type AcpStreamUsage = {

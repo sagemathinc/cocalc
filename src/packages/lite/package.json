@@ -33,6 +33,7 @@
     "@cocalc/assets": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/ai": "workspace:*",
+    "@cocalc/chat": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/lite": "workspace:*",
     "@cocalc/project": "workspace:*",

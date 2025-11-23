@@ -4,18 +4,167 @@ import os from "node:os";
 import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import getLogger from "@cocalc/backend/logger";
-import { CodexAcpAgent, EchoAgent, type AcpAgent } from "@cocalc/ai/acp";
+import {
+  CodexAcpAgent,
+  EchoAgent,
+  type AcpAgent,
+} from "@cocalc/ai/acp";
 import { init as initConatAcp } from "@cocalc/conat/ai/acp/server";
-import type { AcpRequest, AcpStreamPayload } from "@cocalc/conat/ai/acp/types";
+import type {
+  AcpRequest,
+  AcpStreamPayload,
+  AcpStreamMessage,
+  AcpChatContext,
+} from "@cocalc/conat/ai/acp/types";
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { getBlobstore } from "./blobs/download";
 import { type AKV } from "@cocalc/conat/sync/akv";
+import { buildChatMessage, type MessageHistory } from "@cocalc/chat";
+import { createChatSyncDB } from "@cocalc/chat/server";
+import {
+  appendStreamMessage,
+  extractEventText,
+} from "@cocalc/chat";
+import type { SyncDB } from "@cocalc/conat/sync-doc/syncdb";
+import type { AcpStreamUsage } from "@cocalc/ai/acp";
+import { once } from "@cocalc/util/async-utils";
 
 const logger = getLogger("lite:hub:acp");
 
 let blobStore: AKV | null = null;
 let agent: AcpAgent | null = null;
+let conatClient: ConatClient | null = null;
+
+class ChatStreamWriter {
+  private syncdb: SyncDB;
+  private metadata: AcpChatContext;
+  private prevHistory: MessageHistory[] = [];
+  private ready: Promise<void>;
+  private closed = false;
+  private events: AcpStreamMessage[] = [];
+  private usage: AcpStreamUsage | null = null;
+  private content = "";
+  private threadId: string | null = null;
+  private seq = 0;
+  private hasSummary = false;
+
+  constructor({
+    metadata,
+    client,
+  }: {
+    metadata: AcpChatContext;
+    client: ConatClient;
+  }) {
+    this.metadata = metadata;
+    this.syncdb = createChatSyncDB({
+      client,
+      project_id: metadata.project_id,
+      path: metadata.path,
+    });
+    this.ready = this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
+    if (typeof (this.syncdb as any).isReady === "function") {
+      if (!(this.syncdb as any).isReady()) {
+        await once(this.syncdb, "ready");
+      }
+    } else {
+      await once(this.syncdb, "ready");
+    }
+    const current = this.syncdb.get_one({
+      event: "chat",
+      date: this.metadata.message_date,
+    });
+    if (current == null) return;
+    const history = current.get("history");
+    const arr = this.historyToArray(history);
+    if (arr.length > 0) {
+      this.prevHistory = arr.slice(1);
+    }
+  }
+
+  private historyToArray(value: any): MessageHistory[] {
+    if (value == null) return [];
+    if (Array.isArray(value)) return value;
+    if (typeof value.toJS === "function") {
+      return value.toJS();
+    }
+    return [];
+  }
+
+  async handle(payload?: AcpStreamPayload | null): Promise<void> {
+    await this.ready;
+    if (this.closed) return;
+    if (payload == null) {
+      if (!this.hasSummary && this.content) {
+        await this.commit(false);
+      }
+      await this.dispose();
+      return;
+    }
+    const message: AcpStreamMessage = {
+      ...(payload as AcpStreamMessage),
+      seq: this.seq++,
+    };
+    this.events = appendStreamMessage(this.events, message);
+    if (payload.type === "event") {
+      const text = extractEventText(payload.event);
+      if (text) {
+        this.content = text;
+      }
+      return;
+    }
+    if (payload.type === "summary") {
+      this.hasSummary = true;
+      if (payload.finalResponse) {
+        this.content = payload.finalResponse;
+      }
+      if (payload.usage) {
+        this.usage = payload.usage;
+      }
+      if (payload.threadId != null) {
+        this.threadId = payload.threadId;
+      }
+      await this.commit(false);
+      return;
+    }
+    if (payload.type === "error") {
+      this.content = `\n\n<span style='color:#b71c1c'>${payload.error}</span>\n\n`;
+      await this.commit(false);
+    }
+  }
+
+  private async commit(generating: boolean): Promise<void> {
+    if (!this.content && !this.events.length) return;
+    const message = buildChatMessage({
+      sender_id: this.metadata.sender_id,
+      date: this.metadata.message_date,
+      prevHistory: this.prevHistory,
+      content: this.content,
+      generating,
+      reply_to: this.metadata.reply_to,
+      acp_events: this.events,
+      acp_thread_id: this.threadId,
+      acp_usage: this.usage,
+    });
+    this.syncdb.set(message);
+    if (!generating) {
+      this.syncdb.commit();
+    }
+  }
+
+  async dispose(): Promise<void> {
+    if (this.closed) return;
+    this.closed = true;
+    try {
+      this.syncdb.close();
+    } catch (err) {
+      logger.warn("failed to close chat syncdb", err);
+    }
+  }
+}
 
 async function ensureAgent(): Promise<AcpAgent> {
   if (agent != null) return agent;
@@ -53,20 +202,39 @@ export async function evaluate({
   const currentAgent = await ensureAgent();
   const config = normalizeConfig(request.config);
   const { prompt, cleanup } = await materializeBlobs(request.prompt ?? "");
+  const chatWriter =
+    request.chat && conatClient
+      ? new ChatStreamWriter({
+          metadata: request.chat,
+          client: conatClient,
+        })
+      : null;
+  const wrappedStream = async (payload?: AcpStreamPayload | null) => {
+    if (chatWriter != null) {
+      try {
+        await chatWriter.handle(payload);
+      } catch (err) {
+        logger.warn("chat writer handle failed", err);
+      }
+    }
+    await stream(payload);
+  };
   try {
     await currentAgent.evaluate({
       ...request,
       prompt,
       config,
-      stream,
+      stream: wrappedStream,
     });
   } finally {
+    await chatWriter?.dispose();
     await cleanup();
   }
 }
 
 export async function init(client: ConatClient): Promise<void> {
   logger.debug("initializing acp conat server");
+  conatClient = client;
   process.once("exit", () => {
     agent?.dispose?.().catch((err) => {
       logger.warn("failed to dispose ACP agent", err);

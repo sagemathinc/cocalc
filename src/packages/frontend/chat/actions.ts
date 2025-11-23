@@ -967,6 +967,7 @@ export class ChatActions extends Actions<ChatState> {
         context: {
           syncdb: this.syncdb,
           path: store.get("path"),
+           project_id: store.get("project_id"),
           chatStreams: this.chatStreams,
           sendReply: this.sendReply,
           saveHistory: this.saveHistory,

@@ -1,8 +1,11 @@
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { buildChatMessage } from "@cocalc/chat";
+import {
+  buildChatMessage,
+  appendStreamMessage,
+  extractEventText,
+} from "@cocalc/chat";
 import type {
-  AcpStreamEvent,
   AcpStreamMessage,
   AcpStreamUsage,
 } from "@cocalc/conat/ai/acp/types";
@@ -43,6 +46,7 @@ interface AcpContext {
   getCodexConfig?: (reply_to?: Date) => any;
   setCodexConfig?: (threadKey: string, config: any) => void;
   threadKey?: string;
+  project_id?: string;
 }
 
 type ProcessAcpRequest = {
@@ -152,6 +156,17 @@ export async function processAcpLLM({
     }
   };
 
+  const chatMetadata =
+    context.project_id != null && path && date
+      ? {
+          project_id: context.project_id,
+          path,
+          message_date: date,
+          sender_id,
+          reply_to: reply_to?.toISOString(),
+        }
+      : undefined;
+
   try {
     const stream = await webapp_client.conat_client.streamAcp({
       prompt: workingInput,
@@ -161,6 +176,7 @@ export async function processAcpLLM({
         config,
         model: normalizedModel,
       }),
+      chat: chatMetadata,
     });
 
     for await (const message of stream) {
@@ -217,45 +233,6 @@ export async function processAcpLLM({
     chatStreams.delete(id);
     update(false);
   }
-}
-
-function extractEventText(event?: AcpStreamEvent): string | undefined {
-  if (!eventHasText(event)) return;
-  return event.text;
-}
-
-function appendStreamMessage(
-  events: AcpStreamMessage[],
-  message: AcpStreamMessage,
-): AcpStreamMessage[] {
-  if (message.type !== "event") {
-    return [...events, message];
-  }
-  const last = events[events.length - 1];
-  const nextEvent = message.event;
-  if (
-    last?.type === "event" &&
-    eventHasText(last.event) &&
-    eventHasText(nextEvent) &&
-    last.event.type === nextEvent.type
-  ) {
-    const merged: AcpStreamMessage = {
-      ...last,
-      event: {
-        ...last.event,
-        text: last.event.text + nextEvent.text,
-      },
-      seq: message.seq ?? last.seq,
-    };
-    return [...events.slice(0, -1), merged];
-  }
-  return [...events, message];
-}
-
-function eventHasText(
-  event?: AcpStreamEvent,
-): event is Extract<AcpStreamEvent, { text: string }> {
-  return event?.type === "thinking" || event?.type === "message";
 }
 
 function normalizeCodexMention(model?: string): string | undefined {

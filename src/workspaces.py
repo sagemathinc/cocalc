@@ -447,6 +447,22 @@ def clean(args) -> None:
         thread_map(f, paths + ['packages/node_modules'], nb_threads=10)
 
     if not args.node_modules_only:
+        # remove TypeScript incremental build metadata so future builds don't
+        # assume outputs exist when we've just deleted them.
+        banner("Removing tsconfig.tsbuildinfo files...")
+
+        def remove_tsbuildinfo(package_path: str) -> None:
+            tsinfo = os.path.join(package_path, "tsconfig.tsbuildinfo")
+            if os.path.exists(tsinfo):
+                print(f"rm -f '{tsinfo}'")
+                try:
+                    os.unlink(tsinfo)
+                except FileNotFoundError:
+                    pass
+
+        for package in v:
+            remove_tsbuildinfo(os.path.abspath(package))
+
         banner("Running 'pnpm run clean' if it exists...")
 
         def g(path):

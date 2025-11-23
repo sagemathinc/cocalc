@@ -7,17 +7,19 @@
     "target": "ES2021",
     "baseUrl": ".",
     "paths": {
-      "@langchain/core/*": ["../ai/node_modules/@langchain/core/dist/*"]
+      "@langchain/core/*": ["../ai/node_modules/@langchain/core/dist/*"],
+      "@cocalc/chat": ["../chat/dist/index"],
+      "@cocalc/chat/*": ["../chat/dist/*"]
     }
   },
   "exclude": ["dist", "node_modules", "build"],
   "references": [
-    {
-      "path": "../backend",
-      "path": "../conat",
-      "path": "../project",
-      "path": "../static",
-      "path": "../util"
-    }
+    { "path": "../ai" },
+    { "path": "../backend" },
+    { "path": "../chat" },
+    { "path": "../conat" },
+    { "path": "../project" },
+    { "path": "../static" },
+    { "path": "../util" }
   ]
 }
