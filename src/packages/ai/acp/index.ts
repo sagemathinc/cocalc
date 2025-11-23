@@ -391,7 +391,10 @@ class CodexClientHandler implements TerminalClient {
       terminalId,
     });
     const envVars: NodeJS.ProcessEnv = this.buildEnv(env);
-    const limit = outputByteLimit != null ? Number(outputByteLimit) : undefined;
+    const limit =
+      outputByteLimit != null
+        ? Number(outputByteLimit)
+        : MAX_TERMINAL_STREAM_CHARS;
     const customInvocation = this.resolveCustomCommand(command, args ?? []);
     if (customInvocation) {
       await this.startCustomCommand({
@@ -612,7 +615,7 @@ class CodexClientHandler implements TerminalClient {
       truncated: false,
       exitStatus: undefined,
       waiters: [],
-      limit,
+      limit: limit ?? MAX_TERMINAL_STREAM_CHARS,
     };
     const abortController = new AbortController();
     state.stop = () => {
