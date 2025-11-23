@@ -391,16 +391,16 @@ class CodexClientHandler implements TerminalClient {
     });
     const envVars: NodeJS.ProcessEnv = this.buildEnv(env);
     const limit = outputByteLimit != null ? Number(outputByteLimit) : undefined;
-    const customHandler = this.commandHandlers?.get(command);
-    if (customHandler) {
+    const customInvocation = this.resolveCustomCommand(command, args ?? []);
+    if (customInvocation) {
       await this.startCustomCommand({
         terminalId,
-        command,
-        args: args ?? [],
+        command: customInvocation.command,
+        args: customInvocation.args,
         cwd: cwd ?? process.cwd(),
         env: envVars,
         limit,
-        handler: customHandler,
+        handler: customInvocation.handler,
       });
       return { terminalId };
     }
@@ -495,6 +495,98 @@ class CodexClientHandler implements TerminalClient {
       envVars[variable.name] = variable.value;
     }
     return envVars;
+  }
+
+  private resolveCustomCommand(
+    command: string,
+    args: string[],
+  ):
+    | { command: string; args: string[]; handler: CustomCommandHandler }
+    | undefined {
+    if (!this.commandHandlers?.size) {
+      return undefined;
+    }
+    const direct = this.commandHandlers.get(command);
+    if (direct) {
+      return { command, args, handler: direct };
+    }
+    const script = this.extractShellScript(command, args);
+    if (!script) {
+      return undefined;
+    }
+    const parsed = this.parseCustomScript(script);
+    if (!parsed) {
+      return undefined;
+    }
+    const handler = this.commandHandlers.get(parsed.command);
+    if (!handler) {
+      return undefined;
+    }
+    return { command: parsed.command, args: parsed.args, handler };
+  }
+
+  private extractShellScript(
+    command: string,
+    args: string[],
+  ): string | undefined {
+    const shells = new Set([
+      "/bin/bash",
+      "/bin/sh",
+      "/bin/zsh",
+      "bash",
+      "sh",
+      "zsh",
+    ]);
+    const shellFlags = new Set(["-c", "-lc"]);
+
+    const findScript = (shellArgs: string[]): string | undefined => {
+      const idx = shellArgs.findIndex((arg) => shellFlags.has(arg));
+      if (idx === -1 || idx + 1 >= shellArgs.length) {
+        return undefined;
+      }
+      return shellArgs[idx + 1];
+    };
+
+    if (shells.has(command)) {
+      return findScript(args);
+    }
+
+    if (command === "/usr/bin/env" || command === "env") {
+      const envArgs = [...args];
+      while (envArgs.length && envArgs[0].includes("=") && !envArgs[0].startsWith("-")) {
+        envArgs.shift();
+      }
+      if (!envArgs.length) {
+        return undefined;
+      }
+      const nextCommand = envArgs.shift()!;
+      if (!shells.has(nextCommand)) {
+        return undefined;
+      }
+      return findScript(envArgs);
+    }
+
+    return undefined;
+  }
+
+  private parseCustomScript(
+    script: string,
+  ): { command: string; args: string[] } | undefined {
+    const trimmed = script.trim();
+    if (!trimmed) return undefined;
+    // Extracts the first token as the command and captures everything up to the
+    // next shell control character (&, |, ;) as a single argument payload.
+    const match = trimmed.match(/^([^\s]+)(?:\s+([^&|;]+))?\s*$/);
+    if (!match) return undefined;
+    const command = match[1];
+    const argText = match[2]?.trim();
+    if (!argText) {
+      return { command, args: [] };
+    }
+    return {
+      command,
+      args: [stripQuotes(argText)],
+    };
   }
 
   private async startCustomCommand({
@@ -757,6 +849,17 @@ async function* toAsyncIterable(
     return;
   }
   yield String(output);
+}
+
+function stripQuotes(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed.length) return trimmed;
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+  if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
 }
 
 function mapTokenUsage(payload: any): AcpStreamUsage | undefined {
