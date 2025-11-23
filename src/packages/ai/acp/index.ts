@@ -696,15 +696,18 @@ export class CodexAcpAgent implements AcpAgent {
     const handler = new CodexClientHandler();
     const connection = new ClientSideConnection(() => handler, stream);
 
+    const clientCapabilities = {
+      fs: {
+        readTextFile: true,
+        writeTextFile: true,
+      },
+      terminal: true,
+    };
+    log.debug("acp.initialize", { clientCapabilities });
+
     await connection.initialize({
       protocolVersion: PROTOCOL_VERSION,
-      clientCapabilities: {
-        fs: {
-          readTextFile: true,
-          writeTextFile: true,
-        },
-        terminal: true,
-      },
+      clientCapabilities,
     });
 
     return new CodexAcpAgent({
