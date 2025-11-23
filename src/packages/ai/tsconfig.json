@@ -13,5 +13,10 @@
     }
   },
   "include": ["./**/*.ts"],
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "node_modules"],
+  "references": [
+    { "path": "../backend" },
+    { "path": "../conat" },
+    { "path": "../util" }
+  ]
 }
