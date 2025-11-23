@@ -37,6 +37,7 @@ import type { CompressedPatch } from "@cocalc/util/dmp";
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
 
 const log = getLogger("ai:acp");
+const MAX_TERMINAL_STREAM_CHARS = 4000;
 
 export type AcpStreamUsage = {
   input_tokens?: number;
@@ -773,12 +774,27 @@ class CodexClientHandler implements TerminalClient {
     payload: Omit<AcpTerminalEvent, "type" | "terminalId">,
   ): Promise<void> {
     if (!this.stream) return;
+    const eventPayload: Omit<AcpTerminalEvent, "type" | "terminalId"> = {
+      ...payload,
+    };
+    if (payload.phase === "data" && typeof payload.chunk === "string") {
+      const formatted = formatTerminalOutput(payload.chunk);
+      if (formatted.truncated) {
+        eventPayload.chunk = formatted.text;
+      }
+    }
+    if (payload.phase === "exit" && typeof payload.output === "string") {
+      const formatted = formatTerminalOutput(payload.output);
+      if (formatted.truncated) {
+        eventPayload.output = formatted.text;
+      }
+    }
     await this.stream({
       type: "event",
       event: {
         type: "terminal",
         terminalId,
-        ...payload,
+        ...eventPayload,
       },
     });
   }
@@ -860,6 +876,18 @@ function stripQuotes(value: string): string {
     return trimmed.slice(1, -1);
   }
   return trimmed;
+}
+
+function formatTerminalOutput(
+  text: string,
+  limit = MAX_TERMINAL_STREAM_CHARS,
+): { text: string; truncated: boolean } {
+  if (text.length <= limit) {
+    return { text, truncated: false };
+  }
+  const tail = text.slice(-limit);
+  const prefix = `[output truncated: showing last ${limit} of ${text.length} characters]\n`;
+  return { text: `${prefix}${tail}`, truncated: true };
 }
 
 function mapTokenUsage(payload: any): AcpStreamUsage | undefined {
