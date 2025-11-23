@@ -957,6 +957,14 @@ export class ChatActions extends Actions<ChatState> {
         threadKey = `${baseDate}`;
       }
 
+      const project_id = store.get("project_id") ?? this.project_id;
+      const path = store.get("path") ?? this.path;
+      if (!project_id || !path) {
+        throw new Error(
+          "chat actions missing project_id or path; cannot run Codex turn",
+        );
+      }
+
       await processAcpLLM({
         message,
         reply_to,
@@ -966,8 +974,8 @@ export class ChatActions extends Actions<ChatState> {
         dateLimit,
         context: {
           syncdb: this.syncdb,
-          path: store.get("path"),
-           project_id: store.get("project_id"),
+          path,
+          project_id,
           chatStreams: this.chatStreams,
           sendReply: this.sendReply,
           saveHistory: this.saveHistory,
