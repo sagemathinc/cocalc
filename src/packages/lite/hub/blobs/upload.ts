@@ -3,15 +3,15 @@ import formidable from "formidable";
 import { readFile, unlink } from "fs/promises";
 import { uuidsha1 } from "@cocalc/backend/misc_node";
 import getLogger from "@cocalc/backend/logger";
+import { getBlobstore } from "./download";
 
 export const BLOB_STORE_NAME = "blobs";
 
 const logger = getLogger("lite:hub:blobs:upload");
 
 export default function init(app, conatClient) {
-  const blobStore = conatClient.sync.akv({ name: BLOB_STORE_NAME });
+  const blobStore = getBlobstore(conatClient);
   logger.debug("initialized blob upload service");
-  global.blobStore = blobStore;
   app.post("/blobs", async (req, res) => {
     const { ttl } = req.query;
     try {
@@ -30,6 +30,9 @@ export default function init(app, conatClient) {
             uuid = uuidsha1("", hash);
           }
           logger.debug("got blob ", uuid);
+          if (!uuid) {
+            throw Error(`blob upload -- file hash missing ${filepath}`);
+          }
           const blob = await readFile(filepath);
           await blobStore.set(uuid, blob, { ttl });
         } finally {

@@ -4,11 +4,16 @@ Download blob from blob-store
 
 import { BLOB_STORE_NAME } from "./upload";
 import getLogger from "@cocalc/backend/logger";
+import { type AKV } from "@cocalc/conat/sync/akv";
 
 const logger = getLogger("lite:hub:blobs:download");
 
+export function getBlobstore(conatClient): AKV {
+  return conatClient.sync.akv({ name: BLOB_STORE_NAME });
+}
+
 export default function init(app, conatClient) {
-  const blobStore = conatClient.sync.akv({ name: BLOB_STORE_NAME });
+  const blobStore = getBlobstore(conatClient);
   logger.debug("initialized blob download service");
 
   app.get("/blobs/*", async (req, res) => {

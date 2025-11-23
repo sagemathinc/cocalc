@@ -94,6 +94,29 @@ export type AcpStreamEvent =
   | AcpFileEvent
   | AcpTerminalEvent;
 
+export type CommandOutput =
+  | string
+  | Iterable<string>
+  | AsyncIterable<string>;
+
+export type CommandHandlerContext = {
+  command: string;
+  args?: string[];
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+  limit?: number;
+};
+
+export type CommandHandlerResult = {
+  output?: CommandOutput;
+  exitCode?: number;
+  signal?: string;
+};
+
+export type CustomCommandHandler = (
+  ctx: CommandHandlerContext,
+) => Promise<CommandHandlerResult>;
+
 export type AcpStreamPayload =
   | {
       type: "event";
@@ -173,6 +196,7 @@ interface CodexAcpAgentOptions {
   cwd?: string;
   sessionPersistPath?: string;
   disableSessionPersist?: boolean;
+  commandHandlers?: Record<string, CustomCommandHandler>;
 }
 
 interface TerminalClient extends Client {
@@ -189,22 +213,31 @@ interface TerminalClient extends Client {
   ): Promise<ReleaseTerminalResponse>;
 }
 
+type TerminalState = {
+  child?: ChildProcess;
+  stop?: () => void;
+  output: string;
+  truncated: boolean;
+  exitStatus?: TerminalExitStatus;
+  waiters: Array<(status: TerminalExitStatus) => void>;
+  limit?: number;
+};
+
+type CodexClientHandlerOptions = {
+  commandHandlers?: Map<string, CustomCommandHandler>;
+};
+
 class CodexClientHandler implements TerminalClient {
   private stream?: AcpStreamHandler;
   private lastResponse = "";
   private latestUsage?: AcpStreamUsage;
   private fileSnapshots = new Map<string, string>();
-  private terminals = new Map<
-    string,
-    {
-      child: ChildProcess;
-      output: string;
-      truncated: boolean;
-      exitStatus?: TerminalExitStatus;
-      waiters: Array<(status: TerminalExitStatus) => void>;
-      limit?: number;
-    }
-  >();
+  private terminals = new Map<string, TerminalState>();
+  private readonly commandHandlers?: Map<string, CustomCommandHandler>;
+
+  constructor(options?: CodexClientHandlerOptions) {
+    this.commandHandlers = options?.commandHandlers;
+  }
 
   setStream(stream?: AcpStreamHandler) {
     this.stream = stream;
@@ -356,25 +389,38 @@ class CodexClientHandler implements TerminalClient {
       cwd,
       terminalId,
     });
-    const envVars: NodeJS.ProcessEnv = {
-      ...process.env,
-    };
-    for (const variable of env ?? []) {
-      envVars[variable.name] = variable.value;
+    const envVars: NodeJS.ProcessEnv = this.buildEnv(env);
+    const limit = outputByteLimit != null ? Number(outputByteLimit) : undefined;
+    const customHandler = this.commandHandlers?.get(command);
+    if (customHandler) {
+      await this.startCustomCommand({
+        terminalId,
+        command,
+        args: args ?? [],
+        cwd: cwd ?? process.cwd(),
+        env: envVars,
+        limit,
+        handler: customHandler,
+      });
+      return { terminalId };
     }
+
     const child = spawn(command, args ?? [], {
       cwd: cwd ?? process.cwd(),
       env: envVars,
       stdio: ["ignore", "pipe", "pipe"],
     });
 
-    const state = {
+    const state: TerminalState = {
       child,
       output: "",
       truncated: false,
-      exitStatus: undefined as TerminalExitStatus | undefined,
-      waiters: [] as Array<(status: TerminalExitStatus) => void>,
-      limit: outputByteLimit != null ? Number(outputByteLimit) : undefined,
+      exitStatus: undefined,
+      waiters: [],
+      limit,
+      stop: () => {
+        child.kill();
+      },
     };
 
     const handleChunk = (chunk: Buffer) => {
@@ -439,6 +485,117 @@ class CodexClientHandler implements TerminalClient {
     };
   }
 
+  private buildEnv(
+    env?: { name: string; value: string }[],
+  ): NodeJS.ProcessEnv {
+    const envVars: NodeJS.ProcessEnv = {
+      ...process.env,
+    };
+    for (const variable of env ?? []) {
+      envVars[variable.name] = variable.value;
+    }
+    return envVars;
+  }
+
+  private async startCustomCommand({
+    terminalId,
+    command,
+    args,
+    cwd,
+    env,
+    limit,
+    handler,
+  }: {
+    terminalId: string;
+    command: string;
+    args: string[];
+    cwd: string;
+    env: NodeJS.ProcessEnv;
+    limit?: number;
+    handler: CustomCommandHandler;
+  }): Promise<void> {
+    const state: TerminalState = {
+      output: "",
+      truncated: false,
+      exitStatus: undefined,
+      waiters: [],
+      limit,
+    };
+    const abortController = new AbortController();
+    state.stop = () => {
+      abortController.abort();
+    };
+    this.terminals.set(terminalId, state);
+    await this.emitTerminalEvent(terminalId, {
+      phase: "start",
+      command,
+      args,
+      cwd,
+    });
+
+    const emitChunk = (chunk: string) => {
+      if (!chunk) return;
+      state.output += chunk;
+      if (state.limit != null && state.output.length > state.limit) {
+        state.output = state.output.slice(state.output.length - state.limit);
+        state.truncated = true;
+      }
+      void this.emitTerminalEvent(terminalId, {
+        phase: "data",
+        chunk,
+        truncated: state.truncated,
+      });
+    };
+
+    const complete = (status: TerminalExitStatus) => {
+      state.exitStatus = status;
+      for (const waiter of state.waiters) {
+        waiter(status);
+      }
+      state.waiters.length = 0;
+      void this.emitTerminalEvent(terminalId, {
+        phase: "exit",
+        exitStatus: status,
+        output: state.output,
+        truncated: state.truncated,
+      });
+    };
+
+    const run = async () => {
+      try {
+        const result = await handler({
+          command,
+          args,
+          cwd,
+          env,
+          limit,
+        });
+        await this.streamCustomOutput(
+          result?.output,
+          emitChunk,
+          abortController.signal,
+        );
+        if (abortController.signal.aborted) {
+          complete({ exitCode: undefined, signal: "SIGTERM" });
+        } else {
+          complete({
+            exitCode: result?.exitCode ?? 0,
+            signal: result?.signal,
+          });
+        }
+      } catch (err) {
+        emitChunk(`${err}\n`);
+        complete({ exitCode: 1 });
+      }
+    };
+
+    run().catch((err) => {
+      log.error("custom command failed", err);
+      emitChunk(`${err}\n`);
+      complete({ exitCode: 1, signal: undefined });
+    });
+  }
+
   async terminalOutput({
     terminalId,
   }: TerminalOutputRequest): Promise<TerminalOutputResponse> {
@@ -452,6 +609,18 @@ class CodexClientHandler implements TerminalClient {
       truncated: state.truncated,
       exitStatus: state.exitStatus,
     };
+  }
+
+  private async streamCustomOutput(
+    output: CommandOutput | undefined,
+    emit: (chunk: string) => void,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    if (!output) return;
+    for await (const chunk of toAsyncIterable(output)) {
+      if (signal?.aborted) break;
+      emit(chunk);
+    }
   }
 
   async waitForTerminalExit({
@@ -480,7 +649,7 @@ class CodexClientHandler implements TerminalClient {
     if (state == null) {
       throw new Error(`Unknown terminal ${terminalId}`);
     }
-    state.child.kill();
+    state.stop?.();
     return {};
   }
 
@@ -492,7 +661,7 @@ class CodexClientHandler implements TerminalClient {
     if (state == null) {
       return {};
     }
-    state.child.kill();
+    state.stop?.();
     this.terminals.delete(terminalId);
     return {};
   }
@@ -558,6 +727,36 @@ class CodexClientHandler implements TerminalClient {
       },
     });
   }
+}
+
+function isAsyncIterable(value: any): value is AsyncIterable<string> {
+  return value != null && typeof value[Symbol.asyncIterator] === "function";
+}
+
+function isIterable(value: any): value is Iterable<string> {
+  return value != null && typeof value[Symbol.iterator] === "function";
+}
+
+async function* toAsyncIterable(
+  output: CommandOutput,
+): AsyncIterable<string> {
+  if (typeof output === "string") {
+    yield output;
+    return;
+  }
+  if (isAsyncIterable(output)) {
+    for await (const chunk of output) {
+      yield chunk;
+    }
+    return;
+  }
+  if (isIterable(output)) {
+    for (const chunk of output) {
+      yield chunk;
+    }
+    return;
+  }
+  yield String(output);
 }
 
 function mapTokenUsage(payload: any): AcpStreamUsage | undefined {
@@ -703,7 +902,11 @@ export class CodexAcpAgent implements AcpAgent {
     ) as unknown as ReadableStream<Uint8Array>;
     const stream = ndJsonStream(output, input);
 
-    const handler = new CodexClientHandler();
+    const handler = new CodexClientHandler({
+      commandHandlers: options.commandHandlers
+        ? new Map(Object.entries(options.commandHandlers))
+        : undefined,
+    });
     const connection = new ClientSideConnection(() => handler, stream);
 
     const clientCapabilities = {

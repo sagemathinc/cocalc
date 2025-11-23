@@ -72,6 +72,11 @@ export async function processAcpLLM({
     return;
   }
 
+  const blobUrls = extractBlobUrls(workingInput);
+  if (blobUrls.length > 0) {
+    workingInput = ensureBlobInstructions(workingInput, blobUrls);
+  }
+
   const threadDate =
     context.threadKey != null
       ? new Date(Number(context.threadKey))
@@ -322,4 +327,28 @@ function buildAcpConfig({
     opts.sessionId = config.sessionId;
   }
   return opts;
+}
+
+function extractBlobUrls(input?: string): string[] {
+  if (!input) return [];
+  const urls = new Set<string>();
+  const markdown = /!\[[^\]]*\]\(([^)]+\/blobs\/[^)]+)\)/gi;
+  const html = /<img[^>]+src=["']([^"']+\/blobs\/[^"']+)["'][^>]*>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = markdown.exec(input)) != null) {
+    urls.add(match[1]);
+  }
+  while ((match = html.exec(input)) != null) {
+    urls.add(match[1]);
+  }
+  return Array.from(urls);
+}
+
+function ensureBlobInstructions(input: string, urls: string[]): string {
+  if (!urls.length) return input;
+  const lines = urls.map(
+    (url, idx) =>
+      `Attachment ${idx + 1}: ${url}\nRun \`cocalc-get-blob ${url}\` in the terminal to print its contents as base64.`,
+  );
+  return `${input}\n\nThe following blobs are attached:\n${lines.join("\n")}\n`;
 }

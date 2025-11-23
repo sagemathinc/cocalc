@@ -102,7 +102,7 @@ export async function main(): Promise<number> {
   await initLLM();
 
   logger.debug("start acp conat server");
-  await initAcp();
+  await initAcp(conatClient);
 
   const path = process.cwd();
 

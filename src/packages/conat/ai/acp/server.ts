@@ -44,11 +44,13 @@ let sub: Subscription | null = null;
 
 type StreamHandler = (payload?: AcpStreamPayload | null) => Promise<void>;
 
-type EvaluateHandler = (options: AcpRequest & { stream: StreamHandler }) => Promise<void>;
+type EvaluateHandler = (
+  options: AcpRequest & { stream: StreamHandler },
+) => Promise<void>;
 
-export async function init(evaluate: EvaluateHandler): Promise<void> {
-  const cn = await conat();
-  sub = await cn.subscribe(`${SUBJECT}.*.api`, { queue: "acp-q" });
+export async function init(evaluate: EvaluateHandler, client): Promise<void> {
+  client ??= await conat();
+  sub = await client.subscribe(`${SUBJECT}.*.api`, { queue: "acp-q" });
   listen(evaluate);
 }
 
