@@ -47,6 +47,7 @@ export const chatroom: EditorDescription = {
     "show_search",
     "foldAIThreads",
     "foldAllThreads",
+    "terminal",
   ]),
   customizeCommands: {
     scrollToTop: {
