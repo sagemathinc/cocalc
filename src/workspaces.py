@@ -118,6 +118,7 @@ def all_packages() -> List[str]:
         'packages/comm',
         'packages/project',
         'packages/assets',
+        'packages/chat',
         'packages/frontend',  # static depends on frontend; frontend depends on assets
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)
         'packages/lite',

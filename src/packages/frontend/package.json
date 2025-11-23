@@ -43,6 +43,7 @@
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "@cocalc/assets": "workspace:*",
     "@cocalc/cdn": "workspace:*",
+    "@cocalc/chat": "workspace:*",
     "@cocalc/comm": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/frontend": "workspace:*",

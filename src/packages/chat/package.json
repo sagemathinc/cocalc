@@ -1,0 +1,25 @@
+{
+  "name": "@cocalc/chat",
+  "version": "0.0.1",
+  "description": "Shared chat helpers and types for CoCalc",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "pnpm exec tsc --build",
+    "clean": "rm -rf dist node_modules",
+    "depcheck": "pnpx depcheck --ignores=@types/node"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.10.10"
+  },
+  "license": "SEE LICENSE.md"
+}

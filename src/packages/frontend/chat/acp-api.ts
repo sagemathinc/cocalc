@@ -1,5 +1,6 @@
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { buildChatMessage } from "@cocalc/chat";
 import type {
   AcpStreamEvent,
   AcpStreamMessage,
@@ -134,20 +135,17 @@ export async function processAcpLLM({
 
   const update = (generating: boolean) => {
     if (syncdb == null) return;
-    const msg: ChatMessage = {
-      event: "chat",
+    const msg: ChatMessage = buildChatMessage({
       sender_id,
-      date: new Date(date),
-      history: addToHistory(prevHistory, {
-        author_id: sender_id,
-        content,
-      }),
+      date,
+      prevHistory,
+      content,
       generating,
       reply_to: reply_to?.toISOString(),
       acp_events: events,
       acp_thread_id: threadId,
       acp_usage: usage,
-    };
+    });
     syncdb.set(msg);
     if (!generating) {
       syncdb.commit();
@@ -266,14 +264,6 @@ function normalizeCodexMention(model?: string): string | undefined {
     return undefined;
   }
   return model;
-}
-
-function addToHistory(
-  history: MessageHistory[],
-  next: Partial<MessageHistory> & { author_id: string; content: string },
-): MessageHistory[] {
-  const { author_id, content, date = new Date().toISOString() } = next;
-  return [{ author_id, content, date }, ...history];
 }
 
 function resolveWorkingDir(chatPath?: string): string {

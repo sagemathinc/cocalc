@@ -3,6 +3,11 @@ import { MutableRefObject } from "react";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import type {
+  ChatMessage as SharedChatMessage,
+  MessageHistory as SharedMessageHistory,
+} from "@cocalc/chat";
+export { addToHistory } from "@cocalc/chat";
 
 export type Mode = "standalone" | "sidechat";
 
@@ -23,27 +28,8 @@ type Mention = TypedMap<{
 
 export type MentionList = List<Mention>;
 
-export interface MessageHistory {
-  author_id: string; // account UUID or language model service
-  content: string; // markdown
-  date: string; // date.toISOString()
-}
-
-export interface ChatMessage {
-  event: "chat";
-  sender_id: string;
-  history: MessageHistory[];
-  date: Date | string; // string is used to create it
-  reply_to?: string;
-  generating?: boolean;
-  editing?: { [author_id: string]: "FUTURE" | null };
-  folding?: string[];
-  feedback?: { [account_id: string]: Feedback };
-  acp_events?: any[];
-  acp_thread_id?: string | null;
-  acp_usage?: any;
-  acp_config?: any;
-}
+export type ChatMessage = SharedChatMessage;
+export type MessageHistory = SharedMessageHistory;
 
 // this type isn't explicitly used anywhere yet, but the actual structure is and I just
 // wanted to document it.

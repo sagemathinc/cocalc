@@ -5,7 +5,6 @@
 
 import { List, Map, Seq, Map as immutableMap } from "immutable";
 import { debounce } from "lodash";
-import { Optional } from "utility-types";
 import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
@@ -54,6 +53,7 @@ import type {
   MessageHistory,
 } from "./types";
 import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
+import { addToHistory } from "@cocalc/chat";
 
 const MAX_CHAT_STREAM = 10;
 
@@ -1497,22 +1497,4 @@ function getLanguageModel(input?: string): false | LanguageModel {
     }
   }
   return false;
-}
-
-/**
- * This uniformly defines how the history of a message is composed.
- * The newest entry is in the front of the array.
- * If the date isn't set (ISO string), we set it to the current time.
- */
-function addToHistory(
-  history: MessageHistory[],
-  next: Optional<MessageHistory, "date">,
-): MessageHistory[] {
-  const {
-    author_id,
-    content,
-    date = webapp_client.server_time().toISOString(),
-  } = next;
-  // inserted at the beginning of the history, without modifying the array
-  return [{ author_id, content, date }, ...history];
 }
