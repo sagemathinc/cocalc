@@ -32,7 +32,7 @@ export class ConatSocketClient extends ConatSocketBase {
   constructor(opts: ConatSocketOptions) {
     super(opts);
     this.loadBalancer = opts.loadBalancer;
-    logger.silly("creating a client socket connecting to ", this.subject);
+    // logger.silly("creating a client socket connecting to ", this.subject);
     this.initTCP();
     this.on("ready", () => {
       for (const mesg of this.queuedWrites) {
@@ -116,7 +116,7 @@ export class ConatSocketClient extends ConatSocketBase {
       id: this.id,
     };
     const subject = this.serverSubject();
-    logger.silly("sendCommandToServer", { cmd, timeout, subject });
+    // logger.silly("sendCommandToServer", { cmd, timeout, subject });
     const resp = await this.client.request(subject, null, {
       headers,
       timeout,
@@ -124,7 +124,7 @@ export class ConatSocketClient extends ConatSocketBase {
     });
 
     const value = resp.data;
-    logger.silly("sendCommandToServer: got resp", { cmd, value, subject });
+    // logger.silly("sendCommandToServer: got resp", { cmd, value, subject });
     if (value?.error) {
       throw Error(value?.error);
     } else {
@@ -159,7 +159,7 @@ export class ConatSocketClient extends ConatSocketBase {
     try {
       await this.getServerId();
 
-      logger.silly("run: getting subscription");
+      //  logger.silly("run: getting subscription");
       const sub = await this.client.subscribe(
         `${this.subject}.client.${this.id}`,
       );
@@ -174,16 +174,16 @@ export class ConatSocketClient extends ConatSocketBase {
       await until(
         async () => {
           if (this.state == "closed") {
-            logger.silly("closed -- giving up on connecting");
+           //  logger.silly("closed -- giving up on connecting");
             return true;
           }
           try {
-            logger.silly("sending connect command to server", this.subject);
+            // logger.silly("sending connect command to server", this.subject);
             resp = await this.sendCommandToServer("connect");
             this.alive?.recv();
             return true;
           } catch (err) {
-            logger.silly("failed to connect", this.subject, err);
+            // logger.silly("failed to connect", this.subject, err);
           }
           return false;
         },
@@ -198,9 +198,9 @@ export class ConatSocketClient extends ConatSocketBase {
       for await (const mesg of this.sub) {
         this.alive?.recv();
         const cmd = mesg.headers?.[SOCKET_HEADER_CMD];
-        if (cmd) {
-          logger.silly("client got cmd", cmd);
-        }
+        //if (cmd) {
+          // logger.silly("client got cmd", cmd);
+        //}
         if (cmd == "socket") {
           this.tcp?.send.handleRequest(mesg);
         } else if (cmd == "close") {
@@ -218,7 +218,7 @@ export class ConatSocketClient extends ConatSocketBase {
         }
       }
     } catch (err) {
-      logger.silly("socket connect failed", err);
+      // logger.silly("socket connect failed", err);
       this.disconnect();
     }
   }

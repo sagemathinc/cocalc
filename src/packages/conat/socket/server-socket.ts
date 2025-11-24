@@ -12,9 +12,9 @@ import { SOCKET_HEADER_CMD, type State, clientSubject } from "./util";
 import { type TCP, createTCP } from "./tcp";
 import { type ConatSocketServer } from "./server";
 import { keepAlive, KeepAlive } from "./keepalive";
-import { getLogger } from "@cocalc/conat/client";
+//import { getLogger } from "@cocalc/conat/client";
 
-const logger = getLogger("socket:server-socket");
+//const logger = getLogger("socket:server-socket");
 
 // One specific socket from the point of view of a server.
 export class ServerSocket extends EventEmitter {
@@ -220,7 +220,7 @@ export class ServerSocket extends EventEmitter {
   // use request reply where the client responds
   request = async (data, options?) => {
     await this.waitUntilReady(options?.timeout);
-    logger.silly("server sending request to ", this.clientSubject);
+    // logger.silly("server sending request to ", this.clientSubject);
     return await this.conatSocket.client.request(
       this.clientSubject,
       data,
