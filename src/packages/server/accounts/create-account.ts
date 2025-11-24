@@ -27,6 +27,8 @@ interface Params {
   // I added this to avoid leaks with unit testing, but it may be useful in other contexts, e.g.,
   // avoiding confusion with self-hosted installs.
   noFirstProject?: boolean;
+  // if set, create the first project but do not start it. Only applies if noFirstProject is false.
+  dontStartProject?: boolean;
   ephemeral?: number;
   customize?: any;
 }
@@ -41,6 +43,7 @@ export default async function createAccount({
   signupReason,
   owner_id,
   noFirstProject,
+  dontStartProject,
   ephemeral,
   customize,
 }: Params): Promise<void> {
@@ -84,6 +87,7 @@ export default async function createAccount({
       account_id,
       tags,
       noFirstProject,
+      dontStartProject,
       ephemeral,
     });
     await creationActionsDone(account_id);

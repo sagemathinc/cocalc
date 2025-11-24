@@ -1,11 +1,11 @@
 [project]
 name = "cocalc-api"
-version = "0.4.0"
+version = "0.5.0"
 description = "Python client for the CoCalc API"
-authors = [{ name="William Stein", email="wstein@sagemath.com" }]
+authors = [{ name="William Stein", email="wstein@sagemath.com" }, {name="Harald Schilly", email="hsy@sagemath.com"}]
 readme = "README.md"
-requires-python = ">=3.9"
-dependencies = ["httpx"]
+requires-python = ">=3.10"
+dependencies = ["httpx", "mcp>=0.1.0"]
 license = "MIT"
 
 [tool.hatch.build.targets.wheel]
@@ -19,22 +19,73 @@ Documentation = "https://cocalc.com/api/python"
 Source = "https://github.com/sagemathinc/cocalc/src/python/cocalc-api"
 Issues = "https://github.com/sagemathinc/cocalc/issues"
 
+[project.scripts]
+cocalc-mcp-server = "cocalc_api.mcp.server:main"
+cocalc-mcp-debug = "cocalc_api.mcp.mcp_debug:main"
+
 [tool.mypy]
 python_version = "3.13"
 # strict = true
 # disallow_untyped_defs = true
+# Ignore empty-body errors for decorator-implemented methods
+disable_error_code = ["empty-body"]
+
+[tool.pyright]
+# Ignore return type errors for decorator-implemented methods
+reportReturnType = false
+
+[tool.yapf]
+based_on_style = "pep8"
+column_limit = 150
+indent_width = 4
 
 [tool.ruff]
 line-length = 150
 lint.select = ["E", "F", "B"]  # Pyflakes, pycodestyle, bugbear, etc.
 
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/env/*",
+    "*/mcp/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true
+precision = 1
+
+[tool.coverage.html]
+directory = "htmlcov"
+
 [dependency-groups]
 dev = [
+    "coverage[toml]",
     "ipython",
     "mkdocs",
     "mkdocs-material",
     "mkdocstrings[python]",
     "mypy",
-    "pytest>=8.4.1",
-    "ruff>=0.12.11",
+    "psycopg2-binary",
+    "pyright",
+    "pytest-cov",
+    "pytest>=8.4.2",
+    "ruff>=0.13.2",
+    "types-psycopg2",
+    "yapf",
 ]

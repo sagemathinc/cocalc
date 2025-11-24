@@ -1,6 +1,10 @@
 import { authFirstRequireAccount } from "./util";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
 import { type UserCopyOptions } from "@cocalc/util/db-schema/projects";
+import {
+  type ProjectState,
+  type ProjectStatus,
+} from "@cocalc/util/db-schema/projects";
 
 export const projects = {
   createProject: authFirstRequireAccount,
@@ -12,6 +16,10 @@ export const projects = {
   setQuotas: authFirstRequireAccount,
   start: authFirstRequireAccount,
   stop: authFirstRequireAccount,
+  deleteProject: authFirstRequireAccount,
+  touch: authFirstRequireAccount,
+  state: authFirstRequireAccount,
+  status: authFirstRequireAccount,
 };
 
 export type AddCollaborator =
@@ -103,4 +111,18 @@ export interface Projects {
 
   start: (opts: { account_id: string; project_id: string }) => Promise<void>;
   stop: (opts: { account_id: string; project_id: string }) => Promise<void>;
+  deleteProject: (opts: {
+    account_id: string;
+    project_id: string;
+  }) => Promise<void>;
+
+  touch: (opts: { account_id: string; project_id: string }) => Promise<void>;
+  state: (opts: {
+    account_id: string;
+    project_id: string;
+  }) => Promise<ProjectState>;
+  status: (opts: {
+    account_id: string;
+    project_id: string;
+  }) => Promise<ProjectStatus>;
 }
