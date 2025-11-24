@@ -31,7 +31,7 @@ import { throttle } from "lodash";
 
 // how many ms between saving output during a running turn
 // so that everybody sees it.
-const SAVE_INTERVAL = 3_000;
+const COMMIT_INTERVAL = 3_000;
 
 const logger = getLogger("lite:hub:acp");
 
@@ -50,7 +50,6 @@ class ChatStreamWriter {
   private content = "";
   private threadId: string | null = null;
   private seq = 0;
-  private hasSummary = false;
   private finished = false;
 
   constructor({
@@ -78,11 +77,6 @@ class ChatStreamWriter {
     if (!this.syncdb.isReady()) {
       try {
         await once(this.syncdb, "ready");
-        logger.debug(
-          "ready to write to",
-          this.metadata.path,
-          this.metadata.project_id,
-        );
       } catch (err) {
         logger.warn("chat syncdb failed to become ready", err);
         throw err;
@@ -117,9 +111,6 @@ class ChatStreamWriter {
     await this.ready;
     if (this.closed) return;
     if (payload == null) {
-      if (!this.hasSummary && this.content) {
-        this.commit(false);
-      }
       this.dispose();
       return;
     }
@@ -128,6 +119,7 @@ class ChatStreamWriter {
       seq: this.seq++,
     };
     this.processPayload(message, { persist: true });
+    this.commit(false);
   }
 
   private processPayload(
@@ -154,7 +146,6 @@ class ChatStreamWriter {
       return;
     }
     if (payload.type === "summary") {
-      this.hasSummary = true;
       if (payload.finalResponse) {
         this.content = payload.finalResponse;
       }
@@ -164,34 +155,34 @@ class ChatStreamWriter {
       if (payload.threadId != null) {
         this.threadId = payload.threadId;
       }
-      this.commit(false);
       clearAcpPayloads(this.metadata);
       this.finished = true;
       return;
     }
     if (payload.type === "error") {
       this.content = `\n\n<span style='color:#b71c1c'>${payload.error}</span>\n\n`;
-      this.commit(false);
       clearAcpPayloads(this.metadata);
       this.finished = true;
     }
   }
 
   private commit = throttle((generating: boolean): void => {
-    if (!this.content && !this.events.length) return;
-    const message = buildChatMessage({
-      sender_id: this.metadata.sender_id,
-      date: this.metadata.message_date,
-      prevHistory: this.prevHistory,
-      content: this.content,
-      generating,
-      reply_to: this.metadata.reply_to,
-      acp_events: this.events,
-      acp_thread_id: this.threadId,
-      acp_usage: this.usage,
-    });
-    this.syncdb.set(message);
-    this.syncdb.commit();
+    if (this.closed) return;
+    if (this.content && this.events.length) {
+      const message = buildChatMessage({
+        sender_id: this.metadata.sender_id,
+        date: this.metadata.message_date,
+        prevHistory: this.prevHistory,
+        content: this.content,
+        generating,
+        reply_to: this.metadata.reply_to,
+        acp_events: this.events,
+        acp_thread_id: this.threadId,
+        acp_usage: this.usage,
+      });
+      this.syncdb.set(message);
+      this.syncdb.commit();
+    }
     (async () => {
       try {
         await this.syncdb.save();
@@ -199,7 +190,7 @@ class ChatStreamWriter {
         logger.warn("chat syncdb save failed", err);
       }
     })();
-  }, SAVE_INTERVAL);
+  }, COMMIT_INTERVAL);
 
   dispose(): void {
     if (this.closed) return;
@@ -212,9 +203,13 @@ class ChatStreamWriter {
     (async () => {
       try {
         await this.syncdb.save();
-        this.syncdb.close();
       } catch (err) {
-        logger.warn("failed to save and close chat syncdb", err);
+        logger.warn("failed to save chat syncdb", err);
+      }
+      try {
+        await this.syncdb.close();
+      } catch (err) {
+        logger.warn("failed to close chat syncdb", err);
       }
     })();
   }
@@ -263,21 +258,21 @@ export async function evaluate({
           client: conatClient,
         })
       : null;
-  logger.debug("evaluate", {
-    conatClient: !!conatClient,
-    request,
-    chatWriter: !!chatWriter,
-  });
-  const wrappedStream = async (payload?: AcpStreamPayload | null) => {
-    if (chatWriter != null) {
+
+  let wrappedStream;
+  if (chatWriter != null) {
+    wrappedStream = async (payload?: AcpStreamPayload | null) => {
       try {
         await chatWriter.handle(payload);
       } catch (err) {
         logger.warn("chat writer handle failed", err);
       }
-    }
-    await stream(payload);
-  };
+      await stream(payload);
+    };
+  } else {
+    wrappedStream = stream;
+  }
+
   try {
     await currentAgent.evaluate({
       ...request,

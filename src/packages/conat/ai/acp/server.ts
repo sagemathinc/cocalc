@@ -70,8 +70,11 @@ async function listen(evaluate: EvaluateHandler): Promise<void> {
 async function handleMessage(mesg, evaluate: EvaluateHandler) {
   const options = mesg.data ?? {};
 
+  let done = false;
   let seq = -1;
   const respond = async (payload?: any, error?: string) => {
+    if (done) return;
+
     seq += 1;
     const data: any = {
       seq,
@@ -84,12 +87,11 @@ async function handleMessage(mesg, evaluate: EvaluateHandler) {
     try {
       await mesg.respond(data);
     } catch (err) {
-      logger.debug("acp respond failed", err);
+      logger.debug(`ACP respond failed -- ${err}`);
       await end();
     }
   };
 
-  let done = false;
   const end = async () => {
     if (done) return;
     done = true;
