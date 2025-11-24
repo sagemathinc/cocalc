@@ -29,7 +29,8 @@
     "conat-connections": "cd packages/backend && pnpm conat-connections",
     "conat-watch": "cd packages/backend && pnpm conat-watch",
     "conat-inventory": "cd packages/backend && pnpm conat-inventory",
-    "python-api": "cd python/cocalc-api && PATH=$HOME/.local/bin:$PATH make all"
+    "python-api": "cd python/cocalc-api && PATH=$HOME/.local/bin:$PATH make all",
+    "tsc-all": "./workspaces.py tsc --parallel"
   },
   "repository": {
     "type": "git",

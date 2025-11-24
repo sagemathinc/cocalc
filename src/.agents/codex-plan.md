@@ -163,3 +163,4 @@ NOTE:
 - Support three sandbox modes + approvals.
 - Handle browser refresh/restart by replaying queued payloads.
 - Implement session fork, markdown export, richer event rendering, activity indicator, auto-clear compose box, clickable paths, better handling of pasted images/blobs, codex-acp binary releases, and more reliable state reset on send.
+- ✅ Sandbox approvals: ACP handler now emits `approval` events, lite hub stores them in the chat SyncDB, and the chat UI surfaces Approve/Reject controls that write decisions back—which the backend forwards to Codex via ACP.

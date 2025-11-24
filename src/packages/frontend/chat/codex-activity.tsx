@@ -3,6 +3,8 @@ import { Button, Card, Space, Tag, Typography } from "antd";
 import type {
   AcpStreamEvent,
   AcpStreamMessage,
+  AcpApprovalStatus,
+  AcpApprovalOptionKind,
 } from "@cocalc/conat/ai/acp/types";
 import {
   React,
@@ -77,18 +79,45 @@ type ActivityEntry =
       line?: number;
       limit?: number;
       existed?: boolean;
+    }
+  | {
+      kind: "approval";
+      id: string;
+      seq: number;
+      approvalId: string;
+      title?: string | null;
+      description?: string | null;
+      status: AcpApprovalStatus;
+      options: ApprovalOption[];
+      selectedOptionId?: string | null;
+      decidedAt?: string;
+      decidedBy?: string;
+      timeoutAt?: string;
     };
+
+type ApprovalOption = {
+  optionId: string;
+  name: string;
+  kind: AcpApprovalOptionKind;
+};
 
 export interface CodexActivityProps {
   events?: AcpStreamMessage[];
   threadId?: string | null;
   generating?: boolean;
+  canResolveApproval?: boolean;
+  onResolveApproval?: (args: {
+    approvalId: string;
+    optionId?: string;
+  }) => void;
 }
 
 export function CodexActivity({
   events,
   threadId,
   generating,
+  canResolveApproval,
+  onResolveApproval,
 }: CodexActivityProps): React.ReactElement | null {
   const entries = useMemo(() => normalizeEvents(events ?? []), [events]);
   const [expanded, setExpanded] = useState<boolean>(!!generating);
@@ -152,14 +181,27 @@ export function CodexActivity({
       <Space direction="vertical" size={10} style={{ width: "100%" }}>
         {header}
         {entries.map((entry) => (
-          <ActivityRow key={entry.id} entry={entry} />
+          <ActivityRow
+            key={entry.id}
+            entry={entry}
+            canResolveApproval={canResolveApproval}
+            onResolveApproval={onResolveApproval}
+          />
         ))}
       </Space>
     </Card>
   );
 }
 
-function ActivityRow({ entry }: { entry: ActivityEntry }) {
+function ActivityRow({
+  entry,
+  canResolveApproval,
+  onResolveApproval,
+}: {
+  entry: ActivityEntry;
+  canResolveApproval?: boolean;
+  onResolveApproval?: (args: { approvalId: string; optionId?: string }) => void;
+}) {
   switch (entry.kind) {
     case "reasoning":
       return (
@@ -218,6 +260,14 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
       return <TerminalRow entry={entry} />;
     case "file":
       return <FileRow entry={entry} />;
+    case "approval":
+      return (
+        <ApprovalRow
+          entry={entry}
+          canResolveApproval={canResolveApproval}
+          onResolveApproval={onResolveApproval}
+        />
+      );
     case "status":
     default:
       return (
@@ -347,6 +397,29 @@ function createEventEntry({
       line: event.line,
       limit: event.limit,
       existed: event.existed,
+    };
+  }
+  if (event?.type === "approval") {
+    return {
+      kind: "approval",
+      id: `approval-${event.approvalId}`,
+      seq,
+      approvalId: event.approvalId,
+      title: event.title,
+      description: event.description,
+      status: event.status,
+      options: (event.options ?? []).map((option) => ({
+        optionId: option.optionId,
+        name: option.name,
+        kind: option.kind,
+      })),
+      selectedOptionId:
+        event.selectedOptionId === undefined
+          ? undefined
+          : (event.selectedOptionId as string | null),
+      decidedAt: event.decidedAt ?? undefined,
+      decidedBy: event.decidedBy ?? undefined,
+      timeoutAt: event.timeoutAt ?? undefined,
     };
   }
   if (event?.type === "thinking") {
@@ -503,6 +576,70 @@ function TerminalRow({
   );
 }
 
+function approvalStatusColor(status: AcpApprovalStatus): string {
+  switch (status) {
+    case "selected":
+      return "green";
+    case "cancelled":
+      return "default";
+    case "timeout":
+      return "red";
+    case "pending":
+    default:
+      return "gold";
+  }
+}
+
+function formatApprovalStatus(
+  status: AcpApprovalStatus,
+  option?: ApprovalOption,
+): string {
+  if (status === "selected" && option) {
+    return option.name;
+  }
+  switch (status) {
+    case "pending":
+      return "Pending";
+    case "cancelled":
+      return "Cancelled";
+    case "timeout":
+      return "Timed out";
+    default:
+      return "Approved";
+  }
+}
+
+function formatApprovalDecision(
+  entry: Extract<ActivityEntry, { kind: "approval" }>,
+  option?: ApprovalOption,
+): string {
+  const decidedBy = entry.decidedBy ? ` by ${entry.decidedBy}` : "";
+  const decidedAt = entry.decidedAt
+    ? ` at ${formatTimestamp(entry.decidedAt)}`
+    : "";
+  switch (entry.status) {
+    case "selected":
+      return option
+        ? `${option.name}${decidedBy}${decidedAt}`
+        : `Approved${decidedBy}${decidedAt}`;
+    case "cancelled":
+      return `Cancelled${decidedBy}${decidedAt}`;
+    case "timeout":
+      return `Timed out${decidedAt}`;
+    default:
+      return "";
+  }
+}
+
+function formatTimestamp(value?: string | null): string {
+  if (!value) return "";
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return value;
+  }
+}
+
 function FileRow({
   entry,
 }: {
@@ -549,6 +686,84 @@ function FileRow({
           </Tag>
         ) : null}
       </Space>
+    </div>
+  );
+}
+
+function ApprovalRow({
+  entry,
+  canResolveApproval,
+  onResolveApproval,
+}: {
+  entry: Extract<ActivityEntry, { kind: "approval" }>;
+  canResolveApproval?: boolean;
+  onResolveApproval?: (args: { approvalId: string; optionId?: string }) => void;
+}) {
+  const pending = entry.status === "pending";
+  const selectedOption = entry.options.find(
+    (opt) => opt.optionId === entry.selectedOptionId,
+  );
+  const statusLabel = formatApprovalStatus(entry.status, selectedOption);
+  const timeoutInfo =
+    pending && entry.timeoutAt
+      ? `Expires ${formatTimestamp(entry.timeoutAt)}`
+      : undefined;
+  const disableActions = !canResolveApproval || !onResolveApproval || !pending;
+
+  return (
+    <div>
+      <Space size={6} align="center" wrap style={{ marginBottom: 6 }}>
+        <Tag color="gold">Approval</Tag>
+        {entry.title ? <Text strong>{entry.title}</Text> : null}
+        <Tag color={approvalStatusColor(entry.status)}>{statusLabel}</Tag>
+        {timeoutInfo ? (
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {timeoutInfo}
+          </Text>
+        ) : null}
+      </Space>
+      {entry.description ? (
+        <StaticMarkdown
+          value={entry.description}
+          style={{ fontSize: 13, marginBottom: 6 }}
+        />
+      ) : null}
+      {pending ? (
+        <Space size={8} wrap>
+          {entry.options.map((option) => (
+            <Button
+              key={option.optionId}
+              size="small"
+              type={option.kind?.startsWith("allow") ? "primary" : "default"}
+              disabled={disableActions}
+              onClick={() =>
+                onResolveApproval?.({
+                  approvalId: entry.approvalId,
+                  optionId: option.optionId,
+                })
+              }
+            >
+              {option.name}
+            </Button>
+          ))}
+          <Button
+            size="small"
+            danger
+            disabled={disableActions}
+            onClick={() =>
+              onResolveApproval?.({
+                approvalId: entry.approvalId,
+              })
+            }
+          >
+            Cancel
+          </Button>
+        </Space>
+      ) : (
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          {formatApprovalDecision(entry, selectedOption)}
+        </Text>
+      )}
     </div>
   );
 }

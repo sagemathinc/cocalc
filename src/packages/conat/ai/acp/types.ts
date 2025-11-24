@@ -26,6 +26,18 @@ export type AcpStreamUsage = {
   model_context_window?: number;
 };
 
+export type AcpApprovalOptionKind =
+  | "allow_once"
+  | "allow_always"
+  | "reject_once"
+  | "reject_always";
+
+export type AcpApprovalStatus =
+  | "pending"
+  | "selected"
+  | "cancelled"
+  | "timeout";
+
 export type AcpStreamEvent =
   | {
       type: "thinking";
@@ -64,6 +76,26 @@ export type AcpStreamEvent =
         signal?: string;
       };
       output?: string;
+    }
+  | {
+      type: "approval";
+      approvalId: string;
+      status: AcpApprovalStatus;
+      title?: string | null;
+      description?: string | null;
+      requestedAt: string;
+      decidedAt?: string;
+      decidedBy?: string;
+      note?: string;
+      timeoutAt?: string;
+      toolCallId?: string;
+      toolKind?: string | null;
+      options: {
+        optionId: string;
+        name: string;
+        kind: AcpApprovalOptionKind;
+      }[];
+      selectedOptionId?: string;
     };
 
 export type AcpStreamPayload =

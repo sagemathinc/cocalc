@@ -4,12 +4,18 @@ import os from "node:os";
 import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import getLogger from "@cocalc/backend/logger";
-import { CodexAcpAgent, EchoAgent, type AcpAgent } from "@cocalc/ai/acp";
+import {
+  CodexAcpAgent,
+  EchoAgent,
+  type AcpAgent,
+  type ApprovalDecision,
+} from "@cocalc/ai/acp";
 import { init as initConatAcp } from "@cocalc/conat/ai/acp/server";
 import type {
   AcpRequest,
   AcpStreamPayload,
   AcpStreamMessage,
+  AcpStreamEvent,
   AcpChatContext,
 } from "@cocalc/conat/ai/acp/types";
 import {
@@ -42,6 +48,8 @@ let blobStore: AKV | null = null;
 const agents = new Map<string, AcpAgent>();
 let conatClient: ConatClient | null = null;
 
+type ApprovalEvent = Extract<AcpStreamEvent, { type: "approval" }>;
+
 class ChatStreamWriter {
   private syncdb: SyncDB;
   private metadata: AcpChatContext;
@@ -54,13 +62,16 @@ class ChatStreamWriter {
   private threadId: string | null = null;
   private seq = 0;
   private finished = false;
+  private onApprovalDecision?: (decision: ApprovalDecision) => void;
 
   constructor({
     metadata,
     client,
+    onApprovalDecision,
   }: {
     metadata: AcpChatContext;
     client: ConatClient;
+    onApprovalDecision?: (decision: ApprovalDecision) => void;
   }) {
     this.metadata = metadata;
     this.syncdb = createChatSyncDB({
@@ -68,6 +79,8 @@ class ChatStreamWriter {
       project_id: metadata.project_id,
       path: metadata.path,
     });
+    this.onApprovalDecision = onApprovalDecision;
+    this.syncdb.on("change", this.handleSyncChange);
     // ensure initialization rejections are observed immediately
     this.ready = this.initialize();
     this.waitUntilReady();
@@ -207,6 +220,10 @@ class ChatStreamWriter {
     this.commit(false);
     this.commit.flush();
     this.closed = true;
+    (this.syncdb as any).off?.("change", this.handleSyncChange);
+    if (typeof this.syncdb.removeListener === "function") {
+      this.syncdb.removeListener("change", this.handleSyncChange);
+    }
     if (!this.finished) {
       clearAcpPayloads(this.metadata);
     }
@@ -222,6 +239,66 @@ class ChatStreamWriter {
         logger.warn("failed to close chat syncdb", err);
       }
     })();
+  }
+
+  private handleSyncChange = (): void => {
+    if (this.closed || !this.onApprovalDecision) return;
+    const entry = this.syncdb.get_one({
+      event: "chat",
+      date: this.metadata.message_date,
+    });
+    if (!entry) return;
+    const next = this.toJS(entry.get("acp_events"));
+    if (!Array.isArray(next)) return;
+    const nextEvents = next as AcpStreamMessage[];
+    this.detectApprovalDecisions(this.events, nextEvents);
+    this.events = nextEvents;
+  };
+
+  private detectApprovalDecisions(
+    prev: AcpStreamMessage[],
+    next: AcpStreamMessage[],
+  ): void {
+    if (!this.onApprovalDecision) return;
+    const previous = this.mapApprovalStates(prev);
+    const latest = this.mapApprovalStates(next);
+    for (const [approvalId, state] of Object.entries(latest)) {
+      if (state == null || state.status === "pending") continue;
+      const before = previous[approvalId];
+      const changed =
+        !before ||
+        before.status !== state.status ||
+        before.selectedOptionId !== state.selectedOptionId;
+      if (!changed) continue;
+      this.onApprovalDecision({
+        approvalId,
+        optionId: state.selectedOptionId ?? undefined,
+        decidedBy: state.decidedBy ?? undefined,
+        note: state.note ?? undefined,
+        status: state.status,
+      });
+    }
+  }
+
+  private mapApprovalStates(
+    events: AcpStreamMessage[],
+  ): Record<string, ApprovalEvent> {
+    const result: Record<string, ApprovalEvent> = {};
+    for (const entry of events) {
+      if (entry?.type !== "event") continue;
+      const event = entry.event;
+      if (event?.type !== "approval") continue;
+      result[event.approvalId] = event;
+    }
+    return result;
+  }
+
+  private toJS(value: any): any {
+    if (value == null) return value;
+    if (typeof value.toJS === "function") {
+      return value.toJS();
+    }
+    return value;
   }
 }
 
@@ -272,10 +349,20 @@ export async function evaluate({
   if (!conatClient) {
     throw Error("conat client must be initialized");
   }
+  const approvalCallback =
+    currentAgent instanceof CodexAcpAgent
+      ? (decision: ApprovalDecision) => {
+          const handled = currentAgent.resolveApproval(decision);
+          if (!handled) {
+            logger.warn("no pending approval matched", decision);
+          }
+        }
+      : undefined;
   const chatWriter = request.chat
     ? new ChatStreamWriter({
         metadata: request.chat,
         client: conatClient,
+        onApprovalDecision: approvalCallback,
       })
     : null;
 
