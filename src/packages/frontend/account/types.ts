@@ -36,6 +36,11 @@ export interface AccountState {
   name?: string;
   unlisted?: boolean;
   profile: TypedMap<{ color: string }>;
+  customize?: {
+    disableCollaborators?: boolean;
+    disableAI?: boolean;
+    [key: string]: any;
+  };
   email_address?: string;
   editor_settings: TypedMap<{
     jupyter_classic?: boolean;
@@ -90,6 +95,7 @@ export interface AccountState {
   is_ready: boolean; // user signed in and account settings have been loaded.
   lti_id?: List<string>;
   created?: Date;
+  ephemeral?: number;
   strategies?: List<TypedMap<PassportStrategyFrontend>>;
   token?: boolean; // whether or not a registration token is required when creating an account
   keyboard_variant_options?: List<any>;

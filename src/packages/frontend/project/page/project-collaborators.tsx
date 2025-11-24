@@ -17,6 +17,7 @@ import {
   SettingBox,
   Title,
 } from "@cocalc/frontend/components";
+import { Alert } from "antd";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -28,12 +29,26 @@ export function ProjectCollaboratorsPage(): React.JSX.Element {
   const intl = useIntl();
   const { project_id } = useProjectContext();
   const user_map = useTypedRedux("users", "user_map");
+  const accountCustomize = useTypedRedux("account", "customize")?.toJS() as
+    | { disableCollaborators?: boolean }
+    | undefined;
   const student = getStudentProjectFunctionality(project_id);
   const { project, group } = useProject(project_id);
+  const disableCollaborators =
+    accountCustomize?.disableCollaborators || student.disableCollaborators;
 
   function renderSettings() {
     if (project == null) {
       return <Loading theme="medium" />;
+    }
+    if (disableCollaborators) {
+      return (
+        <Alert
+          type="warning"
+          showIcon
+          message="Collaborator configuration is disabled."
+        />
+      );
     }
     return (
       <>
@@ -42,14 +57,12 @@ export function ProjectCollaboratorsPage(): React.JSX.Element {
           project={project}
           user_map={user_map}
         />
-        {!student.disableCollaborators && (
-          <SettingBox title="Add New Collaborators" icon="UserAddOutlined">
-            <AddCollaborators
-              project_id={project.get("project_id")}
-              where="project-settings"
-            />
-          </SettingBox>
-        )}
+        <SettingBox title="Add New Collaborators" icon="UserAddOutlined">
+          <AddCollaborators
+            project_id={project.get("project_id")}
+            where="project-settings"
+          />
+        </SettingBox>
       </>
     );
   }
