@@ -44,8 +44,11 @@ export function SpendLimit({
   const [error, setError] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
   const [spendLimit, setSpendLimit] = useState<Partial<ISpendLimit>>(
-    server.configuration?.spendLimit ?? SPEND_LIMIT_DEFAULTS,
+    server?.configuration?.spendLimit ?? SPEND_LIMIT_DEFAULTS,
   );
+  useEffect(() => {
+    setSpendLimit(server?.configuration?.spendLimit ?? SPEND_LIMIT_DEFAULTS);
+  }, [server?.configuration]);
 
   if (server == null) {
     return <Spin />;
@@ -197,6 +200,7 @@ export function SpendLimitModal({ id, project_id, close, extra = [] }) {
         </div>
       }
     >
+      {help && <div>Configure limits on spending here.</div>}
       <SpendLimit id={id} project_id={project_id} help={help} extra={extra} />
     </Modal>
   );

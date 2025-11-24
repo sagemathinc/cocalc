@@ -23,6 +23,7 @@ import passwordHash, {
 import getPool from "@cocalc/database/pool";
 import { checkRequiredSSO } from "@cocalc/server/auth/sso/check-required-sso";
 import getStrategies from "@cocalc/database/settings/get-sso-strategies";
+import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
 import {
   isValidUUID,
   is_valid_email_address as isValidEmailAddress,
@@ -53,8 +54,8 @@ export default async function setEmailAddress({
     throw Error("email address is not valid");
   }
   email_address = email_address.toLowerCase();
-  if (!password || password.length < 6) {
-    throw Error("password must be at least 6 characters");
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    throw Error(`password must be at least ${MIN_PASSWORD_LENGTH} characters`);
   }
 
   const pool = getPool();

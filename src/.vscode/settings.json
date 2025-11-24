@@ -1,0 +1,30 @@
+{
+  "license-header-manager.excludeExtensions": [".sh", ".py"],
+  "license-header-manager.additionalCommentStyles": [
+    {
+      "extension": ".coffee",
+      "commentStart": "#########################################################################",
+      "commentMiddle": "#",
+      "commentEnd": "#########################################################################"
+    },
+    {
+      "extension": ".cjsx",
+      "commentStart": "#########################################################################",
+      "commentMiddle": "#",
+      "commentEnd": "#########################################################################"
+    },
+    {
+      "extension": ".tsx",
+      "commentStart": "/*",
+      "commentMiddle": " * ",
+      "commentEnd": " */"
+    }
+  ],
+  "search.useGlobalIgnoreFiles": true,
+  "search.useParentIgnoreFiles": true,
+  "search.followSymlinks": false,
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "typescript.tsc.autoDetect": "off",
+  "typescript.suggest.autoImports": "off"
+}

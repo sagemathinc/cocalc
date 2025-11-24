@@ -85,11 +85,13 @@ Table({
           // if the value is not set, we have to use the old default prior to summer 2020 (Ubuntu 18.04, not 20.04!)
           compute_image: FALLBACK_COMPUTE_IMAGE,
           created: null,
+          ephemeral: null,
           env: null,
           sandbox: null,
           avatar_image_tiny: null,
           // do NOT add avatar_image_full here or it will get included in changefeeds, which we don't want.
           // instead it gets its own virtual table.
+          color: null,
           pay_as_you_go_quotas: null,
         },
       },
@@ -113,6 +115,7 @@ Table({
           sandbox: true,
           avatar_image_tiny: true,
           avatar_image_full: true,
+          color: true,
         },
         required_fields: {
           project_id: true,
@@ -242,6 +245,10 @@ Table({
       type: "timestamp",
       desc: "When the project was created.",
     },
+    ephemeral: {
+      type: "number",
+      desc: "If set, number of milliseconds this project may exist after creation.",
+    },
     action_request: {
       type: "map",
       desc: "Request state change action for project: {action:['start', 'stop'], started:timestamp, err:?, finished:timestamp}",
@@ -332,6 +339,12 @@ Table({
       type: "string",
       desc: "A visual image associated with the project.  Could be 150kb.  NOT include as part of changefeed of projects, since potentially big (e.g., 200kb x 1000 projects = 200MB!).",
       render: { type: "image" },
+    },
+    color: {
+      title: "Color",
+      type: "string",
+      desc: "Optional color associated with the project, used for visual identification (e.g., border color in project list).",
+      render: { type: "text" },
     },
     pay_as_you_go_quotas: {
       type: "map",
@@ -730,6 +743,8 @@ export interface CreateProjectOptions {
 
   // admins can specify the project_id - nobody else can -- useful for debugging.
   project_id?: string;
+  // if set, project should be treated as expiring after this many milliseconds since creation
+  ephemeral?: number;
 }
 
 interface BaseCopyOptions {

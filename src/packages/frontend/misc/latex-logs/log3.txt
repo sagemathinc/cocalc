@@ -1,0 +1,27 @@
+(./long-running.txt) (./subdir/file_9)
+(../subdir0/file2.md) [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
+(./long-running.aux) )</usr/share/texlive/texmf-dist/fonts/type1/public/amsfont
+s/cm/cmr10.pfb>
+Output written on long-running.pdf (1 page, 15440 bytes).
+SyncTeX written on long-running.synctex.gz.
+Transcript written on long-running.log.
+Latexmk: Examining 'long-running.log'
+=== TeX engine is 'pdfTeX'
+Latexmk: applying rule 'pdflatex'...
+Latexmk: All targets (long-running.pdf) are up-to-date
+#===Dependents, and related info, for long-running.tex:
+long-running.pdf :\
+../subdir0/file2.md\
+/etc/texmf/web2c/texmf.cnf\
+/usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb\
+/usr/share/texlive/texmf-dist/tex/latex/base/article.cls\
+/usr/share/texlive/texmf-dist/tex/latex/base/size10.clo\
+/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def\
+/usr/share/texlive/texmf-dist/web2c/texmf.cnf\
+/usr/share/texmf/web2c/texmf.cnf\
+/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map\
+/var/lib/texmf/web2c/pdftex/pdflatex.fmt\
+long-running.tex\
+long-running.txt\
+subdir/file_9
+#===End dependents for long-running.tex:

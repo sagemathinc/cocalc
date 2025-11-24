@@ -99,6 +99,7 @@ export function FilesFlyout({
     isRunning: projectIsRunning,
     project_id,
     actions,
+    manageStarredFiles,
   } = useProjectContext();
   const isMountedRef = useIsMountedRef();
   const rootRef = useRef<HTMLDivElement>(null as any);
@@ -239,6 +240,21 @@ export function FilesFlyout({
           const aExt = a.name.split(".").pop() ?? "";
           const bExt = b.name.split(".").pop() ?? "";
           return aExt.localeCompare(bExt);
+        case "starred":
+          const pathA = path_to_file(current_path, a.name);
+          const pathB = path_to_file(current_path, b.name);
+          const starPathA = a.isdir ? `${pathA}/` : pathA;
+          const starPathB = b.isdir ? `${pathB}/` : pathB;
+          const starredA = manageStarredFiles.starred.includes(starPathA);
+          const starredB = manageStarredFiles.starred.includes(starPathB);
+
+          if (starredA && !starredB) {
+            return -1;
+          } else if (!starredA && starredB) {
+            return 1;
+          } else {
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+          }
         default:
           console.warn(`flyout/files: unknown sort column ${col}`);
           return 0;
@@ -257,7 +273,7 @@ export function FilesFlyout({
     }
 
     if (activeFileSort.get("is_descending")) {
-      procFiles.reverse(); // inplace op
+      procFiles.reverse(); // in-place op
     }
 
     const isEmpty = procFiles.length === 0;
@@ -451,7 +467,7 @@ export function FilesFlyout({
     window.getSelection()?.removeAllRanges();
     const file = directoryFiles[index];
 
-    // doubleclick straight to open file
+    // double click straight to open file
     if (e.detail === 2) {
       setPrevSelected(index);
       open(e, index);
@@ -578,6 +594,9 @@ export function FilesFlyout({
         : checked_files.includes(
             path_to_file(current_path, directoryFiles[index].name),
           );
+    const fullPath = path_to_file(current_path, item.name);
+    const pathForStar = item.isdir ? `${fullPath}/` : fullPath;
+    const isStarred = manageStarredFiles.starred.includes(pathForStar);
     return (
       <FileListItem
         mode="files"
@@ -606,6 +625,12 @@ export function FilesFlyout({
           toggleSelected(index, item.name, nextState);
         }}
         checked_files={checked_files}
+        isStarred={isStarred}
+        onStar={(starState: boolean) => {
+          const normalizedPath =
+            item.isdir && !fullPath.endsWith("/") ? `${fullPath}/` : fullPath;
+          manageStarredFiles.setStarredPath(normalizedPath, starState);
+        }}
       />
     );
   }

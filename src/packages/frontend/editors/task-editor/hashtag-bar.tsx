@@ -8,14 +8,18 @@ Hashtag bar for selecting which tasks are shown by tags
 */
 
 import { CSSProperties } from "react";
-import { cmp, trunc } from "@cocalc/util/misc";
 import { Tag } from "antd";
+
+import { cmp, trunc } from "@cocalc/util/misc";
+
 const { CheckableTag } = Tag;
-import {
+
+import type {
   HashtagsOfVisibleTasks,
   HashtagState,
   SelectedHashtags,
 } from "./types";
+
 import { STYLE as GENERIC_STYLE } from "../../projects/hashtags";
 
 const STYLE: CSSProperties = {

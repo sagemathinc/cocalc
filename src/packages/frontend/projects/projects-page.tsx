@@ -3,128 +3,225 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Col, Grid, Row, Space } from "antd";
 import { Map, Set } from "immutable";
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 
 // ensure redux stuff (actions and store) are initialized:
 import "./actions";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 
-import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
+  CSS,
   React,
   redux,
-  useActions,
   useMemo,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
+import { Icon, Loading, LoginLink, Title } from "@cocalc/frontend/components";
 import { Footer } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
-import { UsersViewing } from "../account/avatar/users-viewing";
+
 import { NewProjectCreator } from "./create-project";
-import { FilenameSearch } from "./filename-search";
-import { Hashtags } from "./hashtags";
-import ProjectList from "./project-list";
-import { ProjectsListingDescription } from "./project-list-desc";
-import { ProjectsFilterButtons } from "./projects-filter-buttons";
-import { ProjectsSearch } from "./search";
+import { LoadAllProjects } from "./projects-load-all";
+import { ProjectsOperations } from "./projects-operations";
+import { StarredProjectsBar } from "./projects-starred";
+import { ProjectsTable } from "./projects-table";
+import { ProjectsTableControls } from "./projects-table-controls";
 import ProjectsPageTour from "./tour";
-import { get_visible_hashtags, get_visible_projects } from "./util";
+import { useBookmarkedProjects } from "./use-bookmarked-projects";
+import { getVisibleProjects } from "./util";
+import { FilenameSearch } from "./filename-search";
 
-const PROJECTS_TITLE_STYLE: React.CSSProperties = {
-  color: COLORS.GRAY_D,
-  fontSize: "24px",
-  fontWeight: 500,
-  marginBottom: "1ex",
-} as const;
-
-const LOADING_STYLE: React.CSSProperties = {
+const LOADING_STYLE: CSS = {
   fontSize: "40px",
   textAlign: "center",
-  color: "#999999",
+  color: COLORS.GRAY,
 } as const;
 
 export const ProjectsPage: React.FC = () => {
   const intl = useIntl();
+  const { bookmarkedProjects } = useBookmarkedProjects();
+
+  const project_map = useTypedRedux("projects", "project_map");
+  const user_map = useTypedRedux("users", "user_map");
+
+  const all_projects: string[] = useMemo(
+    () => project_map?.keySeq().toJS() ?? [],
+    [project_map?.size],
+  );
+
+  const screens = Grid.useBreakpoint();
+  const narrow = !screens.lg;
+
+  // Tour
   const searchRef = useRef<any>(null);
   const filtersRef = useRef<any>(null);
   const createNewRef = useRef<any>(null);
   const projectListRef = useRef<any>(null);
+  const filenameSearchRef = useRef<any>(null);
 
-  const actions = useActions("projects");
-  const [clear_and_focus_search, set_clear_and_focus_search] =
+  // Calculating table height
+  const containerRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
+  const starredBarRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const operationsRef = useRef<HTMLDivElement>(null);
+  const loadAllRef = useRef<HTMLDivElement>(null);
+
+  // Elements to account for in height calculation (everything except projectList and footer)
+  const refs = [
+    titleRef,
+    starredBarRef,
+    controlsRef,
+    operationsRef,
+    loadAllRef,
+  ] as const;
+
+  const [create_project_trigger, set_create_project_trigger] =
     useState<number>(0);
 
-  const all_projects_have_been_loaded = useTypedRedux(
+  const [tableHeight, setTableHeight] = useState<number>(400);
+
+  // Track filtered collaborators from table
+  const [filteredCollaborators, setFilteredCollaborators] = useState<
+    string[] | null
+  >(null);
+
+  // if not shown, trigger a re-calculation
+  const allLoaded = !!useTypedRedux(
     "projects",
     "all_projects_have_been_loaded",
   );
+
+  // status of filters
   const hidden = !!useTypedRedux("projects", "hidden");
   const deleted = !!useTypedRedux("projects", "deleted");
   const filter = useMemo(() => {
     return `${!!hidden}-${!!deleted}`;
   }, [hidden, deleted]);
   const search: string = useTypedRedux("projects", "search");
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
 
   const selected_hashtags: Map<string, Set<string>> = useTypedRedux(
     "projects",
     "selected_hashtags",
   );
 
-  const project_map = useTypedRedux("projects", "project_map");
-  const user_map = useTypedRedux("users", "user_map");
-  const visible_projects: string[] = useMemo(
-    () =>
-      get_visible_projects(
-        project_map,
-        user_map,
-        selected_hashtags?.get(filter),
-        search,
-        deleted,
-        hidden,
-        "last_edited" /* "user_last_active" was confusing */,
-      ),
-    [project_map, user_map, deleted, hidden, filter, selected_hashtags, search],
-  );
-  const all_projects: string[] = useMemo(
-    () => project_map?.keySeq().toJS() ?? [],
-    [project_map?.size],
-  );
+  const visible_projects: string[] = useMemo(() => {
+    return getVisibleProjects(
+      project_map,
+      user_map,
+      selected_hashtags?.get(filter),
+      search,
+      deleted,
+      hidden,
+      "last_edited" /* "user_last_active" was confusing */,
+    );
+  }, [
+    project_map,
+    user_map,
+    deleted,
+    hidden,
+    filter,
+    selected_hashtags,
+    search,
+  ]);
 
-  const visible_hashtags: string[] = useMemo(
-    () => get_visible_hashtags(project_map, visible_projects),
-    [visible_projects, project_map],
-  );
+  // Calculate dynamic table height following these steps:
+  // 1. Get container's offset from viewport top
+  // 2. Available area = viewport height - offset
+  // 3. Table height = available area - fixed elements - gaps
+  useLayoutEffect(() => {
+    const calculateHeight = () => {
+      if (!containerRef.current) return;
 
-  function clear_filters_and_focus_search_input(): void {
-    actions.setState({ selected_hashtags: Map<string, Set<string>>() });
-    set_clear_and_focus_search(clear_and_focus_search + 1);
-  }
+      // 1. Get container's offset from top of viewport
+      const containerTop = containerRef.current.getBoundingClientRect().top;
 
-  function render_new_project_creator() {
-    // TODO: move this into NewProjectCreator and don't have any props
-    const n = all_projects.length;
-    if (n === 0 && !all_projects_have_been_loaded) {
-      // In this case we always trigger a full load,
-      // so better wait for it to finish before
-      // rendering the new project creator... since
-      // it shows the creation dialog depending entirely
-      // on n when it is *first* rendered.
-      return;
+      // 2. Calculate available area for the entire page
+      const viewportHeight = window.innerHeight;
+      const availableArea = viewportHeight - containerTop;
+
+      // 3. Sum heights of all fixed elements (including margins)
+      let fixedElementsHeight = 0;
+      refs.forEach((ref) => {
+        if (ref.current) {
+          const rect = ref.current.getBoundingClientRect();
+          const style = window.getComputedStyle(ref.current);
+          const marginTop = parseFloat(style.marginTop) || 0;
+          const marginBottom = parseFloat(style.marginBottom) || 0;
+          const totalHeight = rect.height + marginTop + marginBottom;
+          fixedElementsHeight += totalHeight;
+        }
+      });
+
+      // 4. Account for margins on the projectListRef wrapper div
+      let projectListMargins = 0;
+      if (projectListRef.current) {
+        const style = window.getComputedStyle(projectListRef.current);
+        const marginTop = parseFloat(style.marginTop) || 0;
+        const marginBottom = parseFloat(style.marginBottom) || 0;
+        projectListMargins = marginTop + marginBottom;
+      }
+
+      // 5. Account for 10px gaps between visible elements from Space component
+      const visibleGaps = refs.length * 10;
+
+      // 6. Add buffer to ensure loadAll button is fully visible
+      const buffer = 80;
+
+      const calculatedHeight =
+        availableArea -
+        fixedElementsHeight -
+        projectListMargins -
+        visibleGaps -
+        buffer;
+
+      // enforce a minimum height
+      const newHeight = Math.max(calculatedHeight, 400);
+
+      setTableHeight(newHeight);
+    };
+
+    const rafId = requestAnimationFrame(() => {
+      calculateHeight();
+      setTimeout(calculateHeight, 100);
+    });
+
+    // Set up ResizeObserver to watch for changes
+    const resizeObserver = new ResizeObserver(calculateHeight);
+
+    // Observe the container
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
     }
 
-    return (
-      <div
-        ref={createNewRef}
-        style={{ margin: "15px auto", maxWidth: "900px" }}
-      >
-        <NewProjectCreator noProjects={n === 0} default_value={search} />
-      </div>
-    );
+    // Observe all fixed elements so we detect when they change/disappear
+    refs.forEach((ref) => {
+      if (ref.current) {
+        resizeObserver.observe(ref.current);
+      }
+    });
+
+    // Also listen to window resize
+    window.addEventListener("resize", calculateHeight);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", calculateHeight);
+    };
+  }, [allLoaded, bookmarkedProjects.length]);
+
+  function handleCreateProject() {
+    set_create_project_trigger(create_project_trigger + 1);
+  }
+
+  function handleClearCollaboratorFilter() {
+    setFilteredCollaborators(null);
   }
 
   if (project_map == null) {
@@ -140,91 +237,125 @@ export const ProjectsPage: React.FC = () => {
   }
 
   return (
-    <div className={"smc-vfill"}>
-      <div style={{ minHeight: "20px" }}>
-        <ProjectsPageTour
-          style={{ float: "right", marginTop: "5px", marginRight: "5px" }}
-          searchRef={searchRef}
-          filtersRef={filtersRef}
-          createNewRef={createNewRef}
-          projectListRef={projectListRef}
-        />
-      </div>
-      <Col
-        sm={12}
-        md={12}
-        lg={10}
-        lgOffset={1}
-        className={"smc-vfill"}
-        style={{ overflowY: "auto" }}
-      >
-        <Row>
-          <Col md={4}>
-            <div style={PROJECTS_TITLE_STYLE}>
-              <Icon name="edit" /> {intl.formatMessage(labels.projects)}
-            </div>
-          </Col>
-          <Col md={3}>
-            {!is_anonymous && (
-              <span ref={filtersRef}>
-                <ProjectsFilterButtons />
-              </span>
-            )}
-          </Col>
-          <Col md={2}>
-            <UsersViewing style={{ width: "100%" }} />
-          </Col>
-        </Row>
-        <Row>
-          <Col sm={4}>
-            <div ref={searchRef}>
-              <ProjectsSearch
-                clear_and_focus_search={clear_and_focus_search}
-                on_submit={(switch_to: boolean) => {
-                  const project_id = visible_projects[0];
-                  if (project_id != null) {
-                    actions.setState({ search: "" });
-                    actions.open_project({ project_id, switch_to });
-                  }
+    <div
+      ref={containerRef}
+      className={"smc-vfill"}
+      style={{ overflowY: "auto" }}
+    >
+      <Row>
+        <Col sm={24} md={24} lg={{ span: 20, offset: 2 }}>
+          <Space
+            direction="vertical"
+            size={10}
+            style={{
+              width: "100%",
+              display: "flex",
+              padding: narrow ? "0 10px 0 10px" : "0",
+            }}
+          >
+            <div
+              ref={titleRef}
+              style={{
+                marginTop: "20px",
+                display: "flex",
+                width: "100%",
+                gap: "10px",
+                alignItems: "center",
+              }}
+            >
+              <Title
+                level={3}
+                style={{
+                  flex: "0 1 auto",
+                  marginBottom: "15px",
+                  whiteSpace: "nowrap",
                 }}
+              >
+                <Icon name="edit" /> {intl.formatMessage(labels.projects)}
+              </Title>
+              <div ref={starredBarRef} style={{ flex: "1 1 auto" }}>
+                <StarredProjectsBar />
+              </div>
+              {!narrow && (
+                <div ref={filenameSearchRef} style={{ flex: "0 1 auto" }}>
+                  <FilenameSearch
+                    style={{
+                      width: IS_MOBILE ? "100px" : "200px",
+                      display: "inline-block",
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {narrow && (
+              <div ref={filenameSearchRef} style={{ textAlign: "right" }}>
+                <FilenameSearch
+                  style={{
+                    width: IS_MOBILE ? "100px" : "200px",
+                    display: "inline-block",
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Table Controls (Search, Filters, Create Button) */}
+            <div ref={controlsRef}>
+              <ProjectsTableControls
+                visible_projects={visible_projects}
+                onCreateProject={handleCreateProject}
+                createNewRef={createNewRef}
+                searchRef={searchRef}
+                filtersRef={filtersRef}
+                tour={
+                  <ProjectsPageTour
+                    searchRef={searchRef}
+                    filtersRef={filtersRef}
+                    createNewRef={createNewRef}
+                    projectListRef={projectListRef}
+                    filenameSearchRef={filenameSearchRef}
+                    style={{ flex: 0 }}
+                  />
+                }
               />
             </div>
-          </Col>
-          <Col sm={4}>
-            <Hashtags
-              hashtags={visible_hashtags}
-              selected_hashtags={selected_hashtags?.get(filter)}
-              toggle_hashtag={(tag) => actions.toggle_hashtag(filter, tag)}
-            />
-          </Col>
-          <Col sm={4}>
-            <div ref={searchRef}>
-              <FilenameSearch />
+
+            {/* Bulk Operations (when filters active) */}
+            <div ref={operationsRef}>
+              <ProjectsOperations
+                visible_projects={visible_projects}
+                filteredCollaborators={filteredCollaborators}
+                onClearCollaboratorFilter={handleClearCollaboratorFilter}
+              />
             </div>
-          </Col>
-        </Row>
-        <Row>
-          <Col sm={12} style={{ marginTop: "1ex" }}>
-            {render_new_project_creator()}
-          </Col>
-        </Row>
-        <Row>
-          <Col sm={12}>
-            <ProjectsListingDescription
-              visible_projects={visible_projects}
-              onCancel={clear_filters_and_focus_search_input}
-            />
-          </Col>
-        </Row>
-        <Row className="smc-vfill">
-          <Col sm={12} className="smc-vfill">
-            <div className="smc-vfill" ref={projectListRef}>
-              <ProjectList visible_projects={visible_projects} />
+
+            <div ref={projectListRef}>
+              <ProjectsTable
+                visible_projects={visible_projects}
+                height={tableHeight}
+                narrow={narrow}
+                filteredCollaborators={filteredCollaborators}
+                onFilteredCollaboratorsChange={setFilteredCollaborators}
+              />
             </div>
-          </Col>
-        </Row>
-        <Footer />
-      </Col>
+
+            <div ref={loadAllRef}>
+              <LoadAllProjects />
+            </div>
+
+            <Footer />
+
+            {/* Hidden Create Project Modal */}
+            <div style={{ display: "none" }}>
+              <NewProjectCreator
+                noProjects={all_projects.length === 0}
+                default_value={search}
+                open_trigger={create_project_trigger}
+              />
+            </div>
+          </Space>
+        </Col>
+      </Row>
     </div>
   );
 };

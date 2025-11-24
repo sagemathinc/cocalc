@@ -106,6 +106,7 @@ export default function AnnotationLayer({
           background: "yellow",
           border: "1px solid grey",
           boxShadow: "3px 3px 3px 0px #ddd",
+          zIndex: 1, // without that, in dark-mode it stays hidden
         }}
       />
     );
@@ -137,7 +138,7 @@ export default function AnnotationLayer({
     }
 
     // Note: this "annotation" in the onClick below is the right one because we use "let"
-    // *inside* the for loop above -- I'm not making the typical closure/scopying mistake.
+    // *inside* the for loop above -- I'm not making the typical closure/scoping mistake.
     const elt = (
       <div
         onClick={() => clickAnnotation(annotation)}

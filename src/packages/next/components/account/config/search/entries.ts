@@ -3,7 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { IconName } from "@cocalc/frontend/components/icon";
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { search_match, search_split } from "@cocalc/util/misc";
 
 interface Info0 {

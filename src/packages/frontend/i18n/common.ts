@@ -40,8 +40,15 @@ export const labels = defineMessages({
   },
   on: {
     id: "labels.on",
-    defaultMessage: "on",
-    description: "single word, something 'on' something else",
+    defaultMessage: "On",
+    description:
+      "short single word, just a few characters long, for a label. Should mean 'enabled'.",
+  },
+  off: {
+    id: "labels.off",
+    defaultMessage: "Off",
+    description:
+      "short single word, just a few characters long, for a label. Should mean 'disabled'.",
   },
   yes: {
     id: "labels.yes",
@@ -118,10 +125,35 @@ export const labels = defineMessages({
     defaultMessage: "Change the language of the user interface.",
     description: "Tooltip text of dropdown to change the UI language",
   },
+  account_configuration: {
+    id: "labels.account_configuration",
+    defaultMessage: "Account Configuration",
+    description: "The configuration for the user's account.",
+  },
+  appearance: {
+    id: "labels.appearance",
+    defaultMessage: "Appearance",
+    description: "Visual appearance and theme settings",
+  },
+  profile: {
+    id: "labels.profile",
+    defaultMessage: "Profile",
+    description: "User profile settings and information",
+  },
+  billing: {
+    id: "labels.billing",
+    defaultMessage: "Billing",
+    description: "Billing and payment related settings",
+  },
   email_address: {
     id: "labels.email_address",
     defaultMessage: "Email Address",
     description: "e.g. a label in a form for the email address field",
+  },
+  editor: {
+    id: "labels.editor",
+    defaultMessage: "Editor",
+    description: "Code editor settings and preferences",
   },
   frame_editors_title_bar_save_label: {
     id: "labels.frame-editors.title-bar.save_label",
@@ -185,6 +217,11 @@ export const labels = defineMessages({
     id: "labels.status",
     defaultMessage: "Status",
   },
+  state: {
+    id: "labels.state",
+    defaultMessage: "State",
+    description: "The state some object is in, e.g. running, stopped, ...",
+  },
   published_files: {
     id: "labels.published_files",
     defaultMessage: "Published",
@@ -220,6 +257,21 @@ export const labels = defineMessages({
     id: "labels.pages",
     defaultMessage: "Pages",
     description: "Pages in a document",
+  },
+  pay_as_you_go: {
+    id: "labels.pay_as_you_go",
+    defaultMessage: "Pay As You Go",
+    description: "Pay-as-you-go billing option",
+  },
+  payment_methods: {
+    id: "labels.payment_methods",
+    defaultMessage: "Payment Methods",
+    description: "Payment methods management",
+  },
+  payments: {
+    id: "labels.payments",
+    defaultMessage: "Payments",
+    description: "Payment history and transactions",
   },
   settings: {
     id: "labels.settings",
@@ -307,6 +359,24 @@ export const labels = defineMessages({
     id: "labels.zoom_out",
     defaultMessage: "Zoom out",
   },
+  zoom_in_short: {
+    id: "labels.zoom_in_short",
+    defaultMessage: "In",
+    description: "Short label on a button for zooming in",
+  },
+  zoom_out_short: {
+    id: "labels.zoom_out_short",
+    defaultMessage: "Out",
+    description: "Short label on a button for zooming out",
+  },
+  width: {
+    id: "labels.width",
+    defaultMessage: "Width",
+  },
+  height: {
+    id: "labels.height",
+    defaultMessage: "Height",
+  },
   reload: {
     id: "labels.reload",
     defaultMessage: "Reload",
@@ -332,6 +402,11 @@ export const labels = defineMessages({
     defaultMessage: "Create a new file with the help of AI",
     description:
       "Tooltip on the menu entry to open the AI Assistant for generating documents",
+  },
+  ai: {
+    id: "labels.ai",
+    defaultMessage: "AI",
+    description: "Artificial Intelligence short abbreviation",
   },
   stop: {
     id: "labels.stop",
@@ -442,6 +517,11 @@ export const labels = defineMessages({
     defaultMessage:
       "Collaborators are other users, who can access this project. They can view and edit the same files as you.",
   },
+  collaborators: {
+    id: "labels.collaborators",
+    defaultMessage: "Collaborators",
+    description: "Collaborators (people) on a project, working together",
+  },
   chat: {
     id: "labels.chat",
     defaultMessage: "Chat",
@@ -474,6 +554,11 @@ export const labels = defineMessages({
     id: "labels.recent",
     defaultMessage: "Recent",
     description: "Something that happened recently",
+  },
+  recent_files: {
+    id: "labels.recent_files",
+    defaultMessage: "Recent Files",
+    description: "Recently opened or edited files",
   },
   files: {
     id: "labels.files",
@@ -530,7 +615,9 @@ export const labels = defineMessages({
   },
   select: {
     id: "labels.select",
-    defaultMessage: "select",
+    defaultMessage: "Select",
+    description:
+      "Short label on a button in a dialog, to confirm a 'selection'.",
   },
   select_a_kernel: {
     id: "labels.select_a_kernel",
@@ -569,6 +656,27 @@ export const labels = defineMessages({
     id: "labels.delete_forever",
     defaultMessage: "Delete Forever",
     comment: "Short label on a button, to delete an item forever",
+  },
+  communication: {
+    id: "labels.communication",
+    defaultMessage: "Communication",
+    description:
+      "How communication happens, showing banners, sending messages, etc.",
+  },
+  browser: {
+    id: "labels.browser",
+    defaultMessage: "Browser",
+    description: "Web browser settings and performance",
+  },
+  file_explorer: {
+    id: "labels.file_explorer",
+    defaultMessage: "File Explorer",
+    description: "File browser and file management interface",
+  },
+  theme: {
+    id: "labels.theme",
+    defaultMessage: "Theme",
+    description: "Visual UI theme of the application",
   },
   downloaded: {
     id: "labels.downloaded",
@@ -743,9 +851,19 @@ export const labels = defineMessages({
     id: "labels.drafts",
     defaultMessage: "Drafts",
   },
+  keyboard: {
+    id: "labels.keyboard",
+    defaultMessage: "Keyboard",
+    description: "Keyboard settings and shortcuts",
+  },
   keyboard_shortcuts: {
     id: "labels.keyboard_shortcuts",
     defaultMessage: "Keyboard shortcuts",
+  },
+  ssh_and_api_keys: {
+    id: "labels.keys",
+    defaultMessage: "API & SSH Keys",
+    description: "API keys and SSH keys management",
   },
   terms_of_service: {
     id: "labels.terms_of_service",
@@ -754,6 +872,10 @@ export const labels = defineMessages({
   last_active: {
     id: "labels.last_active",
     defaultMessage: "Last Active",
+  },
+  last_edited: {
+    id: "labels.last_edited",
+    defaultMessage: "Last Edited",
   },
   project_status: {
     id: "labels.project_status",
@@ -861,6 +983,16 @@ export const labels = defineMessages({
     id: "labels.balance",
     defaultMessage: "Balance",
     description: "Short label for a monetary balance on an account",
+  },
+  previous_page: {
+    id: "labels.previous_page",
+    defaultMessage: "Previous Page",
+    description: "Navigate to previous page in a document",
+  },
+  next_page: {
+    id: "labels.next_page",
+    defaultMessage: "Next Page",
+    description: "Navigate to next page in a document",
   },
 });
 
@@ -974,7 +1106,7 @@ export const editor = defineMessages({
   },
   table_of_contents_short: {
     id: "editor.table_of_contents.short",
-    defaultMessage: "Content",
+    defaultMessage: "Contents",
     description: "Short for Table of Contents",
   },
   table_of_contents_name: {
@@ -996,7 +1128,7 @@ export const editor = defineMessages({
   },
   errors_and_warnings_title_short: {
     id: "editor.errors_and_warning.title.short",
-    defaultMessage: "Errors",
+    defaultMessage: "Problems", // common term for Errors and Warnings
   },
   errors_and_warnings_title: {
     id: "editor.errors_and_warning.title",
@@ -1017,6 +1149,14 @@ export const editor = defineMessages({
   pdf_embed_title: {
     id: "editor.latex.pdf_embed.title",
     defaultMessage: "PDF - Native",
+  },
+  toggle_pdf_dark_mode_title: {
+    id: "editor.toggle_pdf_dark_mode.title",
+    defaultMessage: "Toggle dark mode of PDF off, to see the original file",
+  },
+  toggle_pdf_dark_mode_label: {
+    id: "editor.toggle_pdf_dark_mode.label",
+    defaultMessage: "Toggle PDF Dark Mode",
   },
   latex_source_code_label_name: {
     id: "editor.latex.source_code.name",

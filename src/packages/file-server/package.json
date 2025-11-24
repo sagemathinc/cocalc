@@ -9,7 +9,6 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc --build",
-    "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest",
     "depcheck": "pnpx depcheck",
     "clean": "rm -rf node_modules dist"

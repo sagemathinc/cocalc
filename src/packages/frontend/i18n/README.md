@@ -4,14 +4,14 @@
 
 Right now, all of this is only for the frontend – the Next.js part could be done similarly, but needs a separate workflow. In particular, on those "next" landing pages there would be additional sections for different languages – here, we translate specific strings in-place.
 
-To get started, you either define messages directly in a `tsx` file in the component or use `./common.ts` for shared messages, etc. Search for e.g. `labels.projects` to see how such defined messages are used. It is generally discuraged to re-use messages, because context usually matters – the exception are short labels and single words, which should actually be consistent across their usage.
+To get started, you either define messages directly in a `tsx` file in the component or use `./common.ts` for messages that are used in multiple places across the application. Search for e.g. `labels.projects` to see how such defined messages are used. It is generally discouraged to re-use messages, because context usually matters – the exception are short labels and single words, which should actually be consistent across their usage. Use `./common.ts` only for messages that need to be shared; component-specific messages should be defined locally in the component file where they are used.
 
 To get a feeling how this works, search in the source code for existing usages. At the end of this file are detailed examples.
 
 - The `<FormattedMessage id="[directory].[subdir].[filename].[aspect].[label|title|...]"                defaultMessage="..." />` is only used in `*.tsx` files. They return a `Fragment` and you can also specify values. Read up on its documentation to learn more. On top of that, read up on `Explicit ID` noted below.
 - A `defineMessage({ id: "[...].[...].[label|title|tooltip|...]",  defaultMessage:"..."})` is used when you define a message in a data structure, which will be referenced by a component. That "defined message" is basically a tagged object. You cannot use it directly in a component!
   - To make use of such a `defineMessage`, you have to get a hold of `const intl = useIntl()` and then `intl.formatMessage(the_message_object)`. That will render a string.
-- Note: There is a type `IntlMessage` defiend by us here in `./types.ts`. It requires `id` and `defaultMessage`. Search for `isIntlMessage` in the code base to see, how it is used to check what to do with it.
+- Note: There is a type `IntlMessage` defined by us here in `./types.ts`. It requires `id` and `defaultMessage`. Search for `isIntlMessage` in the code base to see, how it is used to check what to do with it.
 - Outside the react context, you use `i18n/index::getIntl`.
 
 Note: The "extract" step parses the source-code of all `*.tsx` files and only a few selected `*.ts` files. You cannot use variables where messages are defined, because the extract tool does not know what to do with them. So, for example, the files that define commands are `*.ts` files, and the messages it uses are referencing the exported messages defined in `i18n/common.ts`. Scanning all files just takes too long.
@@ -28,7 +28,7 @@ After introducing new messages, these are the steps to get all translations into
 
     This command requires to use git to pass in the tsx files `$(git ls-files '**/*.tsx')`. Otherwise, even though there are excludes, it just runs forever or until it runs out of memory. The resulting extracted strings are in the `i18n/extracted.json` file. That's the one that will be uploaded...
 
-1.  `export SIMPLELOCALIZE_KEY=...` (key comes from simpelocalize)
+1.  `export SIMPLELOCALIZE_KEY=...` (key comes from simplelocalize)
 1.  `pnpm i18n:upload`:
 
     Basically, the `i18n/extracted.json` will be sent to SimpleLocalize.
@@ -148,7 +148,7 @@ Below, there are 3 usages of different types of translations. Below are their ex
     <div style={{ maxWidth: "60ex" }}>
       <FormattedMessage
         id="account.sign-out.button.title"
-        description="Sign out/Sign out everyhwere button in account settings"
+        description="Sign out/Sign out everywhere button in account settings"
         defaultMessage={`Are you sure you want to sign {account} out
 {everywhere, select,
 true {on all web browsers? Every web browser will have to reauthenticate before using this account again.}
@@ -180,10 +180,18 @@ other {}
 </Popconfirm>
 ```
 
-- `<FormattedMessage />` in this version of `formatjs` returns a `React.Fragment`. This means you can either use it directly inside a `<Paragraph><...></Paragaraph>` or pass into a component. The component should be able to handle children of that kind. The most simplistic way of using this is to put `<span>` tags around it.
+- `<FormattedMessage />` in this version of `formatjs` returns a `React.Fragment`. This means you can either use it directly inside a `<Paragraph><...></Paragraph>` or pass into a component. The component should be able to handle children of that kind. The most simplistic way of using this is to put `<span>` tags around it.
   - The `defaultMessage` is what will be extracted. It contains conditional messages, which follow the ICU standard. (Those `{var_name, select, case1 {string} case2 {string} other {string}}` constructs, where the `other` clause is mandatory).
   - The easiest use are just `{variable_name}`, where the variable is defined in the `values=...` property. This could also be a react component! E.g. `{br}` combined with `values={{br: <br/>}}` can be used to insert a line break or use `<p>...</p>` combined with `values={{p: (ch) => <Paragraph>{ch}</Paragraph>}}` to map the `<p>` XML tags to a paragraph with a child text. Some tags are defined as defaults, though.
   - Ref: ICU Messages: https://unicode-org.github.io/icu/userguide/format_parse/messages/
+  - **Pluralization**: Use the `plural` selector for singular/plural forms. The syntax is `{variable, plural, =0 {no items} one {# item} other {# items}}`. The `#` symbol represents the variable value. The `=0` case is optional but useful for "no items" messages. Example:
+    ```tsx
+    <FormattedMessage
+      id="labels.errors"
+      defaultMessage={`{errors, plural, =0 {No errors} one {# error} other {# errors}}`}
+      values={{ errors }}
+    />
+    ```
 - **okText**: That's a simple string, where the English variant is defined right here. Note, that the ID of the OK text and the title are very similar.
 - **cancelText**: That references a common message, which is used in many places. It's the "Cancel" text on the button. The `labels` object comes from `import { labels } from "@cocalc/frontend/i18n"`.
   - There is also a tiny component as an example, for how to translate a bit via a component: `i18n/components.tsx` → `<CancelText />`

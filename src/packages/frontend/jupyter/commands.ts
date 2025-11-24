@@ -10,10 +10,11 @@ we support and how they work.
 See frontend/frame-editors/jupyter-editor/editor.ts for how these are organized into menus.
 */
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { defineMessage } from "react-intl";
 
 import { redux } from "@cocalc/frontend/app-framework";
-import { IconName } from "@cocalc/frontend/components";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
@@ -35,6 +36,11 @@ import {
   RUN_ALL_CELLS_BELOW_ICON,
   SPLIT_CELL_ICON,
 } from "./consts";
+
+export const CLEAR_CELL_OUTPUT_LABEL = defineMessage({
+  id: "jupyter.cell-buttonbar-menu.clear-output",
+  defaultMessage: "Clear Output",
+});
 
 export interface KeyboardCommand {
   mode?: NotebookMode;

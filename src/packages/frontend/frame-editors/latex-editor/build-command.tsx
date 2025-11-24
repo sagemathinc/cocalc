@@ -7,18 +7,20 @@
 Customization and selection of the build command.
 */
 
-import { Alert, Select, Form, Input } from "antd";
-import { List } from "immutable";
 import { SaveOutlined } from "@ant-design/icons";
+import { Alert, Form, Input, Select } from "antd";
+import { List } from "immutable";
+
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Paragraph } from "@cocalc/frontend/components";
 import { split } from "@cocalc/util/misc";
 import { Actions } from "./actions";
+import { BuildControls } from "./output-control-build";
 import {
-  build_command as latexmk_build_command,
   Engine,
   ENGINES,
+  build_command as latexmk_build_command,
 } from "./latexmk";
 
 // cmd could be undefined -- https://github.com/sagemathinc/cocalc/issues/3290
@@ -165,6 +167,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
         onBlur={() => {
           handle_build_change();
         }}
+        addonBefore={<BuildControls actions={actions} narrow={true} />}
       />
     );
   }
@@ -185,7 +188,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     return (
       <Button
         disabled={!dirty}
-        bsSize={"small"}
+        bsSize={"xsmall"}
         bsStyle={dirty ? "success" : undefined}
         title={"Saves the modified command (or just hit the 'Return' key)"}
         onClick={() => handle_build_change()}
@@ -271,7 +274,14 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
             <Icon name="reload" /> Rescan
           </a>
         </h4>
-        <pre style={{ whiteSpace: "pre-line" }}>{build_command}</pre>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <div>
+            <BuildControls actions={actions} narrow={true} />
+          </div>
+          <pre style={{ whiteSpace: "pre-line", flex: 1, margin: 0 }}>
+            {build_command}
+          </pre>
+        </div>
         {renderHardcodedInfo()}
       </>
     );

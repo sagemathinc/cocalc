@@ -58,8 +58,19 @@ export function useAppContextProvider(): AppState {
     }
   }
 
+  function displayI18N(
+    label: string | IntlMessage | ReactNode,
+  ): string | ReactNode {
+    if (isIntlMessage(label)) {
+      return intl.formatMessage(label);
+    } else {
+      return label;
+    }
+  }
+
   return {
     formatIntl,
+    displayI18N,
     pageWidthPx,
     pageStyle,
     showActBarLabels,
@@ -85,9 +96,12 @@ export function useAntdStyleProvider() {
 
   const algorithm = compact ? { algorithm: theme.compactAlgorithm } : undefined;
 
+  const textColors = { colorTextDescription: COLORS.GRAY_DD };
+
   const antdTheme: ThemeConfig = {
     ...algorithm,
     token: {
+      ...textColors,
       ...brandedColors,
       ...borderStyle,
       ...animationStyle,

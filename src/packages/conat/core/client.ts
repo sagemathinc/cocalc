@@ -268,8 +268,6 @@ const MSGPACK_ENCODER_OPTIONS = {
   ignoreUndefined: true,
 };
 
-export const STICKY_QUEUE_GROUP = "sticky";
-
 export const DEFAULT_SOCKETIO_CLIENT_OPTIONS = {
   // A major problem if we allow long polling is that we must always use at most
   // half the chunk size... because there is no way to know if recipients will be
@@ -346,47 +344,6 @@ interface SubscriptionOptions {
   maxWait?: number;
   mesgLimit?: number;
   queue?: string;
-  // sticky: when a choice from a queue group is made, the same choice is always made
-  // in the future for any message with subject matching subject with the last segment
-  // replaced by a *, until the target for the choice goes away. Setting this just
-  // sets the queue option to the constant string STICKY_QUEUE_GROUP.
-  //
-  // Examples of two subjects matching "except possibly last segments" are
-  //          - foo.bar.lJcBSieLn
-  //          - foo.bar.ZzsDC376ge
-  //
-  // You can put anything random in the last segment and all messages
-  // that match foo.bar.* get the same choice from the queue group.
-  // The idea is that *when* the message with subject foo.bar.lJcBSieLn gets
-  // sent, the backend server selects a target from the queue group to receive
-  // that message.  It remembers the choice, and so long as that target is subscribed,
-  // it sends any message matching foo.bar.* to that same target.
-  // This is used in our implementation of persistent socket connections that
-  // are built on pub/sub.
-
-  // The underlying implementation uses (1) consistent hashing and (2) a stream
-  // to sync state of the servers.
-  //
-  // If the members of the sticky queue group have been stable for a while (e.g., a minute)
-  // then all servers in a local cluster have the same list of subscribers in the sticky
-  // queue group, and using consistent hashing any server will make the same choice of
-  // where to route messages.  If the members of the sticky queue group are dynamically changing,
-  // it is possible for an inconsistent choice to be made.  If this happens, it will be fixed
-  // within a few seconds. During that time, it's possible a virtual conat socket
-  // connection could get created then destroyed a few seconds laters, due to the sticky
-  // assignment changing.
-  //
-  // The following isn't implemented yet -- one idea.  Another idea would be the stickiness
-  // is local to a cluster. Not sure!
-  // Regarding a *supercluster*, if no choice has already been made in any cluster for
-  // a given subject (except last segment), then a choice is made using consistent hashing
-  // from the subscribers in the *nearest* cluster that has at least one subscriber.
-  // If choices are made simultaneously across the supercluster, then it is likely that
-  // they are inconsistent.  As soon as these choices are visible, they are resolved, with
-  // the tie broken using lexicographic sort of the "socketio room" (this is a
-  // random string that is used to send messages to a subscriber).
-
-  sticky?: boolean;
   respond?: Function;
   // timeout to create the subscription -- this may wait *until* you connect before
   // it starts ticking.
@@ -881,7 +838,6 @@ export class Client extends EventEmitter {
     {
       closeWhenOffCalled,
       queue,
-      sticky,
       confirm,
       timeout,
     }: {
@@ -892,9 +848,6 @@ export class Client extends EventEmitter {
 
       // the queue group -- if not given, then one is randomly assigned.
       queue?: string;
-
-      // if true, sets queue to "sticky"
-      sticky?: boolean;
 
       // confirm -- get confirmation back from server that subscription was created
       confirm?: boolean;
@@ -922,22 +875,11 @@ export class Client extends EventEmitter {
       logger.debug(message);
       throw new ConatError(message, { code: 403 });
     }
-    if (sticky) {
-      if (queue) {
-        throw Error("must not specify queue group if sticky is true");
-      }
-      queue = STICKY_QUEUE_GROUP;
-    }
     let sub = this.subs[subject];
     if (sub != null) {
       if (queue && this.queueGroups[subject] != queue) {
         throw Error(
           `client can only have one queue group subscription for a given subject -- subject='${subject}', queue='${queue}'`,
-        );
-      }
-      if (queue == STICKY_QUEUE_GROUP) {
-        throw Error(
-          `can only have one sticky subscription with given subject pattern per client -- subject='${subject}'`,
         );
       }
       sub.refCount += 1;
@@ -1020,7 +962,6 @@ export class Client extends EventEmitter {
     const { sub } = this.subscriptionEmitter(subject, {
       confirm: false,
       closeWhenOffCalled: true,
-      sticky: opts?.sticky,
       queue: opts?.queue,
     });
     return this.subscriptionIterator(sub, opts);
@@ -1035,7 +976,6 @@ export class Client extends EventEmitter {
       confirm: true,
       closeWhenOffCalled: true,
       queue: opts?.queue,
-      sticky: opts?.sticky,
       timeout: opts?.timeout,
     });
     try {
@@ -1204,51 +1144,58 @@ export class Client extends EventEmitter {
     // **right now** or received these messages.
     count: number;
   }> => {
-    if (this.isClosed()) {
-      // already closed
-      return { bytes: 0, count: 0 };
-    }
-    await this.waitUntilSignedIn();
-    const start = Date.now();
-    const { bytes, getCount, promise } = this._publish(subject, mesg, {
-      ...opts,
-      confirm: true,
-    });
-    await promise;
-    let count = getCount?.()!;
-
-    if (
-      opts.waitForInterest &&
-      count != null &&
-      count == 0 &&
-      !this.isClosed() &&
-      (opts.timeout == null || Date.now() - start <= opts.timeout)
-    ) {
-      let timeout = opts.timeout ?? DEFAULT_WAIT_FOR_INTEREST_TIMEOUT;
-      await this.waitForInterest(subject, {
-        timeout: timeout ? timeout - (Date.now() - start) : undefined,
-      });
+    try {
       if (this.isClosed()) {
-        return { bytes, count };
+        // already closed
+        return { bytes: 0, count: 0 };
       }
-      const elapsed = Date.now() - start;
-      timeout -= elapsed;
-      // client and there is interest
-      if (timeout <= 500) {
-        // but... not enough time left to try again even if there is interest,
-        // i.e., will fail anyways due to network latency
-        return { bytes, count };
-      }
-      const { getCount, promise } = this._publish(subject, mesg, {
+      await this.waitUntilSignedIn();
+      const start = Date.now();
+      const { bytes, getCount, promise } = this._publish(subject, mesg, {
         ...opts,
-        timeout,
         confirm: true,
       });
       await promise;
-      count = getCount?.()!;
-    }
+      let count = getCount?.()!;
 
-    return { bytes, count };
+      if (
+        opts.waitForInterest &&
+        count != null &&
+        count == 0 &&
+        !this.isClosed() &&
+        (opts.timeout == null || Date.now() - start <= opts.timeout)
+      ) {
+        let timeout = opts.timeout ?? DEFAULT_WAIT_FOR_INTEREST_TIMEOUT;
+        await this.waitForInterest(subject, {
+          timeout: timeout ? timeout - (Date.now() - start) : undefined,
+        });
+        if (this.isClosed()) {
+          return { bytes, count };
+        }
+        const elapsed = Date.now() - start;
+        timeout -= elapsed;
+        // client and there is interest
+        if (timeout <= 500) {
+          // but... not enough time left to try again even if there is interest,
+          // i.e., will fail anyways due to network latency
+          return { bytes, count };
+        }
+        const { getCount, promise } = this._publish(subject, mesg, {
+          ...opts,
+          timeout,
+          confirm: true,
+        });
+        await promise;
+        count = getCount?.()!;
+      }
+      return { bytes, count };
+    } catch (err) {
+      if (opts.noThrow) {
+        return { bytes: 0, count: 0 };
+      } else {
+        throw err;
+      }
+    }
   };
 
   private _publish = (
@@ -1450,14 +1397,13 @@ export class Client extends EventEmitter {
   sync = {
     dkv: async <T,>(opts: DKVOptions): Promise<DKV<T>> =>
       await dkv<T>({ ...opts, client: this }),
-    akv: async <T,>(opts: DKVOptions): Promise<AKV<T>> =>
-      await akv<T>({ ...opts, client: this }),
+    akv: <T,>(opts: DKVOptions): AKV<T> => akv<T>({ ...opts, client: this }),
     dko: async <T,>(opts: DKVOptions): Promise<DKO<T>> =>
       await dko<T>({ ...opts, client: this }),
     dstream: async <T,>(opts: DStreamOptions): Promise<DStream<T>> =>
       await dstream<T>({ ...opts, client: this }),
-    astream: async <T,>(opts: DStreamOptions): Promise<AStream<T>> =>
-      await astream<T>({ ...opts, client: this }),
+    astream: <T,>(opts: DStreamOptions): AStream<T> =>
+      astream<T>({ ...opts, client: this }),
     synctable: async (opts: SyncTableOptions): Promise<ConatSyncTable> =>
       await createSyncTable({ ...opts, client: this }),
   };
@@ -1465,7 +1411,7 @@ export class Client extends EventEmitter {
   socket = {
     listen: (
       subject: string,
-      opts?: SocketConfiguration,
+      opts?: SocketConfiguration & { id?: string },
     ): ConatSocketServer => {
       if (this.state == "closed") {
         throw Error("closed");
@@ -1479,6 +1425,8 @@ export class Client extends EventEmitter {
         subject,
         role: "server",
         client: this,
+        // ok to use this.id as default since can have at most
+        // one server per client for a given subject
         id: this.id,
         ...opts,
       });
@@ -1491,12 +1439,12 @@ export class Client extends EventEmitter {
 
     connect: (
       subject: string,
-      opts?: SocketConfiguration,
+      opts?: SocketConfiguration & { id?: string },
     ): ConatSocketClient => {
       if (this.state == "closed") {
         throw Error("closed");
       }
-      const id = randomId();
+      const id = opts?.id ?? randomId();
       const client = new ConatSocketClient({
         subject,
         role: "client",
@@ -1610,9 +1558,10 @@ interface PublishOptions {
 
   // noThrow -- if set and publishing would throw an exception, it is
   // instead silently dropped and undefined is returned instead.
+  // Returned value of bytes and count will are not defined.
   // Use this where you might want to use publishSync, but still want
   // to ensure there is interest; however, it's not important to know
-  // if there was an error sending.
+  // if there was an error sending or that sending worked.
   noThrow?: boolean;
 }
 
@@ -1892,7 +1841,7 @@ export class Message<T = any> extends MessageData<T> {
       return { bytes: 0, count: 0 };
     }
     return await this.client.publish(subject, mesg, {
-      // we *always* wait for interest for sync respond, since
+      // we *always* wait for interest for async respond, since
       // it is by far the most likely situation where it wil be needed, due
       // to inboxes when users first sign in.
       waitForInterest: true,

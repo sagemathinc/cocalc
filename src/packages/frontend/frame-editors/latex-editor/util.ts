@@ -5,17 +5,23 @@
 
 // data and functions specific to the latex editor.
 
-import {
-  exec,
-  ExecOpts,
-  ExecOutput,
-} from "@cocalc/frontend/frame-editors/generic/client";
-import { IS_TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
+import { ExecOutput } from "@cocalc/frontend/frame-editors/generic/client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ExecOptsBlocking } from "@cocalc/util/db-schema/projects";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+import { TITLE_BAR_BORDER } from "../frame-tree/style";
 import { TIMEOUT_LATEX_JOB_S } from "./constants";
-import { delay } from "awaiting";
+
+export const OUTPUT_HEADER_STYLE = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "10px",
+  borderBottom: TITLE_BAR_BORDER,
+  backgroundColor: "white",
+  flexShrink: 0,
+} as const;
 
 export function pdf_path(path: string): string {
   // if it is already a pdf, don't change the upper/lower casing -- #4562
@@ -68,44 +74,6 @@ export function ensureTargetPathIsCorrect(
   return cmd.slice(0, i).trim() + " " + quoted;
 }
 
-/**
- * Periodically get information about the job and terminate (without another update!) when the job is no longer running.
- */
-async function gatherJobInfo(
-  project_id: string,
-  job_info: ExecuteCodeOutputAsync,
-  set_job_info: (info: ExecuteCodeOutputAsync) => void,
-  path: string,
-): Promise<void> {
-  await delay(100);
-  let wait_s = 1;
-  try {
-    while (true) {
-      const update = await exec(
-        {
-          project_id,
-          async_get: job_info.job_id,
-          async_stats: true,
-        },
-        path,
-      );
-      if (update.type !== "async") {
-        console.warn("Wrong type returned. The project is too old!");
-        return;
-      }
-      if (update.status === "running") {
-        set_job_info(update);
-      } else {
-        return;
-      }
-      await delay(1000 * wait_s);
-      wait_s = Math.min(5, wait_s + 1);
-    }
-  } catch {
-    return;
-  }
-}
-
 interface RunJobOpts {
   aggregate: ExecOptsBlocking["aggregate"];
   args?: string[];
@@ -132,10 +100,10 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
 
   const haveArgs = Array.isArray(args);
 
-  const job: ExecOpts = {
+  // Create execStream with real-time streaming
+  const stream = webapp_client.project_client.execStream({
     aggregate,
     args,
-    async_call: true,
     bash: !haveArgs,
     command,
     env,
@@ -143,48 +111,75 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     path: runDir,
     project_id,
     timeout: TIMEOUT_LATEX_JOB_S,
-  };
+    // Pass debug info for backend logging
+    debug: `LaTeX build for: ${path}`,
+  });
 
-  const job_info = await exec(job, path);
+  return new Promise((resolve, reject) => {
+    let current_job_info: ExecuteCodeOutputAsync | null = null;
+    let pending_stdout = "";
+    let pending_stderr = "";
 
-  if (job_info.type !== "async") {
-    // this is not an async job. This happens with "old" projects, not knowing about async_call.
-    return job_info;
-  }
+    stream.on("job", (job_info: ExecuteCodeOutputAsync) => {
+      current_job_info = {
+        ...job_info,
+        // Include any stdout/stderr that arrived before the job event
+        stdout: (job_info.stdout ?? "") + pending_stdout,
+        stderr: (job_info.stderr ?? "") + pending_stderr,
+      };
+      // Clear pending data since it's now included
+      pending_stdout = "";
+      pending_stderr = "";
+      set_job_info(current_job_info);
+    });
 
-  if (typeof job_info.pid !== "number") {
-    throw new Error("Unable to spawn compile job.");
-  }
-
-  // this runs async, until the job is no longer "running"
-  gatherJobInfo(project_id, job_info, set_job_info, path);
-
-  while (true) {
-    try {
-      // This also returns the result, if the job has already completed.
-      const output = await exec(
-        {
-          project_id,
-          async_get: job_info.job_id,
-          async_await: true,
-          async_stats: true,
-        },
-        path,
-      );
-      if (output.type !== "async") {
-        throw new Error("output type is not async exec");
-      }
-      set_job_info(output);
-      return output;
-    } catch (err) {
-      if (IS_TIMEOUT_CALLING_PROJECT(err)) {
-        // This will eventually be fine, hopefully. We continue trying to get a reply.
-        await delay(100);
+    stream.on("stdout", (data: string) => {
+      if (current_job_info) {
+        current_job_info = {
+          ...current_job_info,
+          stdout: (current_job_info.stdout ?? "") + data,
+        };
+        set_job_info(current_job_info);
       } else {
-        throw new Error(
-          "Unable to run the compilation. Please check up on the project.",
-        );
+        // Job info not ready yet, accumulate data
+        pending_stdout += data;
       }
-    }
-  }
+    });
+
+    stream.on("stderr", (data: string) => {
+      if (current_job_info) {
+        current_job_info = {
+          ...current_job_info,
+          stderr: (current_job_info.stderr ?? "") + data,
+        };
+        set_job_info(current_job_info);
+      } else {
+        // Job info not ready yet, accumulate data
+        pending_stderr += data;
+      }
+    });
+
+    stream.on("stats", (statEntry: any) => {
+      if (current_job_info) {
+        const stats = current_job_info.stats ?? [];
+        stats.push(statEntry);
+        current_job_info = {
+          ...current_job_info,
+          stats: stats.slice(-100), // Keep last 100 entries
+        };
+        set_job_info(current_job_info);
+      }
+    });
+
+    stream.on("done", (result: ExecOutput) => {
+      if (result.type === "async") {
+        set_job_info(result);
+      }
+      resolve(result);
+    });
+
+    stream.on("error", (err) => {
+      reject(new Error(`Unable to run the compilation. ${err}`));
+    });
+  });
 }

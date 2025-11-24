@@ -3,12 +3,11 @@ import { getLogger } from "@cocalc/backend/logger";
 import sendEmail from "@cocalc/server/email/send-email";
 import { getServerSettings } from "@cocalc/database/settings";
 import { plural } from "@cocalc/util/misc";
-import basePath from "@cocalc/backend/base-path";
-import { join } from "path";
 import markdownit from "markdown-it";
 import { getNames } from "@cocalc/server/accounts/get-name";
 import get from "./get";
 import adminAlert from "@cocalc/server/messages/admin-alert";
+import siteUrl from "@cocalc/server/hub/site-url";
 
 const log = getLogger("server:messages:maintenance");
 
@@ -192,14 +191,10 @@ export async function sendEmailSummary({
 
     const name = `${first_name} ${last_name}`;
 
-    const {
-      help_email: from,
-      site_name: siteName,
-      dns,
-    } = await getServerSettings();
-    const settings = `https://${dns}${join(basePath, "settings", "account")}`;
-    const url = `https://${dns}${join(basePath, "notifications#page=messages-inbox")}`;
-    const signIn = `https://${dns}${join(basePath, "auth", "sign-in")}`;
+    const { help_email: from, site_name: siteName } = await getServerSettings();
+    const settings = await siteUrl("settings/account");
+    const url = await siteUrl("notifications#page=messages-inbox");
+    const signIn = await siteUrl("auth/sign-in");
 
     const num = messages.length <= 1 ? "" : ` (${messages.length})`;
     const subject = `Unread ${siteName} ${plural(messages.length, "message")}${num}`;

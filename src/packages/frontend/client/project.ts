@@ -7,7 +7,12 @@
 Functionality that mainly involves working with a specific project.
 */
 
+import { throttle } from "lodash";
 import { join } from "path";
+
+import { readFile, type ReadFileOptions } from "@cocalc/conat/files/read";
+import { writeFile, type WriteFileOptions } from "@cocalc/conat/files/write";
+import { projectSubject, EXEC_STREAM_SERVICE } from "@cocalc/conat/names";
 import { redux } from "@cocalc/frontend/app-framework";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { dialogs } from "@cocalc/frontend/i18n";
@@ -23,6 +28,7 @@ import {
 import { HOME_ROOT } from "@cocalc/util/consts/files";
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 import {
+  ExecOptsBlocking,
   isExecOptsBlocking,
   type ExecOpts,
   type ExecOutput,
@@ -38,9 +44,7 @@ import {
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { WebappClient } from "./client";
-import { throttle } from "lodash";
-import { writeFile, type WriteFileOptions } from "@cocalc/conat/files/write";
-import { readFile, type ReadFileOptions } from "@cocalc/conat/files/read";
+import { ExecStream } from "./types";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -187,6 +191,154 @@ export class ProjectClient {
   api = async (project_id: string): Promise<API> => {
     return (await this.websocket(project_id)).api;
   };
+
+  /*
+    Execute code in a given project or associated compute server with streaming output.
+    This streams stdout and stderr back to the client in real-time, similar to how
+    LLM chat streaming works.
+
+    Example usage:
+
+    const stream = cc.client.project_client.execStream({
+      project_id: cc.current().project_id,
+      bash: true,
+      command: "for i in {1..15}; do echo \"Processing step $i...\"; python3 -c \"sum(x*x for x in range(10000000))\"; sleep 0.5; done;",
+      path: "."
+    });
+
+    stream.on("job", (data) => console.log("Job started:", data));
+    stream.on("stdout", (data) => console.log("Real-time stdout:", data));
+    stream.on("stderr", (data) => console.log("Real-time stderr:", data));
+    stream.on("stats", (data) => console.log("Stats update:", data));
+    stream.on("done", (result) => console.log("Final result:", result));
+    stream.on("error", (err) => console.log("Error:", err));
+    */
+  execStream = (
+    opts: ExecOptsBlocking & {
+      startStreamExplicitly?: boolean;
+      debug?: string;
+    },
+    startExplicitly = false,
+  ): ExecStream => {
+    const execStream = new ExecStream();
+    (async () => {
+      try {
+        await this.execStreamAsync({ ...opts, execStream });
+        if (!startExplicitly) {
+          execStream.emit("start");
+        }
+      } catch (err) {
+        execStream.emit("error", err);
+      }
+    })();
+    return execStream;
+  };
+
+  private async execStreamAsync({
+    execStream,
+    debug,
+    ...opts
+  }: ExecOptsBlocking & {
+    execStream: ExecStream;
+    debug?: string;
+  }): Promise<void> {
+    if (
+      !(await ensure_project_running(opts.project_id, "Streaming execution"))
+    ) {
+      execStream.emit(
+        "error",
+        new Error("Project must be running to stream execution"),
+      );
+      return;
+    }
+
+    execStream.once("start", async () => {
+      try {
+        // Use conat streaming similar to LLM streaming
+        await this.streamExecViaConat({ opts, execStream, debug });
+      } catch (err) {
+        execStream.emit("error", err);
+      }
+    });
+  }
+
+  private async streamExecViaConat({
+    opts,
+    execStream,
+    debug,
+  }: {
+    opts: ExecOptsBlocking;
+    execStream: ExecStream;
+    debug?: string;
+  }): Promise<void> {
+    try {
+      // Use conat to connect to the project exec-stream service
+      const cn = await this.client.conat_client.conat();
+      const subject = projectSubject({
+        project_id: opts.project_id,
+        compute_server_id: opts.compute_server_id ?? 0,
+        service: EXEC_STREAM_SERVICE,
+      });
+      let lastSeq = -1;
+
+      const req = cn.requestMany(
+        subject,
+        { ...opts, debug },
+        {
+          maxWait: (opts.timeout ?? 300) * 1000,
+          waitForInterest: true,
+        },
+      );
+      for await (const resp of await req) {
+        if (resp.data == null) {
+          // Stream ended
+          execStream.emit("end");
+          break;
+        }
+
+        const { error, type, data, seq } = resp.data;
+
+        if (error) {
+          execStream.emit("error", new Error(error));
+          break;
+        }
+
+        if (seq != null && lastSeq + 1 != seq) {
+          execStream.emit("error", new Error("Missed response in stream"));
+          break;
+        }
+
+        if (seq != null) {
+          lastSeq = seq;
+        }
+
+        // Handle different types of streaming data
+        switch (type) {
+          case "job":
+            execStream.job_id = data.job_id;
+            execStream.emit("job", data);
+            break;
+          case "stdout":
+            execStream.emit("stdout", data);
+            break;
+          case "stderr":
+            execStream.emit("stderr", data);
+            break;
+          case "stats":
+            execStream.emit("stats", data);
+            break;
+          case "done":
+            execStream.emit("done", data);
+            execStream.emit("end");
+            break;
+          default:
+            console.warn("Unknown execStream response type:", type);
+        }
+      }
+    } catch (err) {
+      execStream.emit("error", err);
+    }
+  }
 
   /*
     Execute code in a given project or associated compute server.
@@ -395,12 +547,17 @@ export class ProjectClient {
   );
 
   touch_project = async (
-    // project_id where activity occured
+    // project_id where activity occurred
     project_id: string,
     // optional global id of a compute server (in the given project), in which case we also mark
     // that compute server as active, which keeps it running in case it has idle timeout configured.
     compute_server_id?: number,
   ): Promise<void> => {
+    if (!is_valid_uuid_string(project_id)) {
+      console.warn("WARNING -- touch_project takes a project_id, but got ", {
+        project_id,
+      });
+    }
     if (compute_server_id) {
       // this is throttled, etc. and is independent of everything below.
       touchComputeServer({

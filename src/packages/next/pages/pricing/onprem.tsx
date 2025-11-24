@@ -113,27 +113,23 @@ function Body() {
         message={
           <>
             <Paragraph strong style={{ fontSize: "150%" }}>
-              For inquiries about licensing, further details and purchasing
-              options, please{" "}
+              Ready to bring CoCalc to your organization?{" "}
               <A href={contactURL} external>
-                contact us
+                Let's get in contact!
               </A>
-              .
             </Paragraph>
             <Paragraph>
-              CoCalc OnPrem's pricing is tailored to your specific needs, taking
-              into account your use case, anticipated number of active monthly
-              users, desired level of support, and any customization or training
-              requirements. We offer a <Text strong>free trial period</Text> to
-              ensure seamless integration within your environment. Importantly,
-              pricing is <Text strong>not</Text> based on the number of CPU
-              cores, memory, or virtual machines in your cluster.
+              Every enterprise deployment is unique. We'll work with you to
+              understand your specific requirements, from user scale and
+              security needs to integration with existing systems.
             </Paragraph>
             <Paragraph>
               <Text strong>We offer flexible licensing options</Text>, including
-              discounts for academic institutions, multi-year agreements, and
-              first-year customers. Let us help you find the best solution for
-              your organization.
+              volume discounts for large organizations, academic discounts for
+              educational institutions, multi-year agreements, and comprehensive
+              support packages. Plus, we provide a{" "}
+              <Text strong>free evaluation period</Text> to ensure CoCalc OnPrem
+              meets your needs before you commit.
             </Paragraph>
             {renderContactButton()}
           </>
@@ -146,6 +142,7 @@ function Body() {
     if (PUBLISH_PRICE) {
       return (
         <>
+          <Title level={3}>Purchasing CoCalc OnPrem</Title>
           <List
             grid={{ gutter: 30, column: 3, xs: 1, sm: 1 }}
             dataSource={data}
@@ -232,7 +229,7 @@ function Body() {
         </>
       );
     } else {
-      return renderContact();
+      return <>{renderContact()}</>;
     }
   }
 
@@ -247,43 +244,48 @@ function Body() {
           <Text strong>
             <A href="https://onprem.cocalc.com/">CoCalc OnPrem</A>{" "}
           </Text>{" "}
-          is a <Text strong>self-hosted version of CoCalc</Text> designed to run
-          on your own infrastructure. Built on the same robust architecture that
-          powers the main CoCalc platform, OnPrem delivers exceptional
-          performance, scalability, and reliability. This enterprise-grade
-          solution offers:
+          brings the power of collaborative scientific computing to your
+          organization's infrastructure. Keep your data secure, maintain full
+          control over your environment, and provide your teams with the same
+          cutting-edge tools used by leading research institutions and
+          enterprises worldwide.
         </Paragraph>
+
+        {/* IMPORTANT: keep the NASA text snippet exactly as it is -- https://github.com/sagemathinc/cocalc/issues/8545  */}
+        <Paragraph>
+          Our software is used by NASA's Space Science and Mission Operations
+          organization.
+        </Paragraph>
+
+        <Title level={3}>Why Choose CoCalc OnPrem?</Title>
+        <Paragraph>Deploy CoCalc on your own systems and gain:</Paragraph>
 
         <ul>
           <li>
-            The full suite of collaborative tools available on cocalc.com:{" "}
-            <Text strong>
-              Jupyter Notebooks for Python, SageMath, R, Octave
-            </Text>
-            , editing <Text strong>LaTeX, Code- and Markdown/Text-files</Text>,
-            a <Text strong>collaborative Linux Terminal</Text>, and a{" "}
-            <Text strong>virtual X11 desktop</Text>.
+            <Text strong>Complete data sovereignty and security</Text> - Your
+            research data never leaves your infrastructure, ensuring compliance
+            with regulatory requirements and protecting sensitive intellectual
+            property.
           </li>
           <li>
-            Complete control over your data and computing environment, which
-            results in enhanced <Text strong>privacy and security</Text> for
-            sensitive research and educational content;
+            <Text strong>Seamless IT integration</Text> - Works with your
+            existing authentication systems (SAML SSO), network policies, and
+            security frameworks.
           </li>
           <li>
-            Integration with your existing IT infrastructure – for example SAML
-            based SSO authentication or using your own internal LLM server for
-            increased privacy;
+            <Text strong>Customizable environments</Text> - Tailor software
+            stacks and computing resources to match your specific research
+            workflows and organizational needs.
           </li>
           <li>
-            Beyond the standard set of included software, it's possible to
-            define <Text strong>customizable software environments</Text> and
-            adjust specific features to meet specific institutional needs;
+            <Text strong>Expert deployment and support</Text> - Our team
+            provides comprehensive guidance through setup, configuration, and
+            ongoing management.
           </li>
           <li>
-            We'll guide you through the setup process and give you enough
-            information to be able to manage the service, react to issues, plan
-            resource requirements, and know how to scale the various services to
-            your expected usage.
+            <Text strong>Scalable performance</Text> - Handle growing teams and
+            computational demands without compromising on collaboration or
+            security.
           </li>
         </ul>
 
@@ -294,78 +296,85 @@ function Body() {
           data science collaboration.
         </Paragraph>
 
-        <Title level={3}>Prerequisites</Title>
+        <Title level={3}>Complete Research Environment</Title>
+        <ul>
+          <li>
+            <Text strong>Accelerated Research</Text> - Reduce time-to-insight
+            with collaborative tools that streamline scientific workflows
+          </li>
+          <li>
+            <Text strong>Interactive Computing</Text> - Jupyter notebooks for
+            Python, R, SageMath, and Octave
+          </li>
+          <li>
+            <Text strong>Collaboration</Text> - Real-time editing of LaTeX,
+            Markdown, and code files, as well as integrated chatrooms and task
+            lists
+          </li>
+          <li>
+            <Text strong>Linux Terminals</Text> - Use any CLI tool to maximize
+            flexibility or conduct advanced computing tasks
+          </li>
+          <li>
+            <Text strong>Custom Software</Text> - Flexible environments
+            supporting your specific research needs
+          </li>
+        </ul>
+
+        <Paragraph>
+          All tools work seamlessly together, enabling your researchers to focus
+          on discovery rather than technical setup.
+        </Paragraph>
+
+        <Title level={3}>Enterprise Benefits</Title>
+        <ul>
+          <li>
+            <Text strong>Cost Efficiency</Text> - Reduce dependency on external
+            SaaS/cloud services and unify several tools in one place
+          </li>
+          <li>
+            <Text strong>Regulatory Compliance</Text> - Meet stringent data
+            residency and security requirements
+          </li>
+        </ul>
+
+        {renderPriceInfo()}
+
+        <Title level={3}>Technical Requirements</Title>
+        <Paragraph>
+          CoCalc OnPrem requires a modern infrastructure setup. Our team will
+          work with your IT department to ensure smooth deployment:
+        </Paragraph>
         <Paragraph>
           <ul>
             <li>
-              A{" "}
-              <Text strong>
-                <A href={"https://kubernetes.io"}>Kubernetes Cluster</A>
-              </Text>{" "}
-              and some experience managing it. OnPrem should run on your own
-              bare-metal cluster or a managed kubernetes cluster like{" "}
-              <A href={"https://onprem.cocalc.com/deploy/eks.html"}>
-                Amazon's EKS
-              </A>
-              ,{" "}
-              <A href={"https://onprem.cocalc.com/deploy/gke.html"}>
-                Google's GKE
-              </A>
-              , or{" "}
-              <A href={"https://onprem.cocalc.com/deploy/aks.html"}>
-                Azure's AKS
-              </A>
-              . Kubernetes is required to orchestrate and manage the
-              containerized CoCalc OnPrem services.
+              <Text strong>Kubernetes</Text> - A modern container management
+              system for scalable deployment: starting at just a single VM up to
+              dozens of heterogeneous nodes.
             </li>
             <li>
-              Some experience working with{" "}
-              <A href={"https://helm.sh/"}>
-                <b>HELM</b> charts
-              </A>
-              . Helm is used to simplify the deployment and management of CoCalc
-              OnPrem on Kubernetes.
+              <Text strong>Domain and SSL certificate</Text> - Secure access
+              configuration for your users.
             </li>
             <li>
-              A (sub)<Text strong>domain</Text> and TLS certificate (e.g.{" "}
-              <A href={"https://letsencrypt.org/"}>letsencrypt</A>). A domain
-              and TLS certificate are needed to securely access your CoCalc
-              OnPrem instance over HTTPS. You can also run OnPrem inside a VPN,
-              isolated from the public internet.
+              <Text strong>Database infrastructure</Text> - PostgreSQL for
+              application data storage.
             </li>
             <li>
-              A common{" "}
-              <Text strong>
-                <A href={"https://www.postgresql.org/"}>PostgreSQL</A>
-              </Text>{" "}
-              database. PostgreSQL is used for persistent data storage, and
-              Socket.io for internal communication between CoCalc services.
+              <Text strong>Shared storage system</Text> - Network file system
+              for collaborative project data.
             </li>
             <li>
-              A shared network file-system like <Text strong>NFS</Text>. It must
-              support the Kubernetes{" "}
-              <A
-                href={
-                  "https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes"
-                }
-              >
-                ReadWriteMany
-              </A>{" "}
-              file-system access mode. A shared network file system is required
-              for persistent storage of project data and collaborative files.
+              <Text strong>IT support resources</Text> - Your internal team or
+              our experts to manage the deployment.
             </li>
           </ul>
         </Paragraph>
 
         <Paragraph>
-          For more details, see the{" "}
-          <Text strong>
-            <A href="https://onprem.cocalc.com/">CoCalc OnPrem documentation</A>
-          </Text>
-          .
+          Read more about how to deploy mand manage CoCalc Onprem in its{" "}
+          <A href="https://onprem.cocalc.com/">online documentation</A>.
         </Paragraph>
-        <Title level={3}>Purchasing CoCalc OnPrem</Title>
-        {renderPriceInfo()}
       </>
     );
   }

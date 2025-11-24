@@ -222,6 +222,32 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
   };
 
+  setProjectColor = async (
+    project_id: string,
+    color: string,
+  ): Promise<void> => {
+    if (!(await this.have_project(project_id))) {
+      console.warn(
+        `Can't set project color -- you are not a collaborator on project '${project_id}'.`,
+      );
+      return;
+    }
+    const before = store.getIn(["project_map", project_id, "color"]);
+    if (before === color) return;
+    try {
+      // set in the Table
+      await this.projects_table_set({ project_id, color });
+      // create entry in the project's log
+      await this.redux.getProjectActions(project_id).async_log({
+        event: "set",
+        color,
+      });
+    } catch (err) {
+      this.projects_table_set({ project_id, color: before });
+      throw err;
+    }
+  };
+
   // creates and stores image as a blob in the database.
   // stores sha1 of that blog in projects map and also returns
   // the sha1.
@@ -1113,6 +1139,21 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
     selected_hashtags = selected_hashtags.set(filter, hashtags);
     this.setState({ selected_hashtags });
+  }
+
+  // Set which project row is expanded in the projects table
+  public set_expanded_project(project_id?: string): void {
+    this.setState({ expanded_project_id: project_id });
+  }
+
+  // Toggle expanded state for a project row in the projects table
+  public toggle_expanded_project(project_id: string): void {
+    const current = store.get("expanded_project_id");
+    if (current === project_id) {
+      this.setState({ expanded_project_id: undefined });
+    } else {
+      this.setState({ expanded_project_id: project_id });
+    }
   }
 }
 
