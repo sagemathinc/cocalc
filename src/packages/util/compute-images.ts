@@ -39,6 +39,7 @@ export const UBUNTU2204_DEV = "ubuntu2204-dev";
 // new Ubuntu 24.04 image, for development
 export const UBUNTU2404_DEV = "ubuntu2404-dev";
 export const UBUNTU2204 = "ubuntu2204";
+export const UBUNTU2204_PREVIOUS = "ubuntu2204-previous";
 
 export interface ComputeImage {
   id: string; // the key under which it is stored in the database
@@ -137,7 +138,7 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     descr: "Frozen on 2025-06-26 and no longer updated",
     group: "Ubuntu 24.04",
   },
-  "ubuntu2204-previous": {
+  [UBUNTU2204_PREVIOUS]: {
     title: "Ubuntu 22.04 (Previous)",
     short: "Previous",
     descr: "Slightly behind 22.04 (Current)",

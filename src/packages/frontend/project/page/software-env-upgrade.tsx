@@ -29,6 +29,7 @@ import {
   UBUNTU2004_DEV,
   UBUNTU2204,
   UBUNTU2204_DEV,
+  UBUNTU2204_PREVIOUS,
 } from "@cocalc/util/compute-images";
 import { FALLBACK_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
@@ -59,6 +60,7 @@ const TO_UPGRADE = [
   UBUNTU2004_DEV,
   UBUNTU2204,
   UBUNTU2204_DEV,
+  UBUNTU2204_PREVIOUS,
 ] as const;
 
 function useComputeImage(project_id) {
@@ -119,7 +121,9 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
     const only2004 = [UBUNTU2004_DEPRECATED, UBUNTU2004_DEV].includes(
       compute_image,
     );
-    const only2204 = [UBUNTU2204, UBUNTU2204_DEV].includes(compute_image);
+    const only2204 = [UBUNTU2204, UBUNTU2204_DEV, UBUNTU2204_PREVIOUS].includes(
+      compute_image,
+    );
 
     // just a safety measure, before accessing .title
     if (software_envs == null || default_compute_image == null) return null;
