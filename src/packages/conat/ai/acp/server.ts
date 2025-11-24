@@ -114,10 +114,8 @@ async function handleMessage(mesg, evaluate: EvaluateHandler) {
     }
 
     await evaluate({
-      account_id: options.account_id,
+      ...options,
       prompt: options.prompt ?? "",
-      session_id: options.session_id,
-      config: options.config,
       stream,
     });
     await stream(null);

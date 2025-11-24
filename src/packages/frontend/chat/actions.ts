@@ -957,8 +957,8 @@ export class ChatActions extends Actions<ChatState> {
         threadKey = `${baseDate}`;
       }
 
-      const project_id = store.get("project_id") ?? this.project_id;
-      const path = store.get("path") ?? this.path;
+      const project_id = store.get("project_id");
+      const path = store.get("path");
       if (!project_id || !path) {
         throw new Error(
           "chat actions missing project_id or path; cannot run Codex turn",

@@ -8,6 +8,7 @@ import {
 import type {
   AcpStreamMessage,
   AcpStreamUsage,
+  AcpChatContext,
 } from "@cocalc/conat/ai/acp/types";
 import {
   DEFAULT_CODEX_MODELS,
@@ -78,12 +79,12 @@ export async function processAcpLLM({
   }
 
   const threadDate =
-    context.threadKey != null
-      ? new Date(Number(context.threadKey))
-      : undefined;
+    context.threadKey != null ? new Date(Number(context.threadKey)) : undefined;
   const configDate =
     reply_to ??
-    (threadDate && !Number.isNaN(threadDate.valueOf()) ? threadDate : undefined);
+    (threadDate && !Number.isNaN(threadDate.valueOf())
+      ? threadDate
+      : undefined);
   const config = context.getCodexConfig
     ? context.getCodexConfig(configDate)
     : undefined;
@@ -131,6 +132,18 @@ export async function processAcpLLM({
   chatStreams.add(id);
   setTimeout(() => chatStreams.delete(id), 3 * 60 * 1000);
 
+  let messageDate: Date;
+  if (date && typeof date !== "string") {
+    messageDate = date;
+  } else if (typeof date === "string") {
+    messageDate = new Date(date);
+  } else {
+    messageDate = new Date();
+  }
+  if (Number.isNaN(messageDate.valueOf())) {
+    throw new Error("Codex chat message has invalid date");
+  }
+
   let content = "";
   let halted = false;
   let events: AcpStreamMessage[] = [];
@@ -141,7 +154,7 @@ export async function processAcpLLM({
     if (syncdb == null) return;
     const msg: ChatMessage = buildChatMessage({
       sender_id,
-      date,
+      date: messageDate,
       prevHistory,
       content,
       generating,
@@ -156,17 +169,13 @@ export async function processAcpLLM({
     }
   };
 
-  const chatMetadata =
-    context.project_id != null && path && date
-      ? {
-          project_id: context.project_id,
-          path,
-          message_date: date,
-          sender_id,
-          reply_to: reply_to?.toISOString(),
-        }
-      : undefined;
-
+  const chatMetadata = buildChatMetadata({
+    project_id: context.project_id,
+    path,
+    sender_id,
+    messageDate,
+    reply_to,
+  });
   try {
     const stream = await webapp_client.conat_client.streamAcp({
       prompt: workingInput,
@@ -184,7 +193,7 @@ export async function processAcpLLM({
 
       events = appendStreamMessage(events, message);
 
-      const cur = syncdb.get_one({ event: "chat", date });
+      const cur = syncdb.get_one({ event: "chat", date: messageDate });
       if (cur?.get("generating") === false) {
         halted = true;
         chatStreams.delete(id);
@@ -289,4 +298,35 @@ function buildAcpConfig({
     opts.sessionId = config.sessionId;
   }
   return opts;
+}
+
+function buildChatMetadata({
+  project_id,
+  path,
+  sender_id,
+  messageDate,
+  reply_to,
+}: {
+  project_id?: string;
+  path?: string;
+  sender_id: string;
+  messageDate: Date;
+  reply_to?: Date;
+}): AcpChatContext {
+  if (!project_id) {
+    throw new Error("Codex requires a project context to run");
+  }
+  if (!path) {
+    throw new Error("Codex requires a chat file path");
+  }
+  if (!(messageDate instanceof Date) || Number.isNaN(messageDate.valueOf())) {
+    throw new Error("Codex chat metadata missing timestamp");
+  }
+  return {
+    project_id,
+    path,
+    sender_id,
+    message_date: messageDate.toISOString(),
+    reply_to: reply_to?.toISOString(),
+  };
 }
