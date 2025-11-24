@@ -200,6 +200,7 @@ interface CodexAcpAgentOptions {
   sessionPersistPath?: string;
   disableSessionPersist?: boolean;
   commandHandlers?: Record<string, CustomCommandHandler>;
+  useNativeTerminal?: boolean;
 }
 
 interface TerminalClient extends Client {
@@ -1010,12 +1011,16 @@ export class CodexAcpAgent implements AcpAgent {
   ): Promise<CodexAcpAgent> {
     const binary =
       options.binaryPath ?? process.env.COCALC_ACP_AGENT_BIN ?? "codex-acp";
+    const useNativeTerminal = options.useNativeTerminal === true;
 
     const args: string[] = [];
     if (options.disableSessionPersist) {
       args.push("--no-session-persist");
     } else if (options.sessionPersistPath) {
       args.push("--session-persist", options.sessionPersistPath);
+    }
+    if (useNativeTerminal) {
+      args.push("--native-shell");
     }
 
     const HOME = process.env.COCALC_ORIGINAL_HOME ?? process.env.HOME;
@@ -1039,9 +1044,10 @@ export class CodexAcpAgent implements AcpAgent {
     const stream = ndJsonStream(output, input);
 
     const handler = new CodexClientHandler({
-      commandHandlers: options.commandHandlers
-        ? new Map(Object.entries(options.commandHandlers))
-        : undefined,
+      commandHandlers:
+        !useNativeTerminal && options.commandHandlers
+          ? new Map(Object.entries(options.commandHandlers))
+          : undefined,
     });
     const connection = new ClientSideConnection(() => handler, stream);
 
@@ -1050,7 +1056,7 @@ export class CodexAcpAgent implements AcpAgent {
         readTextFile: true,
         writeTextFile: true,
       },
-      terminal: true,
+      terminal: !useNativeTerminal,
     };
     log.debug("acp.initialize", { clientCapabilities });
 

@@ -12,7 +12,10 @@ import type {
   AcpStreamMessage,
   AcpChatContext,
 } from "@cocalc/conat/ai/acp/types";
-import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
+import {
+  resolveCodexSessionMode,
+  type CodexSessionConfig,
+} from "@cocalc/util/ai/codex";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { getBlobstore } from "./blobs/download";
 import { type AKV } from "@cocalc/conat/sync/akv";
@@ -36,7 +39,7 @@ const COMMIT_INTERVAL = 2_000;
 const logger = getLogger("lite:hub:acp");
 
 let blobStore: AKV | null = null;
-let agent: AcpAgent | null = null;
+const agents = new Map<string, AcpAgent>();
 let conatClient: ConatClient | null = null;
 
 class ChatStreamWriter {
@@ -222,31 +225,37 @@ class ChatStreamWriter {
   }
 }
 
-async function ensureAgent(): Promise<AcpAgent> {
-  if (agent != null) return agent;
+async function ensureAgent(useNativeTerminal: boolean): Promise<AcpAgent> {
+  const key = useNativeTerminal ? "native" : "proxy";
+  const existing = agents.get(key);
+  if (existing != null) return existing;
   const mode = process.env.COCALC_ACP_MODE;
-  logger.debug("ensureAgent", { mode });
+  logger.debug("ensureAgent", { mode, useNativeTerminal });
   const sessionsDir =
     process.env.COCALC_ACP_SESSIONS_DIR ??
     path.join(process.cwd(), "data/codex-sessions");
   if (mode === "echo") {
     logger.debug("ensureAgent: creating echo agent");
-    agent = new EchoAgent();
-    return agent;
+    const echo = new EchoAgent();
+    agents.set(key, echo);
+    return echo;
   }
   try {
     logger.debug("ensureAgent: creating codex acp agent");
-    agent = await CodexAcpAgent.create({
+    const created = await CodexAcpAgent.create({
       binaryPath: process.env.COCALC_ACP_AGENT_BIN,
       cwd: process.cwd(),
       sessionPersistPath: sessionsDir,
+      useNativeTerminal,
     });
-    logger.info("codex-acp agent ready");
+    logger.info("codex-acp agent ready", { key });
+    agents.set(key, created);
   } catch (err) {
     logger.error("failed to start codex-acp, falling back to echo agent", err);
-    agent = new EchoAgent();
+    const fallback = new EchoAgent();
+    agents.set(key, fallback);
   }
-  return agent!;
+  return agents.get(key)!;
 }
 
 export async function evaluate({
@@ -255,8 +264,10 @@ export async function evaluate({
 }: AcpRequest & {
   stream: (payload?: AcpStreamPayload | null) => Promise<void>;
 }): Promise<void> {
-  const currentAgent = await ensureAgent();
   const config = normalizeConfig(request.config);
+  const sessionMode = resolveCodexSessionMode(config);
+  const useNativeTerminal = sessionMode === "auto";
+  const currentAgent = await ensureAgent(useNativeTerminal);
   const { prompt, cleanup } = await materializeBlobs(request.prompt ?? "");
   if (!conatClient) {
     throw Error("conat client must be initialized");
@@ -303,9 +314,14 @@ export async function init(client: ConatClient): Promise<void> {
   logger.debug("initializing ACP conat server");
   conatClient = client;
   process.once("exit", () => {
-    agent?.dispose?.().catch((err) => {
-      logger.warn("failed to dispose ACP agent", err);
-    });
+    for (const agent of agents.values()) {
+      agent
+        .dispose?.()
+        .catch((err) => {
+          logger.warn("failed to dispose ACP agent", err);
+        })
+        .finally(() => undefined);
+    }
   });
   blobStore = getBlobstore(client);
   await initConatAcp(evaluate, client);
