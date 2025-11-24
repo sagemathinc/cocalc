@@ -81,12 +81,18 @@ export async function getAccount(
   return account_id;
 }
 
-export async function signUserIn(req, res, account_id: string): Promise<void> {
+export async function signUserIn(
+  req,
+  res,
+  account_id: string,
+  opts?: { maxAge?: number },
+): Promise<void> {
   try {
     await setSignInCookies({
       req,
       res,
       account_id,
+      maxAge: opts?.maxAge,
     });
   } catch (err) {
     res.json({ error: `Problem setting auth cookies -- ${err}` });

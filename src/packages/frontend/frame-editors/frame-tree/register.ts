@@ -85,6 +85,94 @@ if (DEBUG) {
   // (window as any).frame_editor_reference_count = reference_count;
 }
 
+/**
+ * Wraps an async data loader with timeout protection and retry logic.
+ *
+ * Strategy:
+ * - If 15 second timeout occurs → retry immediately
+ * - If asyncLoader() fails immediately due to network error → wait 5 seconds → retry
+ * - Maximum 3 attempts total
+ *
+ * This ensures that temporary network hiccups don't silently cause fallback to wrong editor.
+ * NOTE: The caller must wrap this with reuseInFlight to prevent duplicate simultaneous loads.
+ *
+ * TEST: refresh CoCalc page, but do not open a complex editor like Jupyter.
+ * Open Chrome debug panel → Network → Network: "Offline"
+ * Then click on the ipynb file and watch the console for the retries and the error popping up.
+ */
+function withTimeoutAndRetry<T>(
+  asyncLoaderFn: () => Promise<T>,
+  ext: string | string[],
+  timeoutMs: number = 15_000, // wait up to 15 seconds to load all assets
+  maxRetries: number = 3,
+): () => Promise<T> {
+  const extStr = Array.isArray(ext) ? ext.join(",") : ext;
+
+  return async () => {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Only log if retrying (attempt >= 2), not on first attempt
+        if (attempt >= 2) {
+          console.warn(
+            `frame-editor/register: loading ${extStr} (attempt ${attempt}/${maxRetries})`,
+          );
+        }
+
+        const result = await Promise.race([
+          asyncLoaderFn(),
+          new Promise<T>((_, reject) =>
+            setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    `Editor load timeout after ${timeoutMs}ms for ${extStr}. Check your internet connection.`,
+                  ),
+                ),
+              timeoutMs,
+            ),
+          ),
+        ]);
+
+        // Only log success if we retried, not on first attempt
+        if (attempt >= 2) {
+          console.warn(`frame-editor/register: loaded ${extStr} successfully`);
+        }
+        return result;
+      } catch (err) {
+        lastError = err as Error;
+        const errorMsg = lastError.message || String(lastError);
+
+        if (attempt < maxRetries) {
+          // Check if it's a timeout error or immediate network error
+          const isTimeout = errorMsg.includes("timeout");
+          const retryDelayMs = isTimeout ? 0 : 5000;
+          const retryDelayStr =
+            retryDelayMs === 0 ? "immediately" : "after 5 seconds";
+
+          console.warn(
+            `frame-editor/register: failed to load ${extStr} (attempt ${attempt}/${maxRetries}): ${errorMsg}. Retrying ${retryDelayStr}...`,
+          );
+
+          // Wait before retry (0ms for timeout, 5s for network errors)
+          if (retryDelayMs > 0) {
+            await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+          }
+        } else {
+          // Final attempt failed
+          console.error(
+            `frame-editor/register: failed to load ${extStr} after ${maxRetries} attempts: ${errorMsg}`,
+          );
+        }
+      }
+    }
+
+    // All retries exhausted
+    throw lastError || new Error(`Failed to load editor for ${extStr}`);
+  };
+}
+
 function register(
   icon: IconName | undefined,
   ext: string | string[],
@@ -182,20 +270,42 @@ function register(
         "either asyncData must be given or components and Actions must be given (or both)",
       );
     }
+
     let async_data: any = undefined;
-    // so calls to componentAsync and initAsync don't happen at once!
-    const getAsyncData = reuseInFlight(asyncData);
+
+    // Wrap the entire withTimeoutAndRetry with reuseInFlight to ensure
+    // that if multiple callers request the editor simultaneously,
+    // only ONE attempt is made (with retry logic).
+    const getAsyncData = reuseInFlight(withTimeoutAndRetry(asyncData, ext));
 
     data.componentAsync = async () => {
       if (async_data == null) {
-        async_data = await getAsyncData();
+        try {
+          async_data = await getAsyncData();
+        } catch (err) {
+          console.error(
+            `Failed to load async editor component for ext '${
+              Array.isArray(ext) ? ext.join(",") : ext
+            }': ${err}`,
+          );
+          // Alert is shown at higher level in file-editors.ts
+          throw err;
+        }
       }
       return async_data.component;
     };
 
     data.initAsync = async (path: string, redux, project_id: string) => {
       if (async_data == null) {
-        async_data = await getAsyncData();
+        try {
+          async_data = await getAsyncData();
+        } catch (err) {
+          console.error(
+            `Failed to load async editor for path '${path}': ${err}`,
+          );
+          // Alert is shown at higher level in file-editors.ts
+          throw err;
+        }
       }
       return init(async_data.Actions)(path, redux, project_id);
     };

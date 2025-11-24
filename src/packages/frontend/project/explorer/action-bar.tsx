@@ -19,7 +19,7 @@ import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 const ROW_INFO_STYLE = {
-  color: COLORS.GRAY,
+  color: COLORS.TAB,
   height: "22px",
   margin: "5px 3px",
 } as const;

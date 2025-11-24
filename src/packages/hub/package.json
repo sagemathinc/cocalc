@@ -41,7 +41,7 @@
     "uglify-js": "^3.14.1",
     "underscore": "^1.12.1",
     "uuid": "^8.3.2",
-    "validator": "^13.6.0",
+    "validator": "^13.15.20",
     "webpack-dev-middleware": "^7.4.2",
     "webpack-hot-middleware": "^2.26.1"
   },
@@ -63,7 +63,6 @@
     "hub-docker-dev": "export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && COCALC_DOCKER=true NODE_ENV=development PROJECTS=/projects/[project_id] PORT=443 NODE_OPTIONS='--max_old_space_size=8000 --enable-source-maps --trace-warnings --inspect' cocalc-hub-server --mode=multi-user --all --hostname=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",
     "hub-docker-prod": "export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && COCALC_DOCKER=true NODE_ENV=production PROJECTS=/projects/[project_id] PORT=443 NODE_OPTIONS='--max_old_space_size=8000 --enable-source-maps' cocalc-hub-server --mode=multi-user --all --hostname=0.0.0.0 --https-key=/projects/conf/cert/key.pem --https-cert=/projects/conf/cert/cert.pem",
     "hub-docker-prod-nossl": "export DEBUG=${DEBUG:='cocalc:*,-cocalc:silly:*'} && COCALC_DOCKER=true NODE_ENV=production PROJECTS=/projects/[project_id] PORT=80 NODE_OPTIONS='--max_old_space_size=8000 --enable-source-maps' cocalc-hub-server --mode=multi-user --all --hostname=0.0.0.0",
-    "tsc": "tsc --watch  --pretty --preserveWatchOutput",
     "test": "jest dist/",
     "depcheck": "pnpx depcheck | grep -Ev '\\.coffee|coffee$'",
     "prepublishOnly": "test"
