@@ -126,10 +126,30 @@ def validate_api_key_config(hub):
     For account-scoped keys, requires COCALC_PROJECT_ID to be set.
     For project-scoped keys, no additional configuration needed.
     """
+    scope = None
+    hub_error = None
+
+    # First, try the hub endpoint (works only for account-scoped keys)
     try:
         scope = hub.system.test()
     except Exception as e:
-        pytest.fail(f"Failed to determine API key scope: {e}")
+        hub_error = e
+
+    # If hub check failed, fall back to the project endpoint so project-scoped keys work
+    if scope is None:
+        try:
+            project_client = Project(
+                api_key=hub.api_key,
+                host=hub.host,
+                project_id=os.environ.get("COCALC_PROJECT_ID"),
+            )
+            scope = project_client.system.test()
+        except Exception as project_error:
+            pytest.fail(
+                "Failed to determine API key scope using both hub and project endpoints:\n"
+                f"  hub error: {hub_error}\n"
+                f"  project error: {project_error}"
+            )
 
     is_account_scoped = "account_id" in scope
     is_project_scoped = "project_id" in scope
