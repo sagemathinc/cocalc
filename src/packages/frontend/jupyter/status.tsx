@@ -32,7 +32,7 @@ import { ALERT_COLS } from "./usage";
 const KERNEL_NAME_STYLE: CSS = {
   margin: "0px 5px",
   display: "block",
-  color: COLORS.BS_BLUE_TEXT,
+  color: COLORS.BLUE_DD,
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -40,7 +40,7 @@ const KERNEL_NAME_STYLE: CSS = {
 
 const KERNEL_USAGE_STYLE: CSS = {
   margin: "0px 5px",
-  color: COLORS.GRAY,
+  color: COLORS.GRAY_M,
   borderRight: `1px solid ${COLORS.GRAY}`,
   paddingRight: "5px",
   display: "flex",
@@ -234,7 +234,7 @@ export function Kernel({
         <div
           style={{
             display: "flex",
-            color: COLORS.GRAY,
+            color: COLORS.GRAY_M,
             paddingLeft: "5px",
             borderLeft: "1px solid gray",
           }}
@@ -383,7 +383,7 @@ export function Kernel({
         <div
           style={{
             flex: 1,
-            color: COLORS.GRAY,
+            color: COLORS.GRAY_M,
             textAlign: "center",
             whiteSpace: "nowrap",
             overflow: "hidden",
@@ -692,7 +692,7 @@ export function Kernel({
   const body = (
     <div
       style={{
-        color: COLORS.GRAY,
+        color: COLORS.GRAY_M,
         cursor: "pointer",
       }}
     >
