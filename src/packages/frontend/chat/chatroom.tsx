@@ -303,6 +303,7 @@ export function ChatPanel({
     () => threads.find((t) => t.key === selectedThreadKey),
     [threads, selectedThreadKey],
   );
+  const isSelectedThreadAI = selectedThread?.isAI ?? false;
 
   useEffect(() => {
     if (
@@ -1065,20 +1066,33 @@ export function ChatPanel({
             />
           </Button>
           <div style={{ height: "5px" }} />
-          <Button
-            style={{ height: "47.5px" }}
-            onClick={() => {
-              const message = actions?.frameTreeActions
-                ?.getVideoChat()
-                .startChatting(actions);
-              if (!message) {
-                return;
-              }
-              sendMessage(undefined, "\n\n" + message);
-            }}
-          >
-            <Icon name="video-camera" /> Video
-          </Button>
+          {isSelectedThreadAI ? (
+            <Tooltip title="Video chat is not available in AI threads.">
+              <Button style={{ height: "47.5px" }} disabled>
+                <Icon name="video-camera" /> Video
+              </Button>
+            </Tooltip>
+          ) : (
+            <Popconfirm
+              title="Start a video chat in this thread?"
+              okText="Start"
+              cancelText="Cancel"
+              placement="topRight"
+              onConfirm={() => {
+                const message = actions?.frameTreeActions
+                  ?.getVideoChat()
+                  .startChatting(actions);
+                if (!message) {
+                  return;
+                }
+                sendMessage(undefined, "\n\n" + message);
+              }}
+            >
+              <Button style={{ height: "47.5px" }}>
+                <Icon name="video-camera" /> Video
+              </Button>
+            </Popconfirm>
+          )}
         </div>
       </div>
     </div>
