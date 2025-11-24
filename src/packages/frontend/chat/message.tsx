@@ -235,6 +235,7 @@ export default function Message({
 
   const [autoFocusReply, setAutoFocusReply] = useState<boolean>(false);
   const [autoFocusEdit, setAutoFocusEdit] = useState<boolean>(false);
+  const [elapsedMs, setElapsedMs] = useState<number>(0);
 
   const replyMessageRef = useRef<string>("");
   const replyMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
@@ -246,6 +247,33 @@ export default function Message({
     () => actions?.isLanguageModelThread(message.get("date")),
     [message, actions != null],
   );
+
+  useEffect(() => {
+    if (generating === true && date > 0) {
+      const start = date;
+      const update = () => {
+        setElapsedMs(Date.now() - start);
+      };
+      update();
+      const handle = window.setInterval(update, 1000);
+      return () => window.clearInterval(handle);
+    } else {
+      setElapsedMs(0);
+    }
+  }, [generating, date]);
+
+  const elapsedLabel = useMemo(() => {
+    if (!elapsedMs || elapsedMs < 0) return "";
+    const totalSeconds = Math.floor(elapsedMs / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    if (hours > 0) {
+      return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+    }
+    return `${minutes}:${pad(seconds)}`;
+  }, [elapsedMs]);
 
   const msgWrittenByLLM = useMemo(() => {
     const author_id = message.get("history")?.first()?.get("author_id");
@@ -264,7 +292,9 @@ export default function Message({
 
   const codexThreadId = useMemo(() => {
     return (
-      message.get("acp_thread_id") ?? message.get("codex_thread_id") ?? undefined
+      message.get("acp_thread_id") ??
+      message.get("codex_thread_id") ??
+      undefined
     );
   }, [message]);
 
@@ -686,14 +716,21 @@ export default function Message({
             <Name sender_name={get_user_name(message.get("sender_id"))} />
           ) : undefined}
           {generating === true && actions ? (
-            <Button
-              style={{ color: COLORS.GRAY_M }}
-              onClick={() => {
-                actions?.languageModelStopGenerating(new Date(date));
-              }}
-            >
-              <Icon name="square" /> Stop Generating
-            </Button>
+            <Space size="small" align="center">
+              <Button
+                style={{ color: COLORS.GRAY_M }}
+                onClick={() => {
+                  actions?.languageModelStopGenerating(new Date(date));
+                }}
+              >
+                <Icon name="square" /> Stop Generating
+              </Button>
+              {elapsedLabel ? (
+                <span style={{ color: COLORS.GRAY_M, fontSize: 12 }}>
+                  <Icon name="clock-o" /> {elapsedLabel}
+                </span>
+              ) : null}
+            </Space>
           ) : undefined}
         </div>
         <div

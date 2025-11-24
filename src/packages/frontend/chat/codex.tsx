@@ -19,6 +19,7 @@ import {
   DEFAULT_CODEX_MODELS,
   type CodexReasoningLevel,
 } from "@cocalc/util/ai/codex";
+import { COLORS } from "@cocalc/util/theme";
 import type { ChatMessageTyped } from "./types";
 import { toMsString } from "./utils";
 import type { ChatActions } from "./actions";
@@ -131,8 +132,7 @@ export function CodexConfigButton({
     "";
 
   const contextWindow =
-    usageSummary?.contextWindow ??
-    getModelContextWindow(selectedModelValue);
+    usageSummary?.contextWindow ?? getModelContextWindow(selectedModelValue);
   const usageTotal =
     usageSummary?.totalTokens != null ? usageSummary.totalTokens : 0;
   const remainingPercent =
@@ -145,17 +145,23 @@ export function CodexConfigButton({
 
   const contextSummary =
     remainingPercent != null ? `${remainingPercent}% context left` : null;
+  const contextSummaryColor =
+    remainingPercent != null && remainingPercent < 30
+      ? COLORS.FG_RED
+      : COLORS.GRAY_M;
 
   const contextMeter =
     remainingPercent != null ? (
       <div>
-        <Text style={{ fontSize: 12, color: "#666" }}>{contextSummary}</Text>
+        <Text style={{ fontSize: 12, color: contextSummaryColor }}>
+          {contextSummary}
+        </Text>
         <Progress
           percent={100 - remainingPercent}
           status={
-            remainingPercent < 20
+            remainingPercent < 30
               ? "exception"
-              : remainingPercent < 40
+              : remainingPercent < 45
                 ? "active"
                 : "normal"
           }
@@ -169,7 +175,15 @@ export function CodexConfigButton({
     <>
       <Button size="small" onClick={() => setOpen(true)}>
         Codex Config
-        <div style={{ fontSize: 11, color: "#999" }}>
+        <div
+          style={{
+            fontSize: 11,
+            color:
+              remainingPercent != null && remainingPercent < 30
+                ? COLORS.FG_RED
+                : COLORS.GRAY,
+          }}
+        >
           {selectedModelLabel}
           {selectedReasoningLabel ? ` · ${selectedReasoningLabel}` : ""}
           {contextSummary ? ` · ${contextSummary}` : ""}
@@ -304,8 +318,7 @@ function getCodexUsageSummary(
   let contextWindow: number | undefined;
   let hasAggregate = false;
   for (const entry of threadMessages) {
-    const usage: any =
-      entry.get("acp_usage") ?? entry.get("codex_usage");
+    const usage: any = entry.get("acp_usage") ?? entry.get("codex_usage");
     if (!usage) continue;
     const usageData = typeof usage?.toJS === "function" ? usage.toJS() : usage;
     if (usageData?.total_tokens != null) {
