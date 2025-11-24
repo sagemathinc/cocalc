@@ -15,7 +15,13 @@ def register_projects_search_tool(mcp) -> None:
     """Register the projects search tool with the given FastMCP instance."""
 
     @mcp.tool()
-    def projects_search(query: str = "") -> str:
+    def projects_search(
+        query: str = "",
+        limit: int = 100,
+        deleted: bool = False,
+        hidden: bool = False,
+        state: str | None = None,
+    ) -> str:
         """
         Search for and list projects you have access to.
 
@@ -28,6 +34,10 @@ def register_projects_search_tool(mcp) -> None:
         Args:
             query (str): Search string to filter projects by title.
                         Default "" lists all projects.
+            limit (int): Maximum number of projects to return. Default 100.
+            deleted (bool): If True, only show deleted projects. Default False.
+            hidden (bool): If True, only show hidden projects; if False, exclude them. Default False.
+            state (Optional[str]): Filter by state (e.g., "opened" or "running"). Default None (all states).
 
         Returns:
             Formatted list of projects with:
@@ -51,6 +61,11 @@ def register_projects_search_tool(mcp) -> None:
 
             hub = Hub(api_key=_api_key, host=_host)
 
+            # Normalize limit
+            limit = max(0, limit if limit is not None else 100)
+
+            account_id = _api_key_scope.get("account_id")
+
             # Get all projects with full details
             projects = hub.projects.get(
                 all=True,
@@ -59,10 +74,17 @@ def register_projects_search_tool(mcp) -> None:
                     "title",
                     "description",
                     "last_edited",
+                    "created",
                     "state",
                     "deleted",
                     "users",  # collaborators
-                ])
+                ],
+                limit=limit,
+                deleted=deleted,
+                hidden=hidden,
+                state=state,
+                account_id_for_hidden=account_id,
+            )
 
             if not projects:
                 return "No projects found"

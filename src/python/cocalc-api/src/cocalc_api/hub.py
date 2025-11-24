@@ -155,35 +155,112 @@ class Projects:
     def __init__(self, parent: "Hub"):
         self._parent = parent
 
-    def get(self, fields: Optional[list[str]] = None, all: Optional[bool] = False, project_id: Optional[str] = None) -> list[dict[str, Any]]:
+    def get(
+        self,
+        fields: Optional[list[str]] = None,
+        all: Optional[bool] = False,
+        project_id: Optional[str] = None,
+        limit: Optional[int] = None,
+        deleted: Optional[bool] = None,
+        hidden: Optional[bool] = None,
+        state: Optional[str] = None,
+        account_id_for_hidden: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
         """
         Get data about projects that you are a collaborator on. Only gets
         recent projects by default; set all=True to get all projects.
 
         Args:
             fields (Optional[list[str]]): The fields about the project to get.
-                Default: ['project_id', 'title', 'last_edited', 'state'], but see
+                Default: ['project_id', 'title', 'last_edited', 'created', 'state', 'deleted', 'users'], but see
                 https://github.com/sagemathinc/cocalc/blob/master/src/packages/util/db-schema/projects.ts
             all (Optional[bool]): If True, return ALL your projects,
                 not just the recent ones. False by default.
             project_id (Optional[str]): If given, gets just this
                 one project (as a list of length 1).
+            limit (Optional[int]): Maximum number of projects to return after filtering. None means no limit.
+            deleted (Optional[bool]): If set, filter deleted status (True -> only deleted, False -> only not deleted).
+            hidden (Optional[bool]): If set, filter by collaborator-specific hidden flag. Default None (no filter).
+            state (Optional[str]): If set, only return projects whose state matches (e.g., 'opened', 'running').
+            account_id_for_hidden (Optional[str]): Account ID used to evaluate the hidden flag in the users map.
 
         Returns:
             list[dict[str, Any]]: List of projects.
         """
+        from datetime import datetime
+
+        def _parse_ts(value: Any) -> float:
+            if value is None:
+                return 0.0
+            if isinstance(value, (int, float)):
+                return float(value)
+            if isinstance(value, str):
+                try:
+                    return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
+                except ValueError:
+                    try:
+                        return float(value)
+                    except Exception:
+                        return 0.0
+            return 0.0
+
+        def _state_str(val: Any) -> str:
+            if isinstance(val, dict):
+                return str(val.get("state") or val.get("status") or "")
+            if val is None:
+                return ""
+            return str(val)
+
         if fields is None:
-            fields = ['project_id', 'title', 'last_edited', 'state']
+            fields = ['project_id', 'title', 'last_edited', 'created', 'state', 'deleted', 'users']
         v: list[dict[str, Any]] = [{}]
         for field in fields:
             v[0][field] = None
         if project_id:
             v[0]['project_id'] = project_id
-        query: dict[str, list[dict[str, None]]] = {}
+        query: dict[str, list[dict[str, Any]]] = {}
         table = 'projects_all' if all else 'projects'
         query[table] = v
         result = self._parent.db.query(query)
-        return result[table]
+        projects: list[dict[str, Any]] = result[table]
+
+        filtered: list[dict[str, Any]] = []
+        for project in projects:
+            if deleted is not None:
+                if bool(project.get("deleted")) != deleted:
+                    continue
+
+            if state:
+                project_state = _state_str(project.get("state")).lower()
+                if project_state != state.lower():
+                    continue
+
+            if hidden is not None and account_id_for_hidden:
+                users = project.get("users") or {}
+                if isinstance(users, dict):
+                    user_info = users.get(account_id_for_hidden, {})
+                    is_hidden = False
+                    if isinstance(user_info, dict):
+                        is_hidden = bool(user_info.get("hide"))
+                    if is_hidden != hidden:
+                        continue
+
+            filtered.append(project)
+
+        filtered.sort(
+            key=lambda p: (
+                _parse_ts(p.get("last_edited")),
+                _parse_ts(p.get("created")),
+                (p.get("title") or "").lower(),
+                p.get("project_id") or "",
+            ),
+            reverse=True,
+        )
+
+        if limit is not None and limit >= 0:
+            filtered = filtered[:limit]
+
+        return filtered
 
     @api_method("projects.copyPathBetweenProjects")
     def copy_path_between_projects(
