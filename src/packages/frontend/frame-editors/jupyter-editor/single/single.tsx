@@ -16,15 +16,16 @@ This component displays the entire notebook as a single document where:
 import { Map } from "immutable";
 
 import { CSS, React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/components";
+import { ErrorDisplay, Loading } from "@cocalc/frontend/components";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import useKernelUsage from "@cocalc/frontend/jupyter/kernel-usage";
+import KernelWarning from "@cocalc/frontend/jupyter/kernel-warning";
 import { KernelSelector } from "@cocalc/frontend/jupyter/select-kernel";
 import { Kernel } from "@cocalc/frontend/jupyter/status";
 import { syncdbPath } from "@cocalc/util/jupyter/names";
-
 import { COLORS } from "@cocalc/util/theme";
+
 import { JupyterEditorActions } from "../actions";
 import { SingleFileEditor } from "./editor";
 
@@ -70,6 +71,7 @@ export const SingleFileView: React.FC<Props> = React.memo(
       "show_kernel_selector",
     ]);
     const read_only: undefined | boolean = useRedux([name, "read_only"]);
+    const error: undefined | string = useRedux([name, "error"]);
 
     // Kernel usage for status bar
     const { usage, expected_cell_runtime } = useKernelUsage(name);
@@ -129,6 +131,15 @@ export const SingleFileView: React.FC<Props> = React.memo(
 
     return (
       <div style={CONTAINER_STYLE}>
+        {error && (
+          <ErrorDisplay
+            banner={true}
+            error={error}
+            className="cc-jupyter-error-banner"
+            onClose={() => jupyter_actions.set_error(undefined)}
+          />
+        )}
+        {!read_only && <KernelWarning name={name} actions={jupyter_actions} />}
         {!read_only && (
           <Kernel
             is_fullscreen={props.is_fullscreen}

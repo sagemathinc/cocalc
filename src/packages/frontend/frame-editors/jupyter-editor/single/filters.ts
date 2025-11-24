@@ -179,12 +179,14 @@ export function createCellExecutionKeyHandler(
  * StateEffect to signal that cells should be merged.
  * When a user deletes at cell boundaries, this effect triggers the merge operation.
  */
-export const cellMergeEffect = StateEffect.define<{
+export interface CellMergeEffectValue {
   sourceCellId: string; // Cell to merge from (being deleted)
   targetCellId: string; // Cell to merge into (being kept)
   sourceContent: string; // Content of source cell (for merging into target)
   isAtEnd: boolean; // true if deletion was at end of cell, false if at start
-}>();
+}
+
+export const cellMergeEffect = StateEffect.define<CellMergeEffectValue>();
 
 /**
  * StateEffect to signal range deletions across multiple cells.
@@ -230,9 +232,10 @@ export function createCellMergingFilter(
     }
 
     // Check if this is a single character deletion (backspace or delete key)
-    const oldDoc = tr.state.doc;
+    const oldDoc = tr.startState.doc;
     let isCharDeletion = false;
     let deletionPosInOld = -1; // Position in OLD doc where deletion started
+    let deletedText: string | null = null;
 
     tr.changes.iterChanges(
       (fromA: number, toA: number, fromB: number, toB: number) => {
@@ -245,6 +248,7 @@ export function createCellMergingFilter(
             // Single character deleted
             isCharDeletion = true;
             deletionPosInOld = fromA; // Position in old doc where deleted char started
+            deletedText = oldDoc.sliceString(fromA, toA);
           }
         }
       },
@@ -278,9 +282,37 @@ export function createCellMergingFilter(
       return tr;
     }
 
+    const referencePosRaw =
+      deletedText === "\n" && deletionPosInOld > 0
+        ? deletionPosInOld - 1
+        : deletionPosInOld;
+    const clampedReferencePos = Math.max(
+      0,
+      Math.min(referencePosRaw, oldDoc.length > 0 ? oldDoc.length - 1 : 0),
+    );
+    const referencePos =
+      oldDoc.length === 0
+        ? 0
+        : Math.min(clampedReferencePos, oldDoc.length - 1);
+    const referenceLine = oldDoc.lineAt(referencePos);
+    let lineNumber = referenceLine.number - 1; // 0-indexed
+
     // Find which cell this deletion is in - use old doc line to be safe
-    const lineNumber = oldDoc.lineAt(deletionPosInOld).number - 1; // 0-indexed
-    const cell = findCellAtLine(mappingsRef.current, lineNumber);
+    let cell = findCellAtLine(mappingsRef.current, lineNumber);
+    if (!cell && lineNumber + 1 < oldDoc.lines) {
+      // Try line after deletion (for newline before next cell)
+      const nextLineNumber = lineNumber + 1;
+      const nextCell = findCellAtLine(mappingsRef.current, nextLineNumber);
+      if (nextCell) {
+        cell = nextCell;
+        lineNumber = nextLineNumber;
+      }
+    }
+    if (!cell && lineNumber > 0) {
+      // If still not found, map to previous line
+      lineNumber -= 1;
+      cell = findCellAtLine(mappingsRef.current, lineNumber);
+    }
 
     if (!cell) {
       return tr; // Not in any cell, skip
@@ -305,13 +337,22 @@ export function createCellMergingFilter(
     const oldLine = oldDoc.line(lineNumber + 1); // 1-indexed
     const oldLineStartPos = oldLine.from;
     const oldLineEndPos = oldLine.to;
-    const posInOldLine = deletionPosInOld - oldLineStartPos;
+    const posInOldLine = referencePos - oldLineStartPos;
+    const isDeletingNewline = deletedText === "\n";
 
     // For isAtStart: deletion at position 0 (backspace at first char of line)
     // For isAtEnd: deletion at the very end of line (delete at last char of line)
-    const isAtActualBoundary =
-      (isAtStartLine && posInOldLine === 0) ||
-      (isAtEndLine && deletionPosInOld === oldLineEndPos - 1); // -1 because we're deleting the char AT this position
+    const isAtStart =
+      isAtStartLine &&
+      (posInOldLine === 0 ||
+        deletionPosInOld === oldLineStartPos ||
+        (isDeletingNewline && deletionPosInOld + 1 === oldLineStartPos));
+    const isAtEnd =
+      isAtEndLine &&
+      (deletionPosInOld === oldLineEndPos - 1 ||
+        (isDeletingNewline && deletionPosInOld === oldLineEndPos));
+
+    const isAtActualBoundary = isAtStart || isAtEnd;
 
     if (!isAtActualBoundary) {
       // Deletion is within the line, not at actual cell boundary - allow normal deletion
@@ -319,9 +360,6 @@ export function createCellMergingFilter(
     }
 
     // Now we know it's a true boundary deletion
-    const isAtStart = isAtStartLine && posInOldLine === 0;
-    const isAtEnd = isAtEndLine && deletionPosInOld === oldLineEndPos - 1;
-
     // Determine merge target
     const cellIndex = mappingsRef.current.indexOf(cell);
     if (cellIndex === -1) {
@@ -343,11 +381,6 @@ export function createCellMergingFilter(
 
     if (!targetCell) {
       // No cell to merge with (at end of last cell), just allow deletion
-      return tr;
-    }
-
-    // Skip if target is markdown/raw cell
-    if (targetCell.cellType !== "code") {
       return tr;
     }
 
@@ -406,16 +439,16 @@ export function createCellMergingFilter(
       }
     }
 
+    const mergeEffect = cellMergeEffect.of({
+      sourceCellId: sourceCell.cellId,
+      targetCellId: targetCell.cellId,
+      sourceContent: sourceContent,
+      isAtEnd: isAtEnd,
+    });
+
     return {
       ...tr,
-      effects: tr.effects.concat(
-        cellMergeEffect.of({
-          sourceCellId: sourceCell.cellId,
-          targetCellId: targetCell.cellId,
-          sourceContent: sourceContent,
-          isAtEnd: isAtEnd,
-        }),
-      ),
+      effects: tr.effects.concat(mergeEffect),
     };
   });
 }

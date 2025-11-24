@@ -23,6 +23,7 @@ interface Props {
   style?: React.CSSProperties;
   body_style?: React.CSSProperties;
   componentStyle?: React.CSSProperties;
+  className?: string;
   bsStyle?: string;
   onClose?: () => void;
   banner?: boolean;
@@ -34,6 +35,7 @@ export function ErrorDisplay({
   title,
   body_style,
   componentStyle,
+  className,
   style,
   bsStyle,
   onClose,
@@ -98,5 +100,9 @@ export function ErrorDisplay({
     );
   }
 
-  return <div style={componentStyle}>{render_alert()}</div>;
+  return (
+    <div style={componentStyle} className={className}>
+      {render_alert()}
+    </div>
+  );
 }

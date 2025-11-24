@@ -45,6 +45,7 @@ import {
   pasteDetectionEffect,
   rangeDeletionEffect,
 } from "./filters";
+import { applyCellMergeEffect } from "./merge-handler";
 import { buildDocumentFromNotebook, type CellMapping } from "./state";
 import { getCellsInRange, ZERO_WIDTH_SPACE } from "./utils";
 
@@ -323,51 +324,7 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
           for (const tr of update.transactions) {
             for (const effect of tr.effects) {
               if (effect.is(cellMergeEffect)) {
-                const { sourceCellId, targetCellId } = effect.value;
-
-                // Use sourceContent from the effect (extracted by the merge filter)
-                // Don't re-extract from document - it might be out of sync
-                const { sourceContent } = effect.value;
-
-                // Get target cell content from store (not document)
-                const store = props.actions.store;
-                const cells = store.get("cells");
-                if (!cells) {
-                  return;
-                }
-
-                const targetCell = cells.get(targetCellId);
-                if (!targetCell) {
-                  return;
-                }
-
-                const targetContent = targetCell.get("input") ?? "";
-
-                // Merge order depends on whether deletion was at start or end
-                const { isAtEnd } = effect.value;
-
-                let mergedContent: string;
-                if (isAtEnd) {
-                  // Delete at end: source comes BEFORE target
-                  // (source was at end of its cell, moving into beginning of target cell)
-                  mergedContent =
-                    sourceContent +
-                    (targetContent && sourceContent ? "\n" : "") +
-                    targetContent;
-                } else {
-                  // Delete at start: target comes BEFORE source
-                  // (target was at start of its cell, source moving into it from before)
-                  mergedContent =
-                    targetContent +
-                    (targetContent && sourceContent ? "\n" : "") +
-                    sourceContent;
-                }
-
-                // Update target cell with merged content
-                props.actions.set_cell_input(targetCellId, mergedContent, true);
-
-                // Delete source cell
-                props.actions.delete_cells([sourceCellId]);
+                applyCellMergeEffect(props.actions, effect.value);
               } else if (effect.is(rangeDeletionEffect)) {
                 // Handle range deletions across multiple cells
                 const effectData = effect.value;
@@ -543,8 +500,8 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
             mapping.cellType === "markdown"
               ? "m"
               : mapping.cellType === "raw"
-              ? "r"
-              : "c";
+                ? "r"
+                : "c";
           lines.push(`${ZERO_WIDTH_SPACE}${markerChar}`);
         }
         newContent = lines.join("\n");
