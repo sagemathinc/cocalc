@@ -120,7 +120,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     return (
       <a style={styles} cocalc-test="file-line">
         {misc.trunc_middle(name, 50)}
-        <span style={{ color: !props.mask ? COLORS.FILE_EXT : undefined }}>
+        <span style={{ color: !props.mask ? COLORS.GRAY_M : undefined }}>
           {ext === "" ? "" : `.${ext}`}
         </span>
         {render_link_target()}
@@ -260,12 +260,12 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       return (
         <TimeAgo
           date={new Date(props.time * 1000).toISOString()}
-          style={{ color: COLORS.GRAY_M }}
+          style={{ color: COLORS.TAB }}
         />
       );
     } catch (error) {
       return (
-        <div style={{ color: COLORS.GRAY_M, display: "inline" }}>
+        <div style={{ color: COLORS.TAB, display: "inline" }}>
           Invalid Date Time
         </div>
       );
@@ -280,7 +280,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     const ext_lower = ext.toLowerCase();
     const style: CSS = {
       marginLeft: "10px",
-      color: COLORS.GRAY,
+      color: COLORS.TAB,
       padding: 0,
     };
     const icon = <Icon name="eye" />;
@@ -341,10 +341,10 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           type="link"
           href={url}
           onClick={handle_download_click}
-          style={{ color: COLORS.GRAY, padding: 0 }}
+          style={{ color: COLORS.TAB, padding: 0 }}
         >
           {size}
-          <Icon name="cloud-download" style={{ color: COLORS.GRAY }} />
+          <Icon name="cloud-download" style={{ color: COLORS.TAB }} />
         </Button>
       </Popover>
     );
@@ -416,7 +416,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
             <DirectorySize size={props.size} />
           </>
         ) : (
-          <span className="pull-right" style={{ color: COLORS.GRAY_M }}>
+          <span className="pull-right" style={{ color: COLORS.TAB }}>
             {render_download_button(url)}
             {render_view_button(url, props.name)}
           </span>
@@ -427,7 +427,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 });
 
 const directory_size_style: React.CSSProperties = {
-  color: COLORS.GRAY,
+  color: COLORS.TAB,
   marginRight: "3em",
 } as const;
 
