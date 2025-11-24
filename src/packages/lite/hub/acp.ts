@@ -27,6 +27,11 @@ import {
   listAcpPayloads,
   clearAcpPayloads,
 } from "./sqlite/acp-queue";
+import { throttle } from "lodash";
+
+// how many ms between saving output during a running turn
+// so that everybody sees it.
+const SAVE_INTERVAL = 3_000;
 
 const logger = getLogger("lite:hub:acp");
 
@@ -172,7 +177,7 @@ class ChatStreamWriter {
     }
   }
 
-  private commit(generating: boolean): void {
+  private commit = throttle((generating: boolean): void => {
     if (!this.content && !this.events.length) return;
     const message = buildChatMessage({
       sender_id: this.metadata.sender_id,
@@ -186,22 +191,32 @@ class ChatStreamWriter {
       acp_usage: this.usage,
     });
     this.syncdb.set(message);
-    if (!generating) {
-      this.syncdb.commit();
-    }
-  }
+    this.syncdb.commit();
+    (async () => {
+      try {
+        await this.syncdb.save();
+      } catch (err) {
+        logger.warn("chat syncdb save failed", err);
+      }
+    })();
+  }, SAVE_INTERVAL);
 
   dispose(): void {
     if (this.closed) return;
     this.closed = true;
     if (!this.finished) {
       clearAcpPayloads(this.metadata);
+      this.commit(true);
+      this.commit.flush();
     }
-    try {
-      this.syncdb.close();
-    } catch (err) {
-      logger.warn("failed to close chat syncdb", err);
-    }
+    (async () => {
+      try {
+        await this.syncdb.save();
+        this.syncdb.close();
+      } catch (err) {
+        logger.warn("failed to save and close chat syncdb", err);
+      }
+    })();
   }
 }
 
