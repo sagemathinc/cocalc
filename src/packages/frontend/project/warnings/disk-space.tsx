@@ -3,15 +3,15 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert } from "../../antd-bootstrap";
+import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   useMemo,
   useRedux,
   useTypedRedux,
   useActions,
-} from "../../app-framework";
-import { Icon } from "../../components";
+} from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
 import { ALERT_STYLE } from "./common";
 
 export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
@@ -40,7 +40,7 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
     return null;
   }
 
-  // the disk_usage comes from the project.status datatbase entry – not the "project-status" synctable
+  // the disk_usage comes from the project.status database entry – not the "project-status" synctable
   const project_status = project.get("status");
   const disk_usage = project_status?.get("disk_MB");
   if (disk_usage == null) return null;
@@ -57,7 +57,7 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
       <Icon name="exclamation-triangle" /> WARNING: This project is running out
       of disk space: only {disk_free} MB out of {quotas.disk_quota} MB
       available.{" "}
-      <a onClick={() => actions?.set_active_tab("settings")}>
+      <a onClick={() => actions?.set_active_tab("upgrades")}>
         Increase the "Disk Space" quota
       </a>
       {" or "}
