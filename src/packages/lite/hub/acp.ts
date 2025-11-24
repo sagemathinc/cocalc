@@ -31,7 +31,7 @@ import { throttle } from "lodash";
 
 // how many ms between saving output during a running turn
 // so that everybody sees it.
-const COMMIT_INTERVAL = 3_000;
+const COMMIT_INTERVAL = 2_000;
 
 const logger = getLogger("lite:hub:acp");
 
@@ -119,7 +119,7 @@ class ChatStreamWriter {
       seq: this.seq++,
     };
     this.processPayload(message, { persist: true });
-    this.commit(false);
+    this.commit(true);
   }
 
   private processPayload(
@@ -194,11 +194,11 @@ class ChatStreamWriter {
 
   dispose(): void {
     if (this.closed) return;
+    this.commit(false);
+    this.commit.flush();
     this.closed = true;
     if (!this.finished) {
       clearAcpPayloads(this.metadata);
-      this.commit(true);
-      this.commit.flush();
     }
     (async () => {
       try {
@@ -251,13 +251,15 @@ export async function evaluate({
   const currentAgent = await ensureAgent();
   const config = normalizeConfig(request.config);
   const { prompt, cleanup } = await materializeBlobs(request.prompt ?? "");
-  const chatWriter =
-    request.chat && conatClient
-      ? new ChatStreamWriter({
-          metadata: request.chat,
-          client: conatClient,
-        })
-      : null;
+  if (!conatClient) {
+    throw Error("conat client must be initialized");
+  }
+  const chatWriter = request.chat
+    ? new ChatStreamWriter({
+        metadata: request.chat,
+        client: conatClient,
+      })
+    : null;
 
   let wrappedStream;
   if (chatWriter != null) {
@@ -267,7 +269,9 @@ export async function evaluate({
       } catch (err) {
         logger.warn("chat writer handle failed", err);
       }
-      await stream(payload);
+      if (payload == null) {
+        stream(null);
+      }
     };
   } else {
     wrappedStream = stream;
@@ -281,13 +285,15 @@ export async function evaluate({
       stream: wrappedStream,
     });
   } finally {
+    // TODO: we might not want to immediately close, since there is
+    // overhead in creating the syncdoc each time.
     chatWriter?.dispose();
     await cleanup();
   }
 }
 
 export async function init(client: ConatClient): Promise<void> {
-  logger.debug("initializing acp conat server");
+  logger.debug("initializing ACP conat server");
   conatClient = client;
   process.once("exit", () => {
     agent?.dispose?.().catch((err) => {

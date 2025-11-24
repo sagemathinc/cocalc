@@ -96,10 +96,7 @@ export type AcpStreamEvent =
   | AcpFileEvent
   | AcpTerminalEvent;
 
-export type CommandOutput =
-  | string
-  | Iterable<string>
-  | AsyncIterable<string>;
+export type CommandOutput = string | Iterable<string> | AsyncIterable<string>;
 
 export type CommandHandlerContext = {
   command: string;
@@ -491,9 +488,7 @@ class CodexClientHandler implements TerminalClient {
     };
   }
 
-  private buildEnv(
-    env?: { name: string; value: string }[],
-  ): NodeJS.ProcessEnv {
+  private buildEnv(env?: { name: string; value: string }[]): NodeJS.ProcessEnv {
     const envVars: NodeJS.ProcessEnv = {
       ...process.env,
     };
@@ -559,7 +554,11 @@ class CodexClientHandler implements TerminalClient {
 
     if (command === "/usr/bin/env" || command === "env") {
       const envArgs = [...args];
-      while (envArgs.length && envArgs[0].includes("=") && !envArgs[0].startsWith("-")) {
+      while (
+        envArgs.length &&
+        envArgs[0].includes("=") &&
+        !envArgs[0].startsWith("-")
+      ) {
         envArgs.shift();
       }
       if (!envArgs.length) {
@@ -850,9 +849,7 @@ function isIterable(value: any): value is Iterable<string> {
   return value != null && typeof value[Symbol.iterator] === "function";
 }
 
-async function* toAsyncIterable(
-  output: CommandOutput,
-): AsyncIterable<string> {
+async function* toAsyncIterable(output: CommandOutput): AsyncIterable<string> {
   if (typeof output === "string") {
     yield output;
     return;
@@ -1138,7 +1135,9 @@ export class CodexAcpAgent implements AcpAgent {
       session = this.findSessionById(config.sessionId);
     }
     if (session == null || session.cwd !== cwd) {
-      session = (await this.tryResumeSession(cwd, config)) ?? (await this.createSession(cwd));
+      session =
+        (await this.tryResumeSession(cwd, config)) ??
+        (await this.createSession(cwd));
       this.sessions.set(normalizedKey, session);
     }
     if (!this.sessions.has(session.sessionId)) {

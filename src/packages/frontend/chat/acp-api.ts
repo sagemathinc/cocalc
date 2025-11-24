@@ -1,15 +1,6 @@
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import {
-  buildChatMessage,
-  appendStreamMessage,
-  extractEventText,
-} from "@cocalc/chat";
-import type {
-  AcpStreamMessage,
-  AcpStreamUsage,
-  AcpChatContext,
-} from "@cocalc/conat/ai/acp/types";
+import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
 import {
   DEFAULT_CODEX_MODELS,
   type CodexSessionConfig,
@@ -114,7 +105,7 @@ export async function processAcpLLM({
 
   const sender_id = model || "openai-codex-agent";
   const thinking = ":robot: Thinking...";
-  const { date, prevHistory = [] } =
+  const { date } =
     tag === "regenerate"
       ? saveHistory(message, thinking, sender_id, true)
       : {
@@ -125,7 +116,6 @@ export async function processAcpLLM({
             noNotification: true,
             reply_to,
           }),
-          prevHistory: [],
         };
 
   const id = uuid();
@@ -143,31 +133,6 @@ export async function processAcpLLM({
   if (Number.isNaN(messageDate.valueOf())) {
     throw new Error("Codex chat message has invalid date");
   }
-
-  let content = "";
-  let halted = false;
-  let events: AcpStreamMessage[] = [];
-  let threadId: string | null = null;
-  let usage: AcpStreamUsage | null = null;
-
-  const update = (generating: boolean) => {
-    if (syncdb == null) return;
-    const msg: ChatMessage = buildChatMessage({
-      sender_id,
-      date: messageDate,
-      prevHistory,
-      content,
-      generating,
-      reply_to: reply_to?.toISOString(),
-      acp_events: events,
-      acp_thread_id: threadId,
-      acp_usage: usage,
-    });
-    syncdb.set(msg);
-    if (!generating) {
-      syncdb.commit();
-    }
-  };
 
   const chatMetadata = buildChatMetadata({
     project_id: context.project_id,
@@ -187,60 +152,11 @@ export async function processAcpLLM({
       }),
       chat: chatMetadata,
     });
-
     for await (const message of stream) {
-      if (halted) break;
-
-      events = appendStreamMessage(events, message);
-
-      const cur = syncdb.get_one({ event: "chat", date: messageDate });
-      if (cur?.get("generating") === false) {
-        halted = true;
-        chatStreams.delete(id);
-        break;
-      }
-
-      if ((message as any).type === "error") {
-        const errorText = (message as any).error ?? "Unknown error";
-        content += `\n\n<span style='color:#b71c1c'>${errorText}</span>\n\n`;
-        break;
-      }
-
-      if (message.type === "event") {
-        const text = extractEventText(message.event);
-        if (text) {
-          content = text;
-          update(true);
-        }
-        continue;
-      }
-
-      if (message.type === "summary") {
-        if (message.threadId) {
-          threadId = message.threadId;
-          if (
-            context.threadKey &&
-            context.setCodexConfig &&
-            threadId !== config?.sessionId
-          ) {
-            context.setCodexConfig(context.threadKey, {
-              ...(config ?? {}),
-              sessionId: threadId,
-            });
-          }
-        }
-        if (message.usage) {
-          usage = message.usage;
-        }
-        content = message.finalResponse ?? content;
-        break;
-      }
+      console.log(message);
     }
   } catch (err) {
-    content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n`;
-  } finally {
-    chatStreams.delete(id);
-    update(false);
+    console.warn("AI eval problem:", err);
   }
 }
 

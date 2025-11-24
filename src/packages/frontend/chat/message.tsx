@@ -503,7 +503,7 @@ export default function Message({
           size="small"
           noText={true}
           style={{
-            color: is_viewers_message ? "white" : "#888",
+            //color: is_viewers_message ? "white" : "#888",
             fontSize: "12px",
             marginTop: "-4px",
           }}
@@ -530,7 +530,7 @@ export default function Message({
           size="small"
           type={"text"}
           style={{
-            color: is_viewers_message ? "white" : "#888",
+            //color: is_viewers_message ? "white" : "#888",
             fontSize: "12px",
             marginTop: "-4px",
           }}
@@ -573,7 +573,7 @@ export default function Message({
       >
         <Button
           style={{
-            color: !feedback && is_viewers_message ? "white" : "#888",
+            //color: !feedback && is_viewers_message ? "white" : "#888",
             fontSize: "12px",
             marginTop: "-4px",
             ...(feedback ? {} : { position: "relative", top: "-5px" }),
