@@ -13,14 +13,30 @@ export interface CodexModelInfo {
 
 export type CodexReasoningId = CodexReasoningLevel["id"];
 
+export type CodexSessionMode = "auto" | "read-only" | "full-access";
+
 export interface CodexSessionConfig {
   workingDirectory?: string;
   sessionId?: string;
   model?: string;
   reasoning?: CodexReasoningId;
   allowWrite?: boolean;
+  sessionMode?: CodexSessionMode;
   env?: Record<string, string>;
   codexPathOverride?: string;
+}
+
+export function resolveCodexSessionMode(
+  config?: CodexSessionConfig,
+): CodexSessionMode {
+  const mode = config?.sessionMode;
+  if (mode === "auto" || mode === "read-only" || mode === "full-access") {
+    return mode;
+  }
+  if (typeof config?.allowWrite === "boolean") {
+    return config.allowWrite ? "auto" : "read-only";
+  }
+  return "auto";
 }
 
 export const DEFAULT_CODEX_MODELS: CodexModelInfo[] = [

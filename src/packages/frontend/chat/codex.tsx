@@ -6,7 +6,7 @@ import {
   Space,
   Typography,
   Select,
-  Switch,
+  Radio,
   Progress,
 } from "antd";
 import {
@@ -17,7 +17,9 @@ import {
 } from "@cocalc/frontend/app-framework";
 import {
   DEFAULT_CODEX_MODELS,
+  resolveCodexSessionMode,
   type CodexReasoningLevel,
+  type CodexSessionMode,
 } from "@cocalc/util/ai/codex";
 import { COLORS } from "@cocalc/util/theme";
 import type { ChatMessageTyped } from "./types";
@@ -26,6 +28,34 @@ import type { ChatActions } from "./actions";
 
 const { Paragraph, Text } = Typography;
 const DEFAULT_MODEL_NAME = DEFAULT_CODEX_MODELS[0].name;
+
+type ModeOption = {
+  value: CodexSessionMode;
+  label: string;
+  description: string;
+  warning?: boolean;
+};
+
+const MODE_OPTIONS: ModeOption[] = [
+  {
+    value: "full-access",
+    label: "Agent (full access)",
+    description:
+      "Run commands with network access and edit files outside this workspace. Extremely powerful—use with caution.",
+    warning: true,
+  },
+  {
+    value: "auto",
+    label: "Agent (sandboxed)",
+    description:
+      "Codex can run commands and edit files inside this workspace. Approvals may be requested for certain operations.",
+  },
+  {
+    value: "read-only",
+    label: "Read only",
+    description: "Inspect files safely. Commands and edits require approval.",
+  },
+];
 
 export interface CodexConfigButtonProps {
   threadKey: string;
@@ -75,7 +105,7 @@ export function CodexConfigButton({
       reasoning: baseReasoning,
       envHome: "",
       envPath: "",
-      allowWrite: false,
+      sessionMode: "auto" as CodexSessionMode,
     };
     const ms = parseInt(threadKey, 10);
     const saved =
@@ -91,11 +121,13 @@ export function CodexConfigButton({
       modelValue: model,
       desired: merged.reasoning,
     });
+    const sessionMode = resolveCodexSessionMode(merged);
     form.resetFields();
     form.setFieldsValue({
       ...merged,
       model,
       reasoning,
+      sessionMode,
     });
   }, [models, threadKey, chatPath, actions, form]);
 
@@ -120,7 +152,14 @@ export function CodexConfigButton({
 
   const onSave = () => {
     const values = form.getFieldsValue();
-    actions?.setCodexConfig?.(threadKey, values);
+    const sessionMode: CodexSessionMode =
+      values.sessionMode ?? resolveCodexSessionMode(values);
+    const finalValues = {
+      ...values,
+      sessionMode,
+      allowWrite: sessionMode !== "read-only",
+    };
+    actions?.setCodexConfig?.(threadKey, finalValues);
     setOpen(false);
   };
 
@@ -271,12 +310,39 @@ export function CodexConfigButton({
               <Input placeholder="Custom PATH for codex binary" />
             </Form.Item>
             <Form.Item
-              label="Allow write access"
-              name="allowWrite"
-              valuePropName="checked"
-              tooltip="Enable Codex to write files. Use with care."
+              label="Execution mode"
+              name="sessionMode"
+              tooltip="Control how much access Codex has inside your project."
             >
-              <Switch />
+              <Radio.Group style={{ width: "100%" }}>
+                <Space direction="vertical" style={{ width: "100%" }}>
+                  {MODE_OPTIONS.map((option) => (
+                    <Radio key={option.value} value={option.value}>
+                      <div>
+                        <strong
+                          style={{
+                            color: option.warning
+                              ? COLORS.FG_RED
+                              : COLORS.GRAY_D,
+                          }}
+                        >
+                          {option.label}
+                        </strong>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: option.warning
+                              ? COLORS.FG_RED
+                              : COLORS.GRAY_M,
+                          }}
+                        >
+                          {option.description}
+                        </div>
+                      </div>
+                    </Radio>
+                  ))}
+                </Space>
+              </Radio.Group>
             </Form.Item>
           </Form>
         </Space>

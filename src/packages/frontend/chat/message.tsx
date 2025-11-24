@@ -727,7 +727,7 @@ export default function Message({
               </Button>
               {elapsedLabel ? (
                 <span style={{ color: COLORS.GRAY_M, fontSize: 12 }}>
-                  <Icon name="clock-o" /> {elapsedLabel}
+                  <Icon name="clock" /> {elapsedLabel}
                 </span>
               ) : null}
             </Space>

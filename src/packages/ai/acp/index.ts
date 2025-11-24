@@ -34,7 +34,10 @@ import type {
 import getLogger from "@cocalc/backend/logger";
 import { make_patch } from "@cocalc/util/dmp";
 import type { CompressedPatch } from "@cocalc/util/dmp";
-import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
+import {
+  resolveCodexSessionMode,
+  type CodexSessionConfig,
+} from "@cocalc/util/ai/codex";
 import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
 
 const log = getLogger("ai:acp");
@@ -1203,7 +1206,7 @@ export class CodexAcpAgent implements AcpAgent {
   }
 
   private desiredModeId(config?: CodexSessionConfig): string {
-    return config?.allowWrite ? "auto" : "read-only";
+    return resolveCodexSessionMode(config);
   }
 
   private async applySessionMode(

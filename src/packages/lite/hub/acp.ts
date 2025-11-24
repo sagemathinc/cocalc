@@ -66,12 +66,19 @@ class ChatStreamWriter {
       path: metadata.path,
     });
     // ensure initialization rejections are observed immediately
-    this.ready = this.initialize().catch((err) => {
+    this.ready = this.initialize();
+    this.waitUntilReady();
+  }
+
+  private waitUntilReady = async () => {
+    try {
+      await this.ready;
+    } catch (err) {
       logger.warn("chat stream writer failed to initialize", err);
       this.closed = true;
       throw err;
-    });
-  }
+    }
+  };
 
   private async initialize(): Promise<void> {
     if (!this.syncdb.isReady()) {

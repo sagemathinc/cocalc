@@ -3,6 +3,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
 import {
   DEFAULT_CODEX_MODELS,
+  resolveCodexSessionMode,
   type CodexSessionConfig,
 } from "@cocalc/util/ai/codex";
 import { uuid } from "@cocalc/util/misc";
@@ -200,7 +201,9 @@ function buildAcpConfig({
   if (selectedReasoning) {
     opts.reasoning = selectedReasoning;
   }
-  opts.allowWrite = !!config?.allowWrite;
+  const sessionMode = resolveCodexSessionMode(config);
+  opts.sessionMode = sessionMode;
+  opts.allowWrite = sessionMode !== "read-only";
   const env: Record<string, string> = {};
   if (config?.envHome) env.HOME = config.envHome;
   if (config?.envPath) env.PATH = config.envPath;
