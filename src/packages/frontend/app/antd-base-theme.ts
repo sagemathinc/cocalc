@@ -10,7 +10,9 @@ import { COLORS } from "@cocalc/util/theme";
 export function getBaseAntdTheme(): ThemeConfig {
   return {
     token: {
-      colorLink: COLORS.BLUE_D,
+      colorPrimary: COLORS.COCALC_BLUE,
+      colorLink: COLORS.BLUE_DD,
+      colorTextLightSolid: COLORS.TOP_BAR.ACTIVE,
       colorTextDescription: COLORS.GRAY_DD,
     },
   };

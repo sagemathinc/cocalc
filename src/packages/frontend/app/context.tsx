@@ -92,9 +92,9 @@ export function useAntdStyleProvider() {
 
   const animationStyle = animate ? undefined : { motion: false };
 
-  const brandedColors = branded
-    ? { colorPrimary: COLORS.COCALC_BLUE }
-    : undefined;
+  const primaryColor = branded
+    ? undefined
+    : { colorPrimary: COLORS.ANTD_LINK_BLUE };
 
   const algorithm = compact ? { algorithm: theme.compactAlgorithm } : undefined;
 
@@ -103,13 +103,13 @@ export function useAntdStyleProvider() {
     ...algorithm,
     token: {
       ...(baseTheme.token ?? {}),
-      ...brandedColors,
+      ...primaryColor,
       ...borderStyle,
       ...animationStyle,
     },
     components: {
       Button: {
-        ...brandedColors,
+        ...primaryColor,
       },
     },
   };

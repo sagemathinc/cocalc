@@ -47,7 +47,7 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
             return sort_by(column_name);
           }}
           style={{
-            color: COLORS.FG_BLUE,
+            color: COLORS.BLUE_DD,
             fontWeight: "bold",
             whiteSpace: "nowrap",
           }}
@@ -80,7 +80,7 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
           "starred",
           <Icon
             name="star-filled"
-            style={{ color: COLORS.FG_BLUE, fontSize: "12pt" }}
+            style={{ color: COLORS.BLUE_DD, fontSize: "12pt" }}
           />,
           "0px",
         )}
