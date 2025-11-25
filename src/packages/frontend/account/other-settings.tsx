@@ -210,6 +210,18 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
+  function render_dim_file_extensions(): Rendered {
+    return (
+      <Switch
+        checked={!!props.other_settings.get("dim_file_extensions")}
+        onChange={(e) => on_change("dim_file_extensions", e.target.checked)}
+      >
+        <strong>Dim file extensions:</strong> gray out file extensions so their
+        names stand out.
+      </Switch>
+    );
+  }
+
   function render_antd(): Rendered {
     return (
       <>
@@ -443,6 +455,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
             </>
           }
         >
+          {render_dim_file_extensions()}
           {render_mask_files()}
           {render_default_file_sort()}
           {render_page_size()}

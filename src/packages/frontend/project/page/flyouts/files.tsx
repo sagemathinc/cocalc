@@ -128,6 +128,7 @@ export function FilesFlyout({
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const otherSettings = useTypedRedux("account", "other_settings");
   const maskFiles = otherSettings?.get("mask_files");
+  const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
   // mainly controls what a single click does, plus additional UI elements
   const [mode, setMode] = useState<"open" | "select">("open");
   const [prevSelected, setPrevSelected] = useState<number | null>(null);
@@ -631,6 +632,7 @@ export function FilesFlyout({
             item.isdir && !fullPath.endsWith("/") ? `${fullPath}/` : fullPath;
           manageStarredFiles.setStarredPath(normalizedPath, starState);
         }}
+        dimFileExtensions={dimFileExtensions}
       />
     );
   }

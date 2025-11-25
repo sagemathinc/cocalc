@@ -13,6 +13,10 @@ import { COLORS } from "@cocalc/util/theme";
 import { handleFileEntryClick } from "../project/history/utils";
 import { Tip } from "./tip";
 
+import React from "react";
+
+const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
+
 interface Props {
   path: string;
   project_id: string;
@@ -22,6 +26,7 @@ interface Props {
   style?: React.CSSProperties;
   link?: boolean; // set to false to make it not be a link
   onOpen?: () => void; // called if link is clicked on to open it.
+  dimExtensions?: boolean;
 }
 
 // Component to attempt opening a cocalc path in a project
@@ -34,6 +39,7 @@ export const PathLink: React.FC<Props> = ({
   style = {},
   link = true,
   onOpen,
+  dimExtensions = false,
 }: Props) => {
   function render_link(text): React.JSX.Element {
     let s;
@@ -43,7 +49,7 @@ export const PathLink: React.FC<Props> = ({
         s = (
           <>
             {name}
-            <span style={{ color: "#999" }}>.{ext}</span>
+            <span style={dimExtensions ? DIMMED_STYLE : undefined}>.{ext}</span>
           </>
         );
       } else {
