@@ -1046,7 +1046,6 @@
   "labels.linux_terminal": "Терминал Linux",
   "labels.loading": "Загрузка...",
   "labels.log": "Журнал",
-  "labels.masked_files": "{masked, select, true {Скрыть замаскированные файлы} other {Показать замаскированные файлы}}. Замаскированные файлы — это автогенерируемые или временные файлы, которые не предназначены для редактирования. Они отображаются серым цветом.",
   "labels.message.plural": "{num, plural, one {сообщение} other {сообщения}}",
   "labels.messages": "Сообщения",
   "labels.messages.all_messages": "Все сообщения",

@@ -39,6 +39,8 @@ import {
 import { COLORS } from "@cocalc/util/theme";
 import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
 
+const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
+
 const FILE_ITEM_SELECTED_STYLE: CSS = {
   backgroundColor: COLORS.BLUE_LLL, // bit darker than .cc-project-flyout-file-item:hover
 } as const;
@@ -142,6 +144,7 @@ interface FileListItemProps {
   style?: CSS;
   tooltip?: React.JSX.Element | string;
   noPublish?: boolean; // for layout only – indicate that there is never a publish indicator button
+  dimFileExtensions?: boolean;
 }
 
 export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
@@ -168,6 +171,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     showCheckbox,
     style,
     tooltip,
+    dimFileExtensions = false,
   } = props;
   const isActive = mode === "active";
   // only in files mode, we show the publish icon
@@ -230,8 +234,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       ? item.isopen
         ? { fontWeight: "bold" }
         : item.isdir
-        ? undefined
-        : { color: COLORS.FILE_EXT }
+          ? undefined
+          : { color: COLORS.FILE_EXT }
       : undefined;
 
     return (
@@ -247,7 +251,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         {displayedNameOverride ?? basename}
         {displayedNameOverride == null ? (
           ext === "" ? undefined : (
-            <span style={{ color: !item.mask ? COLORS.FILE_EXT : undefined }}>
+            <span style={dimFileExtensions ? DIMMED_STYLE : undefined}>
               {`.${ext}`}
             </span>
           )
@@ -279,8 +283,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           ? "check-square"
           : "square"
         : item.isdir
-        ? "folder-open"
-        : file_options(item.name)?.icon ?? "file");
+          ? "folder-open"
+          : (file_options(item.name)?.icon ?? "file"));
 
     return (
       <Icon
@@ -313,8 +317,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           ? COLORS.STAR
           : COLORS.GRAY_L
         : isStarred && item.isopen
-        ? COLORS.STAR
-        : COLORS.GRAY_L;
+          ? COLORS.STAR
+          : COLORS.GRAY_L;
 
     return (
       <Icon
@@ -415,8 +419,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     const actionNames = multiple
       ? ACTION_BUTTONS_MULTI
       : isdir
-      ? ACTION_BUTTONS_DIR
-      : ACTION_BUTTONS_FILE;
+        ? ACTION_BUTTONS_DIR
+        : ACTION_BUTTONS_FILE;
     for (const key of actionNames) {
       if (key === "download" && !item.isdir) continue;
       const disabled =
@@ -538,10 +542,10 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         ? FILE_ITEM_ACTIVE_STYLE_2
         : {}
       : item.isopen
-      ? item.isactive
-        ? FILE_ITEM_ACTIVE_STYLE
-        : FILE_ITEM_OPENED_STYLE
-      : {};
+        ? item.isactive
+          ? FILE_ITEM_ACTIVE_STYLE
+          : FILE_ITEM_OPENED_STYLE
+        : {};
 
   return (
     <Dropdown menu={{ items: getContextMenu() }} trigger={["contextMenu"]}>

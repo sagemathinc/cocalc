@@ -502,7 +502,8 @@ Table({
           other_settings: {
             katex: true,
             confirm_close: false,
-            mask_files: true,
+            mask_files: false,
+            dim_file_extensions: false,
             page_size: 500,
             standby_timeout_m: 15,
             default_file_sort: "name",

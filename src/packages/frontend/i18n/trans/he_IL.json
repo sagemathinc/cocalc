@@ -1046,7 +1046,6 @@
   "labels.linux_terminal": "לינוקס טרמינל",
   "labels.loading": "טוען...",
   "labels.log": "יומן",
-  "labels.masked_files": "{masked, select, true {הסתר קבצים מוסתרים} other {הצג קבצים מוסתרים}}. קבצים מוסתרים הם קבצים שנוצרים אוטומטית או קבצים זמניים, אשר לא מיועדים לעריכה. הם מוצגים באפור.",
   "labels.message.plural": "{num, plural, one {הודעה} other {הודעות}}",
   "labels.messages": "הודעות",
   "labels.messages.all_messages": "כל ההודעות",

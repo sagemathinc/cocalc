@@ -1046,7 +1046,6 @@
   "labels.linux_terminal": "Linux 终端",
   "labels.loading": "加载中...",
   "labels.log": "日志",
-  "labels.masked_files": "{masked, select, true {隐藏遮罩文件} other {显示遮罩文件}}。遮罩文件是自动生成或临时文件，不适合编辑。它们显示为灰色。",
   "labels.message.plural": "{num, plural, one {消息} other {消息}}",
   "labels.messages": "消息",
   "labels.messages.all_messages": "所有消息",
