@@ -474,12 +474,17 @@ function getCodexUsageSummary(
 
 function getMessageByKey(map, key: string): ChatMessageTyped | undefined {
   if (!key) return undefined;
-  const candidates = [
-    key,
-    toMsString(key),
-    `${parseInt(key, 10)}`,
-    new Date(parseInt(key, 10)).toISOString(),
-  ];
+  let candidates;
+  try {
+    candidates = [
+      key,
+      toMsString(key),
+      `${parseInt(key, 10)}`,
+      new Date(parseInt(key, 10)).toISOString(),
+    ];
+  } catch {
+    return undefined;
+  }
   for (const k of candidates) {
     if (!k) continue;
     const msg = map.get(k);
