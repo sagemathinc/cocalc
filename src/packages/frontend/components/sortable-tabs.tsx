@@ -19,14 +19,15 @@ import {
   SortableContext,
   useSortable,
 } from "@dnd-kit/sortable";
-import useMouse from "@react-hook/mouse-position";
 import {
   createContext,
   CSSProperties,
   ReactNode,
   useContext,
+  useCallback,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import useResizeObserver from "use-resize-observer";
 
@@ -74,14 +75,17 @@ export function SortableTabs(props: Props) {
     length: number;
     itemWidth: number;
   } | null>(null);
-  const { isOver } = useMouse(divRef);
+  const [isPointerOver, setIsPointerOver] = useState(false);
+
+  const handlePointerEnter = useCallback(() => setIsPointerOver(true), []);
+  const handlePointerLeave = useCallback(() => setIsPointerOver(false), []);
 
   const itemWidth = useMemo(() => {
     if (divRef.current == null) {
       lastRef.current = null;
       return undefined;
     }
-    if (isOver && lastRef.current?.itemWidth) {
+    if (isPointerOver && lastRef.current?.itemWidth) {
       // The mouse is over the tab bar, so do NOT change the size of the tabs -- just leave it.
       // This makes it so you can easily close a bunch of tabs.
       return lastRef.current?.itemWidth;
@@ -102,10 +106,15 @@ export function SortableTabs(props: Props) {
       itemWidth,
     };
     return itemWidth;
-  }, [resize.width, items.length, divRef.current, isOver]);
+  }, [resize.width, items.length, divRef.current, isPointerOver]);
 
   return (
-    <div style={{ width: "100%", ...style }} ref={divRef}>
+    <div
+      style={{ width: "100%", ...style }}
+      ref={divRef}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+    >
       <ItemContext.Provider value={{ width: itemWidth }}>
         <DndContext
           onDragStart={onDragStart}
