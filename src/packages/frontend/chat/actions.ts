@@ -652,6 +652,29 @@ export class ChatActions extends Actions<ChatState> {
     return { doc, message };
   };
 
+  private findCodexSessionId(threadKey: string): string | undefined {
+    const entry = this.getThreadRootDoc(threadKey);
+    const rootMessage = entry?.message;
+    if (!rootMessage) return;
+    const dateField = rootMessage.get("date");
+    const iso =
+      dateField instanceof Date
+        ? dateField.toISOString()
+        : typeof dateField === "string"
+          ? dateField
+          : new Date(dateField).toISOString();
+    if (!iso) return;
+    const threadMessages = this.getMessagesInThread(iso);
+    if (!threadMessages) return;
+    for (const msg of threadMessages) {
+      const sessionId = msg.get("acp_thread_id") as any;
+      if (typeof sessionId === "string" && sessionId.trim().length) {
+        return sessionId;
+      }
+    }
+    return undefined;
+  }
+
   save_scroll_state = (position, height, offset): void => {
     if (height == 0) {
       // height == 0 means chat room is not rendered
@@ -1262,10 +1285,17 @@ export class ChatActions extends Actions<ChatState> {
     const entry = this.getThreadRootDoc(`${rootMs}`);
     const rootMessage = entry?.message;
     if (!rootMessage) return;
-    const cfg =
+    const base =
       rootMessage.get("acp_config") ?? rootMessage.get("codex_config");
-    if (cfg && typeof (cfg as any).toJS === "function") {
-      return (cfg as any).toJS();
+    let cfg =
+      base && typeof (base as any).toJS === "function"
+        ? (base as any).toJS()
+        : base;
+    if (!cfg || cfg.sessionId == null) {
+      const fallbackSessionId = this.findCodexSessionId(`${rootMs}`);
+      if (fallbackSessionId) {
+        cfg = { ...(cfg ?? {}), sessionId: fallbackSessionId };
+      }
     }
     return cfg;
   };

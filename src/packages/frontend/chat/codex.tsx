@@ -8,6 +8,8 @@ import {
   Select,
   Radio,
   Progress,
+  Collapse,
+  Divider,
 } from "antd";
 import {
   React,
@@ -71,6 +73,12 @@ type ModelOption = {
   reasoning?: CodexReasoningLevel[];
 };
 
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <Text strong style={{ color: COLORS.GRAY_D }}>
+    {children}
+  </Text>
+);
+
 export function CodexConfigButton({
   threadKey,
   chatPath,
@@ -92,7 +100,7 @@ export function CodexConfigButton({
   }, []);
 
   useEffect(() => {
-    if (!models.length) return;
+    if (!models.length || !open) return;
     const baseModel = models[0]?.value ?? DEFAULT_MODEL_NAME;
     const baseReasoning = getReasoningForModel({
       models,
@@ -129,7 +137,7 @@ export function CodexConfigButton({
       reasoning,
       sessionMode,
     });
-  }, [models, threadKey, chatPath, actions, form]);
+  }, [models, threadKey, chatPath, actions, form, open]);
 
   const selectedModelValue = Form.useWatch("model", form);
   const selectedReasoningValue = Form.useWatch("reasoning", form);
@@ -241,13 +249,18 @@ export function CodexConfigButton({
           </Paragraph>
           {contextMeter}
           <Form form={form} layout="vertical">
+            <SectionTitle>Session basics</SectionTitle>
             <Form.Item label="Working directory" name="workingDirectory">
-              <Input placeholder="Defaults to chat directory" />
+              <Input
+                placeholder="Defaults to the directory containing this chat"
+                allowClear
+              />
             </Form.Item>
             <Form.Item
               label="Session ID"
               name="sessionId"
               tooltip="Optional. Reuse a Codex session to keep continuity."
+              extra="Leave blank to start fresh or paste a previous session ID."
             >
               <Input placeholder="Leave blank to create a new session" />
             </Form.Item>
@@ -295,20 +308,33 @@ export function CodexConfigButton({
                 }
               />
             </Form.Item>
-            <Form.Item
-              label="HOME override"
-              name="envHome"
-              tooltip="Optional. Overrides HOME for the Codex CLI."
-            >
-              <Input placeholder="Use logged-in Codex HOME if needed" />
-            </Form.Item>
-            <Form.Item
-              label="PATH override"
-              name="envPath"
-              tooltip="Optional. Ensures the codex CLI is on PATH."
-            >
-              <Input placeholder="Custom PATH for codex binary" />
-            </Form.Item>
+            <Divider style={{ margin: "12px 0" }} />
+            <SectionTitle>Advanced options</SectionTitle>
+            <Collapse size="small" bordered={false}>
+              <Collapse.Panel
+                header="Environment overrides"
+                key="env"
+                style={{ border: "none" }}
+              >
+                <Form.Item
+                  label="HOME override"
+                  name="envHome"
+                  tooltip="Optional. Overrides HOME for the Codex CLI."
+                  extra="Useful if Codex needs a different HOME than this notebook."
+                >
+                  <Input placeholder="Use logged-in Codex HOME if needed" />
+                </Form.Item>
+                <Form.Item
+                  label="PATH override"
+                  name="envPath"
+                  tooltip="Optional. Ensures the codex CLI is on PATH."
+                  extra="Provide a PATH string containing the codex binary."
+                >
+                  <Input placeholder="Custom PATH for codex binary" />
+                </Form.Item>
+              </Collapse.Panel>
+            </Collapse>
+            <Divider style={{ margin: "12px 0" }} />
             <Form.Item
               label="Execution mode"
               name="sessionMode"
