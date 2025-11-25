@@ -54,6 +54,7 @@ import type {
 } from "./types";
 import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
 import { addToHistory } from "@cocalc/chat";
+import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
 
 const MAX_CHAT_STREAM = 10;
 
@@ -1315,7 +1316,10 @@ export class ChatActions extends Actions<ChatState> {
     void this.saveSyncdb();
   };
 
-  languageModelStopGenerating = (date: Date) => {
+  languageModelStopGenerating = (
+    date: Date,
+    options?: { threadId?: string; replyTo?: Date | string | null },
+  ) => {
     if (this.syncdb == null) return;
     this.syncdb.set({
       event: "chat",
@@ -1324,7 +1328,56 @@ export class ChatActions extends Actions<ChatState> {
     });
     this.syncdb.commit();
     void this.saveSyncdb();
+    if (options?.threadId) {
+      void this.requestCodexInterrupt({
+        threadId: options.threadId,
+        messageDate: date,
+        replyTo: options.replyTo,
+      });
+    }
   };
+
+  private async requestCodexInterrupt({
+    threadId,
+    messageDate,
+    replyTo,
+  }: {
+    threadId: string;
+    messageDate: Date;
+    replyTo?: Date | string | null;
+  }): Promise<void> {
+    if (!threadId || !this.store) return;
+    const project_id = this.store.get("project_id");
+    const path = this.store.get("path");
+    if (!project_id || !path) return;
+    const sender_id = this.redux.getStore("account").get_account_id();
+    if (!sender_id) return;
+    const chat: AcpChatContext = {
+      project_id,
+      path,
+      sender_id,
+      message_date: messageDate.toISOString(),
+    };
+    if (replyTo != null) {
+      const reply =
+        replyTo instanceof Date
+          ? replyTo
+          : typeof replyTo === "string"
+            ? new Date(replyTo)
+            : new Date(replyTo);
+      if (!Number.isNaN(reply.valueOf())) {
+        chat.reply_to = reply.toISOString();
+      }
+    }
+    try {
+      await webapp_client.conat_client.interruptAcp({
+        threadId,
+        chat,
+      });
+    } catch (err) {
+      console.warn("failed to interrupt codex turn", err);
+    }
+  }
 
   resolveAcpApproval = async ({
     date,

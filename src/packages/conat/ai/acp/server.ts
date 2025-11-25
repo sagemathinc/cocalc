@@ -4,6 +4,7 @@ import { getLogger } from "@cocalc/conat/client";
 import { isValidUUID } from "@cocalc/util/misc";
 import type {
   AcpApprovalDecisionRequest,
+  AcpInterruptRequest,
   AcpRequest,
   AcpStreamPayload,
 } from "./types";
@@ -42,6 +43,13 @@ export function acpApprovalSubject(opts: {
   return `${buildSubjectPrefix(opts)}.approval`;
 }
 
+export function acpInterruptSubject(opts: {
+  account_id?: string;
+  project_id?: string;
+}): string {
+  return `${buildSubjectPrefix(opts)}.interrupt`;
+}
+
 function getUserId(subject: string): string {
   if (subject.startsWith(`${SUBJECT}.account-`)) {
     return subject.slice(
@@ -60,6 +68,7 @@ function getUserId(subject: string): string {
 
 let apiSub: Subscription | null = null;
 let approvalSub: Subscription | null = null;
+let interruptSub: Subscription | null = null;
 
 type StreamHandler = (payload?: AcpStreamPayload | null) => Promise<void>;
 
@@ -68,9 +77,14 @@ type EvaluateHandler = (
 ) => Promise<void>;
 
 type ApprovalHandler = (options: AcpApprovalDecisionRequest) => Promise<void>;
+type InterruptHandler = (options: AcpInterruptRequest) => Promise<void>;
 
 export async function init(
-  handlers: { evaluate: EvaluateHandler; approval?: ApprovalHandler },
+  handlers: {
+    evaluate: EvaluateHandler;
+    approval?: ApprovalHandler;
+    interrupt?: InterruptHandler;
+  },
   client,
 ): Promise<void> {
   client ??= await conat();
@@ -82,6 +96,12 @@ export async function init(
     });
     listenApprovals(handlers.approval);
   }
+  if (handlers.interrupt) {
+    interruptSub = await client.subscribe(`${SUBJECT}.*.interrupt`, {
+      queue: "acp-interrupt-q",
+    });
+    listenInterrupts(handlers.interrupt);
+  }
 }
 
 export async function close(): Promise<void> {
@@ -92,6 +112,10 @@ export async function close(): Promise<void> {
   if (approvalSub != null) {
     approvalSub.close();
     approvalSub = null;
+  }
+  if (interruptSub != null) {
+    interruptSub.close();
+    interruptSub = null;
   }
 }
 
@@ -114,6 +138,17 @@ function listenApprovals(approvalHandler: ApprovalHandler): void {
     }
   })().catch((err) => {
     logger.warn("acp approval listener stopped", err);
+  });
+}
+
+function listenInterrupts(interruptHandler: InterruptHandler): void {
+  if (interruptSub == null) return;
+  (async () => {
+    for await (const mesg of interruptSub!) {
+      await handleInterruptMessage(mesg, interruptHandler);
+    }
+  })().catch((err) => {
+    logger.warn("acp interrupt listener stopped", err);
   });
 }
 
@@ -201,6 +236,33 @@ async function handleApprovalMessage(
     }
     await approval(options);
     await respond({ status: "ok" });
+  } catch (err) {
+    await respond(undefined, `${err}`);
+  }
+}
+
+async function handleInterruptMessage(
+  mesg,
+  interrupt: InterruptHandler,
+): Promise<void> {
+  const options = mesg.data ?? {};
+  const respond = async (payload?: any, error?: string) => {
+    const data: any = payload ?? {};
+    if (error) {
+      data.error = error;
+    }
+    await mesg.respond(data, { noThrow: true });
+  };
+
+  try {
+    if (!isValidUUID(options.account_id)) {
+      throw Error("account_id must be a valid uuid");
+    }
+    if (options.account_id !== getUserId(mesg.subject)) {
+      throw Error("account_id is invalid");
+    }
+    await interrupt(options);
+    await respond();
   } catch (err) {
     await respond(undefined, `${err}`);
   }

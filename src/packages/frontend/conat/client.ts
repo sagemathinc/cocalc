@@ -467,6 +467,13 @@ export class ConatClient extends EventEmitter {
     );
   };
 
+  interruptAcp = async (request) => {
+    await acp.interruptAcp(
+      { account_id: this.client.account_id, ...request },
+      this.conat(),
+    );
+  };
+
   dstream = dstream;
   astream = astream;
   dkv = dkv;

@@ -24,6 +24,13 @@ export type AcpApprovalDecisionRequest = {
   note?: string;
 };
 
+export type AcpInterruptRequest = {
+  account_id: string;
+  threadId?: string;
+  chat?: AcpChatContext;
+  note?: string;
+};
+
 export type AcpStreamUsage = {
   input_tokens?: number;
   output_tokens?: number;

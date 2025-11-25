@@ -18,6 +18,7 @@ import type {
   AcpStreamEvent,
   AcpChatContext,
   AcpApprovalDecisionRequest,
+  AcpInterruptRequest,
 } from "@cocalc/conat/ai/acp/types";
 import {
   resolveCodexSessionMode,
@@ -426,7 +427,11 @@ export async function init(client: ConatClient): Promise<void> {
   });
   blobStore = getBlobstore(client);
   await initConatAcp(
-    { evaluate, approval: handleApprovalDecisionRequest },
+    {
+      evaluate,
+      approval: handleApprovalDecisionRequest,
+      interrupt: handleInterruptRequest,
+    },
     client,
   );
 }
@@ -595,4 +600,34 @@ async function handleApprovalDecisionRequest(
     throw Error("approval could not be resolved");
   }
   approvalStore.remove(request.approvalId);
+}
+
+async function handleInterruptRequest(
+  request: AcpInterruptRequest,
+): Promise<void> {
+  if (!request.threadId) {
+    throw Error("threadId is required to interrupt codex");
+  }
+  const handled = await interruptCodexSession(request.threadId);
+  if (!handled) {
+    throw Error("unable to interrupt codex session");
+  }
+}
+
+async function interruptCodexSession(threadId: string): Promise<boolean> {
+  for (const agent of agents.values()) {
+    if (agent instanceof CodexAcpAgent) {
+      try {
+        if (await agent.interrupt(threadId)) {
+          return true;
+        }
+      } catch (err) {
+        logger.warn("failed to interrupt codex session", {
+          threadId,
+          err,
+        });
+      }
+    }
+  }
+  return false;
 }

@@ -142,10 +142,11 @@ export async function processAcpLLM({
     messageDate,
     reply_to,
   });
+  const sessionKey = config?.sessionId ?? context.threadKey;
   try {
     const stream = await webapp_client.conat_client.streamAcp({
       prompt: workingInput,
-      session_id: config?.sessionId,
+      session_id: sessionKey,
       config: buildAcpConfig({
         path,
         config,

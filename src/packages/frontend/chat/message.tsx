@@ -31,6 +31,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import CodexActivity from "./codex-activity";
+import CodexConfigButton from "./codex";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
@@ -241,6 +242,8 @@ export default function Message({
     () => actions?.isLanguageModelThread(message.get("date")),
     [message, actions != null],
   );
+  const isCodexThread =
+    typeof isLLMThread === "string" && isLLMThread.includes("codex");
 
   useEffect(() => {
     if (generating === true && date > 0) {
@@ -287,6 +290,22 @@ export default function Message({
   const acpThreadId = useMemo(() => {
     return message.get("acp_thread_id");
   }, [message]);
+  const threadKeyForSession = useMemo(() => {
+    const baseValue = message.get("date");
+    const baseMs =
+      baseValue instanceof Date
+        ? baseValue.valueOf()
+        : typeof baseValue === "number"
+          ? baseValue
+          : new Date(baseValue ?? date).valueOf();
+    if (!Number.isFinite(baseMs)) {
+      return undefined;
+    }
+    const root =
+      getThreadRootDate({ date: baseMs, messages }) ?? baseMs;
+    return Number.isFinite(root) ? `${root}` : undefined;
+  }, [message, messages, date]);
+  const sessionIdForInterrupt = acpThreadId ?? threadKeyForSession;
 
   const isActive =
     selected || isHovered || replying || show_history || isEditing;
@@ -789,6 +808,8 @@ export default function Message({
     if (generating !== true || actions == null) {
       return null;
     }
+    const interruptLabel = isCodexThread ? "Interrupt" : "Stop Generating";
+    const interruptIcon = isCodexThread ? "bolt" : "square";
     return (
       <div
         style={{
@@ -805,10 +826,13 @@ export default function Message({
           size="small"
           style={{ color: COLORS.GRAY_M }}
           onClick={() => {
-            actions?.languageModelStopGenerating(new Date(date));
+            actions?.languageModelStopGenerating(new Date(date), {
+              threadId: sessionIdForInterrupt,
+              replyTo: message.get("reply_to"),
+            });
           }}
         >
-          <Icon name="square" /> Stop Generating
+          <Icon name={interruptIcon} /> {interruptLabel}
         </Button>
         {elapsedLabel ? (
           <span style={{ fontSize: 12, display: "inline-flex", gap: "4px" }}>
@@ -1172,3 +1196,5 @@ export function message_to_markdown(message): string {
   const date = message.get("date").toString();
   return `*From:* ${sender}  \n*Date:* ${date}  \n\n${value}`;
 }
+
+

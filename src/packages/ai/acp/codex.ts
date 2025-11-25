@@ -1590,6 +1590,20 @@ export class CodexAcpAgent implements AcpAgent {
     return this.handler.resolveApprovalDecision(decision);
   }
 
+  async interrupt(threadId: string): Promise<boolean> {
+    const session = this.sessions.get(threadId);
+    if (!session) {
+      return false;
+    }
+    try {
+      await this.connection.cancel({ sessionId: session.sessionId });
+      return true;
+    } catch (err) {
+      log.warn("acp.session.interrupt_failed", { threadId, err });
+      return false;
+    }
+  }
+
   async dispose(): Promise<void> {
     this.child.kill();
     await this.connection.closed;

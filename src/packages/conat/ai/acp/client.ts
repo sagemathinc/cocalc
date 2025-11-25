@@ -3,10 +3,15 @@ import type { Client } from "@cocalc/conat/core/client";
 import { isValidUUID } from "@cocalc/util/misc";
 import type {
   AcpApprovalDecisionRequest,
+  AcpInterruptRequest,
   AcpRequest,
   AcpStreamMessage,
 } from "./types";
-import { acpApprovalSubject, acpSubject } from "./server";
+import {
+  acpApprovalSubject,
+  acpInterruptSubject,
+  acpSubject,
+} from "./server";
 
 interface StreamOptions {
   timeout?: number;
@@ -74,6 +79,22 @@ export async function respondAcpApproval(
     throw Error("account_id must be a valid uuid");
   }
   const subject = acpApprovalSubject({ account_id: request.account_id });
+  const cn = client ?? (await conat());
+  const resp = await cn.request(subject, request, { timeout: 30 * 1000 });
+  const error = resp?.data?.error;
+  if (error) {
+    throw Error(error);
+  }
+}
+
+export async function interruptAcp(
+  request: AcpInterruptRequest,
+  client?: Client,
+): Promise<void> {
+  if (!isValidUUID(request.account_id)) {
+    throw Error("account_id must be a valid uuid");
+  }
+  const subject = acpInterruptSubject({ account_id: request.account_id });
   const cn = client ?? (await conat());
   const resp = await cn.request(subject, request, { timeout: 30 * 1000 });
   const error = resp?.data?.error;
