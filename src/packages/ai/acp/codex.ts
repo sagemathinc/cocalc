@@ -96,6 +96,7 @@ type TerminalState = {
 
 type CodexClientHandlerOptions = {
   commandHandlers?: Map<string, CustomCommandHandler>;
+  captureToolCalls?: boolean;
 };
 
 type AcpApprovalEvent = Extract<AcpStreamEvent, { type: "approval" }>;
@@ -118,9 +119,13 @@ class CodexClientHandler implements TerminalClient {
   private terminals = new Map<string, TerminalState>();
   private readonly commandHandlers?: Map<string, CustomCommandHandler>;
   private pendingApprovals = new Map<string, PendingApproval>();
+  private callToTerminal = new Map<string, string>();
+  private terminalBuffers = new Map<string, string>();
+  private readonly captureToolCalls: boolean;
 
   constructor(options?: CodexClientHandlerOptions) {
     this.commandHandlers = options?.commandHandlers;
+    this.captureToolCalls = options?.captureToolCalls ?? false;
   }
 
   setStream(stream?: AcpStreamHandler) {
@@ -241,8 +246,266 @@ class CodexClientHandler implements TerminalClient {
           });
         }
         break;
+      case "tool_call":
+        if (this.captureToolCalls) {
+          await this.handleToolCall(update);
+        }
+        break;
+      case "tool_call_update":
+        if (this.captureToolCalls) {
+          await this.handleToolCallUpdate(update);
+        }
+        break;
       default:
         break;
+    }
+  }
+
+  private async handleToolCall(update: any): Promise<void> {
+    log.debug("acp.tool_call", {
+      meta: getMeta(update),
+      rawInput: update.rawInput,
+    });
+    const meta = getMeta(update);
+    const info = meta?.terminal_info ?? meta?.terminalInfo;
+    const callId =
+      update.toolCallId ??
+      update.tool_call_id ??
+      update.rawInput?.call_id ??
+      update.rawInput?.callId;
+    const terminalId =
+      info?.terminal_id ??
+      info?.terminalId ??
+      this.extractTerminalId(update) ??
+      callId;
+    if (!terminalId) return;
+    if (callId) {
+      this.callToTerminal.set(callId, terminalId);
+    }
+    const { command, args, cwd } = this.extractCommandInfo(update.rawInput);
+    await this.emitTerminalEvent(terminalId, {
+      phase: "start",
+      command,
+      args,
+      cwd: cwd ?? info?.cwd,
+    });
+  }
+
+  private async handleToolCallUpdate(update: any): Promise<void> {
+    // Codex’s ACP adapter only sends proper terminal metadata (`meta.terminal_output`,
+    // `terminal_exit`) when it runs through the ACP terminal proxy.  In native-shell mode
+    // we still get tool_call/tool_call_update notifications, but the terminal details live
+    // solely inside `rawInput`/`rawOutput`.  Rather than patch Codex itself again, we
+    // synthesize terminal events here by tracking the command/aggregated output and emitting
+    // “start / data / exit” updates whenever the ACP metadata is missing.
+    log.debug("acp.tool_call_update", {
+      meta: getMeta(update),
+      rawOutput: update.rawOutput,
+    });
+    const meta = getMeta(update);
+    const terminalId = this.resolveTerminalId(update);
+    const output = meta?.terminal_output ?? meta?.terminalOutput;
+    if (output) {
+      const outputTerminalId =
+        output.terminal_id ?? output.terminalId ?? terminalId;
+      const chunk = typeof output.data === "string" ? output.data : undefined;
+      if (chunk && outputTerminalId) {
+        await this.emitTerminalEvent(outputTerminalId, {
+          phase: "data",
+          chunk,
+          truncated: Boolean(output.truncated),
+        });
+      }
+    }
+    const exit = meta?.terminal_exit ?? meta?.terminalExit;
+    if (exit) {
+      const exitTerminalId = exit.terminal_id ?? exit.terminalId ?? terminalId;
+      const aggregated =
+        typeof update.rawOutput?.aggregated_output === "string"
+          ? update.rawOutput.aggregated_output
+          : undefined;
+      if (exitTerminalId) {
+        await this.emitTerminalEvent(exitTerminalId, {
+          phase: "exit",
+          exitStatus: normalizeTerminalExitStatus({
+            exitCode:
+              typeof exit.exit_code === "number"
+                ? exit.exit_code
+                : exit.exitCode ?? undefined,
+            signal: exit.signal ?? undefined,
+          }),
+          output: aggregated,
+          truncated: Boolean(exit.truncated),
+        });
+        this.flushSyntheticTerminal(exitTerminalId, update);
+        return;
+      }
+    }
+
+    if (!terminalId) {
+      return;
+    }
+    const aggregated = this.extractAggregatedOutput(update.rawOutput);
+    if (aggregated != null) {
+      const delta = this.computeTerminalDelta(terminalId, aggregated);
+      if (delta) {
+        await this.emitTerminalEvent(terminalId, {
+          phase: "data",
+          chunk: delta,
+          truncated: false,
+        });
+      }
+    }
+    if (this.isTerminalComplete(update)) {
+      await this.emitTerminalEvent(terminalId, {
+        phase: "exit",
+        exitStatus: normalizeTerminalExitStatus({
+          exitCode: this.extractExitCode(update.rawOutput),
+          signal: update.rawOutput?.signal ?? undefined,
+        }),
+        output: aggregated ?? update.rawOutput?.formatted_output,
+        truncated: false,
+      });
+      this.flushSyntheticTerminal(terminalId, update);
+    }
+  }
+
+  private extractTerminalId(update: any): string | undefined {
+    const entries: any[] = Array.isArray(update.content) ? update.content : [];
+    for (const entry of entries) {
+      if (
+        entry &&
+        typeof entry === "object" &&
+        entry.type === "terminal" &&
+        typeof entry.terminalId === "string"
+      ) {
+        return entry.terminalId;
+      }
+      if (
+        entry &&
+        typeof entry === "object" &&
+        entry.type === "terminal" &&
+        typeof entry.terminal_id === "string"
+      ) {
+        return entry.terminal_id;
+      }
+    }
+    return undefined;
+  }
+
+  private extractCommandInfo(rawInput: any): {
+    command?: string;
+    args?: string[];
+    cwd?: string;
+  } {
+    if (!rawInput || typeof rawInput !== "object") {
+      return {};
+    }
+    const commandList: string[] | undefined = Array.isArray(rawInput.command)
+      ? rawInput.command
+      : undefined;
+    let command: string | undefined;
+    let args: string[] | undefined;
+    if (commandList?.length) {
+      [command, ...args] = commandList;
+    }
+    return {
+      command,
+      args,
+      cwd:
+        typeof rawInput.cwd === "string"
+          ? rawInput.cwd
+          : rawInput.cwd?.toString(),
+    };
+  }
+
+  private resolveTerminalId(update: any): string | undefined {
+    const meta = getMeta(update);
+    const terminalMeta =
+      meta?.terminal_output ??
+      meta?.terminalOutput ??
+      meta?.terminal_exit ??
+      meta?.terminalExit ??
+      meta?.terminal_info ??
+      meta?.terminalInfo;
+    if (terminalMeta?.terminal_id ?? terminalMeta?.terminalId) {
+      return terminalMeta.terminal_id ?? terminalMeta.terminalId;
+    }
+    const callId =
+      update.toolCallId ??
+      update.tool_call_id ??
+      update.rawOutput?.call_id ??
+      update.rawOutput?.callId;
+    if (!callId) return undefined;
+    const mapped = this.callToTerminal.get(callId);
+    if (mapped) return mapped;
+    this.callToTerminal.set(callId, callId);
+    return callId;
+  }
+
+  private extractAggregatedOutput(rawOutput: any): string | undefined {
+    if (!rawOutput || typeof rawOutput !== "object") return undefined;
+    if (typeof rawOutput.aggregated_output === "string") {
+      return rawOutput.aggregated_output;
+    }
+    if (typeof rawOutput.stdout === "string" && rawOutput.stdout.length) {
+      return rawOutput.stdout;
+    }
+    return undefined;
+  }
+
+  private computeTerminalDelta(id: string, latest: string): string | undefined {
+    const previous = this.terminalBuffers.get(id) ?? "";
+    this.terminalBuffers.set(id, latest);
+    if (!latest) return undefined;
+    if (latest.startsWith(previous)) {
+      return latest.slice(previous.length);
+    }
+    return latest;
+  }
+
+  private extractExitCode(rawOutput: any): number | undefined {
+    if (!rawOutput || typeof rawOutput !== "object") return undefined;
+    const value =
+      rawOutput.exit_code ??
+      rawOutput.exitCode ??
+      rawOutput.status_code ??
+      rawOutput.statusCode;
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    return undefined;
+  }
+
+  private isTerminalComplete(update: any): boolean {
+    if (update.status && update.status !== "in_progress" && update.status !== "pending") {
+      return true;
+    }
+    const rawOutput = update.rawOutput;
+    if (!rawOutput || typeof rawOutput !== "object") return false;
+    const code = this.extractExitCode(rawOutput);
+    if (code != null) return true;
+    if (typeof rawOutput.stderr === "string" && rawOutput.stderr.length) {
+      return true;
+    }
+    if (typeof rawOutput.formatted_output === "string") {
+      return true;
+    }
+    return false;
+  }
+
+  private flushSyntheticTerminal(
+    id: string,
+    update?: any,
+  ): void {
+    this.terminalBuffers.delete(id);
+    const callId =
+      update?.toolCallId ??
+      update?.tool_call_id ??
+      update?.rawOutput?.call_id ??
+      update?.rawOutput?.callId;
+    if (callId) {
+      this.callToTerminal.delete(callId);
     }
   }
 
@@ -954,6 +1217,11 @@ function mapTokenUsage(payload: any): AcpStreamUsage | undefined {
   return Object.keys(usage).length > 0 ? usage : undefined;
 }
 
+function getMeta(update: any): any | undefined {
+  if (!update || typeof update !== "object") return undefined;
+  return update._meta ?? update.meta;
+}
+
 function toWaitResponse(
   status?: TerminalExitStatus,
 ): WaitForTerminalExitResponse {
@@ -1102,6 +1370,7 @@ export class CodexAcpAgent implements AcpAgent {
         !useNativeTerminal && options.commandHandlers
           ? new Map(Object.entries(options.commandHandlers))
           : undefined,
+      captureToolCalls: useNativeTerminal,
     });
     const connection = new ClientSideConnection(() => handler, stream);
 
