@@ -149,6 +149,7 @@ export function CodexConfigButton({
 
   const selectedModelValue = Form.useWatch("model", form);
   const selectedReasoningValue = Form.useWatch("reasoning", form);
+  const currentSessionMode = Form.useWatch("sessionMode", form);
   const messageMap = actions?.store?.get("messages");
   const usageSummary = useMemo(() => {
     return getCodexUsageSummary(threadKey, actions, messageMap);
@@ -366,32 +367,47 @@ export function CodexConfigButton({
               style={formItemStyle}
             >
               <Radio.Group style={{ width: "100%" }}>
-                <Space direction="vertical" style={{ width: "100%" }}>
-                  {MODE_OPTIONS.map((option) => (
-                    <Radio key={option.value} value={option.value}>
-                      <div>
-                        <strong
-                          style={{
-                            color: option.warning
-                              ? COLORS.FG_RED
-                              : COLORS.GRAY_D,
-                          }}
-                        >
-                          {option.label}
-                        </strong>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: option.warning
-                              ? COLORS.FG_RED
-                              : COLORS.GRAY_M,
-                          }}
-                        >
-                          {option.description}
-                        </div>
+                <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                  {MODE_OPTIONS.map((option) => {
+                    const selected = currentSessionMode === option.value;
+                    return (
+                      <div
+                        key={option.value}
+                        style={{
+                          border: `1px solid ${
+                            selected ? COLORS.BLUE : COLORS.GRAY_L
+                          }`,
+                          borderRadius: 8,
+                          padding: 10,
+                          background: selected ? COLORS.GRAY_LL : undefined,
+                        }}
+                      >
+                        <Radio value={option.value} style={{ width: "100%" }}>
+                          <div>
+                            <strong
+                              style={{
+                                color: option.warning
+                                  ? COLORS.FG_RED
+                                  : COLORS.GRAY_D,
+                              }}
+                            >
+                              {option.label}
+                            </strong>
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: option.warning
+                                  ? COLORS.FG_RED
+                                  : COLORS.GRAY_M,
+                              }}
+                            >
+                              {option.description}
+                            </div>
+                          </div>
+                        </Radio>
                       </div>
-                    </Radio>
-                  ))}
+                    );
+                  })}
                 </Space>
               </Radio.Group>
             </Form.Item>
