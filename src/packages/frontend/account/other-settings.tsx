@@ -129,8 +129,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       >
         <FormattedMessage
           id="account.other-settings.mask_files"
-          defaultMessage={`<strong>Mask Files:</strong> grey out files in the files viewer
-            that you probably do not want to open`}
+          defaultMessage={`<strong>Dim generated files:</strong> gray out files produced by compilers (.aux, .log, .pyc, etc.) so the main files stand out.`}
         />
       </Switch>
     );
