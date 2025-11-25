@@ -284,12 +284,8 @@ export default function Message({
     return ev;
   }, [message]);
 
-  const codexThreadId = useMemo(() => {
-    return (
-      message.get("acp_thread_id") ??
-      message.get("codex_thread_id") ??
-      undefined
-    );
+  const acpThreadId = useMemo(() => {
+    return message.get("acp_thread_id");
   }, [message]);
 
   const isActive =
@@ -696,11 +692,7 @@ export default function Message({
     if (isLLMThread && msgWrittenByLLM) {
       buttons.push(
         <span key="regenerate">
-          <RegenerateLLM
-            actions={actions}
-            date={date}
-            model={isLLMThread}
-          />
+          <RegenerateLLM actions={actions} date={date} model={isLLMThread} />
         </span>,
       );
       buttons.push(
@@ -755,7 +747,7 @@ export default function Message({
         {codexEvents?.length ? (
           <CodexActivity
             events={codexEvents}
-            threadId={codexThreadId}
+            threadId={acpThreadId}
             generating={generating === true}
             canResolveApproval={
               message.get("acp_account_id") === account_id ||
@@ -778,7 +770,6 @@ export default function Message({
     );
   }
 
-
   function renderEditingMeta() {
     if (isEditing) {
       return null;
@@ -790,9 +781,7 @@ export default function Message({
       return null;
     }
     return (
-      <div style={{ marginTop: "6px" }}>
-        {render_editing_status(isEditing)}
-      </div>
+      <div style={{ marginTop: "6px" }}>{render_editing_status(isEditing)}</div>
     );
   }
 
