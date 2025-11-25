@@ -216,8 +216,10 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         checked={!!props.other_settings.get("dim_file_extensions")}
         onChange={(e) => on_change("dim_file_extensions", e.target.checked)}
       >
-        <strong>Dim file extensions:</strong> gray out file extensions so their
-        names stand out.
+        <FormattedMessage
+          id="account.other-settings.dim_file_extensions"
+          defaultMessage={`<strong>Dim file extensions:</strong> gray out file extensions so their names stand out.`}
+        />
       </Switch>
     );
   }

@@ -7,8 +7,8 @@ if [ $# -eq 0 ]; then
     echo "Delete one or more translation keys from SimpleLocalize"
     echo ""
     echo "Example:"
-    echo "  $0 labels.masked_files"
-    echo "  $0 labels.masked_files account.sign-out.button.title"
+    echo "  $0 labels.account"
+    echo "  $0 labels.account account.sign-out.button.title"
     exit 1
 fi
 
