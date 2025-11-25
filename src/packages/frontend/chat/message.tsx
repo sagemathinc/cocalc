@@ -663,18 +663,19 @@ export default function Message({
           }
         />
         {codexEvents?.length ? (
-          <CodexActivity
-            events={codexEvents}
-            threadId={codexThreadId}
-            generating={generating === true}
-            canResolveApproval={
-              isLanguageModelService(message.get("sender_id")) ||
-              is_viewers_message
-            }
-            onResolveApproval={
-              actions && typeof actions.resolveAcpApproval === "function"
-                ? ({ approvalId, optionId }) =>
-                    actions.resolveAcpApproval({
+        <CodexActivity
+          events={codexEvents}
+          threadId={codexThreadId}
+          generating={generating === true}
+          canResolveApproval={
+            message.get("acp_account_id") === account_id ||
+            isLanguageModelService(message.get("sender_id")) ||
+            is_viewers_message
+          }
+          onResolveApproval={
+            actions && typeof actions.resolveAcpApproval === "function"
+              ? ({ approvalId, optionId }) =>
+                  actions.resolveAcpApproval({
                       date: message.get("date"),
                       approvalId,
                       optionId,

@@ -17,6 +17,7 @@ import type {
   AcpStreamMessage,
   AcpStreamEvent,
   AcpChatContext,
+  AcpApprovalDecisionRequest,
 } from "@cocalc/conat/ai/acp/types";
 import {
   resolveCodexSessionMode,
@@ -50,6 +51,55 @@ let conatClient: ConatClient | null = null;
 
 type ApprovalEvent = Extract<AcpStreamEvent, { type: "approval" }>;
 
+class ApprovalStore {
+  private pending = new Map<
+    string,
+    {
+      metadata: AcpChatContext;
+      event: ApprovalEvent;
+      approverAccountId: string;
+    }
+  >();
+
+  record(
+    metadata: AcpChatContext,
+    event: ApprovalEvent,
+    approverAccountId: string,
+  ): void {
+    if (event.status === "pending") {
+      this.pending.set(event.approvalId, { metadata, event, approverAccountId });
+    } else {
+      this.pending.delete(event.approvalId);
+    }
+  }
+
+  get(approvalId: string):
+    | {
+        metadata: AcpChatContext;
+        event: ApprovalEvent;
+        approverAccountId: string;
+      }
+    | undefined {
+    return this.pending.get(approvalId);
+  }
+
+  remove(approvalId: string): void {
+    this.pending.delete(approvalId);
+  }
+}
+
+const approvalStore = new ApprovalStore();
+function resolveApproval(decision: ApprovalDecision): boolean {
+  for (const agent of agents.values()) {
+    if (agent instanceof CodexAcpAgent) {
+      if (agent.resolveApproval(decision)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 class ChatStreamWriter {
   private syncdb: SyncDB;
   private metadata: AcpChatContext;
@@ -62,25 +112,24 @@ class ChatStreamWriter {
   private threadId: string | null = null;
   private seq = 0;
   private finished = false;
-  private onApprovalDecision?: (decision: ApprovalDecision) => void;
+  private approverAccountId: string;
 
   constructor({
     metadata,
     client,
-    onApprovalDecision,
+    approverAccountId,
   }: {
     metadata: AcpChatContext;
     client: ConatClient;
-    onApprovalDecision?: (decision: ApprovalDecision) => void;
+    approverAccountId: string;
   }) {
     this.metadata = metadata;
+    this.approverAccountId = approverAccountId;
     this.syncdb = createChatSyncDB({
       client,
       project_id: metadata.project_id,
       path: metadata.path,
     });
-    this.onApprovalDecision = onApprovalDecision;
-    this.syncdb.on("change", this.handleSyncChange);
     // ensure initialization rejections are observed immediately
     this.ready = this.initialize();
     this.waitUntilReady();
@@ -163,6 +212,13 @@ class ChatStreamWriter {
     this.events = appendStreamMessage(this.events, payload);
     if (payload.type === "event") {
       const text = extractEventText(payload.event);
+      if (payload.event?.type === "approval") {
+        approvalStore.record(
+          this.metadata,
+          payload.event,
+          this.approverAccountId,
+        );
+      }
       if (text) {
         this.content = text;
       }
@@ -202,6 +258,7 @@ class ChatStreamWriter {
         acp_events: this.events,
         acp_thread_id: this.threadId,
         acp_usage: this.usage,
+        acp_account_id: this.approverAccountId,
       });
       this.syncdb.set(message);
       this.syncdb.commit();
@@ -220,10 +277,6 @@ class ChatStreamWriter {
     this.commit(false);
     this.commit.flush();
     this.closed = true;
-    (this.syncdb as any).off?.("change", this.handleSyncChange);
-    if (typeof this.syncdb.removeListener === "function") {
-      this.syncdb.removeListener("change", this.handleSyncChange);
-    }
     if (!this.finished) {
       clearAcpPayloads(this.metadata);
     }
@@ -241,65 +294,6 @@ class ChatStreamWriter {
     })();
   }
 
-  private handleSyncChange = (): void => {
-    if (this.closed || !this.onApprovalDecision) return;
-    const entry = this.syncdb.get_one({
-      event: "chat",
-      date: this.metadata.message_date,
-    });
-    if (!entry) return;
-    const next = this.toJS(entry.get("acp_events"));
-    if (!Array.isArray(next)) return;
-    const nextEvents = next as AcpStreamMessage[];
-    this.detectApprovalDecisions(this.events, nextEvents);
-    this.events = nextEvents;
-  };
-
-  private detectApprovalDecisions(
-    prev: AcpStreamMessage[],
-    next: AcpStreamMessage[],
-  ): void {
-    if (!this.onApprovalDecision) return;
-    const previous = this.mapApprovalStates(prev);
-    const latest = this.mapApprovalStates(next);
-    for (const [approvalId, state] of Object.entries(latest)) {
-      if (state == null || state.status === "pending") continue;
-      const before = previous[approvalId];
-      const changed =
-        !before ||
-        before.status !== state.status ||
-        before.selectedOptionId !== state.selectedOptionId;
-      if (!changed) continue;
-      this.onApprovalDecision({
-        approvalId,
-        optionId: state.selectedOptionId ?? undefined,
-        decidedBy: state.decidedBy ?? undefined,
-        note: state.note ?? undefined,
-        status: state.status,
-      });
-    }
-  }
-
-  private mapApprovalStates(
-    events: AcpStreamMessage[],
-  ): Record<string, ApprovalEvent> {
-    const result: Record<string, ApprovalEvent> = {};
-    for (const entry of events) {
-      if (entry?.type !== "event") continue;
-      const event = entry.event;
-      if (event?.type !== "approval") continue;
-      result[event.approvalId] = event;
-    }
-    return result;
-  }
-
-  private toJS(value: any): any {
-    if (value == null) return value;
-    if (typeof value.toJS === "function") {
-      return value.toJS();
-    }
-    return value;
-  }
 }
 
 async function ensureAgent(useNativeTerminal: boolean): Promise<AcpAgent> {
@@ -349,20 +343,11 @@ export async function evaluate({
   if (!conatClient) {
     throw Error("conat client must be initialized");
   }
-  const approvalCallback =
-    currentAgent instanceof CodexAcpAgent
-      ? (decision: ApprovalDecision) => {
-          const handled = currentAgent.resolveApproval(decision);
-          if (!handled) {
-            logger.warn("no pending approval matched", decision);
-          }
-        }
-      : undefined;
   const chatWriter = request.chat
     ? new ChatStreamWriter({
         metadata: request.chat,
         client: conatClient,
-        onApprovalDecision: approvalCallback,
+        approverAccountId: request.account_id,
       })
     : null;
 
@@ -411,7 +396,10 @@ export async function init(client: ConatClient): Promise<void> {
     }
   });
   blobStore = getBlobstore(client);
-  await initConatAcp(evaluate, client);
+  await initConatAcp(
+    { evaluate, approval: handleApprovalDecisionRequest },
+    client,
+  );
 }
 
 function normalizeConfig(
@@ -555,4 +543,27 @@ function parseBlobReference(target: string): BlobReference | undefined {
   } catch {
     return undefined;
   }
+}
+
+async function handleApprovalDecisionRequest(
+  request: AcpApprovalDecisionRequest,
+): Promise<void> {
+  const pending = approvalStore.get(request.approvalId);
+  if (!pending) {
+    throw Error("approval is no longer pending");
+  }
+  if (pending.approverAccountId !== request.account_id) {
+    throw Error("not authorized to resolve this approval");
+  }
+  const handled = resolveApproval({
+    approvalId: request.approvalId,
+    optionId: request.optionId,
+    decidedBy: request.account_id,
+    note: request.note,
+  });
+  if (!handled) {
+    approvalStore.remove(request.approvalId);
+    throw Error("approval could not be resolved");
+  }
+  approvalStore.remove(request.approvalId);
 }

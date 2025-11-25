@@ -2,13 +2,17 @@ import { conat } from "@cocalc/conat/client";
 import type { Subscription } from "@cocalc/conat/core/client";
 import { getLogger } from "@cocalc/conat/client";
 import { isValidUUID } from "@cocalc/util/misc";
-import type { AcpRequest, AcpStreamPayload } from "./types";
+import type {
+  AcpApprovalDecisionRequest,
+  AcpRequest,
+  AcpStreamPayload,
+} from "./types";
 
 const logger = getLogger("conat:ai:acp:server");
 
 const SUBJECT = process.env.COCALC_ACP_TEST ? "acp-test" : "acp";
 
-export function acpSubject({
+function buildSubjectPrefix({
   account_id,
   project_id,
 }: {
@@ -16,12 +20,26 @@ export function acpSubject({
   project_id?: string;
 }): string {
   if (account_id) {
-    return `${SUBJECT}.account-${account_id}.api`;
+    return `${SUBJECT}.account-${account_id}`;
   }
   if (project_id) {
-    return `${SUBJECT}.project-${project_id}.api`;
+    return `${SUBJECT}.project-${project_id}`;
   }
-  return `${SUBJECT}.hub.api`;
+  return `${SUBJECT}.hub`;
+}
+
+export function acpSubject(opts: {
+  account_id?: string;
+  project_id?: string;
+}): string {
+  return `${buildSubjectPrefix(opts)}.api`;
+}
+
+export function acpApprovalSubject(opts: {
+  account_id?: string;
+  project_id?: string;
+}): string {
+  return `${buildSubjectPrefix(opts)}.approval`;
 }
 
 function getUserId(subject: string): string {
@@ -40,7 +58,8 @@ function getUserId(subject: string): string {
   return "hub";
 }
 
-let sub: Subscription | null = null;
+let apiSub: Subscription | null = null;
+let approvalSub: Subscription | null = null;
 
 type StreamHandler = (payload?: AcpStreamPayload | null) => Promise<void>;
 
@@ -48,23 +67,54 @@ type EvaluateHandler = (
   options: AcpRequest & { stream: StreamHandler },
 ) => Promise<void>;
 
-export async function init(evaluate: EvaluateHandler, client): Promise<void> {
+type ApprovalHandler = (options: AcpApprovalDecisionRequest) => Promise<void>;
+
+export async function init(
+  handlers: { evaluate: EvaluateHandler; approval?: ApprovalHandler },
+  client,
+): Promise<void> {
   client ??= await conat();
-  sub = await client.subscribe(`${SUBJECT}.*.api`, { queue: "acp-q" });
-  listen(evaluate);
+  apiSub = await client.subscribe(`${SUBJECT}.*.api`, { queue: "acp-q" });
+  listenApi(handlers.evaluate);
+  if (handlers.approval) {
+    approvalSub = await client.subscribe(`${SUBJECT}.*.approval`, {
+      queue: "acp-approval-q",
+    });
+    listenApprovals(handlers.approval);
+  }
 }
 
 export async function close(): Promise<void> {
-  if (sub == null) return;
-  sub.close();
-  sub = null;
+  if (apiSub != null) {
+    apiSub.close();
+    apiSub = null;
+  }
+  if (approvalSub != null) {
+    approvalSub.close();
+    approvalSub = null;
+  }
 }
 
-async function listen(evaluate: EvaluateHandler): Promise<void> {
-  if (sub == null) throw Error("must init first");
-  for await (const mesg of sub) {
-    handleMessage(mesg, evaluate);
-  }
+function listenApi(evaluate: EvaluateHandler): void {
+  if (apiSub == null) throw Error("must init first");
+  (async () => {
+    for await (const mesg of apiSub!) {
+      await handleMessage(mesg, evaluate);
+    }
+  })().catch((err) => {
+    logger.warn("acp api listener stopped", err);
+  });
+}
+
+function listenApprovals(approvalHandler: ApprovalHandler): void {
+  if (approvalSub == null) return;
+  (async () => {
+    for await (const mesg of approvalSub!) {
+      await handleApprovalMessage(mesg, approvalHandler);
+    }
+  })().catch((err) => {
+    logger.warn("acp approval listener stopped", err);
+  });
 }
 
 async function handleMessage(mesg, evaluate: EvaluateHandler) {
@@ -126,5 +176,32 @@ async function handleMessage(mesg, evaluate: EvaluateHandler) {
       await respond(undefined, `${err}`);
       await end();
     }
+  }
+}
+
+async function handleApprovalMessage(
+  mesg,
+  approval: ApprovalHandler,
+): Promise<void> {
+  const options = mesg.data ?? {};
+  const respond = async (payload?: any, error?: string) => {
+    const data: any = payload ?? {};
+    if (error) {
+      data.error = error;
+    }
+    await mesg.respond(data, { noThrow: true });
+  };
+
+  try {
+    if (!isValidUUID(options.account_id)) {
+      throw Error("account_id must be a valid uuid");
+    }
+    if (options.account_id !== getUserId(mesg.subject)) {
+      throw Error("account_id is invalid");
+    }
+    await approval(options);
+    await respond({ status: "ok" });
+  } catch (err) {
+    await respond(undefined, `${err}`);
   }
 }

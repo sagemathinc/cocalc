@@ -460,6 +460,13 @@ export class ConatClient extends EventEmitter {
     );
   };
 
+  respondAcpApproval = async (request) => {
+    await acp.respondAcpApproval(
+      { account_id: this.client.account_id, ...request },
+      this.conat(),
+    );
+  };
+
   dstream = dstream;
   astream = astream;
   dkv = dkv;

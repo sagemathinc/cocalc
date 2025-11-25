@@ -18,6 +18,7 @@ export interface ChatMessage {
   acp_thread_id?: string | null;
   acp_usage?: any;
   acp_config?: any;
+  acp_account_id?: string;
 }
 
 export interface HistoryEntryInput {
@@ -51,6 +52,7 @@ export interface BuildChatMessageOptions {
   acp_usage?: any;
   historyAuthorId?: string;
   historyEntryDate?: string;
+  acp_account_id?: string;
 }
 
 export function buildChatMessage(
@@ -75,6 +77,7 @@ export function buildChatMessage(
     acp_events: options.acp_events,
     acp_thread_id: options.acp_thread_id,
     acp_usage: options.acp_usage,
+    acp_account_id: options.acp_account_id,
   };
 }
 

@@ -17,6 +17,13 @@ export type AcpRequest = {
   chat?: AcpChatContext;
 };
 
+export type AcpApprovalDecisionRequest = {
+  account_id: string;
+  approvalId: string;
+  optionId?: string;
+  note?: string;
+};
+
 export type AcpStreamUsage = {
   input_tokens?: number;
   output_tokens?: number;

@@ -1,4 +1,4 @@
-import { Button, Card, Space, Tag, Typography } from "antd";
+import { Button, Card, Space, Tag, Typography, message } from "antd";
 
 import type {
   AcpStreamEvent,
@@ -109,7 +109,7 @@ export interface CodexActivityProps {
   onResolveApproval?: (args: {
     approvalId: string;
     optionId?: string;
-  }) => void;
+  }) => Promise<void> | void;
 }
 
 export function CodexActivity({
@@ -200,7 +200,10 @@ function ActivityRow({
 }: {
   entry: ActivityEntry;
   canResolveApproval?: boolean;
-  onResolveApproval?: (args: { approvalId: string; optionId?: string }) => void;
+  onResolveApproval?: (args: {
+    approvalId: string;
+    optionId?: string;
+  }) => Promise<void> | void;
 }) {
   switch (entry.kind) {
     case "reasoning":
@@ -697,7 +700,10 @@ function ApprovalRow({
 }: {
   entry: Extract<ActivityEntry, { kind: "approval" }>;
   canResolveApproval?: boolean;
-  onResolveApproval?: (args: { approvalId: string; optionId?: string }) => void;
+  onResolveApproval?: (args: {
+    approvalId: string;
+    optionId?: string;
+  }) => Promise<void> | void;
 }) {
   const pending = entry.status === "pending";
   const selectedOption = entry.options.find(
@@ -708,7 +714,25 @@ function ApprovalRow({
     pending && entry.timeoutAt
       ? `Expires ${formatTimestamp(entry.timeoutAt)}`
       : undefined;
-  const disableActions = !canResolveApproval || !onResolveApproval || !pending;
+  const [submitting, setSubmitting] = useState(false);
+  const disableActions =
+    !canResolveApproval || !onResolveApproval || !pending || submitting;
+
+  const resolve = async (optionId?: string) => {
+    if (!onResolveApproval) return;
+    try {
+      setSubmitting(true);
+      await onResolveApproval({
+        approvalId: entry.approvalId,
+        optionId,
+      });
+    } catch (err) {
+      console.warn("failed to resolve approval", err);
+      message.error("Failed to resolve approval");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div>
@@ -736,12 +760,8 @@ function ApprovalRow({
               size="small"
               type={option.kind?.startsWith("allow") ? "primary" : "default"}
               disabled={disableActions}
-              onClick={() =>
-                onResolveApproval?.({
-                  approvalId: entry.approvalId,
-                  optionId: option.optionId,
-                })
-              }
+              loading={submitting}
+              onClick={() => resolve(option.optionId)}
             >
               {option.name}
             </Button>
@@ -750,11 +770,8 @@ function ApprovalRow({
             size="small"
             danger
             disabled={disableActions}
-            onClick={() =>
-              onResolveApproval?.({
-                approvalId: entry.approvalId,
-              })
-            }
+            loading={submitting}
+            onClick={() => resolve()}
           >
             Cancel
           </Button>

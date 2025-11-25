@@ -1217,20 +1217,6 @@ export class ChatActions extends Actions<ChatState> {
     );
   };
 
-  private getMessageByDate = (
-    date: Date,
-  ): ChatMessageTyped | undefined => {
-    const messages = this.store?.get("messages");
-    if (!messages) return;
-    const seq = (messages as Map<any, ChatMessageTyped>).valueSeq();
-    return seq
-      .find(
-        (message) =>
-          message.get("date") instanceof Date &&
-          message.get("date").valueOf() === date.valueOf(),
-      ) as ChatMessageTyped | undefined;
-  };
-
   private async saveSyncdb(): Promise<void> {
     if (!this.syncdb) return;
     try {
@@ -1238,14 +1224,6 @@ export class ChatActions extends Actions<ChatState> {
     } catch (err) {
       console.error("chat: failed to save syncdb", err);
     }
-  }
-
-  private toJS(value: any): any {
-    if (value == null) return value;
-    if (typeof value?.toJS === "function") {
-      return value.toJS();
-    }
-    return value;
   }
 
   // the input and output for the thread ending in the
@@ -1318,7 +1296,7 @@ export class ChatActions extends Actions<ChatState> {
     void this.saveSyncdb();
   };
 
-  resolveAcpApproval = ({
+  resolveAcpApproval = async ({
     date,
     approvalId,
     optionId,
@@ -1327,46 +1305,17 @@ export class ChatActions extends Actions<ChatState> {
     approvalId: string;
     optionId?: string;
   }) => {
-    if (!this.syncdb || !this.store) return;
-    const message = this.getMessageByDate(date);
-    if (!message) return;
-    const current = this.toJS(
-      message.get("acp_events") ?? message.get("codex_events"),
-    );
-    if (!Array.isArray(current)) {
-      return;
+    void date;
+    if (!approvalId) return;
+    try {
+      await webapp_client.conat_client.respondAcpApproval({
+        approvalId,
+        optionId,
+      });
+    } catch (err) {
+      console.warn("failed to resolve ACP approval", err);
+      throw err;
     }
-    const idx = current.findIndex(
-      (entry) =>
-        entry?.type === "event" &&
-        entry.event?.type === "approval" &&
-        entry.event?.approvalId === approvalId,
-    );
-    if (idx < 0) return;
-    const decidedBy =
-      redux.getStore("account").get("account_id") ?? undefined;
-    const decidedAt = new Date().toISOString();
-    const status = optionId ? "selected" : "cancelled";
-    const updated = [...current];
-    const prev = updated[idx] ?? {};
-    const prevEvent = prev.event ?? {};
-    updated[idx] = {
-      ...prev,
-      event: {
-        ...prevEvent,
-        status,
-        selectedOptionId: optionId ?? null,
-        decidedAt,
-        decidedBy,
-      },
-    };
-    this.syncdb.set({
-      event: "chat",
-      date,
-      acp_events: updated,
-    });
-    this.syncdb.commit();
-    void this.saveSyncdb();
   };
 
   summarizeThread = async ({

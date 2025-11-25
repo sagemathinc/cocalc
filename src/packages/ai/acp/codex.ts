@@ -1,3 +1,7 @@
+/*
+Codex ACP Client.
+*/
+
 import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -158,11 +162,10 @@ class CodexClientHandler implements TerminalClient {
     try {
       await this.emitApprovalEvent(event);
     } catch (err) {
-      log.warn("failed to emit approval request, auto-selecting", err);
+      log.warn("failed to emit approval request, auto-cancelling", err);
       return {
         outcome: {
-          outcome: "selected",
-          optionId: option.optionId,
+          outcome: "cancelled",
         },
       };
     }
@@ -314,8 +317,7 @@ class CodexClientHandler implements TerminalClient {
     this.pendingApprovals.delete(decision.approvalId);
     const decidedAt = new Date().toISOString();
     const status: AcpApprovalStatus =
-      decision.status ??
-      (decision.optionId ? "selected" : "cancelled");
+      decision.status ?? (decision.optionId ? "selected" : "cancelled");
     const updated: AcpApprovalEvent = {
       ...pending.event,
       status,
@@ -975,9 +977,7 @@ function normalizeTerminalExitStatus(
   const exitCode =
     status.exitCode == null ? undefined : Number(status.exitCode);
   const signal =
-    status.signal == null || status.signal === ""
-      ? undefined
-      : status.signal;
+    status.signal == null || status.signal === "" ? undefined : status.signal;
   if (exitCode == null && signal == null) {
     return undefined;
   }
