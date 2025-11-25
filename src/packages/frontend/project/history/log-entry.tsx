@@ -146,6 +146,8 @@ export const LogEntry: React.FC<Props> = React.memo(
       "customize",
       "software",
     );
+    const otherSettings = useTypedRedux("account", "other_settings");
+    const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
 
     function render_open_file(event: OpenFile): React.JSX.Element {
       return (
@@ -158,6 +160,7 @@ export const LogEntry: React.FC<Props> = React.memo(
             style={cursor ? selected_item : undefined}
             trunc={TRUNC}
             project_id={project_id}
+            dimExtensions={dimFileExtensions}
             onOpen={() =>
               track("open-file", {
                 how: "project-log",
@@ -193,6 +196,7 @@ export const LogEntry: React.FC<Props> = React.memo(
                   style={cursor ? selected_item : undefined}
                   trunc={TRUNC}
                   project_id={project_id}
+                  dimExtensions={dimFileExtensions}
                 />
               ),
               event: event.disabled ? "disabled" : "enabled",
@@ -350,6 +354,7 @@ export const LogEntry: React.FC<Props> = React.memo(
           trunc={TRUNC}
           link={link}
           project_id={project_id != null ? project_id : props.project_id}
+          dimExtensions={dimFileExtensions}
           onOpen={() =>
             track("open-file", {
               how: "project-log",
@@ -609,6 +614,7 @@ export const LogEntry: React.FC<Props> = React.memo(
           style={cursor ? selected_item : undefined}
           trunc={TRUNC}
           project_id={project_id}
+          dimExtensions={dimFileExtensions}
         />
       );
 
@@ -670,6 +676,7 @@ export const LogEntry: React.FC<Props> = React.memo(
                 style={cursor ? selected_item : undefined}
                 trunc={TRUNC}
                 project_id={project_id}
+                dimExtensions={dimFileExtensions}
               />
             </span>
           );

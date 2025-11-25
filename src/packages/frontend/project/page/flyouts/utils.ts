@@ -85,10 +85,10 @@ export function fileItemStyle(time: number = 0, masked: boolean = false): CSS {
     const opacity = 1 - (days - 1) / 14;
     col = hexColorToRGBA(ANTD_YELLOW[5], opacity);
   }
-  return {
+  const base = {
     ...fileItemBorder(col, "left"),
-    ...(masked ? { color: COLORS.GRAY_L } : {}),
   };
+  return masked ? { ...base, color: COLORS.FILE_DIMMED } : base;
 }
 
 export function fileItemBorder(color: string, side: "left" | "top" | "bottom") {

@@ -129,8 +129,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       >
         <FormattedMessage
           id="account.other-settings.mask_files"
-          defaultMessage={`<strong>Mask Files:</strong> grey out files in the files viewer
-            that you probably do not want to open`}
+          defaultMessage={`<strong>Dim generated files:</strong> gray out files produced by compilers (.aux, .log, .pyc, etc.) so the main files stand out.`}
         />
       </Switch>
     );
@@ -208,6 +207,18 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           number={props.other_settings.get("page_size") ?? 50}
         />
       </LabeledRow>
+    );
+  }
+
+  function render_dim_file_extensions(): Rendered {
+    return (
+      <Switch
+        checked={!!props.other_settings.get("dim_file_extensions")}
+        onChange={(e) => on_change("dim_file_extensions", e.target.checked)}
+      >
+        <strong>Dim file extensions:</strong> gray out file extensions so their
+        names stand out.
+      </Switch>
     );
   }
 
@@ -444,6 +455,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
             </>
           }
         >
+          {render_dim_file_extensions()}
           {render_mask_files()}
           {render_default_file_sort()}
           {render_page_size()}
