@@ -41,7 +41,7 @@ export function ListingHeader({ active_file_sort, sort_by }: Props) {
             return sort_by(column_name);
           }}
           style={{
-            color: COLORS.FG_BLUE,
+            color: COLORS.BLUE_DD,
             fontWeight: "bold",
             whiteSpace: "nowrap",
           }}
@@ -72,7 +72,7 @@ export function ListingHeader({ active_file_sort, sort_by }: Props) {
           "starred",
           <Icon
             name="star-filled"
-            style={{ color: COLORS.FG_BLUE, fontSize: "12pt" }}
+            style={{ color: COLORS.BLUE_DD, fontSize: "12pt" }}
           />,
           "0px",
         )*/}

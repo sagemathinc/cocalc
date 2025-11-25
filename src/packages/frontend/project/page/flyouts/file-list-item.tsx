@@ -143,6 +143,7 @@ interface FileListItemProps {
   style?: CSS;
   tooltip?: React.JSX.Element | string;
   noPublish?: boolean; // for layout only – indicate that there is never a publish indicator button
+  dimFileExtensions?: boolean;
 }
 
 export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
@@ -169,6 +170,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     showCheckbox,
     style,
     tooltip,
+    dimFileExtensions = false,
   } = props;
   const isActive = mode === "active";
   // only in files mode, we show the publish icon
@@ -245,13 +247,23 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         }}
       >
         {displayedNameOverride ?? basename}
-        {displayedNameOverride == null ? (
-          ext === "" ? undefined : (
-            <span style={{ color: !item.mask ? COLORS.FILE_EXT : undefined }}>
-              {`.${ext}`}
-            </span>
-          )
-        ) : undefined}
+        {displayedNameOverride == null
+          ? ext === ""
+            ? undefined
+            : (
+                <span
+                  style={{
+                    color: !item.mask
+                      ? dimFileExtensions
+                        ? COLORS.GRAY_M
+                        : COLORS.FILE_EXT
+                      : undefined,
+                  }}
+                >
+                  {`.${ext}`}
+                </span>
+              )
+          : undefined}
         {!!item.linkTarget && (
           <>
             <Icon name="arrow-right" style={{ margin: "0 10px" }} />

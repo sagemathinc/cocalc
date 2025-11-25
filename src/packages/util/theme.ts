@@ -153,4 +153,5 @@ export const COLORS = {
   FILE_ICON: "rgb(66, 139, 202)",
 
   FILE_EXT: "#999",
+  FILE_DIMMED: "#959595",
 } as const;

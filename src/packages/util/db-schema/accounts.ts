@@ -508,6 +508,7 @@ Table({
             // for running latex to put all the temp files in /tmp -- in general we should always put temp files in tmp anyways
             // with all build processes. So mask_files is off by default if not explicitly selected.
             mask_files: false,
+            dim_file_extensions: false,
             page_size: 500,
             standby_timeout_m: 15,
             [NEW_FILENAMES]: DEFAULT_NEW_FILENAMES,

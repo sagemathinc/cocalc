@@ -113,7 +113,6 @@ export function FilesHeader({
   const kucalc = useTypedRedux("customize", "kucalc");
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
   const hidden = useTypedRedux({ project_id }, "show_hidden");
-  const show_masked = useTypedRedux({ project_id }, "show_masked");
   const file_creation_error = useTypedRedux(
     { project_id },
     "file_creation_error",
@@ -418,17 +417,6 @@ export function FilesHeader({
               onClick={() => actions?.setState({ show_hidden: !hidden })}
             >
               <Icon name={hidden ? "eye" : "eye-slash"} />
-            </BootstrapButton>
-            <BootstrapButton
-              title={intl.formatMessage(labels.masked_files, {
-                masked: show_masked,
-              })}
-              bsSize="xsmall"
-              style={{ flex: "0" }}
-              active={!show_masked}
-              onClick={() => actions?.setState({ show_masked: !show_masked })}
-            >
-              <Icon name={"mask"} />
             </BootstrapButton>
           </Space.Compact>
           {kucalc === KUCALC_COCALC_COM ? (

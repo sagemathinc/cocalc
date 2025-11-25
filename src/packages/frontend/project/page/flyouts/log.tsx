@@ -250,6 +250,8 @@ export function LogFlyout({
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const user_map = useTypedRedux("users", "user_map");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
+  const otherSettings = useTypedRedux("account", "other_settings");
+  const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `${project_id}::flyout::log`,
   });
@@ -378,6 +380,7 @@ export function LogFlyout({
             <User account_id={account_id} user_map={user_map} />
           </>
         }
+        dimFileExtensions={dimFileExtensions}
       />
     );
   }

@@ -25,7 +25,7 @@ import { DirectoryListingEntry } from "@cocalc/util/types";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 const ROW_INFO_STYLE = {
-  color: COLORS.GRAY,
+  color: COLORS.TAB,
   height: "22px",
   margin: "5px 3px",
 } as const;

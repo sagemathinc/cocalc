@@ -28,7 +28,7 @@ import type { ChatMessageTyped } from "./types";
 import { toMsString } from "./utils";
 import type { ChatActions } from "./actions";
 
-const { Paragraph, Text } = Typography;
+const { Text } = Typography;
 const DEFAULT_MODEL_NAME = DEFAULT_CODEX_MODELS[0].name;
 
 type ModeOption = {

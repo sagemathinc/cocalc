@@ -540,6 +540,8 @@ const LABEL_STYLE: CSS = {
   whiteSpace: "nowrap",
 } as const;
 
+const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
+
 const FULLPATH_LABEL_STYLE: CSS = {
   // using a full path for the label instead of just a filename
   textOverflow: "ellipsis",
@@ -549,6 +551,8 @@ const FULLPATH_LABEL_STYLE: CSS = {
 } as const;
 
 function DisplayedLabel({ path, label, inline = true, project_id }) {
+  const otherSettings = useTypedRedux("account", "other_settings");
+  const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
   if (path == null) {
     // a fixed tab (not an actual file)
     const E = inline ? "span" : "div";
@@ -594,7 +598,7 @@ function DisplayedLabel({ path, label, inline = true, project_id }) {
     >
       <span style={{ direction: "ltr" }}>
         {label}
-        <span style={{ color: COLORS.FILE_EXT }}>{ext}</span>
+        <span style={dimFileExtensions ? DIMMED_STYLE : undefined}>{ext}</span>
       </span>
     </div>
   );
