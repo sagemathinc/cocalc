@@ -5,9 +5,9 @@
 
 // cSpell:ignore blankcolumn
 
-import { Badge, Button, Col, Row, Space, Tooltip } from "antd";
+import { Badge, Button, Col, Row, Tooltip } from "antd";
 import { List, Map } from "immutable";
-import { CSSProperties, useEffect, useLayoutEffect } from "react";
+import { CSSProperties, ReactNode, useEffect, useLayoutEffect } from "react";
 import { useIntl } from "react-intl";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
@@ -16,7 +16,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
 import CopyButton from "@cocalc/frontend/components/copy-button";
@@ -161,10 +160,6 @@ export default function Message({
     .getStore("projects")
     .hasLanguageModelEnabled(project_id, "chat-summarize");
 
-  const hideTooltip =
-    useTypedRedux("account", "other_settings").get("hide_file_popovers") ??
-    false;
-
   const [edited_message, set_edited_message] = useState<string>(
     newest_content(message),
   );
@@ -236,13 +231,12 @@ export default function Message({
   const [autoFocusReply, setAutoFocusReply] = useState<boolean>(false);
   const [autoFocusEdit, setAutoFocusEdit] = useState<boolean>(false);
   const [elapsedMs, setElapsedMs] = useState<number>(0);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
 
   const replyMessageRef = useRef<string>("");
   const replyMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
 
   const is_viewers_message = sender_is_viewer(account_id, message);
-  const verb = show_history ? "Hide" : "Show";
-
   const isLLMThread = useMemo(
     () => actions?.isLanguageModelThread(message.get("date")),
     [message, actions != null],
@@ -297,6 +291,9 @@ export default function Message({
       undefined
     );
   }, [message]);
+
+  const isActive =
+    selected || isHovered || replying || show_history || isEditing;
 
   useLayoutEffect(() => {
     if (replying) {
@@ -432,91 +429,6 @@ export default function Message({
     );
   }
 
-  function renderEditControlRow() {
-    if (isEditing) {
-      return null;
-    }
-    const showEditingStatus =
-      (message.get("history")?.size ?? 0) > 1 ||
-      (message.get("editing")?.size ?? 0) > 0;
-    const showHistory = (message.get("history")?.size ?? 0) > 1;
-    const showLLMFeedback = isLLMThread && msgWrittenByLLM;
-
-    // Show the bottom line of the message -- this uses a LOT of extra
-    // vertical space, so only do it if there is a good reason to.
-    // Getting rid of this might be nice.
-    const show =
-      showEditButton || showEditingStatus || showHistory || showLLMFeedback;
-    if (!show) {
-      // important to explicitly check this before rendering below, since otherwise we get a big BLANK space.
-      return null;
-    }
-
-    return (
-      <div style={{ width: "100%", textAlign: "center" }}>
-        <Space direction="horizontal" size="small" wrap>
-          {showEditButton ? (
-            <Tip
-              title={
-                <>
-                  Edit this message. You can edit <b>any</b> past message at any
-                  time by double clicking on it. Fix other people's typos. All
-                  versions are stored.
-                </>
-              }
-              placement="left"
-            >
-              <Button
-                disabled={replying}
-                style={{
-                  color: is_viewers_message ? "white" : "#555",
-                }}
-                type="text"
-                size="small"
-                onClick={() => actions?.setEditing(message, true)}
-              >
-                <Icon name="pencil" /> Edit
-              </Button>
-            </Tip>
-          ) : undefined}
-          {showEditingStatus && render_editing_status(isEditing)}
-          {showHistory && (
-            <Button
-              style={{
-                marginLeft: "5px",
-                color: is_viewers_message ? "white" : "#555",
-              }}
-              type="text"
-              size="small"
-              icon={<Icon name="history" />}
-              onClick={() => {
-                set_show_history(!show_history);
-                scroll_into_view?.();
-              }}
-            >
-              <Tip
-                title="Message History"
-                tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
-              >
-                {verb} History
-              </Tip>
-            </Button>
-          )}
-          {showLLMFeedback && (
-            <>
-              <RegenerateLLM
-                actions={actions}
-                date={date}
-                model={isLLMThread}
-              />
-              <FeedbackLLM actions={actions} message={message} />
-            </>
-          )}
-        </Space>
-      </div>
-    );
-  }
-
   function renderCopyMessageButton() {
     return (
       <Tip
@@ -579,6 +491,7 @@ export default function Message({
       isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
     const showOtherFeedback = otherFeedback > 0;
 
+    const iconColor = showOtherFeedback ? "darkblue" : COLORS.GRAY_D;
     return (
       <Tip
         placement={"top"}
@@ -602,51 +515,228 @@ export default function Message({
         }
       >
         <Button
-          style={{
-            //color: !feedback && is_viewers_message ? "white" : "#888",
-            fontSize: "12px",
-            marginTop: "-4px",
-            ...(feedback ? {} : { position: "relative", top: "-5px" }),
-          }}
           size="small"
           type={feedback ? "dashed" : "text"}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            color: iconColor,
+          }}
           onClick={() => {
             actions?.feedback(message, feedback ? null : "positive");
           }}
         >
           {showOtherFeedback ? (
-            <Badge count={otherFeedback} color="darkblue" size="small" />
+            <Badge count={otherFeedback} color="darkblue" size="small">
+              <Icon
+                name="thumbs-up"
+                style={{ color: "darkblue", fontSize: 14 }}
+              />
+            </Badge>
           ) : (
-            ""
+            <Icon name="thumbs-up" style={{ fontSize: 14, color: iconColor }} />
           )}
-          <Icon
-            name="thumbs-up"
-            style={{
-              color: showOtherFeedback ? "darkblue" : undefined,
-            }}
-          />
         </Button>
       </Tip>
     );
   }
 
-  function renderMessageBody({ lighten, message_class }) {
+  function renderMessageHeader(lighten) {
+    const headerActions = renderHeaderActions();
+    return (
+      <div
+        style={{
+          ...lighten,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "4px",
+          gap: "10px",
+        }}
+      >
+        <Time message={message} edit={edit_message} />
+        {headerActions}
+      </div>
+    );
+  }
+
+  function renderHeaderActions() {
+    const showActions = IS_TOUCH || isActive;
+    const buttons: ReactNode[] = [];
+
+    const llmFeedbackButton = renderLLMFeedbackButtons();
+    if (llmFeedbackButton) {
+      buttons.push(<span key="like">{llmFeedbackButton}</span>);
+    }
+    buttons.push(<span key="copy">{renderCopyMessageButton()}</span>);
+    buttons.push(<span key="link">{renderLinkMessageButton()}</span>);
+
+    if (allowReply && !replying && actions) {
+      buttons.push(
+        <Tooltip
+          key="reply"
+          placement="bottom"
+          title={
+            isLLMThread
+              ? `Reply to ${modelToName(
+                  isLLMThread,
+                )}, sending the thread as context.`
+              : "Reply to this thread."
+          }
+        >
+          <Button
+            type="text"
+            size="small"
+            style={{ color: COLORS.GRAY_M }}
+            onClick={() => {
+              setReplying(true);
+              setAutoFocusReply(true);
+            }}
+          >
+            <Icon name="reply" /> Reply
+            {isLLMThread ? ` to ${modelToName(isLLMThread)}` : ""}
+            {isLLMThread ? (
+              <Avatar
+                account_id={isLLMThread}
+                size={16}
+                style={{ top: "-2px", marginLeft: "4px" }}
+              />
+            ) : null}
+          </Button>
+        </Tooltip>,
+      );
+    }
+
+    if (showAISummarize && is_thread && !threadViewMode) {
+      buttons.push(
+        <span key="summarize">
+          <SummarizeThread message={message} actions={actions} />
+        </span>,
+      );
+    }
+
+    if (is_thread && !threadViewMode) {
+      buttons.push(
+        <Tooltip
+          key="fold"
+          placement="bottom"
+          title={
+            is_folded
+              ? "Unfold this thread to show replies."
+              : "Fold this thread to hide replies."
+          }
+        >
+          <Button
+            type="text"
+            size="small"
+            style={{ color: COLORS.GRAY_M }}
+            onClick={() =>
+              actions?.toggleFoldThread(
+                new Date(getThreadRootDate({ date, messages })),
+                index,
+              )
+            }
+          >
+            <Icon name={is_folded ? "expand" : "vertical-align-middle"} />{" "}
+            {is_folded ? "Unfold" : "Fold"}
+          </Button>
+        </Tooltip>,
+      );
+    }
+
+    const historySize = message.get("history")?.size ?? 0;
+    if (historySize > 1) {
+      buttons.push(
+        <Tip
+          key="history"
+          title="Message History"
+          tip={`${show_history ? "Hide" : "Show"} history of edits.`}
+        >
+          <Button
+            size="small"
+            type={show_history ? "primary" : "text"}
+            icon={<Icon name="history" />}
+            onClick={() => {
+              set_show_history(!show_history);
+              scroll_into_view?.();
+            }}
+          >
+            {show_history ? "Hide" : "History"}
+          </Button>
+        </Tip>,
+      );
+    }
+
+    if (showEditButton) {
+      buttons.push(
+        <Tip
+          key="edit"
+          title={
+            <>
+              Edit this message. You can edit <b>any</b> past message at any
+              time by double clicking on it. Fix other people's typos. All
+              versions are stored.
+            </>
+          }
+          placement="bottom"
+        >
+          <Button
+            size="small"
+            type="text"
+            style={{ color: COLORS.GRAY_M }}
+            onClick={() => actions?.setEditing(message, true)}
+          >
+            <Icon name="pencil" /> Edit
+          </Button>
+        </Tip>,
+      );
+    }
+
+    if (isLLMThread && msgWrittenByLLM) {
+      buttons.push(
+        <span key="regenerate">
+          <RegenerateLLM
+            actions={actions}
+            date={date}
+            model={isLLMThread}
+          />
+        </span>,
+      );
+      buttons.push(
+        <span key="feedback-llm">
+          <FeedbackLLM actions={actions} message={message} />
+        </span>,
+      );
+    }
+
+    if (!buttons.length) {
+      return null;
+    }
+
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          flexWrap: "wrap",
+          justifyContent: "flex-end",
+          opacity: showActions ? 1 : 0,
+          pointerEvents: showActions ? undefined : "none",
+          transition: "opacity 120ms ease",
+        }}
+      >
+        {buttons}
+      </div>
+    );
+  }
+
+  function renderMessageBody({ message_class }) {
     const value = newest_content(message);
 
     return (
       <>
-        <span style={lighten}>
-          <Time message={message} edit={edit_message} />
-          <Space
-            size={"small"}
-            align="baseline"
-            style={{ float: "right", marginRight: "10px" }}
-          >
-            {renderLLMFeedbackButtons()}
-            {renderCopyMessageButton()}
-            {renderLinkMessageButton()}
-          </Space>
-        </span>
         <MostlyStaticMarkdown
           style={MARKDOWN_STYLE}
           value={value}
@@ -663,19 +753,19 @@ export default function Message({
           }
         />
         {codexEvents?.length ? (
-        <CodexActivity
-          events={codexEvents}
-          threadId={codexThreadId}
-          generating={generating === true}
-          canResolveApproval={
-            message.get("acp_account_id") === account_id ||
-            isLanguageModelService(message.get("sender_id")) ||
-            is_viewers_message
-          }
-          onResolveApproval={
-            actions && typeof actions.resolveAcpApproval === "function"
-              ? ({ approvalId, optionId }) =>
-                  actions.resolveAcpApproval({
+          <CodexActivity
+            events={codexEvents}
+            threadId={codexThreadId}
+            generating={generating === true}
+            canResolveApproval={
+              message.get("acp_account_id") === account_id ||
+              isLanguageModelService(message.get("sender_id")) ||
+              is_viewers_message
+            }
+            onResolveApproval={
+              actions && typeof actions.resolveAcpApproval === "function"
+                ? ({ approvalId, optionId }) =>
+                    actions.resolveAcpApproval({
                       date: message.get("date"),
                       approvalId,
                       optionId,
@@ -684,8 +774,59 @@ export default function Message({
             }
           />
         ) : null}
-        {renderEditControlRow()}
       </>
+    );
+  }
+
+
+  function renderEditingMeta() {
+    if (isEditing) {
+      return null;
+    }
+    const showEditingStatus =
+      (message.get("history")?.size ?? 0) > 1 ||
+      (message.get("editing")?.size ?? 0) > 0;
+    if (!showEditingStatus) {
+      return null;
+    }
+    return (
+      <div style={{ marginTop: "6px" }}>
+        {render_editing_status(isEditing)}
+      </div>
+    );
+  }
+
+  function renderBottomControls() {
+    if (generating !== true || actions == null) {
+      return null;
+    }
+    return (
+      <div
+        style={{
+          marginTop: "8px",
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: "8px",
+          flexWrap: "wrap",
+          color: COLORS.GRAY_M,
+        }}
+      >
+        <Button
+          size="small"
+          style={{ color: COLORS.GRAY_M }}
+          onClick={() => {
+            actions?.languageModelStopGenerating(new Date(date));
+          }}
+        >
+          <Icon name="square" /> Stop Generating
+        </Button>
+        {elapsedLabel ? (
+          <span style={{ fontSize: 12, display: "inline-flex", gap: "4px" }}>
+            <Icon name="clock" /> {elapsedLabel}
+          </span>
+        ) : null}
+      </div>
     );
   }
 
@@ -700,6 +841,10 @@ export default function Message({
     const marginTop =
       !is_prev_sender && is_viewers_message ? MARGIN_TOP_VIEWER : "5px";
 
+    const padding = selected
+      ? { paddingTop: 6, paddingLeft: 6, paddingRight: 6 }
+      : { paddingTop: 9, paddingLeft: 9, paddingRight: 9 };
+    const baseBottomPadding = selected ? 6 : 9;
     const messageStyle: CSSProperties = {
       color,
       background,
@@ -707,10 +852,8 @@ export default function Message({
       borderRadius: "5px",
       marginTop,
       fontSize: `${font_size}px`,
-      // no padding on bottom, since message itself is markdown, hence
-      // wrapped in <p>'s, which have a big 10px margin on their bottoms
-      // already.
-      padding: selected ? "6px 6px 0 6px" : "9px 9px 0 9px",
+      paddingBottom: baseBottomPadding,
+      ...padding,
       ...(mode === "sidechat"
         ? { marginLeft: "5px", marginRight: "5px" }
         : undefined),
@@ -730,32 +873,18 @@ export default function Message({
           message.get("sender_id") ? (
             <Name sender_name={get_user_name(message.get("sender_id"))} />
           ) : undefined}
-          {generating === true && actions ? (
-            <Space size="small" align="center">
-              <Button
-                style={{ color: COLORS.GRAY_M }}
-                onClick={() => {
-                  actions?.languageModelStopGenerating(new Date(date));
-                }}
-              >
-                <Icon name="square" /> Stop Generating
-              </Button>
-              {elapsedLabel ? (
-                <span style={{ color: COLORS.GRAY_M, fontSize: 12 }}>
-                  <Icon name="clock" /> {elapsedLabel}
-                </span>
-              ) : null}
-            </Space>
-          ) : undefined}
         </div>
         <div
           style={messageStyle}
           className="smc-chat-message"
           onDoubleClick={edit_message}
         >
+          {renderMessageHeader(lighten)}
           {isEditing
             ? renderEditMessage()
-            : renderMessageBody({ lighten, message_class })}
+            : renderMessageBody({ message_class })}
+          {renderEditingMeta()}
+          {renderBottomControls()}
         </div>
         {renderHistory()}
         {renderComposeReply()}
@@ -971,77 +1100,6 @@ export default function Message({
     }
   }
 
-  function renderReplyRow() {
-    if (
-      threadViewMode ||
-      replying ||
-      generating ||
-      !allowReply ||
-      is_folded ||
-      actions == null
-    ) {
-      return;
-    }
-
-    return (
-      <div style={{ textAlign: "center", width: "100%" }}>
-        <Tip
-          placement={"bottom"}
-          title={
-            isLLMThread
-              ? `Reply to ${modelToName(
-                  isLLMThread,
-                )}, sending the thread as context.`
-              : "Reply to this thread."
-          }
-        >
-          <Button
-            type="text"
-            onClick={() => {
-              setReplying(true);
-              setAutoFocusReply(true);
-            }}
-            style={{ color: COLORS.GRAY_M }}
-          >
-            <Icon name="reply" /> Reply
-            {isLLMThread ? ` to ${modelToName(isLLMThread)}` : ""}
-            {isLLMThread ? (
-              <Avatar
-                account_id={isLLMThread}
-                size={16}
-                style={{ top: "-5px" }}
-              />
-            ) : undefined}
-          </Button>
-        </Tip>
-        {showAISummarize && is_thread ? (
-          <SummarizeThread message={message} actions={actions} />
-        ) : undefined}
-        {is_thread && !threadViewMode && (
-          <Tip
-            placement={"bottom"}
-            title={
-              "Fold this thread to make the list of messages shorter. You can unfold it again at any time."
-            }
-          >
-            <Button
-              type="text"
-              style={{ color: COLORS.GRAY_M }}
-              onClick={() =>
-                actions?.toggleFoldThread(
-                  new Date(getThreadRootDate({ date, messages })),
-                  index,
-                )
-              }
-            >
-              <Icon name="vertical-align-middle" /> Fold…
-            </Button>
-          </Tip>
-        )}
-      </div>
-    );
-  }
-
   function renderFoldedRow() {
     if (threadViewMode || !is_folded || !is_thread || is_thread_body) {
       return;
@@ -1076,74 +1134,7 @@ export default function Message({
 
   function getThreadFoldOrBlank() {
     const xs = 2;
-    if (threadViewMode || is_thread_body || (!is_thread_body && !is_thread)) {
-      return BLANK_COLUMN(xs);
-    } else {
-      const style: CSS =
-        mode === "standalone"
-          ? {
-              color: COLORS.GRAY_M,
-              marginTop: MARGIN_TOP_VIEWER,
-              marginLeft: "5px",
-              marginRight: "5px",
-            }
-          : {
-              color: COLORS.GRAY_M,
-              marginTop: "5px",
-              width: "100%",
-              textAlign: "center",
-            };
-
-      const iconName = is_folded ? "expand" : "vertical-align-middle";
-
-      const button = (
-        <Button
-          type="text"
-          style={style}
-          onClick={() => actions?.toggleFoldThread(message.get("date"), index)}
-          icon={
-            <Icon
-              name={iconName}
-              style={{ fontSize: mode === "standalone" ? "22px" : "18px" }}
-            />
-          }
-        />
-      );
-
-      return (
-        <Col
-          xs={xs}
-          key={"blankcolumn"}
-          style={{ textAlign: reverseRowOrdering ? "left" : "right" }}
-        >
-          {hideTooltip ? (
-            button
-          ) : (
-            <Tip
-              placement={"bottom"}
-              title={
-                is_folded ? (
-                  <>
-                    Unfold this thread{" "}
-                    {numChildren
-                      ? ` to show ${numChildren} ${plural(
-                          numChildren,
-                          "reply",
-                          "replies",
-                        )}`
-                      : ""}
-                  </>
-                ) : (
-                  "Fold this thread to hide replies"
-                )
-              }
-            >
-              {button}
-            </Tip>
-          )}
-        </Col>
-      );
-    }
+    return BLANK_COLUMN(xs);
   }
 
   function renderCols(): React.JSX.Element[] | React.JSX.Element {
@@ -1173,10 +1164,13 @@ export default function Message({
   }
 
   return (
-    <Row style={getStyle()}>
+    <Row
+      style={getStyle()}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {renderCols()}
       {renderFoldedRow()}
-      {renderReplyRow()}
     </Row>
   );
 }
