@@ -3,12 +3,16 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { CSS, React } from "../app-framework";
-import { is_different_array, len, trunc as trunc_string } from "@cocalc/util/misc";
+import { CSS, React } from "@cocalc/frontend/app-framework";
+import {
+  is_different_array,
+  len,
+  trunc as trunc_string,
+} from "@cocalc/util/misc";
 import { Icon } from "./icon";
 import { CloseX } from "./close-x";
 
-const ACTIVITY_STYLE = {
+const ACTIVITY_STYLE: CSS = {
   float: "right",
   backgroundColor: "white",
   position: "absolute",
@@ -19,13 +23,13 @@ const ACTIVITY_STYLE = {
   zIndex: 10,
   borderRadius: "5px",
   boxShadow: "3px 3px 3px #ccc",
-} as CSS;
+} as const;
 
-const ACTIVITY_ITEM_STYLE = {
+const ACTIVITY_ITEM_STYLE: CSS = {
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
-} as CSS;
+} as const;
 
 interface Props {
   activity: string[]; // only changing this causes re-render
@@ -62,5 +66,5 @@ export const ActivityDisplay: React.FC<Props> = React.memo(
       return <></>;
     }
   },
-  (prev, next) => !is_different_array(prev.activity, next.activity)
+  (prev, next) => !is_different_array(prev.activity, next.activity),
 );

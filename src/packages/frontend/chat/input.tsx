@@ -37,6 +37,7 @@ interface Props {
   placeholder?: string;
   autoFocus?: boolean;
   moveCursorToEndOfLine?: boolean;
+  focusWhenFrameFocused?: boolean;
 }
 
 export default function ChatInput({
@@ -57,18 +58,22 @@ export default function ChatInput({
   submitMentionsRef,
   syncdb,
   moveCursorToEndOfLine,
+  focusWhenFrameFocused,
 }: Props) {
   const intl = useIntl();
   const onSendRef = useRef<Function>(on_send);
   useEffect(() => {
     onSendRef.current = on_send;
   }, [on_send]);
-  const { project_id } = useFrameContext();
+  const { project_id, isFocused, isVisible } = useFrameContext();
   const sender_id = useMemo(
     () => redux.getStore("account").get_account_id(),
     [],
   );
-  const controlRef = useRef<any>(null);
+  const controlRef = useRef<{
+    moveCursorToEndOfLine?: () => void;
+    focus?: () => void;
+  } | null>(null);
   const [input, setInput] = useState<string>("");
   useEffect(() => {
     const dbInput = syncdb
@@ -88,7 +93,7 @@ export default function ChatInput({
       // have to wait until it's all rendered -- i hate code like this...
       for (const n of [1, 10, 50]) {
         setTimeout(() => {
-          controlRef.current?.moveCursorToEndOfLine();
+          controlRef.current?.moveCursorToEndOfLine?.();
         }, n);
       }
     }
@@ -197,6 +202,15 @@ export default function ChatInput({
     };
   }, [syncdb]);
 
+  useEffect(() => {
+    if (!focusWhenFrameFocused) return;
+    if (!isFocused || !isVisible) return;
+    const timer = setTimeout(() => {
+      controlRef.current?.focus?.();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [focusWhenFrameFocused, isFocused, isVisible]);
+
   function getPlaceholder(): string {
     if (placeholder != null) return placeholder;
     const have_llm = redux
@@ -216,6 +230,9 @@ export default function ChatInput({
   return (
     <MarkdownInput
       autoFocus={autoFocus}
+      isFocused={
+        focusWhenFrameFocused && isFocused && isVisible ? true : undefined
+      }
       saveDebounceMs={0}
       onFocus={onFocus}
       onBlur={onBlur}

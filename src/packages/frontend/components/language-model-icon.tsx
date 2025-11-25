@@ -45,9 +45,10 @@ export function LanguageModelVendorAvatar(
     return fallback();
   }
 
-  function renderImgIcon(icon: string) {
+  function renderImgIcon(icon: string, vendorName: string) {
     return (
       <img
+        alt={`${vendorName} language model`}
         width={size}
         height={size}
         src={icon}
@@ -69,7 +70,7 @@ export function LanguageModelVendorAvatar(
           "icon",
         ]);
         if (useIcon && typeof icon === "string") {
-          return renderImgIcon(icon);
+          return renderImgIcon(icon, vendorName);
         } else {
           return <OpenAIAvatar size={size} style={style} />;
         }
@@ -92,7 +93,7 @@ export function LanguageModelVendorAvatar(
       case "ollama": {
         const icon = ollama?.getIn([fromOllamaModel(model), "icon"]);
         if (useIcon && typeof icon === "string") {
-          return renderImgIcon(icon);
+          return renderImgIcon(icon, vendorName);
         } else {
           return <OllamaAvatar size={size} style={style} />;
         }

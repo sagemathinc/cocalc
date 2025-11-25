@@ -93,27 +93,31 @@ export const CellButtonBar: React.FC<Props> = React.memo(
       tooltip: string;
       icon: string;
       label: string;
+      isRunning: boolean;
       onClick: () => void;
     } {
-      switch (cell.get("state")) {
-        case "busy":
-        case "run":
-        case "start":
-          return {
-            tooltip: "Stop this cell",
-            icon: "stop",
-            label: "Stop",
-            onClick: () => actions?.signal("SIGINT"),
-          };
+      const isRunning =
+        cell.get("state") === "busy" ||
+        cell.get("state") === "run" ||
+        cell.get("state") === "start";
 
-        default:
-          return {
-            tooltip: "Run this cell",
-            label: "Run",
-            icon: "step-forward",
-            onClick: () => frameActions.current?.run_cell(id),
-          };
+      if (isRunning) {
+        return {
+          tooltip: "Stop this cell",
+          icon: "stop",
+          label: "Stop",
+          isRunning: true,
+          onClick: () => actions?.signal("SIGINT"),
+        };
       }
+
+      return {
+        tooltip: "Run this cell",
+        label: "Run",
+        icon: "step-forward",
+        isRunning: false,
+        onClick: () => frameActions.current?.run_cell(id),
+      };
     }
 
     function renderCodeBarRunStop() {
@@ -127,7 +131,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
         return;
       }
 
-      const { label, icon, tooltip, onClick } = getRunStopButton();
+      const { label, icon, tooltip, onClick, isRunning } = getRunStopButton();
 
       // ATTN: this must be wrapped in a plain div, otherwise it's own flex & width 100% style disturbs the button bar
       return (
@@ -159,6 +163,8 @@ export const CellButtonBar: React.FC<Props> = React.memo(
                 },
               ],
             }}
+            aria-label={`${label} cell${isRunning ? " (running)" : ""}, dropdown menu: run all above, run all below`}
+            aria-haspopup="menu"
           >
             <Tooltip placement="top" title={tooltip}>
               <span style={CODE_BAR_BTN_STYLE}>
@@ -234,6 +240,8 @@ export const CellButtonBar: React.FC<Props> = React.memo(
               }
               trackButton("format");
             }}
+            aria-label="Format code"
+            aria-busy={formatting}
           >
             <Icon name={formatting ? "spinner" : "sitemap"} spin={formatting} />{" "}
             <FormattedMessage
@@ -279,6 +287,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
           onClick={() => {
             frameActions.current?.toggle_md_cell_edit(id);
           }}
+          aria-label={editing ? "Save markdown" : "Edit markdown"}
         >
           <Icon name={editing ? "save" : "edit"} />{" "}
           {editing
@@ -289,7 +298,12 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     }
 
     return (
-      <div className="hidden-xs" style={MINI_BUTTONS_STYLE_INNER}>
+      <div
+        className="hidden-xs"
+        style={MINI_BUTTONS_STYLE_INNER}
+        role="region"
+        aria-label={`Cell ${index + 1} controls`}
+      >
         {renderCodeBarCellTiming()}
         {renderCodeBarRunStop()}
         {renderCodeBarComputeServer()}

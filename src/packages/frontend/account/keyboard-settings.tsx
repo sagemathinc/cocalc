@@ -85,6 +85,8 @@ export const KeyboardSettings: React.FC = () => {
 
   return (
     <Panel
+      role="region"
+      aria-label="Keyboard shortcuts"
       header={
         <>
           <Icon name={KEYBOARD_ICON_NAME} />{" "}

@@ -12,13 +12,15 @@ export function AccountPreferencesAI() {
   const kucalc = useTypedRedux("customize", "kucalc");
 
   return (
-    <OtherSettings
-      other_settings={other_settings}
-      is_stripe_customer={
-        !!stripe_customer?.getIn(["subscriptions", "total_count"])
-      }
-      kucalc={kucalc}
-      mode="ai"
-    />
+    <div role="region" aria-label="AI settings">
+      <OtherSettings
+        other_settings={other_settings}
+        is_stripe_customer={
+          !!stripe_customer?.getIn(["subscriptions", "total_count"])
+        }
+        kucalc={kucalc}
+        mode="ai"
+      />
+    </div>
   );
 }

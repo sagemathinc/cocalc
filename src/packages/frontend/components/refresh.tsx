@@ -59,6 +59,8 @@ function Controlled({ refresh, style, refreshing, setRefreshing }) {
           }
         }}
         style={style}
+        aria-label="Refresh"
+        aria-busy={refreshing}
       >
         <Icon name="refresh" spin={refreshing} /> Refresh
       </Button>
