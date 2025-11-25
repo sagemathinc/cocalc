@@ -1046,7 +1046,6 @@
   "labels.linux_terminal": "لينكس تيرمنال",
   "labels.loading": "جار التحميل...",
   "labels.log": "تسجيل",
-  "labels.masked_files": "{masked, select, true {إخفاء الملفات المقنعة} other {إظهار الملفات المقنعة}}. الملفات المقنعة هي ملفات تم إنشاؤها تلقائيًا أو ملفات مؤقتة، والتي لا يُقصد تعديلها. يتم تظليلها باللون الرمادي.",
   "labels.message.plural": "{num, plural, one {رسالة} other {رسائل}}",
   "labels.messages": "رسائل",
   "labels.messages.all_messages": "جميع الرسائل",

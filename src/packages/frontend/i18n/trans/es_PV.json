@@ -1046,7 +1046,6 @@
   "labels.linux_terminal": "Linux Terminala",
   "labels.loading": "Kargatzen...",
   "labels.log": "Egunkari",
-  "labels.masked_files": "{masked, select, true {Ezkutatu maskaratutako fitxategiak} other {Erakutsi maskaratutako fitxategiak}}. Maskaratutako fitxategiak automatikoki sortutako edo behin-behineko fitxategiak dira, eta ez dira editatzeko pentsatuta. Grisez agertzen dira.",
   "labels.message.plural": "{num, plural, one {Mezua} other {Mezuak}}",
   "labels.messages": "Mezuak",
   "labels.messages.all_messages": "Mezu guztiak",

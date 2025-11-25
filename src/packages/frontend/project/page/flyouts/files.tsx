@@ -123,7 +123,6 @@ export function FilesFlyout({
     "active_file_sort",
   );
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
-  const show_masked = useTypedRedux({ project_id }, "show_masked");
   const hidden = useTypedRedux({ project_id }, "show_hidden");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
@@ -205,9 +204,6 @@ export function FilesFlyout({
           ((file.isdir ?? false) && search_match(`${fName}/`, searchWords))
         );
       })
-      .filter(
-        (file: DirectoryListingEntry) => show_masked || !(file.mask === true),
-      )
       .filter(
         (file: DirectoryListingEntry) => hidden || !file.name.startsWith("."),
       );
@@ -297,7 +293,6 @@ export function FilesFlyout({
     hidden,
     file_search,
     openFiles,
-    show_masked,
     current_path,
     strippedPublicPaths,
   ]);
