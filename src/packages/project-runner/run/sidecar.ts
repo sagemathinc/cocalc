@@ -59,7 +59,7 @@ const COCALC_SNAPSHOTS = ".snapshots";
 // Increase this version tag right here if you change
 // any of the Dockerfile or any files it uses:
 
-const VERSION = "0.7.6";
+const VERSION = "0.7.10";
 export const sidecarImageName = `localhost/sidecar:${VERSION}`;
 
 const Dockerfile = `

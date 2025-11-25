@@ -153,6 +153,7 @@ export const SPEC = {
   },
 
   btm: {
+    optional: true,
     // See https://github.com/ClementTsang/bottom/releases
     VERSION: "0.11.1",
     getVersion: "btm --version",

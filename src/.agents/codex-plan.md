@@ -1,166 +1,48 @@
 ## Goal
+Bring Codex agents into CoCalc chat so users can open a thread, point it at a workspace, and let a fully capable agent edit files, run commands, and stream results safely.
 
-Bring Codex agents into CoCalc chat so threads can be backed by a live coding agent that can edit project files, run commands, and stream results—without compromising security or existing LLM plumbing.
+## Architecture snapshot (Nov 25)
+- **AI layer** (`packages/ai/acp`): wraps our forked `codex-acp`/`codex-core`. Tools (terminal, read/write, apply patch) are implemented via ACP so every operation round-trips through CoCalc code (lite hub today, podman later).
+- **Frontend** (`packages/frontend/chat`): contains Codex configuration modal (working dir, session id, model, reasoning, env overrides, execution mode). Context meter turns red <30 %. Threads call `webapp_client.conat_client.streamAcp()`.
+- **Lite hub backend** (`packages/lite/hub/acp.ts`): launches ACP jobs, streams events, and writes them straight into the chat SyncDB via `ChatStreamWriter`. Payloads are throttled/saved and mirrored into SQLite so restarts replay missed events.
+- **Conat bridge** (`packages/conat/ai/acp/{types,server,client}.ts`): defines `runAcp`, `streamAcp`, and approval subjects. Approvals are now explicit: frontend buttons post to `SUBJECT.account.approval`, backend forwards decisions to Codex.
+- **Codex binaries**: custom fork adds tool delegation, `--session-persist`, and native-shell gateway. Lite uses local codex CLI (with sandbox for terminal); full CoCalc will run it inside podman.
 
-NOTE:
+## What works now
+- Codex threads appear as chat conversations; output/events render via `codex-activity.tsx` with reasoning cards, terminal chunks, and file diffs (diffs generated from saved file snapshots).
+- Session persistence: per-thread `sessionId` stored so dialog shows current ID, hub resumes sessions with persisted manifests (`acp_queue`+`codex_sessions`).
+- Image handling: pasted blobs get downloaded to `/tmp/cocalc-blobs/<hash>.<ext>` and agents receive direct paths even without network access.
+- Execution modes: UI offers Full access / Sandboxed / Read-only; sandboxed runs native codex CLI sandbox for terminals plus our own approval gate for shell escalation and network access.
+- Lite security: commands run in user’s environment, but filesystem reads/writes still flow through ACP so we log and diff everything.
 
-- in chat ws: means "william stein" = the human.
-
-## Constraints / Existing Pieces
-
-- Chat UI (`packages/frontend/chat`) supports multiple “LLM threads” driven by `selectable_llms` coming from `/customize`.
-- `@cocalc/ai/llm` + lite hub currently treat LLMs as stateless chat models. Codex needs a long-lived agent process tied to a project and user identity.
-- Codex SDK (Rust/Bun) exposes agent lifecycle + event streaming. We’ll consume it via the official TypeScript SDK or wrap the CLI/Bun runtime.
-- Authentication must support both site-wide API keys (admin configured) and per-user Codex logins (e.g., ChatGPT Pro accounts).
-- Daemon must only access the target project directory and perhaps explicit extra mounts—no global `/opt/cocalc`.
-
-## Proposed Architecture
-
-1. **Codex Agent Service \(backend\)**
-   - Live in `packages/ai/codex`and run inside the hub/lite hub.
-   - Responsibilities:
-     - Launch Codex agents via SDK given `{project_id, account_id, codex_credentials}`.
-     - Bind\-mount only that project path \(and optional shared binaries\) into the agent sandbox.
-       - For full cocalc, the agent will be started inside of a podman container
-       - For packages/lite \(cocalc lite\) codex will just be running directly on the user's computer and we will use its own sandbox \(no bind mount\)
-     - Stream events \(messages, tool output, file diffs\) over conat/WebSocket to the chat UI.
-     - Restart and clean up agents; store agent state in SQLite/Postgres to resume conversations.
-   - API surface \(conat service\):
-     - `codex.startThread({thread_id, project_id, model, authContext}) -> session_id`
-     - `codex.sendMessage({session_id, content}) -> stream`
-     - `codex.stop({session_id})`
-   - Store metadata in existing LLM history tables or a new `codex_threads` table.
-
-2. **Auth & Credentials**
-   - Extend lite/native admin settings to capture:
-     - Default Codex API key \(global\) for site\-provided agent.
-     - Optional OAuth login per user:
-       - Add “Connect Codex” button in account settings \(`packages/frontend/account/lite-ai-settings.tsx`\).
-       - Flow: redirect to Codex OAuth, receive tokens, store encrypted per account \(reuse secrets storage used for other provider tokens\).
-   - When launching an agent, prefer user token; fall back to shared key if allowed.
-
-3. **Agent Runtime**
-   - Decide execution approach:
-     - **Option A:** Run Codex SDK as a sidecar process inside the project container \(preferred for tool execution\). Project Runner would mount the Codex bundle \+ SDK.
-     - **Option B:** Central service that maps project file operations via RPC. More complex; defer unless container integration is problematic.
-       - ws: NO \-\- definitely go with Option A.
-   - Provide a narrow API for Codex tool/channel:
-     - `run_shell(command)` limited to the project sandbox.
-     - `apply_patch` for files \(with server\-side validation\).
-     - `read_file`, `write_file`, `list_dir`.
-   - Map these to our existing project FS APIs so auditing and limits stay consistent.
-     - ws: I don't think we need a narrow api, existing fs integration for **option A**. We just run the codex rust binary directly in the podman sandbox or on the user's compute \(for cocalc\-lite\). 
-
-4. **Frontend Integration**
-   - Chat thread creation dialog lists Codex models when `/customize` includes them.
-   - When a Codex\-backed thread starts:
-     - Chat store sends `conat.codex.startThread`.
-     - Messages stream via `conat.codex.stream` channel; UI renders incremental updates and tool output \(similar to LLM streaming, but include structured cards for commands/diffs\).
-   - Add explicit “Agent controls” \(stop/run command\) in the thread sidebar.
-   - Reuse existing thread persistence so Codex chat logs show up alongside other providers.
-   - ws: this sounds excellent!
-
-5. **Settings / Customize**
-   - Extend server settings schema with:
-     - `codex_enabled`
-     - `codex_default_models` \(array\)
-     - `codex_allow_user_tokens`
-   - `/customize` should include `selectable_llms` entries like `"codex-codex-gpt4"` and new flags for the frontend to show entry points.
-
-## Implementation Steps
-
-1. **Backend groundwork**
-   - Vendor the Codex SDK \(check license, add to `packages/ai`\).
-   - Create `@cocalc/ai/codex` API that wraps agent lifecycle with dependency injection similar to `llm`.
-
-2. **Lite Hub Prototype**
-   - Implement `packages/lite/hub/codex.ts` that:
-     - Reads settings, exposes conat routes, stores sessions in SQLite.
-     - Launches local Codex agent bound to the project path \(MVP: run SDK process in host namespace but chdir to project\).
-       - ws: for lite it's really just "run on the host. full stop".  That's it.  This of cocalc\-lite as just like vscode running locally.  There's no separate projects, etc. 
-
-3. **Frontend UI**
-   - Add `CodexThread` metadata in chat store; update `packages/frontend/chat` to render Codex\-specific events \(e.g., command outputs\).
-     - ws: metadata could just be in the first message of the codex thread
-   - Extend account settings with “Connect Codex” OAuth stub and per\-provider API key fields.
-
-4. **Security & Sandboxing**
-   - Ensure agent commands go through the same project\-runner enforcement \(resource limits, allowed binaries\).
-     - ws: automatic since codex will running in the project podman pod.
-   - Audit file operations; log source IP/account for compliance.
-     - ws: this will be nice to log and show to users
-
-5. **Rollout**
-   - Start with lite mode \(single\-user\) to validate flow.
-     - ws: yes, this should be the top priority.  Also, once this exists I'll be able to switch to _using codex_ via this very thing to finish the development. 
-   - Once stable, wire `@cocalc/server` to the same service so hosted CoCalc can offer Codex threads.
-
-## Open Questions
-
-- How to run the Codex SDK inside project containers \(Bun \+ required libs\) for both x86\_64 and ARM?
-  - ws: we can ensure npm is available then do "npm i \-g @openai/codex".  Then we'll have "codex" as a cli command and can run it \(since we can run any code in the container\).  We can also assume containers have recent enough glibc, since that's already required by cocalc. 
-- Per\-user login flow details: does Codex expose OAuth endpoints compatible with our existing strategy framework?
-  - ws: I've tried this manually and the codex cli outputs a URL.  we would then redirect the users browser to open that url; the user then gets redirected back to something on localhost \-\- hopefully we can make it so that redirect is configurable, so we can then put the result back into the codex cli \(or api\).  Basically this is indeed an open question. Worst case, for cocalc\-lite, which just tell the user "install codex somehow and sign in; that's up to you".  For codex in a cocalc project, we really do have to solve this problem.
-- Persistence: do we store Codex agent IDs long\-term, or recreate them per session and replay context?
-  - ws: good question. It seems like codex is really good at storing sessions locally \(?\).. but maybe that is codex\-cli, and we have to replicate that functionality ourselves.  I'm worried, e.g., about how to do compactification of long threads, etc. I don't want to have to reproduce what codex already has implemented in codex\-cli.
-
-## Next Actions
-
-1. Prototype `@cocalc/ai/codex` wrapper that can:
-   - Start an agent using an API key.
-   - Send a message and stream response back to a test harness.
-2. Define conat message schema for Codex threads.
-3. Update customize/settings to advertise `codex_enabled` and surface initial models.
-
-## Progress Snapshot (Nov 24)
-
-- **SDK + ACP stack:** `@cocalc/ai/acp` now owns the Codex wiring. We ship a patched `codex-core` + `codex-acp` fork so tools (terminal, read/write, apply patch) delegate back to CoCalc via ACP instead of running locally.
-- **Conat bridge:** `packages/conat/ai/acp/{types,server,client}.ts` streams ACP events (`thinking`, `message`, `summary`, `tool_call`). Lite hub routes `runAcp/streamAcp` to the AI package, including session config and chat metadata.
-- **Lite hub backend streaming:** `packages/lite/hub/acp.ts` now instantiates `ChatStreamWriter` that writes ACP output directly into the chat SyncDB. Entries are throttled (1.5 s) and flushed via `syncdb.save()` so any viewer sees progress even if the original browser disconnects. A SQLite `acp_queue` buffers in-flight payloads so restarts replay missed output.
-- **Frontend Codex UX:** `packages/frontend/chat/codex.tsx` exposes a Codex config modal per thread (working dir, session id, model, reasoning, write toggle, env overrides). Context usage is summarized and now turns red when <30 % headroom remains. Codex-specific chat actions call `streamAcp`, and activity logs render reasoning/commands with terminal snippets plus diffs generated from `read/write_text_file`.
-- **Images:** pasted images are detected in prompts; backend downloads blobs to temp files and teaches the agent how to reference them (so codex can inspect local paths even without network).
-- **Session persistence:** codex-acp now supports `--session-persist`; lite hub stores `sessionId` in chat metadata and automatically resumes turns. Context survives hub restarts as long as the persisted session manifests remain.
-
-## Next Steps (remaining)
-
-1. **UI polish & controls**
-   - Context indicator: now turns red <30 %; extend to show timer per turn and disable double-click editing of agent output.
-   - Add “Stop generating” button that actually sends ACP cancel/stop and confirms in the log.
-   - Disable or guard unrelated UI controls (video chat button) in Codex threads.
-   - Auto-clear composer on send; ensure “Thinking” banner always reflects backend activity.
-   - Render ACP events with richer formatting (bulleted reasoning summaries, clickable paths, etc.).
+## Next priorities
+1. **Activity UX**
+   - Add elapsed time counter, stop button confirmation, tab activity indicator, and combine repeated “Thinking” fragments before saving.
+   - Render command cards with consistent bullet layout and clickable file links (markdown `[foo.py](./foo.py)`).
 2. **Session management**
-   - Fork session: expose UX to duplicate a thread by copying its Codex persistent dir + metadata.
-   - Refresh/reconnect flow: when a browser tab reloads mid-turn, fetch queued payloads from SQLite and replay them before resuming the live stream.
-   - Investigate long-term storage/compaction so we can export markdown transcripts (with/without thinking) and optionally compact before switching models.
-3. **Modes & permissions**
-   - Surface three execution modes in the settings modal: full access, approval/sandbox, read-only. Wire to ACP sandbox controls (env vars / policies).
-   - Inject currently open files (context hints) when sending prompts.
-4. **Media handling**
-   - Expand blob helper so drag/drop images (and other binary assets) produce local paths automatically; consider generic `/tmp/cocalc-blobs/<hash>` scheme with cleanup.
-5. **Binary distribution & hosted rollout**
-   - Produce codex-acp releases (linux x86_64 first) via CI, optionally compress with `upx`.
-   - Plan hosted mode (podman) launch sequence and per-user auth (reuse Codex login flow or admin key).
+   - Implement “fork session” (copy persisted Codex manifest + chat metadata) so users can branch work.
+   - After browser refresh, replay queued payloads before subscribing to live stream; flush SQLite queue when acknowledged.
+3. **Moderation & sandbox**
+   - Expand approval UI to show reason + log entry; enforce automatic timeout (e.g., 8 h) that cancels pending tool calls.
+   - For hosted CoCalc, run codex CLI inside the project podman container and pass in mounted bundles/binaries.
+4. **Media & exports**
+   - Generalize blob helper (images, PDFs) and auto-clean old temp files.
+   - Add markdown export (full vs compact), with option to include/exclude “thinking”.
+5. **Distribution & auth**
+   - Produce codex-acp releases via CI (linux x86_64 first, `upx` shrink). Document install path for both lite and podman images.
+   - Investigate Codex OAuth flow: hook into CLI-provided login URL, capture callback, inject tokens for hosted projects. For lite, rely on user-managed login for now.
 
-## Upcoming UI work (lite chat)
+## Outstanding tasks (from checklist)
+- Disallow editing AI output; guard video-chat button in agent threads.
+- Clear composer immediately on send; ensure “Thinking…” banner reflects backend state.
+- Auto-highlight context meter (done) and show per-turn elapsed time (todo).
+- Add markdown export UI with compact option.
+- Build codex-acp binaries and installation script.
 
-- Replace manual streaming with backend-driven updates already in place; remaining tasks:
-  - Enhance `codex-activity` view to show elapsed time, stop button, progress indicator, and clickable resource links.
-  - Add tab activity indicator (similar to terminal editor) so users notice when Codex is mid-run.
-  - Support markdown export (compact vs full) and allow toggling visibility of “thinking” chunks inline.
+## Reference files
+- Backend streaming: `packages/lite/hub/acp.ts`, `packages/ai/acp/*`.
+- Frontend chat: `packages/frontend/chat/{actions,acp-api,codex,codex-activity}.tsx`.
+- Flyout activity renderer: `packages/frontend/project/page/flyouts/*` (now support dimming extensions).
+- Settings UI: `packages/frontend/account/lite-ai-settings.tsx`, `/customize` logic in `packages/lite/hub/settings.ts`.
 
-## Live activity rendering status
-
-- Basic panels exist (reasoning markdown, command terminals, diff summaries). Still to do:
-  - Combine repetitive reasoning fragments before saving to reduce noise.
-  - Highlight commands with bullet/indent formatting (`• Ran └ git ...`).
-  - Persist/log truncated terminal output (currently capped at 10 k chars) in both RAM and the SQLite queue so replay displays the same truncation banner.
-
-## TODO Tracker (user’s Nov 24 list)
-
-- Context indicator -> red <30 % (✅ done). Next: add elapsed time counter.
-- Prevent editing AI output, disable video button, add stop-confirmation.
-- Support three sandbox modes + approvals.
-- Handle browser refresh/restart by replaying queued payloads.
-- Implement session fork, markdown export, richer event rendering, activity indicator, auto-clear compose box, clickable paths, better handling of pasted images/blobs, codex-acp binary releases, and more reliable state reset on send.
-- ✅ Sandbox approvals: ACP handler now emits `approval` events, lite hub stores them in the chat SyncDB, and the chat UI surfaces Approve/Reject controls that write decisions back—which the backend forwards to Codex via ACP.
+Keep this summary handy when switching workspaces so the next session can pick up Codex integration without re-reading history.

@@ -184,10 +184,8 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
+  /*
   function render_dim_file_extensions(): Rendered {
-    return null;
-    // temporarily removed due to merge conflicts
-    /*
     return (
       <Switch
         checked={!!props.other_settings.get("dim_file_extensions")}
@@ -197,8 +195,8 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         names stand out.
       </Switch>
     );
-    */
   }
+    */
 
   function render_antd(): Rendered {
     return (
@@ -435,7 +433,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
             </>
           }
         >
-          {render_dim_file_extensions()}
+          {/* render_dim_file_extensions() */}
           {render_mask_files()}
           {render_page_size()}
           {render_new_filenames()}

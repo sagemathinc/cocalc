@@ -271,7 +271,7 @@ def install(args) -> None:
         c = "cd packages && pnpm install --config.confirmModulesPurge=false --package-import-method=hardlink"
         if args.prod:
             args.dist_only = False
-            args.node_modules_only = True
+            args.node_modules_only = False
             args.parallel = True
             clean(args)
             c += " --prod"
