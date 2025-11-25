@@ -254,6 +254,12 @@ export function createCellMergingFilter(
       },
     );
 
+    // Ignore single-character deletions that don't remove the newline
+    // separating two cells. Only newline deletions should trigger merging.
+    if (isCharDeletion && deletedText !== "\n") {
+      return tr;
+    }
+
     // Also check for multi-character boundary deletions (e.g., newline + marker)
     // These should be treated as merge operations
     let isBoundaryDeletion = isCharDeletion;

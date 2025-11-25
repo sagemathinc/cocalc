@@ -22,6 +22,7 @@ import {
   findCellAtLine,
   getCellIdAtLine,
   getCellsInRange,
+  realignMappingsWithDocument,
 } from "../utils";
 
 /**
@@ -358,6 +359,36 @@ describe("Jupyter Single-File Editor - State and Document Building", () => {
   });
 });
 
+describe("Jupyter Single-File Editor - Mapping Realignment", () => {
+  it("updates subsequent cell positions after inserting newline before marker", () => {
+    const { cells, cellList } = createNotebook(["a = 1\nb = 2", "print(3)"]);
+    const docData = buildDocumentFromNotebook(cells, List(cellList));
+    const originalMappings = docData.mappings;
+    const lines = docData.content.split("\n");
+    const insertIndex = originalMappings[0].outputMarkerLine;
+    lines.splice(insertIndex, 0, "");
+    const updatedDoc = EditorState.create({
+      doc: lines.join("\n"),
+    }).doc;
+
+    const updatedMappings = realignMappingsWithDocument(
+      updatedDoc,
+      originalMappings,
+    );
+
+    expect(updatedMappings[0].inputRange.to).toBe(
+      originalMappings[0].inputRange.to + 1,
+    );
+    expect(updatedMappings[0].outputMarkerLine).toBe(insertIndex + 1);
+    expect(updatedMappings[1].inputRange.from).toBe(
+      originalMappings[1].inputRange.from + 1,
+    );
+    expect(updatedMappings[1].outputMarkerLine).toBe(
+      originalMappings[1].outputMarkerLine + 1,
+    );
+  });
+});
+
 describe("Jupyter Single-File Editor - Cell Merging", () => {
   function createMergingHarness(
     cellConfigs: Array<string | { type: string; input: string }>,
@@ -437,6 +468,35 @@ describe("Jupyter Single-File Editor - Cell Merging", () => {
     const harness = createMergingHarness(["x = 123", "y = 2"]);
     harness.view.dispatch({
       changes: { from: 2, to: 3, insert: "" },
+      userEvent: "delete",
+    });
+
+    expect(harness.getEffects()).toHaveLength(0);
+    harness.view.destroy();
+  });
+
+  it("should not merge when deleting the last character of a cell", () => {
+    const harness = createMergingHarness(["x = 1", "y = 23", "z = 5"]);
+    const secondCellLine = harness.view.state.doc.line(3); // cell-1 input line
+    const deletePos = Math.max(secondCellLine.to - 1, secondCellLine.from);
+    harness.view.dispatch({
+      changes: { from: deletePos, to: deletePos + 1, insert: "" },
+      userEvent: "delete",
+    });
+
+    expect(harness.getEffects()).toHaveLength(0);
+    harness.view.destroy();
+  });
+
+  it("should not merge when deleting the first character of a cell", () => {
+    const harness = createMergingHarness(["alpha", "beta", "gamma"]);
+    const secondCellLine = harness.view.state.doc.line(3); // cell-1 input line
+    harness.view.dispatch({
+      changes: {
+        from: secondCellLine.from,
+        to: Math.min(secondCellLine.from + 1, secondCellLine.to),
+        insert: "",
+      },
       userEvent: "delete",
     });
 

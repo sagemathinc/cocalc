@@ -10,6 +10,10 @@
 .jupyter-single-file-editor
   font-family: monospace
 
+  .jupyter-cell-gutter
+    top: 3px
+    position: relative
+
   // Output widget container - flex layout for proper height handling
   .jupyter-output-widget
     margin: 0
@@ -50,6 +54,31 @@
         border: 1px solid colors.$COL_ANTD_BG_RED_M
         padding: 8px
         color: colors.$COL_ANTD_RED_WARN
+
+  .jupyter-output-widget.jupyter-cell-widget-selected
+    user-select: none
+    -webkit-user-select: none
+    -moz-user-select: none
+
+    .jupyter-output-item
+      background-color: colors.$COL_BLUE_LLLL
+      border-left-color: colors.$COL_BLUE
+
+    & *::selection
+      background-color: transparent
+      color: inherit
+
+  .jupyter-markdown-display-widget.jupyter-cell-widget-selected,
+  .jupyter-markdown-edit-widget.jupyter-cell-widget-selected,
+  .jupyter-raw-widget.jupyter-cell-widget-selected
+    background-color: colors.$COL_BLUE_LLLL !important
+    user-select: none
+    -webkit-user-select: none
+    -moz-user-select: none
+
+    & *::selection
+      background-color: transparent
+      color: inherit
 
   // Stream output (stdout/stderr)
   .output-stream
@@ -140,6 +169,21 @@
     gap: 8px
     align-items: center
 
+  .jupyter-cell-label-text
+    display: flex
+    align-items: center
+    justify-content: flex-start
+    min-width: 50px
+    font-weight: 600
+    color: colors.$COL_GRAY_D
+    margin-right: 8px
+
+  .jupyter-cell-label-markdown
+    color: colors.$COL_BLUE_DD
+
+  .jupyter-markdown-gutter-icon
+    font-size: calc(var(--editor-font-size, 14px) - 1px)
+
   .jupyter-cell-in-label
     color: colors.$COL_BLUE_DD
     font-weight: 600
@@ -224,9 +268,10 @@
   .jupyter-cell-line-number
     color: colors.$COL_GRAY_M
     text-align: right
-    min-width: 30px
+    min-width: 32px
     font-size: 0.9em
-    margin-left: -20px
+    margin-left: auto
+    padding-left: 4px
 
   .jupyter-cell-line-spacer
     min-width: 30px

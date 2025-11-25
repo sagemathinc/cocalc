@@ -12,6 +12,8 @@ This module handles:
 - Finding cells that overlap with a line range
 */
 
+import type { Text } from "@codemirror/state";
+
 import type { CellMapping } from "./state";
 
 /**
@@ -77,3 +79,70 @@ export function getAffectedCellsFromSelection(
 // Zero-Width Space (U+200B) - invisible marker for output widget placement
 // This character is designed for marking/bookmarking text without visual display
 export const ZERO_WIDTH_SPACE = "\u200b";
+
+/**
+ * Recalculate cell line ranges based on the current document.
+ * This keeps the mapping aligned with user edits before they sync to the store.
+ */
+export function realignMappingsWithDocument(
+  doc: Text,
+  existingMappings: CellMapping[],
+): CellMapping[] {
+  if (!doc || existingMappings.length === 0 || doc.lines === 0) {
+    return existingMappings;
+  }
+
+  const updatedMappings: CellMapping[] = [];
+  let nextLine = 0;
+  const totalLines = doc.lines;
+
+  for (const mapping of existingMappings) {
+    if (nextLine >= totalLines) {
+      updatedMappings.push({
+        ...mapping,
+        inputRange: { from: nextLine, to: nextLine },
+        outputMarkerLine: nextLine,
+        source: [],
+      });
+      continue;
+    }
+
+    let markerLine = nextLine;
+    while (markerLine < totalLines) {
+      const lineText = doc.line(markerLine + 1).text;
+      if (lineText.startsWith(ZERO_WIDTH_SPACE)) {
+        break;
+      }
+      markerLine += 1;
+    }
+
+    if (markerLine >= totalLines) {
+      // Fallback: no marker found, keep previous mapping to avoid corruption
+      updatedMappings.push(mapping);
+      nextLine = totalLines;
+      continue;
+    }
+
+    const isMarkdownCell = mapping.cellType === "markdown";
+    const sourceLines: string[] = [];
+    for (let line = nextLine; line < markerLine; line++) {
+      sourceLines.push(doc.line(line + 1).text);
+    }
+
+    const preservedSource = isMarkdownCell ? mapping.source : sourceLines;
+
+    updatedMappings.push({
+      ...mapping,
+      source: preservedSource,
+      inputRange: {
+        from: nextLine,
+        to: markerLine,
+      },
+      outputMarkerLine: markerLine,
+    });
+
+    nextLine = markerLine + 1;
+  }
+
+  return updatedMappings;
+}

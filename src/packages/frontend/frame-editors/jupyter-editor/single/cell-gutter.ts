@@ -68,8 +68,9 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
       // BUT only if the cell is not currently running/queued (to avoid overlap with In[N])
       const isRunning =
         state === "busy" || state === "run" || state === "start";
-      outLabel =
-        execCount != null && !isRunning ? `Out[${execCount}]` : undefined;
+      const shouldShowOut =
+        execCount != null && !isRunning && hasOutputs;
+      outLabel = shouldShowOut ? `Out[${execCount}]` : undefined;
     } else if (cellType === "markdown") {
       // Markdown cell: show "Md"
       cellLabel = "MD";
@@ -101,18 +102,23 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
     }
 
     // Mark the output marker line (still needed for positioning output widgets)
-    // Show Out[N] for cells that have been executed (have execCount)
+    // Markdown cells use the marker line as their visible row.
+    const markerLineNumber =
+      cellType === "markdown" ? consecutiveInputLineNum : 0;
     markers.set(outputMarkerLine, {
       cellId,
       cellType,
       cellLabel,
-      inputLineNum: 0,
+      inputLineNum: markerLineNumber,
       isFirstLineOfCell: true,
       isOutputMarker: true,
       outLabel, // Show Out[N] on output marker line if cell has been executed
       hasOutputs,
       cellState: state,
     });
+    if (cellType === "markdown") {
+      consecutiveInputLineNum++;
+    }
   });
 
   return markers;
@@ -207,6 +213,31 @@ class CellLabelMarker extends GutterMarker {
       const wrapper = document.createElement("div");
       wrapper.className = "jupyter-cell-label-wrapper";
       wrapper.setAttribute("data-cell-id", this.cellId);
+
+      if (this.cellType === "markdown") {
+        const mdRow = document.createElement("div");
+        mdRow.className = "jupyter-cell-label-row";
+
+        const labelSpan = document.createElement("span");
+        labelSpan.className =
+          "jupyter-cell-label-text jupyter-cell-label-markdown";
+        labelSpan.setAttribute("aria-label", "Markdown cell");
+        labelSpan.title = "Markdown cell";
+        const iconSpan = document.createElement("span");
+        iconSpan.className = "cc-icon-markdown jupyter-markdown-gutter-icon";
+        iconSpan.setAttribute("aria-hidden", "true");
+        labelSpan.appendChild(iconSpan);
+        mdRow.appendChild(labelSpan);
+
+        const numSpan = document.createElement("span");
+        numSpan.className = "jupyter-cell-line-number";
+        numSpan.textContent =
+          this.lineNum && this.lineNum > 0 ? String(this.lineNum) : "";
+        mdRow.appendChild(numSpan);
+
+        wrapper.appendChild(mdRow);
+        return wrapper;
+      }
 
       // For output marker lines, show Out[N] label if cell has outputs
       if (this.outLabel) {

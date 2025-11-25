@@ -12,7 +12,6 @@ import * as immutable from "immutable";
 import { useEffect } from "react";
 
 import {
-  CSS,
   React,
   redux,
   Rendered,

@@ -71,6 +71,7 @@ export interface DocumentData {
 export function buildDocumentFromNotebook(
   cells: Map<string, any>,
   cellList: List<string>,
+  localInputs?: Record<string, string[]>,
 ): DocumentData {
   const lines: string[] = [];
   const mappings: CellMapping[] = [];
@@ -90,8 +91,11 @@ export function buildDocumentFromNotebook(
 
     // Convert input string to array of lines
     // Even empty cells must have at least one line so they display a line number
+    // CRITICAL: If localInputs is provided for this cell, use those instead (unsynced edits)
     let sourceLines: string[] = [];
-    if (typeof inputData === "string") {
+    if (localInputs && cellId in localInputs) {
+      sourceLines = localInputs[cellId] ?? [""];
+    } else if (typeof inputData === "string") {
       sourceLines = inputData === "" ? [""] : inputData.split("\n");
     }
 
