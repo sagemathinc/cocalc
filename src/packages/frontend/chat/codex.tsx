@@ -79,6 +79,14 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   </Text>
 );
 
+const formItemStyle = { marginBottom: 12 } as const;
+const gridTwoColStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 12,
+  width: "100%",
+} as const;
+
 export function CodexConfigButton({
   threadKey,
   chatPath,
@@ -242,72 +250,86 @@ export function CodexConfigButton({
         okText="Save"
         onOk={onSave}
         onCancel={() => setOpen(false)}
+        width={560}
+        bodyStyle={{ maxHeight: "75vh", overflowY: "auto" }}
       >
-        <Space direction="vertical" style={{ width: "100%" }}>
-          <Paragraph type="secondary">
-            Configure how this chat connects to Codex.
-          </Paragraph>
+        <Space direction="vertical" style={{ width: "100%" }} size={12}>
           {contextMeter}
           <Form form={form} layout="vertical">
             <SectionTitle>Session basics</SectionTitle>
-            <Form.Item label="Working directory" name="workingDirectory">
-              <Input
-                placeholder="Defaults to the directory containing this chat"
-                allowClear
-              />
-            </Form.Item>
-            <Form.Item
-              label="Session ID"
-              name="sessionId"
-              tooltip="Optional. Reuse a Codex session to keep continuity."
-              extra="Leave blank to start fresh or paste a previous session ID."
-            >
-              <Input placeholder="Leave blank to create a new session" />
-            </Form.Item>
-            <Form.Item label="Model" name="model">
-              <Select
-                placeholder="e.g., gpt-5.1-codex-max"
-                options={models}
-                optionRender={(option) =>
-                  renderOptionWithDescription({
-                    title: `${option.data.label}${
-                      option.data.value === selectedModelValue &&
-                      selectedReasoningLabel
-                        ? ` (${selectedReasoningLabel})`
-                        : option.data.thinking
-                          ? ` (${option.data.thinking})`
-                          : ""
-                    }`,
-                    description: option.data.description,
-                  })
-                }
-                showSearch
-                allowClear
-                onChange={(val) => {
-                  const selected = models.find((m) => m.value === val);
-                  if (selected?.reasoning?.length) {
-                    const def =
-                      selected.reasoning.find((r) => r.default)?.id ??
-                      selected.reasoning[0]?.id;
-                    form.setFieldsValue({ reasoning: def });
+            <div style={gridTwoColStyle}>
+              <Form.Item
+                label="Working directory"
+                name="workingDirectory"
+                style={formItemStyle}
+              >
+                <Input
+                  placeholder="Defaults to the directory containing this chat"
+                  allowClear
+                />
+              </Form.Item>
+              <Form.Item
+                label="Session ID"
+                name="sessionId"
+                tooltip="Optional. Reuse a Codex session to keep continuity."
+                style={formItemStyle}
+              >
+                <Input
+                  placeholder="Leave blank to create a new session"
+                  allowClear
+                />
+              </Form.Item>
+            </div>
+            <div style={gridTwoColStyle}>
+              <Form.Item label="Model" name="model" style={formItemStyle}>
+                <Select
+                  placeholder="e.g., gpt-5.1-codex-max"
+                  options={models}
+                  optionRender={(option) =>
+                    renderOptionWithDescription({
+                      title: `${option.data.label}${
+                        option.data.value === selectedModelValue &&
+                        selectedReasoningLabel
+                          ? ` (${selectedReasoningLabel})`
+                          : option.data.thinking
+                            ? ` (${option.data.thinking})`
+                            : ""
+                      }`,
+                      description: option.data.description,
+                    })
                   }
-                }}
-              />
-            </Form.Item>
-            <Form.Item label="Reasoning level" name="reasoning">
-              <Select
-                placeholder="Select reasoning"
-                options={reasoningOptions}
-                optionRender={(option) =>
-                  renderOptionWithDescription({
-                    title: `${option.data.label}${
-                      option.data.default ? " (default)" : ""
-                    }`,
-                    description: option.data.description,
-                  })
-                }
-              />
-            </Form.Item>
+                  showSearch
+                  allowClear
+                  onChange={(val) => {
+                    const selected = models.find((m) => m.value === val);
+                    if (selected?.reasoning?.length) {
+                      const def =
+                        selected.reasoning.find((r) => r.default)?.id ??
+                        selected.reasoning[0]?.id;
+                      form.setFieldsValue({ reasoning: def });
+                    }
+                  }}
+                />
+              </Form.Item>
+              <Form.Item
+                label="Reasoning level"
+                name="reasoning"
+                style={formItemStyle}
+              >
+                <Select
+                  placeholder="Select reasoning"
+                  options={reasoningOptions}
+                  optionRender={(option) =>
+                    renderOptionWithDescription({
+                      title: `${option.data.label}${
+                        option.data.default ? " (default)" : ""
+                      }`,
+                      description: option.data.description,
+                    })
+                  }
+                />
+              </Form.Item>
+            </div>
             <Divider style={{ margin: "12px 0" }} />
             <SectionTitle>Advanced options</SectionTitle>
             <Collapse size="small" bordered={false}>
@@ -321,6 +343,7 @@ export function CodexConfigButton({
                   name="envHome"
                   tooltip="Optional. Overrides HOME for the Codex CLI."
                   extra="Useful if Codex needs a different HOME than this notebook."
+                  style={formItemStyle}
                 >
                   <Input placeholder="Use logged-in Codex HOME if needed" />
                 </Form.Item>
@@ -329,6 +352,7 @@ export function CodexConfigButton({
                   name="envPath"
                   tooltip="Optional. Ensures the codex CLI is on PATH."
                   extra="Provide a PATH string containing the codex binary."
+                  style={formItemStyle}
                 >
                   <Input placeholder="Custom PATH for codex binary" />
                 </Form.Item>
@@ -339,6 +363,7 @@ export function CodexConfigButton({
               label="Execution mode"
               name="sessionMode"
               tooltip="Control how much access Codex has inside your project."
+              style={formItemStyle}
             >
               <Radio.Group style={{ width: "100%" }}>
                 <Space direction="vertical" style={{ width: "100%" }}>
