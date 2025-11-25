@@ -29,13 +29,13 @@ import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
   DirectoryListing,
   DirectoryListingEntry,
   FileMap,
 } from "@cocalc/frontend/project/explorer/types";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
+import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import {
@@ -126,6 +126,8 @@ export function FilesFlyout({
   const hidden = useTypedRedux({ project_id }, "show_hidden");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
+  const otherSettings = useTypedRedux("account", "other_settings");
+  const maskFiles = otherSettings?.get("mask_files");
   // mainly controls what a single click does, plus additional UI elements
   const [mode, setMode] = useState<"open" | "select">("open");
   const [prevSelected, setPrevSelected] = useState<number | null>(null);
@@ -190,7 +192,9 @@ export function FilesFlyout({
     const files: DirectoryListing | null = filesStore.toJS?.();
     if (files == null) return EMPTY_LISTING;
     let activeFile: DirectoryListingEntry | null = null;
-    compute_file_masks(files);
+    if (maskFiles) {
+      compute_file_masks(files);
+    }
     const searchWords = search_split(file_search.trim().toLowerCase());
 
     const procFiles = files
@@ -295,6 +299,7 @@ export function FilesFlyout({
     openFiles,
     current_path,
     strippedPublicPaths,
+    maskFiles,
   ]);
 
   const prev_current_path = usePrevious(current_path);
