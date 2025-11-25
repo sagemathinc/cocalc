@@ -1071,6 +1071,11 @@ export class CodexAcpAgent implements AcpAgent {
     if (useNativeTerminal) {
       args.push("--native-shell");
     }
+    const approvalPolicy =
+      process.env.COCALC_ACP_APPROVAL_POLICY ?? "on-request";
+    if (approvalPolicy) {
+      args.push("-c", `approval_policy="${approvalPolicy}"`);
+    }
 
     const HOME = process.env.COCALC_ORIGINAL_HOME ?? process.env.HOME;
     const child = spawn(binary, args, {

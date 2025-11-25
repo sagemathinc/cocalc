@@ -113,18 +113,22 @@ class ChatStreamWriter {
   private seq = 0;
   private finished = false;
   private approverAccountId: string;
+  private autoApprove?: (event: ApprovalEvent) => void;
 
   constructor({
     metadata,
     client,
     approverAccountId,
+    autoApprove,
   }: {
     metadata: AcpChatContext;
     client: ConatClient;
     approverAccountId: string;
+    autoApprove?: (event: ApprovalEvent) => void;
   }) {
     this.metadata = metadata;
     this.approverAccountId = approverAccountId;
+    this.autoApprove = autoApprove;
     this.syncdb = createChatSyncDB({
       client,
       project_id: metadata.project_id,
@@ -218,6 +222,9 @@ class ChatStreamWriter {
           payload.event,
           this.approverAccountId,
         );
+        if (payload.event.status === "pending") {
+          this.autoApprove?.(payload.event);
+        }
       }
       if (text) {
         this.content = text;
@@ -343,10 +350,32 @@ export async function evaluate({
   if (!conatClient) {
     throw Error("conat client must be initialized");
   }
+  const autoApprove =
+    sessionMode === "full-access"
+      ? (event: ApprovalEvent) => {
+          const option =
+            event.options.find((opt) => opt.kind?.startsWith("allow")) ??
+            event.options[0];
+          if (!option) return;
+          const handled = resolveApproval({
+            approvalId: event.approvalId,
+            optionId: option.optionId,
+            decidedBy: request.account_id,
+            note: "Auto-approved (full access)",
+          });
+          if (!handled) {
+            logger.warn("auto approval failed", {
+              approvalId: event.approvalId,
+            });
+          }
+        }
+      : undefined;
+
   const chatWriter = request.chat
     ? new ChatStreamWriter({
         metadata: request.chat,
         client: conatClient,
+        autoApprove,
         approverAccountId: request.account_id,
       })
     : null;
