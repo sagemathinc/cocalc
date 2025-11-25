@@ -536,6 +536,8 @@ const LABEL_STYLE: CSS = {
   whiteSpace: "nowrap",
 } as const;
 
+const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
+
 const FULLPATH_LABEL_STYLE: CSS = {
   // using a full path for the label instead of just a filename
   textOverflow: "ellipsis",
@@ -592,11 +594,7 @@ function DisplayedLabel({ path, label, inline = true, project_id }) {
     >
       <span style={{ direction: "ltr" }}>
         {label}
-        <span
-          style={dimFileExtensions ? { color: COLORS.FILE_DIMMED } : undefined}
-        >
-          {ext}
-        </span>
+        <span style={dimFileExtensions ? DIMMED_STYLE : undefined}>{ext}</span>
       </span>
     </div>
   );
