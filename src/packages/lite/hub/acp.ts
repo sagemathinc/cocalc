@@ -294,8 +294,14 @@ class ChatStreamWriter {
       return;
     }
     if (payload.type === "summary") {
-      this.content =
-        payload.finalResponse ?? this.interruptedMessage ?? this.content;
+      const latestMessage = getLatestMessageText(this.events);
+      const finalText =
+        (latestMessage && latestMessage.trim().length > 0
+          ? latestMessage
+          : payload.finalResponse) ??
+        this.interruptedMessage ??
+        this.content;
+      this.content = finalText;
       if (payload.usage) {
         this.usage = payload.usage;
       }
@@ -448,6 +454,19 @@ class ChatStreamWriter {
     this.threadKeys.add(key);
     chatWritersByThreadId.set(key, this);
   }
+}
+
+function getLatestMessageText(events: AcpStreamMessage[]): string | undefined {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const evt = events[i];
+    if (evt?.type === "event" && evt.event?.type === "message") {
+      const text = evt.event.text;
+      if (typeof text === "string") {
+        return text;
+      }
+    }
+  }
+  return undefined;
 }
 
 async function ensureAgent(useNativeTerminal: boolean): Promise<AcpAgent> {

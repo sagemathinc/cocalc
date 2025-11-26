@@ -218,6 +218,7 @@ export function ChatLog({
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const manualScrollRef = useRef<boolean>(false);
+  const [manualScroll, setManualScroll] = useState(false);
 
   // Auto-scroll to bottom while an AI message is generating, unless the
   // user has manually scrolled away from the bottom.
@@ -233,16 +234,18 @@ export function ChatLog({
   }, [messages, sortedDates]);
 
   useEffect(() => {
-    if (manualScrollRef.current) return;
     if (!generating) return;
-    scrollToBottomRef?.current?.();
-  }, [generating, messages, scrollToBottomRef]);
+    manualScrollRef.current = false;
+    setManualScroll(false);
+    scrollToBottomRef?.current?.(true);
+  }, [generating, scrollToBottomRef]);
 
   useEffect(() => {
     if (scrollToBottomRef == null) return;
     scrollToBottomRef.current = (force?: boolean) => {
       if (manualScrollRef.current && !force) return;
       manualScrollRef.current = false;
+       setManualScroll(false);
       const doScroll = () =>
         virtuosoRef.current?.scrollToIndex({ index: Number.MAX_SAFE_INTEGER });
 
@@ -292,6 +295,8 @@ export function ChatLog({
           actions,
           costEstimate,
           manualScrollRef,
+          manualScroll,
+          setManualScroll,
           mode,
           selectedDate,
           numChildren,
@@ -534,6 +539,8 @@ export function MessageList({
   actions,
   costEstimate,
   manualScrollRef,
+  manualScroll = false,
+  setManualScroll,
   mode,
   selectedDate,
   numChildren,
@@ -552,6 +559,8 @@ export function MessageList({
   actions?;
   costEstimate?: CostEstimate;
   manualScrollRef?;
+  manualScroll?: boolean;
+  setManualScroll?: (value: boolean) => void;
   selectedDate?: string;
   numChildren?: NumChildren;
   singleThreadView?: boolean;
@@ -659,22 +668,27 @@ export function MessageList({
       rangeChanged={
         manualScrollRef
           ? ({ endIndex }) => {
-              // manually scrolling if NOT at the bottom.
-              manualScrollRef.current = endIndex < sortedDates.length - 1;
+              // Treat any move away from the bottom as manual scroll; keep that
+              // latched until explicitly reset (e.g. on a new turn).
+              if (endIndex < sortedDates.length - 1) {
+                manualScrollRef.current = true;
+                setManualScroll?.(true);
+              }
             }
           : undefined
       }
       atBottomStateChange={
         manualScrollRef
           ? (atBottom: boolean) => {
-              // Treat leaving the bottom as manual scroll; re-enable auto-scroll
-              // only once the user returns to the bottom.
-              manualScrollRef.current = !atBottom;
+              if (!atBottom) {
+                manualScrollRef.current = true;
+                setManualScroll?.(true);
+              }
               setAtBottom(atBottom);
             }
           : undefined
       }
-      followOutput={atBottom ? "smooth" : false}
+      followOutput={!manualScroll && atBottom ? "smooth" : false}
       {...virtuosoScroll}
     />
   );
