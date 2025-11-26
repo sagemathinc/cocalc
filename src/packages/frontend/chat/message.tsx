@@ -809,6 +809,17 @@ export default function Message({
     if (!usageRaw) return null;
     const usage =
       typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
+    const threadRoot = getThreadRootDate({ date, messages });
+    if (
+      !isLastMessageInThread({
+        date,
+        threadRoot,
+        messages,
+        actions,
+      })
+    ) {
+      return null;
+    }
     const remaining = calcRemainingPercent(usage);
     if (remaining == null || remaining >= CONTEXT_WARN_PCT) return null;
     const severity =
@@ -1327,6 +1338,67 @@ function calcUsedTokens(usage: any): number | undefined {
     }
   }
   return total > 0 ? total : undefined;
+}
+
+function isLastMessageInThread({
+  date,
+  threadRoot,
+  messages,
+  actions,
+}: {
+  date: number;
+  threadRoot: any;
+  messages: any;
+  actions?: ChatActions;
+}): boolean {
+  const rootValue =
+    threadRoot?.valueOf?.() ?? (typeof threadRoot === "number" ? threadRoot : null);
+  if (rootValue == null || !messages) return true;
+
+  const scanMessages = (list: any[]): number => {
+    let max = -Infinity;
+    for (const entry of list) {
+      const msg = entry;
+      if (!msg) continue;
+      const d = msg.get?.("date")?.valueOf?.() ?? 0;
+      if (Number.isFinite(d) && d > max) {
+        max = d;
+      }
+    }
+    return max;
+  };
+
+  // Prefer a thread-specific iterator if available.
+  if (actions?.getMessagesInThread) {
+    const iso = new Date(rootValue).toISOString();
+    const seq = actions.getMessagesInThread(iso);
+    if (seq) {
+      const arr =
+        typeof seq.toArray === "function" ? seq.toArray() : Array.from(seq);
+      const max = scanMessages(arr);
+      return !Number.isFinite(max) ? true : date >= max;
+    }
+  }
+
+  // Fallback: scan the whole message map.
+  if (typeof messages?.values === "function") {
+    const arr: any[] = [];
+    for (const [, msg] of messages) {
+      if (!msg) continue;
+      const root = getThreadRootDate({
+        date: msg.get?.("date")?.valueOf?.() ?? 0,
+        messages,
+      });
+      const r = root?.valueOf?.() ?? (typeof root === "number" ? root : null);
+      if (r === rootValue) {
+        arr.push(msg);
+      }
+    }
+    const max = scanMessages(arr);
+    return !Number.isFinite(max) ? true : date >= max;
+  }
+
+  return true;
 }
 
 // Used for exporting chat to markdown file
