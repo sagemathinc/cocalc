@@ -11,7 +11,7 @@ Render all the messages in the chat.
 
 import { Alert, Button } from "antd";
 import { Set as immutableSet } from "immutable";
-import { MutableRefObject, useEffect, useMemo, useRef } from "react";
+import { MutableRefObject, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
@@ -557,6 +557,7 @@ export function MessageList({
   singleThreadView?: boolean;
 }) {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
+  const [atBottom, setAtBottom] = useState(true);
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `${project_id}${path}`,
     initialState: { index: Math.max(sortedDates.length - 1, 0), offset: 0 }, // starts scrolled to the newest message.
@@ -663,6 +664,17 @@ export function MessageList({
             }
           : undefined
       }
+      atBottomStateChange={
+        manualScrollRef
+          ? (atBottom: boolean) => {
+              // Treat leaving the bottom as manual scroll; re-enable auto-scroll
+              // only once the user returns to the bottom.
+              manualScrollRef.current = !atBottom;
+              setAtBottom(atBottom);
+            }
+          : undefined
+      }
+      followOutput={atBottom ? "smooth" : false}
       {...virtuosoScroll}
     />
   );
