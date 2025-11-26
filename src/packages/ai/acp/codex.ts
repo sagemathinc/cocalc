@@ -226,7 +226,6 @@ class CodexClientHandler implements TerminalClient {
         this.latestUsage = usage;
         // Stream live usage so the UI can update context meters mid-turn.
         await this.stream({
-          // @ts-expect-error extended payload type; see @cocalc/conat/ai/acp/types
           type: "usage",
           usage,
         });
