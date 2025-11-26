@@ -9,6 +9,11 @@
 
 .jupyter-single-file-editor
   font-family: monospace
+  width: 100%
+  height: 100%
+  display: flex
+  flex-direction: column
+  overflow: hidden
 
   .jupyter-cell-gutter
     top: 3px
@@ -142,6 +147,10 @@
     color: colors.$COL_GRAY_DD
     font-size: var(--editor-font-size, 14px)
     font-family: monospace
+    flex: 1
+    min-height: 0
+    width: 100%
+    overflow: hidden
 
   .cm-gutters
     background-color: colors.$COL_GRAY_LLL
@@ -270,8 +279,17 @@
     text-align: right
     min-width: 32px
     font-size: 0.9em
+    padding-left: 2px
+    padding-right: 2px
+
+  .jupyter-cell-per-cell-line-number
+    color: colors.$COL_GRAY_M
+    text-align: right
+    min-width: 1em
+    font-size: 0.9em
+    padding-left: 2px
     margin-left: auto
-    padding-left: 4px
+    padding-right: 0
 
   .jupyter-cell-line-spacer
     min-width: 30px

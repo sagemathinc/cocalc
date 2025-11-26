@@ -25,6 +25,7 @@ interface LineMarker {
   cellType: "code" | "markdown" | "raw"; // Cell type
   cellLabel: string; // "In[1]", "Md", "Raw", etc.
   inputLineNum: number; // 1-based for input, 0 for output markers
+  cellLineNum: number; // 1-based per-cell line number, resets for each cell
   isFirstLineOfCell: boolean; // Show label only on first line
   isOutputMarker: boolean;
   outLabel?: string; // "Out[1]" - shown on output marker line for code cells only
@@ -91,6 +92,7 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
         cellType,
         cellLabel,
         inputLineNum: consecutiveInputLineNum, // Consecutive numbering, skipping output markers
+        cellLineNum: lineInCell, // Per-cell line number (resets for each cell)
         isFirstLineOfCell: lineInCell === 1,
         isOutputMarker: false,
         // Show Out[N] on the last input line of code cells that have been executed
@@ -110,6 +112,7 @@ function buildLineMarkers(mappings: CellMapping[]): Map<number, LineMarker> {
       cellType,
       cellLabel,
       inputLineNum: markerLineNumber,
+      cellLineNum: 1, // Markdown cells have 1 visible line (the marker)
       isFirstLineOfCell: true,
       isOutputMarker: true,
       outLabel, // Show Out[N] on output marker line if cell has been executed
@@ -160,6 +163,7 @@ export function createCellGutterWithLabels(
             marker.cellType,
             marker.cellLabel,
             marker.inputLineNum,
+            marker.cellLineNum,
             marker.isFirstLineOfCell,
             marker.outLabel,
             marker.hasOutputs,
@@ -195,6 +199,7 @@ class CellLabelMarker extends GutterMarker {
     readonly cellType: "code" | "markdown" | "raw",
     readonly label: string,
     readonly lineNum: number,
+    readonly cellLineNum: number,
     readonly isFirst: boolean,
     readonly outLabel?: string,
     readonly hasOutputs?: boolean,
@@ -378,12 +383,18 @@ class CellLabelMarker extends GutterMarker {
       topRow.appendChild(labelSpan);
     }
 
-    // Line number
+    // Global consecutive line number (left)
     const numSpan = document.createElement("span");
     numSpan.textContent = String(this.lineNum);
     numSpan.className = "jupyter-cell-line-number";
-
     topRow.appendChild(numSpan);
+
+    // Per-cell line number (right, resets for each cell)
+    const cellNumSpan = document.createElement("span");
+    cellNumSpan.textContent = String(this.cellLineNum);
+    cellNumSpan.className = "jupyter-cell-per-cell-line-number";
+    topRow.appendChild(cellNumSpan);
+
     wrapper.appendChild(topRow);
 
     // Bottom row: Out[N] label (if present)
@@ -447,6 +458,7 @@ class CellLabelMarker extends GutterMarker {
       other.cellType === this.cellType &&
       other.label === this.label &&
       other.lineNum === this.lineNum &&
+      other.cellLineNum === this.cellLineNum &&
       other.isFirst === this.isFirst &&
       other.outLabel === this.outLabel &&
       other.hasOutputs === this.hasOutputs &&

@@ -22,7 +22,6 @@ import { Decoration, EditorView, highlightActiveLine } from "@codemirror/view";
 import { diff_main } from "@cocalc/util/dmp";
 
 import {
-  CSS,
   React,
   useCallback,
   useEffect,
@@ -66,12 +65,6 @@ interface Props {
   project_id: string;
   path: string;
 }
-
-const EDITOR_STYLE: CSS = {
-  width: "100%",
-  height: "100%",
-  overflow: "auto",
-} as const;
 
 const CELL_WIDGET_SELECTORS = [
   ".jupyter-output-widget",
@@ -914,13 +907,7 @@ export const SingleFileEditor: React.FC<Props> = React.memo((props: Props) => {
     };
   }, []);
 
-  return (
-    <div
-      ref={containerRef}
-      style={EDITOR_STYLE}
-      className="jupyter-single-file-editor"
-    />
-  );
+  return <div ref={containerRef} className="jupyter-single-file-editor" />;
 });
 
 SingleFileEditor.displayName = "SingleFileEditor";
