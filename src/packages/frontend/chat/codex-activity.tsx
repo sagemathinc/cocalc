@@ -901,7 +901,7 @@ function formatTerminalStatus(entry: {
   }
   if (typeof status.exitCode === "number") {
     return status.exitCode === 0
-      ? "Exited with code 0"
+      ? ""
       : `Exited with code ${status.exitCode}`;
   }
   return "Completed";
