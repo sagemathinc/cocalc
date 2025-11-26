@@ -138,7 +138,7 @@ export function CodexActivity({
       if (persisted != null) return persisted;
     }
     // Default closed unless generating or an approval is pending.
-    return generating || hasPendingApproval;
+    return hasPendingApproval;
   });
   const [hovered, setHovered] = useState(false);
 
