@@ -145,6 +145,8 @@ class ChatStreamWriter {
   private events: AcpStreamMessage[] = [];
   private usage: AcpStreamUsage | null = null;
   private content = "";
+  private pendingFinalResponse: string | null = null;
+  private lastCommittedContent: string = "";
   private threadId: string | null = null;
   private seq = 0;
   private finished = false;
@@ -213,6 +215,7 @@ class ChatStreamWriter {
     const arr = this.historyToArray(history);
     if (arr.length > 0) {
       this.prevHistory = arr.slice(1);
+      this.lastCommittedContent = arr[0]?.content ?? "";
     }
     const queued = listAcpPayloads(this.metadata);
     for (const payload of queued) {
@@ -290,11 +293,8 @@ class ChatStreamWriter {
       return;
     }
     if (payload.type === "summary") {
-      if (payload.finalResponse) {
-        this.content = payload.finalResponse;
-      } else if (this.interruptedMessage) {
-        this.content = this.interruptedMessage;
-      }
+      this.pendingFinalResponse =
+        payload.finalResponse ?? this.interruptedMessage ?? null;
       if (payload.usage) {
         this.usage = payload.usage;
       }
@@ -321,9 +321,16 @@ class ChatStreamWriter {
       events: this.events.length,
     });
     if (this.closed) return;
-    const hasContent = !!this.content && this.events.length > 0;
+    const finalResponseReady =
+      !generating && this.pendingFinalResponse != null;
+    const contentForCommit = finalResponseReady
+      ? this.pendingFinalResponse ?? this.content
+      : generating
+        ? this.lastCommittedContent
+        : this.content;
+    const hasContent = !!contentForCommit && this.events.length > 0;
 
-    if (!hasContent) {
+    if (!hasContent && !finalResponseReady) {
       // Even if there was no text payload, make sure we drop the spinner when finished.
       if (!generating) {
         try {
@@ -356,7 +363,7 @@ class ChatStreamWriter {
       sender_id: this.metadata.sender_id,
       date: this.metadata.message_date,
       prevHistory: this.prevHistory,
-      content: this.content,
+      content: contentForCommit,
       generating,
       reply_to: this.metadata.reply_to,
       acp_events: this.events,
@@ -364,6 +371,10 @@ class ChatStreamWriter {
       acp_usage: this.usage,
       acp_account_id: this.approverAccountId,
     });
+    if (finalResponseReady) {
+      this.pendingFinalResponse = null;
+    }
+    this.lastCommittedContent = contentForCommit;
     this.syncdb.set(message);
     this.syncdb.commit();
     (async () => {
