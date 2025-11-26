@@ -41,14 +41,14 @@ type ModeOption = {
 const MODE_OPTIONS: ModeOption[] = [
   {
     value: "full-access",
-    label: "Agent (full access)",
+    label: "Full access",
     description:
       "Run commands with network access and edit files outside this workspace. Extremely powerful—use with caution.",
     warning: true,
   },
   {
     value: "auto",
-    label: "Agent (sandboxed)",
+    label: "Sandboxed",
     description:
       "Codex can run commands and edit files inside this workspace. Approvals may be requested for certain operations.",
   },
@@ -227,10 +227,23 @@ export function CodexConfigButton({
       </div>
     ) : null;
 
+  const modeLabel = (() => {
+    const mode = resolveCodexSessionMode({ sessionMode: currentSessionMode });
+    switch (mode) {
+      case "read-only":
+        return "Codex Read Only";
+      case "full-access":
+        return "Codex Full Access";
+      case "auto":
+      default:
+        return "Codex Sandboxed";
+    }
+  })();
+
   return (
     <>
       <Button size="small" onClick={() => setOpen(true)}>
-        Codex Config
+        {modeLabel}
         <div
           style={{
             fontSize: 11,

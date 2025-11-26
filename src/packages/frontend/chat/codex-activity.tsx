@@ -190,7 +190,13 @@ export function CodexActivity({
         gap: 8,
       }}
     >
-      <Space size={6} align="center" wrap>
+      <Space
+        size={6}
+        align="center"
+        wrap
+        style={{ cursor: "pointer" }}
+        onClick={() => setExpanded(false)}
+      >
         <Text strong style={{ color: COLORS.GRAY_D, fontSize: baseFontSize }}>
           Activity
         </Text>
