@@ -219,6 +219,25 @@ export function ChatLog({
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const manualScrollRef = useRef<boolean>(false);
 
+  // Auto-scroll to bottom while an AI message is generating, unless the
+  // user has manually scrolled away from the bottom.
+  const generating = useMemo(() => {
+    if (!messages) return false;
+    for (const date of sortedDates) {
+      const msg = messages.get(date);
+      if (msg?.get("generating") === true) {
+        return true;
+      }
+    }
+    return false;
+  }, [messages, sortedDates]);
+
+  useEffect(() => {
+    if (manualScrollRef.current) return;
+    if (!generating) return;
+    scrollToBottomRef?.current?.();
+  }, [generating, messages, scrollToBottomRef]);
+
   useEffect(() => {
     if (scrollToBottomRef == null) return;
     scrollToBottomRef.current = (force?: boolean) => {
