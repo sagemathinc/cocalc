@@ -3,6 +3,9 @@
     {
       "name": "cocalc",
       "path": "."
+    },
+    {
+      "path": "dev"
     }
   ],
   "settings": {

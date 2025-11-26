@@ -188,7 +188,7 @@ function messageList(output: Map<string, any>): Map<string, any>[] {
   for (let n = 0, end = output.size; n < end; n++) {
     const mesg = output.get(`${n}`);
     // Make this renderer robust against any possible weird shape of the actual
-    // output object, e.g., undefined or not immmutable js.
+    // output object, e.g., undefined or not immutable js.
     // Also, we're checking that get is defined --
     //   see https://github.com/sagemathinc/cocalc/issues/2404
     if (mesg == null || typeof mesg.get !== "function") {

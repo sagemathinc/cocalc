@@ -12,7 +12,6 @@ import * as immutable from "immutable";
 import { useEffect } from "react";
 
 import {
-  CSS,
   React,
   redux,
   Rendered,
@@ -51,11 +50,6 @@ import * as toolComponents from "./llm";
 import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
-
-export const ERROR_STYLE: CSS = {
-  maxHeight: "30vh",
-  overflow: "auto",
-} as const;
 
 interface Props {
   error?: string;
@@ -244,7 +238,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         <ErrorDisplay
           banner={true}
           error={error}
-          style={ERROR_STYLE}
+          className="cc-jupyter-error-banner"
           onClose={() => actions.set_error(undefined)}
         />
       );
