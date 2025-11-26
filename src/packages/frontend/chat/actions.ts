@@ -280,7 +280,6 @@ export class ChatActions extends Actions<ChatState> {
     });
     track("send_chat", { project_id, path });
 
-    this.save_to_disk();
     (async () => {
       await this.processLLM({
         message,
@@ -339,7 +338,6 @@ export class ChatActions extends Actions<ChatState> {
       date: message.get("date").toISOString(),
     });
     this.deleteDraft(message.get("date")?.valueOf());
-    this.save_to_disk();
   };
 
   saveHistory = (
@@ -431,7 +429,7 @@ export class ChatActions extends Actions<ChatState> {
 
   // Make sure everything saved to DISK.
   save_to_disk = async (): Promise<void> => {
-    this.syncdb?.save_to_disk();
+    await this.syncdb?.save_to_disk();
   };
 
   private _llmEstimateCost = async ({
