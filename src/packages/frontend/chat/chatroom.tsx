@@ -230,6 +230,10 @@ export function ChatPanel({
   const [activityNow, setActivityNow] = useState<number>(Date.now());
   const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
   const scrollToBottomRef = useRef<any>(null);
+  const lastScrollRequestRef = useRef<{
+    thread: string;
+    reason: "unread" | "allread";
+  } | null>(null);
   const selectedThreadDate = useMemo(() => {
     if (!selectedThreadKey || selectedThreadKey === ALL_THREADS_KEY) {
       return undefined;
@@ -405,17 +409,56 @@ export function ChatPanel({
   const mark_as_read = () => markChatAsReadIfUnseen(project_id, path);
 
   useEffect(() => {
-    if (!singleThreadView || !selectedThreadKey) {
-      return;
-    }
+    if (!singleThreadView || !selectedThreadKey) return;
     const thread = threads.find((t) => t.key === selectedThreadKey);
-    if (!thread) {
+    if (!thread || !actions) return;
+
+    const unread = Math.max(thread.unreadCount ?? 0, 0);
+    const prev = lastScrollRequestRef.current;
+
+    const scrollToFirstUnread = () => {
+      const rootMs = parseInt(thread.key, 10);
+      const rootIso = Number.isFinite(rootMs)
+        ? new Date(rootMs).toISOString()
+        : thread.key;
+      const threadMessages = actions.getMessagesInThread?.(rootIso);
+      const total =
+        threadMessages && typeof threadMessages.count === "function"
+          ? threadMessages.count()
+          : threadMessages && typeof (threadMessages as any).size === "number"
+            ? (threadMessages as any).size
+            : thread.messageCount;
+      const fallbackRead = Math.max(thread.readCount ?? 0, 0);
+      const readCount =
+        typeof total === "number" && Number.isFinite(total)
+          ? Math.max(0, Math.min(total, total - unread))
+          : fallbackRead;
+      const index =
+        typeof total === "number" && Number.isFinite(total)
+          ? Math.max(0, Math.min(total - 1, readCount))
+          : fallbackRead;
+      lastScrollRequestRef.current = { thread: thread.key, reason: "unread" };
+      actions.scrollToIndex?.(index);
+    };
+
+    if (unread > 0) {
+      scrollToFirstUnread();
+      actions.markThreadRead?.(thread.key, thread.messageCount);
       return;
     }
-    if (thread.unreadCount <= 0) {
+
+    if (
+      prev &&
+      prev.thread === thread.key &&
+      prev.reason === "unread" &&
+      unread === 0
+    ) {
+      // Avoid immediately re-scrolling to bottom right after marking read.
       return;
     }
-    actions.markThreadRead?.(thread.key, thread.messageCount);
+
+    lastScrollRequestRef.current = { thread: thread.key, reason: "allread" };
+    actions.scrollToIndex?.(Number.MAX_SAFE_INTEGER);
   }, [singleThreadView, selectedThreadKey, threads, actions]);
 
   const handleToggleAllChats = (checked: boolean) => {
