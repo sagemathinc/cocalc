@@ -748,21 +748,6 @@ export default function Message({
 
     return (
       <>
-        <MostlyStaticMarkdown
-          style={MARKDOWN_STYLE}
-          value={value}
-          className={message_class}
-          selectedHashtags={selectedHashtags}
-          toggleHashtag={
-            selectedHashtags != null && actions != null
-              ? (tag) =>
-                  actions?.setHashtagState(
-                    tag,
-                    selectedHashtags?.has(tag) ? undefined : 1,
-                  )
-              : undefined
-          }
-        />
         {codexEvents?.length ? (
           <CodexActivity
             events={codexEvents}
@@ -793,6 +778,21 @@ export default function Message({
             }
           />
         ) : null}
+        <MostlyStaticMarkdown
+          style={MARKDOWN_STYLE}
+          value={value}
+          className={message_class}
+          selectedHashtags={selectedHashtags}
+          toggleHashtag={
+            selectedHashtags != null && actions != null
+              ? (tag) =>
+                  actions?.setHashtagState(
+                    tag,
+                    selectedHashtags?.has(tag) ? undefined : 1,
+                  )
+              : undefined
+          }
+        />
       </>
     );
   }
