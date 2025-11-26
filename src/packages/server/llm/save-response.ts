@@ -16,7 +16,7 @@ type SaveResponseProps = Omit<LLMLogEntry, "time" | "id" | "expire">;
 // Also, we could dedup identical inputs (?).
 export async function saveResponse({
   account_id,
-  analytics_cookie,
+  anonymous_id,
   history,
   input,
   model,
@@ -32,6 +32,7 @@ export async function saveResponse({
   const expire: LLMLogEntry["expire"] = await getExpiration(account_id);
   const pool = getPool();
   try {
+     // still setting analytics_cookie in the db query, because this was before generalizing to an anonymous_id string
     await pool.query(
       "INSERT INTO openai_chatgpt_log(time,input,system,output,history,account_id,analytics_cookie,project_id,path,total_tokens,prompt_tokens,total_time_s,expire,model,tag) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
       [
@@ -40,7 +41,7 @@ export async function saveResponse({
         output,
         history,
         account_id,
-        analytics_cookie,
+        anonymous_id,
         project_id,
         path,
         total_tokens,
@@ -58,7 +59,7 @@ export async function saveResponse({
 
 async function getExpiration(account_id: string | undefined) {
   // NOTE about expire: If the admin setting for "PII Retention" is set *and*
-  // the usage is only identified by their analytics_cookie, then
+  // the usage is only identified by their anonymous_id, then
   // we automatically delete the log of chatgpt usage at the expiration time.
   // If the account_id *is* set, users can do the following:
   // 1. Ability to delete any of their past chatgpt usage

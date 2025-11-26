@@ -14,3 +14,5 @@ export { CONAT_LLM_HISTORY_KEY } from "./llm";
 export { DUMMY_SECRET } from "./project";
 
 export { SERVER_SETTINGS_ENV_PREFIX } from "./server_settings";
+
+export { ANALYTICS_COOKIE_NAME } from "./tracking";

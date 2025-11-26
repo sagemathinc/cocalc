@@ -2,16 +2,16 @@
 Backend server side part of ChatGPT integration with CoCalc.
 */
 
-import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
+import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import computeHash from "@cocalc/util/jupyter-api/compute-hash";
-import getProject from "./global-project-pool";
 import callProject from "@cocalc/server/projects/call";
-import { jupyter_execute } from "@cocalc/util/message";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import checkForAbuse from "./abuse";
+import computeHash from "@cocalc/util/jupyter-api/compute-hash";
+import { jupyter_execute } from "@cocalc/util/message";
 import { expire_time } from "@cocalc/util/relative-time";
+import checkForAbuse from "./abuse";
+import getProject from "./global-project-pool";
 
 const log = getLogger("jupyter-api:execute");
 
@@ -44,7 +44,7 @@ interface Options {
   history?: string[];
   hash?: string;
   account_id?: string;
-  analytics_cookie?: string;
+  anonymous_id?: string;
   tag?: string;
   noCache?: boolean;
   project_id?: string;
@@ -56,7 +56,7 @@ export async function execute({
   input,
   kernel,
   account_id,
-  analytics_cookie,
+  anonymous_id,
   history,
   tag,
   noCache,
@@ -66,7 +66,7 @@ export async function execute({
   output: object[];
   created: Date;
 } | null> {
-  // TODO -- await checkForAbuse({ account_id, analytics_cookie });
+  // TODO -- await checkForAbuse({ account_id, anonymous_id });
 
   log.debug("execute", {
     input,
@@ -74,7 +74,7 @@ export async function execute({
     history,
     hash,
     account_id,
-    analytics_cookie,
+    anonymous_id,
     tag,
     project_id,
     path,
@@ -117,7 +117,7 @@ export async function execute({
 
     // we only worry about abuse against the general public pool, not
     // when used in a user's own project
-    await checkForAbuse({ account_id, analytics_cookie });
+    await checkForAbuse({ account_id, anonymous_id });
 
     request_account_id = jupyter_account_id;
     request_project_id = await getProject();
@@ -168,7 +168,7 @@ export async function execute({
     account_id,
     project_id,
     path,
-    analytics_cookie,
+    anonymous_id,
     history,
     tag,
     total_time_s,
@@ -220,7 +220,7 @@ async function saveResponse({
   account_id,
   project_id,
   path,
-  analytics_cookie,
+  anonymous_id,
   history,
   tag,
   total_time_s,
@@ -235,6 +235,7 @@ async function saveResponse({
   const expire = expire_time(30 * 24 * 60 * 60);
   try {
     await Promise.all([
+      // saving analytics_cookie because this is before generalizing to an anonymous_id string
       pool.query(
         `INSERT INTO jupyter_api_log(created,account_id,project_id,path,analytics_cookie,tag,hash,total_time_s,kernel,history,input,expire) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
         [
@@ -242,7 +243,7 @@ async function saveResponse({
           account_id,
           project_id,
           path,
-          analytics_cookie,
+          anonymous_id,
           tag,
           hash,
           total_time_s,
