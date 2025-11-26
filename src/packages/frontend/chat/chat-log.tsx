@@ -237,7 +237,7 @@ export function ChatLog({
 
   return (
     <>
-      {visibleHashtags.size > 0 && (
+      {!singleThreadView && visibleHashtags.size > 0 && (
         <HashtagBar
           style={{ margin: "5px 15px 15px 15px" }}
           actions={{
