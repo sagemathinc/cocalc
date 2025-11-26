@@ -973,10 +973,13 @@ export class ChatActions extends Actions<ChatState> {
           ? message.date.valueOf()
           : new Date(message.date ?? Date.now()).valueOf());
       if (baseDate != null && !Number.isNaN(baseDate) && messagesMap) {
-        const rootMs =
-          getThreadRootDate({ date: baseDate, messages: messagesMap }) ??
-          baseDate;
-        threadKey = `${rootMs}`;
+        const rootMs = getThreadRootDate({
+          date: baseDate,
+          messages: messagesMap,
+        });
+        const normalized =
+          typeof rootMs === "number" && rootMs > 0 ? rootMs : baseDate;
+        threadKey = `${normalized}`;
       } else if (baseDate != null && !Number.isNaN(baseDate)) {
         threadKey = `${baseDate}`;
       }

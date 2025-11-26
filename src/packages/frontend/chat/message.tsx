@@ -766,7 +766,6 @@ export default function Message({
         {codexEvents?.length ? (
           <CodexActivity
             events={codexEvents}
-            threadId={acpThreadId}
             generating={generating === true}
             fontSize={font_size}
             durationLabel={

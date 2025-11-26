@@ -1469,7 +1469,7 @@ export class CodexAcpAgent implements AcpAgent {
       await stream({
         type: "summary",
         finalResponse: this.handler.getFinalResponse(),
-        threadId: session_id ?? session.sessionId,
+        threadId: session.sessionId,
         usage: usage ?? undefined,
       });
     } finally {

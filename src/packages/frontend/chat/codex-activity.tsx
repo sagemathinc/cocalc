@@ -104,7 +104,6 @@ type ApprovalOption = {
 
 export interface CodexActivityProps {
   events?: AcpStreamMessage[];
-  threadId?: string | null;
   generating?: boolean;
   fontSize?: number;
   durationLabel?: string;
@@ -117,7 +116,6 @@ export interface CodexActivityProps {
 
 export function CodexActivity({
   events,
-  threadId,
   generating,
   fontSize,
   durationLabel,
@@ -146,15 +144,10 @@ export function CodexActivity({
 
   if (!expanded) {
     return (
-      <div style={{ marginTop: 8 }}>
-        <Button size="small" type="default" onClick={() => setExpanded(true)}>
+      <div style={{ marginTop: 8, marginLeft: -8 }}>
+        <Button size="small" type="text" onClick={() => setExpanded(true)}>
           {toggleLabel}
         </Button>
-        {threadId ? (
-          <Tag color="blue" style={{ marginLeft: 8, marginBottom: 0 }}>
-            {threadId}
-          </Tag>
-        ) : null}
       </div>
     );
   }
@@ -204,11 +197,6 @@ export function CodexActivity({
           <Text type="secondary" style={{ fontSize: secondarySize }}>
             Worked for {durationLabel}
           </Text>
-        ) : null}
-        {threadId ? (
-          <Tag color="blue" style={{ margin: 0 }}>
-            {threadId}
-          </Tag>
         ) : null}
       </Space>
       {renderCloseButton()}
@@ -900,9 +888,7 @@ function formatTerminalStatus(entry: {
     return `Terminated (${status.signal})`;
   }
   if (typeof status.exitCode === "number") {
-    return status.exitCode === 0
-      ? ""
-      : `Exited with code ${status.exitCode}`;
+    return status.exitCode === 0 ? "" : `Exited with code ${status.exitCode}`;
   }
   return "Completed";
 }
