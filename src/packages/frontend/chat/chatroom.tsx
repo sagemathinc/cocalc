@@ -450,9 +450,16 @@ export function ChatPanel({
     antdMessage.success("Chat deleted.");
   };
 
-  const confirmDeleteThread = (threadKey: string) => {
+  const confirmDeleteThread = (threadKey: string, label?: string) => {
+    const trimmedLabel = (label ?? "").trim();
+    const displayLabel =
+      trimmedLabel.length > 0
+        ? trimmedLabel.length > 120
+          ? `${trimmedLabel.slice(0, 117)}...`
+          : trimmedLabel
+        : null;
     Modal.confirm({
-      title: "Delete chat?",
+      title: displayLabel ? `Delete chat "${displayLabel}"?` : "Delete chat?",
       content:
         "This removes all messages in this chat for everyone. This can only be undone using 'Edit --> Undo', or by browsing TimeTravel.",
       okText: "Delete",
@@ -495,7 +502,7 @@ export function ChatPanel({
 
   const threadMenuProps = (
     threadKey: string,
-    displayLabel: string,
+    plainLabel: string,
     hasCustomName: boolean,
     isPinned: boolean,
   ): MenuProps => ({
@@ -518,7 +525,7 @@ export function ChatPanel({
     ],
     onClick: ({ key }) => {
       if (key === "rename") {
-        openRenameModal(threadKey, displayLabel, hasCustomName);
+        openRenameModal(threadKey, plainLabel, hasCustomName);
       } else if (key === "pin" || key === "unpin") {
         if (!actions?.setThreadPin) {
           antdMessage.error("Pinning chats is not available.");
@@ -532,7 +539,7 @@ export function ChatPanel({
         }
         antdMessage.success(pinned ? "Chat pinned." : "Chat unpinned.");
       } else if (key === "delete") {
-        confirmDeleteThread(threadKey);
+        confirmDeleteThread(threadKey, plainLabel);
       }
     },
   });
