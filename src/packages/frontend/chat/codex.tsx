@@ -476,11 +476,18 @@ function getCodexUsageSummary(
   if (!seq) return undefined;
   const threadMessages: ChatMessageTyped[] =
     typeof seq.toArray === "function" ? seq.toArray() : Array.from(seq);
+  // Messages can arrive out of order from the SyncDB; normalize to chronological
+  // order so usage totals reflect the most recent turn.
+  const sortedMessages = threadMessages.sort((a, b) => {
+    const aDate = toMsSafe(a?.get("date"));
+    const bDate = toMsSafe(b?.get("date"));
+    return aDate - bDate;
+  });
   let latest;
   let totalTokens = 0;
   let contextWindow: number | undefined;
   let hasAggregate = false;
-  for (const entry of threadMessages) {
+  for (const entry of sortedMessages) {
     const usage: any = entry.get("acp_usage") ?? entry.get("codex_usage");
     if (!usage) continue;
     const usageData = typeof usage?.toJS === "function" ? usage.toJS() : usage;
@@ -577,6 +584,23 @@ function renderOptionWithDescription({
       ) : null}
     </div>
   );
+}
+
+function toMsSafe(value: any): number {
+  if (value instanceof Date) {
+    const ms = value.valueOf();
+    return Number.isFinite(ms) ? ms : 0;
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) return parsed;
+    const num = Number(value);
+    if (Number.isFinite(num)) return num;
+  }
+  return 0;
 }
 
 function defaultWorkingDir(chatPath: string): string {
