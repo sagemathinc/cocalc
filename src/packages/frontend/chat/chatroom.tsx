@@ -139,7 +139,10 @@ export type ThreadMeta = ThreadListItem & {
   unreadCount: number;
   isAI: boolean;
   isPinned: boolean;
+  lastActivityAt?: number;
 };
+
+const ACTIVITY_RECENT_MS = 20_000;
 
 function stripHtml(value: string): string {
   if (!value) return "";
@@ -155,6 +158,7 @@ export interface ChatPanelProps {
   project_id: string;
   path: string;
   messages?: ChatMessages;
+  activity?: any;
   fontSize?: number;
   desc?: NodeDesc;
   variant?: "default" | "compact";
@@ -175,6 +179,7 @@ export function ChatPanel({
   project_id,
   path,
   messages,
+  activity,
   fontSize = 13,
   desc,
   variant = "default",
@@ -220,6 +225,7 @@ export function ChatPanel({
   );
   const [allowAutoSelectThread, setAllowAutoSelectThread] =
     useState<boolean>(true);
+  const [activityNow, setActivityNow] = useState<number>(Date.now());
   const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
   const scrollToBottomRef = useRef<any>(null);
   const selectedThreadDate = useMemo(() => {
@@ -276,6 +282,10 @@ export function ChatPanel({
         }
         llmCacheRef.current.set(thread.key, isAI);
       }
+      const lastActivityAt =
+        activity && typeof (activity as any).get === "function"
+          ? (activity as any).get(thread.key)
+          : undefined;
       return {
         ...thread,
         displayLabel,
@@ -284,9 +294,11 @@ export function ChatPanel({
         unreadCount,
         isAI: !!isAI,
         isPinned,
+        lastActivityAt:
+          typeof lastActivityAt === "number" ? lastActivityAt : undefined,
       };
     });
-  }, [rawThreads, account_id, actions]);
+  }, [rawThreads, account_id, actions, activity]);
 
   const threadSections = useMemo<ThreadSectionWithUnread[]>(() => {
     const grouped = groupThreadsByRecency(threads);
@@ -334,6 +346,11 @@ export function ChatPanel({
       setLastThreadKey(selectedThreadKey);
     }
   }, [selectedThreadKey]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setActivityNow(Date.now()), 5000);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!fragmentId || isAllThreadsSelected || messages == null) {
@@ -509,6 +526,9 @@ export function ChatPanel({
     const isHovered = hoveredThread === key;
     const isMenuOpen = openThreadMenuKey === key;
     const showMenu = isHovered || selectedThreadKey === key || isMenuOpen;
+    const isRecentlyActive =
+      thread.lastActivityAt != null &&
+      activityNow - thread.lastActivityAt < ACTIVITY_RECENT_MS;
     const iconTooltip = thread.isAI
       ? "This thread started with an AI request, so the AI responds automatically."
       : "This thread started as human-only. AI replies only when explicitly mentioned.";
@@ -531,6 +551,18 @@ export function ChatPanel({
             <Icon name={isAI ? "robot" : "users"} style={{ color: "#888" }} />
           </Tooltip>
           <div style={THREAD_ITEM_LABEL_STYLE}>{plainLabel}</div>
+          {isRecentlyActive && (
+            <span
+              aria-label="Recent activity"
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: COLORS.BLUE,
+                flexShrink: 0,
+              }}
+            />
+          )}
           {unreadCount > 0 && !isHovered && (
             <Badge
               count={unreadCount}
@@ -1194,12 +1226,14 @@ export function ChatRoom({
 }: EditorComponentProps) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
   const messages = useEditor("messages") as ChatMessages | undefined;
+  const activity = useEditor("activity");
   return (
     <ChatPanel
       actions={actions}
       project_id={project_id}
       path={path}
       messages={messages}
+      activity={activity as any}
       fontSize={font_size}
       desc={desc}
       variant="default"
