@@ -1386,7 +1386,7 @@ export class CodexAcpAgent implements AcpAgent {
 
     const HOME = process.env.COCALC_ORIGINAL_HOME ?? process.env.HOME;
     const child = spawn(binary, args, {
-      stdio: ["pipe", "pipe", "inherit"],
+      stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env, HOME, ...options.env },
       cwd: options.cwd ?? process.cwd(),
     });
@@ -1394,6 +1394,17 @@ export class CodexAcpAgent implements AcpAgent {
     await new Promise<void>((resolve, reject) => {
       child.once("spawn", resolve);
       child.once("error", reject);
+    });
+
+    // Capture stderr from the child so ACP noise doesn't go to the main console.
+    child.stderr?.setEncoding("utf8");
+    child.stderr?.on("data", (chunk) => {
+      const text = chunk.toString();
+      if (text.trim().length === 0) return;
+      log.warn("acp.child.stderr", { text: text.trimEnd() });
+    });
+    child.stderr?.on("error", (err) => {
+      log.warn("acp.child.stderr_error", { err });
     });
 
     const output = Writable.toWeb(
