@@ -93,6 +93,8 @@ const MARGIN_TOP_VIEWER = "17px";
 
 const AVATAR_MARGIN_LEFTRIGHT = "15px";
 
+const VIEWER_MESSAGE_LEFT_MARGIN = "clamp(12px, 15%, 150px)";
+
 interface Props {
   index: number;
   actions?: ChatActions;
@@ -300,8 +302,7 @@ export default function Message({
     if (!Number.isFinite(baseMs)) {
       return undefined;
     }
-    const root =
-      getThreadRootDate({ date: baseMs, messages }) ?? baseMs;
+    const root = getThreadRootDate({ date: baseMs, messages }) ?? baseMs;
     return Number.isFinite(root) ? `${root}` : undefined;
   }, [message, messages, date]);
   const sessionIdForInterrupt = acpThreadId ?? threadKeyForSession;
@@ -875,6 +876,9 @@ export default function Message({
       fontSize: `${font_size}px`,
       paddingBottom: baseBottomPadding,
       ...padding,
+      ...(is_viewers_message && mode === "standalone"
+        ? { marginLeft: VIEWER_MESSAGE_LEFT_MARGIN }
+        : undefined),
       ...(mode === "sidechat"
         ? { marginLeft: "5px", marginRight: "5px" }
         : undefined),
@@ -1233,4 +1237,3 @@ export function message_to_markdown(message): string {
   const date = message.get("date").toString();
   return `*From:* ${sender}  \n*Date:* ${date}  \n\n${value}`;
 }
-
