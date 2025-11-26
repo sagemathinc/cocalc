@@ -52,6 +52,35 @@ let conatClient: ConatClient | null = null;
 
 type ApprovalEvent = Extract<AcpStreamEvent, { type: "approval" }>;
 
+const INTERRUPT_STATUS_TEXT =
+  "Conversation interrupted - tell the model what to do differently.";
+
+const chatWritersByChatKey = new Map<string, ChatStreamWriter>();
+const chatWritersByThreadId = new Map<string, ChatStreamWriter>();
+
+function chatKey(metadata: AcpChatContext): string {
+  return `${metadata.project_id}:${metadata.path}:${metadata.message_date}`;
+}
+
+function findChatWriter({
+  threadId,
+  chat,
+}: {
+  threadId?: string;
+  chat?: AcpChatContext;
+}): ChatStreamWriter | undefined {
+  if (threadId) {
+    const writer = chatWritersByThreadId.get(threadId);
+    if (writer != null) {
+      return writer;
+    }
+  }
+  if (chat != null) {
+    return chatWritersByChatKey.get(chatKey(chat));
+  }
+  return undefined;
+}
+
 class ApprovalStore {
   private pending = new Map<
     string,
@@ -68,7 +97,11 @@ class ApprovalStore {
     approverAccountId: string,
   ): void {
     if (event.status === "pending") {
-      this.pending.set(event.approvalId, { metadata, event, approverAccountId });
+      this.pending.set(event.approvalId, {
+        metadata,
+        event,
+        approverAccountId,
+      });
     } else {
       this.pending.delete(event.approvalId);
     }
@@ -104,6 +137,8 @@ function resolveApproval(decision: ApprovalDecision): boolean {
 class ChatStreamWriter {
   private syncdb: SyncDB;
   private metadata: AcpChatContext;
+  private readonly chatKey: string;
+  private threadKeys = new Set<string>();
   private prevHistory: MessageHistory[] = [];
   private ready: Promise<void>;
   private closed = false;
@@ -115,26 +150,35 @@ class ChatStreamWriter {
   private finished = false;
   private approverAccountId: string;
   private autoApprove?: (event: ApprovalEvent) => void;
+  private interruptedMessage?: string;
+  private interruptNotified = false;
 
   constructor({
     metadata,
     client,
     approverAccountId,
     autoApprove,
+    sessionKey,
   }: {
     metadata: AcpChatContext;
     client: ConatClient;
     approverAccountId: string;
     autoApprove?: (event: ApprovalEvent) => void;
+    sessionKey?: string;
   }) {
     this.metadata = metadata;
     this.approverAccountId = approverAccountId;
     this.autoApprove = autoApprove;
+    this.chatKey = chatKey(metadata);
     this.syncdb = createChatSyncDB({
       client,
       project_id: metadata.project_id,
       path: metadata.path,
     });
+    chatWritersByChatKey.set(this.chatKey, this);
+    if (sessionKey) {
+      this.registerThreadKey(sessionKey);
+    }
     // ensure initialization rejections are observed immediately
     this.ready = this.initialize();
     this.waitUntilReady();
@@ -235,12 +279,15 @@ class ChatStreamWriter {
     if (payload.type === "summary") {
       if (payload.finalResponse) {
         this.content = payload.finalResponse;
+      } else if (this.interruptedMessage) {
+        this.content = this.interruptedMessage;
       }
       if (payload.usage) {
         this.usage = payload.usage;
       }
       if (payload.threadId != null) {
         this.threadId = payload.threadId;
+        this.registerThreadKey(payload.threadId);
       }
       clearAcpPayloads(this.metadata);
       this.finished = true;
@@ -285,6 +332,14 @@ class ChatStreamWriter {
     this.commit(false);
     this.commit.flush();
     this.closed = true;
+    chatWritersByChatKey.delete(this.chatKey);
+    for (const key of this.threadKeys) {
+      const writer = chatWritersByThreadId.get(key);
+      if (writer === this) {
+        chatWritersByThreadId.delete(key);
+      }
+    }
+    this.threadKeys.clear();
     if (!this.finished) {
       clearAcpPayloads(this.metadata);
     }
@@ -302,6 +357,32 @@ class ChatStreamWriter {
     })();
   }
 
+  addLocalEvent(event: AcpStreamEvent): void {
+    if (this.closed) return;
+    const message: AcpStreamMessage = {
+      type: "event",
+      event,
+      seq: this.seq++,
+    };
+    this.processPayload(message, { persist: true });
+    this.commit(true);
+  }
+
+  notifyInterrupted(text: string): void {
+    if (this.interruptNotified) return;
+    this.interruptNotified = true;
+    this.interruptedMessage = text;
+    this.addLocalEvent({
+      type: "message",
+      text,
+    });
+  }
+
+  private registerThreadKey(key: string): void {
+    if (!key) return;
+    this.threadKeys.add(key);
+    chatWritersByThreadId.set(key, this);
+  }
 }
 
 async function ensureAgent(useNativeTerminal: boolean): Promise<AcpAgent> {
@@ -378,6 +459,7 @@ export async function evaluate({
         client: conatClient,
         autoApprove,
         approverAccountId: request.account_id,
+        sessionKey: request.session_id ?? undefined,
       })
     : null;
 
@@ -612,6 +694,11 @@ async function handleInterruptRequest(
   if (!handled) {
     throw Error("unable to interrupt codex session");
   }
+  const writer = findChatWriter({
+    threadId: request.threadId,
+    chat: request.chat,
+  });
+  writer?.notifyInterrupted(INTERRUPT_STATUS_TEXT);
 }
 
 async function interruptCodexSession(threadId: string): Promise<boolean> {
