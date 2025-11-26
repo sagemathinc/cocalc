@@ -501,7 +501,7 @@ function createEventEntry({
 function formatSummaryDetail(message: AcpStreamMessage & { type: "summary" }) {
   const parts: string[] = [];
   if (message.finalResponse) {
-    parts.push(truncate(message.finalResponse, 200));
+    parts.push(truncate(message.finalResponse, 60));
   }
   if (message.usage) {
     parts.push(`Usage: ${formatUsage(message.usage)}`);
@@ -512,11 +512,14 @@ function formatSummaryDetail(message: AcpStreamMessage & { type: "summary" }) {
 function formatUsage(usage?: {
   input_tokens?: number;
   output_tokens?: number;
+  reasoning_output_tokens?: number;
 }) {
   if (!usage) return "";
   const parts: string[] = [];
   if (usage.input_tokens != null) parts.push(`${usage.input_tokens} in`);
   if (usage.output_tokens != null) parts.push(`${usage.output_tokens} out`);
+  if (usage.reasoning_output_tokens)
+    parts.push(`${usage.reasoning_output_tokens} reasoning`);
   return parts.join(", ");
 }
 

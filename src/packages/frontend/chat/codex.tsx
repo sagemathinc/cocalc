@@ -189,13 +189,18 @@ export function CodexConfigButton({
 
   const contextWindow =
     usageSummary?.contextWindow ?? getModelContextWindow(selectedModelValue);
-  const usageTotal =
-    usageSummary?.totalTokens != null ? usageSummary.totalTokens : 0;
+  const usedTokens =
+    usageSummary?.usedTokens ??
+    (usageSummary?.totalTokens != null ? usageSummary.totalTokens : 0);
+  const cappedUsedTokens =
+    contextWindow != null ? Math.min(usedTokens, contextWindow) : usedTokens;
   const remainingPercent =
     usageSummary != null && contextWindow != null
       ? Math.max(
           0,
-          Math.round(((contextWindow - usageTotal) / contextWindow) * 100),
+          Math.round(
+            ((contextWindow - cappedUsedTokens) / contextWindow) * 100,
+          ),
         )
       : null;
 
@@ -453,6 +458,7 @@ export default CodexConfigButton;
 type UsageSummary = {
   latest?: any;
   totalTokens: number;
+  usedTokens?: number;
   contextWindow?: number;
 };
 
@@ -485,6 +491,7 @@ function getCodexUsageSummary(
   });
   let latest;
   let totalTokens = 0;
+  let usedTokens: number | undefined;
   let contextWindow: number | undefined;
   let hasAggregate = false;
   for (const entry of sortedMessages) {
@@ -501,12 +508,16 @@ function getCodexUsageSummary(
     if (usageData?.model_context_window != null) {
       contextWindow = usageData.model_context_window;
     }
+    const turnUsed = calcUsedTokens(usageData);
+    if (turnUsed != null) {
+      usedTokens = turnUsed;
+    }
     latest = usageData;
   }
   if (!latest && totalTokens === 0) {
     return undefined;
   }
-  return { latest, totalTokens, contextWindow };
+  return { latest, totalTokens, usedTokens, contextWindow };
 }
 
 function getMessageByKey(map, key: string): ChatMessageTyped | undefined {
@@ -584,6 +595,24 @@ function renderOptionWithDescription({
       ) : null}
     </div>
   );
+}
+
+function calcUsedTokens(usage: any): number | undefined {
+  if (!usage || typeof usage !== "object") return undefined;
+  const keys = [
+    "input_tokens",
+    "cached_input_tokens",
+    "output_tokens",
+    "reasoning_output_tokens",
+  ] as const;
+  let total = 0;
+  for (const key of keys) {
+    const value = usage[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      total += value;
+    }
+  }
+  return total > 0 ? total : undefined;
 }
 
 function toMsSafe(value: any): number {
