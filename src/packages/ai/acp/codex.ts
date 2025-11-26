@@ -1,5 +1,9 @@
 /*
 Codex ACP Client.
+
+NOTE: Set COCALC_ACP_MAX_SESSIONS to a number to cause codex-acp to 
+limit the number of sessions in memory at once, to avoid using too
+much RAM.
 */
 
 import { randomUUID } from "node:crypto";
