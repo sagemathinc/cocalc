@@ -12,6 +12,7 @@ import {
   useMemo,
   useState,
 } from "@cocalc/frontend/app-framework";
+import { IS_TOUCH } from "@cocalc/frontend/feature";
 import Ansi from "@cocalc/frontend/components/ansi-to-react";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import {
@@ -105,6 +106,8 @@ export interface CodexActivityProps {
   events?: AcpStreamMessage[];
   threadId?: string | null;
   generating?: boolean;
+  fontSize?: number;
+  durationLabel?: string;
   canResolveApproval?: boolean;
   onResolveApproval?: (args: {
     approvalId: string;
@@ -116,11 +119,14 @@ export function CodexActivity({
   events,
   threadId,
   generating,
+  fontSize,
+  durationLabel,
   canResolveApproval,
   onResolveApproval,
 }: CodexActivityProps): React.ReactElement | null {
   const entries = useMemo(() => normalizeEvents(events ?? []), [events]);
   const [expanded, setExpanded] = useState<boolean>(!!generating);
+  const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     if (generating) {
@@ -130,53 +136,96 @@ export function CodexActivity({
 
   if (!entries.length) return null;
 
-  const header = (
-    <Space size={6} align="center" wrap>
-      {expanded && (
-        <>
-          <Text strong style={{ color: COLORS.GRAY }}>
-            Activity
-          </Text>
-          {threadId ? (
-            <Tag color="blue" style={{ margin: 0 }}>
-              {threadId}
-            </Tag>
-          ) : null}
-        </>
-      )}
-      <Button size="small" type="link" onClick={() => setExpanded((v) => !v)}>
-        {expanded
-          ? "Hide log"
-          : `Show log (${entries.length} ${plural(entries.length, "step")})`}
-      </Button>
-    </Space>
-  );
+  const baseFontSize = fontSize ?? 13;
+  const secondarySize = Math.max(11, baseFontSize - 2);
+  const durationSummary =
+    durationLabel && durationLabel.trim().length > 0
+      ? `Worked for ${durationLabel}`
+      : `${entries.length} ${plural(entries.length, "step")}`;
+  const toggleLabel = expanded ? "Hide log" : `${durationSummary} (show log)`;
 
   if (!expanded) {
     return (
-      <Card
-        size="small"
-        style={{
-          marginTop: 8,
-          background: COLORS.GRAY_LLL,
-          borderColor: COLORS.GRAY_L,
-        }}
-        bodyStyle={{ padding: "6px 10px" }}
-      >
-        {header}
-      </Card>
+      <div style={{ marginTop: 8 }}>
+        <Button size="small" type="default" onClick={() => setExpanded(true)}>
+          {toggleLabel}
+        </Button>
+        {threadId ? (
+          <Tag color="blue" style={{ marginLeft: 8, marginBottom: 0 }}>
+            {threadId}
+          </Tag>
+        ) : null}
+      </div>
     );
   }
+
+  const showCloseButton = IS_TOUCH || hovered;
+
+  const renderCloseButton = (style?: React.CSSProperties) => (
+    <Button
+      size="small"
+      type="text"
+      aria-label="Hide log"
+      className="codex-activity-close"
+      onClick={() => setExpanded(false)}
+      style={{
+        fontSize: "16pt",
+        color: "#434343",
+        opacity: showCloseButton ? 1 : 0,
+        transition: "opacity 150ms ease",
+        ...style,
+      }}
+    >
+      ×
+    </Button>
+  );
+
+  const header = (
+    <div
+      className="codex-activity-header"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+      }}
+    >
+      <Space size={6} align="center" wrap>
+        <Text strong style={{ color: COLORS.GRAY_D, fontSize: baseFontSize }}>
+          Activity
+        </Text>
+        {durationLabel ? (
+          <Text type="secondary" style={{ fontSize: secondarySize }}>
+            Worked for {durationLabel}
+          </Text>
+        ) : null}
+        {threadId ? (
+          <Tag color="blue" style={{ margin: 0 }}>
+            {threadId}
+          </Tag>
+        ) : null}
+      </Space>
+      {renderCloseButton()}
+    </div>
+  );
 
   return (
     <Card
       size="small"
       style={{
         marginTop: 8,
-        background: COLORS.GRAY_LLL,
+        background: "white",
         borderColor: COLORS.GRAY_L,
+        boxShadow: "none",
+        position: "relative",
       }}
-      bodyStyle={{ padding: "8px 10px" }}
+      bodyStyle={{ padding: "8px 10px", fontSize: baseFontSize }}
+      onMouseEnter={() => {
+        if (!IS_TOUCH) setHovered(true);
+      }}
+      onMouseLeave={() => {
+        if (!IS_TOUCH) setHovered(false);
+      }}
     >
       <Space direction="vertical" size={10} style={{ width: "100%" }}>
         {header}
@@ -184,10 +233,12 @@ export function CodexActivity({
           <ActivityRow
             key={entry.id}
             entry={entry}
+            fontSize={baseFontSize}
             canResolveApproval={canResolveApproval}
             onResolveApproval={onResolveApproval}
           />
         ))}
+        {renderCloseButton({ position: "absolute", right: 6, bottom: 6 })}
       </Space>
     </Card>
   );
@@ -195,16 +246,19 @@ export function CodexActivity({
 
 function ActivityRow({
   entry,
+  fontSize,
   canResolveApproval,
   onResolveApproval,
 }: {
   entry: ActivityEntry;
+  fontSize: number;
   canResolveApproval?: boolean;
   onResolveApproval?: (args: {
     approvalId: string;
     optionId?: string;
   }) => Promise<void> | void;
 }) {
+  const secondarySize = Math.max(11, fontSize - 2);
   switch (entry.kind) {
     case "reasoning":
       return (
@@ -215,10 +269,12 @@ function ActivityRow({
           {entry.text ? (
             <StaticMarkdown
               value={entry.text}
-              style={{ fontSize: 13, marginTop: 4 }}
+              style={{ fontSize, marginTop: 4 }}
             />
           ) : (
-            <Text type="secondary">…</Text>
+            <Text type="secondary" style={{ fontSize: secondarySize }}>
+              …
+            </Text>
           )}
         </Space>
       );
@@ -231,10 +287,12 @@ function ActivityRow({
           {entry.text ? (
             <StaticMarkdown
               value={entry.text}
-              style={{ fontSize: 13, marginTop: 4 }}
+              style={{ fontSize, marginTop: 4 }}
             />
           ) : (
-            <Text type="secondary">…</Text>
+            <Text type="secondary" style={{ fontSize: secondarySize }}>
+              …
+            </Text>
           )}
         </div>
       );
@@ -253,6 +311,7 @@ function ActivityRow({
               borderRadius: 4,
               marginTop: 6,
               whiteSpace: "pre-wrap",
+              fontSize,
             }}
           >
             {patchToText(entry.patch)}
@@ -260,13 +319,14 @@ function ActivityRow({
         </div>
       );
     case "terminal":
-      return <TerminalRow entry={entry} />;
+      return <TerminalRow entry={entry} fontSize={fontSize} />;
     case "file":
-      return <FileRow entry={entry} />;
+      return <FileRow entry={entry} fontSize={fontSize} />;
     case "approval":
       return (
         <ApprovalRow
           entry={entry}
+          fontSize={fontSize}
           canResolveApproval={canResolveApproval}
           onResolveApproval={onResolveApproval}
         />
@@ -279,7 +339,10 @@ function ActivityRow({
             {entry.label}
           </Tag>
           {entry.detail ? (
-            <Text type={entry.level === "error" ? "danger" : "secondary"}>
+            <Text
+              type={entry.level === "error" ? "danger" : "secondary"}
+              style={{ fontSize: secondarySize }}
+            >
               {entry.detail}
             </Text>
           ) : null}
@@ -517,20 +580,26 @@ function stringifyPath(pathValue: any): string {
 
 function TerminalRow({
   entry,
+  fontSize,
 }: {
   entry: Extract<ActivityEntry, { kind: "terminal" }>;
+  fontSize: number;
 }) {
   const commandLine = formatCommand(entry.command, entry.args);
   const status = formatTerminalStatus(entry);
   const hasOutput = Boolean(entry.output && entry.output.length > 0);
+  const secondarySize = Math.max(11, fontSize - 2);
+  const codeFontSize = Math.max(11, fontSize - 1);
   return (
     <div>
       <Space size={6} wrap align="center" style={{ marginBottom: 6 }}>
         <Tag color={COLORS.STAR}>Terminal</Tag>
         {commandLine ? (
-          <code style={{ fontSize: 12 }}>{commandLine}</code>
+          <code style={{ fontSize: secondarySize }}>{commandLine}</code>
         ) : (
-          <Text type="secondary">Command</Text>
+          <Text type="secondary" style={{ fontSize: secondarySize }}>
+            Command
+          </Text>
         )}
         {entry.cwd ? (
           <Tag color="default" style={{ margin: 0 }}>
@@ -538,7 +607,7 @@ function TerminalRow({
           </Tag>
         ) : null}
         {status ? (
-          <Text type="secondary" style={{ fontSize: 12 }}>
+          <Text type="secondary" style={{ fontSize: secondarySize }}>
             {status}
           </Text>
         ) : null}
@@ -556,7 +625,7 @@ function TerminalRow({
             padding: "8px 10px",
             whiteSpace: "pre-wrap",
             fontFamily: "monospace",
-            fontSize: 12,
+            fontSize: codeFontSize,
             maxHeight: 300,
             overflowY: "auto",
           }}
@@ -571,7 +640,7 @@ function TerminalRow({
           </pre>
         </div>
       ) : (
-        <Text type="secondary" style={{ fontSize: 12 }}>
+        <Text type="secondary" style={{ fontSize: secondarySize }}>
           {entry.exitStatus ? "No output captured." : "Waiting for output…"}
         </Text>
       )}
@@ -645,8 +714,10 @@ function formatTimestamp(value?: string | null): string {
 
 function FileRow({
   entry,
+  fontSize,
 }: {
   entry: Extract<ActivityEntry, { kind: "file" }>;
+  fontSize: number;
 }) {
   const isRead = entry.operation === "read";
   const actionLabel = isRead
@@ -661,10 +732,12 @@ function FileRow({
     <div>
       <Space size={6} wrap align="center" style={{ marginBottom: 6 }}>
         <Tag color={isRead ? "blue" : "green"}>File</Tag>
-        <Text strong>{actionLabel}</Text>
+        <Text strong style={{ fontSize }}>
+          {actionLabel}
+        </Text>
         <code
           style={{
-            fontSize: 12,
+            fontSize: Math.max(11, fontSize - 2),
             color: COLORS.GRAY_D,
             background: COLORS.GRAY_LLL,
             padding: "0 4px",
@@ -674,12 +747,18 @@ function FileRow({
           {entry.path || "(unknown)"}
         </code>
         {sizeLabel ? (
-          <Text type="secondary" style={{ fontSize: 12 }}>
+          <Text
+            type="secondary"
+            style={{ fontSize: Math.max(11, fontSize - 2) }}
+          >
             {sizeLabel}
           </Text>
         ) : null}
         {scope ? (
-          <Text type="secondary" style={{ fontSize: 12 }}>
+          <Text
+            type="secondary"
+            style={{ fontSize: Math.max(11, fontSize - 2) }}
+          >
             {scope}
           </Text>
         ) : null}
@@ -695,10 +774,12 @@ function FileRow({
 
 function ApprovalRow({
   entry,
+  fontSize,
   canResolveApproval,
   onResolveApproval,
 }: {
   entry: Extract<ActivityEntry, { kind: "approval" }>;
+  fontSize: number;
   canResolveApproval?: boolean;
   onResolveApproval?: (args: {
     approvalId: string;
@@ -738,10 +819,17 @@ function ApprovalRow({
     <div>
       <Space size={6} align="center" wrap style={{ marginBottom: 6 }}>
         <Tag color="gold">Approval</Tag>
-        {entry.title ? <Text strong>{entry.title}</Text> : null}
+        {entry.title ? (
+          <Text strong style={{ fontSize }}>
+            {entry.title}
+          </Text>
+        ) : null}
         <Tag color={approvalStatusColor(entry.status)}>{statusLabel}</Tag>
         {timeoutInfo ? (
-          <Text type="secondary" style={{ fontSize: 12 }}>
+          <Text
+            type="secondary"
+            style={{ fontSize: Math.max(11, fontSize - 2) }}
+          >
             {timeoutInfo}
           </Text>
         ) : null}
@@ -749,7 +837,7 @@ function ApprovalRow({
       {entry.description ? (
         <StaticMarkdown
           value={entry.description}
-          style={{ fontSize: 13, marginBottom: 6 }}
+          style={{ fontSize, marginBottom: 6 }}
         />
       ) : null}
       {pending ? (
@@ -777,7 +865,7 @@ function ApprovalRow({
           </Button>
         </Space>
       ) : (
-        <Text type="secondary" style={{ fontSize: 12 }}>
+        <Text type="secondary" style={{ fontSize: Math.max(11, fontSize - 2) }}>
           {formatApprovalDecision(entry, selectedOption)}
         </Text>
       )}

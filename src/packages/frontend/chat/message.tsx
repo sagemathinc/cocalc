@@ -767,6 +767,15 @@ export default function Message({
             events={codexEvents}
             threadId={acpThreadId}
             generating={generating === true}
+            fontSize={font_size}
+            durationLabel={
+              generating === true
+                ? elapsedLabel
+                : formatTurnDuration({
+                    startMs: date,
+                    history: message.get("history"),
+                  })
+            }
             canResolveApproval={
               message.get("acp_account_id") === account_id ||
               isLanguageModelService(message.get("sender_id")) ||
@@ -1187,6 +1196,35 @@ export default function Message({
   );
 }
 
+function formatTurnDuration({
+  startMs,
+  history,
+}: {
+  startMs?: number;
+  history?: List<any>;
+}): string {
+  if (!startMs || !history || history.size === 0) return "";
+  const endDate = history.first()?.get("date");
+  const endMs =
+    endDate instanceof Date
+      ? endDate.valueOf()
+      : typeof endDate === "number"
+        ? endDate
+        : new Date(endDate ?? 0).valueOf();
+  if (!Number.isFinite(endMs) || endMs <= 0) return "";
+  const elapsed = Math.max(0, endMs - startMs);
+  if (!Number.isFinite(elapsed) || elapsed <= 0) return "";
+  const totalSeconds = Math.floor(elapsed / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  if (hours > 0) {
+    return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+  }
+  return `${minutes}:${pad(seconds)}`;
+}
+
 // Used for exporting chat to markdown file
 export function message_to_markdown(message): string {
   let value = newest_content(message);
@@ -1195,5 +1233,4 @@ export function message_to_markdown(message): string {
   const date = message.get("date").toString();
   return `*From:* ${sender}  \n*Date:* ${date}  \n\n${value}`;
 }
-
 
