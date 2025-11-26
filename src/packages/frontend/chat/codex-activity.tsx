@@ -133,15 +133,9 @@ export function CodexActivity({
       const persisted = expandedState.get(persistKey);
       if (persisted != null) return persisted;
     }
-    return !!generating;
+    return false;
   });
   const [hovered, setHovered] = useState(false);
-
-  useEffect(() => {
-    if (generating) {
-      setExpanded(true);
-    }
-  }, [generating]);
 
   useEffect(() => {
     if (!persistKey) return;
@@ -165,11 +159,11 @@ export function CodexActivity({
     durationLabel && durationLabel.trim().length > 0
       ? `Worked for ${durationLabel}`
       : `${entries.length} ${plural(entries.length, "step")}`;
-  const toggleLabel = expanded ? "Hide log" : `${durationSummary} (show log)`;
+  const toggleLabel = expanded ? "Hide log" : `${durationSummary} (show)`;
 
   if (!expanded) {
     return (
-      <div style={{ marginTop: 8, marginLeft: -8 }}>
+      <div style={{ marginTop: 8, marginLeft: -8, marginBottom: 8 }}>
         <Button size="small" type="text" onClick={() => setExpanded(true)}>
           {toggleLabel}
         </Button>
@@ -233,6 +227,7 @@ export function CodexActivity({
       size="small"
       style={{
         marginTop: 8,
+        marginBottom: 8,
         background: "white",
         borderColor: COLORS.GRAY_L,
         boxShadow: "none",
