@@ -32,9 +32,10 @@ import type { ChatActions } from "./actions";
 const { Text } = Typography;
 const DEFAULT_MODEL_NAME = DEFAULT_CODEX_MODELS[0].name;
 
-// for testing
-//export const CONTEXT_WARN_PCT = 85;
-//export const CONTEXT_CRITICAL_PCT = 90;
+// Remaining-context thresholds (percent left) before showing warnings.
+// for testing/dev uncomment these
+// export const CONTEXT_WARN_PCT = 95;
+// export const CONTEXT_CRITICAL_PCT = 93;
 export const CONTEXT_WARN_PCT = 30;
 export const CONTEXT_CRITICAL_PCT = 15;
 
@@ -216,9 +217,9 @@ export function CodexConfigButton({
   const contextSeverity =
     remainingPercent == null
       ? "unknown"
-      : remainingPercent < 100 - CONTEXT_CRITICAL_PCT
+      : remainingPercent <= CONTEXT_CRITICAL_PCT
         ? "critical"
-        : remainingPercent < 100 - CONTEXT_WARN_PCT
+        : remainingPercent <= CONTEXT_WARN_PCT
           ? "warning"
           : "ok";
   const contextColors = {

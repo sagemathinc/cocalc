@@ -289,24 +289,82 @@ export default function Message({
     return ev;
   }, [message]);
 
+  const threadRootMs = useMemo(() => {
+    const root = getThreadRootDate({ date, messages });
+    const rootMs =
+      root?.valueOf?.() ?? (typeof root === "number" ? root : undefined);
+    if (Number.isFinite(rootMs)) return rootMs as number;
+    return Number.isFinite(date) ? date : undefined;
+  }, [date, messages]);
+
+  const threadKeyForSession = useMemo(() => {
+    return threadRootMs != null ? `${threadRootMs}` : undefined;
+  }, [threadRootMs]);
+
   const acpThreadId = useMemo(() => {
     return message.get("acp_thread_id");
   }, [message]);
-  const threadKeyForSession = useMemo(() => {
-    const baseValue = message.get("date");
-    const baseMs =
-      baseValue instanceof Date
-        ? baseValue.valueOf()
-        : typeof baseValue === "number"
-          ? baseValue
-          : new Date(baseValue ?? date).valueOf();
-    if (!Number.isFinite(baseMs)) {
-      return undefined;
-    }
-    const root = getThreadRootDate({ date: baseMs, messages }) ?? baseMs;
-    return Number.isFinite(root) ? `${root}` : undefined;
-  }, [message, messages, date]);
+
   const sessionIdForInterrupt = acpThreadId ?? threadKeyForSession;
+
+  const latestThreadMessageMs = useMemo(() => {
+    if (threadRootMs == null) return null;
+    const iso = new Date(threadRootMs).toISOString();
+    const seq = actions?.getMessagesInThread?.(iso);
+    if (seq && typeof (seq as any).toArray === "function") {
+      const arr = (seq as any).toArray();
+      if (arr.length > 0) {
+        const last = arr[arr.length - 1];
+        const lastMs = toMessageMs(last?.get?.("date"));
+        if (lastMs != null) return lastMs;
+        let max = -Infinity;
+        for (const msg of arr) {
+          const ms = toMessageMs(msg?.get?.("date"));
+          if (ms != null && ms > max) {
+            max = ms;
+          }
+        }
+        return Number.isFinite(max) ? max : null;
+      }
+    }
+    if (messages && typeof messages.forEach === "function") {
+      let max = -Infinity;
+      messages.forEach((msg) => {
+        if (!msg) return;
+        const root = getThreadRootDate({
+          date: msg.get?.("date")?.valueOf?.() ?? 0,
+          messages,
+        });
+        const rootMs =
+          root?.valueOf?.() ?? (typeof root === "number" ? root : undefined);
+        if (rootMs === threadRootMs) {
+          const ms = msg.get?.("date")?.valueOf?.();
+          if (typeof ms === "number" && Number.isFinite(ms) && ms > max) {
+            max = ms;
+          }
+        }
+      });
+      return Number.isFinite(max) ? max : null;
+    }
+    return null;
+  }, [actions, messages, threadRootMs]);
+
+  const isLatestMessageInThread = useMemo(() => {
+    if (latestThreadMessageMs == null) return true;
+    return date >= latestThreadMessageMs;
+  }, [latestThreadMessageMs, date]);
+
+  const usage = useMemo(() => {
+    const usageRaw: any =
+      message.get("acp_usage") ?? message.get("codex_usage");
+    if (!usageRaw) return undefined;
+    return typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
+  }, [message]);
+
+  const remainingContext = useMemo(
+    () => calcRemainingPercent(usage),
+    [usage],
+  );
 
   const isActive =
     selected || isHovered || replying || show_history || isEditing;
@@ -803,36 +861,19 @@ export default function Message({
   }
 
   function renderContextNotice() {
-    if (generating === true) return null;
-    const usageRaw: any =
-      message.get("acp_usage") ?? message.get("codex_usage");
-    if (!usageRaw) return null;
-    const usage =
-      typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
-    const threadRoot = getThreadRootDate({ date, messages });
-    if (
-      !isLastMessageInThread({
-        date,
-        threadRoot,
-        messages,
-        actions,
-      })
-    ) {
-      return null;
-    }
-    const remaining = calcRemainingPercent(usage);
-    if (remaining == null || remaining >= CONTEXT_WARN_PCT) return null;
+    if (generating === true || !usage || !isLatestMessageInThread) return null;
+    const remaining = remainingContext;
+    if (remaining == null || remaining > CONTEXT_WARN_PCT) return null;
     const severity =
-      remaining < CONTEXT_CRITICAL_PCT ? ("critical" as const) : ("warning" as const);
+      remaining <= CONTEXT_CRITICAL_PCT ? ("critical" as const) : ("warning" as const);
     const colors =
       severity === "critical"
         ? { bg: "rgba(211, 47, 47, 0.12)", border: "#d32f2f", text: "#b71c1c" }
         : { bg: "rgba(245, 166, 35, 0.12)", border: "#f5a623", text: "#8a5b00" };
-    const rootKey = `${
-      getThreadRootDate({ date, messages })?.valueOf?.() ??
-      getThreadRootDate({ date, messages }) ??
-      date
-    }`;
+    const rootKey =
+      threadRootMs != null && Number.isFinite(threadRootMs)
+        ? `${threadRootMs}`
+        : `${date}`;
     const label =
       severity === "critical"
         ? "Context nearly exhausted — compact now"
@@ -1340,65 +1381,19 @@ function calcUsedTokens(usage: any): number | undefined {
   return total > 0 ? total : undefined;
 }
 
-function isLastMessageInThread({
-  date,
-  threadRoot,
-  messages,
-  actions,
-}: {
-  date: number;
-  threadRoot: any;
-  messages: any;
-  actions?: ChatActions;
-}): boolean {
-  const rootValue =
-    threadRoot?.valueOf?.() ?? (typeof threadRoot === "number" ? threadRoot : null);
-  if (rootValue == null || !messages) return true;
-
-  const scanMessages = (list: any[]): number => {
-    let max = -Infinity;
-    for (const entry of list) {
-      const msg = entry;
-      if (!msg) continue;
-      const d = msg.get?.("date")?.valueOf?.() ?? 0;
-      if (Number.isFinite(d) && d > max) {
-        max = d;
-      }
-    }
-    return max;
-  };
-
-  // Prefer a thread-specific iterator if available.
-  if (actions?.getMessagesInThread) {
-    const iso = new Date(rootValue).toISOString();
-    const seq = actions.getMessagesInThread(iso);
-    if (seq) {
-      const arr =
-        typeof seq.toArray === "function" ? seq.toArray() : Array.from(seq);
-      const max = scanMessages(arr);
-      return !Number.isFinite(max) ? true : date >= max;
-    }
+function toMessageMs(value: any): number | null {
+  if (value instanceof Date) {
+    const ms = value.valueOf();
+    return Number.isFinite(ms) ? ms : null;
   }
-
-  // Fallback: scan the whole message map.
-  if (typeof messages?.values === "function") {
-    const arr: any[] = [];
-    for (const [, msg] of messages) {
-      if (!msg) continue;
-      const root = getThreadRootDate({
-        date: msg.get?.("date")?.valueOf?.() ?? 0,
-        messages,
-      });
-      const r = root?.valueOf?.() ?? (typeof root === "number" ? root : null);
-      if (r === rootValue) {
-        arr.push(msg);
-      }
-    }
-    const max = scanMessages(arr);
-    return !Number.isFinite(max) ? true : date >= max;
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
   }
-
-  return true;
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
 }
 
 // Used for exporting chat to markdown file
