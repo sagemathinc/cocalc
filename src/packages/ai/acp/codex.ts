@@ -1453,13 +1453,19 @@ export class CodexAcpAgent implements AcpAgent {
     this.handler.setStream(stream);
 
     try {
+      const isSlashCommand = /^\s*\/\w+/.test(prompt);
+      const promptText = isSlashCommand
+        ? prompt
+        : `${FILE_LINK_GUIDANCE}\n\n${prompt}`;
       const request: PromptRequest = {
         sessionId: session.sessionId,
         prompt: [
           {
             type: "text",
-            // Prepend guidance so file mentions become clickable links in CoCalc.
-            text: `${FILE_LINK_GUIDANCE}\n\n${prompt}`,
+            // Prepend guidance so file mentions become clickable links in CoCalc,
+            // but leave slash-commands (e.g. /compact) untouched so Codex ACP
+            // can intercept them.
+            text: promptText,
           },
         ],
       };
