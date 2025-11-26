@@ -92,6 +92,7 @@ type TerminalState = {
   exitStatus?: TerminalExitStatus;
   waiters: Array<(status: TerminalExitStatus) => void>;
   limit?: number;
+  sessionId?: string;
 };
 
 type CodexClientHandlerOptions = {
@@ -331,7 +332,7 @@ class CodexClientHandler implements TerminalClient {
             exitCode:
               typeof exit.exit_code === "number"
                 ? exit.exit_code
-                : exit.exitCode ?? undefined,
+                : (exit.exitCode ?? undefined),
             signal: exit.signal ?? undefined,
           }),
           output: aggregated,
@@ -478,7 +479,11 @@ class CodexClientHandler implements TerminalClient {
   }
 
   private isTerminalComplete(update: any): boolean {
-    if (update.status && update.status !== "in_progress" && update.status !== "pending") {
+    if (
+      update.status &&
+      update.status !== "in_progress" &&
+      update.status !== "pending"
+    ) {
       return true;
     }
     const rawOutput = update.rawOutput;
@@ -494,10 +499,7 @@ class CodexClientHandler implements TerminalClient {
     return false;
   }
 
-  private flushSyntheticTerminal(
-    id: string,
-    update?: any,
-  ): void {
+  private flushSyntheticTerminal(id: string, update?: any): void {
     this.terminalBuffers.delete(id);
     const callId =
       update?.toolCallId ??
@@ -675,7 +677,7 @@ class CodexClientHandler implements TerminalClient {
   }
 
   async createTerminal({
-    sessionId: _sessionId,
+    sessionId,
     command,
     args,
     env,
@@ -697,6 +699,7 @@ class CodexClientHandler implements TerminalClient {
     const customInvocation = this.resolveCustomCommand(command, args ?? []);
     if (customInvocation) {
       await this.startCustomCommand({
+        sessionId,
         terminalId,
         command: customInvocation.command,
         args: customInvocation.args,
@@ -721,6 +724,7 @@ class CodexClientHandler implements TerminalClient {
       exitStatus: undefined,
       waiters: [],
       limit,
+      sessionId,
       stop: () => {
         child.kill();
       },
@@ -895,6 +899,7 @@ class CodexClientHandler implements TerminalClient {
   }
 
   private async startCustomCommand({
+    sessionId,
     terminalId,
     command,
     args,
@@ -903,6 +908,7 @@ class CodexClientHandler implements TerminalClient {
     limit,
     handler,
   }: {
+    sessionId?: string;
     terminalId: string;
     command: string;
     args: string[];
@@ -917,6 +923,7 @@ class CodexClientHandler implements TerminalClient {
       exitStatus: undefined,
       waiters: [],
       limit: limit ?? MAX_TERMINAL_STREAM_CHARS,
+      sessionId,
     };
     const abortController = new AbortController();
     state.stop = () => {
@@ -1071,6 +1078,21 @@ class CodexClientHandler implements TerminalClient {
     const usage = this.latestUsage;
     this.latestUsage = undefined;
     return usage;
+  }
+
+  interruptSession(sessionId: string): void {
+    for (const [terminalId, state] of this.terminals.entries()) {
+      if (state.sessionId === sessionId) {
+        try {
+          state.stop?.();
+        } catch (err) {
+          log.warn("failed to stop terminal during interrupt", {
+            terminalId,
+            err,
+          });
+        }
+      }
+    }
   }
 
   private async emitTerminalEvent(
@@ -1596,6 +1618,7 @@ export class CodexAcpAgent implements AcpAgent {
       return false;
     }
     try {
+      this.handler.interruptSession(session.sessionId);
       await this.connection.cancel({ sessionId: session.sessionId });
       return true;
     } catch (err) {
