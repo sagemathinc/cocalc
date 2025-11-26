@@ -59,6 +59,7 @@ import {
 } from "./threads";
 import type { ThreadListItem, ThreadSection } from "./threads";
 import CodexConfigButton from "./codex";
+import { CONTEXT_WARN_PCT, CONTEXT_CRITICAL_PCT} from "./codex";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -143,9 +144,7 @@ export type ThreadMeta = ThreadListItem & {
   contextRemaining?: number;
 };
 
-const ACTIVITY_RECENT_MS = 20_000;
-const CONTEXT_WARN_PCT = 30;
-const CONTEXT_CRITICAL_PCT = 15;
+const ACTIVITY_RECENT_MS = 7_500;
 
 function stripHtml(value: string): string {
   if (!value) return "";

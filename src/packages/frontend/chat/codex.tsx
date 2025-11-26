@@ -32,6 +32,12 @@ import type { ChatActions } from "./actions";
 const { Text } = Typography;
 const DEFAULT_MODEL_NAME = DEFAULT_CODEX_MODELS[0].name;
 
+// for testing
+//export const CONTEXT_WARN_PCT = 85;
+//export const CONTEXT_CRITICAL_PCT = 90;
+export const CONTEXT_WARN_PCT = 30;
+export const CONTEXT_CRITICAL_PCT = 15;
+
 type ModeOption = {
   value: CodexSessionMode;
   label: string;
@@ -210,9 +216,9 @@ export function CodexConfigButton({
   const contextSeverity =
     remainingPercent == null
       ? "unknown"
-      : remainingPercent < 15
+      : remainingPercent < 100 - CONTEXT_CRITICAL_PCT
         ? "critical"
-        : remainingPercent < 30
+        : remainingPercent < 100 - CONTEXT_WARN_PCT
           ? "warning"
           : "ok";
   const contextColors = {
@@ -246,7 +252,7 @@ export function CodexConfigButton({
       ? "Context very low — compact now"
       : contextSeverity === "warning"
         ? "Context low — compact soon"
-        : contextSummary ?? "Context";
+        : (contextSummary ?? "Context");
   const contextSubtitleColor =
     contextSeverity === "critical"
       ? COLORS.FG_RED

@@ -47,6 +47,7 @@ import {
   newest_content,
   sender_is_viewer,
 } from "./utils";
+import { CONTEXT_WARN_PCT, CONTEXT_CRITICAL_PCT} from "./codex";
 
 const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
@@ -94,9 +95,6 @@ const MARGIN_TOP_VIEWER = "17px";
 const AVATAR_MARGIN_LEFTRIGHT = "15px";
 
 const VIEWER_MESSAGE_LEFT_MARGIN = "clamp(12px, 15%, 150px)";
-
-const CONTEXT_WARN_PCT = 30;
-const CONTEXT_CRITICAL_PCT = 15;
 
 interface Props {
   index: number;
