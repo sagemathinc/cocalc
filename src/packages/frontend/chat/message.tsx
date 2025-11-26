@@ -95,6 +95,9 @@ const AVATAR_MARGIN_LEFTRIGHT = "15px";
 
 const VIEWER_MESSAGE_LEFT_MARGIN = "clamp(12px, 15%, 150px)";
 
+const CONTEXT_WARN_PCT = 30;
+const CONTEXT_CRITICAL_PCT = 15;
+
 interface Props {
   index: number;
   actions?: ChatActions;
@@ -781,6 +784,7 @@ export default function Message({
             }
           />
         ) : null}
+        {renderContextNotice()}
         <MostlyStaticMarkdown
           style={MARKDOWN_STYLE}
           value={value}
@@ -800,6 +804,62 @@ export default function Message({
     );
   }
 
+  function renderContextNotice() {
+    if (generating === true) return null;
+    const usageRaw: any =
+      message.get("acp_usage") ?? message.get("codex_usage");
+    if (!usageRaw) return null;
+    const usage =
+      typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
+    const remaining = calcRemainingPercent(usage);
+    if (remaining == null || remaining >= CONTEXT_WARN_PCT) return null;
+    const severity =
+      remaining < CONTEXT_CRITICAL_PCT ? ("critical" as const) : ("warning" as const);
+    const colors =
+      severity === "critical"
+        ? { bg: "rgba(211, 47, 47, 0.12)", border: "#d32f2f", text: "#b71c1c" }
+        : { bg: "rgba(245, 166, 35, 0.12)", border: "#f5a623", text: "#8a5b00" };
+    const rootKey = `${
+      getThreadRootDate({ date, messages })?.valueOf?.() ??
+      getThreadRootDate({ date, messages }) ??
+      date
+    }`;
+    const label =
+      severity === "critical"
+        ? "Context nearly exhausted — compact now"
+        : "Context low — compact soon";
+    return (
+      <div
+        style={{
+          margin: "6px 0 8px",
+          padding: "8px 10px",
+          borderRadius: 6,
+          background: colors.bg,
+          border: `1px solid ${colors.border}`,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          flexWrap: "wrap",
+          color: colors.text,
+        }}
+      >
+        <span style={{ fontWeight: 600 }}>
+          {label} ({remaining}% left)
+        </span>
+        {actions?.runCodexCompact ? (
+          <Button
+            size="small"
+            type={severity === "critical" ? "primary" : "default"}
+            danger={severity === "critical"}
+            onClick={() => actions.runCodexCompact(rootKey)}
+          >
+            Compact
+          </Button>
+        ) : null}
+      </div>
+    );
+  }
+
   function renderEditingMeta() {
     if (isEditing) {
       return null;
@@ -815,7 +875,7 @@ export default function Message({
     );
   }
 
-  function renderBottomControls() {
+function renderBottomControls() {
     if (generating !== true || actions == null) {
       return null;
     }
@@ -1229,6 +1289,46 @@ function formatTurnDuration({
     return `${hours}:${pad(minutes)}:${pad(seconds)}`;
   }
   return `${minutes}:${pad(seconds)}`;
+}
+
+function calcRemainingPercent(usage: any): number | null {
+  if (!usage || typeof usage !== "object") return null;
+  const contextWindow = usage.model_context_window;
+  const usedTokens =
+    calcUsedTokens(usage) ??
+    (typeof usage.total_tokens === "number" ? usage.total_tokens : undefined);
+  if (
+    typeof contextWindow !== "number" ||
+    !Number.isFinite(contextWindow) ||
+    contextWindow <= 0 ||
+    typeof usedTokens !== "number" ||
+    !Number.isFinite(usedTokens)
+  ) {
+    return null;
+  }
+  const cappedUsed = Math.min(usedTokens, contextWindow);
+  return Math.max(
+    0,
+    Math.round(((contextWindow - cappedUsed) / contextWindow) * 100),
+  );
+}
+
+function calcUsedTokens(usage: any): number | undefined {
+  if (!usage || typeof usage !== "object") return undefined;
+  const keys = [
+    "input_tokens",
+    "cached_input_tokens",
+    "output_tokens",
+    "reasoning_output_tokens",
+  ] as const;
+  let total = 0;
+  for (const key of keys) {
+    const value = usage[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      total += value;
+    }
+  }
+  return total > 0 ? total : undefined;
 }
 
 // Used for exporting chat to markdown file

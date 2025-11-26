@@ -10,6 +10,7 @@ import {
   Progress,
   Collapse,
   Divider,
+  Tooltip,
 } from "antd";
 import {
   React,
@@ -206,14 +207,63 @@ export function CodexConfigButton({
 
   const contextSummary =
     remainingPercent != null ? `${remainingPercent}% context left` : null;
-  const contextSummaryColor =
-    remainingPercent != null && remainingPercent < 30
+  const contextSeverity =
+    remainingPercent == null
+      ? "unknown"
+      : remainingPercent < 15
+        ? "critical"
+        : remainingPercent < 30
+          ? "warning"
+          : "ok";
+  const contextColors = {
+    ok: {
+      text: COLORS.GRAY_M,
+      accent: COLORS.BLUE,
+      bg: "transparent",
+      border: COLORS.GRAY_L,
+    },
+    warning: {
+      text: "#b26a00",
+      accent: "#f5a623",
+      bg: "rgba(245, 166, 35, 0.12)",
+      border: "rgba(245, 166, 35, 0.4)",
+    },
+    critical: {
+      text: COLORS.FG_RED,
+      accent: "#d32f2f",
+      bg: "rgba(211, 47, 47, 0.12)",
+      border: "rgba(211, 47, 47, 0.4)",
+    },
+    unknown: {
+      text: COLORS.GRAY_M,
+      accent: COLORS.GRAY_M,
+      bg: "transparent",
+      border: COLORS.GRAY_L,
+    },
+  }[contextSeverity];
+  const contextLabel =
+    contextSeverity === "critical"
+      ? "Context very low — compact now"
+      : contextSeverity === "warning"
+        ? "Context low — compact soon"
+        : contextSummary ?? "Context";
+  const contextSubtitleColor =
+    contextSeverity === "critical"
       ? COLORS.FG_RED
-      : COLORS.GRAY_M;
+      : contextSeverity === "warning"
+        ? "#b26a00"
+        : COLORS.GRAY;
 
   const contextMeter =
     remainingPercent != null ? (
-      <div>
+      <div
+        style={{
+          border: `1px solid ${contextColors.border}`,
+          borderRadius: 6,
+          padding: 10,
+          background: contextColors.bg,
+        }}
+      >
         <div
           style={{
             display: "flex",
@@ -222,13 +272,42 @@ export function CodexConfigButton({
             alignItems: "center",
           }}
         >
-          <Text style={{ fontSize: 12, color: contextSummaryColor }}>
-            {contextSummary}
-          </Text>
+          <Space size={8} align="center">
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: contextColors.accent,
+                boxShadow:
+                  contextSeverity === "ok"
+                    ? undefined
+                    : `0 0 0 6px ${contextColors.bg}`,
+                flexShrink: 0,
+              }}
+            />
+            <Tooltip title="Context tracks how much of the model window remains before quality drops. Compact to reclaim space.">
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: contextColors.text,
+                  fontWeight:
+                    contextSeverity === "ok" || contextSeverity === "unknown"
+                      ? 500
+                      : 600,
+                }}
+              >
+                {contextLabel}
+                {contextSummary ? ` (${contextSummary})` : ""}
+              </Text>
+            </Tooltip>
+          </Space>
           {actions?.runCodexCompact ? (
             <Button
               size="small"
               onClick={() => actions?.runCodexCompact?.(threadKey)}
+              type={contextSeverity === "ok" ? "default" : "primary"}
+              danger={contextSeverity === "critical"}
             >
               Compact
             </Button>
@@ -237,11 +316,18 @@ export function CodexConfigButton({
         <Progress
           percent={100 - remainingPercent}
           status={
-            remainingPercent < 30
+            contextSeverity === "critical"
               ? "exception"
-              : remainingPercent < 45
+              : contextSeverity === "warning"
                 ? "active"
                 : "normal"
+          }
+          strokeColor={
+            contextSeverity === "critical"
+              ? contextColors.accent
+              : contextSeverity === "warning"
+                ? contextColors.accent
+                : undefined
           }
           showInfo={false}
           size="small"
@@ -269,10 +355,7 @@ export function CodexConfigButton({
         <div
           style={{
             fontSize: 11,
-            color:
-              remainingPercent != null && remainingPercent < 30
-                ? COLORS.FG_RED
-                : COLORS.GRAY,
+            color: contextSubtitleColor,
           }}
         >
           {selectedModelLabel}

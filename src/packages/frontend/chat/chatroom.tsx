@@ -140,9 +140,12 @@ export type ThreadMeta = ThreadListItem & {
   isAI: boolean;
   isPinned: boolean;
   lastActivityAt?: number;
+  contextRemaining?: number;
 };
 
 const ACTIVITY_RECENT_MS = 20_000;
+const CONTEXT_WARN_PCT = 30;
+const CONTEXT_CRITICAL_PCT = 15;
 
 function stripHtml(value: string): string {
   if (!value) return "";
@@ -243,6 +246,21 @@ export function ChatPanel({
 
   const llmCacheRef = useRef<Map<string, boolean>>(new Map());
   const rawThreads = useThreadList(messages);
+  const contextRemainingByThread = useMemo(() => {
+    const result = new Map<string, number>();
+    if (!messages) return result;
+    for (const thread of rawThreads) {
+      const pct = computeThreadContextRemaining(
+        thread.key,
+        actions,
+        messages,
+      );
+      if (pct != null) {
+        result.set(thread.key, pct);
+      }
+    }
+    return result;
+  }, [rawThreads, actions, messages]);
   const threads = useMemo<ThreadMeta[]>(() => {
     return rawThreads.map((thread) => {
       const rootMessage = thread.rootMessage;
@@ -296,9 +314,10 @@ export function ChatPanel({
         isPinned,
         lastActivityAt:
           typeof lastActivityAt === "number" ? lastActivityAt : undefined,
+        contextRemaining: contextRemainingByThread.get(thread.key),
       };
     });
-  }, [rawThreads, account_id, actions, activity]);
+  }, [rawThreads, account_id, actions, activity, contextRemainingByThread]);
 
   const threadSections = useMemo<ThreadSectionWithUnread[]>(() => {
     const grouped = groupThreadsByRecency(threads);
@@ -529,6 +548,26 @@ export function ChatPanel({
     const isRecentlyActive =
       thread.lastActivityAt != null &&
       activityNow - thread.lastActivityAt < ACTIVITY_RECENT_MS;
+    const contextRemaining = thread.contextRemaining;
+    const contextSeverity =
+      contextRemaining == null
+        ? null
+        : contextRemaining < CONTEXT_CRITICAL_PCT
+          ? "critical"
+          : contextRemaining < CONTEXT_WARN_PCT
+            ? "warning"
+            : null;
+    const showDot = isRecentlyActive || contextSeverity != null;
+    const dotColor =
+      contextSeverity === "critical"
+        ? COLORS.FG_RED
+        : contextSeverity === "warning"
+          ? "#f5a623"
+          : COLORS.BLUE;
+    const dotTitle =
+      contextSeverity != null && contextRemaining != null
+        ? `Context ${contextRemaining}% left — compact soon.`
+        : "Recent activity";
     const iconTooltip = thread.isAI
       ? "This thread started with an AI request, so the AI responds automatically."
       : "This thread started as human-only. AI replies only when explicitly mentioned.";
@@ -551,17 +590,23 @@ export function ChatPanel({
             <Icon name={isAI ? "robot" : "users"} style={{ color: "#888" }} />
           </Tooltip>
           <div style={THREAD_ITEM_LABEL_STYLE}>{plainLabel}</div>
-          {isRecentlyActive && (
-            <span
-              aria-label="Recent activity"
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: COLORS.BLUE,
-                flexShrink: 0,
-              }}
-            />
+          {showDot && (
+            <Tooltip title={dotTitle}>
+              <span
+                aria-label="Recent activity"
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: dotColor,
+                  boxShadow:
+                    contextSeverity != null
+                      ? `0 0 0 6px rgba(0,0,0,0.04)`
+                      : undefined,
+                  flexShrink: 0,
+                }}
+              />
+            </Tooltip>
           )}
           {unreadCount > 0 && !isHovered && (
             <Badge
@@ -1215,6 +1260,81 @@ export function ChatPanel({
       </Modal>
     </div>
   );
+}
+
+function computeThreadContextRemaining(
+  threadKey: string,
+  actions?: ChatActions,
+  messages?: ChatMessages,
+): number | null {
+  if (!actions?.getMessagesInThread || !messages) return null;
+  const ms = Number(threadKey);
+  const keyIso = Number.isFinite(ms)
+    ? new Date(ms).toISOString()
+    : threadKey ?? "";
+  const seq = actions.getMessagesInThread(keyIso);
+  if (!seq) return null;
+  const list =
+    typeof seq.toArray === "function" ? seq.toArray() : Array.from(seq);
+  if (!list?.length) return null;
+  list.sort((a, b) => {
+    const aDate = a?.get("date")?.valueOf?.() ?? 0;
+    const bDate = b?.get("date")?.valueOf?.() ?? 0;
+    return aDate - bDate;
+  });
+  let remaining: number | null = null;
+  for (const entry of list) {
+    const usageRaw: any =
+      entry?.get("acp_usage") ?? entry?.get("codex_usage");
+    if (!usageRaw) continue;
+    const usage =
+      typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
+    const pct = calcRemainingPercent(usage);
+    if (pct != null) {
+      remaining = pct;
+    }
+  }
+  return remaining;
+}
+
+function calcRemainingPercent(usage: any): number | null {
+  if (!usage || typeof usage !== "object") return null;
+  const contextWindow = usage.model_context_window;
+  const usedTokens =
+    calcUsedTokens(usage) ??
+    (typeof usage.total_tokens === "number" ? usage.total_tokens : undefined);
+  if (
+    typeof contextWindow !== "number" ||
+    !Number.isFinite(contextWindow) ||
+    contextWindow <= 0 ||
+    typeof usedTokens !== "number" ||
+    !Number.isFinite(usedTokens)
+  ) {
+    return null;
+  }
+  const cappedUsed = Math.min(usedTokens, contextWindow);
+  return Math.max(
+    0,
+    Math.round(((contextWindow - cappedUsed) / contextWindow) * 100),
+  );
+}
+
+function calcUsedTokens(usage: any): number | undefined {
+  if (!usage || typeof usage !== "object") return undefined;
+  const keys = [
+    "input_tokens",
+    "cached_input_tokens",
+    "output_tokens",
+    "reasoning_output_tokens",
+  ] as const;
+  let total = 0;
+  for (const key of keys) {
+    const value = usage[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      total += value;
+    }
+  }
+  return total > 0 ? total : undefined;
 }
 
 export function ChatRoom({
