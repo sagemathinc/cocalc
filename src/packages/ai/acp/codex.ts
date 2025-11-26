@@ -60,6 +60,9 @@ const log = getLogger("ai:acp");
 const MAX_TERMINAL_STREAM_CHARS = 4000;
 const APPROVAL_TIMEOUT_MS = 1000 * 60 * 60 * 8; // 8 hours
 
+const FILE_LINK_GUIDANCE =
+  "When referencing workspace files, output markdown links relative to the project root so they stay clickable in CoCalc, e.g., foo.py -> [foo.py](./foo.py) (no backticks around the link). For images use ![](./image.png).";
+
 interface CodexAcpAgentOptions {
   binaryPath?: string;
   env?: NodeJS.ProcessEnv;
@@ -1455,7 +1458,8 @@ export class CodexAcpAgent implements AcpAgent {
         prompt: [
           {
             type: "text",
-            text: prompt,
+            // Prepend guidance so file mentions become clickable links in CoCalc.
+            text: `${FILE_LINK_GUIDANCE}\n\n${prompt}`,
           },
         ],
       };
