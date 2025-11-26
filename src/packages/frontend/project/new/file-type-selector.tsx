@@ -96,10 +96,40 @@ export function FileTypeSelector({
 
     return (
       <>
-        <Section color="blue" icon="jupyter" isFlyout={isFlyout}>
-          Popular Documents
-        </Section>
         <Row gutter={gutter} style={newRowStyle}>
+          {!disabledFeatures?.chat && (
+            <Col sm={sm} md={md}>
+              <Tip
+                delayShow={DELAY_SHOW_MS}
+                title={intl.formatMessage({
+                  id: "project.new.file-type-selector.chatroom.title",
+                  defaultMessage: "Create a Chatroom",
+                })}
+                placement="bottom"
+                icon={NEW_FILETYPE_ICONS["sage-chat"]}
+                tip={
+                  <FormattedMessage
+                    id="project.new.file-type-selector.chatroom.tooltip"
+                    defaultMessage={`Chat with AI or human collaborators.
+                      See <A>documentation</A> to learn more.`}
+                    values={{
+                      A: (c) => (
+                        <A href="https://doc.cocalc.com/chat.html">{c}</A>
+                      ),
+                    }}
+                  />
+                }
+              >
+                <NewFileButton
+                  name={"Chat"}
+                  on_click={create_file}
+                  ext="sage-chat"
+                  size={btnSize}
+                  active={btnActive("sage-chat")}
+                />
+              </Tip>
+            </Col>
+          )}
           <JupyterNotebookButtons
             mode={mode}
             availableFeatures={availableFeatures}
@@ -112,7 +142,7 @@ export function FileTypeSelector({
             makeNewFilename={() => makeNewFilename?.("ipynb")}
             after={
               /* Those come after the main button, then the additional jupyter notebooks – to avoid jumpyness */
-              [renderLaTeX(), renderQuarto(), renderMD()]
+              [renderTerminal(), renderLaTeX()]
             }
           />
         </Row>
@@ -120,35 +150,40 @@ export function FileTypeSelector({
     );
   }
 
-  function renderLinux() {
+  function renderTerminal() {
+    return (
+      <Col sm={sm} md={md}>
+        <Tip
+          delayShow={DELAY_SHOW_MS}
+          title={intl.formatMessage(labels.linux_terminal)}
+          icon={NEW_FILETYPE_ICONS.term}
+          tip={intl.formatMessage({
+            id: "new.file-type-selector.linux.tooltip",
+            defaultMessage:
+              "Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more.",
+          })}
+        >
+          <NewFileButton
+            name={intl.formatMessage(labels.linux_terminal)}
+            on_click={create_file}
+            ext="term"
+            size={btnSize}
+            active={btnActive("term")}
+          />
+        </Tip>
+      </Col>
+    );
+  }
+
+  function renderServers() {
     if (disabledFeatures?.linux) return;
     return (
       <>
         <Section color="orange" icon="linux" isFlyout={isFlyout}>
-          Linux
+          Servers
         </Section>
 
         <Row gutter={gutter} style={newRowStyle}>
-          <Col sm={sm} md={md}>
-            <Tip
-              delayShow={DELAY_SHOW_MS}
-              title={intl.formatMessage(labels.linux_terminal)}
-              icon={NEW_FILETYPE_ICONS.term}
-              tip={intl.formatMessage({
-                id: "new.file-type-selector.linux.tooltip",
-                defaultMessage:
-                  "Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more.",
-              })}
-            >
-              <NewFileButton
-                name={intl.formatMessage(labels.linux_terminal)}
-                on_click={create_file}
-                ext="term"
-                size={btnSize}
-                active={btnActive("term")}
-              />
-            </Tip>
-          </Col>
           {availableFeatures.x11 && (
             <Col sm={sm} md={md}>
               <Tip
@@ -171,55 +206,6 @@ export function FileTypeSelector({
               </Tip>
             </Col>
           )}
-          {create_folder != null && (
-            <Col sm={sm} md={md}>
-              <Tip
-                delayShow={DELAY_SHOW_MS}
-                title={intl.formatMessage({
-                  id: "new.file-type-selector.folder.title",
-                  defaultMessage: "Create New Folder",
-                })}
-                placement="left"
-                icon={NEW_FILETYPE_ICONS["/"]}
-                tip={intl.formatMessage({
-                  id: "new.file-type-selector.folder.tooltip",
-                  defaultMessage:
-                    "Create a folder (subdirectory) in which to store and organize your files.  CoCalc provides a full featured filesystem.  You can also type a path in the input box above that ends with a forward slash / and press enter.",
-                })}
-              >
-                <NewFileButton
-                  ext="/"
-                  name={intl.formatMessage({
-                    id: "project.new.file-type-selector.new.label",
-                    defaultMessage: "New Folder",
-                    description:
-                      "short label of a button to create a new folder in a file-system",
-                  })}
-                  on_click={create_folder}
-                  size={btnSize}
-                  active={btnActive("/")}
-                />
-              </Tip>
-            </Col>
-          )}
-          <Col sm={sm} md={md}>
-            {children}
-          </Col>
-        </Row>
-      </>
-    );
-  }
-
-  function renderServers() {
-    if (disabledFeatures?.servers || mode === "flyout") return;
-
-    return (
-      <>
-        <Section color="red" icon="server" isFlyout={isFlyout}>
-          Servers
-        </Section>
-
-        <Row gutter={gutter} style={newRowStyle}>
           {computeServersEnabled() && (
             <Col sm={doubleSm} md={doubleMd}>
               <Tip
@@ -272,7 +258,7 @@ export function FileTypeSelector({
     return (
       <>
         <Section color="purple" icon="graduation-cap" isFlyout={isFlyout}>
-          Teaching and Chat
+          Course Management
         </Section>
 
         <Row gutter={gutter} style={newRowStyle}>
@@ -306,40 +292,6 @@ export function FileTypeSelector({
                   ext="course"
                   size={btnSize}
                   active={btnActive("course")}
-                />
-              </Tip>
-            </Col>
-          )}
-          {!disabledFeatures?.chat && (
-            <Col sm={doubleSm} md={doubleMd}>
-              <Tip
-                delayShow={DELAY_SHOW_MS}
-                title={intl.formatMessage({
-                  id: "project.new.file-type-selector.chatroom.title",
-                  defaultMessage: "Create a Chatroom",
-                })}
-                placement="bottom"
-                icon={NEW_FILETYPE_ICONS["sage-chat"]}
-                tip={
-                  <FormattedMessage
-                    id="project.new.file-type-selector.chatroom.tooltip"
-                    defaultMessage={`Create a chatroom for chatting with collaborators on this project.
-                      You can also embed and run computations in chat messages.
-                      See <A>documentation</A> to learn more.`}
-                    values={{
-                      A: (c) => (
-                        <A href="https://doc.cocalc.com/chat.html">{c}</A>
-                      ),
-                    }}
-                  />
-                }
-              >
-                <NewFileButton
-                  name={intl.formatMessage(labels.chatroom)}
-                  on_click={create_file}
-                  ext="sage-chat"
-                  size={btnSize}
-                  active={btnActive("sage-chat")}
                 />
               </Tip>
             </Col>
@@ -493,9 +445,10 @@ export function FileTypeSelector({
     return (
       <>
         <Section color="green" icon="markdown" isFlyout={isFlyout}>
-          Miscellaneous Documents
+          Other Documents
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
+          {renderMD()}
           {availableFeatures.rmd &&
             addAiDocGenerate(
               <Tip
@@ -582,7 +535,7 @@ export function FileTypeSelector({
           Utilities
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
-          <Col sm={doubleSm} md={doubleMd}>
+          <Col sm={sm} md={md}>
             <Tip
               delayShow={DELAY_SHOW_MS}
               title={labelTaskList}
@@ -603,7 +556,7 @@ export function FileTypeSelector({
             </Tip>
           </Col>
           {!disabledFeatures?.timers && (
-            <Col sm={doubleSm} md={doubleMd}>
+            <Col sm={sm} md={md}>
               <Tip
                 delayShow={DELAY_SHOW_MS}
                 title={labelStopWatchTimer}
@@ -632,9 +585,8 @@ export function FileTypeSelector({
   return (
     <div>
       {renderJupyterNotebook()}
-      {renderLinux()}
-      {renderMarkdown()}
       {renderTeachingSocial()}
+      {renderMarkdown()}
       {renderServers()}
       {renderUtilities()}
     </div>
