@@ -209,9 +209,26 @@ export function CodexConfigButton({
   const contextMeter =
     remainingPercent != null ? (
       <div>
-        <Text style={{ fontSize: 12, color: contextSummaryColor }}>
-          {contextSummary}
-        </Text>
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ fontSize: 12, color: contextSummaryColor }}>
+            {contextSummary}
+          </Text>
+          {actions?.runCodexCompact ? (
+            <Button
+              size="small"
+              onClick={() => actions?.runCodexCompact?.(threadKey)}
+            >
+              Compact
+            </Button>
+          ) : null}
+        </div>
         <Progress
           percent={100 - remainingPercent}
           status={
