@@ -5,7 +5,6 @@
 
 import { Col, Flex, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
-import type { ReactNode } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Available } from "@cocalc/comm/project-configuration";
 import { CSS } from "@cocalc/frontend/app-framework";
@@ -37,7 +36,6 @@ interface Props {
   projectActions: ProjectActions | undefined;
   availableFeatures: Readonly<Available>;
   disabledFeatures?: Readonly<DisabledFeatures>;
-  children?: ReactNode;
   mode?: "flyout" | "full";
   selectedExt?: string;
   filename: string;
@@ -49,13 +47,11 @@ interface Props {
 // Could be changed to auto adjust to a list of pre-defined button names.
 export function FileTypeSelector({
   create_file,
-  create_folder,
   projectActions,
   availableFeatures,
   disabledFeatures,
   mode = "full",
   selectedExt,
-  children,
   filename,
   makeNewFilename,
   filenameChanged,
@@ -532,10 +528,11 @@ export function FileTypeSelector({
     return (
       <>
         <Section color="yellow" icon="wrench" isFlyout={isFlyout}>
-          Utilities
+          More
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
           <Col sm={sm} md={md}>
+            {renderQuarto()}
             <Tip
               delayShow={DELAY_SHOW_MS}
               title={labelTaskList}
