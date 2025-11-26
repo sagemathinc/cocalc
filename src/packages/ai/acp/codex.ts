@@ -1235,7 +1235,16 @@ function mapTokenUsage(payload: any): AcpStreamUsage | undefined {
   const totalTokens = setNumber(total.total_tokens);
   if (totalTokens != null) usage.total_tokens = totalTokens;
   const contextWindow = setNumber(payload.model_context_window);
-  if (contextWindow != null) usage.model_context_window = contextWindow;
+  // If the reported context window is smaller than the total tokens, the value
+  // is likely incorrect (observed with Codex returning used tokens instead of
+  // capacity). In that case, drop it so the frontend can fall back to a known
+  // model default.
+  if (
+    contextWindow != null &&
+    (totalTokens == null || contextWindow >= totalTokens)
+  ) {
+    usage.model_context_window = contextWindow;
+  }
   return Object.keys(usage).length > 0 ? usage : undefined;
 }
 
