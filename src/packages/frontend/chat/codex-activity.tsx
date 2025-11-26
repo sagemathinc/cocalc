@@ -128,12 +128,17 @@ export function CodexActivity({
   onResolveApproval,
 }: CodexActivityProps): React.ReactElement | null {
   const entries = useMemo(() => normalizeEvents(events ?? []), [events]);
+  const hasPendingApproval = useMemo(
+    () => entries.some((e) => e.kind === "approval" && e.status === "pending"),
+    [entries],
+  );
   const [expanded, setExpanded] = useState<boolean>(() => {
     if (persistKey) {
       const persisted = expandedState.get(persistKey);
       if (persisted != null) return persisted;
     }
-    return false;
+    // Default closed unless generating or an approval is pending.
+    return generating || hasPendingApproval;
   });
   const [hovered, setHovered] = useState(false);
 
@@ -145,11 +150,12 @@ export function CodexActivity({
   useEffect(() => {
     if (!persistKey) return;
     const persisted = expandedState.get(persistKey);
-    const next = persisted ?? (generating ? true : expanded);
+    const next =
+      persisted ?? (generating || hasPendingApproval ? true : expanded);
     if (next !== expanded) {
       setExpanded(next);
     }
-  }, [persistKey, generating]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [persistKey, generating, hasPendingApproval]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!entries.length) return null;
 
@@ -858,7 +864,7 @@ function ApprovalRow({
         />
       ) : null}
       {pending ? (
-        <Space size={8} wrap>
+        <Space size={8} style={{ marginLeft: "10px" }} wrap>
           {entry.options.map((option) => (
             <Button
               key={option.optionId}
