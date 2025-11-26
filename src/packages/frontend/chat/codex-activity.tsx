@@ -107,6 +107,7 @@ export interface CodexActivityProps {
   generating?: boolean;
   fontSize?: number;
   durationLabel?: string;
+  persistKey?: string;
   canResolveApproval?: boolean;
   onResolveApproval?: (args: {
     approvalId: string;
@@ -114,16 +115,26 @@ export interface CodexActivityProps {
   }) => Promise<void> | void;
 }
 
+// Persist log visibility per chat message so Virtuoso remounts don’t reset it.
+const expandedState = new Map<string, boolean>();
+
 export function CodexActivity({
   events,
   generating,
   fontSize,
   durationLabel,
+  persistKey,
   canResolveApproval,
   onResolveApproval,
 }: CodexActivityProps): React.ReactElement | null {
   const entries = useMemo(() => normalizeEvents(events ?? []), [events]);
-  const [expanded, setExpanded] = useState<boolean>(!!generating);
+  const [expanded, setExpanded] = useState<boolean>(() => {
+    if (persistKey) {
+      const persisted = expandedState.get(persistKey);
+      if (persisted != null) return persisted;
+    }
+    return !!generating;
+  });
   const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
@@ -131,6 +142,20 @@ export function CodexActivity({
       setExpanded(true);
     }
   }, [generating]);
+
+  useEffect(() => {
+    if (!persistKey) return;
+    expandedState.set(persistKey, expanded);
+  }, [persistKey, expanded]);
+
+  useEffect(() => {
+    if (!persistKey) return;
+    const persisted = expandedState.get(persistKey);
+    const next = persisted ?? (generating ? true : expanded);
+    if (next !== expanded) {
+      setExpanded(next);
+    }
+  }, [persistKey, generating]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!entries.length) return null;
 

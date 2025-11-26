@@ -753,6 +753,9 @@ export default function Message({
             events={codexEvents}
             generating={generating === true}
             fontSize={font_size}
+            persistKey={`${(project_id ?? "no-project").slice(0, 8)}:${
+              path ?? ""
+            }:${date}`}
             durationLabel={
               generating === true
                 ? elapsedLabel
