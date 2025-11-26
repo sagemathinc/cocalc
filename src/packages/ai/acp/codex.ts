@@ -224,6 +224,12 @@ class CodexClientHandler implements TerminalClient {
       const usage = mapTokenUsage(usageMeta);
       if (usage) {
         this.latestUsage = usage;
+        // Stream live usage so the UI can update context meters mid-turn.
+        await this.stream({
+          // @ts-expect-error extended payload type; see @cocalc/conat/ai/acp/types
+          type: "usage",
+          usage,
+        });
       }
       return;
     }
@@ -1459,6 +1465,7 @@ export class CodexAcpAgent implements AcpAgent {
         bytes: prompt.length,
       });
       await this.connection.prompt(request);
+      // If we saw live usage updates, include the latest in the summary.
       const usage = this.handler.consumeLatestUsage();
       await stream({
         type: "summary",

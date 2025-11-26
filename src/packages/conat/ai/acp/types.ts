@@ -118,6 +118,10 @@ export type AcpStreamPayload =
       event: AcpStreamEvent;
     }
   | {
+      type: "usage";
+      usage: AcpStreamUsage;
+    }
+  | {
       type: "summary";
       finalResponse: string;
       usage?: AcpStreamUsage | null;

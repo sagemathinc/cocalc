@@ -266,6 +266,11 @@ class ChatStreamWriter {
         logger.warn("failed to enqueue acp payload", err);
       }
     }
+    if ((payload as any).type === "usage") {
+      // Live usage updates from Codex; stash for commit and don't treat as a user-visible event.
+      this.usage = (payload as any).usage ?? null;
+      return;
+    }
     this.events = appendStreamMessage(this.events, payload);
     if (payload.type === "event") {
       const text = extractEventText(payload.event);
