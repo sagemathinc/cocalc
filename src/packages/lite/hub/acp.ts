@@ -152,6 +152,7 @@ class ChatStreamWriter {
   private autoApprove?: (event: ApprovalEvent) => void;
   private interruptedMessage?: string;
   private interruptNotified = false;
+  private disposeTimer?: NodeJS.Timeout;
 
   constructor({
     metadata,
@@ -240,7 +241,14 @@ class ChatStreamWriter {
       seq: this.seq++,
     };
     this.processPayload(message, { persist: true });
-    this.commit(true);
+    const isLastMessage =
+      message.type === "summary" || message.type === "error" || this.finished;
+    this.commit(!isLastMessage);
+    if (isLastMessage) {
+      // Ensure the final "generating: false" state hits SyncDB immediately,
+      // even if the throttle window is large.
+      this.commit.flush();
+    }
   }
 
   private processPayload(
@@ -301,23 +309,58 @@ class ChatStreamWriter {
   }
 
   private commit = throttle((generating: boolean): void => {
+    logger.debug("commit", {
+      generating,
+      closed: this.closed,
+      content: this.content,
+      events: this.events.length,
+    });
     if (this.closed) return;
-    if (this.content && this.events.length) {
-      const message = buildChatMessage({
-        sender_id: this.metadata.sender_id,
-        date: this.metadata.message_date,
-        prevHistory: this.prevHistory,
-        content: this.content,
-        generating,
-        reply_to: this.metadata.reply_to,
-        acp_events: this.events,
-        acp_thread_id: this.threadId,
-        acp_usage: this.usage,
-        acp_account_id: this.approverAccountId,
-      });
-      this.syncdb.set(message);
-      this.syncdb.commit();
+    const hasContent = !!this.content && this.events.length > 0;
+
+    if (!hasContent) {
+      // Even if there was no text payload, make sure we drop the spinner when finished.
+      if (!generating) {
+        try {
+          const current = this.syncdb.get_one({
+            event: "chat",
+            date: this.metadata.message_date,
+          });
+          if (current != null && current.get("generating") !== false) {
+            this.syncdb.set({
+              date: this.metadata.message_date,
+              generating: false,
+            });
+            this.syncdb.commit();
+            (async () => {
+              try {
+                await this.syncdb.save();
+              } catch (err) {
+                logger.warn("chat syncdb save failed", err);
+              }
+            })();
+          }
+        } catch (err) {
+          logger.warn("chat stream writer failed to clear generating", err);
+        }
+      }
+      return;
     }
+
+    const message = buildChatMessage({
+      sender_id: this.metadata.sender_id,
+      date: this.metadata.message_date,
+      prevHistory: this.prevHistory,
+      content: this.content,
+      generating,
+      reply_to: this.metadata.reply_to,
+      acp_events: this.events,
+      acp_thread_id: this.threadId,
+      acp_usage: this.usage,
+      acp_account_id: this.approverAccountId,
+    });
+    this.syncdb.set(message);
+    this.syncdb.commit();
     (async () => {
       try {
         await this.syncdb.save();
@@ -327,8 +370,24 @@ class ChatStreamWriter {
     })();
   }, COMMIT_INTERVAL);
 
-  dispose(): void {
+  dispose(forceImmediate: boolean = false): void {
     if (this.closed) return;
+
+    // If we've already finished the turn, delay dispose slightly to let
+    // the final generating=false write propagate unless explicitly forced.
+    // This works around a known race in @cocalc/sync (src/packages/sync)
+    // where very fast true→false toggles can be dropped; the delay gives
+    // the final state a chance to land. Remove once the sync bug is fixed.
+    if (!forceImmediate && this.finished) {
+      if (this.disposeTimer) return;
+      this.disposeTimer = setTimeout(() => this.dispose(true), 1500);
+      return;
+    }
+
+    if (this.disposeTimer) {
+      clearTimeout(this.disposeTimer);
+      this.disposeTimer = undefined;
+    }
     this.commit(false);
     this.commit.flush();
     this.closed = true;
