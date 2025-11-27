@@ -61,6 +61,7 @@ interface Props {
   scrollToDate?: null | undefined | string;
   selectedDate?: string;
   costEstimate?;
+  scrollCacheId?: string;
 }
 
 export function ChatLog({
@@ -80,6 +81,7 @@ export function ChatLog({
   scrollToDate,
   selectedDate,
   costEstimate,
+  scrollCacheId,
 }: Props) {
   const storeMessages = useRedux(
     ["messages"],
@@ -301,6 +303,7 @@ export function ChatLog({
           selectedDate,
           numChildren,
           singleThreadView,
+          scrollCacheId,
         }}
       />
       <Composing
@@ -545,6 +548,7 @@ export function MessageList({
   selectedDate,
   numChildren,
   singleThreadView,
+  scrollCacheId,
 }: {
   messages: ChatMessages;
   account_id: string;
@@ -564,11 +568,12 @@ export function MessageList({
   selectedDate?: string;
   numChildren?: NumChildren;
   singleThreadView?: boolean;
+  scrollCacheId?: string;
 }) {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   const [atBottom, setAtBottom] = useState(true);
   const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: `${project_id}${path}`,
+    cacheId: scrollCacheId ?? `${project_id}${path}`,
     initialState: { index: Math.max(sortedDates.length - 1, 0), offset: 0 }, // starts scrolled to the newest message.
   });
 

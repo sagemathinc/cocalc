@@ -234,6 +234,12 @@ export function ChatPanel({
     thread: string;
     reason: "unread" | "allread";
   } | null>(null);
+  const visitedThreadsRef = useRef<Set<string>>(new Set());
+  const unreadSeenRef = useRef<Map<string, number>>(new Map());
+  const scrollCacheId = useMemo(() => {
+    const base = `${project_id ?? ""}${path ?? ""}`;
+    return `${base}-${selectedThreadKey ?? "all"}`;
+  }, [project_id, path, selectedThreadKey]);
   const selectedThreadDate = useMemo(() => {
     if (!selectedThreadKey || selectedThreadKey === ALL_THREADS_KEY) {
       return undefined;
@@ -414,51 +420,35 @@ export function ChatPanel({
     if (!thread || !actions) return;
 
     const unread = Math.max(thread.unreadCount ?? 0, 0);
-    const prev = lastScrollRequestRef.current;
+    const prevUnread = unreadSeenRef.current.get(thread.key) ?? 0;
+    const visited = visitedThreadsRef.current.has(thread.key);
+    const hasNewUnread = unread > 0 && unread !== prevUnread;
 
     const scrollToFirstUnread = () => {
-      const rootMs = parseInt(thread.key, 10);
-      const rootIso = Number.isFinite(rootMs)
-        ? new Date(rootMs).toISOString()
-        : thread.key;
-      const threadMessages = actions.getMessagesInThread?.(rootIso);
-      const total =
-        threadMessages && typeof threadMessages.count === "function"
-          ? threadMessages.count()
-          : threadMessages && typeof (threadMessages as any).size === "number"
-            ? (threadMessages as any).size
-            : thread.messageCount;
-      const fallbackRead = Math.max(thread.readCount ?? 0, 0);
-      const readCount =
-        typeof total === "number" && Number.isFinite(total)
-          ? Math.max(0, Math.min(total, total - unread))
-          : fallbackRead;
-      const index =
-        typeof total === "number" && Number.isFinite(total)
-          ? Math.max(0, Math.min(total - 1, readCount))
-          : fallbackRead;
+      const total = thread.messageCount ?? 0;
+      const index = Math.max(0, Math.min(total - 1, total - unread));
       lastScrollRequestRef.current = { thread: thread.key, reason: "unread" };
       actions.scrollToIndex?.(index);
     };
 
-    if (unread > 0) {
+    if (hasNewUnread || (!visited && unread > 0)) {
       scrollToFirstUnread();
       actions.markThreadRead?.(thread.key, thread.messageCount);
+      visitedThreadsRef.current.add(thread.key);
+      unreadSeenRef.current.set(thread.key, unread);
       return;
     }
 
-    if (
-      prev &&
-      prev.thread === thread.key &&
-      prev.reason === "unread" &&
-      unread === 0
-    ) {
-      // Avoid immediately re-scrolling to bottom right after marking read.
+    if (!visited && unread === 0) {
+      lastScrollRequestRef.current = { thread: thread.key, reason: "allread" };
+      actions.scrollToIndex?.(Number.MAX_SAFE_INTEGER);
+      visitedThreadsRef.current.add(thread.key);
+      unreadSeenRef.current.set(thread.key, unread);
       return;
     }
 
-    lastScrollRequestRef.current = { thread: thread.key, reason: "allread" };
-    actions.scrollToIndex?.(Number.MAX_SAFE_INTEGER);
+    // Already visited and no new unread: preserve existing scroll (cached per thread via virtuoso cacheId).
+    unreadSeenRef.current.set(thread.key, unread);
   }, [singleThreadView, selectedThreadKey, threads, actions]);
 
   const handleToggleAllChats = (checked: boolean) => {
@@ -1042,6 +1032,7 @@ export function ChatPanel({
             project_id={project_id}
             path={path}
             scrollToBottomRef={scrollToBottomRef}
+            scrollCacheId={scrollCacheId}
             mode={variant === "compact" ? "sidechat" : "standalone"}
             fontSize={fontSize}
             search={search}
