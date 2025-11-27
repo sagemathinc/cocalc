@@ -153,6 +153,7 @@ class ChatStreamWriter {
   private interruptedMessage?: string;
   private interruptNotified = false;
   private disposeTimer?: NodeJS.Timeout;
+  private sessionKey?: string;
 
   constructor({
     metadata,
@@ -177,6 +178,7 @@ class ChatStreamWriter {
       path: metadata.path,
     });
     chatWritersByChatKey.set(this.chatKey, this);
+    this.sessionKey = sessionKey ?? undefined;
     if (sessionKey) {
       this.registerThreadKey(sessionKey);
     }
@@ -447,6 +449,13 @@ class ChatStreamWriter {
       type: "message",
       text,
     });
+  }
+
+  getKnownThreadIds(): string[] {
+    const ids: string[] = [];
+    if (this.threadId) ids.push(this.threadId);
+    if (this.sessionKey) ids.push(this.sessionKey);
+    return Array.from(new Set(ids));
   }
 
   private registerThreadKey(key: string): void {
@@ -771,17 +780,29 @@ async function handleApprovalDecisionRequest(
 async function handleInterruptRequest(
   request: AcpInterruptRequest,
 ): Promise<void> {
-  if (!request.threadId) {
-    throw Error("threadId is required to interrupt codex");
-  }
-  const handled = await interruptCodexSession(request.threadId);
-  if (!handled) {
-    throw Error("unable to interrupt codex session");
-  }
   const writer = findChatWriter({
     threadId: request.threadId,
     chat: request.chat,
   });
+
+  const candidateIds: Set<string> = new Set();
+  if (request.threadId) {
+    candidateIds.add(request.threadId);
+  }
+  writer?.getKnownThreadIds().forEach((id) => candidateIds.add(id));
+
+  let handled = false;
+  for (const id of candidateIds) {
+    if (!id) continue;
+    if (await interruptCodexSession(id)) {
+      handled = true;
+      break;
+    }
+  }
+
+  if (!handled) {
+    throw Error("unable to interrupt codex session");
+  }
   writer?.notifyInterrupted(INTERRUPT_STATUS_TEXT);
 }
 
