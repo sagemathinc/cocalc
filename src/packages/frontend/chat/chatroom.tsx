@@ -24,7 +24,6 @@ import {
 import { debounce } from "lodash";
 import { FormattedMessage } from "react-intl";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   useEditorRedux,
@@ -35,7 +34,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { NodeDesc } from "../frame-editors/frame-tree/types";
@@ -69,16 +67,6 @@ const FILTER_RECENT_NONE = {
       <Icon name="clock" />
     </>
   ),
-} as const;
-
-const PREVIEW_STYLE: React.CSSProperties = {
-  background: "#f5f5f5",
-  fontSize: "14px",
-  borderRadius: "10px 10px 10px 10px",
-  boxShadow: "#666 3px 3px 3px",
-  paddingBottom: "20px",
-  maxHeight: "40vh",
-  overflowY: "auto",
 } as const;
 
 const GRID_STYLE: React.CSSProperties = {
@@ -201,7 +189,6 @@ export function ChatPanel({
   const scrollToIndex = getDescValue(desc, "data-scrollToIndex") ?? null;
   const scrollToDate = getDescValue(desc, "data-scrollToDate") ?? null;
   const fragmentId = getDescValue(desc, "data-fragmentId") ?? null;
-  const showPreview = getDescValue(desc, "data-showPreview") ?? null;
   const costEstimate = getDescValue(desc, "data-costEstimate");
   const storedSidebarWidth = getDescValue(desc, "data-sidebarWidth");
   const storedSidebarCollapsed = getDescValue(desc, "data-sidebarCollapsed");
@@ -1140,32 +1127,6 @@ export function ChatPanel({
             selectedDate={fragmentId}
             costEstimate={costEstimate}
           />
-          {showPreview && input.length > 0 && (
-            <Row style={{ position: "absolute", bottom: "0px", width: "100%" }}>
-              <Col xs={0} sm={2} />
-              <Col xs={10} sm={9}>
-                <Well style={PREVIEW_STYLE}>
-                  <div
-                    className="pull-right lighten"
-                    style={{
-                      marginRight: "-8px",
-                      marginTop: "-10px",
-                      cursor: "pointer",
-                      fontSize: "13pt",
-                    }}
-                    onClick={() => actions.setShowPreview(false)}
-                  >
-                    <Icon name="times" />
-                  </div>
-                  <StaticMarkdown value={input} />
-                  <div className="small lighten" style={{ marginTop: "15px" }}>
-                    Preview (press Shift+Enter to send)
-                  </div>
-                </Well>
-              </Col>
-              <Col sm={1} />
-            </Row>
-          )}
         </div>
       ) : (
         <div
@@ -1265,17 +1226,6 @@ export function ChatPanel({
               />
             </Button>
           </Tooltip>
-          <div style={{ height: "5px" }} />
-          <Button
-            type={showPreview ? "dashed" : undefined}
-            onClick={() => actions.setShowPreview(!showPreview)}
-            style={{ height: "47.5px" }}
-          >
-            <FormattedMessage
-              id="chatroom.chat_input.preview_button.label"
-              defaultMessage={"Preview"}
-            />
-          </Button>
           <div style={{ height: "5px" }} />
           {isSelectedThreadAI ? (
             <Tooltip title="Video chat is not available in AI threads.">

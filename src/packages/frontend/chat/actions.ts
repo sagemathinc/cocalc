@@ -1539,13 +1539,6 @@ export class ChatActions extends Actions<ChatState> {
     this.frameTreeActions?.set_frame_data({ id: this.frameId, fragmentId });
   };
 
-  setShowPreview = (showPreview) => {
-    this.frameTreeActions?.set_frame_data({
-      id: this.frameId,
-      showPreview,
-    });
-  };
-
   setSelectedThread = (threadKey: string | null) => {
     this.frameTreeActions?.set_frame_data({
       id: this.frameId,
