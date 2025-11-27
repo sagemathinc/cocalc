@@ -89,8 +89,20 @@ import { UpgradesPage } from "./upgrades/upgrades-page";
 
 export const ACCOUNT_SETTINGS_ICON_NAME: IconName = "settings";
 
+const BILLING_MENU_KEYS = new Set([
+  "subscriptions",
+  "licenses",
+  "payg",
+  "upgrades",
+  "purchases",
+  "payments",
+  "payment-methods",
+  "statements",
+]);
+
 function getParentMenuKey(key?: string): string | undefined {
   if (!key) return;
+  if (BILLING_MENU_KEYS.has(key)) return "billing";
   const dashIndex = key.indexOf("-");
   if (dashIndex === -1) return;
   return key.slice(0, dashIndex);
@@ -323,85 +335,102 @@ export const AccountPage: React.FC = () => {
     items.push({ type: "divider" });
 
     if (is_commercial) {
-      items.push({
-        key: "subscriptions",
-        label: (
-          <span>
-            <Icon name="calendar" /> {intl.formatMessage(labels.subscriptions)}
-          </span>
-        ),
-        children: active_page === "subscriptions" && <SubscriptionsPage />,
-      });
-      items.push({
-        key: "licenses",
-        label: (
-          <span>
-            <Icon name="key" /> {intl.formatMessage(labels.licenses)}
-          </span>
-        ),
-        children: active_page === "licenses" && <LicensesPage />,
-      });
-      items.push({
-        key: "payg",
-        label: (
-          <span>
-            <Icon name="line-chart" />{" "}
-            {intl.formatMessage(labels.pay_as_you_go)}
-          </span>
-        ),
-        children: active_page === "payg" && <PayAsYouGoPage />,
-      });
-      if (is_commercial && kucalc === KUCALC_COCALC_COM) {
-        // these have been deprecated for ~ 5 years, but some customers still have them.
-        items.push({
-          key: "upgrades",
+      const billingChildren = [
+        {
+          key: "subscriptions",
           label: (
             <span>
-              <Icon name="arrow-circle-up" />{" "}
-              {intl.formatMessage(labels.upgrades)}
+              <Icon name="calendar" />{" "}
+              {intl.formatMessage(labels.subscriptions)}
             </span>
           ),
-          children: active_page === "upgrades" && <UpgradesPage />,
-        });
-      }
-      items.push({ type: "divider" });
+          children: active_page === "subscriptions" && <SubscriptionsPage />,
+        },
+        {
+          key: "licenses",
+          label: (
+            <span>
+              <Icon name="key" /> {intl.formatMessage(labels.licenses)}
+            </span>
+          ),
+          children: active_page === "licenses" && <LicensesPage />,
+        },
+        {
+          key: "payg",
+          label: (
+            <span>
+              <Icon name="line-chart" />{" "}
+              {intl.formatMessage(labels.pay_as_you_go)}
+            </span>
+          ),
+          children: active_page === "payg" && <PayAsYouGoPage />,
+        },
+        ...(is_commercial && kucalc === KUCALC_COCALC_COM
+          ? [
+              {
+                key: "upgrades",
+                label: (
+                  <span>
+                    <Icon name="arrow-circle-up" />{" "}
+                    {intl.formatMessage(labels.upgrades)}
+                  </span>
+                ),
+                children: active_page === "upgrades" && <UpgradesPage />,
+              },
+            ]
+          : []),
+        {
+          key: "purchases",
+          label: (
+            <span>
+              <Icon name="money-check" />{" "}
+              {intl.formatMessage(labels.purchases)}
+            </span>
+          ),
+          children: active_page === "purchases" && <PurchasesPage />,
+        },
+        {
+          key: "payments",
+          label: (
+            <span>
+              <Icon name="credit-card" />{" "}
+              {intl.formatMessage(labels.payments)}
+            </span>
+          ),
+          children: active_page === "payments" && <PaymentsPage />,
+        },
+        {
+          key: "payment-methods",
+          label: (
+            <span>
+              <Icon name="credit-card" />{" "}
+              {intl.formatMessage(labels.payment_methods)}
+            </span>
+          ),
+          children: active_page === "payment-methods" && (
+            <PaymentMethodsPage />
+          ),
+        },
+        {
+          key: "statements",
+          label: (
+            <span>
+              <Icon name="calendar-week" />{" "}
+              {intl.formatMessage(labels.statements)}
+            </span>
+          ),
+          children: active_page === "statements" && <StatementsPage />,
+        },
+      ];
+
       items.push({
-        key: "purchases",
+        key: "billing",
         label: (
           <span>
-            <Icon name="money-check" /> {intl.formatMessage(labels.purchases)}
+            <Icon name="money-check" /> {intl.formatMessage(labels.billing)}
           </span>
         ),
-        children: active_page === "purchases" && <PurchasesPage />,
-      });
-      items.push({
-        key: "payments",
-        label: (
-          <span>
-            <Icon name="credit-card" /> {intl.formatMessage(labels.payments)}
-          </span>
-        ),
-        children: active_page === "payments" && <PaymentsPage />,
-      });
-      items.push({
-        key: "payment-methods",
-        label: (
-          <span>
-            <Icon name="credit-card" />{" "}
-            {intl.formatMessage(labels.payment_methods)}
-          </span>
-        ),
-        children: active_page === "payment-methods" && <PaymentMethodsPage />,
-      });
-      items.push({
-        key: "statements",
-        label: (
-          <span>
-            <Icon name="calendar-week" />{" "}
-            {intl.formatMessage(labels.statements)}
-          </span>
-        ),
-        children: active_page === "statements" && <StatementsPage />,
+        children: billingChildren,
       });
       items.push({ type: "divider" });
     }
@@ -455,22 +484,21 @@ export const AccountPage: React.FC = () => {
   const tabs = getTabs();
 
   useEffect(() => {
-    if (!active_sub_tab) return;
-    const parentKey = getParentMenuKey(active_sub_tab);
-    if (!parentKey) return;
-    setOpenKeys((prevOpenKeys) =>
-      prevOpenKeys.length === 1 && prevOpenKeys[0] === parentKey
-        ? prevOpenKeys
-        : [parentKey],
+    const parentKey = getParentMenuKey(
+      active_sub_tab ? active_sub_tab : active_page,
     );
-  }, [active_sub_tab]);
+    setOpenKeys((prevOpenKeys) =>
+      parentKey == null
+        ? []
+        : prevOpenKeys.length === 1 && prevOpenKeys[0] === parentKey
+          ? prevOpenKeys
+          : [parentKey],
+    );
+  }, [active_page, active_sub_tab]);
 
   useEffect(() => {
-    if (active_page !== "preferences") {
-      if (active_sub_tab) {
-        redux.getActions("account").setState({ active_sub_tab: undefined });
-      }
-      setOpenKeys([]);
+    if (active_page !== "preferences" && active_sub_tab) {
+      redux.getActions("account").setState({ active_sub_tab: undefined });
     }
   }, [active_page, active_sub_tab]);
 
@@ -509,6 +537,25 @@ export const AccountPage: React.FC = () => {
       for (const subTab of subTabs) {
         children[subTab.key] = subTab.children;
         titles[subTab.key] = subTab.label; // Always store original full label
+      }
+    } else if (tab.key === "billing" && Array.isArray(tab.children)) {
+      const subTabs = tab.children;
+      tab.children = subTabs.map((subTab) => {
+        const label = hidden ? (
+          <span style={{ paddingLeft: "5px" }}>
+            {subTab.label.props.children[0]}
+          </span>
+        ) : (
+          subTab.label
+        );
+        return {
+          key: subTab.key,
+          label,
+        };
+      });
+      for (const subTab of subTabs) {
+        children[subTab.key] = subTab.children;
+        titles[subTab.key] = subTab.label;
       }
     } else if (tab.key === "settings" || tab.key === "profile") {
       // Handle settings and profile as top-level pages
