@@ -41,7 +41,7 @@ import { ProjectServers } from "@cocalc/frontend/project/servers";
 import { ProjectSettings } from "@cocalc/frontend/project/settings";
 import { editor_id } from "@cocalc/frontend/project/utils";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { hidden_meta_file } from "@cocalc/util/misc";
+import { chatMetaFile } from "@cocalc/frontend/chat/paths";
 import { useProjectContext } from "../context";
 import getAnchorTagComponent from "./anchor-tag-component";
 import HomePage from "./home-page";
@@ -328,7 +328,7 @@ const EditorContent: React.FC<EditorContentProps> = ({
           <SideChat
             style={{ position: "absolute" }}
             project_id={project_id}
-            path={hidden_meta_file(path, "sage-chat")}
+            path={chatMetaFile(path)}
           />
         </div>
       </div>

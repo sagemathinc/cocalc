@@ -1341,21 +1341,24 @@ export function path_to_file(path: string = "", file: string): string {
 //    tmp/.example.ipynb.sage-jupyter --> tmp/example.ipynb
 //    .foo.txt.sage-chat --> foo.txt
 //    tmp/.foo.txt.sage-chat --> tmp/foo.txt
+//    .foo.txt.chat --> foo.txt
+//    tmp/.foo.txt.chat --> tmp/foo.txt
 
 export function original_path(path: string): string {
   const s = path_split(path);
-  if (s.tail[0] != "." || s.tail.indexOf(".sage-") == -1) {
+  const ext = filename_extension(s.tail);
+  if (s.tail[0] != ".") {
     return path;
   }
-  const ext = filename_extension(s.tail);
-  let x = s.tail.slice(
-    s.tail[0] === "." ? 1 : 0,
-    s.tail.length - (ext.length + 1),
-  );
-  if (s.head !== "") {
-    x = s.head + "/" + x;
+  if (ext === "chat") {
+    const base = s.tail.slice(1, s.tail.length - (ext.length + 1));
+    return s.head ? `${s.head}/${base}` : base;
   }
-  return x;
+  if (s.tail.indexOf(".sage-") == -1) {
+    return path;
+  }
+  const x = s.tail.slice(1, s.tail.length - (ext.length + 1));
+  return s.head !== "" ? `${s.head}/${x}` : x;
 }
 
 export function lower_email_address(email_address: any): string {

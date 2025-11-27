@@ -95,18 +95,18 @@ export function FileTypeSelector({
         <Row gutter={gutter} style={newRowStyle}>
           {!disabledFeatures?.chat && (
             <Col sm={sm} md={md}>
-              <Tip
-                delayShow={DELAY_SHOW_MS}
-                title={intl.formatMessage({
-                  id: "project.new.file-type-selector.chatroom.title",
-                  defaultMessage: "Create a Chatroom",
-                })}
-                placement="bottom"
-                icon={NEW_FILETYPE_ICONS["sage-chat"]}
-                tip={
-                  <FormattedMessage
-                    id="project.new.file-type-selector.chatroom.tooltip"
-                    defaultMessage={`Chat with AI or human collaborators.
+                <Tip
+                  delayShow={DELAY_SHOW_MS}
+                  title={intl.formatMessage({
+                    id: "project.new.file-type-selector.chatroom.title",
+                    defaultMessage: "Create a Chatroom",
+                  })}
+                  placement="bottom"
+                  icon={NEW_FILETYPE_ICONS["chat"]}
+                  tip={
+                    <FormattedMessage
+                      id="project.new.file-type-selector.chatroom.tooltip"
+                      defaultMessage={`Chat with AI or human collaborators.
                       See <A>documentation</A> to learn more.`}
                     values={{
                       A: (c) => (
@@ -115,17 +115,17 @@ export function FileTypeSelector({
                     }}
                   />
                 }
-              >
-                <NewFileButton
-                  name={"Chat"}
-                  on_click={create_file}
-                  ext="sage-chat"
-                  size={btnSize}
-                  active={btnActive("sage-chat")}
-                />
-              </Tip>
-            </Col>
-          )}
+                >
+                  <NewFileButton
+                    name={"Chat"}
+                    on_click={create_file}
+                    ext="chat"
+                    size={btnSize}
+                    active={btnActive("chat") || btnActive("sage-chat")}
+                  />
+                </Tip>
+              </Col>
+            )}
           <JupyterNotebookButtons
             mode={mode}
             availableFeatures={availableFeatures}

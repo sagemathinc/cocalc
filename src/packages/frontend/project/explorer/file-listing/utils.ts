@@ -24,6 +24,7 @@ type Extension =
   | "board"
   | "slides"
   | "py"
+  | "chat"
   | "sage-chat";
 
 // default extensions, in their order of precendence
@@ -45,6 +46,7 @@ export const EXTs: ReadonlyArray<Extension> = Object.freeze([
   "tasks",
   "x11",
   "sage",
+  "chat",
   "sage-chat",
 ]);
 

@@ -75,6 +75,7 @@ import {
   path_split,
   uuid,
 } from "@cocalc/util/misc";
+import { isChatPath } from "@cocalc/frontend/chat/paths";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import type { TourProps } from "antd";
 import { delay } from "awaiting";
@@ -3192,7 +3193,7 @@ export class Actions<
       this.programmatically_goto_line?.(fragmentId.line, true);
     }
 
-    if (fragmentId.chat && !this.path.endsWith(".sage-chat")) {
+    if (fragmentId.chat && !isChatPath(this.path)) {
       // open side chat
       this.redux
         .getProjectActions(this.project_id)

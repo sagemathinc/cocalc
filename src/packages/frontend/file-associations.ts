@@ -479,12 +479,15 @@ file_associations["slides"] = {
   exclude_from_compute_server: true,
 };
 
-file_associations["sage-chat"] = {
+const chatAssociation: FileSpec = {
   editor: "chat",
   icon: "comment",
   opts: {},
   name: "chat",
 };
+
+file_associations["chat"] = chatAssociation;
+file_associations["sage-chat"] = chatAssociation;
 
 file_associations["cocalc-crm"] = {
   editor: "crm",

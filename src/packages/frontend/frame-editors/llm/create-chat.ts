@@ -7,6 +7,7 @@ import { AI_ASSIST_TAG } from "./consts";
 import { modelToMention } from "./llm-selector";
 import type { ChatActions } from "@cocalc/frontend/chat/actions";
 import type { Actions as ChatEditorActions } from "@cocalc/frontend/frame-editors/chat-editor/actions";
+import { isChatPath } from "@cocalc/frontend/chat/paths";
 
 export interface Options {
   codegen?: boolean;
@@ -32,7 +33,7 @@ export default async function createChat({
   const { message } = await createChatMessage(actions, frameId, options, input);
 
   let chatActions: ChatActions | undefined;
-  if (actions.path.endsWith(".sage-chat")) {
+  if (isChatPath(actions.path)) {
     // a full chatroom (not a different doc type)
     chatActions = (actions as ChatEditorActions).getChatActions(frameId);
     if (chatActions == null) {

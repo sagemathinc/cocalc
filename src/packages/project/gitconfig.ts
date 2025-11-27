@@ -18,6 +18,7 @@ const EXCLUDES = `\
 
 ### CoCalc Platform ###
 /.snapshots/
+.*.chat
 .*.sage-chat
 .*.sage-history
 .*.sage-jupyter

@@ -22,6 +22,7 @@ import {
 } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { is_different } from "@cocalc/util/misc";
+import { isChatPath } from "@cocalc/frontend/chat/paths";
 import { chat } from "../generic/chat";
 import FormatError from "./format-error";
 import { FrameTree } from "./frame-tree";
@@ -245,9 +246,7 @@ export function createEditor<T = EditorSpec>(
         format_bar={!!opts.format_bar}
         format_bar_exclude={opts.format_bar_exclude}
         editor_spec={
-          path.endsWith(".sage-chat")
-            ? opts.editor_spec
-            : { ...opts.editor_spec, chat }
+          isChatPath(path) ? opts.editor_spec : { ...opts.editor_spec, chat }
         }
         tab_is_visible={is_visible}
       />

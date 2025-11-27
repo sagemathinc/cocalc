@@ -18,6 +18,7 @@ export function deleted_file_variations(path: string): string[] {
   }
   const variations: string[] = [path];
   for (const ext of [
+    "chat",
     "sage-chat",
     "sage-jupyter",
     JUPYTER_SYNCDB_EXTENSIONS,
@@ -45,6 +46,7 @@ export function move_file_variations(
   }
   const variations: { src: string; dest: string }[] = [];
   for (const ext of [
+    "chat",
     "sage-chat",
     "sage-jupyter",
     JUPYTER_SYNCDB_EXTENSIONS,

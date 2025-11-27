@@ -70,6 +70,7 @@ const FILE_TYPE_PRIORITY = [
   "txt",
   "py",
   "course",
+  "chat",
   "sage-chat",
 ] as const;
 

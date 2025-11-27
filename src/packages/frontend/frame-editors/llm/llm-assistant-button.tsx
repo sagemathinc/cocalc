@@ -52,6 +52,7 @@ import track from "@cocalc/frontend/user-tracking";
 import { LanguageModel, getMaxTokens } from "@cocalc/util/db-schema/llm-utils";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { isChatPath } from "@cocalc/frontend/chat/paths";
 import { Actions } from "../code-editor/actions";
 import { AI_ASSIST_TAG } from "./consts";
 import Context from "./context";
@@ -225,7 +226,7 @@ export default function LanguageModelTitleBarButton({
   setShowDialog,
   noLabel,
 }: Props) {
-  const noContext = path?.endsWith(".sage-chat");
+  const noContext = isChatPath(path);
   const intl = useIntl();
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
   const [error, setError] = useState<string>("");
@@ -680,7 +681,7 @@ export default function LanguageModelTitleBarButton({
         </Paragraph>
         {renderOptions()}
         {renderShowOptions()}
-        {!path.endsWith(".sage-chat") && (
+        {!isChatPath(path) && (
           <Paragraph type="secondary">
             {description} The output will appear in the side chat, so your file
             isn't directly modified.

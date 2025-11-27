@@ -20,6 +20,7 @@ import {
   required,
   uuid,
 } from "@cocalc/util/misc";
+import { isChatExtension } from "@cocalc/frontend/chat/paths";
 import { normalize } from "./utils";
 import { syncdbPath as ipynbSyncdbPath } from "@cocalc/util/jupyter/names";
 import { termPath } from "@cocalc/util/terminal/names";
@@ -487,7 +488,7 @@ function get_side_chat_state(
     }
   }
 
-  if (filename_extension(opts.path) === "sage-chat") {
+  if (isChatExtension(filename_extension(opts.path))) {
     opts.chat = false;
   }
 }

@@ -38,6 +38,7 @@ import {
   search_split,
   unreachable,
 } from "@cocalc/util/misc";
+import { isChatExtension } from "@cocalc/frontend/chat/paths";
 import { COLORS } from "@cocalc/util/theme";
 import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 import { Virtuoso } from "react-virtuoso";
@@ -437,7 +438,7 @@ function ProjectSearchResultLine({
     let chat;
     let path = path_to_file(most_recent_path, filename);
     const { tail } = path_split(path);
-    if (tail.startsWith(".") && tail.endsWith(".sage-chat")) {
+    if (tail.startsWith(".") && isChatExtension(filename_extension(tail))) {
       // special case of chat
       path = auxFileToOriginal(path);
       chat = true;
@@ -491,7 +492,7 @@ function ProjectSearchResultLine({
   );
 }
 
-const MARKDOWN_EXTS = ["tasks", "slides", "board", "sage-chat"] as const;
+const MARKDOWN_EXTS = ["tasks", "slides", "board", "chat", "sage-chat"] as const;
 
 function Snippet({
   ext,

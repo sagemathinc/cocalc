@@ -83,7 +83,8 @@ git init\
       insert: `\
 # See examples of .gitignore files at https://github.com/github/gitignore
 echo "
-# For CoCalc files like .sage-chat etc
+# For CoCalc files like .chat/.sage-chat etc
+*.chat
 *.sage-chat
 *.sage-history
 *.term

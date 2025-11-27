@@ -17,6 +17,7 @@ import { Actions } from "../app-framework";
 import { fromJS } from "immutable";
 import { FileUseState, FileUseStore } from "./store";
 import { client_db } from "@cocalc/util/schema";
+import { isChatPath } from "@cocalc/frontend/chat/paths";
 const { sha1 } = client_db;
 
 const DEFAULT_CHAT_TTL_S = 5;
@@ -109,7 +110,7 @@ export class FileUseActions<T = FileUseState> extends Actions<
   ): Promise<void> {
     if (
       !force &&
-      !path.endsWith(".sage-chat") &&
+      !isChatPath(path) &&
       !redux.getProjectStore(project_id)?.getIn(["open_files", path])
     ) {
       // We only mark the file if the tab is also actually open, e.g.,

@@ -19,6 +19,7 @@ export const HAS_SPECIAL_VIEWER = new Set([
   "board",
   "slides",
   "md",
+  "chat",
   "sage-chat",
 ]);
 
@@ -81,6 +82,7 @@ export function Viewer({
       return <Whiteboard {...opts} mainFrameType={"whiteboard"} />;
     case "slides":
       return <Whiteboard {...opts} mainFrameType={"slides"} />;
+    case "chat":
     case "sage-chat":
       return <ChatViewer {...opts} />;
     default:

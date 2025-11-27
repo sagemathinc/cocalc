@@ -9,7 +9,7 @@
 // this is... so for now it still sort of toggles.  For now things
 // do work properly via a hack in close_chat in project_actions.
 
-import { filename_extension } from "@cocalc/util/misc";
+import { isChatPath } from "./paths";
 import { Button, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { useMemo } from "react";
@@ -91,7 +91,7 @@ function ChatButton({ project_id, path, chatState }) {
     [fileUse, project_id, path],
   );
 
-  if (filename_extension(path) === "sage-chat") {
+  if (isChatPath(path)) {
     // Special case: do not show side chat for chatrooms
     return null;
   }

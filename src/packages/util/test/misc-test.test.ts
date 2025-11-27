@@ -785,6 +785,13 @@ describe("meta_file", () => {
       "/home/user/.file.ext.sage-chat",
     );
   });
+
+  it("original_path restores chat meta files", () => {
+    expect(misc.original_path("/home/user/.file.ext.chat")).toBe(
+      "/home/user/file.ext",
+    );
+    expect(misc.original_path(".note.sage-chat")).toBe("note");
+  });
 });
 
 describe("trunc", () => {
