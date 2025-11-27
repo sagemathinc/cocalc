@@ -1095,4 +1095,112 @@ function formatReadScope(entry: {
   return lineInfo ?? limitInfo;
 }
 
+// Convert Codex activity events into markdown for exports.
+export function codexEventsToMarkdown(
+  events: AcpStreamMessage[],
+): string {
+  const entries = normalizeEvents(events ?? []);
+  if (!entries.length) return "";
+  const lines: string[] = [];
+  for (const entry of entries) {
+    switch (entry.kind) {
+      case "reasoning":
+        lines.push(
+          entry.text
+            ? `- Reasoning: ${entry.text}`
+            : "- Reasoning step",
+        );
+        break;
+      case "agent":
+        lines.push(
+          entry.text ? `- Agent: ${entry.text}` : "- Agent message",
+        );
+        break;
+      case "status": {
+        const detail =
+          entry.detail && entry.detail.trim().length > 0
+            ? `: ${entry.detail}`
+            : "";
+        lines.push(`- ${entry.label}${detail}`);
+        break;
+      }
+      case "diff": {
+        const path = entry.path ? formatPathMarkdown(entry.path) : "(diff)";
+        const patchText = patchToText(entry.patch);
+        lines.push(
+          `- Diff ${path}\n\n\`\`\`diff\n${patchText}\n\`\`\``,
+        );
+        break;
+      }
+      case "terminal": {
+        const cmd = formatCommand(entry.command, entry.args) ?? "Command";
+        const cwd = entry.cwd ? ` (cwd ${entry.cwd})` : "";
+        const status = formatTerminalStatus(entry);
+        let block = `- Terminal: ${cmd}${cwd}`;
+        if (entry.output && entry.output.length > 0) {
+          block += `\n\n\`\`\`\n${entry.output}\n\`\`\``;
+        }
+        const tags: string[] = [];
+        if (entry.truncated) {
+          tags.push("output truncated");
+        }
+        if (status) {
+          tags.push(status);
+        }
+        if (tags.length) {
+          block += `\n\n(${tags.join(", ")})`;
+        }
+        lines.push(block);
+        break;
+      }
+      case "file": {
+        const path =
+          entry.path && entry.path.length > 0
+            ? formatPathMarkdown(entry.path, entry.line)
+            : "(file)";
+        const action =
+          entry.operation === "read"
+            ? "Read"
+            : entry.existed === false
+              ? "Created"
+              : "Wrote";
+        const parts = [`- File: ${action} ${path}`];
+        if (typeof entry.bytes === "number") {
+          parts.push(`(${formatByteCount(entry.bytes)})`);
+        }
+        const scope = formatReadScope(entry);
+        if (scope) {
+          parts.push(`(${scope})`);
+        }
+        if (entry.truncated) {
+          parts.push("(output truncated)");
+        }
+        lines.push(parts.join(" "));
+        break;
+      }
+      case "approval": {
+        const selectedOption = entry.options?.find(
+          (o) => o.optionId === entry.selectedOptionId,
+        );
+        const status = formatApprovalStatus(entry.status, selectedOption);
+        const detail = formatApprovalDecision(entry, selectedOption);
+        const summary = detail ? `${status} — ${detail}` : status;
+        lines.push(`- Approval: ${summary}`);
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  return lines.join("\n\n");
+}
+
+function formatPathMarkdown(path: string, line?: number): string {
+  const clean = path.replace(/^[./]+/, "");
+  const label = line != null ? `${clean}#L${line}` : clean;
+  const href = clean ? `./${clean}` : ".";
+  const link = line != null ? `${href}#L${line}` : href;
+  return `[${label}](${link})`;
+}
+
 export default CodexActivity;

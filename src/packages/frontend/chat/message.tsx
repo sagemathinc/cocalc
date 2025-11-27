@@ -30,7 +30,7 @@ import { plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
-import CodexActivity from "./codex-activity";
+import CodexActivity, { codexEventsToMarkdown } from "./codex-activity";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
@@ -1399,10 +1399,36 @@ function toMessageMs(value: any): number | null {
 }
 
 // Used for exporting chat to markdown file
-export function message_to_markdown(message): string {
+export function message_to_markdown(
+  message,
+  options?: { includeLog?: boolean },
+): string {
+  const includeLog = options?.includeLog ?? false;
   let value = newest_content(message);
   const user_map = redux.getStore("users").get("user_map");
   const sender = getUserName(user_map, message.get("sender_id"));
   const date = message.get("date").toString();
+
+  if (includeLog) {
+    const logMarkdown = message_codex_log_to_markdown(message);
+    if (logMarkdown) {
+      value = `${value}\n\n**Log**\n\n${logMarkdown}`;
+    }
+  }
   return `*From:* ${sender}  \n*Date:* ${date}  \n\n${value}`;
+}
+
+function message_codex_log_to_markdown(message): string {
+  const events =
+    message?.get?.("acp_events") ?? message?.get?.("codex_events");
+  if (!events) return "";
+  const list =
+    typeof events.toJS === "function" ? events.toJS() : events;
+  if (!Array.isArray(list) || list.length === 0) return "";
+  try {
+    return codexEventsToMarkdown(list);
+  } catch (err) {
+    console.warn("failed to render codex log to markdown", err);
+    return "";
+  }
 }

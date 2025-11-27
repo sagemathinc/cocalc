@@ -769,6 +769,47 @@ export class ChatActions extends Actions<ChatState> {
       .open_file({ path, foreground: true });
   };
 
+  exportThreadToMarkdown = async ({
+    threadKey,
+    path,
+    includeLogs = false,
+  }: {
+    threadKey: string;
+    path: string;
+    includeLogs?: boolean;
+  }): Promise<void> => {
+    if (!this.store) return;
+    const messages = this.store.get("messages");
+    if (messages == null) return;
+    const project_id = this.store.get("project_id");
+    if (project_id == null) return;
+    const outputPath = path?.trim();
+    if (!outputPath) return;
+
+    const threadIso = threadKeyToIso(threadKey);
+    if (!threadIso) return;
+    const seq = this.getMessagesInThread(threadIso);
+    if (!seq) return;
+    const list =
+      typeof (seq as any).toArray === "function"
+        ? (seq as any).toArray()
+        : Array.from(seq as any);
+    if (!list?.length) return;
+
+    const content = list
+      .map((msg) => message_to_markdown(msg, { includeLog: includeLogs }))
+      .join("\n\n---\n\n");
+
+    await webapp_client.project_client.write_text_file({
+      project_id,
+      path: outputPath,
+      content,
+    });
+    this.redux
+      .getProjectActions(project_id)
+      .open_file({ path: outputPath, foreground: true });
+  };
+
   setHashtagState = (tag: string, state?: HashtagState): void => {
     if (!this.store || this.frameTreeActions == null) return;
     // similar code in task list.
@@ -1545,6 +1586,19 @@ export class ChatActions extends Actions<ChatState> {
       selectedThreadKey: threadKey,
     });
   };
+}
+
+function threadKeyToIso(threadKey: string): string | null {
+  if (!threadKey) return null;
+  const ms = Number(threadKey);
+  if (Number.isFinite(ms)) {
+    try {
+      return new Date(ms).toISOString();
+    } catch {
+      return null;
+    }
+  }
+  return typeof threadKey === "string" ? threadKey : null;
 }
 
 // We strip out any cased version of the string @chatgpt and also all mentions.
