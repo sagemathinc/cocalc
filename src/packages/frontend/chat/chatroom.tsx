@@ -202,10 +202,14 @@ export function ChatPanel({
   const showPreview = getDescValue(desc, "data-showPreview") ?? null;
   const costEstimate = getDescValue(desc, "data-costEstimate");
   const storedSidebarWidth = getDescValue(desc, "data-sidebarWidth");
+  const storedSidebarCollapsed = getDescValue(desc, "data-sidebarCollapsed");
   const [sidebarWidth, setSidebarWidth] = useState<number>(
     typeof storedSidebarWidth === "number" && storedSidebarWidth > 50
       ? storedSidebarWidth
       : DEFAULT_SIDEBAR_WIDTH,
+  );
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
+    !!storedSidebarCollapsed,
   );
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
@@ -261,6 +265,14 @@ export function ChatPanel({
       sidebarWidth,
     });
   }, [sidebarWidth, actions?.frameTreeActions, actions?.frameId]);
+
+  useEffect(() => {
+    if (!actions?.frameTreeActions?.set_frame_data || !actions?.frameId) return;
+    actions.frameTreeActions.set_frame_data({
+      id: actions.frameId,
+      sidebarCollapsed,
+    });
+  }, [sidebarCollapsed, actions?.frameTreeActions, actions?.frameId]);
   const selectedThreadDate = useMemo(() => {
     if (!selectedThreadKey || selectedThreadKey === ALL_THREADS_KEY) {
       return undefined;
@@ -818,16 +830,28 @@ export function ChatPanel({
           >
             Chats
           </span>
-          {!isCompact && (
-            <Space size="small">
-              <span style={{ fontSize: "12px" }}>All</span>
-              <Switch
-                size="small"
-                checked={isAllThreadsSelected}
-                onChange={handleToggleAllChats}
-              />
-            </Space>
-          )}
+          <Space size="small">
+            {!isCompact && (
+              <>
+                <span style={{ fontSize: "12px" }}>All</span>
+                <Switch
+                  size="small"
+                  checked={isAllThreadsSelected}
+                  onChange={handleToggleAllChats}
+                />
+              </>
+            )}
+            {!IS_MOBILE && (
+              <Tooltip title="Hide sidebar">
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<Icon name="chevron-left" />}
+                  onClick={() => setSidebarCollapsed(true)}
+                />
+              </Tooltip>
+            )}
+          </Space>
         </div>
         {!isCompact && (
           <>
@@ -1038,7 +1062,7 @@ export function ChatPanel({
         {renderSidebarContent()}
       </Layout.Sider>
     );
-    if (IS_MOBILE) {
+    if (IS_MOBILE || sidebarCollapsed) {
       return sider;
     }
     return (
@@ -1284,9 +1308,20 @@ export function ChatPanel({
   );
 
   const renderDefaultLayout = () => (
-    <Layout style={CHAT_LAYOUT_STYLE}>
-      {renderThreadSidebar()}
+    <Layout style={{ ...CHAT_LAYOUT_STYLE, position: "relative" }}>
+      {!sidebarCollapsed && renderThreadSidebar()}
       <Layout.Content className="smc-vfill" style={{ background: "white" }}>
+        {sidebarCollapsed && !IS_MOBILE && (
+          <div style={{ padding: "10px" }}>
+            <Button
+              size="small"
+              icon={<Icon name="bars" />}
+              onClick={() => setSidebarCollapsed(false)}
+            >
+              Show chats
+            </Button>
+          </div>
+        )}
         {renderChatContent()}
       </Layout.Content>
     </Layout>
