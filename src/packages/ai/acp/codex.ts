@@ -105,6 +105,7 @@ type TerminalState = {
 type CodexClientHandlerOptions = {
   commandHandlers?: Map<string, CustomCommandHandler>;
   captureToolCalls?: boolean;
+  workspaceRoot?: string;
 };
 
 type AcpApprovalEvent = Extract<AcpStreamEvent, { type: "approval" }>;
@@ -130,10 +131,12 @@ class CodexClientHandler implements TerminalClient {
   private callToTerminal = new Map<string, string>();
   private terminalBuffers = new Map<string, string>();
   private readonly captureToolCalls: boolean;
+  private workspaceRoot: string;
 
   constructor(options?: CodexClientHandlerOptions) {
     this.commandHandlers = options?.commandHandlers;
     this.captureToolCalls = options?.captureToolCalls ?? false;
+    this.workspaceRoot = path.resolve(options?.workspaceRoot ?? process.cwd());
   }
 
   setStream(stream?: AcpStreamHandler) {
@@ -143,6 +146,11 @@ class CodexClientHandler implements TerminalClient {
 
   clearStream() {
     this.stream = undefined;
+  }
+
+  setWorkspaceRoot(root?: string): void {
+    if (!root) return;
+    this.workspaceRoot = path.resolve(root);
   }
 
   getFinalResponse(): string {
@@ -524,7 +532,25 @@ class CodexClientHandler implements TerminalClient {
   }
 
   private resolvePath(filePath: string): string {
-    return path.isAbsolute(filePath) ? filePath : path.resolve(filePath);
+    const base = this.workspaceRoot ?? process.cwd();
+    return path.isAbsolute(filePath) ? filePath : path.resolve(base, filePath);
+  }
+
+  private formatWorkspacePath(targetPath?: string): string | undefined {
+    if (!targetPath) return targetPath;
+    try {
+      const absolute = path.isAbsolute(targetPath)
+        ? targetPath
+        : path.resolve(this.workspaceRoot, targetPath);
+      const relative = path.relative(this.workspaceRoot, absolute);
+      const normalizedRelative = toPosix(relative);
+      if (normalizedRelative && !normalizedRelative.startsWith("..")) {
+        return `./${normalizedRelative}`;
+      }
+      return toPosix(absolute);
+    } catch {
+      return targetPath;
+    }
   }
 
   async readTextFile({
@@ -1127,6 +1153,9 @@ class CodexClientHandler implements TerminalClient {
         eventPayload.output = formatted.text;
       }
     }
+    if (eventPayload.cwd) {
+      eventPayload.cwd = this.formatWorkspacePath(eventPayload.cwd);
+    }
     await this.stream({
       type: "event",
       event: {
@@ -1138,7 +1167,7 @@ class CodexClientHandler implements TerminalClient {
   }
 
   private async emitDiffEvent(
-    path: string,
+    filePath: string,
     previous?: string,
     next?: string,
   ): Promise<boolean> {
@@ -1152,7 +1181,7 @@ class CodexClientHandler implements TerminalClient {
       type: "event",
       event: {
         type: "diff",
-        path,
+        path: this.formatWorkspacePath(filePath) ?? filePath,
         patch,
       },
     });
@@ -1164,11 +1193,12 @@ class CodexClientHandler implements TerminalClient {
     payload: Omit<AcpFileEvent, "type" | "path">,
   ): Promise<void> {
     if (!this.stream) return;
+    const displayPath = this.formatWorkspacePath(path) ?? path;
     await this.stream({
       type: "event",
       event: {
         type: "file",
-        path,
+        path: displayPath,
         ...payload,
       },
     });
@@ -1212,6 +1242,10 @@ function stripQuotes(value: string): string {
     return trimmed.slice(1, -1);
   }
   return trimmed;
+}
+
+function toPosix(value: string): string {
+  return value.replace(/\\/g, "/");
 }
 
 function formatTerminalOutput(
@@ -1372,6 +1406,7 @@ export class CodexAcpAgent implements AcpAgent {
     const binary =
       options.binaryPath ?? process.env.COCALC_ACP_AGENT_BIN ?? "codex-acp";
     const useNativeTerminal = options.useNativeTerminal === true;
+    const workspaceRoot = path.resolve(options.cwd ?? process.cwd());
 
     const args: string[] = [];
     if (options.disableSessionPersist) {
@@ -1392,7 +1427,7 @@ export class CodexAcpAgent implements AcpAgent {
     const child = spawn(binary, args, {
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env, HOME, ...options.env },
-      cwd: options.cwd ?? process.cwd(),
+      cwd: workspaceRoot,
     });
 
     await new Promise<void>((resolve, reject) => {
@@ -1425,6 +1460,7 @@ export class CodexAcpAgent implements AcpAgent {
           ? new Map(Object.entries(options.commandHandlers))
           : undefined,
       captureToolCalls: useNativeTerminal,
+      workspaceRoot,
     });
     const connection = new ClientSideConnection(() => handler, stream);
 
@@ -1465,6 +1501,7 @@ export class CodexAcpAgent implements AcpAgent {
     this.handler.resetUsage();
     const key = session_id ?? CodexAcpAgent.DEFAULT_SESSION_KEY;
     const session = await this.ensureSession(key, config);
+    this.handler.setWorkspaceRoot(session.cwd);
     this.handler.setStream(stream);
 
     try {

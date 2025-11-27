@@ -815,6 +815,7 @@ export default function Message({
             persistKey={`${(project_id ?? "no-project").slice(0, 8)}:${
               path ?? ""
             }:${date}`}
+            basePath={path ? path.substring(0, path.lastIndexOf("/")) : ""}
             durationLabel={
               generating === true
                 ? elapsedLabel
@@ -828,6 +829,7 @@ export default function Message({
               isLanguageModelService(message.get("sender_id")) ||
               is_viewers_message
             }
+            projectId={project_id}
             onResolveApproval={
               actions && typeof actions.resolveAcpApproval === "function"
                 ? ({ approvalId, optionId }) =>

@@ -8,6 +8,7 @@ import type {
 } from "@cocalc/conat/ai/acp/types";
 import {
   React,
+  redux,
   useEffect,
   useMemo,
   useState,
@@ -113,6 +114,8 @@ export interface CodexActivityProps {
     approvalId: string;
     optionId?: string;
   }) => Promise<void> | void;
+  projectId?: string;
+  basePath?: string;
 }
 
 // Persist log visibility per chat message so Virtuoso remounts don’t reset it.
@@ -126,6 +129,8 @@ export function CodexActivity({
   persistKey,
   canResolveApproval,
   onResolveApproval,
+  projectId,
+  basePath,
 }: CodexActivityProps): React.ReactElement | null {
   const entries = useMemo(() => normalizeEvents(events ?? []), [events]);
   const hasPendingApproval = useMemo(
@@ -256,6 +261,8 @@ export function CodexActivity({
             fontSize={baseFontSize}
             canResolveApproval={canResolveApproval}
             onResolveApproval={onResolveApproval}
+            projectId={projectId}
+            basePath={basePath}
           />
         ))}
         {renderCloseButton({ position: "absolute", right: 6, bottom: 6 })}
@@ -269,6 +276,8 @@ function ActivityRow({
   fontSize,
   canResolveApproval,
   onResolveApproval,
+  projectId,
+  basePath,
 }: {
   entry: ActivityEntry;
   fontSize: number;
@@ -277,6 +286,8 @@ function ActivityRow({
     approvalId: string;
     optionId?: string;
   }) => Promise<void> | void;
+  projectId?: string;
+  basePath?: string;
 }) {
   const secondarySize = Math.max(11, fontSize - 2);
   switch (entry.kind) {
@@ -322,7 +333,12 @@ function ActivityRow({
           <Tag color="geekblue" style={{ marginBottom: 4 }}>
             Diff
           </Tag>
-          <Text strong>{entry.path}</Text>
+          <PathLink
+            path={entry.path}
+            projectId={projectId}
+            basePath={basePath}
+            bold
+          />
           <pre
             style={{
               background: "white",
@@ -341,7 +357,14 @@ function ActivityRow({
     case "terminal":
       return <TerminalRow entry={entry} fontSize={fontSize} />;
     case "file":
-      return <FileRow entry={entry} fontSize={fontSize} />;
+      return (
+        <FileRow
+          entry={entry}
+          fontSize={fontSize}
+          projectId={projectId}
+          basePath={basePath}
+        />
+      );
     case "approval":
       return (
         <ApprovalRow
@@ -601,6 +624,85 @@ function stringifyPath(pathValue: any): string {
   }
 }
 
+function PathLink({
+  path,
+  line,
+  projectId,
+  fontSize,
+  bold,
+  basePath,
+}: {
+  path?: string;
+  line?: number;
+  projectId?: string;
+  fontSize?: number;
+  bold?: boolean;
+  basePath?: string;
+}) {
+  const actions =
+    projectId != null ? redux.getProjectActions(projectId) : undefined;
+  const resolvedPath = resolvePath(path, basePath);
+  const onClick = React.useCallback(
+    (e: React.MouseEvent) => {
+      if (!actions || !resolvedPath) return;
+      e.preventDefault();
+      actions.open_file({
+        path: resolvedPath,
+        line,
+        foreground: true,
+        chat: true,
+        explicit: true,
+      });
+    },
+    [actions, resolvedPath, line],
+  );
+  const node = (
+    <code
+      style={{
+        fontSize,
+        color: COLORS.GRAY_D,
+        background: COLORS.GRAY_LLL,
+        padding: "0 4px",
+        borderRadius: 3,
+        fontWeight: bold ? 600 : undefined,
+      }}
+    >
+      {path || "(unknown)"}
+    </code>
+  );
+  if (actions && resolvedPath) {
+    return (
+      <a
+        href={resolvedPath}
+        onClick={onClick}
+        style={{ textDecoration: "none" }}
+        role="button"
+      >
+        {node}
+      </a>
+    );
+  }
+  return node;
+}
+
+function resolvePath(path?: string, basePath?: string): string | undefined {
+  if (!path) return undefined;
+  const normalized = path.replace(/^\.\\/, "./").replace(/^\.\/+/, "");
+  const hasDrive = /^[a-zA-Z]:[\\/]/.test(normalized);
+  if (
+    normalized.startsWith("/") ||
+    hasDrive ||
+    normalized.startsWith("~") ||
+    normalized.startsWith("../")
+  ) {
+    return normalized;
+  }
+  if (!basePath) return normalized;
+  const cleanBase = basePath.replace(/\/+$/, "");
+  if (!cleanBase) return normalized;
+  return `${cleanBase}/${normalized}`;
+}
+
 function TerminalRow({
   entry,
   fontSize,
@@ -738,9 +840,13 @@ function formatTimestamp(value?: string | null): string {
 function FileRow({
   entry,
   fontSize,
+  projectId,
+  basePath,
 }: {
   entry: Extract<ActivityEntry, { kind: "file" }>;
   fontSize: number;
+  projectId?: string;
+  basePath?: string;
 }) {
   const isRead = entry.operation === "read";
   const actionLabel = isRead
@@ -751,6 +857,15 @@ function FileRow({
   const scope = formatReadScope(entry);
   const sizeLabel =
     typeof entry.bytes === "number" ? formatByteCount(entry.bytes) : undefined;
+  const pathNode = (
+    <PathLink
+      path={entry.path}
+      line={entry.line}
+      projectId={projectId}
+      fontSize={Math.max(11, fontSize - 2)}
+      basePath={basePath}
+    />
+  );
   return (
     <div>
       <Space size={6} wrap align="center" style={{ marginBottom: 6 }}>
@@ -758,17 +873,7 @@ function FileRow({
         <Text strong style={{ fontSize }}>
           {actionLabel}
         </Text>
-        <code
-          style={{
-            fontSize: Math.max(11, fontSize - 2),
-            color: COLORS.GRAY_D,
-            background: COLORS.GRAY_LLL,
-            padding: "0 4px",
-            borderRadius: 3,
-          }}
-        >
-          {entry.path || "(unknown)"}
-        </code>
+        {pathNode}
         {sizeLabel ? (
           <Text
             type="secondary"
