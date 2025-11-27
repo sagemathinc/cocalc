@@ -103,6 +103,7 @@ const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
   overflow: "hidden",
   height: "100%",
   minHeight: 0,
+  transition: "none",
 } as const;
 
 const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
@@ -1046,7 +1047,12 @@ export function ChatPanel({
       ),
     };
     const sider = (
-      <Layout.Sider width={sidebarWidth} style={THREAD_SIDEBAR_STYLE}>
+      <Layout.Sider
+        width={sidebarWidth}
+        style={THREAD_SIDEBAR_STYLE}
+        collapsible={false}
+        trigger={null}
+      >
         <div
           style={{
             display: "flex",
@@ -1054,6 +1060,7 @@ export function ChatPanel({
             height: "100%",
             minHeight: 0,
             overflow: "auto",
+            transition: "none",
           }}
         >
           {renderSidebarContent()}
