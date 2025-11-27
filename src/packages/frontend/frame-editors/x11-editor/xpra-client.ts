@@ -156,9 +156,10 @@ export class XpraClient extends EventEmitter {
     // Get origin, but with http[s] stripped.
     // Do not use window.location.hostname, since that doesn't
     // include the port, if there is one.
-    let origin = window.location.origin;
+    const { origin, protocol: pageProtocol } = window.location;
     const i = origin.indexOf(":");
-    origin = origin.slice(i);
+    const originTail = origin.slice(i);
+    const wsProtocol = pageProtocol === "https:" ? "wss" : "ws";
 
     const path = join(
       appBasePath,
@@ -166,7 +167,7 @@ export class XpraClient extends EventEmitter {
       "server",
       `${port}`,
     );
-    const uri = `wss${origin}${path}`;
+    const uri = `${wsProtocol}${originTail}${path}`;
     const dpi = Math.round(BASE_DPI * window.devicePixelRatio);
     return { uri, dpi };
   }
