@@ -57,7 +57,7 @@ import {
 } from "./threads";
 import type { ThreadListItem, ThreadSection } from "./threads";
 import CodexConfigButton from "./codex";
-import { CONTEXT_WARN_PCT, CONTEXT_CRITICAL_PCT} from "./codex";
+import { CONTEXT_WARN_PCT, CONTEXT_CRITICAL_PCT } from "./codex";
 import { Resizable } from "re-resizable";
 
 const FILTER_RECENT_NONE = {
@@ -76,6 +76,7 @@ const GRID_STYLE: React.CSSProperties = {
   width: "100%",
   margin: "auto",
   minHeight: 0,
+  flex: 1,
 } as const;
 
 const CHAT_LAYOUT_STYLE: React.CSSProperties = {
@@ -99,7 +100,9 @@ const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
   padding: "15px 0",
   display: "flex",
   flexDirection: "column",
-  overflow: "auto",
+  overflow: "hidden",
+  height: "100%",
+  minHeight: 0,
 } as const;
 
 const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
@@ -281,11 +284,7 @@ export function ChatPanel({
     const result = new Map<string, number>();
     if (!messages) return result;
     for (const thread of rawThreads) {
-      const pct = computeThreadContextRemaining(
-        thread.key,
-        actions,
-        messages,
-      );
+      const pct = computeThreadContextRemaining(thread.key, actions, messages);
       if (pct != null) {
         result.set(thread.key, pct);
       }
@@ -1048,7 +1047,17 @@ export function ChatPanel({
     };
     const sider = (
       <Layout.Sider width={sidebarWidth} style={THREAD_SIDEBAR_STYLE}>
-        {renderSidebarContent()}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            minHeight: 0,
+            overflow: "auto",
+          }}
+        >
+          {renderSidebarContent()}
+        </div>
       </Layout.Sider>
     );
     if (IS_MOBILE || sidebarCollapsed) {
@@ -1260,9 +1269,28 @@ export function ChatPanel({
   );
 
   const renderDefaultLayout = () => (
-    <Layout style={{ ...CHAT_LAYOUT_STYLE, position: "relative" }}>
+    <Layout
+      hasSider
+      style={{
+        ...CHAT_LAYOUT_STYLE,
+        position: "relative",
+        minHeight: 0,
+        height: "100%",
+        display: "flex",
+        flexDirection: "row",
+      }}
+    >
       {!sidebarCollapsed && renderThreadSidebar()}
-      <Layout.Content className="smc-vfill" style={{ background: "white" }}>
+      <Layout.Content
+        className="smc-vfill"
+        style={{
+          background: "white",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          height: "100%",
+        }}
+      >
         {sidebarCollapsed && !IS_MOBILE && (
           <div style={{ padding: "10px" }}>
             <Button
@@ -1336,6 +1364,11 @@ export function ChatPanel({
       onMouseMove={mark_as_read}
       onClick={mark_as_read}
       className="smc-vfill"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+      }}
     >
       {variant === "compact" ? renderCompactLayout() : renderDefaultLayout()}
       <Modal
@@ -1366,7 +1399,7 @@ function computeThreadContextRemaining(
   const ms = Number(threadKey);
   const keyIso = Number.isFinite(ms)
     ? new Date(ms).toISOString()
-    : threadKey ?? "";
+    : (threadKey ?? "");
   const seq = actions.getMessagesInThread(keyIso);
   if (!seq) return null;
   const list =
@@ -1379,8 +1412,7 @@ function computeThreadContextRemaining(
   });
   let remaining: number | null = null;
   for (const entry of list) {
-    const usageRaw: any =
-      entry?.get("acp_usage") ?? entry?.get("codex_usage");
+    const usageRaw: any = entry?.get("acp_usage") ?? entry?.get("codex_usage");
     if (!usageRaw) continue;
     const usage =
       typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
