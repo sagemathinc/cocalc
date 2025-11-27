@@ -1164,6 +1164,12 @@ class CodexClientHandler implements TerminalClient {
         ...eventPayload,
       },
     });
+    if (payload.phase === "exit") {
+      // In sandboxed mode edits often happen via shell commands, so attempt to
+      // surface diffs for any files we've previously snapshotted via read_text_file.
+      // This runs after the terminal exit to avoid interfering with command output.
+      await this.emitSnapshotDiffs();
+    }
   }
 
   private async emitDiffEvent(
@@ -1202,6 +1208,25 @@ class CodexClientHandler implements TerminalClient {
         ...payload,
       },
     });
+  }
+
+  // Compare cached snapshots (from read_text_file) with current disk state and emit diffs.
+  private async emitSnapshotDiffs(): Promise<void> {
+    if (!this.stream || this.fileSnapshots.size === 0) return;
+    for (const [absolute, previous] of this.fileSnapshots.entries()) {
+      if (typeof previous !== "string") continue;
+      try {
+        const next = await fs.readFile(absolute, "utf8");
+        if (next === previous) continue;
+        const emitted = await this.emitDiffEvent(absolute, previous, next);
+        if (emitted) {
+          this.fileSnapshots.set(absolute, next);
+        }
+      } catch (err) {
+        // Ignore missing files or read errors; nothing to diff.
+        log.debug("emitSnapshotDiffs.skip", { path: absolute, err });
+      }
+    }
   }
 }
 

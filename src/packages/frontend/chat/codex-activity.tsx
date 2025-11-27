@@ -715,6 +715,7 @@ function TerminalRow({
   const hasOutput = Boolean(entry.output && entry.output.length > 0);
   const secondarySize = Math.max(11, fontSize - 2);
   const codeFontSize = Math.max(11, fontSize - 1);
+  const showHeader = Boolean(commandLine || entry.cwd);
   return (
     <div>
       <Tag color={COLORS.STAR} style={{ marginBottom: 6 }}>
@@ -735,21 +736,23 @@ function TerminalRow({
           overflowY: "auto",
         }}
       >
-        <div style={{ marginBottom: hasOutput ? 8 : 0 }}>
-          <span style={{ color: "#94a3b8" }}>$</span>{" "}
-          {commandLine ?? <span style={{ color: "#cbd5e1" }}>Command</span>}
-          {entry.cwd ? (
-            <span
-              style={{
-                marginLeft: 8,
-                color: "#94a3b8",
-                fontSize: secondarySize,
-              }}
-            >
-              ({entry.cwd})
-            </span>
-          ) : null}
-        </div>
+        {showHeader ? (
+          <div style={{ marginBottom: hasOutput ? 8 : 0 }}>
+            <span style={{ color: "#94a3b8" }}>$</span>{" "}
+            {commandLine ?? <span style={{ color: "#cbd5e1" }}>Command</span>}
+            {entry.cwd ? (
+              <span
+                style={{
+                  marginLeft: 8,
+                  color: "#94a3b8",
+                  fontSize: secondarySize,
+                }}
+              >
+                ({entry.cwd})
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         {hasOutput ? (
           <Ansi>{entry.output}</Ansi>
         ) : (
