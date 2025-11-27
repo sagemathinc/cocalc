@@ -60,6 +60,7 @@ import {
 import type { ThreadListItem, ThreadSection } from "./threads";
 import CodexConfigButton from "./codex";
 import { CONTEXT_WARN_PCT, CONTEXT_CRITICAL_PCT} from "./codex";
+import { Resizable } from "re-resizable";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -100,7 +101,7 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
   position: "relative",
 } as const;
 
-const THREAD_SIDEBAR_WIDTH = 260;
+const DEFAULT_SIDEBAR_WIDTH = 260;
 
 const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
   background: "#fafafa",
@@ -187,10 +188,10 @@ export function ChatPanel({
   variant = "default",
   disableFilters: disableFiltersProp,
 }: ChatPanelProps) {
+  const account_id = useTypedRedux("account", "account_id");
   if (IS_MOBILE) {
     variant = "compact";
   }
-  const account_id = useTypedRedux("account", "account_id");
   const [input, setInput] = useState("");
   const search = getDescValue(desc, "data-search") ?? "";
   const filterRecentH: number = getDescValue(desc, "data-filterRecentH") ?? 0;
@@ -200,6 +201,12 @@ export function ChatPanel({
   const fragmentId = getDescValue(desc, "data-fragmentId") ?? null;
   const showPreview = getDescValue(desc, "data-showPreview") ?? null;
   const costEstimate = getDescValue(desc, "data-costEstimate");
+  const storedSidebarWidth = getDescValue(desc, "data-sidebarWidth");
+  const [sidebarWidth, setSidebarWidth] = useState<number>(
+    typeof storedSidebarWidth === "number" && storedSidebarWidth > 50
+      ? storedSidebarWidth
+      : DEFAULT_SIDEBAR_WIDTH,
+  );
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
   const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
@@ -240,6 +247,20 @@ export function ChatPanel({
     const base = `${project_id ?? ""}${path ?? ""}`;
     return `${base}-${selectedThreadKey ?? "all"}`;
   }, [project_id, path, selectedThreadKey]);
+
+  useEffect(() => {
+    if (IS_MOBILE && sidebarWidth !== DEFAULT_SIDEBAR_WIDTH) {
+      setSidebarWidth(DEFAULT_SIDEBAR_WIDTH);
+    }
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    if (!actions?.frameTreeActions?.set_frame_data || !actions?.frameId) return;
+    actions.frameTreeActions.set_frame_data({
+      id: actions.frameId,
+      sidebarWidth,
+    });
+  }, [sidebarWidth, actions?.frameTreeActions, actions?.frameId]);
   const selectedThreadDate = useMemo(() => {
     if (!selectedThreadKey || selectedThreadKey === ALL_THREADS_KEY) {
       return undefined;
@@ -988,11 +1009,58 @@ export function ChatPanel({
     sendMessage();
   }
 
-  const renderThreadSidebar = () => (
-    <Layout.Sider width={THREAD_SIDEBAR_WIDTH} style={THREAD_SIDEBAR_STYLE}>
-      {renderSidebarContent()}
-    </Layout.Sider>
-  );
+  const renderThreadSidebar = () => {
+    const minWidth = 200;
+    const maxWidth = 520;
+    const handleStyles = {
+      right: {
+        width: "6px",
+        right: "-3px",
+        cursor: "col-resize",
+        background: "transparent",
+      },
+    } as const;
+    const handleComponent = {
+      right: (
+        <div
+          aria-label="Resize sidebar"
+          style={{
+            width: "100%",
+            height: "100%",
+            background:
+              "linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.0))",
+          }}
+        />
+      ),
+    };
+    const sider = (
+      <Layout.Sider width={sidebarWidth} style={THREAD_SIDEBAR_STYLE}>
+        {renderSidebarContent()}
+      </Layout.Sider>
+    );
+    if (IS_MOBILE) {
+      return sider;
+    }
+    return (
+      <Resizable
+        size={{ width: sidebarWidth, height: "100%" }}
+        enable={{ right: true }}
+        minWidth={minWidth}
+        maxWidth={maxWidth}
+        handleStyles={handleStyles}
+        handleComponent={handleComponent}
+        onResizeStop={(_, __, ___, delta) => {
+          const next = Math.min(
+            maxWidth,
+            Math.max(minWidth, sidebarWidth + delta.width),
+          );
+          setSidebarWidth(next);
+        }}
+      >
+        {sider}
+      </Resizable>
+    );
+  };
 
   const renderChatContent = () => (
     <div className="smc-vfill" style={GRID_STYLE}>
@@ -1230,7 +1298,7 @@ export function ChatPanel({
         open={sidebarVisible}
         onClose={() => setSidebarVisible(false)}
         placement="right"
-        width={THREAD_SIDEBAR_WIDTH + 40}
+        width={Math.max(200, sidebarWidth + 40)}
         title="Chats"
         destroyOnClose
       >
