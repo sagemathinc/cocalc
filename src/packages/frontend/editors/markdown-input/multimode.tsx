@@ -80,6 +80,7 @@ interface Props {
   placeholder?: string;
   fontSize?: number;
   height?: string; // css height and also "auto" is fully supported.
+  autoGrow?: boolean; // enable dynamic growth (defaults off unless height === "auto")
   style?: CSSProperties;
   modeSwitchStyle?: CSSProperties;
   autoFocus?: boolean; // note - this is broken on safari for the slate editor, but works on chrome and firefox.
@@ -160,6 +161,7 @@ export default function MultiMarkdownInput({
   fontSize,
   getValueRef,
   height = "auto",
+  autoGrow,
   hideHelp,
   isFocused,
   minimal,
@@ -210,6 +212,8 @@ export default function MultiMarkdownInput({
   }, [onChange]);
 
   const editBar2 = useRef<React.JSX.Element | undefined>(undefined);
+
+  const isAutoGrow = autoGrow ?? height === "auto";
 
   const getKey = () => `${project_id}${path}:${cacheId}`;
 
@@ -381,7 +385,7 @@ export default function MultiMarkdownInput({
                   : []),
                 // fontWeight is needed to undo a stupid conflict with bootstrap css, which will go away when we get rid of that ancient nonsense.
                 {
-                  label: <span style={{ fontWeight: 400 }}>Text</span>,
+                  label: <span style={{ fontWeight: 400 }}>Rich Text</span>,
                   value: "editor",
                 },
                 {
@@ -429,6 +433,7 @@ export default function MultiMarkdownInput({
           fontSize={fontSize}
           cmOptions={cmOptions}
           height={height}
+          autoGrow={autoGrow ?? height === "auto"}
           style={style}
           autoFocus={focused}
           submitMentionsRef={submitMentionsRef}
@@ -459,9 +464,9 @@ export default function MultiMarkdownInput({
       {mode === "editor" ? (
         <div
           style={{
-            height: "auto",
+            height: isAutoGrow ? undefined : height,
             minHeight: `${MIN_INPUT_HEIGHT}px`,
-            maxHeight: MAX_INPUT_HEIGHT,
+            maxHeight: isAutoGrow ? MAX_INPUT_HEIGHT : height,
             overflowY: "auto",
             width: "100%",
             fontSize: "14px" /* otherwise button bar can be skewed */,

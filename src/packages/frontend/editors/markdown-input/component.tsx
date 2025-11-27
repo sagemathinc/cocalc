@@ -105,6 +105,9 @@ interface Props {
   refresh?: any; // refresh codemirror if this changes
   compact?: boolean;
   dirtyRef?: MutableRefObject<boolean>;
+  // When true, grow/shrink the editor height up to a cap. Defaults to false to
+  // preserve fixed-height consumers (e.g., task editor).
+  autoGrow?: boolean;
 }
 
 export function MarkdownInput(props: Props) {
@@ -148,6 +151,7 @@ export function MarkdownInput(props: Props) {
     submitMentionsRef,
     unregisterEditor,
     value,
+    autoGrow = false,
   } = props;
   const { actions, isVisible } = useFrameContext();
   const cm = useRef<CodeMirror.Editor | undefined>(undefined);
@@ -194,6 +198,8 @@ export function MarkdownInput(props: Props) {
     return Number.isFinite(n) && n > 0 ? n : null;
   };
 
+  const isAutoGrow = autoGrow || height === "auto";
+
   const initialMinHeight = useMemo(() => {
     const parsed = parseHeightPx(height);
     if (parsed != null && parsed > 0 && parsed < 2000) {
@@ -224,6 +230,7 @@ export function MarkdownInput(props: Props) {
   }, [initialMinHeight]);
 
   const adjustHeight = useCallback(() => {
+    if (!isAutoGrow) return;
     if (!cm.current) return;
     const doc = cm.current.getDoc();
     const lineCount = Math.max(1, doc?.lineCount() ?? 1);
@@ -247,7 +254,7 @@ export function MarkdownInput(props: Props) {
       wrapper.style.minHeight = `${initialMinHeight}px`;
     }
     setEditorHeight((prev) => (prev !== clamped ? clamped : prev));
-  }, [initialMinHeight, refreshMaxHeight]);
+  }, [initialMinHeight, refreshMaxHeight, isAutoGrow]);
 
   const focus = useCallback(() => {
     if (isFocusedRef.current) return; // already focused
@@ -279,15 +286,15 @@ export function MarkdownInput(props: Props) {
 
   useEffect(() => {
     const onResize = () => adjustHeight();
-    if (typeof window !== "undefined") {
+    if (isAutoGrow && typeof window !== "undefined") {
       window.addEventListener("resize", onResize);
     }
     return () => {
-      if (typeof window !== "undefined") {
+      if (isAutoGrow && typeof window !== "undefined") {
         window.removeEventListener("resize", onResize);
       }
     };
-  }, [adjustHeight]);
+  }, [adjustHeight, isAutoGrow]);
 
   useEffect(() => {
     // initialize the codemirror editor
@@ -368,7 +375,9 @@ export function MarkdownInput(props: Props) {
     // (window as any).cm = cm.current;
     cm.current.setValue(value ?? "");
     cm.current.on("change", saveValue);
-    cm.current.on("change", adjustHeight);
+    if (isAutoGrow) {
+      cm.current.on("change", adjustHeight);
+    }
 
     if (dirtyRef != null) {
       cm.current.on("change", () => {
@@ -434,14 +443,23 @@ export function MarkdownInput(props: Props) {
     }
 
     const e: any = cm.current.getWrapperElement();
-    let s = `height:${editorHeight}px; font-family:sans-serif !important;`;
+    const fixedHeight =
+      !isAutoGrow && height && height !== "auto" ? height : undefined;
+    const baseHeight = fixedHeight ?? `${editorHeight}px`;
+    let s = `height:${baseHeight}; font-family:sans-serif !important;`;
     if (compact) {
       s += "padding:0";
     } else {
       s += !options.lineNumbers ? `padding:${PADDING_TOP}px 12px` : "";
     }
+    if (!isAutoGrow) {
+      const h = fixedHeight ?? `${initialMinHeight}px`;
+      s += `;min-height:${h};max-height:${h};overflow:auto;`;
+    }
     e.setAttribute("style", s);
-    adjustHeight();
+    if (isAutoGrow) {
+      adjustHeight();
+    }
 
     if (enableMentions) {
       cm.current.on("change", (cm, changeObj) => {
@@ -553,7 +571,9 @@ export function MarkdownInput(props: Props) {
     return () => {
       if (cm.current == null) return;
       cm.current.off("change", saveValue);
-      cm.current.off("change", adjustHeight);
+      if (isAutoGrow) {
+        cm.current.off("change", adjustHeight);
+      }
       cm.current.off("paste", handle_paste_event as any);
       if (onBlur) {
         cm.current.off("blur", onBlur as any);
