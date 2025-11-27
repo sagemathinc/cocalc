@@ -717,20 +717,48 @@ function TerminalRow({
   const codeFontSize = Math.max(11, fontSize - 1);
   return (
     <div>
-      <Space size={6} wrap align="center" style={{ marginBottom: 6 }}>
-        <Tag color={COLORS.STAR}>Terminal</Tag>
-        {commandLine ? (
-          <code style={{ fontSize: secondarySize }}>{commandLine}</code>
+      <Tag color={COLORS.STAR} style={{ marginBottom: 6 }}>
+        Terminal
+      </Tag>
+      <div
+        style={{
+          background: "#0f172a",
+          color: "#e2e8f0",
+          borderRadius: 6,
+          padding: "10px 12px",
+          fontFamily: "monospace",
+          fontSize: codeFontSize,
+          whiteSpace: "pre-wrap",
+          lineHeight: 1.45,
+          border: `1px solid ${COLORS.GRAY_L}`,
+          maxHeight: 360,
+          overflowY: "auto",
+        }}
+      >
+        <div style={{ marginBottom: hasOutput ? 8 : 0 }}>
+          <span style={{ color: "#94a3b8" }}>$</span>{" "}
+          {commandLine ?? <span style={{ color: "#cbd5e1" }}>Command</span>}
+          {entry.cwd ? (
+            <span
+              style={{
+                marginLeft: 8,
+                color: "#94a3b8",
+                fontSize: secondarySize,
+              }}
+            >
+              ({entry.cwd})
+            </span>
+          ) : null}
+        </div>
+        {hasOutput ? (
+          <Ansi>{entry.output}</Ansi>
         ) : (
           <Text type="secondary" style={{ fontSize: secondarySize }}>
-            Command
+            {entry.exitStatus ? "No output captured." : "Waiting for output…"}
           </Text>
         )}
-        {entry.cwd ? (
-          <Tag color="default" style={{ margin: 0 }}>
-            {entry.cwd}
-          </Tag>
-        ) : null}
+      </div>
+      <Space size={8} wrap align="center" style={{ marginTop: 6 }}>
         {status ? (
           <Text type="secondary" style={{ fontSize: secondarySize }}>
             {status}
@@ -742,33 +770,6 @@ function TerminalRow({
           </Tag>
         ) : null}
       </Space>
-      {hasOutput ? (
-        <div
-          style={{
-            background: "white",
-            borderRadius: 4,
-            padding: "8px 10px",
-            whiteSpace: "pre-wrap",
-            fontFamily: "monospace",
-            fontSize: codeFontSize,
-            maxHeight: 300,
-            overflowY: "auto",
-          }}
-        >
-          <pre
-            style={{
-              margin: 0,
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            <Ansi>{entry.output}</Ansi>
-          </pre>
-        </div>
-      ) : (
-        <Text type="secondary" style={{ fontSize: secondarySize }}>
-          {entry.exitStatus ? "No output captured." : "Waiting for output…"}
-        </Text>
-      )}
     </div>
   );
 }
@@ -1003,12 +1004,37 @@ function ApprovalRow({
 
 function formatCommand(command?: string, args?: string[]): string | undefined {
   if (!command) return undefined;
-  const parts = [command, ...(args ?? [])].filter(
+  const { cmd, argv } = unwrapShellCommand(command, args ?? []);
+  const parts = [cmd, ...argv].filter(
     (part): part is string => typeof part === "string",
   );
   return parts
     .map((part) => (/\s/.test(part) ? JSON.stringify(part) : part))
     .join(" ");
+}
+
+function unwrapShellCommand(
+  command: string,
+  args: string[],
+): { cmd: string; argv: string[] } {
+  const shells = new Set([
+    "bash",
+    "/bin/bash",
+    "/usr/bin/bash",
+    "sh",
+    "/bin/sh",
+    "/usr/bin/sh",
+  ]);
+  if (!shells.has(command)) {
+    return { cmd: command, argv: args };
+  }
+  if (args.length >= 2 && (args[0] === "-lc" || args[0] === "-c")) {
+    return { cmd: args[1], argv: [] };
+  }
+  if (args.length > 0) {
+    return { cmd: args[0], argv: args.slice(1) };
+  }
+  return { cmd: command, argv: [] };
 }
 
 function formatTerminalStatus(entry: {
