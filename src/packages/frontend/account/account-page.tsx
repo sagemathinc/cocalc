@@ -89,6 +89,13 @@ import { UpgradesPage } from "./upgrades/upgrades-page";
 
 export const ACCOUNT_SETTINGS_ICON_NAME: IconName = "settings";
 
+function getParentMenuKey(key?: string): string | undefined {
+  if (!key) return;
+  const dashIndex = key.indexOf("-");
+  if (dashIndex === -1) return;
+  return key.slice(0, dashIndex);
+}
+
 // Type for valid menu keys
 type MenuKey =
   | "settings"
@@ -119,7 +126,7 @@ const LOAD_ACCOUNT_INFO_TIMEOUT = 15_000;
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
   const [hidden, setHidden] = useState(IS_MOBILE);
-  const [openKeys, setOpenKeys] = useState<string[]>(["preferences"]);
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
 
   const { width: windowWidth } = useWindowDimensions();
   const isWide = windowWidth > 800;
@@ -447,6 +454,33 @@ export const AccountPage: React.FC = () => {
 
   const tabs = getTabs();
 
+  useEffect(() => {
+    if (!active_sub_tab) return;
+    const parentKey = getParentMenuKey(active_sub_tab);
+    if (!parentKey) return;
+    setOpenKeys((prevOpenKeys) =>
+      prevOpenKeys.length === 1 && prevOpenKeys[0] === parentKey
+        ? prevOpenKeys
+        : [parentKey],
+    );
+  }, [active_sub_tab]);
+
+  useEffect(() => {
+    if (active_page !== "preferences") {
+      if (active_sub_tab) {
+        redux.getActions("account").setState({ active_sub_tab: undefined });
+      }
+      setOpenKeys([]);
+    }
+  }, [active_page, active_sub_tab]);
+
+  function handleOpenChange(keys: string[]) {
+    setOpenKeys((prevOpenKeys) => {
+      const newlyOpened = keys.find((key) => !prevOpenKeys.includes(key));
+      return newlyOpened ? [newlyOpened] : [];
+    });
+  }
+
   // Process tabs to handle nested children for sub-tabs
   const children = {};
   const titles = {}; // Always store full labels for renderTitle()
@@ -565,9 +599,8 @@ export const AccountPage: React.FC = () => {
           }}
         >
           <Menu
-            defaultOpenKeys={["preferences"]}
-            openKeys={hidden ? ["preferences"] : openKeys}
-            onOpenChange={hidden ? undefined : setOpenKeys}
+            openKeys={openKeys}
+            onOpenChange={handleOpenChange}
             mode="inline"
             items={tabs}
             onClick={(e) => {
