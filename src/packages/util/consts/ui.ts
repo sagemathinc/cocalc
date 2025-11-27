@@ -33,8 +33,14 @@ export const R_IDE = "R IDE";
 // Default font size for account settings and UI elements
 export const DEFAULT_FONT_SIZE = 14;
 
-// Icon unicode character for dark mode toggle (◑ - circle with right half black)
-export const DARK_MODE_ICON = 0x25d1;
+// Icon unicode character for dark mode toggle (☽ - first quarter moon)
+export const DARK_MODE_ICON = 0x263d;
+
+// Icon unicode character for accessibility (♿ - wheelchair symbol)
+export const ACCESSIBILITY_ICON = 0x267f;
+
+// Keyword for accessibility settings, in account settings and URL query parameter
+export const A11Y = "accessibility";
 
 // Icon unicode characters for auto-sync arrows in LaTeX editor
 export const SYNC_FORWARD_ICON = 0x21a6; // ↦ - rightwards arrow $mapto$

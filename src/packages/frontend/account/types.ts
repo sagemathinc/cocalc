@@ -68,6 +68,7 @@ export interface AccountState {
     use_balance_toward_subscriptions?: boolean;
     show_symbol_bar_labels?: boolean; // whether to show labels on the menu buttons
     [ACTIVITY_BAR_LABELS]?: boolean; // whether to show labels on the vertical activity bar
+    accessibility?: string; // string is JSON: { enabled: boolean }
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };

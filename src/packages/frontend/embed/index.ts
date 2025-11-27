@@ -23,7 +23,6 @@ import { init as initMarkdown } from "../markdown/markdown-input/main";
 import { init as initCrashBanner } from "../crash-banner";
 import { init as initCustomize } from "../customize";
 
-
 // Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
 // This import of codemirror forces the initial full load of codemirror
 // as part of the main webpack entry point.

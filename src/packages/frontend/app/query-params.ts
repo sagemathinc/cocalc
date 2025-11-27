@@ -14,9 +14,10 @@ import {
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
+import { A11Y } from "@cocalc/util/consts/ui";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 
-export function init_query_params(): void {
+function init_fullscreen_mode(): void {
   const actions = redux.getActions("page");
   // enable fullscreen mode upon loading a URL like /app?fullscreen and
   // additionally kiosk-mode upon /app?fullscreen=kiosk
@@ -40,13 +41,19 @@ export function init_query_params(): void {
   } else if (COCALC_FULLSCREEN === "project") {
     actions.set_fullscreen("project");
   }
+}
 
+function init_api_key(): void {
+  const actions = redux.getActions("page");
   const get_api_key_query_value = QueryParams.get("get_api_key");
   if (get_api_key_query_value) {
     actions.set_get_api_key(get_api_key_query_value);
     actions.set_fullscreen("project");
   }
+}
 
+function init_session(): void {
+  const actions = redux.getActions("page");
   // configure the session
   // This makes it so the default session is 'default' and there is no
   // way to NOT have a session, except via session=, which is treated
@@ -79,5 +86,73 @@ export function init_query_params(): void {
   // not have session in the URL, so we can share url's without infected
   // other user's session.
   QueryParams.remove("session");
+}
 
+function parse_accessibility_param(param: string): boolean | null {
+  if (param === "true" || param === "on" || param === "1") {
+    return true;
+  }
+  if (param === "false" || param === "off" || param === "0") {
+    return false;
+  }
+  return null;
+}
+
+async function init_accessibility(): Promise<void> {
+  // Handle accessibility query parameter
+  // If ?accessibility=true or =on, enable accessibility mode permanently
+  // If ?accessibility=false or =off, disable it permanently
+  // This allows sharing URLs that automatically enable accessibility
+  const accessibilityParam = QueryParams.get(A11Y);
+  if (accessibilityParam == null) {
+    return;
+  }
+
+  const enabled = parse_accessibility_param(accessibilityParam);
+  QueryParams.remove(A11Y);
+
+  if (enabled == null) {
+    return;
+  }
+
+  try {
+    // Wait for account store to be ready before setting accessibility
+    const store = redux.getStore("account");
+    if (!store || typeof store.async_wait !== "function") {
+      console.warn("Account store not ready");
+      return;
+    }
+
+    await store.async_wait({
+      until: () => store.get_account_id() != null,
+      timeout: 0,
+    });
+
+    // Preserve existing accessibility settings
+    const existingSettingsStr = store.getIn(["other_settings", A11Y]);
+    let existingSettings = { enabled: false };
+    if (existingSettingsStr) {
+      try {
+        existingSettings = JSON.parse(existingSettingsStr);
+      } catch {
+        // Ignore parse errors, use default
+      }
+    }
+
+    // Merge with new enabled value
+    const settings = { ...existingSettings, enabled };
+    const accountActions = redux.getActions("account");
+    accountActions.set_other_settings(A11Y, JSON.stringify(settings));
+  } catch (err) {
+    console.warn("Failed to set accessibility from query param:", err);
+  }
+}
+
+export function init_query_params(): void {
+  init_fullscreen_mode();
+  init_api_key();
+  init_session();
+  // Run accessibility init in background without blocking
+  // to avoid delaying other store initializations
+  init_accessibility();
 }
