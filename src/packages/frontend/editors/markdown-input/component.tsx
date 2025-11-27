@@ -854,7 +854,10 @@ export function MarkdownInput(props: Props) {
     if (project_id == null) {
       throw Error("project_id and path must be set if enableMentions is set.");
     }
-    const v = mentionableUsers(undefined, { avatarLLMSize: 16 });
+    const v = mentionableUsers(undefined, {
+      avatarLLMSize: 20,
+      avatarUserSize: 20,
+    });
     if (v.length == 0) {
       // nobody to mention (e.g., admin doesn't have this)
       return;
