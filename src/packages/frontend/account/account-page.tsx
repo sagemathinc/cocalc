@@ -89,25 +89,6 @@ import { UpgradesPage } from "./upgrades/upgrades-page";
 
 export const ACCOUNT_SETTINGS_ICON_NAME: IconName = "settings";
 
-const BILLING_MENU_KEYS = new Set([
-  "subscriptions",
-  "licenses",
-  "payg",
-  "upgrades",
-  "purchases",
-  "payments",
-  "payment-methods",
-  "statements",
-]);
-
-function getParentMenuKey(key?: string): string | undefined {
-  if (!key) return;
-  if (BILLING_MENU_KEYS.has(key)) return "billing";
-  const dashIndex = key.indexOf("-");
-  if (dashIndex === -1) return;
-  return key.slice(0, dashIndex);
-}
-
 // Type for valid menu keys
 type MenuKey =
   | "settings"
@@ -365,7 +346,7 @@ export const AccountPage: React.FC = () => {
           ),
           children: active_page === "payg" && <PayAsYouGoPage />,
         },
-        ...(is_commercial && kucalc === KUCALC_COCALC_COM
+        ...(kucalc === KUCALC_COCALC_COM
           ? [
               {
                 key: "upgrades",
@@ -482,11 +463,12 @@ export const AccountPage: React.FC = () => {
   }
 
   const tabs = getTabs();
+  const parentByChildKey = new Map<string, string>();
 
   useEffect(() => {
-    const parentKey = getParentMenuKey(
-      active_sub_tab ? active_sub_tab : active_page,
-    );
+    const parentKey =
+      parentByChildKey.get(active_sub_tab ?? "") ??
+      parentByChildKey.get(active_page ?? "");
     setOpenKeys((prevOpenKeys) =>
       parentKey == null
         ? []
@@ -497,10 +479,13 @@ export const AccountPage: React.FC = () => {
   }, [active_page, active_sub_tab]);
 
   useEffect(() => {
-    if (active_page !== "preferences" && active_sub_tab) {
+    if (
+      active_sub_tab &&
+      parentByChildKey.get(active_sub_tab) !== active_page
+    ) {
       redux.getActions("account").setState({ active_sub_tab: undefined });
     }
-  }, [active_page, active_sub_tab]);
+  }, [active_page, active_sub_tab, parentByChildKey]);
 
   function handleOpenChange(keys: string[]) {
     setOpenKeys((prevOpenKeys) => {
@@ -516,11 +501,11 @@ export const AccountPage: React.FC = () => {
     if (tab.type == "divider") {
       continue;
     }
-    if (tab.key === "preferences" && Array.isArray(tab.children)) {
-      // Handle sub-tabs for preferences
+    if (Array.isArray(tab.children)) {
+      // Handle nested submenus generically (preferences, billing, etc.)
       const subTabs = tab.children;
       tab.children = subTabs.map((subTab) => {
-        // Extract just the icon (first child) from the span when hidden
+        // When collapsed, show only the icon; otherwise show full label.
         const label = hidden ? (
           <span style={{ paddingLeft: "5px" }}>
             {subTab.label.props.children[0]}
@@ -533,29 +518,11 @@ export const AccountPage: React.FC = () => {
           label,
         };
       });
-      // Store sub-tab children and full labels
       for (const subTab of subTabs) {
+        // Track child -> parent mapping for openKeys/title lookup.
+        parentByChildKey.set(subTab.key, tab.key);
         children[subTab.key] = subTab.children;
         titles[subTab.key] = subTab.label; // Always store original full label
-      }
-    } else if (tab.key === "billing" && Array.isArray(tab.children)) {
-      const subTabs = tab.children;
-      tab.children = subTabs.map((subTab) => {
-        const label = hidden ? (
-          <span style={{ paddingLeft: "5px" }}>
-            {subTab.label.props.children[0]}
-          </span>
-        ) : (
-          subTab.label
-        );
-        return {
-          key: subTab.key,
-          label,
-        };
-      });
-      for (const subTab of subTabs) {
-        children[subTab.key] = subTab.children;
-        titles[subTab.key] = subTab.label;
       }
     } else if (tab.key === "settings" || tab.key === "profile") {
       // Handle settings and profile as top-level pages
@@ -589,12 +556,11 @@ export const AccountPage: React.FC = () => {
     }
   }
 
+  const activeChildKey = active_sub_tab ?? active_page;
   function renderTitle() {
     return (
       <Title level={3}>
-        {active_page === "preferences" && active_sub_tab
-          ? titles[active_sub_tab]
-          : titles[active_page]}
+        {titles[activeChildKey]}
       </Title>
     );
   }
@@ -702,9 +668,7 @@ export const AccountPage: React.FC = () => {
             <div style={{ flex: 1 }} />
             {renderExtraContent()}
           </Flex>
-          {active_page === "preferences" && active_sub_tab
-            ? children[active_sub_tab]
-            : children[active_page]}
+          {children[activeChildKey] ?? children[active_page]}
           <Footer />
         </div>
       </div>
