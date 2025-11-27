@@ -1005,12 +1005,15 @@ function ApprovalRow({
 function formatCommand(command?: string, args?: string[]): string | undefined {
   if (!command) return undefined;
   const { cmd, argv } = unwrapShellCommand(command, args ?? []);
-  const parts = [cmd, ...argv].filter(
-    (part): part is string => typeof part === "string",
+  const cleaned = [cmd, ...argv]
+    .filter((part): part is string => typeof part === "string")
+    .map(stripOuterQuotes);
+  if (!cleaned.length) return undefined;
+  const [head, ...rest] = cleaned;
+  const tail = rest.map((part) =>
+    /\s/.test(part) ? JSON.stringify(part) : part,
   );
-  return parts
-    .map((part) => (/\s/.test(part) ? JSON.stringify(part) : part))
-    .join(" ");
+  return [head, ...tail].join(" ");
 }
 
 function unwrapShellCommand(
@@ -1035,6 +1038,12 @@ function unwrapShellCommand(
     return { cmd: args[0], argv: args.slice(1) };
   }
   return { cmd: command, argv: [] };
+}
+
+function stripOuterQuotes(value: string): string {
+  if (!value) return value;
+  const match = value.match(/^["']([\s\S]*)["']$/);
+  return match ? match[1] : value;
 }
 
 function formatTerminalStatus(entry: {
