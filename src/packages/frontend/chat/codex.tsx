@@ -175,7 +175,7 @@ export function CodexConfigButton({
     );
   }, [models, selectedModelValue]);
 
-  const onSave = () => {
+  const saveConfig = (opts?: { compact?: boolean }) => {
     const values = form.getFieldsValue();
     const sessionMode: CodexSessionMode =
       values.sessionMode ?? resolveCodexSessionMode(values);
@@ -186,7 +186,12 @@ export function CodexConfigButton({
     };
     actions?.setCodexConfig?.(threadKey, finalValues);
     setOpen(false);
+    if (opts?.compact) {
+      actions?.runCodexCompact?.(threadKey);
+    }
   };
+
+  const onSave = () => saveConfig();
 
   const selectedModelLabel =
     models.find((m) => m.value === selectedModelValue)?.label ??
@@ -312,7 +317,7 @@ export function CodexConfigButton({
           {actions?.runCodexCompact ? (
             <Button
               size="small"
-              onClick={() => actions?.runCodexCompact?.(threadKey)}
+              onClick={() => saveConfig({ compact: true })}
               type={contextSeverity === "ok" ? "default" : "primary"}
               danger={contextSeverity === "critical"}
             >
