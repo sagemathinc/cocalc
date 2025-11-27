@@ -130,6 +130,7 @@ interface Props {
   // more informative message to the user.
   numChildren?: number;
   threadViewMode?: boolean;
+  onForceScrollToBottom?: () => void;
 }
 
 export default function Message({
@@ -156,6 +157,7 @@ export default function Message({
   selected,
   numChildren,
   threadViewMode = false,
+  onForceScrollToBottom,
 }: Props) {
   const intl = useIntl();
 
@@ -945,6 +947,16 @@ function renderBottomControls() {
           color: COLORS.GRAY_M,
         }}
       >
+        {onForceScrollToBottom ? (
+          <Button
+            size="small"
+            style={{ color: COLORS.GRAY_M }}
+            onClick={() => onForceScrollToBottom?.()}
+            title="Scroll to newest message and re-enable auto-scroll"
+          >
+            <Icon name="arrow-down" /> Newest
+          </Button>
+        ) : null}
         <Button
           size="small"
           style={{ color: COLORS.GRAY_M }}

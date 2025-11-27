@@ -11,7 +11,14 @@ Render all the messages in the chat.
 
 import { Alert, Button } from "antd";
 import { Set as immutableSet } from "immutable";
-import { MutableRefObject, useEffect, useMemo, useRef, useState } from "react";
+import {
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
@@ -304,6 +311,7 @@ export function ChatLog({
           numChildren,
           singleThreadView,
           scrollCacheId,
+          scrollToBottomRef,
         }}
       />
       <Composing
@@ -549,6 +557,7 @@ export function MessageList({
   numChildren,
   singleThreadView,
   scrollCacheId,
+  scrollToBottomRef,
 }: {
   messages: ChatMessages;
   account_id: string;
@@ -569,6 +578,7 @@ export function MessageList({
   numChildren?: NumChildren;
   singleThreadView?: boolean;
   scrollCacheId?: string;
+  scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
 }) {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   const [atBottom, setAtBottom] = useState(true);
@@ -576,6 +586,14 @@ export function MessageList({
     cacheId: scrollCacheId ?? `${project_id}${path}`,
     initialState: { index: Math.max(sortedDates.length - 1, 0), offset: 0 }, // starts scrolled to the newest message.
   });
+
+  const forceScrollToBottom = useCallback(() => {
+    if (manualScrollRef) {
+      manualScrollRef.current = false;
+    }
+    setManualScroll?.(false);
+    scrollToBottomRef?.current?.(true);
+  }, [manualScrollRef, scrollToBottomRef, setManualScroll]);
 
   return (
     <Virtuoso
@@ -624,11 +642,11 @@ export function MessageList({
             }}
           >
             <DivTempHeight height={h ? `${h}px` : undefined}>
-              <Message
-                messages={messages}
-                numChildren={numChildren?.[message.get("date").valueOf()]}
-                key={date}
-                index={index}
+          <Message
+            messages={messages}
+            numChildren={numChildren?.[message.get("date").valueOf()]}
+            key={date}
+            index={index}
                 account_id={account_id}
                 user_map={user_map}
                 message={message}
@@ -659,17 +677,18 @@ export function MessageList({
                     ? () => virtuosoRef.current?.scrollIntoView({ index })
                     : undefined
                 }
-                allowReply={
-                  !singleThreadView &&
-                  messages.getIn([sortedDates[index + 1], "reply_to"]) == null
-                }
-                costEstimate={costEstimate}
-                threadViewMode={singleThreadView}
-              />
-            </DivTempHeight>
-          </div>
-        );
-      }}
+            allowReply={
+              !singleThreadView &&
+              messages.getIn([sortedDates[index + 1], "reply_to"]) == null
+            }
+            costEstimate={costEstimate}
+            threadViewMode={singleThreadView}
+            onForceScrollToBottom={forceScrollToBottom}
+          />
+        </DivTempHeight>
+      </div>
+    );
+  }}
       rangeChanged={
         manualScrollRef
           ? ({ endIndex }) => {
