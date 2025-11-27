@@ -14,7 +14,7 @@ import type {
 } from "./types";
 import { is_date as isDate } from "@cocalc/util/misc";
 
-export const INPUT_HEIGHT = "125px";
+export const INPUT_HEIGHT = "auto";
 
 export const USER_MENTION_MARKUP =
   '<span class="user-mention" account-id=__id__ >@__display__</span>';

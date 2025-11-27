@@ -87,6 +87,7 @@ const GRID_STYLE: React.CSSProperties = {
   flexDirection: "column",
   width: "100%",
   margin: "auto",
+  minHeight: 0,
 } as const;
 
 const CHAT_LAYOUT_STYLE: React.CSSProperties = {
@@ -97,7 +98,8 @@ const CHAT_LAYOUT_STYLE: React.CSSProperties = {
 const CHAT_LOG_STYLE: React.CSSProperties = {
   padding: "0",
   background: "white",
-  flex: "1 0 auto",
+  flex: "1 1 0",
+  minHeight: 0,
   position: "relative",
 } as const;
 
