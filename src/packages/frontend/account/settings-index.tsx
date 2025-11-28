@@ -13,6 +13,7 @@ import { Icon } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import { labels } from "@cocalc/frontend/i18n";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
 import {
   VALID_PREFERENCES_SUB_TYPES,
@@ -83,6 +84,10 @@ const MESSAGES = defineMessages({
     id: "account.settings.overview.payg",
     defaultMessage: "Configure pay-as-you-go usage and billing.",
   },
+  upgrades: {
+    id: "account.settings.overview.upgrades",
+    defaultMessage: "Manage your legacy quota upgrades.",
+  },
   purchases: {
     id: "account.settings.overview.purchases",
     defaultMessage: "View purchase history and receipts.",
@@ -90,6 +95,10 @@ const MESSAGES = defineMessages({
   payments: {
     id: "account.settings.overview.payments",
     defaultMessage: "Manage payment methods and transaction history.",
+  },
+  paymentMethods: {
+    id: "account.settings.overview.payment_methods",
+    defaultMessage: "Manage your saved payment methods or add new ones.",
   },
   statements: {
     id: "account.settings.overview.statements",
@@ -133,6 +142,7 @@ const FLEX_PROPS = {
 export function SettingsOverview() {
   const intl = useIntl();
   const is_commercial = useTypedRedux("customize", "is_commercial");
+  const kucalc = useTypedRedux("customize", "kucalc");
 
   function handleNavigate(path: NavigatePath) {
     // Use the same navigation pattern as the account page
@@ -297,6 +307,18 @@ export function SettingsOverview() {
                 description={intl.formatMessage(MESSAGES.payg)}
               />
             </Card>
+            {kucalc === KUCALC_COCALC_COM && (
+              <Card
+                {...CARD_PROPS}
+                onClick={() => handleNavigate("settings/upgrades")}
+              >
+                <Card.Meta
+                  avatar={<Icon name="arrow-circle-up" />}
+                  title={intl.formatMessage(labels.upgrades)}
+                  description={intl.formatMessage(MESSAGES.upgrades)}
+                />
+              </Card>
+            )}
             <Card
               {...CARD_PROPS}
               onClick={() => handleNavigate("settings/purchases")}
@@ -315,6 +337,16 @@ export function SettingsOverview() {
                 avatar={<Icon name="credit-card" />}
                 title={intl.formatMessage(labels.payments)}
                 description={intl.formatMessage(MESSAGES.payments)}
+              />
+            </Card>
+            <Card
+              {...CARD_PROPS}
+              onClick={() => handleNavigate("settings/payment-methods")}
+            >
+              <Card.Meta
+                avatar={<Icon name="credit-card" />}
+                title={intl.formatMessage(labels.payment_methods)}
+                description={intl.formatMessage(MESSAGES.paymentMethods)}
               />
             </Card>
             <Card
