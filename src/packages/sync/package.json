@@ -11,6 +11,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
+    "clean": "rm -rf node_modules dist",
     "test": "pnpm exec jest --forceExit",
     "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test"
@@ -23,6 +24,7 @@
     "@cocalc/conat": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "patchflow": "link:../../../patchflow",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
     "events": "3.3.0",

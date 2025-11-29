@@ -3,58 +3,48 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { CompressedPatch, Document } from "../generic/types";
-import { apply_patch, make_patch } from "../generic/util";
+import { StringDocument as PFStringDocument, type CompressedPatch } from "patchflow";
+import type { Document } from "../generic/types";
 
-// Immutable string document that satisfies our spec.
-export class StringDocument implements Document {
-  private value: string;
-
-  constructor(value = "") {
-    this.value = value;
+// Thin wrapper around patchflow's StringDocument to satisfy the legacy interface.
+export class StringDocument extends PFStringDocument implements Document {
+  private wrap(doc: PFStringDocument): StringDocument {
+    return doc instanceof StringDocument ? (doc as StringDocument) : new StringDocument(doc.toString());
   }
 
   public to_str(): string {
-    return this.value;
+    return this.toString();
   }
 
-  public is_equal(other?: StringDocument): boolean {
-    return this.value === (other != null ? other.value : undefined);
+  public is_equal(other?: PFStringDocument): boolean {
+    return this.isEqual(other);
   }
 
   public apply_patch(patch: CompressedPatch): StringDocument {
-    return new StringDocument(apply_patch(patch, this.value)[0]);
+    return this.wrap(super.applyPatch(patch));
   }
 
   public make_patch(other: StringDocument): CompressedPatch {
-    return make_patch(this.value, other.value);
-  }
-
-  public set(x: any): StringDocument {
-    if (typeof x === "string") {
-      return new StringDocument(x);
-    }
-    throw Error("x must be a string");
-  }
-
-  public get(_?: any): any {
-    throw Error("get queries on strings don't have meaning");
+    return super.makePatch(other as PFStringDocument);
   }
 
   public get_one(_?: any): any {
-    throw Error("get_one queries on strings don't have meaning");
+    throw new Error("get_one queries on strings don't have meaning");
+  }
+
+  public get(_?: any): any {
+    throw new Error("get queries on strings don't have meaning");
+  }
+
+  public set(x: any): StringDocument {
+    return this.wrap(super.set(x));
   }
 
   public delete(_?: any): StringDocument {
-    throw Error("delete on strings doesn't have meaning");
+    throw new Error("delete on strings doesn't have meaning");
   }
 
   public changes(_?: StringDocument): any {
-    // no-op (this is useful for other things, e.g., db-doc)
     return;
-  }
-
-  public count(): number {
-    return this.value.length;
   }
 }

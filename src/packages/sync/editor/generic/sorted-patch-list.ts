@@ -8,10 +8,10 @@ Sorted list of patches applied to a starting string/object.
 */
 
 import { EventEmitter } from "events";
+import { PatchGraph, type DocCodec, type Patch as FlowPatch } from "patchflow";
 import { Document, Patch } from "./types";
 import { patch_cmp } from "./util";
 import { close, deep_copy, trunc_middle } from "@cocalc/util/misc";
-import { isEqual } from "lodash";
 import LRU from "lru-cache";
 
 const MAX_PATCHLIST_CACHE_SIZE = 100;
@@ -20,6 +20,9 @@ const FILE_TIME_DEDUP_TOLERANCE = 3000;
 export class SortedPatchList extends EventEmitter {
   private from_str: (s: string) => Document;
   //private loadMoreHistory?: () => Promise<boolean>;
+
+  private codec: DocCodec;
+  private graph: PatchGraph;
 
   private patches: Patch[] = [];
 
@@ -45,11 +48,26 @@ export class SortedPatchList extends EventEmitter {
   private versions_cache: number[] | undefined;
 
   // should we use size?  most versions have the same size, so might not matter much.
-  private cache: LRU<number, { doc: Document; numTimes: number }> = new LRU({
+  private cache: LRU<number, Document> = new LRU({
     max: MAX_PATCHLIST_CACHE_SIZE,
   });
 
   private oldestSnapshot?: Patch;
+
+  private toFlowPatch = (p: Patch): FlowPatch => ({
+    time: p.time,
+    // wall is optional legacy field; not in Patch interface, so cast to get if present.
+    wall: (p as { wall?: number }).wall,
+    patch: p.patch,
+    userId: (p as { user_id?: number }).user_id,
+    size: p.size,
+    parents: p.parents ?? [],
+    version: p.version,
+    isSnapshot: (p as { is_snapshot?: boolean }).is_snapshot,
+    snapshot: (p as { snapshot?: string }).snapshot,
+    seqInfo: (p as { seq_info?: { seq: number; prev_seq?: number } }).seq_info,
+    file: (p as { file?: boolean }).file,
+  });
 
   constructor({
     from_str,
@@ -61,6 +79,16 @@ export class SortedPatchList extends EventEmitter {
     super();
     this.from_str = from_str;
     //this.loadMoreHistory = loadMoreHistory;
+    this.codec = {
+      fromString: (s: string) => this.from_str(s),
+      toString: (doc: Document) => (doc as any).to_str?.() ?? String(doc),
+      applyPatch: (doc: Document, patch: unknown) =>
+        (doc as any).apply_patch ? (doc as any).apply_patch(patch) : (doc as any).applyPatch(patch),
+      makePatch: (a: Document, b: Document) =>
+        (a as any).make_patch ? (a as any).make_patch(b as any) : (a as any).makePatch(b as any),
+    };
+    this.graph = new PatchGraph({ codec: this.codec, mergeStrategy: "apply-all" });
+    this.graph.fileTimeDedupTolerance = this.fileTimeDedupTolerance;
   }
 
   close = (): void => {
@@ -171,6 +199,7 @@ export class SortedPatchList extends EventEmitter {
       // nothing to do
       return;
     }
+    this.cache.clear();
 
     // This implementation is complicated because it can't make any assumptions
     // about uniqueness, etc., and also the snapshot info gets added later
@@ -198,6 +227,7 @@ export class SortedPatchList extends EventEmitter {
           this.live[t].is_snapshot = true;
           this.live[t].snapshot = x.snapshot;
           this.live[t].seq_info = x.seq_info;
+          this.graph.add([this.toFlowPatch(this.live[t])]);
         } else if (this.staging[t] != null) {
           this.staging[t].is_snapshot = true;
           this.staging[t].snapshot = x.snapshot;
@@ -260,6 +290,7 @@ export class SortedPatchList extends EventEmitter {
               this.live[t] = this.staging[t];
               v[t] = this.live[t];
               delete this.staging[t];
+              this.graph.add([this.toFlowPatch(this.live[t])]);
             }
           }
         }
@@ -313,158 +344,25 @@ export class SortedPatchList extends EventEmitter {
     noCache?: boolean;
     verbose?: boolean;
   } = {}) => {
+    this.graph.fileTimeDedupTolerance = this.fileTimeDedupTolerance;
     if (time != null && this.live[time] == null) {
       throw Error(`unknown time: ${time}`);
     }
-    const key = time;
-    let without;
-    if (without_times == null) {
-      without = null;
-    } else {
-      let w = without_times;
-      if (key != null) {
-        w = w.filter((x) => x <= key);
-      }
-      without = new Set<number>(w);
-    }
-    if (!noCache && (without?.size ?? 0) > 0) {
-      // do not use cache if without is relevant.
-      noCache = true;
-    }
-
-    if (!noCache && key != null) {
-      const v = this.getCache(key);
-      if (v != null) {
+    const canCache = !noCache && (without_times == null || without_times.length === 0);
+    if (canCache && time != null) {
+      const cached = this.cache.get(time);
+      if (cached != null) {
         if (verbose) {
-          console.log("value: done -- is in the cache");
+          console.log("value: cache hit");
         }
-        return v;
+        return cached;
       }
     }
-
-    // get all times that were known at the given time
-    let k: Set<number>;
-    if (key != null) {
-      k = this.knownTimes([key]);
-    } else {
-      // potentially a merge
-      const heads = this.getHeads();
-      if (heads.length == 0) {
-        k = new Set<number>();
-      } else {
-        if (heads.length == 1 && !noCache) {
-          const v = this.getCache(heads[0]);
-          if (v != null) {
-            return v;
-          }
-        }
-        k = this.knownTimes(heads);
-      }
+    const value = this.graph.value({ time, withoutTimes: without_times });
+    if (canCache && time != null) {
+      this.cache.set(time, value as Document);
     }
-
-    // We remove file load patches that are identical and close in time,
-    // since these may happen with multiple clients when the file changes
-    // on disk, in the context of filesystem sync and compute servers.
-    // It's a merge heuristic.
-    const fileTimes = Array.from(k).filter((t) => this.live[t].file);
-    if (fileTimes.length > 1) {
-      fileTimes.sort();
-      for (let i = 0; i < fileTimes.length - 1; i++) {
-        if (fileTimes[i + 1] - fileTimes[i] <= this.fileTimeDedupTolerance) {
-          if (
-            isEqual(
-              this.live[fileTimes[i + 1]].patch,
-              this.live[fileTimes[i]].patch,
-            )
-          ) {
-            k.delete(fileTimes[i]);
-          }
-        }
-      }
-    }
-
-    if (verbose) {
-      console.log("value: known times", k);
-    }
-
-    if (k.size == 0) {
-      const value = this.from_str("");
-      if (key != null) {
-        this.setCache(key, value, 0);
-      }
-      return value;
-    }
-
-    // We are *not* using the cache to compute the value at the requested time.
-    // The value is by definition the result of applying all patches in
-    // the set k of times in sorted order.
-
-    let v = Array.from(k).sort();
-    let value: Document | null = null;
-    if (!noCache) {
-      // It may be possible to initialize using the cache, which would avoid a lot of work.
-      for (let i = v.length - 1; i >= 0; i--) {
-        const t = v[i];
-        const x = this.getCache(t, i + 1);
-        if (x != null) {
-          v = v.slice(i + 1);
-          value = x;
-          if (verbose) {
-            console.log("value: initialized using cached value", {
-              value,
-              time: t,
-            });
-          }
-          break;
-        }
-      }
-    }
-    if (value == null) {
-      const patch = this.live[v[0]];
-      if (patch.snapshot != null) {
-        value = this.from_str(patch.snapshot);
-        v.shift();
-      } else {
-        value = this.from_str("");
-      }
-    }
-    if (verbose) {
-      console.log({ value: value.to_str() });
-    }
-    for (const t of v) {
-      if (without != null && without.has(t)) {
-        continue;
-      }
-      const { patch } = this.live[t];
-      value = value.apply_patch(patch);
-      if (verbose) {
-        console.log("value", { patch, value: value.to_str() });
-      }
-    }
-    if (key != null && (without == null || without.size == 0)) {
-      this.setCache(key, value, k.size);
-    }
-    return value;
-  };
-
-  private setCache = (time: number, doc: Document, numTimes: number) => {
-    this.cache.set(time, { doc, numTimes });
-  };
-
-  private getCache = (
-    time: number,
-    numTimes?: number,
-  ): Document | undefined => {
-    const v = this.cache.get(time);
-    if (v == null) {
-      return;
-    }
-    if (numTimes == null) {
-      return v.doc;
-    }
-    if (v.numTimes == numTimes) {
-      return v.doc;
-    }
+    return value as Document;
   };
 
   // For testing/debugging.  Go through the complete patch history and
@@ -800,10 +698,6 @@ export class SortedPatchList extends EventEmitter {
       }
     }
     return nonSnapshotTails;
-  };
-
-  private knownTimes = (heads: number[]): Set<number> => {
-    return getTimesWithHeads(this.live, heads, true);
   };
 }
 
