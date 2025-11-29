@@ -2281,6 +2281,13 @@ export class SyncDoc extends EventEmitter {
   };
 
   hasFullHistory = (): boolean => {
+    if (this.patchflowReady() && this.patchflowSession != null) {
+      try {
+        return this.patchflowSession.hasFullHistory();
+      } catch {
+        // fall through to legacy
+      }
+    }
     if (this.patch_list == null) {
       return false;
     }
