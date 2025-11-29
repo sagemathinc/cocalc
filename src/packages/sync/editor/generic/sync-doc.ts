@@ -654,6 +654,10 @@ export class SyncDoc extends EventEmitter {
   // time specified, gives the version right now.
   // If not fully initialized, will throw exception.
   version = (time?: number): Document => {
+    const doc = this.patchflowValue({ time });
+    if (doc != null) {
+      return doc;
+    }
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.value({ time });
@@ -663,6 +667,10 @@ export class SyncDoc extends EventEmitter {
      were simply not included.  This is a building block that is
      used for implementing undo functionality for client editors. */
   version_without = (without_times: number[]): Document => {
+    const doc = this.patchflowValue({ without_times });
+    if (doc != null) {
+      return doc;
+    }
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.value({ without_times });
@@ -810,7 +818,8 @@ export class SyncDoc extends EventEmitter {
   // the given point in time.
   account_id = (time: number): string | undefined => {
     this.assert_is_ready("account_id");
-    if (this.patch_list?.patch(time)?.file) {
+    const patch = this.patchflowPatch(time);
+    if (patch?.file || this.patch_list?.patch(time)?.file) {
       return this.project_id;
     }
     return this.users[this.user_id(time)];
@@ -819,6 +828,10 @@ export class SyncDoc extends EventEmitter {
   // Integer index of user who made the edit at given
   // point in time.
   user_id = (time: number): number => {
+    const patch = this.patchflowPatch(time);
+    if (patch?.userId != null) {
+      return patch.userId;
+    }
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.user_id(time);
@@ -841,38 +854,66 @@ export class SyncDoc extends EventEmitter {
      the most recent snapshot when we started).  The list of timestamps
      is sorted from oldest to newest. */
   versions = (): number[] => {
+    const v = this.patchflowVersions();
+    if (v != null) {
+      return v;
+    }
     assertDefined(this.patch_list);
     return this.patch_list.versions();
   };
 
   wallTime = (version: number): number | undefined => {
+    const patch = this.patchflowPatch(version);
+    if (patch?.wall != null) {
+      return patch.wall;
+    }
     return this.patch_list?.wallTime(version);
   };
 
   // newest version of any non-staging known patch on this client,
   // including ones just made that might not be in patch_list yet.
   newestVersion = (): number | undefined => {
+    const v = this.patchflowVersions();
+    if (v != null && v.length > 0) {
+      return v[v.length - 1];
+    }
     return this.patch_list?.newest_patch_time();
   };
 
   hasVersion = (time: number): boolean => {
+    const v = this.patchflowVersions();
+    if (v != null) {
+      return v.includes(time);
+    }
     assertDefined(this.patch_list);
     return this.patch_list.hasVersion(time);
   };
 
   historyFirstVersion = () => {
+    const v = this.patchflowVersions();
+    if (v != null && v.length > 0) {
+      return v[0];
+    }
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.firstVersion();
   };
 
   historyLastVersion = () => {
+    const v = this.patchflowVersions();
+    if (v != null && v.length > 0) {
+      return v[v.length - 1];
+    }
     this.assert_table_is_ready("patches");
     assertDefined(this.patch_list);
     return this.patch_list.lastVersion();
   };
 
   historyVersionNumber = (time: number): number | undefined => {
+    const patch = this.patchflowPatch(time);
+    if (patch?.version != null) {
+      return patch.version;
+    }
     return this.patch_list?.versionNumber(time);
   };
 
@@ -2619,6 +2660,42 @@ export class SyncDoc extends EventEmitter {
     );
   };
 
+  private patchflowValue = ({
+    time,
+    without_times,
+  }: { time?: number; without_times?: number[] } = {}): Document | undefined => {
+    if (!this.patchflowReady() || this.patchflowSession == null) return;
+    try {
+      if (time != null || without_times != null) {
+        return this.patchflowSession.value({
+          time,
+          withoutTimes: without_times,
+        }) as Document;
+      }
+      return this.patchflowSession.getDocument() as Document;
+    } catch {
+      return;
+    }
+  };
+
+  private patchflowPatch = (time: number): PatchEnvelope | undefined => {
+    if (!this.patchflowReady() || this.patchflowSession == null) return;
+    try {
+      return this.patchflowSession.getPatch(time);
+    } catch {
+      return;
+    }
+  };
+
+  private patchflowVersions = (): number[] | undefined => {
+    if (!this.patchflowReady() || this.patchflowSession == null) return;
+    try {
+      return this.patchflowSession.versions();
+    } catch {
+      return;
+    }
+  };
+
   private documentsEqual = (a?: Document, b?: Document): boolean => {
     if (a == null || b == null) {
       return false;
@@ -3034,8 +3111,11 @@ export class SyncDoc extends EventEmitter {
     // to properly set the state of this.doc to the value
     // of the patch list (e.g., not doing this 100% breaks
     // opening a file for the first time on cocalc-docker).
-    assertDefined(this.patch_list);
-    const new_remote = this.patch_list.value();
+    let new_remote = this.patchflowValue();
+    if (new_remote == null) {
+      assertDefined(this.patch_list);
+      new_remote = this.patch_list.value();
+    }
     if (!this.doc.is_equal(new_remote)) {
       // There is a possibility that live document changed, so
       // set to new version.
