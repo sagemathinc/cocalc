@@ -58,9 +58,7 @@ import {
 } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
 import {
-  assertDefined,
   close,
-  field_cmp,
   filename_extension,
   hash_string,
   keys,
@@ -74,7 +72,6 @@ import { debounce, throttle } from "lodash";
 import { Evaluator } from "./evaluator";
 import { HistoryEntry, HistoryExportOptions, export_history } from "./export";
 import { IpywidgetsState } from "./ipywidgets-state";
-import { SortedPatchList } from "./sorted-patch-list";
 import {
   Session as PatchflowSession,
   type DocCodec,
@@ -225,7 +222,6 @@ export class SyncDoc extends EventEmitter {
 
   public ipywidgets_state?: IpywidgetsState;
 
-  private patch_list?: SortedPatchList;
   private patchflowSession?: PatchflowSession;
   private patchflowStore?: PatchflowPatchStore;
   private patchflowCodec?: DocCodec;
@@ -248,9 +244,6 @@ export class SyncDoc extends EventEmitter {
 
   // patches that this client made during this editing session.
   private my_patches: { [time: string]: XPatch } = {};
-
-  private handle_patch_update_queue_running: boolean;
-  private patch_update_queue: string[] = [];
 
   private undo_state: UndoState | undefined;
 
@@ -654,26 +647,16 @@ export class SyncDoc extends EventEmitter {
   // time specified, gives the version right now.
   // If not fully initialized, will throw exception.
   version = (time?: number): Document => {
-    const doc = this.patchflowValue({ time });
-    if (doc != null) {
-      return doc;
-    }
-    this.assert_table_is_ready("patches");
-    assertDefined(this.patch_list);
-    return this.patch_list.value({ time });
+    return this.requirePatchflowSession().value({ time }) as Document;
   };
 
   /* Compute version of document if the patches at the given times
      were simply not included.  This is a building block that is
      used for implementing undo functionality for client editors. */
   version_without = (without_times: number[]): Document => {
-    const doc = this.patchflowValue({ without_times });
-    if (doc != null) {
-      return doc;
-    }
-    this.assert_table_is_ready("patches");
-    assertDefined(this.patch_list);
-    return this.patch_list.value({ without_times });
+    return this.requirePatchflowSession().value({
+      withoutTimes: without_times,
+    }) as Document;
   };
 
   // Revert document to what it was at the given point in time.
@@ -819,7 +802,7 @@ export class SyncDoc extends EventEmitter {
   account_id = (time: number): string | undefined => {
     this.assert_is_ready("account_id");
     const patch = this.patchflowPatch(time);
-    if (patch?.file || this.patch_list?.patch(time)?.file) {
+    if (patch?.file) {
       return this.project_id;
     }
     return this.users[this.user_id(time)];
@@ -829,12 +812,10 @@ export class SyncDoc extends EventEmitter {
   // point in time.
   user_id = (time: number): number => {
     const patch = this.patchflowPatch(time);
-    if (patch?.userId != null) {
-      return patch.userId;
+    if (patch == null) {
+      throw new Error(`no patch at time ${time}`);
     }
-    this.assert_table_is_ready("patches");
-    assertDefined(this.patch_list);
-    return this.patch_list.user_id(time);
+    return patch.userId ?? 0;
   };
 
   private syncstring_table_get_one = (): Map<string, any> => {
@@ -855,29 +836,25 @@ export class SyncDoc extends EventEmitter {
      is sorted from oldest to newest. */
   versions = (): number[] => {
     const v = this.patchflowVersions();
-    if (v != null) {
-      return v;
+    if (v == null) {
+      throw new Error("patchflow session not ready");
     }
-    assertDefined(this.patch_list);
-    return this.patch_list.versions();
+    return v;
   };
 
   wallTime = (version: number): number | undefined => {
     const patch = this.patchflowPatch(version);
-    if (patch?.wall != null) {
-      return patch.wall;
-    }
-    return this.patch_list?.wallTime(version);
+    return patch?.wall;
   };
 
   // newest version of any non-staging known patch on this client,
-  // including ones just made that might not be in patch_list yet.
+  // including ones just made locally.
   newestVersion = (): number | undefined => {
     const v = this.patchflowVersions();
     if (v != null && v.length > 0) {
       return v[v.length - 1];
     }
-    return this.patch_list?.newest_patch_time();
+    return undefined;
   };
 
   hasVersion = (time: number): boolean => {
@@ -885,8 +862,7 @@ export class SyncDoc extends EventEmitter {
     if (v != null) {
       return v.includes(time);
     }
-    assertDefined(this.patch_list);
-    return this.patch_list.hasVersion(time);
+    return false;
   };
 
   historyFirstVersion = () => {
@@ -894,9 +870,7 @@ export class SyncDoc extends EventEmitter {
     if (v != null && v.length > 0) {
       return v[0];
     }
-    this.assert_table_is_ready("patches");
-    assertDefined(this.patch_list);
-    return this.patch_list.firstVersion();
+    return;
   };
 
   historyLastVersion = () => {
@@ -904,17 +878,12 @@ export class SyncDoc extends EventEmitter {
     if (v != null && v.length > 0) {
       return v[v.length - 1];
     }
-    this.assert_table_is_ready("patches");
-    assertDefined(this.patch_list);
-    return this.patch_list.lastVersion();
+    return;
   };
 
   historyVersionNumber = (time: number): number | undefined => {
     const patch = this.patchflowPatch(time);
-    if (patch?.version != null) {
-      return patch.version;
-    }
-    return this.patch_list?.versionNumber(time);
+    return patch?.version;
   };
 
   last_changed = (): number => {
@@ -984,18 +953,12 @@ export class SyncDoc extends EventEmitter {
       cancel_scheduled(this.emit_change);
     }
 
-    this.patch_update_queue = [];
-
     // Stop watching for file changes.  It's important to
     // do this *before* all the await's below, since
     // this syncdoc can't do anything in response to a
     // a file change in its current state.
     this.closeFileWatcher();
 
-    if (this.patch_list != null) {
-      // not async -- just a data structure in memory
-      this.patch_list.close();
-    }
     this.patchflowSession?.close();
 
     try {
@@ -1236,20 +1199,20 @@ export class SyncDoc extends EventEmitter {
     }
     const log = this.dbg("initAll");
 
-    log("patch_list, cursors, evaluator, ipywidgets");
+    log("patchflow, cursors, evaluator, ipywidgets");
     this.assert_not_closed(
-      "initAll -- before init patch_list, cursors, evaluator, ipywidgets",
+      "initAll -- before init patchflow, cursors, evaluator, ipywidgets",
     );
     await Promise.all([
       this.init_syncstring_table(),
-      this.init_patch_list(),
+      this.init_patchflow(),
       this.init_cursors(),
       this.init_evaluator(),
       this.init_ipywidgets(),
       this.initFileWatcherFirstTime(),
     ]);
     this.assert_not_closed(
-      "initAll -- successful init patch_list, cursors, evaluator, and ipywidgets",
+      "initAll -- successful init patchflow, cursors, evaluator, and ipywidgets",
     );
 
     this.init_table_close_handlers();
@@ -1424,7 +1387,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   private setLastSnapshot(last_snapshot?: number) {
-    // only set last_snapshot here, so we can keep it in sync with patch_list.last_snapshot
+    // only set last_snapshot here, so we can keep it in sync with the syncstring table
     // and also be certain about the data type (being number or undefined).
     if (last_snapshot !== undefined && typeof last_snapshot != "number") {
       throw Error("type of last_snapshot must be number or undefined");
@@ -1432,25 +1395,15 @@ export class SyncDoc extends EventEmitter {
     this.last_snapshot = last_snapshot;
   }
 
-  private init_patch_list = async (): Promise<void> => {
-    this.assert_not_closed("init_patch_list - start");
-    const dbg = this.dbg("init_patch_list");
+  private init_patchflow = async (): Promise<void> => {
+    this.assert_not_closed("init_patchflow - start");
+    const dbg = this.dbg("init_patchflow");
     dbg();
-
-    // CRITICAL: note that handle_syncstring_update checks whether
-    // init_patch_list is done by testing whether this.patch_list is defined!
-    // That is why we first define "patch_list" below, then set this.patch_list
-    // to it only after we're done.
-    delete this.patch_list;
-
-    const patch_list = new SortedPatchList({
-      from_str: this._from_str,
-    });
 
     dbg("opening the table...");
     const query = { patches: [this.patch_table_query(this.last_snapshot)] };
     this.patches_table = await this.synctable(query, [], this.patch_interval);
-    this.assert_not_closed("init_patch_list -- after making synctable");
+    this.assert_not_closed("init_patchflow -- after making synctable");
 
     const update_has_unsaved_changes = debounce(
       this.update_has_unsaved_changes,
@@ -1466,55 +1419,17 @@ export class SyncDoc extends EventEmitter {
       update_has_unsaved_changes();
     });
 
-    dbg("adding all known patches");
-    patch_list.add(this.get_patches());
-
-    dbg("possibly kick off loading more history");
-    let last_start_seq: null | number = null;
-    while (patch_list.needsMoreHistory()) {
-      // @ts-ignore
-      const dstream = this.patches_table.dstream;
-      if (dstream == null) {
-        break;
-      }
-      const snap = patch_list.getOldestSnapshot();
-      if (snap == null) {
-        break;
-      }
-      const seq_info = snap.seq_info ?? {
-        prev_seq: 1,
-      };
-      const start_seq = seq_info.prev_seq ?? 1;
-      if (last_start_seq != null && start_seq >= last_start_seq) {
-        // no progress, e.g., corruption would cause this.
-        // "corruption" is EXPECTED, since a user might be submitting
-        // patches after being offline, and get disconnected halfway through.
-        break;
-      }
-      last_start_seq = start_seq;
-      await dstream.load({ start_seq });
-      dbg("load more history");
-      patch_list.add(this.get_patches());
-      if (start_seq <= 1) {
-        // loaded everything
-        break;
-      }
-    }
-
-    //this.patches_table.on("saved", this.handle_offline);
-    this.patch_list = patch_list;
-
-    let doc;
-    try {
-      doc = patch_list.value();
-    } catch (err) {
-      console.warn("error getting doc", err);
-      doc = this._from_str("");
-    }
-    this.last = this.doc = doc;
-    this.patches_table.on("change", this.handle_patch_update);
-
     await this.initPatchflowSession();
+
+    // Ensure doc/last are initialized even if listeners run before ready state.
+    if (this.patchflowReady() && this.patchflowSession != null) {
+      try {
+        const doc = this.patchflowSession.getDocument() as Document;
+        this.last = this.doc = doc;
+      } catch {
+        // session will emit change after init and set doc/last then.
+      }
+    }
 
     dbg("done");
   };
@@ -1807,32 +1722,16 @@ export class SyncDoc extends EventEmitter {
     while (!this.doc.is_equal(this.last)) {
       dbg("something to save");
       this.emit("user-change");
-      const doc = this.doc;
-      // TODO: put in a delay if just saved too recently?
-      //       Or maybe won't matter since not using database?
-      if (this.handle_patch_update_queue_running) {
-        dbg("wait until the update queue is done");
-        await once(this, "handle_patch_update_queue_done");
-        // but wait until next loop (so as to check that needed
-        // and state still ready).
-        continue;
-      }
-      dbg("Compute new patch.");
-      this.sync_remote_and_doc(false);
-      // Emit event since this syncstring was
-      // changed locally (or we wouldn't have had
-      // to save at all).
-      if (doc.is_equal(this.doc)) {
-        dbg("no change during loop -- done!");
+      if (!this.commit()) {
+        // Could not commit (e.g., patchflow not ready)
         break;
+      }
+      if (!this.isReady()) {
+        return;
       }
     }
     if (!this.isReady()) {
       // above async waits could have resulted in state change.
-      return;
-    }
-    await this.handle_patch_update_queue(true);
-    if (!this.isReady()) {
       return;
     }
 
@@ -1850,73 +1749,6 @@ export class SyncDoc extends EventEmitter {
       }
     }
   });
-
-  private timeOfLastCommit: number | undefined = undefined;
-  private next_patch_time = (): number => {
-    let time = this.client.server_time().valueOf();
-    if (time == this.timeOfLastCommit) {
-      time = this.timeOfLastCommit + 1;
-    }
-    assertDefined(this.patch_list);
-    time = this.patch_list.next_available_time(
-      time,
-      this.my_user_id,
-      this.users.length,
-    );
-    return time;
-  };
-
-  private commit_patch = (time: number, patch: XPatch, file = false): void => {
-    this.timeOfLastCommit = time;
-    this.assert_not_closed("commit_patch");
-    assertDefined(this.patch_list);
-    const obj: any = {
-      // version for database
-      string_id: this.string_id,
-      // logical time -- usually the sync'd walltime, but
-      // guaranteed to be increasing.
-      time,
-      // what we show user
-      wall: this.client.server_time().valueOf(),
-      patch: JSON.stringify(patch),
-      user_id: this.my_user_id,
-      is_snapshot: false,
-      parents: this.patch_list.getHeads(),
-      version: this.patch_list.lastVersion() + 1,
-    };
-    if (file) {
-      obj.file = true;
-    }
-
-    this.my_patches[time.valueOf()] = obj;
-
-    if (this.doctype.patch_format != null) {
-      obj.format = this.doctype.patch_format;
-    }
-
-    // If in undo mode put the just-created patch in our
-    // without timestamp list, so it won't be included
-    // when doing undo/redo.
-    if (this.undo_state != null) {
-      this.undo_state.without.unshift(time);
-    }
-
-    //console.log 'saving patch with time ', time.valueOf()
-    let x = this.patches_table.set(obj, "none");
-    if (x == null) {
-      // TODO: just for NATS right now!
-      x = fromJS(obj);
-    }
-    const y = this.processPatch({ x, patch, size: obj.patch.size });
-    this.patch_list.add([y]);
-    // Since *we* just made a definite change to the document, we're
-    // active, so we check if we should make a snapshot. There is the
-    // potential of a race condition where more than one clients make
-    // a snapshot at the same time -- this would waste a little space
-    // in the stream, but is otherwise harmless, since the snapshots
-    // are identical.
-    this.snapshotIfNecessary();
-  };
 
   private dstream = () => {
     // @ts-ignore -- in general patches_table might not be a conat one still,
@@ -1976,29 +1808,19 @@ export class SyncDoc extends EventEmitter {
   private snapshot = reuseInFlight(async (time: number): Promise<void> => {
     let user_id = this.my_user_id ?? 0;
     let snapshot: string | undefined;
-    if (this.patchflowReady() && this.patchflowSession != null) {
-      const p = this.patchflowSession.getPatch(time);
-      if (p == null) {
-        throw Error(`no patch at time ${time}`);
-      }
-      if (p.isSnapshot && p.snapshot != null) {
-        return;
-      }
-      user_id = p.userId ?? user_id;
-      const doc = this.patchflowSession.value({ time }) as any;
-      snapshot = (doc?.to_str?.() ?? doc?.toString?.() ?? `${doc}`) as string;
-    } else {
-      assertDefined(this.patch_list);
-      const x = this.patch_list.patch(time);
-      if (x == null) {
-        throw Error(`no patch at time ${time}`);
-      }
-      if (x.snapshot != null) {
-        return;
-      }
-      user_id = x.user_id;
-      snapshot = this.patch_list.value({ time }).to_str();
+    if (!this.patchflowReady() || this.patchflowSession == null) {
+      throw new Error("patchflow session not ready");
     }
+    const p = this.patchflowSession.getPatch(time);
+    if (p == null) {
+      throw Error(`no patch at time ${time}`);
+    }
+    if (p.isSnapshot && p.snapshot != null) {
+      return;
+    }
+    user_id = p.userId ?? user_id;
+    const doc = this.patchflowSession.value({ time }) as any;
+    snapshot = (doc?.to_str?.() ?? doc?.toString?.() ?? `${doc}`) as string;
     if (snapshot == null) {
       throw Error("unable to compute snapshot");
     }
@@ -2041,16 +1863,10 @@ export class SyncDoc extends EventEmitter {
     const max_size = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
     const interval = this.snapshot_interval;
     dbg("check if we need to make a snapshot:", { interval, max_size });
-    let time: number | undefined;
-    if (this.patchflowReady()) {
-      time = this.patchflowSnapshotCandidate(interval, max_size);
-    } else {
-      assertDefined(this.patch_list);
-      time = this.patch_list.time_of_unmade_periodic_snapshot(
-        interval,
-        max_size,
-      );
+    if (!this.patchflowReady()) {
+      return;
     }
+    const time = this.patchflowSnapshotCandidate(interval, max_size);
     if (time != null) {
       dbg("yes, try to make a snapshot at time", time);
       try {
@@ -2192,8 +2008,9 @@ export class SyncDoc extends EventEmitter {
   private createPatchflowStore = (): PatchflowPatchStore => {
     return {
       loadInitial: async () => {
-        const patches = this.get_patches().map((p) => this.toPatchflowEnvelope(p));
-        return { patches, hasMore: !this.hasFullHistory() };
+        const raw = this.get_patches();
+        const patches = raw.map((p) => this.toPatchflowEnvelope(p));
+        return { patches, hasMore: !this.patchesHaveFullHistory(raw) };
       },
       append: async (env: PatchEnvelope) => {
         try {
@@ -2208,7 +2025,11 @@ export class SyncDoc extends EventEmitter {
             user_id: patch.user_id ?? this.my_user_id,
             is_snapshot: patch.is_snapshot ?? false,
             parents: patch.parents ?? [],
-            version: patch.version ?? (this.patch_list?.lastVersion() ?? 0) + 1,
+            version:
+              patch.version ??
+              (this.patchflowReady() && this.patchflowSession
+                ? this.patchflowSession.versions().length + 1
+                : 1),
           };
           if (patch.file) {
             obj.file = true;
@@ -2227,8 +2048,7 @@ export class SyncDoc extends EventEmitter {
           if (x == null) {
             x = fromJS(obj);
           }
-          const processed = this.processPatch({ x, patch: patch.patch, size: patch.size });
-          this.patch_list?.add([processed]);
+          void this.processPatch({ x, patch: patch.patch, size: patch.size });
         } catch (err) {
           console.warn("patchflow append failed", err);
           console.warn(env);
@@ -2252,8 +2072,6 @@ export class SyncDoc extends EventEmitter {
             const p = this.processPatch({ x });
             if (p != null) {
               envs.push(this.toPatchflowEnvelope(p));
-              // Keep legacy patch_list in sync for snapshot/load-more helpers.
-              this.patch_list?.add([p]);
             }
           }
           for (const env of envs) {
@@ -2299,18 +2117,26 @@ export class SyncDoc extends EventEmitter {
     return v;
   };
 
+  private patchesHaveFullHistory = (patches: Patch[]): boolean => {
+    const first = patches[0];
+    if (first == null) return true;
+    if (first.is_snapshot) return false;
+    return (first.parents?.length ?? 0) === 0;
+  };
+
   hasFullHistory = (): boolean => {
     if (this.patchflowReady() && this.patchflowSession != null) {
       try {
         return this.patchflowSession.hasFullHistory();
       } catch {
-        // fall through to legacy
+        // fall back to local computation below
       }
     }
-    if (this.patch_list == null) {
+    try {
+      return this.patchesHaveFullHistory(this.get_patches());
+    } catch {
       return false;
     }
-    return this.patch_list.hasFullHistory();
   };
 
   // returns true if there may be additional history to load
@@ -2321,50 +2147,22 @@ export class SyncDoc extends EventEmitter {
     // if true, loads all history
     all?: boolean;
   } = {}): Promise<boolean> => {
-    if (this.hasFullHistory() || this.ephemeral) {
+    if (this.hasFullHistory() || this.ephemeral || !this.patchflowReady()) {
       return false;
     }
-    if (this.patchflowReady()) {
-      let dstream: any;
-      try {
-        dstream = this.dstream();
-      } catch {
-        return false;
-      }
-      const start_seq = all ? 0 : this.patchflowPrevSeqForMoreHistory();
-      if (start_seq == null) {
-        return false;
-      }
-      await dstream.load({ start_seq });
-      if (start_seq <= 1) {
-        this.markPatchflowFullHistory();
-      }
-      return start_seq > 1;
-    }
-    if (this.patch_list == null) {
+    let dstream: any;
+    try {
+      dstream = this.dstream();
+    } catch {
       return false;
     }
-    let start_seq;
-    if (all) {
-      start_seq = 1;
-    } else {
-      const seq_info = this.patch_list.getOldestSnapshot()?.seq_info;
-      if (seq_info == null) {
-        // nothing more to load
-        return false;
-      }
-      start_seq = seq_info.prev_seq ?? 1;
+    const start_seq = all ? 0 : this.patchflowPrevSeqForMoreHistory();
+    if (start_seq == null) {
+      return false;
     }
-    // Doing this load triggers change events for all the patch info
-    // that gets loaded.
-    // TODO: right now we load everything, since the seq_info is wrong
-    // from the NATS migration.  Maybe this is fine since it is very efficient.
-    const dstream = this.dstream();
-    await dstream.load({ start_seq: 0 });
-
-    // Wait until patch update queue is empty
-    while (this.patch_update_queue.length > 0) {
-      await once(this, "patch-update-queue-empty");
+    await dstream.load({ start_seq });
+    if (start_seq <= 1) {
+      this.markPatchflowFullHistory();
     }
     return start_seq > 1;
   };
@@ -2380,80 +2178,17 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     this.loadedLegacyHistory = true;
-    if (!this.hasFullHistory()) {
-      throw Error("must first load full history first");
-    }
-    const { patches, users } = await this.legacy.getPatches();
-    if (this.patch_list == null) {
-      return;
-    }
-    // @ts-ignore - cheating here
-    const first = this.patch_list.patches[0];
-    if ((first?.parents ?? []).length > 0) {
-      throw Error("first patch should have no parents");
-    }
-    for (const patch of patches) {
-      // @ts-ignore
-      patch.time = new Date(patch.time).valueOf();
-    }
-    patches.sort(field_cmp("time"));
-    const v: Patch[] = [];
-    let version = -patches.length;
-    let i = 0;
-    for (const patch of patches) {
-      // @ts-ignore
-      patch.version = version;
-      version += 1;
-      if (i > 0) {
-        // @ts-ignore
-        patch.parents = [patches[i - 1].time];
-      } else {
-        // @ts-ignore
-        patch.parents = [];
-      }
-
-      // remap the user_id field
-      const account_id = users[patch.user_id];
-      let user_id = this.users.indexOf(account_id);
-      if (user_id == -1) {
-        this.users.push(account_id);
-        user_id = this.users.length - 1;
-      }
-      patch.user_id = user_id;
-
-      const p = this.processPatch({ x: fromJS(patch) });
-      i += 1;
-      v.push(p);
-    }
-    if (first != null) {
-      // @ts-ignore
-      first.parents = [patches[patches.length - 1].time];
-      first.is_snapshot = true;
-      first.snapshot = this.patch_list.value({ time: first.time }).to_str();
-    }
-    this.patch_list.add(v);
-    this.addPatchesToPatchflow(v);
-    this.emit("change");
+    console.warn("loadLegacyHistory is no longer supported with the patchflow-only pipeline");
   });
 
   show_history = (opts = {}): void => {
-    if (this.patchflowReady() && this.patchflowSession != null) {
-      const { milliseconds = true, trunc, log } = opts as {
-        milliseconds?: boolean;
-        trunc?: number;
-        log?: Function;
-      };
-      this.patchflowSession.summarizeHistory({
-        includeSnapshots: true,
-        milliseconds,
-        trunc: trunc ?? 80,
-        log: log as any,
-        formatDoc: (doc) => (doc as any).to_str?.() ?? `${doc}`,
-      });
-      return;
-    }
-    assertDefined(this.patch_list);
-    this.patch_list.show_history(opts);
+    this.requirePatchflowSession().summarizeHistory({
+      includeSnapshots: true,
+      milliseconds: (opts as any)?.milliseconds ?? true,
+      trunc: (opts as any)?.trunc ?? 80,
+      log: (opts as any)?.log,
+      formatDoc: (doc) => (doc as any).to_str?.() ?? `${doc}`,
+    });
   };
 
   set_snapshot_interval = async (n: number): Promise<void> => {
@@ -2722,6 +2457,13 @@ export class SyncDoc extends EventEmitter {
     );
   };
 
+  private requirePatchflowSession = (): PatchflowSession => {
+    if (!this.patchflowReady() || this.patchflowSession == null) {
+      throw new Error("patchflow session is not initialized");
+    }
+    return this.patchflowSession;
+  };
+
   private patchflowValue = ({
     time,
     without_times,
@@ -2755,19 +2497,6 @@ export class SyncDoc extends EventEmitter {
       return this.patchflowSession.versions();
     } catch {
       return;
-    }
-  };
-
-  private addPatchesToPatchflow = (patches: Patch[]): void => {
-    if (!this.patchflowReady() || this.patchflowSession == null) {
-      return;
-    }
-    try {
-      for (const p of patches) {
-        this.patchflowSession.applyRemote(this.toPatchflowEnvelope(p));
-      }
-    } catch (err) {
-      console.warn("addPatchesToPatchflow failed", err);
     }
   };
 
@@ -2929,40 +2658,7 @@ export class SyncDoc extends EventEmitter {
     // which can be used as input to the merge conflict resolution.
     file?: boolean;
   } = {}): boolean => {
-    if (this.commitWithPatchflow({ emitChangeImmediately, file })) {
-      return true;
-    }
-    if (
-      this.last == null ||
-      this.doc == null ||
-      (this.last.is_equal(this.doc) &&
-        (this.patch_list?.getHeads().length ?? 0) <= 1)
-    ) {
-      return false;
-    }
-    // console.trace("commit");
-
-    if (emitChangeImmediately) {
-      // used for local clients.   NOTE: don't do this without explicit
-      // request, since it could in some cases cause serious trouble.
-      // E.g., for the jupyter backend doing this by default causes
-      // an infinite recurse.  Having this as an option is important, e.g.,
-      // to avoid flicker/delay in the UI.
-      this.emit_change();
-    }
-
-    // Now save to backend as a new patch:
-    this.emit("user-change");
-    const patch = this.last.make_patch(this.doc);
-    this.last = this.doc;
-    // ... and save that to patches table
-    const time = this.next_patch_time();
-    this.commit_patch(time, patch, file);
-    if (!this.noAutosave) {
-      this.save(); // so eventually also gets sync'd out to other clients
-    }
-    this.touchProject();
-    return true;
+    return this.commitWithPatchflow({ emitChangeImmediately, file });
   };
 
   // valueOnDisk = value of the file on disk, if known.  If there's an
@@ -3060,25 +2756,8 @@ export class SyncDoc extends EventEmitter {
       throw Error("syncstring table must be defined and users initialized");
     }
     const account_ids: string[] = info.get("users").toJS();
-    if (this.patchflowReady() && this.patchflowSession != null) {
-      const patches = this.patchflowSession.history({ includeSnapshots: true });
-      return patches.map((p) => {
-        let account_id = account_ids[p.userId ?? 0];
-        if (account_id == null) {
-          account_id = "unknown";
-        }
-        const entry: HistoryEntry = { time_utc: new Date(p.time), account_id };
-        if (options.patches) {
-          entry.patch = p.patch as any;
-        }
-        if (options.patch_lengths) {
-          entry.patch_length = JSON.stringify(p.patch ?? []).length;
-        }
-        return entry;
-      });
-    }
-    assertDefined(this.patch_list);
-    return export_history(account_ids, this.patch_list, options);
+    const patches = this.requirePatchflowSession().history({ includeSnapshots: true });
+    return export_history(account_ids, patches, options);
   };
 
   private update_has_unsaved_changes = (): void => {
@@ -3094,108 +2773,6 @@ export class SyncDoc extends EventEmitter {
       this.last_has_unsaved_changes = cur;
     }
   };
-
-  /*
-    When the underlying synctable that defines the state
-    of the document changes due to new remote patches, this
-    function is called.
-    It handles update of the remote version, updating our
-    live version as a result.
-  */
-  private handle_patch_update = async (changed_keys): Promise<void> => {
-    if (this.patchflowReady()) {
-      // Patchflow subscribe already ingests changes.
-      return;
-    }
-    // console.log("handle_patch_update", { changed_keys });
-    if (changed_keys == null || changed_keys.length === 0) {
-      // this happens right now when we do a save.
-      return;
-    }
-
-    const dbg = this.dbg("handle_patch_update");
-    //dbg(changed_keys);
-    if (this.patch_update_queue == null) {
-      this.patch_update_queue = [];
-    }
-    for (const key of changed_keys) {
-      this.patch_update_queue.push(key);
-    }
-
-    dbg("Clear patch update_queue in a later event loop...");
-    await delay(1);
-    await this.handle_patch_update_queue();
-    dbg("done");
-  };
-
-  /*
-  Whenever new patches are added to this.patches_table,
-  their timestamp gets added to this.patch_update_queue.
-  */
-  private handle_patch_update_queue = reuseInFlight(
-    async (save = false): Promise<void> => {
-      const dbg = this.dbg("handle_patch_update_queue");
-      try {
-        this.handle_patch_update_queue_running = true;
-        while (this.state != "closed" && this.patch_update_queue.length > 0) {
-          dbg("queue size = ", this.patch_update_queue.length);
-          const v: Patch[] = [];
-          for (const key of this.patch_update_queue) {
-            let x = this.patches_table.get(key);
-            if (x == null) {
-              continue;
-            }
-            if (!Map.isMap(x)) {
-              // TODO: my NATS synctable-stream doesn't convert to immutable on get.
-              x = fromJS(x);
-            }
-            // may be null, e.g., when deleted.
-            const t = x.get("time");
-            // Optimization: only need to process patches that we didn't
-            // create ourselves during this session.
-            if (t && !this.my_patches[t.valueOf()]) {
-              const p = this.processPatch({ x });
-              //dbg(`patch=${JSON.stringify(p)}`);
-              if (p != null) {
-                v.push(p);
-              }
-            }
-          }
-          this.patch_update_queue = [];
-          this.emit("patch-update-queue-empty");
-          assertDefined(this.patch_list);
-          this.patch_list.add(v);
-
-          dbg("waiting for remote and doc to sync...");
-          this.sync_remote_and_doc(v.length > 0);
-          if (save || !this.noAutosave) {
-            await this.patches_table.save();
-            if (this.state === ("closed" as State)) return; // closed during await; nothing further to do
-            dbg("remote and doc now synced");
-          }
-
-          if (this.patch_update_queue.length > 0) {
-            // It is very important that next loop happen in a later
-            // event loop to avoid the this.sync_remote_and_doc call
-            // in this.handle_patch_update_queue above from causing
-            // sync_remote_and_doc to get called from within itself,
-            // due to synctable changes being emited on save.
-            dbg("wait for next event loop");
-            await delay(1);
-          }
-        }
-      } finally {
-        if (this.state == "closed") return; // got closed, so nothing further to do
-
-        // OK, done and nothing in the queue
-        // Notify save() to try again -- it may have
-        // paused waiting for this to clear.
-        dbg("done");
-        this.handle_patch_update_queue_running = false;
-        this.emit("handle_patch_update_queue_done");
-      }
-    },
-  );
 
   /* Disable and enable sync.   When disabled we still
      collect patches from upstream (but do not apply them
@@ -3270,12 +2847,11 @@ export class SyncDoc extends EventEmitter {
     // It is VERY important to do this, even if the
     // document is not yet ready, since it is critical
     // to properly set the state of this.doc to the value
-    // of the patch list (e.g., not doing this 100% breaks
+    // of the patch history (e.g., not doing this 100% breaks
     // opening a file for the first time on cocalc-docker).
-    let new_remote = this.patchflowValue();
+    const new_remote = this.patchflowValue();
     if (new_remote == null) {
-      assertDefined(this.patch_list);
-      new_remote = this.patch_list.value();
+      return;
     }
     if (!this.doc.is_equal(new_remote)) {
       // There is a possibility that live document changed, so
