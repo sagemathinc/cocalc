@@ -2920,6 +2920,23 @@ export class SyncDoc extends EventEmitter {
       throw Error("syncstring table must be defined and users initialized");
     }
     const account_ids: string[] = info.get("users").toJS();
+    if (this.patchflowReady() && this.patchflowSession != null) {
+      const patches = this.patchflowSession.history({ includeSnapshots: true });
+      return patches.map((p) => {
+        let account_id = account_ids[p.userId ?? 0];
+        if (account_id == null) {
+          account_id = "unknown";
+        }
+        const entry: HistoryEntry = { time_utc: new Date(p.time), account_id };
+        if (options.patches) {
+          entry.patch = p.patch as any;
+        }
+        if (options.patch_lengths) {
+          entry.patch_length = JSON.stringify(p.patch ?? []).length;
+        }
+        return entry;
+      });
+    }
     assertDefined(this.patch_list);
     return export_history(account_ids, this.patch_list, options);
   };
