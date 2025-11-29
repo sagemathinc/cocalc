@@ -2390,6 +2390,21 @@ export class SyncDoc extends EventEmitter {
   });
 
   show_history = (opts = {}): void => {
+    if (this.patchflowReady() && this.patchflowSession != null) {
+      const { milliseconds = true, trunc, log } = opts as {
+        milliseconds?: boolean;
+        trunc?: number;
+        log?: Function;
+      };
+      this.patchflowSession.summarizeHistory({
+        includeSnapshots: true,
+        milliseconds,
+        trunc: trunc ?? 80,
+        log: log as any,
+        formatDoc: (doc) => (doc as any).to_str?.() ?? `${doc}`,
+      });
+      return;
+    }
     assertDefined(this.patch_list);
     this.patch_list.show_history(opts);
   };
