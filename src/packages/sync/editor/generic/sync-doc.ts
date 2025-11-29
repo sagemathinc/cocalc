@@ -75,6 +75,12 @@ import { Evaluator } from "./evaluator";
 import { HistoryEntry, HistoryExportOptions, export_history } from "./export";
 import { IpywidgetsState } from "./ipywidgets-state";
 import { SortedPatchList } from "./sorted-patch-list";
+import {
+  Session as PatchflowSession,
+  type DocCodec,
+  type PatchEnvelope,
+  type PatchStore as PatchflowPatchStore,
+} from "patchflow";
 import type {
   Client,
   CompressedPatch,
@@ -220,6 +226,9 @@ export class SyncDoc extends EventEmitter {
   public ipywidgets_state?: IpywidgetsState;
 
   private patch_list?: SortedPatchList;
+  private patchflowSession?: PatchflowSession;
+  private patchflowStore?: PatchflowPatchStore;
+  private patchflowCodec?: DocCodec;
 
   private last: Document;
   private doc: Document;
@@ -945,6 +954,7 @@ export class SyncDoc extends EventEmitter {
       // not async -- just a data structure in memory
       this.patch_list.close();
     }
+    this.patchflowSession?.close();
 
     try {
       this.closeTables();
@@ -1462,8 +1472,37 @@ export class SyncDoc extends EventEmitter {
     this.last = this.doc = doc;
     this.patches_table.on("change", this.handle_patch_update);
 
+    await this.initPatchflowSession();
+
     dbg("done");
   };
+
+  private initPatchflowSession = reuseInFlight(async (): Promise<void> => {
+    if (this.patchflowSession || this.patches_table == null) {
+      return;
+    }
+    const dbg = this.dbg("initPatchflowSession");
+    try {
+      this.patchflowCodec = this.buildPatchflowCodec();
+      this.patchflowStore = this.createPatchflowStore();
+      this.patchflowSession = new PatchflowSession({
+        codec: this.patchflowCodec,
+        patchStore: this.patchflowStore,
+        clock: () => this.client.server_time().valueOf(),
+        userId: this.my_user_id ?? 0,
+      });
+      this.patchflowSession.on("change", (doc) => {
+        const next = doc as Document;
+        if (!this.doc || !this.doc.is_equal(next)) {
+          this.last = this.doc = next;
+        }
+      });
+      await this.patchflowSession.init();
+      dbg("patchflow session initialized");
+    } catch (err) {
+      dbg(`patchflow session init failed -- ${err}`);
+    }
+  });
 
   private init_evaluator = async () => {
     if (this.isClosed()) return;
@@ -2036,6 +2075,133 @@ export class SyncDoc extends EventEmitter {
      If time0 undefined then sets time0 equal to time of last_snapshot.
      If time1 undefined treated as +oo.
   */
+  private toPatchflowEnvelope = (p: Patch): PatchEnvelope => {
+    return {
+      time: p.time,
+      wall: p.wall,
+      patch: p.patch,
+      parents: p.parents,
+      userId: p.user_id,
+      size: p.size,
+      version: p.version,
+      isSnapshot: p.is_snapshot,
+      snapshot: p.snapshot,
+      seqInfo: p.seq_info,
+      file: p.file,
+    };
+  };
+
+  private patchFromEnvelope = (env: PatchEnvelope): Patch => {
+    return {
+      time: env.time,
+      wall: env.wall,
+      patch: env.patch as CompressedPatch | undefined,
+      parents: env.parents,
+      user_id: env.userId ?? 0,
+      size: env.size ?? 0,
+      version: env.version,
+      is_snapshot: env.isSnapshot,
+      snapshot: env.snapshot,
+      seq_info: env.seqInfo,
+      file: env.file,
+    };
+  };
+
+  private buildPatchflowCodec = (): DocCodec => {
+    return {
+      fromString: (text: string) => this._from_str(text),
+      toString: (doc: Document) =>
+        (doc as any).to_str ? (doc as any).to_str() : doc.toString(),
+      applyPatch: (doc: Document, patch: unknown) =>
+        ((doc as any).apply_patch ?? doc.applyPatch).call(doc, patch),
+      makePatch: (a: Document, b: Document) =>
+        ((a as any).make_patch ?? a.makePatch).call(a, b),
+    };
+  };
+
+  private createPatchflowStore = (): PatchflowPatchStore => {
+    return {
+      loadInitial: async () => {
+        const patches = this.get_patches().map((p) => this.toPatchflowEnvelope(p));
+        return { patches, hasMore: !this.hasFullHistory() };
+      },
+      append: async (env: PatchEnvelope) => {
+        if (this.patches_table == null) {
+          throw new Error("patches_table must be initialized before appending");
+        }
+        const patch = this.patchFromEnvelope(env);
+        const obj: any = {
+          string_id: this.string_id,
+          time: patch.time,
+          wall: patch.wall ?? patch.time,
+          user_id: patch.user_id ?? this.my_user_id,
+          is_snapshot: patch.is_snapshot ?? false,
+          parents: patch.parents ?? [],
+          version: patch.version ?? (this.patch_list?.lastVersion() ?? 0) + 1,
+        };
+        if (patch.file) {
+          obj.file = true;
+        }
+        if (!patch.is_snapshot) {
+          obj.patch = JSON.stringify(patch.patch ?? []);
+        } else {
+          obj.snapshot = patch.snapshot;
+          obj.seq_info = patch.seq_info;
+        }
+        if (patch.size != null) {
+          obj.size = patch.size;
+        }
+        if (this.doctype.patch_format != null) {
+          obj.format = this.doctype.patch_format;
+        }
+        this.my_patches[patch.time.valueOf()] = obj;
+        let x = this.patches_table.set(obj, "none");
+        if (x == null) {
+          x = fromJS(obj);
+        }
+        const processed = this.processPatch({ x, patch: patch.patch, size: patch.size });
+        this.patch_list?.add([processed]);
+      },
+      subscribe: (onEnvelope: (env: PatchEnvelope) => void) => {
+        if (this.patches_table == null) {
+          throw new Error("patches_table must be initialized before subscribing");
+        }
+        const handler = (keys: any[]) => {
+          const envs: PatchEnvelope[] = [];
+          for (const key of keys ?? []) {
+            let x = this.patches_table.get(key);
+            if (x == null) {
+              continue;
+            }
+            if (!Map.isMap(x)) {
+              x = fromJS(x);
+            }
+            const t = x.get("time");
+            if (t && this.my_patches[t.valueOf()]) {
+              continue;
+            }
+            const p = this.processPatch({ x });
+            if (p != null) {
+              envs.push(this.toPatchflowEnvelope(p));
+            }
+          }
+          for (const env of envs) {
+            onEnvelope(env);
+          }
+        };
+        const table: any = this.patches_table;
+        table.on("change", handler);
+        return () => {
+          if (table?.off) {
+            table.off("change", handler);
+          } else if (table?.removeListener) {
+            table.removeListener("change", handler);
+          }
+        };
+      },
+    };
+  };
+
   private get_patches = (): Patch[] => {
     this.assert_table_is_ready("patches");
 
