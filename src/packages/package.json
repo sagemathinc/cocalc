@@ -13,8 +13,7 @@
     "typescript": "^5.9.2"
   },
   "dependencies": {
-    "encoding": "^0.1.13",
-    "patchflow": "link:../../patchflow"
+    "encoding": "^0.1.13"
   },
   "pnpm": {
     "overrides-doc": "retry-request is because some other google api library in the server depends on an old broken version, which broke due to somebody deleting the request dependency of retry-request",
@@ -33,8 +32,6 @@
       "axios@<1.12.0": "^1.12.0",
       "tmp@<0.2.4": "^0.2.4"
     },
-    "onlyBuiltDependencies": [
-      "node-pty"
-    ]
+    "onlyBuiltDependencies": ["node-pty"]
   }
 }

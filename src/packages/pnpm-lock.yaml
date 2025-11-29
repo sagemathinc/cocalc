@@ -26,9 +26,6 @@ importers:
       encoding:
         specifier: ^0.1.13
         version: 0.1.13
-      patchflow:
-        specifier: link:../../patchflow
-        version: link:../../patchflow
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0

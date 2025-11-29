@@ -376,11 +376,17 @@ def build(args) -> None:
             # e.g., in some cases we delete packages entirely to speed
             # up the build
             return
-        if args.dev and '"build-dev"' in open(
-                os.path.join(CUR, path, 'package.json')).read():
-            cmd("pnpm run build-dev", package_path)
-        else:
-            cmd("pnpm run build", package_path)
+        try:
+            if args.dev and '"build-dev"' in open(
+                    os.path.join(CUR, path, 'package.json')).read():
+                cmd("pnpm run build-dev", package_path)
+            else:
+                cmd("pnpm run build", package_path)
+        except Exception as err:
+            if args.force:
+                print(err)
+            else:
+                raise err
         # The build succeeded, so touch a file
         # to indicate this, so we won't build again
         # until something is newer than this file
@@ -584,6 +590,10 @@ def main() -> None:
         action="store_const",
         const=True,
         help="only build enough for development (saves time and space)")
+    subparser.add_argument('--force',
+                           action="store_const",
+                           const=True,
+                           help="ignore build errors")
     packages_arg(subparser)
     subparser.set_defaults(func=build)
 
