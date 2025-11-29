@@ -50,8 +50,7 @@ export class ViewDocument implements Document {
     return this.str;
   }
 
-  // @ts-ignore
-  set(_x: any): any {
+  set(_x: any): this {
     throw Error("not implemented");
   }
 
@@ -101,6 +100,27 @@ export class ViewDocument implements Document {
   changes(_prev): any {
     throw Error("not implemented");
   }
+
+  applyPatch(patch: any): Document {
+    return this.apply_patch(patch);
+  }
+
+  makePatch(doc: any): any {
+    return this.make_patch(doc);
+  }
+
+  isEqual(doc?: any): boolean {
+    return this.is_equal(doc);
+  }
+
+  getOne(query?: any): any {
+    return this.get_one(query);
+  }
+
+  toString(): string {
+    return this.to_str();
+  }
+
   // how many in this document (length of string number of records in db-doc, etc.)
   count() {
     return this.v?.length ?? this.str.length;
