@@ -41,7 +41,6 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
       case "chat": {
         let changed: boolean = false;
         let messages = store.get("messages") ?? iMap();
-        obj.date = new Date(obj.date);
         const record = syncdb.get_one(obj);
         let x = record?.toJS();
         if (x == null) {

@@ -358,11 +358,11 @@ export class SortedPatchList extends EventEmitter {
         return cached;
       }
     }
-    const value = this.graph.value({ time, withoutTimes: without_times });
+    const value = this.graph.value({ time, withoutTimes: without_times }) as unknown as Document;
     if (canCache && time != null) {
-      this.cache.set(time, value as Document);
+      this.cache.set(time, value);
     }
-    return value as Document;
+    return value;
   };
 
   // For testing/debugging.  Go through the complete patch history and

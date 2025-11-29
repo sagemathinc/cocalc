@@ -12,6 +12,7 @@
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { type CompressedPatch } from "@cocalc/util/dmp";
 export { type CompressedPatch };
+import type { Document as PFDocument } from "patchflow";
 import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 import type {
   CallConatServiceFunction,
@@ -63,20 +64,20 @@ export interface Patch {
   file?: boolean;
 }
 
-export interface Document {
-  apply_patch(CompressedPatch): Document;
-  make_patch(Document): CompressedPatch;
-  is_equal(Document): boolean;
-  to_str(): string;
-  set(any): Document; // returns new document with result of set
-  get(any?): any; // returns result of get query on document (error for string)
-  get_one(any?): any; // returns result of get_one query on document (error for string)
-  delete(any?): Document; // delete something from Document (error for string)
-
-  // optional info about what changed going from prev to this.
-  changes(prev?: Document): any;
-  // how many in this document (length of string number of records in db-doc, etc.)
+export interface Document extends PFDocument {
+  applyPatch(patch: any): Document;
+  makePatch(doc: any): any;
+  isEqual(doc?: any): boolean;
+  set(value: any): Document;
+  get(key?: any): any;
+  delete(key?: any): Document;
+  changes?(prev?: any): any;
   count(): number;
+  apply_patch(patch: any): Document;
+  make_patch(doc: any): any;
+  is_equal(doc?: any): boolean;
+  to_str(): string;
+  get_one?(query?: any): any;
 }
 
 export interface FileWatcher {

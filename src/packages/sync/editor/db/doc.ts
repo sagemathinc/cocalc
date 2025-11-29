@@ -30,32 +30,48 @@ export class DBDocument extends PFDbDocument implements Document {
     return "[object Object]";
   }
 
-  public is_equal(other?: PFDbDocument): boolean {
+  public override isEqual(other?: PFDbDocument): boolean {
+    return super.isEqual(other);
+  }
+
+  public is_equal(other?: Document): boolean {
     if (other == null) return false;
     const otherStr =
       other instanceof DBDocument
         ? other.to_str()
-        : (other as PFDbDocument).toString();
+        : (other as unknown as PFDbDocument).toString();
     return this.to_str() === otherStr;
   }
 
-  public apply_patch(patch: DbPatch): DBDocument {
-    return this.wrap(super.applyPatch(patch) as PFDbDocument);
+  public override applyPatch(patch: unknown): DBDocument {
+    return this.wrap(super.applyPatch(patch as DbPatch) as PFDbDocument);
   }
 
-  public set(obj: unknown): DBDocument {
+  public apply_patch(patch: any): DBDocument {
+    return this.applyPatch(patch);
+  }
+
+  public override get(where?: unknown): any {
+    return super.get(where);
+  }
+
+  public override set(obj: unknown): DBDocument {
     return this.wrap(super.set(obj) as PFDbDocument);
   }
 
-  public delete(where?: unknown): DBDocument {
+  public override delete(where?: unknown): DBDocument {
     return this.wrap(super.delete(where) as PFDbDocument);
   }
 
-  public make_patch(other: DBDocument): DbPatch {
-    return super.makePatch(other as PFDbDocument);
+  public override makePatch(other: PFDbDocument): DbPatch {
+    return super.makePatch(other);
   }
 
-  public get_one(where?: unknown): unknown {
+  public make_patch(other: Document): DbPatch {
+    return this.makePatch(other as unknown as PFDbDocument);
+  }
+
+  public get_one(where?: unknown): any {
     return super.getOne(where);
   }
 }
@@ -69,7 +85,7 @@ export function from_str(
   const sc = string_cols instanceof Set ? string_cols : new Set(string_cols);
   const doc = fromPatchflowString(s, pk, sc) as PFDbDocument;
   Object.setPrototypeOf(doc, DBDocument.prototype);
-  return doc as DBDocument;
+  return doc as unknown as DBDocument;
 }
 
 export type { DbPatch, WhereCondition, SetCondition };

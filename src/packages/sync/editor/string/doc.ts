@@ -13,38 +13,57 @@ export class StringDocument extends PFStringDocument implements Document {
   }
 
   public to_str(): string {
-    return this.toString();
+    return super.toString();
   }
 
-  public is_equal(other?: PFStringDocument): boolean {
-    return this.isEqual(other);
+  public override toString(): string {
+    return "[object Object]";
   }
 
-  public apply_patch(patch: CompressedPatch): StringDocument {
+  public override isEqual(other?: PFStringDocument): boolean {
+    return super.isEqual(other);
+  }
+
+  public is_equal(other?: Document): boolean {
+    return this.isEqual(other as PFStringDocument | undefined);
+  }
+
+  public override applyPatch(patch: CompressedPatch): StringDocument {
     return this.wrap(super.applyPatch(patch));
   }
 
-  public make_patch(other: StringDocument): CompressedPatch {
-    return super.makePatch(other as PFStringDocument);
+  public apply_patch(patch: any): StringDocument {
+    return this.applyPatch(patch);
   }
 
-  public get_one(_?: any): any {
+  public override makePatch(other: PFStringDocument): CompressedPatch {
+    return super.makePatch(other);
+  }
+
+  public make_patch(other: Document): CompressedPatch {
+    return this.makePatch(other as unknown as PFStringDocument);
+  }
+
+  public get_one(_?: unknown): never {
     throw new Error("get_one queries on strings don't have meaning");
   }
 
-  public get(_?: any): any {
+  public override get(_?: unknown): never {
     throw new Error("get queries on strings don't have meaning");
   }
 
-  public set(x: any): StringDocument {
+  public override set(x: unknown): StringDocument {
+    if (typeof x !== "string") {
+      throw new Error("must be a string");
+    }
     return this.wrap(super.set(x));
   }
 
-  public delete(_?: any): StringDocument {
+  public override delete(_?: unknown): never {
     throw new Error("delete on strings doesn't have meaning");
   }
 
-  public changes(_?: StringDocument): any {
+  public changes(_?: any): any {
     return;
   }
 }

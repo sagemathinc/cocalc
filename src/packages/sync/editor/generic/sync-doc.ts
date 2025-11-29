@@ -609,7 +609,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   get_one(x?: any): any {
-    return this.doc.get_one(x);
+    return this.doc.get_one?.(x);
   }
 
   // Return underlying document, or undefined if document
@@ -800,12 +800,8 @@ export class SyncDoc extends EventEmitter {
   // the given point in time.
   account_id = (time: number): string | undefined => {
     this.assert_is_ready("account_id");
-    try {
-      if (this.patch_list?.patch(time)?.file) {
-        return this.project_id;
-      }
-    } catch {
-      return;
+    if (this.patch_list?.patch(time)?.file) {
+      return this.project_id;
     }
     return this.users[this.user_id(time)];
   };
@@ -2520,12 +2516,24 @@ export class SyncDoc extends EventEmitter {
     this.last_save_to_disk_time = new Date();
     this.emit("before-save-to-disk");
     try {
-      // writeFileDelta so efficient even if file is huge.
-      await this.fs.writeFileDelta(this.path, value, {
-        baseContents: this.valueOnDisk,
-        encoding: "utf8",
-        saveLast: true,
-      });
+      if (typeof this.fs.writeFileDelta === "function") {
+        // writeFileDelta so efficient even if file is huge.
+        await this.fs.writeFileDelta(this.path, value, {
+          baseContents: this.valueOnDisk,
+          encoding: "utf8",
+          saveLast: true,
+        });
+      } else if (typeof this.fs.writeFile === "function") {
+        await (this.fs as any).writeFile(this.path, value, { encoding: "utf8" });
+      } else if (typeof this.client.write_file === "function") {
+        await this.client.write_file({
+          path: this.path,
+          data: value,
+          cb: () => {},
+        });
+      } else {
+        throw new Error("no file writer available");
+      }
       if (this.isClosed()) return;
     } catch (err) {
       if (err.code == "EACCES") {
@@ -2775,7 +2783,7 @@ export class SyncDoc extends EventEmitter {
   // Immediately alert all watchers of all changes since
   // last time.
   private emit_change = (): void => {
-    this.emit("change", this.doc?.changes(this.before_change));
+    this.emit("change", this.doc?.changes?.(this.before_change));
     this.before_change = this.doc;
   };
 

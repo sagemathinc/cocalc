@@ -505,6 +505,8 @@ export class SyncTable extends EventEmitter {
   public close(): void {
     if (this.state === "closed") {
       // already closed
+      // still emit closed so late listeners resolve
+      setTimeout(() => this.emit("closed"), 0);
       return;
     }
     // decrement the reference to this synctable
@@ -520,10 +522,23 @@ export class SyncTable extends EventEmitter {
     }
 
     this.client.removeListener("disconnected", this.disconnected);
-    this.close_changefeed();
-    this.set_state("closed");
-    this.removeAllListeners();
-    delete this.value;
+    const finalize = async () => {
+      try {
+        if (this.has_uncommitted_changes()) {
+          await this.save();
+        }
+      } catch (err) {
+        // swallow errors on close; we're shutting down
+        this.dbg("close")(err);
+      } finally {
+        this.close_changefeed();
+        this.set_state("closed");
+        this.removeAllListeners();
+        delete this.value;
+        setTimeout(() => this.emit("closed"), 0);
+      }
+    };
+    finalize();
   }
 
   public async wait(until: Function, timeout: number = 30): Promise<any> {
