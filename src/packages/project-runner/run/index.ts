@@ -36,7 +36,9 @@ export async function init(
     stop: reuseInFlight(stop),
     status: reuseInFlight(status),
     save: reuseInFlight(save),
-    move: async () => {}, // no-op here
+    move: async () => {
+      throw new Error("project move is not implemented yet");
+    },
     localPath: opts.localPath ?? localPath,
     sshServers: opts.sshServers ?? sshServers,
   });

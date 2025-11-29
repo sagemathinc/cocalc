@@ -70,7 +70,7 @@ export async function localPath({
     const createScratch = async () => {
       if (!scratchQuota) return;
       const vol = await fs!.subvolumes.get(`scratch-project-${project_id}`);
-      vol.quota.set(scratchQuota);
+      await vol.quota.set(scratchQuota);
       scratch = vol.path;
     };
     await Promise.all([createHome(), createScratch()]);

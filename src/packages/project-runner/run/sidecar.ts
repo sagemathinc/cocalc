@@ -93,6 +93,8 @@ const BACKUP_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
 
+# NOTE: rootfs rsync is currently disabled because reflect-sync handles rootfs.
+# If re-enabled, remove this sentinel exit and the early return in backupRootFs.
 exit 0
 
 mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
@@ -117,6 +119,8 @@ const RESTORE_ROOTFS_SH = `
 #!/bin/bash
 set -euo pipefail
 
+# NOTE: rootfs rsync is currently disabled because reflect-sync handles rootfs.
+# If re-enabled, remove this sentinel exit and the early return in backupRootFs.
 exit 0
 
 ssh ${FILE_SERVER_NAME} mkdir -p /root/${PROJECT_IMAGE_PATH}/\${COMPUTE_SERVER_ID:-0}/$ROOTFS_IMAGE/upperdir/
@@ -367,6 +371,8 @@ export async function startSidecar({
 
 export const backupRootFs = reuseInFlight(
   async ({ project_id, force }: { project_id: string; force?: boolean }) => {
+    // Rootfs backups are currently disabled because reflect-sync handles rootfs.
+    // Remove this return and the sentinel exits above if/when rsync-based backups return.
     return;
     // NOTE: very important to *not* do a backup while project is initially opening/loading, which
     // is why we have to check that the project is running.
