@@ -2315,7 +2315,27 @@ export class SyncDoc extends EventEmitter {
     // if true, loads all history
     all?: boolean;
   } = {}): Promise<boolean> => {
-    if (this.hasFullHistory() || this.ephemeral || this.patch_list == null) {
+    if (this.hasFullHistory() || this.ephemeral) {
+      return false;
+    }
+    if (this.patchflowReady()) {
+      let dstream: any;
+      try {
+        dstream = this.dstream();
+      } catch {
+        return false;
+      }
+      const start_seq = all ? 0 : this.patchflowPrevSeqForMoreHistory();
+      if (start_seq == null) {
+        return false;
+      }
+      await dstream.load({ start_seq });
+      if (start_seq <= 1) {
+        this.markPatchflowFullHistory();
+      }
+      return start_seq > 1;
+    }
+    if (this.patch_list == null) {
       return false;
     }
     let start_seq;
@@ -2333,15 +2353,12 @@ export class SyncDoc extends EventEmitter {
     // that gets loaded.
     // TODO: right now we load everything, since the seq_info is wrong
     // from the NATS migration.  Maybe this is fine since it is very efficient.
-    // @ts-ignore
-    await this.patches_table.dstream?.load({ start_seq: 0 });
+    const dstream = this.dstream();
+    await dstream.load({ start_seq: 0 });
 
     // Wait until patch update queue is empty
     while (this.patch_update_queue.length > 0) {
       await once(this, "patch-update-queue-empty");
-    }
-    if (start_seq <= 1) {
-      this.markPatchflowFullHistory();
     }
     return start_seq > 1;
   };
@@ -2746,6 +2763,22 @@ export class SyncDoc extends EventEmitter {
     } catch (err) {
       console.warn("addPatchesToPatchflow failed", err);
     }
+  };
+
+  private patchflowPrevSeqForMoreHistory = (): number | undefined => {
+    if (!this.patchflowReady() || this.patchflowSession == null) return;
+    const history = this.patchflowSession.history({ includeSnapshots: true });
+    let prevSeq: number | undefined;
+    let oldest: number | undefined;
+    for (const p of history) {
+      if (p.isSnapshot && p.seqInfo?.prevSeq != null) {
+        if (oldest == null || p.time < oldest) {
+          oldest = p.time;
+          prevSeq = p.seqInfo.prevSeq;
+        }
+      }
+    }
+    return prevSeq;
   };
 
   private markPatchflowFullHistory = (): void => {
