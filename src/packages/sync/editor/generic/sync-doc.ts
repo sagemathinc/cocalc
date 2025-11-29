@@ -1974,19 +1974,34 @@ export class SyncDoc extends EventEmitter {
      case we should never record a snapshot with this bad property.
   */
   private snapshot = reuseInFlight(async (time: number): Promise<void> => {
-    assertDefined(this.patch_list);
-    const x = this.patch_list.patch(time);
-    if (x == null) {
-      throw Error(`no patch at time ${time}`);
+    let user_id = this.my_user_id ?? 0;
+    let snapshot: string | undefined;
+    if (this.patchflowReady() && this.patchflowSession != null) {
+      const p = this.patchflowSession.getPatch(time);
+      if (p == null) {
+        throw Error(`no patch at time ${time}`);
+      }
+      if (p.isSnapshot && p.snapshot != null) {
+        return;
+      }
+      user_id = p.userId ?? user_id;
+      const doc = this.patchflowSession.value({ time }) as any;
+      snapshot = (doc?.to_str?.() ?? doc?.toString?.() ?? `${doc}`) as string;
+    } else {
+      assertDefined(this.patch_list);
+      const x = this.patch_list.patch(time);
+      if (x == null) {
+        throw Error(`no patch at time ${time}`);
+      }
+      if (x.snapshot != null) {
+        return;
+      }
+      user_id = x.user_id;
+      snapshot = this.patch_list.value({ time }).to_str();
     }
-    if (x.snapshot != null) {
-      // there is already a snapshot at this point in time,
-      // so nothing further to do.
-      return;
+    if (snapshot == null) {
+      throw Error("unable to compute snapshot");
     }
-
-    const snapshot: string = this.patch_list.value({ time }).to_str();
-    // save the snapshot itself in the patches table.
     const seq_info = this.conatSnapshotSeqInfo(time);
     const obj = {
       size: snapshot.length,
@@ -1995,23 +2010,9 @@ export class SyncDoc extends EventEmitter {
       wall: time,
       is_snapshot: true,
       snapshot,
-      user_id: x.user_id,
+      user_id,
       seq_info,
     };
-    // also set snapshot in the this.patch_list, which which saves a little time.
-    // and ensures that "(x.snapshot != null)" above works if snapshot is called again.
-    this.patch_list.add([obj]);
-    this.addPatchesToPatchflow([
-      {
-        time,
-        wall: time,
-        is_snapshot: true,
-        snapshot,
-        user_id: x.user_id,
-        seq_info,
-        size: snapshot.length,
-      } as Patch,
-    ]);
     this.patches_table.set(obj);
     await this.patches_table.save();
     if (!this.isReady()) {
@@ -2040,11 +2041,16 @@ export class SyncDoc extends EventEmitter {
     const max_size = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
     const interval = this.snapshot_interval;
     dbg("check if we need to make a snapshot:", { interval, max_size });
-    assertDefined(this.patch_list);
-    const time = this.patch_list.time_of_unmade_periodic_snapshot(
-      interval,
-      max_size,
-    );
+    let time: number | undefined;
+    if (this.patchflowReady()) {
+      time = this.patchflowSnapshotCandidate(interval, max_size);
+    } else {
+      assertDefined(this.patch_list);
+      time = this.patch_list.time_of_unmade_periodic_snapshot(
+        interval,
+        max_size,
+      );
+    }
     if (time != null) {
       dbg("yes, try to make a snapshot at time", time);
       try {
@@ -2779,6 +2785,44 @@ export class SyncDoc extends EventEmitter {
       }
     }
     return prevSeq;
+  };
+
+  private patchflowSnapshotCandidate = (
+    interval: number,
+    max_size: number,
+  ): number | undefined => {
+    if (!this.patchflowReady() || this.patchflowSession == null) return;
+    const history = this.patchflowSession.history({ includeSnapshots: true });
+    if (history.length === 0) return;
+    const snapshots = history.filter((p) => p.isSnapshot);
+    const lastSnapshotTime =
+      snapshots.length > 0 ? snapshots[snapshots.length - 1].time : undefined;
+    const window = history.filter((p) =>
+      lastSnapshotTime != null ? p.time >= lastSnapshotTime : true,
+    );
+    if (window.length === 0) return;
+    // Rule 1: interval count
+    if (window.length >= 2 * interval) {
+      const idx = Math.min(interval, window.length - 1);
+      return window[idx].time;
+    }
+    // Rule 2: size threshold
+    let totalSize = 0;
+    for (const p of window) {
+      if (!p.isSnapshot) {
+        totalSize += p.size ?? 0;
+      }
+    }
+    if (totalSize > max_size) {
+      let running = 0;
+      for (const p of window) {
+        running += p.size ?? 0;
+        if (running > max_size) {
+          return p.time;
+        }
+      }
+    }
+    return;
   };
 
   private markPatchflowFullHistory = (): void => {
