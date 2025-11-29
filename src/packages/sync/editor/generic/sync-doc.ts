@@ -2001,6 +2001,17 @@ export class SyncDoc extends EventEmitter {
     // also set snapshot in the this.patch_list, which which saves a little time.
     // and ensures that "(x.snapshot != null)" above works if snapshot is called again.
     this.patch_list.add([obj]);
+    this.addPatchesToPatchflow([
+      {
+        time,
+        wall: time,
+        is_snapshot: true,
+        snapshot,
+        user_id: x.user_id,
+        seq_info,
+        size: snapshot.length,
+      } as Patch,
+    ]);
     this.patches_table.set(obj);
     await this.patches_table.save();
     if (!this.isReady()) {
@@ -2327,6 +2338,9 @@ export class SyncDoc extends EventEmitter {
     while (this.patch_update_queue.length > 0) {
       await once(this, "patch-update-queue-empty");
     }
+    if (start_seq <= 1) {
+      this.markPatchflowFullHistory();
+    }
     return start_seq > 1;
   };
 
@@ -2393,6 +2407,7 @@ export class SyncDoc extends EventEmitter {
       first.snapshot = this.patch_list.value({ time: first.time }).to_str();
     }
     this.patch_list.add(v);
+    this.addPatchesToPatchflow(v);
     this.emit("change");
   });
 
@@ -2715,6 +2730,30 @@ export class SyncDoc extends EventEmitter {
       return this.patchflowSession.versions();
     } catch {
       return;
+    }
+  };
+
+  private addPatchesToPatchflow = (patches: Patch[]): void => {
+    if (!this.patchflowReady() || this.patchflowSession == null) {
+      return;
+    }
+    try {
+      for (const p of patches) {
+        this.patchflowSession.applyRemote(this.toPatchflowEnvelope(p));
+      }
+    } catch (err) {
+      console.warn("addPatchesToPatchflow failed", err);
+    }
+  };
+
+  private markPatchflowFullHistory = (): void => {
+    if (!this.patchflowReady() || this.patchflowSession == null) return;
+    try {
+      if (typeof (this.patchflowSession as any).markFullHistory === "function") {
+        (this.patchflowSession as any).markFullHistory();
+      }
+    } catch (err) {
+      console.warn("markPatchflowFullHistory failed", err);
     }
   };
 
