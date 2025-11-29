@@ -1495,6 +1495,10 @@ export class SyncDoc extends EventEmitter {
         const next = doc as Document;
         if (!this.doc || !this.doc.is_equal(next)) {
           this.last = this.doc = next;
+          if (this.state === "ready") {
+            this.emit("after-change");
+            this.emit_change();
+          }
         }
       });
       await this.patchflowSession.init();
@@ -2176,10 +2180,6 @@ export class SyncDoc extends EventEmitter {
             if (!Map.isMap(x)) {
               x = fromJS(x);
             }
-            const t = x.get("time");
-            if (t && this.my_patches[t.valueOf()]) {
-              continue;
-            }
             const p = this.processPatch({ x });
             if (p != null) {
               envs.push(this.toPatchflowEnvelope(p));
@@ -2600,6 +2600,41 @@ export class SyncDoc extends EventEmitter {
     return this.patches_table.has_uncommitted_changes();
   };
 
+  private patchflowReady = (): boolean => {
+    return (
+      this.patchflowSession != null &&
+      this.patchflowStore != null &&
+      this.patchflowCodec != null
+    );
+  };
+
+  private documentsEqual = (a?: Document, b?: Document): boolean => {
+    if (a == null || b == null) {
+      return false;
+    }
+    const docA: any = a as any;
+    if (typeof docA.is_equal === "function") {
+      return docA.is_equal(b);
+    }
+    if (typeof docA.isEqual === "function") {
+      return docA.isEqual(b);
+    }
+    return a === b;
+  };
+
+  private commitWithPatchflow = ({
+    emitChangeImmediately = false,
+    file = false,
+  }: {
+    emitChangeImmediately?: boolean;
+    file?: boolean;
+  }): boolean => {
+    // For now, keep the legacy commit path authoritative while the patchflow
+    // migration is in progress. Patchflow stays in sync via the PatchStore
+    // subscription (we removed the skip for our own patches below).
+    return false;
+  };
+
   // Commit any changes to the live document to
   // history as a new patch.  Returns true if there
   // were changes and false otherwise.   This works
@@ -2614,6 +2649,9 @@ export class SyncDoc extends EventEmitter {
     // which can be used as input to the merge conflict resolution.
     file?: boolean;
   } = {}): boolean => {
+    if (this.commitWithPatchflow({ emitChangeImmediately, file })) {
+      return true;
+    }
     if (
       this.last == null ||
       this.doc == null ||
