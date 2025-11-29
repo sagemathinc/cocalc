@@ -229,6 +229,7 @@ export class SyncDoc extends EventEmitter {
   private patchflowSession?: PatchflowSession;
   private patchflowStore?: PatchflowPatchStore;
   private patchflowCodec?: DocCodec;
+  private pendingPatchflowCommit?: Promise<void>;
 
   private last: Document;
   private doc: Document;
@@ -1800,6 +1801,13 @@ export class SyncDoc extends EventEmitter {
     // to save current state without having to wait on an async, which is
     // useful to ensure specific undo points (e.g., right before a paste).
     await this.patches_table.save();
+    if (this.pendingPatchflowCommit) {
+      try {
+        await this.pendingPatchflowCommit;
+      } catch {
+        // errors are already logged in commitWithPatchflow
+      }
+    }
   });
 
   private timeOfLastCommit: number | undefined = undefined;
@@ -2130,41 +2138,44 @@ export class SyncDoc extends EventEmitter {
         return { patches, hasMore: !this.hasFullHistory() };
       },
       append: async (env: PatchEnvelope) => {
-        if (this.patches_table == null) {
-          throw new Error("patches_table must be initialized before appending");
+        try {
+          if (this.patches_table == null) {
+            throw new Error("patches_table must be initialized before appending");
+          }
+          const patch = this.patchFromEnvelope(env);
+          const obj: any = {
+            string_id: this.string_id,
+            time: patch.time,
+            wall: patch.wall ?? patch.time,
+            user_id: patch.user_id ?? this.my_user_id,
+            is_snapshot: patch.is_snapshot ?? false,
+            parents: patch.parents ?? [],
+            version: patch.version ?? (this.patch_list?.lastVersion() ?? 0) + 1,
+          };
+          if (patch.file) {
+            obj.file = true;
+          }
+          if (!patch.is_snapshot) {
+            obj.patch = JSON.stringify(patch.patch ?? []);
+          } else {
+            obj.snapshot = patch.snapshot;
+            obj.seq_info = patch.seq_info;
+          }
+          if (this.doctype.patch_format != null) {
+            obj.format = this.doctype.patch_format;
+          }
+          this.my_patches[patch.time.valueOf()] = obj;
+          let x = this.patches_table.set(obj, "none");
+          if (x == null) {
+            x = fromJS(obj);
+          }
+          const processed = this.processPatch({ x, patch: patch.patch, size: patch.size });
+          this.patch_list?.add([processed]);
+        } catch (err) {
+          console.warn("patchflow append failed", err);
+          console.warn(env);
+          throw err;
         }
-        const patch = this.patchFromEnvelope(env);
-        const obj: any = {
-          string_id: this.string_id,
-          time: patch.time,
-          wall: patch.wall ?? patch.time,
-          user_id: patch.user_id ?? this.my_user_id,
-          is_snapshot: patch.is_snapshot ?? false,
-          parents: patch.parents ?? [],
-          version: patch.version ?? (this.patch_list?.lastVersion() ?? 0) + 1,
-        };
-        if (patch.file) {
-          obj.file = true;
-        }
-        if (!patch.is_snapshot) {
-          obj.patch = JSON.stringify(patch.patch ?? []);
-        } else {
-          obj.snapshot = patch.snapshot;
-          obj.seq_info = patch.seq_info;
-        }
-        if (patch.size != null) {
-          obj.size = patch.size;
-        }
-        if (this.doctype.patch_format != null) {
-          obj.format = this.doctype.patch_format;
-        }
-        this.my_patches[patch.time.valueOf()] = obj;
-        let x = this.patches_table.set(obj, "none");
-        if (x == null) {
-          x = fromJS(obj);
-        }
-        const processed = this.processPatch({ x, patch: patch.patch, size: patch.size });
-        this.patch_list?.add([processed]);
       },
       subscribe: (onEnvelope: (env: PatchEnvelope) => void) => {
         if (this.patches_table == null) {
@@ -2629,10 +2640,62 @@ export class SyncDoc extends EventEmitter {
     emitChangeImmediately?: boolean;
     file?: boolean;
   }): boolean => {
-    // For now, keep the legacy commit path authoritative while the patchflow
-    // migration is in progress. Patchflow stays in sync via the PatchStore
-    // subscription (we removed the skip for our own patches below).
-    return false;
+    if (!this.patchflowReady() || this.patchflowSession == null) {
+      return false;
+    }
+    const next = this.doc;
+    if (next == null) {
+      return false;
+    }
+    let current: Document | undefined;
+    try {
+      current = this.patchflowSession.getDocument() as Document;
+    } catch {
+      // session not initialized yet
+      return false;
+    }
+    if (this.documentsEqual(current, next)) {
+      return false;
+    }
+    if (emitChangeImmediately) {
+      this.emit_change();
+    }
+    this.emit("user-change");
+    // Ensure save loops don't spin while the async commit runs.
+    this.last = next;
+    const commitPromise = this.patchflowSession
+      .commit(next as any, { file })
+      .then((env) => {
+        const myPatches = (this.my_patches = this.my_patches ?? {});
+        myPatches[env.time.valueOf()] = { time: env.time } as any;
+        if (this.undo_state != null && this.undo_state.without[0] !== env.time) {
+          this.undo_state.without.unshift(env.time);
+        }
+        this.snapshotIfNecessary();
+      })
+      .catch((err) => {
+        console.warn("patchflow commit failed", err?.message ?? err);
+        console.warn(err?.stack ?? "");
+        this.dbg("commitWithPatchflow")(`commit failed -- ${err}`);
+      });
+    const latest = this.patchflowSession.versions().slice(-1)[0];
+    if (latest != null) {
+      const myPatches = (this.my_patches = this.my_patches ?? {});
+      if (!myPatches[latest]) {
+        myPatches[latest] = { time: latest } as any;
+      }
+      if (this.undo_state != null && this.undo_state.without[0] !== latest) {
+        this.undo_state.without.unshift(latest);
+      }
+    }
+    this.pendingPatchflowCommit = commitPromise;
+    if (!this.noAutosave) {
+      this.save(); // eventually syncs out to other clients
+    }
+    this.touchProject();
+    // Avoid unhandled rejections if caller ignores the async commit path.
+    void commitPromise;
+    return true;
   };
 
   // Commit any changes to the live document to
