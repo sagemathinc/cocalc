@@ -68,9 +68,8 @@ describe("create syncstring and test doing some edits", () => {
       expect(syncstring.to_str()).toEqual(e);
       expect(syncstring.in_undo_mode()).toBe(true);
     }
-    // we made lots of changes with undo/redo, and these
-    // automatically result in new commits.
-    expect(syncstring.versions().length).toBe(2 * v.length);
+    // undo steps no longer create extra commits
+    expect(syncstring.versions().length).toBe(v.length);
   });
 
   it("redo it all (undo mode state continues from above)", () => {
@@ -81,7 +80,7 @@ describe("create syncstring and test doing some edits", () => {
     }
     syncstring.exit_undo_mode();
     expect(syncstring.in_undo_mode()).toBe(false);
-    expect(syncstring.versions().length).toBe(3 * v.length);
+    expect(syncstring.versions().length).toBe(v.length);
   });
 
   it("revert to each past point in time", () => {
@@ -90,8 +89,7 @@ describe("create syncstring and test doing some edits", () => {
       syncstring.revert(vers[i]);
       expect(syncstring.to_str()).toEqual(v[i]);
     }
-    // correct, since no commits.
-    expect(syncstring.versions().length).toBe(3 * v.length);
+    expect(syncstring.versions().length).toBe(v.length);
   });
 
   it("last_changed is the time of the last version", () => {

@@ -52,13 +52,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { cancel_scheduled, once, until } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
-import {
-  close,
-  filename_extension,
-  hash_string,
-  keys,
-  minutes_ago,
-} from "@cocalc/util/misc";
+import { close, filename_extension, hash_string, minutes_ago } from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
@@ -163,13 +157,6 @@ export interface SyncOpts extends SyncOpts0 {
   doctype: DocType;
 }
 
-export interface UndoState {
-  my_times: number[];
-  pointer: number;
-  without: number[];
-  final?: CompressedPatch;
-}
-
 // NOTE: Do not make multiple SyncDoc's for the same document, especially
 // not on the frontend.
 
@@ -243,7 +230,7 @@ export class SyncDoc extends EventEmitter {
   // patches that this client made during this editing session.
   private my_patches: { [time: string]: XPatch } = {};
 
-  private undo_state: UndoState | undefined;
+  private undo_mode = false;
 
   private persistent: boolean = false;
 
@@ -543,7 +530,7 @@ export class SyncDoc extends EventEmitter {
       // no change.
       return;
     }
-    if (exit_undo_mode) this.undo_state = undefined;
+    if (exit_undo_mode) this.exit_undo_mode();
     // console.log(`sync-doc.set_doc("${doc.to_str()}")`);
     this.doc = doc;
 
@@ -647,110 +634,62 @@ export class SyncDoc extends EventEmitter {
   Doing any set_doc explicitly exits undo mode automatically.
   */
   undo = (): Document => {
-    const prev = this._undo();
-    this.set_doc(prev, false);
-    this.commit();
-    return prev;
-  };
-
-  redo = (): Document => {
-    const next = this._redo();
-    this.set_doc(next, false);
-    this.commit();
+    this.assert_is_ready("undo");
+    const session = this.requirePatchflowSession();
+    this.ensurePatchflowLiveDocCommitted();
+    this.undo_mode = true;
+    const prev = session.getDocument() as Document;
+    const next = session.undo() as Document;
+    this.doc = next;
+    this.last = next;
+    if (!this.documentsEqual(prev, next)) {
+      this.emit("user-change");
+      this.emit_change();
+    }
     return next;
   };
 
-  private _undo(): Document {
-    this.assert_is_ready("_undo");
-    let state = this.undo_state;
-    if (state == null) {
-      // not in undo mode
-      state = this.initUndoState();
+  redo = (): Document => {
+    this.assert_is_ready("redo");
+    const session = this.requirePatchflowSession();
+    this.undo_mode = true;
+    const prev = session.getDocument() as Document;
+    const next = session.redo() as Document;
+    this.doc = next;
+    this.last = next;
+    if (!this.documentsEqual(prev, next)) {
+      this.emit("user-change");
+      this.emit_change();
     }
-    if (state.pointer === state.my_times.length) {
-      // pointing at live state (e.g., happens on entering undo mode)
-      const value: Document = this.version(); // last saved version
-      const live: Document = this.doc;
-      if (!live.is_equal(value)) {
-        // User had unsaved changes, so last undo is to revert to version without those.
-        state.final = value.make_patch(live); // live redo if needed
-        state.pointer -= 1; // most recent timestamp
-        return value;
-      } else {
-        // User had no unsaved changes, so last undo is version without last saved change.
-        const tm = state.my_times[state.pointer - 1];
-        state.pointer -= 2;
-        if (tm != null) {
-          state.without.push(tm);
-          return this.version_without(state.without);
-        } else {
-          // no undo information during this session
-          return value;
-        }
-      }
-    } else {
-      // pointing at particular timestamp in the past
-      if (state.pointer >= 0) {
-        // there is still more to undo
-        state.without.push(state.my_times[state.pointer]);
-        state.pointer -= 1;
-      }
-      return this.version_without(state.without);
-    }
-  }
-
-  private _redo(): Document {
-    this.assert_is_ready("_redo");
-    const state = this.undo_state;
-    if (state == null) {
-      // nothing to do but return latest live version
-      return this.get_doc();
-    }
-    if (state.pointer === state.my_times.length) {
-      // pointing at live state -- nothing to do
-      return this.get_doc();
-    } else if (state.pointer === state.my_times.length - 1) {
-      // one back from live state, so apply unsaved patch to live version
-      const value = this.version();
-      if (value == null) {
-        // see remark in undo -- do nothing
-        return this.get_doc();
-      }
-      state.pointer += 1;
-      return value.apply_patch(state.final);
-    } else {
-      // at least two back from live state
-      state.without.pop();
-      state.pointer += 1;
-      if (state.final == null && state.pointer === state.my_times.length - 1) {
-        // special case when there wasn't any live change
-        state.pointer += 1;
-      }
-      return this.version_without(state.without);
-    }
-  }
+    return next;
+  };
 
   in_undo_mode = (): boolean => {
-    return this.undo_state != null;
+    return this.undo_mode;
   };
 
   exit_undo_mode = (): void => {
-    this.undo_state = undefined;
+    this.undo_mode = false;
+    if (this.patchflowReady()) {
+      (this.patchflowSession as any).resetUndo?.();
+    }
   };
 
-  private initUndoState = (): UndoState => {
-    if (this.undo_state != null) {
-      return this.undo_state;
+  // If the live doc differs from patchflow's current doc, commit it so undo/redo
+  // can step over the unsaved change.
+  private ensurePatchflowLiveDocCommitted(): void {
+    if (!this.patchflowReady() || this.patchflowSession == null) {
+      return;
     }
-    const my_times = keys(this.my_patches).map((x) => parseInt(x));
-    my_times.sort();
-    this.undo_state = {
-      my_times,
-      pointer: my_times.length,
-      without: [],
-    };
-    return this.undo_state;
-  };
+    try {
+      const current = this.patchflowSession.getDocument() as Document;
+      if (!this.documentsEqual(current, this.doc)) {
+        this.commitWithPatchflow({ allowDuplicate: false });
+      }
+    } catch {
+      // ignore -- patchflow session not yet ready
+    }
+  }
 
   // account_id of the user who made the edit at
   // the given point in time.
@@ -2491,9 +2430,11 @@ export class SyncDoc extends EventEmitter {
   private commitWithPatchflow = ({
     emitChangeImmediately = false,
     file = false,
+    allowDuplicate = false,
   }: {
     emitChangeImmediately?: boolean;
     file?: boolean;
+    allowDuplicate?: boolean;
   }): boolean => {
     if (!this.patchflowReady() || this.patchflowSession == null) {
       return false;
@@ -2509,7 +2450,7 @@ export class SyncDoc extends EventEmitter {
       // session not initialized yet
       return false;
     }
-    if (this.documentsEqual(current, next)) {
+    if (!allowDuplicate && this.documentsEqual(current, next)) {
       return false;
     }
     if (emitChangeImmediately) {
@@ -2523,12 +2464,6 @@ export class SyncDoc extends EventEmitter {
       .then((env) => {
         const myPatches = (this.my_patches = this.my_patches ?? {});
         myPatches[env.time.valueOf()] = { time: env.time } as any;
-        if (
-          this.undo_state != null &&
-          this.undo_state.without[0] !== env.time
-        ) {
-          this.undo_state.without.unshift(env.time);
-        }
         this.snapshotIfNecessary();
       })
       .catch((err) => {
@@ -2541,9 +2476,6 @@ export class SyncDoc extends EventEmitter {
       const myPatches = (this.my_patches = this.my_patches ?? {});
       if (!myPatches[latest]) {
         myPatches[latest] = { time: latest } as any;
-      }
-      if (this.undo_state != null && this.undo_state.without[0] !== latest) {
-        this.undo_state.without.unshift(latest);
       }
     }
     this.pendingPatchflowCommit = commitPromise;
@@ -2564,13 +2496,15 @@ export class SyncDoc extends EventEmitter {
   commit = ({
     emitChangeImmediately = false,
     file = false,
+    allowDuplicate = false,
   }: {
     emitChangeImmediately?: boolean;
     // mark this as a commit obtained by loading the file from disk,
     // which can be used as input to the merge conflict resolution.
     file?: boolean;
+    allowDuplicate?: boolean;
   } = {}): boolean => {
-    return this.commitWithPatchflow({ emitChangeImmediately, file });
+    return this.commitWithPatchflow({ emitChangeImmediately, file, allowDuplicate });
   };
 
   // valueOnDisk = value of the file on disk, if known.  If there's an
