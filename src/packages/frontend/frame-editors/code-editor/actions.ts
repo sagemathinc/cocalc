@@ -214,9 +214,9 @@ export class Actions<
   private _update_misspelled_words_last_hash: any;
   private _active_id_history: string[] = [];
   private _spellcheck_is_supported: boolean = false;
-  private _last_change_local: boolean = false;
-  private _last_merged_version?: number;
-  private _last_merged_value?: string;
+  // True when the next syncstring change event is expected to be our own commit,
+  // so remote handling can skip re-merging our own write.
+  private _suppress_remote_once: boolean = false;
   private mergeCoordinator?: MergeCoordinator;
   private syncAdapter?: SyncAdapter;
 
@@ -231,11 +231,20 @@ export class Actions<
     return this.mergeCoordinator;
   }
 
+  // Safe wrapper to read the latest syncstring version, if available.
+  private getLatestVersion(): number | undefined {
+    try {
+      const versions = this._syncstring.versions();
+      return versions[versions.length - 1];
+    } catch {
+      return undefined;
+    }
+  }
+
   // Apply a merged value into the editor buffer (diffed for minimal cursor jump).
   private applyMergedBuffer(merged: string): void {
     const cm = this._get_cm(undefined, true);
     if (!cm) {
-      this._last_merged_value = merged;
       this.setState({ value: merged });
       return;
     }
@@ -251,27 +260,19 @@ export class Actions<
         delete cmAny._applying_remote;
       });
     }
-    this._last_merged_value = merged;
     this.setState({ value: merged });
   }
 
+  // Entry point for any syncstring change: merge remote with live buffer and apply.
   private handleRemoteSyncstringChange(remoteValue: string): void {
-    let latest: number | undefined;
-    try {
-      const versions = this._syncstring.versions();
-      latest = versions[versions.length - 1];
-    } catch {
-      // not ready; ignore
-    }
+    const latest = this.getLatestVersion();
     const manager = this.getMergeCoordinator();
-    const isSelfChange = this._last_change_local;
-    this._last_change_local = false;
+    const isSelfChange = this._suppress_remote_once;
+    this._suppress_remote_once = false;
 
     if (isSelfChange) {
       manager.recordLocalCommit(remoteValue, latest);
-      this._last_merged_value = remoteValue;
-      this._last_merged_version = latest;
-      this.setState({ value: remoteValue });
+      this.applyMergedBuffer(remoteValue);
       return;
     }
 
@@ -280,8 +281,6 @@ export class Actions<
       manager.seedBase(cm?.getValue?.() ?? remoteValue, latest);
     }
     manager.mergeRemote(remoteValue, latest);
-    this._last_merged_value = manager.getBaseValue();
-    this._last_merged_version = manager.getBaseVersion() ?? latest;
   }
 
   // We store these actions here so that we can remove the actions
@@ -352,13 +351,10 @@ export class Actions<
   // Init setting of value whenever syncstring changes --
   // this value in the store is used in derived classes (i.e., other frame editors)
   protected _init_syncstring_value(): void {
+    const latest = this.getLatestVersion();
     try {
-      this._last_merged_version = this._syncstring.versions().slice(-1)[0];
-      this._last_merged_value = this._syncstring.to_str();
-      this.getMergeCoordinator().seedBase(
-        this._last_merged_value,
-        this._last_merged_version,
-      );
+      const value = this._syncstring.to_str();
+      this.getMergeCoordinator().seedBase(value, latest);
     } catch {
       // ignore if not ready yet
     }
@@ -466,6 +462,7 @@ export class Actions<
       this._syncstring_init = true;
       this._syncstring_metadata();
       this._init_settings();
+      this._init_syncstring_value();
       if (
         !this.store.get("is_loaded") &&
         (this._syncdb === undefined || this._syncdb_init)
@@ -482,20 +479,18 @@ export class Actions<
         this._syncstring_cursor_activity.bind(this),
       );
       try {
-        const versions = this._syncstring.versions();
-        this._last_merged_version = versions[versions.length - 1];
+        this.getMergeCoordinator().seedBase(
+          this._syncstring.to_str(),
+          this.getLatestVersion(),
+        );
       } catch {
         // ignore if not available yet
       }
     });
 
-    this._syncstring.on(
-      "after-change",
-      this.set_codemirror_to_syncstring.bind(this),
-    );
-    this._syncstring.once("load-time-estimate", (est) => {
-      return this.setState({ load_time_estimate: est });
-    });
+      this._syncstring.once("load-time-estimate", (est) => {
+        return this.setState({ load_time_estimate: est });
+      });
 
     this._syncstring.on("save-to-disk", () => {
       // increment save_to_disk counter, so that react components can
@@ -1686,13 +1681,10 @@ export class Actions<
     // important in the whiteboard where we draw/move objects, and show
     // a preview, then the real thing only after the change event from commit.
     this._syncstring.commit({ emitChangeImmediately: true });
-    this._last_change_local = true;
+    this._suppress_remote_once = true;
     try {
-      this._last_merged_value = this._syncstring.to_str();
-      this.getMergeCoordinator().recordLocalCommit(
-        this._last_merged_value,
-        this._last_merged_version,
-      );
+      const value = this._syncstring.to_str();
+      this.getMergeCoordinator().recordLocalCommit(value, this.getLatestVersion());
     } catch {
       // ignore
     }
@@ -1750,7 +1742,7 @@ export class Actions<
       return;
     }
     // Now actually set the value.
-    this._last_change_local = true;
+    this._suppress_remote_once = true;
     this._syncstring.from_str(value);
     this._syncstring.commit();
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
