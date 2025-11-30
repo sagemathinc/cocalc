@@ -31,7 +31,6 @@ import { FrameTree } from "../frame-tree/types";
 import { export_to_json } from "./export-to-json";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import LRUCache from "lru-cache";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { until } from "@cocalc/util/async-utils";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
@@ -64,8 +63,6 @@ export interface TimeTravelState extends CodeEditorState {
   git_versions: List<number>;
   loading: boolean;
   has_full_history: boolean;
-  legacy_history_exists?: boolean;
-  loaded_legacy_history?: boolean;
   docpath: string;
   docext: string;
   // true if in a git repo
@@ -180,26 +177,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       loading: false,
       has_full_history: this.syncdoc.hasFullHistory(),
     });
-    this.setLegacy();
-  };
-
-  private setLegacy = async () => {
-    let legacy_history_exists;
-    if (
-      isProjectOldEnoughToHaveLegacyHistory({
-        redux: this.redux,
-        project_id: this.project_id,
-      })
-    ) {
-      try {
-        legacy_history_exists = await this.syncdoc?.legacyHistoryExists();
-      } catch {
-        return;
-      }
-    } else {
-      legacy_history_exists = false;
-    }
-    this.setState({ legacy_history_exists });
   };
 
   loadMoreHistory = async (): Promise<void> => {
@@ -216,14 +193,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     this.setState({ has_full_history: this.syncdoc.hasFullHistory() });
     this.syncdoc_changed(); // load new versions list.
   };
-
-  loadLegacyHistory = reuseInFlight(async () => {
-    if (this.store.get("loaded_legacy_history")) {
-      return;
-    }
-    await this.syncdoc?.loadLegacyHistory();
-    this.setState({ loaded_legacy_history: true });
-  });
 
   private syncdoc_changed = (): void => {
     //  log("syncdoc_changed");
@@ -498,22 +467,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 }
 
 export { TimeTravelActions as Actions };
-
-// in any project created after this point, there can't be any legacy
-// timetravel data.
-const LEGACY_CUTOFF = new Date("2025-05-01T00:00:00.000Z");
-function isProjectOldEnoughToHaveLegacyHistory({
-  redux,
-  project_id,
-}: {
-  redux;
-  project_id: string;
-}): boolean {
-  const created = redux
-    .getProjectsStore()
-    .getIn(["project_map", project_id, "created"]);
-  return created == null || created <= LEGACY_CUTOFF;
-}
 
 function getSyncDocFromEditorActions(actions) {
   if (actions.path.endsWith(".course")) {

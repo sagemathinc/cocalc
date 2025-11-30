@@ -88,7 +88,6 @@ import type {
 import { isTestClient, patch_cmp } from "./util";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
-import { LegacyHistory } from "./legacy";
 import { type Filesystem, type Stats } from "@cocalc/conat/files/fs";
 import { type WatchIterator } from "@cocalc/conat/files/watch";
 import { getLogger } from "@cocalc/conat/client";
@@ -257,7 +256,6 @@ export class SyncDoc extends EventEmitter {
   private delay_sync_timer: any;
 
   private useConat: boolean;
-  legacy: LegacyHistory;
 
   public readonly fs: Filesystem;
 
@@ -299,12 +297,6 @@ export class SyncDoc extends EventEmitter {
     }
 
     this.client.once("closed", this.close);
-
-    this.legacy = new LegacyHistory({
-      project_id: this.project_id,
-      path: this.path,
-      client: this.client,
-    });
 
     // NOTE: Do not use conat in test mode, since there we use a minimal
     // "fake" client that does all communication internally and doesn't
@@ -2166,20 +2158,6 @@ export class SyncDoc extends EventEmitter {
     }
     return start_seq > 1;
   };
-
-  legacyHistoryExists = async () => {
-    const info = await this.legacy.getInfo();
-    return !!info.uuid;
-  };
-
-  private loadedLegacyHistory = false;
-  loadLegacyHistory = reuseInFlight(async () => {
-    if (this.loadedLegacyHistory) {
-      return;
-    }
-    this.loadedLegacyHistory = true;
-    console.warn("loadLegacyHistory is no longer supported with the patchflow-only pipeline");
-  });
 
   show_history = (opts = {}): void => {
     this.requirePatchflowSession().summarizeHistory({
