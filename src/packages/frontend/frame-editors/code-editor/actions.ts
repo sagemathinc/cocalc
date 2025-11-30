@@ -265,6 +265,7 @@ export class Actions<
     const cm = this._get_cm(undefined, true);
     const localSnapshot = cm?.getValue?.();
 
+    console.log("handleRemoteSyncstringChange", { isSelfChange, remoteValue });
     if (isSelfChange) {
       // Our own commit echoed back. Refresh base/version, but never clobber
       // local edits that may have happened after the commit.
@@ -489,9 +490,9 @@ export class Actions<
       }
     });
 
-      this._syncstring.once("load-time-estimate", (est) => {
-        return this.setState({ load_time_estimate: est });
-      });
+    this._syncstring.once("load-time-estimate", (est) => {
+      return this.setState({ load_time_estimate: est });
+    });
 
     this._syncstring.on("save-to-disk", () => {
       // increment save_to_disk counter, so that react components can
@@ -1682,10 +1683,14 @@ export class Actions<
     // important in the whiteboard where we draw/move objects, and show
     // a preview, then the real thing only after the change event from commit.
     this._syncstring.commit({ emitChangeImmediately: true });
+    this._syncstring.save();
     this._suppress_remote_once = true;
     try {
       const value = this._syncstring.to_str();
-      this.getMergeCoordinator().recordLocalCommit(value, this.getLatestVersion());
+      this.getMergeCoordinator().recordLocalCommit(
+        value,
+        this.getLatestVersion(),
+      );
     } catch {
       // ignore
     }
@@ -1711,6 +1716,7 @@ export class Actions<
       return;
     }
     const localText = cm.getValue();
+    console.log("set_syncstring", { localText });
     this.set_syncstring(localText, do_not_exit_undo_mode);
   }
 
@@ -1746,6 +1752,7 @@ export class Actions<
     this._suppress_remote_once = true;
     this._syncstring.from_str(value);
     this._syncstring.commit();
+    this._syncstring.save();
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
     // syncstring changes, so we explicitly emit a change here:

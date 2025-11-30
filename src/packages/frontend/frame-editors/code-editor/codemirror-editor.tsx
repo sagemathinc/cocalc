@@ -211,9 +211,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
 
   // Save the underlying syncstring content.
   function save_syncstring(): void {
-    if (props.is_public) {
-      return;
-    }
+    console.log("save_syncstring");
     editor_actions()?.syncstring_commit();
   }
 
@@ -331,6 +329,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
     const save_syncstring_debounce = debounce(
       save_syncstring,
       SAVE_DEBOUNCE_MS,
+      { leading: false, trailing: true },
     );
 
     cm.on("beforeChange", (_, changeObj) => {
