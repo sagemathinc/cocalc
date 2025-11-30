@@ -8,12 +8,22 @@ export class SubvolumeQuota {
   constructor(public subvolume: Subvolume) {}
 
   private qgroup = async () => {
+    const id = await this.subvolume.getSubvolumeId();
     const { stdout } = await btrfs({
       verbose: false,
       args: ["--format=json", "qgroup", "show", "-reF", this.subvolume.path],
     });
     const x = JSON.parse(stdout);
-    return x["qgroup-show"][0];
+    const groups = x["qgroup-show"] ?? [];
+    // Prefer the subvolume's own qgroups (0/id or 1/id); fall back to first entry.
+    const match =
+      groups.find((g) => g.qgroupid === `0/${id}`) ??
+      groups.find((g) => g.qgroupid === `1/${id}`) ??
+      groups[0];
+    if (!match) {
+      throw Error(`no qgroup info for ${this.subvolume.path}`);
+    }
+    return match;
   };
 
   get = async (): Promise<{
@@ -37,6 +47,11 @@ export class SubvolumeQuota {
     logger.debug("setQuota ", this.subvolume.path, size);
     await btrfs({
       args: ["qgroup", "limit", `${size}`, this.subvolume.path],
+    });
+    // also set the exact same quota for the total of all snapshots:
+    const id = await this.subvolume.getSubvolumeId();
+    await btrfs({
+      args: ["qgroup", "limit", `${size}`, `1/${id}`, this.subvolume.path],
     });
   };
 

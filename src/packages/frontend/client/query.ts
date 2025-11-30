@@ -28,7 +28,7 @@ export class QueryClient {
     options?: object[]; // if given must be an array of objects, e.g., [{limit:5}]
     changes?: boolean;
     timeout?: number; // ms
-    cb?: CB; // support old cb interface
+    cb?: CB; // used for changefeeds and also to support non-async callback interface
   }): Promise<any> => {
     // Deprecation warnings:
     for (const field of ["standby", "no_post", "ignore_response"]) {

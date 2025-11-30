@@ -1,5 +1,6 @@
 import { Map as iMap, fromJS } from "immutable";
 import type { ChatMessage } from "./types";
+import { getThreadRootDate } from "./utils";
 
 export function initFromSyncDB({ syncdb, store }) {
   const v = {};
@@ -19,6 +20,7 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
     console.warn("handleSyncDBChange: inputs should not be null");
     return;
   }
+  const activityReady = store.get("activityReady") === true;
   changes.map((obj) => {
     obj = obj.toJS();
     switch (obj.event) {
@@ -39,7 +41,6 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
       case "chat": {
         let changed: boolean = false;
         let messages = store.get("messages") ?? iMap();
-        obj.date = new Date(obj.date);
         const record = syncdb.get_one(obj);
         let x = record?.toJS();
         if (x == null) {
@@ -55,6 +56,17 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
         }
         if (changed) {
           store.setState({ messages });
+          if (activityReady) {
+            const root =
+              getThreadRootDate({
+                date: obj.date.valueOf(),
+                messages,
+              }) ?? obj.date.valueOf();
+            const key = `${root}`;
+            const now = Date.now();
+            const activity = (store.get("activity") ?? iMap()).set(key, now);
+            store.setState({ activity });
+          }
         }
         return;
       }
@@ -63,6 +75,9 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
         console.warn("unknown chat event: ", obj.event);
     }
   });
+  if (!activityReady) {
+    store.setState({ activityReady: true });
+  }
 }
 
 // NOTE: x must be already a plain JS object (.toJS()).

@@ -290,6 +290,11 @@ export function endswith(s: any, t: any): boolean {
 import { v4 as v4uuid } from "uuid";
 export const uuid: () => string = v4uuid;
 
+// Important -- we also use a special uuid in @cocalc/util/compute/manager.ts
+// and this better not overlap with that!
+export const FALLBACK_PROJECT_UUID = "00000000-1000-4000-8000-000000000000";
+export const FALLBACK_ACCOUNT_UUID = "00000000-1000-4000-8000-000000000001";
+
 const uuid_regexp = new RegExp(
   /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i,
 );
@@ -333,6 +338,11 @@ export function uuidsha1(data: string): string {
         return ((parseInt(`0x${s[i]}`, 16) & 0x3) | 0x8).toString(16);
     }
   });
+}
+
+const SHA1_REGEXP = /^[a-f0-9]{40}$/;
+export function isSha1(s: string): boolean {
+  return s.length === 40 && !!s.match(SHA1_REGEXP);
 }
 
 // returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
@@ -1331,21 +1341,24 @@ export function path_to_file(path: string = "", file: string): string {
 //    tmp/.example.ipynb.sage-jupyter --> tmp/example.ipynb
 //    .foo.txt.sage-chat --> foo.txt
 //    tmp/.foo.txt.sage-chat --> tmp/foo.txt
+//    .foo.txt.chat --> foo.txt
+//    tmp/.foo.txt.chat --> tmp/foo.txt
 
 export function original_path(path: string): string {
   const s = path_split(path);
-  if (s.tail[0] != "." || s.tail.indexOf(".sage-") == -1) {
+  const ext = filename_extension(s.tail);
+  if (s.tail[0] != ".") {
     return path;
   }
-  const ext = filename_extension(s.tail);
-  let x = s.tail.slice(
-    s.tail[0] === "." ? 1 : 0,
-    s.tail.length - (ext.length + 1),
-  );
-  if (s.head !== "") {
-    x = s.head + "/" + x;
+  if (ext === "chat") {
+    const base = s.tail.slice(1, s.tail.length - (ext.length + 1));
+    return s.head ? `${s.head}/${base}` : base;
   }
-  return x;
+  if (s.tail.indexOf(".sage-") == -1) {
+    return path;
+  }
+  const x = s.tail.slice(1, s.tail.length - (ext.length + 1));
+  return s.head !== "" ? `${s.head}/${x}` : x;
 }
 
 export function lower_email_address(email_address: any): string {
@@ -2889,4 +2902,49 @@ export function uint8ArrayToBase64(uint8Array: Uint8Array) {
     binaryString += String.fromCharCode(uint8Array[i]);
   }
   return btoa(binaryString);
+}
+
+// Inspired by https://github.com/etiennedi/kubernetes-resource-parser/tree/master
+export function k8sCpuParser(input: string | number): number {
+  if (typeof input == "number") {
+    return input;
+  }
+  const milliMatch = input.match(/^([0-9]+)m$/);
+  if (milliMatch) {
+    return parseFloat(milliMatch[1]) / 1000;
+  }
+  return parseFloat(input);
+}
+
+const memoryMultipliers = {
+  k: 1000,
+  M: 1000 ** 2,
+  G: 1000 ** 3,
+  T: 1000 ** 4,
+  P: 1000 ** 5,
+  E: 1000 ** 6,
+  Ki: 1024,
+  Mi: 1024 ** 2,
+  Gi: 1024 ** 3,
+  Ti: 1024 ** 4,
+  Pi: 1024 ** 5,
+  Ei: 1024 ** 6,
+} as const;
+
+export function k8sMemoryParser(input: string | number): number {
+  if (typeof input == "number") {
+    return input;
+  }
+  const unitMatch = input.match(/^([0-9]+)([A-Za-z]{1,2})$/);
+  if (unitMatch) {
+    return parseInt(unitMatch[1], 10) * memoryMultipliers[unitMatch[2]];
+  }
+
+  return parseInt(input, 10);
+}
+
+export const DATE_REGEXP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+export function isISODate(s: string): boolean {
+  return DATE_REGEXP.test(s);
 }

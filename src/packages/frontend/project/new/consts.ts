@@ -13,6 +13,7 @@ export const NEW_FILETYPE_ICONS = {
   board: "layout",
   term: "terminal",
   slides: "slides",
+  chat: "comment",
   ["sage-chat"]: "comment",
   tasks: "tasks",
   server: "server",

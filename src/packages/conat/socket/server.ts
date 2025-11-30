@@ -205,7 +205,7 @@ export class ConatSocketServer extends ConatSocketBase {
         // actually ready!   ping's are meant to check whether the server
         // socket views itself as connected right now. If not, connected,
         // ping should timeout
-        logger.silly("responding to ping from client", socket.id);
+        // logger.silly("responding to ping from client", socket.id);
         mesg.respondSync(null);
       }
     } else if (cmd == "close") {

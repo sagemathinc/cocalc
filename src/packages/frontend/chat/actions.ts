@@ -5,8 +5,6 @@
 
 import { List, Map, Seq, Map as immutableMap } from "immutable";
 import { debounce } from "lodash";
-import { Optional } from "utility-types";
-
 import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
@@ -46,6 +44,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
+import { processAcpLLM } from "./acp-api";
 import { handleSyncDBChange, initFromSyncDB, processSyncDBObj } from "./sync";
 import type {
   ChatMessage,
@@ -54,6 +53,8 @@ import type {
   MessageHistory,
 } from "./types";
 import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
+import { addToHistory } from "@cocalc/chat";
+import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
 
 const MAX_CHAT_STREAM = 10;
 
@@ -279,7 +280,6 @@ export class ChatActions extends Actions<ChatState> {
     });
     track("send_chat", { project_id, path });
 
-    this.save_to_disk();
     (async () => {
       await this.processLLM({
         message,
@@ -338,7 +338,6 @@ export class ChatActions extends Actions<ChatState> {
       date: message.get("date").toISOString(),
     });
     this.deleteDraft(message.get("date")?.valueOf());
-    this.save_to_disk();
   };
 
   saveHistory = (
@@ -430,7 +429,7 @@ export class ChatActions extends Actions<ChatState> {
 
   // Make sure everything saved to DISK.
   save_to_disk = async (): Promise<void> => {
-    this.syncdb?.save_to_disk();
+    await this.syncdb?.save_to_disk();
   };
 
   private _llmEstimateCost = async ({
@@ -652,6 +651,29 @@ export class ChatActions extends Actions<ChatState> {
     return { doc, message };
   };
 
+  private findCodexSessionId(threadKey: string): string | undefined {
+    const entry = this.getThreadRootDoc(threadKey);
+    const rootMessage = entry?.message;
+    if (!rootMessage) return;
+    const dateField = rootMessage.get("date");
+    const iso =
+      dateField instanceof Date
+        ? dateField.toISOString()
+        : typeof dateField === "string"
+          ? dateField
+          : new Date(dateField).toISOString();
+    if (!iso) return;
+    const threadMessages = this.getMessagesInThread(iso);
+    if (!threadMessages) return;
+    for (const msg of threadMessages) {
+      const sessionId = msg.get("acp_thread_id") as any;
+      if (typeof sessionId === "string" && sessionId.trim().length) {
+        return sessionId;
+      }
+    }
+    return undefined;
+  }
+
   save_scroll_state = (position, height, offset): void => {
     if (height == 0) {
       // height == 0 means chat room is not rendered
@@ -747,6 +769,47 @@ export class ChatActions extends Actions<ChatState> {
       .open_file({ path, foreground: true });
   };
 
+  exportThreadToMarkdown = async ({
+    threadKey,
+    path,
+    includeLogs = false,
+  }: {
+    threadKey: string;
+    path: string;
+    includeLogs?: boolean;
+  }): Promise<void> => {
+    if (!this.store) return;
+    const messages = this.store.get("messages");
+    if (messages == null) return;
+    const project_id = this.store.get("project_id");
+    if (project_id == null) return;
+    const outputPath = path?.trim();
+    if (!outputPath) return;
+
+    const threadIso = threadKeyToIso(threadKey);
+    if (!threadIso) return;
+    const seq = this.getMessagesInThread(threadIso);
+    if (!seq) return;
+    const list =
+      typeof (seq as any).toArray === "function"
+        ? (seq as any).toArray()
+        : Array.from(seq as any);
+    if (!list?.length) return;
+
+    const content = list
+      .map((msg) => message_to_markdown(msg, { includeLog: includeLogs }))
+      .join("\n\n---\n\n");
+
+    await webapp_client.project_client.write_text_file({
+      project_id,
+      path: outputPath,
+      content,
+    });
+    this.redux
+      .getProjectActions(project_id)
+      .open_file({ path: outputPath, foreground: true });
+  };
+
   setHashtagState = (tag: string, state?: HashtagState): void => {
     if (!this.store || this.frameTreeActions == null) return;
     // similar code in task list.
@@ -815,6 +878,46 @@ export class ChatActions extends Actions<ChatState> {
       return getLanguageModel(input);
     }
     return false;
+  };
+
+  isCodexThread = (date?: Date): boolean => {
+    const model = this.isLanguageModelThread(date);
+    return model ? model.includes("codex") : false;
+  };
+
+  runCodexCompact = async (threadKey?: string): Promise<void> => {
+    if (!threadKey) return;
+    const entry = this.getThreadRootDoc(threadKey);
+    if (entry == null) return;
+    const dateField = entry.message.get("date");
+    const replyDate =
+      dateField instanceof Date
+        ? dateField
+        : typeof dateField === "string"
+          ? new Date(dateField)
+          : new Date(dateField ?? Date.now());
+    if (!(replyDate instanceof Date) || isNaN(replyDate.valueOf())) {
+      return;
+    }
+    const account_id = redux.getStore("account").get_account_id();
+    if (!account_id) return;
+    const now = new Date();
+    const message: ChatMessage = {
+      event: "chat",
+      sender_id: account_id,
+      history: [
+        {
+          author_id: account_id,
+          content: "/compact",
+          date: now.toISOString(),
+        },
+      ],
+      date: now,
+    };
+    await this.processLLM({
+      message,
+      reply_to: replyDate,
+    });
   };
 
   private processLLM = async ({
@@ -899,6 +1002,59 @@ export class ChatActions extends Actions<ChatState> {
     input = stripMentions(input);
     // also important to strip details, since they tend to confuse an LLM:
     //input = stripDetails(input);
+
+    if (typeof model === "string" && model.includes("codex")) {
+      const messagesMap = store.get("messages");
+      let threadKey: string | undefined;
+      const baseDate =
+        reply_to?.valueOf() ??
+        (message.date instanceof Date
+          ? message.date.valueOf()
+          : new Date(message.date ?? Date.now()).valueOf());
+      if (baseDate != null && !Number.isNaN(baseDate) && messagesMap) {
+        const rootMs = getThreadRootDate({
+          date: baseDate,
+          messages: messagesMap,
+        });
+        const normalized =
+          typeof rootMs === "number" && rootMs > 0 ? rootMs : baseDate;
+        threadKey = `${normalized}`;
+      } else if (baseDate != null && !Number.isNaN(baseDate)) {
+        threadKey = `${baseDate}`;
+      }
+
+      const project_id = store.get("project_id");
+      const path = store.get("path");
+      if (!project_id || !path) {
+        throw new Error(
+          "chat actions missing project_id or path; cannot run Codex turn",
+        );
+      }
+
+      await processAcpLLM({
+        message,
+        reply_to,
+        tag,
+        model,
+        input,
+        dateLimit,
+        context: {
+          syncdb: this.syncdb,
+          path,
+          project_id,
+          chatStreams: this.chatStreams,
+          sendReply: this.sendReply,
+          saveHistory: this.saveHistory,
+          getLLMHistory: this.getLLMHistory,
+          getCodexConfig: (reply_to_date?: Date) =>
+            this.getCodexConfig(reply_to_date ?? reply_to ?? undefined),
+          setCodexConfig: this.setCodexConfig,
+          threadKey,
+        },
+      });
+      return;
+    }
+
     const sender_id = (function () {
       try {
         return model2service(model);
@@ -1106,7 +1262,7 @@ export class ChatActions extends Actions<ChatState> {
    * @param dateStr - the ISO date of the message to get the thread for
    * @returns  - the messages in the thread, sorted by date
    */
-  private getMessagesInThread = (
+  getMessagesInThread = (
     dateStr: string,
   ): Seq.Indexed<ChatMessageTyped> | undefined => {
     const messages = this.store?.get("messages");
@@ -1126,6 +1282,15 @@ export class ChatActions extends Actions<ChatState> {
         .sort((a, b) => cmp(a.get("date"), b.get("date")))
     );
   };
+
+  private async saveSyncdb(): Promise<void> {
+    if (!this.syncdb) return;
+    try {
+      await this.syncdb.save();
+    } catch (err) {
+      console.error("chat: failed to save syncdb", err);
+    }
+  }
 
   // the input and output for the thread ending in the
   // given message, formatted for querying a language model, and heuristically
@@ -1153,7 +1318,50 @@ export class ChatActions extends Actions<ChatState> {
     return history;
   };
 
-  languageModelStopGenerating = (date: Date) => {
+  getCodexConfig = (reply_to?: Date): any => {
+    if (reply_to == null || this.store == null) return;
+    const messages = this.store.get("messages");
+    if (!messages) return;
+    const rootMs =
+      getThreadRootDate({ date: reply_to.valueOf(), messages }) ||
+      reply_to.valueOf();
+    const entry = this.getThreadRootDoc(`${rootMs}`);
+    const rootMessage = entry?.message;
+    if (!rootMessage) return;
+    const base =
+      rootMessage.get("acp_config") ?? rootMessage.get("codex_config");
+    let cfg =
+      base && typeof (base as any).toJS === "function"
+        ? (base as any).toJS()
+        : base;
+    if (!cfg || cfg.sessionId == null) {
+      const fallbackSessionId = this.findCodexSessionId(`${rootMs}`);
+      if (fallbackSessionId) {
+        cfg = { ...(cfg ?? {}), sessionId: fallbackSessionId };
+      }
+    }
+    return cfg;
+  };
+
+  setCodexConfig = (threadKey: string, config: any): void => {
+    if (this.syncdb == null) return;
+    const dateNum = parseInt(threadKey, 10);
+    if (!dateNum || Number.isNaN(dateNum)) {
+      throw Error(`setCodexConfig: invalid threadKey ${threadKey}`);
+    }
+    this.syncdb.set({
+      event: "chat",
+      date: new Date(dateNum),
+      acp_config: config,
+    });
+    this.syncdb.commit();
+    void this.saveSyncdb();
+  };
+
+  languageModelStopGenerating = (
+    date: Date,
+    options?: { threadId?: string; replyTo?: Date | string | null },
+  ) => {
     if (this.syncdb == null) return;
     this.syncdb.set({
       event: "chat",
@@ -1161,6 +1369,78 @@ export class ChatActions extends Actions<ChatState> {
       generating: false,
     });
     this.syncdb.commit();
+    void this.saveSyncdb();
+    if (options?.threadId) {
+      void this.requestCodexInterrupt({
+        threadId: options.threadId,
+        messageDate: date,
+        replyTo: options.replyTo,
+      });
+    }
+  };
+
+  private async requestCodexInterrupt({
+    threadId,
+    messageDate,
+    replyTo,
+  }: {
+    threadId: string;
+    messageDate: Date;
+    replyTo?: Date | string | null;
+  }): Promise<void> {
+    if (!threadId || !this.store) return;
+    const project_id = this.store.get("project_id");
+    const path = this.store.get("path");
+    if (!project_id || !path) return;
+    const sender_id = this.redux.getStore("account").get_account_id();
+    if (!sender_id) return;
+    const chat: AcpChatContext = {
+      project_id,
+      path,
+      sender_id,
+      message_date: messageDate.toISOString(),
+    };
+    if (replyTo != null) {
+      const reply =
+        replyTo instanceof Date
+          ? replyTo
+          : typeof replyTo === "string"
+            ? new Date(replyTo)
+            : new Date(replyTo);
+      if (!Number.isNaN(reply.valueOf())) {
+        chat.reply_to = reply.toISOString();
+      }
+    }
+    try {
+      await webapp_client.conat_client.interruptAcp({
+        threadId,
+        chat,
+      });
+    } catch (err) {
+      console.warn("failed to interrupt codex turn", err);
+    }
+  }
+
+  resolveAcpApproval = async ({
+    date,
+    approvalId,
+    optionId,
+  }: {
+    date: Date;
+    approvalId: string;
+    optionId?: string;
+  }) => {
+    void date;
+    if (!approvalId) return;
+    try {
+      await webapp_client.conat_client.respondAcpApproval({
+        approvalId,
+        optionId,
+      });
+    } catch (err) {
+      console.warn("failed to resolve ACP approval", err);
+      throw err;
+    }
   };
 
   summarizeThread = async ({
@@ -1300,19 +1580,25 @@ export class ChatActions extends Actions<ChatState> {
     this.frameTreeActions?.set_frame_data({ id: this.frameId, fragmentId });
   };
 
-  setShowPreview = (showPreview) => {
-    this.frameTreeActions?.set_frame_data({
-      id: this.frameId,
-      showPreview,
-    });
-  };
-
   setSelectedThread = (threadKey: string | null) => {
     this.frameTreeActions?.set_frame_data({
       id: this.frameId,
       selectedThreadKey: threadKey,
     });
   };
+}
+
+function threadKeyToIso(threadKey: string): string | null {
+  if (!threadKey) return null;
+  const ms = Number(threadKey);
+  if (Number.isFinite(ms)) {
+    try {
+      return new Date(ms).toISOString();
+    } catch {
+      return null;
+    }
+  }
+  return typeof threadKey === "string" ? threadKey : null;
 }
 
 // We strip out any cased version of the string @chatgpt and also all mentions.
@@ -1384,22 +1670,4 @@ function getLanguageModel(input?: string): false | LanguageModel {
     }
   }
   return false;
-}
-
-/**
- * This uniformly defines how the history of a message is composed.
- * The newest entry is in the front of the array.
- * If the date isn't set (ISO string), we set it to the current time.
- */
-function addToHistory(
-  history: MessageHistory[],
-  next: Optional<MessageHistory, "date">,
-): MessageHistory[] {
-  const {
-    author_id,
-    content,
-    date = webapp_client.server_time().toISOString(),
-  } = next;
-  // inserted at the beginning of the history, without modifying the array
-  return [{ author_id, content, date }, ...history];
 }

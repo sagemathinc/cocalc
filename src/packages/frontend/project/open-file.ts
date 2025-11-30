@@ -5,7 +5,6 @@
 
 // Implement the open_file actions for opening one single file in a project.
 
-import { callback } from "awaiting";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { redux } from "@cocalc/frontend/app-framework";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
@@ -21,11 +20,22 @@ import {
   required,
   uuid,
 } from "@cocalc/util/misc";
-import { SITE_NAME } from "@cocalc/util/theme";
+import { isChatExtension } from "@cocalc/frontend/chat/paths";
 import { normalize } from "./utils";
 import { syncdbPath as ipynbSyncdbPath } from "@cocalc/util/jupyter/names";
 import { termPath } from "@cocalc/util/terminal/names";
 import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
+
+// if true, PRELOAD_BACKGROUND_TABS makes it so all tabs have their file editing
+// preloaded, even background tabs.  This can make the UI much more responsive,
+// since after refreshing your browser or opening a project that had tabs open,
+// all files are ready to edit instantly.  It uses more browser memory (of course),
+// and increases server load.  Most users have very few files open at once,
+// so this is probably a major win for power users and has little impact on load.
+// Do NOT set this to true until we have a very good way of dealing with load
+// problems, e.g., a way to easily load with no files open.  Otherwise, you can get
+// stuck due a file taking too long to load, etc.
+const PRELOAD_BACKGROUND_TABS = false;
 
 export interface OpenFileOpts {
   path: string;
@@ -146,25 +156,14 @@ export async function open_file(
   }
 
   try {
-    // Unfortunately (it adds a roundtrip to the server), we **have** to do this
-    // due to https://github.com/sagemathinc/cocalc/issues/4732 until we actually
-    // genuinely implement symlink support.  Otherwise bad things happen.  Much of
-    // cocalc was implemented basically assuming links don't exist; it's not easy
-    // to change that!
-    const realpath = await webapp_client.project_client.realpath({
-      project_id: actions.project_id,
-      path: opts.path,
-    });
+    const fs = actions.fs(opts.compute_server_id);
+    // cocalc assumes the path is not a symlink
+    const realpath = await fs.realpath(opts.path);
     if (!tabIsOpened()) {
       return;
     }
     if (opts.path != realpath) {
       if (!actions.open_files) return; // closed
-      alert_message({
-        type: "info",
-        message: `Opening normalized real path "${realpath}"`,
-        timeout: 10,
-      });
       actions.open_files.delete(opts.path);
       opts.path = realpath;
       actions.open_files.set(opts.path, "component", {});
@@ -195,33 +194,11 @@ export async function open_file(
   }
 
   const is_public = group === "public";
-
   if (!is_public) {
-    // Check if have capability to open this file.  Important
-    // to only do this if not public, since again, if public we
-    // are not even using the project (it is all client side).
-    const can_open_file = await store.can_open_file_ext(ext, actions);
-    if (!tabIsOpened()) {
-      return;
-    }
-    if (!can_open_file) {
-      const site_name =
-        redux.getStore("customize").get("site_name") || SITE_NAME;
-      alert_message({
-        type: "error",
-        message: `This ${site_name} project cannot open ${ext} files!`,
-        timeout: 20,
-      });
-      // console.log(
-      //   `abort project_actions::open_file due to lack of support for "${ext}" files`
-      // );
-      return;
-    }
-
     // Wait for the project to start opening (only do this if not public -- public users don't
     // know anything about the state of the project).
     try {
-      await callback(actions._ensure_project_is_open.bind(actions));
+      await actions.ensureProjectIsOpen();
       if (!tabIsOpened()) {
         return;
       }
@@ -263,6 +240,7 @@ export async function open_file(
   const file_info = open_files.getIn([opts.path, "component"], {
     is_public: false,
   }) as any;
+
   if (!alreadyOpened || file_info.is_public !== is_public) {
     const was_public = file_info.is_public;
 
@@ -286,10 +264,7 @@ export async function open_file(
 
   const noComputeServer = excludeFromComputeServer(opts.path);
 
-  if (
-    noComputeServer &&
-    actions.getComputeServerIdForFile({ path: opts.path })
-  ) {
+  if (noComputeServer && actions.getComputeServerIdForFile(opts.path)) {
     // this won't work so if such a file is somehow on a compute server, move it back:
     opts.compute_server_id = 0;
     await actions.setComputeServerIdForFile({
@@ -344,6 +319,8 @@ export async function open_file(
     actions.set_active_tab(tab, {
       change_history: opts.change_history,
     });
+  } else if (PRELOAD_BACKGROUND_TABS) {
+    await actions.initFileRedux(opts.path);
   }
 
   if (alreadyOpened && opts.fragmentId) {
@@ -511,7 +488,7 @@ function get_side_chat_state(
     }
   }
 
-  if (filename_extension(opts.path) === "sage-chat") {
+  if (isChatExtension(filename_extension(opts.path))) {
     opts.chat = false;
   }
 }

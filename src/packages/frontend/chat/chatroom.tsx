@@ -15,6 +15,7 @@ import {
   Menu,
   Modal,
   Popconfirm,
+  Checkbox,
   Select,
   Space,
   Switch,
@@ -24,7 +25,6 @@ import {
 import { debounce } from "lodash";
 import { FormattedMessage } from "react-intl";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   useEditorRedux,
@@ -35,7 +35,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { NodeDesc } from "../frame-editors/frame-tree/types";
@@ -58,6 +57,9 @@ import {
   useThreadList,
 } from "./threads";
 import type { ThreadListItem, ThreadSection } from "./threads";
+import CodexConfigButton from "./codex";
+import { CONTEXT_WARN_PCT, CONTEXT_CRITICAL_PCT } from "./codex";
+import { Resizable } from "re-resizable";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -68,22 +70,14 @@ const FILTER_RECENT_NONE = {
   ),
 } as const;
 
-const PREVIEW_STYLE: React.CSSProperties = {
-  background: "#f5f5f5",
-  fontSize: "14px",
-  borderRadius: "10px 10px 10px 10px",
-  boxShadow: "#666 3px 3px 3px",
-  paddingBottom: "20px",
-  maxHeight: "40vh",
-  overflowY: "auto",
-} as const;
-
 const GRID_STYLE: React.CSSProperties = {
   maxWidth: "1200px",
   display: "flex",
   flexDirection: "column",
   width: "100%",
   margin: "auto",
+  minHeight: 0,
+  flex: 1,
 } as const;
 
 const CHAT_LAYOUT_STYLE: React.CSSProperties = {
@@ -94,11 +88,12 @@ const CHAT_LAYOUT_STYLE: React.CSSProperties = {
 const CHAT_LOG_STYLE: React.CSSProperties = {
   padding: "0",
   background: "white",
-  flex: "1 0 auto",
+  flex: "1 1 0",
+  minHeight: 0,
   position: "relative",
 } as const;
 
-const THREAD_SIDEBAR_WIDTH = 260;
+const DEFAULT_SIDEBAR_WIDTH = 260;
 
 const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
   background: "#fafafa",
@@ -106,7 +101,10 @@ const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
   padding: "15px 0",
   display: "flex",
   flexDirection: "column",
-  overflow: "auto",
+  overflow: "hidden",
+  height: "100%",
+  minHeight: 0,
+  transition: "none",
 } as const;
 
 const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
@@ -138,7 +136,11 @@ export type ThreadMeta = ThreadListItem & {
   unreadCount: number;
   isAI: boolean;
   isPinned: boolean;
+  lastActivityAt?: number;
+  contextRemaining?: number;
 };
+
+const ACTIVITY_RECENT_MS = 7_500;
 
 function stripHtml(value: string): string {
   if (!value) return "";
@@ -154,6 +156,7 @@ export interface ChatPanelProps {
   project_id: string;
   path: string;
   messages?: ChatMessages;
+  activity?: any;
   fontSize?: number;
   desc?: NodeDesc;
   variant?: "default" | "compact";
@@ -174,15 +177,16 @@ export function ChatPanel({
   project_id,
   path,
   messages,
+  activity,
   fontSize = 13,
   desc,
   variant = "default",
   disableFilters: disableFiltersProp,
 }: ChatPanelProps) {
+  const account_id = useTypedRedux("account", "account_id");
   if (IS_MOBILE) {
     variant = "compact";
   }
-  const account_id = useTypedRedux("account", "account_id");
   const [input, setInput] = useState("");
   const search = getDescValue(desc, "data-search") ?? "";
   const filterRecentH: number = getDescValue(desc, "data-filterRecentH") ?? 0;
@@ -190,8 +194,17 @@ export function ChatPanel({
   const scrollToIndex = getDescValue(desc, "data-scrollToIndex") ?? null;
   const scrollToDate = getDescValue(desc, "data-scrollToDate") ?? null;
   const fragmentId = getDescValue(desc, "data-fragmentId") ?? null;
-  const showPreview = getDescValue(desc, "data-showPreview") ?? null;
   const costEstimate = getDescValue(desc, "data-costEstimate");
+  const storedSidebarWidth = getDescValue(desc, "data-sidebarWidth");
+  const storedSidebarCollapsed = getDescValue(desc, "data-sidebarCollapsed");
+  const [sidebarWidth, setSidebarWidth] = useState<number>(
+    typeof storedSidebarWidth === "number" && storedSidebarWidth > 50
+      ? storedSidebarWidth
+      : DEFAULT_SIDEBAR_WIDTH,
+  );
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
+    !!storedSidebarCollapsed,
+  );
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
   const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
@@ -217,10 +230,62 @@ export function ChatPanel({
   const [openThreadMenuKey, setOpenThreadMenuKey] = useState<string | null>(
     null,
   );
+  const [exportThread, setExportThread] = useState<{
+    key: string;
+    label: string;
+    isAI: boolean;
+  } | null>(null);
+  const [exportFilename, setExportFilename] = useState<string>("");
+  const [exportIncludeLogs, setExportIncludeLogs] =
+    useState<boolean>(false);
   const [allowAutoSelectThread, setAllowAutoSelectThread] =
     useState<boolean>(true);
+  const [activityNow, setActivityNow] = useState<number>(Date.now());
   const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
   const scrollToBottomRef = useRef<any>(null);
+  const lastScrollRequestRef = useRef<{
+    thread: string;
+    reason: "unread" | "allread";
+  } | null>(null);
+  const visitedThreadsRef = useRef<Set<string>>(new Set());
+  const unreadSeenRef = useRef<Map<string, number>>(new Map());
+  const scrollCacheId = useMemo(() => {
+    const base = `${project_id ?? ""}${path ?? ""}`;
+    return `${base}-${selectedThreadKey ?? "all"}`;
+  }, [project_id, path, selectedThreadKey]);
+
+  useEffect(() => {
+    if (IS_MOBILE && sidebarWidth !== DEFAULT_SIDEBAR_WIDTH) {
+      setSidebarWidth(DEFAULT_SIDEBAR_WIDTH);
+    }
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    if (!actions?.frameTreeActions?.set_frame_data || !actions?.frameId) return;
+    actions.frameTreeActions.set_frame_data({
+      id: actions.frameId,
+      sidebarWidth,
+    });
+  }, [sidebarWidth, actions?.frameTreeActions, actions?.frameId]);
+
+  useEffect(() => {
+    if (!actions?.frameTreeActions?.set_frame_data || !actions?.frameId) return;
+    actions.frameTreeActions.set_frame_data({
+      id: actions.frameId,
+      sidebarCollapsed,
+    });
+  }, [sidebarCollapsed, actions?.frameTreeActions, actions?.frameId]);
+
+  useEffect(() => {
+    if (!exportThread) return;
+    const defaultPath = buildThreadExportPath(
+      path,
+      exportThread.key,
+      exportThread.label,
+    );
+    setExportFilename(defaultPath);
+    setExportIncludeLogs(false);
+  }, [exportThread, path]);
   const selectedThreadDate = useMemo(() => {
     if (!selectedThreadKey || selectedThreadKey === ALL_THREADS_KEY) {
       return undefined;
@@ -236,6 +301,17 @@ export function ChatPanel({
 
   const llmCacheRef = useRef<Map<string, boolean>>(new Map());
   const rawThreads = useThreadList(messages);
+  const contextRemainingByThread = useMemo(() => {
+    const result = new Map<string, number>();
+    if (!messages) return result;
+    for (const thread of rawThreads) {
+      const pct = computeThreadContextRemaining(thread.key, actions, messages);
+      if (pct != null) {
+        result.set(thread.key, pct);
+      }
+    }
+    return result;
+  }, [rawThreads, actions, messages]);
   const threads = useMemo<ThreadMeta[]>(() => {
     return rawThreads.map((thread) => {
       const rootMessage = thread.rootMessage;
@@ -275,6 +351,10 @@ export function ChatPanel({
         }
         llmCacheRef.current.set(thread.key, isAI);
       }
+      const lastActivityAt =
+        activity && typeof (activity as any).get === "function"
+          ? (activity as any).get(thread.key)
+          : undefined;
       return {
         ...thread,
         displayLabel,
@@ -283,9 +363,12 @@ export function ChatPanel({
         unreadCount,
         isAI: !!isAI,
         isPinned,
+        lastActivityAt:
+          typeof lastActivityAt === "number" ? lastActivityAt : undefined,
+        contextRemaining: contextRemainingByThread.get(thread.key),
       };
     });
-  }, [rawThreads, account_id, actions]);
+  }, [rawThreads, account_id, actions, activity, contextRemainingByThread]);
 
   const threadSections = useMemo<ThreadSectionWithUnread[]>(() => {
     const grouped = groupThreadsByRecency(threads);
@@ -297,6 +380,12 @@ export function ChatPanel({
       ),
     }));
   }, [threads]);
+
+  const selectedThread = React.useMemo(
+    () => threads.find((t) => t.key === selectedThreadKey),
+    [threads, selectedThreadKey],
+  );
+  const isSelectedThreadAI = selectedThread?.isAI ?? false;
 
   useEffect(() => {
     if (
@@ -327,6 +416,11 @@ export function ChatPanel({
       setLastThreadKey(selectedThreadKey);
     }
   }, [selectedThreadKey]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setActivityNow(Date.now()), 5000);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!fragmentId || isAllThreadsSelected || messages == null) {
@@ -363,17 +457,40 @@ export function ChatPanel({
   const mark_as_read = () => markChatAsReadIfUnseen(project_id, path);
 
   useEffect(() => {
-    if (!singleThreadView || !selectedThreadKey) {
-      return;
-    }
+    if (!singleThreadView || !selectedThreadKey) return;
     const thread = threads.find((t) => t.key === selectedThreadKey);
-    if (!thread) {
+    if (!thread || !actions) return;
+
+    const unread = Math.max(thread.unreadCount ?? 0, 0);
+    const prevUnread = unreadSeenRef.current.get(thread.key) ?? 0;
+    const visited = visitedThreadsRef.current.has(thread.key);
+    const hasNewUnread = unread > 0 && unread !== prevUnread;
+
+    const scrollToFirstUnread = () => {
+      const total = thread.messageCount ?? 0;
+      const index = Math.max(0, Math.min(total - 1, total - unread));
+      lastScrollRequestRef.current = { thread: thread.key, reason: "unread" };
+      actions.scrollToIndex?.(index);
+    };
+
+    if (hasNewUnread || (!visited && unread > 0)) {
+      scrollToFirstUnread();
+      actions.markThreadRead?.(thread.key, thread.messageCount);
+      visitedThreadsRef.current.add(thread.key);
+      unreadSeenRef.current.set(thread.key, unread);
       return;
     }
-    if (thread.unreadCount <= 0) {
+
+    if (!visited && unread === 0) {
+      lastScrollRequestRef.current = { thread: thread.key, reason: "allread" };
+      actions.scrollToIndex?.(Number.MAX_SAFE_INTEGER);
+      visitedThreadsRef.current.add(thread.key);
+      unreadSeenRef.current.set(thread.key, unread);
       return;
     }
-    actions.markThreadRead?.(thread.key, thread.messageCount);
+
+    // Already visited and no new unread: preserve existing scroll (cached per thread via virtuoso cacheId).
+    unreadSeenRef.current.set(thread.key, unread);
   }, [singleThreadView, selectedThreadKey, threads, actions]);
 
   const handleToggleAllChats = (checked: boolean) => {
@@ -408,9 +525,16 @@ export function ChatPanel({
     antdMessage.success("Chat deleted.");
   };
 
-  const confirmDeleteThread = (threadKey: string) => {
+  const confirmDeleteThread = (threadKey: string, label?: string) => {
+    const trimmedLabel = (label ?? "").trim();
+    const displayLabel =
+      trimmedLabel.length > 0
+        ? trimmedLabel.length > 120
+          ? `${trimmedLabel.slice(0, 117)}...`
+          : trimmedLabel
+        : null;
     Modal.confirm({
-      title: "Delete chat?",
+      title: displayLabel ? `Delete chat "${displayLabel}"?` : "Delete chat?",
       content:
         "This removes all messages in this chat for everyone. This can only be undone using 'Edit --> Undo', or by browsing TimeTravel.",
       okText: "Delete",
@@ -451,11 +575,49 @@ export function ChatPanel({
     closeRenameModal();
   };
 
+  const openExportModal = (
+    threadKey: string,
+    label: string,
+    isAI: boolean,
+  ) => {
+    setExportThread({ key: threadKey, label, isAI });
+  };
+
+  const closeExportModal = () => {
+    setExportThread(null);
+  };
+
+  const handleExportThread = async () => {
+    if (!exportThread) return;
+    if (!actions?.exportThreadToMarkdown) {
+      antdMessage.error("Export is not available.");
+      return;
+    }
+    const outputPath = exportFilename.trim();
+    if (!outputPath) {
+      antdMessage.error("Please enter a filename.");
+      return;
+    }
+    try {
+      await actions.exportThreadToMarkdown({
+        threadKey: exportThread.key,
+        path: outputPath,
+        includeLogs: exportIncludeLogs,
+      });
+      antdMessage.success("Chat exported.");
+      closeExportModal();
+    } catch (err) {
+      console.error("failed to export chat", err);
+      antdMessage.error("Failed to export chat.");
+    }
+  };
+
   const threadMenuProps = (
     threadKey: string,
-    displayLabel: string,
+    plainLabel: string,
     hasCustomName: boolean,
     isPinned: boolean,
+    isAI: boolean,
   ): MenuProps => ({
     items: [
       {
@@ -470,13 +632,20 @@ export function ChatPanel({
         type: "divider",
       },
       {
+        key: "export",
+        label: "Export to Markdown",
+      },
+      {
+        type: "divider",
+      },
+      {
         key: "delete",
         label: <span style={{ color: COLORS.ANTD_RED }}>Delete chat</span>,
       },
     ],
     onClick: ({ key }) => {
       if (key === "rename") {
-        openRenameModal(threadKey, displayLabel, hasCustomName);
+        openRenameModal(threadKey, plainLabel, hasCustomName);
       } else if (key === "pin" || key === "unpin") {
         if (!actions?.setThreadPin) {
           antdMessage.error("Pinning chats is not available.");
@@ -489,8 +658,10 @@ export function ChatPanel({
           return;
         }
         antdMessage.success(pinned ? "Chat pinned." : "Chat unpinned.");
+      } else if (key === "export") {
+        openExportModal(threadKey, plainLabel, isAI);
       } else if (key === "delete") {
-        confirmDeleteThread(threadKey);
+        confirmDeleteThread(threadKey, plainLabel);
       }
     },
   });
@@ -502,6 +673,29 @@ export function ChatPanel({
     const isHovered = hoveredThread === key;
     const isMenuOpen = openThreadMenuKey === key;
     const showMenu = isHovered || selectedThreadKey === key || isMenuOpen;
+    const isRecentlyActive =
+      thread.lastActivityAt != null &&
+      activityNow - thread.lastActivityAt < ACTIVITY_RECENT_MS;
+    const contextRemaining = thread.contextRemaining;
+    const contextSeverity =
+      contextRemaining == null
+        ? null
+        : contextRemaining < CONTEXT_CRITICAL_PCT
+          ? "critical"
+          : contextRemaining < CONTEXT_WARN_PCT
+            ? "warning"
+            : null;
+    const showDot = isRecentlyActive || contextSeverity != null;
+    const dotColor =
+      contextSeverity === "critical"
+        ? COLORS.FG_RED
+        : contextSeverity === "warning"
+          ? "#f5a623"
+          : COLORS.BLUE;
+    const dotTitle =
+      contextSeverity != null && contextRemaining != null
+        ? `Context ${contextRemaining}% left — compact soon.`
+        : "Recent activity";
     const iconTooltip = thread.isAI
       ? "This thread started with an AI request, so the AI responds automatically."
       : "This thread started as human-only. AI replies only when explicitly mentioned.";
@@ -524,6 +718,24 @@ export function ChatPanel({
             <Icon name={isAI ? "robot" : "users"} style={{ color: "#888" }} />
           </Tooltip>
           <div style={THREAD_ITEM_LABEL_STYLE}>{plainLabel}</div>
+          {showDot && (
+            <Tooltip title={dotTitle}>
+              <span
+                aria-label="Recent activity"
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: dotColor,
+                  boxShadow:
+                    contextSeverity != null
+                      ? `0 0 0 6px rgba(0,0,0,0.04)`
+                      : undefined,
+                  flexShrink: 0,
+                }}
+              />
+            </Tooltip>
+          )}
           {unreadCount > 0 && !isHovered && (
             <Badge
               count={unreadCount}
@@ -537,7 +749,13 @@ export function ChatPanel({
           )}
           {showMenu && (
             <Dropdown
-              menu={threadMenuProps(key, plainLabel, hasCustomName, isPinned)}
+              menu={threadMenuProps(
+                key,
+                plainLabel,
+                hasCustomName,
+                isPinned,
+                isAI,
+              )}
               trigger={["click"]}
               open={openThreadMenuKey === key}
               onOpenChange={(open) => {
@@ -674,16 +892,28 @@ export function ChatPanel({
           >
             Chats
           </span>
-          {!isCompact && (
-            <Space size="small">
-              <span style={{ fontSize: "12px" }}>All</span>
-              <Switch
-                size="small"
-                checked={isAllThreadsSelected}
-                onChange={handleToggleAllChats}
-              />
-            </Space>
-          )}
+          <Space size="small">
+            {!isCompact && (
+              <>
+                <span style={{ fontSize: "12px" }}>All</span>
+                <Switch
+                  size="small"
+                  checked={isAllThreadsSelected}
+                  onChange={handleToggleAllChats}
+                />
+              </>
+            )}
+            {!IS_MOBILE && (
+              <Tooltip title="Hide sidebar">
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<Icon name="chevron-left" />}
+                  onClick={() => setSidebarCollapsed(true)}
+                />
+              </Tooltip>
+            )}
+          </Space>
         </div>
         {!isCompact && (
           <>
@@ -865,22 +1095,114 @@ export function ChatPanel({
     sendMessage();
   }
 
-  const renderThreadSidebar = () => (
-    <Layout.Sider width={THREAD_SIDEBAR_WIDTH} style={THREAD_SIDEBAR_STYLE}>
-      {renderSidebarContent()}
-    </Layout.Sider>
-  );
+  const renderThreadSidebar = () => {
+    const minWidth = 200;
+    const maxWidth = 520;
+    const handleStyles = {
+      right: {
+        width: "6px",
+        right: "-3px",
+        cursor: "col-resize",
+        background: "transparent",
+      },
+    } as const;
+    const handleComponent = {
+      right: (
+        <div
+          aria-label="Resize sidebar"
+          style={{
+            width: "100%",
+            height: "100%",
+            background:
+              "linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.0))",
+          }}
+        />
+      ),
+    };
+    const sider = (
+      <Layout.Sider
+        width={sidebarWidth}
+        style={THREAD_SIDEBAR_STYLE}
+        collapsible={false}
+        trigger={null}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            minHeight: 0,
+            overflow: "auto",
+            transition: "none",
+          }}
+        >
+          {renderSidebarContent()}
+        </div>
+      </Layout.Sider>
+    );
+    if (IS_MOBILE || sidebarCollapsed) {
+      return sider;
+    }
+    return (
+      <Resizable
+        size={{ width: sidebarWidth, height: "100%" }}
+        enable={{ right: true }}
+        minWidth={minWidth}
+        maxWidth={maxWidth}
+        handleStyles={handleStyles}
+        handleComponent={handleComponent}
+        onResizeStop={(_, __, ___, delta) => {
+          const next = Math.min(
+            maxWidth,
+            Math.max(minWidth, sidebarWidth + delta.width),
+          );
+          setSidebarWidth(next);
+        }}
+      >
+        {sider}
+      </Resizable>
+    );
+  };
 
   const renderChatContent = () => (
     <div className="smc-vfill" style={GRID_STYLE}>
       {render_button_row()}
       {selectedThreadKey ? (
-        <div className="smc-vfill" style={CHAT_LOG_STYLE}>
+        <div
+          className="smc-vfill"
+          style={{ ...CHAT_LOG_STYLE, position: "relative" }}
+        >
+          {selectedThread?.rootMessage &&
+            actions?.isCodexThread(
+              new Date(parseInt(selectedThread.key, 10)),
+            ) && (
+              <div
+                style={{ position: "absolute", top: 8, left: 8, zIndex: 10 }}
+              >
+                <Space size={6}>
+                  <CodexConfigButton
+                    threadKey={selectedThreadKey}
+                    chatPath={path}
+                    actions={actions}
+                  />
+                  <Button
+                    size="small"
+                    onClick={() =>
+                      actions?.runCodexCompact(selectedThreadKey ?? undefined)
+                    }
+                    disabled={!selectedThreadKey}
+                  >
+                    Compact
+                  </Button>
+                </Space>
+              </div>
+            )}
           <ChatLog
             actions={actions}
             project_id={project_id}
             path={path}
             scrollToBottomRef={scrollToBottomRef}
+            scrollCacheId={scrollCacheId}
             mode={variant === "compact" ? "sidechat" : "standalone"}
             fontSize={fontSize}
             search={search}
@@ -894,32 +1216,6 @@ export function ChatPanel({
             selectedDate={fragmentId}
             costEstimate={costEstimate}
           />
-          {showPreview && input.length > 0 && (
-            <Row style={{ position: "absolute", bottom: "0px", width: "100%" }}>
-              <Col xs={0} sm={2} />
-              <Col xs={10} sm={9}>
-                <Well style={PREVIEW_STYLE}>
-                  <div
-                    className="pull-right lighten"
-                    style={{
-                      marginRight: "-8px",
-                      marginTop: "-10px",
-                      cursor: "pointer",
-                      fontSize: "13pt",
-                    }}
-                    onClick={() => actions.setShowPreview(false)}
-                  >
-                    <Icon name="times" />
-                  </div>
-                  <StaticMarkdown value={input} />
-                  <div className="small lighten" style={{ marginTop: "15px" }}>
-                    Preview (press Shift+Enter to send)
-                  </div>
-                </Well>
-              </Col>
-              <Col sm={1} />
-            </Row>
-          )}
         </div>
       ) : (
         <div
@@ -1020,40 +1316,72 @@ export function ChatPanel({
             </Button>
           </Tooltip>
           <div style={{ height: "5px" }} />
-          <Button
-            type={showPreview ? "dashed" : undefined}
-            onClick={() => actions.setShowPreview(!showPreview)}
-            style={{ height: "47.5px" }}
-          >
-            <FormattedMessage
-              id="chatroom.chat_input.preview_button.label"
-              defaultMessage={"Preview"}
-            />
-          </Button>
-          <div style={{ height: "5px" }} />
-          <Button
-            style={{ height: "47.5px" }}
-            onClick={() => {
-              const message = actions?.frameTreeActions
-                ?.getVideoChat()
-                .startChatting(actions);
-              if (!message) {
-                return;
-              }
-              sendMessage(undefined, "\n\n" + message);
-            }}
-          >
-            <Icon name="video-camera" /> Video
-          </Button>
+          {isSelectedThreadAI ? (
+            <Tooltip title="Video chat is not available in AI threads.">
+              <Button style={{ height: "47.5px" }} disabled>
+                <Icon name="video-camera" /> Video
+              </Button>
+            </Tooltip>
+          ) : (
+            <Popconfirm
+              title="Start a video chat in this thread?"
+              okText="Start"
+              cancelText="Cancel"
+              placement="topRight"
+              onConfirm={() => {
+                const message = actions?.frameTreeActions
+                  ?.getVideoChat()
+                  .startChatting(actions);
+                if (!message) {
+                  return;
+                }
+                sendMessage(undefined, "\n\n" + message);
+              }}
+            >
+              <Button style={{ height: "47.5px" }}>
+                <Icon name="video-camera" /> Video
+              </Button>
+            </Popconfirm>
+          )}
         </div>
       </div>
     </div>
   );
 
   const renderDefaultLayout = () => (
-    <Layout style={CHAT_LAYOUT_STYLE}>
-      {renderThreadSidebar()}
-      <Layout.Content className="smc-vfill" style={{ background: "white" }}>
+    <Layout
+      hasSider
+      style={{
+        ...CHAT_LAYOUT_STYLE,
+        position: "relative",
+        minHeight: 0,
+        height: "100%",
+        display: "flex",
+        flexDirection: "row",
+      }}
+    >
+      {!sidebarCollapsed && renderThreadSidebar()}
+      <Layout.Content
+        className="smc-vfill"
+        style={{
+          background: "white",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          height: "100%",
+        }}
+      >
+        {sidebarCollapsed && !IS_MOBILE && (
+          <div style={{ padding: "10px" }}>
+            <Button
+              size="small"
+              icon={<Icon name="bars" />}
+              onClick={() => setSidebarCollapsed(false)}
+            >
+              Show chats
+            </Button>
+          </div>
+        )}
         {renderChatContent()}
       </Layout.Content>
     </Layout>
@@ -1065,7 +1393,7 @@ export function ChatPanel({
         open={sidebarVisible}
         onClose={() => setSidebarVisible(false)}
         placement="right"
-        width={THREAD_SIDEBAR_WIDTH + 40}
+        width={Math.max(200, sidebarWidth + 40)}
         title="Chats"
         destroyOnClose
       >
@@ -1116,8 +1444,45 @@ export function ChatPanel({
       onMouseMove={mark_as_read}
       onClick={mark_as_read}
       className="smc-vfill"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+      }}
     >
       {variant === "compact" ? renderCompactLayout() : renderDefaultLayout()}
+      <Modal
+        title={
+          exportThread?.label?.trim()
+            ? `Export "${exportThread.label.trim()}"`
+            : "Export chat"
+        }
+        open={exportThread != null}
+        onCancel={closeExportModal}
+        onOk={handleExportThread}
+        okText="Export"
+        destroyOnClose
+      >
+        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+          <div>
+            <div style={{ marginBottom: 4, color: COLORS.GRAY_D }}>
+              Filename
+            </div>
+            <Input
+              value={exportFilename}
+              onChange={(e) => setExportFilename(e.target.value)}
+              onPressEnter={handleExportThread}
+            />
+          </div>
+          <Checkbox
+            checked={exportIncludeLogs}
+            onChange={(e) => setExportIncludeLogs(e.target.checked)}
+            disabled={!exportThread?.isAI}
+          >
+            Include hidden AI thinking logs
+          </Checkbox>
+        </Space>
+      </Modal>
       <Modal
         title="Rename chat"
         open={renamingThread != null}
@@ -1137,6 +1502,101 @@ export function ChatPanel({
   );
 }
 
+function buildThreadExportPath(
+  chatPath: string | undefined,
+  threadKey: string,
+  label?: string,
+): string {
+  const base = (chatPath || "chat").replace(/\/+$/, "");
+  const slug = slugifyLabel(label);
+  const suffix = slug || threadKey || "thread";
+  return `${base}.${suffix}.md`;
+}
+
+function slugifyLabel(label?: string): string {
+  if (!label) return "";
+  const slug = label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+  return slug;
+}
+
+function computeThreadContextRemaining(
+  threadKey: string,
+  actions?: ChatActions,
+  messages?: ChatMessages,
+): number | null {
+  if (!actions?.getMessagesInThread || !messages) return null;
+  const ms = Number(threadKey);
+  const keyIso = Number.isFinite(ms)
+    ? new Date(ms).toISOString()
+    : (threadKey ?? "");
+  const seq = actions.getMessagesInThread(keyIso);
+  if (!seq) return null;
+  const list =
+    typeof seq.toArray === "function" ? seq.toArray() : Array.from(seq);
+  if (!list?.length) return null;
+  list.sort((a, b) => {
+    const aDate = a?.get("date")?.valueOf?.() ?? 0;
+    const bDate = b?.get("date")?.valueOf?.() ?? 0;
+    return aDate - bDate;
+  });
+  let remaining: number | null = null;
+  for (const entry of list) {
+    const usageRaw: any = entry?.get("acp_usage") ?? entry?.get("codex_usage");
+    if (!usageRaw) continue;
+    const usage =
+      typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
+    const pct = calcRemainingPercent(usage);
+    if (pct != null) {
+      remaining = pct;
+    }
+  }
+  return remaining;
+}
+
+function calcRemainingPercent(usage: any): number | null {
+  if (!usage || typeof usage !== "object") return null;
+  const contextWindow = usage.model_context_window;
+  const usedTokens =
+    calcUsedTokens(usage) ??
+    (typeof usage.total_tokens === "number" ? usage.total_tokens : undefined);
+  if (
+    typeof contextWindow !== "number" ||
+    !Number.isFinite(contextWindow) ||
+    contextWindow <= 0 ||
+    typeof usedTokens !== "number" ||
+    !Number.isFinite(usedTokens)
+  ) {
+    return null;
+  }
+  const cappedUsed = Math.min(usedTokens, contextWindow);
+  return Math.max(
+    0,
+    Math.round(((contextWindow - cappedUsed) / contextWindow) * 100),
+  );
+}
+
+function calcUsedTokens(usage: any): number | undefined {
+  if (!usage || typeof usage !== "object") return undefined;
+  const keys = [
+    "input_tokens",
+    "cached_input_tokens",
+    "output_tokens",
+    "reasoning_output_tokens",
+  ] as const;
+  let total = 0;
+  for (const key of keys) {
+    const value = usage[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      total += value;
+    }
+  }
+  return total > 0 ? total : undefined;
+}
+
 export function ChatRoom({
   actions,
   project_id,
@@ -1146,12 +1606,14 @@ export function ChatRoom({
 }: EditorComponentProps) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
   const messages = useEditor("messages") as ChatMessages | undefined;
+  const activity = useEditor("activity");
   return (
     <ChatPanel
       actions={actions}
       project_id={project_id}
       path={path}
       messages={messages}
+      activity={activity as any}
       fontSize={font_size}
       desc={desc}
       variant="default"

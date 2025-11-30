@@ -97,6 +97,7 @@
     "isabs",
     "isactive",
     "isdir",
+    "isDir",
     "isopen",
     "issymlink",
     "kernelspec",

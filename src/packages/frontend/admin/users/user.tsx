@@ -125,7 +125,6 @@ export function UserResult({
             <CopyToClipBoard
               copyTip={"Copied account_id!"}
               style={{ color: "#666" }}
-              before
               value={account_id}
             />
             {banned && (

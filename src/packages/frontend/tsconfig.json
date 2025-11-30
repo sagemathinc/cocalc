@@ -1,13 +1,10 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "composite": true,
-    "incremental": true,
     "rootDir": "./",
     "outDir": "dist",
     "sourceMap": true,
-    "lib": ["es5", "es6", "es2017", "dom"],
-    "declaration": true
+    "lib": ["es5", "es6", "es2017", "dom"]
   },
   "exclude": [
     "dist",
@@ -26,6 +23,7 @@
     "*__test__*"
   ],
   "references": [
+    { "path": "../chat" },
     { "path": "../comm" },
     { "path": "../jupyter" },
     { "path": "../conat" },

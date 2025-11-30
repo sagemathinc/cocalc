@@ -52,7 +52,7 @@ import {
 import { Patterns } from "./patterns";
 import { is_array } from "@cocalc/util/misc";
 import { UsageMonitor } from "@cocalc/conat/monitor/usage";
-import { once, until } from "@cocalc/util/async-utils";
+import { until } from "@cocalc/util/async-utils";
 import {
   clusterLink,
   type ClusterLink,
@@ -477,6 +477,9 @@ export class ConatServer extends EventEmitter {
     // a subscriber before the socket is actually getting messages.
     await socket.join(room);
     await this.updateInterest({ op: "add", subject, room, queue });
+    if (DEBUG) {
+      this.log("subscribe - succeeded ", { id: socket.id, subject, queue, room });
+    }
   };
 
   // get all interest in this subject across the cluster (NOT supercluster)
@@ -1513,8 +1516,8 @@ export class ConatServer extends EventEmitter {
         throw Error("timeout");
       }
       try {
-        // if signal is set only wait for the change for up to 1 second.
-        await once(this.interest, "change", signal != null ? 1000 : undefined);
+        // if signal is set, only wait for the change for up to 1 second.
+        await this.interest.waitForChange(signal != null ? 1000 : undefined);
       } catch {
         continue;
       }
@@ -1548,7 +1551,7 @@ function socketSubjectRoom({ socket, subject }) {
   return JSON.stringify({ id: socket.id, subject });
 }
 
-export function randomChoice(v: Set<string>): string {
+export function randomChoice<T>(v: Set<T>): T {
   if (v.size == 0) {
     throw Error("v must have size at least 1");
   }

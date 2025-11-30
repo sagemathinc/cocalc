@@ -16,11 +16,9 @@ import type {
   PreferencesSubTabKey,
   PreferencesSubTabType,
 } from "@cocalc/util/types/settings";
-
 import { Button, Flex, Menu, Space } from "antd";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import {
   React,
@@ -86,6 +84,8 @@ import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SettingsOverview } from "./settings-index";
 import { UpgradesPage } from "./upgrades/upgrades-page";
+import { lite, project_id } from "@cocalc/frontend/lite";
+import { AdminPage } from "@cocalc/frontend/admin";
 
 export const ACCOUNT_SETTINGS_ICON_NAME: IconName = "settings";
 
@@ -308,6 +308,17 @@ export const AccountPage: React.FC = () => {
         ],
       },
     ];
+    if (lite) {
+      items.push({
+        key: "admin",
+        label: (
+          <span>
+            <Icon name="users" /> Admin
+          </span>
+        ),
+        children: active_page === "admin" && <AdminPage />,
+      });
+    }
     // adds a few conditional tabs
     if (is_anonymous) {
       // None of the rest make any sense for a temporary anonymous account.
@@ -399,16 +410,18 @@ export const AccountPage: React.FC = () => {
       items.push({ type: "divider" });
     }
 
-    items.push({
-      key: "public-files",
-      label: (
-        <span>
-          <Icon name="share-square" />{" "}
-          {intl.formatMessage(labels.published_files)}
-        </span>
-      ),
-      children: active_page === "public-files" && <PublicPaths />,
-    });
+    if (!lite) {
+      items.push({
+        key: "public-files",
+        label: (
+          <span>
+            <Icon name="share-square" />{" "}
+            {intl.formatMessage(labels.published_files)}
+          </span>
+        ),
+        children: active_page === "public-files" && <PublicPaths />,
+      });
+    }
     if (cloudFilesystemsEnabled()) {
       items.push({
         key: "cloud-filesystems",
@@ -523,7 +536,9 @@ export const AccountPage: React.FC = () => {
       <Space>
         {is_commercial ? <BalanceButton /> : undefined}
         <I18NSelector isWide={isWide} />
-        <SignOut everywhere={false} highlight={true} narrow={!isWide} />
+        {!lite && (
+          <SignOut everywhere={false} highlight={true} narrow={!isWide} />
+        )}
       </Space>
     );
   }
@@ -564,6 +579,35 @@ export const AccountPage: React.FC = () => {
             flexDirection: "column",
           }}
         >
+          {!lite && (
+            <div
+              style={{
+                textAlign: "center",
+                margin: "15px 0",
+                fontSize: "11pt",
+              }}
+            >
+              <b>Account Configuration</b>
+            </div>
+          )}
+          {lite && (
+            <div
+              style={{
+                textAlign: "center",
+                margin: "15px 0",
+              }}
+            >
+              <Button
+                size="large"
+                style={{ width: "80%" }}
+                onClick={() => {
+                  redux.getActions("page").set_active_tab(project_id);
+                }}
+              >
+                Close
+              </Button>
+            </div>
+          )}
           <Menu
             defaultOpenKeys={["preferences"]}
             openKeys={hidden ? ["preferences"] : openKeys}

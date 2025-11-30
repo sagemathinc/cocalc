@@ -21,7 +21,6 @@ import { List } from "immutable";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension, path_split } from "@cocalc/util/misc";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
-import { webapp_client } from "../../webapp-client";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { ViewDocument } from "./view-document";
 import {
@@ -32,8 +31,8 @@ import { FrameTree } from "../frame-tree/types";
 import { export_to_json } from "./export-to-json";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import LRUCache from "lru-cache";
-import { syncdbPath } from "@cocalc/util/jupyter/names";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { until } from "@cocalc/util/async-utils";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 const EXTENSION = ".time-travel";
 
@@ -64,8 +63,6 @@ export interface TimeTravelState extends CodeEditorState {
   git_versions: List<number>;
   loading: boolean;
   has_full_history: boolean;
-  legacy_history_exists?: boolean;
-  loaded_legacy_history?: boolean;
   docpath: string;
   docext: string;
   // true if in a git repo
@@ -81,7 +78,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   protected doctype: string = "none"; // actual document is managed elsewhere
   private docpath: string;
   private docext: string;
-  private syncpath: string;
   syncdoc?: SyncDoc;
   private first_load: boolean = true;
   ambient_actions?: CodeEditorActions;
@@ -96,11 +92,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       this.docpath = head + "/" + this.docpath;
     }
     // log("init", { path: this.path });
-    this.syncpath = this.docpath;
     this.docext = filename_extension(this.docpath);
-    if (this.docext == "ipynb") {
-      this.syncpath = syncdbPath(this.docpath);
-    }
     this.setState({
       versions: List([]),
       loading: true,
@@ -118,68 +110,73 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 
   init_frame_tree = () => {};
 
-  close = (): void => {
-    if (this.syncdoc != null) {
-      this.syncdoc.close();
-      delete this.syncdoc;
-    }
-    super.close();
-  };
-
   set_error = (error) => {
     this.setState({ error });
   };
 
   private init_syncdoc = async (): Promise<void> => {
-    const persistent = this.docext == "ipynb" || this.docext == "sagews"; // ugly for now (?)
-    this.syncdoc = await webapp_client.sync_client.open_existing_sync_document({
-      project_id: this.project_id,
-      path: this.syncpath,
-      persistent,
+    await until(async () => {
+      if (this.isClosed()) {
+        return true;
+      }
+      const mainFileActions = this.redux.getEditorActions(
+        this.project_id,
+        this.docpath,
+      );
+      if (mainFileActions == null) {
+        // open the file that we're showing timetravel for, so that the
+        // actions are available
+        try {
+          await this.open_file({ foreground: false, explicit: false });
+        } catch (err) {
+          console.warn(err);
+        }
+        // will try again above in the next loop
+        return false;
+      } else {
+        const doc = getSyncDocFromEditorActions(mainFileActions);
+        if (doc == null || doc.get_state() == "closed") {
+          // file maybe closing
+          return false;
+        }
+        // got it!
+        this.syncdoc = doc;
+        return true;
+      }
     });
-    if (this.syncdoc == null) return;
-    this.syncdoc.on("change", debounce(this.syncdoc_changed, 1000));
-    if (this.syncdoc.get_state() != "ready") {
+    if (this.isClosed() || !this.syncdoc) {
+      return;
+    }
+
+    if (
+      this.syncdoc.get_state() == "closed" ||
+      // @ts-ignore
+      this.syncdoc.is_fake
+    ) {
+      return;
+    }
+    if (this.syncdoc.get_state() == "init") {
       try {
         await once(this.syncdoc, "ready");
       } catch {
         return;
       }
     }
-    if (this.syncdoc == null) return;
+    this.syncdoc.on("change", debounce(this.syncdoc_changed, 750));
     // cause initial load -- we could be plugging into an already loaded syncdoc,
     // so there wouldn't be any change event, so we have to trigger this.
     this.syncdoc_changed();
     this.syncdoc.on("close", () => {
-      // in our code we don't check if the state is closed, but instead
-      // that this.syncdoc is not null.
+      // in the actions in this file, we don't check if the state is closed, but instead
+      // that this.syncdoc is not null:
       delete this.syncdoc;
+      this.init_syncdoc();
     });
 
     this.setState({
       loading: false,
       has_full_history: this.syncdoc.hasFullHistory(),
     });
-    this.setLegacy();
-  };
-
-  private setLegacy = async () => {
-    let legacy_history_exists;
-    if (
-      isProjectOldEnoughToHaveLegacyHistory({
-        redux: this.redux,
-        project_id: this.project_id,
-      })
-    ) {
-      try {
-        legacy_history_exists = await this.syncdoc?.legacyHistoryExists();
-      } catch {
-        return;
-      }
-    } else {
-      legacy_history_exists = false;
-    }
-    this.setState({ legacy_history_exists });
   };
 
   loadMoreHistory = async (): Promise<void> => {
@@ -196,14 +193,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     this.setState({ has_full_history: this.syncdoc.hasFullHistory() });
     this.syncdoc_changed(); // load new versions list.
   };
-
-  loadLegacyHistory = reuseInFlight(async () => {
-    if (this.store.get("loaded_legacy_history")) {
-      return;
-    }
-    await this.syncdoc?.loadLegacyHistory();
-    this.setState({ loaded_legacy_history: true });
-  });
 
   private syncdoc_changed = (): void => {
     //  log("syncdoc_changed");
@@ -289,10 +278,10 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
   };
 
-  open_file = async (): Promise<void> => {
+  open_file = async (opts?): Promise<void> => {
     // log("open_file");
     const actions = this.redux.getProjectActions(this.project_id);
-    await actions.open_file({ path: this.docpath, foreground: true });
+    await actions.open_file({ path: this.docpath, foreground: true, ...opts });
   };
 
   // Revert the live version of the document to a specific version */
@@ -315,7 +304,19 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     } else {
       syncdoc.revert(version);
     }
-    await syncdoc.commit(true);
+    await syncdoc.commit({ emitChangeImmediately: true });
+    if (this.docpath.endsWith(".ipynb")) {
+      const a = this.redux.getEditorActions(
+        this.project_id,
+        this.docpath,
+      )?.jupyter_actions;
+      if (a != null) {
+        // make sure nothing is running or appears to be (due to it being running in history)
+        a.clear_all_cell_run_state();
+        a.signal("SIGINT");
+        a.refreshKernelStatus();
+      }
+    }
 
     // Some editors, e.g., the code text editor, only update Codemirror when
     // "after-change" is emitted (not just "change"), and commit does NOT result
@@ -329,7 +330,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 
   open_snapshots = (): void => {
     // log("open_snapshots");
-    this.redux.getProjectActions(this.project_id).open_directory(".snapshots");
+    this.redux.getProjectActions(this.project_id).open_directory(SNAPSHOTS);
   };
 
   exportEditHistory = async (): Promise<string> => {
@@ -467,18 +468,9 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 
 export { TimeTravelActions as Actions };
 
-// in any project created after this point, there can't be any legacy
-// timetravel data.
-const LEGACY_CUTOFF = new Date("2025-05-01T00:00:00.000Z");
-function isProjectOldEnoughToHaveLegacyHistory({
-  redux,
-  project_id,
-}: {
-  redux;
-  project_id: string;
-}): boolean {
-  const created = redux
-    .getProjectsStore()
-    .getIn(["project_map", project_id, "created"]);
-  return created == null || created <= LEGACY_CUTOFF;
+function getSyncDocFromEditorActions(actions) {
+  if (actions.path.endsWith(".course")) {
+    return actions.course_actions.syncdb;
+  }
+  return actions._syncstring;
 }

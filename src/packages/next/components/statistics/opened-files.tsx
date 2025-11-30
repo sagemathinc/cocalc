@@ -94,6 +94,7 @@ const extensionToInfo: { [ext: string]: { desc: string; link?: string } } = {
     desc: "Sage Worksheet",
     link: "https://doc.cocalc.com/sagews.html",
   },
+  chat: { desc: "Chatroom" },
   "sage-chat": { desc: "Chatroom" },
   board: { desc: "Whiteboard", link: "/features/whiteboard" },
   slides: { desc: "Slides", link: "/features/slides" },

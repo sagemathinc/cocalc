@@ -12,7 +12,6 @@ import {
   useState,
 } from "react";
 import * as immutable from "immutable";
-
 import {
   ProjectActions,
   redux,
@@ -35,6 +34,7 @@ import {
 } from "./page/project-state-hook";
 import { useProjectHasInternetAccess } from "./settings/has-internet-access-hook";
 import { Project } from "./settings/types";
+import { lite } from "@cocalc/frontend/lite";
 
 export interface ProjectContextState {
   actions?: ProjectActions;
@@ -58,6 +58,8 @@ export interface ProjectContextState {
   project?: Project;
   setContentSize: (size: { width: number; height: number }) => void;
   status: ProjectStatus;
+
+  compute_server_id: number;
 }
 
 export const emptyProjectContext = {
@@ -78,7 +80,7 @@ export const emptyProjectContext = {
   group: undefined,
   hasInternet: undefined,
   is_active: false,
-  isRunning: undefined,
+  isRunning: lite,
   mainWidthPx: 0,
   manageStarredFiles: {
     starred: [],
@@ -90,6 +92,7 @@ export const emptyProjectContext = {
   project_id: "",
   setContentSize: () => {},
   status: INIT_PROJECT_STATE,
+  compute_server_id: 0,
 } as ProjectContextState;
 
 export const ProjectContext: Context<ProjectContextState> =
@@ -111,15 +114,15 @@ export function useProjectContextProvider({
   const actions = useActions({ project_id });
   const { project, group, compute_image } = useProject(project_id);
   const status: ProjectStatus = useProjectState(project_id);
-  const hasInternet = useProjectHasInternetAccess(project_id);
-  const isRunning = useMemo(
-    () => status.get("state") === "running",
-    [status.get("state")],
-  );
+  const hasInternet = useProjectHasInternetAccess(project_id) || lite;
+  const isRunning =
+    useMemo(() => status.get("state") === "running", [status.get("state")]) ||
+    lite;
   const active_project_tab = useTypedRedux(
     { project_id },
     "active_project_tab",
   );
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   // shared data: used to flip through the open tabs in the active files flyout
   const flipTabs = useState<number>(0);
 
@@ -179,6 +182,7 @@ export function useProjectContextProvider({
     manageStarredFiles,
     onCoCalcCom,
     onCoCalcDocker,
+    compute_server_id,
     project_id,
     project,
     setContentSize,

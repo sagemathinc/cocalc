@@ -10,16 +10,13 @@ import {
   setClosingDay,
 } from "./closing-date";
 import { uuid } from "@cocalc/util/misc";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import createAccount from "@cocalc/server/accounts/create-account";
+import { before, after } from "@cocalc/server/test";
 
 beforeAll(async () => {
-  await initEphemeralDatabase();
+  await before({ noConat: true });
 }, 15000);
-
-afterAll(async () => {
-  await getPool().end();
-});
+afterAll(after);
 
 describe("basic consistency checks for closing date functions", () => {
   const account_id = uuid();

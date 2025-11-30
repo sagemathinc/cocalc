@@ -11,7 +11,6 @@ Enable two new functions write_mesg and recv_mesg on a TCP socket.
 
 import { Buffer } from "node:buffer";
 import { Socket } from "node:net";
-
 import getLogger from "@cocalc/backend/logger";
 import { error } from "@cocalc/util/message";
 import { from_json_socket, to_json_socket, trunc } from "@cocalc/util/misc";
@@ -147,7 +146,7 @@ export default function enable(socket: CoCalcSocket, desc: string = "") {
         return;
       } else {
         socket.write(length);
-        socket.write(data, cb);
+        socket.write(data, "utf8", cb as any);
       }
     };
 

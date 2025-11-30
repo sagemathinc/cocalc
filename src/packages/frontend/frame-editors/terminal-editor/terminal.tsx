@@ -66,6 +66,10 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   });
 
   useEffect(() => {
+    terminalRef.current?.updateComputeServerId();
+  }, [computeServerId]);
+
+  useEffect(() => {
     return delete_terminal; // clean up on unmount
   }, []);
 
@@ -101,8 +105,6 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
     if (terminalRef.current == null) return; // already deleted or never created
     terminalRef.current.element?.remove();
     terminalRef.current.is_visible = false;
-    // Ignore size for this terminal.
-    terminalRef.current.conn_write({ cmd: "size", rows: 0, cols: 0 });
     terminalRef.current = undefined;
   }
 
@@ -113,11 +115,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
       // happens, e.g., when terminals are disabled.
       return;
     }
-    try {
-      terminalRef.current = props.actions._get_terminal(props.id, node);
-    } catch (err) {
-      return; // not yet ready -- might be ok; will try again.
-    }
+    terminalRef.current = props.actions._get_terminal(props.id, node);
     if (terminalRef.current == null) return; // should be impossible.
     terminalRef.current.is_visible = true;
     set_font_size();

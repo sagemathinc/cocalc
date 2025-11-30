@@ -20,7 +20,6 @@ interface Props {
   text?: string;
   size?: ButtonProps["size"];
   danger?: boolean;
-  short?: boolean;
 }
 
 export function RestartProject({
@@ -29,7 +28,6 @@ export function RestartProject({
   text,
   size,
   danger,
-  short = false,
 }: Props) {
   const actions = useActions("projects");
   const state = useProjectState(project_id);
@@ -43,10 +41,7 @@ export function RestartProject({
     { is_running },
   );
   const icon = is_running ? <SyncOutlined /> : <PlayCircleOutlined />;
-  const description =
-    text != null
-      ? text
-      : `${task}${short ? "" : ` ${intl.formatMessage(labels.project)}`}…`;
+  const description = text != null ? text : `${task}${is_running ? "…" : ""}`;
 
   const explanation = (
     <div style={{ maxWidth: "300px" }}>
@@ -66,6 +61,19 @@ export function RestartProject({
       />
     </div>
   );
+
+  if (!is_running) {
+    return (
+      <Button
+        disabled={disabled || actions == null}
+        size={size}
+        danger={danger}
+        onClick={() => actions?.restart_project(project_id)}
+      >
+        {icon} {description}
+      </Button>
+    );
+  }
 
   return (
     <Popconfirm

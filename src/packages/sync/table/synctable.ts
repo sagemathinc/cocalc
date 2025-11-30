@@ -502,9 +502,11 @@ export class SyncTable extends EventEmitter {
     }
   }
 
-  public close_no_async(): void {
+  public close(): void {
     if (this.state === "closed") {
       // already closed
+      // still emit closed so late listeners resolve
+      setTimeout(() => this.emit("closed"), 0);
       return;
     }
     // decrement the reference to this synctable
@@ -520,32 +522,23 @@ export class SyncTable extends EventEmitter {
     }
 
     this.client.removeListener("disconnected", this.disconnected);
-    this.close_changefeed();
-    this.set_state("closed");
-    this.removeAllListeners();
-    delete this.value;
-  }
-
-  public async close(fatal: boolean = false): Promise<void> {
-    if (this.state === "closed") {
-      // already closed
-      return;
-    }
-    this.dbg("close")({ fatal });
-    if (!fatal) {
-      // do a last attempt at a save (so we don't lose data),
-      // then really close.
-      await this.save(); // attempt last save to database.
-      /*
-      The moment the sync part of _save is done, we remove listeners
-      and clear everything up.  It's critical that as soon as close
-      is called that there be no possible way any further connect
-      events (etc) can make this SyncTable
-      do anything!!  That finality assumption is made
-      elsewhere (e.g in @cocalc/project).
-      */
-    }
-    this.close_no_async();
+    const finalize = async () => {
+      try {
+        if (this.has_uncommitted_changes()) {
+          await this.save();
+        }
+      } catch (err) {
+        // swallow errors on close; we're shutting down
+        this.dbg("close")(err);
+      } finally {
+        this.close_changefeed();
+        this.set_state("closed");
+        this.removeAllListeners();
+        delete this.value;
+        setTimeout(() => this.emit("closed"), 0);
+      }
+    };
+    finalize();
   }
 
   public async wait(until: Function, timeout: number = 30): Promise<any> {
@@ -570,7 +563,7 @@ export class SyncTable extends EventEmitter {
         `synctable: failed to connect (table=${this.table}), error=${err}`,
         this.query,
       );
-      this.close(true);
+      this.close();
     }
   }
 
@@ -759,7 +752,7 @@ export class SyncTable extends EventEmitter {
       } catch (err) {
         if (is_fatal(err.toString())) {
           console.warn("FATAL creating initial changefeed", this.table, err);
-          this.close(true);
+          this.close();
           throw err;
         }
         if (err.code == 429) {
@@ -1086,7 +1079,7 @@ export class SyncTable extends EventEmitter {
         dbg("db query failed", err);
         if (is_fatal(err.toString())) {
           console.warn("FATAL doing set", this.table, err);
-          this.close(true);
+          this.close();
           throw err;
         }
         // NOTE: we do not show entire log since the number

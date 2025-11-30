@@ -5,7 +5,7 @@
 
 import { Space } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
-
+import BootLog from "../bootlog";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   React,
@@ -16,7 +16,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import {
   A,
-  CopyToClipBoard,
   Icon,
   LabeledRow,
   Loading,
@@ -46,7 +45,12 @@ import { RestartProject } from "./restart-project";
 import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
 import { SoftwareImageDisplay } from "./software-image-display";
 import { StopProject } from "./stop-project";
+import MoveProject from "./move-project";
 import { Project } from "./types";
+import RootFilesystemImage from "./root-filesystem-image";
+import ProjectControlError from "./project-control-error";
+import Save from "../save";
+import CloneProject from "@cocalc/frontend/project/explorer/clone";
 
 interface ReactProps {
   project: Project;
@@ -128,6 +132,12 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       >
         {render_restart_button(commands)}
         {render_stop_button(commands)}
+        <Save />
+        <CloneProject project_id={project_id} />
+        <MoveProject
+          project_id={project_id}
+          disabled={state == "starting" || state == "stopping"}
+        />
       </Space.Compact>
     );
   }
@@ -251,7 +261,11 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   }
 
   function render_select_compute_image_row() {
-    if (![KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc)) {
+    // TODO: not sure how to do this with our new images...
+    if (
+      true ||
+      ![KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc)
+    ) {
       return;
     }
 
@@ -329,37 +343,17 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     };
   }
 
-  function render_project_id() {
-    return (
-      <LabeledRow key="project_id" label="Project ID" vertical={isFlyout}>
-        {!isFlyout ? (
-          <CopyToClipBoard
-            inputWidth={"330px"}
-            value={project_id}
-            style={{ display: "inline-block", width: "100%", margin: 0 }}
-          />
-        ) : (
-          <Paragraph
-            copyable={{
-              text: project_id,
-              tooltips: ["Copy Project ID", "Copied!"],
-            }}
-            code
-            style={{ marginBottom: 0 }}
-          >
-            {project_id}
-          </Paragraph>
-        )}
-      </LabeledRow>
-    );
-  }
-
   function renderBody() {
     return (
       <>
-        <LabeledRow key="action" label="Actions" vertical={isFlyout}>
+        <div>
           {render_action_buttons()}
-        </LabeledRow>
+          <ProjectControlError
+            style={{ margin: "10px 0px" }}
+            showStopButton={project.getIn(["state", "state"]) == "running"}
+          />
+          <BootLog />
+        </div>
         <LabeledRow
           key="state"
           label="State"
@@ -371,7 +365,14 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         {render_idle_timeout_row()}
         {render_uptime()}
         {render_cpu_usage()}
-        {render_project_id()}
+        <hr />
+        <LabeledRow
+          key="root_fs"
+          label="Root Filesystem Image"
+          vertical={isFlyout}
+        >
+          <RootFilesystemImage />
+        </LabeledRow>
         {render_select_compute_image_row()}
       </>
     );

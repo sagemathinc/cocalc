@@ -49,7 +49,7 @@ export interface Props {
   reload_images?: boolean;
 
   /* If true, after rendering run the smc_image_scaling pluging to handle
-     smc-image-scaling= attributes, which are used in smc_sagews to rescale certain
+     smc-image-scaling= attributes, which might be used to rescale certain
      png images produced by other kernels (e.g., the R kernel). See
      https://github.com/sagemathinc/cocalc/issues/4421. This functionality is NOT
      actually used at all right now, since it doesn't work on the share server

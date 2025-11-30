@@ -26,7 +26,7 @@ const DEFAULTS: Options = {
   // which on some hosts will resolve to an ipv6 address ::1 first and that
   // fails.  There's no way to just easily listen on both ipv4 and ipv6 interfaces.
   // I noticed that with express if you use localhost you get ipv6 only, and
-  // with node-http-proxy if you use localhost you get ipv4 only, so things are
+  // with http-proxy if you use localhost you get ipv4 only, so things are
   // just totally broken.  So we explicitly use 127.0.0.1 to force things to
   // be consistent.
   hostname: "127.0.0.1",

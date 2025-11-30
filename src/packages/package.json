@@ -9,7 +9,7 @@
     "check-dependency-version-consistency": "^5.0.0",
     "jest": "^30.0.5",
     "jest-junit": "^16.0.0",
-    "ts-jest": "^29.2.3",
+    "ts-jest": "^29.4.5",
     "typescript": "^5.9.2"
   },
   "dependencies": {
@@ -23,8 +23,6 @@
       "undici@<5.28.3": "^5.28.4",
       "postcss@<8.4.31": "^8.4.31",
       "retry-request@<7.0.1": "^7.0.2",
-      "@langchain/core": "^0.3.77",
-      "langchain": "^0.3.34",
       "katex@<0.16.9": "^0.16.10",
       "nanoid@<3.3.8": "^3.3.8",
       "tar-fs@<=2.1.3": "2.1.4",
@@ -34,12 +32,6 @@
       "axios@<1.12.0": "^1.12.0",
       "tmp@<0.2.4": "^0.2.4"
     },
-    "onlyBuiltDependencies": [
-      "websocket-sftp",
-      "websocketfs",
-      "zeromq",
-      "better-sqlite3",
-      "zstd-napi"
-    ]
+    "onlyBuiltDependencies": ["node-pty"]
   }
 }

@@ -127,7 +127,7 @@ export class CourseActions extends Actions<CourseState> {
     }
     this.syncdb.set(obj);
     if (commit) {
-      this.syncdb.commit(emitChangeImmediately);
+      this.syncdb.commit({ emitChangeImmediately });
     }
   };
 

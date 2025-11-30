@@ -177,7 +177,7 @@ export const labels = defineMessages({
   },
   project_settings_stop_project_label: {
     id: "labels.project.settings.stop-project.label",
-    defaultMessage: "Stop{short, select, true {} other { Project}}…",
+    defaultMessage: "Stop…",
   },
   upload: {
     id: "labels.upload",
@@ -1258,7 +1258,7 @@ export const jupyter = {
     browser_actions_trust_body: {
       id: "jupyter.editor.browser_actions.trust.body",
       defaultMessage:
-        "A trusted Jupyter notebook may execute hidden Javascript code or carry out other attacks via malicious HTML.  Selecting trust below, or evaluating any cell, will disable the code that strips dangerous HTML from this notebook. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects. Also, in many cases we still do not execute Javascript in HTML, even if the notebook is trusted.)",
+        "A trusted Jupyter notebook may execute hidden Javascript code or carry out other attacks via malicious HTML.  Selecting trust below, or evaluating any cell, will disable the code that strips dangerous HTML from this notebook. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects.)",
     },
     close_and_halt_label: {
       id: "jupyter.editor.browser_actions.close_and_halt.label",

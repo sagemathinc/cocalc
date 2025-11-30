@@ -6,7 +6,6 @@
 // cSpell:ignore brandcolors codebar
 
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
 import { redux, Rendered, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
@@ -43,6 +42,8 @@ import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
 import { UserDefinedLLMComponent } from "./user-defined-llm";
+import LiteAISettings from "./lite-ai-settings";
+import { lite } from "@cocalc/frontend/lite";
 
 // Icon constants for account preferences sections
 export const THEME_ICON_NAME: IconName = "highlighter";
@@ -100,7 +101,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   }
 
   function render_standby_timeout(): Rendered {
-    if (IS_TOUCH) {
+    if (IS_TOUCH || lite) {
       return;
     }
     return (
@@ -135,32 +136,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
-  function render_default_file_sort(): Rendered {
-    return (
-      <LabeledRow
-        label={intl.formatMessage({
-          id: "account.other-settings.default_file_sort.label",
-          defaultMessage: "Default file sort",
-        })}
-      >
-        <SelectorInput
-          selected={props.other_settings.get("default_file_sort")}
-          options={{
-            time: intl.formatMessage({
-              id: "account.other-settings.default_file_sort.by_time",
-              defaultMessage: "Sort by time",
-            }),
-            name: intl.formatMessage({
-              id: "account.other-settings.default_file_sort.by_name",
-              defaultMessage: "Sort by name",
-            }),
-          }}
-          on_change={(value) => on_change("default_file_sort", value)}
-        />
-      </LabeledRow>
-    );
-  }
-
   function render_new_filenames(): Rendered {
     const selected =
       props.other_settings.get(NEW_FILENAMES) ?? DEFAULT_NEW_FILENAMES;
@@ -191,7 +166,6 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       </LabeledRow>
     );
   }
-
   function render_page_size(): Rendered {
     return (
       <LabeledRow
@@ -210,6 +184,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
+  /*
   function render_dim_file_extensions(): Rendered {
     return (
       <Switch
@@ -221,6 +196,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       </Switch>
     );
   }
+    */
 
   function render_antd(): Rendered {
     return (
@@ -331,8 +307,8 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       >
         <FormattedMessage
           id="account.other-settings.llm.disable_all"
-          defaultMessage={`<strong>Disable all AI integrations</strong>,
-            e.g., code generation or explanation buttons in Jupyter, @chatgpt mentions, etc.`}
+          defaultMessage={`<strong>Disable all AI integrations</strong>:
+            code generation, explanation buttons in Jupyter, @chatgpt mentions, etc.`}
         />
       </Switch>
     );
@@ -362,7 +338,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         <FormattedMessage
           id="account.other-settings.llm.reply_language"
           defaultMessage={`<strong>Always reply in English:</strong>
-          If set, the replies are always in English. Otherwise, it replies in your language ({lang}).`}
+          If set, the replies are always in English; otherwise, replies in your language ({lang}).`}
           values={{ lang: intl.formatMessage(LOCALIZATIONS[locale].trans) }}
         />
       </Switch>
@@ -370,6 +346,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
   }
 
   function render_custom_llm(): Rendered {
+    if (lite) return;
     // on cocalc.com, do not even show that they're disabled
     if (isCoCalcCom && !user_defined_llm) return;
     return (
@@ -385,7 +362,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     const customize = redux.getStore("customize");
     const enabledLLMs = customize.getEnabledLLMs();
     const anyLLMenabled = Object.values(enabledLLMs).some((v) => v);
-    if (!anyLLMenabled) return <></>;
+    if (!anyLLMenabled && !lite) return <></>;
     return (
       <Panel
         header={
@@ -398,10 +375,11 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           </>
         }
       >
-        {render_disable_all_llm()}
-        {render_language_model()}
-        {render_llm_reply_language()}
-        {render_custom_llm()}
+        {anyLLMenabled && render_disable_all_llm()}
+        {anyLLMenabled && render_llm_reply_language()}
+        {anyLLMenabled && render_language_model()}
+        {!lite && render_custom_llm()}
+        {lite && <LiteAISettings />}
       </Panel>
     );
   }
@@ -455,9 +433,8 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
             </>
           }
         >
-          {render_dim_file_extensions()}
+          {/* render_dim_file_extensions() */}
           {render_mask_files()}
-          {render_default_file_sort()}
           {render_page_size()}
           {render_new_filenames()}
         </Panel>

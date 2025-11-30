@@ -16,9 +16,7 @@ import { file_associations } from "@cocalc/frontend/file-associations";
 import { EXTs } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { keys } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { file_options } = require("@cocalc/frontend/editor");
+import { file_options } from "@cocalc/frontend/editor-tmp";
 
 interface Props {
   create_file: (ext?: string) => void;

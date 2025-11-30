@@ -7,7 +7,6 @@ import { Button, Card, Popconfirm, Popover } from "antd";
 import { isEqual } from "lodash";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import { CSS, useRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";

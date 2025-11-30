@@ -5,14 +5,12 @@
 
 import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 import immutable from "immutable";
-import { FormattedMessage, useIntl } from "react-intl";
+import { useIntl } from "react-intl";
 import { VirtuosoHandle } from "react-virtuoso";
-
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   React,
-  redux,
   useAsyncEffect,
   useEffect,
   usePrevious,
@@ -32,10 +30,13 @@ import { separate_file_extension, strictMod } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
-import { ActiveFileSort } from "./files";
+import type { ActiveFileSort } from "./files";
 import { FilesSelectedControls } from "./files-controls";
 import { FilesSelectButtons } from "./files-select-extra";
 import { FlyoutClearFilter, FlyoutFilterWarning } from "./filter-warning";
+import CloneProject from "@cocalc/frontend/project/explorer/clone";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+import { setSort } from "@cocalc/frontend/project/explorer/config";
 
 function searchToFilename(search: string): string {
   if (search.endsWith(" ")) {
@@ -72,31 +73,31 @@ interface Props {
   modeState: ["open" | "select", (mode: "open" | "select") => void];
   clearAllSelections: (switchMode: boolean) => void;
   selectAllFiles: () => void;
+  publicFiles: Set<string>;
 }
 
-export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
-  const {
-    activeFileSort,
-    disableUploads,
-    handleSearchChange,
-    isEmpty,
-    open,
-    refInput,
-    scrollIdx,
-    setScrollIdx,
-    setScrollIdxHide,
-    setSearchState,
-    virtuosoRef,
-    showFileSharingDialog,
-    checked_files,
-    directoryFiles,
-    getFile,
-    activeFile,
-    modeState,
-    selectAllFiles,
-    clearAllSelections,
-  } = props;
-
+export function FilesHeader({
+  activeFileSort,
+  disableUploads,
+  handleSearchChange,
+  isEmpty,
+  open,
+  refInput,
+  scrollIdx,
+  setScrollIdx,
+  setScrollIdxHide,
+  setSearchState,
+  virtuosoRef,
+  showFileSharingDialog,
+  checked_files,
+  directoryFiles,
+  getFile,
+  activeFile,
+  modeState,
+  selectAllFiles,
+  clearAllSelections,
+  publicFiles,
+}: Readonly<Props>): React.JSX.Element {
   const intl = useIntl();
 
   const {
@@ -108,7 +109,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
   const [mode, setMode] = modeState;
 
   const uploadClassName = `upload-button-flyout-${project_id}`;
-
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const kucalc = useTypedRedux("customize", "kucalc");
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
   const hidden = useTypedRedux({ project_id }, "show_hidden");
@@ -149,7 +150,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
 
   async function createFileOrFolder() {
     const fn = searchToFilename(file_search);
-    await actions?.create_file({
+    await actions?.createFile({
       name: fn,
       current_path,
     });
@@ -206,9 +207,6 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
       <FileUploadWrapper
         project_id={project_id}
         dest_path={current_path}
-        event_handlers={{
-          complete: () => actions?.fetch_directory_listing(),
-        }}
         config={{ clickable: `.${uploadClassName}` }}
         className="smc-vfill"
       >
@@ -217,15 +215,12 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
-  function renderSortButton(
-    name: string,
-    display: string | React.JSX.Element,
-  ): React.JSX.Element {
-    const isActive = activeFileSort.get("column_name") === name;
+  function renderSortButton(name: string, display): React.JSX.Element {
+    const isActive = activeFileSort.column_name === name;
     const direction = isActive ? (
       <Icon
         style={{ marginLeft: FLYOUT_PADDING }}
-        name={activeFileSort.get("is_descending") ? "caret-up" : "caret-down"}
+        name={activeFileSort.is_descending ? "caret-up" : "caret-down"}
       />
     ) : undefined;
 
@@ -233,7 +228,14 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
       <Radio.Button
         value={name}
         style={{ background: isActive ? COLORS.ANTD_BG_BLUE_L : undefined }}
-        onClick={() => actions?.set_sorted_file_column(name)}
+        onClick={() =>
+          setSort({
+            column_name: name,
+            project_id,
+            path: current_path,
+            compute_server_id,
+          })
+        }
       >
         {display}
         {direction}
@@ -298,49 +300,6 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
-  function staleListingWarning() {
-    if (projectIsRunning || (directoryFiles?.length ?? 0) === 0) return;
-
-    return (
-      <Alert
-        type="warning"
-        banner
-        showIcon={false}
-        style={{ padding: FLYOUT_PADDING, margin: 0 }}
-        message={
-          <>
-            <Icon name="warning" />{" "}
-            <FormattedMessage
-              id="page.flyouts.files.stale-directory.message"
-              defaultMessage={"stale directory listing"}
-              description={"outdated information in a file directory listing"}
-            />
-          </>
-        }
-        description={
-          <FormattedMessage
-            id="page.flyouts.files.stale-directory.description"
-            defaultMessage={"To update, <A>start this project</A>."}
-            description={
-              "to update the outdated information in a file directory listing of a project"
-            }
-            values={{
-              A: (c) => (
-                <a
-                  onClick={() => {
-                    redux.getActions("projects").start_project(project_id);
-                  }}
-                >
-                  {c}
-                </a>
-              ),
-            }}
-          />
-        }
-      />
-    );
-  }
-
   function renderFileControls() {
     return (
       <div
@@ -359,6 +318,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
           getFile={getFile}
           mode="top"
           activeFile={activeFile}
+          publicFiles={publicFiles}
         />
         <FilesSelectButtons
           setMode={setMode}
@@ -463,7 +423,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
             <Space.Compact direction="horizontal" size="small">
               <Button
                 onClick={() => {
-                  actions?.open_directory(".snapshots");
+                  actions?.open_directory(SNAPSHOTS);
                   track("snapshots", {
                     action: "open",
                     where: "flyout-files",
@@ -474,6 +434,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
                 }
                 icon={<Icon name={"life-ring"} />}
               />
+              <CloneProject project_id={project_id} flyout />
             </Space.Compact>
           ) : undefined}
         </div>
@@ -486,7 +447,6 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
           borderBottom: FIX_BORDER,
         }}
       >
-        {staleListingWarning()}
         {activeFilterWarning()}
         {createFileIfNotExists()}
         {renderFileCreationError()}

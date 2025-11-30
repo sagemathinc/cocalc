@@ -2,9 +2,13 @@
 Execute code on a compute server.
 */
 
-import callProject from "@cocalc/server/projects/call";
+import { projectApiClient } from "@cocalc/conat/project/api";
+import { conat } from "@cocalc/backend/conat";
 import { getServer } from "./get-servers";
-import type { ExecOpts } from "@cocalc/util/db-schema/projects";
+import type {
+  ExecuteCodeOutput,
+  ExecuteCodeOptions,
+} from "@cocalc/util/types/execute-code";
 
 // Run exec
 export default async function exec({
@@ -14,18 +18,14 @@ export default async function exec({
 }: {
   account_id: string;
   id: number;
-  execOpts: Partial<ExecOpts>;
-}) {
+  execOpts: ExecuteCodeOptions;
+}): Promise<ExecuteCodeOutput> {
   const server = await getServer({ account_id, id });
-
-  return await callProject({
-    account_id,
+  const api = projectApiClient({
+    client: conat(),
+    compute_server_id: id,
     project_id: server.project_id,
-    mesg: {
-      ...execOpts,
-      event: "project_exec",
-      compute_server_id: id,
-      project_id: server.project_id,
-    },
+    timeout: execOpts.timeout ? execOpts.timeout * 1000 + 2000 : undefined,
   });
+  return await api.system.exec(execOpts);
 }

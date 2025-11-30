@@ -34,20 +34,16 @@ import { callback } from "awaiting";
 import type { MessageType } from "@cocalc/jupyter/zmq/types";
 import { jupyterSockets, type JupyterSockets } from "@cocalc/jupyter/zmq";
 import { EventEmitter } from "node:events";
-import { unlink } from "@cocalc/backend/misc/async-utils-node";
-import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
-import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import {
-  type BlobStoreInterface,
   CodeExecutionEmitterInterface,
   ExecOpts,
   JupyterKernelInterface,
   KernelInfo,
 } from "@cocalc/jupyter/types/project-interface";
+import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import { JupyterStore } from "@cocalc/jupyter/redux/store";
-import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
-import { retry_until_success, until } from "@cocalc/util/async-utils";
+import { until } from "@cocalc/util/async-utils";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 import { key_value_store } from "@cocalc/util/key-value-store";
 import {
@@ -59,7 +55,6 @@ import {
   original_path,
   path_split,
   uuid,
-  uint8ArrayToBase64,
 } from "@cocalc/util/misc";
 import { CodeExecutionEmitter } from "@cocalc/jupyter/execute/execute-code";
 import {
@@ -77,6 +72,7 @@ import launchJupyterKernelNoPool from "@cocalc/jupyter/kernel/launch-kernel";
 import { kernels } from "./kernels";
 import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
 import type { KernelParams } from "@cocalc/jupyter/types/kernel";
+import { type BackendState, type KernelState } from "@cocalc/jupyter/types";
 import { redux_name } from "@cocalc/util/redux/name";
 import { redux } from "@cocalc/jupyter/redux/app";
 import { VERSION } from "@cocalc/jupyter/kernel/version";
@@ -84,13 +80,8 @@ import type { NbconvertParams } from "@cocalc/util/jupyter/types";
 import type { Client } from "@cocalc/sync/client/types";
 import { getLogger } from "@cocalc/backend/logger";
 import { base64ToBuffer } from "@cocalc/util/base64";
-import { sha1 as misc_node_sha1 } from "@cocalc/backend/misc_node";
-import { join } from "path";
-import { readFile } from "fs/promises";
 
 const MAX_KERNEL_SPAWN_TIME = 120 * 1000;
-
-type State = "failed" | "off" | "spawning" | "starting" | "running" | "closed";
 
 const logger = getLogger("jupyter:kernel");
 
@@ -121,7 +112,7 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
 // the ipynb file, and this function creates the corresponding
 // actions and store, which make it possible to work with this
 // notebook.
-export async function initJupyterRedux(syncdb: SyncDB, client: Client) {
+export function initJupyterRedux(syncdb: SyncDB, client: Client) {
   const project_id = syncdb.project_id;
   if (project_id == null) {
     throw Error("project_id must be defined");
@@ -147,11 +138,10 @@ export async function initJupyterRedux(syncdb: SyncDB, client: Client) {
     // Having two at once basically results in things feeling hung.
     // This should never happen, but we ensure it
     // See https://github.com/sagemathinc/cocalc/issues/4331
-    await removeJupyterRedux(path, project_id);
+    removeJupyterRedux(path, project_id);
   }
   const store = redux.createStore(name, JupyterStore);
   const actions = redux.createActions(name, JupyterActions);
-
   actions._init(project_id, path, syncdb, store, client);
 
   syncdb.once("error", (err) =>
@@ -160,6 +150,8 @@ export async function initJupyterRedux(syncdb: SyncDB, client: Client) {
   syncdb.once("ready", () =>
     logger.debug("initJupyterRedux", path, "syncdb ready"),
   );
+
+  return { actions, store };
 }
 
 export async function getJupyterRedux(syncdb: SyncDB) {
@@ -171,14 +163,11 @@ export async function getJupyterRedux(syncdb: SyncDB) {
 
 // Remove the store/actions for a given Jupyter notebook,
 // and also close the kernel if it is running.
-export async function removeJupyterRedux(
-  path: string,
-  project_id: string,
-): Promise<void> {
+export function removeJupyterRedux(path: string, project_id: string): void {
   logger.debug("removeJupyterRedux", path);
   // if there is a kernel, close it
   try {
-    await kernels.get(path)?.close();
+    kernels.get(path)?.close();
   } catch (_err) {
     // ignore
   }
@@ -186,7 +175,7 @@ export async function removeJupyterRedux(
   const actions = redux.getActions(name);
   if (actions != null) {
     try {
-      await actions.close();
+      actions.close();
     } catch (err) {
       logger.debug(
         "removeJupyterRedux",
@@ -244,15 +233,15 @@ export class JupyterKernel
   private ulimit?: string;
   private _path: string;
   private _actions?: JupyterActions;
-  private _state: State;
+  private _state: BackendState;
   private _directory: string;
   private _filename: string;
   public _kernel?: SpawnedKernel;
   private _kernel_info?: KernelInfo;
   public _execute_code_queue: CodeExecutionEmitter[] = [];
   public sockets?: JupyterSockets;
-  private has_ensured_running: boolean = false;
-  private failedError: string = "";
+  public failedError: string = "";
+  private kernel_state: KernelState;
 
   constructor(
     name: string | undefined,
@@ -286,18 +275,24 @@ export class JupyterKernel
     dbg("done");
   }
 
+  isClosed = () => this._state == "closed";
+
   get_path = () => {
     return this._path;
   };
 
   // no-op if calling it doesn't change the state.
-  private setState = (state: State): void => {
+  private setState = (state: BackendState): void => {
     // state = 'off' --> 'spawning' --> 'starting' --> 'running' --> 'closed'
     //             'failed'
+    // In particular, there is no way to have the underlying jupyter
+    // kernel restart without having to create a new Kernel instance.  This
+    // instance manages one single lifecycle as above only.
     if (this._state == state) return;
     this._state = state;
     this.emit("state", this._state);
     this.emit(this._state); // we *SHOULD* use this everywhere, not above.
+    this._actions?.syncdb?.set({ type: "settings", backend_state: state });
   };
 
   private setFailed = (error: string): void => {
@@ -308,6 +303,16 @@ export class JupyterKernel
 
   get_state = (): string => {
     return this._state;
+  };
+
+  getStatus = (): {
+    backend_state: BackendState;
+    kernel_state: KernelState;
+  } => {
+    return {
+      backend_state: this._state ?? "init",
+      kernel_state: this.kernel_state ?? "idle",
+    };
   };
 
   private spawnedAlready = false;
@@ -354,7 +359,7 @@ export class JupyterKernel
         dbg("setting special environment for Sage kernels");
         opts.env = merge(opts.env, SAGE_JUPYTER_ENV);
       }
-    } catch (err) {
+    } catch {
       dbg(`No kernelData available for ${this.name}`);
     }
 
@@ -390,7 +395,7 @@ export class JupyterKernel
     } catch (err) {
       dbg(`ERROR spawning kernel - ${err}, ${err.stack}`);
       // @ts-ignore
-      if (this._state == "closed") {
+      if (this.isClosed()) {
         throw Error("closed");
       }
       // console.trace(err);
@@ -404,7 +409,7 @@ export class JupyterKernel
     return this._kernel;
   };
 
-  get_connection_file = (): string | undefined => {
+  getConnectionFile = (): string | undefined => {
     return this._kernel?.connectionFile;
   };
 
@@ -511,7 +516,12 @@ export class JupyterKernel
     sockets.on("iopub", (mesg) => {
       this.setState("running");
       if (mesg.content != null && mesg.content.execution_state != null) {
+        this.kernel_state = mesg.content.execution_state;
         this.emit("execution_state", mesg.content.execution_state);
+        this._actions?.syncdb?.set({
+          type: "settings",
+          kernel_state: mesg.content.execution_state,
+        });
       }
 
       if (mesg.content?.comm_id != null) {
@@ -556,6 +566,7 @@ export class JupyterKernel
 
   // Signal should be a string like "SIGINT", "SIGKILL".
   // See https://nodejs.org/api/process.html#process_process_kill_pid_signal
+  // this does NOT raise an error.
   signal = (signal: string): void => {
     const dbg = this.dbg("signal");
     const pid = this.pid();
@@ -566,9 +577,7 @@ export class JupyterKernel
     try {
       process.kill(-pid, signal); // negative to signal the process group
       this.clear_execute_code_queue();
-    } catch (err) {
-      dbg(`error: ${err}`);
-    }
+    } catch {}
   };
 
   close = (): void => {
@@ -627,29 +636,61 @@ export class JupyterKernel
     }
   };
 
-  ensure_running = reuseInFlight(async (): Promise<void> => {
-    const dbg = this.dbg("ensure_running");
+  // either ensures the kernel is in the running state, or
+  // throws an error.
+  private hasEnsuredRunning: boolean = false;
+  ensureRunning = reuseInFlight(async (): Promise<void> => {
+    if (this.hasEnsuredRunning) {
+      return;
+    }
+    const dbg = this.dbg("ensureRunning");
     dbg(this._state);
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       throw Error("closed so not possible to ensure running");
     }
     if (this._state == "running") {
       return;
     }
-    dbg("spawning");
     await this.spawn();
-    if (this.get_state() != "starting" && this.get_state() != "running") {
-      return;
+    // spawning should get us to the 'starting' state, or something went wrong.
+    let state = this.get_state();
+    if (state != "starting" && state != "running") {
+      throw Error(this.failedError ?? "unable to spawn kernel");
     }
     if (this._kernel?.initCode != null) {
       for (const code of this._kernel?.initCode ?? []) {
         dbg("initCode ", code);
+        // this queues the code up for when the kernel is actually running...
         this.execute_code({ code }, true);
       }
     }
-    if (!this.has_ensured_running) {
-      this.has_ensured_running = true;
-    }
+    await until(async () => {
+      // this state changes to 'running' when we receive an iopub message.
+      // trying to do anything before that happens just results in a completely broken kernel.
+      const state = this.get_state();
+      if (state == "closed" || state == "running" || this.sockets == null) {
+        return true;
+      }
+      const message = {
+        parent_header: {},
+        metadata: {},
+        channel: "shell",
+        content: {},
+        header: {
+          msg_id: uuid(),
+          username: "",
+          session: "",
+          msg_type: "kernel_info_request" as MessageType,
+          version: VERSION,
+          date: new Date().toISOString(),
+        },
+      };
+
+      // Send the message
+      this.sockets.send(message);
+      return false;
+    });
+    this.hasEnsuredRunning = true;
   });
 
   execute_code = (
@@ -661,7 +702,7 @@ export class JupyterKernel
       opts.halt_on_error = true;
     }
     if (this._state === "closed") {
-      throw Error("closed -- kernel -- execute_code");
+      throw Error("execute_code: jupyter kernel is closed");
     }
     const code = new CodeExecutionEmitter(this, opts);
     if (skipToFront) {
@@ -727,7 +768,7 @@ export class JupyterKernel
     }
     dbg(`queue has ${n} items; ensure kernel running`);
     try {
-      await this.ensure_running();
+      await this.ensureRunning();
       await this._execute_code_queue[0].go();
     } catch (err) {
       dbg(`WARNING: error running kernel -- ${err}`);
@@ -742,7 +783,7 @@ export class JupyterKernel
     const dbg = this.dbg("_clear_execute_code_queue");
     // ensure no future queued up evaluation occurs (currently running
     // one will complete and new executions could happen)
-    if (this._state === "closed") {
+    if (this.isClosed()) {
       dbg("no op since state is closed");
       return;
     }
@@ -764,7 +805,7 @@ export class JupyterKernel
   // the terminal and nbgrader and the stateless api.
   execute_code_now = async (opts: ExecOpts): Promise<object[]> => {
     this.dbg("execute_code_now")();
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       throw Error("closed");
     }
     if (this.failedError) {
@@ -782,81 +823,11 @@ export class JupyterKernel
     return v;
   };
 
-  private saveBlob = (data: string, type: string) => {
-    const blobs = this._actions?.blobs;
-    if (blobs == null) {
-      throw Error("blob store not available");
-    }
-    const buf: Buffer = !type.startsWith("text/")
-      ? Buffer.from(data, "base64")
-      : Buffer.from(data);
-
-    const sha1: string = misc_node_sha1(buf);
-    blobs.set(sha1, buf);
-    return sha1;
-  };
-
-  process_output = (content: any): void => {
-    if (this._state === "closed") {
-      return;
-    }
-    const dbg = this.dbg("process_output");
-    if (content.data == null) {
-      // No data -- https://github.com/sagemathinc/cocalc/issues/6665
-      // NO do not do this sort of thing.  This is exactly the sort of situation where
-      // content could be very large, and JSON.stringify could use huge amounts of memory.
-      // If you need to see this for debugging, uncomment it.
-      // dbg(trunc(JSON.stringify(content), 300));
-      // todo: FOR now -- later may remove large stdout, stderr, etc...
-      // dbg("no data, so nothing to do");
-      return;
-    }
-
-    remove_redundant_reps(content.data);
-
-    const saveBlob = (data, type) => {
-      try {
-        return this.saveBlob(data, type);
-      } catch (err) {
-        dbg(`WARNING: Jupyter blob store not working -- ${err}`);
-        // i think it'll just send the large data on in the usual way instead
-        // via the output, instead of using the blob store.  It's probably just
-        // less efficient.
-      }
-    };
-
-    let type: string;
-    for (type of JUPYTER_MIMETYPES) {
-      if (content.data[type] == null) {
-        continue;
-      }
-      if (
-        type.split("/")[0] === "image" ||
-        type === "application/pdf" ||
-        type === "text/html"
-      ) {
-        // Store all images and PDF and text/html in a binary blob store, so we don't have
-        // to involve it in realtime sync.  It tends to be large, etc.
-        const sha1 = saveBlob(content.data[type], type);
-        if (type == "text/html") {
-          // NOTE: in general, this may or may not get rendered as an iframe --
-          // we use iframe for backward compatibility.
-          content.data["iframe"] = sha1;
-          delete content.data["text/html"];
-        } else {
-          content.data[type] = sha1;
-        }
-      }
-    }
-  };
-
   call = async (msg_type: string, content?: any): Promise<any> => {
     this.dbg("call")(msg_type);
-    if (!this.has_ensured_running) {
-      await this.ensure_running();
-    }
+    await this.ensureRunning();
     // Do a paranoid double check anyways...
-    if (this.sockets == null || this._state == "closed") {
+    if (this.sockets == null || this.isClosed()) {
       throw Error("not running, so can't call");
     }
 
@@ -973,80 +944,8 @@ export class JupyterKernel
     },
   );
 
-  load_attachment = async (path: string): Promise<string> => {
-    const dbg = this.dbg("load_attachment");
-    dbg(`path='${path}'`);
-    if (path[0] !== "/") {
-      path = join(process.env.HOME ?? "", path);
-    }
-    const f = async (): Promise<string> => {
-      const bs = this.get_blob_store();
-      if (bs == null) {
-        throw new Error("BlobStore not available");
-      }
-      return await bs.readFile(path);
-    };
-    try {
-      return await retry_until_success({
-        f,
-        max_time: 30000,
-      });
-    } catch (err) {
-      unlink(path); // TODO: think through again if this is the right thing to do.
-      throw err;
-    }
-  };
-
-  // This is called by project-actions when exporting the notebook
-  // to an ipynb file:
-  get_blob_store = (): BlobStoreInterface | undefined => {
-    const blobs = this._actions?.blobs;
-    if (blobs == null) {
-      return;
-    }
-    const t = new TextDecoder();
-    return {
-      getBase64: (sha1: string): string | undefined => {
-        const buf = blobs.get(sha1);
-        if (buf === undefined) {
-          return buf;
-        }
-        return uint8ArrayToBase64(buf);
-      },
-
-      getString: (sha1: string): string | undefined => {
-        const buf = blobs.get(sha1);
-        if (buf === undefined) {
-          return buf;
-        }
-        return t.decode(buf);
-      },
-
-      readFile: async (path: string): Promise<string> => {
-        const buf = await readFile(path);
-        const sha1: string = misc_node_sha1(buf);
-        blobs.set(sha1, buf);
-        return sha1;
-      },
-
-      saveBase64: (data: string) => {
-        const buf = Buffer.from(data, "base64");
-        const sha1: string = misc_node_sha1(buf);
-        blobs.set(sha1, buf);
-        return sha1;
-      },
-    };
-  };
-
   process_comm_message_from_kernel = (mesg): void => {
-    if (this._actions == null) {
-      return;
-    }
-    const dbg = this.dbg("process_comm_message_from_kernel");
-    // This can be HUGE so don't print out the entire message; e.g., it could contain
-    // massive binary data!
-    dbg(mesg.header);
-    this._actions.process_comm_message_from_kernel(mesg);
+    this._actions?.process_comm_message_from_kernel(mesg);
   };
 
   ipywidgetsGetBuffer = (
@@ -1063,7 +962,7 @@ export class JupyterKernel
     );
   };
 
-  send_comm_message_to_kernel = ({
+  sendCommMessageToKernel = ({
     msg_id,
     comm_id,
     target_name,
@@ -1081,7 +980,7 @@ export class JupyterKernel
     if (this.sockets == null) {
       throw Error("sockets not initialized");
     }
-    const dbg = this.dbg("send_comm_message_to_kernel");
+    const dbg = this.dbg("sendCommMessageToKernel");
     // this is HUGE
     // dbg({ msg_id, comm_id, target_name, data, buffers64 });
     if (buffers64 != null && buffers64.length > 0) {

@@ -5,8 +5,6 @@
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import Link from "next/link";
-// import ExternalLink from "./external-link";
-// import rawURL from "lib/share/raw-url";
 import downloadURL from "lib/share/download-url";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import SiteName from "./site-name";
@@ -83,31 +81,6 @@ export default function PathActions({
       </a>,
     );
   }
-  /*
-  if (!url && include("raw")) {
-    v.push(
-      <ExternalLink key="raw" href={rawURL({ id, path, relativePath })}>
-        Raw
-      </ExternalLink>,
-    );
-  }
-  if (!url && include("embed")) {
-    v.push(
-      <Link
-        key="embed"
-        href={`/share/public_paths/embed/${id}${
-          relativePath ? "/" + relativePath : ""
-        }`}
-      >
-        Embed
-      </Link>,
-    );
-  }
-  */
 
-  return (
-    <div style={{ display: "flex" }}>
-      {r_join(v, <div style={{ width: "10px" }} />)}
-    </div>
-  );
+  return <div>{r_join(v, <div style={{ width: "10px" }} />)}</div>;
 }

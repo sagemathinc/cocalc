@@ -54,6 +54,7 @@ export const FOCUSED_STYLE: CSSProperties = {
 } as const;
 
 const PADDING_TOP = 6;
+const MIN_INPUT_HEIGHT = IS_MOBILE ? 44 : 38;
 
 const MENTION_CSS =
   "color:#7289da; background:rgba(114,137,218,.1); border-radius: 3px; padding: 0 2px;";
@@ -104,6 +105,9 @@ interface Props {
   refresh?: any; // refresh codemirror if this changes
   compact?: boolean;
   dirtyRef?: MutableRefObject<boolean>;
+  // When true, grow/shrink the editor height up to a cap. Defaults to false to
+  // preserve fixed-height consumers (e.g., task editor).
+  autoGrow?: boolean;
 }
 
 export function MarkdownInput(props: Props) {
@@ -147,6 +151,7 @@ export function MarkdownInput(props: Props) {
     submitMentionsRef,
     unregisterEditor,
     value,
+    autoGrow = false,
   } = props;
   const { actions, isVisible } = useFrameContext();
   const cm = useRef<CodeMirror.Editor | undefined>(undefined);
@@ -187,6 +192,70 @@ export function MarkdownInput(props: Props) {
 
   const mentionableUsers = useMentionableUsers();
 
+  const parseHeightPx = (value?: string): number | null => {
+    if (!value) return null;
+    const n = parseFloat(value);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+
+  const isAutoGrow = autoGrow || height === "auto";
+
+  const initialMinHeight = useMemo(() => {
+    const parsed = parseHeightPx(height);
+    if (parsed != null && parsed > 0 && parsed < 2000) {
+      return Math.max(MIN_INPUT_HEIGHT, parsed);
+    }
+    return MIN_INPUT_HEIGHT;
+  }, [height]);
+
+  const [editorHeight, setEditorHeight] = useState<number>(initialMinHeight);
+  const maxHeightRef = useRef<number>(
+    Math.max(
+      initialMinHeight,
+      Math.round(
+        typeof window !== "undefined"
+          ? Math.max(window.innerHeight * 0.5, initialMinHeight * 2)
+          : initialMinHeight * 2,
+      ),
+    ),
+  );
+
+  const refreshMaxHeight = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const next = Math.max(
+      initialMinHeight,
+      Math.round(Math.max(window.innerHeight * 0.5, initialMinHeight * 2)),
+    );
+    maxHeightRef.current = next;
+  }, [initialMinHeight]);
+
+  const adjustHeight = useCallback(() => {
+    if (!isAutoGrow) return;
+    if (!cm.current) return;
+    const doc = cm.current.getDoc();
+    const lineCount = Math.max(1, doc?.lineCount() ?? 1);
+    const lineHeight =
+      typeof cm.current.defaultTextHeight === "function"
+        ? cm.current.defaultTextHeight()
+        : 20;
+    refreshMaxHeight();
+    const maxHeight = maxHeightRef.current;
+    const desired =
+      lineCount * lineHeight + PADDING_TOP * 2 + (IS_MOBILE ? 6 : 4);
+    const clamped = Math.min(
+      maxHeight,
+      Math.max(initialMinHeight, Math.round(desired)),
+    );
+    cm.current.setSize(null, clamped);
+    const wrapper = cm.current.getWrapperElement();
+    if (wrapper) {
+      wrapper.style.height = `${clamped}px`;
+      wrapper.style.maxHeight = `${maxHeight}px`;
+      wrapper.style.minHeight = `${initialMinHeight}px`;
+    }
+    setEditorHeight((prev) => (prev !== clamped ? clamped : prev));
+  }, [initialMinHeight, refreshMaxHeight, isAutoGrow]);
+
   const focus = useCallback(() => {
     if (isFocusedRef.current) return; // already focused
     const ed = cm.current;
@@ -214,6 +283,18 @@ export function MarkdownInput(props: Props) {
   useEffect(() => {
     cm.current?.refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    const onResize = () => adjustHeight();
+    if (isAutoGrow && typeof window !== "undefined") {
+      window.addEventListener("resize", onResize);
+    }
+    return () => {
+      if (isAutoGrow && typeof window !== "undefined") {
+        window.removeEventListener("resize", onResize);
+      }
+    };
+  }, [adjustHeight, isAutoGrow]);
 
   useEffect(() => {
     // initialize the codemirror editor
@@ -294,6 +375,9 @@ export function MarkdownInput(props: Props) {
     // (window as any).cm = cm.current;
     cm.current.setValue(value ?? "");
     cm.current.on("change", saveValue);
+    if (isAutoGrow) {
+      cm.current.on("change", adjustHeight);
+    }
 
     if (dirtyRef != null) {
       cm.current.on("change", () => {
@@ -359,13 +443,23 @@ export function MarkdownInput(props: Props) {
     }
 
     const e: any = cm.current.getWrapperElement();
-    let s = `height:${height}; font-family:sans-serif !important;`;
+    const fixedHeight =
+      !isAutoGrow && height && height !== "auto" ? height : undefined;
+    const baseHeight = fixedHeight ?? `${editorHeight}px`;
+    let s = `height:${baseHeight}; font-family:sans-serif !important;`;
     if (compact) {
       s += "padding:0";
     } else {
       s += !options.lineNumbers ? `padding:${PADDING_TOP}px 12px` : "";
     }
+    if (!isAutoGrow) {
+      const h = fixedHeight ?? `${initialMinHeight}px`;
+      s += `;min-height:${h};max-height:${h};overflow:auto;`;
+    }
     e.setAttribute("style", s);
+    if (isAutoGrow) {
+      adjustHeight();
+    }
 
     if (enableMentions) {
       cm.current.on("change", (cm, changeObj) => {
@@ -476,6 +570,17 @@ export function MarkdownInput(props: Props) {
     // clean up
     return () => {
       if (cm.current == null) return;
+      cm.current.off("change", saveValue);
+      if (isAutoGrow) {
+        cm.current.off("change", adjustHeight);
+      }
+      cm.current.off("paste", handle_paste_event as any);
+      if (onBlur) {
+        cm.current.off("blur", onBlur as any);
+      }
+      if (onFocus) {
+        cm.current.off("focus", onFocus as any);
+      }
       unregisterEditor?.();
       cm.current.getWrapperElement().remove();
       cm.current = undefined;
@@ -749,7 +854,10 @@ export function MarkdownInput(props: Props) {
     if (project_id == null) {
       throw Error("project_id and path must be set if enableMentions is set.");
     }
-    const v = mentionableUsers(undefined, { avatarLLMSize: 16 });
+    const v = mentionableUsers(undefined, {
+      avatarLLMSize: 20,
+      avatarUserSize: 20,
+    });
     if (v.length == 0) {
       // nobody to mention (e.g., admin doesn't have this)
       return;
@@ -840,9 +948,8 @@ export function MarkdownInput(props: Props) {
         onCancel={close_mentions}
         onSelect={(account_id) => {
           if (mentions_cursor_ref.current == null) return;
-          const text =
-            "@" +
-            trunc_middle(redux.getStore("users").get_name(account_id), 64);
+          const name = redux.getStore("users").get_name(account_id) ?? account_id;
+          const text = "@" + trunc_middle(name, 64);
           if (cm.current == null) return;
           const from = mentions_cursor_ref.current.from;
           const to = cm.current.getCursor();

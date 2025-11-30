@@ -6,7 +6,6 @@
 import { Button, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { TourName } from "@cocalc/frontend/account/tours";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -24,6 +23,8 @@ import { FIXED_TABS_BG_COLOR } from "../activity-bar-tabs";
 import { ActiveHeader } from "./active-header";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log-header";
+import DiskUsage from "@cocalc/frontend/project/disk-usage/disk-usage";
+import { lite } from "@cocalc/frontend/lite";
 
 const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
 
@@ -170,7 +171,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
       case "files":
         return (
           <div style={{ width: "100%" }}>
-            <div>
+            <div style={{ display: "flex" }}>
               <SelectComputeServerForFileExplorer
                 size="small"
                 project_id={project_id}
@@ -187,6 +188,12 @@ export function FlyoutHeader(_: Readonly<Props>) {
                 project_id={project_id}
                 className={"cc-project-flyout-path-navigator"}
               />
+              {!lite && (
+                <DiskUsage
+                  project_id={project_id}
+                  style={{ marginTop: "-5px" }}
+                />
+              )}
             </div>
             {!!compute_server_id && (
               <div style={{ fontSize: "10pt" }}>

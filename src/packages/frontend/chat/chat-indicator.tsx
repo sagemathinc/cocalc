@@ -9,7 +9,7 @@
 // this is... so for now it still sort of toggles.  For now things
 // do work properly via a hack in close_chat in project_actions.
 
-import { filename_extension } from "@cocalc/util/misc";
+import { isChatPath } from "./paths";
 import { Button, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { useMemo } from "react";
@@ -20,6 +20,7 @@ import { HiddenXS } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
 import track from "@cocalc/frontend/user-tracking";
 import { labels } from "../i18n";
+import { lite } from "@cocalc/frontend/lite";
 
 export type ChatState =
   | "" // not opened (also undefined counts as not open)
@@ -51,14 +52,15 @@ export function ChatIndicator({ project_id, path, chatState }: Props) {
     ...CHAT_INDICATOR_STYLE,
     ...{ display: "flex" },
   };
-
   return (
     <div style={style}>
-      <UsersViewing
-        project_id={project_id}
-        path={path}
-        style={USERS_VIEWING_STYLE}
-      />
+      {!lite && (
+        <UsersViewing
+          project_id={project_id}
+          path={path}
+          style={USERS_VIEWING_STYLE}
+        />
+      )}
       <ChatButton project_id={project_id} path={path} chatState={chatState} />
     </div>
   );
@@ -89,7 +91,7 @@ function ChatButton({ project_id, path, chatState }) {
     [fileUse, project_id, path],
   );
 
-  if (filename_extension(path) === "sage-chat") {
+  if (isChatPath(path)) {
     // Special case: do not show side chat for chatrooms
     return null;
   }

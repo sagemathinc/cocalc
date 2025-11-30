@@ -6,7 +6,6 @@
 import { List, Map, Set } from "immutable";
 import { fromPairs, isEmpty } from "lodash";
 import LRU from "lru-cache";
-
 import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import { StudentProjectFunctionality } from "@cocalc/frontend/course/configuration/customize-student-project-functionality";
 import { is_custom_image } from "@cocalc/frontend/custom-software/util";
@@ -33,6 +32,7 @@ import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import { GPU, SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { site_license_quota } from "@cocalc/util/upgrades/quota";
 import { Upgrades } from "@cocalc/util/upgrades/types";
+import { lite } from "@cocalc/frontend/lite";
 
 export type UserGroup = "admin" | "owner" | "collaborator" | "public";
 
@@ -129,8 +129,25 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   public get_state(project_id: string): string | undefined {
+    if (lite) return "running";
     return this.getIn(["project_map", project_id, "state", "state"]);
   }
+
+  getRunningProjects = (): string[] => {
+    return this.getProjectsWithState("running");
+  };
+
+  getProjectsWithState = (state): string[] => {
+    const project_map = this.get("project_map");
+    const v: string[] = [];
+    if (project_map == null) return v;
+    for (const [project_id, project] of project_map) {
+      if (project.getIn(["state", "state"]) == state) {
+        v.push(project_id);
+      }
+    }
+    return v;
+  };
 
   public get_description(project_id: string): string {
     return (
@@ -247,6 +264,9 @@ export class ProjectsStore extends Store<ProjectsState> {
   'admin' - user is not owner/collaborator but is an admin, hence has rights.
   */
   public get_my_group(project_id: string): UserGroup | undefined {
+    if (lite) {
+      return "owner";
+    }
     const account_store = redux.getStore("account");
     if (account_store == null) {
       return;
@@ -301,17 +321,15 @@ export class ProjectsStore extends Store<ProjectsState> {
     return this.get("open_projects").includes(project_id);
   }
 
-  public wait_until_project_is_open(
+  waitUntilProjectIsOpen = async (
     project_id: string,
     timeout: number, // timeout in seconds (NOT milliseconds!)
-    cb: (err?) => void,
-  ): void {
-    this.wait({
+  ) => {
+    await this.async_wait({
       until: () => this.is_project_open(project_id),
       timeout,
-      cb,
     });
-  }
+  };
 
   public wait_until_project_exists(
     project_id: string,

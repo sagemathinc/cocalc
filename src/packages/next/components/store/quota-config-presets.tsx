@@ -4,9 +4,7 @@
  */
 
 import { ReactNode } from "react";
-
 import type { IconName } from "@cocalc/frontend/components/icon";
-
 import { Uptime } from "@cocalc/util/consts/site-license";
 import { MAX_DISK_GB } from "@cocalc/util/upgrades/consts";
 import { Paragraph } from "components/misc";

@@ -1,7 +1,17 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
-  preset: "ts-jest",
+  preset: "ts-jest/presets/default-esm",
   testEnvironment: "node",
   setupFiles: ["./test/setup.js"], // Path to your setup file
   testMatch: ["**/?(*.)+(spec|test).ts?(x)"],
+  transformIgnorePatterns: [
+    "/node_modules/(?!micro-key-producer|@noble/curves|@noble/hashes)",
+  ],
+  transform: {
+    "^.+\\.(ts|tsx)$": ["ts-jest", { useESM: true }],
+  },
+  moduleNameMapper: {
+    "^micro-key-producer/(.*)$": "<rootDir>/test/__mocks__/micro-key-producer/$1",
+    "^package-directory$": "<rootDir>/test/__mocks__/package-directory.js",
+  },
 };

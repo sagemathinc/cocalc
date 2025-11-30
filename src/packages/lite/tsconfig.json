@@ -1,0 +1,25 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "dist",
+    "lib": ["ES2021", "dom"],
+    "target": "ES2021",
+    "baseUrl": ".",
+    "paths": {
+      "@langchain/core/*": ["../ai/node_modules/@langchain/core/dist/*"],
+      "@cocalc/chat": ["../chat/dist/index"],
+      "@cocalc/chat/*": ["../chat/dist/*"]
+    }
+  },
+  "exclude": ["dist", "node_modules", "build"],
+  "references": [
+    { "path": "../ai" },
+    { "path": "../backend" },
+    { "path": "../chat" },
+    { "path": "../conat" },
+    { "path": "../project" },
+    { "path": "../static" },
+    { "path": "../util" }
+  ]
+}

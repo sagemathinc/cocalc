@@ -80,6 +80,7 @@ export const EXTENSIONS = [
   "rnw",
   "rst",
   "rtex",
+  "chat",
   "sage-chat",
   "sage",
   "sagews",

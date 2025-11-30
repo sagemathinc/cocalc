@@ -11,35 +11,20 @@ interface Props {
   actions: TimeTravelActions;
   disabled?: boolean;
   hasFullHistory?: boolean;
-  loadedLegacyHistory?: boolean;
-  legacyHistoryExists?: boolean;
 }
 
 export function LoadMoreHistory({
   actions,
   hasFullHistory,
-  loadedLegacyHistory,
-  legacyHistoryExists,
 }: Props) {
   const [loading, setLoading] = useState<boolean>(false);
 
-  let disabled = false;
-  let f;
-  if (hasFullHistory && (!legacyHistoryExists || loadedLegacyHistory)) {
-    // no need for the button
-    disabled = true;
-    f = () => {};
-  } else if (!hasFullHistory) {
-    f = async () => {
-      await actions.loadMoreHistory();
-    };
-  } else if (!legacyHistoryExists || loadedLegacyHistory) {
-    return null;
-  } else {
-    f = async () => {
-      await actions.loadLegacyHistory();
-    };
-  }
+  const disabled = !!hasFullHistory;
+  const f = disabled
+    ? () => {}
+    : async () => {
+        await actions.loadMoreHistory();
+      };
 
   return (
     <>

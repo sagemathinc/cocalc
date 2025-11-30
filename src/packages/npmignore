@@ -1,5 +1,6 @@
 tsconfig.tsbuildinfo
 .coffee
+*.chat
 *.term
 *.term.init
 *.sage-chat

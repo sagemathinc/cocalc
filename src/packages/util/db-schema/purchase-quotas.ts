@@ -41,6 +41,7 @@ const GOOGLE_AI_COLOR = "#ff4d4f";
 const ANTHROPIC_COLOR = "#181818";
 const OPENAI_COLOR = "#10a37f";
 const MISTRALAI_COLOR = "#ff7000";
+const CODEX_COLOR = "#0b8ce3";
 
 const GPT_TURBO_128k: Spec = {
   display: "OpenAI GPT-4 Turbo 128k",
@@ -137,6 +138,12 @@ const GPT_5_MINI_8K: Spec = {
 const GPT_5_MINI_128k: Spec = {
   ...GPT_5_MINI_8K,
   display: "OpenAI GPT-5 Mini 128k",
+} as const;
+
+const CODEX_AGENT: Spec = {
+  display: "OpenAI Codex Agent",
+  color: CODEX_COLOR,
+  category: "ai",
 } as const;
 
 // NOTE: all-quotas-config.tsx will automatically filter out those, which are free or not selectable by the user
@@ -254,6 +261,7 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-gpt-5": GPT_5_128k,
   "openai-gpt-5-mini-8k": GPT_5_MINI_8K,
   "openai-gpt-5-mini": GPT_5_MINI_128k,
+  "openai-codex-agent": CODEX_AGENT,
   "google-text-bison-001": {
     display: "Google Palm 2 (Text)",
     color: GOOGLE_AI_COLOR,

@@ -14,3 +14,9 @@ register_file_editor({
   editor: async () => await import("./editor"),
   actions: async () => await import("./actions"),
 });
+
+register_file_editor({
+  ext: "chat",
+  editor: async () => await import("./editor"),
+  actions: async () => await import("./actions"),
+});

@@ -19,56 +19,30 @@ EVENTS:
 - ... TODO
 */
 
-const USE_CONAT = true;
-
-/* OFFLINE_THRESH_S - If the client becomes disconnected from
-   the backend for more than this long then---on reconnect---do
-   extra work to ensure that all snapshots are up to date (in
-   case snapshots were made when we were offline), and mark the
-   sent field of patches that weren't saved.   I.e., we rebase
-   all offline changes. */
-// const OFFLINE_THRESH_S = 5 * 60; // 5 minutes.
-
-/* How often the local hub will autosave this file to disk if
-   it has it open and there are unsaved changes.  This is very
-   important since it ensures that a user that edits a file but
-   doesn't click "Save" and closes their browser (right after
-   their edits have gone to the database), still has their
-   file saved to disk soon.  This is important, e.g., for homework
-   getting collected and not missing the last few changes.  It turns
-   out this is what people expect.
-   Set to 0 to disable. (But don't do that.) */
-const FILE_SERVER_AUTOSAVE_S = 45;
-// const FILE_SERVER_AUTOSAVE_S = 5;
-
 // How big of files we allow users to open using syncstrings.
 const MAX_FILE_SIZE_MB = 32;
-
-// How frequently to check if file is or is not read only.
-// The filesystem watcher is NOT sufficient for this, because
-// it is NOT triggered on permissions changes. Thus we must
-// poll for read only status periodically, unfortunately.
-const READ_ONLY_CHECK_INTERVAL_MS = 7500;
 
 // This parameter determines throttling when broadcasting cursor position
 // updates.   Make this larger to reduce bandwidth at the expense of making
 // cursors less responsive.
-const CURSOR_THROTTLE_MS = 750;
+const CURSOR_THROTTLE_MS = 150;
 
-// NATS is much faster and can handle load, and cursors only uses pub/sub
-const CURSOR_THROTTLE_NATS_MS = 150;
+// If file does not exist for this long, then syncdoc emits a 'deleted' event.
+export const DELETED_THRESHOLD = 2000;
+export const DELETED_CHECK_INTERVAL = 750;
+export const WATCH_RECREATE_WAIT = 3000;
 
-// Ignore file changes for this long after save to disk.
-const RECENT_SAVE_TO_DISK_MS = 2000;
-
-const PARALLEL_INIT = true;
+// Length of time file is locked for reading (so that only
+// one client reads it at a time), very first time reading it:
+const FIRST_READ_LOCK_TIMEOUT = 2000;
 
 import {
   COMPUTE_THRESH_MS,
   COMPUTER_SERVER_CURSOR_TYPE,
   decodeUUIDtoNum,
-  SYNCDB_PARAMS as COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS,
 } from "@cocalc/util/compute/manager";
+
+const STAT_DEBOUNCE = 10000;
 
 import { DEFAULT_SNAPSHOT_INTERVAL } from "@cocalc/util/db-schema/syncstring-schema";
 
@@ -80,17 +54,11 @@ import {
   callback2,
   cancel_scheduled,
   once,
-  retry_until_success,
-  reuse_in_flight_methods,
   until,
 } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
 import {
-  auxFileToOriginal,
-  assertDefined,
   close,
-  endswith,
-  field_cmp,
   filename_extension,
   hash_string,
   keys,
@@ -104,21 +72,37 @@ import { debounce, throttle } from "lodash";
 import { Evaluator } from "./evaluator";
 import { HistoryEntry, HistoryExportOptions, export_history } from "./export";
 import { IpywidgetsState } from "./ipywidgets-state";
-import { SortedPatchList } from "./sorted-patch-list";
+import {
+  Session as PatchflowSession,
+  type DocCodec,
+  type PatchEnvelope,
+  type PatchStore as PatchflowPatchStore,
+  type PresenceAdapter as PatchflowPresenceAdapter,
+} from "patchflow";
 import type {
   Client,
   CompressedPatch,
   DocType,
   Document,
-  FileWatcher,
   Patch,
 } from "./types";
 import { isTestClient, patch_cmp } from "./util";
-import { CONAT_OPEN_FILE_TOUCH_INTERVAL } from "@cocalc/util/conat";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
-import { LegacyHistory } from "./legacy";
+import { type Filesystem, type Stats } from "@cocalc/conat/files/fs";
+import { type WatchIterator } from "@cocalc/conat/files/watch";
 import { getLogger } from "@cocalc/conat/client";
+import * as remote from "./remote";
+import { DiffMatchPatch, decompressPatch } from "@cocalc/util/dmp";
+
+// this is used specifically for loading from disk, where the patch
+// explaining the last change on disk gets merged into the live version
+// of the doc, so there is likely to difficulty matching, but we
+// very much don't want to discard the changes:
+const dmpFileWatcher = new DiffMatchPatch({
+  matchThreshold: 1,
+  diffTimeout: 0.5,
+});
 
 const DEBUG = false;
 
@@ -129,6 +113,9 @@ export interface SyncOpts0 {
   project_id: string;
   path: string;
   client: Client;
+  fs: Filesystem;
+
+  compute_server_id?: number;
   patch_interval?: number;
 
   // file_use_interval defaults to 60000.
@@ -151,6 +138,26 @@ export interface SyncOpts0 {
 
   // which data/changefeed server to use
   data_server?: DataServer;
+
+  // if true, do not implicitly save on commit.  This is very
+  // useful for unit testing to easily simulate offline state.
+  noAutosave?: boolean;
+
+  // if true, never saves to disk or loads from disk -- this is NOT
+  // ephemeral -- the history is tracked in the conat database!
+  noSaveToDisk?: boolean;
+
+  // optional timeout for how long to wait from when a file is
+  // deleted until emiting a 'deleted' event.
+  deletedThreshold?: number;
+  deletedCheckInterval?: number;
+  // how long to wait before trying to recreate a watch -- this mainly
+  // matters in cases when the file is deleted and the client ignores
+  // the 'deleted' event.
+  watchRecreateWait?: number;
+
+  watchDebounce?: number;
+  firstReadLockTimeout?: number;
 }
 
 export interface SyncOpts extends SyncOpts0 {
@@ -172,6 +179,11 @@ const logger = getLogger("sync-doc");
 logger.debug("init");
 
 export class SyncDoc extends EventEmitter {
+  static events = new EventEmitter();
+  static lite = false;
+
+  public readonly opts: SyncOpts;
+  public readonly compute_server_id: number;
   public readonly project_id: string; // project_id that contains the doc
   public readonly path: string; // path of the file corresponding to the doc
   private string_id: string;
@@ -182,12 +194,6 @@ export class SyncDoc extends EventEmitter {
 
   // Throttling of incoming upstream patches from project to client.
   private patch_interval: number = 250;
-
-  // This is what's actually output by setInterval -- it's
-  // not an amount of time.
-  private fileserver_autosave_timer: number = 0;
-
-  private read_only_timer: number = 0;
 
   // throttling of change events -- e.g., is useful for course
   // editor where we have hundreds of changes and the UI gets
@@ -204,19 +210,21 @@ export class SyncDoc extends EventEmitter {
 
   // doctype: object describing document constructor
   // (used by project to open file)
-  private doctype: DocType;
+  public doctype: DocType;
 
   private state: State = "init";
 
   private syncstring_table: SyncTable;
-  private patches_table: SyncTable;
-  private cursors_table: SyncTable;
+  public patches_table: SyncTable;
 
   public evaluator?: Evaluator;
 
   public ipywidgets_state?: IpywidgetsState;
 
-  private patch_list?: SortedPatchList;
+  private patchflowSession?: PatchflowSession;
+  private patchflowStore?: PatchflowPatchStore;
+  private patchflowCodec?: DocCodec;
+  private pendingPatchflowCommit?: Promise<void>;
 
   private last: Document;
   private doc: Document;
@@ -233,21 +241,10 @@ export class SyncDoc extends EventEmitter {
 
   private settings: Map<string, any> = Map();
 
-  private syncstring_save_state: string = "";
-
   // patches that this client made during this editing session.
   private my_patches: { [time: string]: XPatch } = {};
 
-  private watch_path?: string;
-  private file_watcher?: FileWatcher;
-
-  private handle_patch_update_queue_running: boolean;
-  private patch_update_queue: string[] = [];
-
   private undo_state: UndoState | undefined;
-
-  private save_to_disk_start_ctime: number | undefined;
-  private save_to_disk_end_ctime: number | undefined;
 
   private persistent: boolean = false;
 
@@ -258,20 +255,26 @@ export class SyncDoc extends EventEmitter {
   private sync_is_disabled: boolean = false;
   private delay_sync_timer: any;
 
-  // static because we want exactly one across all docs!
-  private static computeServerManagerDoc?: SyncDoc;
-
   private useConat: boolean;
-  legacy: LegacyHistory;
+
+  public readonly fs: Filesystem;
+
+  private noAutosave?: boolean;
+
+  public isDeleted: boolean = false;
 
   constructor(opts: SyncOpts) {
     super();
+    this.opts = opts;
+    this.compute_server_id = opts.compute_server_id ?? 0;
+
     if (opts.string_id === undefined) {
       this.string_id = schema.client_db.sha1(opts.project_id, opts.path);
     } else {
       this.string_id = opts.string_id;
     }
 
+    // TODO: it might be better to just use this.opts.field everywhere...?
     for (const field of [
       "project_id",
       "path",
@@ -285,22 +288,20 @@ export class SyncDoc extends EventEmitter {
       "persistent",
       "data_server",
       "ephemeral",
+      "fs",
+      "noAutosave",
     ]) {
       if (opts[field] != undefined) {
         this[field] = opts[field];
       }
     }
 
-    this.legacy = new LegacyHistory({
-      project_id: this.project_id,
-      path: this.path,
-      client: this.client,
-    });
+    this.client.once("closed", this.close);
 
     // NOTE: Do not use conat in test mode, since there we use a minimal
     // "fake" client that does all communication internally and doesn't
     // use conat.  We also use this for the messages composer.
-    this.useConat = USE_CONAT && !isTestClient(opts.client);
+    this.useConat = !isTestClient(opts.client);
     if (this.ephemeral) {
       // So the doctype written to the database reflects the
       // ephemeral state.  Here ephemeral determines whether
@@ -323,13 +324,6 @@ export class SyncDoc extends EventEmitter {
     // to update this).
     this.cursor_last_time = this.client?.server_time();
 
-    reuse_in_flight_methods(this, [
-      "save",
-      "save_to_disk",
-      "load_from_disk",
-      "handle_patch_update_queue",
-    ]);
-
     if (this.change_throttle) {
       this.emit_change = throttle(this.emit_change, this.change_throttle);
     }
@@ -337,6 +331,9 @@ export class SyncDoc extends EventEmitter {
     this.setMaxListeners(100);
 
     this.init();
+    // This makes it possible for other parts of the app to react to
+    // creation of new synchronized docs.
+    SyncDoc.events.emit("new", this);
   }
 
   /*
@@ -348,7 +345,7 @@ export class SyncDoc extends EventEmitter {
   this SyncDoc.
   */
   private initialized = false;
-  private init = async () => {
+  init = reuseInFlight(async () => {
     if (this.initialized) {
       throw Error("init can only be called once");
     }
@@ -371,7 +368,7 @@ export class SyncDoc extends EventEmitter {
           }
           const m = `WARNING: problem initializing ${this.path} -- ${err}`;
           log(m);
-          if (DEBUG) {
+          if (DEBUG || true) {
             console.trace(err);
           }
           // log always
@@ -382,170 +379,12 @@ export class SyncDoc extends EventEmitter {
       },
       { start: 3000, max: 15000, decay: 1.3 },
     );
+    if (this.isClosed()) return;
 
     // Success -- everything initialized with no issues.
     this.set_state("ready");
-    this.init_watch();
     this.emit_change(); // from nothing to something.
-  };
-
-  // True if this client is responsible for managing
-  // the state of this document with respect to
-  // the file system.  By default, the project is responsible,
-  // but it could be something else (e.g., a compute server!).  It's
-  // important that whatever algorithm determines this, it is
-  // a function of state that is eventually consistent.
-  // IMPORTANT: whether or not we are the file server can
-  // change over time, so if you call isFileServer and
-  // set something up (e.g., autosave or a watcher), based
-  // on the result, you need to clear it when the state
-  // changes. See the function handleComputeServerManagerChange.
-  private isFileServer = reuseInFlight(async () => {
-    if (this.state == "closed") return;
-    if (this.client == null || this.client.is_browser()) {
-      // browser is never the file server (yet), and doesn't need to do
-      // anything related to watching for changes in state.
-      // Someday via webassembly or browsers making users files availabl,
-      // etc., we will have this. Not today.
-      return false;
-    }
-    const computeServerManagerDoc = this.getComputeServerManagerDoc();
-    const log = this.dbg("isFileServer");
-    if (computeServerManagerDoc == null) {
-      log("not using compute server manager for this doc");
-      return this.client.is_project();
-    }
-
-    const state = computeServerManagerDoc.get_state();
-    log("compute server manager doc state: ", state);
-    if (state == "closed") {
-      log("compute server manager is closed");
-      // something really messed up
-      return this.client.is_project();
-    }
-    if (state != "ready") {
-      try {
-        log(
-          "waiting for compute server manager doc to be ready; current state=",
-          state,
-        );
-        await once(computeServerManagerDoc, "ready", 15000);
-        log("compute server manager is ready");
-      } catch (err) {
-        log(
-          "WARNING -- failed to initialize computeServerManagerDoc -- err=",
-          err,
-        );
-        return this.client.is_project();
-      }
-    }
-
-    // id of who the user *wants* to be the file server.
-    const path = this.getFileServerPath();
-    const fileServerId =
-      computeServerManagerDoc.get_one({ path })?.get("id") ?? 0;
-    if (this.client.is_project()) {
-      log(
-        "we are project, so we are fileserver if fileServerId=0 and it is ",
-        fileServerId,
-      );
-      return fileServerId == 0;
-    }
-    // at this point we have to be a compute server
-    const computeServerId = decodeUUIDtoNum(this.client.client_id());
-    // this is usually true -- but might not be if we are switching
-    // directly from one compute server to another.
-    log("we are compute server and ", { fileServerId, computeServerId });
-    return fileServerId == computeServerId;
   });
-
-  private getFileServerPath = () => {
-    if (this.path?.endsWith("." + JUPYTER_SYNCDB_EXTENSIONS)) {
-      // treating jupyter as a weird special case here.
-      return auxFileToOriginal(this.path);
-    }
-    return this.path;
-  };
-
-  private getComputeServerManagerDoc = () => {
-    if (this.path == COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS.path) {
-      // don't want to recursively explode!
-      return null;
-    }
-    if (SyncDoc.computeServerManagerDoc == null) {
-      if (this.client.is_project()) {
-        // @ts-ignore: TODO!
-        SyncDoc.computeServerManagerDoc = this.client.syncdoc({
-          path: COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS.path,
-        });
-      } else {
-        // @ts-ignore: TODO!
-        SyncDoc.computeServerManagerDoc = this.client.sync_client.sync_db({
-          project_id: this.project_id,
-          ...COMPUTE_SERVE_MANAGER_SYNCDB_PARAMS,
-        });
-      }
-      if (
-        SyncDoc.computeServerManagerDoc != null &&
-        !this.client.is_browser()
-      ) {
-        // start watching for state changes
-        SyncDoc.computeServerManagerDoc.on(
-          "change",
-          this.handleComputeServerManagerChange,
-        );
-      }
-    }
-    return SyncDoc.computeServerManagerDoc;
-  };
-
-  private handleComputeServerManagerChange = async (keys) => {
-    if (SyncDoc.computeServerManagerDoc == null) {
-      return;
-    }
-    let relevant = false;
-    for (const key of keys ?? []) {
-      if (key.get("path") == this.path) {
-        relevant = true;
-        break;
-      }
-    }
-    if (!relevant) {
-      return;
-    }
-    const path = this.getFileServerPath();
-    const fileServerId =
-      SyncDoc.computeServerManagerDoc.get_one({ path })?.get("id") ?? 0;
-    const ourId = this.client.is_project()
-      ? 0
-      : decodeUUIDtoNum(this.client.client_id());
-    // we are considering ourself the file server already if we have
-    // either a watcher or autosave on.
-    const thinkWeAreFileServer =
-      this.file_watcher != null || this.fileserver_autosave_timer;
-    const weAreFileServer = fileServerId == ourId;
-    if (thinkWeAreFileServer != weAreFileServer) {
-      // life has changed!  Let's adapt.
-      if (thinkWeAreFileServer) {
-        // we were acting as the file server, but now we are not.
-        await this.save_to_disk_filesystem_owner();
-        // Stop doing things we are no longer supposed to do.
-        clearInterval(this.fileserver_autosave_timer as any);
-        this.fileserver_autosave_timer = 0;
-        // stop watching filesystem
-        await this.update_watch_path();
-      } else {
-        // load our state from the disk
-        await this.load_from_disk();
-        // we were not acting as the file server, but now we need. Let's
-        // step up to the plate.
-        // start watching filesystem
-        await this.update_watch_path(this.path);
-        // enable autosave
-        await this.init_file_autosave();
-      }
-    }
-  };
 
   // Return id of ACTIVE remote compute server, if one is connected and pinging, or 0
   // if none is connected.  This is used by Jupyter to determine who
@@ -553,8 +392,7 @@ export class SyncDoc extends EventEmitter {
   // We always take the smallest id of the remote
   // compute servers, in case there is more than one, so exactly one of them
   // takes control.  Always returns 0 if cursors are not enabled for this
-  // document, since the cursors table is used to coordinate the compute
-  // server.
+  // document, since cursor presence is used to coordinate the compute server.
   getComputeServerId = (): number => {
     if (!this.cursors) {
       return 0;
@@ -600,60 +438,25 @@ export class SyncDoc extends EventEmitter {
     locs: any,
     side_effect: boolean = false,
   ) => {
-    if (this.state != "ready") {
+    if (!this.cursors) {
+      throw Error("cursors are not enabled");
+    }
+    if (!this.isReady()) {
       return;
     }
-    if (this.cursors_table == null) {
-      if (!this.cursors) {
-        throw Error("cursors are not enabled");
-      }
-      // table not initialized yet
+    if (!this.patchflowReady()) {
       return;
     }
-    if (this.useConat) {
-      const time = this.client.server_time().valueOf();
-      const x: {
-        user_id: number;
-        locs: any;
-        time: number;
-      } = {
-        user_id: this.my_user_id,
-        locs,
-        time,
-      };
-      // will actually always be non-null due to above
-      this.cursor_last_time = new Date(x.time);
-      this.cursors_table.set(x);
-      return;
-    }
-
-    const x: {
-      string_id?: string;
-      user_id: number;
-      locs: any[];
-      time?: Date;
-    } = {
-      string_id: this.string_id,
-      user_id: this.my_user_id,
-      locs,
-    };
     const now = this.client.server_time();
-    if (!side_effect || (x.time ?? now) >= now) {
-      // the now comparison above is in case the cursor time
-      // is in the future (due to clock issues) -- always fix that.
-      x.time = now;
+    if (!side_effect || now >= this.cursor_last_time) {
+      this.cursor_last_time = now;
     }
-    if (x.time != null) {
-      // will actually always be non-null due to above
-      this.cursor_last_time = x.time;
-    }
-    this.cursors_table.set(x, "none");
-    await this.cursors_table.save();
+    this.requirePatchflowSession().updateCursors(locs);
   };
 
   set_cursor_locs: typeof this.setCursorLocsNoThrottle = throttle(
     this.setCursorLocsNoThrottle,
-    USE_CONAT ? CURSOR_THROTTLE_NATS_MS : CURSOR_THROTTLE_MS,
+    CURSOR_THROTTLE_MS,
     {
       leading: true,
       trailing: true,
@@ -702,6 +505,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   isClosed = () => (this.state ?? "closed") == "closed";
+  isReady = () => this.state == "ready";
 
   private set_state = (state: State): void => {
     this.state = state;
@@ -764,7 +568,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   get_one(x?: any): any {
-    return this.doc.get_one(x);
+    return this.doc.get_one?.(x);
   }
 
   // Return underlying document, or undefined if document
@@ -799,18 +603,16 @@ export class SyncDoc extends EventEmitter {
   // time specified, gives the version right now.
   // If not fully initialized, will throw exception.
   version = (time?: number): Document => {
-    this.assert_table_is_ready("patches");
-    assertDefined(this.patch_list);
-    return this.patch_list.value({ time });
+    return this.requirePatchflowSession().value({ time }) as Document;
   };
 
   /* Compute version of document if the patches at the given times
      were simply not included.  This is a building block that is
      used for implementing undo functionality for client editors. */
   version_without = (without_times: number[]): Document => {
-    this.assert_table_is_ready("patches");
-    assertDefined(this.patch_list);
-    return this.patch_list.value({ without_times });
+    return this.requirePatchflowSession().value({
+      withoutTimes: without_times,
+    }) as Document;
   };
 
   // Revert document to what it was at the given point in time.
@@ -951,55 +753,25 @@ export class SyncDoc extends EventEmitter {
     return this.undo_state;
   };
 
-  private save_to_disk_autosave = async (): Promise<void> => {
-    if (this.state !== "ready") {
-      return;
-    }
-    const dbg = this.dbg("save_to_disk_autosave");
-    dbg();
-    try {
-      await this.save_to_disk();
-    } catch (err) {
-      dbg(`failed -- ${err}`);
-    }
-  };
-
-  /* Make it so the local hub project will automatically save
-     the file to disk periodically. */
-  private init_file_autosave = async () => {
-    // Do not autosave sagews until we resolve
-    //   https://github.com/sagemathinc/cocalc/issues/974
-    // Similarly, do not autosave ipynb because of
-    //   https://github.com/sagemathinc/cocalc/issues/5216
-    if (
-      !FILE_SERVER_AUTOSAVE_S ||
-      !(await this.isFileServer()) ||
-      this.fileserver_autosave_timer ||
-      endswith(this.path, ".sagews") ||
-      endswith(this.path, "." + JUPYTER_SYNCDB_EXTENSIONS)
-    ) {
-      return;
-    }
-
-    // Explicit cast due to node vs browser typings.
-    this.fileserver_autosave_timer = <any>(
-      setInterval(this.save_to_disk_autosave, FILE_SERVER_AUTOSAVE_S * 1000)
-    );
-  };
-
   // account_id of the user who made the edit at
   // the given point in time.
-  account_id = (time: number): string => {
+  account_id = (time: number): string | undefined => {
     this.assert_is_ready("account_id");
+    const patch = this.patchflowPatch(time);
+    if (patch?.file) {
+      return this.project_id;
+    }
     return this.users[this.user_id(time)];
   };
 
   // Integer index of user who made the edit at given
   // point in time.
   user_id = (time: number): number => {
-    this.assert_table_is_ready("patches");
-    assertDefined(this.patch_list);
-    return this.patch_list.user_id(time);
+    const patch = this.patchflowPatch(time);
+    if (patch == null) {
+      throw new Error(`no patch at time ${time}`);
+    }
+    return patch.userId ?? 0;
   };
 
   private syncstring_table_get_one = (): Map<string, any> => {
@@ -1014,64 +786,60 @@ export class SyncDoc extends EventEmitter {
     return t;
   };
 
-  /* The project calls set_initialized once it has checked for
-     the file on disk; this way the frontend knows that the
-     syncstring has been initialized in the database, and also
-     if there was an error doing the check.
-   */
-  private set_initialized = async (
-    error: string,
-    read_only: boolean,
-    size: number,
-  ): Promise<void> => {
-    this.assert_table_is_ready("syncstring");
-    this.dbg("set_initialized")({ error, read_only, size });
-    const init = { time: this.client.server_time(), size, error };
-    await this.set_syncstring_table({
-      init,
-      read_only,
-      last_active: this.client.server_time(),
-    });
-  };
-
   /* List of logical timestamps of the versions of this string in the sync
      table that we opened to start editing (so starts with what was
      the most recent snapshot when we started).  The list of timestamps
      is sorted from oldest to newest. */
   versions = (): number[] => {
-    assertDefined(this.patch_list);
-    return this.patch_list.versions();
+    const v = this.patchflowVersions();
+    if (v == null) {
+      throw new Error("patchflow session not ready");
+    }
+    return v;
   };
 
   wallTime = (version: number): number | undefined => {
-    return this.patch_list?.wallTime(version);
+    const patch = this.patchflowPatch(version);
+    return patch?.wall;
   };
 
   // newest version of any non-staging known patch on this client,
-  // including ones just made that might not be in patch_list yet.
+  // including ones just made locally.
   newestVersion = (): number | undefined => {
-    return this.patch_list?.newest_patch_time();
+    const v = this.patchflowVersions();
+    if (v != null && v.length > 0) {
+      return v[v.length - 1];
+    }
+    return undefined;
   };
 
   hasVersion = (time: number): boolean => {
-    assertDefined(this.patch_list);
-    return this.patch_list.hasVersion(time);
+    const v = this.patchflowVersions();
+    if (v != null) {
+      return v.includes(time);
+    }
+    return false;
   };
 
   historyFirstVersion = () => {
-    this.assert_table_is_ready("patches");
-    assertDefined(this.patch_list);
-    return this.patch_list.firstVersion();
+    const v = this.patchflowVersions();
+    if (v != null && v.length > 0) {
+      return v[0];
+    }
+    return;
   };
 
   historyLastVersion = () => {
-    this.assert_table_is_ready("patches");
-    assertDefined(this.patch_list);
-    return this.patch_list.lastVersion();
+    const v = this.patchflowVersions();
+    if (v != null && v.length > 0) {
+      return v[v.length - 1];
+    }
+    return;
   };
 
   historyVersionNumber = (time: number): number | undefined => {
-    return this.patch_list?.versionNumber(time);
+    const patch = this.patchflowPatch(time);
+    return patch?.version;
   };
 
   last_changed = (): number => {
@@ -1080,7 +848,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   private init_table_close_handlers(): void {
-    for (const x of ["syncstring", "patches", "cursors"]) {
+    for (const x of ["syncstring", "patches"]) {
       const t = this[x + "_table"];
       if (t != null) {
         t.on("close", this.close);
@@ -1112,10 +880,6 @@ export class SyncDoc extends EventEmitter {
     const dbg = this.dbg("close");
     dbg("close");
 
-    SyncDoc.computeServerManagerDoc?.removeListener(
-      "change",
-      this.handleComputeServerManagerChange,
-    );
     //
     // SYNC STUFF
     //
@@ -1145,28 +909,13 @@ export class SyncDoc extends EventEmitter {
       cancel_scheduled(this.emit_change);
     }
 
-    if (this.fileserver_autosave_timer) {
-      clearInterval(this.fileserver_autosave_timer as any);
-      this.fileserver_autosave_timer = 0;
-    }
-
-    if (this.read_only_timer) {
-      clearInterval(this.read_only_timer as any);
-      this.read_only_timer = 0;
-    }
-
-    this.patch_update_queue = [];
-
     // Stop watching for file changes.  It's important to
     // do this *before* all the await's below, since
     // this syncdoc can't do anything in response to a
     // a file change in its current state.
-    this.update_watch_path(); // no input = closes it, if open
+    this.closeFileWatcher();
 
-    if (this.patch_list != null) {
-      // not async -- just a data structure in memory
-      this.patch_list.close();
-    }
+    this.patchflowSession?.close();
 
     try {
       this.closeTables();
@@ -1185,62 +934,8 @@ export class SyncDoc extends EventEmitter {
   private closeTables = async () => {
     this.syncstring_table?.close();
     this.patches_table?.close();
-    this.cursors_table?.close();
     this.evaluator?.close();
     this.ipywidgets_state?.close();
-  };
-
-  // TODO: We **have** to do this on the client, since the backend
-  // **security model** for accessing the patches table only
-  // knows the string_id, but not the project_id/path.  Thus
-  // there is no way currently to know whether or not the client
-  // has access to the patches, and hence the patches table
-  // query fails.  This costs significant time -- a roundtrip
-  // and write to the database -- whenever the user opens a file.
-  // This fix should be to change the patches schema somehow
-  // to have the user also provide the project_id and path, thus
-  // proving they have access to the sha1 hash (string_id), but
-  // don't actually use the project_id and path as columns in
-  // the table.  This requires some new idea I guess of virtual
-  // fields....
-  // Also, this also establishes the correct doctype.
-
-  // Since this MUST succeed before doing anything else. This is critical
-  // because the patches table can't be opened anywhere if the syncstring
-  // object doesn't exist, due to how our security works, *AND* that the
-  // patches table uses the string_id, which is a SHA1 hash.
-  private ensure_syncstring_exists_in_db = async (): Promise<void> => {
-    const dbg = this.dbg("ensure_syncstring_exists_in_db");
-    if (this.useConat) {
-      dbg("skipping -- no database");
-      return;
-    }
-
-    if (!this.client.is_connected()) {
-      dbg("wait until connected...", this.client.is_connected());
-      await once(this.client, "connected");
-    }
-
-    if (this.client.is_browser() && !this.client.is_signed_in()) {
-      // the browser has to sign in, unlike the project (and compute servers)
-      await once(this.client, "signed_in");
-    }
-
-    if (this.state == ("closed" as State)) return;
-
-    dbg("do syncstring write query...");
-
-    await callback2(this.client.query, {
-      query: {
-        syncstrings: {
-          string_id: this.string_id,
-          project_id: this.project_id,
-          path: this.path,
-          doctype: JSON.stringify(this.doctype),
-        },
-      },
-    });
-    dbg("wrote syncstring to db - done.");
   };
 
   private synctable = async (
@@ -1277,6 +972,7 @@ export class SyncDoc extends EventEmitter {
         desc: { path: this.path },
         start_seq: this.last_seq,
         ephemeral,
+        noAutosave: this.noAutosave,
       });
 
       if (this.last_seq) {
@@ -1296,6 +992,7 @@ export class SyncDoc extends EventEmitter {
             atomic: true,
             desc: { path: this.path },
             ephemeral,
+            noAutosave: this.noAutosave,
           });
 
           // also find the correct last_seq:
@@ -1343,6 +1040,7 @@ export class SyncDoc extends EventEmitter {
         immutable: true,
         desc: { path: this.path },
         ephemeral,
+        noAutosave: this.noAutosave,
       });
     } else if (this.useConat && query.ipywidgets) {
       synctable = await this.client.synctable_conat(query, {
@@ -1358,6 +1056,7 @@ export class SyncDoc extends EventEmitter {
         config: { max_age: 1000 * 60 * 60 * 24 },
         desc: { path: this.path },
         ephemeral: true, // ipywidgets state always ephemeral
+        noAutosave: this.noAutosave,
       });
     } else if (this.useConat && (query.eval_inputs || query.eval_outputs)) {
       synctable = await this.client.synctable_conat(query, {
@@ -1371,6 +1070,7 @@ export class SyncDoc extends EventEmitter {
         config: { max_age: 5 * 60 * 1000 },
         desc: { path: this.path },
         ephemeral: true, // eval state (for sagews) is always ephemeral
+        noAutosave: this.noAutosave,
       });
     } else if (this.useConat) {
       synctable = await this.client.synctable_conat(query, {
@@ -1383,6 +1083,7 @@ export class SyncDoc extends EventEmitter {
         immutable: true,
         desc: { path: this.path },
         ephemeral,
+        noAutosave: this.noAutosave,
       });
     } else {
       // only used for unit tests and the ephemeral messaging composer
@@ -1429,15 +1130,10 @@ export class SyncDoc extends EventEmitter {
 
     dbg("getting table...");
     this.syncstring_table = await this.synctable(query, []);
-    if (this.ephemeral && this.client.is_project()) {
-      await this.set_syncstring_table({
-        doctype: JSON.stringify(this.doctype),
-      });
-    } else {
-      dbg("handling the first update...");
-      this.handle_syncstring_update();
-    }
+    dbg("handling the first update...");
+    this.handle_syncstring_update();
     this.syncstring_table.on("change", this.handle_syncstring_update);
+    this.syncstring_table.on("change", this.update_has_unsaved_changes);
   };
 
   // Used for internal debug logging
@@ -1452,45 +1148,27 @@ export class SyncDoc extends EventEmitter {
   };
 
   private initAll = async (): Promise<void> => {
+    //const t0 = Date.now();
     if (this.state !== "init") {
       throw Error("connect can only be called in init state");
     }
     const log = this.dbg("initAll");
 
-    log("update interest");
-    this.initInterestLoop();
-
-    log("ensure syncstring exists");
-    this.assert_not_closed("initAll -- before ensuring syncstring exists");
-    await this.ensure_syncstring_exists_in_db();
-
-    await this.init_syncstring_table();
-    this.assert_not_closed("initAll -- successful init_syncstring_table");
-
-    log("patch_list, cursors, evaluator, ipywidgets");
+    log("patchflow, cursors, evaluator, ipywidgets");
     this.assert_not_closed(
-      "initAll -- before init patch_list, cursors, evaluator, ipywidgets",
+      "initAll -- before init patchflow, cursors, evaluator, ipywidgets",
     );
-    if (PARALLEL_INIT) {
-      await Promise.all([
-        this.init_patch_list(),
-        this.init_cursors(),
-        this.init_evaluator(),
-        this.init_ipywidgets(),
-      ]);
-      this.assert_not_closed(
-        "initAll -- successful init patch_list, cursors, evaluator, and ipywidgets",
-      );
-    } else {
-      await this.init_patch_list();
-      this.assert_not_closed("initAll -- successful init_patch_list");
-      await this.init_cursors();
-      this.assert_not_closed("initAll -- successful init_patch_cursors");
-      await this.init_evaluator();
-      this.assert_not_closed("initAll -- successful init_evaluator");
-      await this.init_ipywidgets();
-      this.assert_not_closed("initAll -- successful init_ipywidgets");
-    }
+    await Promise.all([
+      this.init_syncstring_table(),
+      this.init_patchflow(),
+      this.init_cursors(),
+      this.init_evaluator(),
+      this.init_ipywidgets(),
+      this.initFileWatcherFirstTime(),
+    ]);
+    this.assert_not_closed(
+      "initAll -- successful init patchflow, cursors, evaluator, and ipywidgets",
+    );
 
     this.init_table_close_handlers();
     this.assert_not_closed("initAll -- successful init_table_close_handlers");
@@ -1498,120 +1176,16 @@ export class SyncDoc extends EventEmitter {
     log("file_use_interval");
     this.init_file_use_interval();
 
-    if (await this.isFileServer()) {
-      log("load_from_disk");
-      // This sets initialized, which is needed to be fully ready.
-      // We keep trying this load from disk until sync-doc is closed
-      // or it succeeds.  It may fail if, e.g., the file is too
-      // large or is not readable by the user. They are informed to
-      // fix the problem... and once they do (and wait up to 10s),
-      // this will finish.
-      //       if (!this.client.is_browser() && !this.client.is_project()) {
-      //         // FAKE DELAY!!!  Just to simulate flakiness / slow network!!!!
-      // await delay(3000);
-      //       }
-      await retry_until_success({
-        f: this.init_load_from_disk,
-        max_delay: 10000,
-        desc: "syncdoc -- load_from_disk",
-      });
-      log("done loading from disk");
-    } else {
-      if (this.patch_list!.count() == 0) {
-        await Promise.race([
-          this.waitUntilFullyReady(),
-          once(this.patch_list!, "change"),
-        ]);
-      }
+    if (!SyncDoc.lite) {
+      await this.loadFromDiskIfNewer();
     }
-    this.assert_not_closed("initAll -- load from disk");
-    this.emit("init");
 
+    this.emit("init");
     this.assert_not_closed("initAll -- after waiting until fully ready");
 
-    if (await this.isFileServer()) {
-      log("init file autosave");
-      this.init_file_autosave();
-    }
     this.update_has_unsaved_changes();
     log("done");
-  };
-
-  private init_error = (): string | undefined => {
-    let x;
-    try {
-      x = this.syncstring_table.get_one();
-    } catch (_err) {
-      // if the table hasn't been initialized yet,
-      // it can't be in error state.
-      return undefined;
-    }
-    return x?.get("init")?.get("error");
-  };
-
-  // wait until the syncstring table is ready to be
-  // used (so extracted from archive, etc.),
-  private waitUntilFullyReady = async (): Promise<void> => {
-    this.assert_not_closed("wait_until_fully_ready");
-    const dbg = this.dbg("wait_until_fully_ready");
-    dbg();
-
-    if (this.client.is_browser() && this.init_error()) {
-      // init is set and is in error state.  Give the backend a few seconds
-      // to try to fix this error before giving up.  The browser client
-      // can close and open the file to retry this (as instructed).
-      try {
-        await this.syncstring_table.wait(() => !this.init_error(), 5);
-      } catch (err) {
-        // fine -- let the code below deal with this problem...
-      }
-    }
-
-    let init;
-    const is_init = (t: SyncTable) => {
-      this.assert_not_closed("is_init");
-      const tbl = t.get_one();
-      if (tbl == null) {
-        dbg("null");
-        return false;
-      }
-      init = tbl.get("init")?.toJS();
-      return init != null;
-    };
-    dbg("waiting for init...");
-    await this.syncstring_table.wait(is_init, 0);
-    dbg("init done");
-    if (init.error) {
-      throw Error(init.error);
-    }
-    assertDefined(this.patch_list);
-    if (init.size == null) {
-      // don't crash but warn at least.
-      console.warn("SYNC BUG -- init.size must be defined", { init });
-    }
-    if (
-      !this.client.is_project() &&
-      this.patch_list.count() === 0 &&
-      init.size
-    ) {
-      dbg("waiting for patches for nontrivial file");
-      // normally this only happens in a later event loop,
-      // so force it now.
-      dbg("handling patch update queue since", this.patch_list.count());
-      await this.handle_patch_update_queue();
-      assertDefined(this.patch_list);
-      dbg("done handling, now ", this.patch_list.count());
-      if (this.patch_list.count() === 0) {
-        // wait for a change -- i.e., project loading the file from
-        // disk and making available...  Because init.size > 0, we know that
-        // there must be SOMETHING in the patches table once initialization is done.
-        // This is the root cause of https://github.com/sagemathinc/cocalc/issues/2382
-        await once(this.patches_table, "change");
-        dbg("got patches_table change");
-        await this.handle_patch_update_queue();
-        dbg("handled update queue");
-      }
-    }
+    //console.log("initAll: done", Date.now() - t0);
   };
 
   private assert_table_is_ready = (table: string): void => {
@@ -1624,7 +1198,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   assert_is_ready = (desc: string): void => {
-    if (this.state != "ready") {
+    if (!this.isReady()) {
       throw Error(`must be ready -- ${desc}`);
     }
   };
@@ -1698,97 +1272,50 @@ export class SyncDoc extends EventEmitter {
     await Promise.all(v);
   };
 
-  private pathExistsAndIsReadOnly = async (path): Promise<boolean> => {
+  loadFromDiskIfNewer = async ({
+    lastChanged,
+  }: { lastChanged?: number } = {}): Promise<boolean> => {
+    const dbg = this.dbg("loadFromDiskIfNewer");
+    let stats;
     try {
-      await callback2(this.client.path_access, {
-        path,
-        mode: "w",
-      });
-      // clearly exists and is NOT read only:
-      return false;
+      stats = await this.stat();
     } catch (err) {
-      // either it doesn't exist or it is read only
-      if (await callback2(this.client.path_exists, { path })) {
-        // it exists, so is read only and exists
+      this.valueOnDisk = undefined; // nonexistent or don't know
+      if (err.code == "ENOENT") {
+        // path does not exist -- nothing further to do
+        return false;
+      } else {
+        // no clue
         return true;
       }
-      // doesn't exist
-      return false;
     }
-  };
-
-  private file_is_read_only = async (): Promise<boolean> => {
-    if (await this.pathExistsAndIsReadOnly(this.path)) {
-      return true;
-    }
-    const path = this.getFileServerPath();
-    if (path != this.path) {
-      if (await this.pathExistsAndIsReadOnly(path)) {
-        return true;
+    dbg("path exists");
+    lastChanged = lastChanged ?? this.last_changed();
+    const firstLoad = this.versions().length == 0;
+    const mtime = stats.mtime.valueOf();
+    if (firstLoad || mtime > lastChanged) {
+      dbg(
+        `disk file changed more recently than edits, so loading ${mtime} > ${lastChanged}; firstLoad=${firstLoad}`,
+      );
+      try {
+        await this.readFile();
+      } catch (err) {
+        if (err.code != "LOCK") {
+          throw err;
+        }
       }
+      if (firstLoad) {
+        dbg("emitting first-load event");
+        // this event is emited the first time the document is ever
+        // loaded from disk.  It's used, e.g., for notebook "trust" state,
+        // so important from a security POV.
+        this.emit("first-load");
+      }
+      dbg("loaded");
+    } else {
+      dbg("stick with sync version");
     }
     return false;
-  };
-
-  private update_if_file_is_read_only = async (): Promise<void> => {
-    const read_only = await this.file_is_read_only();
-    if (this.state == "closed") {
-      return;
-    }
-    this.set_read_only(read_only);
-  };
-
-  private init_load_from_disk = async (): Promise<void> => {
-    if (this.state == "closed") {
-      // stop trying, no error -- this is assumed
-      // in a retry_until_success elsewhere.
-      return;
-    }
-    if (await this.load_from_disk_if_newer()) {
-      throw Error("failed to load from disk");
-    }
-  };
-
-  private load_from_disk_if_newer = async (): Promise<boolean> => {
-    const last_changed = new Date(this.last_changed());
-    const firstLoad = this.versions().length == 0;
-    const dbg = this.dbg("load_from_disk_if_newer");
-    let is_read_only: boolean = false;
-    let size: number = 0;
-    let error: string = "";
-    try {
-      dbg("check if path exists");
-      if (await callback2(this.client.path_exists, { path: this.path })) {
-        // the path exists
-        dbg("path exists -- stat file");
-        const stats = await callback2(this.client.path_stat, {
-          path: this.path,
-        });
-        if (firstLoad || stats.ctime > last_changed) {
-          dbg(
-            `disk file changed more recently than edits (or first load), so loading, ${stats.ctime} > ${last_changed}; firstLoad=${firstLoad}`,
-          );
-          size = await this.load_from_disk();
-          if (firstLoad) {
-            dbg("emitting first-load event");
-            // this event is emited the first time the document is ever loaded from disk.
-            this.emit("first-load");
-          }
-          dbg("loaded");
-        } else {
-          dbg("stick with database version");
-        }
-        dbg("checking if read only");
-        is_read_only = await this.file_is_read_only();
-        dbg("read_only", is_read_only);
-      }
-    } catch (err) {
-      error = `${err}`;
-    }
-
-    await this.set_initialized(error, is_read_only, size);
-    dbg("done");
-    return !!error;
   };
 
   private patch_table_query = (cutoff?: number) => {
@@ -1815,7 +1342,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   private setLastSnapshot(last_snapshot?: number) {
-    // only set last_snapshot here, so we can keep it in sync with patch_list.last_snapshot
+    // only set last_snapshot here, so we can keep it in sync with the syncstring table
     // and also be certain about the data type (being number or undefined).
     if (last_snapshot !== undefined && typeof last_snapshot != "number") {
       throw Error("type of last_snapshot must be number or undefined");
@@ -1823,25 +1350,15 @@ export class SyncDoc extends EventEmitter {
     this.last_snapshot = last_snapshot;
   }
 
-  private init_patch_list = async (): Promise<void> => {
-    this.assert_not_closed("init_patch_list - start");
-    const dbg = this.dbg("init_patch_list");
+  private init_patchflow = async (): Promise<void> => {
+    this.assert_not_closed("init_patchflow - start");
+    const dbg = this.dbg("init_patchflow");
     dbg();
-
-    // CRITICAL: note that handle_syncstring_update checks whether
-    // init_patch_list is done by testing whether this.patch_list is defined!
-    // That is why we first define "patch_list" below, then set this.patch_list
-    // to it only after we're done.
-    delete this.patch_list;
-
-    const patch_list = new SortedPatchList({
-      from_str: this._from_str,
-    });
 
     dbg("opening the table...");
     const query = { patches: [this.patch_table_query(this.last_snapshot)] };
     this.patches_table = await this.synctable(query, [], this.patch_interval);
-    this.assert_not_closed("init_patch_list -- after making synctable");
+    this.assert_not_closed("init_patchflow -- after making synctable");
 
     const update_has_unsaved_changes = debounce(
       this.update_has_unsaved_changes,
@@ -1857,62 +1374,56 @@ export class SyncDoc extends EventEmitter {
       update_has_unsaved_changes();
     });
 
-    this.syncstring_table.on("change", () => {
-      update_has_unsaved_changes();
-    });
+    await this.initPatchflowSession();
 
-    dbg("adding all known patches");
-    patch_list.add(this.get_patches());
-
-    dbg("possibly kick off loading more history");
-    let last_start_seq: null | number = null;
-    while (patch_list.needsMoreHistory()) {
-      // @ts-ignore
-      const dstream = this.patches_table.dstream;
-      if (dstream == null) {
-        break;
-      }
-      const snap = patch_list.getOldestSnapshot();
-      if (snap == null) {
-        break;
-      }
-      const seq_info = snap.seq_info ?? {
-        prev_seq: 1,
-      };
-      const start_seq = seq_info.prev_seq ?? 1;
-      if (last_start_seq != null && start_seq >= last_start_seq) {
-        // no progress, e.g., corruption would cause this.
-        // "corruption" is EXPECTED, since a user might be submitting
-        // patches after being offline, and get disconnected halfway through.
-        break;
-      }
-      last_start_seq = start_seq;
-      await dstream.load({ start_seq });
-      dbg("load more history");
-      patch_list.add(this.get_patches());
-      if (start_seq <= 1) {
-        // loaded everything
-        break;
+    // Ensure doc/last are initialized even if listeners run before ready state.
+    if (this.patchflowReady() && this.patchflowSession != null) {
+      try {
+        const doc = this.patchflowSession.getDocument() as Document;
+        this.last = this.doc = doc;
+      } catch {
+        // session will emit change after init and set doc/last then.
       }
     }
-
-    //this.patches_table.on("saved", this.handle_offline);
-    this.patch_list = patch_list;
-
-    let doc;
-    try {
-      doc = patch_list.value();
-    } catch (err) {
-      console.warn("error getting doc", err);
-      doc = this._from_str("");
-    }
-    this.last = this.doc = doc;
-    this.patches_table.on("change", this.handle_patch_update);
 
     dbg("done");
   };
 
+  private initPatchflowSession = reuseInFlight(async (): Promise<void> => {
+    if (this.patchflowSession || this.patches_table == null) {
+      return;
+    }
+    const dbg = this.dbg("initPatchflowSession");
+    try {
+      this.patchflowCodec = this.buildPatchflowCodec();
+      this.patchflowStore = this.createPatchflowStore();
+      this.patchflowSession = new PatchflowSession({
+        codec: this.patchflowCodec,
+        patchStore: this.patchflowStore,
+        clock: () => this.client.server_time().valueOf(),
+        userId: this.my_user_id ?? 0,
+        docId: this.string_id,
+        presenceAdapter: await this.createCursorPresenceAdapter(),
+      });
+      this.patchflowSession.on("change", (doc) => {
+        const next = doc as Document;
+        if (!this.doc || !this.doc.is_equal(next)) {
+          this.last = this.doc = next;
+          if (this.state === "ready") {
+            this.emit("after-change");
+            this.emit_change();
+          }
+        }
+      });
+      await this.patchflowSession.init();
+      dbg("patchflow session initialized");
+    } catch (err) {
+      dbg(`patchflow session init failed -- ${err}`);
+    }
+  });
+
   private init_evaluator = async () => {
+    if (this.isClosed()) return;
     const dbg = this.dbg("init_evaluator");
     const ext = filename_extension(this.path);
     if (ext !== "sagews") {
@@ -1948,107 +1459,81 @@ export class SyncDoc extends EventEmitter {
       dbg("done -- do not care about cursors for this syncdoc.");
       return;
     }
-    if (this.useConat) {
-      dbg("cursors broadcast using pub/sub");
-      this.cursors_table = await this.client.pubsub_conat({
-        project_id: this.project_id,
-        path: this.path,
-        name: "cursors",
-      });
-      this.cursors_table.on(
-        "change",
-        (obj: { user_id: number; locs: any; time: number }) => {
-          const account_id = this.users[obj.user_id];
-          if (!account_id) {
-            return;
-          }
-          if (obj.locs == null && !this.cursor_map.has(account_id)) {
-            // gone, and already gone.
-            return;
-          }
-          if (obj.locs != null) {
-            // changed
-            this.cursor_map = this.cursor_map.set(account_id, fromJS(obj));
-          } else {
-            // deleted
-            this.cursor_map = this.cursor_map.delete(account_id);
-          }
-          this.emit("cursor_activity", account_id);
-        },
-      );
+    if (!this.patchflowReady()) {
+      dbg("patchflow not ready; skipping cursor setup");
       return;
     }
-
-    dbg("getting cursors ephemeral table");
-    const query = {
-      cursors: [
-        {
-          string_id: this.string_id,
-          user_id: null,
-          locs: null,
-          time: null,
-        },
-      ],
-    };
-    // We make cursors an ephemeral table, since there is no
-    // need to persist it to the database, obviously!
-    // Also, queue_size:1 makes it so only the last cursor position is
-    // saved, e.g., in case of disconnect and reconnect.
-    const options = [{ ephemeral: true }, { queue_size: 1 }]; // probably deprecated
-    this.cursors_table = await this.synctable(query, options, 1000);
-    this.assert_not_closed("init_cursors -- after making synctable");
-
-    // cursors now initialized; first initialize the
-    // local this._cursor_map, which tracks positions
-    // of cursors by account_id:
-    dbg("loading initial state");
-    const s = this.cursors_table.get();
-    if (s == null) {
-      throw Error("bug -- get should not return null once table initialized");
-    }
-    s.forEach((locs: any, k: string) => {
-      if (locs == null) {
-        return;
-      }
-      const u = JSON.parse(k);
-      if (u != null) {
-        this.cursor_map = this.cursor_map.set(this.users[u[1]], locs);
-      }
-    });
-    this.cursors_table.on("change", this.handle_cursors_change);
-
+    this.cursor_map = this.buildCursorMap();
+    this.patchflowSession?.on("cursors", this.handlePatchflowCursors);
     dbg("done");
   };
 
-  private handle_cursors_change = (keys) => {
-    if (this.state === "closed") {
-      return;
+  private handlePatchflowCursors = (): void => {
+    this.cursor_map = this.buildCursorMap();
+    for (const key of this.cursor_map.keySeq().toArray()) {
+      this.emit("cursor_activity", key);
     }
-    for (const k of keys) {
-      const u = JSON.parse(k);
-      if (u == null) {
-        continue;
-      }
-      const account_id = this.users[u[1]];
-      if (!account_id) {
-        // this happens for ephemeral table when project restarts and browser
-        // has data it is trying to send.
-        continue;
-      }
-      const locs = this.cursors_table.get(k);
-      if (locs == null && !this.cursor_map.has(account_id)) {
-        // gone, and already gone.
-        continue;
-      }
-      if (locs != null) {
-        // changed
-        this.cursor_map = this.cursor_map.set(account_id, locs);
-      } else {
-        // deleted
-        this.cursor_map = this.cursor_map.delete(account_id);
-      }
-      this.emit("cursor_activity", account_id);
+  };
+
+  private buildCursorMap = ({
+    maxAge = 60 * 1000,
+    excludeSelf = "always",
+  }: {
+    maxAge?: number;
+    excludeSelf?: "always" | "never" | "heuristic";
+  } = {}): Map<string, any> => {
+    if (!this.patchflowReady()) {
+      return Map();
     }
+    const session = this.requirePatchflowSession();
+    const account_id: string = this.client_id();
+    const states = session.cursors({ ttlMs: maxAge });
+    let map = Map<string, any>();
+    const now = Date.now();
+    for (const state of states) {
+      if (state.docId && state.docId !== this.string_id) {
+        continue;
+      }
+      const key =
+        (state.userId != null ? this.users[state.userId] : undefined) ??
+        state.clientId ??
+        `client-${state.time}`;
+      const time = new Date(state.time);
+      map = map.set(
+        key,
+        fromJS({
+          user_id: state.userId,
+          locs: state.locs,
+          time,
+        }),
+      );
+    }
+    if (map.has(account_id) && excludeSelf != "never") {
+      const ourTime = map.getIn([account_id, "time"], 0);
+      if (
+        excludeSelf == "always" ||
+        (excludeSelf == "heuristic" &&
+          this.cursor_last_time >= new Date(ourTime as number))
+      ) {
+        map = map.delete(account_id);
+      }
+    }
+    for (const [client_id, value] of map as any) {
+      const time = value.get("time");
+      if (time == null) {
+        map = map.delete(client_id);
+        continue;
+      }
+      if (maxAge && Math.abs(now - time.valueOf()) >= maxAge) {
+        map = map.delete(client_id);
+        continue;
+      }
+      if (time >= now + 10 * 1000) {
+        map = map.delete(client_id);
+        continue;
+      }
+    }
+    return map;
   };
 
   /* Returns *immutable* Map from account_id to list
@@ -2059,11 +1544,6 @@ export class SyncDoc extends EventEmitter {
   */
   get_cursors = ({
     maxAge = 60 * 1000,
-    // excludeSelf:
-    // 'always' -- *always* exclude self
-    // 'never' -- never exclude self
-    // 'heuristic' -- exclude self is older than last set from here, e.g., useful on
-    // frontend so we don't see our own cursor unless more than one browser.
     excludeSelf = "always",
   }: {
     maxAge?: number;
@@ -2073,47 +1553,8 @@ export class SyncDoc extends EventEmitter {
     if (!this.cursors) {
       throw Error("cursors are not enabled");
     }
-    if (this.cursors_table == null) {
-      return Map(); // not loaded yet -- so no info yet.
-    }
-    const account_id: string = this.client_id();
-    let map = this.cursor_map;
-    if (map.has(account_id) && excludeSelf != "never") {
-      if (
-        excludeSelf == "always" ||
-        (excludeSelf == "heuristic" &&
-          this.cursor_last_time >=
-            new Date(map.getIn([account_id, "time"], 0) as number))
-      ) {
-        map = map.delete(account_id);
-      }
-    }
-    // Remove any old cursors, where "old" is by default more than maxAge old.
-    const now = Date.now();
-    for (const [client_id, value] of map as any) {
-      const time = value.get("time");
-      if (time == null) {
-        // this should always be set.
-        map = map.delete(client_id);
-        continue;
-      }
-      if (maxAge) {
-        // we use abs to implicitly exclude a bad value that is somehow in the future,
-        // if that were to happen.
-        if (Math.abs(now - time.valueOf()) >= maxAge) {
-          map = map.delete(client_id);
-          continue;
-        }
-      }
-      if (time >= now + 10 * 1000) {
-        // We *always* delete any cursors more than 10 seconds in the future, since
-        // that can only happen if a client inserts invalid data (e.g., clock not
-        // yet synchronized). See https://github.com/sagemathinc/cocalc/issues/7969
-        map = map.delete(client_id);
-        continue;
-      }
-    }
-    return map;
+    this.cursor_map = this.buildCursorMap({ maxAge, excludeSelf });
+    return this.cursor_map;
   };
 
   /* Set settings map.  Used for custom configuration just for
@@ -2168,32 +1609,16 @@ export class SyncDoc extends EventEmitter {
     while (!this.doc.is_equal(this.last)) {
       dbg("something to save");
       this.emit("user-change");
-      const doc = this.doc;
-      // TODO: put in a delay if just saved too recently?
-      //       Or maybe won't matter since not using database?
-      if (this.handle_patch_update_queue_running) {
-        dbg("wait until the update queue is done");
-        await once(this, "handle_patch_update_queue_done");
-        // but wait until next loop (so as to check that needed
-        // and state still ready).
-        continue;
-      }
-      dbg("Compute new patch.");
-      this.sync_remote_and_doc(false);
-      // Emit event since this syncstring was
-      // changed locally (or we wouldn't have had
-      // to save at all).
-      if (doc.is_equal(this.doc)) {
-        dbg("no change during loop -- done!");
+      if (!this.commit()) {
+        // Could not commit (e.g., patchflow not ready)
         break;
       }
+      if (!this.isReady()) {
+        return;
+      }
     }
-    if (this.state != "ready") {
+    if (!this.isReady()) {
       // above async waits could have resulted in state change.
-      return;
-    }
-    await this.handle_patch_update_queue();
-    if (this.state != "ready") {
       return;
     }
 
@@ -2203,71 +1628,14 @@ export class SyncDoc extends EventEmitter {
     // to save current state without having to wait on an async, which is
     // useful to ensure specific undo points (e.g., right before a paste).
     await this.patches_table.save();
+    if (this.pendingPatchflowCommit) {
+      try {
+        await this.pendingPatchflowCommit;
+      } catch {
+        // errors are already logged in commitWithPatchflow
+      }
+    }
   });
-
-  private timeOfLastCommit: number | undefined = undefined;
-  private next_patch_time = (): number => {
-    let time = this.client.server_time().valueOf();
-    if (time == this.timeOfLastCommit) {
-      time = this.timeOfLastCommit + 1;
-    }
-    assertDefined(this.patch_list);
-    time = this.patch_list.next_available_time(
-      time,
-      this.my_user_id,
-      this.users.length,
-    );
-    return time;
-  };
-
-  private commit_patch = (time: number, patch: XPatch): void => {
-    this.timeOfLastCommit = time;
-    this.assert_not_closed("commit_patch");
-    assertDefined(this.patch_list);
-    const obj: any = {
-      // version for database
-      string_id: this.string_id,
-      // logical time -- usually the sync'd walltime, but
-      // guaranteed to be increasing.
-      time,
-      // what we show user
-      wall: this.client.server_time().valueOf(),
-      patch: JSON.stringify(patch),
-      user_id: this.my_user_id,
-      is_snapshot: false,
-      parents: this.patch_list.getHeads(),
-      version: this.patch_list.lastVersion() + 1,
-    };
-
-    this.my_patches[time.valueOf()] = obj;
-
-    if (this.doctype.patch_format != null) {
-      obj.format = this.doctype.patch_format;
-    }
-
-    // If in undo mode put the just-created patch in our
-    // without timestamp list, so it won't be included
-    // when doing undo/redo.
-    if (this.undo_state != null) {
-      this.undo_state.without.unshift(time);
-    }
-
-    //console.log 'saving patch with time ', time.valueOf()
-    let x = this.patches_table.set(obj, "none");
-    if (x == null) {
-      // TODO: just for NATS right now!
-      x = fromJS(obj);
-    }
-    const y = this.processPatch({ x, patch, size: obj.patch.size });
-    this.patch_list.add([y]);
-    // Since *we* just made a definite change to the document, we're
-    // active, so we check if we should make a snapshot. There is the
-    // potential of a race condition where more than one clients make
-    // a snapshot at the same time -- this would waste a little space
-    // in the stream, but is otherwise harmless, since the snapshots
-    // are identical.
-    this.snapshotIfNecessary();
-  };
 
   private dstream = () => {
     // @ts-ignore -- in general patches_table might not be a conat one still,
@@ -2325,19 +1693,24 @@ export class SyncDoc extends EventEmitter {
      case we should never record a snapshot with this bad property.
   */
   private snapshot = reuseInFlight(async (time: number): Promise<void> => {
-    assertDefined(this.patch_list);
-    const x = this.patch_list.patch(time);
-    if (x == null) {
+    let user_id = this.my_user_id ?? 0;
+    let snapshot: string | undefined;
+    if (!this.patchflowReady() || this.patchflowSession == null) {
+      throw new Error("patchflow session not ready");
+    }
+    const p = this.patchflowSession.getPatch(time);
+    if (p == null) {
       throw Error(`no patch at time ${time}`);
     }
-    if (x.snapshot != null) {
-      // there is already a snapshot at this point in time,
-      // so nothing further to do.
+    if (p.isSnapshot && p.snapshot != null) {
       return;
     }
-
-    const snapshot: string = this.patch_list.value({ time }).to_str();
-    // save the snapshot itself in the patches table.
+    user_id = p.userId ?? user_id;
+    const doc = this.patchflowSession.value({ time }) as any;
+    snapshot = (doc?.to_str?.() ?? doc?.toString?.() ?? `${doc}`) as string;
+    if (snapshot == null) {
+      throw Error("unable to compute snapshot");
+    }
     const seq_info = this.conatSnapshotSeqInfo(time);
     const obj = {
       size: snapshot.length,
@@ -2346,15 +1719,12 @@ export class SyncDoc extends EventEmitter {
       wall: time,
       is_snapshot: true,
       snapshot,
-      user_id: x.user_id,
+      user_id,
       seq_info,
     };
-    // also set snapshot in the this.patch_list, which which saves a little time.
-    // and ensures that "(x.snapshot != null)" above works if snapshot is called again.
-    this.patch_list.add([obj]);
     this.patches_table.set(obj);
     await this.patches_table.save();
-    if (this.state != "ready") {
+    if (!this.isReady()) {
       return;
     }
 
@@ -2380,11 +1750,10 @@ export class SyncDoc extends EventEmitter {
     const max_size = Math.floor(1.2 * MAX_FILE_SIZE_MB * 1000000);
     const interval = this.snapshot_interval;
     dbg("check if we need to make a snapshot:", { interval, max_size });
-    assertDefined(this.patch_list);
-    const time = this.patch_list.time_of_unmade_periodic_snapshot(
-      interval,
-      max_size,
-    );
+    if (!this.patchflowReady()) {
+      return;
+    }
+    const time = this.patchflowSnapshotCandidate(interval, max_size);
     if (time != null) {
       dbg("yes, try to make a snapshot at time", time);
       try {
@@ -2459,6 +1828,7 @@ export class SyncDoc extends EventEmitter {
       is_snapshot,
       parents,
       version: x.get("version"),
+      file: x.get("file"),
     };
     if (is_snapshot) {
       obj.snapshot = x.get("snapshot"); // this is a string
@@ -2478,6 +1848,170 @@ export class SyncDoc extends EventEmitter {
      If time0 undefined then sets time0 equal to time of last_snapshot.
      If time1 undefined treated as +oo.
   */
+  private toPatchflowEnvelope = (p: Patch): PatchEnvelope => {
+    return {
+      time: p.time,
+      wall: p.wall,
+      patch: p.patch,
+      parents: p.parents,
+      userId: p.user_id,
+      size: p.size,
+      version: p.version,
+      isSnapshot: p.is_snapshot,
+      snapshot: p.snapshot,
+      seqInfo: p.seq_info,
+      file: p.file,
+    };
+  };
+
+  private patchFromEnvelope = (env: PatchEnvelope): Patch => {
+    return {
+      time: env.time,
+      wall: env.wall,
+      patch: env.patch as CompressedPatch | undefined,
+      parents: env.parents,
+      user_id: env.userId ?? 0,
+      size: env.size ?? 0,
+      version: env.version,
+      is_snapshot: env.isSnapshot,
+      snapshot: env.snapshot,
+      seq_info: env.seqInfo,
+      file: env.file,
+    };
+  };
+
+  private buildPatchflowCodec = (): DocCodec => {
+    return {
+      fromString: (text: string) => this._from_str(text),
+      toString: (doc: Document) =>
+        (doc as any).to_str ? (doc as any).to_str() : doc.toString(),
+      applyPatch: (doc: Document, patch: unknown) =>
+        ((doc as any).apply_patch ?? doc.applyPatch).call(doc, patch),
+      makePatch: (a: Document, b: Document) =>
+        ((a as any).make_patch ?? a.makePatch).call(a, b),
+    };
+  };
+
+  private async createCursorPresenceAdapter(): Promise<PatchflowPresenceAdapter | undefined> {
+    if (!this.cursors || !this.useConat) {
+      return;
+    }
+    const table = await this.client.pubsub_conat({
+      project_id: this.project_id,
+      path: this.path,
+      name: "cursors",
+    });
+    const listeners: Array<(state: unknown, clientId: string) => void> = [];
+    table.on("change", (obj: { user_id?: number }) => {
+      const account_id =
+        obj?.user_id != null ? this.users[obj.user_id] : undefined;
+      const clientId = account_id ?? `cursor-${obj?.user_id ?? "unknown"}`;
+      for (const fn of listeners) {
+        fn(obj, clientId);
+      }
+    });
+    return {
+      publish: (state: unknown) => {
+        table.set(state);
+      },
+      subscribe: (onState: (state: unknown, clientId: string) => void) => {
+        listeners.push(onState);
+        return () => {
+          const i = listeners.indexOf(onState);
+          if (i >= 0) {
+            listeners.splice(i, 1);
+          }
+        };
+      },
+    };
+  }
+
+  private createPatchflowStore = (): PatchflowPatchStore => {
+    return {
+      loadInitial: async () => {
+        const raw = this.get_patches();
+        const patches = raw.map((p) => this.toPatchflowEnvelope(p));
+        return { patches, hasMore: !this.patchesHaveFullHistory(raw) };
+      },
+      append: async (env: PatchEnvelope) => {
+        try {
+          if (this.patches_table == null) {
+            throw new Error("patches_table must be initialized before appending");
+          }
+          const patch = this.patchFromEnvelope(env);
+          const obj: any = {
+            string_id: this.string_id,
+            time: patch.time,
+            wall: patch.wall ?? patch.time,
+            user_id: patch.user_id ?? this.my_user_id,
+            is_snapshot: patch.is_snapshot ?? false,
+            parents: patch.parents ?? [],
+            version:
+              patch.version ??
+              (this.patchflowReady() && this.patchflowSession
+                ? this.patchflowSession.versions().length + 1
+                : 1),
+          };
+          if (patch.file) {
+            obj.file = true;
+          }
+          if (!patch.is_snapshot) {
+            obj.patch = JSON.stringify(patch.patch ?? []);
+          } else {
+            obj.snapshot = patch.snapshot;
+            obj.seq_info = patch.seq_info;
+          }
+          if (this.doctype.patch_format != null) {
+            obj.format = this.doctype.patch_format;
+          }
+          this.my_patches[patch.time.valueOf()] = obj;
+          let x = this.patches_table.set(obj, "none");
+          if (x == null) {
+            x = fromJS(obj);
+          }
+          void this.processPatch({ x, patch: patch.patch, size: patch.size });
+        } catch (err) {
+          console.warn("patchflow append failed", err);
+          console.warn(env);
+          throw err;
+        }
+      },
+      subscribe: (onEnvelope: (env: PatchEnvelope) => void) => {
+        if (this.patches_table == null) {
+          throw new Error("patches_table must be initialized before subscribing");
+        }
+        const handler = (keys: any[]) => {
+          const envs: PatchEnvelope[] = [];
+          for (const key of keys ?? []) {
+            let x = this.patches_table.get(key);
+            if (x == null) {
+              continue;
+            }
+            if (!Map.isMap(x)) {
+              x = fromJS(x);
+            }
+            const p = this.processPatch({ x });
+            if (p != null) {
+              envs.push(this.toPatchflowEnvelope(p));
+            }
+          }
+          for (const env of envs) {
+            onEnvelope(env);
+          }
+        };
+        const table: any = this.patches_table;
+        table.on("change", handler);
+        return () => {
+          if (table?.off) {
+            table.off("change", handler);
+          } else if (table?.removeListener) {
+            table.removeListener("change", handler);
+          }
+        };
+      },
+    };
+  };
+
   private get_patches = (): Patch[] => {
     this.assert_table_is_ready("patches");
 
@@ -2504,11 +2038,26 @@ export class SyncDoc extends EventEmitter {
     return v;
   };
 
+  private patchesHaveFullHistory = (patches: Patch[]): boolean => {
+    const first = patches[0];
+    if (first == null) return true;
+    if (first.is_snapshot) return false;
+    return (first.parents?.length ?? 0) === 0;
+  };
+
   hasFullHistory = (): boolean => {
-    if (this.patch_list == null) {
+    if (this.patchflowReady() && this.patchflowSession != null) {
+      try {
+        return this.patchflowSession.hasFullHistory();
+      } catch {
+        // fall back to local computation below
+      }
+    }
+    try {
+      return this.patchesHaveFullHistory(this.get_patches());
+    } catch {
       return false;
     }
-    return this.patch_list.hasFullHistory();
   };
 
   // returns true if there may be additional history to load
@@ -2519,103 +2068,34 @@ export class SyncDoc extends EventEmitter {
     // if true, loads all history
     all?: boolean;
   } = {}): Promise<boolean> => {
-    if (this.hasFullHistory() || this.ephemeral || this.patch_list == null) {
+    if (this.hasFullHistory() || this.ephemeral || !this.patchflowReady()) {
       return false;
     }
-    let start_seq;
-    if (all) {
-      start_seq = 1;
-    } else {
-      const seq_info = this.patch_list.getOldestSnapshot()?.seq_info;
-      if (seq_info == null) {
-        // nothing more to load
-        return false;
-      }
-      start_seq = seq_info.prev_seq ?? 1;
+    let dstream: any;
+    try {
+      dstream = this.dstream();
+    } catch {
+      return false;
     }
-    // Doing this load triggers change events for all the patch info
-    // that gets loaded.
-    // TODO: right now we load everything, since the seq_info is wrong
-    // from the NATS migration.  Maybe this is fine since it is very efficient.
-    // @ts-ignore
-    await this.patches_table.dstream?.load({ start_seq: 0 });
-
-    // Wait until patch update queue is empty
-    while (this.patch_update_queue.length > 0) {
-      await once(this, "patch-update-queue-empty");
+    const start_seq = all ? 0 : this.patchflowPrevSeqForMoreHistory();
+    if (start_seq == null) {
+      return false;
+    }
+    await dstream.load({ start_seq });
+    if (start_seq <= 1) {
+      this.markPatchflowFullHistory();
     }
     return start_seq > 1;
   };
 
-  legacyHistoryExists = async () => {
-    const info = await this.legacy.getInfo();
-    return !!info.uuid;
-  };
-
-  private loadedLegacyHistory = false;
-  loadLegacyHistory = reuseInFlight(async () => {
-    if (this.loadedLegacyHistory) {
-      return;
-    }
-    this.loadedLegacyHistory = true;
-    if (!this.hasFullHistory()) {
-      throw Error("must first load full history first");
-    }
-    const { patches, users } = await this.legacy.getPatches();
-    if (this.patch_list == null) {
-      return;
-    }
-    // @ts-ignore - cheating here
-    const first = this.patch_list.patches[0];
-    if ((first?.parents ?? []).length > 0) {
-      throw Error("first patch should have no parents");
-    }
-    for (const patch of patches) {
-      // @ts-ignore
-      patch.time = new Date(patch.time).valueOf();
-    }
-    patches.sort(field_cmp("time"));
-    const v: Patch[] = [];
-    let version = -patches.length;
-    let i = 0;
-    for (const patch of patches) {
-      // @ts-ignore
-      patch.version = version;
-      version += 1;
-      if (i > 0) {
-        // @ts-ignore
-        patch.parents = [patches[i - 1].time];
-      } else {
-        // @ts-ignore
-        patch.parents = [];
-      }
-
-      // remap the user_id field
-      const account_id = users[patch.user_id];
-      let user_id = this.users.indexOf(account_id);
-      if (user_id == -1) {
-        this.users.push(account_id);
-        user_id = this.users.length - 1;
-      }
-      patch.user_id = user_id;
-
-      const p = this.processPatch({ x: fromJS(patch) });
-      i += 1;
-      v.push(p);
-    }
-    if (first != null) {
-      // @ts-ignore
-      first.parents = [patches[patches.length - 1].time];
-      first.is_snapshot = true;
-      first.snapshot = this.patch_list.value({ time: first.time }).to_str();
-    }
-    this.patch_list.add(v);
-    this.emit("change");
-  });
-
   show_history = (opts = {}): void => {
-    assertDefined(this.patch_list);
-    this.patch_list.show_history(opts);
+    this.requirePatchflowSession().summarizeHistory({
+      includeSnapshots: true,
+      milliseconds: (opts as any)?.milliseconds ?? true,
+      trunc: (opts as any)?.trunc ?? 80,
+      log: (opts as any)?.log,
+      formatDoc: (doc) => (doc as any).to_str?.() ?? `${doc}`,
+    });
   };
 
   set_snapshot_interval = async (n: number): Promise<void> => {
@@ -2629,77 +2109,6 @@ export class SyncDoc extends EventEmitter {
     return this.last_save_to_disk_time;
   };
 
-  private handle_syncstring_save_state = async (
-    state: string,
-    time: Date,
-  ): Promise<void> => {
-    // Called when the save state changes.
-
-    /* this.syncstring_save_state is used to make it possible to emit a
-       'save-to-disk' event, whenever the state changes
-       to indicate a save completed.
-
-       NOTE: it is intentional that this.syncstring_save_state is not defined
-       the first time this function is called, so that save-to-disk
-       with last save time gets emitted on initial load (which, e.g., triggers
-       latex compilation properly in case of a .tex file).
-    */
-    if (state === "done" && this.syncstring_save_state !== "done") {
-      this.last_save_to_disk_time = time;
-      this.emit("save-to-disk", time);
-    }
-    const dbg = this.dbg("handle_syncstring_save_state");
-    dbg(
-      `state='${state}', this.syncstring_save_state='${this.syncstring_save_state}', this.state='${this.state}'`,
-    );
-    if (
-      this.state === "ready" &&
-      (await this.isFileServer()) &&
-      this.syncstring_save_state !== "requested" &&
-      state === "requested"
-    ) {
-      this.syncstring_save_state = state; // only used in the if above
-      dbg("requesting save to disk -- calling save_to_disk");
-      // state just changed to requesting a save to disk...
-      // so we do it (unless of course syncstring is still
-      // being initialized).
-      try {
-        // Uncomment the following to test simulating a
-        // random failure in save_to_disk:
-        // if (Math.random() < 0.5) throw Error("CHAOS MONKEY!"); // FOR TESTING ONLY.
-        await this.save_to_disk();
-      } catch (err) {
-        // CRITICAL: we must unset this.syncstring_save_state (and set the save state);
-        // otherwise, it stays as "requested" and this if statement would never get
-        // run again, thus completely breaking saving this doc to disk.
-        // It is normal behavior that *sometimes* this.save_to_disk might
-        // throw an exception, e.g., if the file is temporarily deleted
-        // or save it called before everything is initialized, or file
-        // is temporarily set readonly, or maybe there is a file system error.
-        // Of course, the finally below will also take care of this.  However,
-        // it's nice to record the error here.
-        this.syncstring_save_state = "done";
-        await this.set_save({ state: "done", error: `${err}` });
-        dbg(`ERROR saving to disk in handle_syncstring_save_state-- ${err}`);
-      } finally {
-        // No matter what, after the above code is run,
-        // the save state in the table better be "done".
-        // We triple check that here, though of course
-        // we believe the logic in save_to_disk and above
-        // should always accomplish this.
-        dbg("had to set the state to done in finally block");
-        if (
-          this.state === "ready" &&
-          (this.syncstring_save_state != "done" ||
-            this.syncstring_table_get_one().getIn(["save", "state"]) != "done")
-        ) {
-          this.syncstring_save_state = "done";
-          await this.set_save({ state: "done", error: "" });
-        }
-      }
-    }
-  };
-
   private handle_syncstring_update = async (): Promise<void> => {
     if (this.state === "closed") {
       return;
@@ -2709,10 +2118,6 @@ export class SyncDoc extends EventEmitter {
 
     const data = this.syncstring_table_get_one();
     const x: any = data != null ? data.toJS() : undefined;
-
-    if (x != null && x.save != null) {
-      this.handle_syncstring_save_state(x.save.state, x.save.time);
-    }
 
     dbg(JSON.stringify(x));
     if (x == null || x.users == null) {
@@ -2802,218 +2207,104 @@ export class SyncDoc extends EventEmitter {
     this.emit("metadata-change");
   };
 
-  private init_watch = async (): Promise<void> => {
-    if (!(await this.isFileServer())) {
-      // ensures we are NOT watching anything
-      await this.update_watch_path();
+  private hasReadFile: boolean = false;
+  readFile = reuseInFlight(async (): Promise<void> => {
+    if (this.isClosed() || this.opts.noSaveToDisk) {
       return;
     }
+    const dbg = this.dbg("readFile");
 
-    // If path isn't being properly watched, make it so.
-    if (this.watch_path !== this.path) {
-      await this.update_watch_path(this.path);
-    }
-
-    await this.pending_save_to_disk();
-  };
-
-  private pending_save_to_disk = async (): Promise<void> => {
-    this.assert_table_is_ready("syncstring");
-    if (!(await this.isFileServer())) {
-      return;
-    }
-
-    const x = this.syncstring_table.get_one();
-    // Check if there is a pending save-to-disk that is needed.
-    if (x != null && x.getIn(["save", "state"]) === "requested") {
-      try {
-        await this.save_to_disk();
-      } catch (err) {
-        const dbg = this.dbg("pending_save_to_disk");
-        dbg(`ERROR saving to disk in pending_save_to_disk -- ${err}`);
-      }
-    }
-  };
-
-  private update_watch_path = async (path?: string): Promise<void> => {
-    const dbg = this.dbg("update_watch_path");
-    if (this.file_watcher != null) {
-      // clean up
-      dbg("close");
-      this.file_watcher.close();
-      delete this.file_watcher;
-      delete this.watch_path;
-    }
-    if (path != null && this.client.is_deleted(path, this.project_id)) {
-      dbg(`not setting up watching since "${path}" is explicitly deleted`);
-      return;
-    }
-    if (path == null) {
-      dbg("not opening another watcher since path is null");
-      this.watch_path = path;
-      return;
-    }
-    if (this.watch_path != null) {
-      // this case is impossible since we deleted it above if it is was defined.
-      dbg("watch_path already defined");
-      return;
-    }
-    dbg("opening watcher...");
-    if (this.state === "closed") {
-      throw Error("must not be closed");
-    }
-    this.watch_path = path;
     try {
-      if (!(await callback2(this.client.path_exists, { path }))) {
-        if (this.client.is_deleted(path, this.project_id)) {
-          dbg(`not setting up watching since "${path}" is explicitly deleted`);
-          return;
-        }
-        // path does not exist
-        dbg(
-          `write '${path}' to disk from syncstring in-memory database version`,
-        );
-        const data = this.to_str();
-        await callback2(this.client.write_file, { path, data });
-        dbg(`wrote '${path}' to disk`);
+      // This lock is *extremely* important when opening the document
+      // since it prevents having two identical patches, e.g,. when
+      // two clients initialize the doc at the same time, which would
+      // result in "doubled content" (when the merge conflict happens).
+      let lock = 0;
+      if (!this.hasReadFile) {
+        lock = this.opts.firstReadLockTimeout ?? FIRST_READ_LOCK_TIMEOUT;
       }
-    } catch (err) {
-      // This can happen, e.g, if path is read only.
-      dbg(`could NOT write '${path}' to disk -- ${err}`);
-      await this.update_if_file_is_read_only();
-      // In this case, can't really setup a file watcher.
-      return;
-    }
-
-    dbg("now requesting to watch file");
-    this.file_watcher = this.client.watch_file({ path });
-    this.file_watcher.on("change", this.handle_file_watcher_change);
-    this.file_watcher.on("delete", this.handle_file_watcher_delete);
-    this.setupReadOnlyTimer();
-  };
-
-  private setupReadOnlyTimer = () => {
-    if (this.read_only_timer) {
-      clearInterval(this.read_only_timer as any);
-      this.read_only_timer = 0;
-    }
-    this.read_only_timer = <any>(
-      setInterval(this.update_if_file_is_read_only, READ_ONLY_CHECK_INTERVAL_MS)
-    );
-  };
-
-  private handle_file_watcher_change = async (ctime: Date): Promise<void> => {
-    const dbg = this.dbg("handle_file_watcher_change");
-    const time: number = ctime.valueOf();
-    dbg(
-      `file_watcher: change, ctime=${time}, this.save_to_disk_start_ctime=${this.save_to_disk_start_ctime}, this.save_to_disk_end_ctime=${this.save_to_disk_end_ctime}`,
-    );
-    if (
-      this.save_to_disk_start_ctime == null ||
-      (this.save_to_disk_end_ctime != null &&
-        time - this.save_to_disk_end_ctime >= RECENT_SAVE_TO_DISK_MS)
-    ) {
-      // Either we never saved to disk, or the last attempt
-      // to save was at least RECENT_SAVE_TO_DISK_MS ago, and it finished,
-      // so definitely this change event was not caused by it.
-      dbg("load_from_disk since no recent save to disk");
-      await this.load_from_disk();
-      return;
-    }
-  };
-
-  private handle_file_watcher_delete = async (): Promise<void> => {
-    this.assert_is_ready("handle_file_watcher_delete");
-    const dbg = this.dbg("handle_file_watcher_delete");
-    dbg("delete: set_deleted and closing");
-    await this.client.set_deleted(this.path, this.project_id);
-    this.close();
-  };
-
-  private load_from_disk = async (): Promise<number> => {
-    const path = this.path;
-    const dbg = this.dbg("load_from_disk");
-    dbg();
-    const exists: boolean = await callback2(this.client.path_exists, { path });
-    let size: number;
-    if (!exists) {
-      dbg("file no longer exists -- setting to blank");
-      size = 0;
-      this.from_str("");
-    } else {
+      const contents: string = (await this.fs.readFile(
+        this.path,
+        "utf8",
+        lock,
+      )) as string;
+      this.hasReadFile = true;
+      // console.log(this.client.client.id, "read from disk --isDeleted = false");
+      this.isDeleted = false;
+      this.valueOnDisk = contents;
       dbg("file exists");
-      await this.update_if_file_is_read_only();
-
-      const data = await callback2<string>(this.client.path_read, {
-        path,
-        maxsize_MB: MAX_FILE_SIZE_MB,
-      });
-
-      size = data.length;
-      dbg(`got it -- length=${size}`);
-      this.from_str(data);
-      this.commit();
-      // we also know that this is the version on disk, so we update the hash
-      await this.set_save({
-        state: "done",
-        error: "",
-        hash: hash_string(data),
-      });
-    }
-    // save new version to database, which we just set via from_str.
-    await this.save();
-    return size;
-  };
-
-  private set_save = async (save: {
-    state: string;
-    error: string;
-    hash?: number;
-    expected_hash?: number;
-    time?: number;
-  }): Promise<void> => {
-    this.assert_table_is_ready("syncstring");
-    // set timestamp of when the save happened; this can be useful
-    // for coordinating running code, etc.... and is just generally useful.
-    const cur = this.syncstring_table_get_one().toJS()?.save;
-    if (cur != null) {
-      if (
-        cur.state == save.state &&
-        cur.error == save.error &&
-        cur.hash == (save.hash ?? cur.hash) &&
-        cur.expected_hash == (save.expected_hash ?? cur.expected_hash) &&
-        cur.time == (save.time ?? cur.time)
-      ) {
-        // no genuine change, so no point in wasting cycles on updating.
-        return;
+      this.from_str(contents);
+    } catch (err) {
+      if (err.code == "ENOENT") {
+        // console.log(this.client.client.id, "reset doc and set isDeleted=true");
+        if (!this.isDeleted) {
+          this.isDeleted = true;
+          this.emit("deleted");
+        }
+        dbg("file no longer exists -- setting to blank");
+        this.from_str("");
+        this.commit({ file: true });
+      } else {
+        throw err;
       }
     }
-    if (!save.time) {
-      save.time = Date.now();
-    }
-    await this.set_syncstring_table({ save });
-  };
-
-  private set_read_only = async (read_only: boolean): Promise<void> => {
-    this.assert_table_is_ready("syncstring");
-    await this.set_syncstring_table({ read_only });
-  };
+    // save new version to stream, which we just set via from_str
+    this.commit({ emitChangeImmediately: true, file: true });
+    this.emit("handle-file-change");
+    await this.save();
+    this.emit("after-change");
+  });
 
   is_read_only = (): boolean => {
-    this.assert_table_is_ready("syncstring");
-    return this.syncstring_table_get_one().get("read_only");
+    if (this.stats) {
+      return isReadOnlyForOwner(this.stats);
+    } else {
+      return false;
+    }
   };
 
-  wait_until_read_only_known = async (): Promise<void> => {
-    await this.wait_until_ready();
-    function read_only_defined(t: SyncTable): boolean {
-      const x = t.get_one();
-      if (x == null) {
-        return false;
-      }
-      return x.get("read_only") != null;
+  private stats?: Stats;
+  stat = async (): Promise<Stats> => {
+    if (this.opts.noSaveToDisk) {
+      throw Error("the noSaveToDisk options is set");
     }
-    await this.syncstring_table.wait(read_only_defined, 5 * 60);
+    const prevStats = this.stats;
+    this.stats = (await this.fs.stat(this.path)) as Stats;
+    this.isDeleted = false; // definitely not deleted since we just stat' it
+    if (prevStats?.mode != this.stats.mode) {
+      // used by clients to track read-only state.
+      this.emit("metadata-change");
+    }
+    return this.stats;
+  };
+
+  debouncedStat = debounce(
+    async () => {
+      try {
+        await this.stat();
+      } catch {}
+    },
+    STAT_DEBOUNCE,
+    { leading: true, trailing: true },
+  );
+
+  wait_until_read_only_known = async (): Promise<void> => {
+    await until(
+      async () => {
+        if (this.isClosed()) {
+          return true;
+        }
+        if (this.stats != null) {
+          return true;
+        }
+        try {
+          await this.stat();
+          return true;
+        } catch {}
+        return false;
+      },
+      { min: 3000 },
+    );
   };
 
   /* Returns true if the current live version of this document has
@@ -3024,32 +2315,21 @@ export class SyncDoc extends EventEmitter {
      commited to the database yet.  Returns *undefined* if
      initialization not even done yet. */
   has_unsaved_changes = (): boolean | undefined => {
-    if (this.state !== "ready") {
+    if (!this.isReady()) {
       return;
     }
-    const dbg = this.dbg("has_unsaved_changes");
-    try {
-      return this.hash_of_saved_version() !== this.hash_of_live_version();
-    } catch (err) {
-      dbg(
-        "exception computing hash_of_saved_version and hash_of_live_version",
-        err,
-      );
-      // This could happen, e.g. when syncstring_table isn't connected
-      // in some edge case. Better to just say we don't know then crash
-      // everything. See https://github.com/sagemathinc/cocalc/issues/3577
-      return;
-    }
+    return this.hasUnsavedChanges();
   };
 
-  // Returns hash of last version saved to disk (as far as we know).
+  // Returns hash of last version that we saved to disk or undefined
+  // if we haven't saved yet.
+  // NOTE: this does not take into account saving by another client
+  // anymore; it used to, but that made things much more complicated.
   hash_of_saved_version = (): number | undefined => {
-    if (this.state !== "ready") {
+    if (!this.isReady() || this.valueOnDisk == null || this.isDeleted) {
       return;
     }
-    return this.syncstring_table_get_one().getIn(["save", "hash"]) as
-      | number
-      | undefined;
+    return hash_string(this.valueOnDisk);
   };
 
   /* Return hash of the live version of the document,
@@ -3057,7 +2337,7 @@ export class SyncDoc extends EventEmitter {
      (TODO: write faster version of this for syncdb, which
      avoids converting to a string, which is a waste of time.) */
   hash_of_live_version = (): number | undefined => {
-    if (this.state !== "ready") {
+    if (!this.isReady()) {
       return;
     }
     return hash_string(this.doc.to_str());
@@ -3070,10 +2350,205 @@ export class SyncDoc extends EventEmitter {
      the user to close their browser.
   */
   has_uncommitted_changes = (): boolean => {
-    if (this.state !== "ready") {
+    if (!this.isReady()) {
       return false;
     }
     return this.patches_table.has_uncommitted_changes();
+  };
+
+  private patchflowReady = (): boolean => {
+    return (
+      this.patchflowSession != null &&
+      this.patchflowStore != null &&
+      this.patchflowCodec != null
+    );
+  };
+
+  private requirePatchflowSession = (): PatchflowSession => {
+    if (!this.patchflowReady() || this.patchflowSession == null) {
+      throw new Error("patchflow session is not initialized");
+    }
+    return this.patchflowSession;
+  };
+
+  private patchflowValue = ({
+    time,
+    without_times,
+  }: { time?: number; without_times?: number[] } = {}): Document | undefined => {
+    if (!this.patchflowReady() || this.patchflowSession == null) return;
+    try {
+      if (time != null || without_times != null) {
+        return this.patchflowSession.value({
+          time,
+          withoutTimes: without_times,
+        }) as Document;
+      }
+      return this.patchflowSession.getDocument() as Document;
+    } catch {
+      return;
+    }
+  };
+
+  private patchflowPatch = (time: number): PatchEnvelope | undefined => {
+    if (!this.patchflowReady() || this.patchflowSession == null) return;
+    try {
+      return this.patchflowSession.getPatch(time);
+    } catch {
+      return;
+    }
+  };
+
+  private patchflowVersions = (): number[] | undefined => {
+    if (!this.patchflowReady() || this.patchflowSession == null) return;
+    try {
+      return this.patchflowSession.versions();
+    } catch {
+      return;
+    }
+  };
+
+  private patchflowPrevSeqForMoreHistory = (): number | undefined => {
+    if (!this.patchflowReady() || this.patchflowSession == null) return;
+    const history = this.patchflowSession.history({ includeSnapshots: true });
+    let prevSeq: number | undefined;
+    let oldest: number | undefined;
+    for (const p of history) {
+      if (p.isSnapshot && p.seqInfo?.prevSeq != null) {
+        if (oldest == null || p.time < oldest) {
+          oldest = p.time;
+          prevSeq = p.seqInfo.prevSeq;
+        }
+      }
+    }
+    return prevSeq;
+  };
+
+  private patchflowSnapshotCandidate = (
+    interval: number,
+    max_size: number,
+  ): number | undefined => {
+    if (!this.patchflowReady() || this.patchflowSession == null) return;
+    const history = this.patchflowSession.history({ includeSnapshots: true });
+    if (history.length === 0) return;
+    const snapshots = history.filter((p) => p.isSnapshot);
+    const lastSnapshotTime =
+      snapshots.length > 0 ? snapshots[snapshots.length - 1].time : undefined;
+    const window = history.filter((p) =>
+      lastSnapshotTime != null ? p.time >= lastSnapshotTime : true,
+    );
+    if (window.length === 0) return;
+    // Rule 1: interval count
+    if (window.length >= 2 * interval) {
+      const idx = Math.min(interval, window.length - 1);
+      return window[idx].time;
+    }
+    // Rule 2: size threshold
+    let totalSize = 0;
+    for (const p of window) {
+      if (!p.isSnapshot) {
+        totalSize += p.size ?? 0;
+      }
+    }
+    if (totalSize > max_size) {
+      let running = 0;
+      for (const p of window) {
+        running += p.size ?? 0;
+        if (running > max_size) {
+          return p.time;
+        }
+      }
+    }
+    return;
+  };
+
+  private markPatchflowFullHistory = (): void => {
+    if (!this.patchflowReady() || this.patchflowSession == null) return;
+    try {
+      if (typeof (this.patchflowSession as any).markFullHistory === "function") {
+        (this.patchflowSession as any).markFullHistory();
+      }
+    } catch (err) {
+      console.warn("markPatchflowFullHistory failed", err);
+    }
+  };
+
+  private documentsEqual = (a?: Document, b?: Document): boolean => {
+    if (a == null || b == null) {
+      return false;
+    }
+    const docA: any = a as any;
+    if (typeof docA.is_equal === "function") {
+      return docA.is_equal(b);
+    }
+    if (typeof docA.isEqual === "function") {
+      return docA.isEqual(b);
+    }
+    return a === b;
+  };
+
+  private commitWithPatchflow = ({
+    emitChangeImmediately = false,
+    file = false,
+  }: {
+    emitChangeImmediately?: boolean;
+    file?: boolean;
+  }): boolean => {
+    if (!this.patchflowReady() || this.patchflowSession == null) {
+      return false;
+    }
+    const next = this.doc;
+    if (next == null) {
+      return false;
+    }
+    let current: Document | undefined;
+    try {
+      current = this.patchflowSession.getDocument() as Document;
+    } catch {
+      // session not initialized yet
+      return false;
+    }
+    if (this.documentsEqual(current, next)) {
+      return false;
+    }
+    if (emitChangeImmediately) {
+      this.emit_change();
+    }
+    this.emit("user-change");
+    // Ensure save loops don't spin while the async commit runs.
+    this.last = next;
+    const commitPromise = this.patchflowSession
+      .commit(next as any, { file })
+      .then((env) => {
+        const myPatches = (this.my_patches = this.my_patches ?? {});
+        myPatches[env.time.valueOf()] = { time: env.time } as any;
+        if (this.undo_state != null && this.undo_state.without[0] !== env.time) {
+          this.undo_state.without.unshift(env.time);
+        }
+        this.snapshotIfNecessary();
+      })
+      .catch((err) => {
+        console.warn("patchflow commit failed", err?.message ?? err);
+        console.warn(err?.stack ?? "");
+        this.dbg("commitWithPatchflow")(`commit failed -- ${err}`);
+      });
+    const latest = this.patchflowSession.versions().slice(-1)[0];
+    if (latest != null) {
+      const myPatches = (this.my_patches = this.my_patches ?? {});
+      if (!myPatches[latest]) {
+        myPatches[latest] = { time: latest } as any;
+      }
+      if (this.undo_state != null && this.undo_state.without[0] !== latest) {
+        this.undo_state.without.unshift(latest);
+      }
+    }
+    this.pendingPatchflowCommit = commitPromise;
+    if (!this.noAutosave) {
+      this.save(); // eventually syncs out to other clients
+    }
+    this.touchProject();
+    // Avoid unhandled rejections if caller ignores the async commit path.
+    void commitPromise;
+    return true;
   };
 
   // Commit any changes to the live document to
@@ -3081,37 +2556,90 @@ export class SyncDoc extends EventEmitter {
   // were changes and false otherwise.   This works
   // fine offline, and does not wait until anything
   // is saved to the network, etc.
-  commit = (emitChangeImmediately = false): boolean => {
-    if (this.last == null || this.doc == null || this.last.is_equal(this.doc)) {
-      return false;
-    }
-    // console.trace('commit');
+  commit = ({
+    emitChangeImmediately = false,
+    file = false,
+  }: {
+    emitChangeImmediately?: boolean;
+    // mark this as a commit obtained by loading the file from disk,
+    // which can be used as input to the merge conflict resolution.
+    file?: boolean;
+  } = {}): boolean => {
+    return this.commitWithPatchflow({ emitChangeImmediately, file });
+  };
 
-    if (emitChangeImmediately) {
-      // used for local clients.   NOTE: don't do this without explicit
-      // request, since it could in some cases cause serious trouble.
-      // E.g., for the jupyter backend doing this by default causes
-      // an infinite recurse.  Having this as an option is important, e.g.,
-      // to avoid flicker/delay in the UI.
-      this.emit_change();
+  // valueOnDisk = value of the file on disk, if known.  If there's an
+  // event indicating  what was on disk may have changed, this
+  // this.valueOnDisk is deleted until the new version is loaded.
+  private valueOnDisk: string | undefined = undefined;
+
+  private hasUnsavedChanges = (): boolean => {
+    return this.valueOnDisk != this.to_str() || this.isDeleted;
+  };
+
+  writeFile = async () => {
+    if (this.opts.noSaveToDisk) {
+      return;
+    }
+    const dbg = this.dbg("writeFile");
+    if (this.client.is_deleted(this.path, this.project_id)) {
+      dbg("not saving to disk because deleted");
+      return;
+    }
+    dbg();
+    if (this.is_read_only()) {
+      await this.stat();
+      if (this.is_read_only()) {
+        // it is definitely still read only.
+        return;
+      }
     }
 
-    // Now save to backend as a new patch:
-    this.emit("user-change");
-    const patch = this.last.make_patch(this.doc); // must be nontrivial
-    this.last = this.doc;
-    // ... and save that to patches table
-    const time = this.next_patch_time();
-    this.commit_patch(time, patch);
-    this.save(); // so eventually also gets sent out.
-    this.touchProject();
-    return true;
+    const value = this.to_str();
+    // include {ignore:true} with events for this long,
+    // so no clients waste resources loading in response to us saving
+    // to disk.
+    if (this.isClosed()) return;
+    this.last_save_to_disk_time = new Date();
+    this.emit("before-save-to-disk");
+    try {
+      if (typeof this.fs.writeFileDelta === "function") {
+        // writeFileDelta so efficient even if file is huge.
+        await this.fs.writeFileDelta(this.path, value, {
+          baseContents: this.valueOnDisk,
+          encoding: "utf8",
+          saveLast: true,
+        });
+      } else if (typeof this.fs.writeFile === "function") {
+        await (this.fs as any).writeFile(this.path, value, { encoding: "utf8" });
+      } else if (typeof this.client.write_file === "function") {
+        await this.client.write_file({
+          path: this.path,
+          data: value,
+          cb: () => {},
+        });
+      } else {
+        throw new Error("no file writer available");
+      }
+      if (this.isClosed()) return;
+    } catch (err) {
+      if (err.code == "EACCES") {
+        try {
+          // update read only knowledge -- that may have caused save error.
+          await this.stat();
+        } catch {}
+      }
+      throw err;
+    }
+    if (this.isClosed()) return;
+    this.valueOnDisk = value;
+    this.emit("save-to-disk");
   };
 
   /* Initiates a save of file to disk, then waits for the
      state to change. */
-  save_to_disk = async (): Promise<void> => {
-    if (this.state != "ready") {
+  save_to_disk = reuseInFlight(async (): Promise<void> => {
+    if (!this.isReady()) {
       // We just make save_to_disk a successful
       // no operation, if the document is either
       // closed or hasn't finished opening, since
@@ -3121,62 +2649,10 @@ export class SyncDoc extends EventEmitter {
       // properly.
       return;
     }
-    const dbg = this.dbg("save_to_disk");
-    if (this.client.is_deleted(this.path, this.project_id)) {
-      dbg("not saving to disk because deleted");
-      await this.set_save({ state: "done", error: "" });
-      return;
-    }
-
-    // Make sure to include changes to the live document.
-    // A side effect of save if we didn't do this is potentially
-    // discarding them, which is obviously not good.
     this.commit();
-
-    dbg("initiating the save");
-    if (!this.has_unsaved_changes()) {
-      dbg("no unsaved changes, so don't save");
-      // CRITICAL: this optimization is assumed by
-      // autosave, etc.
-      await this.set_save({ state: "done", error: "" });
-      return;
-    }
-
-    if (this.is_read_only()) {
-      dbg("read only, so can't save to disk");
-      // save should fail if file is read only and there are changes
-      throw Error("can't save readonly file with changes to disk");
-    }
-
-    // First make sure any changes are saved to the database.
-    // One subtle case where this matters is that loading a file
-    // with \r's into codemirror changes them to \n...
-    if (!(await this.isFileServer())) {
-      dbg("browser client -- sending any changes over network");
-      await this.save();
-      dbg("save done; now do actual save to the *disk*.");
-      this.assert_is_ready("save_to_disk - after save");
-    }
-
-    try {
-      await this.save_to_disk_aux();
-    } catch (err) {
-      if (this.state != "ready") return;
-      const error = `save to disk failed -- ${err}`;
-      dbg(error);
-      if (await this.isFileServer()) {
-        this.set_save({ error, state: "done" });
-      }
-    }
-    if (this.state != "ready") return;
-
-    if (!(await this.isFileServer())) {
-      dbg("now wait for the save to disk to finish");
-      this.assert_is_ready("save_to_disk - waiting to finish");
-      await this.wait_for_save_to_disk_done();
-    }
+    await this.writeFile();
     this.update_has_unsaved_changes();
-  };
+  });
 
   /* Export the (currently loaded) history of editing of this
      document to a simple JSON-able object. */
@@ -3187,12 +2663,12 @@ export class SyncDoc extends EventEmitter {
       throw Error("syncstring table must be defined and users initialized");
     }
     const account_ids: string[] = info.get("users").toJS();
-    assertDefined(this.patch_list);
-    return export_history(account_ids, this.patch_list, options);
+    const patches = this.requirePatchflowSession().history({ includeSnapshots: true });
+    return export_history(account_ids, patches, options);
   };
 
   private update_has_unsaved_changes = (): void => {
-    if (this.state != "ready") {
+    if (!this.isReady()) {
       // This can happen, since this is called by a debounced function.
       // Make it a no-op in case we're not ready.
       // See https://github.com/sagemathinc/cocalc/issues/3577
@@ -3202,268 +2678,6 @@ export class SyncDoc extends EventEmitter {
     if (cur !== this.last_has_unsaved_changes) {
       this.emit("has-unsaved-changes", cur);
       this.last_has_unsaved_changes = cur;
-    }
-  };
-
-  // wait for save.state to change state.
-  private wait_for_save_to_disk_done = async (): Promise<void> => {
-    const dbg = this.dbg("wait_for_save_to_disk_done");
-    dbg();
-    function until(table): boolean {
-      const done = table.get_one().getIn(["save", "state"]) === "done";
-      dbg("checking... done=", done);
-      return done;
-    }
-
-    let last_err: string | undefined = undefined;
-    const f = async () => {
-      dbg("f");
-      if (
-        this.state != "ready" ||
-        this.client.is_deleted(this.path, this.project_id)
-      ) {
-        dbg("not ready or deleted - no longer trying to save.");
-        return;
-      }
-      try {
-        dbg("waiting until done...");
-        await this.syncstring_table.wait(until, 15);
-      } catch (err) {
-        dbg("timed out after 15s");
-        throw Error("timed out");
-      }
-      if (
-        this.state != "ready" ||
-        this.client.is_deleted(this.path, this.project_id)
-      ) {
-        dbg("not ready or deleted - no longer trying to save.");
-        return;
-      }
-      const err = this.syncstring_table_get_one().getIn(["save", "error"]) as
-        | string
-        | undefined;
-      if (err) {
-        dbg("error", err);
-        last_err = err;
-        throw Error(err);
-      }
-      dbg("done, with no error.");
-      last_err = undefined;
-      return;
-    };
-    await retry_until_success({
-      f,
-      max_tries: 8,
-      desc: "wait_for_save_to_disk_done",
-    });
-    if (
-      this.state != "ready" ||
-      this.client.is_deleted(this.path, this.project_id)
-    ) {
-      return;
-    }
-    if (last_err && typeof this.client.log_error != null) {
-      this.client.log_error?.({
-        string_id: this.string_id,
-        path: this.path,
-        project_id: this.project_id,
-        error: `Error saving file -- ${last_err}`,
-      });
-    }
-  };
-
-  /* Auxiliary function 2 for saving to disk:
-     If this is associated with
-     a project and has a filename.
-     A user (web browsers) sets the save state to requested.
-     The project sets the state to saving, does the save
-     to disk, then sets the state to done.
-  */
-  private save_to_disk_aux = async (): Promise<void> => {
-    this.assert_is_ready("save_to_disk_aux");
-
-    if (!(await this.isFileServer())) {
-      return await this.save_to_disk_non_filesystem_owner();
-    }
-
-    try {
-      return await this.save_to_disk_filesystem_owner();
-    } catch (err) {
-      this.emit("save_to_disk_filesystem_owner", err);
-      throw err;
-    }
-  };
-
-  private save_to_disk_non_filesystem_owner = async (): Promise<void> => {
-    this.assert_is_ready("save_to_disk_non_filesystem_owner");
-
-    if (!this.has_unsaved_changes()) {
-      /* Browser client has no unsaved changes,
-         so don't need to save --
-         CRITICAL: this optimization is assumed by autosave.
-       */
-      return;
-    }
-    const x = this.syncstring_table.get_one();
-    if (x != null && x.getIn(["save", "state"]) === "requested") {
-      // Nothing to do -- save already requested, which is
-      // all the browser client has to do.
-      return;
-    }
-
-    // string version of this doc
-    const data: string = this.to_str();
-    const expected_hash = hash_string(data);
-    await this.set_save({ state: "requested", error: "", expected_hash });
-  };
-
-  private save_to_disk_filesystem_owner = async (): Promise<void> => {
-    this.assert_is_ready("save_to_disk_filesystem_owner");
-    const dbg = this.dbg("save_to_disk_filesystem_owner");
-
-    // check if on-disk version is same as in memory, in
-    // which case no save is needed.
-    const data = this.to_str(); // string version of this doc
-    const hash = hash_string(data);
-    dbg("hash = ", hash);
-
-    /*
-    // TODO: put this consistency check back in (?).
-    const expected_hash = this.syncstring_table
-      .get_one()
-      .getIn(["save", "expected_hash"]);
-    */
-
-    if (hash === this.hash_of_saved_version()) {
-      // No actual save to disk needed; still we better
-      // record this fact in table in case it
-      // isn't already recorded
-      this.set_save({ state: "done", error: "", hash });
-      return;
-    }
-
-    const path = this.path;
-    if (!path) {
-      const err = "cannot save without path";
-      this.set_save({ state: "done", error: err });
-      throw Error(err);
-    }
-
-    dbg("project - write to disk file", path);
-    // set window to slightly earlier to account for clock
-    // imprecision.
-    // Over an sshfs mount, all stats info is **rounded down
-    // to the nearest second**, which this also takes care of.
-    this.save_to_disk_start_ctime = Date.now() - 1500;
-    this.save_to_disk_end_ctime = undefined;
-    try {
-      await callback2(this.client.write_file, { path, data });
-      this.assert_is_ready("save_to_disk_filesystem_owner -- after write_file");
-      const stat = await callback2(this.client.path_stat, { path });
-      this.assert_is_ready("save_to_disk_filesystem_owner -- after path_state");
-      this.save_to_disk_end_ctime = stat.ctime.valueOf() + 1500;
-      this.set_save({
-        state: "done",
-        error: "",
-        hash: hash_string(data),
-      });
-    } catch (err) {
-      this.set_save({ state: "done", error: JSON.stringify(err) });
-      throw err;
-    }
-  };
-
-  /*
-    When the underlying synctable that defines the state
-    of the document changes due to new remote patches, this
-    function is called.
-    It handles update of the remote version, updating our
-    live version as a result.
-  */
-  private handle_patch_update = async (changed_keys): Promise<void> => {
-    // console.log("handle_patch_update", { changed_keys });
-    if (changed_keys == null || changed_keys.length === 0) {
-      // this happens right now when we do a save.
-      return;
-    }
-
-    const dbg = this.dbg("handle_patch_update");
-    //dbg(changed_keys);
-    if (this.patch_update_queue == null) {
-      this.patch_update_queue = [];
-    }
-    for (const key of changed_keys) {
-      this.patch_update_queue.push(key);
-    }
-
-    dbg("Clear patch update_queue in a later event loop...");
-    await delay(1);
-    await this.handle_patch_update_queue();
-    dbg("done");
-  };
-
-  /*
-  Whenever new patches are added to this.patches_table,
-  their timestamp gets added to this.patch_update_queue.
-  */
-  private handle_patch_update_queue = async (): Promise<void> => {
-    const dbg = this.dbg("handle_patch_update_queue");
-    try {
-      this.handle_patch_update_queue_running = true;
-      while (this.state != "closed" && this.patch_update_queue.length > 0) {
-        dbg("queue size = ", this.patch_update_queue.length);
-        const v: Patch[] = [];
-        for (const key of this.patch_update_queue) {
-          let x = this.patches_table.get(key);
-          if (x == null) {
-            continue;
-          }
-          if (!Map.isMap(x)) {
-            // TODO: my NATS synctable-stream doesn't convert to immutable on get.
-            x = fromJS(x);
-          }
-          // may be null, e.g., when deleted.
-          const t = x.get("time");
-          // Optimization: only need to process patches that we didn't
-          // create ourselves during this session.
-          if (t && !this.my_patches[t.valueOf()]) {
-            const p = this.processPatch({ x });
-            //dbg(`patch=${JSON.stringify(p)}`);
-            if (p != null) {
-              v.push(p);
-            }
-          }
-        }
-        this.patch_update_queue = [];
-        this.emit("patch-update-queue-empty");
-        assertDefined(this.patch_list);
-        this.patch_list.add(v);
-
-        dbg("waiting for remote and doc to sync...");
-        this.sync_remote_and_doc(v.length > 0);
-        await this.patches_table.save();
-        if (this.state === ("closed" as State)) return; // closed during await; nothing further to do
-        dbg("remote and doc now synced");
-
-        if (this.patch_update_queue.length > 0) {
-          // It is very important that next loop happen in a later
-          // event loop to avoid the this.sync_remote_and_doc call
-          // in this.handle_patch_update_queue above from causing
-          // sync_remote_and_doc to get called from within itself,
-          // due to synctable changes being emited on save.
-          dbg("wait for next event loop");
-          await delay(1);
-        }
-      }
-    } finally {
-      if (this.state == "closed") return; // got closed, so nothing further to do
-
-      // OK, done and nothing in the queue
-      // Notify save() to try again -- it may have
-      // paused waiting for this to clear.
-      dbg("done");
-      this.handle_patch_update_queue_running = false;
-      this.emit("handle_patch_update_queue_done");
     }
   };
 
@@ -3513,10 +2727,13 @@ export class SyncDoc extends EventEmitter {
       return;
     }
 
-    // Critical to save what we have now so it doesn't get overwritten during
-    // before-change or setting this.doc below.  This caused
-    //    https://github.com/sagemathinc/cocalc/issues/5871
-    this.commit();
+    if (!this.last.is_equal(this.doc)) {
+      // If live versions differs from last commit (or merge of heads), it is
+      // commit what we have now so it doesn't get overwritten during
+      // before-change or setting this.doc below.  This caused
+      //    https://github.com/sagemathinc/cocalc/issues/5871
+      this.commit();
+    }
 
     if (upstreamPatches && this.state == "ready") {
       // First save any unsaved changes from the live document, which this
@@ -3524,10 +2741,12 @@ export class SyncDoc extends EventEmitter {
       // rapidly changing live editor with changes not yet saved here.
       this.emit("before-change");
       // As a result of the emit in the previous line, all kinds of
-      // nontrivial listener code probably just ran, and it should
+      // nontrivial listener code may have just ran, and it could
       // have updated this.doc.  We commit this.doc, so that the
       // upstream patches get applied against the correct live this.doc.
-      this.commit();
+      if (!this.last.is_equal(this.doc)) {
+        this.commit();
+      }
     }
 
     // Compute the global current state of the document,
@@ -3535,10 +2754,12 @@ export class SyncDoc extends EventEmitter {
     // It is VERY important to do this, even if the
     // document is not yet ready, since it is critical
     // to properly set the state of this.doc to the value
-    // of the patch list (e.g., not doing this 100% breaks
+    // of the patch history (e.g., not doing this 100% breaks
     // opening a file for the first time on cocalc-docker).
-    assertDefined(this.patch_list);
-    const new_remote = this.patch_list.value();
+    const new_remote = this.patchflowValue();
+    if (new_remote == null) {
+      return;
+    }
     if (!this.doc.is_equal(new_remote)) {
       // There is a possibility that live document changed, so
       // set to new version.
@@ -3553,7 +2774,7 @@ export class SyncDoc extends EventEmitter {
   // Immediately alert all watchers of all changes since
   // last time.
   private emit_change = (): void => {
-    this.emit("change", this.doc?.changes(this.before_change));
+    this.emit("change", this.doc?.changes?.(this.before_change));
     this.before_change = this.doc;
   };
 
@@ -3589,33 +2810,200 @@ export class SyncDoc extends EventEmitter {
     }
   }, 60000);
 
-  private initInterestLoop = async () => {
-    if (!this.client.is_browser()) {
-      // only browser clients -- so actual humans
+  private initFileWatcherFirstTime = () => {
+    // set this going, but don't await it.
+    (async () => {
+      await until(
+        async () => {
+          if (this.isClosed()) return true;
+          try {
+            await this.initFileWatcher();
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        { min: this.opts?.watchRecreateWait ?? WATCH_RECREATE_WAIT },
+      );
+    })();
+  };
+
+  private fileWatcher?: WatchIterator;
+  private initFileWatcher = async () => {
+    if (this.opts.noSaveToDisk) {
       return;
     }
-    const touch = async () => {
-      if (this.state == "closed" || this.client?.touchOpenFile == null) return;
-      await this.client.touchOpenFile({
-        path: this.path,
-        project_id: this.project_id,
-        doctype: this.doctype,
+    // use this.fs interface to watch path for changes -- we try once:
+    try {
+      this.fileWatcher = await this.fs.watch(this.path, {
+        unique: true,
+        patch: true,
       });
-    };
-    // then every CONAT_OPEN_FILE_TOUCH_INTERVAL (30 seconds).
-    await until(
-      async () => {
-        if (this.state == "closed") {
-          return true;
+      if (this.isDeleted) {
+        await this.readFile();
+      }
+    } catch (err) {
+      // console.log("error creating watcher", err);
+      if (err.code == "ENOENT") {
+        // the file was deleted -- check if this stays deleted long enough to count
+        await this.signalIfFileDeleted();
+      }
+      // throwing this error just causes initFileWatcher to get
+      // initialized again soon (a few seconds), again attemping a watch,
+      // unless it is the first time initializing the document.
+      throw err;
+    }
+    if (this.isClosed()) return;
+
+    // not closed -- so if above succeeds we start watching.
+    // if not, we loop waiting for file to be created so we can watch it
+    let expectedSeq = 0;
+    (async () => {
+      if (this.fileWatcher != null) {
+        this.emit("watching");
+        for await (const { event, ignore, patch, patchSeq } of this
+          .fileWatcher) {
+          //           console.log("watch", {
+          //             path: this.path,
+          //             event,
+          //             patch,
+          //             patchSeq,
+          //             expectedSeq,
+          //             ignore,
+          //           });
+          if (this.isClosed()) return;
+          if (event.startsWith("unlink")) {
+            break;
+          }
+          if (!ignore) {
+            if (patch != null && expectedSeq == patchSeq) {
+              // sequence number match and there is a patch
+              this.emit("before-change");
+              const value = this.to_str();
+              const [newValue] = dmpFileWatcher.patch_apply(
+                decompressPatch(patch),
+                value,
+              );
+              this.from_str(newValue);
+              this.commit({ emitChangeImmediately: true, file: true });
+              this.emit("handle-file-change");
+              await this.save();
+              this.emit("after-change");
+            } else {
+              // we don't know what's on disk anymore, so record
+              // that and reload from disk.  Also, can't use patch because
+              // not given or sequence number doesn't match (e.g., we
+              // refreshed browser, changed to be leader, etc.)
+              this.valueOnDisk = undefined;
+              // console.log(this.path, "loading from disk directly - no patch");
+              try {
+                await this.readFile();
+              } catch {
+                // can't read -- maybe deleted/locked
+                break;
+              }
+            }
+            if (patchSeq != null) {
+              expectedSeq = patchSeq + 1;
+            }
+          } else {
+            this.debouncedStat();
+          }
         }
-        await touch();
+        // check if file was deleted
+        this.signalIfFileDeleted();
+        this.fileWatcher?.close();
+        delete this.fileWatcher;
+      }
+      if (this.isClosed()) return;
+      // start a new watcher since file descriptor probably changed or maybe file deleted
+      await delay(this.opts?.watchRecreateWait ?? WATCH_RECREATE_WAIT);
+      await until(
+        async () => {
+          if (this.isClosed()) return true;
+          try {
+            await this.initFileWatcher();
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        { min: this.opts?.watchRecreateWait ?? WATCH_RECREATE_WAIT },
+      );
+    })();
+  };
+
+  private closeFileWatcher = () => {
+    this.fileWatcher?.close();
+    delete this.fileWatcher;
+  };
+
+  // returns true if file definitely exists right now,
+  // false if it definitely does not, and throws exception otherwise,
+  // e.g., network error.
+  private fileExists = async (): Promise<boolean> => {
+    try {
+      await this.stat();
+      return true;
+    } catch (err) {
+      // console.log("sync fileExists err", err);
+      if (err.code == "ENOENT") {
+        // file not there now.
         return false;
-      },
-      {
-        start: CONAT_OPEN_FILE_TOUCH_INTERVAL,
-        max: CONAT_OPEN_FILE_TOUCH_INTERVAL,
-      },
-    );
+      }
+      throw err;
+    }
+  };
+
+  private signalIfFileDeleted = async (): Promise<void> => {
+    if (this.isClosed()) return;
+    if (!this.hasReadFile) {
+      // can't be a 'deleted' because it doesn't even exist yet.
+      return;
+    }
+    const start = Date.now();
+    const threshold = this.opts.deletedThreshold ?? DELETED_THRESHOLD;
+    while (!this.isClosed()) {
+      try {
+        if (await this.fileExists()) {
+          // file definitely exists right now -- NOT deleted.
+          return;
+        }
+        // file definitely does NOT exist right now.
+      } catch {
+        // network not working or project off -- no way to know.
+        return;
+      }
+      const elapsed = Date.now() - start;
+      if (elapsed > threshold) {
+        // out of time to appear again, and definitely concluded
+        // it does not exist above
+        // file still doesn't exist -- consider it deleted -- browsers
+        // should close the tab and possibly notify user.
+        this.from_str("");
+        this.commit();
+        // console.log("emit deleted and set isDeleted=true");
+        if (!this.isDeleted) {
+          this.isDeleted = true;
+          this.emit("deleted");
+        }
+        return;
+      }
+      await delay(
+        Math.min(
+          this.opts.deletedCheckInterval ?? DELETED_CHECK_INTERVAL,
+          threshold - elapsed,
+        ),
+      );
+    }
+  };
+
+  push = (doc: SyncDoc, { source }: { source?: string | number } = {}) => {
+    remote.push({ local: this, remote: doc, source });
+  };
+
+  pull = (doc: SyncDoc, { source }: { source?: string | number } = {}) => {
+    remote.push({ local: doc, remote: this, source });
   };
 }
 
@@ -3637,4 +3025,9 @@ function isCompletePatchStream(dstream) {
     }
   }
   return false;
+}
+
+function isReadOnlyForOwner(stats): boolean {
+  // 0o200 is owner write permission
+  return (stats.mode & 0o200) === 0;
 }

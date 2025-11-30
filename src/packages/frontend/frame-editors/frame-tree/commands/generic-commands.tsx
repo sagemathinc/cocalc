@@ -9,7 +9,6 @@ import { Input } from "antd";
 import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
 import { defineMessage, IntlShape, useIntl } from "react-intl";
-
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -25,6 +24,7 @@ import { Actions as LatexEditorActions } from "@cocalc/frontend/frame-editors/la
 import { labels, menu } from "@cocalc/frontend/i18n";
 import { editor } from "@cocalc/frontend/i18n/common";
 import { open_new_tab as openNewTab } from "@cocalc/frontend/misc/open-browser-tab";
+import { isChatPath } from "@cocalc/frontend/chat/paths";
 import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
 import { AI_GENERATE_DOC_TAG } from "@cocalc/frontend/project/page/home-page/ai-generate-utils";
 import openSupportTab from "@cocalc/frontend/support/open";
@@ -1096,7 +1096,7 @@ addCommands({
   chat: {
     // we have a side chat menu item... except for in a chatroom or side chat.
     isVisible: ({ props }) =>
-      !props.path?.endsWith(".sage-chat") && props.type != "chat",
+      !isChatPath(props.path) && props.type != "chat",
     pos: -1,
     group: "show-frames",
     icon: "comment",
@@ -1568,7 +1568,7 @@ function fileAction(action) {
     alwaysShow: true,
     onClick: ({ props }) => {
       const actions = redux.getProjectActions(props.project_id);
-      actions.show_file_action_panel({
+      actions.showFileActionPanel({
         path: props.path,
         action,
       });

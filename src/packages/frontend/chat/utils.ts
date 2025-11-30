@@ -14,7 +14,7 @@ import type {
 } from "./types";
 import { is_date as isDate } from "@cocalc/util/misc";
 
-export const INPUT_HEIGHT = "125px";
+export const INPUT_HEIGHT = "auto";
 
 export const USER_MENTION_MARKUP =
   '<span class="user-mention" account-id=__id__ >@__display__</span>';
@@ -91,21 +91,18 @@ export function message_colors(
   account_id: string,
   message: ChatMessageTyped,
 ): {
-  background: string;
-  color: string;
+  background?: string;
+  color?: string;
   message_class: string;
   lighten?: { color: string };
 } {
   if (sender_is_viewer(account_id, message)) {
     return {
-      background: "#46b1f6",
-      color: "#fff",
+      background: "#f4f4f4",
       message_class: "smc-message-from-viewer",
     };
   } else {
     return {
-      background: "#f8f8f8",
-      color: "#000",
       lighten: { color: "#888" },
       message_class: "smc-message-from-other",
     };

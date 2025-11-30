@@ -10,7 +10,6 @@ import { Icon, Title } from "@cocalc/frontend/components";
 import { SiteLicenses } from "../site-licenses/admin/component";
 import { RegistrationToken } from "./registration-token";
 import SiteSettings from "./site-settings";
-import { UsageStatistics } from "./stats/page";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
@@ -32,15 +31,6 @@ export function AdminPage() {
       children: <UserSearch />,
     },
     {
-      key: "site-licenses",
-      label: (
-        <div style={headerStyle}>
-          <Icon name="key" style={{ marginRight: "8px" }} /> Licenses
-        </div>
-      ),
-      children: <SiteLicenses />,
-    },
-    {
       key: "site-settings",
       label: (
         <div style={headerStyle}>
@@ -54,6 +44,15 @@ export function AdminPage() {
           }}
         />
       ),
+    },
+    {
+      key: "site-licenses",
+      label: (
+        <div style={headerStyle}>
+          <Icon name="key" style={{ marginRight: "8px" }} /> Licenses
+        </div>
+      ),
+      children: <SiteLicenses />,
     },
     {
       key: "registration-tokens",
@@ -75,16 +74,16 @@ export function AdminPage() {
       ),
       children: <SystemNotifications />,
     },
-    {
-      key: "usage-stats",
-      label: (
-        <div style={headerStyle}>
-          <Icon name="line-chart" style={{ marginRight: "8px" }} /> Usage
-          Statistics
-        </div>
-      ),
-      children: <UsageStatistics />,
-    },
+    //     {
+    //       key: "usage-stats",
+    //       label: (
+    //         <div style={headerStyle}>
+    //           <Icon name="line-chart" style={{ marginRight: "8px" }} /> Usage
+    //           Statistics
+    //         </div>
+    //       ),
+    //       children: <UsageStatistics />,
+    //     },
     {
       key: "llm-testing",
       label: (

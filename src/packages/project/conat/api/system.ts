@@ -19,12 +19,6 @@ export async function listing({ path, hidden }) {
   return await getListing(path, hidden);
 }
 
-import { delete_files } from "@cocalc/backend/files/delete-files";
-
-export async function deleteFiles({ paths }: { paths: string[] }) {
-  return await delete_files(paths);
-}
-
 import { getClient } from "@cocalc/project/client";
 async function setDeleted(path) {
   const client = getClient();
@@ -105,5 +99,6 @@ export async function signal({
   }
 }
 
-import jupyterExecute from "@cocalc/jupyter/stateless-api/execute";
-export { jupyterExecute };
+export { sshPublicKey } from "@cocalc/backend/ssh/ssh-keys";
+
+export { update as updateSshKeys } from "@cocalc/project/conat/authorized-keys";

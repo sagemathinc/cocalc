@@ -35,6 +35,8 @@ export async function sudo(
     ...opts,
     command,
     args,
+    // LC_ALL, etc. so that btrfs output we parse is not in a different language!
+    env: { ...process.env, LC_ALL: "C.UTF-8", LANG: "C.UTF-8" },
   });
 }
 
@@ -44,7 +46,7 @@ export async function btrfs(
   return await sudo({ ...opts, command: "btrfs" });
 }
 
-export async function isdir(path: string) {
+export async function isDir(path: string) {
   return (await stat(path)).isDirectory();
 }
 
@@ -62,4 +64,23 @@ export function parseBupTime(s: string): Date {
     Number(minutes),
     Number(seconds),
   );
+}
+
+export async function ensureMoreLoopbackDevices() {
+  // to run tests, this is helpful
+  //for i in $(seq 8 63); do sudo mknod -m660 /dev/loop$i b 7 $i; sudo chown root:disk /dev/loop$i; done
+  for (let i = 0; i < 64; i++) {
+    try {
+      await stat(`/dev/loop${i}`);
+      continue;
+    } catch {}
+    try {
+      // also try/catch this because ensureMoreLoops happens in parallel many times at once...
+      await sudo({
+        command: "mknod",
+        args: ["-m660", `/dev/loop${i}`, "b", "7", `${i}`],
+      });
+    } catch {}
+    await sudo({ command: "chown", args: ["root:disk", `/dev/loop${i}`] });
+  }
 }

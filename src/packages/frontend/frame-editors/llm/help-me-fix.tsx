@@ -131,20 +131,6 @@ export default function HelpMeFix({
     <div style={outerStyle}>
       <Space>
         <AIAvatar size={16} />
-        {canGetHint && (
-          <HelpMeFixButton
-            mode="hint"
-            model={model}
-            setModel={setModel}
-            project_id={project_id}
-            inputText={hintText}
-            tokens={hintTokens}
-            size={size}
-            style={style}
-            gettingHelp={gettingHelp}
-            onConfirm={() => onConfirm("hint")}
-          />
-        )}
         {canGetSolution && (
           <HelpMeFixButton
             mode="solution"
@@ -157,6 +143,20 @@ export default function HelpMeFix({
             style={style}
             gettingHelp={gettingHelp}
             onConfirm={() => onConfirm("solution")}
+          />
+        )}
+        {canGetHint && (
+          <HelpMeFixButton
+            mode="hint"
+            model={model}
+            setModel={setModel}
+            project_id={project_id}
+            inputText={hintText}
+            tokens={hintTokens}
+            size={size}
+            style={style}
+            gettingHelp={gettingHelp}
+            onConfirm={() => onConfirm("hint")}
           />
         )}
       </Space>

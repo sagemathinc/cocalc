@@ -197,7 +197,6 @@ const JUPYTER_MENUS = {
             "nbconvert markdown",
             "nbconvert rst",
             "nbconvert tex",
-            "nbconvert sagews",
             "nbconvert asciidoc",
           ],
         },

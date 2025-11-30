@@ -46,6 +46,9 @@ export function parseQueryWithOptions(query, options) {
       query[table][0][k] = obj[k];
     }
   }
+  if (options?.project_id != null && query[table][0]["project_id"] === null) {
+    query[table][0]["project_id"] = options.project_id;
+  }
   return { query, table };
 }
 

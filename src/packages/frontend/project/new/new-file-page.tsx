@@ -6,14 +6,12 @@
 import { Button, Input, Modal, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { defineMessage, FormattedMessage, useIntl } from "react-intl";
-
 import { default_filename } from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   ProjectActions,
   redux,
   useActions,
-  useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
@@ -25,7 +23,6 @@ import {
   SettingBox,
   Tip,
 } from "@cocalc/frontend/components";
-import FakeProgress from "@cocalc/frontend/components/fake-progress";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import { filenameIcon } from "@cocalc/frontend/file-associations";
 import { FileUpload, UploadLink } from "@cocalc/frontend/file-upload";
@@ -33,13 +30,11 @@ import { labels } from "@cocalc/frontend/i18n";
 import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
 import { getValidActivityBarOption } from "@cocalc/frontend/project/page/activity-bar";
 import { ACTIVITY_BAR_KEY } from "@cocalc/frontend/project/page/activity-bar-consts";
-import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PathNavigator } from "../explorer/path-navigator";
 import { useAvailableFeatures } from "../use-available-features";
 import { FileTypeSelector } from "./file-type-selector";
-import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
 
 const CREATE_MSG = defineMessage({
@@ -88,16 +83,6 @@ export default function NewFilePage(props: Props) {
     { project_id },
     "file_creation_error",
   );
-  const downloading_file = useTypedRedux({ project_id }, "downloading_file");
-  const project_map: ProjectMap | undefined = useRedux([
-    "projects",
-    "project_map",
-  ]);
-  const get_total_project_quotas = useRedux([
-    "projects",
-    "get_total_project_quotas",
-  ]);
-
   if (actions == null) {
     return <Loading theme="medium" />;
   }
@@ -123,7 +108,7 @@ export default function NewFilePage(props: Props) {
         : filename;
     try {
       setCreatingFile(name + (ext ? "." + ext : ""));
-      await getActions().create_file({
+      await getActions().createFile({
         name,
         ext,
         current_path,
@@ -168,19 +153,8 @@ export default function NewFilePage(props: Props) {
     );
   }
 
-  function blocked() {
-    if (project_map == null) {
-      return "";
-    }
-    if (get_total_project_quotas(project_id)?.network) {
-      return "";
-    } else {
-      return " (access blocked -- see project settings)";
-    }
-  }
-
   function createFolder() {
-    getActions().create_folder({
+    getActions().createFolder({
       name: filename,
       current_path,
       switch_over: true,
@@ -252,11 +226,6 @@ export default function NewFilePage(props: Props) {
         <Row>
           <Col sm={12}>
             <FileUpload
-              dropzone_handler={{
-                complete: (): void => {
-                  getActions().fetch_directory_listing();
-                },
-              }}
               project_id={project_id}
               current_path={current_path}
               show_header={false}
@@ -357,11 +326,7 @@ export default function NewFilePage(props: Props) {
             }
             values={{
               upload: (
-                <UploadLink
-                  project_id={project_id}
-                  path={current_path}
-                  onUpload={() => getActions().fetch_directory_listing()}
-                />
+                <UploadLink project_id={project_id} path={current_path} />
               ),
               folder: (txt) => (
                 <a
@@ -430,7 +395,7 @@ export default function NewFilePage(props: Props) {
         footer={<></>}
       >
         <div style={{ textAlign: "center" }}>
-          <FakeProgress time={4000} />
+          <Loading estimate={1000} />
         </div>
       </Modal>
       <Row key={"new-file-row"}>
@@ -516,21 +481,7 @@ export default function NewFilePage(props: Props) {
             availableFeatures={availableFeatures}
             filename={filename}
             filenameChanged={filenameChanged}
-          >
-            <Tip
-              title={"Download files from the Internet"}
-              icon={"cloud"}
-              placement={"bottom"}
-              tip={`Paste a URL or GitHub repo in the input box above, then press enter or click here to download it into your project. ${blocked()}`}
-            >
-              <NewFileButton
-                icon={"cloud"}
-                name={`Download from Internet URL ${blocked()}`}
-                on_click={() => createFile()}
-                loading={downloading_file}
-              />
-            </Tip>
-          </FileTypeSelector>
+          />
         </Col>
       </Row>
       {renderUpload()}

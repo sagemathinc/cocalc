@@ -264,95 +264,6 @@
   right: 0
   margin-top: -2px
 
-/*********** Synchronized Worksheets **************** */
-
-.sagews-input
-  white-space : nowrap
-
-.sagews-input-live:hover
-  cursor           : pointer
-  background-color : #428bca
-
-.sagews-input-hr
-  margin        : 0px
-  margin-right  : -10px
-  margin-bottom : .5ex
-  // makes line look centered
-  display       : inline-block
-  height        : 3px
-  background    : #ccc
-
-.sagews-input-newcell
-  width : 60%
-
-.sagews-input-eval-state
-  width : 20%
-
-.sagews-input-run-state
-  width : 20%
-
-.sagews-input-evaluated
-  background : #428bca
-
-// .sagews-input-unevaluated!
-
-.sagews-input-execute
-  background : #080
-
-.sagews-input-running
-  background : #0a0
-
-.sagews-input-waiting
-  background : #DC4437
-
-// Margin of sagews-output must be 0 for codemirror 3.14+, or cursor gets all jacked up.
-// background-color: #f9f9f9
-//
-// this messes up codemirror themes
-
-.sagews-output
-  display        : block
-  white-space    : normal
-  word-wrap      : break-word
-  padding-left   : 2em
-
-.sagews-output-stdout
-  white-space : pre-wrap
-
-.sagews-output-stderr
-  white-space : pre-wrap
-
-.sagews-output-cm-gutter
-  border-right : 1ex solid #5cb85c
-
-.sagews-output-cm-text
-  overflow-x   : auto   !important  // for big image output and since mathjax doesn't wrap around properly yet (?)
-  overflow-y   : hidden !important
-  max-width    : 100%   !important
-
-.sagews-output-cm-wrap
-  padding-top    : 1ex  !important
-  padding-bottom : 1ex  !important
-  border-top     : 1px solid lightgrey
-
-.sagews-output-edit-button-group
-  visibility : hidden
-
-.sagews-output:hover .sagews-output-edit-button-group
-  visibility : visible
-
-.sagews-output-editor
-  font-family : helvetica
-  border      : 3px solid lightblue
-
-.sagews-output-editor-content
-  padding : 6px
-
-.sagews-output-editor-buttons
-  background-color : #efefef
-  margin-bottom    : 5px
-  border           : 1px solid lightgrey
-
 .webapp-editor-codemirror-worksheet-editable-buttons
   padding-top : 3px
 
@@ -361,65 +272,6 @@
   border      : 1px solid lightgrey !important
   padding     : 3px !important
   margin-left : 5px
-
-.sagews-editor-latex-raw
-  border     : 1px solid lightgrey
-  padding    : 3px
-  box-shadow : 3px 3px 3px 3px #888888
-  margin     : 0 auto
-
-.sagews-editor-latex-preview
-  border  : 1px solid black
-  padding : 12px
-
-.sagews-output-editor-foreground-color-selector
-  cursor : pointer
-  width  : 1px
-  height : 30px
-
-.sagews-output-editor-background-color-selector
-  cursor : pointer
-  width  : 1px
-  height : 30px
-
-.sagews-output-html
-  font-family : helvetica
-
-.sagews-output-md
-  font-family : helvetica
-
-.sagews-output-stderr
-  color       : red
-
-.sagews-output-code
-  white-space : pre
-  border      : 2px solid lightblue
-  padding     : 1ex
-
-.sagews-output-tex
-  background : white
-  /* so that tex is visible */
-
-.sagews-output-image
-  background : white
-  /* so that, e.g., latex with transparent background is visible */
-  > img
-    cursor     : pointer
-
-.sagews-output-video
-  cursor     : pointer
-  background : white
-  border     : 1px solid lightgrey
-
-.sagews-output-link
-  cursor : pointer
-
-.sagews-output-hide
-  height     : 0px
-  background : #eee
-
-// .sagews-output-interact!
-
 
 .webapp-editor-static-html-content
   overflow-y : auto
@@ -580,17 +432,6 @@ code
   border     : 1px solid #ddd
   cursor     : pointer
   color      : darkblue
-
-.sagews-output-raw_input
-  font-family : sans-serif
-  margin      : 1em
-
-
-.smc-sagews-gutter-hide-show
-  width        : 12px
-  color        : #999
-  margin-right : 14px
-  margin-left  : 3px
 
 .CodeMirror-linewidget
   overflow : hidden

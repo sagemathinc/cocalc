@@ -36,7 +36,6 @@ import { OpenFile } from "./open-file";
 import { OpenSnapshots } from "./open-snapshots";
 import { RangeSlider } from "./range-slider";
 import { RevertFile } from "./revert-file";
-import { SagewsDiff } from "./sagews-diff";
 import { Version, VersionRange } from "./version";
 import { HAS_SPECIAL_VIEWER, Viewer } from "./viewer";
 
@@ -67,8 +66,6 @@ export function TimeTravel(props: Props) {
   const firstVersion = useEditor("first_version") ?? 0;
   const gitVersions = useEditor("git_versions");
   const hasFullHistory = useEditor("has_full_history");
-  const loadedLegacyHistory = useEditor("loaded_legacy_history");
-  const legacyHistoryExists = useEditor("legacy_history_exists");
   const loading = useEditor("loading");
   const docpath = useEditor("docpath");
   const docext = useEditor("docext");
@@ -281,19 +278,6 @@ export function TimeTravel(props: Props) {
       return renderLoading();
     }
 
-    if (docext == "sagews") {
-      return (
-        <SagewsDiff
-          v0={doc0}
-          v1={doc1}
-          path={docpath}
-          project_id={props.project_id}
-          font_size={props.font_size}
-          editor_settings={props.editor_settings}
-        />
-      );
-    }
-
     return (
       <Diff
         v0={doc0}
@@ -389,8 +373,6 @@ export function TimeTravel(props: Props) {
       <LoadMoreHistory
         actions={props.actions}
         hasFullHistory={hasFullHistory}
-        loadedLegacyHistory={loadedLegacyHistory}
-        legacyHistoryExists={legacyHistoryExists}
       />
     );
   };

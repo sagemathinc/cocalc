@@ -19,14 +19,15 @@ import {
   SortableContext,
   useSortable,
 } from "@dnd-kit/sortable";
-import useMouse from "@react-hook/mouse-position";
 import {
   createContext,
   CSSProperties,
   ReactNode,
   useContext,
+  useCallback,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import useResizeObserver from "use-resize-observer";
 
@@ -74,24 +75,22 @@ export function SortableTabs(props: Props) {
     length: number;
     itemWidth: number;
   } | null>(null);
-  const { isOver } = useMouse(divRef);
+  const [isPointerOver, setIsPointerOver] = useState(false);
+
+  const handlePointerEnter = useCallback(() => setIsPointerOver(true), []);
+  const handlePointerLeave = useCallback(() => setIsPointerOver(false), []);
 
   const itemWidth = useMemo(() => {
     if (divRef.current == null) {
       lastRef.current = null;
       return undefined;
     }
-    const last = lastRef.current;
-    if (
-      last != null &&
-      last.width == resize.width &&
-      items.length <= last.length &&
-      isOver
-    ) {
-      // @ts-ignore
-      lastRef.current.length = items.length;
-      return last.itemWidth;
+    if (isPointerOver && lastRef.current?.itemWidth) {
+      // The mouse is over the tab bar, so do NOT change the size of the tabs -- just leave it.
+      // This makes it so you can easily close a bunch of tabs.
+      return lastRef.current?.itemWidth;
     }
+
     // resize?.width - 46 - the minus 46 is to take into account the "..." dropdown.
     const itemWidth =
       Math.max(
@@ -107,10 +106,15 @@ export function SortableTabs(props: Props) {
       itemWidth,
     };
     return itemWidth;
-  }, [resize.width, items.length, divRef.current, isOver]);
+  }, [resize.width, items.length, divRef.current, isPointerOver]);
 
   return (
-    <div style={{ width: "100%", ...style }} ref={divRef}>
+    <div
+      style={{ width: "100%", ...style }}
+      ref={divRef}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+    >
       <ItemContext.Provider value={{ width: itemWidth }}>
         <DndContext
           onDragStart={onDragStart}

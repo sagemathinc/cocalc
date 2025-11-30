@@ -163,7 +163,9 @@ export function getLogger(name) {
   for (const s of ["debug", "info", "warn", "silly"]) {
     logger[s] = tmpLogger(s, name, logger);
   }
-  logger.silly = logger.debug;
+  logger.silly = (..._args) => {};
+  // to actually see silly logs...
+  // logger.silly = logger.debug;
   return logger;
 }
 
