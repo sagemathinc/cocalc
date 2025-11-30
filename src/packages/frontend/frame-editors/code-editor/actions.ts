@@ -103,6 +103,7 @@ import {
 } from "../generic/client";
 import { diff_main } from "@cocalc/util/patch";
 import { MergeCoordinator } from "./sync";
+import { SyncAdapter } from "./sync-adapter";
 import "../generic/codemirror-plugins";
 import languageModelCreateChat, { Options } from "../llm/create-chat";
 import type { Scope as LanguageModelScope } from "../llm/types";
@@ -217,6 +218,7 @@ export class Actions<
   private _last_merged_version?: number;
   private _last_merged_value?: string;
   private mergeCoordinator?: MergeCoordinator;
+  private syncAdapter?: SyncAdapter;
 
   // Centralized merge state between local CM buffer and remote syncstring.
   private getMergeCoordinator(): MergeCoordinator {
@@ -365,14 +367,13 @@ export class Actions<
     } catch {
       // ignore if not ready yet
     }
-    this._syncstring.on("change", () => {
-      if (!this._syncstring) {
-        // edge case where actions closed but this event was still triggered, OR
-        // the syncstring changed, but has not actually loaded a version from
-        // disk yet, which happens with compute servers for a second.
-        return;
-      }
-      this.handleRemoteSyncstringChange(this._syncstring.to_str());
+    this.syncAdapter?.dispose();
+    this.syncAdapter = new SyncAdapter({
+      sync: this._syncstring,
+      onRemoteChange: () => {
+        if (!this._syncstring) return;
+        this.handleRemoteSyncstringChange(this._syncstring.to_str());
+      },
     });
   }
 
@@ -512,6 +513,7 @@ export class Actions<
     });
 
     this._syncstring.once("closed", () => {
+      this.syncAdapter?.dispose();
       this.close();
     });
 
