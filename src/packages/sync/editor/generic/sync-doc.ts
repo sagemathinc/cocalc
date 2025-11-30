@@ -77,6 +77,7 @@ import {
   type DocCodec,
   type PatchEnvelope,
   type PatchStore as PatchflowPatchStore,
+  type PresenceAdapter as PatchflowPresenceAdapter,
 } from "patchflow";
 import type {
   Client,
@@ -215,7 +216,6 @@ export class SyncDoc extends EventEmitter {
 
   private syncstring_table: SyncTable;
   public patches_table: SyncTable;
-  private cursors_table: SyncTable;
 
   public evaluator?: Evaluator;
 
@@ -392,8 +392,7 @@ export class SyncDoc extends EventEmitter {
   // We always take the smallest id of the remote
   // compute servers, in case there is more than one, so exactly one of them
   // takes control.  Always returns 0 if cursors are not enabled for this
-  // document, since the cursors table is used to coordinate the compute
-  // server.
+  // document, since cursor presence is used to coordinate the compute server.
   getComputeServerId = (): number => {
     if (!this.cursors) {
       return 0;
@@ -439,55 +438,20 @@ export class SyncDoc extends EventEmitter {
     locs: any,
     side_effect: boolean = false,
   ) => {
+    if (!this.cursors) {
+      throw Error("cursors are not enabled");
+    }
     if (!this.isReady()) {
       return;
     }
-    if (this.cursors_table == null) {
-      if (!this.cursors) {
-        throw Error("cursors are not enabled");
-      }
-      // table not initialized yet
+    if (!this.patchflowReady()) {
       return;
     }
-    if (this.useConat) {
-      const time = this.client.server_time().valueOf();
-      const x: {
-        user_id: number;
-        locs: any;
-        time: number;
-      } = {
-        user_id: this.my_user_id,
-        locs,
-        time,
-      };
-      // will actually always be non-null due to above
-      this.cursor_last_time = new Date(x.time);
-      this.cursors_table.set(x);
-      return;
-    }
-
-    const x: {
-      string_id?: string;
-      user_id: number;
-      locs: any[];
-      time?: Date;
-    } = {
-      string_id: this.string_id,
-      user_id: this.my_user_id,
-      locs,
-    };
     const now = this.client.server_time();
-    if (!side_effect || (x.time ?? now) >= now) {
-      // the now comparison above is in case the cursor time
-      // is in the future (due to clock issues) -- always fix that.
-      x.time = now;
+    if (!side_effect || now >= this.cursor_last_time) {
+      this.cursor_last_time = now;
     }
-    if (x.time != null) {
-      // will actually always be non-null due to above
-      this.cursor_last_time = x.time;
-    }
-    this.cursors_table.set(x, "none");
-    await this.cursors_table.save();
+    this.requirePatchflowSession().updateCursors(locs);
   };
 
   set_cursor_locs: typeof this.setCursorLocsNoThrottle = throttle(
@@ -884,7 +848,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   private init_table_close_handlers(): void {
-    for (const x of ["syncstring", "patches", "cursors"]) {
+    for (const x of ["syncstring", "patches"]) {
       const t = this[x + "_table"];
       if (t != null) {
         t.on("close", this.close);
@@ -970,7 +934,6 @@ export class SyncDoc extends EventEmitter {
   private closeTables = async () => {
     this.syncstring_table?.close();
     this.patches_table?.close();
-    this.cursors_table?.close();
     this.evaluator?.close();
     this.ipywidgets_state?.close();
   };
@@ -1439,6 +1402,8 @@ export class SyncDoc extends EventEmitter {
         patchStore: this.patchflowStore,
         clock: () => this.client.server_time().valueOf(),
         userId: this.my_user_id ?? 0,
+        docId: this.string_id,
+        presenceAdapter: await this.createCursorPresenceAdapter(),
       });
       this.patchflowSession.on("change", (doc) => {
         const next = doc as Document;
@@ -1494,107 +1459,81 @@ export class SyncDoc extends EventEmitter {
       dbg("done -- do not care about cursors for this syncdoc.");
       return;
     }
-    if (this.useConat) {
-      dbg("cursors broadcast using pub/sub");
-      this.cursors_table = await this.client.pubsub_conat({
-        project_id: this.project_id,
-        path: this.path,
-        name: "cursors",
-      });
-      this.cursors_table.on(
-        "change",
-        (obj: { user_id: number; locs: any; time: number }) => {
-          const account_id = this.users[obj.user_id];
-          if (!account_id) {
-            return;
-          }
-          if (obj.locs == null && !this.cursor_map.has(account_id)) {
-            // gone, and already gone.
-            return;
-          }
-          if (obj.locs != null) {
-            // changed
-            this.cursor_map = this.cursor_map.set(account_id, fromJS(obj));
-          } else {
-            // deleted
-            this.cursor_map = this.cursor_map.delete(account_id);
-          }
-          this.emit("cursor_activity", account_id);
-        },
-      );
+    if (!this.patchflowReady()) {
+      dbg("patchflow not ready; skipping cursor setup");
       return;
     }
-
-    dbg("getting cursors ephemeral table");
-    const query = {
-      cursors: [
-        {
-          string_id: this.string_id,
-          user_id: null,
-          locs: null,
-          time: null,
-        },
-      ],
-    };
-    // We make cursors an ephemeral table, since there is no
-    // need to persist it to the database, obviously!
-    // Also, queue_size:1 makes it so only the last cursor position is
-    // saved, e.g., in case of disconnect and reconnect.
-    const options = [{ ephemeral: true }, { queue_size: 1 }]; // probably deprecated
-    this.cursors_table = await this.synctable(query, options, 1000);
-    this.assert_not_closed("init_cursors -- after making synctable");
-
-    // cursors now initialized; first initialize the
-    // local this._cursor_map, which tracks positions
-    // of cursors by account_id:
-    dbg("loading initial state");
-    const s = this.cursors_table.get();
-    if (s == null) {
-      throw Error("bug -- get should not return null once table initialized");
-    }
-    s.forEach((locs: any, k: string) => {
-      if (locs == null) {
-        return;
-      }
-      const u = JSON.parse(k);
-      if (u != null) {
-        this.cursor_map = this.cursor_map.set(this.users[u[1]], locs);
-      }
-    });
-    this.cursors_table.on("change", this.handle_cursors_change);
-
+    this.cursor_map = this.buildCursorMap();
+    this.patchflowSession?.on("cursors", this.handlePatchflowCursors);
     dbg("done");
   };
 
-  private handle_cursors_change = (keys) => {
-    if (this.state === "closed") {
-      return;
+  private handlePatchflowCursors = (): void => {
+    this.cursor_map = this.buildCursorMap();
+    for (const key of this.cursor_map.keySeq().toArray()) {
+      this.emit("cursor_activity", key);
     }
-    for (const k of keys) {
-      const u = JSON.parse(k);
-      if (u == null) {
-        continue;
-      }
-      const account_id = this.users[u[1]];
-      if (!account_id) {
-        // this happens for ephemeral table when project restarts and browser
-        // has data it is trying to send.
-        continue;
-      }
-      const locs = this.cursors_table.get(k);
-      if (locs == null && !this.cursor_map.has(account_id)) {
-        // gone, and already gone.
-        continue;
-      }
-      if (locs != null) {
-        // changed
-        this.cursor_map = this.cursor_map.set(account_id, locs);
-      } else {
-        // deleted
-        this.cursor_map = this.cursor_map.delete(account_id);
-      }
-      this.emit("cursor_activity", account_id);
+  };
+
+  private buildCursorMap = ({
+    maxAge = 60 * 1000,
+    excludeSelf = "always",
+  }: {
+    maxAge?: number;
+    excludeSelf?: "always" | "never" | "heuristic";
+  } = {}): Map<string, any> => {
+    if (!this.patchflowReady()) {
+      return Map();
     }
+    const session = this.requirePatchflowSession();
+    const account_id: string = this.client_id();
+    const states = session.cursors({ ttlMs: maxAge });
+    let map = Map<string, any>();
+    const now = Date.now();
+    for (const state of states) {
+      if (state.docId && state.docId !== this.string_id) {
+        continue;
+      }
+      const key =
+        (state.userId != null ? this.users[state.userId] : undefined) ??
+        state.clientId ??
+        `client-${state.time}`;
+      const time = new Date(state.time);
+      map = map.set(
+        key,
+        fromJS({
+          user_id: state.userId,
+          locs: state.locs,
+          time,
+        }),
+      );
+    }
+    if (map.has(account_id) && excludeSelf != "never") {
+      const ourTime = map.getIn([account_id, "time"], 0);
+      if (
+        excludeSelf == "always" ||
+        (excludeSelf == "heuristic" &&
+          this.cursor_last_time >= new Date(ourTime as number))
+      ) {
+        map = map.delete(account_id);
+      }
+    }
+    for (const [client_id, value] of map as any) {
+      const time = value.get("time");
+      if (time == null) {
+        map = map.delete(client_id);
+        continue;
+      }
+      if (maxAge && Math.abs(now - time.valueOf()) >= maxAge) {
+        map = map.delete(client_id);
+        continue;
+      }
+      if (time >= now + 10 * 1000) {
+        map = map.delete(client_id);
+        continue;
+      }
+    }
+    return map;
   };
 
   /* Returns *immutable* Map from account_id to list
@@ -1605,11 +1544,6 @@ export class SyncDoc extends EventEmitter {
   */
   get_cursors = ({
     maxAge = 60 * 1000,
-    // excludeSelf:
-    // 'always' -- *always* exclude self
-    // 'never' -- never exclude self
-    // 'heuristic' -- exclude self is older than last set from here, e.g., useful on
-    // frontend so we don't see our own cursor unless more than one browser.
     excludeSelf = "always",
   }: {
     maxAge?: number;
@@ -1619,47 +1553,8 @@ export class SyncDoc extends EventEmitter {
     if (!this.cursors) {
       throw Error("cursors are not enabled");
     }
-    if (this.cursors_table == null) {
-      return Map(); // not loaded yet -- so no info yet.
-    }
-    const account_id: string = this.client_id();
-    let map = this.cursor_map;
-    if (map.has(account_id) && excludeSelf != "never") {
-      if (
-        excludeSelf == "always" ||
-        (excludeSelf == "heuristic" &&
-          this.cursor_last_time >=
-            new Date(map.getIn([account_id, "time"], 0) as number))
-      ) {
-        map = map.delete(account_id);
-      }
-    }
-    // Remove any old cursors, where "old" is by default more than maxAge old.
-    const now = Date.now();
-    for (const [client_id, value] of map as any) {
-      const time = value.get("time");
-      if (time == null) {
-        // this should always be set.
-        map = map.delete(client_id);
-        continue;
-      }
-      if (maxAge) {
-        // we use abs to implicitly exclude a bad value that is somehow in the future,
-        // if that were to happen.
-        if (Math.abs(now - time.valueOf()) >= maxAge) {
-          map = map.delete(client_id);
-          continue;
-        }
-      }
-      if (time >= now + 10 * 1000) {
-        // We *always* delete any cursors more than 10 seconds in the future, since
-        // that can only happen if a client inserts invalid data (e.g., clock not
-        // yet synchronized). See https://github.com/sagemathinc/cocalc/issues/7969
-        map = map.delete(client_id);
-        continue;
-      }
-    }
-    return map;
+    this.cursor_map = this.buildCursorMap({ maxAge, excludeSelf });
+    return this.cursor_map;
   };
 
   /* Set settings map.  Used for custom configuration just for
@@ -1996,6 +1891,40 @@ export class SyncDoc extends EventEmitter {
         ((a as any).make_patch ?? a.makePatch).call(a, b),
     };
   };
+
+  private async createCursorPresenceAdapter(): Promise<PatchflowPresenceAdapter | undefined> {
+    if (!this.cursors || !this.useConat) {
+      return;
+    }
+    const table = await this.client.pubsub_conat({
+      project_id: this.project_id,
+      path: this.path,
+      name: "cursors",
+    });
+    const listeners: Array<(state: unknown, clientId: string) => void> = [];
+    table.on("change", (obj: { user_id?: number }) => {
+      const account_id =
+        obj?.user_id != null ? this.users[obj.user_id] : undefined;
+      const clientId = account_id ?? `cursor-${obj?.user_id ?? "unknown"}`;
+      for (const fn of listeners) {
+        fn(obj, clientId);
+      }
+    });
+    return {
+      publish: (state: unknown) => {
+        table.set(state);
+      },
+      subscribe: (onState: (state: unknown, clientId: string) => void) => {
+        listeners.push(onState);
+        return () => {
+          const i = listeners.indexOf(onState);
+          if (i >= 0) {
+            listeners.splice(i, 1);
+          }
+        };
+      },
+    };
+  }
 
   private createPatchflowStore = (): PatchflowPatchStore => {
     return {
