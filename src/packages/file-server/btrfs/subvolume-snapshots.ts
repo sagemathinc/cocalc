@@ -44,7 +44,12 @@ export class SubvolumeSnapshots {
     await this.makeSnapshotsDir();
 
     if (limit != null) {
-      if ((await this.readdir()).length >= limit) {
+      const existing = (await this.readdir()).filter(
+        // lock files are named ".<snap>.lock" — exclude those from the limit
+        // (NOTE: we do NOT allow any real snapshot to start with '.' -- see above)
+        (x) => !x.endsWith(".lock"),
+      );
+      if (existing.length >= limit) {
         // 507 = "insufficient storage" for http
         throw new ConatError(`there is a limit of ${limit} snapshots`, {
           code: 507,
@@ -82,7 +87,7 @@ export class SubvolumeSnapshots {
 
   lock = async (name: string) => {
     if (await this.subvolume.fs.exists(this.path(name))) {
-      this.subvolume.fs.writeFile(this.path(`.${name}.lock`), "");
+      await this.subvolume.fs.writeFile(this.path(`.${name}.lock`), "");
     } else {
       throw Error(`snapshot ${name} does not exist`);
     }
