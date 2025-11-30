@@ -159,6 +159,9 @@ export const start = reuseInFlight(
 
     const sshdConfPathOnHost = join(path, SSHD_CONFIG);
     await mkdir(sshdConfPathOnHost, { recursive: true, mode: 0o700 });
+    // We install the proxy's public key here (not the end-user keys) because the
+    // proxy itself sshes into this container on behalf of users; user keys are
+    // validated in the auth handler before we ever open the proxy tunnel.
     await writeFile(join(sshdConfPathOnHost, "authorized_keys"), publicKey, {
       mode: 0o600,
     });
@@ -333,6 +336,17 @@ export async function terminateIfIdle(name): Promise<boolean> {
 export async function terminateAllIdle({
   minAge = 15_000,
 }: { minAge?: number } = {}) {
+  const parseStartedAt = (val: string): number | null => {
+    // podman outputs either a unix timestamp (seconds) or an ISO 
+    // string depending on version, so we make sure we can parse either
+    // rather than hoping things are what we expect.
+    if (/^\d+$/.test(val)) {
+      return parseInt(val, 10) * 1000;
+    }
+    const t = Date.parse(val);
+    return Number.isNaN(t) ? null : t;
+  };
+
   const { stdout } = await podman([
     "ps",
     "-a",
@@ -356,7 +370,8 @@ export async function terminateAllIdle({
     if (w.length == 2) {
       total++;
       const [name, startedAt] = w;
-      if (now - parseInt(startedAt) * 1000 >= minAge) {
+      const startedMs = parseStartedAt(startedAt);
+      if (startedMs != null && now - startedMs >= minAge) {
         tasks.push(f(name));
       }
     }

@@ -112,7 +112,7 @@ export async function init({
 
       res.json(resp);
     } catch (err) {
-      logger.debug("ERROR", err);
+      logger.warn("ssh auth lookup failed", { user: req.params.user, err });
       // Doing this crashes the ssh server, so instead we respond with '' values.
       // res.status(403).json({ error: `${err}` });
       // Alternatively, we would have to rewrite the sshpiper_rest plugin.

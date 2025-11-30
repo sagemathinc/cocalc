@@ -136,6 +136,8 @@ async function getProxyPort(project_id: string) {
 async function getTarget(req) {
   const url = req.url ?? "";
   logger.debug("request", { url });
+  // TODO: enforce a known base path and validate length before slicing to avoid
+  // accepting arbitrary/short paths.
   const project_id = url.slice(1, 37);
   return { port: await getProxyPort(project_id), host: "localhost" };
 }

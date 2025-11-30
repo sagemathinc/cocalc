@@ -42,6 +42,7 @@
   - project-proxy metrics/logs: per-project connection counts, latency, failures, tunnel status.  
   - Runner registration metrics: health, active connections, storage headroom.  
   - Alerts on stale project→runner mappings, failed dials, registration loss.
+  - TODO: tighten project-proxy HTTP handler to enforce a base path/length before slicing project_id.
 
 - **Rollout path**  
   - Phase 1: same-zone GCP, direct connector only; proxy extracts SSH/HTTP forwarding; runners embed file-server.  
