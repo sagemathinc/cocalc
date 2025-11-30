@@ -15,8 +15,6 @@ in projects, and behaves slightly differently in each case.
 
 EVENTS:
 
-- before-change: fired before merging in changes from upstream
-- ... TODO
 */
 
 // How big of files we allow users to open using syncstrings.
@@ -52,7 +50,12 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { cancel_scheduled, once, until } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
-import { close, filename_extension, hash_string, minutes_ago } from "@cocalc/util/misc";
+import {
+  close,
+  filename_extension,
+  hash_string,
+  minutes_ago,
+} from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
@@ -237,9 +240,6 @@ export class SyncDoc extends EventEmitter {
   private last_has_unsaved_changes?: boolean = undefined;
 
   private ephemeral: boolean = false;
-
-  private sync_is_disabled: boolean = false;
-  private delay_sync_timer: any;
 
   private useConat: boolean;
 
@@ -682,8 +682,10 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     try {
-      const current = this.patchflowSession.getDocument() as Document;
-      if (!this.documentsEqual(current, this.doc)) {
+      const committed =
+        (this.patchflowSession as any).getCommittedDocument?.() ??
+        this.patchflowSession.getDocument();
+      if (!this.documentsEqual(committed as Document, this.doc)) {
         this.commitWithPatchflow({ allowDuplicate: false });
       }
     } catch {
@@ -1303,10 +1305,6 @@ export class SyncDoc extends EventEmitter {
       if (this.cursors) {
         this.patchflowSession.on("cursors", this.handlePatchflowCursors);
       }
-      this.patchflowSession.on("before-change", () => {
-        this.emit("before-change");
-        this.ensurePatchflowLiveDocCommitted();
-      });
       this.patchflowSession.on("change", (doc) => {
         const next = doc as Document;
         if (!this.doc || !this.doc.is_equal(next)) {
@@ -1378,7 +1376,9 @@ export class SyncDoc extends EventEmitter {
 
   private handlePatchflowCursors = (states?: any[]): void => {
     const snapshots =
-      states ?? this.cursorSnapshots ?? this.requirePatchflowSession().cursors();
+      states ??
+      this.cursorSnapshots ??
+      this.requirePatchflowSession().cursors();
     this.cursorSnapshots = snapshots;
     let map = Map<string, any>();
     for (const state of snapshots) {
@@ -2312,26 +2312,6 @@ export class SyncDoc extends EventEmitter {
     return this.patchflowSession;
   };
 
-  private patchflowValue = ({
-    time,
-    without_times,
-  }: { time?: number; without_times?: number[] } = {}):
-    | Document
-    | undefined => {
-    if (!this.patchflowReady() || this.patchflowSession == null) return;
-    try {
-      if (time != null || without_times != null) {
-        return this.patchflowSession.value({
-          time,
-          withoutTimes: without_times,
-        }) as Document;
-      }
-      return this.patchflowSession.getDocument() as Document;
-    } catch {
-      return;
-    }
-  };
-
   private patchflowPatch = (time: number): PatchEnvelope | undefined => {
     if (!this.patchflowReady() || this.patchflowSession == null) return;
     try {
@@ -2441,7 +2421,7 @@ export class SyncDoc extends EventEmitter {
     allowDuplicate?: boolean;
   }): boolean => {
     if (!this.patchflowReady() || this.patchflowSession == null) {
-      return false;
+      throw new Error("patchflow session is not initialized");
     }
     const next = this.doc;
     if (next == null) {
@@ -2454,7 +2434,11 @@ export class SyncDoc extends EventEmitter {
       // session not initialized yet
       return false;
     }
-    if (!allowDuplicate && this.documentsEqual(current, next)) {
+    const compareAgainst = current;
+    if (
+      !allowDuplicate &&
+      this.documentsEqual(compareAgainst as Document, next)
+    ) {
       return false;
     }
     if (emitChangeImmediately) {
@@ -2508,7 +2492,11 @@ export class SyncDoc extends EventEmitter {
     file?: boolean;
     allowDuplicate?: boolean;
   } = {}): boolean => {
-    return this.commitWithPatchflow({ emitChangeImmediately, file, allowDuplicate });
+    return this.commitWithPatchflow({
+      emitChangeImmediately,
+      file,
+      allowDuplicate,
+    });
   };
 
   // valueOnDisk = value of the file on disk, if known.  If there's an
@@ -2628,96 +2616,6 @@ export class SyncDoc extends EventEmitter {
     }
   };
 
-  /* Disable and enable sync.   When disabled we still
-     collect patches from upstream (but do not apply them
-     locally), and changes we make are broadcast into
-     the patch stream.   When we re-enable sync, all
-     patches are put together in the stream and
-     everything is synced as normal.  This is useful, e.g.,
-     to make it so a user **actively** editing a document is
-     not interrupted by being forced to sync (in particular,
-     by the 'before-change' event that they use to update
-     the live document).
-
-     Also, delay_sync will delay syncing local with upstream
-     for the given number of ms.  Calling it regularly while
-     user is actively editing to avoid them being bothered
-     by upstream patches getting merged in.
-
-     IMPORTANT: I implemented this, but it is NOT used anywhere
-     else in the codebase, so don't trust that it works.
-  */
-
-  disable_sync = (): void => {
-    this.sync_is_disabled = true;
-  };
-
-  enable_sync = (): void => {
-    this.sync_is_disabled = false;
-    this.sync_remote_and_doc(true);
-  };
-
-  delay_sync = (timeout_ms = 2000): void => {
-    clearTimeout(this.delay_sync_timer);
-    this.disable_sync();
-    this.delay_sync_timer = setTimeout(() => {
-      this.enable_sync();
-    }, timeout_ms);
-  };
-
-  /*
-    Merge remote patches and live version to create new live version,
-    which is equal to result of applying all patches.
-  */
-  private sync_remote_and_doc = (upstreamPatches: boolean): void => {
-    if (this.last == null || this.doc == null || this.sync_is_disabled) {
-      return;
-    }
-
-    if (!this.last.is_equal(this.doc)) {
-      // If live versions differs from last commit (or merge of heads), it is
-      // commit what we have now so it doesn't get overwritten during
-      // before-change or setting this.doc below.  This caused
-      //    https://github.com/sagemathinc/cocalc/issues/5871
-      this.commit();
-    }
-
-    if (upstreamPatches && this.state == "ready") {
-      // First save any unsaved changes from the live document, which this
-      // sync-doc doesn't acutally know the state of.  E.g., this is some
-      // rapidly changing live editor with changes not yet saved here.
-      this.emit("before-change");
-      // As a result of the emit in the previous line, all kinds of
-      // nontrivial listener code may have just ran, and it could
-      // have updated this.doc.  We commit this.doc, so that the
-      // upstream patches get applied against the correct live this.doc.
-      if (!this.last.is_equal(this.doc)) {
-        this.commit();
-      }
-    }
-
-    // Compute the global current state of the document,
-    // which is got by applying all patches in order.
-    // It is VERY important to do this, even if the
-    // document is not yet ready, since it is critical
-    // to properly set the state of this.doc to the value
-    // of the patch history (e.g., not doing this 100% breaks
-    // opening a file for the first time on cocalc-docker).
-    const new_remote = this.patchflowValue();
-    if (new_remote == null) {
-      return;
-    }
-    if (!this.doc.is_equal(new_remote)) {
-      // There is a possibility that live document changed, so
-      // set to new version.
-      this.last = this.doc = new_remote;
-      if (this.state == "ready") {
-        this.emit("after-change");
-        this.emit_change();
-      }
-    }
-  };
-
   // Immediately alert all watchers of all changes since
   // last time.
   private emit_change = (): void => {
@@ -2825,7 +2723,6 @@ export class SyncDoc extends EventEmitter {
           if (!ignore) {
             if (patch != null && expectedSeq == patchSeq) {
               // sequence number match and there is a patch
-              this.emit("before-change");
               const value = this.to_str();
               const [newValue] = dmpFileWatcher.patch_apply(
                 decompressPatch(patch),
