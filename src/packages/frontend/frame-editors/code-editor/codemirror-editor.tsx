@@ -211,7 +211,6 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
 
   // Save the underlying syncstring content.
   function save_syncstring(): void {
-    console.log("save_syncstring");
     editor_actions()?.syncstring_commit();
   }
 

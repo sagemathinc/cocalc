@@ -43,7 +43,6 @@ export class MergeCoordinator {
     if (version !== undefined) {
       this.baseVersion = version;
     }
-    console.log("mergeRemote", { base, local, merged, remoteValue });
     this.opts.applyMerged(merged);
     return merged;
   }

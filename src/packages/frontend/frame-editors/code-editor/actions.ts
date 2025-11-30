@@ -265,7 +265,6 @@ export class Actions<
     const cm = this._get_cm(undefined, true);
     const localSnapshot = cm?.getValue?.();
 
-    console.log("handleRemoteSyncstringChange", { isSelfChange, remoteValue });
     if (isSelfChange) {
       // Our own commit echoed back. Refresh base/version, but never clobber
       // local edits that may have happened after the commit.
@@ -1684,15 +1683,15 @@ export class Actions<
     // a preview, then the real thing only after the change event from commit.
     this._syncstring.commit({ emitChangeImmediately: true });
     this._syncstring.save();
-    this._suppress_remote_once = true;
     try {
       const value = this._syncstring.to_str();
       this.getMergeCoordinator().recordLocalCommit(
         value,
         this.getLatestVersion(),
       );
-    } catch {
+    } catch (err) {
       // ignore
+      console.warn("syncstring_commit error", err);
     }
   }
 
@@ -1716,7 +1715,6 @@ export class Actions<
       return;
     }
     const localText = cm.getValue();
-    console.log("set_syncstring", { localText });
     this.set_syncstring(localText, do_not_exit_undo_mode);
   }
 
@@ -1748,8 +1746,9 @@ export class Actions<
       // did not actually change.
       return;
     }
-    // Now actually set the value.
+    // There is definitely a nontrivial local change:
     this._suppress_remote_once = true;
+    // Now actually set the value.
     this._syncstring.from_str(value);
     this._syncstring.commit();
     this._syncstring.save();

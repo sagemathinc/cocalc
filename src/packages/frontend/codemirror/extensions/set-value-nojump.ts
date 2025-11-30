@@ -36,7 +36,7 @@ CodeMirror.defineExtension(
         return;
       }
       const current_value = cm.getValue();
-      console.log("setValueNoJump", { current_value, value });
+      //console.log("setValueNoJump", { current_value, value });
       if (value === current_value) {
         // Special case: nothing to do
         return;

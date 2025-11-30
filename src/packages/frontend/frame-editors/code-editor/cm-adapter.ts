@@ -16,7 +16,6 @@ export function attachSyncListeners(
   { onChangeDebounced, onExitUndo }: SyncListenerOptions,
 ): () => void {
   const changeHandler = (_: any, changeObj: any) => {
-    console.log("cm-adapter: changeHandler", (cm as any)._applying_remote);
     if ((cm as any)._applying_remote) return;
     onChangeDebounced?.();
     if (changeObj?.origin != null && changeObj.origin !== "setValue") {
@@ -27,7 +26,6 @@ export function attachSyncListeners(
   cm.on("change", changeHandler);
 
   return () => {
-    console.log("cm-adapter: dispose");
     cm.off("change", changeHandler);
   };
 }
