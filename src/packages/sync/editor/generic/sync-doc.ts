@@ -67,7 +67,7 @@ import {
 import * as schema from "@cocalc/util/schema";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
-import { Map, fromJS } from "immutable";
+import { Map, fromJS, is as immutableIs } from "immutable";
 import { debounce, throttle } from "lodash";
 import { Evaluator } from "./evaluator";
 import { HistoryEntry, HistoryExportOptions, export_history } from "./export";
@@ -78,6 +78,7 @@ import {
   type PatchEnvelope,
   type PatchStore as PatchflowPatchStore,
   type PresenceAdapter as PatchflowPresenceAdapter,
+  MemoryPresenceAdapter as PatchflowMemoryPresenceAdapter,
 } from "patchflow";
 import type {
   Client,
@@ -94,6 +95,8 @@ import { type WatchIterator } from "@cocalc/conat/files/watch";
 import { getLogger } from "@cocalc/conat/client";
 import * as remote from "./remote";
 import { DiffMatchPatch, decompressPatch } from "@cocalc/util/dmp";
+
+const fallbackCursorPresence = new PatchflowMemoryPresenceAdapter();
 
 // this is used specifically for loading from disk, where the patch
 // explaining the last change on disk gets merged into the live version
@@ -229,6 +232,7 @@ export class SyncDoc extends EventEmitter {
   private last: Document;
   private doc: Document;
   private before_change?: Document;
+  private cursorSnapshots: any[] = [];
 
   private last_user_change: Date = minutes_ago(60);
   private last_save_to_disk_time: Date = new Date(0);
@@ -1405,6 +1409,9 @@ export class SyncDoc extends EventEmitter {
         docId: this.string_id,
         presenceAdapter: await this.createCursorPresenceAdapter(),
       });
+      if (this.cursors) {
+        this.patchflowSession.on("cursors", this.handlePatchflowCursors);
+      }
       this.patchflowSession.on("change", (doc) => {
         const next = doc as Document;
         if (!this.doc || !this.doc.is_equal(next)) {
@@ -1417,6 +1424,7 @@ export class SyncDoc extends EventEmitter {
       });
       await this.patchflowSession.init();
       dbg("patchflow session initialized");
+      this.emit("patchflow-ready");
     } catch (err) {
       dbg(`patchflow session init failed -- ${err}`);
     }
@@ -1459,38 +1467,66 @@ export class SyncDoc extends EventEmitter {
       dbg("done -- do not care about cursors for this syncdoc.");
       return;
     }
+    await this.initPatchflowSession();
+    if (!this.patchflowReady()) {
+      await once(this, "patchflow-ready");
+    }
     if (!this.patchflowReady()) {
       dbg("patchflow not ready; skipping cursor setup");
       return;
     }
     this.cursor_map = this.buildCursorMap();
     this.patchflowSession?.on("cursors", this.handlePatchflowCursors);
+    this.handlePatchflowCursors();
     dbg("done");
   };
 
-  private handlePatchflowCursors = (): void => {
-    this.cursor_map = this.buildCursorMap();
-    for (const key of this.cursor_map.keySeq().toArray()) {
+  private handlePatchflowCursors = (states?: any[]): void => {
+    const snapshots =
+      states ?? this.cursorSnapshots ?? this.requirePatchflowSession().cursors();
+    this.cursorSnapshots = snapshots;
+    let map = Map<string, any>();
+    for (const state of snapshots) {
+      if (state.docId && state.docId !== this.string_id) {
+        continue;
+      }
+      const key =
+        (state.userId != null ? this.users[state.userId] : undefined) ??
+        state.clientId ??
+        `client-${state.time}`;
+      const time = new Date(state.time);
+      map = map.set(
+        key,
+        fromJS({
+          user_id: state.userId,
+          locs: state.locs,
+          time,
+        }),
+      );
       this.emit("cursor_activity", key);
     }
+    this.cursor_map = map;
   };
 
   private buildCursorMap = ({
     maxAge = 60 * 1000,
     excludeSelf = "always",
+    states,
   }: {
     maxAge?: number;
     excludeSelf?: "always" | "never" | "heuristic";
+    states?: any[];
   } = {}): Map<string, any> => {
     if (!this.patchflowReady()) {
       return Map();
     }
     const session = this.requirePatchflowSession();
     const account_id: string = this.client_id();
-    const states = session.cursors({ ttlMs: maxAge });
+    const snapshots =
+      states ?? this.cursorSnapshots ?? session.cursors({ ttlMs: maxAge });
     let map = Map<string, any>();
     const now = Date.now();
-    for (const state of states) {
+    for (const state of snapshots) {
       if (state.docId && state.docId !== this.string_id) {
         continue;
       }
@@ -1892,38 +1928,44 @@ export class SyncDoc extends EventEmitter {
     };
   };
 
-  private async createCursorPresenceAdapter(): Promise<PatchflowPresenceAdapter | undefined> {
-    if (!this.cursors || !this.useConat) {
+  private async createCursorPresenceAdapter(): Promise<
+    PatchflowPresenceAdapter | undefined
+  > {
+    if (!this.cursors) {
       return;
     }
-    const table = await this.client.pubsub_conat({
-      project_id: this.project_id,
-      path: this.path,
-      name: "cursors",
-    });
-    const listeners: Array<(state: unknown, clientId: string) => void> = [];
-    table.on("change", (obj: { user_id?: number }) => {
-      const account_id =
-        obj?.user_id != null ? this.users[obj.user_id] : undefined;
-      const clientId = account_id ?? `cursor-${obj?.user_id ?? "unknown"}`;
-      for (const fn of listeners) {
-        fn(obj, clientId);
-      }
-    });
-    return {
-      publish: (state: unknown) => {
-        table.set(state);
-      },
-      subscribe: (onState: (state: unknown, clientId: string) => void) => {
-        listeners.push(onState);
-        return () => {
-          const i = listeners.indexOf(onState);
-          if (i >= 0) {
-            listeners.splice(i, 1);
-          }
-        };
-      },
-    };
+    if (this.useConat && this.client.pubsub_conat) {
+      const table = await this.client.pubsub_conat({
+        project_id: this.project_id,
+        path: this.path,
+        name: "cursors",
+      });
+      const listeners: Array<(state: unknown, clientId: string) => void> = [];
+      table.on("change", (obj: { user_id?: number }) => {
+        const account_id =
+          obj?.user_id != null ? this.users[obj.user_id] : undefined;
+        const clientId = account_id ?? `cursor-${obj?.user_id ?? "unknown"}`;
+        for (const fn of listeners) {
+          fn(obj, clientId);
+        }
+      });
+      return {
+        publish: (state: unknown) => {
+          table.set(state);
+        },
+        subscribe: (onState: (state: unknown, clientId: string) => void) => {
+          listeners.push(onState);
+          return () => {
+            const i = listeners.indexOf(onState);
+            if (i >= 0) {
+              listeners.splice(i, 1);
+            }
+          };
+        },
+      };
+    }
+    // Fallback for test/fake clients: shared in-memory presence.
+    return fallbackCursorPresence;
   }
 
   private createPatchflowStore = (): PatchflowPatchStore => {
@@ -1936,7 +1978,9 @@ export class SyncDoc extends EventEmitter {
       append: async (env: PatchEnvelope) => {
         try {
           if (this.patches_table == null) {
-            throw new Error("patches_table must be initialized before appending");
+            throw new Error(
+              "patches_table must be initialized before appending",
+            );
           }
           const patch = this.patchFromEnvelope(env);
           const obj: any = {
@@ -1978,7 +2022,9 @@ export class SyncDoc extends EventEmitter {
       },
       subscribe: (onEnvelope: (env: PatchEnvelope) => void) => {
         if (this.patches_table == null) {
-          throw new Error("patches_table must be initialized before subscribing");
+          throw new Error(
+            "patches_table must be initialized before subscribing",
+          );
         }
         const handler = (keys: any[]) => {
           const envs: PatchEnvelope[] = [];
@@ -2374,7 +2420,9 @@ export class SyncDoc extends EventEmitter {
   private patchflowValue = ({
     time,
     without_times,
-  }: { time?: number; without_times?: number[] } = {}): Document | undefined => {
+  }: { time?: number; without_times?: number[] } = {}):
+    | Document
+    | undefined => {
     if (!this.patchflowReady() || this.patchflowSession == null) return;
     try {
       if (time != null || without_times != null) {
@@ -2464,7 +2512,9 @@ export class SyncDoc extends EventEmitter {
   private markPatchflowFullHistory = (): void => {
     if (!this.patchflowReady() || this.patchflowSession == null) return;
     try {
-      if (typeof (this.patchflowSession as any).markFullHistory === "function") {
+      if (
+        typeof (this.patchflowSession as any).markFullHistory === "function"
+      ) {
         (this.patchflowSession as any).markFullHistory();
       }
     } catch (err) {
@@ -2521,7 +2571,10 @@ export class SyncDoc extends EventEmitter {
       .then((env) => {
         const myPatches = (this.my_patches = this.my_patches ?? {});
         myPatches[env.time.valueOf()] = { time: env.time } as any;
-        if (this.undo_state != null && this.undo_state.without[0] !== env.time) {
+        if (
+          this.undo_state != null &&
+          this.undo_state.without[0] !== env.time
+        ) {
           this.undo_state.without.unshift(env.time);
         }
         this.snapshotIfNecessary();
@@ -2611,7 +2664,9 @@ export class SyncDoc extends EventEmitter {
           saveLast: true,
         });
       } else if (typeof this.fs.writeFile === "function") {
-        await (this.fs as any).writeFile(this.path, value, { encoding: "utf8" });
+        await (this.fs as any).writeFile(this.path, value, {
+          encoding: "utf8",
+        });
       } else if (typeof this.client.write_file === "function") {
         await this.client.write_file({
           path: this.path,
@@ -2663,7 +2718,9 @@ export class SyncDoc extends EventEmitter {
       throw Error("syncstring table must be defined and users initialized");
     }
     const account_ids: string[] = info.get("users").toJS();
-    const patches = this.requirePatchflowSession().history({ includeSnapshots: true });
+    const patches = this.requirePatchflowSession().history({
+      includeSnapshots: true,
+    });
     return export_history(account_ids, patches, options);
   };
 
