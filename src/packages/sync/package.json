@@ -3,6 +3,8 @@
   "version": "0.11.2",
   "description": "CoCalc realtime synchronization framework",
   "exports": {
+    ".": "./dist/index.js",
+    "./index": "./dist/index.js",
     "./*": "./dist/*.js",
     "./table": "./dist/table/index.js",
     "./listings": "./dist/listings/index.js",

@@ -337,9 +337,26 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
     });
 
     cm.on("change", (_, changeObj) => {
+      if ((cm as any)._applying_remote) {
+        return; // skip side-effects triggered by remote merge application
+      }
       save_syncstring_debounce();
       if (changeObj.origin != null && changeObj.origin !== "setValue") {
+        editor_actions()?.mark_buffer_dirty?.();
         editor_actions()?.exit_undo_mode();
+      }
+    });
+
+    cm.on("keydown", () => {
+      editor_actions()?.mark_buffer_dirty?.();
+    });
+
+    cm.on("beforeChange", (_cm, changeObj) => {
+      if ((cm as any)._applying_remote) {
+        return;
+      }
+      if (changeObj.origin !== "setValue") {
+        editor_actions()?.mark_buffer_dirty?.();
       }
     });
 

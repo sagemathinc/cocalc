@@ -101,6 +101,8 @@ import {
   syncstring,
   syncstring2,
 } from "../generic/client";
+import { diff_main } from "@cocalc/util/patch";
+import { threeWayMerge } from "@cocalc/sync";
 import { StringDocument } from "@cocalc/sync/editor/string/doc";
 import "../generic/codemirror-plugins";
 import languageModelCreateChat, { Options } from "../llm/create-chat";
@@ -215,6 +217,69 @@ export class Actions<
   private _last_change_local: boolean = false;
   private _upstream_stale: boolean = false;
   private _last_merged_version?: number;
+  private _last_merged_value?: string;
+  private _dirty_since_merge: boolean = false;
+
+  // Mark that the live editor buffer has diverged from the last merged remote.
+  mark_buffer_dirty(): void {
+    this._dirty_since_merge = true;
+  }
+
+  // Apply a remote value into the editor, merging with local buffer if dirty.
+  private apply_remote_value(remoteValue: string): void {
+    const cm = this._get_cm(undefined, true);
+    const wasDirty = this._dirty_since_merge;
+    const base = this._last_merged_value ?? remoteValue;
+    if (!cm) {
+      this._last_merged_value = remoteValue;
+      this._dirty_since_merge = false;
+      this.setState({ value: remoteValue });
+      return;
+    }
+    const local = cm.getValue();
+    // Always merge local buffer with incoming remote relative to last merged base.
+    const merged = threeWayMerge({ base, local, remote: remoteValue });
+    if (merged !== local) {
+      const diff = diff_main(local, merged);
+      const cmAny: any = cm;
+      cm.operation(() => {
+        cmAny._applying_remote = true;
+        cmAny._setValueNoJump = true;
+        cmAny.diffApply(diff);
+        delete cmAny._setValueNoJump;
+        delete cmAny._applying_remote;
+      });
+    }
+    this._last_merged_value = merged;
+    this._dirty_since_merge = wasDirty || merged !== remoteValue;
+    this._upstream_stale = false;
+    this.setState({ value: merged });
+  }
+
+  private handleRemoteSyncstringChange(remoteValue: string): void {
+    let latest: number | undefined;
+    try {
+      const versions = this._syncstring.versions();
+      latest = versions[versions.length - 1];
+    } catch {
+      // not ready; ignore
+    }
+    const isSelfChange = this._last_change_local;
+    this._last_change_local = false;
+
+    if (latest != null) {
+      this._last_merged_version = latest;
+    }
+
+    // Merge into live editor without clobbering unsaved keystrokes.
+    this._upstream_stale = !isSelfChange;
+    // Ensure we have a base to merge against; if unset, use the current buffer.
+    if (this._last_merged_value == null) {
+      const cm = this._get_cm(undefined, true);
+      this._last_merged_value = cm?.getValue?.() ?? remoteValue;
+    }
+    this.apply_remote_value(remoteValue);
+  }
 
   // We store these actions here so that we can remove the actions
   // and store for time travel when this editor is closed.
@@ -284,6 +349,12 @@ export class Actions<
   // Init setting of value whenever syncstring changes --
   // this value in the store is used in derived classes (i.e., other frame editors)
   protected _init_syncstring_value(): void {
+    try {
+      this._last_merged_version = this._syncstring.versions().slice(-1)[0];
+      this._last_merged_value = this._syncstring.to_str();
+    } catch {
+      // ignore if not ready yet
+    }
     this._syncstring.on("change", () => {
       if (!this._syncstring) {
         // edge case where actions closed but this event was still triggered, OR
@@ -291,28 +362,7 @@ export class Actions<
         // disk yet, which happens with compute servers for a second.
         return;
       }
-      let latest: number | undefined;
-      try {
-        const versions = this._syncstring.versions();
-        latest = versions[versions.length - 1];
-      } catch {
-        // not ready; ignore
-      }
-      if (this._last_change_local) {
-        // Local commit/merge we initiated; consume the flag and refresh state.
-        this._last_change_local = false;
-        this._upstream_stale = false;
-        if (latest != null) {
-          this._last_merged_version = latest;
-        }
-        this.setState({ value: this._syncstring.to_str() });
-        return;
-      }
-      // Remote change: do not overwrite the live editor; mark stale so we can merge later.
-      this._upstream_stale = true;
-      if (latest != null) {
-        this._last_merged_version ??= latest;
-      }
+      this.handleRemoteSyncstringChange(this._syncstring.to_str());
     });
   }
 
@@ -433,9 +483,6 @@ export class Actions<
       }
     });
 
-    this._syncstring.on("before-change", () =>
-      this.set_syncstring_to_codemirror(undefined, true),
-    );
     this._syncstring.on(
       "after-change",
       this.set_codemirror_to_syncstring.bind(this),
@@ -478,9 +525,6 @@ export class Actions<
     this._syncstring.on("change", this.activity);
   }
 
-  // NOTE: I am exposing this only so editors cna listen for
-  // the before-change event and save their state before new
-  // changes come in.
   public get_syncstring() {
     return this._syncstring;
   }
@@ -1624,21 +1668,23 @@ export class Actions<
   syncstring_commit(): void {
     // We also skip if the syncstring hasn't yet been initialized.
     // This happens in some cases.
-    if (this._state === "closed" || this._syncstring.get_state() != "ready") {
+    if (this._state === "closed" || this._syncstring?.get_state() != "ready") {
       return;
     }
-    // If remote changes are pending, reconcile them before committing.
-    if (this._upstream_stale) {
-      this.merge_upstream_if_stale();
-    } else {
-      this.set_syncstring_to_codemirror(undefined, true);
-    }
-    if (this._syncstring != null) {
-      // we pass true since here we want any UI for this or any derived
-      // editor to immediately react when we commit. This is particularly
-      // important in the whiteboard where we draw/move objects, and show
-      // a preview, then the real thing only after the change event from commit.
-      this._syncstring.commit({ emitChangeImmediately: true });
+
+    this.set_syncstring_to_codemirror(undefined, true);
+
+    // we pass true since here we want any UI for this or any derived
+    // editor to immediately react when we commit. This is particularly
+    // important in the whiteboard where we draw/move objects, and show
+    // a preview, then the real thing only after the change event from commit.
+    this._syncstring.commit({ emitChangeImmediately: true });
+    this._last_change_local = true;
+    this._dirty_since_merge = false;
+    try {
+      this._last_merged_value = this._syncstring.to_str();
+    } catch {
+      // ignore
     }
   }
 
@@ -1661,7 +1707,13 @@ export class Actions<
     if (!cm) {
       return;
     }
-    this.set_syncstring(cm.getValue(), do_not_exit_undo_mode);
+    if (this._upstream_stale) {
+      // Remote changes are pending, so reconcile them and merge.
+      this.merge_upstream_if_stale();
+      return;
+    }
+    const localText = cm.getValue();
+    this.set_syncstring(localText, do_not_exit_undo_mode);
   }
 
   // Do NOT call this outside of this class to set the value - instead call
@@ -1721,7 +1773,6 @@ export class Actions<
       const remoteDoc = this._syncstring.version() as StringDocument;
       const localDoc = new StringDocument(localText);
       const patch = baseDoc.make_patch(localDoc);
-      console.log(JSON.stringify(patch));
       const merged = remoteDoc.apply_patch(patch);
       const mergedStr = merged.to_str();
       this._last_change_local = true;
