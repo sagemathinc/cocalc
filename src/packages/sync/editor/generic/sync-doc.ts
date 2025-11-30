@@ -1303,6 +1303,10 @@ export class SyncDoc extends EventEmitter {
       if (this.cursors) {
         this.patchflowSession.on("cursors", this.handlePatchflowCursors);
       }
+      this.patchflowSession.on("before-change", () => {
+        this.emit("before-change");
+        this.ensurePatchflowLiveDocCommitted();
+      });
       this.patchflowSession.on("change", (doc) => {
         const next = doc as Document;
         if (!this.doc || !this.doc.is_equal(next)) {
