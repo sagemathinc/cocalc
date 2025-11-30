@@ -1297,7 +1297,7 @@ export class SyncDoc extends EventEmitter {
       this.patchflowSession = new PatchflowSession({
         codec: this.patchflowCodec,
         patchStore: this.patchflowStore,
-        clock: () => this.client.server_time().valueOf(),
+        clock: () => this.client?.server_time().valueOf() ?? Date.now(),
         userId: this.my_user_id ?? 0,
         docId: this.string_id,
         presenceAdapter: await this.createCursorPresenceAdapter(),

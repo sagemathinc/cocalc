@@ -36,18 +36,12 @@ CodeMirror.defineExtension(
         return;
       }
       const current_value = cm.getValue();
+      console.log("setValueNoJump", { current_value, value });
       if (value === current_value) {
         // Special case: nothing to do
         return;
       }
 
-      const r = cm.getOption("readOnly");
-      if (!r) {
-        // temporarily set editor to readOnly to prevent any potential changes.
-        // This code is synchronous so I'm not sure why this is needed (I really
-        // can't remember why I did this, unfortunately).
-        cm.setOption("readOnly", true);
-      }
       // We do the following, so the cursor events that happen as a direct result
       // of this setValueNoJump know that this is what is causing them.
       cm._setValueNoJump = true;
@@ -100,13 +94,9 @@ CodeMirror.defineExtension(
         cm.setValue(value);
       }
 
-      if (!r) {
-        // Also restore readOnly state.
-        cm.setOption("readOnly", false);
-        if (scroll_last && last_pos != null) {
-          cm.scrollIntoView(last_pos);
-          cm.setCursor(last_pos);
-        }
+      if (scroll_last && last_pos != null) {
+        cm.scrollIntoView(last_pos);
+        cm.setCursor(last_pos);
       }
 
       delete cm._setValueNoJump;

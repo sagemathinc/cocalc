@@ -1,7 +1,7 @@
 /*
 Centralized merge helper for CodeMirror-based editors.
-Keeps track of the last merged base/version and performs 3-way merges
-between the base, current local buffer, and incoming remote value.
+Keeps track of the last upstream base/version and performs 3-way merges
+between that base, the current local buffer, and incoming remote value.
 */
 
 import { threeWayMerge } from "@cocalc/sync";
@@ -29,14 +29,21 @@ export class MergeCoordinator {
     }
   }
 
-  mergeRemote(remoteValue: string, version?: number): string {
+  mergeRemote(
+    remoteValue: string,
+    version?: number,
+    localOverride?: string,
+  ): string {
     const base = this.baseValue ?? remoteValue;
-    const local = this.opts.getLocal() ?? base;
+    const local = localOverride ?? this.opts.getLocal() ?? base;
     const merged = threeWayMerge({ base, local, remote: remoteValue });
-    this.baseValue = merged;
+    // Keep the base anchored to upstream/remote for future merges, even if
+    // merged contains uncommitted local edits.
+    this.baseValue = remoteValue;
     if (version !== undefined) {
       this.baseVersion = version;
     }
+    console.log("mergeRemote", { base, local, merged, remoteValue });
     this.opts.applyMerged(merged);
     return merged;
   }

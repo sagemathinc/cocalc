@@ -101,7 +101,6 @@ import {
   syncstring,
   syncstring2,
 } from "../generic/client";
-import { diff_main } from "@cocalc/util/patch";
 import { MergeCoordinator } from "./sync";
 import { SyncAdapter } from "./sync-adapter";
 import "../generic/codemirror-plugins";
@@ -248,18 +247,12 @@ export class Actions<
       this.setState({ value: merged });
       return;
     }
-    const local = cm.getValue();
-    if (merged !== local) {
-      const diff = diff_main(local, merged);
-      const cmAny: any = cm;
-      cm.operation(() => {
-        cmAny._applying_remote = true;
-        cmAny._setValueNoJump = true;
-        cmAny.diffApply(diff);
-        delete cmAny._setValueNoJump;
-        delete cmAny._applying_remote;
-      });
-    }
+    const cmAny: any = cm;
+    cm.operation(() => {
+      cmAny._applying_remote = true;
+      cmAny.setValueNoJump(merged);
+      delete cmAny._applying_remote;
+    });
     this.setState({ value: merged });
   }
 
@@ -269,18 +262,26 @@ export class Actions<
     const manager = this.getMergeCoordinator();
     const isSelfChange = this._suppress_remote_once;
     this._suppress_remote_once = false;
+    const cm = this._get_cm(undefined, true);
+    const localSnapshot = cm?.getValue?.();
 
     if (isSelfChange) {
+      // Our own commit echoed back. Refresh base/version, but never clobber
+      // local edits that may have happened after the commit.
       manager.recordLocalCommit(remoteValue, latest);
-      this.applyMergedBuffer(remoteValue);
+      if (!cm || localSnapshot === remoteValue) {
+        // Keep store in sync without rewriting the buffer.
+        this.setState({ value: remoteValue });
+      }
       return;
     }
 
     if (manager.getBaseValue() == null) {
-      const cm = this._get_cm(undefined, true);
-      manager.seedBase(cm?.getValue?.() ?? remoteValue, latest);
+      // First remote we see — assume current buffer is the local side so we
+      // can preserve unsaved edits when merging.
+      manager.seedBase(localSnapshot ?? remoteValue, latest);
     }
-    manager.mergeRemote(remoteValue, latest);
+    manager.mergeRemote(remoteValue, latest, localSnapshot);
   }
 
   // We store these actions here so that we can remove the actions
