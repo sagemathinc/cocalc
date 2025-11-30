@@ -57,11 +57,9 @@ describe("cursor presence emits cursor_activity", () => {
   it("fires cursor_activity when another client updates cursors", async () => {
     await syncB.setCursorLocsNoThrottle([{ pos: 1 }]);
     await new Promise((r) => setTimeout(r, 200));
-    const rawCursorsA =
-      (syncA as any).patchflowSession?.cursors({ ttlMs: 1000 }) ?? [];
-    const rawCursorsB =
+    const rawCursors =
       (syncB as any).patchflowSession?.cursors({ ttlMs: 1000 }) ?? [];
-    expect(rawCursorsB.length).toBeGreaterThan(0);
+    expect(rawCursors.length).toBeGreaterThan(0);
     expect(eventsA.length).toBeGreaterThan(0);
     const cursors = syncA.get_cursors({ excludeSelf: "never" });
     expect(cursors.size).toBeGreaterThan(0);

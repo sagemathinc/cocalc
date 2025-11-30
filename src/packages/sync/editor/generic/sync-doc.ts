@@ -50,12 +50,7 @@ type XPatch = any;
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { SyncTable } from "@cocalc/sync/table/synctable";
-import {
-  callback2,
-  cancel_scheduled,
-  once,
-  until,
-} from "@cocalc/util/async-utils";
+import { cancel_scheduled, once, until } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
 import {
   close,
@@ -67,7 +62,7 @@ import {
 import * as schema from "@cocalc/util/schema";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
-import { Map, fromJS, is as immutableIs } from "immutable";
+import { Map, fromJS } from "immutable";
 import { debounce, throttle } from "lodash";
 import { Evaluator } from "./evaluator";
 import { HistoryEntry, HistoryExportOptions, export_history } from "./export";
@@ -1231,49 +1226,6 @@ export class SyncDoc extends EventEmitter {
     });
     //console.trace("SYNC WAIT -- got it!");
     return result;
-  };
-
-  /* Delete the synchronized string and **all** patches from the database
-     -- basically delete the complete history of editing this file.
-     WARNINGS:
-       (1) If a project has this string open, then things may be messed
-           up, unless that project is restarted.
-       (2) Only available for an **admin** user right now!
-
-     To use: from a javascript console in the browser as admin, do:
-
-       await smc.client.sync_string({
-         project_id:'9f2e5869-54b8-4890-8828-9aeba9a64af4',
-         path:'a.txt'}).delete_from_database()
-
-     Then make sure project and clients refresh.
-
-     WORRY: Race condition where constructor might write stuff as
-     it is being deleted?
-  */
-  delete_from_database = async (): Promise<void> => {
-    const queries: object[] = this.ephemeral
-      ? []
-      : [
-          {
-            patches_delete: {
-              id: [this.string_id],
-              dummy: null,
-            },
-          },
-        ];
-    queries.push({
-      syncstrings_delete: {
-        project_id: this.project_id,
-        path: this.path,
-      },
-    });
-
-    const v: Promise<any>[] = [];
-    for (let i = 0; i < queries.length; i++) {
-      v.push(callback2(this.client.query, { query: queries[i] }));
-    }
-    await Promise.all(v);
   };
 
   loadFromDiskIfNewer = async ({
