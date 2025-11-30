@@ -51,6 +51,14 @@ export class Subvolumes {
       join(this.filesystem.opts.mount, source, dest),
       join(this.filesystem.opts.mount, dest),
     );
+    // ensure qgroup exists for the clone (snapshot does not create it)
+    const clonedPath = join(this.filesystem.opts.mount, dest);
+    const id = await this.get(dest).then((sv) => sv.getSubvolumeId());
+    await btrfs({
+      args: ["qgroup", "create", `1/${id}`, clonedPath],
+    }).catch(() => {
+      /* ignore if it already exists */
+    });
     const snapdir = join(this.filesystem.opts.mount, dest, SNAPSHOTS);
     if (await exists(snapdir)) {
       await chmod(snapdir, "0700");
