@@ -102,8 +102,7 @@ import {
   syncstring2,
 } from "../generic/client";
 import { diff_main } from "@cocalc/util/patch";
-import { threeWayMerge } from "@cocalc/sync";
-import { StringDocument } from "@cocalc/sync/editor/string/doc";
+import { MergeCoordinator } from "./sync";
 import "../generic/codemirror-plugins";
 import languageModelCreateChat, { Options } from "../llm/create-chat";
 import type { Scope as LanguageModelScope } from "../llm/types";
@@ -215,30 +214,35 @@ export class Actions<
   private _active_id_history: string[] = [];
   private _spellcheck_is_supported: boolean = false;
   private _last_change_local: boolean = false;
-  private _upstream_stale: boolean = false;
   private _last_merged_version?: number;
   private _last_merged_value?: string;
-  private _dirty_since_merge: boolean = false;
+  private mergeCoordinator?: MergeCoordinator;
+
+  // Centralized merge state between local CM buffer and remote syncstring.
+  private getMergeCoordinator(): MergeCoordinator {
+    if (!this.mergeCoordinator) {
+      this.mergeCoordinator = new MergeCoordinator({
+        getLocal: () => this._get_cm(undefined, true)?.getValue?.(),
+        applyMerged: (merged) => this.applyMergedBuffer(merged),
+      });
+    }
+    return this.mergeCoordinator;
+  }
 
   // Mark that the live editor buffer has diverged from the last merged remote.
   mark_buffer_dirty(): void {
-    this._dirty_since_merge = true;
+    this.getMergeCoordinator().markDirty();
   }
 
-  // Apply a remote value into the editor, merging with local buffer if dirty.
-  private apply_remote_value(remoteValue: string): void {
+  // Apply a merged value into the editor buffer (diffed for minimal cursor jump).
+  private applyMergedBuffer(merged: string): void {
     const cm = this._get_cm(undefined, true);
-    const wasDirty = this._dirty_since_merge;
-    const base = this._last_merged_value ?? remoteValue;
     if (!cm) {
-      this._last_merged_value = remoteValue;
-      this._dirty_since_merge = false;
-      this.setState({ value: remoteValue });
+      this._last_merged_value = merged;
+      this.setState({ value: merged });
       return;
     }
     const local = cm.getValue();
-    // Always merge local buffer with incoming remote relative to last merged base.
-    const merged = threeWayMerge({ base, local, remote: remoteValue });
     if (merged !== local) {
       const diff = diff_main(local, merged);
       const cmAny: any = cm;
@@ -251,8 +255,6 @@ export class Actions<
       });
     }
     this._last_merged_value = merged;
-    this._dirty_since_merge = wasDirty || merged !== remoteValue;
-    this._upstream_stale = false;
     this.setState({ value: merged });
   }
 
@@ -264,21 +266,25 @@ export class Actions<
     } catch {
       // not ready; ignore
     }
+    const manager = this.getMergeCoordinator();
     const isSelfChange = this._last_change_local;
     this._last_change_local = false;
 
-    if (latest != null) {
+    if (isSelfChange) {
+      manager.recordLocalCommit(remoteValue, latest);
+      this._last_merged_value = remoteValue;
       this._last_merged_version = latest;
+      this.setState({ value: remoteValue });
+      return;
     }
 
-    // Merge into live editor without clobbering unsaved keystrokes.
-    this._upstream_stale = !isSelfChange;
-    // Ensure we have a base to merge against; if unset, use the current buffer.
-    if (this._last_merged_value == null) {
+    if (manager.getBaseValue() == null) {
       const cm = this._get_cm(undefined, true);
-      this._last_merged_value = cm?.getValue?.() ?? remoteValue;
+      manager.seedBase(cm?.getValue?.() ?? remoteValue, latest);
     }
-    this.apply_remote_value(remoteValue);
+    manager.mergeRemote(remoteValue, latest);
+    this._last_merged_value = manager.getBaseValue();
+    this._last_merged_version = manager.getBaseVersion() ?? latest;
   }
 
   // We store these actions here so that we can remove the actions
@@ -352,6 +358,10 @@ export class Actions<
     try {
       this._last_merged_version = this._syncstring.versions().slice(-1)[0];
       this._last_merged_value = this._syncstring.to_str();
+      this.getMergeCoordinator().seedBase(
+        this._last_merged_value,
+        this._last_merged_version,
+      );
     } catch {
       // ignore if not ready yet
     }
@@ -1680,9 +1690,12 @@ export class Actions<
     // a preview, then the real thing only after the change event from commit.
     this._syncstring.commit({ emitChangeImmediately: true });
     this._last_change_local = true;
-    this._dirty_since_merge = false;
     try {
       this._last_merged_value = this._syncstring.to_str();
+      this.getMergeCoordinator().recordLocalCommit(
+        this._last_merged_value,
+        this._last_merged_version,
+      );
     } catch {
       // ignore
     }
@@ -1705,11 +1718,6 @@ export class Actions<
   ): void {
     const cm = this._get_cm(id);
     if (!cm) {
-      return;
-    }
-    if (this._upstream_stale) {
-      // Remote changes are pending, so reconcile them and merge.
-      this.merge_upstream_if_stale();
       return;
     }
     const localText = cm.getValue();
@@ -1752,38 +1760,6 @@ export class Actions<
     // no change event is fired.  However, derived classes may want to update some preview when
     // syncstring changes, so we explicitly emit a change here:
     this._syncstring.emit("change");
-  }
-
-  // Merge remote committed changes with the current editor buffer when we are ready.
-  // This captures the buffer once, rebases local edits onto the latest upstream doc,
-  // and commits the merged result.
-  private merge_upstream_if_stale(): void {
-    if (!this._syncstring || !this._upstream_stale) return;
-    const cm = this._get_cm();
-    const localText =
-      cm?.getValue() ??
-      (typeof this._syncstring.to_str === "function"
-        ? this._syncstring.to_str()
-        : "");
-    try {
-      const versions = this._syncstring.versions();
-      const latest = versions[versions.length - 1];
-      const baseVersion = this._last_merged_version ?? latest;
-      const baseDoc = this._syncstring.version(baseVersion) as StringDocument;
-      const remoteDoc = this._syncstring.version() as StringDocument;
-      const localDoc = new StringDocument(localText);
-      const patch = baseDoc.make_patch(localDoc);
-      const merged = remoteDoc.apply_patch(patch);
-      const mergedStr = merged.to_str();
-      this._last_change_local = true;
-      this.set_value(mergedStr, true);
-      // Refresh tracking after our merge+commit.
-      const newVersions = this._syncstring.versions();
-      this._last_merged_version = newVersions[newVersions.length - 1];
-      this._upstream_stale = false;
-    } catch (err) {
-      console.warn("merge_upstream_if_stale failed", err);
-    }
   }
 
   async set_codemirror_to_syncstring(): Promise<void> {
