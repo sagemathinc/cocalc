@@ -36,6 +36,7 @@ import { GutterMarkers } from "./codemirror-gutter-markers";
 import { SAVE_DEBOUNCE_MS } from "./const";
 import { get_linked_doc, has_doc, set_doc } from "./doc";
 import { AccountState } from "../../account/types";
+import { attachSyncListeners } from "./cm-adapter";
 
 const STYLE: CSS = {
   width: "100%",
@@ -77,6 +78,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
   const textareaRef = useRef<any>(null);
   const divRef = useRef<any>(null);
   const isMountedRef = useIsMountedRef();
+  const detachSyncListenersRef = useRef<(() => void) | null>(null);
 
   function editor_actions(): Actions | undefined {
     if (props.is_subframe && props.actions != null) {
@@ -190,6 +192,8 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
     if (cmRef.current == null) {
       return;
     }
+    detachSyncListenersRef.current?.();
+    detachSyncListenersRef.current = null;
     // remove from DOM -- "Remove this from your tree to delete an editor instance."
     // NOTE: there is still potentially a reference to the cm in actions._cm[id];
     // that's how we can bring back this frame (with given id) very efficiently.
@@ -336,28 +340,10 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
       }
     });
 
-    cm.on("change", (_, changeObj) => {
-      if ((cm as any)._applying_remote) {
-        return; // skip side-effects triggered by remote merge application
-      }
-      save_syncstring_debounce();
-      if (changeObj.origin != null && changeObj.origin !== "setValue") {
-        editor_actions()?.mark_buffer_dirty?.();
-        editor_actions()?.exit_undo_mode();
-      }
-    });
-
-    cm.on("keydown", () => {
-      editor_actions()?.mark_buffer_dirty?.();
-    });
-
-    cm.on("beforeChange", (_cm, changeObj) => {
-      if ((cm as any)._applying_remote) {
-        return;
-      }
-      if (changeObj.origin !== "setValue") {
-        editor_actions()?.mark_buffer_dirty?.();
-      }
+    detachSyncListenersRef.current = attachSyncListeners(cm, {
+      onChangeDebounced: save_syncstring_debounce,
+      onDirty: () => editor_actions()?.mark_buffer_dirty?.(),
+      onExitUndo: () => editor_actions()?.exit_undo_mode(),
     });
 
     cm.on("focus", () => {
