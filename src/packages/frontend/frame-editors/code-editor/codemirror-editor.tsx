@@ -342,7 +342,6 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
 
     detachSyncListenersRef.current = attachSyncListeners(cm, {
       onChangeDebounced: save_syncstring_debounce,
-      onDirty: () => editor_actions()?.mark_buffer_dirty?.(),
       onExitUndo: () => editor_actions()?.exit_undo_mode(),
     });
 

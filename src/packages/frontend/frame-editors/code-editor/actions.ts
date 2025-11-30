@@ -231,11 +231,6 @@ export class Actions<
     return this.mergeCoordinator;
   }
 
-  // Mark that the live editor buffer has diverged from the last merged remote.
-  mark_buffer_dirty(): void {
-    this.getMergeCoordinator().markDirty();
-  }
-
   // Apply a merged value into the editor buffer (diffed for minimal cursor jump).
   private applyMergedBuffer(merged: string): void {
     const cm = this._get_cm(undefined, true);

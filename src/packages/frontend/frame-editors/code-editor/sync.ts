@@ -14,18 +14,12 @@ export interface MergeCoordinatorOpts {
 export class MergeCoordinator {
   private baseValue?: string;
   private baseVersion?: number;
-  private dirty: boolean = false;
 
   constructor(private opts: MergeCoordinatorOpts) {}
 
   seedBase(value: string, version?: number): void {
     this.baseValue = value;
     this.baseVersion = version;
-    this.dirty = false;
-  }
-
-  markDirty(): void {
-    this.dirty = true;
   }
 
   recordLocalCommit(value: string, version?: number): void {
@@ -33,7 +27,6 @@ export class MergeCoordinator {
     if (version !== undefined) {
       this.baseVersion = version;
     }
-    this.dirty = false;
   }
 
   mergeRemote(remoteValue: string, version?: number): string {
@@ -44,7 +37,6 @@ export class MergeCoordinator {
     if (version !== undefined) {
       this.baseVersion = version;
     }
-    this.dirty = merged !== remoteValue;
     this.opts.applyMerged(merged);
     return merged;
   }
@@ -55,9 +47,5 @@ export class MergeCoordinator {
 
   getBaseVersion(): number | undefined {
     return this.baseVersion;
-  }
-
-  isDirty(): boolean {
-    return this.dirty;
   }
 }
