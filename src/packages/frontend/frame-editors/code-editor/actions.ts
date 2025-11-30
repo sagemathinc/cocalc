@@ -101,6 +101,7 @@ import {
   syncstring,
   syncstring2,
 } from "../generic/client";
+import { StringDocument } from "@cocalc/sync/editor/string/doc";
 import "../generic/codemirror-plugins";
 import languageModelCreateChat, { Options } from "../llm/create-chat";
 import type { Scope as LanguageModelScope } from "../llm/types";
@@ -211,6 +212,9 @@ export class Actions<
   private _update_misspelled_words_last_hash: any;
   private _active_id_history: string[] = [];
   private _spellcheck_is_supported: boolean = false;
+  private _last_change_local: boolean = false;
+  private _upstream_stale: boolean = false;
+  private _last_merged_version?: number;
 
   // We store these actions here so that we can remove the actions
   // and store for time travel when this editor is closed.
@@ -287,7 +291,28 @@ export class Actions<
         // disk yet, which happens with compute servers for a second.
         return;
       }
-      this.setState({ value: this._syncstring.to_str() });
+      let latest: number | undefined;
+      try {
+        const versions = this._syncstring.versions();
+        latest = versions[versions.length - 1];
+      } catch {
+        // not ready; ignore
+      }
+      if (this._last_change_local) {
+        // Local commit/merge we initiated; consume the flag and refresh state.
+        this._last_change_local = false;
+        this._upstream_stale = false;
+        if (latest != null) {
+          this._last_merged_version = latest;
+        }
+        this.setState({ value: this._syncstring.to_str() });
+        return;
+      }
+      // Remote change: do not overwrite the live editor; mark stale so we can merge later.
+      this._upstream_stale = true;
+      if (latest != null) {
+        this._last_merged_version ??= latest;
+      }
     });
   }
 
@@ -400,6 +425,12 @@ export class Actions<
         "cursor_activity",
         this._syncstring_cursor_activity.bind(this),
       );
+      try {
+        const versions = this._syncstring.versions();
+        this._last_merged_version = versions[versions.length - 1];
+      } catch {
+        // ignore if not available yet
+      }
     });
 
     this._syncstring.on("before-change", () =>
@@ -1596,6 +1627,12 @@ export class Actions<
     if (this._state === "closed" || this._syncstring.get_state() != "ready") {
       return;
     }
+    // If remote changes are pending, reconcile them before committing.
+    if (this._upstream_stale) {
+      this.merge_upstream_if_stale();
+    } else {
+      this.set_syncstring_to_codemirror(undefined, true);
+    }
     if (this._syncstring != null) {
       // we pass true since here we want any UI for this or any derived
       // editor to immediately react when we commit. This is particularly
@@ -1656,12 +1693,46 @@ export class Actions<
       return;
     }
     // Now actually set the value.
+    this._last_change_local = true;
     this._syncstring.from_str(value);
     this._syncstring.commit();
     // NOTE: above is the only place where syncstring is changed, and when *we* change syncstring,
     // no change event is fired.  However, derived classes may want to update some preview when
     // syncstring changes, so we explicitly emit a change here:
     this._syncstring.emit("change");
+  }
+
+  // Merge remote committed changes with the current editor buffer when we are ready.
+  // This captures the buffer once, rebases local edits onto the latest upstream doc,
+  // and commits the merged result.
+  private merge_upstream_if_stale(): void {
+    if (!this._syncstring || !this._upstream_stale) return;
+    const cm = this._get_cm();
+    const localText =
+      cm?.getValue() ??
+      (typeof this._syncstring.to_str === "function"
+        ? this._syncstring.to_str()
+        : "");
+    try {
+      const versions = this._syncstring.versions();
+      const latest = versions[versions.length - 1];
+      const baseVersion = this._last_merged_version ?? latest;
+      const baseDoc = this._syncstring.version(baseVersion) as StringDocument;
+      const remoteDoc = this._syncstring.version() as StringDocument;
+      const localDoc = new StringDocument(localText);
+      const patch = baseDoc.make_patch(localDoc);
+      console.log(JSON.stringify(patch));
+      const merged = remoteDoc.apply_patch(patch);
+      const mergedStr = merged.to_str();
+      this._last_change_local = true;
+      this.set_value(mergedStr, true);
+      // Refresh tracking after our merge+commit.
+      const newVersions = this._syncstring.versions();
+      this._last_merged_version = newVersions[newVersions.length - 1];
+      this._upstream_stale = false;
+    } catch (err) {
+      console.warn("merge_upstream_if_stale failed", err);
+    }
   }
 
   async set_codemirror_to_syncstring(): Promise<void> {

@@ -2034,7 +2034,7 @@ export class SyncDoc extends EventEmitter {
       includeSnapshots: true,
       milliseconds: (opts as any)?.milliseconds ?? true,
       trunc: (opts as any)?.trunc ?? 80,
-      log: (opts as any)?.log,
+      log: (opts as any)?.log ?? console.log,
       formatDoc: (doc) => (doc as any).to_str?.() ?? `${doc}`,
     });
   };
