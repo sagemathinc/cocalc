@@ -35,6 +35,7 @@ import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { Descendant, Editor, Range, Transforms, createEditor } from "slate";
 import { resetSelection } from "./control";
 import * as control from "./control";
+import { SimpleInputMerge } from "@cocalc/sync/editor/generic/simple-input-merge";
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
 import { Element } from "./element";
@@ -174,6 +175,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   const actions = actions0 ?? {};
   const font_size = font_size0 ?? desc?.get("font_size") ?? DEFAULT_FONT_SIZE; // so possible to use without specifying this.  TODO: should be from account settings
   const [change, setChange] = useState<number>(0);
+  const mergeHelperRef = useRef<SimpleInputMerge>(
+    new SimpleInputMerge(value ?? ""),
+  );
 
   const editor = useMemo(() => {
     const ed = withNonfatalRange(
@@ -269,18 +273,20 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   // hook up to syncstring if available:
   useEffect(() => {
     if (actions._syncstring == null) return;
-    const beforeChange = setSyncstringFromSlateNOW;
     const change = () => {
-      setEditorToValue(actions._syncstring.to_str());
+      const remote = actions._syncstring?.to_str() ?? "";
+      mergeHelperRef.current.handleRemote({
+        remote,
+        getLocal: () => editor.getMarkdownValue(),
+        applyMerged: setEditorToValue,
+      });
     };
-    actions._syncstring.on("before-change", beforeChange);
     actions._syncstring.on("change", change);
     return () => {
       if (actions._syncstring == null) {
         // This can be null if doc closed before unmounting.  I hit a crash because of this in production.
         return;
       }
-      actions._syncstring.removeListener("before-change", beforeChange);
       actions._syncstring.removeListener("change", change);
     };
   }, []);
@@ -525,6 +531,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
     const markdown = editor.getMarkdownValue();
     lastSetValueRef.current = markdown;
+    mergeHelperRef.current.noteSaved(markdown);
     actions.set_value(markdown);
     actions.syncstring_commit?.();
 
@@ -598,7 +605,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   }, [is_current]);
 
   const setEditorToValue = (value) => {
-    // console.log("setEditorToValue", { value, ed: editor.getMarkdownValue() });
+    console.log("setEditorToValue", { value, ed: editor.getMarkdownValue() });
     if (lastSetValueRef.current == value) {
       // this always happens once right after calling setSyncstringFromSlateNOW
       // and it can randomly undo the last thing done, so don't do that!

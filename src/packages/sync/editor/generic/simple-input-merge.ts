@@ -34,11 +34,13 @@ export class SimpleInputMerge {
 
   // Reset the baseline (e.g., when switching documents).
   public reset(value: string): void {
+    // console.log("reset", { value });
     this.last = value ?? "";
   }
 
   // Mark that the current value has been saved/committed.
   public noteSaved(value: string): void {
+    // console.log("noteSaved", { value });
     this.last = value ?? this.last;
   }
 
@@ -50,6 +52,7 @@ export class SimpleInputMerge {
   }): void {
     const remote = opts.remote ?? "";
     const local = opts.getLocal() ?? "";
+    // console.log("handleRemote", { remote, local, last: this.last });
 
     // No local edits since last baseline: adopt remote directly.
     if (local === this.last) {
