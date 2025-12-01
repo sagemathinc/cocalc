@@ -94,12 +94,12 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
 
     const setCellInput = useCallback(
       (value) => {
+        const input = value ?? "";
+        setLocalValue(input);
         if (!props.actions || props.input_is_readonly) {
           return;
         }
-        const input = value ?? "";
-        setLocalValue(input);
-        props.actions?.set_cell_input(props.id, input, true);
+        props.actions.set_cell_input(props.id, input, true);
         mergeHelperRef.current.noteSaved(input);
       },
       [props.input_is_readonly, props.id, props.actions],

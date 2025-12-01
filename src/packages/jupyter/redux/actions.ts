@@ -512,6 +512,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   _syncdb_change = (changes: any) => {
     if (this.syncdb == null) return;
+    // these events are used entirely for maintaining scroll position
     this.store.emit("syncdb-before-change");
     this.__syncdb_change(changes);
     this.store.emit("syncdb-after-change");
