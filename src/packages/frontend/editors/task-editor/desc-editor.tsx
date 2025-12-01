@@ -8,7 +8,7 @@ Edit description of a single task
 */
 
 import { Button } from "antd";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -16,6 +16,7 @@ import { TaskActions } from "./actions";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
 import { MAX_HEIGHT } from "./constants";
+import { SimpleInputMerge } from "@cocalc/sync/editor/generic/simple-input-merge";
 
 interface Props {
   actions: TaskActions;
@@ -32,38 +33,47 @@ export default function DescriptionEditor({
   font_size,
   color,
 }: Props) {
-  const commit = useDebouncedCallback(() => {
-    actions.commit();
-  }, SAVE_DEBOUNCE_MS);
+  const [localValue, setLocalValue] = useState(desc);
+  const mergeHelperRef = useRef<SimpleInputMerge>(new SimpleInputMerge(desc));
+  const commit0 = useCallback(() => {
+    const desc = getValueRef.current();
+    actions.set_desc(task_id, desc, true);
+    mergeHelperRef.current.noteSaved(desc);
+  }, [task_id]);
+  const commit = useDebouncedCallback(commit0, SAVE_DEBOUNCE_MS);
 
   const saveAndClose = useCallback(() => {
-    actions.commit();
+    commit0();
     actions.enable_key_handler();
     actions.stop_editing_desc(task_id);
   }, []);
 
-  const getValueRef = useRef<any>(null);
+  const getValueRef = useRef<() => string>(() => "");
+
+  // Reset merge helper when switching tasks.
   useEffect(() => {
-    if (actions.syncdb == null) return;
-    const beforeChange = () => {
-      const desc = getValueRef.current();
-      actions.set_desc(task_id, desc, false);
-      commit();
-    };
-    actions.syncdb.on("before-change", beforeChange);
-    return () => {
-      actions.syncdb?.removeListener("before-change", beforeChange);
-    };
-  }, []);
+    mergeHelperRef.current.reset(desc);
+    setLocalValue(desc);
+  }, [task_id]);
+
+  // When a new desc value arrives (e.g., from remote), merge with the live buffer
+  // to preserve uncommitted local edits.
+  useEffect(() => {
+    mergeHelperRef.current.handleRemote({
+      remote: desc ?? "",
+      getLocal: getValueRef.current,
+      applyMerged: (v) => setLocalValue(v),
+    });
+  }, [desc]);
 
   return (
     <div>
       <MarkdownInput
         saveDebounceMs={SAVE_DEBOUNCE_MS}
         cacheId={task_id}
-        value={desc}
+        value={localValue}
         onChange={(desc) => {
-          actions.set_desc(task_id, desc, false);
+          setLocalValue(desc);
           commit();
         }}
         getValueRef={getValueRef}
