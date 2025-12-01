@@ -617,12 +617,19 @@ async function sha256Hex(
   encoding: TextEncoding,
 ): Promise<string> {
   const normalized = encoding === "utf-8" ? "utf8" : encoding;
-  if (globalThis.crypto?.subtle && typeof TextEncoder !== "undefined") {
+  // Prefer WebCrypto when available (browsers, modern Node).
+  const webCrypto =
+    (globalThis as any).crypto ??
+    (globalThis as any).msCrypto ??
+    (await importNodeCrypto())?.webcrypto;
+  const subtle = webCrypto?.subtle ?? webCrypto?.webkitSubtle;
+  if (subtle && typeof TextEncoder !== "undefined") {
     const encoder = new TextEncoder();
     const data = encoder.encode(text);
-    const buffer = await globalThis.crypto.subtle.digest("SHA-256", data);
+    const buffer = await subtle.digest("SHA-256", data);
     return bufferToHex(new Uint8Array(buffer));
   }
+  // Fallback to Node's hash implementation (server/test environments).
   const nodeCrypto = await importNodeCrypto();
   if (!nodeCrypto) {
     throw new Error("SHA-256 not supported in this environment");
@@ -638,6 +645,7 @@ function bufferToHex(bytes: Uint8Array): string {
 
 async function importNodeCrypto(): Promise<
   | {
+      webcrypto?: any;
       createHash: (algorithm: string) => {
         update: (data: string, inputEncoding?: BufferEncoding) => any;
         digest: (encoding: "hex") => string;

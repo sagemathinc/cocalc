@@ -152,6 +152,7 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
     "define React",
     new ProvidePlugin({
       React: "react",
+      Buffer: ["buffer", "Buffer"],
     }),
   );
 
@@ -226,7 +227,8 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
         path: require.resolve("path-browserify"),
         util: require.resolve("util/"),
         assert: require.resolve("assert/"),
-        crypto: false,
+        buffer: require.resolve("buffer/"),
+        crypto: require.resolve("crypto-browserify"),
       },
     },
     resolveLoader: {
