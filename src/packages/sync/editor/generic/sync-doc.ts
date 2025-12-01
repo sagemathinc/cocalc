@@ -1816,8 +1816,10 @@ export class SyncDoc extends EventEmitter {
       fromString: (text: string) => this._from_str(text),
       toString: (doc: Document) =>
         (doc as any).to_str ? (doc as any).to_str() : doc.toString(),
-      applyPatch: (doc: Document, patch: unknown) =>
-        ((doc as any).apply_patch ?? doc.applyPatch).call(doc, patch),
+      applyPatch: (doc: Document, patch: unknown) => {
+        // console.log("applyPatch", patch);
+        return ((doc as any).apply_patch ?? doc.applyPatch).call(doc, patch);
+      },
       makePatch: (a: Document, b: Document) =>
         ((a as any).make_patch ?? a.makePatch).call(a, b),
     };

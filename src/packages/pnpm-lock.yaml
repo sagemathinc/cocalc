@@ -1805,8 +1805,8 @@ importers:
         specifier: ^7.18.3
         version: 7.18.3
       patchflow:
-        specifier: ^0.3.2
-        version: 0.3.2
+        specifier: ^0.3.3
+        version: 0.3.3
     devDependencies:
       '@types/lodash':
         specifier: ^4.17.20
@@ -8925,8 +8925,8 @@ packages:
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
 
-  lru-cache@11.2.2:
-    resolution: {integrity: sha512-F9ODfyqML2coTIsQpSkRHnLSZMtkU8Q+mSfcaIyKwy58u+8k5nvAYeiNhsyMARvzNcXJ9QfWVrcPsC9e9rAxtg==}
+  lru-cache@11.2.4:
+    resolution: {integrity: sha512-B5Y16Jr9LB9dHVkh6ZevG+vAbOsNOYCX+sXvFWFu7B3Iz5mijW3zdbMyhsh8ANd2mSWBYdJgnqi+mL7/LrOPYg==}
     engines: {node: 20 || >=22}
 
   lru-cache@5.1.1:
@@ -9780,8 +9780,8 @@ packages:
     engines: {node: '>= 0.4.0'}
     hasBin: true
 
-  patchflow@0.3.2:
-    resolution: {integrity: sha512-I5q6vuTbN5WmyutsypreR7MKqkbSpI5DtD0PTt05Mih06CdITUQP/BXorjIU8l6d3LOSKfAXlZ1CWUADOha7Tw==}
+  patchflow@0.3.3:
+    resolution: {integrity: sha512-HxniBhtY8PspQdUIbyPkG5ii3LYhk1aUqSLE9RmG8vW5siaVS8Bbge+DoP8j88+nGy2+TFuQU90qHjppOz3bww==}
 
   path-browserify@1.0.1:
     resolution: {integrity: sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==}
@@ -21019,7 +21019,7 @@ snapshots:
 
   lru-cache@10.4.3: {}
 
-  lru-cache@11.2.2: {}
+  lru-cache@11.2.4: {}
 
   lru-cache@5.1.1:
     dependencies:
@@ -22019,12 +22019,13 @@ snapshots:
 
   password-hash@1.2.2: {}
 
-  patchflow@0.3.2:
+  patchflow@0.3.3:
     dependencies:
       '@cocalc/diff-match-patch': 1.0.1
       events: 3.3.0
       immer: 10.2.0
       immutable: 4.3.7
+      lru-cache: 11.2.4
       save-dev: 0.0.1-security
 
   path-browserify@1.0.1: {}
@@ -22048,7 +22049,7 @@ snapshots:
 
   path-scurry@2.0.0:
     dependencies:
-      lru-cache: 11.2.2
+      lru-cache: 11.2.4
       minipass: 7.1.2
 
   path-to-regexp@0.1.12: {}
