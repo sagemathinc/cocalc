@@ -1071,7 +1071,7 @@ export class SyncDoc extends EventEmitter {
     dbg("getting table...");
     this.syncstring_table = await this.synctable(query, []);
     dbg("handling the first update...");
-    this.handle_syncstring_update();
+    await this.handle_syncstring_update();
     this.syncstring_table.on("change", this.handle_syncstring_update);
     this.syncstring_table.on("change", this.update_has_unsaved_changes);
   };
@@ -1098,9 +1098,12 @@ export class SyncDoc extends EventEmitter {
     this.assert_not_closed(
       "initAll -- before init patchflow, cursors, evaluator, ipywidgets",
     );
+    // Ensure we load syncstring metadata (including last_snapshot/last_seq)
+    // before opening the patches table, so we don't fetch the entire history
+    // when a snapshot is available.
+    await this.init_syncstring_table();
+    await this.init_patchflow();
     await Promise.all([
-      this.init_syncstring_table(),
-      this.init_patchflow(),
       this.init_cursors(),
       this.init_evaluator(),
       this.init_ipywidgets(),
