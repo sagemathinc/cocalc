@@ -339,19 +339,15 @@ function ActivityRow({
             basePath={basePath}
             bold
           />
-          <pre
+          <div
             style={{
-              background: "white",
-              color: "#333",
-              padding: "8px",
-              borderRadius: 4,
-              marginTop: 6,
-              whiteSpace: "pre-wrap",
+              fontFamily: "monospace",
               fontSize,
+              whiteSpace: "pre-wrap",
             }}
           >
-            {patchToText(entry.patch)}
-          </pre>
+            <Ansi>{patchToText(entry.patch)}</Ansi>
+          </div>
         </div>
       );
     case "terminal":
@@ -1099,9 +1095,7 @@ function formatReadScope(entry: {
 }
 
 // Convert Codex activity events into markdown for exports.
-export function codexEventsToMarkdown(
-  events: AcpStreamMessage[],
-): string {
+export function codexEventsToMarkdown(events: AcpStreamMessage[]): string {
   const entries = normalizeEvents(events ?? []);
   if (!entries.length) return "";
   const lines: string[] = [];
@@ -1109,15 +1103,11 @@ export function codexEventsToMarkdown(
     switch (entry.kind) {
       case "reasoning":
         lines.push(
-          entry.text
-            ? `- Reasoning: ${entry.text}`
-            : "- Reasoning step",
+          entry.text ? `- Reasoning: ${entry.text}` : "- Reasoning step",
         );
         break;
       case "agent":
-        lines.push(
-          entry.text ? `- Agent: ${entry.text}` : "- Agent message",
-        );
+        lines.push(entry.text ? `- Agent: ${entry.text}` : "- Agent message");
         break;
       case "status": {
         const detail =
@@ -1125,14 +1115,6 @@ export function codexEventsToMarkdown(
             ? `: ${entry.detail}`
             : "";
         lines.push(`- ${entry.label}${detail}`);
-        break;
-      }
-      case "diff": {
-        const path = entry.path ? formatPathMarkdown(entry.path) : "(diff)";
-        const patchText = patchToText(entry.patch);
-        lines.push(
-          `- Diff ${path}\n\n\`\`\`diff\n${patchText}\n\`\`\``,
-        );
         break;
       }
       case "terminal": {

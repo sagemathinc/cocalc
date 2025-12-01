@@ -28,11 +28,11 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
         let drafts = store.get("drafts") ?? (fromJS({}) as any);
         // used to show that another user is editing a message.
         const record = syncdb.get_one(obj);
+        const key = `${obj.sender_id}:${obj.date}`;
         if (record == null) {
-          drafts = drafts.delete(obj.sender_id);
+          drafts = drafts.delete(key);
         } else {
-          const sender_id = record.get("sender_id");
-          drafts = drafts.set(sender_id, record);
+          drafts = drafts.set(key, record);
         }
         store.setState({ drafts });
         return;
