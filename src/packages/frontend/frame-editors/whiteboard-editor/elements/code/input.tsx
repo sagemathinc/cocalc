@@ -6,12 +6,12 @@
 import { fromJS, Map } from "immutable";
 import {
   MutableRefObject,
-  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-
+import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
 import { redux } from "@cocalc/frontend/app-framework";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { cm_options } from "@cocalc/frontend/jupyter/cm_options";
@@ -20,7 +20,7 @@ import {
   CodeMirrorEditor,
 } from "@cocalc/frontend/jupyter/codemirror-editor";
 import { codemirror_to_jupyter_pos } from "@cocalc/jupyter/util/misc";
-import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
+import { SimpleInputMerge } from "@cocalc/sync/editor/generic/simple-input-merge";
 import { Actions as WhiteboardActions } from "../../actions";
 import { useFrameContext } from "../../hooks";
 import { Element } from "../../types";
@@ -50,40 +50,39 @@ export default function Input({
   getValueRef,
 }: Props) {
   const frame = useFrameContext();
+  const [localValue, setLocalValue] = useState<string>(element.str ?? "");
+  const mergeHelperRef = useRef<SimpleInputMerge>(
+    new SimpleInputMerge(element.str ?? ""),
+  );
   const [complete, setComplete] = useState<Map<string, any> | undefined>(
-    undefined
+    undefined,
   );
   const actions = useMemo(() => {
-    return new Actions(frame, element.id, setComplete);
+    return new Actions(frame, element.id, setComplete, mergeHelperRef);
   }, [element.id]); // frame can't change meaningfully.
 
-  const saveEditorValue = useCallback(() => {
-    if (!getValueRef.current) return;
-    const str = getValueRef.current();
-    if (str == (element.str ?? "") || frame.actions.in_undo_mode()) {
-      // No change so do NOT save, which wastes resources and
-      // causes subtle bugs.  As an example, if str is undefined
-      // (right after creating element), then commit sets string
-      // atomically to '', rather than being a no-op, which undoes
-      // another users first entry... which is obviously very bad.
-      return;
-    }
-    frame.actions.setElement({
-      obj: { id: element.id, str },
-      commit: true,
-    });
+  // Reset baseline when switching elements.
+  useEffect(() => {
+    const initial = element.str ?? "";
+    setLocalValue(initial);
+    mergeHelperRef.current.reset(initial);
   }, [element.id]);
 
+  // Merge incoming remote updates with local edits preserved.
   useEffect(() => {
-    if (frame.actions._syncstring == null) return;
-    frame.actions._syncstring.on("before-change", saveEditorValue);
-    return () => {
-      frame.actions._syncstring.removeListener(
-        "before-change",
-        saveEditorValue
-      );
-    };
-  }, [element.id]);
+    const remote = element.str ?? "";
+    mergeHelperRef.current.handleRemote({
+      remote,
+      getLocal: () => getValueRef.current?.() ?? localValue,
+      applyMerged: (v) => {
+        setLocalValue(v);
+        frame.actions.setElement({
+          obj: { id: element.id, str: v },
+          commit: false,
+        });
+      },
+    });
+  }, [element.str]);
 
   return (
     <div>
@@ -106,7 +105,7 @@ export default function Input({
         onFocus={onFocus}
         onBlur={onBlur}
         options={getCMOptions(mode)}
-        value={element.str ?? ""}
+        value={localValue}
         complete={complete}
         cursors={fromJS(cursors)}
         onKeyDown={(cm, e) => {
@@ -163,8 +162,9 @@ class Actions implements EditorActions {
   private introspect: Map<string, any> | undefined = undefined;
   private setIntrospect: (complete: Map<string, any> | undefined) => void;
   private jupyter_actions: JupyterActions | undefined = undefined;
+  private mergeHelperRef;
 
-  constructor(frame, id, setComplete) {
+  constructor(frame, id, setComplete, mergeHelperRef) {
     this.frame = frame;
     this.id = id;
     this.setComplete = (complete) => {
@@ -176,6 +176,7 @@ class Actions implements EditorActions {
       this.frame.actions.setState({ introspect });
     };
     this.introspect = undefined;
+    this.mergeHelperRef = mergeHelperRef;
   }
 
   private async getJupyterActions(): Promise<JupyterActions> {
@@ -198,6 +199,7 @@ class Actions implements EditorActions {
       obj: { id: this.id, str: input },
       commit,
     });
+    this.mergeHelperRef.current.noteSaved(input);
   }
 
   undo() {
@@ -252,7 +254,7 @@ class Actions implements EditorActions {
     code: string,
     pos?: { line: number; ch: number } | number,
     id?: string,
-    offset?: any
+    offset?: any,
   ): Promise<boolean> {
     const actions = await this.getJupyterActions();
     const popup = await actions.complete(code, pos, id, offset);
@@ -272,20 +274,20 @@ class Actions implements EditorActions {
   async introspect_at_pos(
     code: string,
     level: 0 | 1,
-    pos: { ch: number; line: number }
+    pos: { ch: number; line: number },
   ): Promise<void> {
     if (code === "") return; // no-op if there is no code (should never happen)
     this.frame.actions.show_recently_focused_frame_of_type(
       "introspect",
       "row",
       false,
-      2 / 3
+      2 / 3,
     );
     const actions = await this.getJupyterActions();
     const introspect = await actions.introspect(
       code,
       level,
-      codemirror_to_jupyter_pos(code, pos)
+      codemirror_to_jupyter_pos(code, pos),
     );
     this.setIntrospect(introspect);
   }
