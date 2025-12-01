@@ -18,7 +18,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "pnpm exec tsc --build",
+    "build": "rm -f tsconfig.tsbuildinfo; pnpm exec tsc --build",
     "test": "pnpm exec jest",
     "clean": "rm -rf dist node_modules tsconfig.tsbuildinfo",
     "depcheck": "pnpx depcheck --ignores=@types/node"
