@@ -18,22 +18,30 @@
     "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "realtime synchronization"],
+  "keywords": [
+    "cocalc",
+    "realtime synchronization"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/conat": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "patchflow": "link:../../../patchflow",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
     "events": "3.3.0",
     "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
-    "lru-cache": "^7.18.3"
+    "lru-cache": "^7.18.3",
+    "patchflow": "^0.3.2"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync",
   "repository": {

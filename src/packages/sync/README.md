@@ -23,13 +23,9 @@ All code is in Typescript.
 
 ## How can I use this in my product?
 
-As of October 2023, you probably can't for the following _**reasons**_:
+In December 2025, we factored out the core implementation as a standalone lightweight MIT licensed library called [PatchFlow](https://www.npmjs.com/package/patchflow).
 
-- In addition to the core sync library, **you also need a way to transmit data** between all the parties involved in sync.  This is equally important and difficult, and how to best do this often depends on your application.   There's no documentation for @cocalc/sync, except what's in the comments, and no examples \(except cocalc itself\), so this could be challenging.
-
-- **The license is MS-RSL**: <u>**reference use only**</u>, which prohibits product integration.  Due to lack of community support and interest, I will definitely _**not**_ be licensing this under an OSI approved open source license.  However, SageMath, Inc. can sell a business friendly license to you for CoCalc, which includes this code \(email [help@sagemath.com](mailto:help@sagemath.com)\).
-
-Note that bugs or bad code are not in the above list.  I don't know of any bugs at all in this sync implementation, and thousands of people use it every day in production on https://cocalc.com.   Also, it's nice Typescript code with a test suite.
+The code in this cocalc directory is licensed MS-RSL**: <u>**reference use only**</u>, which prohibits product integration.  But PatchFlow is of course MIT licensed, so you can use it.
 
 ## How does this work?
 
@@ -39,11 +35,14 @@ No.  This is a realtime sync algorithm for document editing that does _**not**_ 
 
 ### What are the Pros and Cons of this approach?
 
-This approach works for any document with a notion of "diff" and "patch".  I've used it heavily for everything from plain text, to Jupyter notebook, to WYSIWYG markdown editing (on top of [Slate](https://docs.slatejs.org/)).  One advantage is that you can wait before doing anything related to realtime sync, e.g., if the user is actively typing, it would be very bad to have to do something computationally expensive -- instead, wait until they pause for a second.   This makes it possible to synchronize potentially very large complicated documents with minimal lag.
+This approach works for any document with a notion of "diff" and "patch".  I've used it heavily for everything from plain text, to Jupyter notebook, to WYSIWYG markdown editing (on top of [Slate](https://docs.slatejs.org/)).  One advantage is that you can wait before doing anything related to realtime sync, e.g., if the user is actively typing, it would be very bad to have to do something computationally expensive -- instead, wait until they pause for a second.   This makes it possible to synchronize potentially large complicated documents with minimal lag.
 
-The algorithm itself is ridiculously easy to understand.  It's surely the simplest actually useful realtime sync algorithm I've ever seen.  _Each user contributes a stream of patches to a big ordered list.  The definition of the current state of the document is the result of applying all the patches in order on a "best effort" basis._  That's it.  The rest of the algorithm is just a handful of efficient little algorithms for all the standard operations (e.g., undo/redo/rebasing offline changes/etc.), based on that data structure.  To implement this in any particular setting, you have to come up with a way for everybody to eventually agree on the same "big ordered list", and there are many deep (and no so deep) approaches to that problem.
+The algorithm itself is easy to understand.  _Each user contributes a stream of patches to a big ordered list.  The definition of the current state of the document is the result of applying all the patches in order on a "best effort" basis._  That's it.  The rest of the algorithm is just a handful of efficient little algorithms for all the standard operations (e.g., undo/redo/rebasing offline changes/etc.), based on that data structure.  To implement this in any particular setting, you have to come up with a way for everybody to eventually agree on the same "big ordered list", and there are many deep (and no so deep) approaches to that problem.
 
 Another advantage is that the algorithm very naturally keeps an immutable history of every single state the document was on.  This makes it easy to create a "TimeTravel" slider to browse through the document history and see who did what.
+
+**UPDATE:** I modified the above algorithm to instead store a directed acyclic graph of changes, to provide much better semantics. E.g., when users commit a specific version of the document, we can always show that exact version of the document later.  The data structure is very similar to the one used by Mercurial.
+
 
 ## Test suite
 
