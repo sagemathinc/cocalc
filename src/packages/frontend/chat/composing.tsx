@@ -12,23 +12,27 @@ export default function Composing({ projectId, path, accountId, userMap }) {
 
   const v: React.JSX.Element[] = [];
   const cutoff = Date.now() - 1000 * 30; // 30s
-  for (const [senderId] of drafts) {
-    if (accountId == senderId) {
+  for (const [key] of drafts) {
+    const record = drafts.get(key);
+    const senderId: string =
+      record?.get?.("sender_id") ?? `${key}`.split(":")[0] ?? "";
+    if (!senderId || accountId === senderId) {
       // this is us
       continue;
     }
-    const record = drafts.get(senderId);
-    if (record.get("date") != 0) {
+    if (record?.get?.("date") != 0) {
       // editing an already sent message, rather than composing a new one.
       // This is indicated elsewhere (at that message).
       continue;
     }
-    if (record.get("active") < cutoff || !record.get("input")?.trim()) {
+    const active = record?.get?.("active") ?? 0;
+    const input = record?.get?.("input") ?? "";
+    if (active < cutoff || !input?.trim()) {
       continue;
     }
     v.push(
       <div
-        key={senderId}
+        key={key}
         style={{ margin: "5px", color: "#666", textAlign: "center" }}
       >
         <Avatar size={20} account_id={senderId} />

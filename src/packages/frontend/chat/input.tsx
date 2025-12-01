@@ -174,7 +174,7 @@ export default function ChatInput({
       });
       syncdb.commit();
     };
-  }, []);
+  }, [syncdb, sender_id, date]);
 
   useEffect(() => {
     if (syncdb == null) return;
@@ -196,7 +196,7 @@ export default function ChatInput({
     return () => {
       syncdb.removeListener("change", onSyncdbChange);
     };
-  }, [syncdb]);
+  }, [syncdb, sender_id, date]);
 
   function getPlaceholder(): string {
     if (placeholder != null) return placeholder;

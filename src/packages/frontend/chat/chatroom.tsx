@@ -286,6 +286,7 @@ export function ChatPanel({
     setExportFilename(defaultPath);
     setExportIncludeLogs(false);
   }, [exportThread, path]);
+
   const selectedThreadDate = useMemo(() => {
     if (!selectedThreadKey || selectedThreadKey === ALL_THREADS_KEY) {
       return undefined;
@@ -297,7 +298,31 @@ export function ChatPanel({
 
   const isAllThreadsSelected = selectedThreadKey === ALL_THREADS_KEY;
   const singleThreadView = selectedThreadKey != null && !isAllThreadsSelected;
+  const composerDraftKey = useMemo(() => {
+    if (
+      singleThreadView &&
+      selectedThreadDate instanceof Date &&
+      !isNaN(selectedThreadDate.valueOf())
+    ) {
+      return -selectedThreadDate.valueOf();
+    }
+    return 0;
+  }, [singleThreadView, selectedThreadDate]);
   const showThreadFilters = !isCompact && isAllThreadsSelected;
+
+  useEffect(() => {
+    if (!actions?.syncdb || !account_id) return;
+    const fetchDraft = (date: number) =>
+      actions.syncdb
+        ?.get_one({
+          event: "draft",
+          sender_id: account_id,
+          date,
+        })
+        ?.get?.("input") ?? "";
+    let nextInput = fetchDraft(composerDraftKey);
+    setInput(nextInput);
+  }, [actions?.syncdb, account_id, composerDraftKey]);
 
   const llmCacheRef = useRef<Map<string, boolean>>(new Map());
   const rawThreads = useThreadList(messages);
@@ -1088,7 +1113,7 @@ export function ChatPanel({
     setTimeout(() => {
       scrollToBottomRef.current?.(true);
     }, 100);
-    actions.deleteDraft(0);
+    actions.deleteDraft(composerDraftKey);
     setInput("");
   }
   function on_send(): void {
@@ -1257,7 +1282,7 @@ export function ChatPanel({
           <ChatInput
             fontSize={fontSize}
             autoFocus
-            cacheId={`${path}${project_id}-new`}
+            cacheId={`${path}${project_id}-draft-${composerDraftKey}`}
             input={input}
             on_send={on_send}
             height={INPUT_HEIGHT}
@@ -1265,11 +1290,14 @@ export function ChatPanel({
               setInput(value);
               const inputText =
                 submitMentionsRef.current?.(undefined, true) ?? value;
-              actions?.llmEstimateCost({ date: 0, input: inputText });
+              actions?.llmEstimateCost({
+                date: composerDraftKey,
+                input: inputText,
+              });
             }}
             submitMentionsRef={submitMentionsRef}
             syncdb={actions.syncdb}
-            date={0}
+            date={composerDraftKey}
             editBarStyle={{ overflow: "auto" }}
           />
         </div>
