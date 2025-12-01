@@ -138,7 +138,8 @@ export default function ChatInput({
     },
     SAVE_DEBOUNCE_MS,
     {
-      leading: true,
+      leading: false,
+      trailing: true,
     },
   );
 
