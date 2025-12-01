@@ -9,6 +9,7 @@ import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimod
 import useEditFocus from "./edit-focus";
 import useMouseClickDrag from "./mouse-click-drag";
 import useResizeObserver from "use-resize-observer";
+import { SimpleInputMerge } from "@cocalc/sync/editor/generic/simple-input-merge";
 
 const MIN_HEIGHT = 78;
 
@@ -50,7 +51,7 @@ export default function Text(props: Props) {
 }
 
 // This is less specialized to the whiteboard.  E.g., it is
-// more reusable, for speakern notes.
+// more reusable, for speaker notes.
 export function TextEditor(props: Props) {
   if (
     (props.readOnly || !props.focused || props.element.locked) &&
@@ -85,48 +86,62 @@ function EditText({
   const getValueRef = useRef<any>(null);
   const saveValueRef = useRef<any>(() => {});
   const dirtyRef = useRef<boolean>(false);
+  const [localValue, setLocalValue] = useState<string>(
+    element.str ?? element.data?.initStr ?? "",
+  );
+  const mergeHelperRef = useRef<SimpleInputMerge>(
+    new SimpleInputMerge(element.str ?? element.data?.initStr ?? ""),
+  );
 
   // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
   // including break first render of the overall canvas if any text is focused.
 
   const mouseClickDrag = useMouseClickDrag({ editFocus, setEditFocus });
 
+  // Reset baseline when switching elements.
+  useEffect(() => {
+    const initial = element.str ?? element.data?.initStr ?? "";
+    setLocalValue(initial);
+    mergeHelperRef.current.reset(initial);
+  }, [element.id]);
+
+  // Merge incoming remote updates with local edits preserved.
+  useEffect(() => {
+    const remote = element.str ?? element.data?.initStr ?? "";
+    mergeHelperRef.current.handleRemote({
+      remote,
+      getLocal: () => getValueRef.current?.() ?? localValue,
+      applyMerged: (v) => {
+        setLocalValue(v);
+        actions.setElement({ obj: { id: element.id, str: v } });
+      },
+    });
+  }, [element.str]);
+
+  // Save current buffer to the store (optionally using provided string).
   useEffect(() => {
     saveValueRef.current = (str?) => {
       if (!dirtyRef.current) {
         return;
       }
-      dirtyRef.current = true;
+      dirtyRef.current = false;
       const id = element.id;
-      if (str == null) {
-        if (!getValueRef.current) return;
-        str = getValueRef.current();
-      }
-      actions.setElement({
-        obj: { id, str },
-      });
+      const current = str ?? getValueRef.current?.() ?? "";
+      actions.setElement({ obj: { id, str: current } });
+      mergeHelperRef.current.noteSaved(current);
     };
-    actions._syncstring.on("before-change", saveValueRef.current);
     return () => {
-      actions._syncstring.removeListener("before-change", saveValueRef.current);
       saveValueRef.current();
     };
-  }, [element.id]);
-
-  useEffect(() => {
-    const f = () => saveValueRef.current();
-    actions._syncstring.on("before-change", f);
-    return () => {
-      actions._syncstring.removeListener("before-change", f);
-    };
-  }, []);
+  }, [element.id, actions]);
 
   // On component unmount, save any unsaved changes.
   useEffect(() => {
     return () => {
       // has to happen in different exec loop, since it updates store,
       // which updates component right as unmounted, which is a warning in react.
-      setTimeout(saveValueRef.current, 0);
+      const str = getValueRef.current?.();
+      setTimeout(() => saveValueRef.current(str), 1);
     };
   }, []);
 
@@ -175,16 +190,16 @@ function EditText({
   }, [resize]);
 
   /* Important: do NOT set cacheId for MultiMarkdownInput; for some reason restoring selection in markdown (=codemirror) mode
-            breaks the whiteboard layout badly; it's also probably not a very intuitive feature in a whiteboard,
-            whereas it makes a lot of sense, e.g., in a Jupyter notebook.
-            Reproduce the weird behavior in a whiteboard with cacheId.
-            1. Open new whiteboard and create a note.
-            2. Edit it in Markdown mode
-            3. Close whiteboard, then open it again.
-            4. Gone!
-            The problem is that opening it immediately restores selection, and that breaks something about
-            CSS/layout/etc.  Not sure why, but I'm ok with not having this feature for now.
-            */
+      breaks the whiteboard layout badly; it's also probably not a very intuitive feature in a whiteboard,
+      whereas it makes a lot of sense, e.g., in a Jupyter notebook.
+      Reproduce the weird behavior in a whiteboard with cacheId.
+      1. Open new whiteboard and create a note.
+      2. Edit it in Markdown mode
+      3. Close whiteboard, then open it again.
+      4. Gone!
+      The problem is that opening it immediately restores selection, and that breaks something about
+      CSS/layout/etc.  Not sure why, but I'm ok with not having this feature for now.
+  */
   const body = (
     <MultiMarkdownInput
       dirtyRef={dirtyRef}
@@ -199,11 +214,10 @@ function EditText({
         // still want to consider it focused, e.g., editing math and code
         // cells, and clicking a checkbox.
       }}
-      value={element.str ? element.str : (element.data?.initStr ?? "")}
+      value={localValue}
       fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
       onChange={() => {
-        /* MultiMarkdownInput's onChange is debounced by default */
-        saveValueRef.current();
+        saveValueRef.current?.();
       }}
       cmOptions={{
         lineNumbers: false, // implementation of line numbers in codemirror is incompatible with CSS scaling, so ensure disabled, even if on in account prefs

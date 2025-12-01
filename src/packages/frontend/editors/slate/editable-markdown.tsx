@@ -605,7 +605,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   }, [is_current]);
 
   const setEditorToValue = (value) => {
-    console.log("setEditorToValue", { value, ed: editor.getMarkdownValue() });
+    // console.log("setEditorToValue", { value, ed: editor.getMarkdownValue() });
     if (lastSetValueRef.current == value) {
       // this always happens once right after calling setSyncstringFromSlateNOW
       // and it can randomly undo the last thing done, so don't do that!
