@@ -26,9 +26,6 @@
 
 ## Events
 
-- 'before-change': fired right before (and in the same event loop) actually
-  applying remote incoming changes
-
 - 'change', [array of string primary keys] : fired any time the value of the query result
   changes, _including_ if changed by calling set on this object.
   Also, called with empty list on first connection if there happens

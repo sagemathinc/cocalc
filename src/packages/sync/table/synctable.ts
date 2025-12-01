@@ -1318,7 +1318,6 @@ export class SyncTable extends EventEmitter {
       throw Error("makes no sense to do update_all when state is closed.");
     }
 
-    this.emit("before-change");
     // Restructure the array of records in v as a mapping
     // from the primary key to the corresponding record.
     const x = {};
@@ -1462,7 +1461,6 @@ export class SyncTable extends EventEmitter {
       this.value = Map();
     }
 
-    this.emit("before-change");
     const changed_keys: string[] = [];
     const increased_versions: string[] = [];
     const received_keys: { [key: string]: boolean } = {};
@@ -1578,7 +1576,6 @@ export class SyncTable extends EventEmitter {
       console.warn(`update_change(${this.table}): ignored`);
       return;
     }
-    this.emit("before-change");
     const changed_keys: string[] = [];
     const key = this.handle_new_val(
       change.new_val,
