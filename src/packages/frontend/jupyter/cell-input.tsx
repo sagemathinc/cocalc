@@ -8,7 +8,7 @@ React component that describes the input of a cell
 */
 
 import { Map } from "immutable";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { React, Rendered, redux } from "@cocalc/frontend/app-framework";
 import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
@@ -26,6 +26,7 @@ import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
 import { Position } from "./insert-cell/types";
 import { InputPrompt } from "./prompt/input";
+import { SimpleInputMerge } from "@cocalc/sync/editor/generic/simple-input-merge";
 
 function attachmentTransform(
   cell: Map<string, any>,
@@ -76,6 +77,33 @@ export interface CellInputProps {
 export const CellInput: React.FC<CellInputProps> = React.memo(
   (props) => {
     const frameActions = useNotebookFrameActions();
+
+    // input should always be a string, but typescript doesn't
+    // guarantee it. I have hit this in production: https://sagemathcloud.zendesk.com/agent/tickets/8963
+    // and anyways, a user could edit the underlying db file and mess things up.
+    const input = props.cell.get("input");
+    const initialInput: string = typeof input == "string" ? input : "";
+
+    const [localValue, setLocalValue] = useState<string>(initialInput);
+    const localValueRef = useRef<string>(initialInput);
+    localValueRef.current = localValue;
+    const mergeHelperRef = useRef<SimpleInputMerge>(
+      new SimpleInputMerge(initialInput),
+    );
+    const getValueRef = useRef<any>(null);
+
+    const setCellInput = useCallback(
+      (value) => {
+        if (!props.actions || props.input_is_readonly) {
+          return;
+        }
+        const input = value ?? "";
+        setLocalValue(input);
+        props.actions?.set_cell_input(props.id, input, true);
+        mergeHelperRef.current.noteSaved(input);
+      },
+      [props.input_is_readonly, props.id, props.actions],
+    );
 
     // NOTE: These two flags are primarily used to enable/disable tools in course projects
     const projectsStore = redux.getStore("projects");
@@ -141,13 +169,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     }
 
     function render_codemirror(type: CellType): Rendered {
-      let value = props.cell.get("input");
-      if (typeof value != "string") {
-        // E.g., if it is null or a weird object.  This shouldn't happen, but typescript doesn't
-        // guarantee it. I have hit this in production: https://sagemathcloud.zendesk.com/agent/tickets/8963
-        // and anyways, a user could edit the underlying db file and mess things up.
-        value = "";
-      }
+      const value = localValue;
       return (
         <CodeMirror
           actions={
@@ -160,6 +182,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             then changing it, changes the original cell... causing timetravel
             to "instantly revert". */
           }
+          onSetCellInput={(input) => {
+            mergeHelperRef.current.noteSaved(input);
+          }}
           complete={props.complete}
           getValueRef={getValueRef}
           value={value}
@@ -200,15 +225,12 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     );
 
     function render_markdown(): Rendered {
-      let value = props.cell.get("input");
-      if (typeof value != "string") {
-        // E.g., if it is null.  This shouldn't happen, but typescript doesn't
-        // guarantee it. I might have hit this in production...
-        value = "";
-      }
+      let value = localValue;
       value = value.trim();
       if (props.actions?.processRenderedMarkdown != null) {
-        value = props.actions.processRenderedMarkdown({ value, id: props.id });
+        value =
+          props.actions.processRenderedMarkdown({ value, id: props.id }) ??
+          value;
       }
       return (
         <div
@@ -216,16 +238,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           style={{ width: "100%", wordWrap: "break-word", overflow: "auto" }}
           className="cocalc-jupyter-rendered cocalc-jupyter-rendered-md"
         >
-          <MostlyStaticMarkdown
-            value={value}
-            onChange={(value) => {
-              if (props.input_is_readonly) {
-                return;
-              }
-              // user checked a checkbox.
-              props.actions?.set_cell_input(props.id, value, true);
-            }}
-          />
+          <MostlyStaticMarkdown value={value} onChange={setCellInput} />
         </div>
       );
     }
@@ -234,29 +247,24 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       return <div>Unsupported cell type {type}</div>;
     }
 
-    const getValueRef = useRef<any>(null);
-
-    const beforeChange = useCallback(() => {
-      if (getValueRef.current == null || props.actions == null) return;
-      props.actions.set_cell_input(props.id, getValueRef.current(), true);
+    // Reset baseline when switching cells.
+    useEffect(() => {
+      const input = props.cell.get("input");
+      const next = typeof input === "string" ? input : "";
+      setLocalValue(next);
+      mergeHelperRef.current.reset(next);
     }, [props.id]);
 
+    // Merge incoming remote changes with the live buffer to preserve unsaved edits.
     useEffect(() => {
-      if (props.actions == null) return;
-      if (props.is_focused) {
-        props.actions.syncdb?.on("before-change", beforeChange);
-      } else {
-        // On loss of focus, we call it once just to be sure that any
-        // changes are saved.  Not doing this would definitely result
-        // in lost work, if user made a change, then immediately switched
-        // cells right when upstream changes are coming in.
-        beforeChange();
-        props.actions.syncdb?.removeListener("before-change", beforeChange);
-      }
-      return () => {
-        props.actions?.syncdb?.removeListener("before-change", beforeChange);
-      };
-    }, [props.is_focused]);
+      const input = props.cell.get("input");
+      const remote = typeof input === "string" ? input : "";
+      mergeHelperRef.current.handleRemote({
+        remote,
+        getLocal: () => getValueRef.current?.() ?? localValueRef.current,
+        applyMerged: setCellInput,
+      });
+    }, [props.cell.get("input")]);
 
     function renderMarkdownEdit() {
       const cmOptions = options("markdown").toJS();
@@ -269,14 +277,12 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           fontSize={props.font_size}
           enableMentions={true}
           cacheId={`${props.id}${frameActions.current?.frame_id}`}
-          value={props.cell.get("input") ?? ""}
+          value={localValue}
           height="auto"
-          onChange={(value) => {
-            props.actions?.set_cell_input(props.id, value, true);
-          }}
+          onChange={setCellInput}
           getValueRef={getValueRef}
           onShiftEnter={(value) => {
-            props.actions?.set_cell_input(props.id, value, true);
+            setCellInput(value);
             frameActions.current?.set_md_cell_not_editing(props.id);
           }}
           saveDebounceMs={SAVE_DEBOUNCE_MS}

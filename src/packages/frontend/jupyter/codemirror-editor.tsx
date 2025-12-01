@@ -102,6 +102,8 @@ interface CodeMirrorEditorProps {
   getValueRef?: MutableRefObject<() => string>;
   canvasScale?: number;
   setShowAICellGen?: (show: Position) => void;
+  // onSetCellInput -- called after saving input via actions
+  onSetCellInput?: (input: string) => void;
 }
 
 export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
@@ -130,6 +132,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   getValueRef,
   canvasScale,
   setShowAICellGen,
+  onSetCellInput,
 }: CodeMirrorEditorProps) => {
   const cm = useRef<any>(null);
   const cm_last_remote = useRef<any>(null);
@@ -404,6 +407,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       // which runs immediately after this, assumes the Store state
       // is set for the editor.
       actions.set_cell_input(id, value, true);
+      onSetCellInput?.(value);
     }
     return value;
   }

@@ -41,6 +41,8 @@ interface CodeMirrorProps {
   unregisterEditor?;
   getValueRef?;
   setShowAICellGen?: (show: Position) => void;
+  // onSetCellInput -- called after saving input via actions
+  onSetCellInput?: (input: string) => void;
 }
 
 function should_memoize(prev, next) {
@@ -74,6 +76,7 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
       unregisterEditor,
       getValueRef,
       setShowAICellGen,
+      onSetCellInput
     } = props;
     const is_mounted = useIsMountedRef();
 
@@ -106,6 +109,7 @@ export const CodeMirror: React.FC<CodeMirrorProps> = React.memo(
       return (
         <CodeMirrorEditor
           actions={actions}
+          onSetCellInput={onSetCellInput}
           id={id}
           options={options}
           value={value}
