@@ -184,59 +184,10 @@ packages/lite/
 3. **Desktop App**: Package as Electron app for Mac/Windows/Linux
 4. **Compute Server**: Connect to remote CoCalc hub as additional compute capacity
 
-## Build
+## Packaging & Builds
 
-Set the version in package.json.
-
-Then build the relevant code and node_modules:
-
-```sh
-pnpm build-lite
-```
-
-This will produce a file `build/lite/cocalc-lite....tar.xz` that is the built source code and contents of node_modules folders needed to run cocalc-lite.
-You could untar this somewhere with the same version of node used to build it and run the script `lite/bin/start.js` in the tarball to run cocalc-lite.
-
-Next build a Single Executable Application (SEA), which combines the above tarball with the copy of nodejs you're using in to a single binary:
-
-```sh
-pnpm build-sea
-```
-
-That will build a binary in `build/sea/cocalc-lite...`. You can run it. You can also copy it to any reasonably modern Linux computer with the same processor architecture and run it.
-
-## MacOS
-
-The above is also supported on MacOS. However, the SEA needs to be signed, sealed, packaged, etc. in order for anybody to use it. This requires buying a dev cert from Apple for $99/year, etc. There is a script that hopefully automates this, once you have properly set everything up.
-
-## Running CoCalc Lite
-
-### Direct Execution (requires Node.js 22+)
-
-```sh
-pnpm app
-```
-
-### Electron Desktop App
-
-```sh
-pnpm app-electron
-```
-
-### Single Binary (after building SEA)
-
-```sh
-./build/sea/cocalc-lite-[version]
-```
-
-## Build Scripts
-
-- `pnpm build` - TypeScript compilation
-- `pnpm build:static` - Build static frontend assets
-- `pnpm build:tarball` - Create distributable tarball
-- `pnpm sea` - Build Single Executable Application binary
-- `pnpm app` - Run cocalc-lite directly
-- `pnpm app-electron` - Run as Electron desktop app
+- Distribution-focused workflows (bundle, tarball, SEA, Electron) now live in [../plus](../plus/README.md) to keep Lite lean. Use the Plus package for shipping artifacts.
+- For local development, run Lite directly with `pnpm app` (requires Node.js 22+).
 
 ## Key Technologies
 

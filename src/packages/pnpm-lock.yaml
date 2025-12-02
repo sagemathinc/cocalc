@@ -1035,18 +1035,9 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1
     devDependencies:
-      '@electron/rebuild':
-        specifier: ^4.0.1
-        version: 4.0.1
       '@types/node':
         specifier: ^22.10.10
         version: 22.19.1
-      '@vercel/ncc':
-        specifier: ^0.38.4
-        version: 0.38.4
-      electron:
-        specifier: ^37.3.1
-        version: 37.8.0
 
   next:
     dependencies:
@@ -1199,9 +1190,18 @@ importers:
         specifier: workspace:*
         version: link:../lite
     devDependencies:
+      '@electron/rebuild':
+        specifier: ^4.0.1
+        version: 4.0.1
       '@types/node':
         specifier: ^22.10.10
         version: 22.19.1
+      '@vercel/ncc':
+        specifier: ^0.38.4
+        version: 0.38.4
+      electron:
+        specifier: ^37.3.1
+        version: 37.8.0
 
   project:
     dependencies:

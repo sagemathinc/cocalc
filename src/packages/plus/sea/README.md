@@ -1,9 +1,9 @@
-Self extracting single file compressed cocalc-lite executable based on
+Self extracting single file compressed CoCalc Plus executable based on
 https://nodejs.org/api/single-executable-applications.html
 
 ASSUMPTION:
 
-- you have built `cocalc-lite.tar.gz`
+- you have built `cocalc-plus.tar.gz`
 - you have installed nvm.sh with node version 24
 
 Then just run ./build.sh.
@@ -43,4 +43,3 @@ This should work for proxy.json to directly connect, but it isn't:
 ```
 
 but we should just add ssl support and use this instead of that proxy.
-

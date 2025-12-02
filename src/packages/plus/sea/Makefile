@@ -3,7 +3,7 @@
 # See https://chatgpt.com/share/68b8cea9-d3cc-800e-837d-2e66061ebff2
 
 # ======= config you’ll likely tweak =======
-APP_NAME       ?= cocalc
+APP_NAME       ?= cocalc-plus
 VERSION        ?= 0.2.0
 TEAM_ID        ?= BVF94G2MB4
 PROFILE        ?= notary-profile

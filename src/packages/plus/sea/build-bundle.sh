@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-# Build a compact Node bundle for CoCalc Lite using @vercel/ncc.
+# Build a compact Node bundle for CoCalc Plus using @vercel/ncc.
 #
 # Usage:
 #   ./build-bundle.sh [output-directory]
 #
 # The script expects pnpm v8+ and Node 18+ (Node 24 for runtime).
-# It runs the package build for @cocalc/lite, bundles the entry point
-# packages/lite/bin/start.js (which calls @cocalc/lite/main),
+# It runs the package build for @cocalc/plus, bundles the entry point
+# packages/plus/bin/start.js (delegating to @cocalc/lite/main),
 # and copies the static frontend assets.
 #
 # Native addons copied by ncc (e.g. zeromq, node-pty) are preserved.
@@ -16,11 +16,11 @@
 set -euo pipefail
 
 ROOT="$(realpath "$(dirname "$0")/../../..")"
-OUT="${1:-$ROOT/packages/lite/build/bundle}"
+OUT="${1:-$ROOT/packages/plus/build/bundle}"
 
 echo "WARNING: be sure to 'cd static && pnpm clean && pnpm install && pnpm build' to reset the static content!"
 
-echo "Building CoCalc Lite bundle..."
+echo "Building CoCalc Plus bundle..."
 echo "  root: $ROOT"
 echo "  out : $OUT"
 
@@ -30,7 +30,7 @@ rm -rf "$OUT"/*
 cd "$ROOT"
 
 echo "- Bundle entry point with @vercel/ncc"
-ncc build packages/lite/bin/start.js \
+ncc build packages/plus/bin/start.js \
   -o "$OUT"/bundle \
   --source-map \
   --external bufferutil \

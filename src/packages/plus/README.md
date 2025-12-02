@@ -18,4 +18,13 @@ CoCalc Plus is the productized wrapper around the lightweight core shipped in `@
 ## Getting Started
 
 - Build with `pnpm --filter @cocalc/plus build`.
-- At runtime this package re-uses Lite’s entry points; future product-specific CLI or packaging should wrap Lite rather than fork it.
+- At runtime this package re-uses Lite’s entry points; product-specific CLI and packaging live here.
+
+## Packaging & Distribution
+
+- **Bundle**: `pnpm --filter @cocalc/plus build:bundle` (uses ncc to bundle `bin/start.js` and copies static assets).
+- **Tarball**: `pnpm --filter @cocalc/plus build:tarball` (creates `packages/plus/build/bundle.tar.xz`).
+- **SEA binary**: `pnpm --filter @cocalc/plus sea` (produces compressed SEA artifact under `packages/plus/build/sea`).
+- **Electron**: `pnpm --filter @cocalc/plus app-electron` for desktop runs; adjust signing/notarization via `sea/Makefile` on macOS.
+
+Packaging artifacts are intended for redistribution; keep core runtime changes in Lite so Plus remains a thin product wrapper.
