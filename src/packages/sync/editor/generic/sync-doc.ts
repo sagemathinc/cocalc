@@ -212,7 +212,6 @@ export class SyncDoc extends EventEmitter {
   private patchflowSession?: PatchflowSession;
   private patchflowStore?: PatchflowPatchStore;
   private patchflowCodec?: DocCodec;
-  private pendingPatchflowCommit?: Promise<void>;
 
   private last: Document;
   private doc: Document;
@@ -671,7 +670,7 @@ export class SyncDoc extends EventEmitter {
   exit_undo_mode = (): void => {
     this.undo_mode = false;
     if (this.patchflowReady()) {
-      (this.patchflowSession as any).resetUndo?.();
+      this.patchflowSession?.resetUndo();
     }
   };
 
@@ -1562,13 +1561,6 @@ export class SyncDoc extends EventEmitter {
     // to save current state without having to wait on an async, which is
     // useful to ensure specific undo points (e.g., right before a paste).
     await this.patches_table.save();
-    if (this.pendingPatchflowCommit) {
-      try {
-        await this.pendingPatchflowCommit;
-      } catch {
-        // errors are already logged in commitWithPatchflow
-      }
-    }
   });
 
   private dstream = () => {
@@ -1875,7 +1867,7 @@ export class SyncDoc extends EventEmitter {
         const patches = raw.map((p) => this.toPatchflowEnvelope(p));
         return { patches, hasMore: !this.patchesHaveFullHistory(raw) };
       },
-      append: async (env: PatchEnvelope) => {
+      append: (env: PatchEnvelope) => {
         try {
           if (this.patches_table == null) {
             throw new Error(
@@ -1913,7 +1905,7 @@ export class SyncDoc extends EventEmitter {
           if (x == null) {
             x = fromJS(obj);
           }
-          void this.processPatch({ x, patch: patch.patch, size: patch.size });
+          this.processPatch({ x, patch: patch.patch, size: patch.size });
         } catch (err) {
           console.warn("patchflow append failed", err);
           console.warn(env);
@@ -2452,18 +2444,16 @@ export class SyncDoc extends EventEmitter {
     this.emit("user-change");
     // Ensure save loops don't spin while the async commit runs.
     this.last = next;
-    const commitPromise = this.patchflowSession
-      .commit(next as any, { file })
-      .then((env) => {
-        const myPatches = (this.my_patches = this.my_patches ?? {});
-        myPatches[env.time.valueOf()] = { time: env.time } as any;
-        this.snapshotIfNecessary();
-      })
-      .catch((err) => {
-        console.warn("patchflow commit failed", err?.message ?? err);
-        console.warn(err?.stack ?? "");
-        this.dbg("commitWithPatchflow")(`commit failed -- ${err}`);
-      });
+    try {
+      const env = this.patchflowSession.commit(next as any, { file });
+      const myPatches = (this.my_patches = this.my_patches ?? {});
+      myPatches[env.time.valueOf()] = { time: env.time } as any;
+      this.snapshotIfNecessary();
+    } catch (err) {
+      console.warn("patchflow commit failed", err?.message ?? err);
+      console.warn(err?.stack ?? "");
+      this.dbg("commitWithPatchflow")(`commit failed -- ${err}`);
+    }
     const latest = this.patchflowSession.versions().slice(-1)[0];
     if (latest != null) {
       const myPatches = (this.my_patches = this.my_patches ?? {});
@@ -2471,13 +2461,10 @@ export class SyncDoc extends EventEmitter {
         myPatches[latest] = { time: latest } as any;
       }
     }
-    this.pendingPatchflowCommit = commitPromise;
     if (!this.noAutosave) {
       this.save(); // eventually syncs out to other clients
     }
     this.touchProject();
-    // Avoid unhandled rejections if caller ignores the async commit path.
-    void commitPromise;
     return true;
   };
 
