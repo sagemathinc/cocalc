@@ -188,6 +188,7 @@ export function ChatPanel({
     variant = "compact";
   }
   const [input, setInput] = useState("");
+  const hasInput = input.trim().length > 0;
   const search = getDescValue(desc, "data-search") ?? "";
   const filterRecentH: number = getDescValue(desc, "data-filterRecentH") ?? 0;
   const selectedHashtags = getDescValue(desc, "data-selectedHashtags");
@@ -1322,54 +1323,58 @@ export function ChatPanel({
               }}
             />
           )}
-          <Tooltip
-            title={
-              <FormattedMessage
-                id="chatroom.chat_input.send_button.tooltip"
-                defaultMessage={"Send message (shift+enter)"}
-              />
-            }
-          >
-            <Button
-              onClick={() => sendMessage()}
-              disabled={input.trim() === ""}
-              type="primary"
-              style={{ height: "47.5px" }}
-              icon={<Icon name="paper-plane" />}
-            >
-              <FormattedMessage
-                id="chatroom.chat_input.send_button.label"
-                defaultMessage={"Send"}
-              />
-            </Button>
-          </Tooltip>
-          <div style={{ height: "5px" }} />
-          {isSelectedThreadAI ? (
-            <Tooltip title="Video chat is not available in AI threads.">
-              <Button style={{ height: "47.5px" }} disabled>
-                <Icon name="video-camera" /> Video
-              </Button>
-            </Tooltip>
-          ) : (
-            <Popconfirm
-              title="Start a video chat in this thread?"
-              okText="Start"
-              cancelText="Cancel"
-              placement="topRight"
-              onConfirm={() => {
-                const message = actions?.frameTreeActions
-                  ?.getVideoChat()
-                  .startChatting(actions);
-                if (!message) {
-                  return;
+          {hasInput && (
+            <>
+              <Tooltip
+                title={
+                  <FormattedMessage
+                    id="chatroom.chat_input.send_button.tooltip"
+                    defaultMessage={"Send message (shift+enter)"}
+                  />
                 }
-                sendMessage(undefined, "\n\n" + message);
-              }}
-            >
-              <Button style={{ height: "47.5px" }}>
-                <Icon name="video-camera" /> Video
-              </Button>
-            </Popconfirm>
+              >
+                <Button
+                  onClick={() => sendMessage()}
+                  disabled={!hasInput}
+                  type="primary"
+                  style={{ height: "47.5px" }}
+                  icon={<Icon name="paper-plane" />}
+                >
+                  <FormattedMessage
+                    id="chatroom.chat_input.send_button.label"
+                    defaultMessage={"Send"}
+                  />
+                </Button>
+              </Tooltip>
+              <div style={{ height: "5px" }} />
+              {isSelectedThreadAI ? (
+                <Tooltip title="Video chat is not available in AI threads.">
+                  <Button style={{ height: "47.5px" }} disabled>
+                    <Icon name="video-camera" /> Video
+                  </Button>
+                </Tooltip>
+              ) : (
+                <Popconfirm
+                  title="Start a video chat in this thread?"
+                  okText="Start"
+                  cancelText="Cancel"
+                  placement="topRight"
+                  onConfirm={() => {
+                    const message = actions?.frameTreeActions
+                      ?.getVideoChat()
+                      .startChatting(actions);
+                    if (!message) {
+                      return;
+                    }
+                    sendMessage(undefined, "\n\n" + message);
+                  }}
+                >
+                  <Button style={{ height: "47.5px" }}>
+                    <Icon name="video-camera" /> Video
+                  </Button>
+                </Popconfirm>
+              )}
+            </>
           )}
         </div>
       </div>

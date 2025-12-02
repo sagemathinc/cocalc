@@ -214,6 +214,8 @@ export default function ChatInput({
     );
   }
 
+  const hasInput = (input ?? "").trim().length > 0;
+
   return (
     <MarkdownInput
       autoFocus={autoFocus}
@@ -261,6 +263,7 @@ export default function ChatInput({
       }}
       editBarStyle={editBarStyle}
       overflowEllipsis={true}
+      hideModeSwitch={!hasInput}
       modeSwitchStyle={{
         float: "right",
         position: "relative",

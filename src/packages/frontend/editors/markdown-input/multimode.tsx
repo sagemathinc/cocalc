@@ -91,6 +91,7 @@ interface Props {
   submitMentionsRef?: SubmitMentionsRef;
   extraHelp?: ReactNode;
   hideHelp?: boolean;
+  hideModeSwitch?: boolean;
   // debounce how frequently get updates from onChange; if saveDebounceMs=0 get them on every change.  Default is the global SAVE_DEBOUNCE_MS const.
   // can be a little more frequent in case of shift or alt enter, or blur.
   saveDebounceMs?: number;
@@ -163,6 +164,7 @@ export default function MultiMarkdownInput({
   height = "auto",
   autoGrow,
   hideHelp,
+  hideModeSwitch,
   isFocused,
   minimal,
   modeSwitchStyle,
@@ -321,6 +323,8 @@ export default function MultiMarkdownInput({
     );
   }
 
+  const showModeSwitch = !fixedMode && !hideModeSwitch;
+
   return (
     <div
       style={{
@@ -351,7 +355,7 @@ export default function MultiMarkdownInput({
           setTimeout(() => (ignoreBlur.current = false), 100);
         }}
       >
-        {!fixedMode && (
+        {showModeSwitch && (
           <div
             style={{
               background: "white",
