@@ -1685,8 +1685,8 @@ function toISOString(date?: Date | string): string | undefined {
   }
   try {
     return date?.toISOString();
-  } catch (err) {
-    console.warn("invalid date", date);
-    return;
+  } catch {
+    //console.warn("invalid date", date);
+    //return;
   }
 }

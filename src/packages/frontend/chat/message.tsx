@@ -53,7 +53,8 @@ import {
   newest_content,
   sender_is_viewer,
 } from "./utils";
-import { CONTEXT_WARN_PCT, CONTEXT_CRITICAL_PCT} from "./codex";
+import { CONTEXT_WARN_PCT, CONTEXT_CRITICAL_PCT } from "./codex";
+import { delay } from "awaiting";
 
 const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
@@ -288,7 +289,7 @@ export default function Message({
   }, [message]);
 
   const codexEvents = useMemo(() => {
-    const ev = message.get("acp_events") ?? message.get("codex_events");
+    const ev = message.get("acp_events");
     if (!ev) return undefined;
     // Immutable.js collections have toJS
     if (typeof (ev as any)?.toJS === "function") {
@@ -313,12 +314,11 @@ export default function Message({
       event: "chat",
       date: d.toISOString(),
       acp_events: null,
-      codex_events: null,
     });
     actions.syncdb.commit();
   }, [actions, message]);
 
-  const deleteAllActivityLogs = useCallback(() => {
+  const deleteAllActivityLogs = useCallback(async () => {
     if (!actions?.syncdb) return;
     const dates: Date[] = [];
     const rootIso =
@@ -327,12 +327,12 @@ export default function Message({
       const seq = actions.getMessagesInThread(rootIso);
       seq?.forEach((msg) => {
         const d = msg?.get?.("date");
-        if (d instanceof Date) dates.push(d);
+        if (d instanceof Date && msg.get("acp_events")) dates.push(d);
       });
     } else if (messages?.forEach) {
       messages.forEach((msg) => {
         const d = msg?.get?.("date");
-        if (!(d instanceof Date)) return;
+        if (!(d instanceof Date) || !msg.get("acp_events")?.size) return;
         const root = getThreadRootDate({
           date: d.valueOf(),
           messages,
@@ -347,12 +347,16 @@ export default function Message({
       const d = message.get("date");
       if (d instanceof Date) dates.push(d);
     }
+    let i = 0;
     for (const d of dates) {
+      i += 1;
+      if (i % 20 == 0) {
+        await delay(200);
+      }
       actions.syncdb.set({
         event: "chat",
         date: d.toISOString(),
         acp_events: null,
-        codex_events: null,
       });
     }
     actions.syncdb.commit();
@@ -422,10 +426,7 @@ export default function Message({
     return typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
   }, [message]);
 
-  const remainingContext = useMemo(
-    () => calcRemainingPercent(usage),
-    [usage],
-  );
+  const remainingContext = useMemo(() => calcRemainingPercent(usage), [usage]);
 
   const isActive =
     selected || isHovered || replying || show_history || isEditing;
@@ -930,11 +931,17 @@ export default function Message({
     const remaining = remainingContext;
     if (remaining == null || remaining > CONTEXT_WARN_PCT) return null;
     const severity =
-      remaining <= CONTEXT_CRITICAL_PCT ? ("critical" as const) : ("warning" as const);
+      remaining <= CONTEXT_CRITICAL_PCT
+        ? ("critical" as const)
+        : ("warning" as const);
     const colors =
       severity === "critical"
         ? { bg: "rgba(211, 47, 47, 0.12)", border: "#d32f2f", text: "#b71c1c" }
-        : { bg: "rgba(245, 166, 35, 0.12)", border: "#f5a623", text: "#8a5b00" };
+        : {
+            bg: "rgba(245, 166, 35, 0.12)",
+            border: "#f5a623",
+            text: "#8a5b00",
+          };
     const rootKey =
       threadRootMs != null && Number.isFinite(threadRootMs)
         ? `${threadRootMs}`
@@ -990,7 +997,7 @@ export default function Message({
     );
   }
 
-function renderBottomControls() {
+  function renderBottomControls() {
     if (generating !== true || actions == null) {
       return null;
     }
@@ -1492,11 +1499,9 @@ export function message_to_markdown(
 }
 
 function message_codex_log_to_markdown(message): string {
-  const events =
-    message?.get?.("acp_events") ?? message?.get?.("codex_events");
+  const events = message?.get?.("acp_events");
   if (!events) return "";
-  const list =
-    typeof events.toJS === "function" ? events.toJS() : events;
+  const list = typeof events.toJS === "function" ? events.toJS() : events;
   if (!Array.isArray(list) || list.length === 0) return "";
   try {
     return codexEventsToMarkdown(list);
