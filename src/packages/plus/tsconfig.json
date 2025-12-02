@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "dist"
+  },
+  "exclude": ["dist", "node_modules"],
+  "references": [
+    { "path": "../lite" }
+  ]
+}

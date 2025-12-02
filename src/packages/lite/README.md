@@ -4,6 +4,13 @@
 
 `@cocalc/lite` is a **standalone, single-machine CoCalc instance** that can run completely offline or optionally sync with a remote CoCalc hub as a compute server.  This package essentially provides a "CoCalc in a box" that mirrors the full architecture but in a simplified, single-machine format.
 
+## Role and Boundaries
+
+- Lite is the shared minimal hub/server/sqlite core that both [../plus](../plus/README.md) (CoCalcPlus) and [../project-host](../project-host/README.md) build on.
+- Keep Lite neutral and reusable: product defaults belong in Plus; host-level podman/btrfs/ssh plumbing belongs in Project Host.
+- Prefer upstreaming shared improvements here instead of duplicating them downstream; maintain a small dependency surface so Lite stays easy to embed.
+- Avoid adding container orchestration, filesystem drivers, or ssh ingress here—those are layered on by the host package.
+
 ### Key Characteristics
 
 - **Lightweight & Portable**: Minimal dependencies, can be compiled to a single executable binary (SEA - Single Executable Application)
@@ -257,4 +264,3 @@ The lite package is designed as a **simplified, standalone architecture** that m
   - **Standalone**: Works completely offline with local SQLite
   - **Remote-connected**: Can act as a compute server for a remote CoCalc instance
 - **Frontend Agnostic**: Uses the same frontend from `packages/static` as full CoCalc
-

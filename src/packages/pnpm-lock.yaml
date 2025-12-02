@@ -1193,6 +1193,16 @@ importers:
         specifier: ^1.14.1
         version: 1.17.2(@types/express@4.17.25)(@types/node@22.19.1)
 
+  plus:
+    dependencies:
+      '@cocalc/lite':
+        specifier: workspace:*
+        version: link:../lite
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.10
+        version: 22.19.1
+
   project:
     dependencies:
       '@cocalc/backend':
@@ -1292,6 +1302,25 @@ importers:
       '@vercel/ncc':
         specifier: ^0.38.4
         version: 0.38.4
+
+  project-host:
+    dependencies:
+      '@cocalc/file-server':
+        specifier: workspace:*
+        version: link:../file-server
+      '@cocalc/lite':
+        specifier: workspace:*
+        version: link:../lite
+      '@cocalc/project-proxy':
+        specifier: workspace:*
+        version: link:../project-proxy
+      '@cocalc/project-runner':
+        specifier: workspace:*
+        version: link:../project-runner
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.10
+        version: 22.19.1
 
   project-proxy:
     dependencies:
@@ -4801,9 +4830,6 @@ packages:
 
   '@types/node@22.19.1':
     resolution: {integrity: sha512-LCCV0HdSZZZb34qifBsyWlUmok6W7ouER+oQIGBScS8EsZsQbrtFTUrDX4hOl+CS6p7cnNC4td+qrSVGSCTUfQ==}
-
-  '@types/node@24.10.1':
-    resolution: {integrity: sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==}
 
   '@types/nodemailer@6.4.21':
     resolution: {integrity: sha512-Eix+sb/Nj28MNnWvO2X1OLrk5vuD4C9SMnb2Vf4itWnxphYeSceqkFX7IdmxTzn+dvmnNz7paMbg4Uc60wSfJg==}
@@ -11797,9 +11823,6 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
-  undici-types@7.16.0:
-    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
-
   unicorn-magic@0.3.0:
     resolution: {integrity: sha512-+QBBXBCvifc56fsbuxZQ6Sic3wqqc3WWaqxs58gvJrcOuN83HGTCwz3oS5phzU9LthRNE9VrJCFCLUgHeeFnfA==}
     engines: {node: '>=18'}
@@ -16012,10 +16035,6 @@ snapshots:
   '@types/node@22.19.1':
     dependencies:
       undici-types: 6.21.0
-
-  '@types/node@24.10.1':
-    dependencies:
-      undici-types: 7.16.0
 
   '@types/nodemailer@6.4.21':
     dependencies:
@@ -20594,7 +20613,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 24.10.1
+      '@types/node': 22.19.1
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -24429,8 +24448,6 @@ snapshots:
   underscore@1.13.7: {}
 
   undici-types@6.21.0: {}
-
-  undici-types@7.16.0: {}
 
   unicorn-magic@0.3.0: {}
 

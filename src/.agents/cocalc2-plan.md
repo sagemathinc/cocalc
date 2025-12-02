@@ -1,6 +1,6 @@
 ## TODO List
 
-- [ ] Build project-proxy service: moves SSH/HTTP forwarding out of file-server.
+- [x] Build project-proxy service: moves SSH/HTTP forwarding out of file-server.
 
 - [ ] Create a server similar to src/packages/lite that serves multiple projects and users
   - uses the file\-server, project\-runner and project-proxy packages

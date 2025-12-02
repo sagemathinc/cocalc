@@ -1,0 +1,36 @@
+{
+  "name": "@cocalc/project-host",
+  "version": "0.0.1",
+  "description": "Multi-project host built on CoCalc Lite with embedded runner/file-server/proxy",
+  "exports": {
+    ".": "./dist/index.js",
+    "./*": "./dist/*.js"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "pnpm exec tsc --build",
+    "test": "exit 0",
+    "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo"
+  },
+  "files": [
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
+  "author": "SageMath, Inc.",
+  "license": "SEE LICENSE.md",
+  "dependencies": {
+    "@cocalc/file-server": "workspace:*",
+    "@cocalc/lite": "workspace:*",
+    "@cocalc/project-proxy": "workspace:*",
+    "@cocalc/project-runner": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/project-host"
+}
