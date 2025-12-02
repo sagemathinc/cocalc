@@ -7,7 +7,13 @@
 
 import { Badge, Button, Col, Row, Tooltip } from "antd";
 import { List, Map } from "immutable";
-import { CSSProperties, ReactNode, useEffect, useLayoutEffect } from "react";
+import {
+  CSSProperties,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+} from "react";
 import { useIntl } from "react-intl";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
@@ -298,6 +304,59 @@ export default function Message({
     if (Number.isFinite(rootMs)) return rootMs as number;
     return Number.isFinite(date) ? date : undefined;
   }, [date, messages]);
+
+  const deleteActivityLog = useCallback(() => {
+    if (!actions?.syncdb) return;
+    const d = message.get("date");
+    if (!(d instanceof Date)) return;
+    actions.syncdb.set({
+      event: "chat",
+      date: d.toISOString(),
+      acp_events: null,
+      codex_events: null,
+    });
+    actions.syncdb.commit();
+  }, [actions, message]);
+
+  const deleteAllActivityLogs = useCallback(() => {
+    if (!actions?.syncdb) return;
+    const dates: Date[] = [];
+    const rootIso =
+      threadRootMs != null ? new Date(threadRootMs).toISOString() : undefined;
+    if (rootIso && actions?.getMessagesInThread) {
+      const seq = actions.getMessagesInThread(rootIso);
+      seq?.forEach((msg) => {
+        const d = msg?.get?.("date");
+        if (d instanceof Date) dates.push(d);
+      });
+    } else if (messages?.forEach) {
+      messages.forEach((msg) => {
+        const d = msg?.get?.("date");
+        if (!(d instanceof Date)) return;
+        const root = getThreadRootDate({
+          date: d.valueOf(),
+          messages,
+        });
+        const rootMs = root?.valueOf?.();
+        if (rootMs != null && rootMs === threadRootMs) {
+          dates.push(d);
+        }
+      });
+    }
+    if (!dates.length) {
+      const d = message.get("date");
+      if (d instanceof Date) dates.push(d);
+    }
+    for (const d of dates) {
+      actions.syncdb.set({
+        event: "chat",
+        date: d.toISOString(),
+        acp_events: null,
+        codex_events: null,
+      });
+    }
+    actions.syncdb.commit();
+  }, [actions, messages, threadRootMs, message]);
 
   const threadKeyForSession = useMemo(() => {
     return threadRootMs != null ? `${threadRootMs}` : undefined;
@@ -842,6 +901,8 @@ export default function Message({
                     })
                 : undefined
             }
+            onDeleteEvents={deleteActivityLog}
+            onDeleteAllEvents={deleteAllActivityLogs}
           />
         ) : null}
         {renderContextNotice()}

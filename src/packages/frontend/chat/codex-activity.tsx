@@ -1,4 +1,12 @@
-import { Button, Card, Space, Tag, Typography, message } from "antd";
+import {
+  Button,
+  Card,
+  Popconfirm,
+  Space,
+  Tag,
+  Typography,
+  message,
+} from "antd";
 
 import type {
   AcpStreamEvent,
@@ -116,6 +124,8 @@ export interface CodexActivityProps {
   }) => Promise<void> | void;
   projectId?: string;
   basePath?: string;
+  onDeleteEvents?: () => void;
+  onDeleteAllEvents?: () => void;
 }
 
 // Persist log visibility per chat message so Virtuoso remounts don’t reset it.
@@ -131,6 +141,8 @@ export function CodexActivity({
   onResolveApproval,
   projectId,
   basePath,
+  onDeleteEvents,
+  onDeleteAllEvents,
 }: CodexActivityProps): React.ReactElement | null {
   const entries = useMemo(() => normalizeEvents(events ?? []), [events]);
   const hasPendingApproval = useMemo(
@@ -203,6 +215,38 @@ export function CodexActivity({
     </Button>
   );
 
+  const headerActions = (
+    <Space size={6} align="center">
+      {onDeleteEvents ? (
+        <Popconfirm
+          title="Delete this activity log?"
+          okText="Delete"
+          cancelText="Cancel"
+          okButtonProps={{ danger: true, size: "small" }}
+          onConfirm={onDeleteEvents}
+        >
+          <Button size="small" danger type="text">
+            Delete
+          </Button>
+        </Popconfirm>
+      ) : null}
+      {onDeleteAllEvents ? (
+        <Popconfirm
+          title="Delete all activity logs in this thread?"
+          okText="Delete all"
+          cancelText="Cancel"
+          okButtonProps={{ danger: true, size: "small" }}
+          onConfirm={onDeleteAllEvents}
+        >
+          <Button size="small" danger type="text">
+            Delete all
+          </Button>
+        </Popconfirm>
+      ) : null}
+      {renderCloseButton()}
+    </Space>
+  );
+
   const header = (
     <div
       className="codex-activity-header"
@@ -229,7 +273,9 @@ export function CodexActivity({
           </Text>
         ) : null}
       </Space>
-      {renderCloseButton()}
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {headerActions}
+      </div>
     </div>
   );
 
