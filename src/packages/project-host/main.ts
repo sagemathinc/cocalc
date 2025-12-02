@@ -15,6 +15,7 @@ import {
   type ConatServer,
 } from "@cocalc/conat/core/server";
 import { setConatClient } from "@cocalc/conat/client";
+import { server as createPersistServer } from "@cocalc/backend/conat/persist";
 import { init as initRunner } from "@cocalc/project-runner/run";
 import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
 import { initFileServer } from "./file-server";
@@ -79,6 +80,9 @@ export async function main(
     getLogger,
   });
 
+  // Minimal local persistence so DKV/state works (no external hub needed).
+  const persistServer = createPersistServer({ client: conatClient });
+
   // 2) File-server (local btrfs + optional ssh proxy if enabled)
   await initFileServer({ client: conatClient });
 
@@ -137,6 +141,14 @@ export async function main(
   });
 
   logger.info("project-host ready");
+
+  const close = () => {
+    persistServer?.close?.();
+  };
+  process.once("exit", close);
+  ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) =>
+    process.once(sig, close),
+  );
 
   return { port, host };
 }
