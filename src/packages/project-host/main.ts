@@ -19,13 +19,14 @@ import { server as createPersistServer } from "@cocalc/backend/conat/persist";
 import { init as initRunner } from "@cocalc/project-runner/run";
 import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
 import { initFileServer } from "./file-server";
+import { initHttp, addCatchAll } from "./web";
+import {
+  upsertProject,
+  listProjects,
+  touchProject,
+} from "./sqlite/projects";
 
 const logger = getLogger("project-host:main");
-
-interface RegistryEntry {
-  project_id: string;
-  last: number;
-}
 
 export interface ProjectHostConfig {
   hostId?: string;
@@ -34,12 +35,6 @@ export interface ProjectHostConfig {
 export interface ProjectHostContext {
   port: number;
   host: string;
-}
-
-const registry = new Map<string, RegistryEntry>();
-
-function rememberProject(project_id: string) {
-  registry.set(project_id, { project_id, last: Date.now() });
 }
 
 async function startHttpServer(port: number, host: string) {
@@ -80,6 +75,9 @@ export async function main(
     getLogger,
   });
 
+  // HTTP static + customize + API wiring
+  await initHttp({ app, conatClient });
+
   // Minimal local persistence so DKV/state works (no external hub needed).
   const persistServer = createPersistServer({ client: conatClient });
 
@@ -98,14 +96,14 @@ export async function main(
   app.get("/healthz", (_req, res) => res.json({ ok: true }));
 
   app.get("/projects", (_req, res) => {
-    res.json({ projects: Array.from(registry.values()) });
+    res.json({ projects: listProjects() });
   });
 
   app.get("/projects/:id/status", async (req, res) => {
     const project_id = req.params.id;
     try {
       const status = await runnerApi.status({ project_id });
-      rememberProject(project_id);
+      touchProject(project_id, status.state);
       res.json(status);
     } catch (err: any) {
       res.status(500).json({ error: err?.message ?? String(err) });
@@ -119,7 +117,7 @@ export async function main(
         project_id,
         config: req.body?.config,
       });
-      rememberProject(project_id);
+      upsertProject({ project_id, state: status.state });
       res.json(status);
     } catch (err: any) {
       res.status(500).json({ error: err?.message ?? String(err) });
@@ -133,12 +131,14 @@ export async function main(
         project_id,
         force: req.body?.force,
       });
-      rememberProject(project_id);
+      upsertProject({ project_id, state: status.state });
       res.json(status);
     } catch (err: any) {
       res.status(500).json({ error: err?.message ?? String(err) });
     }
   });
+
+  addCatchAll(app);
 
   logger.info("project-host ready");
 
