@@ -30,20 +30,10 @@ import { type Configuration } from "@cocalc/conat/project/runner/types";
 import { DEFAULT_PROJECT_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { podmanLimits } from "./limits";
 import {
-  startSidecar,
-  sidecarContainerName,
-  flushReflect,
-  backupRootFs,
-} from "./sidecar";
-import {
-  type SshServersFunction,
   type LocalPathFunction,
+  type SshServersFunction,
 } from "@cocalc/conat/project/runner/types";
-import {
-  SSH_IDENTITY_FILE,
-  START_PROJECT_SSH,
-  START_PROJECT_FORWARDS,
-} from "@cocalc/conat/project/runner/constants";
+import { SSH_IDENTITY_FILE, START_PROJECT_SSH } from "@cocalc/conat/project/runner/constants";
 import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
 import { writeStartupScripts } from "./startup-scripts";
@@ -68,11 +58,6 @@ const STOP_ON_STATUS_ERROR = false;
 
 // projects we are definitely starting right now
 export const starting = new Set<string>();
-
-// pod name format assumed in getAll below also
-function projectPodName(project_id) {
-  return `project-${project_id}`;
-}
 
 function projectContainerName(project_id) {
   return `project-${project_id}`;
@@ -229,13 +214,13 @@ async function resolveProjectScript(): Promise<ScriptResolution> {
 export async function start({
   project_id,
   config = {},
-  sshServers,
   localPath,
+  sshServers: _sshServers,
 }: {
   project_id: string;
   config?: Configuration;
-  sshServers: SshServersFunction;
   localPath: LocalPathFunction;
+  sshServers?: SshServersFunction;
 }) {
   if (!isValidUUID(project_id)) {
     throw Error("start: project_id must be valid");
@@ -265,48 +250,7 @@ export async function start({
       desc: "got home and scratch directories",
     });
 
-    const pod = projectPodName(project_id);
     const image = getImage(config);
-
-    const createPod = async () => {
-      await podman([
-        "pod",
-        "create",
-        "--name",
-        pod,
-        "--label",
-        `project_id=${project_id}`,
-        "--label",
-        `role=project`,
-        "--label",
-        `rootfs_image=${image}`,
-        "--network=slirp4netns",
-      ]);
-    };
-
-    try {
-      await createPod();
-    } catch (err) {
-      if (`${err}`.includes("pod already exists")) {
-        // maybe already running?
-        const x = await state(project_id, true);
-        if (x == "running") {
-          bootlog({
-            project_id,
-            type: "start-project",
-            progress: 100,
-            desc: "already running",
-          });
-          return;
-        }
-      } else {
-        // user tried to call start, but project is not already
-        // running and instead is in a possibly broken state,
-        // so clean up everything and try to start again.
-        await stop({ project_id, force: true });
-        await createPod();
-      }
-    }
     bootlog({
       project_id,
       type: "start-project",
@@ -366,22 +310,6 @@ export async function start({
       type: "start-project",
       progress: 42,
       desc: "got env variables",
-    });
-
-    const initFileSync = await startSidecar({
-      image,
-      project_id,
-      home,
-      mounts,
-      env,
-      pod,
-      sshServers: await sshServers({ project_id }),
-    });
-    bootlog({
-      project_id,
-      type: "start-project",
-      progress: 45,
-      desc: "started file sync sidecar",
     });
 
     await mkdir(home, { recursive: true });
@@ -448,7 +376,7 @@ export async function start({
     args.push("--label", `project_id=${project_id}`, "--label", `role=project`);
     args.push("--rm");
     args.push("--replace");
-    args.push("--pod", pod);
+    args.push("--network=slirp4netns");
 
     const name = projectContainerName(project_id);
     args.push("--name", name);
@@ -496,27 +424,7 @@ export async function start({
       desc: "launched project container",
     });
 
-    let progress = 85;
-    const f = async (task, desc) => {
-      await task();
-      progress += 2;
-      bootlog({
-        project_id,
-        type: "start-project",
-        progress,
-        desc,
-      });
-    };
-
-    await Promise.all([
-      f(initFileSync, "file sync"),
-      f(async () => await initSshServer(name), "ssh server"),
-      f(
-        async () => await initForwards(sidecarContainerName(project_id)),
-        "port forwards",
-      ),
-    ]);
-
+    await initSshServer(name);
     bootlog({
       project_id,
       type: "start-project",
@@ -560,69 +468,9 @@ export async function stop({
       progress: 0,
     });
 
-    const v: any[] = [];
-    let progress = 50;
-    let errors: string[] = [];
-    const f = async (desc, promise) => {
-      try {
-        await promise;
-      } catch (err) {
-        errors.push(`${err}`);
-        throw err;
-      }
-      progress += 10;
-      bootlog({
-        project_id,
-        type: "stop-project",
-        progress,
-        desc,
-      });
-    };
-
     try {
-      if (!force) {
-        // graceful shutdown so flush first -- this could take
-        // arbitrarily long in theory, or fail.
-        // the force here for backupRootFs is so that
-        // it doens't not do it due to already being in stopping state.
-        const tasks = [
-          backupRootFs({ project_id, force: true }),
-          flushReflect({ project_id }),
-        ];
-        await Promise.all(tasks);
-
-        bootlog({
-          project_id,
-          type: "stop-project",
-          progress: 50,
-          desc: "saved files",
-        });
-      }
-
-      // now do all the removing/unmounting in parallel:
-      v.push(
-        f(
-          "deleted pod",
-          podman(["pod", "rm", "-f", "-t", "0", projectPodName(project_id)]),
-        ),
-      );
-      v.push(
-        f(
-          "stoped project container",
-          podman(["rm", "-f", "-t", "0", projectContainerName(project_id)]),
-        ),
-      );
-      v.push(
-        f(
-          "stopped sidecar container",
-          podman(["rm", "-f", "-t", "0", sidecarContainerName(project_id)]),
-        ),
-      );
-      v.push(f("unmounted root filesystem", unmountRootFs(project_id)));
-      await Promise.all(v);
-      if (errors.length > 0) {
-        throw Error(errors.join("; "));
-      }
+      await podman(["rm", "-f", "-t", "0", projectContainerName(project_id)]);
+      await unmountRootFs(project_id);
       bootlog({
         project_id,
         type: "stop-project",
@@ -657,9 +505,10 @@ export async function state(
   }
   const { stdout } = await podman([
     "ps",
-    "--pod",
     "--filter",
-    `pod=${projectPodName(project_id)}`,
+    `name=${projectContainerName(project_id)}`,
+    "--filter",
+    "label=role=project",
     "--format",
     "{{.Names}} {{.State}}",
   ]);
@@ -669,12 +518,7 @@ export async function state(
     if (v.length < 2) continue;
     output[v[0]] = v[1].trim();
   }
-  if (
-    // 3 to account for infrastructure container
-    Object.keys(output).length == 3 &&
-    output[projectContainerName(project_id)] == "running" &&
-    output[sidecarContainerName(project_id)] == "running"
-  ) {
+  if (output[projectContainerName(project_id)] == "running") {
     return "running";
   }
   if (Object.keys(output).length > 0 && STOP_ON_STATUS_ERROR) {
@@ -712,14 +556,16 @@ export async function status({ project_id, localPath }) {
 
 export async function getAll(): Promise<string[]> {
   const { stdout } = await podman([
-    "pod",
     "ps",
     "--filter",
-    `name=project-`,
+    "label=role=project",
     "--format",
     '{{ index .Labels "project_id" }}',
   ]);
-  return stdout.split("\n").filter((x) => x.length == 36);
+  return stdout
+    .split("\n")
+    .map((x) => x.trim())
+    .filter((x) => x.length == 36);
 }
 
 async function stopAll(force) {
@@ -757,12 +603,11 @@ export async function initSshServer(name: string) {
   await podman(["exec", name, "bash", "-c", join("/root", START_PROJECT_SSH)]);
 }
 
-export async function initForwards(name: string) {
-  await podman([
-    "exec",
-    name,
-    "bash",
-    "-c",
-    join("/root", START_PROJECT_FORWARDS),
-  ]);
+// Placeholder: saving is a no-op now that sync sidecars are gone.
+export async function save(_opts: {
+  project_id: string;
+  rootfs?: boolean;
+  home?: boolean;
+}): Promise<void> {
+  return;
 }
