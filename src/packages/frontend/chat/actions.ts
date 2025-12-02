@@ -100,9 +100,13 @@ export class ChatActions extends Actions<ChatState> {
       ? folding.filter((x) => x !== account_id)
       : folding.push(account_id);
 
+    const d = toISOString(reply_to);
+    if (!d) {
+      return;
+    }
     this.syncdb.set({
       folding: next,
-      date: typeof reply_to === "string" ? reply_to : reply_to.toISOString(),
+      date: d,
     });
 
     this.syncdb.commit();
@@ -143,14 +147,14 @@ export class ChatActions extends Actions<ChatState> {
     const cur = this.syncdb.get_one({ event: "chat", date });
     const feedbacks = cur?.get("feedback") ?? Map({});
     const next = feedbacks.set(account_id, feedback);
-    this.syncdb.set({ feedback: next, date: date.toISOString() });
+    this.syncdb.set({ feedback: next, date });
     this.syncdb.commit();
     const model = this.isLanguageModelThread(date);
     if (isLanguageModel(model)) {
       track("llm_feedback", {
         project_id: this.store?.get("project_id"),
         path: this.store?.get("path"),
-        msg_date: date.toISOString(),
+        msg_date: date,
         type: "chat",
         model: model2service(model),
         feedback,
@@ -212,7 +216,7 @@ export class ChatActions extends Actions<ChatState> {
         },
       ],
       date: time_stamp_str,
-      reply_to: reply_to?.toISOString(),
+      reply_to: toISOString(reply_to),
       editing: {},
     };
     if (trimmedName && !reply_to) {
@@ -303,10 +307,14 @@ export class ChatActions extends Actions<ChatState> {
       .set(author_id, is_editing ? "FUTURE" : null);
 
     // console.log("Currently Editing:", editing.toJS())
+    const d = toISOString(message.get("date"));
+    if (!d) {
+      return;
+    }
     this.syncdb.set({
       history: message.get("history").toJS(),
       editing: editing.toJS(),
-      date: message.get("date").toISOString(),
+      date: d,
     });
     // commit now so others users know this user is editing
     this.syncdb.commit();
@@ -325,6 +333,10 @@ export class ChatActions extends Actions<ChatState> {
     // OPTIMIZATION: send less data over the network?
     const date = webapp_client.server_time().toISOString();
 
+    const d = toISOString(message.get("date"));
+    if (!d) {
+      return;
+    }
     this.syncdb.set({
       history: addToHistory(
         message.get("history").toJS() as unknown as MessageHistory[],
@@ -335,7 +347,7 @@ export class ChatActions extends Actions<ChatState> {
         },
       ),
       editing: message.get("editing").set(author_id, null).toJS(),
-      date: message.get("date").toISOString(),
+      date: d,
     });
     this.deleteDraft(message.get("date")?.valueOf());
   };
@@ -349,10 +361,10 @@ export class ChatActions extends Actions<ChatState> {
     date: string;
     prevHistory: MessageHistory[];
   } => {
-    const date: string =
-      typeof message.date === "string"
-        ? message.date
-        : message.date?.toISOString();
+    const date = toISOString(message.date);
+    if (!date) {
+      throw Error("invalid date");
+    }
     if (this.syncdb == null) {
       return { date, prevHistory: [] };
     }
@@ -528,10 +540,10 @@ export class ChatActions extends Actions<ChatState> {
       let dateIso: string | undefined;
       if (dateField instanceof Date) {
         dateValue = dateField.valueOf();
-        dateIso = dateField.toISOString();
+        dateIso = toISOString(dateField);
       } else if (typeof dateField === "number") {
         dateValue = dateField;
-        dateIso = new Date(dateField).toISOString();
+        dateIso = toISOString(new Date(dateField));
       } else if (typeof dateField === "string") {
         const t = Date.parse(dateField);
         dateValue = isNaN(t) ? undefined : t;
@@ -638,12 +650,7 @@ export class ChatActions extends Actions<ChatState> {
       return null;
     }
     const dateField = message.get("date");
-    const dateIso =
-      dateField instanceof Date
-        ? dateField.toISOString()
-        : typeof dateField === "string"
-          ? dateField
-          : new Date(dateField).toISOString();
+    const dateIso = toISOString(dateField);
     if (!dateIso) {
       return null;
     }
@@ -656,12 +663,7 @@ export class ChatActions extends Actions<ChatState> {
     const rootMessage = entry?.message;
     if (!rootMessage) return;
     const dateField = rootMessage.get("date");
-    const iso =
-      dateField instanceof Date
-        ? dateField.toISOString()
-        : typeof dateField === "string"
-          ? dateField
-          : new Date(dateField).toISOString();
+    const iso = toISOString(dateField);
     if (!iso) return;
     const threadMessages = this.getMessagesInThread(iso);
     if (!threadMessages) return;
@@ -855,7 +857,7 @@ export class ChatActions extends Actions<ChatState> {
     }
 
     const thread = this.getMessagesInThread(
-      rootMessage.get("date")?.toISOString?.() ?? `${rootMs}`,
+      toISOString(rootMessage.get("date")) ?? `${rootMs}`,
     );
     if (thread == null) {
       return false;
@@ -1218,7 +1220,7 @@ export class ChatActions extends Actions<ChatState> {
           content,
         }),
         generating: token != null, // it's generating as token is not null
-        reply_to: reply_to?.toISOString(),
+        reply_to: toISOString(reply_to),
       };
       this.syncdb.set(msg);
 
@@ -1251,7 +1253,7 @@ export class ChatActions extends Actions<ChatState> {
           content,
         }),
         generating: false,
-        reply_to: reply_to?.toISOString(),
+        reply_to: toISOString(reply_to),
       };
       this.syncdb.set(msg);
       this.syncdb.commit();
@@ -1275,7 +1277,7 @@ export class ChatActions extends Actions<ChatState> {
         .filter(
           (message) =>
             message.get("reply_to") == dateStr ||
-            message.get("date").toISOString() == dateStr,
+            toISOString(message.get("date")) == dateStr,
         )
         // @ts-ignore -- immutablejs typings are wrong (?)
         .valueSeq()
@@ -1298,7 +1300,10 @@ export class ChatActions extends Actions<ChatState> {
   private getLLMHistory = (reply_to: Date): LanguageModelHistory => {
     const history: LanguageModelHistory = [];
     // Next get all of the messages with this reply_to or that are the root of this reply chain:
-    const d = reply_to.toISOString();
+    const d = toISOString(reply_to);
+    if (!d) {
+      return history;
+    }
     const threadMessages = this.getMessagesInThread(d);
     if (!threadMessages) return history;
 
@@ -1365,7 +1370,7 @@ export class ChatActions extends Actions<ChatState> {
     if (this.syncdb == null) return;
     this.syncdb.set({
       event: "chat",
-      date: date.toISOString(),
+      date: toISOString(date),
       generating: false,
     });
     this.syncdb.commit();
@@ -1394,11 +1399,13 @@ export class ChatActions extends Actions<ChatState> {
     if (!project_id || !path) return;
     const sender_id = this.redux.getStore("account").get_account_id();
     if (!sender_id) return;
+    const message_date = toISOString(messageDate);
+    if (!message_date) return;
     const chat: AcpChatContext = {
       project_id,
       path,
       sender_id,
-      message_date: messageDate.toISOString(),
+      message_date,
     };
     if (replyTo != null) {
       const reply =
@@ -1408,7 +1415,7 @@ export class ChatActions extends Actions<ChatState> {
             ? new Date(replyTo)
             : new Date(replyTo);
       if (!Number.isNaN(reply.valueOf())) {
-        chat.reply_to = reply.toISOString();
+        chat.reply_to = toISOString(reply);
       }
     }
     try {
@@ -1509,7 +1516,7 @@ export class ChatActions extends Actions<ChatState> {
 
   regenerateLLMResponse = async (date0: Date, llm?: LanguageModel) => {
     if (this.syncdb == null) return;
-    const date = date0.toISOString();
+    const date = toISOString(date0);
     const obj = this.syncdb.get_one({ event: "chat", date });
     if (obj == null) {
       return;
@@ -1670,4 +1677,16 @@ function getLanguageModel(input?: string): false | LanguageModel {
     }
   }
   return false;
+}
+
+function toISOString(date?: Date | string): string | undefined {
+  if (typeof date == "string") {
+    return date;
+  }
+  try {
+    return date?.toISOString();
+  } catch (err) {
+    console.warn("invalid date", date);
+    return;
+  }
 }
