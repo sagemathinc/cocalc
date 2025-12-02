@@ -119,7 +119,7 @@ const LOAD_ACCOUNT_INFO_TIMEOUT = 15_000;
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
   const [hidden, setHidden] = useState(IS_MOBILE);
-  const [openKeys, setOpenKeys] = useState<string[]>(["preferences"]);
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
 
   const { width: windowWidth } = useWindowDimensions();
   const isWide = windowWidth > 800;
@@ -316,85 +316,98 @@ export const AccountPage: React.FC = () => {
     items.push({ type: "divider" });
 
     if (is_commercial) {
-      items.push({
-        key: "subscriptions",
-        label: (
-          <span>
-            <Icon name="calendar" /> {intl.formatMessage(labels.subscriptions)}
-          </span>
-        ),
-        children: active_page === "subscriptions" && <SubscriptionsPage />,
-      });
-      items.push({
-        key: "licenses",
-        label: (
-          <span>
-            <Icon name="key" /> {intl.formatMessage(labels.licenses)}
-          </span>
-        ),
-        children: active_page === "licenses" && <LicensesPage />,
-      });
-      items.push({
-        key: "payg",
-        label: (
-          <span>
-            <Icon name="line-chart" />{" "}
-            {intl.formatMessage(labels.pay_as_you_go)}
-          </span>
-        ),
-        children: active_page === "payg" && <PayAsYouGoPage />,
-      });
-      if (is_commercial && kucalc === KUCALC_COCALC_COM) {
-        // these have been deprecated for ~ 5 years, but some customers still have them.
-        items.push({
-          key: "upgrades",
+      const billingChildren = [
+        {
+          key: "subscriptions",
           label: (
             <span>
-              <Icon name="arrow-circle-up" />{" "}
-              {intl.formatMessage(labels.upgrades)}
+              <Icon name="calendar" />{" "}
+              {intl.formatMessage(labels.subscriptions)}
             </span>
           ),
-          children: active_page === "upgrades" && <UpgradesPage />,
-        });
-      }
-      items.push({ type: "divider" });
+          children: active_page === "subscriptions" && <SubscriptionsPage />,
+        },
+        {
+          key: "licenses",
+          label: (
+            <span>
+              <Icon name="key" /> {intl.formatMessage(labels.licenses)}
+            </span>
+          ),
+          children: active_page === "licenses" && <LicensesPage />,
+        },
+        {
+          key: "payg",
+          label: (
+            <span>
+              <Icon name="line-chart" />{" "}
+              {intl.formatMessage(labels.pay_as_you_go)}
+            </span>
+          ),
+          children: active_page === "payg" && <PayAsYouGoPage />,
+        },
+        ...(kucalc === KUCALC_COCALC_COM
+          ? [
+              {
+                key: "upgrades",
+                label: (
+                  <span>
+                    <Icon name="arrow-circle-up" />{" "}
+                    {intl.formatMessage(labels.upgrades)}
+                  </span>
+                ),
+                children: active_page === "upgrades" && <UpgradesPage />,
+              },
+            ]
+          : []),
+        {
+          key: "purchases",
+          label: (
+            <span>
+              <Icon name="money-check" /> {intl.formatMessage(labels.purchases)}
+            </span>
+          ),
+          children: active_page === "purchases" && <PurchasesPage />,
+        },
+        {
+          key: "payments",
+          label: (
+            <span>
+              <Icon name="credit-card" /> {intl.formatMessage(labels.payments)}
+            </span>
+          ),
+          children: active_page === "payments" && <PaymentsPage />,
+        },
+        {
+          key: "payment-methods",
+          label: (
+            <span>
+              <Icon name="credit-card" />{" "}
+              {intl.formatMessage(labels.payment_methods)}
+            </span>
+          ),
+          children: active_page === "payment-methods" && <PaymentMethodsPage />,
+        },
+        {
+          key: "statements",
+          label: (
+            <span>
+              <Icon name="calendar-week" />{" "}
+              {intl.formatMessage(labels.statements)}
+            </span>
+          ),
+          children: active_page === "statements" && <StatementsPage />,
+        },
+      ];
+
       items.push({
-        key: "purchases",
+        key: "billing",
         label: (
           <span>
-            <Icon name="money-check" /> {intl.formatMessage(labels.purchases)}
+            <Icon name="money-check" /> {intl.formatMessage(labels.billing)}
           </span>
         ),
-        children: active_page === "purchases" && <PurchasesPage />,
-      });
-      items.push({
-        key: "payments",
-        label: (
-          <span>
-            <Icon name="credit-card" /> {intl.formatMessage(labels.payments)}
-          </span>
-        ),
-        children: active_page === "payments" && <PaymentsPage />,
-      });
-      items.push({
-        key: "payment-methods",
-        label: (
-          <span>
-            <Icon name="credit-card" />{" "}
-            {intl.formatMessage(labels.payment_methods)}
-          </span>
-        ),
-        children: active_page === "payment-methods" && <PaymentMethodsPage />,
-      });
-      items.push({
-        key: "statements",
-        label: (
-          <span>
-            <Icon name="calendar-week" />{" "}
-            {intl.formatMessage(labels.statements)}
-          </span>
-        ),
-        children: active_page === "statements" && <StatementsPage />,
+        children: billingChildren,
       });
       items.push({ type: "divider" });
     }
@@ -446,6 +459,40 @@ export const AccountPage: React.FC = () => {
   }
 
   const tabs = getTabs();
+  const parentByChildKey = new Map<string, string>();
+
+  useEffect(() => {
+    const parentKey =
+      parentByChildKey.get(active_sub_tab ?? "") ??
+      parentByChildKey.get(active_page ?? "");
+    setOpenKeys((prevOpenKeys) =>
+      parentKey == null
+        ? []
+        : prevOpenKeys.length === 1 && prevOpenKeys[0] === parentKey
+          ? prevOpenKeys
+          : [parentKey],
+    );
+  }, [active_page, active_sub_tab]);
+
+  useEffect(() => {
+    if (
+      active_sub_tab &&
+      parentByChildKey.get(active_sub_tab) !== active_page
+    ) {
+      redux.getActions("account").setState({ active_sub_tab: undefined });
+    }
+  }, [active_page, active_sub_tab, parentByChildKey]);
+
+  function handleOpenChange(keys: string[]) {
+    setOpenKeys((prevOpenKeys) => {
+      const newlyOpened = keys.find((key) => !prevOpenKeys.includes(key));
+      return newlyOpened ? [newlyOpened] : [];
+    });
+  }
+
+  function visibleLabel(label) {
+    return hidden ? <span>{label.props.children[0]}</span> : label;
+  }
 
   // Process tabs to handle nested children for sub-tabs
   const children = {};
@@ -454,68 +501,35 @@ export const AccountPage: React.FC = () => {
     if (tab.type == "divider") {
       continue;
     }
-    if (tab.key === "preferences" && Array.isArray(tab.children)) {
-      // Handle sub-tabs for preferences
+    const originalLabel = tab.label;
+    titles[tab.key] = originalLabel;
+    tab.label = visibleLabel(originalLabel);
+
+    if (Array.isArray(tab.children)) {
+      // Handle nested submenus generically (preferences, billing, etc.)
       const subTabs = tab.children;
       tab.children = subTabs.map((subTab) => {
-        // Extract just the icon (first child) from the span when hidden
-        const label = hidden ? (
-          <span style={{ paddingLeft: "5px" }}>
-            {subTab.label.props.children[0]}
-          </span>
-        ) : (
-          subTab.label
-        );
+        const label = visibleLabel(subTab.label);
         return {
           key: subTab.key,
           label,
         };
       });
-      // Store sub-tab children and full labels
       for (const subTab of subTabs) {
+        // Track child -> parent mapping for openKeys/title lookup.
+        parentByChildKey.set(subTab.key, tab.key);
         children[subTab.key] = subTab.children;
         titles[subTab.key] = subTab.label; // Always store original full label
       }
-    } else if (tab.key === "settings" || tab.key === "profile") {
-      // Handle settings and profile as top-level pages
-      // Store original full label for renderTitle()
-      const originalLabel = tab.label;
-      // Extract just the icon (first child) from the span when hidden
-      tab.label = hidden ? (
-        <span style={{ paddingLeft: "5px" }}>
-          {tab.label.props.children[0]}
-        </span>
-      ) : (
-        tab.label
-      );
-      children[tab.key] = tab.children;
-      titles[tab.key] = originalLabel; // Store original label
-      delete tab.children;
     } else {
-      // Store original full label for renderTitle()
-      const originalLabel = tab.label;
-      // Extract just the icon (first child) from the span when hidden
-      tab.label = hidden ? (
-        <span style={{ paddingLeft: "5px" }}>
-          {tab.label.props.children[0]}
-        </span>
-      ) : (
-        tab.label
-      );
       children[tab.key] = tab.children;
-      titles[tab.key] = originalLabel; // Store original label
       delete tab.children;
     }
   }
 
+  const activeChildKey = active_sub_tab ?? active_page;
   function renderTitle() {
-    return (
-      <Title level={3}>
-        {active_page === "preferences" && active_sub_tab
-          ? titles[active_sub_tab]
-          : titles[active_page]}
-      </Title>
-    );
+    return <Title level={3}>{titles[activeChildKey]}</Title>;
   }
 
   function renderExtraContent() {
@@ -565,9 +579,9 @@ export const AccountPage: React.FC = () => {
           }}
         >
           <Menu
-            defaultOpenKeys={["preferences"]}
-            openKeys={hidden ? ["preferences"] : openKeys}
-            onOpenChange={hidden ? undefined : setOpenKeys}
+            className={hidden ? "account-menu-inline-collapsed" : undefined}
+            openKeys={openKeys}
+            onOpenChange={handleOpenChange}
             mode="inline"
             items={tabs}
             onClick={(e) => {
@@ -578,7 +592,7 @@ export const AccountPage: React.FC = () => {
             }
             inlineIndent={hidden ? 0 : 24}
             style={{
-              width: hidden ? 50 : 200,
+              width: hidden ? 50 : 220,
               background: "#00000005",
               flex: "1 1 auto",
               overflowY: "auto",
@@ -622,9 +636,7 @@ export const AccountPage: React.FC = () => {
             <div style={{ flex: 1 }} />
             {renderExtraContent()}
           </Flex>
-          {active_page === "preferences" && active_sub_tab
-            ? children[active_sub_tab]
-            : children[active_page]}
+          {children[activeChildKey] ?? children[active_page]}
           <Footer />
         </div>
       </div>
