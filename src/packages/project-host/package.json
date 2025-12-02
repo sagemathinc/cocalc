@@ -25,12 +25,17 @@
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/file-server": "workspace:*",
     "@cocalc/lite": "workspace:*",
     "@cocalc/project-proxy": "workspace:*",
-    "@cocalc/project-runner": "workspace:*"
+    "@cocalc/project-runner": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "express": "^4.21.2"
   },
   "devDependencies": {
+    "@types/express": "^4.17.23",
     "@types/node": "^22.10.10"
   },
   "repository": {

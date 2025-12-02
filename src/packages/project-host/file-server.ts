@@ -1,0 +1,375 @@
+// Minimal file-server bootstrap vendored for project-host.
+// This intentionally does NOT depend on @cocalc/server/hub/database.
+
+import { join } from "node:path";
+import { mkdir } from "node:fs/promises";
+
+import {
+  server as createFileServer,
+  client as createFileClient,
+  type Fileserver,
+  type CopyOptions,
+  type SnapshotUsage,
+  type Sync,
+} from "@cocalc/conat/files/file-server";
+import { type Client as ConatClient } from "@cocalc/conat/core/client";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import getLogger from "@cocalc/backend/logger";
+import { fileServerMountpoint, data, rusticRepo } from "@cocalc/backend/data";
+import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
+import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
+import { init as initSshServer } from "@cocalc/project-proxy/ssh-server";
+import { type MutagenSyncSession } from "@cocalc/conat/project/mutagen/types";
+
+const logger = getLogger("project-host:file-server");
+
+function volName(project_id: string) {
+  return `project-${project_id}`;
+}
+
+let fs: Filesystem | null = null;
+
+export async function getVolume(project_id: string) {
+  if (fs == null) {
+    throw Error("file server not initialized");
+  }
+  return await fs.subvolumes.get(volName(project_id));
+}
+
+function getFileSync() {
+  if (fs == null) {
+    throw Error("file server not initialized");
+  }
+  return fs.fileSync;
+}
+
+async function mount({
+  project_id,
+}: {
+  project_id: string;
+}): Promise<{ path: string }> {
+  logger.debug("mount", { project_id });
+  const { path } = await getVolume(project_id);
+  return { path };
+}
+
+async function clone({
+  project_id,
+  src_project_id,
+}: {
+  project_id: string;
+  src_project_id: string;
+}): Promise<void> {
+  logger.debug("clone", { project_id });
+
+  if (fs == null) {
+    throw Error("file server not initialized");
+  }
+  await fs.subvolumes.clone(volName(src_project_id), volName(project_id));
+}
+
+async function getUsage({ project_id }: { project_id: string }): Promise<{
+  size: number;
+  used: number;
+  free: number;
+}> {
+  logger.debug("getUsage", { project_id });
+  const vol = await getVolume(project_id);
+  return await vol.quota.usage();
+}
+
+async function getQuota({ project_id }: { project_id: string }): Promise<{
+  size: number;
+  used: number;
+}> {
+  logger.debug("getQuota", { project_id });
+  const vol = await getVolume(project_id);
+  return await vol.quota.get();
+}
+
+async function setQuota({
+  project_id,
+  size,
+}: {
+  project_id: string;
+  size: number | string;
+}): Promise<void> {
+  logger.debug("setQuota", { project_id });
+  const vol = await getVolume(project_id);
+  await vol.quota.set(size);
+}
+
+async function cp({
+  src,
+  dest,
+  options,
+}: {
+  // src paths are relative to the src volume
+  src: { project_id: string; path: string | string[] };
+  // dest path is relative to the dest volume
+  dest: { project_id: string; path: string };
+  options?: CopyOptions;
+}): Promise<void> {
+  if (fs == null) {
+    throw Error("file server not initialized");
+  }
+  const srcVolume = await getVolume(src.project_id);
+  const destVolume = await getVolume(dest.project_id);
+  let srcPaths = await srcVolume.fs.safeAbsPaths(src.path);
+  let destPath = await destVolume.fs.safeAbsPath(dest.path);
+
+  const toRelative = (path: string) => {
+    if (!path.startsWith(fs!.subvolumes.fs.path)) {
+      throw Error("bug");
+    }
+    return path.slice(fs!.subvolumes.fs.path.length + 1);
+  };
+  srcPaths = srcPaths.map(toRelative);
+  destPath = toRelative(destPath);
+  // Always reflink on btrfs.
+  await fs.subvolumes.fs.cp(
+    typeof src.path == "string" ? srcPaths[0] : srcPaths, // preserve string vs array
+    destPath,
+    { ...options, reflink: true },
+  );
+}
+
+// Snapshots
+async function createSnapshot({
+  project_id,
+  name,
+  limit,
+  readOnly = true,
+}: {
+  project_id: string;
+  name?: string;
+  limit?: number;
+  readOnly?: boolean;
+}) {
+  const vol = await getVolume(project_id);
+  await vol.snapshots.create(name, { limit, readOnly });
+}
+
+async function deleteSnapshot({
+  project_id,
+  name,
+}: {
+  project_id: string;
+  name: string;
+}) {
+  const vol = await getVolume(project_id);
+  await vol.snapshots.delete(name);
+}
+
+async function updateSnapshots({
+  project_id,
+  counts,
+  limit,
+}: {
+  project_id: string;
+  counts?: Partial<SnapshotCounts>;
+  limit?: number;
+}): Promise<void> {
+  const vol = await getVolume(project_id);
+  await vol.snapshots.update(counts, { limit });
+}
+
+async function allSnapshotUsage({
+  project_id,
+}: {
+  project_id: string;
+}): Promise<SnapshotUsage[]> {
+  const vol = await getVolume(project_id);
+  return await vol.snapshots.allUsage();
+}
+
+// Rustic backups
+async function createBackup({
+  project_id,
+  limit,
+}: {
+  project_id: string;
+  limit?: number;
+}): Promise<{ time: Date; id: string }> {
+  const vol = await getVolume(project_id);
+  return await vol.rustic.backup({ limit });
+}
+
+async function restoreBackup({
+  project_id,
+  id,
+  path,
+  dest,
+}: {
+  project_id: string;
+  id: string;
+  path?: string;
+  dest?: string;
+}): Promise<void> {
+  const vol = await getVolume(project_id);
+  await vol.rustic.restore({ id, path, dest });
+}
+
+async function deleteBackup({
+  project_id,
+  id,
+}: {
+  project_id: string;
+  id: string;
+}): Promise<void> {
+  const vol = await getVolume(project_id);
+  await vol.rustic.forget({ id });
+}
+
+async function updateBackups({
+  project_id,
+  counts,
+  limit,
+}: {
+  project_id: string;
+  counts?: Partial<SnapshotCounts>;
+  limit?: number;
+}): Promise<void> {
+  const vol = await getVolume(project_id);
+  await vol.rustic.update(counts, { limit });
+}
+
+async function getBackups({
+  project_id,
+}: {
+  project_id: string;
+}): Promise<
+  {
+    id: string;
+    time: Date;
+  }[]
+> {
+  const vol = await getVolume(project_id);
+  return await vol.rustic.snapshots();
+}
+
+async function getBackupFiles({
+  project_id,
+  id,
+}: {
+  project_id: string;
+  id: string;
+}): Promise<string[]> {
+  const vol = await getVolume(project_id);
+  return await vol.rustic.ls({ id });
+}
+
+// File Sync
+async function createSync(sync: Sync & { ignores?: string[] }): Promise<void> {
+  await getFileSync().create(sync);
+}
+
+async function syncCommand(
+  command: "flush" | "reset" | "pause" | "resume" | "terminate",
+  sync: Sync,
+): Promise<{ stdout: string; stderr: string; exit_code: number }> {
+  return await getFileSync().command(command, sync);
+}
+
+async function getAllSyncs(opts: {
+  name: string;
+}): Promise<(Sync & MutagenSyncSession)[]> {
+  return await getFileSync().getAll(opts);
+}
+
+async function getSync(
+  sync: Sync,
+): Promise<undefined | (Sync & MutagenSyncSession)> {
+  return await getFileSync().get(sync);
+}
+
+let servers: null | { ssh: any; file: any } = null;
+
+export async function initFileServer({
+  client,
+  enableSsh = process.env.COCALC_SSH_SERVER_COUNT !== "0",
+}: {
+  client: ConatClient;
+  enableSsh?: boolean;
+}) {
+  if (servers != null) {
+    return servers;
+  }
+
+  if (fs == null) {
+    if (fileServerMountpoint) {
+      fs = await filesystem({
+        mount: fileServerMountpoint,
+        rustic: rusticRepo,
+      });
+    } else {
+      const imageDir = join(data, "btrfs", "image");
+      const mountPoint = join(data, "btrfs", "mnt");
+      if (!(await exists(imageDir))) {
+        await mkdir(imageDir, { recursive: true });
+      }
+      if (!(await exists(mountPoint))) {
+        await mkdir(mountPoint, { recursive: true });
+      }
+      fs = await filesystem({
+        image: join(imageDir, "btrfs.img"),
+        size: "25G",
+        mount: mountPoint,
+        rustic: rusticRepo,
+      });
+    }
+  }
+
+  const file = await createFileServer({
+    client,
+    mount: reuseInFlight(mount),
+    clone,
+    getUsage: reuseInFlight(getUsage),
+    getQuota: reuseInFlight(getQuota),
+    setQuota,
+    cp,
+    // backups
+    createBackup: reuseInFlight(createBackup),
+    restoreBackup: reuseInFlight(restoreBackup),
+    deleteBackup: reuseInFlight(deleteBackup),
+    updateBackups: reuseInFlight(updateBackups),
+    getBackups: reuseInFlight(getBackups),
+    getBackupFiles: reuseInFlight(getBackupFiles),
+    // snapshots
+    createSnapshot,
+    deleteSnapshot,
+    updateSnapshots,
+    allSnapshotUsage,
+    // file sync
+    createSync,
+    getAllSyncs,
+    getSync,
+    syncCommand,
+  });
+
+  let ssh: any = { close: () => {}, projectProxyHandlers: [] };
+  if (enableSsh) {
+    const { path: scratch } = await getVolume("mutagen-scratch");
+    ssh = await initSshServer({ client, scratch, proxyHandlers: true });
+  }
+
+  servers = { file, ssh };
+  return servers;
+}
+
+export function closeFileServer() {
+  if (servers == null) {
+    return;
+  }
+  const { file, ssh } = servers;
+  servers = null;
+  file.close();
+  ssh.kill?.("SIGKILL");
+}
+
+let cachedClient: null | Fileserver = null;
+export function fileServerClient(client: ConatClient): Fileserver {
+  cachedClient ??= createFileClient({ client });
+  return cachedClient!;
+}

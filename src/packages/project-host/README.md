@@ -2,7 +2,9 @@
 
 `@cocalc/project-host` is the multi-project host that embeds the Lite core and layers in podman/btrfs/project services. It is the building block for “project runner” nodes that can serve many projects and optionally attach to a remote master.
 
-_Current status: skeleton only._ It boots the Lite core to give us a runnable binary and will grow to manage projects, podman, btrfs, and ingress.
+_Current status: minimal host._ It starts a local conat server, embeds file-server + project-runner, and exposes a tiny (insecure) HTTP API to start/stop/check status of projects sharing the same podman/btrfs instance.
+
+This package deliberately **does not depend on @cocalc/server, @cocalc/hub, or @cocalc/database**. The file-server bootstrap is vendored locally for project-host; the central master will not run file-server.
 
 ## Role
 
@@ -22,6 +24,12 @@ _Current status: skeleton only._ It boots the Lite core to give us a runnable bi
 ## Getting Started
 
 - Build with `pnpm --filter @cocalc/project-host build`.
-- Run locally with `pnpm --filter @cocalc/project-host app` (builds then starts Lite for now).
-- CLI: `cocalc-project-host` will work after a build (uses the compiled dist).
-- Functionality is minimal today; podman/btrfs/ingress/master-link wiring will be layered in next.
+- Run locally with `pnpm --filter @cocalc/project-host app` (builds then starts the embedded file-server + runner).
+- CLI: `cocalc-project-host` works after a build (uses the compiled dist).
+- HTTP API (no auth yet):
+  - `GET /healthz`
+  - `GET /projects` (recently touched projects)
+  - `GET /projects/:id/status`
+  - `POST /projects/:id/start` (optional JSON body `{ config: ... }`)
+  - `POST /projects/:id/stop` (optional JSON body `{ force: boolean }`)
+- Functionality is intentionally minimal/insecure; podman/btrfs lifecycle, ingress, and master-link wiring will be layered in next.

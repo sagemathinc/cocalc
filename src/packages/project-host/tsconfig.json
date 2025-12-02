@@ -2,13 +2,33 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "rootDir": "./",
-    "outDir": "dist"
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@cocalc/backend": ["../backend"],
+      "@cocalc/backend/*": ["../backend/*"],
+      "@cocalc/conat": ["../conat"],
+      "@cocalc/conat/*": ["../conat/*"],
+      "@cocalc/util": ["../util"],
+      "@cocalc/util/*": ["../util/*"],
+      "@cocalc/file-server": ["../file-server"],
+      "@cocalc/file-server/*": ["../file-server/*"],
+      "@cocalc/project-runner": ["../project-runner"],
+      "@cocalc/project-runner/*": ["../project-runner/*"],
+      "@cocalc/project-proxy": ["../project-proxy"],
+      "@cocalc/project-proxy/*": ["../project-proxy/*"],
+      "@cocalc/lite": ["../lite"],
+      "@cocalc/lite/*": ["../lite/*"]
+    }
   },
   "exclude": ["dist", "node_modules", "bin"],
   "references": [
+    { "path": "../backend" },
+    { "path": "../conat" },
     { "path": "../lite" },
     { "path": "../project-runner" },
     { "path": "../file-server" },
-    { "path": "../project-proxy" }
+    { "path": "../project-proxy" },
+    { "path": "../util" }
   ]
 }
