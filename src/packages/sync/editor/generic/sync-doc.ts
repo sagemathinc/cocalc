@@ -2543,13 +2543,10 @@ export class SyncDoc extends EventEmitter {
         // writeFileDelta so efficient even if file is huge.
         await this.fs.writeFileDelta(this.path, value, {
           baseContents: this.valueOnDisk,
-          encoding: "utf8",
           saveLast: true,
         });
       } else if (typeof this.fs.writeFile === "function") {
-        await (this.fs as any).writeFile(this.path, value, {
-          encoding: "utf8",
-        });
+        await (this.fs as any).writeFile(this.path, value);
       } else if (typeof this.client.write_file === "function") {
         await this.client.write_file({
           path: this.path,

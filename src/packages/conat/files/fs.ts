@@ -107,7 +107,6 @@ export interface PatchWriteRequest {
 
 export interface WriteFileDeltaOptions {
   baseContents?: string;
-  encoding?: TextEncoding;
   saveLast?: boolean;
   minLength?: number;
 }
@@ -568,7 +567,6 @@ async function writeFileDeltaImpl(
 ): Promise<void> {
   const {
     baseContents,
-    encoding = "utf8",
     // serialized patch length must be at most
     // if content is <= than minLength, never use patching
     minLength = 1024,
@@ -594,13 +592,12 @@ async function writeFileDeltaImpl(
 
   const patch = make_patch(baseContents, content);
   try {
-    const sha = await sha256Hex(baseContents, encoding);
+    const sha = await sha256Hex(baseContents);
     await writeFile(
       path,
       {
         patch,
         sha256: sha,
-        encoding,
       },
       saveLast,
     );
@@ -612,16 +609,8 @@ async function writeFileDeltaImpl(
   }
 }
 
-async function sha256Hex(
-  text: string,
-  encoding: TextEncoding,
-): Promise<string> {
-  const normalized = encoding === "utf-8" ? "utf8" : encoding;
-  // Prefer WebCrypto when available (browsers, modern Node).
-  const webCrypto =
-    (globalThis as any).crypto ??
-    (globalThis as any).msCrypto ??
-    (await importNodeCrypto())?.webcrypto;
+async function sha256Hex(text: string): Promise<string> {
+  const webCrypto = (globalThis as any).crypto ?? (globalThis as any).msCrypto;
   const subtle = webCrypto?.subtle ?? webCrypto?.webkitSubtle;
   if (subtle && typeof TextEncoder !== "undefined") {
     const encoder = new TextEncoder();
@@ -629,38 +618,13 @@ async function sha256Hex(
     const buffer = await subtle.digest("SHA-256", data);
     return bufferToHex(new Uint8Array(buffer));
   }
-  // Fallback to Node's hash implementation (server/test environments).
-  const nodeCrypto = await importNodeCrypto();
-  if (!nodeCrypto) {
-    throw new Error("SHA-256 not supported in this environment");
-  }
-  return nodeCrypto.createHash("sha256").update(text, normalized).digest("hex");
+  throw new Error("SHA-256 not supported in this environment");
 }
 
 function bufferToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-}
-
-async function importNodeCrypto(): Promise<
-  | {
-      webcrypto?: any;
-      createHash: (algorithm: string) => {
-        update: (data: string, inputEncoding?: BufferEncoding) => any;
-        digest: (encoding: "hex") => string;
-      };
-    }
-  | undefined
-> {
-  if (typeof process === "undefined") {
-    return undefined;
-  }
-  const proc: any = process;
-  if (!proc?.versions?.node) {
-    return undefined;
-  }
-  return (await import("crypto")) as any;
 }
 
 export function getService({

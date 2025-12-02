@@ -228,7 +228,6 @@ export default function getConfig({ middleware }: Options = {}): Configuration {
         util: require.resolve("util/"),
         assert: require.resolve("assert/"),
         buffer: require.resolve("buffer/"),
-        crypto: require.resolve("crypto-browserify"),
       },
     },
     resolveLoader: {
