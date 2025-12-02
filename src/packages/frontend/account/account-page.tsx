@@ -89,20 +89,6 @@ import { UpgradesPage } from "./upgrades/upgrades-page";
 
 export const ACCOUNT_SETTINGS_ICON_NAME: IconName = "settings";
 
-const ACCOUNT_MENU_INLINE_CSS = `
-.account-menu-inline-collapsed .ant-menu-item,
-.account-menu-inline-collapsed .ant-menu-submenu-title {
-  padding-inline: 0px;
-  text-align: center;
-}
-.account-menu-inline-collapsed .ant-menu-submenu-title {
-  padding-right: 20px;
-}
-.account-menu-inline-collapsed .ant-menu-submenu-arrow {
-  right: 5px;
-}
-`;
-
 // Type for valid menu keys
 type MenuKey =
   | "settings"
@@ -378,8 +364,7 @@ export const AccountPage: React.FC = () => {
           key: "purchases",
           label: (
             <span>
-              <Icon name="money-check" />{" "}
-              {intl.formatMessage(labels.purchases)}
+              <Icon name="money-check" /> {intl.formatMessage(labels.purchases)}
             </span>
           ),
           children: active_page === "purchases" && <PurchasesPage />,
@@ -388,8 +373,7 @@ export const AccountPage: React.FC = () => {
           key: "payments",
           label: (
             <span>
-              <Icon name="credit-card" />{" "}
-              {intl.formatMessage(labels.payments)}
+              <Icon name="credit-card" /> {intl.formatMessage(labels.payments)}
             </span>
           ),
           children: active_page === "payments" && <PaymentsPage />,
@@ -402,9 +386,7 @@ export const AccountPage: React.FC = () => {
               {intl.formatMessage(labels.payment_methods)}
             </span>
           ),
-          children: active_page === "payment-methods" && (
-            <PaymentMethodsPage />
-          ),
+          children: active_page === "payment-methods" && <PaymentMethodsPage />,
         },
         {
           key: "statements",
@@ -547,11 +529,7 @@ export const AccountPage: React.FC = () => {
 
   const activeChildKey = active_sub_tab ?? active_page;
   function renderTitle() {
-    return (
-      <Title level={3}>
-        {titles[activeChildKey]}
-      </Title>
-    );
+    return <Title level={3}>{titles[activeChildKey]}</Title>;
   }
 
   function renderExtraContent() {
@@ -667,7 +645,6 @@ export const AccountPage: React.FC = () => {
 
   return (
     <div className="smc-vfill">
-      <style>{ACCOUNT_MENU_INLINE_CSS}</style>
       {is_logged_in && !get_api_key ? (
         render_logged_in_view()
       ) : (
