@@ -30,7 +30,7 @@ import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import * as rustic from "./rustic";
 import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
-import { init as initSshServer } from "@cocalc/file-server/ssh/ssh-server";
+import { init as initSshServer } from "@cocalc/project-proxy/ssh-server";
 import { type MutagenSyncSession } from "@cocalc/conat/project/mutagen/types";
 
 const logger = getLogger("server:conat:file-server");

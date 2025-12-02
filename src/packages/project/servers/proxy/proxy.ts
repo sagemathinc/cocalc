@@ -26,7 +26,7 @@ Notes:
 
 This proxy gets typically exposed externally via the proxy in
 
-   packages/file-server/ssh/proxy.ts
+   packages/project-proxy/proxy.ts
 */
 
 import * as http from "node:http";

@@ -1293,6 +1293,40 @@ importers:
         specifier: ^0.38.4
         version: 0.38.4
 
+  project-proxy:
+    dependencies:
+      '@cocalc/backend':
+        specifier: workspace:*
+        version: link:../backend
+      '@cocalc/conat':
+        specifier: workspace:*
+        version: link:../conat
+      '@cocalc/util':
+        specifier: workspace:*
+        version: link:../util
+      '@isaacs/ttlcache':
+        specifier: ^1.4.1
+        version: 1.4.1
+      awaiting:
+        specifier: ^3.0.0
+        version: 3.0.0
+      express:
+        specifier: ^4.21.2
+        version: 4.21.2
+      http-proxy-3:
+        specifier: ^1.22.0
+        version: 1.22.0
+      micro-key-producer:
+        specifier: ^0.8.2
+        version: 0.8.2
+    devDependencies:
+      '@types/jest':
+        specifier: ^30.0.0
+        version: 30.0.0
+      '@types/node':
+        specifier: ^22.10.10
+        version: 22.19.1
+
   project-runner:
     dependencies:
       '@cocalc/backend':
@@ -1347,6 +1381,9 @@ importers:
       '@cocalc/gcloud-pricing-calculator':
         specifier: ^1.17.0
         version: 1.17.0
+      '@cocalc/project-proxy':
+        specifier: workspace:*
+        version: link:../project-proxy
       '@cocalc/project-runner':
         specifier: workspace:*
         version: link:../project-runner

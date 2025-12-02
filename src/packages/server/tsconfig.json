@@ -17,6 +17,7 @@
     { "path": "../database" },
     { "path": "../file-server" },
     { "path": "../project-runner" },
+    { "path": "../project-proxy" },
     { "path": "../util" }
   ]
 }

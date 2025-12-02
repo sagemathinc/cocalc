@@ -1,12 +1,10 @@
 {
-  "name": "@cocalc/file-server",
+  "name": "@cocalc/project-proxy",
   "version": "1.0.0",
-  "description": "CoCalc File Server",
+  "description": "CoCalc Project Proxy (SSH/HTTP ingress)",
   "exports": {
-    "./btrfs": "./dist/btrfs/index.js",
-    "./btrfs/*": "./dist/btrfs/*.js",
-    "./conat/*": "./dist/conat/*.js",
-    "./fs/*": "./dist/fs/*.js"
+    ".": "./dist/index.js",
+    "./*": "./dist/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -22,15 +20,15 @@
   ],
   "author": "SageMath, Inc.",
   "keywords": [
-    "utilities",
-    "btrfs",
-    "cocalc"
+    "cocalc",
+    "proxy",
+    "ssh",
+    "websocket"
   ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
-    "@cocalc/file-server": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@isaacs/ttlcache": "^1.4.1",
     "awaiting": "^3.0.0",
@@ -46,5 +44,5 @@
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"
   },
-  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/file-server"
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/project-proxy"
 }
