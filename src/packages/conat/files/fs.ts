@@ -23,6 +23,7 @@ import TTL from "@isaacs/ttlcache";
 import { getLogger } from "@cocalc/conat/client";
 import { make_patch } from "@cocalc/util/dmp";
 import type { CompressedPatch } from "@cocalc/util/dmp";
+import sha256js from "sha256";
 
 const logger = getLogger("files:fs");
 
@@ -618,7 +619,7 @@ async function sha256Hex(text: string): Promise<string> {
     const buffer = await subtle.digest("SHA-256", data);
     return bufferToHex(new Uint8Array(buffer));
   }
-  throw new Error("SHA-256 not supported in this environment");
+  return sha256js(text);
 }
 
 function bufferToHex(bytes: Uint8Array): string {
