@@ -6,14 +6,19 @@
     ".": "./dist/index.js",
     "./*": "./dist/*.js"
   },
+  "bin": {
+    "cocalc-project-host": "./bin/start.js"
+  },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc --build",
     "test": "exit 0",
-    "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo"
+    "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo build",
+    "app": "pnpm run build && node dist/main.js"
   },
   "files": [
     "dist/**",
+    "bin/**",
     "README.md",
     "package.json"
   ],

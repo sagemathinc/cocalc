@@ -2,7 +2,12 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "rootDir": "./",
-    "outDir": "dist"
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@cocalc/lite": ["../lite"],
+      "@cocalc/lite/*": ["../lite/*"]
+    }
   },
   "exclude": ["dist", "node_modules"],
   "references": [

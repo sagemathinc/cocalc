@@ -27,4 +27,4 @@ CoCalc Plus is the productized wrapper around the lightweight core shipped in `@
 - **SEA binary**: `pnpm --filter @cocalc/plus sea` (produces compressed SEA artifact under `packages/plus/build/sea`).
 - **Electron**: `pnpm --filter @cocalc/plus app-electron` for desktop runs; adjust signing/notarization via `sea/Makefile` on macOS.
 
-Packaging artifacts are intended for redistribution; keep core runtime changes in Lite so Plus remains a thin product wrapper.
+Packaging artifacts are intended for redistribution; keep core runtime changes in Lite so Plus remains a thin product wrapper. The CLI `cocalc-plus` delegates to `@cocalc/lite/bin/start` (no extra build required), and Electron uses `electron.js` as the main entry.

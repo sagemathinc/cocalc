@@ -2,6 +2,8 @@
 
 `@cocalc/project-host` is the multi-project host that embeds the Lite core and layers in podman/btrfs/project services. It is the building block for “project runner” nodes that can serve many projects and optionally attach to a remote master.
 
+_Current status: skeleton only._ It boots the Lite core to give us a runnable binary and will grow to manage projects, podman, btrfs, and ingress.
+
 ## Role
 
 - Reuses the lightweight version of "hub/server/database" implemented  in [../lite](../lite/README.md) as the control\-plane core.
@@ -20,5 +22,6 @@
 ## Getting Started
 
 - Build with `pnpm --filter @cocalc/project-host build`.
-- This package is currently a scaffold; functionality will be layered in as podman/btrfs and master-link wiring are added.
-
+- Run locally with `pnpm --filter @cocalc/project-host app` (builds then starts Lite for now).
+- CLI: `cocalc-project-host` will work after a build (uses the compiled dist).
+- Functionality is minimal today; podman/btrfs/ingress/master-link wiring will be layered in next.

@@ -1,4 +1,5 @@
-// main.js
+// Electron entrypoint for CoCalc Plus (desktop). Spins up the Lite core
+// and opens a browser window pointed at the local server.
 const { app, BrowserWindow, Menu } = require("electron");
 const { join } = require("path");
 

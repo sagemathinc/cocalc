@@ -2,6 +2,7 @@
   "name": "@cocalc/plus",
   "version": "0.0.1",
   "description": "CoCalcPlus: productized wrapper around CoCalc Lite",
+  "main": "./electron.js",
   "exports": {
     ".": "./dist/index.js",
     "./*": "./dist/*.js"
@@ -20,13 +21,14 @@
     "run:bundle": "node ./build/bundle/bundle/index.js",
     "sea": "pnpm build:tarball && cd sea && ./build-sea.sh",
     "build:all": "pnpm build && pnpm build:tarball && pnpm sea",
-    "app": "pnpm exec cocalc-plus",
+    "app": "pnpm run build && node bin/start.js",
     "app-electron": "pnpm electron-rebuild && electron ."
   },
   "files": [
     "dist/**",
     "bin/**",
     "sea/**",
+    "electron.js",
     "README.md",
     "package.json"
   ],
