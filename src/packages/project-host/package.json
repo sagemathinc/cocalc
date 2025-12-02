@@ -14,11 +14,14 @@
     "build": "pnpm exec tsc --build",
     "test": "exit 0",
     "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo build",
-    "app": "pnpm run build && node dist/main.js"
+    "app": "pnpm run build && node dist/main.js",
+    "daemon:start": "node scripts/daemon-start.js",
+    "daemon:stop": "node scripts/daemon-stop.js"
   },
   "files": [
     "dist/**",
     "bin/**",
+    "scripts/**",
     "README.md",
     "package.json"
   ],

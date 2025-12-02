@@ -26,6 +26,9 @@ This package deliberately **does not depend on @cocalc/server, @cocalc/hub, or @
 - Build with `pnpm --filter @cocalc/project-host build`.
 - Run locally with `pnpm --filter @cocalc/project-host app` (builds then starts the embedded file-server + runner).
 - CLI: `cocalc-project-host` works after a build (uses the compiled dist).
+- Daemon helpers for local dev (background with log + pid):
+  - `pnpm --filter @cocalc/project-host daemon:start` (defaults mirror the `g` script: mount=/home/wstein/scratch/btrfs2/mnt/0, runner id=0, host=127.0.0.1, port=9002, DEBUG=cocalc:*, DEBUG_FILE=./log)
+  - `pnpm --filter @cocalc/project-host daemon:stop`
 - HTTP API (no auth yet):
   - `GET /healthz`
   - `GET /projects` (recently touched projects)
