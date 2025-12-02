@@ -52,7 +52,20 @@ export class Subvolume {
       });
       await this.chown(this.path);
       const id = await this.getSubvolumeId();
-      await btrfs({ args: ["qgroup", "create", `1/${id}`, this.path] });
+      try {
+        await btrfs({ args: ["qgroup", "create", `1/${id}`, this.path] });
+      } catch (err: any) {
+        if (
+          typeof err?.stderr === "string" &&
+          err.stderr.includes("quota not enabled")
+        ) {
+          // quotas are disabled on the mount; enable and retry once
+          await btrfs({ args: ["quota", "enable", this.filesystem.opts.mount] });
+          await btrfs({ args: ["qgroup", "create", `1/${id}`, this.path] });
+        } else {
+          throw err;
+        }
+      }
     }
   };
 
