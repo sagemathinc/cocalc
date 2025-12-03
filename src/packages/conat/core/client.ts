@@ -237,6 +237,7 @@ import { once, until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { getLogger } from "@cocalc/conat/client";
 import { refCacheSync } from "@cocalc/util/refcache";
+import jsonStableStringify from "json-stable-stringify";
 import { join } from "path";
 import { dko, type DKO } from "@cocalc/conat/sync/dko";
 import { dkv, type DKVOptions, type DKV } from "@cocalc/conat/sync/dkv";
@@ -318,6 +319,9 @@ interface Options {
   address?: string;
   inboxPrefix?: string;
   systemAccountPassword?: string;
+  routeSubject?: (
+    subject: string,
+  ) => { address?: string; client?: Client } | undefined;
 }
 
 export type ClientOptions = Options & {
@@ -384,6 +388,10 @@ function cocalcServerToSocketioAddress(url: string): {
 
 const cache = refCacheSync<ClientOptions, Client>({
   name: "conat-client",
+  createKey: (opts) => {
+    const { routeSubject, ...rest } = opts as any;
+    return jsonStableStringify(rest) ?? "";
+  },
   createObject: (opts: ClientOptions) => {
     return new Client(opts);
   },
@@ -438,6 +446,10 @@ export class Client extends EventEmitter {
 
   public readonly id: string = randomId();
   public state: State = "disconnected";
+  private routeSubjectFn?: (
+    subject: string,
+  ) => { address?: string; client?: Client } | undefined;
+  private routedClients: { [address: string]: Client } = {};
 
   constructor(options: ClientOptions) {
     super();
@@ -449,7 +461,9 @@ export class Client extends EventEmitter {
       }
       options = { ...options, address: process.env.CONAT_SERVER };
     }
-    this.options = options;
+    const { routeSubject, ...rest } = options;
+    this.routeSubjectFn = routeSubject;
+    this.options = rest as ClientOptions;
     this.setMaxListeners(1000);
 
     // for socket.io the address has no base url
@@ -522,6 +536,28 @@ export class Client extends EventEmitter {
     this.conn.io.connect();
     this.statsLoop();
   }
+
+  private resolveClient = (subject: string): Client => {
+    const routed = this.routeSubjectFn?.(subject);
+    if (!routed) {
+      return this;
+    }
+    if (routed.client) {
+      return routed.client;
+    }
+    const address = routed.address;
+    if (!address || address === this.options.address) {
+      return this;
+    }
+    if (!this.routedClients[address]) {
+      this.routedClients[address] = connect({
+        ...(this.options as ClientOptions),
+        address,
+        routeSubject: undefined,
+      });
+    }
+    return this.routedClients[address];
+  };
 
   cluster = async () => {
     return await this.conn.timeout(10000).emitWithAck("cluster");
@@ -740,6 +776,12 @@ export class Client extends EventEmitter {
     if (this.isClosed()) {
       return;
     }
+    for (const addr in this.routedClients) {
+      try {
+        this.routedClients[addr]?.close();
+      } catch {}
+    }
+    this.routedClients = {};
     this.setState("closed");
     this.removeAllListeners();
     this.closeAllSockets();
@@ -995,6 +1037,10 @@ export class Client extends EventEmitter {
     subject: string,
     opts?: SubscriptionOptions,
   ): Subscription => {
+    const client = this.resolveClient(subject);
+    if (client !== this) {
+      return client.subscribeSync(subject, opts);
+    }
     const { sub } = this.subscriptionEmitter(subject, {
       confirm: false,
       closeWhenOffCalled: true,
@@ -1007,6 +1053,10 @@ export class Client extends EventEmitter {
     subject: string,
     opts?: SubscriptionOptions,
   ): Promise<Subscription> => {
+    const client = this.resolveClient(subject);
+    if (client !== this) {
+      return await client.subscribe(subject, opts);
+    }
     await this.waitUntilSignedIn();
     const { sub, promise } = this.subscriptionEmitter(subject, {
       confirm: true,
@@ -1172,6 +1222,10 @@ export class Client extends EventEmitter {
     mesg,
     opts?: PublishOptions,
   ): { bytes: number } => {
+    const client = this.resolveClient(subject);
+    if (client !== this) {
+      return client.publishSync(subject, mesg, opts);
+    }
     if (this.isClosed()) {
       // already closed
       return { bytes: 0 };
@@ -1193,6 +1247,10 @@ export class Client extends EventEmitter {
     // **right now** or received these messages.
     count: number;
   }> => {
+    const client = this.resolveClient(subject);
+    if (client !== this) {
+      return await client.publish(subject, mesg, opts);
+    }
     try {
       if (this.isClosed()) {
         // already closed
@@ -1359,6 +1417,14 @@ export class Client extends EventEmitter {
       ...options
     }: PublishOptions & { ignoreErrorHeader?: boolean } = {},
   ): Promise<Message> => {
+    const client = this.resolveClient(subject);
+    if (client !== this) {
+      return await client.request(subject, mesg, {
+        timeout,
+        ignoreErrorHeader,
+        ...options,
+      });
+    }
     if (timeout <= 0) {
       throw Error("timeout must be positive");
     }
@@ -1407,6 +1473,14 @@ export class Client extends EventEmitter {
     mesg: any,
     { maxMessages, maxWait, ...options }: RequestManyOptions = {},
   ): Promise<Subscription> => {
+    const client = this.resolveClient(subject);
+    if (client !== this) {
+      return await client.requestMany(subject, mesg, {
+        maxMessages,
+        maxWait,
+        ...options,
+      });
+    }
     if (maxMessages != null && maxMessages <= 0) {
       throw Error("maxMessages must be positive");
     }
