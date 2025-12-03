@@ -320,10 +320,10 @@ export const conatClusterName = process.env.CONAT_CLUSTER_NAME;
 // SSH server -- {host, port}:
 export const sshServer: { host: string; port: number } = (() => {
   const [host, port = "2222"] = (
-    process.env.COCALC_SSH_SERVER ?? "host.containers.internal"
+    process.env.COCALC_SSH_SERVER ?? "localhost"
   ).split(":");
   return {
-    host: host ? host : "host.containers.internal",
+    host: host ? host : "localhost",
     port: parseInt(port),
   };
 })();

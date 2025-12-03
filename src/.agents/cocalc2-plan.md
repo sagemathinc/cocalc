@@ -1,8 +1,8 @@
 ## Checklist (near term)
 
-- [ ] Bind project-host HTTP/conat on 0.0.0.0 (temporary); document firewall expectations. Keep a note to revisit Unix-socket bind + container mount for tighter scope.
+- [x] Bind project-host HTTP/conat on 0.0.0.0 (temporary); document firewall expectations. Keep a note to revisit Unix-socket bind + container mount for tighter scope.
+- [ ] (in progress) Master control-plane: host registration/keepalive, project→host map, placement API; surface placement decisions in UI and hub API.
 - [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project-host hub/conat services.
-- [ ] Master control-plane: host registration/keepalive, project→host map, placement API; surface placement decisions in UI and hub API.
 - [ ] Runner networking: keep non-host networking but guarantee containers can reach the host conat endpoint; consider explicit hostfwd mode if we ever bind conat to loopback only.
 - [ ] File/quotas/backups UX: default quota + snapshot/backup counts on project create; expose image/pull errors cleanly; add image allowlist (e.g., ubuntu:25.10) and fallback behavior.
 - [ ] Cross-host data motion: copy/move between hosts (rsync + btrfs send/recv), GC source after validation, update project→host map, and surface progress/errors to users.

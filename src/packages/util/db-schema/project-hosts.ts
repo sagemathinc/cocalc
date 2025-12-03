@@ -32,6 +32,10 @@ Table({
       type: "string",
       desc: "Internal URL used by the master or proxy when routing to this host.",
     },
+    ssh_server: {
+      type: "string",
+      desc: "Host:port where SSH is reachable for this host (may differ from HTTP endpoint).",
+    },
     status: {
       type: "string",
       desc: "Reported status of the host (e.g., active, draining, offline).",

@@ -7,6 +7,7 @@ export interface ProjectHostRecord {
   region?: string;
   public_url?: string;
   internal_url?: string;
+  ssh_server?: string;
   status?: string;
   version?: string;
   capacity?: any;
@@ -24,6 +25,7 @@ export async function upsertProjectHost({
   region,
   public_url,
   internal_url,
+  ssh_server,
   status,
   version,
   capacity,
@@ -34,14 +36,15 @@ export async function upsertProjectHost({
   await pool().query(
     `
     INSERT INTO project_hosts
-      (id, name, region, public_url, internal_url, status, version, capacity, metadata, last_seen, created, updated)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, NOW(), NOW())
+      (id, name, region, public_url, internal_url, ssh_server, status, version, capacity, metadata, last_seen, created, updated)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, NOW(), NOW())
     ON CONFLICT (id)
     DO UPDATE SET
       name = EXCLUDED.name,
       region = EXCLUDED.region,
       public_url = EXCLUDED.public_url,
       internal_url = EXCLUDED.internal_url,
+      ssh_server = EXCLUDED.ssh_server,
       status = EXCLUDED.status,
       version = EXCLUDED.version,
       capacity = EXCLUDED.capacity,
@@ -55,6 +58,7 @@ export async function upsertProjectHost({
       region ?? null,
       public_url ?? null,
       internal_url ?? null,
+      ssh_server ?? null,
       status ?? null,
       version ?? null,
       capacity ?? null,

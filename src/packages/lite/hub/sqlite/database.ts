@@ -37,7 +37,8 @@ export function initDatabase(options: DatabaseOptions = {}): SqliteDatabase {
   if (db != null) {
     return db;
   }
-  const filename = options.filename ?? DEFAULT_FILENAME;
+  const envFilename = process.env.COCALC_LITE_SQLITE_FILENAME;
+  const filename = options.filename ?? envFilename ?? DEFAULT_FILENAME;
   if (filename !== ":memory:") {
     ensureDirectory(filename);
   }

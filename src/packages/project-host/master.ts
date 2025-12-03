@@ -14,6 +14,7 @@ interface HostRegistration {
   region?: string;
   public_url?: string;
   internal_url?: string;
+  ssh_server?: string;
   status?: string;
   version?: string;
   capacity?: any;
@@ -53,6 +54,10 @@ export async function startMasterRegistration({
     process.env.PROJECT_HOST_PUBLIC_URL ?? `http://${host}:${port}`;
   const internal_url =
     process.env.PROJECT_HOST_INTERNAL_URL ?? `http://${host}:${port}`;
+  const ssh_server =
+    process.env.PROJECT_HOST_SSH_SERVER ??
+    process.env.COCALC_SSH_SERVER ??
+    `${host}:${2222}`;
   const status = "active";
 
   logger.info("registering with master", { masterAddress, id, public_url });
@@ -75,6 +80,7 @@ export async function startMasterRegistration({
     region,
     public_url,
     internal_url,
+    ssh_server,
     status,
     metadata: { runnerId },
   };
