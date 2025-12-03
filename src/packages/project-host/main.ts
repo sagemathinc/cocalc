@@ -27,6 +27,8 @@ import {
 } from "./sqlite/projects";
 import { initSqlite } from "./sqlite/init";
 import { init as initChangefeeds } from "@cocalc/lite/hub/changefeeds";
+import { init as initHubApi } from "@cocalc/lite/hub/api";
+import { wireProjectsApi } from "./hub/projects";
 
 const logger = getLogger("project-host:main");
 
@@ -80,6 +82,7 @@ export async function main(
   // Local sqlite + changefeeds for UI data
   initSqlite();
   initChangefeeds({ client: conatClient });
+  await initHubApi({ client: conatClient });
 
   // HTTP static + customize + API wiring
   await initHttp({ app, conatClient });
@@ -97,6 +100,7 @@ export async function main(
     subject: `project-runner.${runnerId}`,
     waitForInterest: false,
   });
+  wireProjectsApi(runnerApi);
 
   // 4) Minimal HTTP API
   app.get("/healthz", (_req, res) => res.json({ ok: true }));

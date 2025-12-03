@@ -107,6 +107,8 @@ async function getNames(account_ids: string[]) {
   return { ...names, ...x };
 }
 
+// NOTE: Consumers (e.g., project-host) may extend this object in-place to add
+// host-specific implementations of hub APIs. Keep the defaults minimal here.
 export const hubApi: HubApi = {
   system: { getNames },
   projects: {},

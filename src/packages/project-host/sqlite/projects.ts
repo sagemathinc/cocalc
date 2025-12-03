@@ -14,6 +14,7 @@ export interface ProjectRow {
   scratch?: number;
   last_seen?: number;
   updated_at?: number;
+  users?: Record<string, any>;
 }
 
 function ensureProjectsTable() {
@@ -39,6 +40,17 @@ export function upsertProject(row: ProjectRow) {
   ensureProjectsTable();
   const db = getDatabase();
   const now = Date.now();
+  const pk = JSON.stringify({ project_id: row.project_id });
+  const existing = getRow("projects", pk) || {};
+
+  const name = row.name ?? existing.title ?? null;
+  const state = row.state ?? existing.state?.state ?? null;
+  const image = row.image ?? (existing as any).image ?? null;
+  const disk = row.disk ?? existing.disk_quota ?? null;
+  const scratch = row.scratch ?? existing.scratch ?? null;
+  const last_seen = row.last_seen ?? (existing as any).last_seen ?? now;
+  const updated_at = row.updated_at ?? now;
+
   const stmt = db.prepare(`
     INSERT INTO projects(project_id, name, state, image, disk, scratch, last_seen, updated_at)
     VALUES(?, ?, ?, ?, ?, ?, ?, ?)
@@ -53,26 +65,25 @@ export function upsertProject(row: ProjectRow) {
   `);
   stmt.run(
     row.project_id,
-    row.name ?? null,
-    row.state ?? null,
-    row.image ?? null,
-    row.disk ?? null,
-    row.scratch ?? null,
-    row.last_seen ?? now,
-    row.updated_at ?? now,
+    name,
+    state,
+    image,
+    disk,
+    scratch,
+    last_seen,
+    updated_at,
   );
 
   // Also mirror into the generic data table for changefeeds/UI.
-  const pk = JSON.stringify({ project_id: row.project_id });
-  const existing = getRow("projects", pk) || {};
   upsertRow("projects", pk, {
     ...existing,
     project_id: row.project_id,
-    title: row.name ?? existing.title ?? row.project_id,
-    state: row.state ? { state: row.state } : existing.state,
-    disk_quota: row.disk ?? existing.disk_quota,
-    scratch: row.scratch ?? existing.scratch,
-    last_edited: row.updated_at ?? now,
+    title: name ?? row.project_id,
+    state: state ? { state } : existing.state,
+    disk_quota: disk ?? existing.disk_quota,
+    scratch: scratch ?? existing.scratch,
+    last_edited: updated_at,
+    users: row.users ?? existing.users,
   });
 }
 

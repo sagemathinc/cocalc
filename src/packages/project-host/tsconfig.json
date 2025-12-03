@@ -21,7 +21,7 @@
       "@cocalc/lite/*": ["../lite/*"]
     }
   },
-  "exclude": ["dist", "node_modules", "bin"],
+  "exclude": ["dist", "build", "node_modules", "bin"],
   "references": [
     { "path": "../backend" },
     { "path": "../conat" },
