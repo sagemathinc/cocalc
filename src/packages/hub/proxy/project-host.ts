@@ -43,17 +43,18 @@ export async function createProjectHostProxyHandlers() {
     if (!base) {
       throw Error(`no host recorded for project ${project_id}`);
     }
-    return `${base}${req.url}`;
+    // Let http-proxy append the incoming path; only provide the base.
+    return base.replace(/\/+$/, "");
   }
 
   const handleRequest = async (req, res) => {
     const target = await targetFor(req);
-    proxy.web(req, res, { target });
+    proxy.web(req, res, { target, prependPath: false });
   };
 
   const handleUpgrade = async (req, socket, head) => {
     const target = await targetFor(req);
-    proxy.ws(req, socket, head, { target });
+    proxy.ws(req, socket, head, { target, prependPath: false });
   };
 
   return { handleRequest, handleUpgrade };
