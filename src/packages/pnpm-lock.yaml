@@ -196,9 +196,6 @@ importers:
       '@cocalc/conat':
         specifier: workspace:*
         version: link:../conat
-      '@cocalc/sync':
-        specifier: workspace:*
-        version: link:../sync
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -380,9 +377,6 @@ importers:
       express:
         specifier: ^4.21.2
         version: 4.21.2
-      http-proxy-3:
-        specifier: ^1.22.0
-        version: 1.22.0
       micro-key-producer:
         specifier: ^0.8.2
         version: 0.8.2
@@ -853,8 +847,8 @@ importers:
         specifier: ^3.5.4
         version: 3.5.4
       http-proxy-3:
-        specifier: ^1.22.0
-        version: 1.22.0
+        specifier: ^1.23.2
+        version: 1.23.2
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -1026,8 +1020,8 @@ importers:
         specifier: ^3.5.4
         version: 3.5.4
       http-proxy-3:
-        specifier: ^1.22.0
-        version: 1.22.0
+        specifier: ^1.23.2
+        version: 1.23.2
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -1260,8 +1254,8 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1
       http-proxy-3:
-        specifier: ^1.22.0
-        version: 1.22.0
+        specifier: ^1.23.2
+        version: 1.23.2
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -1327,14 +1321,11 @@ importers:
         specifier: workspace:*
         version: link:../util
       compression:
-        specifier: ^1.7.4
+        specifier: ^1.8.1
         version: 1.8.1
       express:
         specifier: ^4.21.2
         version: 4.21.2
-      http-proxy-3:
-        specifier: ^1.23.2
-        version: 1.23.2
     devDependencies:
       '@types/express':
         specifier: ^4.17.23
@@ -1367,8 +1358,8 @@ importers:
         specifier: ^4.21.2
         version: 4.21.2
       http-proxy-3:
-        specifier: ^1.22.0
-        version: 1.22.0
+        specifier: ^1.23.2
+        version: 1.23.2
       micro-key-producer:
         specifier: ^0.8.2
         version: 0.8.2
@@ -1891,9 +1882,6 @@ importers:
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
-      lru-cache:
-        specifier: ^7.18.3
-        version: 7.18.3
       patchflow:
         specifier: ^0.4.0
         version: 0.4.0
@@ -5643,8 +5631,8 @@ packages:
     resolution: {integrity: sha512-ir1UPr3dkwexU7FdV8qBBbNDRUhMmIekYMFZfi+C/sLNnRESKPl23nB9b2pltqfOQNnGzsDdId90AEtG5tCx4A==}
     engines: {node: '>=6.0.0'}
 
-  baseline-browser-mapping@2.8.29:
-    resolution: {integrity: sha512-sXdt2elaVnhpDNRDz+1BDx1JQoJRuNk7oVlAlbGiFkLikHCAQiccexF/9e91zVi6RCgqspl04aP+6Cnl9zRLrA==}
+  baseline-browser-mapping@2.9.0:
+    resolution: {integrity: sha512-Mh++g+2LPfzZToywfE1BUzvZbfOY52Nil0rn9H1CPC5DJ7fX+Vir7nToBeoiSbB1zTNeGYbELEvJESujgGrzXw==}
     hasBin: true
 
   basic-auth@2.0.1:
@@ -5734,8 +5722,8 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  browserslist@4.28.0:
-    resolution: {integrity: sha512-tbydkR/CxfMwelN0vwdP/pLkDwyAASZ+VfWm4EOwlB6SWhx1sYnWLqo8N5j0rAzPfzfRaxt0mM/4wPU/Su84RQ==}
+  browserslist@4.28.1:
+    resolution: {integrity: sha512-ZC5Bd0LgJXgwGqUknZY/vkUQ04r8NXnJZ3yYi4vDmSiZmC/pdSN0NbNRPxZpbtO4uAfDUAFffO8IZoM3Gj8IkA==}
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
 
@@ -5827,8 +5815,8 @@ packages:
   caniuse-lite@1.0.30001753:
     resolution: {integrity: sha512-Bj5H35MD/ebaOV4iDLqPEtiliTN29qkGtEHCwawWn4cYm+bPJM2NsaP30vtZcnERClMzp52J4+aw2UNbK4o+zw==}
 
-  caniuse-lite@1.0.30001756:
-    resolution: {integrity: sha512-4HnCNKbMLkLdhJz3TToeVWHSnfJvPaq6vu/eRP0Ahub/07n484XHhBF5AJoSGHdVrS8tKFauUQz8Bp9P7LVx7A==}
+  caniuse-lite@1.0.30001759:
+    resolution: {integrity: sha512-Pzfx9fOKoKvevQf8oCXoyNRQ5QyxJj+3O0Rqx2V5oxT61KGx8+n6hV/IUyJeifUci2clnmmKVpvtiqRzgiWjSw==}
 
   canvas-fit@1.5.0:
     resolution: {integrity: sha512-onIcjRpz69/Hx5bB5HGbYKUF2uC6QT6Gp+pfpGm3A7mPfcluSLV5v4Zu+oflDUwLdUw0rLIBhUbi0v8hM4FJQQ==}
@@ -6890,8 +6878,8 @@ packages:
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
-  electron-to-chromium@1.5.256:
-    resolution: {integrity: sha512-uqYq1IQhpXXLX+HgiXdyOZml7spy4xfy42yPxcCCRjswp0fYM2X+JwCON07lqnpLEGVCj739B7Yr+FngmHBMEQ==}
+  electron-to-chromium@1.5.264:
+    resolution: {integrity: sha512-1tEf0nLgltC3iy9wtlYDlQDc5Rg9lEKVjEmIHJ21rI9OcqkvD45K1oyNIRA4rR1z3LgJ7KeGzEBojVcV6m4qjA==}
 
   electron@37.8.0:
     resolution: {integrity: sha512-R7fCCfp/foGvJjxReBpb01Fk0bEKAvUdbwXK4c2c2ttuHpPEV/k65GRkz5yYYVhE8EGIa/j5uh0uToOpsocsZw==}
@@ -7913,10 +7901,6 @@ packages:
 
   http-parser-js@0.5.10:
     resolution: {integrity: sha512-Pysuw9XpUq5dVc/2SMHpuTY01RFl8fttgcyunjL7eEMhGM3cI4eOmiCycJDVCo/7O7ClfQD3SaI6ftDzqOXYMA==}
-
-  http-proxy-3@1.22.0:
-    resolution: {integrity: sha512-qyYYKjmPW7kDiRBGzydmD5f5ckuniL9fY45EWP05YVDoR/02JjrVMGqdrO5O+OURU7imhF3WyiKwp++4A3KEbw==}
-    engines: {node: '>=18'}
 
   http-proxy-3@1.23.2:
     resolution: {integrity: sha512-vZks1dLliM0w7aQDT9eFYLO8PUuQ9Cm67y7kn+kgkLtvKP0HZ6Thb3+MCGFFNCnKMCkLXY6rvIH1d7jQITryxA==}
@@ -11922,8 +11906,8 @@ packages:
     resolution: {integrity: sha512-N0XH6lqDtFH84JxptQoZYmloF4nzrQqqrAymNj+/gW60AO2AZgOcf4O/nUXJcYfyQkqvMo9lSupBZmmgvuVXlw==}
     engines: {node: '>=4'}
 
-  update-browserslist-db@1.1.4:
-    resolution: {integrity: sha512-q0SPT4xyU84saUX+tomz1WLkxUbuaJnR1xWt17M7fJtEJigJeWUNGUqrauFXsHnqev9y9JTRGwk13tFBuKby4A==}
+  update-browserslist-db@1.2.1:
+    resolution: {integrity: sha512-R9NcHbbZ45RoWfTdhn1J9SS7zxNvlddv4YRrHTUaFdtjbmfncfedB45EC9IaqJQ97iAR1GZgOfyRQO+ExIF6EQ==}
     hasBin: true
     peerDependencies:
       browserslist: '>= 4.21.0'
@@ -13000,7 +12984,7 @@ snapshots:
     dependencies:
       '@babel/compat-data': 7.28.5
       '@babel/helper-validator-option': 7.27.1
-      browserslist: 4.28.0
+      browserslist: 4.28.1
       lru-cache: 5.1.1
       semver: 6.3.1
 
@@ -16956,7 +16940,7 @@ snapshots:
 
   base64url@3.0.1: {}
 
-  baseline-browser-mapping@2.8.29: {}
+  baseline-browser-mapping@2.9.0: {}
 
   basic-auth@2.0.1:
     dependencies:
@@ -17047,13 +17031,13 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  browserslist@4.28.0:
+  browserslist@4.28.1:
     dependencies:
-      baseline-browser-mapping: 2.8.29
-      caniuse-lite: 1.0.30001756
-      electron-to-chromium: 1.5.256
+      baseline-browser-mapping: 2.9.0
+      caniuse-lite: 1.0.30001759
+      electron-to-chromium: 1.5.264
       node-releases: 2.0.27
-      update-browserslist-db: 1.1.4(browserslist@4.28.0)
+      update-browserslist-db: 1.2.1(browserslist@4.28.1)
 
   bs-logger@0.2.6:
     dependencies:
@@ -17165,7 +17149,7 @@ snapshots:
 
   caniuse-lite@1.0.30001753: {}
 
-  caniuse-lite@1.0.30001756: {}
+  caniuse-lite@1.0.30001759: {}
 
   canvas-fit@1.5.0:
     dependencies:
@@ -18330,7 +18314,7 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  electron-to-chromium@1.5.256: {}
+  electron-to-chromium@1.5.264: {}
 
   electron@37.8.0:
     dependencies:
@@ -19764,13 +19748,6 @@ snapshots:
       toidentifier: 1.0.1
 
   http-parser-js@0.5.10: {}
-
-  http-proxy-3@1.22.0:
-    dependencies:
-      debug: 4.4.3
-      follow-redirects: 1.15.11(debug@4.4.3)
-    transitivePeerDependencies:
-      - supports-color
 
   http-proxy-3@1.23.2:
     dependencies:
@@ -24581,9 +24558,9 @@ snapshots:
 
   unzip-response@2.0.1: {}
 
-  update-browserslist-db@1.1.4(browserslist@4.28.0):
+  update-browserslist-db@1.2.1(browserslist@4.28.1):
     dependencies:
-      browserslist: 4.28.0
+      browserslist: 4.28.1
       escalade: 3.2.0
       picocolors: 1.1.1
 
@@ -24911,7 +24888,7 @@ snapshots:
       '@webassemblyjs/wasm-parser': 1.14.1
       acorn: 8.15.0
       acorn-import-phases: 1.0.4(acorn@8.15.0)
-      browserslist: 4.28.0
+      browserslist: 4.28.1
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.18.3
       es-module-lexer: 1.7.0
@@ -24943,7 +24920,7 @@ snapshots:
       '@webassemblyjs/wasm-parser': 1.14.1
       acorn: 8.15.0
       acorn-import-phases: 1.0.4(acorn@8.15.0)
-      browserslist: 4.28.0
+      browserslist: 4.28.1
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.18.3
       es-module-lexer: 1.7.0

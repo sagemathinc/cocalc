@@ -21,7 +21,8 @@ import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run"
 import { initFileServer, initFsServer } from "./file-server";
 import { initHttp, addCatchAll } from "./web";
 import { initSqlite } from "./sqlite/init";
-import { attachProjectProxy } from "./proxy";
+import { getProjectPorts } from "./sqlite/projects";
+import { attachProjectProxy } from "@cocalc/project-proxy/proxy";
 import { init as initChangefeeds } from "@cocalc/lite/hub/changefeeds";
 import { init as initHubApi } from "@cocalc/lite/hub/api";
 import { wireProjectsApi } from "./hub/projects";
@@ -88,7 +89,24 @@ export async function main(
   await initFileServer({ client: conatClient });
 
   // Proxy HTTP/WS traffic to running project containers.
-  attachProjectProxy({ httpServer, app });
+  attachProjectProxy({
+    httpServer,
+    app,
+    resolveTarget: (req) => {
+      const url = req.url ?? "";
+      const parts = url.split("/");
+      const project_id = parts[1];
+      const type = parts[2];
+      if (!project_id || !type) {
+        return { handled: false };
+      }
+      const { http_port } = getProjectPorts(project_id);
+      if (!http_port) {
+        throw new Error(`no http_port recorded for project ${project_id}`);
+      }
+      return { handled: true, target: { host: "127.0.0.1", port: http_port } };
+    },
+  });
 
   // Serve per-project files via the fs.* conat service, mounting from the local file-server.
   const fsServer = await initFsServer({ client: conatClient });

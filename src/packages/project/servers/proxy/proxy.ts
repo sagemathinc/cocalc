@@ -113,7 +113,7 @@ export async function startProxyServer({
   const proxyServer = http.createServer((req, res) => {
     try {
       const target = getTarget(req);
-      proxy.web(req, res, { target });
+      proxy.web(req, res, { target, prependPath: false });
     } catch {
       // Not matched — 404 so it's obvious when a wrong base is used.
       res.writeHead(404, { "Content-Type": "text/plain" });

@@ -1,27 +1,13 @@
-/*
-This starts a very lightweight http server listening on the requested port,
-which proxies all http traffic to project containers as follows:
-
-  /{project_id}/{rest} --> localhost:{port}/{project_id}/{rest}
-
-where port is what is published as PORTS.proxy from
-packages/conat/project/runner/constants.ts.
-
-This uses the http-proxy-3 library, which is a modern supported version
-of the old http-proxy nodejs npm library, with the same API.
-
-- We set xfwd headers and support WebSockets.
-*/
-
 import * as http from "node:http";
 import httpProxy from "http-proxy-3";
+import type express from "express";
 import { getLogger } from "@cocalc/backend/logger";
 import { isValidUUID } from "@cocalc/util/misc";
 import { getPorts } from "./container";
 import TTLCache from "@isaacs/ttlcache";
 import listen from "@cocalc/backend/misc/async-server-listen";
 
-const logger = getLogger("file-server:http-proxy");
+const logger = getLogger("project-proxy:http");
 
 const CACHE_TTL = 1000;
 const cache = new TTLCache<string, { proxy?: number; err? }>({
@@ -30,18 +16,54 @@ const cache = new TTLCache<string, { proxy?: number; err? }>({
   updateAgeOnGet: true,
 });
 
+type Target = { host: string; port: number };
+
+type ResolveResult = { target?: Target; handled: boolean };
+
+type ResolveFn = (req: http.IncomingMessage) => Promise<ResolveResult> | ResolveResult;
+
 interface StartOptions {
   port?: number; // default 8080
   host?: string; // default 127.0.0.1
+  resolveTarget?: ResolveFn;
+}
+
+function parseProjectId(url: string | undefined): string | null {
+  if (!url || !url.startsWith("/")) return null;
+  const first = url.split("/")[1];
+  if (!first || !isValidUUID(first)) return null;
+  return first;
+}
+
+async function defaultResolveTarget(req: http.IncomingMessage): Promise<ResolveResult> {
+  const project_id = parseProjectId(req.url);
+  if (!project_id) {
+    return { handled: false };
+  }
+  if (cache.has(project_id)) {
+    const { proxy, err } = cache.get(project_id)!;
+    if (err) throw err;
+    return { target: { host: "localhost", port: proxy! }, handled: true };
+  }
+  let proxy: number;
+  try {
+    ({ proxy } = await getPorts({ volume: `project-${project_id}` }));
+  } catch (err) {
+    cache.set(project_id, { err });
+    throw err;
+  }
+  cache.set(project_id, { proxy });
+  return { target: { host: "localhost", port: proxy }, handled: true };
 }
 
 export async function startProxyServer({
   port = 8080,
   host = "127.0.0.1",
+  resolveTarget = defaultResolveTarget,
 }: StartOptions = {}) {
   logger.debug("startProxyServer", { port, host });
 
-  const { handleRequest, handleUpgrade } = createProxyHandlers();
+  const { handleRequest, handleUpgrade } = createProxyHandlers({ resolveTarget });
 
   const proxyServer = http.createServer(handleRequest);
   proxyServer.on("upgrade", handleUpgrade);
@@ -50,57 +72,61 @@ export async function startProxyServer({
     server: proxyServer,
     port,
     host,
-    desc: "file-server's HTTP proxy server",
+    desc: "project HTTP proxy server",
   });
 
   return proxyServer;
 }
 
-export function createProxyHandlers() {
+export function createProxyHandlers({
+  resolveTarget = defaultResolveTarget,
+}: { resolveTarget?: ResolveFn } = {}) {
   const proxy = httpProxy.createProxyServer({
     xfwd: true,
     ws: true,
-    // We set target per-request.
   });
 
-  proxy.on("error", (err, req, res) => {
+  proxy.on("error", (err, req) => {
     const url = (req as http.IncomingMessage).url;
-    logger.warn("proxy error", { err, url });
-    // Best-effort error response (HTTP only):
-    if (!res || (res as http.ServerResponse).headersSent) return;
-    try {
-      (res as http.ServerResponse).writeHead(502, {
-        "Content-Type": "text/plain",
-      });
-      (res as http.ServerResponse).end("Bad Gateway\n");
-    } catch {
-      /* ignore */
-    }
+    logger.warn("proxy error", { err: `${err}`, url });
   });
 
   proxy.on("proxyReq", (proxyReq) => {
     proxyReq.setHeader("X-Proxy-By", "cocalc-proxy");
   });
 
-  const handleRequest = async (req, res) => {
+  proxy.on("proxyReqWs", (_proxyReq, req) => {
+    logger.debug("forwarding-ws", {
+      url: req.url,
+      host: req.headers?.host,
+      origin: req.headers?.origin,
+    });
+  });
+
+  const handleRequest = async (req: http.IncomingMessage, res: http.ServerResponse) => {
     try {
-      const target = await getTarget(req);
-      proxy.web(req, res, { target });
+      const { target, handled } = await resolveTarget(req);
+      if (!handled || !target) throw new Error("not matched");
+      proxy.web(req, res, { target, prependPath: false });
     } catch {
-      // Not matched — 404 so it's obvious when a wrong base is used.
       res.writeHead(404, { "Content-Type": "text/plain" });
       res.end("Not found\n");
     }
   };
 
-  const handleUpgrade = async (req, socket, head) => {
+  const handleUpgrade = async (
+    req: http.IncomingMessage,
+    socket: http.Socket,
+    head: Buffer,
+  ) => {
     try {
-      const target = await getTarget(req);
-      proxy.ws(req, socket, head, {
-        target,
-      });
+      const { target, handled } = await resolveTarget(req);
+      if (!handled || !target) {
+        throw new Error("not matched");
+      }
+      logger.debug("upgrade", { url: req.url, target });
+      proxy.ws(req, socket, head, { target, prependPath: false });
     } catch {
-      // Not matched — close gracefully.
       socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
       socket.destroy();
       return;
@@ -110,34 +136,58 @@ export function createProxyHandlers() {
   return { handleRequest, handleUpgrade };
 }
 
-async function getProxyPort(project_id: string) {
-  if (!isValidUUID(project_id)) {
-    throw Error("invalid url");
-  }
-  if (cache.has(project_id)) {
-    const { proxy, err } = cache.get(project_id)!;
-    if (err) {
-      throw err;
-    } else {
-      return proxy;
-    }
-  }
-  let proxy;
-  try {
-    ({ proxy } = await getPorts({ volume: `project-${project_id}` }));
-  } catch (err) {
-    cache.set(project_id, { err });
-    throw err;
-  }
-  cache.set(project_id, { proxy });
-  return proxy;
-}
+// Express-friendly wrapper used by project-host.
+export function attachProjectProxy({
+  httpServer,
+  app,
+  resolveTarget = defaultResolveTarget,
+}: {
+  httpServer: http.Server;
+  app: express.Application;
+  resolveTarget?: ResolveFn;
+}) {
+  const proxy = httpProxy.createProxyServer({
+    xfwd: true,
+    ws: true,
+  });
 
-async function getTarget(req) {
-  const url = req.url ?? "";
-  logger.debug("request", { url });
-  // TODO: enforce a known base path and validate length before slicing to avoid
-  // accepting arbitrary/short paths.
-  const project_id = url.slice(1, 37);
-  return { port: await getProxyPort(project_id), host: "localhost" };
+  proxy.on("error", (err, req) => {
+    logger.debug("proxy error", { err: `${err}`, url: req?.url });
+  });
+
+  proxy.on("proxyReqWs", (_proxyReq, req) => {
+    logger.debug("forwarding-ws", {
+      url: req.url,
+      host: req.headers?.host,
+      origin: req.headers?.origin,
+    });
+  });
+
+  app.use(async (req, res, next) => {
+    try {
+      const { target, handled } = await resolveTarget(req);
+      logger.debug("resolveTarget", { url: req.url, handled, target });
+      if (!handled || !target) return next();
+      proxy.web(req, res, { target, prependPath: false });
+    } catch (err) {
+      logger.debug("proxy request failed", { err: `${err}`, url: req.url });
+      if (!res.headersSent) {
+        res.writeHead(502, { "Content-Type": "text/plain" });
+      }
+      res.end("Bad Gateway\n");
+    }
+  });
+
+  httpServer.prependListener("upgrade", async (req, socket, head) => {
+    try {
+      const { target, handled } = await resolveTarget(req);
+      if (!handled || !target) {
+        return;
+      }
+      proxy.ws(req, socket, head, { target, prependPath: false });
+    } catch {
+      socket.write("HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\n\r\n");
+      socket.destroy();
+    }
+  });
 }
