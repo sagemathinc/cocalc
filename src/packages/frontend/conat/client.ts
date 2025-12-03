@@ -72,7 +72,6 @@ export class ConatClient extends EventEmitter {
   private automaticallyReconnect;
   public address: string;
   private remote: boolean;
-
   constructor(
     client: WebappClient,
     { address, remote }: { address?: string; remote?: boolean } = {},
@@ -105,6 +104,17 @@ export class ConatClient extends EventEmitter {
       this._conatClient = connectToConat({
         address: this.address,
         inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
+        routeSubject: (subject: string) => {
+          const project_id = this.extractProjectIdFromSubject(subject);
+          if (!project_id) {
+            return;
+          }
+          const address = this.getProjectHostAddress(project_id);
+          if (!address || address === this.address) {
+            return;
+          }
+          return { address };
+        },
         // it is necessary to manually managed reconnects due to a bugs
         // in socketio that has stumped their devs
         //   -- https://github.com/socketio/socket.io/issues/5197
@@ -139,6 +149,48 @@ export class ConatClient extends EventEmitter {
     }
     return this._conatClient!;
   };
+
+  // Match project subjects in the same way the server auth does:
+  //   - "project.<uuid>.<...>"
+  //   - "*.project-<uuid>.<...>"
+  // See src/packages/server/conat/socketio/auth.ts
+  private extractProjectIdFromSubject(subject: string): string | undefined {
+    if (subject.startsWith("project.")) {
+      const project_id = subject.split(".")[1];
+      if (isValidUUID(project_id)) {
+        return project_id;
+      }
+    } else {
+      const parts = subject.split(".");
+      const maybe = parts[1];
+      if (maybe?.startsWith("project-")) {
+        const project_id = maybe.slice("project-".length);
+        if (isValidUUID(project_id)) {
+          return project_id;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  private getProjectHostAddress(project_id: string): string {
+    // [ ] TODO: need a ttl cache, since otherwise this gets called
+    // on literally every packet sent to the project!
+    const project_map = redux.getStore("projects")?.get("project_map");
+    const project = project_map?.get(project_id);
+    const host =
+      (project?.get ? project.get("host") : (project as any)?.host) ??
+      undefined;
+    if (!host) {
+      // Fallback: no host yet, so stay on the default connection.
+      return "";
+    }
+    const public_url = host.get ? host.get("public_url") : host.public_url;
+    const internal_url = host.get
+      ? host.get("internal_url")
+      : host.internal_url;
+    return public_url || internal_url || "";
+  }
 
   private permanentlyDisconnected = false;
   permanentlyDisconnect = () => {
