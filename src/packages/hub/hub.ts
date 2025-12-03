@@ -52,6 +52,8 @@ import initHttpRedirect from "./servers/http-redirect";
 import { addErrorListeners } from "@cocalc/server/metrics/error-listener";
 import * as MetricsRecorder from "@cocalc/server/metrics/metrics-recorder";
 import { migrateBookmarksToConat } from "./migrate-bookmarks";
+import { setConatClient } from "@cocalc/conat/client";
+import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
 
 // Logger tagged with 'hub' for this file.
 const logger = getLogger("hub");
@@ -70,6 +72,9 @@ async function reset_password(email_address: string): Promise<void> {
     logger.info(`Error resetting password -- ${err}`);
   }
 }
+
+// Ensure the global conat client routes project traffic to the correct host.
+setConatClient({ conat: conatWithProjectRouting, getLogger });
 
 // This calculates and updates the statistics for the /stats endpoint.
 // It's important that we call this periodically, because otherwise the /stats data is outdated.

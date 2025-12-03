@@ -140,6 +140,8 @@ flowchart LR
 - Right now project-hosts allow users to directly create projects on them, which should not be allowed.  Even worse, user can specify the project_id, which is a major security issues.  See src/packages/project-host/hub/projects.ts
 - When setting a project we always add the default cocalc-lite account so we can keep things working: "      // [ ] TODO -- for now we always included the default user; this is obviously temporary"
 - Any backend/api stuff has to be updated to use the same conat routing functionality... or maybe we just use a proxy.
+- #security: src/packages/server/conat/route-client.ts currently gives away the master hosts secret auth to any project-host, which of course isn't good.
+- eliminate this: src/packages/conat/project/runner/load-balancer.ts
 
 ## Completed
 

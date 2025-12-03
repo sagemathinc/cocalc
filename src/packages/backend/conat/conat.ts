@@ -12,6 +12,7 @@ export function conat(options?: ClientOptions): Client {
     extraHeaders: {
       Cookie: `${HUB_PASSWORD_COOKIE_NAME}=${conatPassword}`,
     },
+    routeSubject: options?.routeSubject,
     ...options,
   });
 }

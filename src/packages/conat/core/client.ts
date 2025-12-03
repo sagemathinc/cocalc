@@ -390,7 +390,9 @@ const cache = refCacheSync<ClientOptions, Client>({
   name: "conat-client",
   createKey: (opts) => {
     const { routeSubject, ...rest } = opts as any;
-    return jsonStableStringify(rest) ?? "";
+    // routeSubject changes routing behavior, so it must participate in the cache key
+    const key = jsonStableStringify(rest) ?? "";
+    return routeSubject ? `route:${key}` : key;
   },
   createObject: (opts: ClientOptions) => {
     return new Client(opts);
@@ -398,13 +400,6 @@ const cache = refCacheSync<ClientOptions, Client>({
 });
 
 export function connect(opts: ClientOptions = {}) {
-  //console.trace("connect", opts);
-  if (!opts.address) {
-    const x = cache.one();
-    if (x != null) {
-      return x;
-    }
-  }
   return cache(opts);
 }
 
@@ -535,6 +530,14 @@ export class Client extends EventEmitter {
     });
     this.conn.io.connect();
     this.statsLoop();
+  }
+
+  // Allow late binding of a routing function so callers can retrofit routing onto
+  // an already-created client (useful when an early connection was made before
+  // routing was configured).
+  public setRouteSubject(routeSubject?: (subject: string) => { address?: string; client?: Client } | undefined) {
+    this.routeSubjectFn = routeSubject;
+    return this;
   }
 
   private resolveClient = (subject: string): Client => {
