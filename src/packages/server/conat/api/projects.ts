@@ -1,5 +1,6 @@
 import createProject from "@cocalc/server/projects/create";
 export { createProject };
+import getLogger from "@cocalc/backend/logger";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import { getProject } from "@cocalc/server/projects/control";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
@@ -9,6 +10,10 @@ import { client as filesystemClient } from "@cocalc/conat/files/file-server";
 export * from "@cocalc/server/conat/api/project-snapshots";
 export * from "@cocalc/server/conat/api/project-backups";
 import getPool from "@cocalc/database/pool";
+import {
+  startProjectOnHost,
+  stopProjectOnHost,
+} from "@cocalc/server/project-host/control";
 
 export async function copyPathBetweenProjects({
   src,
@@ -40,6 +45,8 @@ export async function copyPathBetweenProjects({
 
 import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
+
+const log = getLogger("server:conat:api:projects");
 
 export async function setQuotas(opts: {
   account_id: string;
@@ -97,6 +104,15 @@ export async function start({
   if (!(await isCollaborator({ account_id, project_id }))) {
     throw Error("must be collaborator on project to start it");
   }
+  try {
+    await startProjectOnHost(project_id);
+    return;
+  } catch (err) {
+    log.debug("host-based start failed, falling back to legacy", {
+      project_id,
+      err,
+    });
+  }
   const project = await getProject(project_id);
   await project.start();
 }
@@ -110,6 +126,15 @@ export async function stop({
 }): Promise<void> {
   if (!(await isCollaborator({ account_id, project_id }))) {
     throw Error("must be collaborator on project to stop it");
+  }
+  try {
+    await stopProjectOnHost(project_id);
+    return;
+  } catch (err) {
+    log.debug("host-based stop failed, falling back to legacy", {
+      project_id,
+      err,
+    });
   }
   const project = await getProject(project_id);
   await project.stop();

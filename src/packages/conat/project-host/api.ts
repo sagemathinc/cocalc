@@ -12,6 +12,7 @@ import type {
 export interface HostCreateProjectRequest extends CreateProjectOptions {
   project_id?: string;
   start?: boolean;
+  users?: any;
 }
 
 export interface HostCreateProjectResponse {

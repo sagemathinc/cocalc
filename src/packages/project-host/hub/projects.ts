@@ -41,6 +41,10 @@ function ensureProjectRow({
   const now = Date.now();
   const title = opts?.title?.trim() || project_id;
   const image = normalizeImage(opts?.image);
+  const users =
+    (opts as any)?.users && Object.keys((opts as any).users).length
+      ? (opts as any).users
+      : { [account_id]: { group: "owner" } };
   upsertProject({
     project_id,
     name: title,
@@ -48,9 +52,7 @@ function ensureProjectRow({
     state,
     updated_at: now,
     last_seen: now,
-    users: {
-      [account_id]: { group: "owner" },
-    },
+    users,
   });
 }
 

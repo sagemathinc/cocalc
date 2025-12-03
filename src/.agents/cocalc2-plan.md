@@ -116,6 +116,15 @@ flowchart LR
   MAPI -->|Placement/assign| BRunner
 ```
 
+## Details to not forget
+
+- need to rewrite everything in the frontend involving the project runner directly; in particular, see src/packages/frontend/projects/actions.ts
+  - cloning projects
+  - moving projects
+- need to ensure any backend code that uses projects no longer users runners \(e.g., supporting api\)
+- There are api calls/functions for things like "execute code on project" \-\- these will need to send a message to the relevant project\-host and back.
+- Project activity \-\- when project is being used, etc. \-\- needs to get updated regularly from the project host to master.
+
 ## Completed
 
 - [x] Built project-proxy service and moved SSH/HTTP forwarding out of file-server.
@@ -123,3 +132,4 @@ flowchart LR
 - [x] Removed sidecar/reflect-sync path; runner now directly launches single podman container with Btrfs mounts.
 - [x] Vendored file-server bootstrap into project-host with Btrfs/rustic/quotas; added fs.* conat service and SSH proxy integration.
 - [x] Moved SEA/bundle logic from lite to plus and from runner to project-host; excluded build output from tsc; removed old REST `/projects` endpoints and added catch-all redirect.
+

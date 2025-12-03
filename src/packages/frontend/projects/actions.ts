@@ -992,11 +992,11 @@ export class ProjectsActions extends Actions<ProjectsState> {
       this.project_log(project_id, {
         event: "project_start_requested",
       });
-      const runner = webapp_client.conat_client.projectRunner(project_id);
+
       webapp_client.project_client.touch_project(project_id);
       const actions = redux.getProjectActions(project_id);
       try {
-        await runner.start({ project_id });
+        await webapp_client.conat_client.hub.projects.start({ project_id });
       } catch (err) {
         actions.setState({ control_error: `Error starting project -- ${err}` });
         throw err;
@@ -1064,20 +1064,16 @@ export class ProjectsActions extends Actions<ProjectsState> {
 
   // returns true, if it actually stopped the project
   stop_project = reuseInFlight(
-    async (project_id: string, force?: boolean): Promise<boolean> => {
+    async (project_id: string, _force?: boolean): Promise<boolean> => {
       const t0 = webapp_client.server_time().getTime();
       this.project_log(project_id, {
         event: "project_stop_requested",
       });
-      const runner = webapp_client.conat_client.projectRunner(project_id);
       const actions = redux.getProjectActions(project_id);
       try {
-        await runner.stop({ project_id, force });
+        await webapp_client.conat_client.hub.projects.stop({ project_id });
       } catch (err) {
         actions.setState({ control_error: `Error stopping project -- ${err}` });
-        // it might still have stopped or failed to stop due to already
-        // being stopped
-        await runner.status({ project_id });
         throw err;
       }
       actions.setState({ control_error: "" });
