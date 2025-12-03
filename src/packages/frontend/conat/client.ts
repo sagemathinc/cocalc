@@ -99,13 +99,7 @@ export class ConatClient extends EventEmitter {
     actions.setState({ conat: { ...cur, ...status } } as any);
   };
 
-  private remoteConats: Record<string, ReturnType<typeof connectToConat>> = {};
-
-  conat = (opts?: { address?: string }) => {
-    const target = opts?.address;
-    if (target && target !== this.address) {
-      return this.getRemoteConat(target);
-    }
+  conat = () => {
     if (this._conatClient == null) {
       this.startStatsReporter();
       this._conatClient = connectToConat({
@@ -145,22 +139,6 @@ export class ConatClient extends EventEmitter {
     }
     return this._conatClient!;
   };
-
-  private getRemoteConat(address: string) {
-    if (!this.remoteConats[address]) {
-      this.remoteConats[address] = connectToConat({
-        address,
-        inboxPrefix: inboxPrefix({ account_id: this.client.account_id }),
-        // [ ] TODO: in the " conat = (opts?: { address?: string }) => {"
-        // method we set this to false, then manually manage
-        // reconnects, which hooks connection status into
-        // the UI, among other things.  We will need to do
-        // that here too.
-        reconnection: true,
-      });
-    }
-    return this.remoteConats[address];
-  }
 
   private permanentlyDisconnected = false;
   permanentlyDisconnect = () => {

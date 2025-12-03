@@ -2345,20 +2345,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // note: there is no need to explicitly close or await what is returned by
   // fs(...) since it's just a lightweight wrapper object to format appropriate RPC calls.
-  private _filesystem: { [key: string]: FilesystemClient } = {};
+  private _filesystem: { [compute_server_id: number]: FilesystemClient } = {};
   fs = (compute_server_id?: number): FilesystemClient => {
     compute_server_id ??= this.get_store()?.get("compute_server_id") ?? 0;
-
-    const address = getProjectHostAddress(this.project_id);
-    if (!address) {
-      throw Error("project host is missing a public or internal url");
-    }
-
-    const key = `${compute_server_id}:${address}`;
-    this._filesystem[key] ??= webapp_client.conat_client
-      .conat({ address })
+    this._filesystem[compute_server_id] ??= webapp_client.conat_client
+      .conat()
       .fs({ project_id: this.project_id, compute_server_id });
-    return this._filesystem[key];
+    return this._filesystem[compute_server_id];
   };
 
   dust = async (path: string, compute_server_id?: number) => {
@@ -3542,20 +3535,4 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       { min: 60 * 1000 * 60, max: 60 * 1000 * 60 },
     );
   });
-}
-
-export function getProjectHost(
-  project_id: string,
-): undefined | { public_url?: string; internal_url?: string } {
-  const project_map = redux.getStore("projects")?.get("project_map");
-  const project = project_map?.get(project_id);
-  return project?.get("host")?.toJS();
-}
-
-export function getProjectHostAddress(project_id: string): string | undefined {
-  const host = getProjectHost(project_id);
-  if (!host) {
-    return;
-  }
-  return host.public_url || host.internal_url;
 }
