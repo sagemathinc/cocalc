@@ -18,7 +18,7 @@ import { setConatClient } from "@cocalc/conat/client";
 import { server as createPersistServer } from "@cocalc/backend/conat/persist";
 import { init as initRunner } from "@cocalc/project-runner/run";
 import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
-import { initFileServer } from "./file-server";
+import { initFileServer, initFsServer } from "./file-server";
 import { initHttp, addCatchAll } from "./web";
 import { initSqlite } from "./sqlite/init";
 import { init as initChangefeeds } from "@cocalc/lite/hub/changefeeds";
@@ -79,14 +79,17 @@ export async function main(
   initChangefeeds({ client: conatClient });
   await initHubApi({ client: conatClient });
 
-  // HTTP static + customize + API wiring
-  await initHttp({ app, conatClient });
-
   // Minimal local persistence so DKV/state works (no external hub needed).
   const persistServer = createPersistServer({ client: conatClient });
 
   // 2) File-server (local btrfs + optional ssh proxy if enabled)
   await initFileServer({ client: conatClient });
+
+  // Serve per-project files via the fs.* conat service, mounting from the local file-server.
+  const fsServer = await initFsServer({ client: conatClient });
+
+  // HTTP static + customize + API wiring
+  await initHttp({ app, conatClient });
 
   // 3) Project-runner bound to the same conat + file-server
   await initRunner({ id: runnerId, client: conatClient });
@@ -106,6 +109,7 @@ export async function main(
 
   const close = () => {
     persistServer?.close?.();
+    fsServer?.close?.();
   };
   process.once("exit", close);
   ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => process.once(sig, close));

@@ -1,5 +1,7 @@
 /*
 
+TODO: this is no longer needed and will be removed. See project-host/file-server.ts instead.
+
 
 DEVELOPMENT:
 

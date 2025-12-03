@@ -120,7 +120,7 @@ function mentionableUsers({
     .getStore("projects")
     .getIn(["project_map", project_id, "last_active"]);
 
-  const my_account_id = redux.getStore("account").get("account_id");
+  const my_account_id = redux.getStore("account")?.get("account_id");
 
   function getProjectUsers() {
     const project_users: {
@@ -130,7 +130,7 @@ function mentionableUsers({
     for (const [account_id] of users ?? []) {
       project_users.push({
         account_id,
-        last_active: last_active.get(account_id),
+        last_active: last_active?.get(account_id),
       });
     }
     project_users.sort((a, b) => {

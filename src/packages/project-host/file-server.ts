@@ -1,9 +1,9 @@
-// Minimal file-server bootstrap vendored for project-host.
-// This intentionally does NOT depend on @cocalc/server/hub/database.
+// Minimal file-server for project-host.
+// This allows users to browse and generally use the filesystem of any project,
+// without having to run that project.
 
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
-
 import {
   server as createFileServer,
   client as createFileClient,
@@ -21,6 +21,9 @@ import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
 import { init as initSshServer } from "@cocalc/project-proxy/ssh-server";
 import { type MutagenSyncSession } from "@cocalc/conat/project/mutagen/types";
+import { fsServer, DEFAULT_FILE_SERVICE } from "@cocalc/conat/files/fs";
+import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
+import { isValidUUID } from "@cocalc/util/misc";
 
 const logger = getLogger("project-host:file-server");
 
@@ -29,6 +32,22 @@ function volName(project_id: string) {
 }
 
 let fs: Filesystem | null = null;
+
+function projectIdFromSubject(subject: string): string {
+  const parts = subject.split(".");
+  if (parts.length !== 2) {
+    throw Error("subject must have 2 segments");
+  }
+  const raw = parts[1];
+  if (!raw.startsWith("project-")) {
+    throw Error("second segment must start with 'project-'");
+  }
+  const project_id = raw.slice("project-".length);
+  if (!isValidUUID(project_id)) {
+    throw Error("not a valid project id");
+  }
+  return project_id;
+}
 
 export async function getVolume(project_id: string) {
   if (fs == null) {
@@ -284,6 +303,27 @@ async function getSync(
   return await getFileSync().get(sync);
 }
 
+export async function initFsServer({
+  client,
+  service = DEFAULT_FILE_SERVICE,
+}: {
+  client: ConatClient;
+  service?: string;
+}) {
+  return await fsServer({
+    service,
+    client,
+    fs: async (subject?: string) => {
+      if (!subject) {
+        throw Error("fsServer requires subject");
+      }
+      const project_id = projectIdFromSubject(subject);
+      const { path } = await getVolume(project_id);
+      return new SandboxedFilesystem(path, { host: project_id });
+    },
+  });
+}
+
 let servers: null | { ssh: any; file: any } = null;
 
 export async function initFileServer({
@@ -350,7 +390,7 @@ export async function initFileServer({
 
   let ssh: any = { close: () => {}, projectProxyHandlers: [] };
   if (enableSsh) {
-    const { path: scratch } = await getVolume("mutagen-scratch");
+    const { path: scratch } = await getVolume("ssh-server");
     ssh = await initSshServer({ client, scratch, proxyHandlers: true });
   }
 
