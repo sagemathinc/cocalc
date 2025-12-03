@@ -22,6 +22,9 @@ import { delay } from "awaiting";
 import { FileSync } from "./sync";
 import bees from "./bees";
 import { type ChildProcess } from "node:child_process";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("file-server:btrfs:filesystem");
 
 export interface Options {
   // mount = root mountpoint of the btrfs filesystem. If you specify the image
@@ -64,16 +67,39 @@ export class Filesystem {
     await this.initDevice();
     await this.mountFilesystem();
     await this.sync();
-    await this.fileSync.init();
+    try {
+      await this.fileSync.init();
+    } catch (err) {
+      // [ ] TODO: expected right now if mutagen not installed.
+      // We will rewrite this to use reflect-sync, integrated with cocalc.
+      logger.debug(
+        "Error starting file sync service -- sync not available",
+        err,
+      );
+    }
     // 'quota enable --simple' has a lot of subtle issues, and maybe isn't for us.
     // It also resets to zero when you disable then enable, and there is no efficient
     // way to get the numbers.
     await btrfs({
       args: ["quota", "enable", this.opts.mount],
     });
-    await this.initRustic();
+    try {
+      await this.initRustic();
+    } catch (err) {
+      logger.debug(
+        "Error starting rustic backup service -- backup not available",
+        err,
+      );
+    }
     await this.sync();
-    this.bees = await bees(this.opts.mount);
+    try {
+      this.bees = await bees(this.opts.mount);
+    } catch (err) {
+      logger.debug(
+        "Error starting bees dedup service -- offline dedup not available",
+        err,
+      );
+    }
   };
 
   sync = async () => {

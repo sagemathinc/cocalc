@@ -135,6 +135,7 @@ flowchart LR
 - Project activity \-\- when project is being used, etc. \-\- needs to get updated regularly from the project host to master.
 - Right now project-hosts allow users to directly create projects on them, which should not be allowed.  Even worse, user can specify the project_id, which is a major security issues.  See src/packages/project-host/hub/projects.ts
 - When setting a project we always add the default cocalc-lite account so we can keep things working: "      // [ ] TODO -- for now we always included the default user; this is obviously temporary"
+- Any backend/api stuff has to be updated to use the same conat routing functionality... or maybe we just use a proxy.
 
 ## Completed
 

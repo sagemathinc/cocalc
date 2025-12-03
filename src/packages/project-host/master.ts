@@ -41,6 +41,7 @@ export async function startMasterRegistration({
     logger.debug("no master conat server configured; skipping registration");
     return;
   }
+  logger.debug("startMasterRegistration", { masterAddress });
 
   const stored = getRow("project-host", "host-id")?.hostId as
     | string

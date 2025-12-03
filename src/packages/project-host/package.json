@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/project-host",
-  "version": "0.0.1",
+  "version": "0.1.3",
   "description": "Multi-project host built on CoCalc Lite with embedded runner/file-server/proxy",
   "exports": {
     ".": "./dist/index.js",
@@ -17,8 +17,7 @@
     "app": "pnpm run build && node dist/main.js",
     "daemon:start": "node scripts/daemon-start.js",
     "daemon:stop": "node scripts/daemon-stop.js",
-    "build:static": "cd ../static && pnpm clean && pnpm install && pnpm build",
-    "build:bundle": "pnpm build:static && cd sea && ./build-bundle.sh",
+    "build:bundle": "cd sea && ./build-bundle.sh",
     "build:tarball": "pnpm run build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
     "run:bundle": "node ./build/bundle/bundle/index.js",
     "sea": "pnpm run build:tarball && cd sea && ./build-sea.sh",
@@ -35,11 +34,9 @@
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "@cocalc/assets": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/file-server": "workspace:*",
-    "@cocalc/static": "workspace:*",
     "@cocalc/lite": "workspace:*",
     "@cocalc/project-proxy": "workspace:*",
     "@cocalc/project-runner": "workspace:*",

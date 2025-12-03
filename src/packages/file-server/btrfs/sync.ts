@@ -10,6 +10,12 @@ flexible), and doesn't involve any cross filesystem mount issues.
 Basically, for security it's better.  Also, it smoothly supports
 scaling to multiple file servers.
 
+**
+We will rewrite this to use reflect-sync, integrated with cocalc,
+and to work between multiple project hosts.
+**
+
+
 */
 
 import getLogger from "@cocalc/backend/logger";
