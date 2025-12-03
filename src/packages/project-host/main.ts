@@ -20,11 +20,6 @@ import { init as initRunner } from "@cocalc/project-runner/run";
 import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
 import { initFileServer } from "./file-server";
 import { initHttp, addCatchAll } from "./web";
-import {
-  upsertProject,
-  listProjects,
-  touchProject,
-} from "./sqlite/projects";
 import { initSqlite } from "./sqlite/init";
 import { init as initChangefeeds } from "@cocalc/lite/hub/changefeeds";
 import { init as initHubApi } from "@cocalc/lite/hub/api";
@@ -105,49 +100,6 @@ export async function main(
   // 4) Minimal HTTP API
   app.get("/healthz", (_req, res) => res.json({ ok: true }));
 
-  app.get("/projects", (_req, res) => {
-    res.json({ projects: listProjects() });
-  });
-
-  app.get("/projects/:id/status", async (req, res) => {
-    const project_id = req.params.id;
-    try {
-      const status = await runnerApi.status({ project_id });
-      touchProject(project_id, status.state);
-      res.json(status);
-    } catch (err: any) {
-      res.status(500).json({ error: err?.message ?? String(err) });
-    }
-  });
-
-  app.post("/projects/:id/start", async (req, res) => {
-    const project_id = req.params.id;
-    try {
-      const status = await runnerApi.start({
-        project_id,
-        config: req.body?.config,
-      });
-      upsertProject({ project_id, state: status.state });
-      res.json(status);
-    } catch (err: any) {
-      res.status(500).json({ error: err?.message ?? String(err) });
-    }
-  });
-
-  app.post("/projects/:id/stop", async (req, res) => {
-    const project_id = req.params.id;
-    try {
-      const status = await runnerApi.stop({
-        project_id,
-        force: req.body?.force,
-      });
-      upsertProject({ project_id, state: status.state });
-      res.json(status);
-    } catch (err: any) {
-      res.status(500).json({ error: err?.message ?? String(err) });
-    }
-  });
-
   addCatchAll(app);
 
   logger.info("project-host ready");
@@ -156,9 +108,7 @@ export async function main(
     persistServer?.close?.();
   };
   process.once("exit", close);
-  ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) =>
-    process.once(sig, close),
-  );
+  ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => process.once(sig, close));
 
   return { port, host };
 }

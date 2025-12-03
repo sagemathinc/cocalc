@@ -61,6 +61,7 @@ export function addCatchAll(app: express.Application) {
   app.get("*", (req, res) => {
     if (req.url.endsWith("__webpack_hmr")) return;
     logger.debug("redirecting", req.url);
-    res.redirect("/static/app.html");
+    const target = encodeURIComponent(req.originalUrl || req.url);
+    res.redirect(`/static/app.html?target=${target}`);
   });
 }
