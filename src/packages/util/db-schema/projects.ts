@@ -46,6 +46,7 @@ Table({
       "((run_quota ->> 'always_running'))", // same reason as above
       "deleted", // in various queries we quickly fiter deleted projects
       "site_license", // for queries across projects related to site_license#>>{license_id}
+      "host_id", // project-host placement lookup
     ],
 
     crm_indexes: ["last_edited"],
@@ -70,6 +71,7 @@ Table({
           invite: null, // who has been invited to this project via email
           invite_requests: null, // who has requested to be invited
           deleted: null,
+          host_id: null,
           host: null,
           settings: DEFAULT_QUOTAS,
           run_quota: null,
@@ -211,6 +213,10 @@ Table({
       type: "boolean",
       desc: "Whether or not this project is deleted.",
       render: { type: "boolean", editable: true },
+    },
+    host_id: {
+      type: "uuid",
+      desc: "Id of the project-host currently assigned to run this project.",
     },
     host: {
       type: "map",

@@ -10,11 +10,10 @@ import {
   projectRunnerCount,
   conatChangefeedServerCount,
 } from "@cocalc/backend/data";
-import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { init as initProjectRunner } from "./project/run";
 import { init as initProjectRunnerLoadBalancer } from "./project/load-balancer";
-import { init as initFileserver } from "@cocalc/server/conat/file-server";
 import { conat } from "@cocalc/backend/conat";
+import { initHostRegistryService } from "./host-registry";
 
 export { loadConatConfiguration };
 
@@ -50,10 +49,9 @@ export async function initConatApi() {
   createTimeService();
 }
 
-// returns proxyHandlers
-export async function initConatFileserver() {
+export async function initConatHostRegistry() {
+  logger.debug("initHostRegistryService");
   await loadConatConfiguration();
-  logger.debug("initFileserver");
-  localPathFileserver();
-  return await initFileserver();
+  await initHostRegistryService();
 }
+

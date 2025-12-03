@@ -54,6 +54,11 @@ function start() {
 
   const env = {
     ...process.env,
+    MASTER_CONAT_SERVER: "http://localhost:9001",
+    PROJECT_HOST_NAME: "host-0",
+    PROJECT_HOST_REGION: "west",
+    PROJECT_HOST_PUBLIC_URL: "http://localhost:9002",
+    PROJECT_HOST_INTERNAL_URL: "http://localhost:9002",
     COCALC_FILE_SERVER_MOUNTPOINT:
       process.env.COCALC_FILE_SERVER_MOUNTPOINT ||
       "/home/wstein/scratch/btrfs2/mnt/0",

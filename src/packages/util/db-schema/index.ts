@@ -47,6 +47,7 @@ import "./password-reset";
 import "./pg-system";
 import "./project-invite-tokens";
 import "./project-log";
+import "./project-hosts";
 import "./projects";
 import "./public-path-stars";
 import "./public-paths";

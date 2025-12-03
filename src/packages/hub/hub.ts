@@ -45,11 +45,9 @@ import {
   initConatChangefeedServer,
   initConatApi,
   initConatPersist,
-  initConatFileserver,
+  initConatHostRegistry,
 } from "@cocalc/server/conat";
-import {
-  initConatServer,
-} from "@cocalc/server/conat/socketio";
+import { initConatServer } from "@cocalc/server/conat/socketio";
 import initHttpRedirect from "./servers/http-redirect";
 import { addErrorListeners } from "@cocalc/server/metrics/error-listener";
 import * as MetricsRecorder from "@cocalc/server/metrics/metrics-recorder";
@@ -185,15 +183,8 @@ async function startServer(): Promise<void> {
     await initConatServer({ kucalc: program.mode == "kucalc" });
   }
 
-  let projectProxyHandlersPromise;
-  if (program.conatFileserver || program.conatServer) {
-    // purposely do NOT await here, because initializing this
-    // relies on conat being up and running, which relies on
-    // http server created below!
-    projectProxyHandlersPromise = initConatFileserver();
-  } else {
-    projectProxyHandlersPromise = null;
-  }
+  // for now - we may bring this back for proxying remote project-host's.
+  let projectProxyHandlersPromise = null;
 
   if (program.conatApi || program.conatServer) {
     await initConatApi();
@@ -202,6 +193,10 @@ async function startServer(): Promise<void> {
 
   if (program.conatPersist || program.conatServer) {
     await initConatPersist();
+  }
+
+  if (program.conatServer) {
+    await initConatHostRegistry();
   }
 
   if (program.conatServer) {

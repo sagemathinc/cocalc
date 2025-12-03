@@ -24,6 +24,7 @@ import { initSqlite } from "./sqlite/init";
 import { init as initChangefeeds } from "@cocalc/lite/hub/changefeeds";
 import { init as initHubApi } from "@cocalc/lite/hub/api";
 import { wireProjectsApi } from "./hub/projects";
+import { startMasterRegistration } from "./master";
 
 const logger = getLogger("project-host:main");
 
@@ -105,11 +106,19 @@ export async function main(
 
   addCatchAll(app);
 
+  const stopMasterRegistration = await startMasterRegistration({
+    hostId: _config.hostId ?? process.env.PROJECT_HOST_ID,
+    runnerId,
+    host,
+    port,
+  });
+
   logger.info("project-host ready");
 
   const close = () => {
     persistServer?.close?.();
     fsServer?.close?.();
+    stopMasterRegistration?.();
   };
   process.once("exit", close);
   ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => process.once(sig, close));
