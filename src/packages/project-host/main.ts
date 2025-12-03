@@ -25,6 +25,8 @@ import {
   listProjects,
   touchProject,
 } from "./sqlite/projects";
+import { initSqlite } from "./sqlite/init";
+import { init as initChangefeeds } from "@cocalc/lite/hub/changefeeds";
 
 const logger = getLogger("project-host:main");
 
@@ -74,6 +76,10 @@ export async function main(
     conat: () => conatClient,
     getLogger,
   });
+
+  // Local sqlite + changefeeds for UI data
+  initSqlite();
+  initChangefeeds({ client: conatClient });
 
   // HTTP static + customize + API wiring
   await initHttp({ app, conatClient });

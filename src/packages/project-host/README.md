@@ -36,3 +36,7 @@ This package deliberately **does not depend on @cocalc/server, @cocalc/hub, or @
   - `POST /projects/:id/start` (optional JSON body `{ config: ... }`)
   - `POST /projects/:id/stop` (optional JSON body `{ force: boolean }`)
 - Functionality is intentionally minimal/insecure; podman/btrfs lifecycle, ingress, and master-link wiring will be layered in next.
+
+## Packaging
+
+- Bundling/SEA lives here (moved from `project-runner`): `pnpm --filter @cocalc/project-host build:tarball` to create the bundle, `pnpm --filter @cocalc/project-host sea` for the SEA archive.

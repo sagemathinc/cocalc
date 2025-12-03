@@ -12,12 +12,7 @@
     "tsc": "pnpm exec tsc  --pretty --preserveWatchOutput",
     "depcheck": "pnpx depcheck --ignores @vercel/ncc",
     "clean": "rm -rf node_modules dist build tsconfig.tsbuildinfo",
-    "start": "pnpm exec cocalc-project-runner",
-    "build:bundle": "cd sea && ./build-bundle.sh",
-    "build:tarball": "pnpm run build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
-    "run:bundle": "node ./build/bundle/bundle/index.js",
-    "build:sea": "pnpm build:tarball && cd sea && ./build-sea.sh",
-    "build:all": "pnpm build && pnpm build:tarball && pnpm build:sea"
+    "start": "pnpm exec cocalc-project-runner"
   },
   "bin": {
     "cocalc-project-runner": "./bin/start.js"
@@ -45,8 +40,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "@types/node": "^22.10.10",
-    "@vercel/ncc": "^0.38.4"
+    "@types/node": "^22.10.10"
   },
   "repository": {
     "type": "git",

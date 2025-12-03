@@ -1,4 +1,9 @@
-import { initDatabase, getDatabase } from "@cocalc/lite/hub/sqlite/database";
+import {
+  initDatabase,
+  getDatabase,
+  upsertRow,
+  getRow,
+} from "@cocalc/lite/hub/sqlite/database";
 
 export interface ProjectRow {
   project_id: string;
@@ -56,6 +61,19 @@ export function upsertProject(row: ProjectRow) {
     row.last_seen ?? now,
     row.updated_at ?? now,
   );
+
+  // Also mirror into the generic data table for changefeeds/UI.
+  const pk = JSON.stringify({ project_id: row.project_id });
+  const existing = getRow("projects", pk) || {};
+  upsertRow("projects", pk, {
+    ...existing,
+    project_id: row.project_id,
+    title: row.name ?? existing.title ?? row.project_id,
+    state: row.state ? { state: row.state } : existing.state,
+    disk_quota: row.disk ?? existing.disk_quota,
+    scratch: row.scratch ?? existing.scratch,
+    last_edited: row.updated_at ?? now,
+  });
 }
 
 export function touchProject(project_id: string, state?: string) {

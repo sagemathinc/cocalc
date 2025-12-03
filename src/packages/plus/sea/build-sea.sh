@@ -21,7 +21,7 @@ cp "$NODE_BIN" "$TARGET"
 chmod u+w "$TARGET"   # make sure it's writable even if copied from system paths
 
 cp ../build/bundle.tar.xz cocalc.tar.xz
-envsubst < ../../project-runner/sea/cocalc-template.js  > cocalc.js
+envsubst < ../../project-host/sea/cocalc-template.js  > cocalc.js
 
 # 2) Bundle app into a SEA blob
 #    This writes ./sea-prep.blob using your sea-config.json

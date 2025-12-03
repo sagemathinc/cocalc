@@ -16,9 +16,22 @@
     "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo build",
     "app": "pnpm run build && node dist/main.js",
     "daemon:start": "node scripts/daemon-start.js",
-    "daemon:stop": "node scripts/daemon-stop.js"
+    "daemon:stop": "node scripts/daemon-stop.js",
+    "build:static": "cd ../static && pnpm clean && pnpm install && pnpm build",
+    "build:bundle": "pnpm build:static && cd sea && ./build-bundle.sh",
+    "build:tarball": "pnpm run build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
+    "run:bundle": "node ./build/bundle/bundle/index.js",
+    "sea": "pnpm run build:tarball && cd sea && ./build-sea.sh",
+    "build:all": "pnpm run build && pnpm run build:tarball && pnpm run sea"
   },
-  "files": ["dist/**", "bin/**", "scripts/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "scripts/**",
+    "sea/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
@@ -36,7 +49,8 @@
   },
   "devDependencies": {
     "@types/express": "^4.17.23",
-    "@types/node": "^22.10.10"
+    "@types/node": "^22.10.10",
+    "@vercel/ncc": "^0.38.4"
   },
   "repository": {
     "type": "git",

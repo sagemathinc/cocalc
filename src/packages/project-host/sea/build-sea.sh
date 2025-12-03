@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-export NAME="cocalc-project-runner"
+export NAME="cocalc-project-host"
 export MAIN="bundle/index.js"
 export VERSION="$npm_package_version"
 
@@ -13,7 +13,7 @@ TARGET="./$NAME-$VERSION-$MACHINE-$OS"
 
 NODE_BIN="$(command -v node)"
 
-echo "Building CoCalc Project Runner SEA for $OS"
+echo "Building CoCalc Project Host SEA for $OS"
 
 # 1) Stage the node runtime we’ll inject into
 cp "$NODE_BIN" "$TARGET"
@@ -21,30 +21,23 @@ chmod u+w "$TARGET"
 
 cp ../build/bundle.tar.xz cocalc.tar.xz
 
-# This envsubst replaces ${NAME} and ${VERSION} and ${MAIN} in the template:
+# Replace ${NAME}, ${VERSION}, and ${MAIN} in the template
 envsubst < cocalc-template.js > cocalc.js
 
 # 2) Bundle app into a SEA blob
-#    This writes ./sea-prep.blob using your sea-config.json
 node --experimental-sea-config sea-config.json
 
 # 3) Platform-specific injection and signing
 case "$OS" in
   darwin)
-    # Remove existing signature before mutation (ok if it fails on already-unsigned copy)
     codesign --remove-signature "$TARGET" || true
-
-    # Inject the SEA blob into the Mach-O binary, specifying the segment name for macOS
     npx -y postject "$TARGET" NODE_SEA_BLOB ./sea-prep.blob \
       --sentinel-fuse "$FUSE" \
       --macho-segment-name NODE_SEA
-
-    # Re-sign ad-hoc so macOS will run it
     codesign --force --sign - "$TARGET"
     ;;
 
   linux)
-    # Inject into the ELF binary (no Mach-O segment flag on Linux)
     npx -y postject "$TARGET" NODE_SEA_BLOB ./sea-prep.blob \
       --sentinel-fuse "$FUSE"
     ;;
@@ -56,7 +49,6 @@ case "$OS" in
 esac
 
 rm cocalc.tar.xz sea-prep.blob cocalc.js
-
 
 mv $TARGET $NAME
 mkdir $TARGET

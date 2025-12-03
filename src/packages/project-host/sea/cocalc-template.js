@@ -1,8 +1,7 @@
 /*
 This is run when starting the SEA executable.
-This same template is used both here *AND* for the packages/lite/sea,
-so if you change this you have to do so in a way that is sufficiently
-generic.  That's why name and mainScript are set via a template.
+This template is shared by other bundles; keep it generic and rely on
+envsubst to provide NAME, VERSION, and MAIN.
 */
 
 const path = require("node:path");
@@ -10,8 +9,7 @@ const fs = require("node:fs");
 const repl = require("node:repl");
 const os = require("node:os");
 
-// DO NOT use dollar{} anywhere in this file, because it is processed
-// using envsubst!
+// DO NOT use ${} in this file; envsubst fills NAME/VERSION/MAIN.
 const version = "${VERSION}";
 const name = "${NAME}";
 const mainScript = "${MAIN}";
@@ -31,19 +29,15 @@ function extractAssetsSync() {
   const stamp = path.join(destDir, ".ok");
   if (!fs.existsSync(stamp)) {
     console.log("Unpacking...");
-    // Read the SEA asset into a Buffer
-    const ab = getRawAsset("cocalc.tar.xz"); // ArrayBuffer (no copy)
-    const buf = Buffer.from(new Uint8Array(ab)); // turn into Node Buffer
+    const ab = getRawAsset("cocalc.tar.xz");
+    const buf = Buffer.from(new Uint8Array(ab));
 
     fs.mkdirSync(destDir, { recursive: true });
 
     const child = spawnSync(
       "tar",
       ["-Jxf", "-", "-C", destDir, "--strip-components=1"],
-      {
-        input: buf,
-        stdio: ["pipe", "inherit", "inherit"],
-      },
+      { input: buf, stdio: ["pipe", "inherit", "inherit"] },
     );
 
     if (child.error) {
@@ -64,7 +58,6 @@ function extractAssetsSync() {
 const Module = require("node:module");
 
 if (path.basename(process.argv[1]) == "node") {
-  // Emulate `node` with no script: start a REPL.
   const noUserScript =
     process.argv.length === 2 ||
     (process.argv.length === 3 &&
@@ -77,11 +70,9 @@ if (path.basename(process.argv[1]) == "node") {
       useGlobal: true,
       ignoreUndefined: false,
     });
-    // Persist history like the real CLI
     r.setupHistory(historyFile, (err) => {
       if (err) console.error("REPL history error:", err);
     });
-    // Do NOT call Module.runMain() here.
     return;
   }
 
@@ -91,7 +82,7 @@ if (path.basename(process.argv[1]) == "node") {
   process.exit(0);
 } else {
   const destDir = extractAssetsSync();
-  console.log("CoCalc Project Runner (v" + version + ")");
+  console.log("CoCalc Project Host (v" + version + ")");
 
   const script = path.join(destDir, mainScript);
 
@@ -100,11 +91,9 @@ if (path.basename(process.argv[1]) == "node") {
     process.exit(1);
   }
 
-  // set up argv and cwd as if launched directly
   process.chdir(path.dirname(script));
   process.argv = [process.execPath, script, ...process.argv.slice(2)];
 
-  // make sure PATH (and any other env) includes your extracted tools
   process.env.PATH =
     path.join(destDir, `src/packages/${name}/bin/`) +
     path.delimiter +

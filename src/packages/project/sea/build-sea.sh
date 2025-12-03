@@ -19,7 +19,7 @@ cp "$NODE_BIN" "$TARGET"
 chmod u+w "$TARGET"
 
 cp ../build/bundle.tar.xz cocalc.tar.xz
-envsubst < ../../project-runner/sea/cocalc-template.js > cocalc.js
+envsubst < ../../project-host/sea/cocalc-template.js > cocalc.js
 
 node --experimental-sea-config sea-config.json
 
