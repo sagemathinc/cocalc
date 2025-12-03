@@ -3,6 +3,9 @@ import { createServiceClient } from "@cocalc/conat/service/typed";
 import getLogger from "@cocalc/backend/logger";
 import { randomUUID } from "crypto";
 import { getRow, upsertRow } from "@cocalc/lite/hub/sqlite/database";
+import { createHostControlService } from "@cocalc/conat/project-host/api";
+import { hubApi } from "@cocalc/lite/hub/api";
+import { account_id } from "@cocalc/backend/data";
 
 const logger = getLogger("project-host:master");
 
@@ -74,6 +77,38 @@ export async function startMasterRegistration({
     client,
   });
 
+  // Control plane for this host (master can ask us to create/start/stop projects).
+  const controlService = createHostControlService({
+    host_id: id,
+    client,
+    impl: {
+      async createProject(opts) {
+        if (!hubApi.projects?.createProject) {
+          throw Error("createProject not available");
+        }
+        const project_id = await hubApi.projects.createProject({
+          ...opts,
+          account_id,
+        } as any);
+        return { project_id };
+      },
+      async startProject({ project_id }) {
+        if (!hubApi.projects?.start) {
+          throw Error("start not available");
+        }
+        const status = await hubApi.projects.start({ account_id, project_id });
+        return { project_id, state: (status as any)?.state };
+      },
+      async stopProject({ project_id }) {
+        if (!hubApi.projects?.stop) {
+          throw Error("stop not available");
+        }
+        const status = await hubApi.projects.stop({ account_id, project_id });
+        return { project_id, state: (status as any)?.state };
+      },
+    },
+  });
+
   const payload: HostRegistration = {
     id,
     name,
@@ -99,6 +134,7 @@ export async function startMasterRegistration({
   const stop = () => {
     clearInterval(timer);
     client.close?.();
+    controlService?.close?.();
   };
   ["SIGINT", "SIGTERM", "SIGQUIT", "exit"].forEach((sig) =>
     process.once(sig as any, stop),
