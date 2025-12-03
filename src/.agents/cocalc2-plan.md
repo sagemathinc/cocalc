@@ -1,7 +1,10 @@
 ## Checklist (near term)
 
 - [x] Bind project-host HTTP/conat on 0.0.0.0 (temporary); document firewall expectations. Keep a note to revisit Unix-socket bind + container mount for tighter scope.
-- [ ] (in progress) Master control-plane: host registration/keepalive, project→host map, placement API; surface placement decisions in UI and hub API.
+- [x] Master control-plane: host registration/keepalive, project→host map, placement API; surface placement decisions in UI and hub API.
+- [ ] (in progress) Connect to project via project-host's websocket connection.
+  - Issue short-lived signed tokens (project_id + perms + exp) from master when opening a project; browser uses them to open `wss://<host>/conat` directly. Hosts validate tokens locally.
+  - Add a master proxy fallback (`/project-host/<id>/conat` → upstream) and auto-failover if direct connect fails; reuse a single socket per host and multiplex multiple projects on it.
 - [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project-host hub/conat services.
 - [ ] Runner networking: keep non-host networking but guarantee containers can reach the host conat endpoint; consider explicit hostfwd mode if we ever bind conat to loopback only.
 - [ ] File/quotas/backups UX: default quota + snapshot/backup counts on project create; expose image/pull errors cleanly; add image allowlist (e.g., ubuntu:25.10) and fallback behavior.
@@ -125,6 +128,7 @@ flowchart LR
 - There are api calls/functions for things like "execute code on project" \-\- these will need to send a message to the relevant project\-host and back.
 - Project activity \-\- when project is being used, etc. \-\- needs to get updated regularly from the project host to master.
 - Right now project-hosts allow users to directly create projects on them, which should not be allowed.  Even worse, user can specify the project_id, which is a major security issues.  See src/packages/project-host/hub/projects.ts
+- When setting a project we always add the default cocalc-lite account so we can keep things working: "      // [ ] TODO -- for now we always included the default user; this is obviously temporary"
 
 ## Completed
 
