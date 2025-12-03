@@ -2,7 +2,8 @@
 
 - [x] Bind project-host HTTP/conat on 0.0.0.0 (temporary); document firewall expectations. Keep a note to revisit Unix-socket bind + container mount for tighter scope.
 - [x] Master control-plane: host registration/keepalive, project→host map, placement API; surface placement decisions in UI and hub API.
-- [ ] (in progress) Connect to project via project-host's websocket connection.
+- [ ] (in progress) Connect to projects via per-host websocket (no iframe).
+  - Use separate conat sockets per host in the frontend; master socket remains for hub/db.
   - Issue short-lived signed tokens (project_id + perms + exp) from master when opening a project; browser uses them to open `wss://<host>/conat` directly. Hosts validate tokens locally.
   - Add a master proxy fallback (`/project-host/<id>/conat` → upstream) and auto-failover if direct connect fails; reuse a single socket per host and multiplex multiple projects on it.
 - [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project-host hub/conat services.
@@ -12,7 +13,7 @@
 - [ ] Rustic/GCS backup pipeline with retention tags per project/host; per-host health checks.
 - [ ] Observability: per-host metrics/logs, minimal status page (runner/file-server/conat), project lifecycle spans; alerts for failed moves/backups and low headroom.
 - [ ] Proxy ingress: project-proxy base-path TODO; SSH/HTTP ingress for hidden/on-prem hosts; keep optional but available.
-- [ ] Compute/plus alignment: treat compute servers as project-hosts with reflect-sync subset sharing; API for spinning up temporary hosts.
+- [ ] Compute/plus alignment: treat compute servers as user-scoped project-hosts with reflect-sync subset sharing; API for spinning up temporary hosts; drop project_id column from compute_servers in favor of host auth/ACL.
 
 ## CoCalc New Architecture Plan (federated project-hosts + proxy)
 
@@ -27,9 +28,14 @@
   - Auth cache on host with push/TTL invalidation from master; hosts can serve with cached ACLs for a bounded TTL if master is slow/unreachable.
 
 - **Data-plane routing**  
-  - Preferred: user → project-host directly with a signed token (project, user, expiry, host).  
+  - Preferred: user → project-host directly with a signed token (project, user, expiry, host) over a dedicated conat socket per host (master socket stays separate).  
   - Fallback: user → project-proxy → host using the same token validation.  
   - Routing lookup lives in master; host identity via per-host cert/keys. Keep proxy optional but available for restrictive networks.
+
+- **Compute servers (recast as project-hosts)**  
+  - Compute servers become user-owned project-hosts (powerful VMs, often GPU). No `project_id` column; access controlled by host ACL.  
+  - Users sync/copy data between projects (reflect-sync/btrfs send) instead of remote-mounting a project FS.  
+  - Must support userspace-only deployments (podman) for HPC/on-prem; registration + auth is the same as any host.
 
 - **Service extraction/refactors**  
   - Keep [file-server](./packages/file-server) embedded in project-host; remove “central file-server” assumptions in [packages/server/conat/file-server/index.ts](./packages/server/conat/file-server/index.ts).  
@@ -137,4 +143,3 @@ flowchart LR
 - [x] Removed sidecar/reflect-sync path; runner now directly launches single podman container with Btrfs mounts.
 - [x] Vendored file-server bootstrap into project-host with Btrfs/rustic/quotas; added fs.* conat service and SSH proxy integration.
 - [x] Moved SEA/bundle logic from lite to plus and from runner to project-host; excluded build output from tsc; removed old REST `/projects` endpoints and added catch-all redirect.
-
