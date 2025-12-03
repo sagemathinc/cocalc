@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore replyto collabs noncloud
+
 import type { ConatClient } from "@cocalc/frontend/conat/client";
 import type { AddCollaborator } from "@cocalc/conat/hub/api/projects";
 
@@ -57,10 +59,18 @@ export class ProjectCollaborators {
   public async add_collaborator(
     opts: AddCollaborator,
   ): Promise<{ project_id?: string | string[] }> {
-    // project_id is a single string or possibly an array of project_id's 
+    // project_id is a single string or possibly an array of project_id's
     // in case of a token.
     return await this.conat.hub.projects.addCollaborator({
       opts,
     });
+  }
+
+  public async change_user_type(opts: {
+    project_id: string;
+    target_account_id: string;
+    new_group: "owner" | "collaborator";
+  }): Promise<void> {
+    return await this.conat.hub.projects.changeUserType({ opts });
   }
 }

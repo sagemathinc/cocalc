@@ -544,6 +544,18 @@ export const labels = defineMessages({
     description:
       "Short label of a table, which shows the list of users having access",
   },
+  owner: {
+    id: "labels.owner",
+    defaultMessage: "Owner",
+    description:
+      "Label for a project owner role - a user with full administrative rights",
+  },
+  collaborator: {
+    id: "labels.collaborator",
+    defaultMessage: "Collaborator",
+    description:
+      "Label for a project collaborator role - a user with access to work on the project",
+  },
   project_info_title: {
     id: "labels.project_info_title",
     defaultMessage: "Processes",
@@ -1939,5 +1951,37 @@ export const course = defineMessages({
   restrict_student_projects: {
     id: "course.commands.restrict-student-projects.label",
     defaultMessage: "Restrict Student Projects",
+  },
+});
+
+export const ownershipErrors = defineMessages({
+  LAST_OWNER: {
+    id: "errors.ownership.last_owner",
+    defaultMessage:
+      "Cannot remove owner, because at least one owner is required.",
+  },
+  NOT_OWNER: {
+    id: "errors.ownership.not_owner",
+    defaultMessage: "Only project owners can change user types.",
+  },
+  CANNOT_REMOVE_OWNER: {
+    id: "errors.ownership.cannot_remove_owner",
+    defaultMessage: "Cannot remove an owner. Demote to collaborator first.",
+  },
+  INVALID_TARGET: {
+    id: "errors.ownership.invalid_target",
+    defaultMessage: "Target user is not a member of this project.",
+  },
+  INVALID_USER: {
+    id: "errors.ownership.invalid_user",
+    defaultMessage: "User not found or invalid.",
+  },
+  INVALID_REQUESTING_USER: {
+    id: "errors.ownership.invalid_requesting_user",
+    defaultMessage: "You are not a project member.",
+  },
+  INVALID_PROJECT_STATE: {
+    id: "errors.ownership.invalid_project_state",
+    defaultMessage: "Project data is missing or invalid.",
   },
 });
