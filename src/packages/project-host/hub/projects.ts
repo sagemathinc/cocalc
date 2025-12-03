@@ -9,6 +9,7 @@ import {
   DEFAULT_COMPUTE_IMAGE,
 } from "@cocalc/util/db-schema/defaults";
 import getLogger from "@cocalc/backend/logger";
+import { reportProjectStateToMaster } from "../master-status";
 
 const logger = getLogger("project-host:hub:projects");
 
@@ -65,6 +66,9 @@ function ensureProjectRow({
     }
   }
   upsertProject(row);
+  if (state) {
+    reportProjectStateToMaster(project_id, state);
+  }
 }
 
 export function wireProjectsApi(runnerApi: RunnerApi) {

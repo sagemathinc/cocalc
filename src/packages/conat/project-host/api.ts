@@ -33,6 +33,8 @@ function subjectForHost(host_id: string): string {
   return `project-host.${host_id}.api`;
 }
 
+const STATUS_SUBJECT = "project-hosts.status";
+
 export function createHostControlClient({
   host_id,
   client,
@@ -44,6 +46,49 @@ export function createHostControlClient({
     service: "project-host",
     subject: subjectForHost(host_id),
     client,
+  });
+}
+
+export interface HostProjectStatus {
+  host_id: string;
+  project_id: string;
+  state: ProjectState | string;
+  host?: {
+    public_url?: string;
+    internal_url?: string;
+    ssh_server?: string;
+  };
+}
+
+export interface HostStatusApi {
+  reportProjectState: (opts: HostProjectStatus) => Promise<void>;
+}
+
+export function createHostStatusClient({
+  client,
+}: {
+  client: Client;
+}): HostStatusApi {
+  return createServiceClient<HostStatusApi>({
+    service: "project-host",
+    subject: STATUS_SUBJECT,
+    client,
+  });
+}
+
+export function createHostStatusService({
+  client,
+  impl,
+}: {
+  client: Client;
+  impl: HostStatusApi;
+}): ConatService {
+  return createServiceHandler<HostStatusApi>({
+    service: "project-host",
+    subject: STATUS_SUBJECT,
+    description: "Project-host -> master status updates",
+    client,
+    impl,
   });
 }
 

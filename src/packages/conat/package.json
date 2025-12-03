@@ -21,6 +21,7 @@
     "./project/api": "./dist/project/api/index.js",
     "./project/mutagen": "./dist/project/mutagen/index.js",
     "./project/terminal": "./dist/project/terminal/index.js",
+    "./project-host/api": "./dist/project-host/api.js",
     "./browser-api": "./dist/browser-api/index.js",
     "./*": "./dist/*.js"
   },
@@ -31,17 +32,9 @@
     "test": "pnpm exec jest",
     "depcheck": "pnpx depcheck --ignores events,bufferutil,utf-8-validate"
   },
-  "files": [
-    "dist/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "utilities",
-    "conat",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "conat", "cocalc"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/comm": "workspace:*",

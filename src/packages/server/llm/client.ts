@@ -22,7 +22,7 @@ const log = getLogger("llm:client");
  *
  * ATTN: do not cache the Ollama instance, we don't know if there are side effects
  */
-export async function getOllama(model: string) {
+export async function getOllama(model: string): Promise<Ollama> {
   if (isOllamaLLM(model)) {
     throw new Error(
       `At this point, the model name should be one of Ollama, but it was ${model}`,
@@ -67,7 +67,9 @@ export async function getOllama(model: string) {
   return client;
 }
 
-export async function getCustomOpenAI(model: string) {
+export async function getCustomOpenAI(
+  model: string,
+): Promise<ChatOpenAILC> {
   if (isCustomOpenAI(model)) {
     throw new Error(
       `At this point, the model name should be one of the custom openai models, but it was ${model}`,

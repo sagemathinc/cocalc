@@ -6,6 +6,7 @@ import { getRow, upsertRow } from "@cocalc/lite/hub/sqlite/database";
 import { createHostControlService } from "@cocalc/conat/project-host/api";
 import { hubApi } from "@cocalc/lite/hub/api";
 import { account_id } from "@cocalc/backend/data";
+import { setMasterStatusClient } from "./master-status";
 
 const logger = getLogger("project-host:master");
 
@@ -120,6 +121,16 @@ export async function startMasterRegistration({
     status,
     metadata: { runnerId },
   };
+
+  setMasterStatusClient({
+    client,
+    host_id: id,
+    host: {
+      public_url,
+      internal_url,
+      ssh_server,
+    },
+  });
 
   const send = async (fn: "register" | "heartbeat") => {
     try {

@@ -237,7 +237,7 @@ Table({
     },
     state: {
       type: "map",
-      desc: 'Info about the state of this project of the form  {error: "", state: "running" (etc), time: timestamp, ip?:"ip address where project is"}, where time is when the state was last computed.  See COMPUTE_STATES in the compute-states file for state.state and the ProjectState interface defined below in code.',
+      desc: 'Lightweight state info for the project runner: {state:"running|stopped|starting|stopping|error", time:"ISO timestamp", error?:string, ip?:string, ...}. The JSON is stored in the "state" column as jsonb. The "state" field inside the JSON is the compute state; the "time" field is when this state was recorded. See COMPUTE_STATES and the ProjectState interface below.',
       date: ["time"],
     },
     last_edited: {

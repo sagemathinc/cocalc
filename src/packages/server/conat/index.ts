@@ -14,6 +14,7 @@ import { init as initProjectRunner } from "./project/run";
 import { init as initProjectRunnerLoadBalancer } from "./project/load-balancer";
 import { conat } from "@cocalc/backend/conat";
 import { initHostRegistryService } from "./host-registry";
+import { initHostStatusService } from "./host-status";
 
 export { loadConatConfiguration };
 
@@ -53,5 +54,5 @@ export async function initConatHostRegistry() {
   logger.debug("initHostRegistryService");
   await loadConatConfiguration();
   await initHostRegistryService();
+  await initHostStatusService();
 }
-
