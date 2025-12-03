@@ -61,7 +61,6 @@ import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
 import { delay } from "awaiting";
 import { init as initLite } from "./lite";
-import { init as initProjectHost } from "./project-host";
 
 // update every 2 minutes.
 const UPDATE_INTERVAL = 2 * 60000;
@@ -315,7 +314,6 @@ async function loadCustomizeState() {
     custom_openai = null,
   } = customize;
   processLite(configuration);
-  processProjectHost(configuration);
   process_kucalc(configuration);
   process_software(software, configuration.is_cocalc_com);
   process_customize(configuration); // this sets _is_configured to true
@@ -722,19 +720,4 @@ function processLite(configuration) {
   }
   liteInitialized = true;
   initLite(redux, configuration);
-}
-
-let projectHostInitialized = false;
-function processProjectHost(configuration) {
-  if (!configuration.project_host || projectHostInitialized) {
-    return;
-  }
-  projectHostInitialized = true;
-  initProjectHost();
-  // Hide the global navbar/toolbar similarly to kiosk/project embed mode.
-  try {
-    redux.getActions("page").set_fullscreen("project");
-  } catch (err) {
-    console.warn("failed to set fullscreen project mode for project-host", err);
-  }
 }
