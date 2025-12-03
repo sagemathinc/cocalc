@@ -1,5 +1,6 @@
 import httpProxy from "http-proxy-3";
 import type { Server as HttpServer, IncomingMessage } from "node:http";
+import type express from "express";
 import getLogger from "@cocalc/backend/logger";
 import { getProjectPorts } from "./sqlite/projects";
 import { isValidUUID } from "@cocalc/util/misc";
@@ -18,9 +19,10 @@ function parseProjectPath(
   return { project_id, path: url };
 }
 
-async function resolveTarget(
-  req: IncomingMessage,
-): Promise<{ target?: string; handled: boolean }> {
+function resolveTarget(req: IncomingMessage): {
+  target?: { host: string; port: number };
+  handled: boolean;
+} {
   const parsed = parseProjectPath(req.url ?? "");
   if (!parsed) {
     return { handled: false };
@@ -30,11 +32,18 @@ async function resolveTarget(
   if (!http_port) {
     throw new Error(`no http_port recorded for project ${project_id}`);
   }
-  const target = `http://127.0.0.1:${http_port}${req.url}`;
+  // Let http-proxy append the original req.url; only set host/port here.
+  const target = { host: "127.0.0.1", port: http_port };
   return { target, handled: true };
 }
 
-export function attachProjectProxy(httpServer: HttpServer) {
+export function attachProjectProxy({
+  httpServer,
+  app,
+}: {
+  httpServer: HttpServer;
+  app: express.Application;
+}) {
   const proxy = httpProxy.createProxyServer({
     xfwd: true,
     ws: true,
@@ -44,14 +53,12 @@ export function attachProjectProxy(httpServer: HttpServer) {
     logger.debug("proxy error", { err: `${err}`, url: req?.url });
   });
 
-  // HTTP requests
-  httpServer.prependListener("request", async (req, res) => {
+  // HTTP requests via Express middleware so later handlers (e.g., 404) don't run.
+  app.use((req, res, next) => {
     try {
-      const { target, handled } = await resolveTarget(req);
-      logger.debug("resolveTarget", { url: req.url, handled, target });
-      if (!handled || !target) {
-        return; // let Express/other handlers process it
-      }
+      const { target, handled } = resolveTarget(req);
+      //logger.debug("resolveTarget", { url: req.url, handled, target });
+      if (!handled || !target) return next();
       proxy.web(req, res, { target });
     } catch (err) {
       logger.debug("proxy request failed", { err: `${err}`, url: req.url });
@@ -63,12 +70,13 @@ export function attachProjectProxy(httpServer: HttpServer) {
   });
 
   // WebSocket upgrades
-  httpServer.prependListener("upgrade", async (req, socket, head) => {
+  httpServer.prependListener("upgrade", (req, socket, head) => {
     try {
-      const { target, handled } = await resolveTarget(req);
+      const { target, handled } = resolveTarget(req);
       if (!handled || !target) {
         return; // allow other upgrade handlers to run
       }
+      //logger.debug("upgrade", { url: req.url, target });
       proxy.ws(req, socket, head, { target });
     } catch {
       socket.write("HTTP/1.1 502 Bad Gateway\r\nConnection: close\r\n\r\n");

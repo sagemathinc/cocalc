@@ -88,7 +88,7 @@ export async function main(
   await initFileServer({ client: conatClient });
 
   // Proxy HTTP/WS traffic to running project containers.
-  attachProjectProxy(httpServer);
+  attachProjectProxy({ httpServer, app });
 
   // Serve per-project files via the fs.* conat service, mounting from the local file-server.
   const fsServer = await initFsServer({ client: conatClient });
