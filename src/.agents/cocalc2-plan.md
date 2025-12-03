@@ -1,29 +1,17 @@
-## TODO List
+## Checklist (near term)
 
-- [x] Build project-proxy service: moves SSH/HTTP forwarding out of file-server.
+- [ ] Bind project-host HTTP/conat on 0.0.0.0 (temporary); document firewall expectations. Keep a note to revisit Unix-socket bind + container mount for tighter scope.
+- [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project-host hub/conat services.
+- [ ] Master control-plane: host registration/keepalive, project→host map, placement API; surface placement decisions in UI and hub API.
+- [ ] Runner networking: keep non-host networking but guarantee containers can reach the host conat endpoint; consider explicit hostfwd mode if we ever bind conat to loopback only.
+- [ ] File/quotas/backups UX: default quota + snapshot/backup counts on project create; expose image/pull errors cleanly; add image allowlist (e.g., ubuntu:25.10) and fallback behavior.
+- [ ] Cross-host data motion: copy/move between hosts (rsync + btrfs send/recv), GC source after validation, update project→host map, and surface progress/errors to users.
+- [ ] Rustic/GCS backup pipeline with retention tags per project/host; per-host health checks.
+- [ ] Observability: per-host metrics/logs, minimal status page (runner/file-server/conat), project lifecycle spans; alerts for failed moves/backups and low headroom.
+- [ ] Proxy ingress: project-proxy base-path TODO; SSH/HTTP ingress for hidden/on-prem hosts; keep optional but available.
+- [ ] Compute/plus alignment: treat compute servers as project-hosts with reflect-sync subset sharing; API for spinning up temporary hosts.
 
-- [ ] Create a server similar to src/packages/lite that serves multiple projects and users
-  - uses the file\-server, project\-runner and project-proxy packages
-  - drop reflect\-sync/sidecar/ssh port forwarding/container in packages/file\-server/ssh for local projects; rely on local Btrfs mounts + podman + embedded file\-server
-  - this will have an ssh server and use sshpiperd \(as before\) for user ingress and inter-host rsync
-  - compute servers will also connect to this \(to provide temporary GPU resources\) via direct ssh \(for reflect\-sync/rsync\) and conat websockets \(edit history\)
-  - compute servers are just cocalc\-lite instances \(single project\) pointed at another project with an API key; they sync a subset of files with the project-host
-  - is configured to ALSO connect to a remote master
-  
-- [ ] add project --> host map in master
-
-- [ ] Implement signed connect tokens
-
-- [ ] implement copying files from one project-host to another (when copies aren't local to a single host: get ssh key and address from master, then do rsync).
-
-- [ ] implement moving projects from one project-host to another using btrfs send/recv.
-
-
-- [ ] implement rustic backup to GCS (or a disk)
-
-- [ ] create way of loading a project in master that embeds it in an iframe.
-
-## Cocalc New Architecture Plan \(federated project\-hosts \+ proxy\)
+## CoCalc New Architecture Plan (federated project-hosts + proxy)
 
 - **Roles**  
   - Master: central API/auth/placement; holds project→host map; issues signed connect tokens; optional proxy fallback.  
@@ -41,8 +29,8 @@
   - Routing lookup lives in master; host identity via per-host cert/keys. Keep proxy optional but available for restrictive networks.
 
 - **Service extraction/refactors**  
-  - Keep [file-server](./src/packages/file-server) embedded in project-host; remove “central file-server” assumptions in [src/packages/server/conat/file-server/index.ts](./src/packages/server/conat/file-server/index.ts).  
-  - Extract SSH/HTTP proxy pieces into [src/packages/project-proxy](./src/packages/project-proxy) (move code from [src/packages/file-server/ssh](./src/packages/file-server/ssh) and relevant parts of [src/packages/server/conat/file-server/index.ts](./src/packages/server/conat/file-server/index.ts)).  
+  - Keep [file-server](./packages/file-server) embedded in project-host; remove “central file-server” assumptions in [packages/server/conat/file-server/index.ts](./packages/server/conat/file-server/index.ts).  
+  - Extract SSH/HTTP proxy pieces into [packages/project-proxy](./packages/project-proxy) (move code from [packages/file-server/ssh](./packages/file-server/ssh) and relevant parts of [packages/server/conat/file-server/index.ts](./packages/server/conat/file-server/index.ts)).  
   - Add host-local conat instance per host; master uses conat only for control-plane topics.
 
 - **Project moves and storage**  
@@ -68,12 +56,11 @@
   - Tighten project-proxy HTTP handler to enforce a base path/length before slicing project_id.
 
 - **Rollout steps**  
-  1) Build project-proxy service and move SSH/HTTP forwarding out of file-server.  
-  2) Embed file-server in project-host; add host registration + project→host map in master.  
-  3) Implement signed connect tokens and direct user→host path; keep proxy fallback.  
-  4) Implement project move workflow (btrfs send/recv) and backup tagging.  
-  5) Pilot a small pool in one zone; test offline/TTL behavior, direct vs proxy, moves/backups; add observability.  
-  6) Add reverse-tunnel connector for hidden/on-prem hosts without changing routing core.
+  1) Embed file-server in project-host; add host registration + project→host map in master.  
+  2) Implement signed connect tokens and direct user→host path; keep proxy fallback.  
+  3) Implement project move workflow (btrfs send/recv) and backup tagging.  
+  4) Pilot a small pool in one zone; test offline/TTL behavior, direct vs proxy, moves/backups; add observability.  
+  5) Add reverse-tunnel connector for hidden/on-prem hosts without changing routing core.
 
 ## Diagram
 
@@ -129,4 +116,10 @@ flowchart LR
   MAPI -->|Placement/assign| BRunner
 ```
 
-##
+## Completed
+
+- [x] Built project-proxy service and moved SSH/HTTP forwarding out of file-server.
+- [x] Created project-host: local conat server + persist, embedded file-server, runner, sqlite + changefeeds, frontend (static + customize + redirect), and hub API wiring for project create/start/stop. Terminals and file browsing now work end-to-end.
+- [x] Removed sidecar/reflect-sync path; runner now directly launches single podman container with Btrfs mounts.
+- [x] Vendored file-server bootstrap into project-host with Btrfs/rustic/quotas; added fs.* conat service and SSH proxy integration.
+- [x] Moved SEA/bundle logic from lite to plus and from runner to project-host; excluded build output from tsc; removed old REST `/projects` endpoints and added catch-all redirect.

@@ -58,7 +58,7 @@ function start() {
       process.env.COCALC_FILE_SERVER_MOUNTPOINT ||
       "/home/wstein/scratch/btrfs2/mnt/0",
     PROJECT_RUNNER_NAME: process.env.PROJECT_RUNNER_NAME || "0",
-    HOST: process.env.HOST || "127.0.0.1",
+    HOST: process.env.HOST || "0.0.0.0",
     PORT: process.env.PORT || "9002",
     DEBUG: process.env.DEBUG || "cocalc:*",
     DEBUG_CONSOLE: process.env.DEBUG_CONSOLE || "no",
