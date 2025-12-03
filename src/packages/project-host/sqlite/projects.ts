@@ -4,6 +4,7 @@ import {
   upsertRow,
   getRow,
 } from "@cocalc/lite/hub/sqlite/database";
+import { account_id } from "@cocalc/backend/data";
 
 export interface ProjectRow {
   project_id: string;
@@ -51,6 +52,10 @@ export function upsertProject(row: ProjectRow) {
   const scratch = row.scratch ?? existing.scratch ?? null;
   const last_seen = row.last_seen ?? (existing as any).last_seen ?? now;
   const updated_at = row.updated_at ?? now;
+  const users =
+    row.users ??
+    existing.users ??
+    (account_id ? { [account_id]: { group: "owner" } } : undefined);
 
   const stmt = db.prepare(`
     INSERT INTO projects(project_id, title, state, image, disk, scratch, last_seen, updated_at)
@@ -84,7 +89,7 @@ export function upsertProject(row: ProjectRow) {
     disk_quota: disk ?? existing.disk_quota,
     scratch: scratch ?? existing.scratch,
     last_edited: updated_at,
-    users: row.users ?? existing.users,
+    users,
   });
 }
 

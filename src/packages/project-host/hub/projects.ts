@@ -43,21 +43,28 @@ function ensureProjectRow({
 }) {
   logger.debug("ensureProjectRow", { project_id, opts, state });
   const now = Date.now();
-  const title = opts?.title?.trim() || project_id;
-  const image = normalizeImage(opts?.image);
-  const users =
-    (opts as any)?.users && Object.keys((opts as any).users).length
-      ? (opts as any).users
-      : { [account_id]: { group: "owner" } };
-  upsertProject({
+  const row: any = {
     project_id,
-    title,
-    image,
     state,
     updated_at: now,
     last_seen: now,
-    users,
-  });
+  };
+  if (opts) {
+    const title = opts.title?.trim();
+    if (title) {
+      row.title = title;
+    }
+    if (opts.image !== undefined) {
+      row.image = normalizeImage(opts.image);
+    }
+    if ((opts as any)?.users !== undefined) {
+      row.users = (opts as any).users;
+      // [ ] TODO -- for now we always included the default user;
+      // this is obviously temporary
+      row.users[account_id] = { group: "owner" };
+    }
+  }
+  upsertProject(row);
 }
 
 export function wireProjectsApi(runnerApi: RunnerApi) {
