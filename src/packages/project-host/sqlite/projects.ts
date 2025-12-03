@@ -7,7 +7,7 @@ import {
 
 export interface ProjectRow {
   project_id: string;
-  name?: string;
+  title?: string;
   state?: string;
   image?: string;
   disk?: number;
@@ -22,7 +22,7 @@ function ensureProjectsTable() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS projects (
       project_id TEXT PRIMARY KEY,
-      name TEXT,
+      title TEXT,
       state TEXT,
       image TEXT,
       disk INTEGER,
@@ -43,7 +43,8 @@ export function upsertProject(row: ProjectRow) {
   const pk = JSON.stringify({ project_id: row.project_id });
   const existing = getRow("projects", pk) || {};
 
-  const name = row.name ?? existing.title ?? null;
+  const title =
+    row.title ?? (existing as any).title ?? null;
   const state = row.state ?? existing.state?.state ?? null;
   const image = row.image ?? (existing as any).image ?? null;
   const disk = row.disk ?? existing.disk_quota ?? null;
@@ -52,10 +53,10 @@ export function upsertProject(row: ProjectRow) {
   const updated_at = row.updated_at ?? now;
 
   const stmt = db.prepare(`
-    INSERT INTO projects(project_id, name, state, image, disk, scratch, last_seen, updated_at)
+    INSERT INTO projects(project_id, title, state, image, disk, scratch, last_seen, updated_at)
     VALUES(?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(project_id) DO UPDATE SET
-      name=excluded.name,
+      title=excluded.title,
       state=excluded.state,
       image=excluded.image,
       disk=excluded.disk,
@@ -65,7 +66,7 @@ export function upsertProject(row: ProjectRow) {
   `);
   stmt.run(
     row.project_id,
-    name,
+    title,
     state,
     image,
     disk,
@@ -78,7 +79,7 @@ export function upsertProject(row: ProjectRow) {
   upsertRow("projects", pk, {
     ...existing,
     project_id: row.project_id,
-    title: name ?? row.project_id,
+    title: title ?? row.project_id,
     state: state ? { state } : existing.state,
     disk_quota: disk ?? existing.disk_quota,
     scratch: scratch ?? existing.scratch,
@@ -95,7 +96,7 @@ export function listProjects(): ProjectRow[] {
   ensureProjectsTable();
   const db = getDatabase();
   const stmt = db.prepare(
-    "SELECT project_id, name, state, image, disk, scratch, last_seen, updated_at FROM projects",
+    "SELECT project_id, title, state, image, disk, scratch, last_seen, updated_at FROM projects",
   );
   return stmt.all() as ProjectRow[];
 }

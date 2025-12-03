@@ -8,6 +8,9 @@ import {
   DEFAULT_PROJECT_IMAGE,
   DEFAULT_COMPUTE_IMAGE,
 } from "@cocalc/util/db-schema/defaults";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("project-host:hub:projects");
 
 type RunnerApi = ReturnType<typeof projectRunnerClient>;
 
@@ -38,6 +41,7 @@ function ensureProjectRow({
   opts?: CreateProjectOptions;
   state?: string;
 }) {
+  logger.debug("ensureProjectRow", { project_id, opts, state });
   const now = Date.now();
   const title = opts?.title?.trim() || project_id;
   const image = normalizeImage(opts?.image);
@@ -47,7 +51,7 @@ function ensureProjectRow({
       : { [account_id]: { group: "owner" } };
   upsertProject({
     project_id,
-    name: title,
+    title,
     image,
     state,
     updated_at: now,

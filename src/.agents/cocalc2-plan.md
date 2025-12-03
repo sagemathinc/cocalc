@@ -124,6 +124,7 @@ flowchart LR
 - need to ensure any backend code that uses projects no longer users runners \(e.g., supporting api\)
 - There are api calls/functions for things like "execute code on project" \-\- these will need to send a message to the relevant project\-host and back.
 - Project activity \-\- when project is being used, etc. \-\- needs to get updated regularly from the project host to master.
+- Right now project-hosts allow users to directly create projects on them, which should not be allowed.  Even worse, user can specify the project_id, which is a major security issues.  See src/packages/project-host/hub/projects.ts
 
 ## Completed
 

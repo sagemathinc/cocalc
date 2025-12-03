@@ -2,7 +2,6 @@ import createProject from "@cocalc/server/projects/create";
 export { createProject };
 import getLogger from "@cocalc/backend/logger";
 import isAdmin from "@cocalc/server/accounts/is-admin";
-import { getProject } from "@cocalc/server/projects/control";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 export * from "@cocalc/server/projects/collaborators";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
@@ -104,17 +103,8 @@ export async function start({
   if (!(await isCollaborator({ account_id, project_id }))) {
     throw Error("must be collaborator on project to start it");
   }
-  try {
-    await startProjectOnHost(project_id);
-    return;
-  } catch (err) {
-    log.debug("host-based start failed, falling back to legacy", {
-      project_id,
-      err,
-    });
-  }
-  const project = await getProject(project_id);
-  await project.start();
+  log.debug("start", { project_id });
+  await startProjectOnHost(project_id);
 }
 
 export async function stop({
@@ -127,17 +117,8 @@ export async function stop({
   if (!(await isCollaborator({ account_id, project_id }))) {
     throw Error("must be collaborator on project to stop it");
   }
-  try {
-    await stopProjectOnHost(project_id);
-    return;
-  } catch (err) {
-    log.debug("host-based stop failed, falling back to legacy", {
-      project_id,
-      err,
-    });
-  }
-  const project = await getProject(project_id);
-  await project.stop();
+  log.debug("stop", { project_id });
+  await stopProjectOnHost(project_id);
 }
 
 export async function getSshKeys({

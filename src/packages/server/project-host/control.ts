@@ -17,7 +17,7 @@ type HostPlacement = {
 type ProjectMeta = {
   title?: string;
   users?: any;
-  compute_image?: string;
+  image?: string;
   host_id?: string;
   host?: any;
 };
@@ -26,7 +26,7 @@ const pool = () => getPool();
 
 async function loadProject(project_id: string): Promise<ProjectMeta> {
   const { rows } = await pool().query(
-    "SELECT title, users, compute_image, host_id, host FROM projects WHERE project_id=$1",
+    "SELECT title, users, rootfs_image as image, host_id, host FROM projects WHERE project_id=$1",
     [project_id],
   );
   if (!rows[0]) throw Error(`project ${project_id} not found`);
@@ -87,11 +87,17 @@ async function ensurePlacement(project_id: string): Promise<HostPlacement> {
     client: await conat(),
   });
 
+  log.debug("createProject on remote project host", {
+    project_id,
+    meta,
+    host_id: chosen.id,
+  });
+
   await client.createProject({
     project_id,
     title: meta.title,
     users: meta.users,
-    image: meta.compute_image,
+    image: meta.image,
     start: true,
   });
 
