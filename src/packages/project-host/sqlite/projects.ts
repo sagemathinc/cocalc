@@ -18,6 +18,7 @@ import { account_id } from "@cocalc/backend/data";
 // - last_seen: timestamp (ms) when we last touched the project locally
 // - updated_at: timestamp (ms) of last local change
 // - users: optional map of users/groups for the project
+// - http_port / ssh_port: host-exposed ports for the project container (if running)
 export interface ProjectRow {
   project_id: string;
   title?: string;
@@ -29,6 +30,8 @@ export interface ProjectRow {
   last_seen?: number;
   updated_at?: number;
   users?: Record<string, any>;
+   http_port?: number | null;
+   ssh_port?: number | null;
 }
 
 function ensureProjectsTable() {
@@ -43,7 +46,9 @@ function ensureProjectsTable() {
       disk INTEGER,
       scratch INTEGER,
       last_seen INTEGER,
-      updated_at INTEGER
+      updated_at INTEGER,
+      http_port INTEGER,
+      ssh_port INTEGER
     )
   `);
   // Older tables won't have state_reported; add it if missing.
@@ -52,6 +57,12 @@ function ensureProjectsTable() {
   } catch (err) {
     // ignore - column already exists
   }
+  try {
+    db.exec("ALTER TABLE projects ADD COLUMN http_port INTEGER");
+  } catch {}
+  try {
+    db.exec("ALTER TABLE projects ADD COLUMN ssh_port INTEGER");
+  } catch {}
   db.exec(
     "CREATE INDEX IF NOT EXISTS projects_state_idx ON projects(state, updated_at)",
   );
@@ -83,6 +94,10 @@ export function upsertProject(row: ProjectRow) {
     row.users ??
     existing.users ??
     (account_id ? { [account_id]: { group: "owner" } } : undefined);
+  const http_port =
+    row.http_port ?? (existing as any).http_port ?? existingProjectsRow.http_port ?? null;
+  const ssh_port =
+    row.ssh_port ?? (existing as any).ssh_port ?? existingProjectsRow.ssh_port ?? null;
 
   // Track whether the latest state has been reported to the master.
   // If a state is explicitly provided and differs from the current one,
@@ -104,8 +119,8 @@ export function upsertProject(row: ProjectRow) {
   }
 
   const stmt = db.prepare(`
-    INSERT INTO projects(project_id, title, state, state_reported, image, disk, scratch, last_seen, updated_at)
-    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO projects(project_id, title, state, state_reported, image, disk, scratch, last_seen, updated_at, http_port, ssh_port)
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(project_id) DO UPDATE SET
       title=excluded.title,
       state=excluded.state,
@@ -114,7 +129,9 @@ export function upsertProject(row: ProjectRow) {
       disk=excluded.disk,
       scratch=excluded.scratch,
       last_seen=excluded.last_seen,
-      updated_at=excluded.updated_at
+      updated_at=excluded.updated_at,
+      http_port=excluded.http_port,
+      ssh_port=excluded.ssh_port
   `);
   stmt.run(
     row.project_id,
@@ -126,6 +143,8 @@ export function upsertProject(row: ProjectRow) {
     scratch,
     last_seen,
     updated_at,
+    http_port,
+    ssh_port,
   );
 
   // Also mirror into the generic data table for changefeeds/UI.
@@ -139,6 +158,8 @@ export function upsertProject(row: ProjectRow) {
     last_edited: updated_at,
     users,
     state_reported: state_reported ?? existingProjectsRow.state_reported,
+    http_port,
+    ssh_port,
   });
 }
 
@@ -150,7 +171,7 @@ export function listProjects(): ProjectRow[] {
   ensureProjectsTable();
   const db = getDatabase();
   const stmt = db.prepare(
-    "SELECT project_id, title, state, state_reported, image, disk, scratch, last_seen, updated_at FROM projects",
+    "SELECT project_id, title, state, state_reported, image, disk, scratch, last_seen, updated_at, http_port, ssh_port FROM projects",
   );
   return stmt.all() as ProjectRow[];
 }
@@ -170,4 +191,15 @@ export function markProjectStateReported(project_id: string) {
   db.prepare(
     "UPDATE projects SET state_reported=1 WHERE project_id=?",
   ).run(project_id);
+}
+
+export function getProjectPorts(
+  project_id: string,
+): { http_port?: number | null; ssh_port?: number | null } {
+  ensureProjectsTable();
+  const db = getDatabase();
+  const row = db
+    .prepare("SELECT http_port, ssh_port FROM projects WHERE project_id=?")
+    .get(project_id) as { http_port?: number; ssh_port?: number } | undefined;
+  return row ?? {};
 }

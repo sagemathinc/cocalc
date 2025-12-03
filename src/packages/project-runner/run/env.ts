@@ -97,5 +97,7 @@ export async function getEnvironment({
     COCALC_SECRET_TOKEN: secretTokenPath(HOME),
     BASE_PATH: base_path,
     DEBIAN_FRONTEND: "noninteractive",
+    COCALC_PROXY_HOST: "0.0.0.0",
+    COCALC_PROXY_PORT: "80",
   };
 }

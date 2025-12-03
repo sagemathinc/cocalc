@@ -41,6 +41,7 @@
     "@cocalc/project-proxy": "workspace:*",
     "@cocalc/project-runner": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "http-proxy-3": "^1.23.2",
     "express": "^4.21.2",
     "compression": "^1.7.4"
   },

@@ -23,6 +23,8 @@ export interface ProjectStatus {
   server?: string;
   state: ProjectState;
   publicKey?: string;
+  http_port?: number;
+  ssh_port?: number;
 }
 
 export default async function state({ client }) {

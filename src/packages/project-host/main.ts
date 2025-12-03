@@ -21,6 +21,7 @@ import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run"
 import { initFileServer, initFsServer } from "./file-server";
 import { initHttp, addCatchAll } from "./web";
 import { initSqlite } from "./sqlite/init";
+import { attachProjectProxy } from "./proxy";
 import { init as initChangefeeds } from "@cocalc/lite/hub/changefeeds";
 import { init as initHubApi } from "@cocalc/lite/hub/api";
 import { wireProjectsApi } from "./hub/projects";
@@ -85,6 +86,9 @@ export async function main(
 
   // 2) File-server (local btrfs + optional ssh proxy if enabled)
   await initFileServer({ client: conatClient });
+
+  // Proxy HTTP/WS traffic to running project containers.
+  attachProjectProxy(httpServer);
 
   // Serve per-project files via the fs.* conat service, mounting from the local file-server.
   const fsServer = await initFsServer({ client: conatClient });

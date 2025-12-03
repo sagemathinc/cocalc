@@ -38,6 +38,7 @@ import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
 import { writeStartupScripts } from "./startup-scripts";
 import { podman } from "@cocalc/backend/podman";
+import getPort from "@cocalc/backend/get-port";
 
 const logger = getLogger("project-runner:podman");
 
@@ -221,7 +222,7 @@ export async function start({
   config?: Configuration;
   localPath: LocalPathFunction;
   sshServers?: SshServersFunction;
-}) {
+}): Promise<{ state: ProjectState; ssh_port: number; http_port: number }> {
   if (!isValidUUID(project_id)) {
     throw Error("start: project_id must be valid");
   }
@@ -229,7 +230,7 @@ export async function start({
 
   if (starting.has(project_id) || stopping.has(project_id)) {
     logger.debug("starting/stopping -- already running");
-    return;
+    return { state: "starting", ssh_port: 0, http_port: 0 };
   }
 
   try {
@@ -368,6 +369,13 @@ export async function start({
       progress: 80,
       desc: "configured quotas",
     });
+    const ssh_port = await getPort();
+    let http_port = await getPort();
+    // avoid rare collision with ssh_port
+    if (http_port === ssh_port) {
+      http_port = await getPort();
+    }
+
     const args: string[] = [];
     args.push("run");
     //args.push("--user", "1000:1000");
@@ -377,6 +385,8 @@ export async function start({
     args.push("--rm");
     args.push("--replace");
     args.push("--network=slirp4netns");
+    args.push("-p", `${ssh_port}:22`);
+    args.push("-p", `${http_port}:80`);
 
     const name = projectContainerName(project_id);
     args.push("--name", name);
@@ -431,6 +441,8 @@ export async function start({
       progress: 100,
       desc: "started",
     });
+
+    return { state: "running", ssh_port, http_port };
   } catch (err) {
     bootlog({ project_id, type: "start-project", error: err });
     throw err;

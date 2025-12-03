@@ -131,6 +131,7 @@ flowchart LR
 
 ## Details to not forget
 
+- looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route-project.ts; this MUST get fixed or everything will be broken/flakie at first.  Solution is make some options to conat/core/client be a promise optionally and delay the connection.
 - need to rewrite everything in the frontend involving the project runner directly; in particular, see src/packages/frontend/projects/actions.ts
   - cloning projects
   - moving projects

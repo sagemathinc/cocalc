@@ -54,6 +54,7 @@ import * as MetricsRecorder from "@cocalc/server/metrics/metrics-recorder";
 import { migrateBookmarksToConat } from "./migrate-bookmarks";
 import { setConatClient } from "@cocalc/conat/client";
 import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
+import { createProjectHostProxyHandlers } from "./proxy/project-host";
 
 // Logger tagged with 'hub' for this file.
 const logger = getLogger("hub");
@@ -189,7 +190,7 @@ async function startServer(): Promise<void> {
   }
 
   // for now - we may bring this back for proxying remote project-host's.
-  let projectProxyHandlersPromise = null;
+  let projectProxyHandlersPromise = createProjectHostProxyHandlers();
 
   if (program.conatApi || program.conatServer) {
     await initConatApi();

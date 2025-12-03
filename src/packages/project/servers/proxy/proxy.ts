@@ -40,14 +40,14 @@ const logger = getLogger("project:servers:proxy");
 
 interface StartOptions {
   base_url?: string;
-  port?: number; // default 80 for root, or 8080 for non-root; or whatever process.env.COCALC_PROXY_PORT is set to.
-  host?: string; // default 127.0.0.1
+  port?: number; // default to COCALC_PROXY_PORT or 80 for root, or 8080 for non-root
+  host?: string; // default to COCALC_PROXY_HOST or 127.0.0.1
 }
 
 export async function startProxyServer({
   base_url = getProxyBaseUrl({ project_id, compute_server_id }),
   port,
-  host = "127.0.0.1",
+  host = process.env.COCALC_PROXY_HOST ?? "127.0.0.1",
 }: StartOptions = {}) {
   if (!port) {
     if (process.env.COCALC_PROXY_PORT) {

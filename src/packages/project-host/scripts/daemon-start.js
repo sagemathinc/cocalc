@@ -44,13 +44,8 @@ function writePid(pid) {
   fs.writeFileSync(pidPath, String(pid));
 }
 
-function build() {
-  execSync("pnpm run build", { cwd: root, stdio: "inherit" });
-}
-
 function start() {
   ensureNotAlreadyRunning();
-  build();
 
   // Truncate log for a clean run
   try {

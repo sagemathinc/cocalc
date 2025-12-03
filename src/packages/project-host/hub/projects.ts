@@ -37,10 +37,14 @@ function ensureProjectRow({
   project_id,
   opts,
   state = "stopped",
+  http_port,
+  ssh_port,
 }: {
   project_id: string;
   opts?: CreateProjectOptions;
   state?: string;
+  http_port?: number;
+  ssh_port?: number;
 }) {
   logger.debug("ensureProjectRow", { project_id, opts, state });
   const now = Date.now();
@@ -50,12 +54,18 @@ function ensureProjectRow({
     updated_at: now,
     last_seen: now,
   };
-  if (opts) {
-    const title = opts.title?.trim();
-    if (title) {
-      row.title = title;
-    }
-    if (opts.image !== undefined) {
+  if (http_port !== undefined) {
+    row.http_port = http_port;
+  }
+  if (ssh_port !== undefined) {
+    row.ssh_port = ssh_port;
+  }
+    if (opts) {
+      const title = opts.title?.trim();
+      if (title) {
+        row.title = title;
+      }
+      if (opts.image !== undefined) {
       row.image = normalizeImage(opts.image);
     }
     if ((opts as any)?.users !== undefined) {
@@ -91,7 +101,13 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
         project_id,
         config: { image: normalizeImage(opts.image) },
       });
-      ensureProjectRow({ project_id, opts, state: status?.state ?? "running" });
+      ensureProjectRow({
+        project_id,
+        opts,
+        state: status?.state ?? "running",
+        http_port: (status as any)?.http_port,
+        ssh_port: (status as any)?.ssh_port,
+      });
     }
 
     return project_id;
@@ -106,7 +122,12 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
       project_id,
       config: { image: normalizeImage() },
     });
-    ensureProjectRow({ project_id, state: status?.state ?? "running" });
+    ensureProjectRow({
+      project_id,
+      state: status?.state ?? "running",
+      http_port: (status as any)?.http_port,
+      ssh_port: (status as any)?.ssh_port,
+    });
   };
 
   hubApi.projects.stop = async ({
@@ -117,6 +138,11 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
     force?: boolean;
   }): Promise<void> => {
     const status = await runnerApi.stop({ project_id, force });
-    ensureProjectRow({ project_id, state: status?.state ?? "stopped" });
+    ensureProjectRow({
+      project_id,
+      state: status?.state ?? "stopped",
+      http_port: undefined,
+      ssh_port: undefined,
+    });
   };
 }

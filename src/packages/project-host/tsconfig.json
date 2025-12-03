@@ -3,23 +3,7 @@
   "compilerOptions": {
     "rootDir": "./",
     "outDir": "dist",
-    "baseUrl": ".",
-    "paths": {
-      "@cocalc/backend": ["../backend"],
-      "@cocalc/backend/*": ["../backend/*"],
-      "@cocalc/conat": ["../conat"],
-      "@cocalc/conat/*": ["../conat/*"],
-      "@cocalc/util": ["../util"],
-      "@cocalc/util/*": ["../util/*"],
-      "@cocalc/file-server": ["../file-server"],
-      "@cocalc/file-server/*": ["../file-server/*"],
-      "@cocalc/project-runner": ["../project-runner"],
-      "@cocalc/project-runner/*": ["../project-runner/*"],
-      "@cocalc/project-proxy": ["../project-proxy"],
-      "@cocalc/project-proxy/*": ["../project-proxy/*"],
-      "@cocalc/lite": ["../lite"],
-      "@cocalc/lite/*": ["../lite/*"]
-    }
+    "baseUrl": "."
   },
   "exclude": [
     "dist",

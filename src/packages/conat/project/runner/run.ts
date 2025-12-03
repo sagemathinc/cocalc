@@ -38,7 +38,7 @@ export interface Options {
     config?: Configuration;
     localPath: LocalPathFunction;
     sshServers?: SshServersFunction;
-  }) => Promise<void>;
+  }) => Promise<ProjectStatus>;
 
   // ensure rootfs and/or home are saved successfully to central file server
   save: (opts: {
@@ -139,12 +139,17 @@ export async function server(options: Options) {
     async start(opts: { project_id: string; config?: Configuration }) {
       logger.debug("start", opts.project_id);
       projects.set(opts.project_id, { server: id, state: "starting" } as const);
-      await start({
+      const resp = await start({
         ...opts,
         localPath: options.localPath,
         sshServers: options.sshServers,
       });
-      const s = { server: id, state: "running" } as const;
+      const s = {
+        server: id,
+        state: "running",
+        ssh_port: (resp as any)?.ssh_port,
+        http_port: (resp as any)?.http_port,
+      } as const;
       projects.set(opts.project_id, s);
       return s;
     },
