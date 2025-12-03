@@ -19,6 +19,9 @@ import { FileUsePage } from "@cocalc/frontend/file-use/page";
 import { Connecting } from "@cocalc/frontend/landing-page/connecting";
 import { NotificationPage } from "@cocalc/frontend/notifications";
 import { ProjectPage } from "@cocalc/frontend/project/page/page";
+import { ProjectIframePage } from "@cocalc/frontend/project/page/iframe-page";
+import { lite } from "@cocalc/frontend/lite";
+import { projectHost } from "@cocalc/frontend/project-host";
 import { ProjectsPage } from "@cocalc/frontend/projects/projects-page";
 import { KioskModeBanner } from "./kiosk-mode-banner";
 
@@ -56,7 +59,9 @@ export const ActiveContent: React.FC = React.memo(() => {
   const v: React.JSX.Element[] = [];
   open_projects?.forEach((project_id: string) => {
     const is_active = project_id === active_top_tab;
-    const x = <ProjectPage project_id={project_id} is_active={is_active} />;
+    const PageComponent =
+      lite || projectHost ? ProjectPage : ProjectIframePage;
+    const x = <PageComponent project_id={project_id} is_active={is_active} />;
     let cls = "smc-vfill";
     if (project_id !== active_top_tab) {
       cls += " hide";
@@ -106,7 +111,7 @@ export const ActiveContent: React.FC = React.memo(() => {
   }
 
   // in kiosk mode: if no file is opened show a banner
-  if (fullscreen == "kiosk" && v.length === 0) {
+  if ((fullscreen == "kiosk" || projectHost) && v.length === 0) {
     v.push(<KioskModeBanner key={"kiosk"} />);
   } else {
     switch (active_top_tab) {
