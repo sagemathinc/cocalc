@@ -254,11 +254,7 @@ async function updateBackups({
   await vol.rustic.update(counts, { limit });
 }
 
-async function getBackups({
-  project_id,
-}: {
-  project_id: string;
-}): Promise<
+async function getBackups({ project_id }: { project_id: string }): Promise<
   {
     id: string;
     time: Date;
@@ -390,8 +386,24 @@ export async function initFileServer({
 
   let ssh: any = { close: () => {}, projectProxyHandlers: [] };
   if (enableSsh) {
-    const { path: scratch } = await getVolume("ssh-server");
-    ssh = await initSshServer({ client, scratch, proxyHandlers: true });
+    const getSshdPort = (project_id: string) => {
+      // TODO -- get port from sqlite projects table or return null
+      console.log(project_id);
+      return 22;
+    };
+    const getAuthorizedKeys = async (project_id: string): Promise<string> => {
+      console.log(project_id);
+      // TODO -- combine authorized_keys from sqlite projects table with
+      // keys in the filesystem -- use
+      //    const { path } = await c.mount({ project_id });
+      // to get the path to the project home directory.
+      return "";
+    };
+    ssh = await initSshServer({
+      proxyHandlers: true,
+      getSshdPort,
+      getAuthorizedKeys,
+    });
   }
 
   servers = { file, ssh };

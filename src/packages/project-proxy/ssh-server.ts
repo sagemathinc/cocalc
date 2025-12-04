@@ -29,14 +29,13 @@ the REST server on localhost.
 import { init as initAuth } from "./auth";
 import { startProxyServer, createProxyHandlers } from "./proxy";
 import { install, sshpiper } from "@cocalc/backend/sandbox/install";
-import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { secrets, sshServer } from "@cocalc/backend/data";
 import { dirname, join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import getLogger from "@cocalc/backend/logger";
 
-const logger = getLogger("file-server:ssh:ssh-server");
+const logger = getLogger("project-proxy:ssh:ssh-server");
 
 export function secretsPath() {
   return join(secrets, "sshpiperd");
@@ -143,15 +142,15 @@ async function waitForStartup(
 }
 
 export async function init({
+  getSshdPort,
+  getAuthorizedKeys,
   port = sshServer.port,
-  client,
-  scratch,
   proxyHandlers,
   exitOnFail = true,
 }: {
+  getSshdPort: (project_id: string) => number | null;
+  getAuthorizedKeys: (project_id: string) => Promise<string>;
   port?: number;
-  client?: ConatClient;
-  scratch: string;
   proxyHandlers?: boolean;
   exitOnFail?: boolean;
 }) {
@@ -161,7 +160,7 @@ export async function init({
   const projectProxyHandlers = proxyHandlers
     ? createProxyHandlers()
     : await startProxyServer();
-  const { url } = await initAuth({ client, scratch });
+  const { url } = await initAuth({ getSshdPort, getAuthorizedKeys });
   const hostKey = join(secretsPath(), "host_key");
   await mkdir(dirname(hostKey), { recursive: true });
   const args = [

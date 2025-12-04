@@ -249,25 +249,65 @@ function jsonToPorts(obj) {
     const port = parseInt(k.split("/")[0]);
     portMap[port] = obj[k][0].HostPort;
   }
+
+  // Prefer the legacy file-server port mapping if present.
   const ports: Partial<Ports> = {};
+  let mapped = 0;
   for (const k in PORTS) {
-    ports[k] = portMap[PORTS[k]];
-    if (ports[k] == null) {
-      throw Error("BUG -- not all ports found");
+    const val = portMap[PORTS[k]];
+    if (val != null) {
+      ports[k] = val;
+      mapped++;
     }
   }
+
+  // Fallback for project containers that expose standard ports (22, 80).
+  if (mapped === 0) {
+    if (portMap[22] != null) {
+      ports.sshd = portMap[22];
+      // Also treat as file-server for compatibility with callers that expect it.
+      ports["file-server"] = portMap[22];
+    }
+    if (portMap[80] != null) {
+      ports.proxy = portMap[80];
+      ports.web = portMap[80];
+    }
+  }
+
+  for (const key of ["file-server", "sshd", "proxy", "web"] as const) {
+    if (ports[key] == null) {
+      throw Error(`BUG -- missing port mapping for ${key}`);
+    }
+  }
+
   return ports as Ports;
+}
+
+async function inspectPorts(name: string): Promise<Ports> {
+  const { stdout } = await podman([
+    "inspect",
+    name,
+    "--format",
+    "{{json .NetworkSettings.Ports}}",
+  ]);
+  return jsonToPorts(JSON.parse(stdout));
 }
 
 export const getPorts = reuseInFlight(
   async ({ volume }: { volume: string }): Promise<Ports> => {
-    const { stdout } = await podman([
-      "inspect",
-      containerName(volume),
-      "--format",
-      "{{json .NetworkSettings.Ports}}",
-    ]);
-    return jsonToPorts(JSON.parse(stdout));
+    const tried: string[] = [];
+    const names = [containerName(volume), volume];
+    for (const name of names) {
+      tried.push(name);
+      try {
+        return await inspectPorts(name);
+      } catch (err) {
+        logger.debug("getPorts inspect failed", { name, err: `${err}` });
+      }
+    }
+    throw new Error(
+      `unable to inspect ports for ${volume}; tried ${tried.join(", ")}`,
+    );
   },
 );
 
