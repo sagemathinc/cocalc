@@ -6,6 +6,8 @@ import { type Filesystem } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
 import { sudo } from "./util";
 import { join } from "path";
+import { mkdir } from "fs/promises";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import { SubvolumeRustic } from "./subvolume-rustic";
 import { SubvolumeSnapshots } from "./subvolume-snapshots";
 import { SubvolumeQuota } from "./subvolume-quota";
@@ -60,13 +62,16 @@ export class Subvolume {
           err.stderr.includes("quota not enabled")
         ) {
           // quotas are disabled on the mount; enable and retry once
-          await btrfs({ args: ["quota", "enable", this.filesystem.opts.mount] });
+          await btrfs({
+            args: ["quota", "enable", this.filesystem.opts.mount],
+          });
           await btrfs({ args: ["qgroup", "create", `1/${id}`, this.path] });
         } else {
           throw err;
         }
       }
     }
+    await this.ensureSnapshotsDir();
   };
 
   getSubvolumeId = async (): Promise<number> => {
@@ -93,6 +98,12 @@ export class Subvolume {
       command: "chown",
       args: [`${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`, path],
     });
+  };
+
+  private ensureSnapshotsDir = async () => {
+    const dir = join(this.path, SNAPSHOTS);
+    if (await exists(dir)) return;
+    await mkdir(dir, { recursive: true });
   };
 }
 

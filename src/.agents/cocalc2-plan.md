@@ -5,7 +5,7 @@
   - [ ] allow user to select where project is hosted for easier testing \(could be hidden dev feature\)
 
 - [x] Btrfs Snapshots
-  - [ ] the \$HOME/.snapshots directory does not exist
+  - [x] the \$HOME/.snapshots directory does not exist
   - [x] creating snapshots fails with this error: "request \-\- no subscribers matching 'file\-server' \- callHub: subject='hub.account.d0bdabfd\-850e\-4c8d\-8510\-f6f1ecb9a5eb.api', name='projects.createSnapshot', code='503'"
 
 - [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project\-host hub/conat services.
