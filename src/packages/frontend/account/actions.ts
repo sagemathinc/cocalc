@@ -180,9 +180,11 @@ export class AccountActions extends Actions<AccountState> {
   // call after adding/removing global ssh keys
   updateAuthorizedKeysForRunningProjects = async (ignoreErrors = true) => {
     const store = this.redux.getStore("projects");
+    const hub = webapp_client.conat_client.hub;
     const f = async (project_id) => {
-      const api = webapp_client.conat_client.projectApi({ project_id });
       try {
+        await hub.projects.updateAuthorizedKeysOnHost({ project_id });
+        const api = webapp_client.conat_client.projectApi({ project_id });
         await api.system.updateSshKeys();
       } catch (err) {
         if (!ignoreErrors) {

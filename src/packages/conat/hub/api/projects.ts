@@ -31,6 +31,7 @@ export const projects = {
 
   start: authFirstRequireAccount,
   stop: authFirstRequireAccount,
+  updateAuthorizedKeysOnHost: authFirstRequireAccount,
 
   getSshKeys: authFirstRequireProject,
 };
@@ -215,6 +216,10 @@ export interface Projects {
     authorized_keys?: string;
   }) => Promise<void>;
   stop: (opts: { account_id?: string; project_id: string }) => Promise<void>;
+  updateAuthorizedKeysOnHost: (opts: {
+    project_id: string;
+    account_id?: string;
+  }) => Promise<void>;
 
   // get a list if all public ssh authorized keys that apply to
   // the given project.

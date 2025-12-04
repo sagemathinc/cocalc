@@ -319,8 +319,16 @@ export class ProjectsActions extends Actions<ProjectsState> {
     // only do this if running, since it only matters when
     // running and is updated on startup
     if (store.get_state(project_id) == "running") {
-      const api = webapp_client.conat_client.projectApi({ project_id });
-      await api.system.updateSshKeys();
+      try {
+        await webapp_client.conat_client.hub.projects.updateAuthorizedKeysOnHost(
+          { project_id },
+        );
+        const api = webapp_client.conat_client.projectApi({ project_id });
+        await api.system.updateSshKeys();
+      } catch (err) {
+        // ignore; host will catch up on next start.
+        console.warn("failed to push ssh keys to project-host", err);
+      }
     }
   };
 

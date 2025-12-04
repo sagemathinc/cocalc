@@ -112,6 +112,15 @@ export async function startMasterRegistration({
         const status = await hubApi.projects.stop({ account_id, project_id });
         return { project_id, state: (status as any)?.state };
       },
+      async updateAuthorizedKeys({ project_id, authorized_keys }) {
+        if (!(hubApi as any).projects?.updateAuthorizedKeys) {
+          throw Error("updateAuthorizedKeys not available");
+        }
+        await (hubApi as any).projects.updateAuthorizedKeys({
+          project_id,
+          authorized_keys,
+        });
+      },
     },
   });
 

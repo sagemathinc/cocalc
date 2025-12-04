@@ -3,7 +3,7 @@
 // without having to run that project.
 
 import { join } from "node:path";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import {
   server as createFileServer,
   client as createFileClient,
@@ -426,15 +426,30 @@ export async function initFileServer({
 
       return keys.join("\n");
     };
-    ssh = await initSshServer({
-      proxyHandlers: true,
-      getSshdPort,
-      getAuthorizedKeys,
-    });
-  }
+  ssh = await initSshServer({
+    proxyHandlers: true,
+    getSshdPort,
+    getAuthorizedKeys,
+  });
+}
 
-  servers = { file, ssh };
+servers = { file, ssh };
   return servers;
+}
+
+// Update the managed authorized_keys file for a project. This is used when the
+// master pushes refreshed SSH keys; it does not touch the user's ~/.ssh/authorized_keys.
+export async function writeManagedAuthorizedKeys(
+  project_id: string,
+  keys?: string,
+): Promise<void> {
+  const content = (keys ?? "").trim();
+  const formatted = content ? (content.endsWith("\n") ? content : `${content}\n`) : "";
+  if (!formatted) return;
+  const { path } = await mount({ project_id });
+  const managedPath = join(path, INTERNAL_SSH_CONFIG, "authorized_keys");
+  await mkdir(join(path, INTERNAL_SSH_CONFIG), { recursive: true, mode: 0o700 });
+  await writeFile(managedPath, formatted, { mode: 0o600 });
 }
 
 export function closeFileServer() {

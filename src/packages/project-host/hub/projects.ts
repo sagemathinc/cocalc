@@ -13,6 +13,7 @@ import { reportProjectStateToMaster } from "../master-status";
 import { secretsPath as sshProxySecretsPath } from "@cocalc/project-proxy/ssh-server";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { writeManagedAuthorizedKeys } from "../file-server";
 
 const logger = getLogger("project-host:hub:projects");
 
@@ -130,6 +131,25 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
   if (!hubApi.projects) {
     (hubApi as any).projects = {};
   }
+
+  // Update managed SSH keys for a project without restarting it.
+  async function refreshAuthorizedKeys(
+    project_id: string,
+    authorized_keys?: string,
+  ) {
+    upsertProject({ project_id, authorized_keys });
+    if (authorized_keys != null) {
+      try {
+        await writeManagedAuthorizedKeys(project_id, authorized_keys);
+      } catch (err) {
+        logger.debug("refreshAuthorizedKeys: failed to write managed keys", {
+          project_id,
+          err: `${err}`,
+        });
+      }
+    }
+  }
+
   // Create a project locally and optionally start it.
   hubApi.projects.createProject = async (
     opts: CreateProjectOptions = {},
@@ -181,6 +201,7 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
       http_port: (status as any)?.http_port,
       ssh_port: (status as any)?.ssh_port,
     });
+    await refreshAuthorizedKeys(project_id, authorized_keys);
   };
 
   hubApi.projects.stop = async ({
@@ -197,5 +218,19 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
       http_port: undefined,
       ssh_port: undefined,
     });
+  };
+
+  // Allow the master to push refreshed SSH keys when account/project keys change.
+  (hubApi.projects as any).updateAuthorizedKeys = async ({
+    project_id,
+    authorized_keys,
+  }: {
+    project_id: string;
+    authorized_keys?: string;
+  }) => {
+    if (!isValidUUID(project_id)) {
+      throw Error("invalid project_id");
+    }
+    await refreshAuthorizedKeys(project_id, authorized_keys ?? "");
   };
 }

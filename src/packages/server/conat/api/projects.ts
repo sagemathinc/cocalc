@@ -12,6 +12,7 @@ import getPool from "@cocalc/database/pool";
 import {
   startProjectOnHost,
   stopProjectOnHost,
+  updateAuthorizedKeysOnHost as updateAuthorizedKeysOnHostControl,
 } from "@cocalc/server/project-host/control";
 
 export async function copyPathBetweenProjects({
@@ -119,6 +120,19 @@ export async function stop({
   }
   log.debug("stop", { project_id });
   await stopProjectOnHost(project_id);
+}
+
+export async function updateAuthorizedKeysOnHost({
+  account_id,
+  project_id,
+}: {
+  account_id: string;
+  project_id: string;
+}): Promise<void> {
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("must be collaborator on project to update ssh keys");
+  }
+  await updateAuthorizedKeysOnHostControl(project_id);
 }
 
 export async function getSshKeys({

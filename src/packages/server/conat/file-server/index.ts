@@ -1,5 +1,7 @@
 /*
 
+DEPRECATED
+
 TODO: this is no longer needed and will be removed. See project-host/file-server.ts instead.
 
 
@@ -286,6 +288,7 @@ export async function init(_fs?) {
   let ssh;
   if (process.env.COCALC_SSH_SERVER_COUNT != "0") {
     const { path: scratch } = await getVolume("mutagen-scratch");
+    // @ts-ignore
     ssh = await initSshServer({ client, scratch, proxyHandlers: true });
   } else {
     ssh = { close: () => {} };

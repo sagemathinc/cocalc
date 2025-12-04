@@ -156,3 +156,25 @@ export async function stopProjectOnHost(project_id: string): Promise<void> {
     throw err;
   }
 }
+
+export async function updateAuthorizedKeysOnHost(
+  project_id: string,
+): Promise<void> {
+  const meta = await loadProject(project_id);
+  const host_id = meta.host_id;
+  if (!host_id) {
+    return;
+  }
+  const client = createHostControlClient({
+    host_id,
+    client: await conat(),
+  });
+  try {
+    await client.updateAuthorizedKeys({
+      project_id,
+      authorized_keys: meta.authorized_keys,
+    });
+  } catch (err) {
+    log.warn("updateAuthorizedKeysOnHost failed", { project_id, host_id, err });
+  }
+}

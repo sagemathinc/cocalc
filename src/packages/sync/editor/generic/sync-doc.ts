@@ -81,7 +81,6 @@ import type {
 } from "./types";
 import { isTestClient, patch_cmp } from "./util";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
-import { JUPYTER_SYNCDB_EXTENSIONS } from "@cocalc/util/jupyter/names";
 import { type Filesystem, type Stats } from "@cocalc/conat/files/fs";
 import { type WatchIterator } from "@cocalc/conat/files/watch";
 import { getLogger } from "@cocalc/conat/client";

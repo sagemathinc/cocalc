@@ -1,32 +1,45 @@
 ## Checklist (near term)
 
-- [x] Bind project-host HTTP/conat on 0.0.0.0 (temporary); document firewall expectations. Keep a note to revisit Unix-socket bind + container mount for tighter scope.
-- [x] Master control-plane: host registration/keepalive, project→host map, placement API; surface placement decisions in UI and hub API.
-- [ ] (in progress) Connect to projects via per-host websocket (no iframe).
+- [x] Bind project\-host HTTP/conat on 0.0.0.0 \(temporary\); document firewall expectations. Keep a note to revisit Unix\-socket bind \+ container mount for tighter scope.
+
+- [x] Master control\-plane: host registration/keepalive, project→host map, placement API; surface placement decisions in UI and hub API.
+
+- [x] Connect to projects via per\-host websocket \(no iframe\).
   - Use separate conat sockets per host in the frontend; master socket remains for hub/db.
-  - Issue short-lived signed tokens (project_id + perms + exp) from master when opening a project; browser uses them to open `wss://<host>/conat` directly. Hosts validate tokens locally.
-  - Add a master proxy fallback (`/project-host/<id>/conat` → upstream) and auto-failover if direct connect fails; reuse a single socket per host and multiplex multiple projects on it.
+  - Add a master proxy fallback \(`/project-host/<id>/conat` → upstream\) and auto\-failover if direct connect fails; reuse a single socket per host and multiplex multiple projects on it.
+
 - [ ] Make everything work without auth:
-   - [x] Uploading and downloading images and files over http; used e.g., for the latext editor to look at the pages.   This is a feature of the web server, which is fully implemented in packages/hub/ and certainly in packages/lite, and probably is easy to just enable, hopefully.  The files are read/written streamed over conat.
-   - [x] Similar issue -- proxying of http to the project doesn't work yet, e.g., so can run jupyterlab, vscode, etc.  Need to look up project's host and proxy that way.
-   - [ ] ssh to project
-      - [x] load ssh keys on project creation (showing that authorized_keys column works)
-      - [ ] write .ssh/.cocalc/sshd/authorized_keys from sshpiperd config
-      - [ ] get sshpiperd to auth properly and observer manually that ssh works
-      - [ ] update ssh on project-host when they change in master and when project starts
-   - [ ] Jupyter -- attempting to start shows this error "Error: syncdb's ipywidgets_state must be defined!"
-- [ ] SEA binary for running project-host:
-   - [ ] include binaries
-   - [ ] allow user to select where project is hosted for easier testing (could be hidden dev feature)
-   
-- [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project-host hub/conat services.
-- [ ] Runner networking: keep non-host networking but guarantee containers can reach the host conat endpoint; consider explicit hostfwd mode if we ever bind conat to loopback only.
-- [ ] File/quotas/backups UX: default quota + snapshot/backup counts on project create; expose image/pull errors cleanly; add image allowlist (e.g., ubuntu:25.10) and fallback behavior.
-- [ ] Cross-host data motion: copy/move between hosts (rsync + btrfs send/recv), GC source after validation, update project→host map, and surface progress/errors to users.
-- [ ] Rustic/GCS backup pipeline with retention tags per project/host; per-host health checks.
-- [ ] Observability: per-host metrics/logs, minimal status page (runner/file-server/conat), project lifecycle spans; alerts for failed moves/backups and low headroom.
-- [ ] Proxy ingress: project-proxy base-path TODO; SSH/HTTP ingress for hidden/on-prem hosts; keep optional but available.
-- [ ] Compute/plus alignment: treat compute servers as user-scoped project-hosts with reflect-sync subset sharing; API for spinning up temporary hosts; drop project_id column from compute_servers in favor of host auth/ACL.
+  - [x] Uploading and downloading images and files over http; used e.g., for the latex editor to look at the pages.   This is a feature of the web server, which is fully implemented in packages/hub/ and certainly in packages/lite, and probably is easy to just enable, hopefully.  The files are read/written streamed over conat.
+  - [x] Similar issue \-\- proxying of http to the project doesn't work yet, e.g., so can run jupyterlab, vscode, etc.  Need to look up project's host and proxy that way.
+  - [ ] ssh to project
+    - [x] load ssh keys on project creation \(showing that authorized\_keys column works\)
+    - [x] write .ssh/.cocalc/sshd/authorized\_keys from sshpiperd config
+    - [x] get sshpiperd to auth properly and observer manually that ssh works
+    - [ ] update ssh on project\-host when they change in master and when project starts
+  - [x] Jupyter \-\- attempting to start shows this error "Error: syncdb's ipywidgets\_state must be defined!"
+   - [ ] the $HOME/.snapshots directory does not exist
+   - [ ] creating snapshots fails with this error: "request -- no subscribers matching 'file-server' - callHub: subject='hub.account.d0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb.api', name='projects.createSnapshot', code='503'"
+
+- [ ] SEA binary for running project\-host:
+  - [ ] include binaries
+  - [ ] allow user to select where project is hosted for easier testing \(could be hidden dev feature\)
+
+- [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project\-host hub/conat services.
+  - Issue short\-lived signed tokens \(project\_id \+ perms \+ exp\) from master when opening a project; browser uses them to open `wss://<host>/conat` directly. Hosts validate tokens locally.
+
+- [ ] Runner networking: keep non\-host networking but guarantee containers can reach the host conat endpoint; consider explicit hostfwd mode if we ever bind conat to loopback only.
+
+- [ ] File/quotas/backups UX: default quota \+ snapshot/backup counts on project create; expose image/pull errors cleanly; add image allowlist \(e.g., ubuntu:25.10\) and fallback behavior.
+
+- [ ] Cross\-host data motion: copy/move between hosts \(rsync \+ btrfs send/recv\), GC source after validation, update project→host map, and surface progress/errors to users.
+
+- [ ] Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
+
+- [ ] Observability: per\-host metrics/logs, minimal status page \(runner/file\-server/conat\), project lifecycle spans; alerts for failed moves/backups and low headroom.
+
+- [ ] Proxy ingress: project\-proxy base\-path TODO; SSH/HTTP ingress for hidden/on\-prem hosts; keep optional but available.
+
+- [ ] Compute/plus alignment: treat compute servers as user\-scoped project\-hosts with reflect\-sync subset sharing; API for spinning up temporary hosts; drop project\_id column from compute\_servers in favor of host auth/ACL.
 
 ## CoCalc New Architecture Plan (federated project-hosts + proxy)
 
@@ -141,6 +154,7 @@ flowchart LR
 ## Details to not forget
 
 - memory quota: i think that was set on the pod; I don't see it being set now at all
+- set the container hostname
 - looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route-project.ts; this MUST get fixed or everything will be broken/flakie at first.  Solution is make some options to conat/core/client be a promise optionally and delay the connection.
 - need to rewrite everything in the frontend involving the project runner directly; in particular, see src/packages/frontend/projects/actions.ts
   - cloning projects
@@ -161,3 +175,4 @@ flowchart LR
 - [x] Removed sidecar/reflect-sync path; runner now directly launches single podman container with Btrfs mounts.
 - [x] Vendored file-server bootstrap into project-host with Btrfs/rustic/quotas; added fs.* conat service and SSH proxy integration.
 - [x] Moved SEA/bundle logic from lite to plus and from runner to project-host; excluded build output from tsc; removed old REST `/projects` endpoints and added catch-all redirect.
+

@@ -30,6 +30,10 @@ export interface HostControlApi {
     authorized_keys?: string;
   }) => Promise<HostCreateProjectResponse>;
   stopProject: (opts: { project_id: string }) => Promise<HostCreateProjectResponse>;
+  updateAuthorizedKeys: (opts: {
+    project_id: string;
+    authorized_keys?: string;
+  }) => Promise<void>;
   // Later: updateProject to adjust title/users/etc.
 }
 
