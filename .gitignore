@@ -197,3 +197,4 @@ scratch
 patchflow
 *.pid
 *.chat
+*.js.map

@@ -13,9 +13,17 @@ const cache = new LRU<string, string>({
 const inflight: Partial<Record<string, Promise<void>>> = {};
 
 function extractProjectId(subject: string): string | undefined {
+  // there's a similar function in the frontend in src/packages/frontend/conat/client.ts
+  // but it only handles routes the frontend should know about.
   if (subject.startsWith("project.")) {
     const project_id = subject.split(".")[1];
     if (isValidUUID(project_id)) return project_id;
+    return undefined;
+  }
+  if (subject.startsWith("file-server.")) {
+    const project_id = subject.split(".")[1];
+    if (isValidUUID(project_id)) return project_id;
+    return undefined;
   }
   const v = subject.split(".");
   if (v[1]?.startsWith("project-")) {

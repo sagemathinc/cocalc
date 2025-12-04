@@ -319,6 +319,10 @@ interface Options {
   address?: string;
   inboxPrefix?: string;
   systemAccountPassword?: string;
+  // set this to support using a different conat client automatically
+  // for certain subjects -- this is VERY powerful, since it allows
+  // doing client side routing to several different conat clusters
+  // in a clean and simple way.
   routeSubject?: (
     subject: string,
   ) => { address?: string; client?: Client } | undefined;

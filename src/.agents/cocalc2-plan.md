@@ -4,7 +4,7 @@
   - [ ] include binaries
   - [ ] allow user to select where project is hosted for easier testing \(could be hidden dev feature\)
 
-- [ ] Btrfs Snapshots
+- [ ] #now Btrfs Snapshots
   - [ ] the \$HOME/.snapshots directory does not exist
   - [ ] creating snapshots fails with this error: "request \-\- no subscribers matching 'file\-server' \- callHub: subject='hub.account.d0bdabfd\-850e\-4c8d\-8510\-f6f1ecb9a5eb.api', name='projects.createSnapshot', code='503'"
 
@@ -16,6 +16,7 @@
 - [ ] File/quotas/backups UX: default quota \+ snapshot/backup counts on project create; expose image/pull errors cleanly; add image allowlist \(e.g., ubuntu:25.10\) and fallback behavior.
 
 - [ ] Cross\-host data motion: copy/move between hosts \(rsync \+ btrfs send/recv\), GC source after validation, update project→host map, and surface progress/errors to users.
+   - src/packages/next/pages/api/v2/projects/copy-path.ts
 
 - [ ] Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
 
@@ -138,24 +139,23 @@ flowchart LR
 
 ## Details to not forget
 
-- [ ] #now memory quota: i think that was set on the pod; I don't see it being set now at all
+- [x]  memory quota: i think that was set on the pod; I don't see it being set now at all
   - run\_quota
-- set the container hostname
-- looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route\-project.ts; this MUST get fixed or everything will be broken/flakie at first.  Solution is make some options to conat/core/client be a promise optionally and delay the connection.
-- need to rewrite everything in the frontend involving the project runner directly; in particular, see src/packages/frontend/projects/actions.ts
+- [ ] set the container hostname
+- [ ] looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route\-project.ts; this MUST get fixed or everything will be broken/flakie at first.  Solution is make some options to conat/core/client be a promise optionally and delay the connection.
+- [ ] need to rewrite everything in the frontend involving the project runner directly; in particular, see src/packages/frontend/projects/actions.ts
   - cloning projects
   - moving projects
-- need to ensure any backend code that uses projects no longer users runners \(e.g., supporting api\)
-- There are api calls/functions for things like "execute code on project" \-\- these will need to send a message to the relevant project\-host and back.
-- Project activity \-\- when project is being used, etc. \-\- needs to get updated regularly from the project host to master.
-- Right now project\-hosts allow users to directly create projects on them, which should not be allowed.  Even worse, user can specify the project\_id, which is a major security issues.  See src/packages/project\-host/hub/projects.ts
+- [ ] need to ensure any backend code that uses projects no longer users runners \(e.g., supporting api\)
+- [ ] There are api calls/functions for things like "execute code on project" \-\- these will need to send a message to the relevant project\-host and back.
+- [ ] Project activity \-\- when project is being used, etc. \-\- needs to get updated regularly from the project host to master.
+- [ ] Right now project\-hosts allow users to directly create projects on them, which should not be allowed.  Even worse, user can specify the project\_id, which is a major security issues.  See src/packages/project\-host/hub/projects.ts
 - When setting a project we always add the default cocalc\-lite account so we can keep things working: "      // [ ] TODO \-\- for now we always included the default user; this is obviously temporary"
-- Any backend/api stuff has to be updated to use the same conat routing functionality... or maybe we just use a proxy.
-- #security: src/packages/server/conat/route\-client.ts currently gives away the master hosts secret auth to any project\-host, which of course isn't good.
-- eliminate this: src/packages/conat/project/runner/load\-balancer.ts
-- eliminate /src/packages/project\-proxy/container.ts, in process rewriting /src/packages/project\-proxy/proxy.ts to take a function to get port as input
-- eliminate payg entirely for projects
-- 
+- [ ] Any backend/api stuff has to be updated to use the same conat routing functionality... or maybe we just use a proxy.
+- [ ]  #security: src/packages/server/conat/route\-client.ts currently gives away the master hosts secret auth to any project\-host, which of course isn't good.
+- [ ] eliminate this: src/packages/conat/project/runner/load\-balancer.ts
+- [ ] eliminate /src/packages/project\-proxy/container.ts, in process rewriting /src/packages/project\-proxy/proxy.ts to take a function to get port as input
+- [ ] eliminate payg entirely for projects
 
 ## Completed
 

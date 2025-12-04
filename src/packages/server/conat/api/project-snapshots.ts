@@ -23,7 +23,7 @@ export async function createSnapshot({
   readOnly?: boolean;
 }) {
   await assertCollab({ account_id, project_id });
-  await fileServerClient().createSnapshot({
+  await fileServerClient({ project_id }).createSnapshot({
     project_id,
     name,
     limit: MAX_SNAPSHOTS_PER_PROJECT,
@@ -41,7 +41,7 @@ export async function deleteSnapshot({
   name: string;
 }) {
   await assertCollab({ account_id, project_id });
-  await fileServerClient().deleteSnapshot({ project_id, name });
+  await fileServerClient({ project_id }).deleteSnapshot({ project_id, name });
 }
 
 export async function updateSnapshots({
@@ -54,7 +54,7 @@ export async function updateSnapshots({
   counts?: Partial<SnapshotCounts>;
 }) {
   await assertCollab({ account_id, project_id });
-  await fileServerClient().updateSnapshots({
+  await fileServerClient({ project_id }).updateSnapshots({
     project_id,
     counts,
     limit: MAX_SNAPSHOTS_PER_PROJECT,
@@ -80,7 +80,7 @@ export async function allSnapshotUsage({
   project_id: string;
 }) {
   await assertCollab({ account_id, project_id });
-  return await fileServerClient().allSnapshotUsage({
+  return await fileServerClient({ project_id }).allSnapshotUsage({
     project_id,
   });
 }

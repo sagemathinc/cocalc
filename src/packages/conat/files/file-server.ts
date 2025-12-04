@@ -19,6 +19,8 @@ Additional functionality:
   - update snapshots
   - create backup
 
+The subject is file-server.{project_id} and there are many file-servers, one
+for each project-host.
 */
 
 import { type Client } from "@cocalc/conat/core/client";
@@ -175,7 +177,7 @@ export interface Options extends Fileserver {
 export async function server({ client, ...impl }: Options) {
   client ??= conat();
 
-  const sub = await client.service<Fileserver>(SUBJECT, impl);
+  const sub = await client.service<Fileserver>(`${SUBJECT}.*`, impl);
 
   return {
     close: () => {
@@ -184,7 +186,20 @@ export async function server({ client, ...impl }: Options) {
   };
 }
 
-export function client({ client }: { client?: Client } = {}): Fileserver {
+export function client({
+  client,
+  project_id,
+}: {
+  client?: Client;
+  // provide project-id so that client is automatically selected to
+  // be the one for the project-host that contains the project.
+  project_id?: string;
+} = {}): Fileserver {
   client ??= conat();
-  return client.call<Fileserver>(SUBJECT);
+  // we use this subject so that requests get routed to the
+  // project-host with the given project_id via
+  // src/packages/server/conat/route-client.ts
+  return client.call<Fileserver>(
+    `${SUBJECT}.${project_id ? project_id : "api"}`,
+  );
 }
