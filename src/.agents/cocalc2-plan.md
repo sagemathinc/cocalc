@@ -1,28 +1,13 @@
 ## Checklist (near term)
 
-- [x] Bind project\-host HTTP/conat on 0.0.0.0 \(temporary\); document firewall expectations. Keep a note to revisit Unix\-socket bind \+ container mount for tighter scope.
-
-- [x] Master control\-plane: host registration/keepalive, project→host map, placement API; surface placement decisions in UI and hub API.
-
-- [x] Connect to projects via per\-host websocket \(no iframe\).
-  - Use separate conat sockets per host in the frontend; master socket remains for hub/db.
-  - Add a master proxy fallback \(`/project-host/<id>/conat` → upstream\) and auto\-failover if direct connect fails; reuse a single socket per host and multiplex multiple projects on it.
-
-- [ ] Make everything work without auth:
-  - [x] Uploading and downloading images and files over http; used e.g., for the latex editor to look at the pages.   This is a feature of the web server, which is fully implemented in packages/hub/ and certainly in packages/lite, and probably is easy to just enable, hopefully.  The files are read/written streamed over conat.
-  - [x] Similar issue \-\- proxying of http to the project doesn't work yet, e.g., so can run jupyterlab, vscode, etc.  Need to look up project's host and proxy that way.
-  - [ ] ssh to project
-    - [x] load ssh keys on project creation \(showing that authorized\_keys column works\)
-    - [x] write .ssh/.cocalc/sshd/authorized\_keys from sshpiperd config
-    - [x] get sshpiperd to auth properly and observer manually that ssh works
-    - [ ] update ssh on project\-host when they change in master and when project starts
-  - [x] Jupyter \-\- attempting to start shows this error "Error: syncdb's ipywidgets\_state must be defined!"
-   - [ ] the $HOME/.snapshots directory does not exist
-   - [ ] creating snapshots fails with this error: "request -- no subscribers matching 'file-server' - callHub: subject='hub.account.d0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb.api', name='projects.createSnapshot', code='503'"
 
 - [ ] SEA binary for running project\-host:
   - [ ] include binaries
   - [ ] allow user to select where project is hosted for easier testing \(could be hidden dev feature\)
+
+- [ ] Btrfs Snapshots
+  - [ ] the $HOME/.snapshots directory does not exist
+  - [ ] creating snapshots fails with this error: "request -- no subscribers matching 'file-server' - callHub: subject='hub.account.d0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb.api', name='projects.createSnapshot', code='503'"
 
 - [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project\-host hub/conat services.
   - Issue short\-lived signed tokens \(project\_id \+ perms \+ exp\) from master when opening a project; browser uses them to open `wss://<host>/conat` directly. Hosts validate tokens locally.
@@ -69,8 +54,8 @@
   - Add host-local conat instance per host; master uses conat only for control-plane topics.
 
 - **Project moves and storage**  
-  - Moves: snapshot + `btrfs send/recv` between hosts; update project→host map; optional delta/cutover; validate and clean source.  
-  - Backups: per-host Btrfs snapshots + rustic to object storage; tag snapshots/backups with project IDs for audit/GC.  
+  - Moves: snapshot + `btrfs send/recv` between hosts; update project→host map; optional delta/cutover; validate and clean source.  Also move all persist sqlite stores!
+  - Backups: per-host Btrfs snapshots + rustic to object storage; tag snapshots/backups with project IDs for audit/GC.  Also backup all persist sqlite stores.
   - PD/Btrfs as primary; optional SSD cache layer later.
 
 - **Hidden/on-prem hosts**  
@@ -86,12 +71,11 @@
   - Alerts: stale project→host map, failed host dial, token validation failures, low headroom.  
   - Runbooks: add host, move project, rotate keys, restore, handle master outage policy.
 
-- **TODOs carried forward**  
-  - Fix file-server SSH idle culler to parse real timestamps from podman’s StartedAt.  
+- **TODOs carried forward**
   - Tighten project-proxy HTTP handler to enforce a base path/length before slicing project_id.
 
 - **Rollout steps**  
-  1) Embed file-server in project-host; add host registration + project→host map in master.  
+  1) (done) Embed file-server in project-host; add host registration + project→host map in master.  
   2) Implement signed connect tokens and direct user→host path; keep proxy fallback.  
   3) Implement project move workflow (btrfs send/recv) and backup tagging.  
   4) Pilot a small pool in one zone; test offline/TTL behavior, direct vs proxy, moves/backups; add observability.  
@@ -170,6 +154,22 @@ flowchart LR
 
 ## Completed
 
+
+  - [x] ssh to project
+    - [x] load ssh keys on project creation \(showing that authorized\_keys column works\)
+    - [x] write .ssh/.cocalc/sshd/authorized\_keys from sshpiperd config
+    - [x] get sshpiperd to auth properly and observer manually that ssh works
+    - [x] update ssh on project\-host when they change in master and when project starts
+  - [x] Jupyter \-\- attempting to start shows this error "Error: syncdb's ipywidgets\_state must be defined!"
+- [x] Bind project\-host HTTP/conat on 0.0.0.0 \(temporary\); document firewall expectations. Keep a note to revisit Unix\-socket bind \+ container mount for tighter scope.
+
+- [x] Master control\-plane: host registration/keepalive, project→host map, placement API; surface placement decisions in UI and hub API.
+
+- [x] Connect to projects via per\-host websocket \(no iframe\).
+  - Use separate conat sockets per host in the frontend; master socket remains for hub/db.
+  - Add a master proxy fallback \(`/project-host/<id>/conat` → upstream\) and auto\-failover if direct connect fails; reuse a single socket per host and multiplex multiple projects on it.
+- [x] Uploading and downloading images and files over http; used e.g., for the latex editor to look at the pages.   This is a feature of the web server, which is fully implemented in packages/hub/ and certainly in packages/lite, and probably is easy to just enable, hopefully.  The files are read/written streamed over conat.
+- [x] Similar issue \-\- proxying of http to the project doesn't work yet, e.g., so can run jupyterlab, vscode, etc.  Need to look up project's host and proxy that way.
 - [x] Built project-proxy service and moved SSH/HTTP forwarding out of file-server.
 - [x] Created project-host: local conat server + persist, embedded file-server, runner, sqlite + changefeeds, frontend (static + customize + redirect), and hub API wiring for project create/start/stop. Terminals and file browsing now work end-to-end.
 - [x] Removed sidecar/reflect-sync path; runner now directly launches single podman container with Btrfs mounts.
