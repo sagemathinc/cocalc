@@ -32,7 +32,8 @@ export type State =
   | "running"
   | "starting"
   | "stopping"
-  | "unarchiving";
+  | "unarchiving"
+  | "deleted";
 
 // @hsy: completely unclear what this is for.
 type Operation =
@@ -311,5 +312,21 @@ export const COMPUTE_STATES: ComputeStates = {
       "status",
       "migrate_live",
     ],
+  },
+
+  // projects are deleted in hub -> postgres.delete-projects and this is a one-way operation
+  deleted: {
+    desc: defineMessage({
+      id: "util.compute-states.deleted.desc",
+      defaultMessage: "Project is deleted",
+    }),
+    icon: "trash",
+    display: defineMessage({
+      id: "util.compute-states.deleted.display",
+      defaultMessage: "Deleted",
+    }),
+    stable: true,
+    to: {},
+    commands: [],
   },
 } as const;

@@ -50,7 +50,7 @@ read = require('read')
 {site_license_manager_set} = require('./postgres/site-license/manager')
 {matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
 {project_datastore_set, project_datastore_get, project_datastore_del} = require('./postgres/project-queries')
-{permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
+{permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects, cleanup_old_projects_data} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
 {get_personal_user} = require('./postgres/personal')
 {set_passport_settings, get_passport_settings, get_all_passport_settings, get_all_passport_settings_cached, create_passport, passport_exists, update_account_and_passport, _passport_key} = require('./postgres/passport')
@@ -2452,6 +2452,10 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async function
     unlink_old_deleted_projects: () =>
         return await unlink_old_deleted_projects(@)
+
+    # async function
+    cleanup_old_projects_data: (max_run_m) =>
+        return await cleanup_old_projects_data(@, max_run_m)
 
     # async function
     unlist_all_public_paths: (account_id, is_owner) =>
