@@ -441,7 +441,12 @@ export class ConatClient extends EventEmitter {
         compute_server_id = actions.getComputeServerId();
       }
     }
-    return projectApiClient({ project_id, compute_server_id, timeout });
+    return projectApiClient({
+      project_id,
+      compute_server_id,
+      timeout,
+      client: this.conat(),
+    });
   };
 
   synctable: ConatSyncTableFunction = async (
