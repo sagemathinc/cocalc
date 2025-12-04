@@ -3,6 +3,7 @@ import { conat } from "@cocalc/backend/conat";
 import getPool from "@cocalc/database/pool";
 import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import sshKeys from "../projects/get-ssh-keys";
+import { notifyProjectHostUpdate } from "../conat/route-project";
 
 const log = getLogger("server:project-host:control");
 
@@ -66,6 +67,11 @@ async function savePlacement(project_id: string, placement: HostPlacement) {
     "UPDATE projects SET host_id=$1, host=$2::jsonb WHERE project_id=$3",
     [placement.host_id, JSON.stringify(placement.host), project_id],
   );
+  await notifyProjectHostUpdate({
+    project_id,
+    host_id: placement.host_id,
+    host: placement.host,
+  });
 }
 
 async function ensurePlacement(project_id: string): Promise<HostPlacement> {

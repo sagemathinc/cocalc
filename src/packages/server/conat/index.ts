@@ -4,6 +4,7 @@ import { init as initChangefeedServer } from "@cocalc/database/conat/changefeed-
 import { init as initLLM } from "./llm";
 import { loadConatConfiguration } from "./configuration";
 import { createTimeService } from "@cocalc/conat/service/time";
+import { listenForUpdates as listenForProjectHostUpdates } from "./route-project";
 export { initConatPersist } from "./persist";
 import {
   conatApiCount,
@@ -55,4 +56,5 @@ export async function initConatHostRegistry() {
   await loadConatConfiguration();
   await initHostRegistryService();
   await initHostStatusService();
+  listenForProjectHostUpdates();
 }
