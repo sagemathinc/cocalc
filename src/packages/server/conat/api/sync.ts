@@ -1,8 +1,8 @@
 import { conat } from "@cocalc/backend/conat";
-import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { patchesStreamName } from "@cocalc/conat/sync/synctable-stream";
 import { type Patch, type HistoryInfo } from "@cocalc/conat/hub/api/sync";
 import { client_db } from "@cocalc/util/db-schema/client-db";
+import { assertCollab } from "./util";
 
 export async function history({
   account_id,
@@ -17,9 +17,7 @@ export async function history({
   start_seq?: number;
   end_seq?: number;
 }): Promise<{ patches: Patch[]; info: HistoryInfo }> {
-  if (!account_id || !(await isCollaborator({ account_id, project_id }))) {
-    throw Error("user must be collaborator on source project");
-  }
+  await assertCollab({ account_id, project_id });
 
   const client = conat();
   const name = patchesStreamName({ project_id, path });

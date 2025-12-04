@@ -2,7 +2,6 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
-import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getPool from "@cocalc/database/pool";
 import type {
   FileUseTimesOptions,
@@ -10,6 +9,7 @@ import type {
 } from "@cocalc/conat/hub/api/db";
 import { dstream } from "@cocalc/conat/sync/dstream";
 import { patchesStreamName } from "@cocalc/conat/sync/synctable-stream";
+import { assertCollab } from "./util";
 
 export async function fileUseTimes({
   project_id,
@@ -21,9 +21,7 @@ export async function fileUseTimes({
   edit_times,
 }: FileUseTimesOptions): Promise<FileUseTimesResponse> {
   // Verify that that user has access.  Throws exception if not allowed.
-  if (!account_id || !(await isCollaborator({ account_id, project_id }))) {
-    throw Error("user does not have read access to the given project");
-  }
+  await assertCollab({ account_id, project_id });
 
   target_account_id = target_account_id ?? account_id;
 

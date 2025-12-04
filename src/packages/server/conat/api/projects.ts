@@ -2,7 +2,6 @@ import createProject from "@cocalc/server/projects/create";
 export { createProject };
 import getLogger from "@cocalc/backend/logger";
 import isAdmin from "@cocalc/server/accounts/is-admin";
-import isCollaborator from "@cocalc/server/projects/is-collaborator";
 export * from "@cocalc/server/projects/collaborators";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 import { client as filesystemClient } from "@cocalc/conat/files/file-server";
@@ -11,6 +10,7 @@ export * from "@cocalc/server/conat/api/project-backups";
 import getPool from "@cocalc/database/pool";
 import { updateAuthorizedKeysOnHost as updateAuthorizedKeysOnHostControl } from "@cocalc/server/project-host/control";
 import { getProject } from "@cocalc/server/projects/control";
+import { assertCollab } from "./util";
 
 export async function copyPathBetweenProjects({
   src,
@@ -26,14 +26,9 @@ export async function copyPathBetweenProjects({
   if (!account_id) {
     throw Error("user must be signed in");
   }
-  if (!(await isCollaborator({ account_id, project_id: src.project_id }))) {
-    throw Error("user must be collaborator on source project");
-  }
-  if (
-    dest.project_id != src.project_id &&
-    !(await isCollaborator({ account_id, project_id: dest.project_id }))
-  ) {
-    throw Error("user must be collaborator on dest project");
+  await assertCollab({ account_id, project_id: src.project_id });
+  if (dest.project_id !== src.project_id) {
+    await assertCollab({ account_id, project_id: dest.project_id });
   }
 
   const client = filesystemClient();
@@ -80,9 +75,7 @@ export async function getDiskQuota({
   project_id: string;
   compute_server_id?: number;
 }): Promise<{ used: number; size: number }> {
-  if (!(await isCollaborator({ account_id, project_id }))) {
-    throw Error("user must be a collaborator on project to get quota");
-  }
+  await assertCollab({ account_id, project_id });
   if (compute_server_id) {
     // I'm not sure how this will work...
     throw Error(`getDiskQuota: disk quota for compute server not implemented`);
@@ -100,9 +93,7 @@ export async function start({
   // not used; passed through for typing compatibility with project-host
   run_quota?: any;
 }): Promise<void> {
-  if (!(await isCollaborator({ account_id, project_id }))) {
-    throw Error("must be collaborator on project to start it");
-  }
+  await assertCollab({ account_id, project_id });
   log.debug("start", { project_id });
   const project = await getProject(project_id);
   await project.start();
@@ -115,9 +106,7 @@ export async function stop({
   account_id: string;
   project_id: string;
 }): Promise<void> {
-  if (!(await isCollaborator({ account_id, project_id }))) {
-    throw Error("must be collaborator on project to stop it");
-  }
+  await assertCollab({ account_id, project_id });
   log.debug("stop", { project_id });
   const project = await getProject(project_id);
   await project.stop();
@@ -130,9 +119,7 @@ export async function updateAuthorizedKeysOnHost({
   account_id: string;
   project_id: string;
 }): Promise<void> {
-  if (!(await isCollaborator({ account_id, project_id }))) {
-    throw Error("must be collaborator on project to update ssh keys");
-  }
+  await assertCollab({ account_id, project_id });
   await updateAuthorizedKeysOnHostControl(project_id);
 }
 

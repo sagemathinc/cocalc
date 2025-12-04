@@ -2,8 +2,8 @@ import { db } from "@cocalc/database";
 import userQuery from "@cocalc/database/user-query";
 import { callback2 } from "@cocalc/util/async-utils";
 import getPool from "@cocalc/database/pool";
-import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { isValidUUID } from "@cocalc/util/misc";
+import { assertCollab } from "./util";
 
 export { userQuery };
 export { fileUseTimes } from "./file-use-times";
@@ -27,9 +27,7 @@ export async function touch({
     await callback2(D.touch, { account_id, action });
     return;
   }
-  if (!(await isCollaborator({ account_id, project_id }))) {
-    throw Error("user must be collaborator on project");
-  }
+  await assertCollab({ account_id, project_id });
   await callback2(D.touch, { account_id, project_id, path, action });
 }
 
@@ -55,9 +53,7 @@ export async function getLegacyTimeTravelInfo({
     // in this VERY common case.
     return { uuid: "" };
   }
-  if (!(await isCollaborator({ account_id, project_id }))) {
-    throw Error("must be collaborator on project");
-  }
+  await assertCollab({ account_id, project_id });
   return { uuid, users: rows[0]?.users };
 }
 
