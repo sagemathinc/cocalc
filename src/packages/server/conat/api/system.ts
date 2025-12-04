@@ -18,6 +18,18 @@ export function ping() {
   return { now: Date.now() };
 }
 
+export async function test({ account_id }: { account_id?: string } = {}) {
+  // Return API key scope information and server time
+  // The authFirst decorator determines the scope from the API key and injects account_id.
+  // Note: This endpoint only accepts account-scoped keys (see packages/next/pages/api/conat/hub.ts).
+  // For project-scoped keys, use the project endpoint (packages/next/pages/api/conat/project.ts).
+  const response: { account_id: string; server_time: number } = {
+    account_id: account_id ?? "",
+    server_time: Date.now(),
+  };
+  return response;
+}
+
 export async function terminate() {}
 
 export async function userTracking({

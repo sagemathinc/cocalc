@@ -36,16 +36,16 @@ async function isAllowed({
   account_id?: string;
   name: string;
 }): Promise<boolean> {
+  if (!account_id) return false;
   return (
-    !!account_id &&
-    ((await isOrganizationAdmin({ account_id, name })) ||
-      (await isAdmin(account_id)))
+    (await isOrganizationAdmin({ account_id, name })) ||
+    (await isAdmin(account_id))
   );
 }
 
 async function assertAllowed(opts) {
   if (!(await isAllowed(opts))) {
-    throw Error(`user must an admin of the organization`);
+    throw Error(`user must be an admin of the organization or site-admin`);
   }
 }
 
@@ -161,6 +161,17 @@ export async function set(opts: {
   ]);
 }
 
+/**
+ * Promote an existing user to organization admin: adding them to the admin_account_ids list and adding them to be member of the organization.
+ * Only site-level admins can perform this operation to prevent privilege escalation.
+ * Organization-level admins cannot promote other users to admin status.
+ *
+ * NOTE: this prevents moving a user from another org to the @name org. Use addUser first, to move a user from one org to another one.
+ *
+ * @param account_id - The site admin performing the operation
+ * @param name - The organization name
+ * @param user - The account_id or email address of the user to promote
+ */
 export async function addAdmin({
   account_id,
   name,
@@ -170,21 +181,23 @@ export async function addAdmin({
   name: string;
   user: string;
 }): Promise<void> {
-  const { name: currentOrgName, account_id: admin_account_id } =
-    await getAccount(user);
+  const { name: usersOrgName, account_id: admin_account_id } = await getAccount(
+    user,
+  );
   if (!admin_account_id) {
     throw Error(`no such account '${user}'`);
   }
-  if (currentOrgName == name) {
-    // already an admin of the org
-    return;
+  if (usersOrgName != null && usersOrgName !== name) {
+    throw new Error(`User '${user}' is already member of another organization`);
   }
-  await assertAllowed({
-    account_id,
-    name,
-  });
+  // await assertAllowed({ account_id, name });
+  if (!(await isAdmin(account_id))) {
+    throw Error(
+      "only site admins can make a user an organization admin right now",
+    );
+  }
   const pool = getPool();
-  // query below takes care to ensure no dups and work in case of null.
+  // query below takes care to ensure no dups and works in case of null.
   await pool.query(
     `
   UPDATE organizations
@@ -206,6 +219,15 @@ export async function addAdmin({
   });
 }
 
+/**
+ * Add an existing CoCalc user to an organization by setting their org field.
+ * Only site-level admins can perform this operation.
+ * NOTE: this could move a user from an existing org to another org!
+ *
+ * @param account_id - The site admin performing the operation
+ * @param name - The organization name
+ * @param user - The account_id or email address of the user to add
+ */
 export async function addUser({
   account_id,
   name,
@@ -216,7 +238,7 @@ export async function addUser({
   user: string;
 }): Promise<void> {
   if (!(await isAdmin(account_id))) {
-    throw Error("only site admins can move user to an org right now");
+    throw Error("only site admins can add/move a user to an org right now");
   }
   const { account_id: user_account_id } = await getAccount(user);
   if (!user_account_id) {
@@ -229,6 +251,14 @@ export async function addUser({
   ]);
 }
 
+/**
+ * Create a new CoCalc account and add it to an organization.
+ * Allowed for both site-level admins and organization admins.
+ *
+ * @param account_id - The admin (site or org) performing the operation
+ * @param name - The organization name
+ * @returns The account_id of the newly created account
+ */
 export async function createUser({
   account_id,
   name,
@@ -255,6 +285,7 @@ export async function createUser({
     account_id: new_account_id,
     owner_id: account_id,
     password,
+    dontStartProject: true, // Don't auto-start projects for API-created users. A "first project" will be created, though.
   });
   // add account to org
   const pool = getPool();
@@ -315,6 +346,9 @@ export async function removeAdmin({
   );
 }
 
+/**
+ * @param user and account_id or email_address in the accounts table
+ */
 export async function getAccount(
   user: string,
 ): Promise<
