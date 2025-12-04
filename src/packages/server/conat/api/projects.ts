@@ -9,11 +9,8 @@ import { client as filesystemClient } from "@cocalc/conat/files/file-server";
 export * from "@cocalc/server/conat/api/project-snapshots";
 export * from "@cocalc/server/conat/api/project-backups";
 import getPool from "@cocalc/database/pool";
-import {
-  startProjectOnHost,
-  stopProjectOnHost,
-  updateAuthorizedKeysOnHost as updateAuthorizedKeysOnHostControl,
-} from "@cocalc/server/project-host/control";
+import { updateAuthorizedKeysOnHost as updateAuthorizedKeysOnHostControl } from "@cocalc/server/project-host/control";
+import { getProject } from "@cocalc/server/projects/control";
 
 export async function copyPathBetweenProjects({
   src,
@@ -100,12 +97,15 @@ export async function start({
 }: {
   account_id: string;
   project_id: string;
+  // not used; passed through for typing compatibility with project-host
+  run_quota?: any;
 }): Promise<void> {
   if (!(await isCollaborator({ account_id, project_id }))) {
     throw Error("must be collaborator on project to start it");
   }
   log.debug("start", { project_id });
-  await startProjectOnHost(project_id);
+  const project = await getProject(project_id);
+  await project.start();
 }
 
 export async function stop({
@@ -119,7 +119,8 @@ export async function stop({
     throw Error("must be collaborator on project to stop it");
   }
   log.debug("stop", { project_id });
-  await stopProjectOnHost(project_id);
+  const project = await getProject(project_id);
+  await project.stop();
 }
 
 export async function updateAuthorizedKeysOnHost({

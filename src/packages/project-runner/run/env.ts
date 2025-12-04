@@ -1,7 +1,7 @@
 import { conatServer } from "@cocalc/backend/data";
 import { join } from "node:path";
 import base_path from "@cocalc/backend/base-path";
-import { COCALC_SRC, COCALC_BIN } from "./mounts";
+import { COCALC_SRC, COCALC_BIN, COCALC_BIN2 } from "./mounts";
 import getLogger from "@cocalc/backend/logger";
 import { inspect } from "./rootfs-base";
 
@@ -65,7 +65,7 @@ export async function getEnvironment({
   // system-wide commands with the same name, e.g., after "apt install run-mailcap".
   // This can get tricky though since it means we're always using our own rsync, ssh, etc.
   // Maybe we should divide this into two paths.
-  let PATH = `${HOME}/bin:${HOME}/.local/bin:${COCALC_BIN}:${COCALC_SRC}/packages/backend/node_modules/.bin:${imageEnv.PATH ? imageEnv.PATH + ":" : ""}/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`;
+  let PATH = `${HOME}/bin:${HOME}/.local/bin:${COCALC_BIN}:${COCALC_BIN2}:${COCALC_SRC}/packages/backend/node_modules/.bin:${imageEnv.PATH ? imageEnv.PATH + ":" : ""}/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`;
   const already = new Set<string>();
   const w: string[] = [];
   for (const segment of PATH.split(":")) {

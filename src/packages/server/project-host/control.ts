@@ -22,13 +22,14 @@ type ProjectMeta = {
   host_id?: string;
   host?: any;
   authorized_keys?: string;
+  run_quota?: any;
 };
 
 const pool = () => getPool();
 
 async function loadProject(project_id: string): Promise<ProjectMeta> {
   const { rows } = await pool().query(
-    "SELECT title, users, rootfs_image as image, host_id, host FROM projects WHERE project_id=$1",
+    "SELECT title, users, rootfs_image as image, host_id, host, run_quota FROM projects WHERE project_id=$1",
     [project_id],
   );
   if (!rows[0]) throw Error(`project ${project_id} not found`);
@@ -106,6 +107,7 @@ async function ensurePlacement(project_id: string): Promise<HostPlacement> {
     image: meta.image,
     start: true,
     authorized_keys: meta.authorized_keys,
+    run_quota: meta.run_quota,
   });
 
   const placement: HostPlacement = {
@@ -132,6 +134,7 @@ export async function startProjectOnHost(project_id: string): Promise<void> {
     await client.startProject({
       project_id,
       authorized_keys: meta.authorized_keys,
+      run_quota: meta.run_quota,
     });
   } catch (err) {
     log.warn("startProjectOnHost failed", { project_id, host: placement, err });

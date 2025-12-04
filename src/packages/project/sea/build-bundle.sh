@@ -127,8 +127,8 @@ if [ -d "$OUT"/build ]; then
 fi
 
 echo "- Copy project bin scripts"
-mkdir -p "$OUT"/src/packages/cocalc-project
-cp -r packages/project/bin "$OUT"/src/packages/cocalc-project/
+mkdir -p "$OUT"/src/packages/project
+cp -r packages/project/bin "$OUT"/src/packages/project/
 
 echo "- Copy backend tool binaries"
 BACKEND_BIN="packages/backend/node_modules/.bin"

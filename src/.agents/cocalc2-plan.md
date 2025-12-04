@@ -138,7 +138,8 @@ flowchart LR
 
 ## Details to not forget
 
-- memory quota: i think that was set on the pod; I don't see it being set now at all
+- [ ] #now memory quota: i think that was set on the pod; I don't see it being set now at all
+  - run\_quota
 - set the container hostname
 - looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route\-project.ts; this MUST get fixed or everything will be broken/flakie at first.  Solution is make some options to conat/core/client be a promise optionally and delay the connection.
 - need to rewrite everything in the frontend involving the project runner directly; in particular, see src/packages/frontend/projects/actions.ts
@@ -153,6 +154,8 @@ flowchart LR
 - #security: src/packages/server/conat/route\-client.ts currently gives away the master hosts secret auth to any project\-host, which of course isn't good.
 - eliminate this: src/packages/conat/project/runner/load\-balancer.ts
 - eliminate /src/packages/project\-proxy/container.ts, in process rewriting /src/packages/project\-proxy/proxy.ts to take a function to get port as input
+- eliminate payg entirely for projects
+- 
 
 ## Completed
 

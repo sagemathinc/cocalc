@@ -14,6 +14,7 @@ export interface HostCreateProjectRequest extends CreateProjectOptions {
   start?: boolean;
   users?: any;
   authorized_keys?: string;
+  run_quota?: any;
 }
 
 export interface HostCreateProjectResponse {
@@ -28,6 +29,7 @@ export interface HostControlApi {
   startProject: (opts: {
     project_id: string;
     authorized_keys?: string;
+    run_quota?: any;
   }) => Promise<HostCreateProjectResponse>;
   stopProject: (opts: { project_id: string }) => Promise<HostCreateProjectResponse>;
   updateAuthorizedKeys: (opts: {

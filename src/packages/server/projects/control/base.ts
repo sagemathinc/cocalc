@@ -37,7 +37,10 @@ import { query } from "@cocalc/database/postgres/query";
 import { getProjectSecretToken } from "./secret-token";
 import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
 import { conat } from "@cocalc/backend/conat";
-
+import {
+  startProjectOnHost,
+  stopProjectOnHost,
+} from "@cocalc/server/project-host/control";
 export type { ProjectState, ProjectStatus };
 
 const logger = getLogger("project-control");
@@ -155,18 +158,19 @@ export class BaseProject extends EventEmitter {
   };
 
   start = async (): Promise<void> => {
-    const runner = this.projectRunner();
-    await runner.start({ project_id: this.project_id });
+    await this.computeQuota();
+    await startProjectOnHost(this.project_id);
   };
 
-  save = async (opts?): Promise<void> => {
-    const runner = this.projectRunner();
-    await runner.save({ project_id: this.project_id, ...opts });
+  save = async (): Promise<void> => {
+    // no-op
   };
 
   stop = async ({ force }: { force?: boolean } = {}): Promise<void> => {
-    const runner = this.projectRunner();
-    await runner.stop({ project_id: this.project_id, force });
+    if (force) {
+      logger.debug("stop -- TODO -- force not implemented");
+    }
+    await stopProjectOnHost(this.project_id);
   };
 
   restart = async (): Promise<void> => {

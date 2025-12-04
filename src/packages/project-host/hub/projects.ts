@@ -15,8 +15,56 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { writeManagedAuthorizedKeys, getVolume } from "../file-server";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
+import type { Configuration } from "@cocalc/conat/project/runner/types";
 
 const logger = getLogger("project-host:hub:projects");
+const MB = 1_000_000;
+const DEFAULT_PID_LIMIT = 4096;
+
+function normalizeRunQuota(run_quota?: any): any | undefined {
+  if (run_quota == null) return undefined;
+  if (typeof run_quota === "string") {
+    try {
+      return JSON.parse(run_quota);
+    } catch {
+      return undefined;
+    }
+  }
+  if (typeof run_quota === "object") {
+    return run_quota;
+  }
+  return undefined;
+}
+
+function runnerConfigFromQuota(run_quota?: any): Partial<Configuration> {
+  const limits: Partial<Configuration> = {};
+  if (!run_quota) return limits;
+
+  if (run_quota.cpu_limit != null) {
+    limits.cpu = run_quota.cpu_limit;
+  }
+
+  if (run_quota.memory_limit != null) {
+    const memory = Math.floor(run_quota.memory_limit * MB);
+    limits.memory = memory;
+    limits.tmp = Math.floor(memory / 2);
+    limits.swap = true;
+  }
+
+  if (run_quota.pids_limit != null) {
+    limits.pids = run_quota.pids_limit;
+  } else {
+    limits.pids = DEFAULT_PID_LIMIT;
+  }
+
+  if (run_quota.disk_quota != null) {
+    const disk = Math.floor(run_quota.disk_quota * MB);
+    limits.disk = disk;
+    limits.scratch = disk;
+  }
+
+  return limits;
+}
 
 let cachedProxyKey: string | undefined;
 async function getSshProxyPublicKey(): Promise<string | undefined> {
@@ -83,6 +131,15 @@ function ensureProjectRow({
     updated_at: now,
     last_seen: now,
   };
+  const run_quota = normalizeRunQuota((opts as any)?.run_quota);
+  if (run_quota) {
+    row.run_quota = run_quota;
+    if (run_quota.disk_quota != null) {
+      const disk = Math.floor(run_quota.disk_quota * MB);
+      row.disk = disk;
+      row.scratch = disk;
+    }
+  }
   if (http_port !== undefined) {
     row.http_port = http_port;
   }
@@ -120,11 +177,21 @@ async function getRunnerConfig(
   const existing = getProject(project_id);
   const authorized_keys =
     (opts as any)?.authorized_keys ?? existing?.authorized_keys;
+  const run_quota = normalizeRunQuota(
+    (opts as any)?.run_quota ?? (existing as any)?.run_quota,
+  );
+  const limits = runnerConfigFromQuota(run_quota);
+  const disk = limits.disk ?? existing?.disk;
+  const scratch = limits.scratch ?? existing?.scratch;
   const ssh_proxy_public_key = await getSshProxyPublicKey();
   return {
     image: normalizeImage(opts?.image ?? existing?.image),
     authorized_keys,
     ssh_proxy_public_key,
+    run_quota,
+    ...limits,
+    disk,
+    scratch,
   };
 }
 
@@ -187,17 +254,19 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
   hubApi.projects.start = async ({
     project_id,
     authorized_keys,
+    run_quota,
   }: {
     project_id: string;
     authorized_keys?: string;
+    run_quota?: any;
   }): Promise<void> => {
     const status = await runnerApi.start({
       project_id,
-      config: await getRunnerConfig(project_id, { authorized_keys }),
+      config: await getRunnerConfig(project_id, { authorized_keys, run_quota }),
     });
     ensureProjectRow({
       project_id,
-      opts: { authorized_keys },
+      opts: { authorized_keys, run_quota },
       state: status?.state ?? "running",
       http_port: (status as any)?.http_port,
       ssh_port: (status as any)?.ssh_port,

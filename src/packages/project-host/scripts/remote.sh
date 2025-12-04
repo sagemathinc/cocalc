@@ -1,6 +1,7 @@
 # Useful setup on laptop:
-# reflect-sync forward create root@35.212.165.34:9001 localhost:9001
-# reflect-sync forward create localhost:9004 root@35.212.165.34:9004
+# reflect forward create remote:9001 localhost:9001
+# reflect forward create localhost:9004 remote:9004
+# reflect forward create localhost:2224 remote:2224
 
 export PORT=9004
 export MASTER_CONAT_SERVER=http://localhost:9001

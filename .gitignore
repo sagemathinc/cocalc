@@ -195,3 +195,5 @@ g2
 g-lite
 scratch
 patchflow
+*.pid
+*.chat
