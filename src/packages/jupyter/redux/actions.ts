@@ -109,6 +109,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.path = path;
     store.syncdb = syncdb;
     this.syncdb = syncdb;
+    this.syncdb.init_ipywidgets();
     this.is_project = client.is_project();
     this.is_compute_server = client.is_compute_server();
 

@@ -157,7 +157,7 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.once("ready", () => {
       const ipywidgets_state = this.syncdb.ipywidgets_state;
       if (ipywidgets_state == null) {
-        throw Error("bug -- ipywidgets_state must be defined");
+        throw Error("bug -- ipywidgets_state must be defined (browser-actions)");
       }
       this.widget_manager = new WidgetManager({
         ipywidgets_state: ipywidgets_state!,

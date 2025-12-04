@@ -1105,7 +1105,6 @@ export class SyncDoc extends EventEmitter {
     await Promise.all([
       this.init_cursors(),
       this.init_evaluator(),
-      this.init_ipywidgets(),
       this.initFileWatcherFirstTime(),
     ]);
     this.assert_not_closed(
@@ -1339,13 +1338,11 @@ export class SyncDoc extends EventEmitter {
     dbg("done");
   };
 
-  private init_ipywidgets = async () => {
-    const dbg = this.dbg("init_evaluator");
-    const ext = filename_extension(this.path);
-    if (ext != JUPYTER_SYNCDB_EXTENSIONS) {
-      dbg("done -- only use ipywidgets for jupyter");
+  init_ipywidgets = reuseInFlight(async () => {
+    if (this.ipywidgets_state != null) {
       return;
     }
+    const dbg = this.dbg("init_evaluator");
     dbg("creating the ipywidgets state table, and waiting for init");
     this.ipywidgets_state = new IpywidgetsState(
       this,
@@ -1354,7 +1351,7 @@ export class SyncDoc extends EventEmitter {
     );
     await this.ipywidgets_state.init();
     dbg("done");
-  };
+  });
 
   private init_cursors = async () => {
     const dbg = this.dbg("init_cursors");
