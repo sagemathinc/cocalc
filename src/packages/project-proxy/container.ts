@@ -43,7 +43,6 @@ const APPS = [
   "dust",
   "rustic",
   "ouch",
-  "reflect-sync",
 ] as const;
 const Dockerfile = `
 FROM docker.io/ubuntu:25.10
@@ -377,7 +376,7 @@ export async function terminateAllIdle({
   minAge = 15_000,
 }: { minAge?: number } = {}) {
   const parseStartedAt = (val: string): number | null => {
-    // podman outputs either a unix timestamp (seconds) or an ISO 
+    // podman outputs either a unix timestamp (seconds) or an ISO
     // string depending on version, so we make sure we can parse either
     // rather than hoping things are what we expect.
     if (/^\d+$/.test(val)) {

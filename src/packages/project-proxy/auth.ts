@@ -2,7 +2,6 @@ import express from "express";
 import ssh from "micro-key-producer/ssh.js";
 import { randomBytes } from "micro-key-producer/utils.js";
 import { once } from "node:events";
-import * as container from "./container";
 import { secureRandomString } from "@cocalc/backend/misc";
 import getLogger from "@cocalc/backend/logger";
 import { secretsPath } from "./ssh-server";
@@ -28,8 +27,6 @@ export async function init({
   port?: number;
 }) {
   logger.debug("init");
-
-  container.init();
 
   base_url ??= encodeURIComponent(
     await secureRandomString(SECRET_TOKEN_LENGTH),

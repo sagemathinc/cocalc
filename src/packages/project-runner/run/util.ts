@@ -1,18 +1,13 @@
 import { join } from "node:path";
 import { copyFile, mkdir, rm, stat, writeFile } from "node:fs/promises";
-import { packageDirectory } from "package-directory";
 import getLogger from "@cocalc/backend/logger";
 import { dataPath, secretTokenPath } from "./env";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
+import { root } from "@cocalc/backend/data";
 
 const logger = getLogger("project-runner:util");
 
-let root: string | undefined = undefined;
 export async function ensureConfFilesExists(HOME: string): Promise<void> {
-  root ??= await packageDirectory({ cwd: __dirname });
-  if (!root) {
-    throw Error("unable to determine package root");
-  }
   for (const path of ["bashrc", "bash_profile"]) {
     const target = join(HOME, `.${path}`);
     try {

@@ -36,9 +36,11 @@ const logger = getLogger("files:sandbox:install");
 
 const pkgDir = packageDirectorySync(__dirname) ?? "";
 
-const binPath = join(pkgDir, "node_modules", ".bin");
+const binPath = pkgDir
+  ? join(pkgDir, "node_modules", ".bin")
+  : process.env.COCALC_BIN_PATH || "/tmp";
 
-logger.debug({ binPath });
+logger.debug({ pkgDir, binPath, COCALC_BIN_PATH: process.env.COCALC_BIN_PATH });
 
 interface Spec {
   nonFatal?: boolean; // true if failure to install is non-fatal
@@ -255,11 +257,11 @@ to make a binary with that version
       return `curl -L https://github.com/sagemathinc/bees-binaries/releases/download/${SPEC.bees.VERSION}/${name}.tar.xz | tar -xJ -C ${binPath} --strip-components=2 ${name}/bin/bees`;
     },
   },
-  "reflect-sync": {
-    optional: true,
-    binary: "reflect-sync",
-    path: join(binPath, "reflect-sync"),
-  },
+  //   "reflect-sync": {
+  //     optional: true,
+  //     binary: "reflect-sync",
+  //     path: join(binPath, "reflect-sync"),
+  //   },
 };
 
 export const rg = SPEC.rg.path;
@@ -338,10 +340,10 @@ export async function install(
   app?: App,
   { optional }: { optional?: boolean } = {},
 ) {
+  if (!(await exists(binPath))) {
+    await mkdir(binPath, { recursive: true });
+  }
   if (app == null) {
-    if (!(await exists(binPath))) {
-      await mkdir(binPath, { recursive: true });
-    }
     // @ts-ignore
     await Promise.all(
       Object.keys(SPEC)
@@ -365,7 +367,11 @@ export async function install(
   try {
     if (script != null) {
       const s = script();
-      console.log(s);
+      console.log(`Running '${s}' in ${process.cwd()}`);
+      if (!(await exists(process.cwd()))) {
+        await mkdir(process.cwd(), { recursive: true });
+      }
+
       try {
         execSync(s);
       } catch (err) {

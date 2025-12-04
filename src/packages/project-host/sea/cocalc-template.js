@@ -49,9 +49,9 @@ function extractAssetsSync() {
       process.exit(child.status);
     }
 
-    console.log("Assets ready at:", destDir);
     fs.writeFileSync(stamp, "");
   }
+  console.log("Assets ready at:", destDir);
   return destDir;
 }
 
@@ -93,11 +93,11 @@ if (path.basename(process.argv[1]) == "node") {
 
   process.chdir(path.dirname(script));
   process.argv = [process.execPath, script, ...process.argv.slice(2)];
+  process.env.COCALC_BIN_PATH = path.join(destDir, `src/packages/${name}/bin/`);
+  console.log(process.env.COCALC_BIN_PATH);
 
   process.env.PATH =
-    path.join(destDir, `src/packages/${name}/bin/`) +
-    path.delimiter +
-    process.env.PATH;
+    process.env.COCALC_BIN_PATH + path.delimiter + process.env.PATH;
 
   process.env.AUTH_TOKEN ??= "random";
 }

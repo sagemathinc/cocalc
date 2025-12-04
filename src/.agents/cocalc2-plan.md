@@ -1,13 +1,12 @@
 ## Checklist (near term)
 
-
 - [ ] SEA binary for running project\-host:
   - [ ] include binaries
   - [ ] allow user to select where project is hosted for easier testing \(could be hidden dev feature\)
 
 - [ ] Btrfs Snapshots
-  - [ ] the $HOME/.snapshots directory does not exist
-  - [ ] creating snapshots fails with this error: "request -- no subscribers matching 'file-server' - callHub: subject='hub.account.d0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb.api', name='projects.createSnapshot', code='503'"
+  - [ ] the \$HOME/.snapshots directory does not exist
+  - [ ] creating snapshots fails with this error: "request \-\- no subscribers matching 'file\-server' \- callHub: subject='hub.account.d0bdabfd\-850e\-4c8d\-8510\-f6f1ecb9a5eb.api', name='projects.createSnapshot', code='503'"
 
 - [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project\-host hub/conat services.
   - Issue short\-lived signed tokens \(project\_id \+ perms \+ exp\) from master when opening a project; browser uses them to open `wss://<host>/conat` directly. Hosts validate tokens locally.
@@ -25,6 +24,8 @@
 - [ ] Proxy ingress: project\-proxy base\-path TODO; SSH/HTTP ingress for hidden/on\-prem hosts; keep optional but available.
 
 - [ ] Compute/plus alignment: treat compute servers as user\-scoped project\-hosts with reflect\-sync subset sharing; API for spinning up temporary hosts; drop project\_id column from compute\_servers in favor of host auth/ACL.
+
+- [ ] Fallback File\-server that doesn't require btrfs \(no snapshots or quotas\).  This would make it possible to support running the entire project\-host purely in userspace \(with podman\) on both Linux and MacOS.
 
 ## CoCalc New Architecture Plan (federated project-hosts + proxy)
 
@@ -139,21 +140,21 @@ flowchart LR
 
 - memory quota: i think that was set on the pod; I don't see it being set now at all
 - set the container hostname
-- looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route-project.ts; this MUST get fixed or everything will be broken/flakie at first.  Solution is make some options to conat/core/client be a promise optionally and delay the connection.
+- looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route\-project.ts; this MUST get fixed or everything will be broken/flakie at first.  Solution is make some options to conat/core/client be a promise optionally and delay the connection.
 - need to rewrite everything in the frontend involving the project runner directly; in particular, see src/packages/frontend/projects/actions.ts
   - cloning projects
   - moving projects
 - need to ensure any backend code that uses projects no longer users runners \(e.g., supporting api\)
 - There are api calls/functions for things like "execute code on project" \-\- these will need to send a message to the relevant project\-host and back.
 - Project activity \-\- when project is being used, etc. \-\- needs to get updated regularly from the project host to master.
-- Right now project-hosts allow users to directly create projects on them, which should not be allowed.  Even worse, user can specify the project_id, which is a major security issues.  See src/packages/project-host/hub/projects.ts
-- When setting a project we always add the default cocalc-lite account so we can keep things working: "      // [ ] TODO -- for now we always included the default user; this is obviously temporary"
+- Right now project\-hosts allow users to directly create projects on them, which should not be allowed.  Even worse, user can specify the project\_id, which is a major security issues.  See src/packages/project\-host/hub/projects.ts
+- When setting a project we always add the default cocalc\-lite account so we can keep things working: "      // [ ] TODO \-\- for now we always included the default user; this is obviously temporary"
 - Any backend/api stuff has to be updated to use the same conat routing functionality... or maybe we just use a proxy.
-- #security: src/packages/server/conat/route-client.ts currently gives away the master hosts secret auth to any project-host, which of course isn't good.
-- eliminate this: src/packages/conat/project/runner/load-balancer.ts
+- #security: src/packages/server/conat/route\-client.ts currently gives away the master hosts secret auth to any project\-host, which of course isn't good.
+- eliminate this: src/packages/conat/project/runner/load\-balancer.ts
+- eliminate /src/packages/project\-proxy/container.ts, in process rewriting /src/packages/project\-proxy/proxy.ts to take a function to get port as input
 
 ## Completed
-
 
   - [x] ssh to project
     - [x] load ssh keys on project creation \(showing that authorized\_keys column works\)

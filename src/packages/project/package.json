@@ -66,7 +66,7 @@
     "build:bundle": "cd sea && ./build-bundle.sh",
     "build:tarball": "pnpm run build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
     "run:bundle": "node ./build/bundle/bundle/index.js",
-    "build:sea": "cd sea && ./build-sea.sh",
+    "sea": "pnpm build:tarball && cd sea && ./build-sea.sh",
     "build:all": "pnpm build && pnpm build:tarball && pnpm build:sea"
   },
   "author": "SageMath, Inc.",
