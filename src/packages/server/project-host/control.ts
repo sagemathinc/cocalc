@@ -2,6 +2,7 @@ import getLogger from "@cocalc/backend/logger";
 import { conat } from "@cocalc/backend/conat";
 import getPool from "@cocalc/database/pool";
 import { createHostControlClient } from "@cocalc/conat/project-host/api";
+import sshKeys from "../projects/get-ssh-keys";
 
 const log = getLogger("server:project-host:control");
 
@@ -20,6 +21,7 @@ type ProjectMeta = {
   image?: string;
   host_id?: string;
   host?: any;
+  authorized_keys?: string;
 };
 
 const pool = () => getPool();
@@ -30,7 +32,11 @@ async function loadProject(project_id: string): Promise<ProjectMeta> {
     [project_id],
   );
   if (!rows[0]) throw Error(`project ${project_id} not found`);
-  return rows[0];
+  const keys = await sshKeys(project_id);
+  const authorized_keys = Object.values(keys)
+    .map((k: any) => k.value)
+    .join("\n");
+  return { ...rows[0], authorized_keys };
 }
 
 async function loadHostFromRegistry(host_id: string) {
@@ -99,6 +105,7 @@ async function ensurePlacement(project_id: string): Promise<HostPlacement> {
     users: meta.users,
     image: meta.image,
     start: true,
+    authorized_keys: meta.authorized_keys,
   });
 
   const placement: HostPlacement = {

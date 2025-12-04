@@ -39,12 +39,14 @@ function ensureProjectRow({
   state = "stopped",
   http_port,
   ssh_port,
+  authorized_keys,
 }: {
   project_id: string;
   opts?: CreateProjectOptions;
   state?: string;
   http_port?: number;
   ssh_port?: number;
+  authorized_keys?: string;
 }) {
   logger.debug("ensureProjectRow", { project_id, opts, state });
   const now = Date.now();
@@ -59,6 +61,9 @@ function ensureProjectRow({
   }
   if (ssh_port !== undefined) {
     row.ssh_port = ssh_port;
+  }
+  if (authorized_keys !== undefined) {
+    row.authorized_keys = authorized_keys;
   }
     if (opts) {
       const title = opts.title?.trim();
@@ -94,7 +99,12 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
         ? opts.project_id
         : uuid();
 
-    ensureProjectRow({ project_id, opts, state: "stopped" });
+    ensureProjectRow({
+      project_id,
+      opts,
+      state: "stopped",
+      authorized_keys: (opts as any).authorized_keys,
+    });
 
     if (opts.start) {
       const status = await runnerApi.start({

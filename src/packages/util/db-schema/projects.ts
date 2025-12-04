@@ -758,6 +758,9 @@ export interface CreateProjectOptions {
   description?: string;
   // (optional) image ID
   image?: string;
+  // Optional concatenated SSH public keys (one per line) provided by the master;
+  // combined with the project's own ~/.ssh/authorized_keys when serving SSH via project-host.
+  authorized_keys?: string;
   rootfs_image?: string;
   // (optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license
   license?: string;

@@ -13,6 +13,7 @@ export interface HostCreateProjectRequest extends CreateProjectOptions {
   project_id?: string;
   start?: boolean;
   users?: any;
+  authorized_keys?: string;
 }
 
 export interface HostCreateProjectResponse {

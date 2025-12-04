@@ -10,6 +10,10 @@
    - [x] Uploading and downloading images and files over http; used e.g., for the latext editor to look at the pages.   This is a feature of the web server, which is fully implemented in packages/hub/ and certainly in packages/lite, and probably is easy to just enable, hopefully.  The files are read/written streamed over conat.
    - [x] Similar issue -- proxying of http to the project doesn't work yet, e.g., so can run jupyterlab, vscode, etc.  Need to look up project's host and proxy that way.
    - [ ] ssh to project
+      - load ssh keys on project start
+      - write .ssh/.cocalc/sshd/authorized_keys from sshpiperd config
+      - get it to work
+      - update ssh on project-host when they change in master
    - [ ] Jupyter -- attempting to start shows this error "Error: syncdb's ipywidgets_state must be defined!"
 - [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project-host hub/conat services.
 - [ ] Runner networking: keep non-host networking but guarantee containers can reach the host conat endpoint; consider explicit hostfwd mode if we ever bind conat to loopback only.
@@ -132,6 +136,7 @@ flowchart LR
 
 ## Details to not forget
 
+- memory quota: i think that was set on the pod; I don't see it being set now at all
 - looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route-project.ts; this MUST get fixed or everything will be broken/flakie at first.  Solution is make some options to conat/core/client be a promise optionally and delay the connection.
 - need to rewrite everything in the frontend involving the project runner directly; in particular, see src/packages/frontend/projects/actions.ts
   - cloning projects
