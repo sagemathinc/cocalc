@@ -13,7 +13,8 @@ import { reportProjectStateToMaster } from "../master-status";
 import { secretsPath as sshProxySecretsPath } from "@cocalc/project-proxy/ssh-server";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { writeManagedAuthorizedKeys } from "../file-server";
+import { writeManagedAuthorizedKeys, getVolume } from "../file-server";
+import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 
 const logger = getLogger("project-host:hub:projects");
 
@@ -232,5 +233,50 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
       throw Error("invalid project_id");
     }
     await refreshAuthorizedKeys(project_id, authorized_keys ?? "");
+  };
+
+  hubApi.projects.getSshKeys = async ({
+    project_id,
+  }: {
+    project_id: string;
+  }): Promise<string[]> => {
+    if (!isValidUUID(project_id)) {
+      throw Error("invalid project_id");
+    }
+
+    const keys = new Set<string>();
+
+    // Keys persisted from the master (account + project keys).
+    const row = getProject(project_id);
+    if (row?.authorized_keys) {
+      for (const line of row.authorized_keys.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (trimmed) keys.add(trimmed);
+      }
+    }
+
+    // Keys present inside the project filesystem (managed + user).
+    try {
+      const { path } = await getVolume(project_id);
+      const managed = join(path, INTERNAL_SSH_CONFIG, "authorized_keys");
+      const user = join(path, ".ssh", "authorized_keys");
+      for (const candidate of [managed, user]) {
+        try {
+          const content = (await readFile(candidate, "utf8")).trim();
+          if (!content) continue;
+          for (const line of content.split(/\r?\n/)) {
+            const trimmed = line.trim();
+            if (trimmed) keys.add(trimmed);
+          }
+        } catch {}
+      }
+    } catch (err) {
+      logger.debug("getSshKeys: failed to read filesystem keys", {
+        project_id,
+        err: `${err}`,
+      });
+    }
+
+    return Array.from(keys);
   };
 }
