@@ -38,6 +38,8 @@ const pkgDir = packageDirectorySync(__dirname) ?? "";
 
 const binPath = join(pkgDir, "node_modules", ".bin");
 
+logger.debug({ binPath });
+
 interface Spec {
   nonFatal?: boolean; // true if failure to install is non-fatal
   VERSION?: string;
