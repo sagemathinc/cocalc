@@ -93,13 +93,8 @@ export async function main(
     httpServer,
     app,
     resolveTarget: (req) => {
-      const url = req.url ?? "";
-      const parts = url.split("/");
-      const project_id = parts[1];
-      const type = parts[2];
-      if (!project_id || !type) {
-        return { handled: false };
-      }
+      const project_id = req.url?.split("/")[1];
+      if (!project_id) return { handled: false };
       const { http_port } = getProjectPorts(project_id);
       if (!http_port) {
         throw new Error(`no http_port recorded for project ${project_id}`);

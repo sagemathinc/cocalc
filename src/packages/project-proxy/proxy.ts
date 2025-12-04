@@ -1,4 +1,5 @@
 import * as http from "node:http";
+import type { Socket } from "node:net";
 import httpProxy from "http-proxy-3";
 import type express from "express";
 import { getLogger } from "@cocalc/backend/logger";
@@ -116,7 +117,7 @@ export function createProxyHandlers({
 
   const handleUpgrade = async (
     req: http.IncomingMessage,
-    socket: http.Socket,
+    socket: Socket,
     head: Buffer,
   ) => {
     try {
@@ -164,6 +165,8 @@ export function attachProjectProxy({
   });
 
   app.use(async (req, res, next) => {
+    // Only proxy URLs that start with a project UUID segment.
+    if (!parseProjectId(req.url)) return next();
     try {
       const { target, handled } = await resolveTarget(req);
       logger.debug("resolveTarget", { url: req.url, handled, target });
@@ -179,6 +182,8 @@ export function attachProjectProxy({
   });
 
   httpServer.prependListener("upgrade", async (req, socket, head) => {
+    // Only proxy project-scoped websocket upgrades.
+    if (!parseProjectId(req.url)) return;
     try {
       const { target, handled } = await resolveTarget(req);
       if (!handled || !target) {
