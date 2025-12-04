@@ -37,12 +37,17 @@ function extractProjectId(subject: string): string | undefined {
 }
 
 function cacheHost(project_id: string, host?: any) {
-  const address = host?.internal_url ?? host?.public_url ?? host;
-  if (address) {
-    cache.set(project_id, address);
-  } else {
-    cache.delete(project_id);
+  let address: string | undefined;
+  if (typeof host === "string") {
+    address = host;
+  } else if (host && typeof host === "object") {
+    address = host.internal_url ?? host.public_url;
   }
+  if (!address) {
+    cache.delete(project_id);
+    return;
+  }
+  cache.set(project_id, address);
 }
 
 async function fetchHostAddress(project_id: string): Promise<string | undefined> {
