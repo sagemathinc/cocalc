@@ -3,7 +3,7 @@
 // without having to run that project.
 
 import { join } from "node:path";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import {
   server as createFileServer,
   client as createFileClient,
@@ -24,6 +24,8 @@ import { type MutagenSyncSession } from "@cocalc/conat/project/mutagen/types";
 import { fsServer, DEFAULT_FILE_SERVICE } from "@cocalc/conat/files/fs";
 import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 import { isValidUUID } from "@cocalc/util/misc";
+import { getProject } from "./sqlite/projects";
+import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 
 const logger = getLogger("project-host:file-server");
 
@@ -387,17 +389,42 @@ export async function initFileServer({
   let ssh: any = { close: () => {}, projectProxyHandlers: [] };
   if (enableSsh) {
     const getSshdPort = (project_id: string) => {
-      // TODO -- get port from sqlite projects table or return null
-      console.log(project_id);
-      return 22;
+      const row = getProject(project_id);
+      return row?.ssh_port ?? null;
     };
     const getAuthorizedKeys = async (project_id: string): Promise<string> => {
-      console.log(project_id);
-      // TODO -- combine authorized_keys from sqlite projects table with
-      // keys in the filesystem -- use
-      //    const { path } = await c.mount({ project_id });
-      // to get the path to the project home directory.
-      return "";
+      const keys: string[] = [];
+
+      // Keys provided by the master (account + project keys), persisted locally.
+      const row = getProject(project_id);
+      if (row?.authorized_keys) {
+        const trimmed = row.authorized_keys.trim();
+        if (trimmed) {
+          keys.push(trimmed);
+        }
+      }
+
+      // Keys present inside the project filesystem.
+      try {
+        const { path } = await mount({ project_id });
+        const managed = join(path, INTERNAL_SSH_CONFIG, "authorized_keys");
+        const user = join(path, ".ssh", "authorized_keys");
+        for (const candidate of [managed, user]) {
+          try {
+            const content = (await readFile(candidate, "utf8")).trim();
+            if (content) {
+              keys.push(content);
+            }
+          } catch {}
+        }
+      } catch (err) {
+        logger.debug("failed to read filesystem keys", {
+          project_id,
+          err: `${err}`,
+        });
+      }
+
+      return keys.join("\n");
     };
     ssh = await initSshServer({
       proxyHandlers: true,
