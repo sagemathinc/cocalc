@@ -95,12 +95,20 @@ export type X11Event = {
   path: string;
 };
 
-export type CollaboratorEvent = {
-  event: "invite_user" | "invite_nonuser" | "remove_collaborator";
-  invitee_account_id?: string;
-  invitee_email?: string;
-  removed_name?: string;
-};
+export type CollaboratorEvent =
+  | {
+      event: "invite_user" | "invite_nonuser" | "remove_collaborator";
+      invitee_account_id?: string;
+      invitee_email?: string;
+      removed_name?: string;
+    }
+  | {
+      event: "change_collaborator_type";
+      target_account_id: string;
+      target_name?: string;
+      old_group: "owner" | "collaborator";
+      new_group: "owner" | "collaborator";
+    };
 
 export type UpgradeEvent = {
   event: "upgrade";

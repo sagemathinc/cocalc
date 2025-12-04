@@ -41,6 +41,8 @@ import type {
 } from "@cocalc/util/db-schema/projects";
 export type { Datastore, EnvVars, EnvVarsRecord };
 
+// cSpell:ignore replyto collabs noncloud Payg
+
 // Define projects actions
 export class ProjectsActions extends Actions<ProjectsState> {
   private getProjectTable = async () => {
@@ -426,7 +428,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       license: undefined,
     });
     if (!opts2.image) {
-      // make falseish same as not specified.
+      // make false-ish same as not specified.
       delete opts2.image;
     }
 
@@ -648,6 +650,36 @@ export class ProjectsActions extends Actions<ProjectsState> {
     } catch (err) {
       const message = `Error removing ${removed_name} from project ${project_id} -- ${err}`;
       alert_message({ type: "error", message });
+    }
+  }
+
+  public async change_user_type(
+    project_id: string,
+    target_account_id: string,
+    new_group: "owner" | "collaborator",
+  ): Promise<void> {
+    const old_group = store
+      .getIn(["project_map", project_id, "users", target_account_id, "group"])
+      ?.toString() as "owner" | "collaborator" | undefined;
+    const target_name = redux.getStore("users").get_name(target_account_id);
+    try {
+      await webapp_client.project_collaborators.change_user_type({
+        project_id,
+        target_account_id,
+        new_group,
+      });
+      // Log AFTER successful change
+      await this.redux.getProjectActions(project_id).async_log({
+        event: "change_collaborator_type",
+        target_account_id,
+        target_name,
+        old_group: (old_group ?? new_group) as "owner" | "collaborator",
+        new_group,
+      });
+    } catch (err) {
+      const message = `Error changing ${target_name} to ${new_group} in project ${project_id} -- ${err}`;
+      alert_message({ type: "error", message });
+      throw err;
     }
   }
 
@@ -1050,7 +1082,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     await this.start_project(project_id, options);
   };
 
-  // Explcitly set whether or not project is hidden for the given account
+  // Explicitly set whether or not project is hidden for the given account
   // (hide=true means hidden)
   public async set_project_hide(
     account_id: string,

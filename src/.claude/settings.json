@@ -13,6 +13,7 @@
       "Bash(gh pr view:*)",
       "Bash(gh:*)",
       "Bash(git add:*)",
+      "Bash(git grep:*)",
       "Bash(git branch:*)",
       "Bash(git checkout:*)",
       "Bash(git commit:*)",

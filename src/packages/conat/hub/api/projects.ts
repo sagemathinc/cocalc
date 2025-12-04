@@ -1,6 +1,7 @@
 import { authFirstRequireAccount } from "./util";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
 import { type UserCopyOptions } from "@cocalc/util/db-schema/projects";
+import { type UserGroup } from "@cocalc/util/project-ownership";
 
 export const projects = {
   createProject: authFirstRequireAccount,
@@ -9,6 +10,7 @@ export const projects = {
   addCollaborator: authFirstRequireAccount,
   inviteCollaborator: authFirstRequireAccount,
   inviteCollaboratorWithoutAccount: authFirstRequireAccount,
+  changeUserType: authFirstRequireAccount,
   setQuotas: authFirstRequireAccount,
   start: authFirstRequireAccount,
   stop: authFirstRequireAccount,
@@ -84,6 +86,18 @@ export interface Projects {
       to: string;
       email: string; // body in HTML format
       subject?: string;
+    };
+  }) => Promise<void>;
+
+  changeUserType: ({
+    account_id,
+    opts,
+  }: {
+    account_id?: string;
+    opts: {
+      project_id: string;
+      target_account_id: string;
+      new_group: UserGroup;
     };
   }) => Promise<void>;
 

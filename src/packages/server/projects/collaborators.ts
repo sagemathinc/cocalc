@@ -19,8 +19,69 @@ import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import { is_paying_customer } from "@cocalc/database/postgres/account-queries";
 import { project_has_network_access } from "@cocalc/database/postgres/project-queries";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
+import {
+  type UserGroup,
+  validateUserTypeChange,
+  OwnershipErrorCode,
+} from "@cocalc/util/project-ownership";
+import { query } from "@cocalc/database/postgres/query";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 const logger = getLogger("project:collaborators");
+
+export class OwnershipError extends Error {
+  code: OwnershipErrorCode;
+  constructor(message: string, code: OwnershipErrorCode) {
+    super(message);
+    this.name = "OwnershipError";
+    this.code = code;
+  }
+}
+
+/**
+ * Helper function to check if a user can manage collaborators based on the
+ * manage_users_owner_only setting.
+ *
+ * @throws {OwnershipError} If the project is not found or the user is not allowed to manage collaborators
+ */
+async function ensureCanManageCollaborators(opts: {
+  project_id: string;
+  account_id: string;
+  database?: any;
+}): Promise<void> {
+  const { project_id, account_id, database = db() } = opts;
+  const serverSettings = await getServerSettings();
+  const siteEnforced = !!serverSettings.strict_collaborator_management;
+
+  const project = await query({
+    db: database,
+    table: "projects",
+    select: ["users", "manage_users_owner_only"],
+    where: { project_id },
+    one: true,
+  });
+
+  if (!project) {
+    throw new OwnershipError(
+      "Project not found",
+      OwnershipErrorCode.INVALID_PROJECT_STATE,
+    );
+  }
+
+  const manage_users_owner_only = project.manage_users_owner_only ?? false;
+  const requesting_user_group = project.users?.[account_id]?.group as
+    | UserGroup
+    | undefined;
+
+  const restrictToOwners = siteEnforced || manage_users_owner_only;
+
+  if (restrictToOwners && requesting_user_group !== "owner") {
+    throw new OwnershipError(
+      "Only owners can manage collaborators when this setting is enabled",
+      OwnershipErrorCode.NOT_OWNER,
+    );
+  }
+}
 
 export async function removeCollaborator({
   account_id,
@@ -28,13 +89,49 @@ export async function removeCollaborator({
 }: {
   account_id: string;
   opts: {
-    account_id;
-    project_id;
+    account_id: string;
+    project_id: string;
   };
 }): Promise<void> {
   if (!(await isCollaborator({ account_id, project_id: opts.project_id }))) {
     throw Error("user must be a collaborator");
   }
+
+  // Get fresh project data to check user groups
+  const project = await query({
+    db: db(),
+    table: "projects",
+    select: ["users"],
+    where: { project_id: opts.project_id },
+    one: true,
+  });
+
+  if (!project) {
+    throw Error("Project not found");
+  }
+
+  const target_user_group = project.users?.[opts.account_id]?.group as
+    | UserGroup
+    | undefined;
+
+  // CRITICAL: Block ALL owner removals (anyone trying to remove an owner)
+  // Owners must be demoted to collaborator first, THEN removed
+  if (target_user_group === "owner") {
+    throw new OwnershipError(
+      "Cannot remove an owner. Demote to collaborator first.",
+      OwnershipErrorCode.CANNOT_REMOVE_OWNER,
+    );
+  }
+
+  // Check manage_users_owner_only setting (unless removing self)
+  const is_self_remove = account_id === opts.account_id;
+  if (!is_self_remove) {
+    await ensureCanManageCollaborators({
+      project_id: opts.project_id,
+      account_id,
+    });
+  }
+
   // @ts-ignore
   await callback2(db().remove_collaborator_from_project, opts);
 }
@@ -66,6 +163,15 @@ export async function addCollaborator({
     accounts = [accounts];
   }
 
+  // Check manage_users_owner_only setting for each project
+  // Only check if not using tokens (tokens have their own permission system)
+  if (!tokens && projects && projects.length > 0) {
+    for (const project_id of projects as string[]) {
+      if (!project_id) continue; // skip empty strings
+      await ensureCanManageCollaborators({ project_id, account_id });
+    }
+  }
+
   await add_collaborators_to_projects(
     db(),
     account_id,
@@ -75,13 +181,96 @@ export async function addCollaborator({
   );
   // Tokens determine the projects, and it may be useful to the client to know what
   // project they just got added to!
-  let project_id;
+  let project_id: string | string[] | undefined;
   if (is_single_token) {
     project_id = projects[0];
   } else {
     project_id = projects;
   }
   return { project_id };
+}
+
+export async function changeUserType({
+  account_id,
+  opts,
+}: {
+  account_id: string;
+  opts: {
+    project_id: string;
+    target_account_id: string;
+    new_group: UserGroup;
+  };
+}): Promise<void> {
+  const { project_id, target_account_id, new_group } = opts;
+
+  // 1. Verify requester is a project member
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw new OwnershipError(
+      "Not a project member",
+      OwnershipErrorCode.INVALID_REQUESTING_USER,
+    );
+  }
+
+  // 2. Get fresh project data (users field only)
+  const project = await query({
+    db: db(),
+    table: "projects",
+    select: ["users"],
+    where: { project_id },
+    one: true,
+  });
+
+  if (!project) {
+    throw new OwnershipError(
+      "Project not found",
+      OwnershipErrorCode.INVALID_PROJECT_STATE,
+    );
+  }
+
+  const users = project.users;
+
+  // 3. Get requesting user's group
+  const requesting_user_group = users?.[account_id]?.group as
+    | UserGroup
+    | undefined;
+
+  // 4. Get target user's current group
+  const target_current_group = users?.[target_account_id]?.group as
+    | UserGroup
+    | undefined;
+
+  // 5. Validate the change
+  const validation = validateUserTypeChange({
+    requesting_account_id: account_id,
+    requesting_user_group,
+    target_account_id,
+    target_current_group,
+    target_new_group: new_group,
+    all_users: users,
+  });
+
+  if (!validation.valid) {
+    throw new OwnershipError(
+      validation.error ?? "Invalid user type change",
+      validation.errorCode ?? OwnershipErrorCode.INVALID_USER,
+    );
+  }
+
+  // 6. Perform the change via add_user_to_project
+  await callback2(db().add_user_to_project, {
+    project_id,
+    account_id: target_account_id,
+    group: new_group,
+  });
+
+  // 7. Log the change for audit trail
+  logger.info("changeUserType", {
+    project_id,
+    actor_account_id: account_id,
+    target_account_id,
+    old_group: target_current_group,
+    new_group,
+  });
 }
 
 async function allowUrlsInEmails({
@@ -116,8 +305,15 @@ export async function inviteCollaborator({
   if (!(await isCollaborator({ account_id, project_id: opts.project_id }))) {
     throw Error("user must be a collaborator");
   }
-  const dbg = (...args) => logger.debug("inviteCollaborator", ...args);
+  const dbg = (...args: any[]) => logger.debug("inviteCollaborator", ...args);
   const database = db();
+
+  // Check manage_users_owner_only setting before inviting
+  await ensureCanManageCollaborators({
+    project_id: opts.project_id,
+    account_id,
+    database,
+  });
 
   // Actually add user to project
   await callback2(database.add_user_to_project, {
@@ -209,9 +405,16 @@ export async function inviteCollaboratorWithoutAccount({
   if (!(await isCollaborator({ account_id, project_id: opts.project_id }))) {
     throw Error("user must be a collaborator");
   }
-  const dbg = (...args) =>
+  const dbg = (...args: any[]) =>
     logger.debug("inviteCollaboratorWithoutAccount", ...args);
   const database = db();
+
+  // Check manage_users_owner_only setting before inviting
+  await ensureCanManageCollaborators({
+    project_id: opts.project_id,
+    account_id,
+    database,
+  });
 
   if (opts.to.length > 1024) {
     throw Error(

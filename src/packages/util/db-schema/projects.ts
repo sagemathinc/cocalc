@@ -11,7 +11,9 @@ import {
   ExecuteCodeOptionsAsyncGet,
   ExecuteCodeOutput,
 } from "@cocalc/util/types/execute-code";
+import { callback2 } from "@cocalc/util/async-utils";
 import { DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
+import { isUserGroup } from "@cocalc/util/project-ownership";
 
 import { NOTES } from "./crm";
 import { FALLBACK_COMPUTE_IMAGE } from "./defaults";
@@ -75,6 +77,7 @@ Table({
           run_quota: null,
           site_license: null,
           status: null,
+          manage_users_owner_only: null,
           // security model is anybody with access to the project should be allowed to know this token.
           secret_token: null,
           state: null,
@@ -108,6 +111,12 @@ Table({
           users(obj, db, account_id) {
             return db._user_set_query_project_users(obj, account_id);
           },
+          manage_users_owner_only(obj, db, account_id) {
+            return db._user_set_query_project_manage_users_owner_only(
+              obj,
+              account_id,
+            );
+          },
           action_request: true, // used to request that an action be performed, e.g., "save"; handled by before_change
           compute_image: true,
           site_license: true,
@@ -119,6 +128,47 @@ Table({
         },
         required_fields: {
           project_id: true,
+        },
+        async check_hook(db, obj, account_id, _project_id, cb) {
+          // Validate manage_users_owner_only permission if it's being changed
+          if (obj.manage_users_owner_only !== undefined) {
+            try {
+              // Require actor identity before hitting the database
+              if (!account_id) {
+                throw Error(
+                  "account_id is required to change manage_users_owner_only",
+                );
+              }
+
+              const siteSettings =
+                (await callback2(db.get_site_settings, {})) ?? {};
+              const siteEnforced =
+                siteSettings.strict_collaborator_management === true;
+              if (siteEnforced && obj.manage_users_owner_only !== true) {
+                throw Error(
+                  "Collaborator management is enforced by the site administrator and cannot be disabled.",
+                );
+              }
+
+              const { rows } = await db.async_query({
+                query: "SELECT users FROM projects WHERE project_id = $1",
+                params: [obj.project_id],
+              });
+              const users = rows?.[0]?.users ?? {};
+
+              // Check that the user making the change is an owner
+              const group = users?.[account_id]?.group;
+              if (!isUserGroup(group) || group !== "owner") {
+                throw Error(
+                  "Only project owners can change collaborator management settings",
+                );
+              }
+            } catch (err) {
+              cb(err.toString());
+              return;
+            }
+          }
+          cb();
         },
         before_change(database, old_val, new_val, account_id, cb) {
           database._user_set_query_project_change_before(
@@ -190,6 +240,11 @@ Table({
       type: "map",
       desc: "This is a map from account_id's to {hide:bool, group:'owner'|'collaborator', upgrades:{memory:1000, ...}, ssh:{...}}.",
       render: { type: "usersmap", editable: true },
+    },
+    manage_users_owner_only: {
+      type: "boolean",
+      desc: "If true, only project owners can add or remove collaborators. Collaborators can still remove themselves. Disabled by default (undefined or false means current behavior where collaborators can manage other collaborators).",
+      render: { type: "boolean", editable: true },
     },
     invite: {
       type: "map",
