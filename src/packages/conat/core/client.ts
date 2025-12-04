@@ -400,6 +400,12 @@ const cache = refCacheSync<ClientOptions, Client>({
 });
 
 export function connect(opts: ClientOptions = {}) {
+  if (Object.keys(opts).length == 0) {
+    // if calling connect() with no input, try cache first -- that's our default
+    // for this client.  If cache empty, create with no args, which falls back
+    // to an env variable.
+    return cache.one() ?? cache(opts);
+  }
   return cache(opts);
 }
 
@@ -535,7 +541,11 @@ export class Client extends EventEmitter {
   // Allow late binding of a routing function so callers can retrofit routing onto
   // an already-created client (useful when an early connection was made before
   // routing was configured).
-  public setRouteSubject(routeSubject?: (subject: string) => { address?: string; client?: Client } | undefined) {
+  public setRouteSubject(
+    routeSubject?: (
+      subject: string,
+    ) => { address?: string; client?: Client } | undefined,
+  ) {
     this.routeSubjectFn = routeSubject;
     return this;
   }
