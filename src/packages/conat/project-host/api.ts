@@ -25,7 +25,10 @@ export interface HostControlApi {
   createProject: (
     opts: HostCreateProjectRequest,
   ) => Promise<HostCreateProjectResponse>;
-  startProject: (opts: { project_id: string }) => Promise<HostCreateProjectResponse>;
+  startProject: (opts: {
+    project_id: string;
+    authorized_keys?: string;
+  }) => Promise<HostCreateProjectResponse>;
   stopProject: (opts: { project_id: string }) => Promise<HostCreateProjectResponse>;
   // Later: updateProject to adjust title/users/etc.
 }

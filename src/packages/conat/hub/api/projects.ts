@@ -209,7 +209,11 @@ export interface Projects {
   /////////////
   // Project Control
   /////////////
-  start: (opts: { account_id?: string; project_id: string }) => Promise<void>;
+  start: (opts: {
+    account_id?: string;
+    project_id: string;
+    authorized_keys?: string;
+  }) => Promise<void>;
   stop: (opts: { account_id?: string; project_id: string }) => Promise<void>;
 
   // get a list if all public ssh authorized keys that apply to

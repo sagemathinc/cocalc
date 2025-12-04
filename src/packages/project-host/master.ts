@@ -94,11 +94,15 @@ export async function startMasterRegistration({
         } as any);
         return { project_id };
       },
-      async startProject({ project_id }) {
+      async startProject({ project_id, authorized_keys }) {
         if (!hubApi.projects?.start) {
           throw Error("start not available");
         }
-        const status = await hubApi.projects.start({ account_id, project_id });
+        const status = await hubApi.projects.start({
+          account_id,
+          project_id,
+          authorized_keys,
+        });
         return { project_id, state: (status as any)?.state };
       },
       async stopProject({ project_id }) {

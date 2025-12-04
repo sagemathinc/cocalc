@@ -10,11 +10,15 @@
    - [x] Uploading and downloading images and files over http; used e.g., for the latext editor to look at the pages.   This is a feature of the web server, which is fully implemented in packages/hub/ and certainly in packages/lite, and probably is easy to just enable, hopefully.  The files are read/written streamed over conat.
    - [x] Similar issue -- proxying of http to the project doesn't work yet, e.g., so can run jupyterlab, vscode, etc.  Need to look up project's host and proxy that way.
    - [ ] ssh to project
-      - load ssh keys on project start
-      - write .ssh/.cocalc/sshd/authorized_keys from sshpiperd config
-      - get it to work
-      - update ssh on project-host when they change in master
+      - [x] load ssh keys on project creation (showing that authorized_keys column works)
+      - [ ] write .ssh/.cocalc/sshd/authorized_keys from sshpiperd config
+      - [ ] get sshpiperd to auth properly and observer manually that ssh works
+      - [ ] update ssh on project-host when they change in master and when project starts
    - [ ] Jupyter -- attempting to start shows this error "Error: syncdb's ipywidgets_state must be defined!"
+- [ ] SEA binary for running project-host:
+   - [ ] include binaries
+   - [ ] allow user to select where project is hosted for easier testing (could be hidden dev feature)
+   
 - [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project-host hub/conat services.
 - [ ] Runner networking: keep non-host networking but guarantee containers can reach the host conat endpoint; consider explicit hostfwd mode if we ever bind conat to loopback only.
 - [ ] File/quotas/backups UX: default quota + snapshot/backup counts on project create; expose image/pull errors cleanly; add image allowlist (e.g., ubuntu:25.10) and fallback behavior.

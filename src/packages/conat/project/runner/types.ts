@@ -21,8 +21,14 @@ export type SshServersFunction = (opts: {
 export interface Configuration {
   // optional Docker image
   image?: string;
+  // SSH public key used by sshpiperd to reach the project container.
+  ssh_proxy_public_key?: string;
   // shared secret between project and hubs to enhance security (via defense in depth)
   secret?: string;
+  // Concatenated SSH public keys (from master) to be injected into the
+  // project's managed authorized_keys file; combined with user-managed
+  // ~/.ssh/authorized_keys at auth time.
+  authorized_keys?: string;
   // extra variables that get merged into the environment of the project.
   env?: { [key: string]: string };
   // cpu priority: 1, 2 or 3, with 3 being highest

@@ -20,10 +20,17 @@ import { nodePath } from "./mounts";
 import { isValidUUID } from "@cocalc/util/misc";
 import { ensureConfFilesExists, setupDataPath, writeSecretToken } from "./util";
 import { getEnvironment } from "./env";
-import { mkdir, readFile, readdir, stat, realpath } from "node:fs/promises";
+import {
+  mkdir,
+  readFile,
+  readdir,
+  stat,
+  realpath,
+  writeFile,
+} from "node:fs/promises";
 import { getCoCalcMounts, COCALC_SRC } from "./mounts";
 import { setQuota } from "./filesystem";
-import { join, relative, isAbsolute } from "node:path";
+import { dirname, join, relative, isAbsolute } from "node:path";
 import { mount as mountRootFs, unmount as unmountRootFs } from "./rootfs";
 import { type ProjectState } from "@cocalc/conat/project/runner/state";
 import { type Configuration } from "@cocalc/conat/project/runner/types";
@@ -33,7 +40,12 @@ import {
   type LocalPathFunction,
   type SshServersFunction,
 } from "@cocalc/conat/project/runner/types";
-import { SSH_IDENTITY_FILE, START_PROJECT_SSH } from "@cocalc/conat/project/runner/constants";
+import {
+  INTERNAL_SSH_CONFIG,
+  SSHD_CONFIG,
+  SSH_IDENTITY_FILE,
+  START_PROJECT_SSH,
+} from "@cocalc/conat/project/runner/constants";
 import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
 import { writeStartupScripts } from "./startup-scripts";
@@ -59,6 +71,43 @@ const STOP_ON_STATUS_ERROR = false;
 
 // projects we are definitely starting right now
 export const starting = new Set<string>();
+
+function formatKeys(keys?: string): string | undefined {
+  if (!keys) return;
+  const trimmed = keys.trim();
+  if (!trimmed) return;
+  return trimmed.endsWith("\n") ? trimmed : `${trimmed}\n`;
+}
+
+async function writeSshAuthorizedKeys({
+  home,
+  sshProxyPublicKey,
+  authorizedKeys,
+}: {
+  home: string;
+  sshProxyPublicKey?: string;
+  authorizedKeys?: string;
+}) {
+  const write = async (path: string, content: string) => {
+    await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+    await writeFile(path, content, { mode: 0o600 });
+  };
+
+  const proxyKeys = formatKeys(sshProxyPublicKey);
+  if (proxyKeys) {
+    const proxyAuthPath = join(home, SSHD_CONFIG, "authorized_keys");
+    await write(proxyAuthPath, proxyKeys);
+  }
+
+  const masterKeys = formatKeys(authorizedKeys);
+  if (masterKeys) {
+    const managedAuthPath = join(home, INTERNAL_SSH_CONFIG, "authorized_keys");
+    // Managed keys are written so sshpiperd can quickly assemble the full
+    // allowed list (account/project keys plus ~/.ssh/authorized_keys) when
+    // routing ssh to the project.
+    await write(managedAuthPath, masterKeys);
+  }
+}
 
 function projectContainerName(project_id) {
   return `project-${project_id}`;
@@ -340,6 +389,13 @@ export async function start({
       progress: 52,
       desc: "wrote startup scripts",
     });
+
+    await writeSshAuthorizedKeys({
+      home,
+      sshProxyPublicKey: config?.ssh_proxy_public_key,
+      authorizedKeys: config?.authorized_keys,
+    });
+    logger.debug("start: wrote ssh authorized_keys", { project_id });
 
     await setupDataPath(home);
 

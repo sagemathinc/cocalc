@@ -16,7 +16,10 @@ import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run"
 import { secretsPath } from "./ssh-server";
 import { join } from "node:path";
 import { readFile, writeFile } from "node:fs/promises";
-import { FILE_SERVER_NAME } from "@cocalc/conat/project/runner/constants";
+import {
+  FILE_SERVER_NAME,
+  INTERNAL_SSH_CONFIG,
+} from "@cocalc/conat/project/runner/constants";
 import { isValidUUID } from "@cocalc/util/misc";
 
 const logger = getLogger("file-server:ssh:auth");
@@ -210,13 +213,26 @@ async function getAuthorizedKeys({
     }
   } else if (target == "sshd") {
     if (!compute_server_id) {
-      // we just read authorized_keys straight from the project
-      const authorized_keys = join(path, ".ssh", "authorized_keys");
-      logger.debug("read project authorized_keys", {
-        authorized_keys,
-        project_id,
-      });
-      return await readFile(authorized_keys, "utf8");
+      // Combine keys provided by the host (master/account/project keys) with
+      // any keys the user has placed in ~/.ssh/authorized_keys.
+      const keys: string[] = [];
+      const managed = join(path, INTERNAL_SSH_CONFIG, "authorized_keys");
+      const userKeys = join(path, ".ssh", "authorized_keys");
+      for (const candidate of [managed, userKeys]) {
+        try {
+          const content = (await readFile(candidate, "utf8")).trim();
+          if (content) {
+            keys.push(content);
+          }
+        } catch (err) {
+          logger.debug("authorized_keys not found", {
+            project_id,
+            path: candidate,
+            err: `${err}`,
+          });
+        }
+      }
+      return keys.join("\n");
     } else {
       throw Error("ssh directly to compute server not yet implemented");
     }

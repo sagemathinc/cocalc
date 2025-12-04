@@ -1,7 +1,7 @@
 import { hubApi } from "@cocalc/lite/hub/api";
 import { account_id } from "@cocalc/backend/data";
 import { uuid, isValidUUID } from "@cocalc/util/misc";
-import { upsertProject } from "../sqlite/projects";
+import { getProject, upsertProject } from "../sqlite/projects";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
 import type { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
 import {
@@ -10,8 +10,26 @@ import {
 } from "@cocalc/util/db-schema/defaults";
 import getLogger from "@cocalc/backend/logger";
 import { reportProjectStateToMaster } from "../master-status";
+import { secretsPath as sshProxySecretsPath } from "@cocalc/project-proxy/ssh-server";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 const logger = getLogger("project-host:hub:projects");
+
+let cachedProxyKey: string | undefined;
+async function getSshProxyPublicKey(): Promise<string | undefined> {
+  if (cachedProxyKey !== undefined) return cachedProxyKey;
+  try {
+    cachedProxyKey = await readFile(
+      join(sshProxySecretsPath(), "id_ed25519.pub"),
+      "utf8",
+    );
+  } catch (err) {
+    logger.warn("unable to read ssh proxy public key", { err: `${err}` });
+    cachedProxyKey = undefined;
+  }
+  return cachedProxyKey;
+}
 
 type RunnerApi = ReturnType<typeof projectRunnerClient>;
 
@@ -48,7 +66,14 @@ function ensureProjectRow({
   ssh_port?: number;
   authorized_keys?: string;
 }) {
-  logger.debug("ensureProjectRow", { project_id, opts, state });
+  logger.debug("ensureProjectRow", {
+    project_id,
+    opts,
+    state,
+    http_port,
+    ssh_port,
+    authorized_keys,
+  });
   const now = Date.now();
   const row: any = {
     project_id,
@@ -65,12 +90,12 @@ function ensureProjectRow({
   if (authorized_keys !== undefined) {
     row.authorized_keys = authorized_keys;
   }
-    if (opts) {
-      const title = opts.title?.trim();
-      if (title) {
-        row.title = title;
-      }
-      if (opts.image !== undefined) {
+  if (opts) {
+    const title = opts.title?.trim();
+    if (title) {
+      row.title = title;
+    }
+    if (opts.image !== undefined) {
       row.image = normalizeImage(opts.image);
     }
     if ((opts as any)?.users !== undefined) {
@@ -84,6 +109,21 @@ function ensureProjectRow({
   if (state) {
     reportProjectStateToMaster(project_id, state);
   }
+}
+
+async function getRunnerConfig(
+  project_id: string,
+  opts?: CreateProjectOptions,
+) {
+  const existing = getProject(project_id);
+  const authorized_keys =
+    (opts as any)?.authorized_keys ?? existing?.authorized_keys;
+  const ssh_proxy_public_key = await getSshProxyPublicKey();
+  return {
+    image: normalizeImage(opts?.image ?? existing?.image),
+    authorized_keys,
+    ssh_proxy_public_key,
+  };
 }
 
 export function wireProjectsApi(runnerApi: RunnerApi) {
@@ -109,7 +149,7 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
     if (opts.start) {
       const status = await runnerApi.start({
         project_id,
-        config: { image: normalizeImage(opts.image) },
+        config: await getRunnerConfig(project_id, opts),
       });
       ensureProjectRow({
         project_id,
@@ -125,15 +165,18 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
 
   hubApi.projects.start = async ({
     project_id,
+    authorized_keys,
   }: {
     project_id: string;
+    authorized_keys?: string;
   }): Promise<void> => {
     const status = await runnerApi.start({
       project_id,
-      config: { image: normalizeImage() },
+      config: await getRunnerConfig(project_id, { authorized_keys }),
     });
     ensureProjectRow({
       project_id,
+      opts: { authorized_keys },
       state: status?.state ?? "running",
       http_port: (status as any)?.http_port,
       ssh_port: (status as any)?.ssh_port,

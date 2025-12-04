@@ -123,12 +123,16 @@ async function ensurePlacement(project_id: string): Promise<HostPlacement> {
 
 export async function startProjectOnHost(project_id: string): Promise<void> {
   const placement = await ensurePlacement(project_id);
+  const meta = await loadProject(project_id);
   const client = createHostControlClient({
     host_id: placement.host_id,
     client: await conat(),
   });
   try {
-    await client.startProject({ project_id });
+    await client.startProject({
+      project_id,
+      authorized_keys: meta.authorized_keys,
+    });
   } catch (err) {
     log.warn("startProjectOnHost failed", { project_id, host: placement, err });
     throw err;

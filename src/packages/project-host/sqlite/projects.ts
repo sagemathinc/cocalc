@@ -191,6 +191,16 @@ export function listProjects(): ProjectRow[] {
   return stmt.all() as ProjectRow[];
 }
 
+export function getProject(project_id: string): ProjectRow | undefined {
+  ensureProjectsTable();
+  const db = getDatabase();
+  const stmt = db.prepare(
+    "SELECT project_id, title, state, state_reported, image, disk, scratch, last_seen, updated_at, http_port, ssh_port, authorized_keys FROM projects WHERE project_id=?",
+  );
+  const row = stmt.get(project_id);
+  return row as ProjectRow | undefined;
+}
+
 export function listUnreportedProjects(): ProjectRow[] {
   ensureProjectsTable();
   const db = getDatabase();
