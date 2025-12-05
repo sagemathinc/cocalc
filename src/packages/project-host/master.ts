@@ -129,6 +129,12 @@ export async function startMasterRegistration({
           authorized_keys,
         });
       },
+      async copyPaths(opts) {
+        if (!(hubApi as any).projects?.copyPaths) {
+          throw Error("copyPaths not available");
+        }
+        return await (hubApi as any).projects.copyPaths(opts);
+      },
     },
   });
 

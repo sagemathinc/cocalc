@@ -12,6 +12,8 @@ import { updateAuthorizedKeysOnHost as updateAuthorizedKeysOnHostControl } from 
 import { getProject } from "@cocalc/server/projects/control";
 import { assertCollab } from "./util";
 import { materializeProjectHost } from "../route-project";
+import { conat } from "@cocalc/backend/conat";
+import { createHostControlClient } from "@cocalc/conat/project-host/api";
 
 export async function copyPathBetweenProjects({
   src,
@@ -39,10 +41,26 @@ export async function copyPathBetweenProjects({
     const client = filesystemClient({ project_id: src.project_id });
     await client.cp({ src, dest, options });
   } else {
-    // on different hosts
-    throw Error(
-      "copying files between distinct project hosts is not implemented",
-    );
+    // on different hosts: ask destination host to pull from source.
+    const srcInfo = await getProjectHostInfo(src.project_id);
+    const destInfo = await getProjectHostInfo(dest.project_id);
+    const client = createHostControlClient({
+      host_id: destInfo.host_id,
+      client: await conat(),
+    });
+    await client.copyPaths({
+      src: {
+        host_id: srcInfo.host_id,
+        ssh_server: srcInfo.host.ssh_server,
+        project_id: src.project_id,
+        paths: Array.isArray(src.path) ? src.path : [src.path],
+      },
+      dest: {
+        host_id: destInfo.host_id,
+        project_id: dest.project_id,
+        path: dest.path,
+      },
+    });
   }
 }
 
@@ -50,6 +68,34 @@ import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
 
 const log = getLogger("server:conat:api:projects");
+
+type ProjectHostInfo = {
+  host_id: string;
+  host: {
+    public_url?: string;
+    internal_url?: string;
+    ssh_server?: string;
+  };
+};
+
+async function getProjectHostInfo(project_id: string): Promise<ProjectHostInfo> {
+  const { rows } = await getPool().query(
+    `
+      SELECT host_id, host
+      FROM projects
+      WHERE project_id=$1
+    `,
+    [project_id],
+  );
+  const row = rows[0];
+  if (!row?.host_id || !row?.host) {
+    throw Error(`project ${project_id} has no host assigned`);
+  }
+  return {
+    host_id: row.host_id,
+    host: row.host,
+  };
+}
 
 export async function setQuotas(opts: {
   account_id: string;

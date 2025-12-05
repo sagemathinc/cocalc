@@ -36,6 +36,10 @@ export interface HostControlApi {
     project_id: string;
     authorized_keys?: string;
   }) => Promise<void>;
+  copyPaths: (opts: {
+    src: { host_id: string; ssh_server?: string; project_id: string; paths: string[] };
+    dest: { host_id: string; project_id: string; path: string };
+  }) => Promise<void>;
   // Later: updateProject to adjust title/users/etc.
 }
 

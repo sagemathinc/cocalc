@@ -410,9 +410,11 @@ export async function initFileServer({
       if (!proxyPublicKey) {
         throw Error("proxy public key not yet available");
       }
+      const hostKey = ensureHostKey().publicKey;
       const ports = await ensureHostContainer({
         path: fs!.subvolumes.fs.path,
         publicKey: proxyPublicKey,
+        authorizedKeys: [proxyPublicKey, hostKey].join("\n"),
       });
       hostSshPort = ports.sshd ?? null;
       if (!hostSshPort) {

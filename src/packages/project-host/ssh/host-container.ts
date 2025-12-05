@@ -22,7 +22,15 @@ function hostVolume(): string {
 // entire project storage root. The publicKey should be the sshpiperd key so
 // the proxy can connect to this container once user auth succeeds.
 export const ensureHostContainer = reuseInFlight(
-  async ({ path, publicKey }: { path: string; publicKey: string }) => {
+  async ({
+    path,
+    publicKey,
+    authorizedKeys,
+  }: {
+    path: string;
+    publicKey: string;
+    authorizedKeys: string;
+  }) => {
     const volume = hostVolume();
     logger.debug("ensureHostContainer", { path, volume });
     const configRoot = join(secrets, "host-ssh", volume);
@@ -31,7 +39,7 @@ export const ensureHostContainer = reuseInFlight(
       path,
       configRoot,
       publicKey,
-      authorizedKeys: publicKey,
+      authorizedKeys,
     });
     return ports;
   },

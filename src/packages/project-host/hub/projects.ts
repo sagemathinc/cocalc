@@ -16,6 +16,12 @@ import { join } from "node:path";
 import { writeManagedAuthorizedKeys, getVolume } from "../file-server";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 import type { Configuration } from "@cocalc/conat/project/runner/types";
+import { ensureHostKey } from "../ssh/host-key";
+import { getHostPublicKey } from "../ssh/host-keys";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { spawn } from "node:child_process";
+import { resolve } from "node:path";
 
 const logger = getLogger("project-host:hub:projects");
 const MB = 1_000_000;
@@ -168,6 +174,21 @@ function ensureProjectRow({
   if (state) {
     reportProjectStateToMaster(project_id, state);
   }
+}
+
+async function runCmd(cmd: string, args: string[], opts: any = {}) {
+  return await new Promise<void>((resolve, reject) => {
+    const child = spawn(cmd, args, opts);
+    let stderr = "";
+    child.stderr.on("data", (d) => {
+      stderr += d.toString();
+    });
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) return resolve();
+      reject(new Error(`${cmd} exited with code ${code}: ${stderr.trim()}`));
+    });
+  });
 }
 
 async function getRunnerConfig(
@@ -347,5 +368,83 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
     }
 
     return Array.from(keys);
+  };
+
+  (hubApi.projects as any).copyPaths = async ({
+    src,
+    dest,
+  }: {
+    src: { host_id: string; ssh_server?: string; project_id: string; paths: string[] };
+    dest: { host_id: string; project_id: string; path: string };
+  }) => {
+    if (!isValidUUID(src.project_id) || !isValidUUID(dest.project_id)) {
+      throw Error("invalid project_id");
+    }
+    if (!src.ssh_server) {
+      throw Error("source ssh_server is required");
+    }
+
+    const destVol = await getVolume(dest.project_id);
+    const destRoot = destVol.path;
+    const destAbs = resolve(destRoot, dest.path);
+    if (!destAbs.startsWith(destRoot)) {
+      throw Error("destination path escapes project");
+    }
+
+    const srcPaths = Array.isArray(src.paths) ? src.paths : [src.paths];
+    if (!srcPaths.length) {
+      return;
+    }
+
+    const tmp = await mkdtemp(join(tmpdir(), "ph-rsync-"));
+    const keyFile = join(tmp, "id_ed25519");
+    const knownHosts = join(tmp, "known_hosts");
+    try {
+      const hostKey = ensureHostKey();
+      await writeFile(keyFile, hostKey.privateKey, { mode: 0o600 });
+
+      const srcHostKey = getHostPublicKey(src.host_id);
+      if (!srcHostKey) {
+        throw Error(`missing host key for ${src.host_id}`);
+      }
+      const [sshHost, sshPort] = src.ssh_server.includes(":")
+        ? src.ssh_server.split(":")
+        : [src.ssh_server, "22"];
+      await writeFile(
+        knownHosts,
+        `[${sshHost}]:${sshPort} ${srcHostKey.trim()}\n`,
+        { mode: 0o600 },
+      );
+
+      const remoteBase = `/btrfs/project-${src.project_id}`;
+      const sources: string[] = [];
+      for (const p of srcPaths) {
+        const remotePath = resolve(remoteBase, p);
+        if (!remotePath.startsWith(remoteBase)) {
+          throw Error(`source path escapes project: ${p}`);
+        }
+        sources.push(
+          `project-host-${src.host_id}@${src.ssh_server}:${remotePath}`,
+        );
+      }
+
+      const sshCmd = [
+        "ssh",
+        "-i",
+        keyFile,
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-o",
+        `UserKnownHostsFile=${knownHosts}`,
+        "-o",
+        "IdentitiesOnly=yes",
+      ].join(" ");
+
+      const args = ["-a", "-z", "-e", sshCmd, ...sources, destAbs];
+      logger.debug("rsync copyPaths", { args });
+      await runCmd("rsync", args, { stdio: "inherit" });
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
   };
 }
