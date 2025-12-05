@@ -26,6 +26,14 @@ import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 import { isValidUUID } from "@cocalc/util/misc";
 import { getProject } from "./sqlite/projects";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
+import { ensureHostContainer } from "./ssh/host-container";
+import { ensureHostKey } from "./ssh/host-key";
+import { getHostPublicKey } from "./ssh/host-keys";
+import { getRow } from "@cocalc/lite/hub/sqlite/database";
+
+type SshTarget =
+  | { type: "project"; project_id: string }
+  | { type: "host"; host_id: string };
 
 const logger = getLogger("project-host:file-server");
 
@@ -49,6 +57,11 @@ function projectIdFromSubject(subject: string): string {
     throw Error("not a valid project id");
   }
   return project_id;
+}
+
+function localHostId(): string | undefined {
+  const row = getRow("project-host", "host-id") as { hostId?: string } | undefined;
+  return row?.hostId;
 }
 
 export async function getVolume(project_id: string) {
@@ -388,11 +401,47 @@ export async function initFileServer({
 
   let ssh: any = { close: () => {}, projectProxyHandlers: [] };
   if (enableSsh) {
-    const getSshdPort = (project_id: string) => {
-      const row = getProject(project_id);
-      return row?.ssh_port ?? null;
+    let proxyPublicKey: string | undefined;
+    let hostSshPort: number | null = null;
+
+    const startHostContainer = reuseInFlight(async () => {
+      if (!proxyPublicKey) {
+        throw Error("proxy public key not yet available");
+      }
+      const ports = await ensureHostContainer({
+        path: fs!.subvolumes.fs.path,
+        publicKey: proxyPublicKey,
+      });
+      hostSshPort = ports["file-server"];
+      return hostSshPort;
+    });
+
+    const getSshdPort = (target: SshTarget | string) => {
+      if (typeof target === "string" || target.type === "project") {
+        const project_id =
+          typeof target === "string" ? target : target.project_id;
+        const row = getProject(project_id);
+        return row?.ssh_port ?? null;
+      }
+      // Host-level access.
+      return hostSshPort;
     };
-    const getAuthorizedKeys = async (project_id: string): Promise<string> => {
+
+    const getAuthorizedKeys = async (
+      target: SshTarget | string,
+    ): Promise<string> => {
+      // Host-level connections: authorize only the requested host's key.
+      if (typeof target !== "string" && target.type === "host") {
+        const key =
+          getHostPublicKey(target.host_id) ??
+          (localHostId() === target.host_id
+            ? ensureHostKey().publicKey
+            : undefined);
+        return key?.trim() ?? "";
+      }
+
+      const project_id =
+        typeof target === "string" ? target : target.project_id;
       const keys: string[] = [];
 
       // Keys provided by the master (account + project keys), persisted locally.
@@ -426,12 +475,20 @@ export async function initFileServer({
 
       return keys.join("\n");
     };
-  ssh = await initSshServer({
-    proxyHandlers: true,
-    getSshdPort,
-    getAuthorizedKeys,
-  });
-}
+
+    ssh = await initSshServer({
+      proxyHandlers: true,
+      getSshdPort,
+      getAuthorizedKeys,
+    });
+
+    proxyPublicKey = ssh.publicKey;
+    try {
+      await startHostContainer();
+    } catch (err) {
+      logger.warn("failed to start host ssh container", { err: `${err}` });
+    }
+  }
 
 servers = { file, ssh };
   return servers;

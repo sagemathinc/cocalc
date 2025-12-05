@@ -154,6 +154,9 @@ flowchart LR
 - [ ] eliminate payg entirely for projects
 - [ ] make sure the websockets to project-host properly reconnect, despite different config.
 - [ ] extend codex support to work with podman containers (not just cocalc-plus)
+- [ ] automatically start project on *successful* ssh attempt.
+    - I don't know how to do this, except by possibly having to fork sshpiperd or rewrite that plugin... but that's fine.
+
 
 ## Completed
 

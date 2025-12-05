@@ -26,7 +26,7 @@ to support a UDP socket and use that instead, since we're running
 the REST server on localhost.
 */
 
-import { init as initAuth } from "./auth";
+import { init as initAuth, type SshTarget } from "./auth";
 import { startProxyServer, createProxyHandlers } from "./proxy";
 import { install, sshpiper } from "@cocalc/backend/sandbox/install";
 import { secrets, sshServer } from "@cocalc/backend/data";
@@ -148,19 +148,19 @@ export async function init({
   proxyHandlers,
   exitOnFail = true,
 }: {
-  getSshdPort: (project_id: string) => number | null;
-  getAuthorizedKeys: (project_id: string) => Promise<string>;
+  getSshdPort: (target: SshTarget) => number | null;
+  getAuthorizedKeys: (target: SshTarget) => Promise<string>;
   port?: number;
   proxyHandlers?: boolean;
   exitOnFail?: boolean;
-}) {
+}): Promise<{ child; projectProxyHandlers; publicKey: string }> {
   logger.debug("init", { port, proxyHandlers });
   // ensure sshpiper is installed
   await install("sshpiper");
   const projectProxyHandlers = proxyHandlers
     ? createProxyHandlers()
     : await startProxyServer();
-  const { url } = await initAuth({ getSshdPort, getAuthorizedKeys });
+  const { url, publicKey } = await initAuth({ getSshdPort, getAuthorizedKeys });
   const hostKey = join(secretsPath(), "host_key");
   await mkdir(dirname(hostKey), { recursive: true });
   const args = [
@@ -197,7 +197,7 @@ export async function init({
     throw err instanceof Error ? err : new Error(message);
   }
 
-  return { child, projectProxyHandlers };
+  return { child, projectProxyHandlers, publicKey };
 }
 
 export function close() {

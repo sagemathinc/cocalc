@@ -13,24 +13,11 @@ const logger = getLogger("project-proxy:ssh:auth");
 
 const SECRET_TOKEN_LENGTH = 32;
 
-export async function init({
-  getSshdPort,
-  getAuthorizedKeys,
-  base_url,
-  port,
-}: {
-  getSshdPort: (project_id: string) => number | null;
-  getAuthorizedKeys: (project_id: string) => Promise<string>;
-  // as an extra level of security, it is recommended to
-  // make the base_url a secure random string.
-  base_url?: string;
-  port?: number;
-}) {
-  logger.debug("init");
+export type SshTarget =
+  | { type: "project"; project_id: string }
+  | { type: "host"; host_id: string };
 
-  base_url ??= encodeURIComponent(
-    await secureRandomString(SECRET_TOKEN_LENGTH),
-  );
+export async function ensureProxyKey() {
   let sshKey;
   const privKeyPath = join(secretsPath(), "id_ed25519");
   const pubKeyPath = join(secretsPath(), "id_ed25519.pub");
@@ -50,6 +37,29 @@ export async function init({
     await writeFile(pubKeyPath, sshKey.publicKey);
     logger.debug("init: public key", sshKey.publicKey);
   }
+
+  return sshKey;
+}
+
+export async function init({
+  getSshdPort,
+  getAuthorizedKeys,
+  base_url,
+  port,
+}: {
+  getSshdPort: (target: SshTarget) => number | null;
+  getAuthorizedKeys: (target: SshTarget) => Promise<string>;
+  // as an extra level of security, it is recommended to
+  // make the base_url a secure random string.
+  base_url?: string;
+  port?: number;
+}) {
+  logger.debug("init");
+
+  base_url ??= encodeURIComponent(
+    await secureRandomString(SECRET_TOKEN_LENGTH),
+  );
+  const sshKey = await ensureProxyKey();
 
   logger.debug("init: starting ssh server...");
   const app = express();
@@ -94,7 +104,7 @@ export async function init({
   const url = `http://127.0.0.1:${port}/${base_url}`;
   const mesg = `sshpiper auth @ http://127.0.0.1:${port}/[...secret...]/:user`;
   logger.debug("init: ", mesg);
-  return { server, app, url };
+  return { server, app, url, publicKey: sshKey.publicKey };
 }
 
 async function handleRequest(
@@ -103,19 +113,19 @@ async function handleRequest(
   getAuthorizedKeys,
 ): Promise<{
   authorizedKeys: string;
-  project_id: string;
+  target: SshTarget;
   port: number | null;
 }> {
   if (!user) {
     throw Error("invalid user");
   }
-  const project_id = parseUser(user);
-  const port = getSshdPort(project_id);
+  const target = parseUser(user);
+  const port = getSshdPort(target);
   if (!port) {
-    return { project_id, port, authorizedKeys: "" };
+    return { target, port, authorizedKeys: "" };
   }
-  const authorizedKeys = await getAuthorizedKeys(project_id);
-  return { authorizedKeys, project_id, port };
+  const authorizedKeys = await getAuthorizedKeys(target);
+  return { authorizedKeys, target, port };
 }
 
 /*
@@ -124,11 +134,17 @@ The patterns that we support here:
 - project-{uuid} --> project_id={uuid}
 - {uuid} --> project_id={uuid}
 - {uuid with dashes removed} --> project_id={uuid with dashes put back}
--
-
+- project-host-{uuid} --> host_id={uuid}
 */
-function parseUser(user: string): string {
+function parseUser(user: string): SshTarget {
   let prefix;
+  if (user?.startsWith("project-host-")) {
+    const host_id = user.slice("project-host-".length);
+    if (!isValidUUID(host_id)) {
+      throw Error(`unknown user ${user}`);
+    }
+    return { type: "host", host_id };
+  }
   if (user?.startsWith("project-")) {
     prefix = "project-";
   } else if (isValidUUID(user)) {
@@ -139,12 +155,12 @@ function parseUser(user: string): string {
   ) {
     prefix = "";
     const v = user.split("-");
-    return putBackDashes(v[0]);
+    return { type: "project", project_id: putBackDashes(v[0]) };
   } else {
     throw Error(`unknown user ${user}`);
   }
 
-  return user.slice(prefix.length, prefix.length + 36);
+  return { type: "project", project_id: user.slice(prefix.length, prefix.length + 36) };
 }
 
 // 00000000-1000-4000-8000-000000000000
