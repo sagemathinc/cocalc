@@ -6,20 +6,28 @@ import {
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { secrets } from "@cocalc/backend/data";
 import { join } from "node:path";
+import { getRow } from "@cocalc/lite/hub/sqlite/database";
 
 const logger = getLogger("project-host:ssh:host-container");
 
-const HOST_VOLUME = "project-host-root";
+function hostVolume(): string {
+  const hostId =
+    (getRow("project-host", "host-id") as { hostId?: string } | undefined)
+      ?.hostId;
+  // keep volume/container names short to satisfy hostname limits
+  return hostId ? `ph-${hostId}` : "ph-default";
+}
 
 // Start (or reuse) a dedicated container that exposes SSH access to the
 // entire project storage root. The publicKey should be the sshpiperd key so
 // the proxy can connect to this container once user auth succeeds.
 export const ensureHostContainer = reuseInFlight(
   async ({ path, publicKey }: { path: string; publicKey: string }) => {
-    logger.debug("ensureHostContainer", { path });
-    const configRoot = join(secrets, "host-ssh", HOST_VOLUME);
+    const volume = hostVolume();
+    logger.debug("ensureHostContainer", { path, volume });
+    const configRoot = join(secrets, "host-ssh", volume);
     const ports = await startProxyContainer({
-      volume: HOST_VOLUME,
+      volume,
       path,
       configRoot,
       publicKey,
@@ -30,5 +38,5 @@ export const ensureHostContainer = reuseInFlight(
 );
 
 export const getHostContainerPorts = reuseInFlight(async () => {
-  return await getPorts({ volume: HOST_VOLUME });
+  return await getPorts({ volume: hostVolume() });
 });

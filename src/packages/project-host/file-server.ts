@@ -414,7 +414,7 @@ export async function initFileServer({
         path: fs!.subvolumes.fs.path,
         publicKey: proxyPublicKey,
       });
-      hostSshPort = ports.sshd;
+      hostSshPort = ports.sshd ?? null;
       if (!hostSshPort) {
         throw Error("failed to start ssh host container -- no sshd port");
       }
