@@ -2297,20 +2297,23 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         "path",
       )} to a project`,
     });
-
-    await webapp_client.project_client.copyPathBetweenProjects(opts);
-
-    const withSlashes = await this.appendSlashToDirectoryPaths(files, 0);
-    this.log({
-      event: "file_action",
-      action: "copied",
-      dest: opts.dest.path,
-      files: withSlashes,
-      count: files.length,
-      project: opts.dest.project_id,
-    });
-
-    this.set_activity({ id, stop: "" });
+    let error: any = undefined;
+    try {
+      await webapp_client.project_client.copyPathBetweenProjects(opts);
+      const withSlashes = await this.appendSlashToDirectoryPaths(files, 0);
+      this.log({
+        event: "file_action",
+        action: "copied",
+        dest: opts.dest.path,
+        files: withSlashes,
+        count: files.length,
+        project: opts.dest.project_id,
+      });
+    } catch (err) {
+      error = `${err}`;
+    } finally {
+      this.set_activity({ id, stop: "", error });
+    }
   };
 
   renameFile = async ({

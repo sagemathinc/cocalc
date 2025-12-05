@@ -11,6 +11,7 @@ import getPool from "@cocalc/database/pool";
 import { updateAuthorizedKeysOnHost as updateAuthorizedKeysOnHostControl } from "@cocalc/server/project-host/control";
 import { getProject } from "@cocalc/server/projects/control";
 import { assertCollab } from "./util";
+import { materializeProjectHost } from "../route-project";
 
 export async function copyPathBetweenProjects({
   src,
@@ -31,8 +32,18 @@ export async function copyPathBetweenProjects({
     await assertCollab({ account_id, project_id: dest.project_id });
   }
 
-  const client = filesystemClient();
-  await client.cp({ src, dest, options });
+  const srcHost = await materializeProjectHost(src.project_id);
+  const destHost = await materializeProjectHost(dest.project_id);
+  if (srcHost == destHost) {
+    // on the same server
+    const client = filesystemClient({ project_id: src.project_id });
+    await client.cp({ src, dest, options });
+  } else {
+    // on different hosts
+    throw Error(
+      "copying files between distinct project hosts is not implemented",
+    );
+  }
 }
 
 import { db } from "@cocalc/database";
