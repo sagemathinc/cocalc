@@ -8,6 +8,7 @@ import { hubApi } from "@cocalc/lite/hub/api";
 import { account_id } from "@cocalc/backend/data";
 import { setMasterStatusClient } from "./master-status";
 import { ensureHostKey } from "./ssh/host-key";
+import { setHostPublicKey, upsertRemoteHostKey } from "./ssh/host-keys";
 
 const logger = getLogger("project-host:master");
 
@@ -20,6 +21,7 @@ interface HostRegistration {
   public_url?: string;
   internal_url?: string;
   ssh_server?: string;
+  ssh_public_key?: string;
   status?: string;
   version?: string;
   capacity?: any;
@@ -73,6 +75,7 @@ export async function startMasterRegistration({
 
   // Stable host SSH keypair for inter-host operations (rsync/reflect-sync).
   const hostKey = ensureHostKey();
+  setHostPublicKey(id, hostKey.publicKey);
 
   const registry = createServiceClient<{
     register: (info: HostRegistration) => Promise<void>;
@@ -136,6 +139,7 @@ export async function startMasterRegistration({
     public_url,
     internal_url,
     ssh_server,
+    ssh_public_key: hostKey.publicKey,
     status,
     metadata: { runnerId, ssh_public_key: hostKey.publicKey },
   };
@@ -160,6 +164,21 @@ export async function startMasterRegistration({
 
   await send("register");
   const timer = setInterval(() => void send("heartbeat"), 30_000);
+
+  // Subscribe to host key updates from master and cache them locally.
+  (async () => {
+    try {
+      const sub = await client.subscribe(`${SUBJECT}.keys`);
+      for await (const msg of sub) {
+        const data = msg.data as HostRegistration | undefined;
+        if (data?.id && data?.ssh_public_key) {
+          upsertRemoteHostKey(data.id, data.ssh_public_key);
+        }
+      }
+    } catch (err) {
+      logger.warn("host key subscription failed", { err });
+    }
+  })();
 
   const stop = () => {
     clearInterval(timer);

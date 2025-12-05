@@ -1,12 +1,12 @@
 ## Checklist (near term)
-
+- [ ] Cross\-host data motion: copy/move between hosts \(rsync \+ btrfs send/recv\), GC source after validation, update project→host map, and surface progress/errors to users.
+   - src/packages/next/pages/api/v2/projects/copy-path.ts
+   - [ ] #now implement copy between *different* project-host via ssh
+   - [ ] implement copy btrfs send/recv project
+   
 - [ ] SEA binary for running project\-host:
   - [ ] include binaries
   - [ ] allow user to select where project is hosted for easier testing \(could be hidden dev feature\)
-
-- [x] Btrfs Snapshots
-  - [x] the \$HOME/.snapshots directory does not exist
-  - [x] creating snapshots fails with this error: "request \-\- no subscribers matching 'file\-server' \- callHub: subject='hub.account.d0bdabfd\-850e\-4c8d\-8510\-f6f1ecb9a5eb.api', name='projects.createSnapshot', code='503'"
 
 - [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project\-host hub/conat services.
   - Issue short\-lived signed tokens \(project\_id \+ perms \+ exp\) from master when opening a project; browser uses them to open `wss://<host>/conat` directly. Hosts validate tokens locally.
@@ -15,8 +15,7 @@
 
 - [ ] File/quotas/backups UX: default quota \+ snapshot/backup counts on project create; expose image/pull errors cleanly; add image allowlist \(e.g., ubuntu:25.10\) and fallback behavior.
 
-- [ ] Cross\-host data motion: copy/move between hosts \(rsync \+ btrfs send/recv\), GC source after validation, update project→host map, and surface progress/errors to users.
-   - src/packages/next/pages/api/v2/projects/copy-path.ts
+
 
 - [ ] Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
 
@@ -139,9 +138,6 @@ flowchart LR
 
 ## Details to not forget
 
-- [x]  memory quota: i think that was set on the pod; I don't see it being set now at all
-  - run\_quota
-- [x] set the container hostname
 - [ ] looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route\-project.ts; this MUST get fixed or everything will be broken/flakie at first.  Solution is make some options to conat/core/client be a promise optionally and delay the connection.
 - [ ] need to rewrite everything in the frontend involving the project runner directly; in particular, see src/packages/frontend/projects/actions.ts
   - cloning projects
@@ -157,8 +153,17 @@ flowchart LR
 - [ ] eliminate /src/packages/project\-proxy/container.ts, in process rewriting /src/packages/project\-proxy/proxy.ts to take a function to get port as input
 - [ ] eliminate payg entirely for projects
 - [ ] make sure the websockets to project-host properly reconnect, despite different config.
+- [ ] extend codex support to work with podman containers (not just cocalc-plus)
 
 ## Completed
+
+
+- [x]  memory quota: i think that was set on the pod; I don't see it being set now at all
+  - run\_quota
+- [x] set the container hostname
+- [x] Btrfs Snapshots
+  - [x] the \$HOME/.snapshots directory does not exist
+  - [x] creating snapshots fails with this error: "request \-\- no subscribers matching 'file\-server' \- callHub: subject='hub.account.d0bdabfd\-850e\-4c8d\-8510\-f6f1ecb9a5eb.api', name='projects.createSnapshot', code='503'"
 
   - [x] ssh to project
     - [x] load ssh keys on project creation \(showing that authorized\_keys column works\)

@@ -1,6 +1,7 @@
 import getLogger from "@cocalc/backend/logger";
 import { createServiceHandler } from "@cocalc/conat/service/typed";
 import { upsertProjectHost, type ProjectHostRecord } from "@cocalc/database/postgres/project-hosts";
+import { conat } from "@cocalc/backend/conat";
 
 const logger = getLogger("server:conat:host-registry");
 
@@ -15,6 +16,18 @@ const SUBJECT = "project-hosts";
 
 export async function initHostRegistryService() {
   logger.info("starting host registry service");
+  const client = conat();
+  const publishKey = async (info: HostRegistration) => {
+    if (!info?.id || !info?.ssh_public_key) return;
+    try {
+      await client.publish(`${SUBJECT}.keys`, {
+        id: info.id,
+        ssh_public_key: info.ssh_public_key,
+      });
+    } catch (err) {
+      logger.warn("failed to publish host ssh key", { err, id: info.id });
+    }
+  };
   return await createServiceHandler<HostRegistryApi>({
     service: SUBJECT,
     subject: `${SUBJECT}.api`,
@@ -30,6 +43,7 @@ export async function initHostRegistryService() {
           status: info.status ?? "active",
           last_seen: new Date(),
         });
+        await publishKey(info);
       },
       async heartbeat(info: HostRegistration) {
         if (!info?.id) {
@@ -41,6 +55,7 @@ export async function initHostRegistryService() {
           status: info.status ?? "active",
           last_seen: new Date(),
         });
+        await publishKey(info);
       },
     },
   });
