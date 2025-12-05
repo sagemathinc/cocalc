@@ -60,7 +60,9 @@ function projectIdFromSubject(subject: string): string {
 }
 
 function localHostId(): string | undefined {
-  const row = getRow("project-host", "host-id") as { hostId?: string } | undefined;
+  const row = getRow("project-host", "host-id") as
+    | { hostId?: string }
+    | undefined;
   return row?.hostId;
 }
 
@@ -412,7 +414,10 @@ export async function initFileServer({
         path: fs!.subvolumes.fs.path,
         publicKey: proxyPublicKey,
       });
-      hostSshPort = ports["file-server"];
+      hostSshPort = ports.sshd;
+      if (!hostSshPort) {
+        throw Error("failed to start ssh host container -- no sshd port");
+      }
       return hostSshPort;
     });
 
@@ -423,20 +428,19 @@ export async function initFileServer({
         const row = getProject(project_id);
         return row?.ssh_port ?? null;
       }
-      // Host-level access.
+      // Host-level access: only if this host matches the requested id.
+      if (localHostId() !== target.host_id) return null;
       return hostSshPort;
     };
 
     const getAuthorizedKeys = async (
       target: SshTarget | string,
     ): Promise<string> => {
-      // Host-level connections: authorize only the requested host's key.
+      // Host-level connections: authorize only the requested host's key, and only on this host.
       if (typeof target !== "string" && target.type === "host") {
+        if (localHostId() !== target.host_id) return "";
         const key =
-          getHostPublicKey(target.host_id) ??
-          (localHostId() === target.host_id
-            ? ensureHostKey().publicKey
-            : undefined);
+          getHostPublicKey(target.host_id) ?? ensureHostKey().publicKey;
         return key?.trim() ?? "";
       }
 
@@ -490,7 +494,7 @@ export async function initFileServer({
     }
   }
 
-servers = { file, ssh };
+  servers = { file, ssh };
   return servers;
 }
 
@@ -501,11 +505,18 @@ export async function writeManagedAuthorizedKeys(
   keys?: string,
 ): Promise<void> {
   const content = (keys ?? "").trim();
-  const formatted = content ? (content.endsWith("\n") ? content : `${content}\n`) : "";
+  const formatted = content
+    ? content.endsWith("\n")
+      ? content
+      : `${content}\n`
+    : "";
   if (!formatted) return;
   const { path } = await mount({ project_id });
   const managedPath = join(path, INTERNAL_SSH_CONFIG, "authorized_keys");
-  await mkdir(join(path, INTERNAL_SSH_CONFIG), { recursive: true, mode: 0o700 });
+  await mkdir(join(path, INTERNAL_SSH_CONFIG), {
+    recursive: true,
+    mode: 0o700,
+  });
   await writeFile(managedPath, formatted, { mode: 0o600 });
 }
 

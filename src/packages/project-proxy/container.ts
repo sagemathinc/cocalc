@@ -16,19 +16,16 @@ import getLogger from "@cocalc/backend/logger";
 import { build } from "@cocalc/backend/podman/build-container";
 import { k8sCpuParser, split } from "@cocalc/util/misc";
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { delay } from "awaiting";
 import * as sandbox from "@cocalc/backend/sandbox/install";
 import { SSHD_CONFIG } from "@cocalc/conat/project/runner/constants";
 import {
   FILE_SERVER_NAME,
   Ports,
-  PORTS,
 } from "@cocalc/conat/project/runner/constants";
 import { mountArg, podman } from "@cocalc/backend/podman";
 import { sha1 } from "@cocalc/backend/sha1";
-
-const FAIR_CPU_MODE = true;
 
 const GRACE_PERIOD_S = "1";
 
@@ -36,14 +33,7 @@ const IDLE_CHECK_INTERVAL = 30_000;
 
 const logger = getLogger("file-server:ssh:container");
 
-const APPS = [
-  "btm",
-  "rg",
-  "fd",
-  "dust",
-  "rustic",
-  "ouch",
-] as const;
+const APPS = ["btm", "rg", "fd", "dust", "rustic", "ouch"] as const;
 const Dockerfile = `
 FROM docker.io/ubuntu:25.10
 
@@ -51,11 +41,11 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsyn
 COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
 `;
 
-const VERSION = `0.5.10`;
+const VERSION = `0.6.0`;
 const IMAGE = `localhost/${FILE_SERVER_NAME}:${VERSION}`;
 
 const sshd_conf = `
-Port ${PORTS["file-server"]}
+Port 22
 PasswordAuthentication no
 ChallengeResponseAuthentication no
 UsePAM no
@@ -80,22 +70,21 @@ export const start = reuseInFlight(
     path,
     publicKey,
     authorizedKeys,
-    // TODO: think about limits once I've benchmarked
-    pids = 100,
-    memory = "2000m",
-    cpu = "2000m",
-    lockdown = true,
+    configRoot,
+    pids = 10000,
+    memory = "16000m",
+    cpu = "8000m",
   }: {
     volume: string;
     path: string;
     publicKey: string;
     authorizedKeys: string;
+    configRoot?: string;
     memory?: string;
     cpu?: string;
     pids?: number;
-    // can be nice to disable for dev and debugging
-    lockdown?: boolean;
-  }): Promise<Ports> => {
+  }): Promise<Partial<Ports>> => {
+    await buildContainerImage();
     const name = containerName(volume);
     const key = sha1(publicKey + authorizedKeys);
     try {
@@ -136,27 +125,15 @@ export const start = reuseInFlight(
       `key=${key}`,
     );
 
-    // mount path containing nodejs so reflect-sync can be run
-    args.push(
-      mountArg({
-        source: dirname(process.execPath),
-        target: "/usr/local/sbin",
-        readOnly: true,
-      }),
-    );
-
     // mount the volume contents to the directory /root in the container.
-    // Since user can write arbitrary files here, this is noexec, so they
-    // can't somehow run them.
     args.push(
       mountArg({
         source: path,
-        target: "/root",
-        options: "noexec,nodev,nosuid",
+        target: "/btrfs",
       }),
     );
 
-    const sshdConfPathOnHost = join(path, SSHD_CONFIG);
+    const sshdConfPathOnHost = configRoot ?? join(path, SSHD_CONFIG);
     await mkdir(sshdConfPathOnHost, { recursive: true, mode: 0o700 });
     // We install the proxy's public key here (not the end-user keys) because the
     // proxy itself sshes into this container on behalf of users; user keys are
@@ -168,52 +145,23 @@ export const start = reuseInFlight(
       mode: 0o600,
     });
 
-    for (const key in PORTS) {
-      args.push("-p", `${PORTS[key]}`);
-    }
-
-    if (lockdown) {
+    // If configRoot is outside the mounted path, bind-mount it into the expected location.
+    if (configRoot) {
       args.push(
-        "--cap-drop",
-        "ALL",
-        // SYS_CHROOT: needed for ssh each time we get a new connection
-        "--cap-add",
-        "SYS_CHROOT",
-        "--cap-add",
-        "SETGID",
-        "--cap-add",
-        "SETUID",
-        // CHOWN: needed to rsync rootfs and preserve uid's
-        "--cap-add",
-        "CHOWN",
-        // FSETID: needed to preserve setuid/setgid bits (e.g,. so ping for regular users works)
-        "--cap-add",
-        "FSETID",
-        // FOWNER: needed to set permissions when rsync'ing rootfs
-        "--cap-add",
-        "FOWNER",
-        // these two are so root can see inside non-root user paths when doing backups of rootfs
-        "--cap-add",
-        "DAC_READ_SEARCH",
-        "--cap-add",
-        "DAC_OVERRIDE",
+        mountArg({
+          source: sshdConfPathOnHost,
+          target: join("/root", SSHD_CONFIG),
+          readOnly: true,
+          options: "nodev,nosuid",
+        }),
       );
-
-      // Limits
-      if (pids) {
-        args.push(`--pids-limit=${pids}`);
-      }
-      if (memory) {
-        args.push(`--memory=${memory}`);
-      }
-      if (FAIR_CPU_MODE) {
-        args.push("--cpu-shares=128");
-      } else if (cpu) {
-        args.push(`--cpus=${k8sCpuParser(cpu)}`);
-      }
-      // make root filesystem readonly so can't install new software or waste space
-      args.push("--read-only");
     }
+
+    args.push("-p", "22");
+
+    if (pids) args.push(`--pids-limit=${pids}`);
+    if (memory) args.push(`--memory=${memory}`);
+    if (cpu) args.push(`--cpus=${k8sCpuParser(cpu)}`);
 
     // openssh server
     //  /usr/sbin/sshd -D -e -f /root/{SSHD_CONFIG}/sshd.conf
@@ -249,40 +197,14 @@ function jsonToPorts(obj) {
     portMap[port] = obj[k][0].HostPort;
   }
 
-  // Prefer the legacy file-server port mapping if present.
   const ports: Partial<Ports> = {};
-  let mapped = 0;
-  for (const k in PORTS) {
-    const val = portMap[PORTS[k]];
-    if (val != null) {
-      ports[k] = val;
-      mapped++;
-    }
+  if (portMap[22] != null) {
+    ports.sshd = portMap[22];
   }
-
-  // Fallback for project containers that expose standard ports (22, 80).
-  if (mapped === 0) {
-    if (portMap[22] != null) {
-      ports.sshd = portMap[22];
-      // Also treat as file-server for compatibility with callers that expect it.
-      ports["file-server"] = portMap[22];
-    }
-    if (portMap[80] != null) {
-      ports.proxy = portMap[80];
-      ports.web = portMap[80];
-    }
-  }
-
-  for (const key of ["file-server", "sshd", "proxy", "web"] as const) {
-    if (ports[key] == null) {
-      throw Error(`BUG -- missing port mapping for ${key}`);
-    }
-  }
-
-  return ports as Ports;
+  return ports;
 }
 
-async function inspectPorts(name: string): Promise<Ports> {
+async function inspectPorts(name: string): Promise<Partial<Ports>> {
   const { stdout } = await podman([
     "inspect",
     name,
@@ -293,7 +215,7 @@ async function inspectPorts(name: string): Promise<Ports> {
 }
 
 export const getPorts = reuseInFlight(
-  async ({ volume }: { volume: string }): Promise<Ports> => {
+  async ({ volume }: { volume: string }): Promise<Partial<Ports>> => {
     const tried: string[] = [];
     const names = [containerName(volume), volume];
     for (const name of names) {

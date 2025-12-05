@@ -21,7 +21,9 @@ type Target = { host: string; port: number };
 
 type ResolveResult = { target?: Target; handled: boolean };
 
-type ResolveFn = (req: http.IncomingMessage) => Promise<ResolveResult> | ResolveResult;
+type ResolveFn = (
+  req: http.IncomingMessage,
+) => Promise<ResolveResult> | ResolveResult;
 
 interface StartOptions {
   port?: number; // default 8080
@@ -36,7 +38,9 @@ function parseProjectId(url: string | undefined): string | null {
   return first;
 }
 
-async function defaultResolveTarget(req: http.IncomingMessage): Promise<ResolveResult> {
+async function defaultResolveTarget(
+  req: http.IncomingMessage,
+): Promise<ResolveResult> {
   const project_id = parseProjectId(req.url);
   if (!project_id) {
     return { handled: false };
@@ -46,9 +50,12 @@ async function defaultResolveTarget(req: http.IncomingMessage): Promise<ResolveR
     if (err) throw err;
     return { target: { host: "localhost", port: proxy! }, handled: true };
   }
-  let proxy: number;
+  let proxy: number | undefined;
   try {
     ({ proxy } = await getPorts({ volume: `project-${project_id}` }));
+    if (!proxy) {
+      throw Error("no proxy server");
+    }
   } catch (err) {
     cache.set(project_id, { err });
     throw err;
@@ -64,7 +71,9 @@ export async function startProxyServer({
 }: StartOptions = {}) {
   logger.debug("startProxyServer", { port, host });
 
-  const { handleRequest, handleUpgrade } = createProxyHandlers({ resolveTarget });
+  const { handleRequest, handleUpgrade } = createProxyHandlers({
+    resolveTarget,
+  });
 
   const proxyServer = http.createServer(handleRequest);
   proxyServer.on("upgrade", handleUpgrade);
@@ -104,7 +113,10 @@ export function createProxyHandlers({
     });
   });
 
-  const handleRequest = async (req: http.IncomingMessage, res: http.ServerResponse) => {
+  const handleRequest = async (
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+  ) => {
     try {
       const { target, handled } = await resolveTarget(req);
       if (!handled || !target) throw new Error("not matched");

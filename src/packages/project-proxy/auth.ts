@@ -67,11 +67,12 @@ export async function init({
 
   app.get(`/${base_url}/:user`, async (req, res) => {
     try {
-      const { authorizedKeys, port } = await handleRequest(
+      const { authorizedKeys, target, port } = await handleRequest(
         req.params.user,
         getSshdPort,
         getAuthorizedKeys,
       );
+      logger.debug({ authorizedKeys, target, port });
 
       if (!port) {
         // project isn't running -- no port available
@@ -160,7 +161,10 @@ function parseUser(user: string): SshTarget {
     throw Error(`unknown user ${user}`);
   }
 
-  return { type: "project", project_id: user.slice(prefix.length, prefix.length + 36) };
+  return {
+    type: "project",
+    project_id: user.slice(prefix.length, prefix.length + 36),
+  };
 }
 
 // 00000000-1000-4000-8000-000000000000
