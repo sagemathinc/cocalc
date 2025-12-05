@@ -7,6 +7,7 @@ import { createHostControlService } from "@cocalc/conat/project-host/api";
 import { hubApi } from "@cocalc/lite/hub/api";
 import { account_id } from "@cocalc/backend/data";
 import { setMasterStatusClient } from "./master-status";
+import { ensureHostKey } from "./ssh/host-key";
 
 const logger = getLogger("project-host:master");
 
@@ -69,6 +70,9 @@ export async function startMasterRegistration({
 
   // [ ] TODO: will have to worry about auth secret
   const client = conat({ address: masterAddress });
+
+  // Stable host SSH keypair for inter-host operations (rsync/reflect-sync).
+  const hostKey = ensureHostKey();
 
   const registry = createServiceClient<{
     register: (info: HostRegistration) => Promise<void>;
@@ -133,7 +137,7 @@ export async function startMasterRegistration({
     internal_url,
     ssh_server,
     status,
-    metadata: { runnerId },
+    metadata: { runnerId, ssh_public_key: hostKey.publicKey },
   };
 
   setMasterStatusClient({

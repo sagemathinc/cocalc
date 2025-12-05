@@ -156,6 +156,7 @@ flowchart LR
 - [ ] eliminate this: src/packages/conat/project/runner/load\-balancer.ts
 - [ ] eliminate /src/packages/project\-proxy/container.ts, in process rewriting /src/packages/project\-proxy/proxy.ts to take a function to get port as input
 - [ ] eliminate payg entirely for projects
+- [ ] make sure the websockets to project-host properly reconnect, despite different config.
 
 ## Completed
 
