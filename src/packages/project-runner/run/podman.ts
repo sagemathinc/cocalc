@@ -446,6 +446,7 @@ export async function start({
 
     const name = projectContainerName(project_id);
     args.push("--name", name);
+    args.push("--hostname", name);
 
     for (const path in mounts) {
       args.push(
