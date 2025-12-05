@@ -18,7 +18,8 @@ import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 import type { Configuration } from "@cocalc/conat/project/runner/types";
 import { ensureHostKey } from "../ssh/host-key";
 import { getHostPublicKey } from "../ssh/host-keys";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { getLocalHostId } from "../sqlite/hosts";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
@@ -182,7 +183,8 @@ async function runCmd(cmd: string, args: string[], opts: any = {}) {
     logger.debug(`${cmd} ${argsJoin(args)}`);
     const child = spawn(cmd, args, opts);
     let stderr = "";
-    child.stderr.on("data", (d) => {
+    // child.stderr defined, depends on opts: "If the child process was spawned with stdio[2] set to anything other than 'pipe', then this will be null."
+    child.stderr?.on("data", (d) => {
       stderr += d.toString();
     });
     child.on("error", reject);
@@ -414,7 +416,11 @@ export async function copyPaths({
   const keyFile = join(tmp, "id_ed25519");
   const knownHosts = join(tmp, "known_hosts");
   try {
-    const hostKey = ensureHostKey();
+    const hostId = getLocalHostId();
+    if (!hostId) {
+      throw Error("host id not set");
+    }
+    const hostKey = ensureHostKey(hostId);
     await writeFile(keyFile, hostKey.privateKey, { mode: 0o600 });
 
     const srcHostKey = getHostPublicKey(src.host_id);
@@ -437,17 +443,19 @@ export async function copyPaths({
       if (!remotePath.startsWith(remoteBase)) {
         throw Error(`source path escapes project: ${p}`);
       }
-      sources.push(
-        `project-host-${dest.host_id}@${src.ssh_server}:${remotePath}`,
-      );
+      sources.push(`project-host-${dest.host_id}@${sshHost}:${remotePath}`);
     }
 
     const sshCmd = [
       "ssh",
+      "-p",
+      sshPort,
       "-i",
       keyFile,
       "-o",
       "StrictHostKeyChecking=no",
+      // [ ] TODO: we should also distribute this stuff so we avoid MITM attacks
+      // (it's almost done above)
       //       "StrictHostKeyChecking=yes",
       //       "-o",
       //       `UserKnownHostsFile=${knownHosts}`,
@@ -457,7 +465,7 @@ export async function copyPaths({
 
     const args = ["-a", "-z", "-e", sshCmd, ...sources, destAbs];
     logger.debug("rsync copyPaths");
-    await runCmd("rsync", args, { stdio: "inherit" });
+    await runCmd("rsync", args, { stdio: "pipe" });
   } finally {
     //await rm(tmp, { recursive: true, force: true });
   }

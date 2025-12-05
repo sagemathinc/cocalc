@@ -29,7 +29,7 @@ import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 import { ensureHostContainer } from "./ssh/host-container";
 import { ensureHostKey } from "./ssh/host-key";
 import { getHostPublicKey } from "./ssh/host-keys";
-import { getRow } from "@cocalc/lite/hub/sqlite/database";
+import { getLocalHostId } from "./sqlite/hosts";
 
 type SshTarget =
   | { type: "project"; project_id: string }
@@ -39,6 +39,14 @@ const logger = getLogger("project-host:file-server");
 
 function volName(project_id: string) {
   return `project-${project_id}`;
+}
+
+function requireHostId(): string {
+  const id = getLocalHostId();
+  if (!id) {
+    throw Error("project-host id not set");
+  }
+  return id;
 }
 
 let fs: Filesystem | null = null;
@@ -57,13 +65,6 @@ function projectIdFromSubject(subject: string): string {
     throw Error("not a valid project id");
   }
   return project_id;
-}
-
-function localHostId(): string | undefined {
-  const row = getRow("project-host", "host-id") as
-    | { hostId?: string }
-    | undefined;
-  return row?.hostId;
 }
 
 export async function getVolume(project_id: string) {
@@ -405,12 +406,13 @@ export async function initFileServer({
   if (enableSsh) {
     let proxyPublicKey: string | undefined;
     let hostSshPort: number | null = null;
+    const hostId = requireHostId();
 
-    const startHostContainer = reuseInFlight(async () => {
+    async function startHostContainer() {
       if (!proxyPublicKey) {
         throw Error("proxy public key not yet available");
       }
-      const hostKey = ensureHostKey().publicKey;
+      const hostKey = ensureHostKey(hostId).publicKey;
       const ports = await ensureHostContainer({
         path: fs!.subvolumes.fs.path,
         publicKey: proxyPublicKey,
@@ -420,34 +422,38 @@ export async function initFileServer({
       if (!hostSshPort) {
         throw Error("failed to start ssh host container -- no sshd port");
       }
-      return hostSshPort;
-    });
+    }
 
-    const getSshdPort = (target: SshTarget | string) => {
-      if (typeof target === "string" || target.type === "project") {
-        const project_id =
-          typeof target === "string" ? target : target.project_id;
+    const getSshdPort = (target: SshTarget): number | null => {
+      if (target.type === "project") {
+        const project_id = target.project_id;
         const row = getProject(project_id);
         return row?.ssh_port ?? null;
+      } else if (target.type == "host") {
+        // right now there is just one container/target:
+        return hostSshPort;
+      } else {
+        return null;
       }
-      // Host-level access: only if this host matches the requested id.
-      if (localHostId() !== target.host_id) return null;
-      return hostSshPort;
     };
 
-    const getAuthorizedKeys = async (
-      target: SshTarget | string,
-    ): Promise<string> => {
-      // Host-level connections: authorize only the requested host's key, and only on this host.
-      if (typeof target !== "string" && target.type === "host") {
-        if (localHostId() !== target.host_id) return "";
-        const key =
-          getHostPublicKey(target.host_id) ?? ensureHostKey().publicKey;
+    const getAuthorizedKeys = async (target: SshTarget): Promise<string> => {
+      // Host-level connections: authorize only the requested host's key.  We are letting them
+      // ssh into us using *their* key.
+      logger.debug("xxx", target);
+      if (target.type == "host") {
+        // key = the public key we were told to trust by the hub
+        const key = getHostPublicKey(target.host_id);
+        logger.debug("xxx", { key });
         return key?.trim() ?? "";
       }
+      if (target.type != "project") {
+        throw Error(
+          `SshTarget type must be 'host' or 'project', but is '${(target as any).type}'`,
+        );
+      }
 
-      const project_id =
-        typeof target === "string" ? target : target.project_id;
+      const project_id = target.project_id;
       const keys: string[] = [];
 
       // Keys provided by the master (account + project keys), persisted locally.

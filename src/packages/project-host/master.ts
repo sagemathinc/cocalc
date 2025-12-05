@@ -75,7 +75,7 @@ export async function startMasterRegistration({
   const client = conat({ address: masterAddress });
 
   // Stable host SSH keypair for inter-host operations (rsync/reflect-sync).
-  const hostKey = ensureHostKey();
+  const hostKey = ensureHostKey(id);
   setHostPublicKey(id, hostKey.publicKey);
 
   const registry = createServiceClient<{
