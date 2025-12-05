@@ -34,13 +34,11 @@ import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("files:sandbox:install");
 
-const pkgDir = packageDirectorySync(__dirname) ?? "";
-
-const binPath = pkgDir
-  ? join(pkgDir, "node_modules", ".bin")
-  : process.env.COCALC_BIN_PATH || "/tmp";
-
-logger.debug({ pkgDir, binPath, COCALC_BIN_PATH: process.env.COCALC_BIN_PATH });
+// Prefer explicit override so tests/bundled environments can point to the
+// correct toolchain even when package resolution lands elsewhere.
+const binPath =
+  process.env.COCALC_BIN_PATH ||
+  join(packageDirectorySync(__dirname) ?? "/tmp", "node_modules", ".bin");
 
 interface Spec {
   nonFatal?: boolean; // true if failure to install is non-fatal
