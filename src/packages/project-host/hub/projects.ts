@@ -22,6 +22,7 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
+import { argsJoin } from "@cocalc/util/args";
 
 const logger = getLogger("project-host:hub:projects");
 const MB = 1_000_000;
@@ -178,6 +179,7 @@ function ensureProjectRow({
 
 async function runCmd(cmd: string, args: string[], opts: any = {}) {
   return await new Promise<void>((resolve, reject) => {
+    logger.debug(`${cmd} ${argsJoin(args)}`);
     const child = spawn(cmd, args, opts);
     let stderr = "";
     child.stderr.on("data", (d) => {
@@ -217,32 +219,9 @@ async function getRunnerConfig(
 }
 
 export function wireProjectsApi(runnerApi: RunnerApi) {
-  if (!hubApi.projects) {
-    (hubApi as any).projects = {};
-  }
-
-  // Update managed SSH keys for a project without restarting it.
-  async function refreshAuthorizedKeys(
-    project_id: string,
-    authorized_keys?: string,
-  ) {
-    upsertProject({ project_id, authorized_keys });
-    if (authorized_keys != null) {
-      try {
-        await writeManagedAuthorizedKeys(project_id, authorized_keys);
-      } catch (err) {
-        logger.debug("refreshAuthorizedKeys: failed to write managed keys", {
-          project_id,
-          err: `${err}`,
-        });
-      }
-    }
-  }
-
-  // Create a project locally and optionally start it.
-  hubApi.projects.createProject = async (
+  async function createProject(
     opts: CreateProjectOptions = {},
-  ): Promise<string> => {
+  ): Promise<string> {
     const project_id =
       opts.project_id && isValidUUID(opts.project_id)
         ? opts.project_id
@@ -270,9 +249,9 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
     }
 
     return project_id;
-  };
+  }
 
-  hubApi.projects.start = async ({
+  async function start({
     project_id,
     authorized_keys,
     run_quota,
@@ -280,7 +259,7 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
     project_id: string;
     authorized_keys?: string;
     run_quota?: any;
-  }): Promise<void> => {
+  }): Promise<void> {
     const status = await runnerApi.start({
       project_id,
       config: await getRunnerConfig(project_id, { authorized_keys, run_quota }),
@@ -293,15 +272,15 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
       ssh_port: (status as any)?.ssh_port,
     });
     await refreshAuthorizedKeys(project_id, authorized_keys);
-  };
+  }
 
-  hubApi.projects.stop = async ({
+  async function stop({
     project_id,
     force,
   }: {
     project_id: string;
     force?: boolean;
-  }): Promise<void> => {
+  }): Promise<void> {
     const status = await runnerApi.stop({ project_id, force });
     ensureProjectRow({
       project_id,
@@ -309,142 +288,177 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
       http_port: undefined,
       ssh_port: undefined,
     });
-  };
+  }
 
-  // Allow the master to push refreshed SSH keys when account/project keys change.
-  (hubApi.projects as any).updateAuthorizedKeys = async ({
-    project_id,
-    authorized_keys,
-  }: {
-    project_id: string;
-    authorized_keys?: string;
-  }) => {
-    if (!isValidUUID(project_id)) {
-      throw Error("invalid project_id");
-    }
-    await refreshAuthorizedKeys(project_id, authorized_keys ?? "");
-  };
+  // Create a project locally and optionally start it.
+  hubApi.projects.createProject = createProject;
+  hubApi.projects.start = start;
+  hubApi.projects.stop = stop;
+  hubApi.projects.getSshKeys = getSshKeys;
+}
 
-  hubApi.projects.getSshKeys = async ({
-    project_id,
-  }: {
-    project_id: string;
-  }): Promise<string[]> => {
-    if (!isValidUUID(project_id)) {
-      throw Error("invalid project_id");
-    }
-
-    const keys = new Set<string>();
-
-    // Keys persisted from the master (account + project keys).
-    const row = getProject(project_id);
-    if (row?.authorized_keys) {
-      for (const line of row.authorized_keys.split(/\r?\n/)) {
-        const trimmed = line.trim();
-        if (trimmed) keys.add(trimmed);
-      }
-    }
-
-    // Keys present inside the project filesystem (managed + user).
+// Update managed SSH keys for a project without restarting it.
+async function refreshAuthorizedKeys(
+  project_id: string,
+  authorized_keys?: string,
+) {
+  upsertProject({ project_id, authorized_keys });
+  if (authorized_keys != null) {
     try {
-      const { path } = await getVolume(project_id);
-      const managed = join(path, INTERNAL_SSH_CONFIG, "authorized_keys");
-      const user = join(path, ".ssh", "authorized_keys");
-      for (const candidate of [managed, user]) {
-        try {
-          const content = (await readFile(candidate, "utf8")).trim();
-          if (!content) continue;
-          for (const line of content.split(/\r?\n/)) {
-            const trimmed = line.trim();
-            if (trimmed) keys.add(trimmed);
-          }
-        } catch {}
-      }
+      await writeManagedAuthorizedKeys(project_id, authorized_keys);
     } catch (err) {
-      logger.debug("getSshKeys: failed to read filesystem keys", {
+      logger.debug("refreshAuthorizedKeys: failed to write managed keys", {
         project_id,
         err: `${err}`,
       });
     }
+  }
+}
 
-    return Array.from(keys);
-  };
+// Allow the master to push refreshed SSH keys when account/project keys change.
+export async function updateAuthorizedKeys({
+  project_id,
+  authorized_keys,
+}: {
+  project_id: string;
+  authorized_keys?: string;
+}) {
+  if (!isValidUUID(project_id)) {
+    throw Error("invalid project_id");
+  }
+  await refreshAuthorizedKeys(project_id, authorized_keys ?? "");
+}
 
-  (hubApi.projects as any).copyPaths = async ({
-    src,
-    dest,
-  }: {
-    src: { host_id: string; ssh_server?: string; project_id: string; paths: string[] };
-    dest: { host_id: string; project_id: string; path: string };
-  }) => {
-    if (!isValidUUID(src.project_id) || !isValidUUID(dest.project_id)) {
-      throw Error("invalid project_id");
+export async function getSshKeys({
+  project_id,
+}: {
+  project_id: string;
+}): Promise<string[]> {
+  if (!isValidUUID(project_id)) {
+    throw Error("invalid project_id");
+  }
+
+  const keys = new Set<string>();
+
+  // Keys persisted from the master (account + project keys).
+  const row = getProject(project_id);
+  if (row?.authorized_keys) {
+    for (const line of row.authorized_keys.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (trimmed) keys.add(trimmed);
     }
-    if (!src.ssh_server) {
-      throw Error("source ssh_server is required");
-    }
+  }
 
-    const destVol = await getVolume(dest.project_id);
-    const destRoot = destVol.path;
-    const destAbs = resolve(destRoot, dest.path);
-    if (!destAbs.startsWith(destRoot)) {
-      throw Error("destination path escapes project");
-    }
-
-    const srcPaths = Array.isArray(src.paths) ? src.paths : [src.paths];
-    if (!srcPaths.length) {
-      return;
-    }
-
-    const tmp = await mkdtemp(join(tmpdir(), "ph-rsync-"));
-    const keyFile = join(tmp, "id_ed25519");
-    const knownHosts = join(tmp, "known_hosts");
-    try {
-      const hostKey = ensureHostKey();
-      await writeFile(keyFile, hostKey.privateKey, { mode: 0o600 });
-
-      const srcHostKey = getHostPublicKey(src.host_id);
-      if (!srcHostKey) {
-        throw Error(`missing host key for ${src.host_id}`);
-      }
-      const [sshHost, sshPort] = src.ssh_server.includes(":")
-        ? src.ssh_server.split(":")
-        : [src.ssh_server, "22"];
-      await writeFile(
-        knownHosts,
-        `[${sshHost}]:${sshPort} ${srcHostKey.trim()}\n`,
-        { mode: 0o600 },
-      );
-
-      const remoteBase = `/btrfs/project-${src.project_id}`;
-      const sources: string[] = [];
-      for (const p of srcPaths) {
-        const remotePath = resolve(remoteBase, p);
-        if (!remotePath.startsWith(remoteBase)) {
-          throw Error(`source path escapes project: ${p}`);
+  // Keys present inside the project filesystem (managed + user).
+  try {
+    const { path } = await getVolume(project_id);
+    const managed = join(path, INTERNAL_SSH_CONFIG, "authorized_keys");
+    const user = join(path, ".ssh", "authorized_keys");
+    for (const candidate of [managed, user]) {
+      try {
+        const content = (await readFile(candidate, "utf8")).trim();
+        if (!content) continue;
+        for (const line of content.split(/\r?\n/)) {
+          const trimmed = line.trim();
+          if (trimmed) keys.add(trimmed);
         }
-        sources.push(
-          `project-host-${src.host_id}@${src.ssh_server}:${remotePath}`,
-        );
-      }
-
-      const sshCmd = [
-        "ssh",
-        "-i",
-        keyFile,
-        "-o",
-        "StrictHostKeyChecking=yes",
-        "-o",
-        `UserKnownHostsFile=${knownHosts}`,
-        "-o",
-        "IdentitiesOnly=yes",
-      ].join(" ");
-
-      const args = ["-a", "-z", "-e", sshCmd, ...sources, destAbs];
-      logger.debug("rsync copyPaths", { args });
-      await runCmd("rsync", args, { stdio: "inherit" });
-    } finally {
-      await rm(tmp, { recursive: true, force: true });
+      } catch {}
     }
+  } catch (err) {
+    logger.debug("getSshKeys: failed to read filesystem keys", {
+      project_id,
+      err: `${err}`,
+    });
+  }
+
+  return Array.from(keys);
+}
+
+// this function gets run on the destination, copying
+// files from the source.  This direction means that
+// only the initiating side has to be writeable, which is
+// a potentially more secure orientation.
+export async function copyPaths({
+  src,
+  dest,
+}: {
+  src: {
+    host_id: string;
+    ssh_server?: string;
+    project_id: string;
+    paths: string[];
   };
+  dest: { host_id: string; project_id: string; path: string };
+}) {
+  logger.debug("copyPaths", { src, dest });
+  if (!isValidUUID(src.project_id) || !isValidUUID(dest.project_id)) {
+    throw Error("invalid project_id");
+  }
+  if (!src.ssh_server) {
+    throw Error("source ssh_server is required");
+  }
+
+  const destVol = await getVolume(dest.project_id);
+  const destRoot = destVol.path;
+  const destAbs = resolve(destRoot, dest.path);
+  if (!destAbs.startsWith(destRoot)) {
+    throw Error("destination path escapes project");
+  }
+
+  const srcPaths = Array.isArray(src.paths) ? src.paths : [src.paths];
+  if (!srcPaths.length) {
+    return;
+  }
+
+  const tmp = await mkdtemp(join(tmpdir(), "ph-rsync-"));
+  const keyFile = join(tmp, "id_ed25519");
+  const knownHosts = join(tmp, "known_hosts");
+  try {
+    const hostKey = ensureHostKey();
+    await writeFile(keyFile, hostKey.privateKey, { mode: 0o600 });
+
+    const srcHostKey = getHostPublicKey(src.host_id);
+    if (!srcHostKey) {
+      throw Error(`missing host key for ${src.host_id}`);
+    }
+    const [sshHost, sshPort] = src.ssh_server.includes(":")
+      ? src.ssh_server.split(":")
+      : [src.ssh_server, "22"];
+    await writeFile(
+      knownHosts,
+      `[${sshHost}]:${sshPort} ${srcHostKey.trim()}\n`,
+      { mode: 0o600 },
+    );
+
+    const remoteBase = `/btrfs/project-${src.project_id}`;
+    const sources: string[] = [];
+    for (const p of srcPaths) {
+      const remotePath = resolve(remoteBase, p);
+      if (!remotePath.startsWith(remoteBase)) {
+        throw Error(`source path escapes project: ${p}`);
+      }
+      sources.push(
+        `project-host-${dest.host_id}@${src.ssh_server}:${remotePath}`,
+      );
+    }
+
+    const sshCmd = [
+      "ssh",
+      "-i",
+      keyFile,
+      "-o",
+      "StrictHostKeyChecking=no",
+      //       "StrictHostKeyChecking=yes",
+      //       "-o",
+      //       `UserKnownHostsFile=${knownHosts}`,
+      //       "-o",
+      //       "IdentitiesOnly=yes",
+    ].join(" ");
+
+    const args = ["-a", "-z", "-e", sshCmd, ...sources, destAbs];
+    logger.debug("rsync copyPaths");
+    await runCmd("rsync", args, { stdio: "inherit" });
+  } finally {
+    //await rm(tmp, { recursive: true, force: true });
+  }
 }

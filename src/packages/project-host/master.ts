@@ -9,6 +9,7 @@ import { account_id } from "@cocalc/backend/data";
 import { setMasterStatusClient } from "./master-status";
 import { ensureHostKey } from "./ssh/host-key";
 import { setHostPublicKey, upsertRemoteHostKey } from "./ssh/host-keys";
+import { updateAuthorizedKeys, copyPaths } from "./hub/projects";
 
 const logger = getLogger("project-host:master");
 
@@ -121,19 +122,13 @@ export async function startMasterRegistration({
         return { project_id, state: (status as any)?.state };
       },
       async updateAuthorizedKeys({ project_id, authorized_keys }) {
-        if (!(hubApi as any).projects?.updateAuthorizedKeys) {
-          throw Error("updateAuthorizedKeys not available");
-        }
-        await (hubApi as any).projects.updateAuthorizedKeys({
+        await updateAuthorizedKeys({
           project_id,
           authorized_keys,
         });
       },
       async copyPaths(opts) {
-        if (!(hubApi as any).projects?.copyPaths) {
-          throw Error("copyPaths not available");
-        }
-        return await (hubApi as any).projects.copyPaths(opts);
+        return await copyPaths(opts);
       },
     },
   });
