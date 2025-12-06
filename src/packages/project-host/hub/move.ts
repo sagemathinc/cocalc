@@ -85,15 +85,44 @@ export async function sendProject({
 
     // btrfs send | ssh ... btrfs receive /btrfs
     logger.debug("btrfs send|receive", { snapPath, ssh: sshArgs.join(" ") });
-    const send = spawn("btrfs", ["send", snapPath]);
-    const ssh = spawn("ssh", sshArgs, {
-      stdio: ["pipe", "inherit", "inherit"],
+    const send = spawn("btrfs", ["send", snapPath], {
+      stdio: ["pipe", "inherit", "pipe"],
     });
-    send.stdout.pipe(ssh.stdin);
+    const ssh = spawn("ssh", sshArgs, {
+      stdio: ["pipe", "inherit", "pipe"],
+    });
+    const sendErr: string[] = [];
+    const sshErr: string[] = [];
+    send.stderr?.on("data", (d) => {
+      const msg = String(d);
+      sendErr.push(msg);
+      process.stderr.write(msg);
+    });
+    ssh.stderr?.on("data", (d) => {
+      const msg = String(d);
+      sshErr.push(msg);
+      process.stderr.write(msg);
+    });
+    const sendOut = send.stdout;
+    const sshIn = ssh.stdin;
+    if (!sendOut || !sshIn) {
+      throw new Error("btrfs send/ssh pipe not available");
+    }
+    // stdout/stdin are typed as possibly null because of mixed stdio options;
+    // we guarded above, so cast is safe to satisfy TS here.
+    (sendOut as any).pipe(sshIn as any);
     const result = await Promise.all([
       new Promise<void>((resolve, reject) => {
         send.on("exit", (code) =>
-          code === 0 ? resolve() : reject(new Error(`btrfs send exit ${code}`)),
+          code === 0
+            ? resolve()
+            : reject(
+                new Error(
+                  `btrfs send exit ${code}${
+                    sendErr.length ? `: ${sendErr.join("")}` : ""
+                  }`,
+                ),
+              ),
         );
         send.on("error", reject);
       }),
@@ -101,7 +130,13 @@ export async function sendProject({
         ssh.on("exit", (code) =>
           code === 0
             ? resolve()
-            : reject(new Error(`ssh btrfs receive exit ${code}`)),
+            : reject(
+                new Error(
+                  `ssh btrfs receive exit ${code}${
+                    sshErr.length ? `: ${sshErr.join("")}` : ""
+                  }`,
+                ),
+              ),
         );
         ssh.on("error", reject);
       }),
