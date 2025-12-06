@@ -5,7 +5,6 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import getLogger from "@cocalc/backend/logger";
 import getPort from "@cocalc/backend/get-port";
 import { ensureBtrfsSshKey } from "./btrfs-sshd-key";
-import { listHosts } from "../sqlite/hosts";
 
 const logger = getLogger("project-host:ssh:btrfs-sshd");
 
@@ -17,8 +16,10 @@ export interface BtrfsSshd {
 
 export async function startBtrfsSshd({
   mount,
+  sshpiperdPublicKey,
 }: {
   mount: string;
+  sshpiperdPublicKey: string;
 }): Promise<BtrfsSshd> {
   // Run on the host, not in a container, so btrfs receive has the required
   // privileges and writes directly to the real mount. Access is locked down
@@ -30,10 +31,8 @@ export async function startBtrfsSshd({
   await writeFile(hostKeyPath, key.privateKey, { mode: 0o600 });
   await chmod(hostKeyPath, 0o600);
 
-  // Allow all known host public keys, but force btrfs receive and disable everything else.
-  const hosts = listHosts()
-    .map((h) => h.host_to_host_public_key?.trim())
-    .filter(Boolean) as string[];
+  // Only sshpiperd connects here; it authenticates with its own key. We still
+  // force the command to btrfs receive and disable everything else.
   const forcedOpts = [
     `command="btrfs receive ${mount}"`,
     "no-pty",
@@ -42,8 +41,8 @@ export async function startBtrfsSshd({
     "no-agent-forwarding",
     "restrict",
   ].join(",");
-  const authKeys = hosts.map((k) => `${forcedOpts} ${k}`).join("\n");
-  await writeFile(authKeysPath, authKeys, { mode: 0o600 });
+  const authKey = `${forcedOpts} ${sshpiperdPublicKey.trim()}`;
+  await writeFile(authKeysPath, authKey, { mode: 0o600 });
 
   const configPath = join(dir, "sshd_config");
   const port = await getPort();

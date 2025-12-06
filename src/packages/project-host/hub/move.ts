@@ -25,6 +25,8 @@ export async function sendProject({
   snapshot: string;
 }) {
   if (!isValidUUID(project_id)) throw Error("invalid project_id");
+  const localHostId = getLocalHostId();
+  if (!localHostId) throw Error("host id not set");
   const vol = await getVolume(project_id);
   const snapshotsDir = join(vol.path, ".snapshots");
   await mkdir(snapshotsDir, { recursive: true });
@@ -43,8 +45,6 @@ export async function sendProject({
   const tmp = await setupSshTempFiles({
     prefix: "ph-move-send-",
     privateKey: (() => {
-      const localHostId = getLocalHostId();
-      if (!localHostId) throw Error("host id not set");
       const localHostKey = ensureHostKey(localHostId);
       return localHostKey.privateKey;
     })(),
@@ -58,7 +58,8 @@ export async function sendProject({
   });
   const { keyFile, knownHosts, cleanup } = tmp;
   try {
-    const sshTarget = `btrfs-${dest_host_id}@${sshHost}`;
+    // Authenticate as the source host so the destination authorizes only that host key.
+    const sshTarget = `btrfs-${localHostId}@${sshHost}`;
     const sshArgs = [
       "-p",
       sshPort,

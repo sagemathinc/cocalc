@@ -450,6 +450,7 @@ export async function initFileServer({
     async function startBtrfsServer() {
       const { port, stop } = await startBtrfsSshd({
         mount: fs!.subvolumes.fs.path,
+        sshpiperdPublicKey: sshpiperdKey.publicKey,
       });
       btrfsSshPort = port;
       stopBtrfsSshd = stop;

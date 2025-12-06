@@ -130,20 +130,5 @@ export function upsertHost(row: HostRow) {
   });
 }
 
-export function listHosts(): HostRow[] {
-  ensureHostsTable();
-  const db = getDatabase();
-  return db
-    .prepare(
-      `SELECT host_id,
-              host_to_host_public_key,
-              host_to_host_private_key,
-              sshpiperd_public_key,
-              sshpiperd_private_key,
-              btrfs_ssh_public_key,
-              btrfs_ssh_private_key,
-              updated_at
-              FROM project_hosts`,
-    )
-    .all() as HostRow[];
-}
+// IMPORTANT: do not add a "list all hosts" helper. For scalability and
+// security we always address hosts individually by host_id.
