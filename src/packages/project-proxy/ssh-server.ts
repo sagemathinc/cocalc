@@ -165,6 +165,7 @@ export async function init({
   const { url, publicKey } = await initAuth({ getSshdPort, getAuthorizedKeys });
   const hostKey = hostKeyPath ?? join(secretsPath(), "host_key");
   await mkdir(dirname(hostKey), { recursive: true });
+  const restBinary = `${sshpiper}-rest`;
   const args = [
     "-i",
     hostKey,
@@ -172,31 +173,70 @@ export async function init({
     "--log-level=warn",
     "--server-key-generate-mode",
     "notexist",
-    sshpiper + "-rest",
+    restBinary,
     "--url",
     url,
   ];
-  logger.debug(`${sshpiper} ${args.join(" ")}`);
-  const child = spawn(sshpiper, args);
-  children.push(child);
 
-  try {
-    await waitForStartup(child, port);
-    logger.debug("sshpiperd started", { port });
-  } catch (err) {
-    removeChild(child);
-    if (child.exitCode == null && child.signalCode == null) {
-      child.kill("SIGKILL");
+  // sshpiperd-rest lives in a shared pnpm store; concurrent startups can hit
+  // ETXTBSY if another process has it open for write. We retry once on that
+  // specific error to avoid flakiness without masking real failures.
+  const tryStart = async () => {
+    logger.debug(`${sshpiper} ${args.join(" ")}`);
+    const child = spawn(sshpiper, args);
+    children.push(child);
+    try {
+      await waitForStartup(child, port);
+      logger.debug("sshpiperd started", { port });
+      return child;
+    } catch (err) {
+      removeChild(child);
+      if (child.exitCode == null && child.signalCode == null) {
+        child.kill("SIGKILL");
+      }
+      throw err instanceof Error ? err : new Error(String(err));
     }
+  };
+
+  let child;
+  let lastErr: Error | undefined;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      child = await tryStart();
+      break;
+    } catch (err: any) {
+      lastErr = err instanceof Error ? err : new Error(String(err));
+      const msg = lastErr.message || "";
+      const isBusy = /text file busy/i.test(msg);
+      if (isBusy && attempt === 0) {
+        // Small randomized backoff then retry once.
+        const delay = 50 + Math.floor(Math.random() * 150);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      const message =
+        lastErr instanceof Error
+          ? lastErr.message
+          : "unknown failure starting sshpiperd";
+      logger.error(message);
+      if (exitOnFail) {
+        console.error(message);
+        console.error("Shutting down.");
+        process.exit(1);
+      }
+      throw lastErr;
+    }
+  }
+  if (!child) {
     const message =
-      err instanceof Error ? err.message : "unknown failure starting sshpiperd";
+      lastErr?.message ?? "unknown failure starting sshpiperd after retries";
     logger.error(message);
     if (exitOnFail) {
       console.error(message);
       console.error("Shutting down.");
       process.exit(1);
     }
-    throw err instanceof Error ? err : new Error(message);
+    throw lastErr ?? new Error(message);
   }
 
   return { child, projectProxyHandlers, publicKey };
