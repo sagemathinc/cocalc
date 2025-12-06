@@ -32,9 +32,10 @@ export async function startBtrfsSshd({
   await chmod(hostKeyPath, 0o600);
 
   // Only sshpiperd connects here; it authenticates with its own key. We still
-  // force the command to btrfs receive and disable everything else.
+  // force the command to sudo btrfs receive and disable everything else so the
+  // session can only write to the mount and nothing more.
   const forcedOpts = [
-    `command="btrfs receive ${mount}"`,
+    `command="sudo btrfs receive ${mount}"`,
     "no-pty",
     "no-port-forwarding",
     "no-X11-forwarding",

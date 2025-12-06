@@ -78,15 +78,16 @@ export async function sendProject({
       "-o",
       "IdentitiesOnly=yes",
       sshTarget,
+      "sudo",
       "btrfs",
       "receive",
       getMountPoint(),
     ];
 
-    // btrfs send | ssh ... btrfs receive /btrfs
+    // btrfs send | ssh ... sudo btrfs receive /btrfs
     logger.debug("btrfs send|receive", { snapPath, ssh: sshArgs.join(" ") });
-    const send = spawn("btrfs", ["send", snapPath], {
-      stdio: ["pipe", "inherit", "pipe"],
+    const send = spawn("sudo", ["btrfs", "send", snapPath], {
+      stdio: ["ignore", "pipe", "pipe"],
     });
     const ssh = spawn("ssh", sshArgs, {
       stdio: ["pipe", "inherit", "pipe"],
