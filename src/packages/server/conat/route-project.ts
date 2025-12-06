@@ -7,14 +7,9 @@ const log = getLogger("server:conat:route-project");
 
 const CHANNEL = "project_host_update";
 
-const projectCache = new LRU<string, string>({
+const cache = new LRU<string, string>({
   max: 10_000,
   ttl: 5 * 60_000, // 5 minutes
-});
-
-const hostCache = new LRU<string, string>({
-  max: 2_000,
-  ttl: 5 * 60_000,
 });
 
 const inflight: Partial<Record<string, Promise<void>>> = {};
@@ -41,15 +36,7 @@ function extractProjectId(subject: string): string | undefined {
   return undefined;
 }
 
-function extractHostId(subject: string): string | undefined {
-  if (subject.startsWith("project-host.")) {
-    const host_id = subject.split(".")[1];
-    if (isValidUUID(host_id)) return host_id;
-  }
-  return undefined;
-}
-
-function cacheProject(project_id: string, host?: any) {
+function cacheHost(project_id: string, host?: any) {
   let address: string | undefined;
   if (typeof host === "string") {
     address = host;
@@ -57,30 +44,16 @@ function cacheProject(project_id: string, host?: any) {
     address = host.internal_url ?? host.public_url;
   }
   if (!address) {
-    projectCache.delete(project_id);
+    cache.delete(project_id);
     return;
   }
-  projectCache.set(project_id, address);
-}
-
-function cacheHostAddress(host_id: string, host?: any) {
-  let address: string | undefined;
-  if (typeof host === "string") {
-    address = host;
-  } else if (host && typeof host === "object") {
-    address = host.internal_url ?? host.public_url;
-  }
-  if (!address) {
-    hostCache.delete(host_id);
-    return;
-  }
-  hostCache.set(host_id, address);
+  cache.set(project_id, address);
 }
 
 async function fetchHostAddress(project_id: string): Promise<string | undefined> {
   if (inflight[project_id]) {
     await inflight[project_id];
-    return projectCache.get(project_id);
+    return cache.get(project_id);
   }
   inflight[project_id] = (async () => {
     try {
@@ -94,7 +67,7 @@ async function fetchHostAddress(project_id: string): Promise<string | undefined>
         [project_id],
       );
       const row = rows[0];
-      cacheProject(project_id, row);
+      cacheHost(project_id, row);
     } catch (err) {
       log.debug("fetchHostAddress failed", { project_id, err });
     } finally {
@@ -102,46 +75,19 @@ async function fetchHostAddress(project_id: string): Promise<string | undefined>
     }
   })();
   await inflight[project_id];
-  return projectCache.get(project_id);
-}
-
-async function fetchProjectHost(host_id: string): Promise<string | undefined> {
-  // Simple fetch; host registry updates are infrequent and TTL keeps cache fresh.
-  try {
-    const { rows } = await getPool().query(
-      `
-        SELECT internal_url, public_url
-        FROM project_hosts
-        WHERE id=$1
-      `,
-      [host_id],
-    );
-    const row = rows[0];
-    cacheHostAddress(host_id, row);
-  } catch (err) {
-    log.debug("fetchProjectHost failed", { host_id, err });
-  }
-  return hostCache.get(host_id);
+  return cache.get(project_id);
 }
 
 export function routeProjectSubject(
   subject: string,
 ): { address?: string } | undefined {
-  const host_id = extractHostId(subject);
-  if (host_id) {
-    const cachedHost = hostCache.get(host_id);
-    if (cachedHost) return { address: cachedHost };
-    void fetchProjectHost(host_id);
-    return;
-  }
-
   const project_id = extractProjectId(subject);
   if (!project_id) {
     // log.debug("routeProjectSubject: not a project subject", subject);
     return;
   }
 
-  const cached = projectCache.get(project_id);
+  const cached = cache.get(project_id);
   if (cached) {
     // log.debug("routeProjectSubject: cached", { subject, cached });
     return { address: cached };
@@ -158,7 +104,7 @@ function handleNotification(msg: { channel: string; payload?: string | null }) {
     const payload = JSON.parse(msg.payload);
     const { project_id, host } = payload;
     if (!project_id || !isValidUUID(project_id)) return;
-    cacheProject(project_id, host);
+    cacheHost(project_id, host);
   } catch (err) {
     log.debug("handleNotification parse failed", { err, payload: msg.payload });
   }
@@ -224,7 +170,7 @@ export async function notifyProjectHostUpdate(opts: {
 export async function materializeProjectHost(
   project_id: string,
 ): Promise<string | undefined> {
-  const cached = projectCache.get(project_id);
+  const cached = cache.get(project_id);
   if (cached) return cached;
   return await fetchHostAddress(project_id);
 }
