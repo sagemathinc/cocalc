@@ -10,8 +10,9 @@ sequenceDiagram
     participant Dest as Destination Host
     participant DestSSH as Dest btrfs sshd
 
-    User->>Hub: Request move(project_id, dest_host)
-    Hub->>Src: RPC: initiate move(project_id, dest_host_id, dest_ssh_server)
+    User->>Hub: Request move(project_id, dest_host?)
+    Hub->>Hub: Enqueue move (project_moves) + update projects.move_status
+    Hub->>Src: Worker picks job → RPC start move
     Src->>Src: Snapshot project subvolume
     Src->>DestSSH: SSH via sshpiperd (user: btrfs-<source_host_id>)
     note right of DestSSH: Forced command<br/>btrfs receive <mount>
@@ -22,36 +23,36 @@ sequenceDiagram
 ```
 
 - **Orchestration \(hub, restart\-safe\)**
-  - Hubs are ephemeral \(autoscaling, maintenance, rolling upgrades\), so orchestration can’t rely on in\-memory state or long\-lived hub processes. Everything must be durable in Postgres and idempotent so any hub can resume work after a restart.
-  - Moves are tracked in Postgres \(e.g., `project_moves`\), keyed by project\_id \(and a job\_id\). Fields include source\_host\_id, dest\_host\_id, status \(queued/preparing/sending/finalizing/success/error\), snapshot\_name, bytes\_sent, last\_update, error, started\_at, finished\_at.
-  - A hub/worker runs a state machine \(see diagram below\) that is idempotent; each step advances status and is re\-runnable after a hub restart.
-  - Concurrency control via advisory locks or a partial unique index prevents multiple simultaneous moves for a project.
-  - Visibility: changefeeds on the projects table \(or a `moving`/`move_status` JSON column\) surface status to the UI; a REST/Conat endpoint can return move status for non\-changefeed clients.
-  - Stuck detection can be a later sweep that marks long\-idle jobs as error.
+  - Hubs are ephemeral \(autoscaling, maintenance, rolling upgrades\), so orchestration can’t rely on in\-memory state or long\-lived hub processes. Everything is durable in Postgres and idempotent so any hub can resume after a restart.
+  - Moves are tracked in Postgres table `project_moves` and mirrored into `projects.move_status` \(JSONB\). Fields include source\_host\_id, dest\_host\_id, state \(queued/preparing/sending/finalizing/done/failing\), snapshot\_name, progress/status\_reason, attempt, timestamps.
+  - A single maintenance hub \(the `--mentions` instance\) runs a worker loop that advances the state machine \(see diagram below\). Steps are re\-runnable after a hub restart.
+  - Concurrency control: primary key on project\_id; worker uses `FOR UPDATE SKIP LOCKED` to ensure only one move per project runs.
+  - Visibility: UI reads `projects.move_status` via changefeeds; other clients can poll a move\-status endpoint later.
+  - Stuck detection/backoff can be added later as a sweep.
 
 ```mermaid
 stateDiagram-v2
     [*] --> queued
-    queued --> preparing : lock project<br/> stop project/block writes<br/>create readonly snapshot
+    queued --> preparing : pick destination<br/>stop project<br/>snapshot
     preparing --> sending : btrfs send|ssh|receive
     sending --> finalizing : clone writable<br/>register dest<br/>update host_id/host
-    finalizing --> success : cleanup source snapshot/original<br/>mark success
-    queued --> error : failed
-    preparing --> error : failed
-    sending --> error : failed
-    finalizing --> error : failed
-    error --> [*]
-    success --> [*]
+    finalizing --> done : cleanup source snapshot/original<br/>mark success
+    queued --> failing : failed
+    preparing --> failing : failed
+    sending --> failing : failed
+    finalizing --> failing : failed
+    failing --> [*]
+    done --> [*]
 ```
 
 - **Control flow**
-  - Master (control hub) selects a destination host for a project and issues a move RPC to the source host (see [packages/project-host/hub/move.ts](./packages/project-host/hub/move.ts)).
-  - Source host uses `btrfs send` to stream the project subvolume; destination host uses `btrfs receive` to import it.
-  - Progress/status is reported back to the master so the UI can reflect the current state.
+  - Hub enqueues a move (chooses destination if not provided), updates `projects.move_status`, and returns immediately.
+  - Maintenance worker pops queued moves, stops the project, snapshots, and orchestrates send/receive via host control RPCs (see [packages/server/project-host/move-worker.ts](./packages/server/project-host/move-worker.ts)).
+  - Source host uses `btrfs send`; destination host uses forced-command `btrfs receive`. On success, dest is registered and started; status is written back to Postgres for the UI.
 
 - **SSH plumbing (single exposed port via sshpiperd)**
   - All external SSH goes through sshpiperd (see [packages/project-proxy/ssh-server.ts](./packages/project-proxy/ssh-server.ts)).
-  - For moves, the source host connects to the destination using username `btrfs-<dest_host_id>` via sshpiperd on the destination. No direct sockets are exposed.
+  - For moves, the source host connects to the destination using username `btrfs-<source_host_id>` via sshpiperd on the destination. No direct sockets are exposed.
   - sshpiperd, after authenticating the caller, dials a dedicated host-level `sshd` running on the destination (started in [packages/project-host/ssh/btrfs-sshd.ts](./packages/project-host/ssh/btrfs-sshd.ts)) and forwards the stream.
 
 - **Keys and authorization**
@@ -69,4 +70,3 @@ stateDiagram-v2
   - Safety comes from the forced command and the fact that only sshpiperd can connect to this `sshd`.
 
 Keep this doc in sync with the move implementation as we add progress reporting, snapshot preservation, and incremental sends.
-

@@ -77,5 +77,5 @@ Subsystem sftp internal-sftp
     await rm(dir, { recursive: true, force: true });
   };
 
-  return { port, stop, authKeys };
+  return { port, stop, authKeys: authKey };
 }

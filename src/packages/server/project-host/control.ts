@@ -4,6 +4,11 @@ import getPool from "@cocalc/database/pool";
 import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import sshKeys from "../projects/get-ssh-keys";
 import { notifyProjectHostUpdate } from "../conat/route-project";
+import {
+  ensureMoveSchema,
+  upsertMove,
+  updateMove,
+} from "./move-db";
 
 const log = getLogger("server:project-host:control");
 
@@ -16,7 +21,7 @@ type HostPlacement = {
   };
 };
 
-type ProjectMeta = {
+export type ProjectMeta = {
   title?: string;
   users?: any;
   image?: string;
@@ -28,7 +33,7 @@ type ProjectMeta = {
 
 const pool = () => getPool();
 
-async function loadProject(project_id: string): Promise<ProjectMeta> {
+export async function loadProject(project_id: string): Promise<ProjectMeta> {
   const { rows } = await pool().query(
     "SELECT title, users, rootfs_image as image, host_id, host, run_quota FROM projects WHERE project_id=$1",
     [project_id],
@@ -41,7 +46,7 @@ async function loadProject(project_id: string): Promise<ProjectMeta> {
   return { ...rows[0], authorized_keys };
 }
 
-async function loadHostFromRegistry(host_id: string) {
+export async function loadHostFromRegistry(host_id: string) {
   const { rows } = await pool().query(
     "SELECT public_url, internal_url, ssh_server FROM project_hosts WHERE id=$1",
     [host_id],
@@ -49,20 +54,26 @@ async function loadHostFromRegistry(host_id: string) {
   return rows[0];
 }
 
-async function selectActiveHost() {
+export async function selectActiveHost(exclude_host_id?: string) {
   const { rows } = await pool().query(
     `
       SELECT id, public_url, internal_url, ssh_server
       FROM project_hosts
-      WHERE status='active' AND last_seen > NOW() - interval '2 minutes'
+      WHERE status='active'
+        AND last_seen > NOW() - interval '2 minutes'
+        ${exclude_host_id ? "AND id != $1" : ""}
       ORDER BY random()
       LIMIT 1
     `,
+    exclude_host_id ? [exclude_host_id] : [],
   );
   return rows[0];
 }
 
-async function savePlacement(project_id: string, placement: HostPlacement) {
+export async function savePlacement(
+  project_id: string,
+  placement: HostPlacement,
+) {
   await pool().query(
     "UPDATE projects SET host_id=$1, host=$2::jsonb WHERE project_id=$3",
     [placement.host_id, JSON.stringify(placement.host), project_id],
@@ -195,74 +206,46 @@ export async function moveProjectToHost({
   project_id: string;
   dest_host_id: string;
 }): Promise<void> {
+  await requestMoveToHost({ project_id, dest_host_id });
+}
+
+export async function requestMoveToHost({
+  project_id,
+  dest_host_id,
+}: {
+  project_id: string;
+  dest_host_id?: string;
+}): Promise<void> {
+  await ensureMoveSchema();
   const meta = await loadProject(project_id);
-  const source_host_id = meta.host_id;
-  if (!source_host_id) {
+  if (!meta.host_id) {
     throw Error("project has no current host");
   }
-  if (source_host_id === dest_host_id) {
+  const dest =
+    dest_host_id ??
+    (await selectActiveHost(meta.host_id))?.id ??
+    (() => {
+      throw Error("no active project-host available");
+    })();
+
+  if (dest === meta.host_id) {
+    // Nothing to do; clear any prior move state.
+    await updateMove(project_id, {
+      state: "done",
+      status_reason: "already on destination host",
+      dest_host_id: dest,
+      source_host_id: meta.host_id,
+    });
     return;
   }
-  const destHost = await loadHostFromRegistry(dest_host_id);
-  if (!destHost?.ssh_server) {
-    throw Error("destination host missing ssh_server");
-  }
 
-  // Stop project on source.
-  await stopProjectOnHost(project_id);
-
-  const conatClient = await conat();
-  const srcClient = createHostControlClient({
-    host_id: source_host_id,
-    client: conatClient,
-  });
-  const destClient = createHostControlClient({
-    host_id: dest_host_id,
-    client: conatClient,
-  });
-
-  const snapshot = `move-${Date.now()}`;
-
-  // Push data from source to dest.
-  await srcClient.sendProject({
+  await upsertMove({
     project_id,
-    dest_host_id,
-    dest_ssh_server: destHost.ssh_server,
-    snapshot,
-  });
-
-  // Finalize receive and register on dest.
-  await destClient.receiveProject({
-    project_id,
-    snapshot,
-    run_quota: meta.run_quota,
-    title: meta.title,
-    users: meta.users,
-    image: meta.image,
-    authorized_keys: meta.authorized_keys,
-  });
-
-  // Update placement to destination.
-  await savePlacement(project_id, {
-    host_id: dest_host_id,
-    host: {
-      public_url: destHost.public_url,
-      internal_url: destHost.internal_url,
-      ssh_server: destHost.ssh_server,
-    },
-  });
-
-  // Cleanup source snapshot and original subvolume.
-  await srcClient.cleanupAfterMove({
-    project_id,
-    snapshot,
-    delete_original: true,
-  });
-
-  // Optionally restart on dest.
-  await destClient.startProject({
-    project_id,
-    authorized_keys: meta.authorized_keys,
-    run_quota: meta.run_quota,
+    source_host_id: meta.host_id,
+    dest_host_id: dest,
+    state: "queued",
+    status_reason: null,
+    snapshot_name: null,
+    progress: { phase: "queued" },
   });
 }

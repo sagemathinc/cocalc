@@ -35,6 +35,7 @@ import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
 import initEphemeralMaintenance from "@cocalc/server/ephemeral-maintenance";
 import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
+import { startProjectMoveWorker } from "@cocalc/server/project-host/move-worker";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { set_agent_endpoint } from "./health-checks";
 import { getLogger } from "./logger";
@@ -165,6 +166,8 @@ async function startServer(): Promise<void> {
     initHandleMentions();
     logger.info("enabling handling of messaging...");
     initMessageMaintenance();
+    logger.info("starting project move worker...");
+    startProjectMoveWorker();
   }
 
   // Project control
