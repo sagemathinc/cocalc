@@ -1,9 +1,11 @@
 ## Checklist (near term)
+
 - [ ] Cross\-host data motion: copy/move between hosts \(rsync \+ btrfs send/recv\), GC source after validation, update project→host map, and surface progress/errors to users.
-   - src/packages/next/pages/api/v2/projects/copy-path.ts
-   - [ ] #now implement copy between *different* project-host via ssh
-   - [ ] implement copy btrfs send/recv project
-   
+  - [x] implement copy between _different_ project\-host via ssh
+  - [ ] #now implement copy btrfs send/recv project
+
+- [ ] Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
+
 - [ ] SEA binary for running project\-host:
   - [ ] include binaries
   - [ ] allow user to select where project is hosted for easier testing \(could be hidden dev feature\)
@@ -14,10 +16,6 @@
 - [ ] Runner networking: keep non\-host networking but guarantee containers can reach the host conat endpoint; consider explicit hostfwd mode if we ever bind conat to loopback only.
 
 - [ ] File/quotas/backups UX: default quota \+ snapshot/backup counts on project create; expose image/pull errors cleanly; add image allowlist \(e.g., ubuntu:25.10\) and fallback behavior.
-
-
-
-- [ ] Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
 
 - [ ] Observability: per\-host metrics/logs, minimal status page \(runner/file\-server/conat\), project lifecycle spans; alerts for failed moves/backups and low headroom.
 
@@ -157,9 +155,7 @@ flowchart LR
 - [ ] automatically start project on *successful* ssh attempt.
     - I don't know how to do this, except by possibly having to fork sshpiperd or rewrite that plugin... but that's fine.
 
-
 ## Completed
-
 
 - [x]  memory quota: i think that was set on the pod; I don't see it being set now at all
   - run\_quota
