@@ -21,6 +21,29 @@ sequenceDiagram
     Hub-->>User: Update status/progress
 ```
 
+- **Orchestration \(hub, restart\-safe\)**
+  - Hubs are ephemeral \(autoscaling, maintenance, rolling upgrades\), so orchestration can’t rely on in\-memory state or long\-lived hub processes. Everything must be durable in Postgres and idempotent so any hub can resume work after a restart.
+  - Moves are tracked in Postgres \(e.g., `project_moves`\), keyed by project\_id \(and a job\_id\). Fields include source\_host\_id, dest\_host\_id, status \(queued/preparing/sending/finalizing/success/error\), snapshot\_name, bytes\_sent, last\_update, error, started\_at, finished\_at.
+  - A hub/worker runs a state machine \(see diagram below\) that is idempotent; each step advances status and is re\-runnable after a hub restart.
+  - Concurrency control via advisory locks or a partial unique index prevents multiple simultaneous moves for a project.
+  - Visibility: changefeeds on the projects table \(or a `moving`/`move_status` JSON column\) surface status to the UI; a REST/Conat endpoint can return move status for non\-changefeed clients.
+  - Stuck detection can be a later sweep that marks long\-idle jobs as error.
+
+```mermaid
+stateDiagram-v2
+    [*] --> queued
+    queued --> preparing : lock project<br/> stop project/block writes<br/>create readonly snapshot
+    preparing --> sending : btrfs send|ssh|receive
+    sending --> finalizing : clone writable<br/>register dest<br/>update host_id/host
+    finalizing --> success : cleanup source snapshot/original<br/>mark success
+    queued --> error : failed
+    preparing --> error : failed
+    sending --> error : failed
+    finalizing --> error : failed
+    error --> [*]
+    success --> [*]
+```
+
 - **Control flow**
   - Master (control hub) selects a destination host for a project and issues a move RPC to the source host (see [packages/project-host/hub/move.ts](./packages/project-host/hub/move.ts)).
   - Source host uses `btrfs send` to stream the project subvolume; destination host uses `btrfs receive` to import it.
@@ -46,3 +69,4 @@ sequenceDiagram
   - Safety comes from the forced command and the fact that only sshpiperd can connect to this `sshd`.
 
 Keep this doc in sync with the move implementation as we add progress reporting, snapshot preservation, and incremental sends.
+
