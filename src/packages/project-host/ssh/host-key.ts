@@ -1,10 +1,6 @@
 import ssh from "micro-key-producer/ssh.js";
 import { randomBytes } from "micro-key-producer/utils.js";
-import {
-  getHost,
-  getLocalHostId,
-  upsertHost,
-} from "../sqlite/hosts";
+import { getHost, getLocalHostId, upsertHost } from "../sqlite/hosts";
 
 export interface HostKey {
   publicKey: string;
@@ -12,7 +8,7 @@ export interface HostKey {
 }
 
 /**
- * Ensure there is a stable SSH keypair for this project-host.
+ * Ensure there is a stable SSH keypair for host-to-host operations.
  * Stored in the local sqlite DB so restarts reuse the same key.
  */
 export function ensureHostKey(host_id?: string): HostKey {
@@ -21,6 +17,16 @@ export function ensureHostKey(host_id?: string): HostKey {
     throw Error("host id unknown; cannot ensure host key");
   }
   const existing = getHost(id);
+  if (
+    existing?.host_to_host_public_key &&
+    existing?.host_to_host_private_key
+  ) {
+    return {
+      publicKey: existing.host_to_host_public_key,
+      privateKey: existing.host_to_host_private_key,
+    };
+  }
+  // legacy fallback
   if (existing?.host_ssh_key && existing?.host_private_key) {
     return {
       publicKey: existing.host_ssh_key,
@@ -37,8 +43,8 @@ export function ensureHostKey(host_id?: string): HostKey {
 
   upsertHost({
     host_id: id,
-    host_ssh_key: key.publicKey,
-    host_private_key: key.privateKey,
+    host_to_host_public_key: key.publicKey,
+    host_to_host_private_key: key.privateKey,
   });
   return key;
 }

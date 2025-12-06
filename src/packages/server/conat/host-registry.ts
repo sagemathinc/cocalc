@@ -5,7 +5,10 @@ import { conat } from "@cocalc/backend/conat";
 
 const logger = getLogger("server:conat:host-registry");
 
-export interface HostRegistration extends ProjectHostRecord {}
+export interface HostRegistration extends ProjectHostRecord {
+  host_to_host_public_key?: string;
+  sshpiperd_public_key?: string;
+}
 
 export interface HostRegistryApi {
   register: (info: HostRegistration) => Promise<void>;
@@ -18,11 +21,14 @@ export async function initHostRegistryService() {
   logger.info("starting host registry service");
   const client = conat();
   const publishKey = async (info: HostRegistration) => {
-    if (!info?.id || !info?.ssh_public_key) return;
+    if (!info?.id) return;
     try {
       await client.publish(`${SUBJECT}.keys`, {
         id: info.id,
-        ssh_public_key: info.ssh_public_key,
+        ssh_public_key: info.ssh_public_key ?? info.host_to_host_public_key,
+        host_to_host_public_key:
+          info.host_to_host_public_key ?? info.ssh_public_key,
+        sshpiperd_public_key: info.sshpiperd_public_key,
       });
     } catch (err) {
       logger.warn("failed to publish host ssh key", { err, id: info.id });

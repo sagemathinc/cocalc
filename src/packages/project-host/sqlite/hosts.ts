@@ -6,6 +6,11 @@ import {
 
 export interface HostRow {
   host_id: string;
+  host_to_host_public_key?: string | null;
+  host_to_host_private_key?: string | null;
+  sshpiperd_public_key?: string | null;
+  sshpiperd_private_key?: string | null;
+  // legacy fields we still read for migration
   host_ssh_key?: string | null;
   host_private_key?: string | null;
   updated_at?: number;
@@ -16,11 +21,36 @@ function ensureHostsTable() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS project_hosts (
       host_id TEXT PRIMARY KEY,
+      host_to_host_public_key TEXT,
+      host_to_host_private_key TEXT,
+      sshpiperd_public_key TEXT,
+      sshpiperd_private_key TEXT,
+      -- legacy columns kept for backward compatibility migration
       host_ssh_key TEXT,
       host_private_key TEXT,
       updated_at INTEGER
     )
   `);
+  try {
+    db.exec(
+      "ALTER TABLE project_hosts ADD COLUMN host_to_host_public_key TEXT",
+    );
+  } catch {}
+  try {
+    db.exec(
+      "ALTER TABLE project_hosts ADD COLUMN host_to_host_private_key TEXT",
+    );
+  } catch {}
+  try {
+    db.exec("ALTER TABLE project_hosts ADD COLUMN sshpiperd_public_key TEXT");
+  } catch {}
+  try {
+    db.exec("ALTER TABLE project_hosts ADD COLUMN sshpiperd_private_key TEXT");
+  } catch {}
+  try {
+    // legacy columns
+    db.exec("ALTER TABLE project_hosts ADD COLUMN host_ssh_key TEXT");
+  } catch {}
   try {
     db.exec("ALTER TABLE project_hosts ADD COLUMN host_private_key TEXT");
   } catch {}
@@ -37,11 +67,28 @@ export function getLocalHostId(): string | undefined {
 export function getHost(host_id: string): HostRow | undefined {
   ensureHostsTable();
   const db = getDatabase();
-  return db
+  const row = db
     .prepare(
-      "SELECT host_id, host_ssh_key, host_private_key, updated_at FROM project_hosts WHERE host_id=?",
+      `SELECT host_id,
+              host_to_host_public_key,
+              host_to_host_private_key,
+              sshpiperd_public_key,
+              sshpiperd_private_key,
+              host_ssh_key,
+              host_private_key,
+              updated_at
+       FROM project_hosts WHERE host_id=?`,
     )
     .get(host_id) as HostRow | undefined;
+  if (!row) return undefined;
+  // migrate legacy columns on read
+  if (!row.host_to_host_public_key && row.host_ssh_key) {
+    row.host_to_host_public_key = row.host_ssh_key;
+  }
+  if (!row.host_to_host_private_key && row.host_private_key) {
+    row.host_to_host_private_key = row.host_private_key;
+  }
+  return row;
 }
 
 export function upsertHost(row: HostRow) {
@@ -51,17 +98,35 @@ export function upsertHost(row: HostRow) {
   const now = Date.now();
   db.prepare(
     `
-    INSERT INTO project_hosts(host_id, host_ssh_key, host_private_key, updated_at)
-    VALUES (:host_id, :host_ssh_key, :host_private_key, :updated_at)
+    INSERT INTO project_hosts(
+      host_id,
+      host_to_host_public_key,
+      host_to_host_private_key,
+      sshpiperd_public_key,
+      sshpiperd_private_key,
+      updated_at
+    )
+    VALUES (
+      :host_id,
+      :host_to_host_public_key,
+      :host_to_host_private_key,
+      :sshpiperd_public_key,
+      :sshpiperd_private_key,
+      :updated_at
+    )
     ON CONFLICT(host_id) DO UPDATE SET
-      host_ssh_key=COALESCE(excluded.host_ssh_key, project_hosts.host_ssh_key),
-      host_private_key=COALESCE(excluded.host_private_key, project_hosts.host_private_key),
+      host_to_host_public_key=COALESCE(excluded.host_to_host_public_key, project_hosts.host_to_host_public_key),
+      host_to_host_private_key=COALESCE(excluded.host_to_host_private_key, project_hosts.host_to_host_private_key),
+      sshpiperd_public_key=COALESCE(excluded.sshpiperd_public_key, project_hosts.sshpiperd_public_key),
+      sshpiperd_private_key=COALESCE(excluded.sshpiperd_private_key, project_hosts.sshpiperd_private_key),
       updated_at=excluded.updated_at
   `,
   ).run({
     host_id: row.host_id,
-    host_ssh_key: row.host_ssh_key ?? null,
-    host_private_key: row.host_private_key ?? null,
+    host_to_host_public_key: row.host_to_host_public_key ?? null,
+    host_to_host_private_key: row.host_to_host_private_key ?? null,
+    sshpiperd_public_key: row.sshpiperd_public_key ?? null,
+    sshpiperd_private_key: row.sshpiperd_private_key ?? null,
     updated_at: now,
   });
 }
@@ -71,7 +136,24 @@ export function listHosts(): HostRow[] {
   const db = getDatabase();
   return db
     .prepare(
-      "SELECT host_id, host_ssh_key, host_private_key, updated_at FROM project_hosts",
+      `SELECT host_id,
+              host_to_host_public_key,
+              host_to_host_private_key,
+              sshpiperd_public_key,
+              sshpiperd_private_key,
+              host_ssh_key,
+              host_private_key,
+              updated_at
+       FROM project_hosts`,
     )
-    .all() as HostRow[];
+    .all()
+    .map((row: HostRow) => {
+      if (!row.host_to_host_public_key && row.host_ssh_key) {
+        row.host_to_host_public_key = row.host_ssh_key;
+      }
+      if (!row.host_to_host_private_key && row.host_private_key) {
+        row.host_to_host_private_key = row.host_private_key;
+      }
+      return row;
+    }) as HostRow[];
 }

@@ -19,7 +19,7 @@ import type { Configuration } from "@cocalc/conat/project/runner/types";
 import { ensureHostKey } from "../ssh/host-key";
 import { getHostPublicKey } from "../ssh/host-keys";
 import { getLocalHostId } from "../sqlite/hosts";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
@@ -454,7 +454,7 @@ export async function copyPaths({
       keyFile,
       "-o",
       "StrictHostKeyChecking=no",
-      // [ ] TODO: we should also distribute this stuff so we avoid MITM attacks
+      // [ ] TODO: we should also enable this stuff so we avoid MITM attacks
       // (it's almost done above)
       //       "StrictHostKeyChecking=yes",
       //       "-o",
@@ -467,6 +467,6 @@ export async function copyPaths({
     logger.debug("rsync copyPaths");
     await runCmd("rsync", args, { stdio: "pipe" });
   } finally {
-    //await rm(tmp, { recursive: true, force: true });
+    await rm(tmp, { recursive: true, force: true });
   }
 }
