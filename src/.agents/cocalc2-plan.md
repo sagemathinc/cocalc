@@ -2,7 +2,7 @@
 
 - [ ] Cross\-host data motion: copy/move between hosts \(rsync \+ btrfs send/recv\), GC source after validation, update project→host map, and surface progress/errors to users.
   - [x] implement copy between _different_ project\-host via ssh
-  - [ ] #now implement copy btrfs send/recv project
+  - [ ] #now implement move project using btrfs
 
 - [ ] Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
 
@@ -23,7 +23,7 @@
 
 - [ ] Compute/plus alignment: treat compute servers as user\-scoped project\-hosts with reflect\-sync subset sharing; API for spinning up temporary hosts; drop project\_id column from compute\_servers in favor of host auth/ACL.
 
-- [ ] Fallback File\-server that doesn't require btrfs \(no snapshots or quotas\).  This would make it possible to support running the entire project\-host purely in userspace \(with podman\) on both Linux and MacOS.
+- [ ] \(later\) Fallback File\-server that doesn't require btrfs \(no snapshots or quotas\).  This would make it possible to support running the entire project\-host purely in userspace \(with podman\) on both Linux and MacOS.
 
 ## CoCalc New Architecture Plan (federated project-hosts + proxy)
 

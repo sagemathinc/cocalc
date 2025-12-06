@@ -58,7 +58,7 @@ export async function sendProject({
   });
   const { keyFile, knownHosts, cleanup } = tmp;
   try {
-    const sshTarget = `project-host-${dest_host_id}@${sshHost}`;
+    const sshTarget = `btrfs-${dest_host_id}@${sshHost}`;
     const sshArgs = [
       "-p",
       sshPort,

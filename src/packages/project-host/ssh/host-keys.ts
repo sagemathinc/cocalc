@@ -29,3 +29,16 @@ export function getSshpiperdPublicKey(id: string): string | undefined {
   const row = getHost(id);
   return row?.sshpiperd_public_key ?? undefined;
 }
+
+export function setBtrfsSshPublicKey(
+  id: string,
+  btrfs_ssh_public_key: string,
+) {
+  if (!id || !btrfs_ssh_public_key) return;
+  upsertHost({ host_id: id, btrfs_ssh_public_key });
+}
+
+export function getBtrfsSshPublicKey(id: string): string | undefined {
+  const row = getHost(id);
+  return row?.btrfs_ssh_public_key ?? undefined;
+}

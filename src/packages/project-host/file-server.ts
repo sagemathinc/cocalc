@@ -36,10 +36,12 @@ import { ensureHostKey } from "./ssh/host-key";
 import { ensureSshpiperdKey } from "./ssh/sshpiperd-key";
 import { getHostPublicKey } from "./ssh/host-keys";
 import { getLocalHostId } from "./sqlite/hosts";
+import { startBtrfsSshd } from "./ssh/btrfs-sshd";
 
 type SshTarget =
   | { type: "project"; project_id: string }
-  | { type: "host"; host_id: string };
+  | { type: "host"; host_id: string }
+  | { type: "btrfs"; host_id: string };
 
 const logger = getLogger("project-host:file-server");
 
@@ -352,6 +354,7 @@ export async function initFsServer({
 }
 
 let servers: null | { ssh: any; file: any } = null;
+let stopBtrfsSshd: (() => Promise<void>) | undefined;
 
 export async function initFileServer({
   client,
@@ -419,6 +422,7 @@ export async function initFileServer({
   if (enableSsh) {
     let proxyPublicKey: string | undefined;
     let hostSshPort: number | null = null;
+    let btrfsSshPort: number | null = null;
     const hostId = requireHostId();
     // sshpiperd must use the stable per-host keypair persisted in sqlite.
     const sshpiperdKey = ensureSshpiperdKey(hostId);
@@ -443,6 +447,14 @@ export async function initFileServer({
       }
     }
 
+    async function startBtrfsServer() {
+      const { port, stop } = await startBtrfsSshd({
+        mount: fs!.subvolumes.fs.path,
+      });
+      btrfsSshPort = port;
+      stopBtrfsSshd = stop;
+    }
+
     const getSshdPort = (target: SshTarget): number | null => {
       if (target.type === "project") {
         const project_id = target.project_id;
@@ -451,19 +463,21 @@ export async function initFileServer({
       } else if (target.type == "host") {
         // right now there is just one container/target:
         return hostSshPort;
+      } else if (target.type === "btrfs") {
+        return btrfsSshPort;
       } else {
         return null;
       }
     };
 
     const getAuthorizedKeys = async (target: SshTarget): Promise<string> => {
-      // Host-level connections: authorize only the requested host's key.  We are letting them
-      // ssh into us using *their* key.
-      logger.debug("xxx", target);
+      // Host-level connections: authorize only the requested host's key.
       if (target.type == "host") {
-        // key = the public key we were told to trust by the hub
         const key = getHostPublicKey(target.host_id);
-        logger.debug("xxx", { key });
+        return key?.trim() ?? "";
+      }
+      if (target.type === "btrfs") {
+        const key = getHostPublicKey(target.host_id);
         return key?.trim() ?? "";
       }
       if (target.type != "project") {
@@ -520,6 +534,11 @@ export async function initFileServer({
     } catch (err) {
       logger.warn("failed to start host ssh container", { err: `${err}` });
     }
+    try {
+      await startBtrfsServer();
+    } catch (err) {
+      logger.warn("failed to start btrfs ssh server", { err: `${err}` });
+    }
   }
 
   servers = { file, ssh };
@@ -556,6 +575,9 @@ export function closeFileServer() {
   servers = null;
   file.close();
   ssh.kill?.("SIGKILL");
+  try {
+    stopBtrfsSshd?.().catch(() => {});
+  } catch {}
 }
 
 let cachedClient: null | Fileserver = null;

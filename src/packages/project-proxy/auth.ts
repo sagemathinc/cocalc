@@ -15,7 +15,8 @@ const SECRET_TOKEN_LENGTH = 32;
 
 export type SshTarget =
   | { type: "project"; project_id: string }
-  | { type: "host"; host_id: string };
+  | { type: "host"; host_id: string }
+  | { type: "btrfs"; host_id: string };
 
 export async function ensureProxyKey() {
   let sshKey;
@@ -139,6 +140,13 @@ The patterns that we support here:
 */
 function parseUser(user: string): SshTarget {
   let prefix;
+  if (user?.startsWith("btrfs-")) {
+    const host_id = user.slice("btrfs-".length);
+    if (!isValidUUID(host_id)) {
+      throw Error(`unknown user ${user}`);
+    }
+    return { type: "btrfs", host_id };
+  }
   if (user?.startsWith("project-host-")) {
     const host_id = user.slice("project-host-".length);
     if (!isValidUUID(host_id)) {

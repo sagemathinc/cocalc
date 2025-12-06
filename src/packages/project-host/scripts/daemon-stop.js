@@ -4,7 +4,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const root = path.join(__dirname, "..");
+
+
 const indexArg = process.argv[2];
 const index = indexArg === undefined ? 0 : Number(indexArg);
 if (!Number.isInteger(index) || index < 0) {
@@ -13,7 +14,9 @@ if (!Number.isInteger(index) || index < 0) {
   );
   process.exit(1);
 }
-const pidPath = path.join(root, `daemon-${index}.pid`);
+const root = path.join(__dirname, "..");
+const data = path.join(root, `data-${index}`);
+const pidPath = path.join(data, `daemon.pid`);
 
 function isRunning(pid) {
   try {
