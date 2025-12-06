@@ -17,13 +17,10 @@ import { writeManagedAuthorizedKeys, getVolume } from "../file-server";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 import type { Configuration } from "@cocalc/conat/project/runner/types";
 import { ensureHostKey } from "../ssh/host-key";
-import { getHostPublicKey, getSshpiperdPublicKey } from "../ssh/host-keys";
+import { getSshpiperdPublicKey } from "../ssh/host-keys";
 import { getLocalHostId } from "../sqlite/hosts";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { spawn } from "node:child_process";
 import { resolve } from "node:path";
-import { argsJoin } from "@cocalc/util/args";
+import { runCmd, setupSshTempFiles } from "./util";
 
 const logger = getLogger("project-host:hub:projects");
 const MB = 1_000_000;
@@ -109,7 +106,7 @@ function normalizeImage(image?: string): string {
   return DEFAULT_PROJECT_IMAGE;
 }
 
-function ensureProjectRow({
+export function ensureProjectRow({
   project_id,
   opts,
   state = "stopped",
@@ -176,23 +173,6 @@ function ensureProjectRow({
   if (state) {
     reportProjectStateToMaster(project_id, state);
   }
-}
-
-async function runCmd(cmd: string, args: string[], opts: any = {}) {
-  return await new Promise<void>((resolve, reject) => {
-    logger.debug(`${cmd} ${argsJoin(args)}`);
-    const child = spawn(cmd, args, opts);
-    let stderr = "";
-    // child.stderr defined, depends on opts: "If the child process was spawned with stdio[2] set to anything other than 'pipe', then this will be null."
-    child.stderr?.on("data", (d) => {
-      stderr += d.toString();
-    });
-    child.on("error", reject);
-    child.on("exit", (code) => {
-      if (code === 0) return resolve();
-      reject(new Error(`${cmd} exited with code ${code}: ${stderr.trim()}`));
-    });
-  });
 }
 
 async function getRunnerConfig(
@@ -412,37 +392,30 @@ export async function copyPaths({
     return;
   }
 
-  const tmp = await mkdtemp(join(tmpdir(), "ph-rsync-"));
-  const keyFile = join(tmp, "id_ed25519");
-  const knownHosts = join(tmp, "known_hosts");
+  const [sshHost, sshPort] = src.ssh_server.includes(":")
+    ? src.ssh_server.split(":")
+    : [src.ssh_server, "22"];
+  const tmp = await setupSshTempFiles({
+    prefix: "ph-rsync-",
+    privateKey: (() => {
+      const hostId = getLocalHostId();
+      if (!hostId) {
+        throw Error("host id not set");
+      }
+      const hostKey = ensureHostKey(hostId);
+      return hostKey.privateKey;
+    })(),
+    knownHostsContent: (() => {
+      // For known_hosts we use sshpiperd's public key for the src node.
+      const sshPiperdKey = getSshpiperdPublicKey(src.host_id);
+      if (!sshPiperdKey) {
+        throw Error(`missing sshpiperd host key for ${src.host_id}`);
+      }
+      return `[${sshHost}]:${sshPort} ${sshPiperdKey.trim()}\n`;
+    })(),
+  });
+  const { keyFile, knownHosts, cleanup } = tmp;
   try {
-    const hostId = getLocalHostId();
-    if (!hostId) {
-      throw Error("host id not set");
-    }
-    const hostKey = ensureHostKey(hostId);
-    await writeFile(keyFile, hostKey.privateKey, { mode: 0o600 });
-
-    const srcHostKey = getHostPublicKey(src.host_id);
-    if (!srcHostKey) {
-      throw Error(`missing host key for ${src.host_id}`);
-    }
-    const [sshHost, sshPort] = src.ssh_server.includes(":")
-      ? src.ssh_server.split(":")
-      : [src.ssh_server, "22"];
-
-    // Foor known hosts we use sshpiperd's public key for
-    // the src node,  *NOT* the actual public key.
-    const sshPiperdKey = getSshpiperdPublicKey(src.host_id);
-    if (!sshPiperdKey) {
-      throw Error(`missing sshpiperd host key for ${src.host_id}`);
-    }
-    await writeFile(
-      knownHosts,
-      `[${sshHost}]:${sshPort} ${sshPiperdKey.trim()}\n`,
-      { mode: 0o600 },
-    );
-
     const remoteBase = `/btrfs/project-${src.project_id}`;
     const sources: string[] = [];
     for (const p of srcPaths) {
@@ -469,8 +442,8 @@ export async function copyPaths({
 
     const args = ["-a", "-z", "-e", sshCmd, ...sources, destAbs];
     logger.debug("rsync copyPaths");
-    await runCmd("rsync", args, { stdio: "pipe" });
+    await runCmd(logger, "rsync", args, { stdio: "pipe" });
   } finally {
-    await rm(tmp, { recursive: true, force: true });
+    await cleanup();
   }
 }

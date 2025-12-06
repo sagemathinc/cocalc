@@ -40,6 +40,26 @@ export interface HostControlApi {
     src: { host_id: string; ssh_server?: string; project_id: string; paths: string[] };
     dest: { host_id: string; project_id: string; path: string };
   }) => Promise<void>;
+  sendProject: (opts: {
+    project_id: string;
+    dest_host_id: string;
+    dest_ssh_server: string;
+    snapshot: string;
+  }) => Promise<void>;
+  receiveProject: (opts: {
+    project_id: string;
+    snapshot: string;
+    run_quota?: any;
+    title?: string;
+    users?: any;
+    image?: string;
+    authorized_keys?: string;
+  }) => Promise<void>;
+  cleanupAfterMove: (opts: {
+    project_id: string;
+    snapshot: string;
+    delete_original?: boolean;
+  }) => Promise<void>;
   // Later: updateProject to adjust title/users/etc.
 }
 

@@ -1,0 +1,174 @@
+import getLogger from "@cocalc/backend/logger";
+import { isValidUUID } from "@cocalc/util/misc";
+import { join } from "node:path";
+import { mkdir } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { getVolume } from "../file-server";
+import { ensureHostKey } from "../ssh/host-key";
+import { getSshpiperdPublicKey } from "../ssh/host-keys";
+import { ensureProjectRow } from "./projects";
+import { getLocalHostId } from "../sqlite/hosts";
+import { runCmd, setupSshTempFiles } from "./util";
+import { getMountPoint } from "../file-server";
+
+const logger = getLogger("project-host:hub:move");
+
+export async function sendProject({
+  project_id,
+  dest_host_id,
+  dest_ssh_server,
+  snapshot,
+}: {
+  project_id: string;
+  dest_host_id: string;
+  dest_ssh_server: string;
+  snapshot: string;
+}) {
+  if (!isValidUUID(project_id)) throw Error("invalid project_id");
+  const vol = await getVolume(project_id);
+  const snapshotsDir = join(vol.path, ".snapshots");
+  await mkdir(snapshotsDir, { recursive: true });
+  const snapPath = join(snapshotsDir, snapshot);
+  await runCmd(logger, "btrfs", [
+    "subvolume",
+    "snapshot",
+    "-r",
+    vol.path,
+    snapPath,
+  ]);
+
+  const [sshHost, sshPort] = dest_ssh_server.includes(":")
+    ? dest_ssh_server.split(":")
+    : [dest_ssh_server, "22"];
+  const tmp = await setupSshTempFiles({
+    prefix: "ph-move-send-",
+    privateKey: (() => {
+      const localHostId = getLocalHostId();
+      if (!localHostId) throw Error("host id not set");
+      const localHostKey = ensureHostKey(localHostId);
+      return localHostKey.privateKey;
+    })(),
+    knownHostsContent: (() => {
+      const sshPiperdKey = getSshpiperdPublicKey(dest_host_id);
+      if (!sshPiperdKey) {
+        throw Error(`missing sshpiperd host key for ${dest_host_id}`);
+      }
+      return `[${sshHost}]:${sshPort} ${sshPiperdKey.trim()}\n`;
+    })(),
+  });
+  const { keyFile, knownHosts, cleanup } = tmp;
+  try {
+    const sshTarget = `project-host-${dest_host_id}@${sshHost}`;
+    const sshArgs = [
+      "-p",
+      sshPort,
+      "-i",
+      keyFile,
+      "-o",
+      "StrictHostKeyChecking=yes",
+      "-o",
+      `UserKnownHostsFile=${knownHosts}`,
+      "-o",
+      "IdentitiesOnly=yes",
+      sshTarget,
+      "btrfs",
+      "receive",
+      getMountPoint(),
+    ];
+
+    // btrfs send | ssh ... btrfs receive /btrfs
+    logger.debug("btrfs send|receive", { snapPath, ssh: sshArgs.join(" ") });
+    const send = spawn("btrfs", ["send", snapPath]);
+    const ssh = spawn("ssh", sshArgs, {
+      stdio: ["pipe", "inherit", "inherit"],
+    });
+    send.stdout.pipe(ssh.stdin);
+    const result = await Promise.all([
+      new Promise<void>((resolve, reject) => {
+        send.on("exit", (code) =>
+          code === 0 ? resolve() : reject(new Error(`btrfs send exit ${code}`)),
+        );
+        send.on("error", reject);
+      }),
+      new Promise<void>((resolve, reject) => {
+        ssh.on("exit", (code) =>
+          code === 0
+            ? resolve()
+            : reject(new Error(`ssh btrfs receive exit ${code}`)),
+        );
+        ssh.on("error", reject);
+      }),
+    ]);
+    await result;
+  } finally {
+    await cleanup();
+  }
+}
+
+export async function finalizeReceiveProject({
+  project_id,
+  snapshot,
+  run_quota,
+  title,
+  users,
+  image,
+  authorized_keys,
+}: {
+  project_id: string;
+  snapshot: string;
+  run_quota?: any;
+  title?: string;
+  users?: any;
+  image?: string;
+  authorized_keys?: string;
+}) {
+  if (!isValidUUID(project_id)) throw Error("invalid project_id");
+  const srcPath = join(getMountPoint(), snapshot);
+  const destPath = join(getMountPoint(), `project-${project_id}`);
+
+  // Create writable clone and drop the received snapshot.
+  await runCmd(logger, "btrfs", ["subvolume", "snapshot", srcPath, destPath]);
+  await runCmd(logger, "btrfs", ["subvolume", "delete", srcPath]);
+
+  await mkdir(join(destPath, ".snapshots"), { recursive: true });
+
+  // Register in sqlite.
+  ensureProjectRow({
+    project_id,
+    opts: {
+      title,
+      users,
+      image,
+      run_quota,
+    } as any,
+    state: "stopped",
+    authorized_keys,
+  });
+}
+
+export async function cleanupAfterMove({
+  project_id,
+  snapshot,
+  delete_original = true,
+}: {
+  project_id: string;
+  snapshot: string;
+  delete_original?: boolean;
+}) {
+  if (!isValidUUID(project_id)) throw Error("invalid project_id");
+  const vol = await getVolume(project_id).catch(() => null);
+  const snapPath = join(
+    getMountPoint(),
+    `project-${project_id}`,
+    ".snapshots",
+    snapshot,
+  );
+  await runCmd(logger, "btrfs", ["subvolume", "delete", snapPath]).catch(
+    () => {},
+  );
+  if (delete_original && vol) {
+    await runCmd(logger, "btrfs", ["subvolume", "delete", vol.path]).catch(
+      () => {},
+    );
+  }
+}

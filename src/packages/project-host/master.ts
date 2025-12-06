@@ -15,6 +15,11 @@ import {
 } from "./ssh/host-keys";
 import { ensureSshpiperdKey } from "./ssh/sshpiperd-key";
 import { updateAuthorizedKeys, copyPaths } from "./hub/projects";
+import {
+  sendProject,
+  finalizeReceiveProject,
+  cleanupAfterMove,
+} from "./hub/move";
 
 const logger = getLogger("project-host:master");
 
@@ -136,9 +141,10 @@ export async function startMasterRegistration({
           authorized_keys,
         });
       },
-      async copyPaths(opts) {
-        return await copyPaths(opts);
-      },
+      copyPaths,
+      sendProject,
+      receiveProject: finalizeReceiveProject,
+      cleanupAfterMove,
     },
   });
 

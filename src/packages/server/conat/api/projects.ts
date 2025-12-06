@@ -8,7 +8,10 @@ import { client as filesystemClient } from "@cocalc/conat/files/file-server";
 export * from "@cocalc/server/conat/api/project-snapshots";
 export * from "@cocalc/server/conat/api/project-backups";
 import getPool from "@cocalc/database/pool";
-import { updateAuthorizedKeysOnHost as updateAuthorizedKeysOnHostControl } from "@cocalc/server/project-host/control";
+import {
+  updateAuthorizedKeysOnHost as updateAuthorizedKeysOnHostControl,
+  moveProjectToHost,
+} from "@cocalc/server/project-host/control";
 import { getProject } from "@cocalc/server/projects/control";
 import { assertCollab } from "./util";
 import { materializeProjectHost } from "../route-project";
@@ -178,6 +181,19 @@ export async function updateAuthorizedKeysOnHost({
 }): Promise<void> {
   await assertCollab({ account_id, project_id });
   await updateAuthorizedKeysOnHostControl(project_id);
+}
+
+export async function moveProject({
+  account_id,
+  project_id,
+  dest_host_id,
+}: {
+  account_id: string;
+  project_id: string;
+  dest_host_id: string;
+}): Promise<void> {
+  await assertCollab({ account_id, project_id });
+  await moveProjectToHost({ project_id, dest_host_id });
 }
 
 export async function getSshKeys({

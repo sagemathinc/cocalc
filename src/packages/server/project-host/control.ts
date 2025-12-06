@@ -187,3 +187,82 @@ export async function updateAuthorizedKeysOnHost(
     log.warn("updateAuthorizedKeysOnHost failed", { project_id, host_id, err });
   }
 }
+
+export async function moveProjectToHost({
+  project_id,
+  dest_host_id,
+}: {
+  project_id: string;
+  dest_host_id: string;
+}): Promise<void> {
+  const meta = await loadProject(project_id);
+  const source_host_id = meta.host_id;
+  if (!source_host_id) {
+    throw Error("project has no current host");
+  }
+  if (source_host_id === dest_host_id) {
+    return;
+  }
+  const destHost = await loadHostFromRegistry(dest_host_id);
+  if (!destHost?.ssh_server) {
+    throw Error("destination host missing ssh_server");
+  }
+
+  // Stop project on source.
+  await stopProjectOnHost(project_id);
+
+  const conatClient = await conat();
+  const srcClient = createHostControlClient({
+    host_id: source_host_id,
+    client: conatClient,
+  });
+  const destClient = createHostControlClient({
+    host_id: dest_host_id,
+    client: conatClient,
+  });
+
+  const snapshot = `move-${Date.now()}`;
+
+  // Push data from source to dest.
+  await srcClient.sendProject({
+    project_id,
+    dest_host_id,
+    dest_ssh_server: destHost.ssh_server,
+    snapshot,
+  });
+
+  // Finalize receive and register on dest.
+  await destClient.receiveProject({
+    project_id,
+    snapshot,
+    run_quota: meta.run_quota,
+    title: meta.title,
+    users: meta.users,
+    image: meta.image,
+    authorized_keys: meta.authorized_keys,
+  });
+
+  // Update placement to destination.
+  await savePlacement(project_id, {
+    host_id: dest_host_id,
+    host: {
+      public_url: destHost.public_url,
+      internal_url: destHost.internal_url,
+      ssh_server: destHost.ssh_server,
+    },
+  });
+
+  // Cleanup source snapshot and original subvolume.
+  await srcClient.cleanupAfterMove({
+    project_id,
+    snapshot,
+    delete_original: true,
+  });
+
+  // Optionally restart on dest.
+  await destClient.startProject({
+    project_id,
+    authorized_keys: meta.authorized_keys,
+    run_quota: meta.run_quota,
+  });
+}

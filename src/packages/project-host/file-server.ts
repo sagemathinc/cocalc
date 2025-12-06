@@ -80,6 +80,13 @@ export async function getVolume(project_id: string) {
   return await fs.subvolumes.get(volName(project_id));
 }
 
+export function getMountPoint(): string {
+  if (fs == null) {
+    throw Error("file server not initialized");
+  }
+  return fs.opts.mount;
+}
+
 function getFileSync() {
   if (fs == null) {
     throw Error("file server not initialized");
