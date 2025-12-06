@@ -147,12 +147,14 @@ export async function init({
   port = sshServer.port,
   proxyHandlers,
   exitOnFail = true,
+  hostKeyPath,
 }: {
   getSshdPort: (target: SshTarget) => number | null;
   getAuthorizedKeys: (target: SshTarget) => Promise<string>;
   port?: number;
   proxyHandlers?: boolean;
   exitOnFail?: boolean;
+  hostKeyPath?: string;
 }): Promise<{ child; projectProxyHandlers; publicKey: string }> {
   logger.debug("init", { port, proxyHandlers });
   // ensure sshpiper is installed
@@ -161,7 +163,7 @@ export async function init({
     ? createProxyHandlers()
     : await startProxyServer();
   const { url, publicKey } = await initAuth({ getSshdPort, getAuthorizedKeys });
-  const hostKey = join(secretsPath(), "host_key");
+  const hostKey = hostKeyPath ?? join(secretsPath(), "host_key");
   await mkdir(dirname(hostKey), { recursive: true });
   const args = [
     "-i",

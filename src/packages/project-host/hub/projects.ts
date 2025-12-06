@@ -460,12 +460,11 @@ export async function copyPaths({
       "-i",
       keyFile,
       "-o",
-      "StrictHostKeyChecking=no",
-      //       "StrictHostKeyChecking=yes",
-      //       "-o",
-      //       `UserKnownHostsFile=${knownHosts}`,
-      //       "-o",
-      //       "IdentitiesOnly=yes",
+      "StrictHostKeyChecking=yes",
+      "-o",
+      `UserKnownHostsFile=${knownHosts}`,
+      "-o",
+      "IdentitiesOnly=yes",
     ].join(" ");
 
     const args = ["-a", "-z", "-e", sshCmd, ...sources, destAbs];

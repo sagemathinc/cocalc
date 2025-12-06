@@ -2,8 +2,8 @@
 // This allows users to browse and generally use the filesystem of any project,
 // without having to run that project.
 
-import { join } from "node:path";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import {
   server as createFileServer,
   client as createFileClient,
@@ -15,7 +15,12 @@ import {
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
-import { fileServerMountpoint, data, rusticRepo } from "@cocalc/backend/data";
+import {
+  data,
+  fileServerMountpoint,
+  secrets,
+  rusticRepo,
+} from "@cocalc/backend/data";
 import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
@@ -28,6 +33,7 @@ import { getProject } from "./sqlite/projects";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 import { ensureHostContainer } from "./ssh/host-container";
 import { ensureHostKey } from "./ssh/host-key";
+import { ensureSshpiperdKey } from "./ssh/sshpiperd-key";
 import { getHostPublicKey } from "./ssh/host-keys";
 import { getLocalHostId } from "./sqlite/hosts";
 
@@ -407,6 +413,12 @@ export async function initFileServer({
     let proxyPublicKey: string | undefined;
     let hostSshPort: number | null = null;
     const hostId = requireHostId();
+    // sshpiperd must use the stable per-host keypair persisted in sqlite.
+    const sshpiperdKey = ensureSshpiperdKey(hostId);
+    const hostKeyPath = join(secrets, "sshpiperd", "host_key");
+    await mkdir(dirname(hostKeyPath), { recursive: true });
+    await writeFile(hostKeyPath, sshpiperdKey.privateKey, { mode: 0o600 });
+    await chmod(hostKeyPath, 0o600);
 
     async function startHostContainer() {
       if (!proxyPublicKey) {
@@ -492,6 +504,7 @@ export async function initFileServer({
       proxyHandlers: true,
       getSshdPort,
       getAuthorizedKeys,
+      hostKeyPath,
     });
 
     proxyPublicKey = ssh.publicKey;

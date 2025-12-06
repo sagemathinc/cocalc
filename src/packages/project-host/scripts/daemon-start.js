@@ -6,7 +6,6 @@ const { spawn, execSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const root = path.join(__dirname, "..");
 const indexArg = process.argv[2];
 const index = indexArg === undefined ? 0 : Number(indexArg);
 if (!Number.isInteger(index) || index < 0) {
@@ -15,9 +14,10 @@ if (!Number.isInteger(index) || index < 0) {
   );
   process.exit(1);
 }
-const suffix = `-${index}`;
-const logPath = process.env.DEBUG_FILE || path.join(root, `log${suffix}`);
-const pidPath = path.join(root, `daemon${suffix}.pid`);
+const root = path.join(__dirname, "..");
+const data = path.join(root, `data-${index}`);
+const logPath = path.join(data, `log`);
+const pidPath = path.join(data, `daemon.pid`);
 
 function isRunning(pid) {
   try {
@@ -74,8 +74,8 @@ function start() {
     PORT: process.env.PORT || String(9002 + index),
     // Keep sqlite, log, and pid files isolated per instance.
     COCALC_LITE_SQLITE_FILENAME:
-      process.env.COCALC_LITE_SQLITE_FILENAME ||
-      path.join(root, `data-${index}`, "lite", "hub", "sqlite.db"),
+      process.env.COCALC_LITE_SQLITE_FILENAME || path.join(data, "sqlite.db"),
+    DATA: data,
     DEBUG: process.env.DEBUG || "cocalc:*",
     DEBUG_CONSOLE: process.env.DEBUG_CONSOLE || "no",
     DEBUG_FILE: logPath,
