@@ -35,6 +35,7 @@ export const ensureBtrfsContainer = reuseInFlight(
       configRoot,
       privileged: true,
       mountOptions: "rshared",
+      runAsRoot: true,
     });
     return ports;
   },

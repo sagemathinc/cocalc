@@ -12,19 +12,24 @@ const execFile = promisify(execFile0);
 
 const images = new Set<string>();
 
-async function hasImage(name: string): Promise<boolean> {
-  if (images.has(name)) {
+async function hasImage(name: string, sudo = false): Promise<boolean> {
+  const key = `${sudo ? "root" : "user"}:${name}`;
+  if (images.has(key)) {
     return true;
   }
-  const { stdout } = await execFile("podman", [
-    "image",
-    "list",
-    name,
-    "--format",
-    "json",
-  ]);
+  const { stdout } = await execFile(
+    sudo ? "sudo" : "podman",
+    [
+      ...(sudo ? ["podman"] : []),
+      "image",
+      "list",
+      name,
+      "--format",
+      "json",
+    ],
+  );
   if (JSON.parse(stdout).length > 0) {
-    images.add(name);
+    images.add(key);
     logger.debug(`image ${name} now exists`);
     return true;
   }
@@ -38,13 +43,15 @@ export const build = reuseInFlight(
     name,
     files,
     fileContents,
+    sudo = false,
   }: {
     Dockerfile: string;
     name: string;
     files?: string[];
     fileContents?: { [path: string]: string };
+    sudo?: boolean;
   }) => {
-    if (await hasImage(name)) {
+    if (await hasImage(name, sudo)) {
       return;
     }
     logger.debug("Building image", { Dockerfile, name });
@@ -63,10 +70,14 @@ export const build = reuseInFlight(
         await Promise.all(v);
       }
       await writeFile(join(path, "Dockerfile"), Dockerfile, "utf8");
-      const { stderr } = await execFile("podman", ["build", "-t", name, "."], {
-        cwd: path,
-      });
-      if (!(await hasImage(name))) {
+      const { stderr } = await execFile(
+        sudo ? "sudo" : "podman",
+        [...(sudo ? ["podman"] : []), "build", "-t", name, "."],
+        {
+          cwd: path,
+        },
+      );
+      if (!(await hasImage(name, sudo))) {
         throw Error(`failed to build image -- ${stderr}`);
       }
     } finally {

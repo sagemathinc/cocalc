@@ -3,16 +3,27 @@ import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("podman");
 
+type PodmanOpts =
+  | number
+  | {
+      timeout?: number;
+      sudo?: boolean;
+    };
+
 // 30 minute timeout (?)
-export default async function podman(args: string[], timeout = 30 * 60 * 1000) {
-  logger.debug("podman ", args.join(" "));
+export default async function podman(args: string[], opts: PodmanOpts = {}) {
+  const { timeout, sudo } =
+    typeof opts === "number" ? { timeout: opts, sudo: false } : opts;
+  logger.debug(`${sudo ? "sudo " : ""}podman `, args.join(" "));
+  const command = sudo ? "sudo" : "podman";
+  const cmdArgs = sudo ? ["podman", ...args] : args;
   try {
     const x = await executeCode({
       verbose: false,
-      command: "podman",
-      args,
+      command,
+      args: cmdArgs,
       err_on_exit: true,
-      timeout,
+      timeout: timeout ?? 30 * 60 * 1000,
     });
     logger.debug("podman returned ", x);
     return x;

@@ -18,6 +18,7 @@ import { k8sCpuParser, split } from "@cocalc/util/misc";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { delay } from "awaiting";
+import { execFile as execFile0 } from "node:child_process";
 import * as sandbox from "@cocalc/backend/sandbox/install";
 import { SSHD_CONFIG } from "@cocalc/conat/project/runner/constants";
 import {
@@ -27,21 +28,28 @@ import {
 import { mountArg, podman } from "@cocalc/backend/podman";
 import { sha1 } from "@cocalc/backend/sha1";
 
+const execFile = execFile0;
+
 const GRACE_PERIOD_S = "1";
 
 const IDLE_CHECK_INTERVAL = 30_000;
 
 const logger = getLogger("file-server:ssh:container");
 
-const APPS = ["btm", "rg", "fd", "dust", "rustic", "ouch"] as const;
+const APPS: (keyof typeof sandbox.SPEC)[] = [];
+
+// we don't need these anymore, but may need a subset (e.g., rustic)
+// later.
+//const APPS = ["btm", "rg", "fd", "dust", "rustic", "ouch"] as const;
+//COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
+
 const Dockerfile = `
 FROM docker.io/ubuntu:25.10
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync btrfs-progs
-COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
 `;
 
-const VERSION = `0.6.3`;
+const VERSION = `0.6.5`;
 const IMAGE = `localhost/${FILE_SERVER_NAME}:${VERSION}`;
 
 const sshd_conf = `
@@ -76,6 +84,7 @@ export const start = reuseInFlight(
     cpu = "8000m",
     privileged = false,
     mountOptions = "",
+    runAsRoot = false,
   }: {
     volume: string;
     path: string;
@@ -87,17 +96,21 @@ export const start = reuseInFlight(
     pids?: number;
     privileged?: boolean;
     mountOptions?: string;
+    runAsRoot?: boolean;
   }): Promise<Partial<Ports>> => {
-    await buildContainerImage();
+    await buildContainerImage(runAsRoot);
     const name = containerName(volume);
     const key = sha1(publicKey + authorizedKeys);
     try {
-      const { stdout } = await podman([
-        "inspect",
-        name,
-        "--format",
-        "{{json .Config.Labels.key}}|{{json .NetworkSettings.Ports}}",
-      ]);
+      const { stdout } = await podman(
+        [
+          "inspect",
+          name,
+          "--format",
+          "{{json .Config.Labels.key}}|{{json .NetworkSettings.Ports}}",
+        ],
+        { sudo: runAsRoot },
+      );
       const x = stdout.split("|");
       const storedKey = JSON.parse(x[0]);
       if (storedKey == key) {
@@ -105,7 +118,7 @@ export const start = reuseInFlight(
       } else {
         // I don't understand why things stop working with the key changes...
         logger.debug(`restarting ${name} since key changed`);
-        await stop({ volume });
+        await stop({ volume, sudo: runAsRoot });
       }
     } catch {}
     // container does not exist -- create it
@@ -138,7 +151,8 @@ export const start = reuseInFlight(
       }),
     );
 
-    const sshdConfPathOnHost = configRoot ?? join(path, SSHD_CONFIG);
+    const sshdConfPathOnHost =
+      configRoot ?? join(path, SSHD_CONFIG, runAsRoot ? "root" : "user");
     await mkdir(sshdConfPathOnHost, { recursive: true, mode: 0o700 });
     // We install the proxy's public key here (not the end-user keys) because the
     // proxy itself sshes into this container on behalf of users; user keys are
@@ -149,6 +163,20 @@ export const start = reuseInFlight(
     await writeFile(join(sshdConfPathOnHost, "sshd.conf"), sshd_conf, {
       mode: 0o600,
     });
+    if (runAsRoot) {
+      // When running rootful containers, sshd inside the container requires these
+      // files to be owned by root. Since the bind mount preserves host ownership,
+      // chown them on the host before start so sshd accepts them.
+      try {
+        await execFile("sudo", ["chown", "-R", "0:0", sshdConfPathOnHost]);
+        await execFile("sudo", ["chmod", "og-rwx", "-R", sshdConfPathOnHost]);
+      } catch (err) {
+        logger.warn("failed to chown sshd config for rootful container", {
+          path: sshdConfPathOnHost,
+          err: `${err}`,
+        });
+      }
+    }
 
     // If configRoot is outside the mounted path, bind-mount it into the expected location.
     if (configRoot) {
@@ -182,9 +210,9 @@ export const start = reuseInFlight(
       `/root/${SSHD_CONFIG}/sshd.conf`,
     );
     logger.debug(`Start file-system container: 'podman ${args.join(" ")}'`);
-    await podman(args);
+    await podman(args, { sudo: runAsRoot });
     logger.debug("Started file-system container", { volume });
-    const ports = await getPorts({ volume });
+    const ports = await getPorts({ volume, sudo: runAsRoot });
     logger.debug("Got ports", { volume, ports });
     return ports;
   },
@@ -211,24 +239,31 @@ function jsonToPorts(obj) {
   return ports;
 }
 
-async function inspectPorts(name: string): Promise<Partial<Ports>> {
-  const { stdout } = await podman([
-    "inspect",
-    name,
-    "--format",
-    "{{json .NetworkSettings.Ports}}",
-  ]);
+async function inspectPorts(
+  name: string,
+  sudo = false,
+): Promise<Partial<Ports>> {
+  const { stdout } = await podman(
+    ["inspect", name, "--format", "{{json .NetworkSettings.Ports}}"],
+    { sudo },
+  );
   return jsonToPorts(JSON.parse(stdout));
 }
 
 export const getPorts = reuseInFlight(
-  async ({ volume }: { volume: string }): Promise<Partial<Ports>> => {
+  async ({
+    volume,
+    sudo = false,
+  }: {
+    volume: string;
+    sudo?: boolean;
+  }): Promise<Partial<Ports>> => {
     const tried: string[] = [];
     const names = [containerName(volume), volume];
     for (const name of names) {
       tried.push(name);
       try {
-        return await inspectPorts(name);
+        return await inspectPorts(name, sudo);
       } catch (err) {
         logger.debug("getPorts inspect failed", { name, err: `${err}` });
       }
@@ -242,25 +277,24 @@ export const getPorts = reuseInFlight(
 export async function stop({
   volume,
   force,
+  sudo = false,
 }: {
   volume: string;
   force?: boolean;
+  sudo?: boolean;
 }) {
   try {
     logger.debug("stopping", { volume });
-    await podman([
-      "rm",
-      "-f",
-      "-t",
-      force ? "0" : GRACE_PERIOD_S,
-      containerName(volume),
-    ]);
+    await podman(
+      ["rm", "-f", "-t", force ? "0" : GRACE_PERIOD_S, containerName(volume)],
+      { sudo },
+    );
   } catch (err) {
     logger.debug("stop error", { volume, err });
   }
 }
 
-const buildContainerImage = reuseInFlight(async () => {
+const buildContainerImage = reuseInFlight(async (runAsRoot = false) => {
   // make sure apps are installed
   const v: any[] = [];
   for (const app of APPS) {
@@ -273,6 +307,7 @@ const buildContainerImage = reuseInFlight(async () => {
     name: IMAGE,
     Dockerfile,
     files: APPS.map((name) => sandbox.SPEC[name].path),
+    sudo: runAsRoot,
   });
 });
 
