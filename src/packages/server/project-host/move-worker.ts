@@ -1,5 +1,4 @@
 import getLogger from "@cocalc/backend/logger";
-import { conat } from "@cocalc/backend/conat";
 import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import {
   ensureMoveSchema,
@@ -7,6 +6,7 @@ import {
   updateMove,
   type ProjectMoveRow,
 } from "./move-db";
+import { conatWithProjectRouting } from "../conat/route-client";
 import {
   loadHostFromRegistry,
   loadProject,
@@ -116,7 +116,7 @@ async function handleSending(row: ProjectMoveRow) {
     return;
   }
   const snapshot = row.snapshot_name ?? `move-${Date.now()}`;
-  const conatClient = await conat();
+  const conatClient = conatWithProjectRouting();
   const srcClient = createHostControlClient({
     host_id: meta.host_id,
     client: conatClient,
@@ -159,7 +159,7 @@ async function handleFinalizing(row: ProjectMoveRow) {
     return;
   }
   const snapshot = row.snapshot_name ?? `move-${Date.now()}`;
-  const conatClient = await conat();
+  const conatClient = conatWithProjectRouting();
   const srcClient = createHostControlClient({
     host_id: meta.host_id,
     client: conatClient,

@@ -1,9 +1,9 @@
 import getLogger from "@cocalc/backend/logger";
-import { conat } from "@cocalc/backend/conat";
 import getPool from "@cocalc/database/pool";
 import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import sshKeys from "../projects/get-ssh-keys";
 import { notifyProjectHostUpdate } from "../conat/route-project";
+import { conatWithProjectRouting } from "../conat/route-client";
 import {
   ensureMoveSchema,
   upsertMove,
@@ -108,7 +108,7 @@ async function ensurePlacement(project_id: string): Promise<HostPlacement> {
 
   const client = createHostControlClient({
     host_id: chosen.id,
-    client: await conat(),
+    client: conatWithProjectRouting(),
   });
 
   log.debug("createProject on remote project host", {
@@ -145,7 +145,7 @@ export async function startProjectOnHost(project_id: string): Promise<void> {
   const meta = await loadProject(project_id);
   const client = createHostControlClient({
     host_id: placement.host_id,
-    client: await conat(),
+    client: conatWithProjectRouting(),
   });
   try {
     await client.startProject({
@@ -167,7 +167,7 @@ export async function stopProjectOnHost(project_id: string): Promise<void> {
   }
   const client = createHostControlClient({
     host_id,
-    client: await conat(),
+    client: conatWithProjectRouting(),
   });
   try {
     await client.stopProject({ project_id });
@@ -187,7 +187,7 @@ export async function updateAuthorizedKeysOnHost(
   }
   const client = createHostControlClient({
     host_id,
-    client: await conat(),
+    client: conatWithProjectRouting(),
   });
   try {
     await client.updateAuthorizedKeys({

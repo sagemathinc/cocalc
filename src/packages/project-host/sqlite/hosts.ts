@@ -107,6 +107,8 @@ export function upsertHost(row: HostRow) {
       :host_to_host_private_key,
       :sshpiperd_public_key,
       :sshpiperd_private_key,
+      :btrfs_ssh_public_key,
+      :btrfs_ssh_private_key,
       :updated_at
     )
     ON CONFLICT(host_id) DO UPDATE SET
