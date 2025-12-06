@@ -24,6 +24,12 @@ export async function sendProject({
   dest_ssh_server: string;
   snapshot: string;
 }) {
+  logger.debug("sendProject", {
+    project_id,
+    dest_host_id,
+    dest_ssh_server,
+    snapshot,
+  });
   if (!isValidUUID(project_id)) throw Error("invalid project_id");
   const localHostId = getLocalHostId();
   if (!localHostId) throw Error("host id not set");
