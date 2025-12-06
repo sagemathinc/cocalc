@@ -10,9 +10,6 @@ export interface HostRow {
   host_to_host_private_key?: string | null;
   sshpiperd_public_key?: string | null;
   sshpiperd_private_key?: string | null;
-  // legacy fields we still read for migration
-  host_ssh_key?: string | null;
-  host_private_key?: string | null;
   updated_at?: number;
 }
 
@@ -25,9 +22,6 @@ function ensureHostsTable() {
       host_to_host_private_key TEXT,
       sshpiperd_public_key TEXT,
       sshpiperd_private_key TEXT,
-      -- legacy columns kept for backward compatibility migration
-      host_ssh_key TEXT,
-      host_private_key TEXT,
       updated_at INTEGER
     )
   `);
@@ -48,19 +42,14 @@ function ensureHostsTable() {
     db.exec("ALTER TABLE project_hosts ADD COLUMN sshpiperd_private_key TEXT");
   } catch {}
   try {
-    // legacy columns
-    db.exec("ALTER TABLE project_hosts ADD COLUMN host_ssh_key TEXT");
-  } catch {}
-  try {
-    db.exec("ALTER TABLE project_hosts ADD COLUMN host_private_key TEXT");
-  } catch {}
-  try {
     db.exec("ALTER TABLE project_hosts ADD COLUMN updated_at INTEGER");
   } catch {}
 }
 
 export function getLocalHostId(): string | undefined {
-  const row = getRow("project-host", "host-id") as { hostId?: string } | undefined;
+  const row = getRow("project-host", "host-id") as
+    | { hostId?: string }
+    | undefined;
   return row?.hostId;
 }
 
@@ -74,20 +63,12 @@ export function getHost(host_id: string): HostRow | undefined {
               host_to_host_private_key,
               sshpiperd_public_key,
               sshpiperd_private_key,
-              host_ssh_key,
-              host_private_key,
               updated_at
        FROM project_hosts WHERE host_id=?`,
     )
     .get(host_id) as HostRow | undefined;
   if (!row) return undefined;
   // migrate legacy columns on read
-  if (!row.host_to_host_public_key && row.host_ssh_key) {
-    row.host_to_host_public_key = row.host_ssh_key;
-  }
-  if (!row.host_to_host_private_key && row.host_private_key) {
-    row.host_to_host_private_key = row.host_private_key;
-  }
   return row;
 }
 
@@ -141,19 +122,8 @@ export function listHosts(): HostRow[] {
               host_to_host_private_key,
               sshpiperd_public_key,
               sshpiperd_private_key,
-              host_ssh_key,
-              host_private_key,
               updated_at
        FROM project_hosts`,
     )
-    .all()
-    .map((row: HostRow) => {
-      if (!row.host_to_host_public_key && row.host_ssh_key) {
-        row.host_to_host_public_key = row.host_ssh_key;
-      }
-      if (!row.host_to_host_private_key && row.host_private_key) {
-        row.host_to_host_private_key = row.host_private_key;
-      }
-      return row;
-    }) as HostRow[];
+    .all() as HostRow[];
 }

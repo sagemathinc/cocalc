@@ -27,7 +27,6 @@ interface HostRegistration {
   public_url?: string;
   internal_url?: string;
   ssh_server?: string;
-  ssh_public_key?: string; // legacy / host-to-host
   host_to_host_public_key?: string;
   sshpiperd_public_key?: string;
   status?: string;
@@ -150,14 +149,11 @@ export async function startMasterRegistration({
     public_url,
     internal_url,
     ssh_server,
-    ssh_public_key: hostKey.publicKey,
     host_to_host_public_key: hostKey.publicKey,
     sshpiperd_public_key: sshpiperdKey.publicKey,
     status,
     metadata: {
       runnerId,
-      ssh_public_key: hostKey.publicKey,
-      sshpiperd_public_key: sshpiperdKey.publicKey,
     },
   };
 
@@ -189,11 +185,8 @@ export async function startMasterRegistration({
       for await (const msg of sub) {
         const data = msg.data as HostRegistration | undefined;
         if (data?.id) {
-          if (data.ssh_public_key || data.host_to_host_public_key) {
-            upsertRemoteHostKey(
-              data.id,
-              data.host_to_host_public_key ?? data.ssh_public_key!,
-            );
+          if (data.host_to_host_public_key) {
+            upsertRemoteHostKey(data.id, data.host_to_host_public_key);
           }
           if (data.sshpiperd_public_key) {
             setSshpiperdPublicKey(data.id, data.sshpiperd_public_key);

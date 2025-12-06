@@ -1,6 +1,9 @@
 import getLogger from "@cocalc/backend/logger";
 import { createServiceHandler } from "@cocalc/conat/service/typed";
-import { upsertProjectHost, type ProjectHostRecord } from "@cocalc/database/postgres/project-hosts";
+import {
+  upsertProjectHost,
+  type ProjectHostRecord,
+} from "@cocalc/database/postgres/project-hosts";
 import { conat } from "@cocalc/backend/conat";
 
 const logger = getLogger("server:conat:host-registry");
@@ -25,9 +28,7 @@ export async function initHostRegistryService() {
     try {
       await client.publish(`${SUBJECT}.keys`, {
         id: info.id,
-        ssh_public_key: info.ssh_public_key ?? info.host_to_host_public_key,
-        host_to_host_public_key:
-          info.host_to_host_public_key ?? info.ssh_public_key,
+        host_to_host_public_key: info.host_to_host_public_key,
         sshpiperd_public_key: info.sshpiperd_public_key,
       });
     } catch (err) {
@@ -43,7 +44,11 @@ export async function initHostRegistryService() {
         if (!info?.id) {
           throw Error("register: id is required");
         }
-        logger.debug("register", { id: info.id, region: info.region, url: info.public_url });
+        logger.debug("register", {
+          id: info.id,
+          region: info.region,
+          url: info.public_url,
+        });
         await upsertProjectHost({
           ...info,
           status: info.status ?? "active",

@@ -17,7 +17,7 @@ import { writeManagedAuthorizedKeys, getVolume } from "../file-server";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 import type { Configuration } from "@cocalc/conat/project/runner/types";
 import { ensureHostKey } from "../ssh/host-key";
-import { getHostPublicKey } from "../ssh/host-keys";
+import { getHostPublicKey, getSshpiperdPublicKey } from "../ssh/host-keys";
 import { getLocalHostId } from "../sqlite/hosts";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -430,9 +430,16 @@ export async function copyPaths({
     const [sshHost, sshPort] = src.ssh_server.includes(":")
       ? src.ssh_server.split(":")
       : [src.ssh_server, "22"];
+
+    // Foor known hosts we use sshpiperd's public key for
+    // the src node,  *NOT* the actual public key.
+    const sshPiperdKey = getSshpiperdPublicKey(src.host_id);
+    if (!sshPiperdKey) {
+      throw Error(`missing sshpiperd host key for ${src.host_id}`);
+    }
     await writeFile(
       knownHosts,
-      `[${sshHost}]:${sshPort} ${srcHostKey.trim()}\n`,
+      `[${sshHost}]:${sshPort} ${sshPiperdKey.trim()}\n`,
       { mode: 0o600 },
     );
 
@@ -454,8 +461,6 @@ export async function copyPaths({
       keyFile,
       "-o",
       "StrictHostKeyChecking=no",
-      // [ ] TODO: we should also enable this stuff so we avoid MITM attacks
-      // (it's almost done above)
       //       "StrictHostKeyChecking=yes",
       //       "-o",
       //       `UserKnownHostsFile=${knownHosts}`,

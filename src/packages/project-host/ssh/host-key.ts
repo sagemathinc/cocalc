@@ -17,20 +17,10 @@ export function ensureHostKey(host_id?: string): HostKey {
     throw Error("host id unknown; cannot ensure host key");
   }
   const existing = getHost(id);
-  if (
-    existing?.host_to_host_public_key &&
-    existing?.host_to_host_private_key
-  ) {
+  if (existing?.host_to_host_public_key && existing?.host_to_host_private_key) {
     return {
       publicKey: existing.host_to_host_public_key,
       privateKey: existing.host_to_host_private_key,
-    };
-  }
-  // legacy fallback
-  if (existing?.host_ssh_key && existing?.host_private_key) {
-    return {
-      publicKey: existing.host_ssh_key,
-      privateKey: existing.host_private_key,
     };
   }
 
