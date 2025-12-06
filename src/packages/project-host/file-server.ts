@@ -32,11 +32,11 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { getProject } from "./sqlite/projects";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 import { ensureHostContainer } from "./ssh/host-container";
+import { ensureBtrfsContainer } from "./ssh/btrfs-container";
 import { ensureHostKey } from "./ssh/host-key";
 import { ensureSshpiperdKey } from "./ssh/sshpiperd-key";
 import { getHostPublicKey } from "./ssh/host-keys";
 import { getLocalHostId } from "./sqlite/hosts";
-import { startBtrfsSshd } from "./ssh/btrfs-sshd";
 
 type SshTarget =
   | { type: "project"; project_id: string }
@@ -354,26 +354,6 @@ export async function initFsServer({
 }
 
 let servers: null | { ssh: any; file: any } = null;
-let stopBtrfsSshd: (() => Promise<void>) | undefined;
-let btrfsCleanupRegistered = false;
-
-function registerBtrfsCleanup() {
-  if (btrfsCleanupRegistered) return;
-  btrfsCleanupRegistered = true;
-  const doStop = async () => {
-    try {
-      await stopBtrfsSshd?.();
-    } catch {
-      /* ignore */
-    }
-  };
-  process.once("exit", doStop);
-  ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) =>
-    process.once(sig, () => {
-      doStop().finally(() => process.exit());
-    }),
-  );
-}
 
 export async function initFileServer({
   client,
@@ -467,13 +447,11 @@ export async function initFileServer({
     }
 
     async function startBtrfsServer() {
-      const { port, stop } = await startBtrfsSshd({
-        mount: fs!.subvolumes.fs.path,
-        sshpiperdPublicKey: sshpiperdKey.publicKey,
+      const ports = await ensureBtrfsContainer({
+        path: fs!.subvolumes.fs.path,
+        publicKey: proxyPublicKey!,
       });
-      btrfsSshPort = port;
-      stopBtrfsSshd = stop;
-      registerBtrfsCleanup();
+      btrfsSshPort = ports.sshd ?? null;
     }
 
     const getSshdPort = (target: SshTarget): number | null => {
@@ -596,9 +574,6 @@ export function closeFileServer() {
   servers = null;
   file.close();
   ssh.kill?.("SIGKILL");
-  try {
-    stopBtrfsSshd?.().catch(() => {});
-  } catch {}
 }
 
 let cachedClient: null | Fileserver = null;

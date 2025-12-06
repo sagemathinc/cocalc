@@ -78,10 +78,9 @@ export async function sendProject({
       "-o",
       "IdentitiesOnly=yes",
       sshTarget,
-      "sudo",
       "btrfs",
       "receive",
-      getMountPoint(),
+      "/btrfs",
     ];
 
     // btrfs send | ssh ... sudo btrfs receive /btrfs

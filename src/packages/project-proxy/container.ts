@@ -37,11 +37,11 @@ const APPS = ["btm", "rg", "fd", "dust", "rustic", "ouch"] as const;
 const Dockerfile = `
 FROM docker.io/ubuntu:25.10
 
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ssh rsync btrfs-progs
 COPY ${APPS.map((path) => sandbox.SPEC[path].binary).join(" ")} /usr/local/bin/
 `;
 
-const VERSION = `0.6.2`;
+const VERSION = `0.6.3`;
 const IMAGE = `localhost/${FILE_SERVER_NAME}:${VERSION}`;
 
 const sshd_conf = `
@@ -74,6 +74,8 @@ export const start = reuseInFlight(
     pids = 10000,
     memory = "16000m",
     cpu = "8000m",
+    privileged = false,
+    mountOptions = "",
   }: {
     volume: string;
     path: string;
@@ -83,6 +85,8 @@ export const start = reuseInFlight(
     memory?: string;
     cpu?: string;
     pids?: number;
+    privileged?: boolean;
+    mountOptions?: string;
   }): Promise<Partial<Ports>> => {
     await buildContainerImage();
     const name = containerName(volume);
@@ -130,6 +134,7 @@ export const start = reuseInFlight(
       mountArg({
         source: path,
         target: "/btrfs",
+        options: mountOptions,
       }),
     );
 
@@ -158,6 +163,8 @@ export const start = reuseInFlight(
     }
 
     args.push("-p", "22");
+
+    if (privileged) args.push("--privileged");
 
     if (pids) args.push(`--pids-limit=${pids}`);
     if (memory) args.push(`--memory=${memory}`);
