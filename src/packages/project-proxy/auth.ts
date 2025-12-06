@@ -81,9 +81,15 @@ export async function init({
         return;
       }
 
+      // Use a target-specific ssh user. For btrfs we run the dedicated sshd
+      // as the local host user (so sudo btrfs receive works without exposing
+      // root); other targets continue to use root.
+      const sshUser =
+        target.type === "btrfs" ? process.env.USER ?? "root" : "root";
+
       const resp = {
         privateKey: sshKey.privateKey,
-        user: "root",
+        user: sshUser,
         host: `localhost:${port}`,
         authorizedKeys,
       };

@@ -355,6 +355,25 @@ export async function initFsServer({
 
 let servers: null | { ssh: any; file: any } = null;
 let stopBtrfsSshd: (() => Promise<void>) | undefined;
+let btrfsCleanupRegistered = false;
+
+function registerBtrfsCleanup() {
+  if (btrfsCleanupRegistered) return;
+  btrfsCleanupRegistered = true;
+  const doStop = async () => {
+    try {
+      await stopBtrfsSshd?.();
+    } catch {
+      /* ignore */
+    }
+  };
+  process.once("exit", doStop);
+  ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) =>
+    process.once(sig, () => {
+      doStop().finally(() => process.exit());
+    }),
+  );
+}
 
 export async function initFileServer({
   client,
@@ -454,6 +473,7 @@ export async function initFileServer({
       });
       btrfsSshPort = port;
       stopBtrfsSshd = stop;
+      registerBtrfsCleanup();
     }
 
     const getSshdPort = (target: SshTarget): number | null => {

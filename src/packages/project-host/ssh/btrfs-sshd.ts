@@ -34,6 +34,14 @@ export async function startBtrfsSshd({
   // Only sshpiperd connects here; it authenticates with its own key. We still
   // force the command to sudo btrfs receive and disable everything else so the
   // session can only write to the mount and nothing more.
+  const keyWithUser = (() => {
+    const parts = sshpiperdPublicKey.trim().split(/\s+/);
+    const user = process.env.USER ?? "cocalc";
+    if (parts.length >= 2) {
+      return `${parts[0]} ${parts[1]} ${user}`;
+    }
+    return sshpiperdPublicKey.trim();
+  })();
   const forcedOpts = [
     `command="sudo btrfs receive ${mount}"`,
     "no-pty",
@@ -42,7 +50,7 @@ export async function startBtrfsSshd({
     "no-agent-forwarding",
     "restrict",
   ].join(",");
-  const authKey = `${forcedOpts} ${sshpiperdPublicKey.trim()}`;
+  const authKey = `${forcedOpts} ${keyWithUser}`;
   await writeFile(authKeysPath, authKey, { mode: 0o600 });
 
   const configPath = join(dir, "sshd_config");
@@ -65,13 +73,44 @@ Subsystem sftp internal-sftp
 `;
   await writeFile(configPath, config);
 
-  const child: ChildProcessWithoutNullStreams = spawn("sshd", [
+  const child: ChildProcessWithoutNullStreams = spawn("/usr/sbin/sshd", [
     "-D",
     "-f",
     configPath,
   ]);
   child.stdout.on("data", (d) => logger.debug(d.toString()));
   child.stderr.on("data", (d) => logger.debug(d.toString()));
+
+  // Wait for sshd to accept connections; fail fast if it exits.
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("btrfs sshd startup timeout")), 3000);
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+      clearTimeout(timer);
+      reject(
+        new Error(
+          `btrfs sshd exited during startup (${code !== null ? `code ${code}` : signal ?? "unknown"})`,
+        ),
+      );
+    };
+    child.once("exit", onExit);
+    child.once("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    const net = require("net");
+    const tryConnect = () => {
+      const sock = net.createConnection({ host: "127.0.0.1", port }, () => {
+        clearTimeout(timer);
+        sock.destroy();
+        child.off("exit", onExit);
+        resolve();
+      });
+      sock.on("error", () => {
+        setTimeout(tryConnect, 100);
+      });
+    };
+    tryConnect();
+  });
 
   const stop = async () => {
     child.kill("SIGTERM");
