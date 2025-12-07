@@ -124,7 +124,8 @@ async function handleSending(row: ProjectMoveRow) {
   const srcClient = createHostControlClient({
     host_id: meta.host_id,
     client: conatClient,
-    timeout: 1000 * 30,
+    // todo: long until we have a streaming status update system
+    timeout: 1000 * 60 * 60,
   });
   try {
     logger.debug("handleSending: sending", {

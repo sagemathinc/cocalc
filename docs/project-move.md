@@ -1,6 +1,6 @@
 # Project move pipeline (host → host)
 
-This document describes how a project is moved between project-hosts: the control hub chooses a destination, the source streams the project’s btrfs subvolume to the destination over a single sshpiperd-exposed port, and host-level security is enforced with forced-command `btrfs receive` plus host-specific keys. Progress is reported back to the master so the UI stays in sync, and the initial cut favors a simple stop-and-send flow before adding incremental or snapshot-preserving moves.
+This document describes how a project is moved between project-hosts: the control hub chooses a destination, the source streams the project’s btrfs subvolume to the destination over a single sshpiperd-exposed port, and host-level security is enforced with forced-command `btrfs receive` plus host-specific keys. Progress is reported back to the master so the UI stays in sync. The current implementation preserves snapshots by staging them on the destination, cloning the latest snapshot to become the live project subvolume, and re-homing all snapshots under the project before cleaning up staging.
 
 ```mermaid
 sequenceDiagram
@@ -15,9 +15,10 @@ sequenceDiagram
     Hub->>Src: Worker picks job → RPC start move
     Src->>Src: Snapshot project subvolume
     Src->>DestSSH: SSH via sshpiperd (user: btrfs-<source_host_id>)
-    note right of DestSSH: Forced command<br/>btrfs receive <mount>
-    Src-->>DestSSH: btrfs send snapshot stream
-    DestSSH-->>Dest: Write subvolume on mount
+    note right of DestSSH: Forced command<br/>btrfs receive /btrfs/_incoming/<project>
+    Src-->>DestSSH: btrfs send snapshot streams (snapshots, then move snapshot)
+    DestSSH-->>Dest: Stage under /btrfs/_incoming/<project>
+    Dest->>Dest: Clone latest snapshot → project subvolume<br/>Re-home snapshots under project/.snapshots<br/>Cleanup staging
     Dest->>Hub: Report move success/failure
     Hub-->>User: Update status/progress
 ```

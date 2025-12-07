@@ -178,12 +178,13 @@ export async function sendProject({
     sshTarget,
   ];
 
+  const remoteBase = `/btrfs/_incoming/${project_id}`;
   async function ensureRemoteSnapshotsDir() {
     await runCmd(logger, "ssh", [
       ...sshBaseArgs,
       "mkdir",
       "-p",
-      `/btrfs/project-${project_id}/.snapshots`,
+      `${remoteBase}/.snapshots`,
     ]);
   }
 
@@ -298,7 +299,7 @@ export async function sendProject({
       await sendSnapshot({
         from: meta.path,
         parent: parentPath,
-        recvDir: `/btrfs/project-${project_id}/.snapshots`,
+        recvDir: `${remoteBase}/.snapshots`,
       });
     }
 
@@ -308,7 +309,7 @@ export async function sendProject({
     await sendSnapshot({
       from: snapPath,
       parent: lastSnapshotPath,
-      recvDir: "/btrfs",
+      recvDir: remoteBase,
     });
 
     logger.debug("sendProject: successfully received ", { snapPath });
@@ -337,21 +338,63 @@ export async function finalizeReceiveProject({
   authorized_keys?: string;
 }) {
   if (!isValidUUID(project_id)) throw Error("invalid project_id");
-  const srcPath = join(getMountPoint(), snapshot);
+  const base = join(getMountPoint(), "_incoming", project_id);
+  const recvMovePath = join(base, snapshot);
+  const recvSnapshotsDir = join(base, ".snapshots");
   const destPath = join(getMountPoint(), `project-${project_id}`);
 
-  // Create writable clone and drop the received snapshot.
-  // Writable clone of the received snapshot, then drop the read-only snapshot.
+  // Determine latest snapshot (by creation time) to use as live clone.
+  const receivedSnaps = await readdir(recvSnapshotsDir).catch(() => []);
+  const snapMetas: SubvolMeta[] = [];
+  for (const name of receivedSnaps) {
+    snapMetas.push(await readSubvolMeta(join(recvSnapshotsDir, name)));
+  }
+  // Include the move snapshot itself.
+  const moveMeta = await readSubvolMeta(recvMovePath);
+  snapMetas.push(moveMeta);
+  // Pick newest by creation (fallback lexicographic path).
+  snapMetas.sort(
+    (a, b) =>
+      (a.creation || "").localeCompare(b.creation || "") ||
+      a.path.localeCompare(b.path),
+  );
+  const latest = snapMetas[snapMetas.length - 1];
+
+  // Create writable clone for the project.
   await runCmd(logger, "sudo", [
     "btrfs",
     "subvolume",
     "snapshot",
-    srcPath,
+    latest.path,
     destPath,
   ]);
-  await runCmd(logger, "sudo", ["btrfs", "subvolume", "delete", srcPath]);
-
   await mkdir(join(destPath, ".snapshots"), { recursive: true });
+
+  // Re-home snapshots under the project.
+  for (const meta of snapMetas) {
+    const name = meta.path.split("/").pop() as string;
+    const destSnapPath = join(destPath, ".snapshots", name);
+    await runCmd(logger, "sudo", [
+      "btrfs",
+      "subvolume",
+      "snapshot",
+      "-r",
+      meta.path,
+      destSnapPath,
+    ]);
+  }
+
+  // Clean up staging area (delete received subvolumes).
+  for (const meta of snapMetas) {
+    await runCmd(logger, "sudo", [
+      "btrfs",
+      "subvolume",
+      "delete",
+      meta.path,
+    ]).catch(() => {});
+  }
+  // base may be a regular directory; remove whatever remains.
+  await runCmd(logger, "sudo", ["rm", "-rf", base]).catch(() => {});
 
   // Register in sqlite.
   ensureProjectRow({
