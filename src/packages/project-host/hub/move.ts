@@ -45,6 +45,7 @@ export async function sendProject({
     vol.path,
     snapPath,
   ]);
+  logger.debug("sendProject: created snapshot", snapPath);
 
   const [sshHost, sshPort] = dest_ssh_server.includes(":")
     ? dest_ssh_server.split(":")
@@ -85,7 +86,10 @@ export async function sendProject({
     ];
 
     // btrfs send | ssh ... sudo btrfs receive /btrfs
-    logger.debug("btrfs send|receive", { snapPath, ssh: sshArgs.join(" ") });
+    logger.debug("sendProject: btrfs send|receive", {
+      snapPath,
+      ssh: sshArgs.join(" "),
+    });
     const send = spawn("sudo", ["btrfs", "send", snapPath], {
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -107,6 +111,7 @@ export async function sendProject({
     const sendOut = send.stdout;
     const sshIn = ssh.stdin;
     if (!sendOut || !sshIn) {
+      logger.debug("sendProject: pipe for sending broken");
       throw new Error("btrfs send/ssh pipe not available");
     }
     // stdout/stdin are typed as possibly null because of mixed stdio options;
@@ -143,8 +148,11 @@ export async function sendProject({
       }),
     ]);
     await result;
+    logger.debug("sendProject: successfully received ", { snapPath });
   } finally {
+    logger.debug("sendProject: cleaning up...", { snapPath });
     await cleanup();
+    logger.debug("sendProject: clean up complete", { snapPath });
   }
 }
 

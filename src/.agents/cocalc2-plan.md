@@ -4,14 +4,11 @@
   - [x] implement copy between _different_ project\-host via ssh
   
 - [ ] #now implement move project using btrfs
-
-  - [ ] **No orchestration from the hub yet:** there’s no end‑to‑end master RPC that stops the project, assigns a destination, calls `sendProject` on the source, and calls `finalizeReceiveProject` + cleanup on the destination, nor does it update the project’s host_id/host fields in Postgres.
-  - [ ] **Project lifecycle not enforced:** the source project isn’t stopped/blocked (including sandboxed file ops) before the send, so writes could race; there’s no restart on the destination after receive.
   - [ ] **Snapshots not preserved:** we only send a single readonly snapshot created on the fly; existing project snapshots aren’t carried over.
+  - [ ] **Project lifecycle not enforced:** the source project isn’t stopped/blocked (including sandboxed file ops) before the send, so writes could race; there’s no restart on the destination after receive.
   - [ ] **No progress/reporting:** the UI gets no status or bytes‑sent updates; failures aren’t surfaced back to the hub.
   - [ ] **Cleanup/rollback:** partial moves don’t clean up temp snapshots on source/dest or roll back assignments.
-  - [ ] **Key/authorization flow not verified end‑to‑end:** destination sshpiperd must accept the source host key for `btrfs-<source_host_id>`, but the control plane hasn’t been wired/tested to distribute and enforce that during a real move.
-  - [ ] **Changefeeds/state sync:** project state/host changes aren’t pushed to listeners (e.g., changefeeds) so the UI won’t reflect the new host after a move.
+  - [ ] the worker seems to be extremely inefficient, doing one step for one project at a time.
 
 - [ ] Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
 
@@ -143,9 +140,10 @@ flowchart LR
   MAPI -->|Placement/assign| BRunner
 ```
 
-## Details to not forget
+## Detailed TODO List
 
-- [ ] looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route\-project.ts; this MUST get fixed or everything will be broken/flakie at first.  Solution is make some options to conat/core/client be a promise optionally and delay the connection.
+- [ ] rewrite stopIdleProjects to use new architecture (and everything that used the old project runner load balancer code)
+- [x] looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route\-project.ts; this MUST get fixed or everything will be broken/flakie at first.  Solution is make some options to conat/core/client be a promise optionally and delay the connection.
 - [ ] need to rewrite everything in the frontend involving the project runner directly; in particular, see src/packages/frontend/projects/actions.ts
   - cloning projects
   - moving projects

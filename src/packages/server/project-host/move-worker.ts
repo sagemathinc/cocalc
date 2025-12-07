@@ -36,9 +36,8 @@ async function transition(
   updates: Partial<ProjectMoveRow>,
 ): Promise<ProjectMoveRow | undefined> {
   const row = await updateMove(project_id, updates);
-  logger.debug("move state update", {
+  logger.debug("transition", row?.state, {
     project_id,
-    state: row?.state,
     dest_host_id: row?.dest_host_id,
   });
   return row;
@@ -99,6 +98,10 @@ async function handlePreparing(row: ProjectMoveRow) {
 }
 
 async function handleSending(row: ProjectMoveRow) {
+  logger.debug("handleSending", {
+    project_id: row.project_id,
+    dest_host_id: row.dest_host_id,
+  });
   const meta = await loadProject(row.project_id);
   if (!meta.host_id || !row.dest_host_id) {
     await transition(row.project_id, {
@@ -108,6 +111,7 @@ async function handleSending(row: ProjectMoveRow) {
     return;
   }
   const destHost = await loadHostFromRegistry(row.dest_host_id);
+  logger.debug("handleSending", destHost?.ssh_server);
   if (!destHost?.ssh_server) {
     await transition(row.project_id, {
       state: "failing",
@@ -120,12 +124,22 @@ async function handleSending(row: ProjectMoveRow) {
   const srcClient = createHostControlClient({
     host_id: meta.host_id,
     client: conatClient,
+    // long timeout, since it could take a while to move a big project over a slow network
+    timeout: 1000 * 60 * 60,
   });
   try {
+    logger.debug("handleSending: sending", {
+      project_id: row.project_id,
+      snapshot,
+    });
     await srcClient.sendProject({
       project_id: row.project_id,
       dest_host_id: row.dest_host_id,
       dest_ssh_server: destHost.ssh_server,
+      snapshot,
+    });
+    logger.debug("handleSending: successfully sent", {
+      project_id: row.project_id,
       snapshot,
     });
     await transition(row.project_id, {
@@ -134,6 +148,7 @@ async function handleSending(row: ProjectMoveRow) {
       snapshot_name: snapshot,
     });
   } catch (err) {
+    logger.debug("handleSending: failed", err);
     await transition(row.project_id, {
       state: "failing",
       status_reason: `${err}`,
@@ -142,6 +157,10 @@ async function handleSending(row: ProjectMoveRow) {
 }
 
 async function handleFinalizing(row: ProjectMoveRow) {
+  logger.debug("handleFinalizing", {
+    project_id: row.project_id,
+    dest_host_id: row.dest_host_id,
+  });
   const meta = await loadProject(row.project_id);
   if (!meta.host_id || !row.dest_host_id) {
     await transition(row.project_id, {

@@ -31,13 +31,20 @@ export interface HostControlApi {
     authorized_keys?: string;
     run_quota?: any;
   }) => Promise<HostCreateProjectResponse>;
-  stopProject: (opts: { project_id: string }) => Promise<HostCreateProjectResponse>;
+  stopProject: (opts: {
+    project_id: string;
+  }) => Promise<HostCreateProjectResponse>;
   updateAuthorizedKeys: (opts: {
     project_id: string;
     authorized_keys?: string;
   }) => Promise<void>;
   copyPaths: (opts: {
-    src: { host_id: string; ssh_server?: string; project_id: string; paths: string[] };
+    src: {
+      host_id: string;
+      ssh_server?: string;
+      project_id: string;
+      paths: string[];
+    };
     dest: { host_id: string; project_id: string; path: string };
   }) => Promise<void>;
   sendProject: (opts: {
@@ -72,14 +79,17 @@ const STATUS_SUBJECT = "project-hosts.status";
 export function createHostControlClient({
   host_id,
   client,
+  timeout,
 }: {
   host_id: string;
   client: Client;
+  timeout?;
 }): HostControlApi {
   return createServiceClient<HostControlApi>({
     service: "project-host",
     subject: subjectForHost(host_id),
     client,
+    timeout,
   });
 }
 
@@ -100,13 +110,16 @@ export interface HostStatusApi {
 
 export function createHostStatusClient({
   client,
+  timeout,
 }: {
   client: Client;
+  timeout?;
 }): HostStatusApi {
   return createServiceClient<HostStatusApi>({
     service: "project-host",
     subject: STATUS_SUBJECT,
     client,
+    timeout,
   });
 }
 
