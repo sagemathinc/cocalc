@@ -15,19 +15,16 @@ export async function createSnapshot({
   account_id,
   project_id,
   name,
-  readOnly = true,
 }: {
   account_id?: string;
   project_id: string;
   name?: string;
-  readOnly?: boolean;
 }) {
   await assertCollab({ account_id, project_id });
   await fileServerClient({ project_id }).createSnapshot({
     project_id,
     name,
     limit: MAX_SNAPSHOTS_PER_PROJECT,
-    readOnly,
   });
 }
 

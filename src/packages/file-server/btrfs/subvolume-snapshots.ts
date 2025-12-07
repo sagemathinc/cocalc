@@ -32,10 +32,7 @@ export class SubvolumeSnapshots {
     await this.subvolume.fs.chmod(SNAPSHOTS, "0700");
   };
 
-  create = async (
-    name?: string,
-    { limit, readOnly }: { limit?: number; readOnly?: boolean } = {},
-  ) => {
+  create = async (name?: string, { limit }: { limit?: number } = {}) => {
     if (name?.startsWith(".")) {
       throw Error("snapshot name must not start with '.'");
     }
@@ -57,10 +54,7 @@ export class SubvolumeSnapshots {
       }
     }
 
-    const args = ["subvolume", "snapshot"];
-    if (readOnly) {
-      args.push("-r");
-    }
+    const args = ["subvolume", "snapshot", "-r"];
     const snapshotPath = join(this.snapshotsDir, name);
     args.push(this.subvolume.path, snapshotPath);
 
