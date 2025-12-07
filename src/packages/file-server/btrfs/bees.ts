@@ -43,7 +43,11 @@ export default async function bees(
   }
   args.push(mountpoint);
   logger.debug(`Running 'sudo ${args.join(" ")}'`);
-  const child = spawn("sudo", args);
+  const child = spawn("sudo", args, {
+    detached: true,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  child.unref();
   children.push(child);
   let error: string = "";
   child.once("error", (err) => {

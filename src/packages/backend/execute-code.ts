@@ -338,6 +338,8 @@ function doSpawn(
       ...opts.env,
       ...(opts.uid != null && opts.home ? { HOME: opts.home } : undefined),
     },
+    // @ts-ignore -- don't pipe input
+    stdio: ["ignore", "pipe", "pipe"],
   };
 
   // This is the state, which will be captured in closures
@@ -409,10 +411,8 @@ function doSpawn(
 
   try {
     child = spawn(opts.command, opts.args, spawnOptions);
+    child.unref();
     if (child.stdout == null || child.stderr == null) {
-      // The docs/examples at https://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options
-      // suggest that r.stdout and r.stderr are always defined.  However, this is
-      // definitely NOT the case in edge cases, as we have observed.
       const errorMsg =
         "error creating child process -- couldn't spawn child process";
       // For streaming, also send error event

@@ -130,6 +130,8 @@ async function handleSending(row: ProjectMoveRow) {
   try {
     logger.debug("handleSending: sending", {
       project_id: row.project_id,
+      dest_host_id: row.dest_host_id,
+      dest_ssh_server: destHost.ssh_server,
       snapshot,
     });
     await srcClient.sendProject({

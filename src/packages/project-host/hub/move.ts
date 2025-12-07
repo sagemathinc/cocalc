@@ -1,3 +1,17 @@
+/*
+
+. ../scripts/env0.sh 
+
+require('../dist/main').main()
+
+await require('../dist/hub/move').sendProject({
+  project_id: '21c00a35-17af-42c7-82db-3c81a52e3c3e',
+  dest_host_id: '5703cf9c-1727-4f4d-9865-ba8073bd40c9',
+  dest_ssh_server: 'localhost:2223',
+  snapshot: 'move-1765134051919'})
+
+*/
+
 import getLogger from "@cocalc/backend/logger";
 import { isValidUUID } from "@cocalc/util/misc";
 import { join } from "node:path";
