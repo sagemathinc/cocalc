@@ -4,8 +4,10 @@
   - [x] implement copy between _different_ project\-host via ssh
   
 - [ ] #now implement move project using btrfs
-  - [ ] snapshot creation after move broken due to missing qgroup
+  - [ ] snapshot creation after move broken due to missing qgroup 
   - [ ] **Snapshots not preserved:** we only send a single readonly snapshot created on the fly; existing project snapshots aren’t carried over.
+  - [ ] security: use forecommand for btrfs container
+  - [ ] large streams: send progress updates instead of one req/resp.
   - [ ] **Project lifecycle not enforced:** the source project isn’t stopped/blocked (including sandboxed file ops) before the send, so writes could race; there’s no restart on the destination after receive.
   - [ ] **No progress/reporting:** the UI gets no status or bytes‑sent updates; failures aren’t surfaced back to the hub.
   - [ ] **Cleanup/rollback:** partial moves don’t clean up temp snapshots on source/dest or roll back assignments.

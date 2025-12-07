@@ -16,7 +16,6 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { readdir } from "node:fs/promises";
-import { spawn } from "node:child_process";
 import { pipeline } from "node:stream/promises";
 import { getVolume } from "../file-server";
 import { ensureHostKey } from "../ssh/host-key";
@@ -25,8 +24,89 @@ import { ensureProjectRow } from "./projects";
 import { getLocalHostId } from "../sqlite/hosts";
 import { runCmd, setupSshTempFiles } from "./util";
 import { getMountPoint } from "../file-server";
+import { spawn } from "node:child_process";
 
 const logger = getLogger("project-host:hub:move");
+
+type SubvolMeta = {
+  path: string;
+  uuid?: string;
+  parent_uuid?: string;
+  creation?: string;
+};
+
+async function readSubvolMeta(path: string): Promise<SubvolMeta> {
+  return await new Promise<SubvolMeta>((resolve, reject) => {
+    const child = spawn("sudo", ["btrfs", "subvolume", "show", path], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let out = "";
+    let err = "";
+    child.stdout?.on("data", (d) => (out += String(d)));
+    child.stderr?.on("data", (d) => (err += String(d)));
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code !== 0) {
+        return reject(new Error(`btrfs subvolume show failed: ${err.trim()}`));
+      }
+      const meta: SubvolMeta = { path };
+      const lines = out.split("\n");
+      for (const line of lines) {
+        const [k, ...rest] = line.split(":");
+        const v = rest.join(":").trim();
+        if (!v) continue;
+        if (k.includes("UUID")) {
+          if (k.toLowerCase().startsWith("uuid")) {
+            meta.uuid = v;
+          } else if (k.toLowerCase().includes("parent uuid")) {
+            meta.parent_uuid = v;
+          }
+        } else if (k.toLowerCase().includes("creation time")) {
+          meta.creation = v;
+        }
+      }
+      resolve(meta);
+    });
+  });
+}
+
+function topoOrder(metas: SubvolMeta[]): SubvolMeta[] {
+  const remaining = new Map(metas.map((m) => [m.path, m]));
+  const ordered: SubvolMeta[] = [];
+  // quick lookup by uuid
+  const byUuid = new Map(
+    metas.filter((m) => m.uuid).map((m) => [m.uuid as string, m]),
+  );
+
+  while (remaining.size) {
+    let progressed = false;
+    for (const [path, meta] of Array.from(remaining.entries())) {
+      const parentUuid = meta.parent_uuid;
+      if (
+        !parentUuid ||
+        !byUuid.get(parentUuid) ||
+        ordered.includes(byUuid.get(parentUuid)!)
+      ) {
+        ordered.push(meta);
+        remaining.delete(path);
+        progressed = true;
+      }
+    }
+    if (!progressed) {
+      // break cycles/unknown parents by sorting remaining by creation time/string path
+      const leftovers = Array.from(remaining.values()).sort(
+        (a, b) =>
+          (a.creation || "").localeCompare(b.creation || "") ||
+          a.path.localeCompare(b.path),
+      );
+      leftovers.forEach((m) => {
+        ordered.push(m);
+        remaining.delete(m.path);
+      });
+    }
+  }
+  return ordered;
+}
 
 export async function sendProject({
   project_id,
@@ -64,6 +144,8 @@ export async function sendProject({
   const [sshHost, sshPort] = dest_ssh_server.includes(":")
     ? dest_ssh_server.split(":")
     : [dest_ssh_server, "22"];
+
+  // Common SSH config for all send/recv steps.
   const tmp = await setupSshTempFiles({
     prefix: "ph-move-send-",
     privateKey: (() => {
@@ -79,32 +161,57 @@ export async function sendProject({
     })(),
   });
   const { keyFile, knownHosts, cleanup } = tmp;
-  try {
-    // Authenticate as the source host so the destination authorizes only that host key.
-    const sshTarget = `btrfs-${localHostId}@${sshHost}`;
-    const sshArgs = [
-      "-p",
-      sshPort,
-      "-i",
-      keyFile,
-      "-o",
-      "StrictHostKeyChecking=yes",
-      "-o",
-      `UserKnownHostsFile=${knownHosts}`,
-      "-o",
-      "IdentitiesOnly=yes",
-      sshTarget,
-      "btrfs",
-      "receive",
-      "/btrfs",
-    ];
 
-    // btrfs send | ssh ... sudo btrfs receive /btrfs
-    logger.debug("sendProject: btrfs send|receive", {
-      snapPath,
+  // Authenticate as the source host so the destination authorizes only that host key.
+  const sshTarget = `btrfs-${localHostId}@${sshHost}`;
+  const sshBaseArgs = [
+    "-p",
+    sshPort,
+    "-i",
+    keyFile,
+    "-o",
+    "StrictHostKeyChecking=yes",
+    "-o",
+    `UserKnownHostsFile=${knownHosts}`,
+    "-o",
+    "IdentitiesOnly=yes",
+    sshTarget,
+  ];
+
+  async function ensureRemoteSnapshotsDir() {
+    await runCmd(logger, "ssh", [
+      ...sshBaseArgs,
+      "mkdir",
+      "-p",
+      `/btrfs/project-${project_id}/.snapshots`,
+    ]);
+  }
+
+  async function sendSnapshot({
+    from,
+    parent,
+    recvDir,
+  }: {
+    from: string;
+    parent?: string;
+    recvDir: string;
+  }) {
+    const sendArgs = ["btrfs", "send"];
+    if (parent) {
+      sendArgs.push("-p", parent);
+    }
+    sendArgs.push(from);
+
+    const sshArgs = [...sshBaseArgs, "btrfs", "receive", recvDir];
+
+    logger.debug("sendProject.sendSnapshot: btrfs send|receive", {
+      from,
+      parent,
+      recvDir,
       ssh: sshArgs.join(" "),
     });
-    const send = spawn("sudo", ["btrfs", "send", snapPath], {
+
+    const send = spawn("sudo", sendArgs, {
       stdio: ["ignore", "pipe", "pipe"],
     });
     const ssh = spawn("ssh", sshArgs, {
@@ -125,12 +232,11 @@ export async function sendProject({
     const sendOut = send.stdout;
     const sshIn = ssh.stdin;
     if (!sendOut || !sshIn) {
-      logger.debug("sendProject: pipe for sending broken");
+      logger.debug("sendProject.sendSnapshot: pipe for sending broken");
       throw new Error("btrfs send/ssh pipe not available");
     }
-    // Use pipeline so EPIPE/stream errors reject immediately (e.g., bad args).
     const streamPump = pipeline(sendOut, sshIn);
-    const result = await Promise.all([
+    await Promise.all([
       new Promise<void>((resolve, reject) => {
         send.on("exit", (code) =>
           code === 0
@@ -161,7 +267,50 @@ export async function sendProject({
       }),
       streamPump,
     ]);
-    await result;
+    logger.debug("sendProject.sendSnapshot: successfully sent ", {
+      from,
+      parent,
+      recvDir,
+    });
+  }
+
+  try {
+    // Ensure destination has a place for snapshots.
+    await ensureRemoteSnapshotsDir();
+
+    // Send existing snapshots (incremental in parent order).
+    const snapshotNames = (await readdir(snapshotsDir)).filter(
+      (s) => s !== snapshot,
+    );
+    const metas: SubvolMeta[] = [];
+    for (const name of snapshotNames) {
+      const path = join(snapshotsDir, name);
+      metas.push(await readSubvolMeta(path));
+    }
+    const parentByUuid = new Map(
+      metas.filter((m) => m.uuid).map((m) => [m.uuid as string, m.path]),
+    );
+    const ordered = topoOrder(metas);
+    for (const meta of ordered) {
+      const parentPath = meta.parent_uuid
+        ? parentByUuid.get(meta.parent_uuid)
+        : undefined;
+      await sendSnapshot({
+        from: meta.path,
+        parent: parentPath,
+        recvDir: `/btrfs/project-${project_id}/.snapshots`,
+      });
+    }
+
+    // Finally send the move snapshot, optionally incremental from last snapshot in the chain.
+    const lastSnapshotPath =
+      ordered.length > 0 ? ordered[ordered.length - 1].path : undefined;
+    await sendSnapshot({
+      from: snapPath,
+      parent: lastSnapshotPath,
+      recvDir: "/btrfs",
+    });
+
     logger.debug("sendProject: successfully received ", { snapPath });
   } finally {
     logger.debug("sendProject: cleaning up...", { snapPath });
