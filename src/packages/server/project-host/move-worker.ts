@@ -194,16 +194,10 @@ async function handleFinalizing(row: ProjectMoveRow) {
       delete_original: true,
     });
 
-    await destClient.startProject({
-      project_id: row.project_id,
-      authorized_keys: meta.authorized_keys,
-      run_quota: meta.run_quota,
-    });
-
     await transition(row.project_id, {
       state: "done",
       progress: { phase: "done" },
-      status_reason: null,
+      status_reason: "move complete; project not auto-started",
     });
   } catch (err) {
     await transition(row.project_id, {

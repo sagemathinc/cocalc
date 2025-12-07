@@ -198,3 +198,5 @@ patchflow
 *.pid
 *.chat
 *.js.map
+
+src/packages/project-host/data*/

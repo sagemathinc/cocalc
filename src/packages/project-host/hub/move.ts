@@ -169,8 +169,9 @@ export async function finalizeReceiveProject({
   const destPath = join(getMountPoint(), `project-${project_id}`);
 
   // Create writable clone and drop the received snapshot.
-  await runCmd(logger, "btrfs", ["subvolume", "snapshot", srcPath, destPath]);
-  await runCmd(logger, "btrfs", ["subvolume", "delete", srcPath]);
+  // Writable clone of the received snapshot, then drop the read-only snapshot.
+  await runCmd(logger, "sudo", ["btrfs", "subvolume", "snapshot", srcPath, destPath]);
+  await runCmd(logger, "sudo", ["btrfs", "subvolume", "delete", srcPath]);
 
   await mkdir(join(destPath, ".snapshots"), { recursive: true });
 
@@ -205,11 +206,11 @@ export async function cleanupAfterMove({
     ".snapshots",
     snapshot,
   );
-  await runCmd(logger, "btrfs", ["subvolume", "delete", snapPath]).catch(
+  await runCmd(logger, "sudo", ["btrfs", "subvolume", "delete", snapPath]).catch(
     () => {},
   );
   if (delete_original && vol) {
-    await runCmd(logger, "btrfs", ["subvolume", "delete", vol.path]).catch(
+    await runCmd(logger, "sudo", ["btrfs", "subvolume", "delete", vol.path]).catch(
       () => {},
     );
   }
