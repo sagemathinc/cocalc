@@ -49,7 +49,10 @@ stateDiagram-v2
 - **Control flow**
   - Hub enqueues a move (chooses destination if not provided), updates `projects.move_status`, and returns immediately.
   - Maintenance worker pops queued moves, stops the project, snapshots, and orchestrates send/receive via host control RPCs (see [packages/server/project-host/move-worker.ts](./packages/server/project-host/move-worker.ts)).
-  - Source host uses `btrfs send`; destination host uses forced-command `btrfs receive`. On success, dest is registered and started; status is written back to Postgres for the UI.
+  - Two data paths now exist:
+    - **Pipe mode** (default): `btrfs send | ssh | btrfs receive` directly.
+    - **Staged mode** (`PROJECT_MOVE_MODE=staged`): create stream files under `/btrfs/_streams/<project>/<move>`, `rsync` them to the destination, then `btrfs receive` from those files into `/btrfs/_incoming/<project>`, followed by the same re-homing/finalize step.
+  - On success, dest is registered and started; status is written back to Postgres for the UI.
 
 - **SSH plumbing (single exposed port via sshpiperd)**
   - All external SSH goes through sshpiperd (see [packages/project-proxy/ssh-server.ts](./packages/project-proxy/ssh-server.ts)).

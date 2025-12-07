@@ -102,6 +102,7 @@ async function handleSending(row: ProjectMoveRow) {
     project_id: row.project_id,
     dest_host_id: row.dest_host_id,
   });
+  const moveMode = "staged"; //  or 'pipe'
   const meta = await loadProject(row.project_id);
   if (!meta.host_id || !row.dest_host_id) {
     await transition(row.project_id, {
@@ -128,6 +129,9 @@ async function handleSending(row: ProjectMoveRow) {
     timeout: 1000 * 60 * 60,
   });
   try {
+    await transition(row.project_id, {
+      progress: { phase: "sending", mode: moveMode },
+    });
     logger.debug("handleSending: sending", {
       project_id: row.project_id,
       dest_host_id: row.dest_host_id,

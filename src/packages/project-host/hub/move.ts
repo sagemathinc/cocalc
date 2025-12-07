@@ -14,8 +14,7 @@ await require('../dist/hub/move').sendProject({
 import getLogger from "@cocalc/backend/logger";
 import { isValidUUID } from "@cocalc/util/misc";
 import { join } from "node:path";
-import { mkdir } from "node:fs/promises";
-import { readdir } from "node:fs/promises";
+import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
 import { getVolume } from "../file-server";
 import { ensureHostKey } from "../ssh/host-key";
@@ -25,6 +24,8 @@ import { getLocalHostId } from "../sqlite/hosts";
 import { runCmd, setupSshTempFiles } from "./util";
 import { getMountPoint } from "../file-server";
 import { spawn } from "node:child_process";
+import { createWriteStream } from "node:fs";
+import { basename } from "node:path";
 
 const logger = getLogger("project-host:hub:move");
 
@@ -119,11 +120,13 @@ export async function sendProject({
   dest_ssh_server: string;
   snapshot: string;
 }) {
+  const moveMode = "staged"; // or 'pipe'
   logger.debug("sendProject", {
     project_id,
     dest_host_id,
     dest_ssh_server,
     snapshot,
+    mode: moveMode,
   });
   if (!isValidUUID(project_id)) throw Error("invalid project_id");
   const localHostId = getLocalHostId();
@@ -177,6 +180,23 @@ export async function sendProject({
     "IdentitiesOnly=yes",
     sshTarget,
   ];
+
+  if (moveMode === "staged") {
+    await sendProjectStaged({
+      project_id,
+      snapshot,
+      snapshotsDir,
+      sshBaseArgs,
+      sshPort,
+      remoteBase: `/btrfs/_incoming/${project_id}`,
+      sshTarget,
+      keyFile,
+      knownHosts,
+    }).finally(async () => {
+      await cleanup();
+    });
+    return;
+  }
 
   const remoteBase = `/btrfs/_incoming/${project_id}`;
   async function ensureRemoteSnapshotsDir() {
@@ -318,6 +338,221 @@ export async function sendProject({
     await cleanup();
     logger.debug("sendProject: clean up complete", { snapPath });
   }
+}
+
+async function sendProjectStaged({
+  project_id,
+  snapshot,
+  snapshotsDir,
+  sshBaseArgs,
+  sshPort,
+  remoteBase,
+  sshTarget,
+  keyFile,
+  knownHosts,
+}: {
+  project_id: string;
+  snapshot: string;
+  snapshotsDir: string;
+  sshBaseArgs: string[];
+  sshPort: string;
+  remoteBase: string;
+  sshTarget: string;
+  keyFile: string;
+  knownHosts: string;
+}) {
+  const streamsDir = join(getMountPoint(), "_streams", project_id, snapshot);
+  await runCmd(logger, "sudo", ["mkdir", "-p", streamsDir]);
+  if (typeof process.getuid === "function") {
+    try {
+      await runCmd(logger, "sudo", [
+        "chown",
+        `${process.getuid()}:${process.getgid?.() ?? process.getuid()}`,
+        streamsDir,
+      ]);
+    } catch {
+      // best effort; if it fails, send will likely fail and surface the error
+    }
+  }
+
+  const makeSendFile = async ({
+    from,
+    parent,
+    file,
+  }: {
+    from: string;
+    parent?: string;
+    file: string;
+  }) => {
+    const sendArgs = ["btrfs", "send"];
+    if (parent) {
+      sendArgs.push("-p", parent);
+    }
+    // Allow optional compression when supported.
+    if (process.env.PROJECT_MOVE_SEND_COMPRESS?.toLowerCase() === "lz4") {
+      sendArgs.push("-c", "lz4");
+    }
+    sendArgs.push(from, "-f", file);
+
+    logger.debug("sendProjectStaged: btrfs send -> file", {
+      from,
+      parent,
+      file,
+    });
+
+    const child = spawn("sudo", sendArgs, {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const out = createWriteStream(file);
+    const errs: string[] = [];
+    child.stderr?.on("data", (d) => errs.push(String(d)));
+    await Promise.all([
+      pipeline(child.stdout as any, out),
+      new Promise<void>((resolve, reject) => {
+        child.on("exit", (code) =>
+          code === 0
+            ? resolve()
+            : reject(
+                new Error(
+                  `btrfs send exit ${code}${
+                    errs.length ? `: ${errs.join("")}` : ""
+                  }`,
+                ),
+              ),
+        );
+        child.on("error", reject);
+      }),
+    ]);
+  };
+
+  // Order snapshots by parent graph.
+  const snapshotNames = (await readdir(snapshotsDir)).filter(
+    (s) => s !== snapshot,
+  );
+  const metas: SubvolMeta[] = [];
+  for (const name of snapshotNames) {
+    const path = join(snapshotsDir, name);
+    metas.push(await readSubvolMeta(path));
+  }
+  const parentByUuid = new Map(
+    metas.filter((m) => m.uuid).map((m) => [m.uuid as string, m.path]),
+  );
+  const ordered = topoOrder(metas);
+
+  type ManifestEntry = {
+    file: string;
+    recvDir: string;
+  };
+  const manifest: ManifestEntry[] = [];
+
+  let idx = 0;
+  const makeFileName = (name: string) =>
+    `${String(idx++).padStart(4, "0")}-${name.replace(/\//g, "_")}.send`;
+
+  // Existing snapshots first.
+  for (const meta of ordered) {
+    const parentPath = meta.parent_uuid
+      ? parentByUuid.get(meta.parent_uuid)
+      : undefined;
+    const file = join(streamsDir, makeFileName(basename(meta.path)));
+    await makeSendFile({ from: meta.path, parent: parentPath, file });
+    manifest.push({ file, recvDir: `${remoteBase}/.snapshots` });
+  }
+
+  // Move snapshot (from live project).
+  const snapPath = join(snapshotsDir, snapshot);
+  const lastSnapshotPath =
+    ordered.length > 0 ? ordered[ordered.length - 1].path : undefined;
+  const moveFile = join(streamsDir, makeFileName(snapshot));
+  await makeSendFile({
+    from: snapPath,
+    parent: lastSnapshotPath,
+    file: moveFile,
+  });
+  manifest.push({ file: moveFile, recvDir: remoteBase });
+
+  // Write manifest for debugging/resume inspection.
+  await writeFile(
+    join(streamsDir, "manifest.json"),
+    JSON.stringify(
+      {
+        project_id,
+        snapshot,
+        mode: "staged",
+        entries: manifest.map((m) => ({
+          file: basename(m.file),
+          recvDir: m.recvDir,
+        })),
+      },
+      null,
+      2,
+    ),
+  );
+
+  // Prepare remote directories.
+  const remoteStreams = `/btrfs/_incoming_streams/${project_id}/${snapshot}`;
+  await runCmd(logger, "ssh", [
+    ...sshBaseArgs,
+    "sudo",
+    "mkdir",
+    "-p",
+    `${remoteStreams}`,
+    `${remoteBase}`,
+    `${remoteBase}/.snapshots`,
+  ]);
+
+  // Rsync streams + manifest.
+  const sshCmd = [
+    "ssh",
+    "-p",
+    sshPort,
+    "-i",
+    keyFile,
+    "-o",
+    "StrictHostKeyChecking=yes",
+    "-o",
+    `UserKnownHostsFile=${knownHosts}`,
+    "-o",
+    "IdentitiesOnly=yes",
+  ].join(" ");
+  await runCmd(logger, "rsync", [
+    "-av",
+    "--partial",
+    "-e",
+    sshCmd,
+    `${streamsDir}/`,
+    `${sshTarget}:${remoteStreams}/`,
+  ]);
+
+  // Receive on destination.
+  for (const entry of manifest) {
+    const remoteFile = `${remoteStreams}/${basename(entry.file)}`;
+    const recvArgs = [
+      ...sshBaseArgs,
+      "sudo",
+      "btrfs",
+      "receive",
+      "-f",
+      remoteFile,
+      entry.recvDir,
+    ];
+    logger.debug("sendProjectStaged: receive remote file", {
+      remoteFile,
+      recvDir: entry.recvDir,
+    });
+    await runCmd(logger, "ssh", recvArgs);
+  }
+
+  // Clean up remote streams to avoid residue.
+  await runCmd(logger, "ssh", [
+    ...sshBaseArgs,
+    "sudo",
+    "rm",
+    "-rf",
+    remoteStreams,
+  ]).catch(() => {});
+  // Clean up local streams.
+  await rm(streamsDir, { recursive: true, force: true }).catch(() => {});
 }
 
 export async function finalizeReceiveProject({
