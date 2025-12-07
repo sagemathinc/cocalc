@@ -1,14 +1,13 @@
 /*
 
-. ../scripts/env0.sh 
+. ../scripts/env0.sh
 
 require('../dist/main').main()
 
 await require('../dist/hub/move').sendProject({
   project_id: '21c00a35-17af-42c7-82db-3c81a52e3c3e',
   dest_host_id: '5703cf9c-1727-4f4d-9865-ba8073bd40c9',
-  dest_ssh_server: 'localhost:2223',
-  snapshot: 'move-1765134051919'})
+  dest_ssh_server: 'localhost:2223', snapshot: 'move-1765134051920'})
 
 */
 
@@ -18,6 +17,7 @@ import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { readdir } from "node:fs/promises";
 import { spawn } from "node:child_process";
+import { pipeline } from "node:stream/promises";
 import { getVolume } from "../file-server";
 import { ensureHostKey } from "../ssh/host-key";
 import { getSshpiperdPublicKey } from "../ssh/host-keys";
@@ -128,9 +128,8 @@ export async function sendProject({
       logger.debug("sendProject: pipe for sending broken");
       throw new Error("btrfs send/ssh pipe not available");
     }
-    // stdout/stdin are typed as possibly null because of mixed stdio options;
-    // we guarded above, so cast is safe to satisfy TS here.
-    (sendOut as any).pipe(sshIn as any);
+    // Use pipeline so EPIPE/stream errors reject immediately (e.g., bad args).
+    const streamPump = pipeline(sendOut, sshIn);
     const result = await Promise.all([
       new Promise<void>((resolve, reject) => {
         send.on("exit", (code) =>
@@ -160,6 +159,7 @@ export async function sendProject({
         );
         ssh.on("error", reject);
       }),
+      streamPump,
     ]);
     await result;
     logger.debug("sendProject: successfully received ", { snapPath });

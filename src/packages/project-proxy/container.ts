@@ -18,7 +18,7 @@ import { k8sCpuParser, split } from "@cocalc/util/misc";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { delay } from "awaiting";
-import { execFile as execFile0 } from "node:child_process";
+import { executeCode } from "@cocalc/backend/execute-code";
 import * as sandbox from "@cocalc/backend/sandbox/install";
 import { SSHD_CONFIG } from "@cocalc/conat/project/runner/constants";
 import {
@@ -27,8 +27,6 @@ import {
 } from "@cocalc/conat/project/runner/constants";
 import { mountArg, podman } from "@cocalc/backend/podman";
 import { sha1 } from "@cocalc/backend/sha1";
-
-const execFile = execFile0;
 
 const GRACE_PERIOD_S = "1";
 
@@ -90,7 +88,7 @@ export const start = reuseInFlight(
     path: string;
     publicKey: string;
     authorizedKeys: string;
-    configRoot?: string;
+    configRoot: string;
     memory?: string;
     cpu?: string;
     pids?: number;
@@ -98,6 +96,7 @@ export const start = reuseInFlight(
     mountOptions?: string;
     runAsRoot?: boolean;
   }): Promise<Partial<Ports>> => {
+    logger.debug("start", { volume, configRoot });
     await buildContainerImage(runAsRoot);
     const name = containerName(volume);
     const key = sha1(publicKey + authorizedKeys);
@@ -151,8 +150,24 @@ export const start = reuseInFlight(
       }),
     );
 
-    const sshdConfPathOnHost =
-      configRoot ?? join(path, SSHD_CONFIG, runAsRoot ? "root" : "user");
+    const sshdConfPathOnHost = configRoot;
+    logger.debug("start: configure ", sshdConfPathOnHost);
+
+    if (runAsRoot) {
+      try {
+        // temporarily change owner back (if directory exists) or we
+        // won't be able to put authorized_keys and sshd.conf file in below.
+        await executeCode({
+          command: "sudo",
+          args: [
+            "chown",
+            "-R",
+            `${process.getuid?.()}:${process.getgid?.()}`,
+            sshdConfPathOnHost,
+          ],
+        });
+      } catch {}
+    }
     await mkdir(sshdConfPathOnHost, { recursive: true, mode: 0o700 });
     // We install the proxy's public key here (not the end-user keys) because the
     // proxy itself sshes into this container on behalf of users; user keys are
@@ -163,32 +178,37 @@ export const start = reuseInFlight(
     await writeFile(join(sshdConfPathOnHost, "sshd.conf"), sshd_conf, {
       mode: 0o600,
     });
+    logger.debug("start: populated", { sshdConfPathOnHost });
+
     if (runAsRoot) {
       // When running rootful containers, sshd inside the container requires these
       // files to be owned by root. Since the bind mount preserves host ownership,
       // chown them on the host before start so sshd accepts them.
       try {
-        await execFile("sudo", ["chown", "-R", "0:0", sshdConfPathOnHost]);
-        await execFile("sudo", ["chmod", "og-rwx", "-R", sshdConfPathOnHost]);
+        await executeCode({
+          command: "sudo",
+          args: ["chown", "-R", "0:0", sshdConfPathOnHost],
+        });
+        await executeCode({
+          command: "sudo",
+          args: ["chmod", "og-rwx", "-R", sshdConfPathOnHost],
+        });
       } catch (err) {
         logger.warn("failed to chown sshd config for rootful container", {
           path: sshdConfPathOnHost,
           err: `${err}`,
         });
       }
+      logger.debug("start: set root ownership of", { sshdConfPathOnHost });
     }
 
-    // If configRoot is outside the mounted path, bind-mount it into the expected location.
-    if (configRoot) {
-      args.push(
-        mountArg({
-          source: sshdConfPathOnHost,
-          target: join("/root", SSHD_CONFIG),
-          readOnly: true,
-          options: "nodev,nosuid",
-        }),
-      );
-    }
+    args.push(
+      mountArg({
+        source: sshdConfPathOnHost,
+        target: join("/root", SSHD_CONFIG),
+        readOnly: true,
+      }),
+    );
 
     args.push("-p", "22");
 

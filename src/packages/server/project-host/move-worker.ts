@@ -124,8 +124,7 @@ async function handleSending(row: ProjectMoveRow) {
   const srcClient = createHostControlClient({
     host_id: meta.host_id,
     client: conatClient,
-    // long timeout, since it could take a while to move a big project over a slow network
-    timeout: 1000 * 60 * 60,
+    timeout: 1000 * 30,
   });
   try {
     logger.debug("handleSending: sending", {
@@ -253,16 +252,19 @@ export async function startProjectMoveWorker() {
   running = true;
   logger.info("starting project move worker (maintenance hub)");
 
+  let ticking = false;
   const tick = async () => {
+    if (ticking) return;
+    ticking = true;
     try {
       const row = await fetchNextActiveMove();
-      if (!row) return;
-      await processRow(row);
+      if (row) await processRow(row);
     } catch (err) {
       logger.warn("move worker tick failed", { err });
+    } finally {
+      ticking = false;
     }
   };
-
   // simple poll loop; moves are long-running and restart-safe via DB state
   setInterval(() => {
     void tick();
