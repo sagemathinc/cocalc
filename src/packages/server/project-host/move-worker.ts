@@ -245,7 +245,7 @@ export async function startProjectMoveWorker() {
   // simple poll loop; moves are long-running and restart-safe via DB state
   setInterval(() => {
     void tick();
-  }, 5000);
+  }, 1000);
 
   // kick once immediately
   void tick();

@@ -45,31 +45,27 @@ export class SubvolumeQuota {
       throw Error("size must be specified");
     }
     logger.debug("setQuota ", this.subvolume.path, size);
+    const id = await this.subvolume.getSubvolumeId();
     const tryLimit = async () => {
       await btrfs({
         args: ["qgroup", "limit", `${size}`, this.subvolume.path],
       });
       // also set the exact same quota for the total of all snapshots:
-      const id = await this.subvolume.getSubvolumeId();
       await btrfs({
         args: ["qgroup", "limit", `${size}`, `1/${id}`, this.subvolume.path],
       });
     };
     try {
       await tryLimit();
-    } catch (err: any) {
-      if (
-        typeof err?.stderr === "string" &&
-        err.stderr.includes("quota not enabled")
-      ) {
-        // Enable quotas on the mount and retry once.
-        await btrfs({
-          args: ["quota", "enable", this.subvolume.filesystem.opts.mount],
-        });
-        await tryLimit();
-      } else {
-        throw err;
-      }
+    } catch {
+      // Enable quotas on the mount and retry once.
+      await btrfs({
+        args: ["quota", "enable", this.subvolume.filesystem.opts.mount],
+      });
+      await btrfs({
+        args: ["qgroup", "create", `1/${id}`, this.subvolume.path],
+      });
+      await tryLimit();
     }
   };
 

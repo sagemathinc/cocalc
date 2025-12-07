@@ -12,7 +12,7 @@ export async function runCmd(
   opts: any = {},
 ) {
   return await new Promise<void>((resolve, reject) => {
-    logger.debug(`${cmd} ${argsJoin(args)}`);
+    logger.debug(`runCmd: ${cmd} ${argsJoin(args)}`);
     const child = spawn(cmd, args, opts);
     let stderr = "";
     child.stderr?.on("data", (d) => {

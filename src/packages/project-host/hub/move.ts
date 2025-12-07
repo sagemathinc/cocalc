@@ -2,6 +2,7 @@ import getLogger from "@cocalc/backend/logger";
 import { isValidUUID } from "@cocalc/util/misc";
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { getVolume } from "../file-server";
 import { ensureHostKey } from "../ssh/host-key";
@@ -170,7 +171,13 @@ export async function finalizeReceiveProject({
 
   // Create writable clone and drop the received snapshot.
   // Writable clone of the received snapshot, then drop the read-only snapshot.
-  await runCmd(logger, "sudo", ["btrfs", "subvolume", "snapshot", srcPath, destPath]);
+  await runCmd(logger, "sudo", [
+    "btrfs",
+    "subvolume",
+    "snapshot",
+    srcPath,
+    destPath,
+  ]);
   await runCmd(logger, "sudo", ["btrfs", "subvolume", "delete", srcPath]);
 
   await mkdir(join(destPath, ".snapshots"), { recursive: true });
@@ -206,12 +213,33 @@ export async function cleanupAfterMove({
     ".snapshots",
     snapshot,
   );
-  await runCmd(logger, "sudo", ["btrfs", "subvolume", "delete", snapPath]).catch(
-    () => {},
-  );
+  await runCmd(logger, "sudo", [
+    "btrfs",
+    "subvolume",
+    "delete",
+    snapPath,
+  ]).catch(() => {});
   if (delete_original && vol) {
-    await runCmd(logger, "sudo", ["btrfs", "subvolume", "delete", vol.path]).catch(
-      () => {},
-    );
+    // Delete any snapshots under the source project before removing the project subvolume.
+    const snapsDir = join(vol.path, ".snapshots");
+    try {
+      const snaps = await readdir(snapsDir);
+      for (const name of snaps) {
+        await runCmd(logger, "sudo", [
+          "btrfs",
+          "subvolume",
+          "delete",
+          join(snapsDir, name),
+        ]).catch(() => {});
+      }
+    } catch {
+      // ignore if snapshots dir missing or unreadable
+    }
+    await runCmd(logger, "sudo", [
+      "btrfs",
+      "subvolume",
+      "delete",
+      vol.path,
+    ]).catch(() => {});
   }
 }
