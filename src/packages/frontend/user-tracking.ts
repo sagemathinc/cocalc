@@ -7,12 +7,17 @@
 // client code doesn't have to import webapp_client everywhere, and we can
 // completely change this if we want.
 
-import { query, server_time } from "./frame-editors/generic/client";
-import { analytics_cookie_name as analytics, uuid } from "@cocalc/util/misc";
-import { redux } from "./app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
+import {
+  query,
+  server_time,
+} from "@cocalc/frontend/frame-editors/generic/client";
+import { get_cookie } from "@cocalc/frontend/misc";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { uuid } from "@cocalc/util/misc";
 import { version } from "@cocalc/util/smc-version";
-import { get_cookie } from "./misc";
-import { webapp_client } from "./webapp-client";
+
+import { ANALYTICS_COOKIE_NAME } from "@cocalc/util/consts";
 
 export async function log(eventName: string, payload: any): Promise<void> {
   const central_log = {
@@ -20,18 +25,15 @@ export async function log(eventName: string, payload: any): Promise<void> {
     event: `webapp-${eventName}`,
     value: {
       account_id: redux.getStore("account")?.get("account_id"),
-      analytics_cookie: get_cookie(analytics),
+      analytics_cookie: get_cookie(ANALYTICS_COOKIE_NAME),
       cocalc_version: version,
       ...payload,
     },
     time: server_time(),
   };
+
   try {
-    await query({
-      query: {
-        central_log,
-      },
-    });
+    await query({ query: { central_log } });
   } catch (err) {
     console.warn("WARNING: Failed to write log event -- ", central_log);
   }
