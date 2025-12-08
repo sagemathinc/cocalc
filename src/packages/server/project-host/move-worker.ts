@@ -130,12 +130,14 @@ async function handleSending(row: ProjectMoveRow) {
   const srcClient = createHostControlClient({
     host_id: meta.host_id,
     client: conatClient,
-    timeout: 15_000,
+    // Long-running host operations (prepareMove, send) can take time on btrfs;
+    // allow ample headroom so we rely on the progress channel/heartbeat for liveness.
+    timeout: 120_000,
   });
   const destClient = createHostControlClient({
     host_id: row.dest_host_id,
     client: conatClient,
-    timeout: 15_000,
+    timeout: 120_000,
   });
   const waitForProgress = async () => {
     const sub = await conatClient.subscribe(progressSubject);

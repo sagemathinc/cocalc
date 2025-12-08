@@ -134,7 +134,53 @@ function topoOrder(metas: SubvolMeta[]): SubvolMeta[] {
   });
 }
 
-export async function sendProject({
+// Entry point exposed via conat. Requires a progress_subject and returns quickly;
+// the heavy work runs asynchronously and reports via the progress channel.
+export async function sendProject(opts: {
+  project_id: string;
+  dest_host_id: string;
+  dest_ssh_server: string;
+  snapshot: string;
+  progress_subject?: string;
+}): Promise<void> {
+  const {
+    project_id,
+    dest_host_id,
+    dest_ssh_server,
+    snapshot,
+    progress_subject,
+  } = opts;
+  if (!progress_subject) {
+    throw Error("progress_subject required");
+  }
+  if (!project_id || !dest_host_id || !dest_ssh_server || !snapshot) {
+    throw Error("missing required parameter");
+  }
+  // Defer the heavy work to a microtask so the RPC returns immediately; all
+  // progress and errors flow back over progress_subject.
+  queueMicrotask(async () => {
+    try {
+      await _sendProject(opts);
+    } catch (err) {
+      logger.debug("sendProject async failed", { err });
+      const client = getMasterConatClient();
+      if (client) {
+        try {
+          await client.publish(progress_subject, {
+            type: "error",
+            message: `${err}`,
+            project_id,
+            ts: Date.now(),
+          });
+        } catch (pubErr) {
+          logger.debug("sendProject: publish async error failed", { pubErr });
+        }
+      }
+    }
+  });
+}
+
+async function _sendProject({
   project_id,
   dest_host_id,
   dest_ssh_server,
