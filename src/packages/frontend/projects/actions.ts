@@ -25,6 +25,7 @@ import {
   defaults,
   is_valid_uuid_string,
   len,
+  uuid,
 } from "@cocalc/util/misc";
 import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
@@ -1097,6 +1098,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
 
   move_project = reuseInFlight(async (project_id: string): Promise<boolean> => {
     const host_id = store.getIn(["project_map", project_id, "host_id"]);
+    const actions = redux.getProjectActions(project_id);
+    const id = uuid();
+    const status = `Moving Project`;
+    actions.set_activity({ id, status });
     try {
       // start the move going
       await webapp_client.conat_client.hub.projects.moveProject({ project_id });
@@ -1116,9 +1121,11 @@ export class ProjectsActions extends Actions<ProjectsState> {
           throw Error(status.status_reason ?? "failed");
         }
       }
+      actions.set_activity({ id, stop: "", error: "" });
     } catch (err) {
-      const actions = redux.getProjectActions(project_id);
-      actions.setState({ control_error: `Error move project -- ${err}` });
+      const error = `Error move project -- ${err}`;
+      actions.setState({ control_error: error });
+      actions.set_activity({ id, stop: "", error });
       throw err;
     }
     this.project_log(project_id, {

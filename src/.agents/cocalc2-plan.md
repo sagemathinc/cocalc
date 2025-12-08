@@ -5,14 +5,13 @@
   
 - [ ] #now implement move project using btrfs
   - [x] snapshot creation after move broken due to missing qgroup  (?)
-  - [ ] moving needs to clear the hub cache of routing targets, but doesn't.
-  - [ ] **Snapshots not preserved:** we only send a single readonly snapshot created on the fly; existing project snapshots aren’t carried over.
-  - [ ] security: use forecommand for btrfs container
-  - [ ] large streams: send progress updates instead of one req/resp.
+  - [x] **Snapshots not preserved:** we only send a single readonly snapshot created on the fly; existing project snapshots aren’t carried over.
+  - [x] large streams: send progress updates instead of one req/resp.
+  - [ ] the worker seems to be extremely inefficient, doing one step for one project at a time.
   - [ ] **Project lifecycle not enforced:** the source project isn’t stopped/blocked (including sandboxed file ops) before the send, so writes could race; there’s no restart on the destination after receive.
   - [ ] **No progress/reporting:** the UI gets no status or bytes‑sent updates; failures aren’t surfaced back to the hub.
   - [ ] **Cleanup/rollback:** partial moves don’t clean up temp snapshots on source/dest or roll back assignments.
-  - [ ] the worker seems to be extremely inefficient, doing one step for one project at a time.
+  - [ ] security: use forecommand for btrfs container
 
 - [ ] Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
 
