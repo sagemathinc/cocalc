@@ -191,7 +191,7 @@ Translation IDs follow a hierarchical pattern: `[directory].[subdir].[filename].
 
 Examples:
 
-- `labels.masked_files` - for common UI labels
+- `labels.account` - for common UI labels
 - `account.sign-out.button.title` - for account sign-out dialog
 - `command.generic.force_build.label` - for command labels
 
