@@ -28,6 +28,7 @@ import { createWriteStream } from "node:fs";
 import { basename } from "node:path";
 import { tmpdir } from "node:os";
 import { MoveProgress } from "./move-progress";
+import { getMasterConatClient } from "../master-status";
 
 async function wipeIncomingDir(path: string) {
   // Best effort: delete any subvolumes inside, then remove the dir itself.
@@ -138,11 +139,13 @@ export async function sendProject({
   dest_host_id,
   dest_ssh_server,
   snapshot,
+  progress_subject,
 }: {
   project_id: string;
   dest_host_id: string;
   dest_ssh_server: string;
   snapshot: string;
+  progress_subject?: string;
 }) {
   const moveMode: string = MOVE_MODE;
   logger.debug("sendProject", {
@@ -188,6 +191,33 @@ export async function sendProject({
     })(),
   });
   const { keyFile, knownHosts, cleanup } = tmp;
+
+  const progressClient = getMasterConatClient();
+  const publishProgress = async (payload: any) => {
+    if (!progress_subject || !progressClient) return;
+    try {
+      await progressClient.publish(progress_subject, {
+        ...payload,
+        project_id,
+        ts: Date.now(),
+      });
+    } catch (err) {
+      logger.debug("sendProject: publishProgress failed", { err });
+    }
+  };
+  let heartbeat: NodeJS.Timeout | undefined;
+  const startHeartbeat = () => {
+    if (!progress_subject || !progressClient) return;
+    heartbeat = setInterval(() => {
+      publishProgress({ type: "heartbeat" });
+    }, 5000).unref();
+  };
+  const stopHeartbeat = () => {
+    if (heartbeat) {
+      clearInterval(heartbeat);
+      heartbeat = undefined;
+    }
+  };
 
   // Authenticate as the source host so the destination authorizes only that host key.
   const sshTarget = `btrfs-${localHostId}@${sshHost}`;
@@ -354,6 +384,8 @@ export async function sendProject({
       totalSnapshots: 1, // will update after we know count
       mode: moveMode,
     });
+    await publishProgress({ type: "start", snapshot });
+    startHeartbeat();
     await tracker.phase("preparing", "creating move snapshot");
     // Ensure destination has a place for snapshots.
     await ensureRemoteSnapshotsDir();
@@ -405,6 +437,11 @@ export async function sendProject({
         parent: parentPath,
         bytes,
       });
+      await publishProgress({
+        type: "progress",
+        snapshot: basename(meta.path),
+        bytes,
+      });
     }
 
     // Finally send the move snapshot, optionally incremental from last snapshot in the chain.
@@ -436,15 +473,23 @@ export async function sendProject({
       parent: lastSnapshotPath,
       bytes: moveBytes,
     });
+    await publishProgress({
+      type: "progress",
+      snapshot: basename(snapPath),
+      bytes: moveBytes,
+    });
 
     logger.debug("sendProject: successfully received ", { snapPath });
     await tracker.done();
+    await publishProgress({ type: "done" });
   } catch (err) {
     if (tracker) {
       await tracker.fail(err);
     }
+    await publishProgress({ type: "error", message: `${err}` });
     throw err;
   } finally {
+    stopHeartbeat();
     logger.debug("sendProject: cleaning up...", { snapPath });
     await cleanup();
     logger.debug("sendProject: clean up complete", { snapPath });

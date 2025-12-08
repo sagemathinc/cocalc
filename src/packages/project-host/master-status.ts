@@ -19,6 +19,7 @@ let statusClient: HostStatusApi | undefined;
 let hostInfo: Pick<HostProjectStatus, "host_id" | "host"> | undefined;
 const logger = getLogger("project-host:master-status");
 let resendTimer: NodeJS.Timeout | undefined;
+let masterClient: Client | undefined;
 
 export function setMasterStatusClient({
   client,
@@ -30,6 +31,7 @@ export function setMasterStatusClient({
   host?: HostProjectStatus["host"];
 }) {
   statusClient = createHostStatusClient({ client });
+  masterClient = client;
   hostInfo = { host_id, host };
   reportPendingStates().catch((err) =>
     logger.debug("reportPendingStates initial send failed", { err }),
@@ -37,6 +39,10 @@ export function setMasterStatusClient({
   if (!resendTimer) {
     resendTimer = setInterval(reportPendingStates, 15_000).unref();
   }
+}
+
+export function getMasterConatClient(): Client | undefined {
+  return masterClient;
 }
 
 export async function reportProjectStateToMaster(

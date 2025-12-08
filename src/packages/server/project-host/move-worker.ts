@@ -125,16 +125,51 @@ async function handleSending(row: ProjectMoveRow) {
   }
   const snapshot = row.snapshot_name ?? `move-${Date.now()}`;
   const conatClient = conatWithProjectRouting();
+  const progressSubject = `project-host.progress.${row.project_id}.${Date.now()}`;
   const srcClient = createHostControlClient({
     host_id: meta.host_id,
     client: conatClient,
-    timeout: 1000 * 60 * 60,
+    timeout: 15_000,
   });
   const destClient = createHostControlClient({
     host_id: row.dest_host_id,
     client: conatClient,
-    timeout: 1000 * 60 * 60,
+    timeout: 15_000,
   });
+  const waitForProgress = async () => {
+    const sub = await conatClient.subscribe(progressSubject);
+    let timer: NodeJS.Timeout | undefined;
+    const reset = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        sub.return?.();
+      }, 20_000);
+    };
+    reset();
+    return await new Promise<void>((resolve, reject) => {
+      (async () => {
+        try {
+          for await (const msg of sub) {
+            reset();
+            const data: any = msg.data ?? {};
+            if (data.type === "error") {
+              sub.return?.();
+              return reject(new Error(data.message || "move error"));
+            }
+            if (data.type === "done") {
+              sub.return?.();
+              return resolve();
+            }
+          }
+          reject(new Error("progress stream ended"));
+        } catch (err) {
+          reject(err);
+        } finally {
+          if (timer) clearTimeout(timer);
+        }
+      })();
+    });
+  };
   try {
     await transition(row.project_id, {
       progress: { phase: "sending", mode: moveMode },
@@ -147,12 +182,16 @@ async function handleSending(row: ProjectMoveRow) {
       dest_ssh_server: destHost.ssh_server,
       snapshot,
     });
-    await srcClient.sendProject({
-      project_id: row.project_id,
-      dest_host_id: row.dest_host_id,
-      dest_ssh_server: destHost.ssh_server,
-      snapshot,
-    });
+    await Promise.all([
+      srcClient.sendProject({
+        project_id: row.project_id,
+        dest_host_id: row.dest_host_id,
+        dest_ssh_server: destHost.ssh_server,
+        snapshot,
+        progress_subject: progressSubject,
+      }),
+      waitForProgress(),
+    ]);
     logger.debug("handleSending: successfully sent", {
       project_id: row.project_id,
       snapshot,
