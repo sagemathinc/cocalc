@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "Informations de traduction",
   "account.account-button.confirm.ok": "Oui, déconnexion",
   "account.account-button.confirm.title": "Se déconnecter de votre compte ?",
+  "account.appearance.accessibility.enabled": "<strong>Activer le mode Accessibilité :</strong> optimiser l'interface utilisateur pour les fonctionnalités d'accessibilité",
+  "account.appearance.accessibility.title": "Accessibilité",
   "account.appearance.user_interface.title": "Interface utilisateur",
   "account.delete-account.alert.description": "Vous perdrez <b>immédiatement</b> l'accès à <b>tous</b> vos projets, tous les abonnements seront annulés, et tout crédit non dépensé sera perdu. {br} {hr} Pour SUPPRIMER VOTRE COMPTE, entrez d'abord \"{required_text}\" ci-dessous :",
   "account.delete-account.alert.message": "Êtes-vous sûr de vouloir SUPPRIMER VOTRE COMPTE ?",

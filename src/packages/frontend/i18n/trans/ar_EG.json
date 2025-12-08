@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "معلومات الترجمة",
   "account.account-button.confirm.ok": "نعم، سجل الخروج",
   "account.account-button.confirm.title": "تسجيل الخروج من حسابك؟",
+  "account.appearance.accessibility.enabled": "<strong>تمكين وضع الوصول:</strong> تحسين واجهة المستخدم لميزات الوصول",
+  "account.appearance.accessibility.title": "إمكانية الوصول",
   "account.appearance.user_interface.title": "واجهة المستخدم",
   "account.delete-account.alert.description": "سوف تفقد <b>فوراً</b> الوصول إلى <b>جميع</b> مشاريعك، سيتم إلغاء أي اشتراكات، وستفقد جميع الأرصدة غير المستخدمة. {br} {hr} لحذف حسابك، أدخل أولاً \"{required_text}\" أدناه:",
   "account.delete-account.alert.message": "هل أنت متأكد أنك تريد حذف حسابك؟",

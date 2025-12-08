@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "Informações de Tradução",
   "account.account-button.confirm.ok": "Sim, sair",
   "account.account-button.confirm.title": "Sair da sua conta?",
+  "account.appearance.accessibility.enabled": "<strong>Ativar o Modo de Acessibilidade:</strong> otimizar a interface do usuário para recursos de acessibilidade",
+  "account.appearance.accessibility.title": "Acessibilidade",
   "account.appearance.user_interface.title": "Interface do Usuário",
   "account.delete-account.alert.description": "Você <b>imediatamente</b> perderá acesso a <b>todos</b> os seus projetos, quaisquer assinaturas serão canceladas e todo crédito não utilizado será perdido. {br} {hr} Para DELETAR SUA CONTA, primeiro digite \"{required_text}\" abaixo:",
   "account.delete-account.alert.message": "Tem certeza de que deseja EXCLUIR SUA CONTA?",

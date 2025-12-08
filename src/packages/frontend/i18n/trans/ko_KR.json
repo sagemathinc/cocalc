@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "번역 정보",
   "account.account-button.confirm.ok": "예, 로그아웃",
   "account.account-button.confirm.title": "계정에서 로그아웃하시겠습니까?",
+  "account.appearance.accessibility.enabled": "<strong>접근성 모드 활성화:</strong> 접근성 기능에 맞춰 사용자 인터페이스 최적화",
+  "account.appearance.accessibility.title": "접근성",
   "account.appearance.user_interface.title": "사용자 인터페이스",
   "account.delete-account.alert.description": "<b>즉시</b> 모든 프로젝트에 대한 접근 권한을 잃게 되며, 모든 구독이 취소되고 사용하지 않은 크레딧이 모두 소멸됩니다. {br} {hr} 계정을 삭제하려면 먼저 아래에 \"{required_text}\"를 입력하십시오:",
   "account.delete-account.alert.message": "계정을 삭제하시겠습니까?",

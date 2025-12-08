@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "Informazioni sulla traduzione",
   "account.account-button.confirm.ok": "Sì, esci",
   "account.account-button.confirm.title": "Esci dal tuo account?",
+  "account.appearance.accessibility.enabled": "<strong>Abilita Modalità Accessibilità:</strong> ottimizza l'interfaccia utente per le funzionalità di accessibilità",
+  "account.appearance.accessibility.title": "Accessibilità",
   "account.appearance.user_interface.title": "Interfaccia utente",
   "account.delete-account.alert.description": "Perderai <b>immediatamente</b> l'accesso a <b>tutti</b> i tuoi progetti, eventuali abbonamenti saranno annullati e tutto il credito non speso sarà perso. {br} {hr} Per CANCELLARE IL TUO ACCOUNT, inserisci prima \"{required_text}\" qui sotto:",
   "account.delete-account.alert.message": "Sei sicuro di voler ELIMINARE IL TUO ACCOUNT?",

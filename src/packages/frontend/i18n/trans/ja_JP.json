@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "翻訳情報",
   "account.account-button.confirm.ok": "はい、サインアウト",
   "account.account-button.confirm.title": "アカウントからサインアウトしますか?",
+  "account.appearance.accessibility.enabled": "<strong>アクセシビリティモードを有効化：</strong>アクセシビリティ機能に合わせてユーザーインターフェースを最適化",
+  "account.appearance.accessibility.title": "アクセシビリティ",
   "account.appearance.user_interface.title": "ユーザーインターフェース",
   "account.delete-account.alert.description": "<b>すぐに</b>すべてのプロジェクトへのアクセスを失い、すべてのサブスクリプションがキャンセルされ、未使用のクレジットはすべて失われます。{br} {hr} アカウントを削除するには、まず下に「{required_text}」を入力してください。",
   "account.delete-account.alert.message": "本当にアカウントを削除しますか？",

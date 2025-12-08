@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "Informationen zur Übersetzung",
   "account.account-button.confirm.ok": "Ja, ausloggen",
   "account.account-button.confirm.title": "Vom Konto ausloggen?",
+  "account.appearance.accessibility.enabled": "<strong>Barrierefreiheitsmodus aktivieren:</strong> die Benutzeroberfläche für Barrierefreiheitsfunktionen optimieren",
+  "account.appearance.accessibility.title": "Barrierefreiheit",
   "account.appearance.user_interface.title": "Benutzeroberfläche",
   "account.delete-account.alert.description": "Sie werden <b>sofort</b> den Zugriff auf <b>alle</b> Ihrer Projekte verlieren, alle Abonnements werden storniert, und alle nicht ausgegebenen Guthaben gehen verloren. {br} {hr} Um IHR KONTO ZU LÖSCHEN, geben Sie zuerst unten \"{required_text}\" ein:",
   "account.delete-account.alert.message": "Sind Sie sicher, dass Sie IHR KONTO LÖSCHEN möchten?",

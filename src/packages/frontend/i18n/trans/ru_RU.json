@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "Информация о переводе",
   "account.account-button.confirm.ok": "Да, выйти",
   "account.account-button.confirm.title": "Выйти из вашего аккаунта?",
+  "account.appearance.accessibility.enabled": "<strong>Включить режим доступности:</strong> оптимизировать пользовательский интерфейс для функций доступности",
+  "account.appearance.accessibility.title": "Доступность",
   "account.appearance.user_interface.title": "Пользовательский интерфейс",
   "account.delete-account.alert.description": "Вы <b>немедленно</b> потеряете доступ ко <b>всем</b> вашим проектам, все подписки будут отменены, а все неиспользованные средства будут утрачены. {br} {hr} Чтобы УДАЛИТЬ ВАШ АККАУНТ, сначала введите \"{required_text}\" ниже:",
   "account.delete-account.alert.message": "Вы уверены, что хотите УДАЛИТЬ ВАШ АККАУНТ?",

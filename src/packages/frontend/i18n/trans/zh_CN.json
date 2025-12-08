@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "翻译信息",
   "account.account-button.confirm.ok": "是，退出",
   "account.account-button.confirm.title": "要退出您的账户吗",
+  "account.appearance.accessibility.enabled": "<strong>启用辅助功能模式：</strong>优化用户界面以支持辅助功能",
+  "account.appearance.accessibility.title": "无障碍",
   "account.appearance.user_interface.title": "用户界面",
   "account.delete-account.alert.description": "您将<b>立即</b>失去对<b>所有</b>项目的访问权限，所有订阅将被取消，所有未用完的积分将丢失。{br} {hr} 要删除您的账户，请首先在下方输入“{required_text}”：",
   "account.delete-account.alert.message": "您确定要删除您的账户吗？",

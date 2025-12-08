@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "Informacje o tłumaczeniu",
   "account.account-button.confirm.ok": "Tak, wyloguj się",
   "account.account-button.confirm.title": "Wylogować się z konta?",
+  "account.appearance.accessibility.enabled": "<strong>Włącz tryb dostępności:</strong> optymalizuj interfejs użytkownika pod kątem funkcji dostępności",
+  "account.appearance.accessibility.title": "Dostępność",
   "account.appearance.user_interface.title": "Interfejs użytkownika",
   "account.delete-account.alert.description": "Natychmiast utracisz dostęp do wszystkich swoich projektów, wszelkie subskrypcje zostaną anulowane, a cały niewykorzystany kredyt zostanie utracony. {br} {hr} Aby USUNĄĆ SWOJE KONTO, najpierw wpisz poniżej \"{required_text}\":",
   "account.delete-account.alert.message": "Czy na pewno chcesz USUNĄĆ SWOJE KONTO?",

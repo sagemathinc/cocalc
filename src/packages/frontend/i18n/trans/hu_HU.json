@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "Fordítási információk",
   "account.account-button.confirm.ok": "Igen, kijelentkezés",
   "account.account-button.confirm.title": "Kijelentkezik a fiókjából?",
+  "account.appearance.accessibility.enabled": "<strong>Akkorítsa el a hozzáférhetőség módot:</strong> optimalizálja a felhasználói felületet a hozzáférhetőségi funkciókhoz",
+  "account.appearance.accessibility.title": "Akadálymentesség",
   "account.appearance.user_interface.title": "Felhasználói felület",
   "account.delete-account.alert.description": "Azonnal elveszíti a hozzáférést az összes projektjéhez, minden előfizetés törlésre kerül, és minden el nem költött jóváírás elveszik. {br} {hr} A FIÓK TÖRLÉSÉHEZ először írja be az alábbi \"{required_text}\" szöveget:",
   "account.delete-account.alert.message": "Biztosan törölni akarja a FIÓKJÁT?",

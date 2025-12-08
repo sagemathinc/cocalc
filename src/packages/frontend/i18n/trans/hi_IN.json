@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "अनुवाद जानकारी",
   "account.account-button.confirm.ok": "हां, साइन आउट",
   "account.account-button.confirm.title": "अपने खाते से साइन आउट करें?",
+  "account.appearance.accessibility.enabled": "<strong>एक्सेसिबिलिटी मोड सक्षम करें:</strong> एक्सेसिबिलिटी सुविधाओं के लिए उपयोगकर्ता इंटरफ़ेस को अनुकूलित करें",
+  "account.appearance.accessibility.title": "पहुँच योग्यता",
   "account.appearance.user_interface.title": "उपयोगकर्ता इंटरफ़ेस",
   "account.delete-account.alert.description": "आप <b>तुरंत</b> अपने <b>सभी</b> प्रोजेक्ट्स की पहुंच खो देंगे, कोई भी सब्सक्रिप्शन रद्द कर दिए जाएंगे, और सभी बिना खर्च किया हुआ क्रेडिट खो जाएगा। {br} {hr} अपना खाता हटाने के लिए, पहले नीचे \"{required_text}\" दर्ज करें:",
   "account.delete-account.alert.message": "क्या आप वाकई अपना खाता हटाना चाहते हैं?",

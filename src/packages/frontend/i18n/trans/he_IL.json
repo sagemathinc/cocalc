@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "מידע על תרגום",
   "account.account-button.confirm.ok": "כן, התנתק",
   "account.account-button.confirm.title": "לצאת מהחשבון שלך?",
+  "account.appearance.accessibility.enabled": "<strong>הפעל מצב נגישות:</strong> מיטוב ממשק המשתמש עבור תכונות נגישות",
+  "account.appearance.accessibility.title": "נגישות",
   "account.appearance.user_interface.title": "ממשק משתמש",
   "account.delete-account.alert.description": "תאבד <b>מיד</b> גישה ל<b>כל</b> הפרויקטים שלך, כל המנויים יבוטלו, וכל הקרדיט שלא נוצל יאבד. {br} {hr} כדי למחוק את החשבון שלך, ראשית הכנס את \"{required_text}\" למטה:",
   "account.delete-account.alert.message": "האם אתה בטוח שברצונך למחוק את החשבון שלך?",

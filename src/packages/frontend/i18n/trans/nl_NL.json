@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "Vertaalinformatie",
   "account.account-button.confirm.ok": "Ja, afmelden",
   "account.account-button.confirm.title": "Afmelden van uw account?",
+  "account.appearance.accessibility.enabled": "<strong>Toegankelijkheidsmodus inschakelen:</strong> optimaliseer de gebruikersinterface voor toegankelijkheidsfuncties",
+  "account.appearance.accessibility.title": "Toegankelijkheid",
   "account.appearance.user_interface.title": "Gebruikersinterface",
   "account.delete-account.alert.description": "U verliest <b>onmiddellijk</b> toegang tot <b>al</b> uw projecten, eventuele abonnementen worden geannuleerd en al het ongebruikte tegoed gaat verloren. {br} {hr} Om UW ACCOUNT TE VERWIJDEREN, voert u eerst hieronder \"{required_text}\" in:",
   "account.delete-account.alert.message": "Weet u zeker dat u UW ACCOUNT WILT VERWIJDEREN?",

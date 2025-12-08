@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "Çeviri Bilgisi",
   "account.account-button.confirm.ok": "Evet, çıkış yap",
   "account.account-button.confirm.title": "Hesabınızdan çıkış yapmak mı?",
+  "account.appearance.accessibility.enabled": "<strong>Erişilebilirlik Modunu Etkinleştir:</strong> kullanıcı arayüzünü erişilebilirlik özelliklerine göre optimize et",
+  "account.appearance.accessibility.title": "Erişilebilirlik",
   "account.appearance.user_interface.title": "Kullanıcı Arayüzü",
   "account.delete-account.alert.description": "<b>Derhal</b> <b>tüm</b> projelerinize erişimi kaybedeceksiniz, abonelikler iptal edilecek ve kullanılmamış tüm krediler kaybolacak. {br} {hr} HESABINIZI SİLMEK için önce aşağıya \"{required_text}\" yazın:",
   "account.delete-account.alert.message": "HESABINIZI SİLMEK istediğinizden emin misiniz?",

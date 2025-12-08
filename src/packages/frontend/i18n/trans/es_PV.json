@@ -5,6 +5,8 @@
   "account.account_page.translation.info.title": "Itzulpen Informazioa",
   "account.account-button.confirm.ok": "Bai, saioa amaitu",
   "account.account-button.confirm.title": "Saioa amaitu zure kontuan?",
+  "account.appearance.accessibility.enabled": "<strong>Gaitu Irisgarritasun Modua:</strong> optimizatu erabiltzailearen interfazea irisgarritasun ezaugarrientzat",
+  "account.appearance.accessibility.title": "Irisgarritasuna",
   "account.appearance.user_interface.title": "Erabiltzaile Interfazea",
   "account.delete-account.alert.description": "<b>Berehala</b> galduko duzu zure proiektu <b>guztietara</b> sartzeko aukera, harpidetzak bertan behera utziko dira, eta gastatu gabeko kreditu guztia galduko da. {br} {hr} ZURE KONTUA EZABATZEKO, lehenik sartu behean \"{required_text}\":",
   "account.delete-account.alert.message": "Ziur zaude ZURE KONTUA EZABATU nahi duzula?",
