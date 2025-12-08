@@ -17,6 +17,10 @@ import { assertCollab } from "./util";
 import { materializeProjectHost } from "../route-project";
 import { conat } from "@cocalc/backend/conat";
 import { createHostControlClient } from "@cocalc/conat/project-host/api";
+import {
+  getMove,
+  type ProjectMoveRow,
+} from "@cocalc/server/project-host/move-db";
 
 export async function copyPathBetweenProjects({
   src,
@@ -81,7 +85,9 @@ type ProjectHostInfo = {
   };
 };
 
-async function getProjectHostInfo(project_id: string): Promise<ProjectHostInfo> {
+async function getProjectHostInfo(
+  project_id: string,
+): Promise<ProjectHostInfo> {
   const { rows } = await getPool().query(
     `
       SELECT host_id, host
@@ -190,10 +196,18 @@ export async function moveProject({
 }: {
   account_id: string;
   project_id: string;
-  dest_host_id: string;
+  dest_host_id?: string;
 }): Promise<void> {
   await assertCollab({ account_id, project_id });
   await requestMoveToHost({ project_id, dest_host_id });
+}
+
+export async function getMoveStatus({
+  account_id,
+  project_id,
+}): Promise<ProjectMoveRow | undefined> {
+  await assertCollab({ account_id, project_id });
+  return await getMove(project_id);
 }
 
 export async function getSshKeys({

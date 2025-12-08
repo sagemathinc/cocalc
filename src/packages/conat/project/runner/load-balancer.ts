@@ -1,4 +1,7 @@
 /*
+
+*DEPRECATED -- to be deleted!*
+
 Service to load balance running cocalc projects across the runners.
 
 Tests are in

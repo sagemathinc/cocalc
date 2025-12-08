@@ -1,29 +1,10 @@
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
+import type { ProjectMoveRow } from "@cocalc/conat/hub/api/projects";
+export type { ProjectMoveRow };
 
 const logger = getLogger("server:project-host:move-db");
 const pool = () => getPool();
-
-export type MoveState =
-  | "queued"
-  | "preparing"
-  | "sending"
-  | "finalizing"
-  | "done"
-  | "failing";
-
-export type ProjectMoveRow = {
-  project_id: string;
-  source_host_id: string | null;
-  dest_host_id: string | null;
-  state: MoveState;
-  status_reason: string | null;
-  snapshot_name: string | null;
-  progress: any;
-  attempt: number;
-  created_at: Date;
-  updated_at: Date;
-};
 
 export async function ensureMoveSchema(): Promise<void> {
   // The table tracks long-running move orchestration and is safe to call repeatedly.
@@ -73,7 +54,9 @@ export async function writeMoveStatusToProject(
   ]);
 }
 
-export async function upsertMove(row: Partial<ProjectMoveRow> & { project_id: string }) {
+export async function upsertMove(
+  row: Partial<ProjectMoveRow> & { project_id: string },
+) {
   const {
     project_id,
     source_host_id = null,
@@ -153,7 +136,9 @@ export async function getMove(
   return rows[0] as ProjectMoveRow | undefined;
 }
 
-export async function fetchNextActiveMove(): Promise<ProjectMoveRow | undefined> {
+export async function fetchNextActiveMove(): Promise<
+  ProjectMoveRow | undefined
+> {
   const client = await pool().connect();
   try {
     await client.query("BEGIN");

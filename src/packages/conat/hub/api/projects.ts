@@ -4,6 +4,27 @@ import { type SnapshotCounts } from "@cocalc/util/consts/snapshots";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 import { type SnapshotUsage } from "@cocalc/conat/files/file-server";
 
+export type ProjectMoveState =
+  | "queued"
+  | "preparing"
+  | "sending"
+  | "finalizing"
+  | "done"
+  | "failing";
+
+export interface ProjectMoveRow {
+  project_id: string;
+  source_host_id: string | null;
+  dest_host_id: string | null;
+  state: ProjectMoveState;
+  status_reason: string | null;
+  snapshot_name: string | null;
+  progress: any;
+  attempt: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export const projects = {
   createProject: authFirstRequireAccount,
   copyPathBetweenProjects: authFirstRequireAccount,
@@ -34,6 +55,8 @@ export const projects = {
   updateAuthorizedKeysOnHost: authFirstRequireAccount,
 
   getSshKeys: authFirstRequireProject,
+
+  moveProject: authFirstRequireAccount,
 };
 
 export type AddCollaborator =
@@ -228,4 +251,15 @@ export interface Projects {
   // along with all project specific keys. This is called by the project
   // on startup to configure itself.
   getSshKeys: (opts?: { project_id?: string }) => Promise<string[]>;
+
+  moveProject: (opts: {
+    account_id?: string;
+    project_id: string;
+    dest_host_id?: string;
+  }) => Promise<void>;
+
+  getMoveStatus: (opts: {
+    account_id?: string;
+    project_id: string;
+  }) => Promise<ProjectMoveRow | undefined>;
 }
