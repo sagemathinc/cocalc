@@ -171,3 +171,29 @@ export async function fetchActiveMoves(
     client.release();
   }
 }
+
+export async function recycleStaleMoves(
+  staleMs = 120_000,
+): Promise<number> {
+  // Mark stale in-flight moves as failing instead of retrying automatically.
+  // This avoids silent bandwidth churn if hosts restart or links are unreliable.
+  const { rows } = await pool().query(
+    `
+      UPDATE project_moves
+      SET state='failing',
+          status_reason='stale move: no progress; manual restart required',
+          snapshot_name=NULL,
+          progress=jsonb_build_object('phase','failing'),
+          attempt=attempt+1,
+          updated_at=now()
+      WHERE state IN ('sending','finalizing')
+        AND updated_at < now() - ($1::text || ' milliseconds')::interval
+      RETURNING *
+    `,
+    [staleMs],
+  );
+  for (const row of rows as ProjectMoveRow[]) {
+    await writeMoveStatusToProject(row.project_id, row);
+  }
+  return rows.length;
+}

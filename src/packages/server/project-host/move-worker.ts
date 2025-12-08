@@ -3,6 +3,7 @@ import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import {
   ensureMoveSchema,
   fetchActiveMoves,
+  recycleStaleMoves,
   updateMove,
   type ProjectMoveRow,
 } from "./move-db";
@@ -310,6 +311,10 @@ export async function startProjectMoveWorker() {
     if (ticking) return;
     ticking = true;
     try {
+      const recycled = await recycleStaleMoves();
+      if (recycled) {
+        logger.info("recycled stale moves", { count: recycled });
+      }
       const rows = await fetchActiveMoves(MAX_PARALLEL_MOVES);
       if (rows.length) {
         await Promise.all(rows.map((row) => processRow(row)));
