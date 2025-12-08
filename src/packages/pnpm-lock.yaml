@@ -280,8 +280,8 @@ importers:
         specifier: ^1.1.6
         version: 1.1.6
       validator:
-        specifier: ^13.15.20
-        version: 13.15.20
+        specifier: ^13.15.22
+        version: 13.15.22
     devDependencies:
       '@types/lodash':
         specifier: ^4.14.202
@@ -817,8 +817,8 @@ importers:
         specifier: ^8.3.2
         version: 8.3.2
       validator:
-        specifier: ^13.15.20
-        version: 13.15.20
+        specifier: ^13.15.22
+        version: 13.15.22
       webpack-dev-middleware:
         specifier: ^7.4.2
         version: 7.4.2(webpack@5.100.1(uglify-js@3.19.3))
@@ -11779,8 +11779,8 @@ packages:
   validate.io-number@1.0.3:
     resolution: {integrity: sha512-kRAyotcbNaSYoDnXvb4MHg/0a1egJdLwS6oJ38TJY7aw9n93Fl/3blIXdyYvPOp55CNxywooG/3BcrwNrBpcSg==}
 
-  validator@13.15.20:
-    resolution: {integrity: sha512-KxPOq3V2LmfQPP4eqf3Mq/zrT0Dqp2Vmx2Bn285LwVahLc+CsxOM0crBHczm8ijlcjZ0Q5Xd6LW3z3odTPnlrw==}
+  validator@13.15.22:
+    resolution: {integrity: sha512-uT/YQjiyLJP7HSrv/dPZqK9L28xf8hsNca01HSz1dfmI0DgMfjopp1rO/z13NeGF1tVystF0Ejx3y4rUKPw+bQ==}
     engines: {node: '>= 0.10'}
 
   vary@1.1.2:
@@ -24250,7 +24250,7 @@ snapshots:
 
   validate.io-number@1.0.3: {}
 
-  validator@13.15.20: {}
+  validator@13.15.22: {}
 
   vary@1.1.2: {}
 
