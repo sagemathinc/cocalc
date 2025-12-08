@@ -2,7 +2,7 @@ import getLogger from "@cocalc/backend/logger";
 import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import {
   ensureMoveSchema,
-  fetchNextActiveMove,
+  fetchActiveMoves,
   updateMove,
   type ProjectMoveRow,
 } from "./move-db";
@@ -14,6 +14,8 @@ import {
   selectActiveHost,
   stopProjectOnHost,
 } from "./control";
+
+const MAX_PARALLEL_MOVES = 50;
 
 const logger = getLogger("server:project-host:move-worker");
 
@@ -263,8 +265,10 @@ export async function startProjectMoveWorker() {
     if (ticking) return;
     ticking = true;
     try {
-      const row = await fetchNextActiveMove();
-      if (row) await processRow(row);
+      const rows = await fetchActiveMoves(MAX_PARALLEL_MOVES);
+      if (rows.length) {
+        await Promise.all(rows.map((row) => processRow(row)));
+      }
     } catch (err) {
       logger.warn("move worker tick failed", { err });
     } finally {

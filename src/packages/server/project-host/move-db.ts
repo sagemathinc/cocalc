@@ -136,9 +136,9 @@ export async function getMove(
   return rows[0] as ProjectMoveRow | undefined;
 }
 
-export async function fetchNextActiveMove(): Promise<
-  ProjectMoveRow | undefined
-> {
+export async function fetchActiveMoves(
+  limit = 5,
+): Promise<ProjectMoveRow[]> {
   const client = await pool().connect();
   try {
     await client.query("BEGIN");
@@ -149,15 +149,16 @@ export async function fetchNextActiveMove(): Promise<
         WHERE state IN ('queued','preparing','sending','finalizing')
         ORDER BY updated_at
         FOR UPDATE SKIP LOCKED
-        LIMIT 1
+        LIMIT $1
       `,
+      [limit],
     );
     await client.query("COMMIT");
-    return rows[0] as ProjectMoveRow | undefined;
+    return rows as ProjectMoveRow[];
   } catch (err) {
     await client.query("ROLLBACK");
-    logger.warn("fetchNextActiveMove failed", { err });
-    return undefined;
+    logger.warn("fetchActiveMoves failed", { err });
+    return [];
   } finally {
     client.release();
   }
