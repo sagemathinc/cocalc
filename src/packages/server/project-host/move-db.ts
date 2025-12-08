@@ -142,6 +142,14 @@ export async function fetchActiveMoves(
   const client = await pool().connect();
   try {
     await client.query("BEGIN");
+    // Pattern: dequeue the oldest pending rows without contending.
+    // - FOR UPDATE SKIP LOCKED lets multiple workers safely "pop" work items:
+    //   rows another worker already locked are skipped instead of blocking.
+    // - We do the select inside a transaction so the locks are held together;
+    //   the caller should promptly transition these rows to a new state so
+    //   they drop out of subsequent queries. If a worker crashes before that,
+    //   the locks release on rollback/connection close and another worker can
+    //   pick them up on the next pass.
     const { rows } = await client.query(
       `
         SELECT *

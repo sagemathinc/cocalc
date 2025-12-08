@@ -128,13 +128,19 @@ async function handleSending(row: ProjectMoveRow) {
   const srcClient = createHostControlClient({
     host_id: meta.host_id,
     client: conatClient,
-    // todo: long until we have a streaming status update system
+    timeout: 1000 * 60 * 60,
+  });
+  const destClient = createHostControlClient({
+    host_id: row.dest_host_id,
+    client: conatClient,
     timeout: 1000 * 60 * 60,
   });
   try {
     await transition(row.project_id, {
       progress: { phase: "sending", mode: moveMode },
     });
+    // Clean up any partial state from previous attempts on the destination.
+    await destClient.prepareMove({ project_id: row.project_id });
     logger.debug("handleSending: sending", {
       project_id: row.project_id,
       dest_host_id: row.dest_host_id,

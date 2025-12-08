@@ -29,6 +29,30 @@ import { basename } from "node:path";
 import { tmpdir } from "node:os";
 import { MoveProgress } from "./move-progress";
 
+async function wipeIncomingDir(path: string) {
+  // Best effort: delete any subvolumes inside, then remove the dir itself.
+  const entries = await readdir(path).catch(() => null);
+  if (entries) {
+    for (const name of entries) {
+      const full = join(path, name);
+      await runCmd(logger, "sudo", ["btrfs", "subvolume", "delete", full]).catch(
+        async () => {
+          await runCmd(logger, "sudo", ["rm", "-rf", full]).catch(() => {});
+        },
+      );
+    }
+  }
+  await runCmd(logger, "sudo", ["rm", "-rf", path]).catch(() => {});
+}
+
+export async function prepareMove({ project_id }: { project_id: string }) {
+  if (!isValidUUID(project_id)) throw Error("invalid project_id");
+  const incoming = join(getMountPoint(), "_incoming", project_id);
+  const streams = join(getMountPoint(), "_incoming_streams", project_id);
+  await wipeIncomingDir(incoming);
+  await wipeIncomingDir(streams);
+}
+
 
 // NOTE: we implemented both a direct pipe and a staged move mode.
 //   pipe -- use a single pipe and send|receive directly; optimal in terms of

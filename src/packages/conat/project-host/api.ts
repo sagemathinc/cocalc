@@ -67,6 +67,7 @@ export interface HostControlApi {
     snapshot: string;
     delete_original?: boolean;
   }) => Promise<void>;
+  prepareMove: (opts: { project_id: string }) => Promise<void>;
   // Later: updateProject to adjust title/users/etc.
 }
 

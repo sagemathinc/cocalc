@@ -19,6 +19,7 @@ import {
   sendProject,
   finalizeReceiveProject,
   cleanupAfterMove,
+  prepareMove,
 } from "./hub/move";
 
 const logger = getLogger("project-host:master");
@@ -140,6 +141,9 @@ export async function startMasterRegistration({
           project_id,
           authorized_keys,
         });
+      },
+      async prepareMove({ project_id }) {
+        await prepareMove({ project_id });
       },
       copyPaths,
       sendProject,
