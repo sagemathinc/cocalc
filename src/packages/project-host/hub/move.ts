@@ -27,6 +27,7 @@ import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
 import { basename } from "node:path";
 import { tmpdir } from "node:os";
+import { MoveProgress } from "./move-progress";
 
 
 // NOTE: we implemented both a direct pipe and a staged move mode.
@@ -215,7 +216,7 @@ export async function sendProject({
     from: string;
     parent?: string;
     recvDir: string;
-  }) {
+  }): Promise<number> {
     const sendArgs = ["btrfs", "send"];
     if (parent) {
       sendArgs.push("-p", parent);
@@ -303,9 +304,17 @@ export async function sendProject({
         recvDir,
       },
     );
+    return bytesSent;
   }
 
+  let tracker: MoveProgress | null = null;
   try {
+    tracker = new MoveProgress({
+      project_id,
+      totalSnapshots: 1, // will update after we know count
+      mode: moveMode,
+    });
+    await tracker.phase("preparing", "creating move snapshot");
     // Ensure destination has a place for snapshots.
     await ensureRemoteSnapshotsDir();
 
@@ -319,6 +328,9 @@ export async function sendProject({
       metas.push(await readSubvolMeta(path));
     }
     const ordered = topoOrder(metas);
+    const totalSnapshots = ordered.length + 1;
+    tracker.setTotal(totalSnapshots);
+    await tracker.phase("sending", "sending snapshots");
     for (let i = 0; i < ordered.length; i++) {
       const meta = ordered[i];
       // Use the nearest previously-sent snapshot as the parent (generation order).
@@ -327,23 +339,55 @@ export async function sendProject({
         parentPath = ordered[j].path;
         if (parentPath) break;
       }
-      await sendSnapshot({
+      await tracker.snapshotStarted({
+        name: basename(meta.path),
+        index: i,
+        total: totalSnapshots,
+        parent: parentPath,
+      });
+      const bytes = await sendSnapshot({
         from: meta.path,
         parent: parentPath,
         recvDir: `${remoteBase}/.snapshots`,
+      });
+      await tracker.snapshotFinished({
+        name: basename(meta.path),
+        index: i,
+        total: totalSnapshots,
+        parent: parentPath,
+        bytes,
       });
     }
 
     // Finally send the move snapshot, optionally incremental from last snapshot in the chain.
     const lastSnapshotPath =
       ordered.length > 0 ? ordered[ordered.length - 1].path : undefined;
-    await sendSnapshot({
+    await tracker.snapshotStarted({
+      name: basename(snapPath),
+      index: totalSnapshots - 1,
+      total: totalSnapshots,
+      parent: lastSnapshotPath,
+    });
+    const moveBytes = await sendSnapshot({
       from: snapPath,
       parent: lastSnapshotPath,
       recvDir: remoteBase,
     });
+    await tracker.snapshotFinished({
+      name: basename(snapPath),
+      index: totalSnapshots - 1,
+      total: totalSnapshots,
+      parent: lastSnapshotPath,
+      bytes: moveBytes,
+    });
 
     logger.debug("sendProject: successfully received ", { snapPath });
+    await tracker.done();
+  } catch (err) {
+    if (tracker) {
+      await tracker.fail(err);
+    }
+    throw err;
   } finally {
     logger.debug("sendProject: cleaning up...", { snapPath });
     await cleanup();
