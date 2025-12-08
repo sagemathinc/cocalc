@@ -30,31 +30,6 @@ import { tmpdir } from "node:os";
 import { MoveProgress } from "./move-progress";
 import { getMasterConatClient } from "../master-status";
 
-async function wipeIncomingDir(path: string) {
-  // Best effort: delete any subvolumes inside, then remove the dir itself.
-  const entries = await readdir(path).catch(() => null);
-  if (entries) {
-    for (const name of entries) {
-      const full = join(path, name);
-      await runCmd(logger, "sudo", ["btrfs", "subvolume", "delete", full]).catch(
-        async () => {
-          await runCmd(logger, "sudo", ["rm", "-rf", full]).catch(() => {});
-        },
-      );
-    }
-  }
-  await runCmd(logger, "sudo", ["rm", "-rf", path]).catch(() => {});
-}
-
-export async function prepareMove({ project_id }: { project_id: string }) {
-  if (!isValidUUID(project_id)) throw Error("invalid project_id");
-  const incoming = join(getMountPoint(), "_incoming", project_id);
-  const streams = join(getMountPoint(), "_incoming_streams", project_id);
-  await wipeIncomingDir(incoming);
-  await wipeIncomingDir(streams);
-}
-
-
 // NOTE: we implemented both a direct pipe and a staged move mode.
 //   pipe -- use a single pipe and send|receive directly; optimal in terms of
 //           amount of disk IO and space usage
@@ -72,6 +47,76 @@ export async function prepareMove({ project_id }: { project_id: string }) {
 const MOVE_MODE = "pipe"; // or 'staged'
 
 const logger = getLogger("project-host:hub:move");
+
+async function deleteSubvol(path: string) {
+  try {
+    await runCmd(logger, "sudo", [
+      "btrfs",
+      "-q",
+      "subvolume",
+      "delete",
+      path,
+    ]);
+  } catch (err) {
+    // Preserve the underlying error so callers get a clear message.
+    throw new Error(`failed to delete subvolume ${path}: ${err}`);
+  }
+}
+
+async function wipePipeArtifacts(project_id: string) {
+  const incoming = join(getMountPoint(), "_incoming", project_id);
+  const streams = join(getMountPoint(), "_incoming_streams", project_id);
+
+  // First remove received snapshots inside .snapshots.
+  const snapsDir = join(incoming, ".snapshots");
+  const snaps = await readdir(snapsDir).catch(() => []);
+  for (const name of snaps) {
+    await deleteSubvol(join(snapsDir, name));
+  }
+
+  // Then remove any top-level received subvolumes (e.g., move snapshot).
+  const entries = await readdir(incoming).catch(() => []);
+  for (const name of entries) {
+    if (name === ".snapshots") continue;
+    await deleteSubvol(join(incoming, name));
+  }
+
+  // Finally drop the directories themselves.
+  await runCmd(logger, "sudo", ["rm", "-rf", incoming]).catch((err) => {
+    throw new Error(`failed to remove incoming dir ${incoming}: ${err}`);
+  });
+  await runCmd(logger, "sudo", ["rm", "-rf", streams]).catch((err) => {
+    throw new Error(`failed to remove incoming streams ${streams}: ${err}`);
+  });
+}
+
+async function wipeStagedArtifacts(project_id: string) {
+  const incoming = join(getMountPoint(), "_incoming", project_id);
+  const streams = join(getMountPoint(), "_incoming_streams", project_id);
+  await runCmd(logger, "sudo", ["rm", "-rf", incoming]).catch((err) => {
+    throw new Error(`failed to remove incoming dir ${incoming}: ${err}`);
+  });
+  await runCmd(logger, "sudo", ["rm", "-rf", streams]).catch((err) => {
+    throw new Error(`failed to remove incoming streams ${streams}: ${err}`);
+  });
+}
+
+export async function prepareMove({
+  project_id,
+  mode = MOVE_MODE,
+}: {
+  project_id: string;
+  mode?: "pipe" | "staged";
+}) {
+  if (!isValidUUID(project_id)) throw Error("invalid project_id");
+  if (mode === "pipe") {
+    await wipePipeArtifacts(project_id);
+  } else if (mode === "staged") {
+    await wipeStagedArtifacts(project_id);
+  } else {
+    throw new Error(`unknown move mode ${mode}`);
+  }
+}
 
 type SubvolMeta = {
   path: string;

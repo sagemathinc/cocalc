@@ -11,17 +11,30 @@ export async function runCmd(
   args: string[],
   opts: any = {},
 ) {
+  const MAX_STDERR = 1_000_000; // cap to avoid unbounded buffer and RangeError
   return await new Promise<void>((resolve, reject) => {
     logger.debug(`runCmd: ${cmd} ${argsJoin(args)}`);
     const child = spawn(cmd, args, opts);
     let stderr = "";
+    let truncated = false;
     child.stderr?.on("data", (d) => {
-      stderr += d.toString();
+      if (truncated) return;
+      const chunk = d.toString();
+      if (stderr.length + chunk.length > MAX_STDERR) {
+        stderr += chunk.slice(0, MAX_STDERR - stderr.length);
+        truncated = true;
+        logger?.debug?.("runCmd: stderr truncated", { cmd, args });
+      } else {
+        stderr += chunk;
+      }
     });
     child.on("error", reject);
     child.on("exit", (code) => {
       if (code === 0) return resolve();
-      reject(new Error(`${cmd} exited with code ${code}: ${stderr.trim()}`));
+      const suffix = truncated ? " [stderr truncated]" : "";
+      reject(
+        new Error(`${cmd} exited with code ${code}: ${stderr.trim()}${suffix}`),
+      );
     });
   });
 }
