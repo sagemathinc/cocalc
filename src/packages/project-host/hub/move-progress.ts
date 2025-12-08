@@ -50,6 +50,18 @@ export class MoveProgress {
     this.total = Math.max(1, totalSnapshots);
   }
 
+  async snapshotProgress(evt: SnapshotEvent) {
+    const mb =
+      evt.bytes != null ? Math.round(evt.bytes / 1_000_000) : undefined;
+    await bootlog({
+      project_id: this.project_id,
+      compute_server_id: 0,
+      type: "move",
+      progress: this.progressPercent(),
+      desc: `[sending] ${evt.index + 1}/${evt.total} ${evt.name} MB=${mb}`,
+    }).catch(() => {});
+  }
+
   async phase(phase: Phase, desc?: string) {
     await bootlog({
       project_id: this.project_id,

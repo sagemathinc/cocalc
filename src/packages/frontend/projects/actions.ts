@@ -1102,7 +1102,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
       await webapp_client.conat_client.hub.projects.moveProject({ project_id });
       // wait for it to finish
       while (store.getIn(["project_map", project_id, "host_id"]) == host_id) {
-        await once(store, "change");
+        try {
+          await once(store, "change", 1000);
+        } catch {}
         const status =
           await webapp_client.conat_client.hub.projects.getMoveStatus({
             project_id,

@@ -208,14 +208,18 @@ export async function sendProject({
     ]);
   }
 
+  type SendProgress = (bytes: number) => void;
+
   async function sendSnapshot({
     from,
     parent,
     recvDir,
+    onProgress,
   }: {
     from: string;
     parent?: string;
     recvDir: string;
+    onProgress?: SendProgress;
   }): Promise<number> {
     const sendArgs = ["btrfs", "send"];
     if (parent) {
@@ -257,11 +261,23 @@ export async function sendProject({
       throw new Error("btrfs send/ssh pipe not available");
     }
     let bytesSent = 0;
+    let lastProgress = Date.now();
     sendOut.on("data", (chunk) => {
       if (Buffer.isBuffer(chunk)) {
         bytesSent += chunk.length;
       } else {
         bytesSent += Buffer.byteLength(String(chunk));
+      }
+      if (onProgress) {
+        const now = Date.now();
+        if (now - lastProgress >= 1000) {
+          lastProgress = now;
+          try {
+            onProgress(bytesSent);
+          } catch {
+            // best effort; ignore
+          }
+        }
       }
     });
     const streamPump = pipeline(sendOut, sshIn);
@@ -349,6 +365,14 @@ export async function sendProject({
         from: meta.path,
         parent: parentPath,
         recvDir: `${remoteBase}/.snapshots`,
+        onProgress: (b) =>
+          tracker?.snapshotProgress({
+            name: basename(meta.path),
+            index: i,
+            total: totalSnapshots,
+            parent: parentPath,
+            bytes: b,
+          }),
       });
       await tracker.snapshotFinished({
         name: basename(meta.path),
@@ -372,6 +396,14 @@ export async function sendProject({
       from: snapPath,
       parent: lastSnapshotPath,
       recvDir: remoteBase,
+      onProgress: (b) =>
+        tracker?.snapshotProgress({
+          name: basename(snapPath),
+          index: totalSnapshots - 1,
+          total: totalSnapshots,
+          parent: lastSnapshotPath,
+          bytes: b,
+        }),
     });
     await tracker.snapshotFinished({
       name: basename(snapPath),
