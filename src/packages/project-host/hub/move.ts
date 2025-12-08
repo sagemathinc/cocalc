@@ -613,6 +613,12 @@ export async function finalizeReceiveProject({
   // Re-home snapshots under the project.
   for (const meta of snapMetas) {
     const name = meta.path.split("/").pop() as string;
+    // The transient move snapshot is only needed to seed the live clone; skip
+    // keeping a readonly copy in the final snapshots directory to avoid
+    // accumulating move-* snapshots on the destination.
+    if (name === snapshot) {
+      continue;
+    }
     const destSnapPath = join(destPath, ".snapshots", name);
     await runCmd(logger, "sudo", [
       "btrfs",
