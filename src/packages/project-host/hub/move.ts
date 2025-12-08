@@ -26,6 +26,24 @@ import { getMountPoint } from "../file-server";
 import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
 import { basename } from "node:path";
+import { tmpdir } from "node:os";
+
+
+// NOTE: we implemented both a direct pipe and a staged move mode.
+//   pipe -- use a single pipe and send|receive directly; optimal in terms of
+//           amount of disk IO and space usage
+//   staged -- write streams to files, rsync them over, then read them
+//           from files; uses a lot more disk space and disk IO, but
+//           is potentially more robust if the network is very flaky.
+//           This also *could* maybe be implemented possibly more securely,
+//           since the btrfs receive isn't controlled by the sender.
+//
+// For now we're focusing on pipe mode, and may deleted or revist staged
+// later, depending on what requirements.  If connections are really bad,
+// we might instead just use a "no snapshots and fallback to simple rsync
+// mode".
+//
+const MOVE_MODE = "pipe"; // or 'staged'
 
 const logger = getLogger("project-host:hub:move");
 
@@ -34,6 +52,7 @@ type SubvolMeta = {
   uuid?: string;
   parent_uuid?: string;
   creation?: string;
+  generation?: number;
 };
 
 async function readSubvolMeta(path: string): Promise<SubvolMeta> {
@@ -64,6 +83,11 @@ async function readSubvolMeta(path: string): Promise<SubvolMeta> {
           }
         } else if (k.toLowerCase().includes("creation time")) {
           meta.creation = v;
+        } else if (k.toLowerCase().startsWith("generation")) {
+          const n = parseInt(v, 10);
+          if (!Number.isNaN(n)) {
+            meta.generation = n;
+          }
         }
       }
       resolve(meta);
@@ -72,41 +96,16 @@ async function readSubvolMeta(path: string): Promise<SubvolMeta> {
 }
 
 function topoOrder(metas: SubvolMeta[]): SubvolMeta[] {
-  const remaining = new Map(metas.map((m) => [m.path, m]));
-  const ordered: SubvolMeta[] = [];
-  // quick lookup by uuid
-  const byUuid = new Map(
-    metas.filter((m) => m.uuid).map((m) => [m.uuid as string, m]),
-  );
-
-  while (remaining.size) {
-    let progressed = false;
-    for (const [path, meta] of Array.from(remaining.entries())) {
-      const parentUuid = meta.parent_uuid;
-      if (
-        !parentUuid ||
-        !byUuid.get(parentUuid) ||
-        ordered.includes(byUuid.get(parentUuid)!)
-      ) {
-        ordered.push(meta);
-        remaining.delete(path);
-        progressed = true;
-      }
-    }
-    if (!progressed) {
-      // break cycles/unknown parents by sorting remaining by creation time/string path
-      const leftovers = Array.from(remaining.values()).sort(
-        (a, b) =>
-          (a.creation || "").localeCompare(b.creation || "") ||
-          a.path.localeCompare(b.path),
-      );
-      leftovers.forEach((m) => {
-        ordered.push(m);
-        remaining.delete(m.path);
-      });
-    }
-  }
-  return ordered;
+  // Order snapshots by generation if present, otherwise creation time, then path.
+  return [...metas].sort((a, b) => {
+    const ga = a.generation ?? Number.MAX_SAFE_INTEGER;
+    const gb = b.generation ?? Number.MAX_SAFE_INTEGER;
+    if (ga !== gb) return ga - gb;
+    const ca = a.creation ?? "";
+    const cb = b.creation ?? "";
+    if (ca !== cb) return ca.localeCompare(cb);
+    return a.path.localeCompare(b.path);
+  });
 }
 
 export async function sendProject({
@@ -120,7 +119,7 @@ export async function sendProject({
   dest_ssh_server: string;
   snapshot: string;
 }) {
-  const moveMode = "staged"; // or 'pipe'
+  const moveMode: string = MOVE_MODE;
   logger.debug("sendProject", {
     project_id,
     dest_host_id,
@@ -256,6 +255,14 @@ export async function sendProject({
       logger.debug("sendProject.sendSnapshot: pipe for sending broken");
       throw new Error("btrfs send/ssh pipe not available");
     }
+    let bytesSent = 0;
+    sendOut.on("data", (chunk) => {
+      if (Buffer.isBuffer(chunk)) {
+        bytesSent += chunk.length;
+      } else {
+        bytesSent += Buffer.byteLength(String(chunk));
+      }
+    });
     const streamPump = pipeline(sendOut, sshIn);
     await Promise.all([
       new Promise<void>((resolve, reject) => {
@@ -288,11 +295,14 @@ export async function sendProject({
       }),
       streamPump,
     ]);
-    logger.debug("sendProject.sendSnapshot: successfully sent ", {
-      from,
-      parent,
-      recvDir,
-    });
+    logger.debug(
+      `sendProject.sendSnapshot: sent ${Math.round(bytesSent / 1000000)} MB`,
+      {
+        from,
+        parent,
+        recvDir,
+      },
+    );
   }
 
   try {
@@ -308,14 +318,15 @@ export async function sendProject({
       const path = join(snapshotsDir, name);
       metas.push(await readSubvolMeta(path));
     }
-    const parentByUuid = new Map(
-      metas.filter((m) => m.uuid).map((m) => [m.uuid as string, m.path]),
-    );
     const ordered = topoOrder(metas);
-    for (const meta of ordered) {
-      const parentPath = meta.parent_uuid
-        ? parentByUuid.get(meta.parent_uuid)
-        : undefined;
+    for (let i = 0; i < ordered.length; i++) {
+      const meta = ordered[i];
+      // Use the nearest previously-sent snapshot as the parent (generation order).
+      let parentPath: string | undefined;
+      for (let j = i - 1; j >= 0; j--) {
+        parentPath = ordered[j].path;
+        if (parentPath) break;
+      }
       await sendSnapshot({
         from: meta.path,
         parent: parentPath,
@@ -361,7 +372,8 @@ async function sendProjectStaged({
   keyFile: string;
   knownHosts: string;
 }) {
-  const streamsDir = join(getMountPoint(), "_streams", project_id, snapshot);
+  // TODO...
+  const streamsDir = join(tmpdir(), "_streams", project_id, snapshot);
   await runCmd(logger, "sudo", ["mkdir", "-p", streamsDir]);
   if (typeof process.getuid === "function") {
     try {
@@ -434,9 +446,6 @@ async function sendProjectStaged({
     const path = join(snapshotsDir, name);
     metas.push(await readSubvolMeta(path));
   }
-  const parentByUuid = new Map(
-    metas.filter((m) => m.uuid).map((m) => [m.uuid as string, m.path]),
-  );
   const ordered = topoOrder(metas);
 
   type ManifestEntry = {
@@ -450,10 +459,9 @@ async function sendProjectStaged({
     `${String(idx++).padStart(4, "0")}-${name.replace(/\//g, "_")}.send`;
 
   // Existing snapshots first.
-  for (const meta of ordered) {
-    const parentPath = meta.parent_uuid
-      ? parentByUuid.get(meta.parent_uuid)
-      : undefined;
+  for (let i = 0; i < ordered.length; i++) {
+    const meta = ordered[i];
+    const parentPath = i > 0 ? ordered[i - 1].path : undefined;
     const file = join(streamsDir, makeFileName(basename(meta.path)));
     await makeSendFile({ from: meta.path, parent: parentPath, file });
     manifest.push({ file, recvDir: `${remoteBase}/.snapshots` });
@@ -493,7 +501,6 @@ async function sendProjectStaged({
   const remoteStreams = `/btrfs/_incoming_streams/${project_id}/${snapshot}`;
   await runCmd(logger, "ssh", [
     ...sshBaseArgs,
-    "sudo",
     "mkdir",
     "-p",
     `${remoteStreams}`,
@@ -529,7 +536,6 @@ async function sendProjectStaged({
     const remoteFile = `${remoteStreams}/${basename(entry.file)}`;
     const recvArgs = [
       ...sshBaseArgs,
-      "sudo",
       "btrfs",
       "receive",
       "-f",
@@ -546,7 +552,6 @@ async function sendProjectStaged({
   // Clean up remote streams to avoid residue.
   await runCmd(logger, "ssh", [
     ...sshBaseArgs,
-    "sudo",
     "rm",
     "-rf",
     remoteStreams,

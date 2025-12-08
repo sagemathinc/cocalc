@@ -66,11 +66,14 @@ stateDiagram-v2
 
 - **Filesystem semantics**
   - Projects live as btrfs subvolumes under the host mount point (see [packages/project-host/file-server.ts](./packages/project-host/file-server.ts)).
-  - Current implementation performs a stop-then-full-send/receive; incremental/hot-move is a future optimization.
-  - Snapshots can be included by sending the readonly snapshot lineage before the final writable subvolume, but the initial version may keep it simple (stop early, send the main subvolume).
+  - We stop the project, take a readonly snapshot, send existing snapshots first, then send the move snapshot. In pipe mode each snapshot is streamed with `btrfs send -p <oldest-available-sibling>`; ordering is by generation/creation so “older” siblings go first. Because all snapshots are siblings of the project root, any earlier sibling is a valid parent; if no earlier sibling exists the snapshot is sent full.
+  - Staged mode writes `btrfs send` streams to disk (optionally lz4), rsyncs them, then receives; this decouples read/write and makes resuming on flaky links easier.
 
 - **Why no container for btrfs receive**
   - `btrfs receive` needs direct mount access; running it on the host avoids extra privileges and namespace complexity.
   - Safety comes from the forced command and the fact that only sshpiperd can connect to this `sshd`.
 
 Keep this doc in sync with the move implementation as we add progress reporting, snapshot preservation, and incremental sends.
+
+- **Performance note (current dev env)**
+  - Direct pipe mode on local loopback btrfs (sparse images) is now roughly 45s for ~5 GB with a few snapshots after fixing snapshot parenting (previously every snapshot was sent full). Staged mode remains available when rsync/resume is preferable. Actual numbers will vary with disks/network; measure per target environment.***

@@ -4,7 +4,8 @@
   - [x] implement copy between _different_ project\-host via ssh
   
 - [ ] #now implement move project using btrfs
-  - [ ] snapshot creation after move broken due to missing qgroup 
+  - [x] snapshot creation after move broken due to missing qgroup  (?)
+  - [ ] moving needs to clear the hub cache of routing targets, but doesn't.
   - [ ] **Snapshots not preserved:** we only send a single readonly snapshot created on the fly; existing project snapshots aren’t carried over.
   - [ ] security: use forecommand for btrfs container
   - [ ] large streams: send progress updates instead of one req/resp.

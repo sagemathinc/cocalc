@@ -102,7 +102,8 @@ async function handleSending(row: ProjectMoveRow) {
     project_id: row.project_id,
     dest_host_id: row.dest_host_id,
   });
-  const moveMode = "staged"; //  or 'pipe'
+  //const moveMode = "staged"; //  or 'pipe'
+  const moveMode = "pipe";
   const meta = await loadProject(row.project_id);
   if (!meta.host_id || !row.dest_host_id) {
     await transition(row.project_id, {
