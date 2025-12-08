@@ -168,6 +168,8 @@ export class ChatActions extends Actions<ChatState> {
     tag,
     noNotification,
     submitMentionsRef,
+    extraInput,
+    name,
   }: {
     input?: string;
     sender_id?: string;
@@ -175,6 +177,9 @@ export class ChatActions extends Actions<ChatState> {
     tag?: string;
     noNotification?: boolean;
     submitMentionsRef?;
+    extraInput?: string;
+    // if name is given, rename thread to have that name
+    name?: string;
   }): string => {
     if (this.syncdb == null || this.store == null) {
       console.warn("attempt to sendChat before chat actions initialized");
@@ -186,11 +191,15 @@ export class ChatActions extends Actions<ChatState> {
     if (submitMentionsRef?.current != null) {
       input = submitMentionsRef.current?.({ chat: `${time_stamp.valueOf()}` });
     }
+    if (extraInput) {
+      input = (input ?? "") + extraInput;
+    }
     input = input?.trim();
     if (!input) {
       // do not send when there is nothing to send.
       return "";
     }
+    const trimmedName = name?.trim();
     const message: ChatMessage = {
       sender_id,
       event: "chat",
@@ -205,7 +214,12 @@ export class ChatActions extends Actions<ChatState> {
       reply_to: reply_to?.toISOString(),
       editing: {},
     };
+    if (trimmedName && !reply_to) {
+      (message as any).name = trimmedName;
+    }
     this.syncdb.set(message);
+    const messagesState = this.store.get("messages");
+    let selectedThreadKey: string;
     if (!reply_to) {
       this.deleteDraft(0);
       // NOTE: we also clear search, since it's confusing to send a message and not
@@ -214,17 +228,29 @@ export class ChatActions extends Actions<ChatState> {
       // Also, only do this clearing when not replying.
       // For replies search find full threads not individual messages.
       this.clearAllFilters();
+      selectedThreadKey = `${time_stamp.valueOf()}`;
     } else {
       // when replying we make sure that the thread is expanded, since otherwise
       // our reply won't be visible
-      const messages = this.store.get("messages");
       if (
-        messages
+        messagesState
           ?.getIn([`${reply_to.valueOf()}`, "folding"])
           ?.includes(sender_id)
       ) {
         this.toggleFoldThread(reply_to);
       }
+      const root =
+        getThreadRootDate({
+          date: reply_to.valueOf(),
+          messages: messagesState,
+        }) ?? reply_to.valueOf();
+      selectedThreadKey = `${root}`;
+    }
+    if (selectedThreadKey != "0") {
+      this.setSelectedThread(selectedThreadKey);
+    }
+    if (trimmedName && reply_to) {
+      this.renameThread(selectedThreadKey, trimmedName);
     }
 
     const project_id = this.store?.get("project_id");
@@ -481,6 +507,151 @@ export class ChatActions extends Actions<ChatState> {
     });
   };
 
+  // returns number of deleted messages
+  // threadKey = iso timestamp root of thread.
+  deleteThread = (threadKey: string): number => {
+    if (this.syncdb == null || this.store == null) {
+      return 0;
+    }
+    const messages = this.store.get("messages");
+    if (messages == null) {
+      return 0;
+    }
+    const rootTarget = parseInt(`${threadKey}`);
+    if (!isFinite(rootTarget)) {
+      return 0;
+    }
+    let deleted = 0;
+    for (const [_, message] of messages) {
+      if (message == null) continue;
+      const dateField = message.get("date");
+      let dateValue: number | undefined;
+      let dateIso: string | undefined;
+      if (dateField instanceof Date) {
+        dateValue = dateField.valueOf();
+        dateIso = dateField.toISOString();
+      } else if (typeof dateField === "number") {
+        dateValue = dateField;
+        dateIso = new Date(dateField).toISOString();
+      } else if (typeof dateField === "string") {
+        const t = Date.parse(dateField);
+        dateValue = isNaN(t) ? undefined : t;
+        dateIso = dateField;
+      }
+      if (dateValue == null || dateIso == null) {
+        continue;
+      }
+      const rootDate =
+        getThreadRootDate({ date: dateValue, messages }) || dateValue;
+      if (rootDate !== rootTarget) {
+        continue;
+      }
+      this.syncdb.delete({ event: "chat", date: dateIso });
+      deleted++;
+    }
+    if (deleted > 0) {
+      this.syncdb.commit();
+    }
+    return deleted;
+  };
+
+  renameThread = (threadKey: string, name: string): boolean => {
+    if (this.syncdb == null) {
+      return false;
+    }
+    const entry = this.getThreadRootDoc(threadKey);
+    if (entry == null) {
+      return false;
+    }
+    const trimmed = name.trim();
+    if (trimmed) {
+      entry.doc.name = trimmed;
+    } else {
+      delete entry.doc.name;
+    }
+    this.syncdb.set(entry.doc);
+    this.syncdb.commit();
+    return true;
+  };
+
+  setThreadPin = (threadKey: string, pinned: boolean): boolean => {
+    if (this.syncdb == null) {
+      return false;
+    }
+    const entry = this.getThreadRootDoc(threadKey);
+    if (entry == null) {
+      return false;
+    }
+    if (pinned) {
+      entry.doc.pin = true;
+    } else {
+      entry.doc.pin = false;
+    }
+    this.syncdb.set(entry.doc);
+    this.syncdb.commit();
+    return true;
+  };
+
+  markThreadRead = (
+    threadKey: string,
+    count: number,
+    commit = true,
+  ): boolean => {
+    if (this.syncdb == null) {
+      return false;
+    }
+    const account_id = this.redux.getStore("account").get_account_id();
+    if (!account_id || !Number.isFinite(count)) {
+      return false;
+    }
+    const entry = this.getThreadRootDoc(threadKey);
+    if (entry == null) {
+      return false;
+    }
+    entry.doc[`read-${account_id}`] = count;
+    this.syncdb.set(entry.doc);
+    if (commit) {
+      this.syncdb.commit();
+    }
+    return true;
+  };
+
+  private getThreadRootDoc = (
+    threadKey: string,
+  ): { doc: any; message: ChatMessageTyped } | null => {
+    if (this.store == null) {
+      return null;
+    }
+    const messages = this.store.get("messages");
+    if (messages == null) {
+      return null;
+    }
+    const normalizedKey = toMsString(threadKey);
+    const fallbackKey = `${parseInt(threadKey, 10)}`;
+    const candidates = [normalizedKey, threadKey, fallbackKey];
+    let message: ChatMessageTyped | undefined;
+    for (const key of candidates) {
+      if (!key) continue;
+      message = messages.get(key);
+      if (message != null) break;
+    }
+    if (message == null) {
+      return null;
+    }
+    const dateField = message.get("date");
+    const dateIso =
+      dateField instanceof Date
+        ? dateField.toISOString()
+        : typeof dateField === "string"
+          ? dateField
+          : new Date(dateField).toISOString();
+    if (!dateIso) {
+      return null;
+    }
+    const doc = { ...message.toJS(), date: dateIso };
+    return { doc, message };
+  };
+
   save_scroll_state = (position, height, offset): void => {
     if (height == 0) {
       // height == 0 means chat room is not rendered
@@ -605,30 +776,44 @@ export class ChatActions extends Actions<ChatState> {
    * This checks a thread of messages to see if it is a language model thread and if so, returns it.
    */
   isLanguageModelThread = (date?: Date): false | LanguageModel => {
-    if (date == null) {
+    if (date == null || this.store == null) {
       return false;
     }
-    const thread = this.getMessagesInThread(date.toISOString());
+    const messages = this.store.get("messages");
+    if (messages == null) {
+      return false;
+    }
+    const rootMs =
+      getThreadRootDate({ date: date.valueOf(), messages }) || date.valueOf();
+    const entry = this.getThreadRootDoc(`${rootMs}`);
+    const rootMessage = entry?.message;
+    if (rootMessage == null) {
+      return false;
+    }
+
+    const thread = this.getMessagesInThread(
+      rootMessage.get("date")?.toISOString?.() ?? `${rootMs}`,
+    );
     if (thread == null) {
       return false;
     }
 
-    // We deliberately start at the last most recent message.
-    // Why? If we use the LLM regenerate dropdown button to change the LLM, we want to keep it.
-    for (const message of thread.reverse()) {
-      const lastHistory = message.get("history")?.first();
-      // this must be an invalid message, because there is no history
-      if (lastHistory == null) continue;
-      const sender_id = lastHistory.get("author_id");
-      if (isLanguageModelService(sender_id)) {
-        return service2model(sender_id);
-      }
-      const input = lastHistory.get("content")?.toLowerCase();
-      if (mentionsLanguageModel(input)) {
-        return getLanguageModel(input);
-      }
+    const firstMessage = thread.first();
+    if (firstMessage == null) {
+      return false;
     }
-
+    const firstHistory = firstMessage.get("history")?.first();
+    if (firstHistory == null) {
+      return false;
+    }
+    const sender_id = firstHistory.get("author_id");
+    if (isLanguageModelService(sender_id)) {
+      return service2model(sender_id);
+    }
+    const input = firstHistory.get("content")?.toLowerCase();
+    if (mentionsLanguageModel(input)) {
+      return getLanguageModel(input);
+    }
     return false;
   };
 
@@ -1104,19 +1289,28 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   setFragment = (date?) => {
+    let fragmentId;
     if (!date) {
       Fragment.clear();
+      fragmentId = "";
     } else {
-      const fragmentId = toMsString(date);
+      fragmentId = toMsString(date);
       Fragment.set({ chat: fragmentId });
-      this.frameTreeActions?.set_frame_data({ id: this.frameId, fragmentId });
     }
+    this.frameTreeActions?.set_frame_data({ id: this.frameId, fragmentId });
   };
 
   setShowPreview = (showPreview) => {
     this.frameTreeActions?.set_frame_data({
       id: this.frameId,
       showPreview,
+    });
+  };
+
+  setSelectedThread = (threadKey: string | null) => {
+    this.frameTreeActions?.set_frame_data({
+      id: this.frameId,
+      selectedThreadKey: threadKey,
     });
   };
 }

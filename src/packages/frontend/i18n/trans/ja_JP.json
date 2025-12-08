@@ -1046,7 +1046,6 @@
   "labels.linux_terminal": "Linuxターミナル",
   "labels.loading": "読み込み中...",
   "labels.log": "ログ",
-  "labels.masked_files": "{masked, select, true {マスクされたファイルを隠す} other {マスクされたファイルを表示}}。マスクされたファイルは自動生成された一時ファイルであり、編集することを意図していません。これらはグレーアウトされています。",
   "labels.message.plural": "{num, plural, one {メッセージ} other {メッセージ}}",
   "labels.messages": "メッセージ",
   "labels.messages.all_messages": "すべてのメッセージ",

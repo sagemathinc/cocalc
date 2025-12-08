@@ -13,6 +13,8 @@ interface Mention {
   fragment_id?: string;
 }
 
+const seenFragmentIds = new Set<string>();
+
 export async function submit_mentions(
   project_id: string,
   path: string,
@@ -26,6 +28,12 @@ export async function submit_mentions(
     if (!isValidUUID(account_id)) {
       // Ignore all language model mentions, they are processed by the chat actions in the frontend
       continue;
+    }
+    if (fragment_id) {
+      if (seenFragmentIds.has(fragment_id)) {
+        continue;
+      }
+      seenFragmentIds.add(fragment_id);
     }
     try {
       await webapp_client.query_client.query({

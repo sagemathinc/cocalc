@@ -215,10 +215,10 @@ export function FileTab(props: Readonly<Props>) {
   // alerts only work on non-docker projects (for now) -- #7077
   const status_alerts: string[] =
     !onCoCalcDocker && name === "info"
-      ? project_status
+      ? (project_status
           ?.get("alerts")
           ?.map((a) => a.get("type"))
-          .toJS() ?? []
+          .toJS() ?? [])
       : [];
 
   const other_settings = useTypedRedux("account", "other_settings");
@@ -303,8 +303,8 @@ export function FileTab(props: Readonly<Props>) {
       flyout === active_flyout
         ? COLORS.PROJECT.FIXED_LEFT_ACTIVE
         : active_flyout == null
-        ? COLORS.GRAY_L
-        : COLORS.GRAY_L0;
+          ? COLORS.GRAY_L
+          : COLORS.GRAY_L0;
     const bg = flyout === active_flyout ? COLORS.GRAY_L0 : undefined;
 
     return (
@@ -368,7 +368,7 @@ export function FileTab(props: Readonly<Props>) {
 
   const icon =
     path != null
-      ? file_options(path)?.icon ?? "code-o"
+      ? (file_options(path)?.icon ?? "code-o")
       : FIXED_PROJECT_TABS[name!].icon;
 
   const tags =
@@ -536,6 +536,8 @@ const LABEL_STYLE: CSS = {
   whiteSpace: "nowrap",
 } as const;
 
+const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
+
 const FULLPATH_LABEL_STYLE: CSS = {
   // using a full path for the label instead of just a filename
   textOverflow: "ellipsis",
@@ -545,6 +547,8 @@ const FULLPATH_LABEL_STYLE: CSS = {
 } as const;
 
 function DisplayedLabel({ path, label, inline = true, project_id }) {
+  const otherSettings = useTypedRedux("account", "other_settings");
+  const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
   if (path == null) {
     // a fixed tab (not an actual file)
     const E = inline ? "span" : "div";
@@ -590,7 +594,7 @@ function DisplayedLabel({ path, label, inline = true, project_id }) {
     >
       <span style={{ direction: "ltr" }}>
         {label}
-        <span style={{ color: COLORS.FILE_EXT }}>{ext}</span>
+        <span style={dimFileExtensions ? DIMMED_STYLE : undefined}>{ext}</span>
       </span>
     </div>
   );

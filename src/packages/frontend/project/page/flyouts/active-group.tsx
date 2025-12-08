@@ -28,6 +28,7 @@ interface GroupProps {
   setStarredPath: (path: string, next: boolean) => void;
   showStarred: boolean;
   isLast?: boolean; // if group is empty, it is also the last one in the group
+  dimFileExtensions: boolean;
 }
 
 export function Group({
@@ -38,6 +39,7 @@ export function Group({
   setStarredPath,
   showStarred,
   isLast = false,
+  dimFileExtensions,
 }: GroupProps): React.JSX.Element {
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
@@ -75,7 +77,7 @@ export function Group({
     const fileType = file_options(`foo.${group}`);
     return {
       iconName:
-        group === "" ? UNKNOWN_FILE_TYPE_ICON : fileType?.icon ?? "file",
+        group === "" ? UNKNOWN_FILE_TYPE_ICON : (fileType?.icon ?? "file"),
       display: (group === "" ? "No extension" : fileType?.name) || group,
     };
   }
@@ -127,6 +129,7 @@ export function Group({
             // trailing slash indicates to open a directory
             handleFileEntryClick(e, `${group}/`, project_id);
           }}
+          dimFileExtensions={dimFileExtensions}
         />
       );
 

@@ -84,6 +84,7 @@ export const FileListing: React.FC<Props> = ({
   configuration_main,
   file_search = "",
   isRunning,
+  other_settings,
 }: Props) => {
   const [starting, setStarting] = useState<boolean>(false);
   const { starred, setStarredPath } = useStarredFilesManager(project_id);
@@ -120,6 +121,7 @@ export const FileListing: React.FC<Props> = ({
   }, [current_path, isRunning]);
 
   const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
+  const dimFileExtensions = !!other_settings?.get?.("dim_file_extensions");
 
   function render_row(
     name,
@@ -170,6 +172,7 @@ export const FileListing: React.FC<Props> = ({
             isdir && !path.endsWith("/") ? `${path}/` : path;
           setStarredPath(normalizedPath, starState);
         }}
+        dimFileExtensions={dimFileExtensions}
       />
     );
   }

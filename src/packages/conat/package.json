@@ -20,7 +20,6 @@
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc --build",
     "clean": "rm -rf dist node_modules",
-    "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest",
     "depcheck": "pnpx depcheck --ignores events,bufferutil,utf-8-validate"
   },

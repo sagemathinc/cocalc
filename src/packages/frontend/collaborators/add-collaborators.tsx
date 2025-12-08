@@ -95,6 +95,9 @@ export const AddCollaborators: React.FC<Props> = ({
   );
   const isFlyout = mode === "flyout";
   const student = useStudentProjectFunctionality(project_id);
+  const accountCustomize = useTypedRedux("account", "customize")?.toJS() as
+    | { disableCollaborators?: boolean }
+    | undefined;
   const user_map = useTypedRedux("users", "user_map");
   const project_map = useTypedRedux("projects", "project_map");
   const project: Project | undefined = useMemo(
@@ -684,7 +687,7 @@ export const AddCollaborators: React.FC<Props> = ({
     );
   }
 
-  if (student.disableCollaborators) {
+  if (student.disableCollaborators || accountCustomize?.disableCollaborators) {
     return <div></div>;
   }
 

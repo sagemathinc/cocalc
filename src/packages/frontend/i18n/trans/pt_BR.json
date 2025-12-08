@@ -1046,7 +1046,6 @@
   "labels.linux_terminal": "Terminal Linux",
   "labels.loading": "Carregando...",
   "labels.log": "Registro",
-  "labels.masked_files": "{masked, select, true {Ocultar arquivos mascarados} other {Mostrar arquivos mascarados}}. Arquivos mascarados são arquivos gerados automaticamente ou temporários, que não devem ser editados. Eles estão esmaecidos.",
   "labels.message.plural": "{num, plural, one {Mensagem} other {Mensagens}}",
   "labels.messages": "Mensagens",
   "labels.messages.all_messages": "Todas as mensagens",
