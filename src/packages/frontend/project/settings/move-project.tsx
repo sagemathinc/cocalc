@@ -1,8 +1,9 @@
-import { Button, Popconfirm } from "antd";
-import { useActions, useAsyncEffect } from "@cocalc/frontend/app-framework";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { Button, Popconfirm, Spin } from "antd";
+import { useActions } from "@cocalc/frontend/app-framework";
 import { useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import ShowError from "@cocalc/frontend/components/error";
 
 interface Props {
   project_id: string;
@@ -17,39 +18,25 @@ export default function MoveProject({
   size,
   force,
 }: Props) {
+  const [moving, setMoving] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
   const actions = useActions("projects");
-  const [counter, setCounter] = useState<number>(0);
-  const [server, setServer] = useState<string | null>(null);
-  useAsyncEffect(async () => {
-    const runner = webapp_client.conat_client.projectRunner(project_id);
-    setServer((await runner.status()).server ?? null);
-  }, [project_id, counter]);
+  const host = useTypedRedux("projects", "project_map")
+    ?.getIn([project_id, "host"])
+    // @ts-ignore
+    ?.toJS();
+  const url = host?.public_url ?? host?.internal_url ?? "Not Assigned";
 
   const text = (
     <div style={{ maxWidth: "300px" }}>
-      {server && (
-        <div>
-          <b>
-            Project Runner: <code>'{server}'</code>
-          </b>
-        </div>
-      )}
-      {!server && (
-        <div>
-          <b>Project Runner: Not Available</b>
-        </div>
-      )}
-      {force ? (
-        <>
-          Force the project to move even if it didn't save all files to the file
-          server. <b>This is potentially dangerous</b> since it uses only the
-          files on the central file server, which you can browse right now in
-          the file explorer.
-        </>
-      ) : (
-        <>You can move this project to another project runner.</>
-      )}{" "}
-      Any files in <code>/scratch</code> will be lost.
+      <div>
+        <b>
+          Project Host: <code>'{url}'</code>
+        </b>
+      </div>
+      <>You can move this project to another host.</>
+      <br />
+      Files in <code>/scratch</code> will be lost.
     </div>
   );
 
@@ -59,14 +46,26 @@ export default function MoveProject({
       arrow={{ pointAtCenter: true }}
       title={text}
       onConfirm={async () => {
-        await actions.move_project(project_id, force);
-        setCounter(counter + 1);
+        try {
+          setMoving(true);
+          await actions.move_project(project_id);
+        } catch (err) {
+          setError(err);
+        } finally {
+          setMoving(false);
+        }
       }}
-      okText={`${force ? "Force " : ""}Move Project`}
+      okText={"Move Project"}
     >
-      <Button disabled={disabled || actions == null} size={size} danger={force}>
-        <Icon name="servers" /> {server ? `Runner: "${server}"...` : "Move..."}
+      <Button
+        disabled={moving || disabled || actions == null}
+        size={size}
+        danger={force}
+      >
+        <Icon name="servers" /> {url}
+        {moving && <Spin />}
       </Button>
+      <ShowError error={error} setError={setError} />
     </Popconfirm>
   );
 }

@@ -57,6 +57,7 @@ export const projects = {
   getSshKeys: authFirstRequireProject,
 
   moveProject: authFirstRequireAccount,
+  getMoveStatus: authFirstRequireAccount,
 };
 
 export type AddCollaborator =

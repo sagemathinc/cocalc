@@ -1095,25 +1095,35 @@ export class ProjectsActions extends Actions<ProjectsState> {
     },
   );
 
-  move_project = reuseInFlight(
-    async (project_id: string, force?: boolean): Promise<boolean> => {
-      const runner = webapp_client.conat_client.projectRunner(project_id);
-      const actions = redux.getProjectActions(project_id);
-      try {
-        await runner.move({ force });
-      } catch (err) {
-        actions.setState({ control_error: `Error move project -- ${err}` });
-        await runner.status({ project_id });
-        throw err;
+  move_project = reuseInFlight(async (project_id: string): Promise<boolean> => {
+    const host_id = store.getIn(["project_map", project_id, "host_id"]);
+    try {
+      // start the move going
+      await webapp_client.conat_client.hub.projects.moveProject({ project_id });
+      // wait for it to finish
+      while (store.getIn(["project_map", project_id, "host_id"]) == host_id) {
+        await once(store, "change");
+        const status =
+          await webapp_client.conat_client.hub.projects.getMoveStatus({
+            project_id,
+          });
+        if (status?.state == "done") {
+          break;
+        }
+        if (status?.state == "failing") {
+          throw Error(status.status_reason ?? "failed");
+        }
       }
-      actions.setState({ control_error: "" });
-      this.optimisticProjectStateUpdate(project_id, "opened");
-      this.project_log(project_id, {
-        event: "project_moved",
-      });
-      return true;
-    },
-  );
+    } catch (err) {
+      const actions = redux.getProjectActions(project_id);
+      actions.setState({ control_error: `Error move project -- ${err}` });
+      throw err;
+    }
+    this.project_log(project_id, {
+      event: "project_moved",
+    });
+    return true;
+  });
 
   restart_project = reuseInFlight(
     async (project_id: string, options?): Promise<void> => {
