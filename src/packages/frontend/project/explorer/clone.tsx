@@ -48,7 +48,7 @@ export default function CloneProject({ project_id, flyout }: Props) {
       <Tooltip
         title={
           <>
-            Cloning makes a copy "
+            Cloning makes a copy of "
             <ProjectTitle project_id={project_id} noClick />
             ", including any customization to the root filesystem / (e.g.,
             systemwide software install), but without any TimeTravel edit

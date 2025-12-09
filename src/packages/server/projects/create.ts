@@ -69,7 +69,8 @@ export default async function createProject(opts: CreateProjectOptions) {
       throw Error("user must be a collaborator on src_project_id");
     }
     // create filesystem for new project as a clone.
-    const client = filesystemClient();
+    // Route clone to the host that owns the source project.
+    const client = filesystemClient({ project_id: src_project_id });
     await client.clone({ project_id, src_project_id });
     // CRITICAL to delete the ssh config info because (1) it's sensitive, but
     // (2) it'll confuse things on the first startup when mutagen will overwrite

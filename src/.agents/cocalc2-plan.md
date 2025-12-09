@@ -1,21 +1,19 @@
 ## Checklist for alpha release
 
-- [ ] implement move project using btrfs
-  - [x] deleting snapshot fails after a move \(some stale state somewhere on the backend; not sure\)
+- [x] Quota/usage widget missing in the explorer
 
-- [ ] Backups \-\- Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
-  - [ ] creating larger backups errors in the frontend due to timeout \(backup is created\).
-  - [ ] deleting backups doesn't do anything right now, and should have a popconfirm
+- [ ] Clone project \-\- doesn't work \(uses old load balancer/project runner model?\)  <img src="http://localhost:7000/blobs/paste-0.9326538883929776?uuid=af92f25b-3994-40bf-b24b-da7a36424f61"   width="472.543px"  height="171.783px"  style="object-fit:cover"/>
 
-- [ ] File/quotas/backups UX: 
-  - [ ] default quota \+ snapshot/backup counts on project create; 
-  - [ ] expose image/pull errors cleanly; 
-  - [ ] add image allowlist \(e.g., ubuntu:25.10\) and fallback behavior.
-  
+- [ ] Image selection has no effect
+
+- [ ] image suggested list \(e.g., ubuntu:25.10\) and fallback behavior.
+   - have an advanced checkbox so people can enter any image with appropriate caveats
+
+- [ ] expose image/pull errors cleanly
+
 ## Checklist for beta release
 
 - [ ] rewrite stopIdleProjects to use new architecture \(and everything that used the old project runner load balancer code\)
-
 
 - [ ] Kubernetes support
 
@@ -48,6 +46,9 @@
 
 - [ ] eliminate payg \(=pay as you go\) entirely for projects
   - easy: just hide a box in the ui...
+
+- [ ] Backups \-\- Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
+  - [ ] creating larger backups errors in the frontend due to timeout \(backup is created\).
 
 ## Checklist for public release
 
@@ -205,6 +206,14 @@ flowchart LR
   - I don't know how to do this, except by possibly having to fork sshpiperd or rewrite that plugin... but that's fine.
 
 ## Completed
+
+- [x] Backups \-\- Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
+
+
+
+- [x] implement move project using btrfs
+  - [x] deleting snapshot fails after a move \(some stale state somewhere on the backend; not sure\)
+
 
 - move
   - [x] snapshot creation after move broken due to missing qgroup \(?\)

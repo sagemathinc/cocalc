@@ -146,7 +146,9 @@ export async function getDiskQuota({
     // I'm not sure how this will work...
     throw Error(`getDiskQuota: disk quota for compute server not implemented`);
   }
-  const client = filesystemClient();
+  // Route directly to the project-host that owns this project so quota reflects
+  // the correct btrfs volume.
+  const client = filesystemClient({ project_id });
   return await client.getQuota({ project_id });
 }
 
