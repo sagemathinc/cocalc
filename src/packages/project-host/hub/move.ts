@@ -29,6 +29,7 @@ import { basename } from "node:path";
 import { tmpdir } from "node:os";
 import { MoveProgress } from "./move-progress";
 import { getMasterConatClient } from "../master-status";
+import { getSubvolumeId } from "@cocalc/file-server/btrfs/subvolume";
 
 // NOTE: we implemented both a direct pipe and a staged move mode.
 //   pipe -- use a single pipe and send|receive directly; optimal in terms of
@@ -47,6 +48,31 @@ import { getMasterConatClient } from "../master-status";
 const MOVE_MODE = "pipe"; // or 'staged'
 
 const logger = getLogger("project-host:hub:move");
+
+async function ensureQgroupForSubvolume(path: string) {
+  // When a project is moved the received subvolume gets a new ID, so we must
+  // recreate the qgroup hierarchy (0/<id> -> 1/<id>) using the new ID; otherwise
+  // future snapshot/backup operations will fail with "Invalid argument".
+  const id = await getSubvolumeId(path);
+  const mount = getMountPoint();
+  // Best effort: enable quota on the mount (idempotent).
+  await runCmd(logger, "sudo", ["btrfs", "quota", "enable", mount]).catch(
+    () => {},
+  );
+  // Create/refresh the 1/<id> qgroup for this subvolume.
+  await runCmd(logger, "sudo", ["btrfs", "qgroup", "create", `1/${id}`, path]).catch(
+    () => {},
+  );
+  // Ensure the subvolume qgroup is linked to its parent.
+  await runCmd(logger, "sudo", [
+    "btrfs",
+    "qgroup",
+    "assign",
+    `0/${id}`,
+    `1/${id}`,
+    path,
+  ]);
+}
 
 async function deleteSubvol(path: string) {
   try {
@@ -845,6 +871,7 @@ export async function finalizeReceiveProject({
     destPath,
   ]);
   await mkdir(join(destPath, ".snapshots"), { recursive: true });
+  await ensureQgroupForSubvolume(destPath);
 
   // Re-home snapshots under the project.
   for (const meta of snapMetas) {

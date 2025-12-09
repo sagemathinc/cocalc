@@ -199,4 +199,5 @@ patchflow
 *.chat
 *.js.map
 
-src/packages/project-host/data*/
+data-0
+data-1
