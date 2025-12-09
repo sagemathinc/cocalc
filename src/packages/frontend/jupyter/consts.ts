@@ -4,6 +4,7 @@ import { COLORS } from "@cocalc/util/theme";
 export const CODE_BAR_BTN_STYLE: CSS = {
   fontSize: "12px",
   color: COLORS.GRAY_M,
+  height: "24px",
 } as const;
 
 export const MINI_BUTTONS_STYLE_INNER: CSS = {

@@ -20,13 +20,14 @@ import { LLMTools } from "@cocalc/jupyter/types";
 import { CellType } from "@cocalc/util/jupyter/types";
 import { filename_extension, startswith } from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
-import { CellButtonBar } from "./cell-buttonbar";
+import { CellButtonBar, PlaceholderButtonBar } from "./cell-buttonbar";
 import { CellHiddenPart } from "./cell-hidden-part";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
 import { Position } from "./insert-cell/types";
 import { InputPrompt } from "./prompt/input";
 import { SimpleInputMerge } from "@cocalc/sync/editor/generic/simple-input-merge";
+import { IS_TOUCH } from "@cocalc/frontend/feature";
 
 function attachmentTransform(
   cell: Map<string, any>,
@@ -77,6 +78,7 @@ export interface CellInputProps {
 export const CellInput: React.FC<CellInputProps> = React.memo(
   (props) => {
     const frameActions = useNotebookFrameActions();
+    const [showButtons, setShowButtons] = useState<boolean>(IS_TOUCH);
 
     // input should always be a string, but typescript doesn't
     // guarantee it. I have hit this in production: https://sagemathcloud.zendesk.com/agent/tickets/8963
@@ -403,6 +405,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       if (fileContext.disableExtraButtons) {
         return;
       }
+      if (!showButtons) {
+        return <PlaceholderButtonBar />;
+      }
       return (
         <CellButtonBar
           id={props.id}
@@ -431,7 +436,14 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           urlTransform,
         }}
       >
-        <div>
+        <div
+          onMouseEnter={() => {
+            if (!IS_TOUCH) setShowButtons(true);
+          }}
+          onMouseLeave={() => {
+            if (!IS_TOUCH) setShowButtons(false);
+          }}
+        >
           {render_cell_buttonbar()}
           {render_cell_toolbar()}
           <div

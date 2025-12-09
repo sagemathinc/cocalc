@@ -33,6 +33,10 @@ import {
 } from "./consts";
 import { LLMCellTool } from "./llm/cell-tool";
 
+export function PlaceholderButtonBar() {
+  return <div style={CODE_BAR_BTN_STYLE}>hi</div>;
+}
+
 interface Props {
   id: string;
   cell_type: CellType;

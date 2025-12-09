@@ -5,10 +5,7 @@
 
 - [ ] bootlog seems flakie -- sometimes it isn't connected
 
-- [ ] suggested image list \(e.g., ubuntu:25.10\) and fallback behavior.
-   - have an advanced checkbox so people can enter any image with appropriate caveats
-
-- [ ] expose image/pull errors cleanly
+## Checklist for beta release
 
 - [ ] restore from backup for a larger restore:
     - times out
@@ -16,7 +13,8 @@
     - but it definitely works!
     - obviously fully restoring and starting at the same time would be very bad.
 
-## Checklist for beta release
+- [ ] suggested image list \(e.g., ubuntu:25.10\) and fallback behavior.
+   - have an advanced checkbox so people can enter any image with appropriate caveats
 
 - [ ] rewrite stopIdleProjects to use new architecture \(and everything that used the old project runner load balancer code\)
 
@@ -230,6 +228,8 @@ flowchart LR
 
 - [x] implement move project using btrfs
   - [x] deleting snapshot fails after a move \(some stale state somewhere on the backend; not sure\)
+- [x] expose image/pull errors cleanly
+
 
 
 - move
