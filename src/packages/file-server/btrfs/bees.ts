@@ -25,6 +25,13 @@ export default async function bees(
   mountpoint: string,
   { loadavgTarget = 1, verbose = 1, size = "1G" }: Options = {},
 ) {
+  if (process.env.COCALC_DISABLE_BEES) {
+    logger.debug(
+      "bees: COCALC_DISABLE_BEES is set to not running bees",
+      mountpoint,
+    );
+    return;
+  }
   const beeshome = join(mountpoint, ".beeshome");
   if (!(await exists(beeshome))) {
     await sudo({ command: "btrfs", args: ["subvolume", "create", beeshome] });

@@ -50,7 +50,7 @@ Storage / Repos
 
 - [cocalc.com](http://cocalc.com): GCS with Autoclass; replicated buckets optional. Backups must be globally readable by trusted hosts for cross\-host restore.
 - Untrusted hosts: use per\-host \(or per\-tenant\) buckets/credentials, or signed\-URL gateway uploads so untrusted hosts lack broad bucket access.
-  - Untrusted hosts can also de\-archive projects backed up to a trusted bucket, but the project must first be extracted on trusted project\-host, then moved to the untrusted host.
+  - Untrusted hosts can also de\-archive projects backed up to a trusted bucket, but the project must first be extracted on trusted project\-host, then moved to the untrusted host via ssh _from_ the trusted host to the untrusted host.
 - On\-prem: repo location is configurable \(local/NAS/S3\-compatible\).
 
 Observability

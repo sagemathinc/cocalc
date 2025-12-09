@@ -26,10 +26,16 @@ import { type SnapshotCounts, updateRollingSnapshots } from "./snapshots";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { ConatError } from "@cocalc/conat/core/client";
 import { DEFAULT_BACKUP_COUNTS } from "@cocalc/util/consts/snapshots";
+import { syncFiles } from "@cocalc/backend/data";
+import { isValidUUID } from "@cocalc/util/misc";
+import { join } from "node:path";
+import { stat } from "node:fs/promises";
+import { sudo } from "./util";
 
 export const RUSTIC = "rustic";
 
 const RUSTIC_SNAPSHOT = "temp-rustic-snapshot";
+const PERSIST_STAGING = ".cocalc-persist";
 
 const logger = getLogger("file-server:btrfs:subvolume-rustic");
 
@@ -41,6 +47,62 @@ interface Snapshot {
 
 export class SubvolumeRustic {
   constructor(public readonly subvolume: Subvolume) {}
+
+  private projectId(): string | undefined {
+    const prefix = "project-";
+    if (!this.subvolume.name.startsWith(prefix)) return undefined;
+    const id = this.subvolume.name.slice(prefix.length);
+    return isValidUUID(id) ? id : undefined;
+  }
+
+  private persistPath(): string | undefined {
+    const id = this.projectId();
+    if (!id) return undefined;
+    return join(syncFiles.local, "projects", id);
+  }
+
+  private async pathExists(path: string): Promise<boolean> {
+    try {
+      await stat(path);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Stage the per-project persist store inside the project tree so it gets included
+  // in the temporary backup snapshot. Returns true if staging occurred.
+  private async stagePersist(): Promise<boolean> {
+    const persist = this.persistPath();
+    if (!persist || !(await this.pathExists(persist))) return false;
+    const staging = join(this.subvolume.path, PERSIST_STAGING);
+    await sudo({ command: "rm", args: ["-rf", staging] }).catch(() => {});
+    await sudo({ command: "mkdir", args: ["-p", staging] });
+    await sudo({
+      command: "rsync",
+      args: ["-a", `${persist}/`, `${staging}/`],
+    });
+    return true;
+  }
+
+  private async cleanupPersistStaging() {
+    const staging = join(this.subvolume.path, PERSIST_STAGING);
+    await sudo({ command: "rm", args: ["-rf", staging] }).catch(() => {});
+  }
+
+  private async restorePersistFromStaging() {
+    const persist = this.persistPath();
+    if (!persist) return;
+    const staging = join(this.subvolume.path, PERSIST_STAGING);
+    if (!(await this.pathExists(staging))) return;
+    await sudo({ command: "rm", args: ["-rf", persist] }).catch(() => {});
+    await sudo({ command: "mkdir", args: ["-p", persist] });
+    await sudo({
+      command: "rsync",
+      args: ["-a", `${staging}/`, `${persist}/`],
+    });
+    await sudo({ command: "rm", args: ["-rf", staging] }).catch(() => {});
+  }
 
   // create a new rustic backup
   backup = async ({
@@ -58,7 +120,9 @@ export class SubvolumeRustic {
       await this.subvolume.snapshots.delete(RUSTIC_SNAPSHOT);
     }
     const target = this.subvolume.snapshots.path(RUSTIC_SNAPSHOT);
+    let stagedPersist = false;
     try {
+      stagedPersist = await this.stagePersist();
       logger.debug(
         `backup: creating ${RUSTIC_SNAPSHOT} to get a consistent backup`,
       );
@@ -74,6 +138,9 @@ export class SubvolumeRustic {
       return { time: new Date(time), id, summary };
     } finally {
       this.snapshotsCache = null;
+      if (stagedPersist) {
+        await this.cleanupPersistStaging();
+      }
       logger.debug(`backup: deleting temporary ${RUSTIC_SNAPSHOT}`);
       try {
         await this.subvolume.snapshots.delete(RUSTIC_SNAPSHOT);
@@ -99,6 +166,11 @@ export class SubvolumeRustic {
         { timeout },
       ),
     );
+    // If this was a full restore (default dest) and the backup contained the
+    // staged persist directory, relocate it to the host-level persist store.
+    if (!path && (!dest || dest === "" || dest === path)) {
+      await this.restorePersistFromStaging();
+    }
     return stdout;
   };
 
@@ -112,7 +184,7 @@ export class SubvolumeRustic {
     const { stdout } = parseOutput(
       await this.subvolume.fs.rustic(["snapshots", "--json"]),
     );
-    const snapshots = JSON.parse(stdout)[0]?.snapshots;
+    const snapshots = JSON.parse(stdout)?.[0]?.snapshots;
     /* stdout = [
   {
     "group_key": {

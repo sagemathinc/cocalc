@@ -9,7 +9,8 @@
   - [x] **Cleanup/rollback:** partial moves don’t clean up temp snapshots on source/dest or roll back assignments.
   - [x] sendProject timeout issue
   - [x] issue with creating snapshots after a move being broken:
-  - [ ] move persist files as well
+  - [x] move persist files as well
+  - [ ] deleting snapshot fails after a move
      
 
 

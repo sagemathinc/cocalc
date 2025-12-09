@@ -58,6 +58,7 @@ function start() {
 
   const env = {
     ...process.env,
+    COCALC_DISABLE_BEES: "yes",
     MASTER_CONAT_SERVER: "http://localhost:9001",
     PROJECT_HOST_NAME: `host-${index}`,
     PROJECT_HOST_REGION: "west",

@@ -15,27 +15,17 @@ import {
   client,
   wait,
 } from "@cocalc/backend/conat/test/setup";
-import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
-import { init as initFileserver } from "@cocalc/server/conat/file-server";
-import {
-  before as fileserverTestInit,
-  after as fileserverTestClose,
-} from "@cocalc/file-server/btrfs/test/setup";
-import { init as initProjectRunner } from "@cocalc/server/conat/project/run";
-import { init as initProjectRunnerLoadBalancer } from "@cocalc/server/conat/project/load-balancer";
-import { delay } from "awaiting";
 
 export { client, connect, getPool, initEphemeralDatabase, wait };
 
 let opts: any = {};
 export async function before({
   noConat,
-  noFileserver,
+  noFileserver: _,
   noDatabase,
 }: { noConat?: boolean; noFileserver?: boolean; noDatabase?: boolean } = {}) {
   opts = {
     noConat,
-    noFileserver,
     noDatabase,
   };
   if (!noDatabase) {
@@ -46,29 +36,12 @@ export async function before({
     // run a conat socketio server
     await conatTestInit();
   }
-
-  if (!noFileserver && !noConat) {
-    // run server that can provides an enchanced fs module for files on the local filesystem
-    await localPathFileserver();
-
-    const ephemeralFilesystem = await fileserverTestInit();
-    // server that provides a btrfs managed filesystem
-    await initFileserver(ephemeralFilesystem);
-
-    await initProjectRunner();
-    await initProjectRunnerLoadBalancer();
-  }
 }
 
 export async function after() {
-  const { noConat, noFileserver, noDatabase } = opts;
+  const { noConat, noDatabase } = opts;
   if (!noDatabase) {
     await getPool().end();
-  }
-
-  if (!noFileserver && !noConat) {
-    await fileserverTestClose();
-    await delay(1000);
   }
 
   if (!noConat) {

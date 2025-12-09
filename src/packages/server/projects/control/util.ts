@@ -6,21 +6,16 @@ import { getProject } from ".";
 import { pidFilename } from "@cocalc/util/project-info";
 import { executeCode } from "@cocalc/backend/execute-code";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
-import {
-  client as fileserverClient,
-  type Fileserver,
-} from "@cocalc/server/conat/file-server";
 const logger = getLogger("project-control:util");
 
 export function dataPath(HOME: string): string {
   return join(HOME, ".smc");
 }
 
-let fsclient: Fileserver | null = null;
 export async function homePath(project_id: string): Promise<string> {
-  fsclient ??= fileserverClient();
-  const { path } = await fsclient.mount({ project_id });
-  return path;
+  throw Error(
+    `DEPRECATED: homePath isn't located on this server ${project_id}`,
+  );
 }
 
 export function getUsername(_project_id: string): string {

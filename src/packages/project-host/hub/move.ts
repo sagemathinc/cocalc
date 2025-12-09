@@ -73,7 +73,7 @@ async function stagePersistForMove(
   const staging = join(projectPath, PERSIST_STAGING);
   await runCmd(logger, "sudo", ["rm", "-rf", staging]).catch(() => {});
   await runCmd(logger, "sudo", ["mkdir", "-p", staging]);
-  await runCmd(logger, "sudo", [
+  await runCmd(logger, "sudo" , [
     "rsync",
     "-a",
     `${src}/`,
