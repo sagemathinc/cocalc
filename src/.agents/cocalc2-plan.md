@@ -4,7 +4,9 @@
 
 - [ ] Clone project \-\- doesn't work \(uses old load balancer/project runner model?\)  <img src="http://localhost:7000/blobs/paste-0.9326538883929776?uuid=af92f25b-3994-40bf-b24b-da7a36424f61"   width="472.543px"  height="171.783px"  style="object-fit:cover"/>
 
-- [ ] Image selection has no effect
+- [x] Image selection has no effect
+
+- [ ] if starting a project takes more than about 10s, e.g., due to rootfs pull, then get an error.  Fix - change the api to to just make the project start starting and return immediately; it doesn't wait until done.  There's the bootlog and database/changefeed statechange for info about what happens.  There can be an *option* to wait, for clients that select a longer timeout.
 
 - [ ] image suggested list \(e.g., ubuntu:25.10\) and fallback behavior.
    - have an advanced checkbox so people can enter any image with appropriate caveats
@@ -16,6 +18,10 @@
 - [ ] rewrite stopIdleProjects to use new architecture \(and everything that used the old project runner load balancer code\)
 
 - [ ] Kubernetes support
+
+- [ ] fuse mount support via a sidecar container, for functional parity with cocalc.com today
+   - [ ] sshfs
+   - [ ] s3 buckets
 
 - [ ] Reflect sync path sharing.
   - [ ] internal to a project\-host; currently uses mutagen, so rewrite to use reflect\-sync
