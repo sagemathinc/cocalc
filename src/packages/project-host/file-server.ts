@@ -308,7 +308,7 @@ async function getBackupFiles({
   project_id: string;
   id: string;
   path?: string;
-}): Promise<string[]> {
+}): Promise<{ name: string; isDir: boolean; mtime: number; size: number }[]> {
   const vol = await getVolume(project_id);
   return await vol.rustic.ls({ id, path });
 }

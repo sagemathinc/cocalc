@@ -16,45 +16,6 @@ function isBackupsPath(path: string) {
   return path === BACKUPS || path.startsWith(`${BACKUPS}/`);
 }
 
-function normalizePath(path: string) {
-  // remove leading/trailing slashes
-  return path.replace(/^\/+/, "").replace(/\/+$/, "");
-}
-
-function buildListing({
-  paths,
-  prefix,
-  mtime,
-}: {
-  paths: string[];
-  prefix: string;
-  mtime: number;
-}): DirectoryListingEntry[] {
-  const entries = new Map<string, DirectoryListingEntry>();
-  const normalizedPrefix = prefix ? `${normalizePath(prefix)}/` : "";
-  for (const raw of paths) {
-    const path = normalizePath(raw);
-    if (normalizedPrefix && !path.startsWith(normalizedPrefix)) continue;
-    const remainder = normalizedPrefix
-      ? path.slice(normalizedPrefix.length)
-      : path;
-    if (!remainder) continue;
-    const [name, ...rest] = remainder.split("/");
-    const existing = entries.get(name);
-    const isDir = rest.length > 0;
-    const entry: DirectoryListingEntry = {
-      name,
-      mtime,
-      size: 0,
-      isDir: isDir || existing?.isDir,
-    };
-    entries.set(name, { ...existing, ...entry });
-  }
-  const listing = Array.from(entries.values());
-  listing.sort(field_cmp("name"));
-  return listing;
-}
-
 export default function useBackupsListing({
   project_id,
   path,
@@ -119,29 +80,18 @@ export default function useBackupsListing({
         throw new Error(`backup '${backupName}' not found`);
       }
       const subpath = parts.slice(2).join("/");
-      const pathsRaw: string[] =
+      const entriesRaw: { name: string; isDir: boolean; mtime: number; size: number }[] =
         (await webapp_client.conat_client.hub.projects.getBackupFiles({
           project_id,
           id: backup.id,
           path: subpath,
         })) ?? [];
-      let paths = pathsRaw;
-      if (
-        subpath &&
-        !pathsRaw.every(
-          (p) => p.startsWith(subpath + "/") || p === subpath,
-        )
-      ) {
-        // rustic may return paths relative to the requested subpath; normalize
-        paths = pathsRaw.map((p) =>
-          p ? `${normalizePath(subpath)}/${normalizePath(p)}` : subpath,
-        );
-      }
-      let entries = buildListing({
-        paths,
-        prefix: subpath,
-        mtime: backup.mtime,
-      });
+      const entries = entriesRaw.map(({ name, isDir, mtime, size }) => ({
+        name,
+        isDir,
+        mtime,
+        size,
+      }));
       entries.sort(field_cmp(sortField));
       if (sortDirection === "desc") entries.reverse();
       setListing(entries);

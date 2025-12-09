@@ -166,11 +166,12 @@ export function FileListing({
             message="Snapshots vs Backups"
             description={
               <>
-                Snapshots in this folder are fast local filesystem checkpoints
-                on the current project host. Backups are durable, deduplicated
-                archives stored separately. Use Backups to restore files that
-                might be missing from snapshots or if a project host is not
-                available.
+                Snapshots in this folder are fast local readonly filesystem
+                checkpoints on the current project host, which you can directly
+                open or copy. Backups are durable, deduplicated archives stored
+                separately, which can only be restored. Use Backups to restore
+                files that might be missing from snapshots or if a project host
+                is not available.
               </>
             }
             action={

@@ -250,37 +250,48 @@ export class SubvolumeRustic {
     return v;
   });
 
-  // return list of paths of files in this backup, as paths relative
-  // to HOME, and sorted in alphabetical order. If path is given, call
-  // `rustic ls <id> <path>` and return only entries under that prefix.
-  ls = async ({ id, path = "" }: { id: string; path?: string }) => {
-    const args = ["ls", "--json"];
-    if (path != null) {
-      args.push(`${id}:${path}`);
-    } else {
-      args.push(id);
+  // Return directory listing (non-recursive) for the given path in a backup.
+  // Uses `rustic ls -l snapshot[:path]` and parses the human output to extract
+  // name/isDir/mtime/size. rustic --json does not support -l, so we parse text.
+  ls = async ({
+    id,
+    path = "",
+  }: {
+    id: string;
+    path?: string;
+  }): Promise<
+    { name: string; isDir: boolean; mtime: number; size: number }[]
+  > => {
+    const target = `${id}:${path}`;
+    const { stdout } = parseOutput(
+      await this.subvolume.fs.rustic(["ls", "-l", target]),
+    );
+    const entries: {
+      name: string;
+      isDir: boolean;
+      mtime: number;
+      size: number;
+    }[] = [];
+    const lines = stdout.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const firstQuote = trimmed.indexOf('"');
+      const lastQuote = trimmed.lastIndexOf('"');
+      if (firstQuote === -1 || lastQuote === -1 || lastQuote <= firstQuote)
+        continue;
+      const name = trimmed.slice(firstQuote + 1, lastQuote);
+      const fields = trimmed.slice(0, firstQuote).trim().split(/\s+/);
+      if (fields.length < 8) continue;
+      const perms = fields[0];
+      const isDir = perms.startsWith("d");
+      const size = Number(fields[3]) || 0;
+      const dateStr = `${fields[4]} ${fields[5]} ${fields[6]} ${fields[7]}`;
+      const mtime = Date.parse(dateStr);
+      entries.push({ name, isDir, mtime: isNaN(mtime) ? 0 : mtime, size });
     }
-    const { stdout } = parseOutput(await this.subvolume.fs.rustic(args));
-    const parsed = JSON.parse(stdout);
-    let paths: string[] = [];
-    if (Array.isArray(parsed)) {
-      paths = parsed.map((v) => {
-        if (typeof v === "string") return v;
-        if (typeof v?.path === "string") return v.path;
-        if (typeof v?.node?.path === "string") return v.node.path;
-        return undefined;
-      });
-    } else if (Array.isArray(parsed?.nodes)) {
-      paths = parsed.nodes.map((v) => {
-        if (typeof v === "string") return v;
-        if (typeof v?.path === "string") return v.path;
-        if (typeof v?.node?.path === "string") return v.node.path;
-        return undefined;
-      });
-    }
-    paths = paths.filter((x): x is string => typeof x === "string");
-    paths.sort();
-    return paths;
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    return entries;
   };
 
   // Delete this backup.  It's genuinely not accessible anymore, though

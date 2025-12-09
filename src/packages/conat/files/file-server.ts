@@ -130,13 +130,15 @@ export interface Fileserver {
     }[]
   >;
 
-  // Return list of files in the given backup. Optional path narrows the
-  // results to entries under that path (as returned by `rustic ls`).
+  // Return list of files in the given backup for the given directory path
+  // (non-recursive). Entries include basic metadata.
   getBackupFiles: (opts: {
     project_id: string;
     id: string;
     path?: string;
-  }) => Promise<string[]>;
+  }) => Promise<
+    { name: string; isDir: boolean; mtime: number; size: number }[]
+  >;
 
   /////////////
   // SNAPSHOTS

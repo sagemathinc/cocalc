@@ -537,7 +537,7 @@ export async function getBackupFiles({
 }: {
   project_id: string;
   id: string;
-}): Promise<string[]> {
+}): Promise<{ name: string; isDir: boolean; mtime: number; size: number }[]> {
   if (!isValidUUID(project_id)) {
     throw Error("invalid project_id");
   }
