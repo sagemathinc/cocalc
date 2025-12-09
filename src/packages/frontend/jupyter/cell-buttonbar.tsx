@@ -135,7 +135,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
 
       // ATTN: this must be wrapped in a plain div, otherwise it's own flex & width 100% style disturbs the button bar
       return (
-        <div>
+        <div style={{ marginTop: "6px", color: "#5f5f5f" }}>
           <Dropdown.Button
             size="small"
             type="text"

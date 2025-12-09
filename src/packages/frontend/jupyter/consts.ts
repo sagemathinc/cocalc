@@ -10,7 +10,7 @@ export const CODE_BAR_BTN_STYLE: CSS = {
 export const MINI_BUTTONS_STYLE_INNER: CSS = {
   display: "flex",
   gap: "3px",
-  alignItems: "flex-start",
+  alignItems: "center",
   justifyContent: "flex-end",
   ...CODE_BAR_BTN_STYLE,
   //   borderTop: `1px solid ${COLORS.GRAY_L}`,
