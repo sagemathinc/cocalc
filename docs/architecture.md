@@ -1,236 +1,194 @@
-# CoCalc2 Architecture Overview (Draft)
+# CoCalc Architecture (Current Draft)
 
-> This is a working draft meant to capture the current design in one place.
+> Updated to reflect the new project-host model (Dec 2025). This is a working draft; keep it in sync with the code.
+
+At a glance: The control hub handles auth/config and keeps project placement in Postgres, then routes both conat and HTTP/WS traffic directly to the project\-host that owns a project. Each project\-host combines file\-server, project\-runner, HTTP/WS proxy, conat with persistence, sshpiperd and a local btrfs volume with per\-project subvolumes, quotas, snapshots, and backups \(rustic\). Projects run in podman with overlayfs uppers stored inside the project, so user changes are captured in snapshots/backups and survive moves. Moves stream btrfs sends over sshpiperd to another host; backups push snapshots to a rustic repo. Host keys and placement are distributed over conat so routing stays correct after moves/restarts.
 
 ---
 
-## Goals & Non‑Goals
+## Goals & Non-Goals
 
 **Goals**
 
-- Fast, durable, multi‑tenant project storage with clear quotas.
-- Predictable save from project runner VMs to the central file server \(no “I did work but it can’t be saved”\).
-- Efficient storage via transparent compression; simple mental model for users.
-- Rolling snapshots for user self‑service restore.  Separate quota for snapshots, which users mostly don't worry about.
+- Fast, durable per-project storage with clear quotas.
+- Projects are self-contained on a project-host: file server + runner + proxies together.
+- First-class snapshots and backups; predictable moves between hosts.
+- Low-latency UX by routing directly to the host that owns the project.
 
-**Non‑Goals**
+**Non-Goals**
 
-- Per‑user UID separation on runners \(we rely on containerization and subvolume quotas instead\).
-- Snapshots on runner VMs \(server owns snapshot history; runners are ephemeral\).
-
----
-
-## High‑Level Components
-
-1. **Central File Server** \(single large Btrfs filesystem\)
-   - One Btrfs **subvolume per project** \(live working set\).
-   - Compression enabled \(e.g., `zstd`\).
-   - **Qgroups/Quotas** enabled for hard limits.
-   - **Rolling snapshots** per project for user restore.
-   - Named **user created snapshots**.
-
-2. **Project Runner VMs** \(many; fast local SSD\)
-   - Also Btrfs with compression and **per‑project subvolumes**.
-   - Hard quotas sized slightly below the server quota to maintain save‑back headroom.
-   - No persistent snapshots \(might use short‑lived read only snapshots for atomic rsync of rootfs\).
-
-3. **Sync Layer**
-   - **Mutagen**: near real‑time sync for user home files.
-   - **rsync**: periodic sync for the container rootfs upper overlay.
-
-4. **Web UI & Services**
-   - Surfaced usage and limits \(live and snapshots\), snapshot browser/restore, warnings.
+- Centralized file server as single bottleneck (replaced by many project-hosts).
+- Per-user UID isolation inside projects (containers + quotas instead).
+- Perfect cross-host dedup; backups/moves are host-scoped and routed.
 
 ---
 
-## Storage Model & Quotas
+## High-Level Components
 
-### Per‑Project Subvolume (File Server)
+1) **Control Hub (master)**
 
-- Each project lives at `/mnt/project-<project-id>` as its **own subvolume**.
-- **Compression** is enabled at the filesystem level; **quotas are enforced** _**after compression**_.
-- Two distinct quota budget buckets:
-  - **Live quota**: applies to the live subvolume.
-  - **Snapshots quota**: applies to the aggregate of _all_ snapshots for that project.
-- Quota for snapshots will be a simple function \(probably 2x\) of the live quota.
+- Auth/billing/config and the source of project placement metadata (Postgres).
+- Runs conat for control-plane RPC (project-host registry, project start/stop/move, backups).
+- Proxies HTTP to project-hosts for project-facing URLs; routes conat subjects to the right host.
+- Maintains `projects` rows (host_id, host info, rootfs_image, quotas, move_status) and `project_hosts` registry.
+- Internally the “hub” is a pool of Node.js hub/server processes plus the shared Postgres database; hub processes are elastic/ephemeral, Postgres is the durable source of truth.
 
-### Qgroups Structure
+2) **Project Hosts**
 
-- Btrfs assigns each subvolume an implicit qgroup `0/<live-id>`.
-- We create an **aggregate qgroup** `1/<live-id>` for that project’s snapshots.
-- We apply limits:
-  - **Live**: limit `0/<live-id>` \(or the path directly\) to, say, **10 GiB**.
-  - **Snapshots**: limit `1/<live-id>` to, say, **20 GiB** total across all snapshots.
-- On snapshot creation, we assign the snapshot’s `0/<snap-id>` **into** `1/<live-id>`.
-- Using the **live subvolume ID as the aggregate id** avoids external ID bookkeeping.
+- Combined file-server + project-runner + proxies on a btrfs volume.
+- SQLite state per host: projects table (ports, users, image, quotas, auth keys), host keys, backup jobs.
+- Services:
+  - File server (btrfs operations, quotas, snapshots, backups).
+  - Project runner (podman) with overlayfs rootfs per image.
+  - HTTP proxy (to project containers) and SSH ingress via sshpiperd.
+  - Conat server for project services (fs, terminal, etc.).
+- Backups: rustic repo per host (configurable; GCS on cocalc.com).
 
-### Runner VM Quotas
+3) **Projects (containers)**
 
-- Each runner has a **per‑project subvolume** with **quota set to ~85–90%** of the server’s live quota.
-- Rationale: keeps **headroom** so save‑back to the server succeeds even if compression ratios differ.
+- Podman container per project with overlayfs upperdir in `.local/share/overlay/` keyed by image.
+- Ports: internal HTTP proxy on 80; SSH on per-project port.
+- Rootfs image: `rootfs_image` (or legacy `compute_image`) normalized on host, cached locally.
+- Persist store: per-project data/kv streams under `sync/projects/<project_id>` on the host.
 
-### User‑Facing Explanation (docs‑ready blurb)
+4) **Proxies**
 
-> **Storage quota is measured after compression.** Your project has a quota that measures the actual space consumed on disk. If your data compresses well, the sum of file sizes you see in the editor may exceed your quota and still fit. Snapshots have a separate quota \(twice the project quota\) that limits how much historical data is retained.
+- HTTP: master proxies `/PROJECT/port/<p>/...` to the owning host; project-host proxies to container:80 with `prependPath:false`.
+- SSH: sshpiperd on each host terminates SSH and forwards to the project sshd (user-level) or host-level btrfs/host-ssh endpoints with forced commands.
+
+---
+
+## Diagram (request/compute/data)
+
+```mermaid
+flowchart TD
+  Browser["Browser / client"]
+  Hub["Control Hub<br/>(auth, Postgres, conat, HTTP proxy)"]
+  Host["Project Host<br/>(sqlite, conat server)"]
+  FS["File Server<br/>(btrfs, quotas, snapshots, backups)"]
+  Runner["Project Runner<br/>(podman, overlayfs upper)"]
+  Proxy["Host Proxies<br/>HTTP/ws + sshpiperd"]
+  Repo["Rustic Repo<br/>(GCS/S3/disk)"]
+
+  Browser -->|conat + HTTP| Hub
+  Hub -->|route project| Host
+  Hub -->|registry / placement| Repo
+
+  Host --> Proxy
+  Proxy --> Runner
+  Proxy --> FS
+
+  FS --> Repo
+  Repo --> FS
+```
+
+---
+
+## Conat topology (multiple networks)
+
+- Central **control conat network** runs in the hub tier for control\-plane subjects \(project\-host registry, start/stop/move/backup RPCs\).
+- Each **project\-host runs its own conat server** for project data\-plane subjects \(fs, terminal, editor sync, etc.\) scoped to its projects.  This includes its own persistence layer for TimeTravel edit history.
+- Participants hold multiple connections:
+  - **Hub**: connected to the central network to talk to all hosts; may open host data\-plane connections when proxying certain operations.
+  - **Project\-host**: connected to the central network \(register, receive control RPCs\) and runs its own conat server for project traffic.
+  - **Clients \(browser/CLI\)**: primarily connect to the host’s conat server for project traffic; the hub can proxy WebSocket/conat if direct access is not possible.
+- Conat client routing \(routeSubject\) dispatches `project-<id>` subjects to the correct host conat connection; other subjects stay on the central network.
+
+```mermaid
+flowchart TB
+  subgraph Central["Central conat network (hub)"]
+    Hub["Hub processes"]
+  end
+
+  subgraph HostA["Project-Host A conat"]
+    AServer["Host A conat server"]
+  end
+  subgraph HostB["Project-Host B conat"]
+    BServer["Host B conat server"]
+  end
+
+  Client["Browser/CLI"]
+
+  Client <-- project subjects --> AServer
+  Client <-- project subjects --> BServer
+  Client <-- billing/auth/config --> Hub
+  Hub <-- control-plane --> AServer
+  Hub <-- control-plane --> BServer
+  Hub <---> Central
+  AServer <---> Central
+  BServer <---> Central
+```
+
+---
+
+## Storage & Quotas (per project-host)
+
+- Each project lives in a btrfs subvolume `project-<project_id>` on the host mount.
+- Quotas via qgroups on the live subvolume; snapshots live under `.snapshots` and are accounted in the same quota policy (live + snapshots).
+- Scratch/overlay: `.local/share/overlay/` upperdirs are inside the project and included in quotas/snapshots/backups.
+- Persist store is separate (`sync/projects/<project_id>`) and included in backups and moves.
+- Optional compression/dedup (e.g., zstd, bees) per host.
 
 ---
 
 ## Snapshots
 
-- **Where**: server only, per project \(no long‑term snapshots on runners\).
-- **How**: periodic RO snapshots \(e.g., 15 minute/hourly/daily/weekly retention\).
-- **Budget**: snapshots all share the project’s **snapshot quota** \(`1/<live-id>` limit\). When the budget is exceeded, the snapshot retention policy prunes oldest automatic snapshots until under budget.  Explicit user created named snapshots are not automatically deleted.
-- **Self‑service**: UI lets users browse/restore from snapshots; command line restore via rsync is also supported.
+- RO snapshots under `project-.../.snapshots`. Automatic + user-named; host enforces retention and quota locally.
+- Sent/preserved during moves; browsed/restored in UI; not stored in backups (backups are file-level).
 
-> **Note**: Runner nodes may take a **short‑lived RO snapshot** strictly for consistent `rsync` (copy‑on‑write point‑in‑time view), then delete it immediately after sync completes. This does not change policy: history lives on the server.
+## Backups
 
----
+- Taken from a RO snapshot + persist dir; stored in a rustic repo per host (GCS on cocalc.com, configurable elsewhere).
+- Restores can target any host; archived projects may exist only as backups.
+- Scheduling: daily per active project (host-side) plus user-triggered; one at a time per project.
 
-## Data Flow
+## Moves (host ↔ host)
 
-1. **Active work on runner**
-   - User edits files in their per‑project subvolume on a runner.
-   - **Mutagen** streams home‑dir changes to the server nearly immediately.  In case of file change conflicts the central file server always wins.
-   - **rsync** pushes the rootfs overlay periodically \(e.g., every minute\) from a transient snapshot for consistency.
-
-2. **File Server receives changes**
-   - Writes land in the project’s live subvolume, bounded by the live quota.
-   - Periodic snapshots capture history and consume from the snapshots quota.
-
-3. **Restore**
-   - Users restore individual files or directories from snapshots via UI or CLI.
+- Orchestrated by the control hub (Postgres-backed state machine `project_moves`, mirrored into `projects.move_status`).
+- Data paths:
+  - Pipe (default): `btrfs send | sshpiperd | forced-command btrfs receive` into `/btrfs/_incoming`, then re-home snapshots and clone the latest snapshot to become the live subvolume.
+  - Staged (optional): write send streams to disk, rsync to dest, then receive.
+- SSH auth: source connects to dest sshpiperd as `btrfs-<source_host_id>`; dest sshd runs forced `btrfs receive` and only trusts the dest’s sshpiperd key; host-to-host public keys distributed by the hub.
+- Post-move: host_id/host updated in Postgres; snapshots preserved; persist store copied; quotas re-assigned on dest.
 
 ---
 
-## Operational Procedures
+## Data Flows (common)
 
-The following is roughly what the actual Javascript code in `packages/file-server` does.   
+**Start project**
 
-### One‑Time Setup (per filesystem)
+- Hub loads project meta (`rootfs_image/compute_image`, run_quota, users, host_id/host).
+- If no placement, hub picks an active host and asks it to create/start the project.
+- Host normalizes image, writes sqlite row, ensures ports/quotas/authorized_keys, starts podman container, exposes conat/fs/ssh/http.
 
-```bash
-# Enable quotas once
-sudo btrfs quota enable /mnt/fs
-# Optional after bulk ops or enabling late
-sudo btrfs quota rescan -w /mnt/fs
-```
+**User access**
 
-### Create a New Project (Server)
+- Browser connects via master; conat subjects routed to the owning host; HTTP/WS proxied via master → host → container.
+- SSH goes through host sshpiperd to project sshd; authorized keys merged from master + project files + managed key.
 
-```bash
-# Live subvolume
-sudo btrfs subvolume create /mnt/project-$PROJECT_ID
+**Backup**
 
-# Set live quota (example: 10 GiB)
-sudo btrfs qgroup limit 10G /mnt/project-$PROJECT_ID
+- Host snapshots project, runs rustic on snapshot + persist dir, records job state; hub API lists/starts/restores.
 
-# Snapshot aggregate group uses the live subvolume ID
-LIVEID=$(sudo btrfs subvolume show /mnt/project-$PROJECT_ID | awk '/Subvolume ID:/ {print $3}')
+**Move**
 
-# Create and limit the snapshots group
-sudo btrfs qgroup create 1/$LIVEID /mnt/
-sudo btrfs qgroup limit 20G 1/$LIVEID /mnt/   # example snapshots budget
-```
-
-### Snapshot Creation (Server)
-
-```bash
-# Create RO snapshot
-TS=$(date -u +%Y%m%dT%H%M%SZ)
-SNAP=/mnt/project-$PROJECT_ID/.snapshots/$TS
-sudo btrfs subvolume snapshot -r /mnt/project-$PROJECT_ID "$SNAP"
-
-# Assign snapshot to the project’s snapshot group
-SNAPID=$(sudo btrfs subvolume show "$SNAP" | awk '/ID:/ {print $2}')
-LIVEID=$(sudo btrfs subvolume show /mnt/project-$PROJECT_ID | awk '/ID:/ {print $2}')
-sudo btrfs qgroup assign 0/$SNAPID 1/$LIVEID /mnt
-```
-
-### Runner Subvolume & Quota
-
-```bash
-# Create per‑project subvolume on runner
-sudo btrfs subvolume create /runnerfs/project-$PROJECT_ID
-
-# Set runner quota to ~90% of server limit (example: 9 GiB)
-sudo btrfs qgroup limit 9G /runnerfs/project-$PROJECT_ID
-```
-
-### Rsync from Runner \(optional transient snapshot\)
-
-```bash
-# (TODO)
-P=/runnerfs/projects/$PROJ
-TS=$(date -u +%Y%m%dT%H%M%SZ)
-rsync -aHAX --delete ... file-server:/mnt/projects-$PROJECT_ID/.local/overlay/...
-```
-
-### Inspecting Usage
-
-```bash
-# Qgroup usage (referenced/exclusive, human‑readable)
-sudo btrfs qgroup show -reF /mnt | less
-
-# Filesystem space by class (useful with compression)
-sudo btrfs filesystem df /mnt
-```
+- Hub enqueues move; maintenance worker drives the state machine; source streams to dest; dest re-homes and registers; hub updates `projects` and publishes status.
 
 ---
 
 ## Policies & Safety
 
-- **Hard quotas**: enforced by the kernel via qgroups \(both server and runner\). When a project exceeds its quota, writes fail with ENOSPC scoped to that subvolume.
-- **Headroom on runners**: prevents the common failure mode where work done on a runner can’t be saved back to the server due to tighter server limits or different compression ratios.
-- **User guidance**: expose a `~/scratch` directory \(separate subvolume and policy\) for large temporary files not intended for sync—reduces quota pressure on the live budget.   
-- **Performance knobs**: `compress=zstd[:3]`, `ssd`, `discard=async`. Consider `autodefrag` only for heavy small‑random‑write workloads. Set `chattr +C` sparingly on paths needing no‑CoW \(trades off checksumming\).
-- **Dedup** on runners: optional **bees** on runners to reduce local SSD usage; measure CPU/IO overhead under realistic load.  Use reflink copy\-on\-write when possible \(e.g., cloning projects\).
-- **Dedup** on file server: optional **bees** to reduce disk usage.  Also extensively use copy\-on\-write, e.g., when copying files between projects.
+- Hard quotas via qgroups; ENOSPC scoped to the project subvolume.
+- Overlay upperdirs are part of the project footprint (snapshots/backups include them).
+- Forced-command SSH for btrfs receive; single exposed sshpiperd port per host; known-hosts pinning possible.
+- Restart-safe orchestration: hub state in Postgres; workers use `FOR UPDATE SKIP LOCKED`; progress/status surfaced to UI.
 
 ---
 
-## Failure Modes & Mitigations
+## Open Items (ongoing)
 
-- **Runner quota exceeded** → user sees ENOSPC early; save‑back fails fast and visibly. UI should warn near 80–90%.
-- **Server live quota exceeded** → incoming syncs fail; UI callouts \+ guidance to delete files or increase quota.
-- **Snapshot budget exceeded** → retention pruner deletes oldest snapshots until under budget.
-- **Qgroup counter drift** \(rare, after crashes/bulk ops\) → `btrfs quota rescan -w` to reconcile.
-- **Filesystem nearly full** → monitor `btrfs filesystem df`; alert admins before metadata pools are pressured.
-
----
-
-## Observability (What to Monitor)
-
-- Live and snapshots usage per project (qgroup referenced/exclusive).
-- Runner vs server usage deltas (to detect pathological compression differences).
-- Snapshot creation latency; pruner actions count.
-- Error rates from mutagen/rsync; ENOSPC events; quota rescans.
-
----
-
-## FAQ (User‑Facing)
-
-**Q: My files add up to more than my quota, but I’m not blocked. Why?**  
-A: Quotas measure space **after compression**. If your data compresses well, you can store more than the sum of uncompressed file sizes.
-
-**Q: Do snapshots count against my main quota?**  
-A: No. Snapshots have a **separate budget which is twice your main quota**. When that fills, older snapshots are pruned automatically.
-
-**Q: What happens if I hit the quota while working?**  
-A: New writes fail with “out of space.” Delete data or request a higher quota, then try again.
-
-**Q: Can I keep big temporary outputs?**  
-A: Use `~/scratch` \(limited retention and a separate quota\). Only the project’s live area is synced and counted against your main quota.
-
----
-
-## Appendix: Rationale for Design Choices
-
-- **Per‑project subvolumes** enable kernel‑level quotas, small blast radius, and fast deletion.
-- **Server‑side snapshots only** simplify reasoning about history, save SSD cycles on runners, and reduce operational complexity.
-- **Aggregate snapshot qgroup** provides a single dial for “how much history a project can accumulate.”
-- **Runner quotas < server quotas** provide a simple, robust guardrail against save‑back failures due to compression variance.
-
----
-
-_End of draft._
+- Image allowlist/error reporting in UI; local rootfs support for very large images.
+- Tunable snapshot/backup retention; pruning policies per host/project.
+- Stronger story for untrusted hosts (per-bucket backups, limited key distribution).
+- Observability: richer progress metrics for moves/backups; host health surfacing.
 
