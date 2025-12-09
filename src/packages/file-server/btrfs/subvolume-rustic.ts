@@ -159,6 +159,7 @@ export class SubvolumeRustic {
     dest?: string;
     timeout?: number;
   }) => {
+    logger.debug("restore", { id, path, dest });
     dest ??= path;
     const { stdout } = parseOutput(
       await this.subvolume.fs.rustic(
@@ -166,9 +167,9 @@ export class SubvolumeRustic {
         { timeout },
       ),
     );
-    // If this was a full restore (default dest) and the backup contained the
-    // staged persist directory, relocate it to the host-level persist store.
-    if (!path && (!dest || dest === "" || dest === path)) {
+    // If this was a full restore (default dest) this will restore the persist
+    // state too.
+    if (!path && !dest) {
       await this.restorePersistFromStaging();
     }
     return stdout;

@@ -348,7 +348,21 @@ export async function getHost(opts) {
     return hostCache.get(opts.id);
   }
   const info = await getSnapshot(opts);
-  const hostname = info[0][1][0]["hostname"];
+  // Robust parsing: rustic snapshots --json <id> currently returns an array of
+  // objects like:
+  // [
+  //   {
+  //     group_key: { hostname: "...", ... },
+  //     snapshots: [ { hostname: "...", ... }, ... ]
+  //   }
+  // ]
+  // Older versions emitted: [ [ group_key, [ { hostname, ... } ] ] ]
+  // Support both shapes and error clearly otherwise.
+  const hostname =
+    info?.[0]?.snapshots?.[0]?.hostname ?? info?.[0]?.[1]?.[0]?.hostname;
+  if (!hostname) {
+    throw new Error(`snapshot ${opts.id} not found or missing hostname`);
+  }
   hostCache.set(opts.id, hostname);
   return hostname;
 }
@@ -364,5 +378,12 @@ export async function getSnapshot({
     cmd: rusticPath,
     safety: ["--password", "", "-r", repo, "snapshots", "--json", id],
   });
-  return JSON.parse(stdout.toString());
+  if (!stdout) {
+    throw Error(`no snapshot with id ${id}`);
+  }
+  try {
+    return JSON.parse(stdout.toString());
+  } catch {
+    throw Error(`no snapshot with id ${id}`);
+  }
 }
