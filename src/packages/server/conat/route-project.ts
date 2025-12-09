@@ -159,7 +159,9 @@ export async function notifyProjectHostUpdate(opts: {
   host_id?: string;
 }) {
   try {
-    await getPool().query(`NOTIFY ${CHANNEL}, $1`, [
+    // Parameterized NOTIFY is awkward; use pg_notify to avoid string interpolation.
+    await getPool().query(`SELECT pg_notify($1, $2)`, [
+      CHANNEL,
       JSON.stringify(opts),
     ]);
   } catch (err) {
