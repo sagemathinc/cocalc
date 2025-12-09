@@ -9,7 +9,6 @@ import { capitalize, field_cmp, plural } from "@cocalc/util/misc";
 import { namespaceToColor } from "@cocalc/util/color";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { TimeAgo } from "@cocalc/frontend/components";
-import Save from "./save";
 
 export default function Bootlog({
   style,
@@ -106,7 +105,6 @@ function ProgressEntry({
   desc,
   elapsed,
   error,
-  isRunning,
 }: Event & { isRunning?: boolean }) {
   const remaining = estimateRemainingTime({ elapsed, progress });
   return (
@@ -145,12 +143,6 @@ function ProgressEntry({
         </Space>
       </Tooltip>
       {error && <hr />}
-      {isRunning && error && type == "save-rootfs" && (
-        <Save rootfs home={false} />
-      )}
-      {isRunning && error && type == "save-home" && (
-        <Save home rootfs={false} />
-      )}
       <ShowError error={error} style={{ margin: "10px 0" }} />
     </div>
   );

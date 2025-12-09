@@ -49,7 +49,6 @@ import MoveProject from "./move-project";
 import { Project } from "./types";
 import RootFilesystemImage from "./root-filesystem-image";
 import ProjectControlError from "./project-control-error";
-import Save from "../save";
 import CloneProject from "@cocalc/frontend/project/explorer/clone";
 
 interface ReactProps {
@@ -132,7 +131,6 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       >
         {render_restart_button(commands)}
         {render_stop_button(commands)}
-        <Save />
         <CloneProject project_id={project_id} />
         <MoveProject
           project_id={project_id}
