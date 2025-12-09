@@ -14,7 +14,7 @@ await require('../dist/hub/move').sendProject({
 import getLogger from "@cocalc/backend/logger";
 import { isValidUUID } from "@cocalc/util/misc";
 import { join } from "node:path";
-import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
 import { getVolume } from "../file-server";
 import { ensureHostKey } from "../ssh/host-key";
@@ -30,6 +30,7 @@ import { tmpdir } from "node:os";
 import { MoveProgress } from "./move-progress";
 import { getMasterConatClient } from "../master-status";
 import { getSubvolumeId } from "@cocalc/file-server/btrfs/subvolume";
+import { syncFiles } from "@cocalc/backend/data";
 
 // NOTE: we implemented both a direct pipe and a staged move mode.
 //   pipe -- use a single pipe and send|receive directly; optimal in terms of
@@ -48,6 +49,61 @@ import { getSubvolumeId } from "@cocalc/file-server/btrfs/subvolume";
 const MOVE_MODE = "pipe"; // or 'staged'
 
 const logger = getLogger("project-host:hub:move");
+const PERSIST_STAGING = ".cocalc-persist";
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await stat(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function persistPath(project_id: string): string {
+  return join(syncFiles.local, "projects", project_id);
+}
+
+async function stagePersistForMove(
+  project_id: string,
+  projectPath: string,
+): Promise<boolean> {
+  const src = persistPath(project_id);
+  if (!(await pathExists(src))) return false;
+  const staging = join(projectPath, PERSIST_STAGING);
+  await runCmd(logger, "sudo", ["rm", "-rf", staging]).catch(() => {});
+  await runCmd(logger, "sudo", ["mkdir", "-p", staging]);
+  await runCmd(logger, "sudo", [
+    "rsync",
+    "-a",
+    `${src}/`,
+    `${staging}/`,
+  ]);
+  return true;
+}
+
+async function removePersistStaging(projectPath: string) {
+  const staging = join(projectPath, PERSIST_STAGING);
+  await runCmd(logger, "sudo", ["rm", "-rf", staging]).catch(() => {});
+}
+
+async function restorePersistFromStaging(
+  project_id: string,
+  projectPath: string,
+) {
+  const staging = join(projectPath, PERSIST_STAGING);
+  if (!(await pathExists(staging))) return;
+  const dest = persistPath(project_id);
+  await runCmd(logger, "sudo", ["rm", "-rf", dest]).catch(() => {});
+  await runCmd(logger, "sudo", ["mkdir", "-p", dest]);
+  await runCmd(logger, "sudo", [
+    "rsync",
+    "-a",
+    `${staging}/`,
+    `${dest}/`,
+  ]);
+  await runCmd(logger, "sudo", ["rm", "-rf", staging]).catch(() => {});
+}
 
 async function ensureQgroupForSubvolume(path: string) {
   // When a project is moved the received subvolume gets a new ID, so we must
@@ -278,6 +334,14 @@ async function _sendProject({
   const vol = await getVolume(project_id);
   const snapshotsDir = join(vol.path, ".snapshots");
   await mkdir(snapshotsDir, { recursive: true });
+  let stagedPersist = false;
+  try {
+    stagedPersist = await stagePersistForMove(project_id, vol.path);
+  } catch (err) {
+    logger.warn("sendProject: failed to stage persist dir; continuing", {
+      err: `${err}`,
+    });
+  }
   const snapPath = join(snapshotsDir, snapshot);
   await runCmd(logger, "btrfs", [
     "subvolume",
@@ -608,6 +672,9 @@ async function _sendProject({
   } finally {
     stopHeartbeat();
     logger.debug("sendProject: cleaning up...", { snapPath });
+    if (stagedPersist) {
+      await removePersistStaging(vol.path);
+    }
     await cleanup();
     logger.debug("sendProject: clean up complete", { snapPath });
   }
@@ -872,6 +939,7 @@ export async function finalizeReceiveProject({
   ]);
   await mkdir(join(destPath, ".snapshots"), { recursive: true });
   await ensureQgroupForSubvolume(destPath);
+  await restorePersistFromStaging(project_id, destPath);
 
   // Re-home snapshots under the project.
   for (const meta of snapMetas) {
