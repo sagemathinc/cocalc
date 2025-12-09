@@ -16,6 +16,8 @@ import { delay } from "awaiting";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { client as filesystemClient } from "@cocalc/conat/files/file-server";
+import { createHostControlClient } from "@cocalc/conat/project-host/api";
+import { conatWithProjectRouting } from "../conat/route-client";
 
 const log = getLogger("server:projects:create");
 
@@ -111,6 +113,31 @@ export default async function createProject(opts: CreateProjectOptions) {
       host != null ? JSON.stringify(host) : null,
     ],
   );
+
+  // If this is a clone with a known host, register the project row on that host
+  // so it is visible in its local sqlite/changefeeds without starting it.
+  if (host_id) {
+    try {
+      const client = createHostControlClient({
+        host_id,
+        client: conatWithProjectRouting(),
+        timeout: 10000,
+      });
+      await client.createProject({
+        project_id,
+        title,
+        users,
+        image: rootfs_image ?? image,
+        start: false,
+      });
+    } catch (err) {
+      log.warn("createProject: failed to register clone on host", {
+        project_id,
+        host_id,
+        err: `${err}`,
+      });
+    }
+  }
 
   if (start) {
     const project = getProject(project_id);
