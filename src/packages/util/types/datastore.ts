@@ -26,6 +26,7 @@ interface ConfigSSHFS extends ConfigCommon {
   user: string;
   host: string;
   path?: string; // remote path, defaults to /home/user
+  port?: number;
 }
 
 export type DatastoreConfig = ConfigS3 | ConfigGCS | ConfigSSHFS;

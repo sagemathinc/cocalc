@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020 – 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -14,7 +14,7 @@ import { DatastoreConfig } from "@cocalc/util/types";
 
 export async function project_has_network_access(
   db: PostgreSQL,
-  project_id: string
+  project_id: string,
 ): Promise<boolean> {
   let x;
   try {
@@ -52,7 +52,7 @@ interface GetDSOpts {
 }
 
 async function get_datastore(
-  opts: GetDSOpts
+  opts: GetDSOpts,
 ): Promise<{ [key: string]: DatastoreConfig }> {
   const { db, account_id, project_id } = opts;
   const q: { users: any; addons?: any } = await query({
@@ -73,20 +73,28 @@ export async function project_datastore_set(
   db: PostgreSQL,
   account_id: string,
   project_id: string,
-  config: any
+  config: any,
 ): Promise<void> {
   // L("project_datastore_set", config);
 
   if (config.name == null) throw Error("configuration 'name' is not defined");
   if (typeof config.type !== "string")
     throw Error(
-      "configuration 'type' is not defined (must be 'gcs', 'sshfs', ...)"
+      "configuration 'type' is not defined (must be 'gcs', 'sshfs', ...)",
     );
 
   // check data from user
   for (const [key, val] of Object.entries(config)) {
-    if (typeof val !== "string" && typeof val !== "boolean") {
+    if (val == null) continue;
+    if (
+      typeof val !== "string" &&
+      typeof val !== "boolean" &&
+      typeof val !== "number"
+    ) {
       throw new Error(`Invalid value -- '${key}' is not a valid type`);
+    }
+    if (typeof val === "number" && (val < 0 || val > 2 ** 32)) {
+      throw new Error(`Invalid value -- '${key}' is out of range`);
     }
     if (typeof val === "string" && val.length > 100000) {
       throw new Error(`Invalid value -- '${key}' is too long`);
@@ -128,7 +136,7 @@ export async function project_datastore_del(
   db: PostgreSQL,
   account_id: string,
   project_id: string,
-  name: string
+  name: string,
 ): Promise<void> {
   L("project_datastore_del", name);
   if (typeof name !== "string" || name.length == 0) {
@@ -149,7 +157,7 @@ export async function project_datastore_del(
 export async function project_datastore_get(
   db: PostgreSQL,
   account_id: string,
-  project_id: string
+  project_id: string,
 ): Promise<any> {
   try {
     const ds = await get_datastore({
