@@ -225,6 +225,13 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
     });
 
     if (opts.start) {
+      // Immediately mark as starting so the master reflects that state while we pull/podman up.
+      ensureProjectRow({
+        project_id,
+        opts,
+        state: "starting",
+        authorized_keys: (opts as any).authorized_keys,
+      });
       const status = await runnerApi.start({
         project_id,
         config: await getRunnerConfig(project_id, opts),
@@ -252,22 +259,38 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
     run_quota?: any;
     image?: string;
   }): Promise<void> {
-    const status = await runnerApi.start({
-      project_id,
-      config: await getRunnerConfig(project_id, {
-        authorized_keys,
-        run_quota,
-        image,
-      }),
-    });
+    // Mark as starting immediately so hub/clients see progress even if image pulls are slow.
     ensureProjectRow({
       project_id,
       opts: { authorized_keys, run_quota, image },
-      state: status?.state ?? "running",
-      http_port: (status as any)?.http_port,
-      ssh_port: (status as any)?.ssh_port,
+      state: "starting",
     });
-    await refreshAuthorizedKeys(project_id, authorized_keys);
+    try {
+      const status = await runnerApi.start({
+        project_id,
+        config: await getRunnerConfig(project_id, {
+          authorized_keys,
+          run_quota,
+          image,
+        }),
+      });
+      ensureProjectRow({
+        project_id,
+        opts: { authorized_keys, run_quota, image },
+        state: status?.state ?? "running",
+        http_port: (status as any)?.http_port,
+        ssh_port: (status as any)?.ssh_port,
+      });
+      await refreshAuthorizedKeys(project_id, authorized_keys);
+    } catch (err) {
+      // Fall back to stopped if startup fails so UI reflects failure.
+      ensureProjectRow({
+        project_id,
+        opts: { authorized_keys, run_quota, image },
+        state: "stopped",
+      });
+      throw err;
+    }
   }
 
   async function stop({

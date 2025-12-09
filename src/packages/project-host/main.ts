@@ -27,6 +27,7 @@ import { init as initChangefeeds } from "@cocalc/lite/hub/changefeeds";
 import { init as initHubApi } from "@cocalc/lite/hub/api";
 import { wireProjectsApi } from "./hub/projects";
 import { startMasterRegistration } from "./master";
+import { startReconciler } from "./reconcile";
 
 const logger = getLogger("project-host:main");
 
@@ -129,6 +130,7 @@ export async function main(
     host,
     port,
   });
+  const stopReconciler = startReconciler();
 
   logger.info("project-host ready");
 
@@ -136,6 +138,7 @@ export async function main(
     persistServer?.close?.();
     fsServer?.close?.();
     stopMasterRegistration?.();
+    stopReconciler?.();
   };
   process.once("exit", close);
   ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => process.once(sig, close));
