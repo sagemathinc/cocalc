@@ -31,6 +31,7 @@
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.5.1",
     "@cocalc/backend": "workspace:*",
+    "@cocalc/conat": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@langchain/anthropic": "^1.1.0",
     "@langchain/core": "^1.0.6",

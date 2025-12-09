@@ -32,10 +32,7 @@
     "@cocalc/conat": "workspace:*",
     "@cocalc/file-server": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@isaacs/ttlcache": "^1.4.1",
-    "awaiting": "^3.0.0",
-    "express": "^4.21.2",
-    "micro-key-producer": "^0.8.2"
+    "awaiting": "^3.0.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
