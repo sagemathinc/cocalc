@@ -25,7 +25,7 @@ export default function CloneProject({ project_id, flyout }: Props) {
       description={() => (
         <>
           <Description project_id={project_id} titleRef={titleRef} />
-
+          <ShowError error={error} setError={setError} />
           <BootLog />
         </>
       )}
@@ -66,7 +66,6 @@ export default function CloneProject({ project_id, flyout }: Props) {
             </>
           )}
         </Button>
-        <ShowError error={error} setError={setError} />
       </Tooltip>
     </Popconfirm>
   );

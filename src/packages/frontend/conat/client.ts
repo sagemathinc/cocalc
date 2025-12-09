@@ -46,7 +46,6 @@ import {
   deleteRememberMe,
   setRememberMe,
 } from "@cocalc/frontend/misc/remember-me";
-import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
 import { get as getBootlog } from "@cocalc/conat/project/runner/bootlog";
 import { terminalClient } from "@cocalc/conat/project/terminal";
 import { lite } from "@cocalc/frontend/lite";
@@ -567,17 +566,6 @@ export class ConatClient extends EventEmitter {
   };
 
   refCacheInfo = () => refCacheInfo();
-
-  projectRunner = (
-    project_id: string,
-    { timeout = 30 * 1000 * 60 }: { timeout?: number } = {},
-  ) => {
-    return projectRunnerClient({
-      project_id,
-      client: this.conat(),
-      timeout,
-    });
-  };
 
   projectBootlog = (opts: {
     project_id: string;

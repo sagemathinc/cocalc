@@ -1039,11 +1039,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (project == null) {
       throw Error("unknown project");
     }
-    if (project.state?.state == "running") {
-      const runner = webapp_client.conat_client.projectRunner(project_id);
-      // very important to save before cloning!
-      await runner.save();
-    }
     // this clones due to src_project_id
     const new_project_id = await webapp_client.project_client.create({
       title: title ?? `Clone of ${project.title}`,
@@ -1152,12 +1147,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
       await this.start_project(project_id, options);
     },
   );
-
-  updateProjectState = reuseInFlight(async (project_id: string) => {
-    const runner = webapp_client.conat_client.projectRunner(project_id);
-    // this causes an update
-    return await runner.status({ project_id });
-  });
 
   // Explcitly set whether or not project is hidden for the given account
   // (hide=true means hidden)

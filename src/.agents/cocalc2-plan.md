@@ -3,15 +3,17 @@
 
 - [ ] Clone project \-\- doesn't work \(uses old load balancer/project runner model?\)  <img src="http://localhost:7000/blobs/paste-0.9326538883929776?uuid=af92f25b-3994-40bf-b24b-da7a36424f61"   width="472.543px"  height="171.783px"  style="object-fit:cover"/>
 
-- [ ] bootlog seems flakie -- sometimes it isn't connected
+- [ ] snapshots break when there is a non-snapshot in the .snapshots directory: "WARNING: Issue updating snapshots of 7f8daff5-720d-40e1-8689-1d2572a42811 Error:  ''sudo' (args=btrfs subvolume show /home/wstein/scratch/btrfs2/mnt/0/project-7f8daff5-720d-40e1-8689-1d2572a42811/.snapshots/move-1765222048772)' exited with nonzero code 1 -- stderr='ERROR: Not a Btrfs subvolume: Invalid argument"
 
 ## Checklist for beta release
 
+- [ ] bootlog seems flakie -- sometimes it isn't connected
+
 - [ ] restore from backup for a larger restore:
-    - times out
     - blocks screen with modal for ~15s...
+    - then times out and gives error
     - but it definitely works!
-    - obviously fully restoring and starting at the same time would be very bad.
+    - obviously fully restoring and starting project duriong restore would be very bad.
 
 - [ ] suggested image list \(e.g., ubuntu:25.10\) and fallback behavior.
    - have an advanced checkbox so people can enter any image with appropriate caveats
