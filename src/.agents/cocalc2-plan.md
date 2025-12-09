@@ -8,8 +8,8 @@
   - [x] **No progress/reporting:** the UI gets no status or bytes‑sent updates; failures aren’t surfaced back to the hub.
   - [x] **Cleanup/rollback:** partial moves don’t clean up temp snapshots on source/dest or roll back assignments.
   - [x] sendProject timeout issue
-  - [ ] issue with creating snapshots after a move being broken:
-      This might be that this watcher:  /src/packages/backend/sandbox/watch.ts is watching various directories of the project when it moves... which leads to problems.  The moves work, but the watcher still has an old handle, etc.
+  - [x] issue with creating snapshots after a move being broken:
+     
 
 
 - [ ] Backups \-\- Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
