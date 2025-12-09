@@ -90,15 +90,18 @@ export async function getBackupFiles({
   account_id,
   project_id,
   id,
+  path,
 }: {
   account_id?: string;
   project_id: string;
   id: string;
+  path?: string;
 }) {
   await assertCollab({ account_id, project_id });
   return await fileServerClient({ project_id }).getBackupFiles({
     project_id,
     id,
+    path,
   });
 }
 

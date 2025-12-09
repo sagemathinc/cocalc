@@ -119,11 +119,24 @@ export default function useBackupsListing({
         throw new Error(`backup '${backupName}' not found`);
       }
       const subpath = parts.slice(2).join("/");
-      const paths: string[] =
+      const pathsRaw: string[] =
         (await webapp_client.conat_client.hub.projects.getBackupFiles({
           project_id,
           id: backup.id,
+          path: subpath,
         })) ?? [];
+      let paths = pathsRaw;
+      if (
+        subpath &&
+        !pathsRaw.every(
+          (p) => p.startsWith(subpath + "/") || p === subpath,
+        )
+      ) {
+        // rustic may return paths relative to the requested subpath; normalize
+        paths = pathsRaw.map((p) =>
+          p ? `${normalizePath(subpath)}/${normalizePath(p)}` : subpath,
+        );
+      }
       let entries = buildListing({
         paths,
         prefix: subpath,

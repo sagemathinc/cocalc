@@ -130,11 +130,12 @@ export interface Fileserver {
     }[]
   >;
 
-  // Return list of all files in the given backup.
-  // TODO: would be nice to filter path, since there could be millions of files (?).
+  // Return list of files in the given backup. Optional path narrows the
+  // results to entries under that path (as returned by `rustic ls`).
   getBackupFiles: (opts: {
     project_id: string;
     id: string;
+    path?: string;
   }) => Promise<string[]>;
 
   /////////////

@@ -303,12 +303,14 @@ export async function getBackups({
 async function getBackupFiles({
   project_id,
   id,
+  path,
 }: {
   project_id: string;
   id: string;
+  path?: string;
 }): Promise<string[]> {
   const vol = await getVolume(project_id);
-  return await vol.rustic.ls({ id });
+  return await vol.rustic.ls({ id, path });
 }
 
 // File Sync

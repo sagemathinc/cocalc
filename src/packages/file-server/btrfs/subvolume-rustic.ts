@@ -251,12 +251,36 @@ export class SubvolumeRustic {
   });
 
   // return list of paths of files in this backup, as paths relative
-  // to HOME, and sorted in alphabetical order.
-  ls = async ({ id }: { id: string }) => {
-    const { stdout } = parseOutput(
-      await this.subvolume.fs.rustic(["ls", "--json", id]),
-    );
-    return JSON.parse(stdout).sort();
+  // to HOME, and sorted in alphabetical order. If path is given, call
+  // `rustic ls <id> <path>` and return only entries under that prefix.
+  ls = async ({ id, path = "" }: { id: string; path?: string }) => {
+    const args = ["ls", "--json"];
+    if (path != null) {
+      args.push(`${id}:${path}`);
+    } else {
+      args.push(id);
+    }
+    const { stdout } = parseOutput(await this.subvolume.fs.rustic(args));
+    const parsed = JSON.parse(stdout);
+    let paths: string[] = [];
+    if (Array.isArray(parsed)) {
+      paths = parsed.map((v) => {
+        if (typeof v === "string") return v;
+        if (typeof v?.path === "string") return v.path;
+        if (typeof v?.node?.path === "string") return v.node.path;
+        return undefined;
+      });
+    } else if (Array.isArray(parsed?.nodes)) {
+      paths = parsed.nodes.map((v) => {
+        if (typeof v === "string") return v;
+        if (typeof v?.path === "string") return v.path;
+        if (typeof v?.node?.path === "string") return v.node.path;
+        return undefined;
+      });
+    }
+    paths = paths.filter((x): x is string => typeof x === "string");
+    paths.sort();
+    return paths;
   };
 
   // Delete this backup.  It's genuinely not accessible anymore, though

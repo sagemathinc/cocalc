@@ -197,6 +197,7 @@ export interface Projects {
     account_id?: string;
     project_id: string;
     id: string;
+    path?: string;
   }) => Promise<string[]>;
 
   getBackupQuota: (opts: {
