@@ -18,7 +18,7 @@ export COCALC_LITE_SQLITE_FILENAME=/home/wstein/build/cocalc-lite/src/packages/p
 export DEBUG='cocalc:*'
 export DEBUG_CONSOLE='no'
 export DEBUG_FILE=/home/wstein/build/cocalc-lite/src/packages/project-host/data-0/log
-export DATA=/home/wstein/build/cocalc-lite/src/data
+export DATA=/home/wstein/build/cocalc-lite/src/packages/project-host/data-0
 export COCALC_PROJECT_BUNDLE=/home/wstein/build/cocalc-lite/src/packages/project/build/bundle
 
 #rm -f $DEBUG_FILE

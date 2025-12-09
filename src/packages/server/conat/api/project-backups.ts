@@ -15,7 +15,7 @@ export async function createBackup({
   name?: string;
 }): Promise<{ time: Date; id: string }> {
   await assertCollab({ account_id, project_id });
-  return await fileServerClient().createBackup({
+  return await fileServerClient({ project_id }).createBackup({
     project_id,
     limit: MAX_BACKUPS_PER_PROJECT,
   });
@@ -31,7 +31,7 @@ export async function deleteBackup({
   id: string;
 }) {
   await assertCollab({ account_id, project_id });
-  await fileServerClient().deleteBackup({ project_id, id });
+  await fileServerClient({ project_id }).deleteBackup({ project_id, id });
 }
 
 export async function updateBackups({
@@ -44,7 +44,7 @@ export async function updateBackups({
   counts?: Partial<SnapshotCounts>;
 }) {
   await assertCollab({ account_id, project_id });
-  await fileServerClient().updateBackups({
+  await fileServerClient({ project_id }).updateBackups({
     project_id,
     counts,
     limit: MAX_BACKUPS_PER_PROJECT,
@@ -65,7 +65,7 @@ export async function restoreBackup({
   dest?: string;
 }) {
   await assertCollab({ account_id, project_id });
-  await fileServerClient().restoreBackup({
+  await fileServerClient({ project_id }).restoreBackup({
     project_id,
     id,
     path,
@@ -81,7 +81,7 @@ export async function getBackups({
   project_id: string;
 }) {
   await assertCollab({ account_id, project_id });
-  return await fileServerClient().getBackups({
+  return await fileServerClient({ project_id }).getBackups({
     project_id,
   });
 }
@@ -96,7 +96,7 @@ export async function getBackupFiles({
   id: string;
 }) {
   await assertCollab({ account_id, project_id });
-  return await fileServerClient().getBackupFiles({
+  return await fileServerClient({ project_id }).getBackupFiles({
     project_id,
     id,
   });

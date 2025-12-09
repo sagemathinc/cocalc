@@ -189,6 +189,7 @@ export interface Projects {
     {
       id: string;
       time: Date;
+      summary: { [key: string]: string | number };
     }[]
   >;
 

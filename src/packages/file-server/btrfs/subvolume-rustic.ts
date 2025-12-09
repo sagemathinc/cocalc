@@ -36,6 +36,7 @@ const logger = getLogger("file-server:btrfs:subvolume-rustic");
 interface Snapshot {
   id: string;
   time: Date;
+  summary: { [key: string]: string | number };
 }
 
 export class SubvolumeRustic {
@@ -69,8 +70,8 @@ export class SubvolumeRustic {
           cwd: target,
         }),
       );
-      const { time, id } = JSON.parse(stdout);
-      return { time: new Date(time), id };
+      const { time, id, summary } = JSON.parse(stdout);
+      return { time: new Date(time), id, summary };
     } finally {
       this.snapshotsCache = null;
       logger.debug(`backup: deleting temporary ${RUSTIC_SNAPSHOT}`);
@@ -111,11 +112,65 @@ export class SubvolumeRustic {
     const { stdout } = parseOutput(
       await this.subvolume.fs.rustic(["snapshots", "--json"]),
     );
-    const x = JSON.parse(stdout);
-    const v = !x[0]
+    const snapshots = JSON.parse(stdout)[0]?.snapshots;
+    /* stdout = [
+  {
+    "group_key": {
+      "hostname": "project-f9296958-84f2-4965-947b-78cd4a92f49a",
+      "label": "",
+      "paths": [
+        "."
+      ]
+    },
+    "snapshots": [
+      {
+        "time": "2025-12-08T16:19:25.736493671-08:00",
+        "program_version": "rustic v0.10.2-1-g189b17c",
+        "tree": "ab76d793af77aad8459244a3ebc9673a45ad7eb00d247aaf572c7e95d0fb8582",
+        "paths": [
+          "."
+        ],
+        "hostname": "project-f9296958-84f2-4965-947b-78cd4a92f49a",
+        "username": "",
+        "uid": 0,
+        "gid": 0,
+        "tags": [],
+        "original": "94623bd2d76a2512763325330fc27a00ac9f79f2d5bb883c3efa99ec0e99f42e",
+        "summary": {
+          "files_new": 10,
+          "files_changed": 0,
+          "files_unmodified": 0,
+          "total_files_processed": 10,
+          "total_bytes_processed": 2622,
+          "dirs_new": 27,
+          "dirs_changed": 0,
+          "dirs_unmodified": 0,
+          "total_dirs_processed": 27,
+          "total_dirsize_processed": 13908,
+          "data_blobs": 6,
+          "tree_blobs": 23,
+          "data_added": 16478,
+          "data_added_packed": 8435,
+          "data_added_files": 2622,
+          "data_added_files_packed": 1598,
+          "data_added_trees": 13856,
+          "data_added_trees_packed": 6837,
+          "command": "/home/wstein/build/cocalc-lite/src/packages/backend/node_modules/.bin/rustic --password  -r /home/wstein/build/cocalc-lite/src/packages/project-host/data-0/rustic backup -x --json --no-scan --host project-f9296958-84f2-4965-947b-78cd4a92f49a -- .",
+          "backup_start": "2025-12-08T16:19:25.738333528-08:00",
+          "backup_end": "2025-12-08T16:19:25.767040553-08:00",
+          "backup_duration": 0.028707025,
+          "total_duration": 0.030546882
+        },
+        "id": "94623bd2d76a2512763325330fc27a00ac9f79f2d5bb883c3efa99ec0e99f42e"
+      }
+    ]
+  }
+]
+*/
+    const v = !snapshots
       ? []
-      : x[0][1].map(({ time, id }) => {
-          return { time: new Date(time), id };
+      : snapshots.map(({ time, id, summary }) => {
+          return { time: new Date(time), id, summary };
         });
     v.sort(field_cmp("time"));
     this.snapshotsCache = v;

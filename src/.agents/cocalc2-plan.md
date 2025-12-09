@@ -1,38 +1,49 @@
 ## Checklist (near term)
 
-- [ ] Cross\-host data motion: copy/move between hosts \(rsync \+ btrfs send/recv\), GC source after validation, update project→host map, and surface progress/errors to users.
-  - [x] implement copy between _different_ project\-host via ssh
-  
 - [ ] #now implement move project using btrfs
-  - [x] snapshot creation after move broken due to missing qgroup  (?)
+  - [x] snapshot creation after move broken due to missing qgroup  \(?\)
   - [x] **Snapshots not preserved:** we only send a single readonly snapshot created on the fly; existing project snapshots aren’t carried over.
   - [x] large streams: send progress updates instead of one req/resp.
   - [x] the worker seems to be extremely inefficient, doing one step for one project at a time.
   - [x] **No progress/reporting:** the UI gets no status or bytes‑sent updates; failures aren’t surfaced back to the hub.
-  - [ ] **Cleanup/rollback:** partial moves don’t clean up temp snapshots on source/dest or roll back assignments.
-  - [ ] **Project lifecycle not enforced:** the source project isn’t blocked (including sandboxed file ops) before the send, so writes could race.
-  - [ ] security: use forcecommand for btrfs container
+  - [x] **Cleanup/rollback:** partial moves don’t clean up temp snapshots on source/dest or roll back assignments.
+  - [x] sendProject timeout issue
+  - [ ] issue with creating snapshots after a move being broken:
+      This might be that this watcher:  /src/packages/backend/sandbox/watch.ts is watching various directories of the project when it moves... which leads to problems.  The moves work, but the watcher still has an old handle, etc.
 
-- [ ] Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
 
-- [ ] SEA binary for running project\-host:
+- [ ] Backups \-\- Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
+  - [ ] ensure user can create rustic backup \(frontend ui\)
+  - [ ] user can restore path from backup
+  - [ ] restore project from a backup to a given project\-host
+    - first do restore,
+    - then delete project from whatever other host it was on
+  - [ ] surface restore as a way to access a project that is on a broken/gone/vanished host.  For compute servers, this could be very important: make sure all projects are backed up, then deprovision
+  - [ ] enhance backup content to include sync data \(i.e., persist timetravel edit histories, etc.\) for that project.
+
+- [ ] finish SEA binary for running project\-host:
   - [ ] include binaries
   - [ ] allow user to select where project is hosted for easier testing \(could be hidden dev feature\)
 
 - [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project\-host hub/conat services.
   - Issue short\-lived signed tokens \(project\_id \+ perms \+ exp\) from master when opening a project; browser uses them to open `wss://<host>/conat` directly. Hosts validate tokens locally.
 
-- [ ] Runner networking: keep non\-host networking but guarantee containers can reach the host conat endpoint; consider explicit hostfwd mode if we ever bind conat to loopback only.
+- [ ] Project host networking: keep non\-host networking but guarantee containers can reach the host conat endpoint; consider explicit hostfwd mode if we ever bind conat to loopback only.
 
 - [ ] File/quotas/backups UX: default quota \+ snapshot/backup counts on project create; expose image/pull errors cleanly; add image allowlist \(e.g., ubuntu:25.10\) and fallback behavior.
 
 - [ ] Observability: per\-host metrics/logs, minimal status page \(runner/file\-server/conat\), project lifecycle spans; alerts for failed moves/backups and low headroom.
 
-- [ ] Proxy ingress: project\-proxy base\-path TODO; SSH/HTTP ingress for hidden/on\-prem hosts; keep optional but available.
+- [ ] Proxy ingress: project\-proxy base\-path TODO; SSH/HTTP ingress for hidden/on\-prem hosts
 
-- [ ] Compute/plus alignment: treat compute servers as user\-scoped project\-hosts with reflect\-sync subset sharing; API for spinning up temporary hosts; drop project\_id column from compute\_servers in favor of host auth/ACL.
+- [ ] Reflect sync path sharing.
+  - [ ] internal to a project\-host; currently uses mutagen, so rewrite to use reflect\-sync
+  - [ ] between two project\-hosts
+  - [ ] implement a frontend UX for configuring this
 
-- [ ] \(later\) Fallback File\-server that doesn't require btrfs \(no snapshots or quotas\).  This would make it possible to support running the entire project\-host purely in userspace \(with podman\) on both Linux and MacOS.
+- [ ] Compute server: treat compute servers as user\-scoped project\-hosts with reflect\-sync subset sharing; API for spinning up temporary hosts; drop project\_id column from compute\_servers in favor of host auth/ACL.
+
+- [ ]  POSIX File\-server that doesn't require btrfs \(no snapshots or quotas, but has rustic backups\).  This would make it possible to support running the entire project\-host purely in userspace \(with podman\) on both Linux and MacOS.  Also won't use overlayfs for containers since that also requires root.
 
 ## CoCalc New Architecture Plan (federated project-hosts + proxy)
 
@@ -143,10 +154,11 @@ flowchart LR
   MAPI -->|Placement/assign| BRunner
 ```
 
-## Detailed TODO List
+## Detailed TODO List -- Misc Things to not forget
 
 - [ ] rewrite stopIdleProjects to use new architecture (and everything that used the old project runner load balancer code)
-- [x] looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route\-project.ts; this MUST get fixed or everything will be broken/flakie at first.  Solution is make some options to conat/core/client be a promise optionally and delay the connection.
+- [ ] Project lifecycle not enforced during moves -- the source project isn’t blocked (including sandboxed file ops) before the send, so writes could race.
+- [ ] security: use forcecommand for btrfs container
 - [ ] need to rewrite everything in the frontend involving the project runner directly; in particular, see src/packages/frontend/projects/actions.ts
   - cloning projects
   - moving projects
@@ -167,6 +179,10 @@ flowchart LR
 
 ## Completed
 
+- [x] Cross\-host data motion: copy/move between hosts \(rsync \+ btrfs send/recv\), GC source after validation, update project→host map, and surface progress/errors to users.
+  - [x] implement copy between _different_ project\-host via ssh
+
+- [x] looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route\-project.ts; this MUST get fixed or everything will be broken/flakie at first.  Solution is make some options to conat/core/client be a promise optionally and delay the connection.
 - [x]  memory quota: i think that was set on the pod; I don't see it being set now at all
   - run\_quota
 - [x] set the container hostname

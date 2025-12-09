@@ -285,7 +285,7 @@ async function updateBackups({
   await vol.rustic.update(counts, { limit });
 }
 
-async function getBackups({ project_id }: { project_id: string }): Promise<
+export async function getBackups({ project_id }: { project_id: string }): Promise<
   {
     id: string;
     time: Date;

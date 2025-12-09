@@ -2,7 +2,10 @@ import { hubApi } from "@cocalc/lite/hub/api";
 import { account_id } from "@cocalc/backend/data";
 import { uuid, isValidUUID } from "@cocalc/util/misc";
 import { getProject, upsertProject } from "../sqlite/projects";
-import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
+import {
+  type CreateProjectOptions,
+  type SnapshotCounts,
+} from "@cocalc/util/db-schema/projects";
 import type { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
 import {
   DEFAULT_PROJECT_IMAGE,
@@ -12,19 +15,20 @@ import getLogger from "@cocalc/backend/logger";
 import { reportProjectStateToMaster } from "../master-status";
 import { secretsPath as sshProxySecretsPath } from "@cocalc/project-proxy/ssh-server";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { writeManagedAuthorizedKeys, getVolume } from "../file-server";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 import type { Configuration } from "@cocalc/conat/project/runner/types";
 import { ensureHostKey } from "../ssh/host-key";
 import { getSshpiperdPublicKey } from "../ssh/host-keys";
 import { getLocalHostId } from "../sqlite/hosts";
-import { resolve } from "node:path";
+import { client as fileServerClient } from "@cocalc/conat/files/file-server";
 import { runCmd, setupSshTempFiles } from "./util";
 
 const logger = getLogger("project-host:hub:projects");
 const MB = 1_000_000;
 const DEFAULT_PID_LIMIT = 4096;
+const MAX_BACKUPS_PER_PROJECT = 30;
 
 function normalizeRunQuota(run_quota?: any): any | undefined {
   if (run_quota == null) return undefined;
@@ -87,6 +91,10 @@ async function getSshProxyPublicKey(): Promise<string | undefined> {
 }
 
 type RunnerApi = ReturnType<typeof projectRunnerClient>;
+
+function fileServer(project_id: string) {
+  return fileServerClient({ project_id });
+}
 
 // **TODO: This normalizeImage is VERY VERY TEMPORARY!!!**
 // The only reason for this is the frontend by default uses the massive cocalc rootfs's
@@ -277,6 +285,13 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
   hubApi.projects.start = start;
   hubApi.projects.stop = stop;
   hubApi.projects.getSshKeys = getSshKeys;
+  hubApi.projects.createBackup = createBackup;
+  hubApi.projects.deleteBackup = deleteBackup;
+  hubApi.projects.updateBackups = updateBackups;
+  hubApi.projects.restoreBackup = restoreBackup;
+  hubApi.projects.getBackups = getBackups;
+  hubApi.projects.getBackupFiles = getBackupFiles;
+  hubApi.projects.getBackupQuota = getBackupQuota;
 }
 
 // Update managed SSH keys for a project without restarting it.
@@ -446,4 +461,89 @@ export async function copyPaths({
   } finally {
     await cleanup();
   }
+}
+
+export async function createBackup({
+  project_id,
+}: {
+  project_id: string;
+}): Promise<{ time: Date; id: string }> {
+  if (!isValidUUID(project_id)) {
+    throw Error("invalid project_id");
+  }
+  return await fileServer(project_id).createBackup({
+    project_id,
+    limit: MAX_BACKUPS_PER_PROJECT,
+  });
+}
+
+export async function deleteBackup({
+  project_id,
+  id,
+}: {
+  project_id: string;
+  id: string;
+}): Promise<void> {
+  if (!isValidUUID(project_id)) {
+    throw Error("invalid project_id");
+  }
+  await fileServer(project_id).deleteBackup({ project_id, id });
+}
+
+export async function updateBackups({
+  project_id,
+  counts,
+}: {
+  project_id: string;
+  counts?: Partial<SnapshotCounts>;
+}): Promise<void> {
+  if (!isValidUUID(project_id)) {
+    throw Error("invalid project_id");
+  }
+  await fileServer(project_id).updateBackups({
+    project_id,
+    counts,
+    limit: MAX_BACKUPS_PER_PROJECT,
+  });
+}
+
+export async function restoreBackup({
+  project_id,
+  id,
+  path,
+  dest,
+}: {
+  project_id: string;
+  id: string;
+  path?: string;
+  dest?: string;
+}): Promise<void> {
+  if (!isValidUUID(project_id)) {
+    throw Error("invalid project_id");
+  }
+  await fileServer(project_id).restoreBackup({ project_id, id, path, dest });
+}
+
+export async function getBackups({ project_id }: { project_id: string }) {
+  if (!isValidUUID(project_id)) {
+    throw Error("invalid project_id");
+  }
+  return await fileServer(project_id).getBackups({ project_id });
+}
+
+export async function getBackupFiles({
+  project_id,
+  id,
+}: {
+  project_id: string;
+  id: string;
+}): Promise<string[]> {
+  if (!isValidUUID(project_id)) {
+    throw Error("invalid project_id");
+  }
+  return await fileServer(project_id).getBackupFiles({ project_id, id });
+}
+
+export async function getBackupQuota() {
+  return { limit: MAX_BACKUPS_PER_PROJECT };
 }

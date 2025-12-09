@@ -191,7 +191,7 @@ export function client({
   project_id,
 }: {
   client?: Client;
-  // provide project-id so that client is automatically selected to
+  // provide project_id so that client is automatically selected to
   // be the one for the project-host that contains the project.
   project_id?: string;
 } = {}): Fileserver {
