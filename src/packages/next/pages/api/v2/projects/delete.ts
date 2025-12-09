@@ -15,11 +15,11 @@ async function handle(req, res) {
   const { project_id } = getParams(req);
   const account_id = await getAccountId(req);
 
-  if (!account_id) {
-    throw Error("must be signed in");
-  }
-
   try {
+    if (!account_id) {
+      throw Error("must be signed in");
+    }
+
     await deleteProject({ account_id, project_id });
     res.json(OkStatus);
   } catch (err) {
