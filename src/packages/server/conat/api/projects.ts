@@ -155,16 +155,24 @@ export async function getDiskQuota({
 export async function start({
   account_id,
   project_id,
+  wait = true,
 }: {
   account_id: string;
   project_id: string;
   // not used; passed through for typing compatibility with project-host
   run_quota?: any;
+  wait?: boolean;
 }): Promise<void> {
   await assertCollab({ account_id, project_id });
   log.debug("start", { project_id });
   const project = await getProject(project_id);
-  await project.start();
+  if (wait) {
+    await project.start();
+  } else {
+    project.start().catch((err) =>
+      log.warn("async start failed", { project_id, err: `${err}` }),
+    );
+  }
 }
 
 export async function stop({

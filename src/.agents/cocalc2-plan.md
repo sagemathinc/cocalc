@@ -4,6 +4,7 @@
 
 - [ ] Clone project \-\- doesn't work \(uses old load balancer/project runner model?\)  <img src="http://localhost:7000/blobs/paste-0.9326538883929776?uuid=af92f25b-3994-40bf-b24b-da7a36424f61"   width="472.543px"  height="171.783px"  style="object-fit:cover"/>
 
+
 - [x] Image selection has no effect
 
 - [ ] if starting a project takes more than about 10s, e.g., due to rootfs pull, then get an error.  Fix - change the api to to just make the project start starting and return immediately; it doesn't wait until done.  There's the bootlog and database/changefeed statechange for info about what happens.  There can be an *option* to wait, for clients that select a longer timeout.
@@ -55,6 +56,9 @@
 
 - [ ] Backups \-\- Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
   - [ ] creating larger backups errors in the frontend due to timeout \(backup is created\).
+
+- [ ] implement clone but to another project-host.
+   - this is exactly like move but without snapshots, a differnet target project_id, and don't delete the source.
 
 ## Checklist for public release
 
