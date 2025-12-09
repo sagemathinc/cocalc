@@ -17,6 +17,7 @@ import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import { path_to_file, rowBackground } from "@cocalc/util/misc";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+import { BACKUPS } from "@cocalc/frontend/project/listing/use-backups";
 import { FileRow } from "./file-row";
 import { ListingHeader } from "./listing-header";
 import NoFiles from "./no-files";
@@ -180,6 +181,30 @@ export function FileListing({
                 onClick={() => actions.open_directory(".backups")}
               >
                 Open Backups
+              </Button>
+            }
+          />
+        ) : current_path === BACKUPS ||
+          current_path.startsWith(BACKUPS + "/") ? (
+          <Alert
+            style={{ marginBottom: 8 }}
+            type="info"
+            showIcon
+            message="Backups vs Snapshots"
+            description={
+              <>
+                Backups are durable, deduplicated archives stored separately,
+                which can only be restored. Snapshots are fast local readonly
+                filesystem checkpoints on the current project host that you can
+                open or copy directly. Use Snapshots for quick local recovery.
+              </>
+            }
+            action={
+              <Button
+                size="small"
+                onClick={() => actions.open_directory(SNAPSHOTS)}
+              >
+                Open Snapshots
               </Button>
             }
           />
