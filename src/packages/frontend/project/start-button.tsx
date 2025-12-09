@@ -149,7 +149,9 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
       state == null ||
       !state?.get("state") ||
       (allowed &&
-        ["opened", "closed", "archived"].includes(state?.get("state")));
+        ["opened", "closed", "archived"].includes(
+          state?.get("state"),
+        ));
 
     const txt = intl.formatMessage(
       {

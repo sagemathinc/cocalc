@@ -979,7 +979,7 @@ export async function finalizeReceiveProject({
       image,
       run_quota,
     } as any,
-    state: "stopped",
+    state: "opened",
     authorized_keys,
   });
 }

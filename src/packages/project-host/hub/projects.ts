@@ -117,7 +117,7 @@ function normalizeImage(image?: string): string {
 export function ensureProjectRow({
   project_id,
   opts,
-  state = "stopped",
+  state = "opened",
   http_port,
   ssh_port,
   authorized_keys,
@@ -220,7 +220,7 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
     ensureProjectRow({
       project_id,
       opts,
-      state: "stopped",
+      state: "opened",
       authorized_keys: (opts as any).authorized_keys,
     });
 
@@ -287,7 +287,7 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
       ensureProjectRow({
         project_id,
         opts: { authorized_keys, run_quota, image },
-        state: "stopped",
+        state: "opened",
       });
       throw err;
     }
@@ -303,7 +303,7 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
     const status = await runnerApi.stop({ project_id, force });
     ensureProjectRow({
       project_id,
-      state: status?.state ?? "stopped",
+      state: status?.state ?? "opened",
       http_port: undefined,
       ssh_port: undefined,
     });

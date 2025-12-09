@@ -76,7 +76,27 @@ export class SubvolumeSnapshots {
 
   readdir = async (): Promise<string[]> => {
     await this.makeSnapshotsDir();
-    return await this.subvolume.fs.readdir(SNAPSHOTS);
+    const entries = await this.subvolume.fs.readdir(SNAPSHOTS);
+    const snapshots: string[] = [];
+    for (const name of entries) {
+      // Skip lock/hidden files up front.
+      if (name.startsWith(".")) continue;
+      const path = join(this.snapshotsDir, name);
+      try {
+        // Only keep readonly btrfs subvolumes (actual snapshots).
+        const readonly = await getSubvolumeField(path, "Read-only");
+        if (readonly?.toLowerCase().startsWith("yes")) {
+          snapshots.push(name);
+        }
+      } catch (err) {
+        logger.debug("readdir: skipping non-snapshot entry", {
+          path,
+          err: `${err}`,
+        });
+      }
+    }
+    snapshots.sort();
+    return snapshots;
   };
 
   lock = async (name: string) => {

@@ -8,7 +8,7 @@ const logger = getLogger("project-host:reconcile");
 
 interface ContainerState {
   project_id: string;
-  state: "running" | "stopped";
+  state: "running" | "opened";
   http_port?: number | null;
   ssh_port?: number | null;
 }
@@ -36,7 +36,9 @@ function parsePorts(ports?: string): {
   return { http_port, ssh_port };
 }
 
-export async function getContainerStates(): Promise<Map<string, ContainerState>> {
+export async function getContainerStates(): Promise<
+  Map<string, ContainerState>
+> {
   return await new Promise<Map<string, ContainerState>>((resolve) => {
     const states = new Map<string, ContainerState>();
     const child = spawn("podman", [
@@ -75,8 +77,8 @@ export async function getContainerStates(): Promise<Map<string, ContainerState>>
         const m = name.match(/^project-([0-9a-fA-F-]{36})$/);
         if (!m) continue;
         const project_id = m[1];
-        const state: "running" | "stopped" =
-          stateRaw && stateRaw.startsWith("running") ? "running" : "stopped";
+        const state: "running" | "opened" =
+          stateRaw && stateRaw.startsWith("running") ? "running" : "opened";
         const { http_port, ssh_port } = parsePorts(portsRaw);
         states.set(project_id, { project_id, state, http_port, ssh_port });
       }
@@ -105,13 +107,10 @@ async function reconcileOnce() {
 
   // Any project we think is running but has no container should be marked stopped.
   for (const row of knownProjects) {
-    if (
-      !containers.has(row.project_id) &&
-      (row.state === "running" || row.state === "starting")
-    ) {
+    if (!containers.has(row.project_id) && row.state === "running") {
       upsertProject({
         project_id: row.project_id,
-        state: "stopped",
+        state: "opened",
         http_port: null,
         ssh_port: null,
         updated_at: now,

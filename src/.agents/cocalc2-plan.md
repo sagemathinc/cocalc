@@ -1,9 +1,6 @@
 ## Checklist for alpha release
 
-
-- [ ] Clone project \-\- doesn't work \(uses old load balancer/project runner model?\)  <img src="http://localhost:7000/blobs/paste-0.9326538883929776?uuid=af92f25b-3994-40bf-b24b-da7a36424f61"   width="472.543px"  height="171.783px"  style="object-fit:cover"/>
-
-- [ ] snapshots break when there is a non-snapshot in the .snapshots directory: "WARNING: Issue updating snapshots of 7f8daff5-720d-40e1-8689-1d2572a42811 Error:  ''sudo' (args=btrfs subvolume show /home/wstein/scratch/btrfs2/mnt/0/project-7f8daff5-720d-40e1-8689-1d2572a42811/.snapshots/move-1765222048772)' exited with nonzero code 1 -- stderr='ERROR: Not a Btrfs subvolume: Invalid argument"
+- [ ] eliminate this: src/packages/conat/project/runner/load\-balancer.ts
 
 ## Checklist for beta release
 
@@ -216,12 +213,14 @@ flowchart LR
 
 ## TODO: Misc Things to not forget
 
-- [ ] hygiene: ensure any backend code that uses projects no longer users runners \(e.g., supporting api\)
-- [ ] eliminate this: src/packages/conat/project/runner/load\-balancer.ts
 - [ ] \(later\) automatically start project on _successful_ ssh attempt.
   - I don't know how to do this, except by possibly having to fork sshpiperd or rewrite that plugin... but that's fine.
 
 ## Completed
+
+- [x] snapshots break when there is a non-snapshot in the .snapshots directory: "WARNING: Issue updating snapshots of 7f8daff5-720d-40e1-8689-1d2572a42811 Error:  ''sudo' (args=btrfs subvolume show /home/wstein/scratch/btrfs2/mnt/0/project-7f8daff5-720d-40e1-8689-1d2572a42811/.snapshots/move-1765222048772)' exited with nonzero code 1 -- stderr='ERROR: Not a Btrfs subvolume: Invalid argument"
+
+- [x] Clone project \-\- doesn't work \(uses old load balancer/project runner model?\)  <img src="http://localhost:7000/blobs/paste-0.9326538883929776?uuid=af92f25b-3994-40bf-b24b-da7a36424f61"   width="472.543px"  height="171.783px"  style="object-fit:cover"/>
 
 
 - [x] Quota/usage widget missing in the explorer
