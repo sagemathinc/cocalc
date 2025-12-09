@@ -18,6 +18,8 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { type JSX, type MouseEvent } from "react";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import Snapshots from "@cocalc/frontend/project/snapshots";
+import Backups from "@cocalc/frontend/project/backups";
+import { BACKUPS, isBackupsPath } from "@cocalc/frontend/project/listing/use-backups";
 import { lite } from "@cocalc/frontend/lite";
 import TourButton from "./tour/button";
 import CloneProject from "./clone";
@@ -165,6 +167,11 @@ export function MiscSideButtons() {
     <Space className="pull-right">
       {(current_path == SNAPSHOTS ||
         current_path.startsWith(SNAPSHOTS + "/")) && <Snapshots />}
+      {current_path &&
+        isBackupsPath(current_path) &&
+        (current_path === BACKUPS || current_path.startsWith(`${BACKUPS}/`)) && (
+          <Backups />
+        )}
       <Space.Compact>
         {render_jupyterlab_button()}
         {render_vscode_button()}

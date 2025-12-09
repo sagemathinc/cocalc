@@ -3,9 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Space, Tooltip } from "antd";
+import { Modal, Popconfirm, Radio, Space, Tooltip, message } from "antd";
+import useAsyncEffect from "use-async-effect";
 import * as immutable from "immutable";
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
 import { Gap, Icon } from "@cocalc/frontend/components";
@@ -23,6 +24,13 @@ import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+import {
+  BACKUPS,
+  type BackupMeta,
+  isBackupsPath,
+} from "@cocalc/frontend/project/listing/use-backups";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import path from "path";
 
 const ROW_INFO_STYLE = {
   color: COLORS.TAB,
@@ -56,12 +64,155 @@ export function ActionBar({
   project_is_running,
 }: Props) {
   const intl = useIntl();
+  const currentParts = (current_path ?? "").split("/").filter(Boolean);
+  const inBackups =
+    current_path != null && isBackupsPath(current_path ?? "") ? true : false;
   const student_project_functionality = useStudentProjectFunctionality(
     actions.project_id,
   );
   if (student_project_functionality.disableActions) {
     return <div></div>;
   }
+
+  const [backupsMeta, setBackupsMeta] = useState<BackupMeta[] | null>(null);
+  const [backupsLoading, setBackupsLoading] = useState<boolean>(false);
+  const [backupsErr, setBackupsErr] = useState<any>(null);
+
+  useAsyncEffect(async () => {
+    if (!inBackups || !project_id) return;
+    try {
+      setBackupsLoading(true);
+      setBackupsErr(null);
+      const backups = await webapp_client.conat_client.hub.projects.getBackups({
+        project_id,
+      });
+      setBackupsMeta(
+        backups.map(({ id, time }) => ({
+          id,
+          name: new Date(time).toISOString(),
+          mtime: new Date(time).getTime(),
+        })),
+      );
+    } catch (err) {
+      setBackupsErr(err);
+    } finally {
+      setBackupsLoading(false);
+    }
+  }, [inBackups, project_id, current_path]);
+
+  interface BackupSelection {
+    id: string;
+    name: string;
+    paths: string[];
+  }
+
+  async function performRestore() {
+    if (!project_id) return;
+    const entries = (backupContext as any).entries as BackupSelection[];
+    if (!entries || entries.length === 0) return;
+    try {
+      setRestoreLoading(true);
+      setRestoreError(null);
+      for (const entry of entries) {
+        for (const rel of entry.paths) {
+          const dest =
+            restoreMode === "scratch"
+              ? path.posix.join("/scratch", rel || "")
+              : undefined;
+          await webapp_client.conat_client.hub.projects.restoreBackup({
+            project_id,
+            id: entry.id,
+            path: rel || undefined,
+            dest,
+          });
+        }
+      }
+      message.success("Restore started");
+      actions?.open_directory?.(current_path, false);
+      setRestoreOpen(false);
+    } catch (err) {
+      setRestoreError(err);
+    } finally {
+      setRestoreLoading(false);
+    }
+  }
+
+  const backupContext = useMemo(() => {
+    if (!inBackups) return { mode: "none" as const, entries: [] as any[] };
+    if (backupsLoading)
+      return { mode: "loading" as const, entries: [] as BackupSelection[] };
+    if (backupsErr)
+      return { mode: "error" as const, entries: [], err: backupsErr };
+    if (!backupsMeta)
+      return { mode: "loading" as const, entries: [] as BackupSelection[] };
+    if (currentParts.length === 0 || currentParts[0] !== BACKUPS) {
+      return { mode: "none" as const, entries: [] as BackupSelection[] };
+    }
+
+    const findBackup = (name: string) =>
+      backupsMeta.find(
+        (b) => b.name === name || b.id === name || b.id.startsWith(name),
+      );
+
+    if (currentParts.length === 1) {
+      const names = Array.from(checked_files)
+        .filter((p) => p.startsWith(`${BACKUPS}/`))
+        .map((p) => p.slice(BACKUPS.length + 1).split("/")[0])
+        .filter(Boolean);
+      const entries: BackupSelection[] = [];
+      for (const name of new Set(names)) {
+        const backup = findBackup(name);
+        if (backup) {
+          entries.push({ id: backup.id, name: backup.name, paths: [""] });
+        }
+      }
+      return { mode: "root" as const, entries };
+    }
+
+    const backupName = currentParts[1];
+    const backup = findBackup(backupName);
+    if (!backup) {
+      return {
+        mode: "error" as const,
+        entries: [],
+        err: new Error(`backup '${backupName}' not found`),
+      };
+    }
+    const subpath = currentParts.slice(2).join("/");
+    const selected = Array.from(checked_files)
+      .filter(
+        (p) => p === current_path || p.startsWith(`${current_path ?? ""}/`),
+      )
+      .map((p) =>
+        p === current_path
+          ? ""
+          : p.slice((current_path?.length ?? 0) + 1).replace(/^\/+/, ""),
+      )
+      .filter(Boolean);
+    const paths =
+      selected.length === 0
+        ? [subpath]
+        : selected.map((name) =>
+            subpath ? path.posix.join(subpath, name) : name,
+          );
+    return {
+      mode: "inside" as const,
+      entries: [{ id: backup.id, name: backup.name, paths }],
+    };
+  }, [
+    inBackups,
+    backupsLoading,
+    backupsErr,
+    backupsMeta,
+    currentParts,
+    checked_files,
+    current_path,
+  ]);
+
+  const [restoreOpen, setRestoreOpen] = useState<boolean>(false);
+  const [restoreMode, setRestoreMode] = useState<"same" | "scratch">("same");
+  const [restoreLoading, setRestoreLoading] = useState<boolean>(false);
+  const [restoreError, setRestoreError] = useState<any>(null);
 
   function clear_selection(): void {
     actions.set_all_files_unchecked();
@@ -163,6 +314,114 @@ export function ActionBar({
     }
   }
 
+  const backupEntries = (backupContext as any).entries as BackupSelection[];
+  const restoreDisabled =
+    !inBackups ||
+    backupsLoading ||
+    !backupEntries ||
+    backupEntries.length === 0 ||
+    backupContext.mode === "error";
+  const deleteDisabled = !(
+    inBackups &&
+    currentParts.length === 1 &&
+    backupEntries &&
+    backupEntries.length > 0
+  );
+
+  async function deleteBackups() {
+    if (!project_id) return;
+    if (deleteDisabled) return;
+    try {
+      for (const entry of backupEntries) {
+        await webapp_client.conat_client.hub.projects.deleteBackup({
+          project_id,
+          id: entry.id,
+        });
+      }
+      message.success("Backup deleted");
+      actions?.open_directory?.(current_path, false);
+    } catch (err) {
+      message.error(`${err}`);
+    }
+  }
+
+  function renderRestoreModal() {
+    if (!restoreOpen) return null;
+    const paths =
+      backupEntries?.flatMap((e) =>
+        e.paths.map((p) => (p ? `${e.name}:${p}` : `${e.name} (all files)`)),
+      ) ?? [];
+    return (
+      <Modal
+        title={
+          <>
+            <Icon name="undo" /> Restore from backup
+          </>
+        }
+        open={restoreOpen}
+        onCancel={() => setRestoreOpen(false)}
+        onOk={performRestore}
+        confirmLoading={restoreLoading}
+        okText="Restore"
+      >
+        <p>Select where to restore the selected files.</p>
+        <Radio.Group
+          value={restoreMode}
+          onChange={(e) => setRestoreMode(e.target.value)}
+          style={{ display: "flex", flexDirection: "column", gap: 8 }}
+        >
+          <Radio value="same">Restore to original paths (overwrite)</Radio>
+          <Radio value="scratch">Restore to /scratch/&lt;path&gt;</Radio>
+        </Radio.Group>
+        {paths && paths.length > 0 && (
+          <ul style={{ marginTop: "10px" }}>
+            {paths.map((p) => (
+              <li key={p}>{p}</li>
+            ))}
+          </ul>
+        )}
+        {restoreError && (
+          <div style={{ color: "red", marginTop: "8px" }}>{`${restoreError}`}</div>
+        )}
+      </Modal>
+    );
+  }
+
+  function render_backup_actions(): React.JSX.Element | undefined {
+    if (checked_files.size === 0) {
+      return;
+    }
+    return (
+      <Space.Compact>
+        <Button
+          onClick={() => setRestoreOpen(true)}
+          disabled={restoreDisabled}
+          title={
+            backupContext.mode === "error"
+              ? `${backupContext.err}`
+              : restoreDisabled
+                ? "Select backup items to restore"
+                : undefined
+          }
+        >
+          <Icon name="undo" /> Restore
+        </Button>
+        <Popconfirm
+          title="Delete selected backups?"
+          okText="Delete"
+          cancelText="Cancel"
+          onConfirm={deleteBackups}
+          disabled={deleteDisabled}
+        >
+          <Button disabled={deleteDisabled}>
+            <Icon name="trash" /> Delete
+          </Button>
+        </Popconfirm>
+        {renderRestoreModal()}
+      </Space.Compact>
+    );
+  }
+
   function render_action_button(name: FileAction) {
     if (isSnapshotPath(current_path)) {
       if (isDisabledSnapshots(name)) {
@@ -185,6 +444,9 @@ export function ActionBar({
   }
 
   function render_action_buttons(): React.JSX.Element | undefined {
+    if (inBackups) {
+      return render_backup_actions();
+    }
     let action_buttons: (
       | "download"
       | "compress"

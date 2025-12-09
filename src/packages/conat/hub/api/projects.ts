@@ -176,6 +176,7 @@ export interface Projects {
     account_id?: string;
     project_id: string;
     path?: string;
+    dest?: string;
     id: string;
   }) => Promise<void>;
 

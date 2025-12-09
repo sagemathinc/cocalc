@@ -4,15 +4,15 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { field_cmp } from "@cocalc/util/misc";
 import type { DirectoryListingEntry } from "@cocalc/frontend/project/explorer/types";
 
-const BACKUPS = ".backups";
+export const BACKUPS = ".backups";
 
-interface BackupMeta {
+export interface BackupMeta {
   id: string;
   name: string; // display name (ISO string)
   mtime: number;
 }
 
-function isBackupsPath(path: string) {
+export function isBackupsPath(path: string) {
   return path === BACKUPS || path.startsWith(`${BACKUPS}/`);
 }
 
