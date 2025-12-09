@@ -126,6 +126,7 @@ export interface Fileserver {
     {
       id: string;
       time: Date;
+      summary: { [key: string]: string | number };
     }[]
   >;
 

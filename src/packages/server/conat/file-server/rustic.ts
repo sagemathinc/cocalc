@@ -72,6 +72,7 @@ export async function getBackups({
   {
     id: string;
     time: Date;
+    summary: { [key: string]: string | number };
   }[]
 > {
   logger.debug("getBackups", { project_id });
