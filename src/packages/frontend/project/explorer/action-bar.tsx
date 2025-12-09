@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Modal, Popconfirm, Radio, Space, Tooltip, message } from "antd";
+import { Modal, Radio, Space, Tooltip, message } from "antd";
 import useAsyncEffect from "use-async-effect";
 import * as immutable from "immutable";
 import React, { useMemo, useState } from "react";
@@ -339,7 +339,9 @@ export function ActionBar({
         });
       }
       message.success("Backup deleted");
-      actions?.open_directory?.(current_path, false);
+      // Force a refresh and clear selection so the listing updates immediately.
+      actions?.set_all_files_unchecked?.();
+      actions?.open_directory?.(current_path, true);
     } catch (err) {
       message.error(`${err}`);
     }
@@ -406,17 +408,36 @@ export function ActionBar({
         >
           <Icon name="undo" /> Restore
         </Button>
-        <Popconfirm
-          title="Delete selected backups?"
-          okText="Delete"
-          cancelText="Cancel"
-          onConfirm={deleteBackups}
+        <Button
           disabled={deleteDisabled}
+          onClick={() => {
+            if (deleteDisabled) return;
+            const names =
+              backupEntries
+                ?.map((e) => e.name)
+                .filter(Boolean)
+                .sort() ?? [];
+            Modal.confirm({
+              title: "Delete selected backups?",
+              content:
+                names.length > 0 ? (
+                  <div>
+                    <p>This will permanently remove:</p>
+                    <ul style={{ paddingLeft: "20px" }}>
+                      {names.map((n) => (
+                        <li key={n}>{n}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null,
+              okText: "Delete",
+              cancelText: "Cancel",
+              onOk: deleteBackups,
+            });
+          }}
         >
-          <Button disabled={deleteDisabled}>
-            <Icon name="trash" /> Delete
-          </Button>
-        </Popconfirm>
+          <Icon name="trash" /> Delete
+        </Button>
         {renderRestoreModal()}
       </Space.Compact>
     );

@@ -36,6 +36,7 @@ import CreateArchive from "./create-archive";
 import Download from "./download";
 import RenameFile from "./rename-file";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+import { BACKUPS } from "@cocalc/frontend/project/listing/use-backups";
 
 export const PRE_STYLE = {
   marginBottom: "15px",
@@ -173,7 +174,17 @@ export function ActionBox({
                 >
                   {SNAPSHOTS}
                 </a>{" "}
-                directory.
+                and{" "}
+                <a
+                  href=""
+                  onClick={(e) => {
+                    e.preventDefault();
+                    actions.open_directory(BACKUPS);
+                  }}
+                >
+                  {BACKUPS}
+                </a>{" "}
+                directories.
               </div>
             )}
           </Col>
