@@ -1,52 +1,92 @@
-## Checklist (near term)
+## Checklist for alpha release
 
-- [ ] #now implement move project using btrfs
-  - [x] snapshot creation after move broken due to missing qgroup \(?\)
-  - [x] **Snapshots not preserved:** we only send a single readonly snapshot created on the fly; existing project snapshots aren’t carried over.
-  - [x] large streams: send progress updates instead of one req/resp.
-  - [x] the worker seems to be extremely inefficient, doing one step for one project at a time.
-  - [x] **No progress/reporting:** the UI gets no status or bytes‑sent updates; failures aren’t surfaced back to the hub.
-  - [x] **Cleanup/rollback:** partial moves don’t clean up temp snapshots on source/dest or roll back assignments.
-  - [x] sendProject timeout issue
-  - [x] issue with creating snapshots after a move being broken:
-  - [x] move persist files as well
-  - [ ] deleting snapshot fails after a move
+- [ ] implement move project using btrfs
+  - [x] deleting snapshot fails after a move \(some stale state somewhere on the backend; not sure\)
 
 - [ ] Backups \-\- Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
-  - [ ] browse backups efficiently
-  - [ ] restore from backups
-  - [ ] add banner in project settings with links to snapshots and backups
-  - [ ] ensure user can create rustic backup \(frontend ui\)
-  - [ ] user can restore path from backup
-  - [ ] restore project from a backup to a given project\-host
-    - first do restore,
-    - then delete project from whatever other host it was on
-  - [ ] surface restore as a way to access a project that is on a broken/gone/vanished host. For compute servers, this could be very important: make sure all projects are backed up, then deprovision
-  - [ ] enhance backup content to include sync data \(i.e., persist timetravel edit histories, etc.\) for that project.
+  - [ ] creating larger backups errors in the frontend due to timeout \(backup is created\).
+  - [ ] deleting backups doesn't do anything right now, and should have a popconfirm
 
-- [ ] finish SEA binary for running project\-host:
-  - [ ] include binaries
-  - [ ] allow user to select where project is hosted for easier testing \(could be hidden dev feature\)
+- [ ] File/quotas/backups UX: 
+  - [ ] default quota \+ snapshot/backup counts on project create; 
+  - [ ] expose image/pull errors cleanly; 
+  - [ ] add image allowlist \(e.g., ubuntu:25.10\) and fallback behavior.
+  
+## Checklist for beta release
 
-- [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project\-host hub/conat services.
-  - Issue short\-lived signed tokens \(project_id \+ perms \+ exp\) from master when opening a project; browser uses them to open `wss://<host>/conat` directly. Hosts validate tokens locally.
+- [ ] rewrite stopIdleProjects to use new architecture \(and everything that used the old project runner load balancer code\)
 
-- [ ] Project host networking: keep non\-host networking but guarantee containers can reach the host conat endpoint; consider explicit hostfwd mode if we ever bind conat to loopback only.
 
-- [ ] File/quotas/backups UX: default quota \+ snapshot/backup counts on project create; expose image/pull errors cleanly; add image allowlist \(e.g., ubuntu:25.10\) and fallback behavior.
-
-- [ ] Observability: per\-host metrics/logs, minimal status page \(runner/file\-server/conat\), project lifecycle spans; alerts for failed moves/backups and low headroom.
-
-- [ ] Proxy ingress: project\-proxy base\-path TODO; SSH/HTTP ingress for hidden/on\-prem hosts
+- [ ] Kubernetes support
 
 - [ ] Reflect sync path sharing.
   - [ ] internal to a project\-host; currently uses mutagen, so rewrite to use reflect\-sync
   - [ ] between two project\-hosts
   - [ ] implement a frontend UX for configuring this
 
-- [ ] Compute server: treat compute servers as user\-scoped project\-hosts with reflect\-sync subset sharing; API for spinning up temporary hosts; drop project_id column from compute_servers in favor of host auth/ACL.
+- [ ] implement /scratch for projects:
+  - [ ] a btrfs subvolume on a configurable btrfs fs; by default same as project, but could be configured to be a different btrfs
+  - [ ] no snapshots or backups of any kind
+  - [ ] deleted when project is moved
+  - [ ] restore backups to /scratch not \$HOME/scratch
+    - this requires actually having /scratch as a separate volume, which we don't have right now, evidently
 
-- [ ] POSIX File\-server that doesn't require btrfs \(no snapshots or quotas, but has rustic backups\). This would make it possible to support running the entire project\-host purely in userspace \(with podman\) on both Linux and MacOS. Also won't use overlayfs for containers since that also requires root.
+- [ ] Compute servers = dedicated/owned project hosts
+  - [ ] treat compute servers as user\-scoped project\-hosts with reflect\-sync subset sharing; 
+  - [ ] API for spinning up temporary hosts
+  - [ ] drop project\_id column from compute\_servers in favor of host auth/ACL.
+
+- [ ] There are api calls/functions for things like "execute code on project" \-\- these will need to send a message to the relevant project\-host and back.
+
+- [ ] Project activity \-\- when project is being used, etc. \-\- needs to get updated regularly from the project host to master.
+
+- [ ] Security: Right now technically project\-hosts allow users to directly create projects on them, which should not be allowed \(though not via UI\). Even worse, user can specify the project\_id, which is a major security issues. See src/packages/project\-host/hub/projects.ts
+
+- [ ] Security: When setting a project we always add the default cocalc\-lite account so we can keep things working: " // [ ] TODO \-\- for now we always included the default user; this is obviously temporary"  
+
+- [ ] #security: src/packages/server/conat/route\-client.ts currently gives away the master hosts secret auth to any project\-host, which of course isn't good.
+
+- [ ] eliminate payg \(=pay as you go\) entirely for projects
+  - easy: just hide a box in the ui...
+
+## Checklist for public release
+
+- [ ] security: use forcecommand for btrfs container
+
+- [ ] Project lifecycle not enforced during moves \-\- the source project isn’t blocked \(including sandboxed file ops\) before the send, so writes could race.
+
+- [ ] finish SEA binary for running project\-host:
+  - [ ] include binaries
+  - [ ] allow user to select where project is hosted for easier testing \(could be hidden dev feature\)
+
+- [ ] Harden auth: signed connect tokens; enforce project ACLs for start/stop/open; remove anonymous access paths in project\-host hub/conat services.
+  - [ ] Issue short\-lived signed tokens \(project\_id \+ perms \+ exp\) from master when opening a project
+  - [ ] browser uses them to open `wss://<host>/conat` directly. 
+  - [ ] Hosts validate tokens locally.
+
+- [ ] Project host networking: 
+  - [ ] keep non\-host networking but guarantee containers can reach the host conat endpoint
+  - [ ] consider explicit hostfwd mode if we ever bind conat to loopback only.
+
+- [ ] Observability:
+  - [ ] per\-host metrics/logs
+  - [ ] minimal status page \(runner/file\-server/conat\)
+  - [ ] project lifecycle spans
+  - [ ] alerts for failed moves/backups and low headroom.
+
+## Checklist for later
+
+- [ ] Proxy ingress: 
+  - [ ] project\-proxy base\-path
+  - [ ] SSH/HTTP ingress for hidden/on\-prem hosts
+
+- [ ] \(later\) POSIX File\-server that doesn't require btrfs \(no snapshots or quotas, but has rustic backups\). This would make it possible to support running the entire project\-host purely in userspace \(with podman\) on both Linux and MacOS. Also won't use overlayfs for containers since that also requires root.
+
+- [ ] \(later\) Advanced use of backups:
+  - [ ] restore project from a backup to a given project\-host
+    - first do restore,
+    - then delete project from whatever other host it was on
+  - [ ] surface restore as a way to access a project that is on a broken/gone/vanished host. For compute servers, this could be very important: make sure all projects are backed up, then deprovision
 
 ## CoCalc New Architecture Plan (federated project-hosts + proxy)
 
@@ -157,31 +197,35 @@ flowchart LR
   MAPI -->|Placement/assign| BRunner
 ```
 
-## Detailed TODO List -- Misc Things to not forget
+## TODO: Misc Things to not forget
 
-- [ ] rewrite stopIdleProjects to use new architecture (and everything that used the old project runner load balancer code)
-- [ ] Project lifecycle not enforced during moves -- the source project isn’t blocked (including sandboxed file ops) before the send, so writes could race.
-- [ ] security: use forcecommand for btrfs container
-- [ ] need to rewrite everything in the frontend involving the project runner directly; in particular, see src/packages/frontend/projects/actions.ts
-  - cloning projects
-  - moving projects
-- [ ] need to ensure any backend code that uses projects no longer users runners \(e.g., supporting api\)
-- [ ] There are api calls/functions for things like "execute code on project" \-\- these will need to send a message to the relevant project\-host and back.
-- [ ] Project activity \-\- when project is being used, etc. \-\- needs to get updated regularly from the project host to master.
-- [ ] Right now project\-hosts allow users to directly create projects on them, which should not be allowed. Even worse, user can specify the project_id, which is a major security issues. See src/packages/project\-host/hub/projects.ts
-- When setting a project we always add the default cocalc\-lite account so we can keep things working: " // [ ] TODO \-\- for now we always included the default user; this is obviously temporary"
-- [ ] Any backend/api stuff has to be updated to use the same conat routing functionality... or maybe we just use a proxy.
-- [ ] #security: src/packages/server/conat/route\-client.ts currently gives away the master hosts secret auth to any project\-host, which of course isn't good.
+- [ ] hygiene: ensure any backend code that uses projects no longer users runners \(e.g., supporting api\)
 - [ ] eliminate this: src/packages/conat/project/runner/load\-balancer.ts
-- [ ] eliminate /src/packages/project\-proxy/container.ts, in process rewriting /src/packages/project\-proxy/proxy.ts to take a function to get port as input
-- [ ] eliminate payg entirely for projects
-- [ ] make sure the websockets to project-host properly reconnect, despite different config.
-- [ ] extend codex support to work with podman containers (not just cocalc-plus)
-- [ ] automatically start project on _successful_ ssh attempt.
+- [ ] \(later\) automatically start project on _successful_ ssh attempt.
   - I don't know how to do this, except by possibly having to fork sshpiperd or rewrite that plugin... but that's fine.
 
 ## Completed
 
+- move
+  - [x] snapshot creation after move broken due to missing qgroup \(?\)
+  - [x] **Snapshots not preserved:** we only send a single readonly snapshot created on the fly; existing project snapshots aren’t carried over.
+  - [x] large streams: send progress updates instead of one req/resp.
+  - [x] the worker seems to be extremely inefficient, doing one step for one project at a time.
+  - [x] **No progress/reporting:** the UI gets no status or bytes‑sent updates; failures aren’t surfaced back to the hub.
+  - [x] **Cleanup/rollback:** partial moves don’t clean up temp snapshots on source/dest or roll back assignments.
+  - [x] sendProject timeout issue
+  - [x] issue with creating snapshots after a move being broken:
+  - [x] move persist files as well
+- backup
+  - [x] browse backups efficiently
+  - [x] restore from backups
+  - [x] add banner in project settings with links to snapshots and backups
+  - [x] ensure user can create rustic backup \(frontend ui\)
+  - [x] user can restore path from backup
+  - [x] enhance backup content to include sync data \(i.e., persist timetravel edit histories, etc.\) for that project.
+- [x] rewrite src/packages/project\-proxy/container.ts, in process rewriting /src/packages/project\-proxy/proxy.ts to take a function to get port as input
+
+- [x] make sure the websockets to project\-host properly reconnect, despite different config.
 - [x] Cross\-host data motion: copy/move between hosts \(rsync \+ btrfs send/recv\), GC source after validation, update project→host map, and surface progress/errors to users.
   - [x] implement copy between _different_ project\-host via ssh
 
@@ -214,3 +258,4 @@ flowchart LR
 - [x] Removed sidecar/reflect-sync path; runner now directly launches single podman container with Btrfs mounts.
 - [x] Vendored file-server bootstrap into project-host with Btrfs/rustic/quotas; added fs.\* conat service and SSH proxy integration.
 - [x] Moved SEA/bundle logic from lite to plus and from runner to project-host; excluded build output from tsc; removed old REST `/projects` endpoints and added catch-all redirect.
+
