@@ -73,12 +73,7 @@ async function stagePersistForMove(
   const staging = join(projectPath, PERSIST_STAGING);
   await runCmd(logger, "sudo", ["rm", "-rf", staging]).catch(() => {});
   await runCmd(logger, "sudo", ["mkdir", "-p", staging]);
-  await runCmd(logger, "sudo" , [
-    "rsync",
-    "-a",
-    `${src}/`,
-    `${staging}/`,
-  ]);
+  await runCmd(logger, "sudo", ["rsync", "-a", `${src}/`, `${staging}/`]);
   return true;
 }
 
@@ -96,12 +91,7 @@ async function restorePersistFromStaging(
   const dest = persistPath(project_id);
   await runCmd(logger, "sudo", ["rm", "-rf", dest]).catch(() => {});
   await runCmd(logger, "sudo", ["mkdir", "-p", dest]);
-  await runCmd(logger, "sudo", [
-    "rsync",
-    "-a",
-    `${staging}/`,
-    `${dest}/`,
-  ]);
+  await runCmd(logger, "sudo", ["rsync", "-a", `${staging}/`, `${dest}/`]);
   await runCmd(logger, "sudo", ["rm", "-rf", staging]).catch(() => {});
 }
 
@@ -116,9 +106,13 @@ async function ensureQgroupForSubvolume(path: string) {
     () => {},
   );
   // Create/refresh the 1/<id> qgroup for this subvolume.
-  await runCmd(logger, "sudo", ["btrfs", "qgroup", "create", `1/${id}`, path]).catch(
-    () => {},
-  );
+  await runCmd(logger, "sudo", [
+    "btrfs",
+    "qgroup",
+    "create",
+    `1/${id}`,
+    path,
+  ]).catch(() => {});
   // Ensure the subvolume qgroup is linked to its parent.
   await runCmd(logger, "sudo", [
     "btrfs",
@@ -132,13 +126,7 @@ async function ensureQgroupForSubvolume(path: string) {
 
 async function deleteSubvol(path: string) {
   try {
-    await runCmd(logger, "sudo", [
-      "btrfs",
-      "-q",
-      "subvolume",
-      "delete",
-      path,
-    ]);
+    await runCmd(logger, "sudo", ["btrfs", "-q", "subvolume", "delete", path]);
   } catch (err) {
     // Preserve the underlying error so callers get a clear message.
     throw new Error(`failed to delete subvolume ${path}: ${err}`);
@@ -578,7 +566,12 @@ async function _sendProject({
     const metas: SubvolMeta[] = [];
     for (const name of snapshotNames) {
       const path = join(snapshotsDir, name);
-      metas.push(await readSubvolMeta(path));
+      try {
+        metas.push(await readSubvolMeta(path));
+      } catch {
+        // random file/direction in .snapshots that isn't a subvolume;
+        // loss of a snapshot also isn't "end of the world"
+      }
     }
     const ordered = topoOrder(metas);
     const totalSnapshots = ordered.length + 1;
@@ -773,7 +766,9 @@ async function sendProjectStaged({
   const metas: SubvolMeta[] = [];
   for (const name of snapshotNames) {
     const path = join(snapshotsDir, name);
-    metas.push(await readSubvolMeta(path));
+    try {
+      metas.push(await readSubvolMeta(path));
+    } catch {}
   }
   const ordered = topoOrder(metas);
 
@@ -916,7 +911,9 @@ export async function finalizeReceiveProject({
   const receivedSnaps = await readdir(recvSnapshotsDir).catch(() => []);
   const snapMetas: SubvolMeta[] = [];
   for (const name of receivedSnaps) {
-    snapMetas.push(await readSubvolMeta(join(recvSnapshotsDir, name)));
+    try {
+      snapMetas.push(await readSubvolMeta(join(recvSnapshotsDir, name)));
+    } catch {}
   }
   // Include the move snapshot itself.
   const moveMeta = await readSubvolMeta(recvMovePath);
