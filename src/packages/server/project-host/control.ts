@@ -35,7 +35,9 @@ const pool = () => getPool();
 
 export async function loadProject(project_id: string): Promise<ProjectMeta> {
   const { rows } = await pool().query(
-    "SELECT title, users, rootfs_image as image, host_id, host, run_quota FROM projects WHERE project_id=$1",
+    // Prefer an explicit rootfs_image, but fall back to compute_image so legacy
+    // rows created before rootfs_image existed still work.
+    "SELECT title, users, COALESCE(rootfs_image, compute_image) as image, host_id, host, run_quota FROM projects WHERE project_id=$1",
     [project_id],
   );
   if (!rows[0]) throw Error(`project ${project_id} not found`);
@@ -152,6 +154,7 @@ export async function startProjectOnHost(project_id: string): Promise<void> {
       project_id,
       authorized_keys: meta.authorized_keys,
       run_quota: meta.run_quota,
+      image: meta.image,
     });
   } catch (err) {
     log.warn("startProjectOnHost failed", { project_id, host: placement, err });

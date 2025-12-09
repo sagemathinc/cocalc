@@ -245,18 +245,24 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
     project_id,
     authorized_keys,
     run_quota,
+    image,
   }: {
     project_id: string;
     authorized_keys?: string;
     run_quota?: any;
+    image?: string;
   }): Promise<void> {
     const status = await runnerApi.start({
       project_id,
-      config: await getRunnerConfig(project_id, { authorized_keys, run_quota }),
+      config: await getRunnerConfig(project_id, {
+        authorized_keys,
+        run_quota,
+        image,
+      }),
     });
     ensureProjectRow({
       project_id,
-      opts: { authorized_keys, run_quota },
+      opts: { authorized_keys, run_quota, image },
       state: status?.state ?? "running",
       http_port: (status as any)?.http_port,
       ssh_port: (status as any)?.ssh_port,

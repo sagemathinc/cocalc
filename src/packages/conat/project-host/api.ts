@@ -30,6 +30,7 @@ export interface HostControlApi {
     project_id: string;
     authorized_keys?: string;
     run_quota?: any;
+    image?: string;
   }) => Promise<HostCreateProjectResponse>;
   stopProject: (opts: {
     project_id: string;

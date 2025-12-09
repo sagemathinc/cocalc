@@ -40,7 +40,7 @@ async function getConfig({ project_id }): Promise<Configuration> {
   await project.computeQuota();
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT run_quota, rootfs_image as image FROM projects WHERE project_id=$1",
+    "SELECT run_quota, COALESCE(rootfs_image, compute_image) as image FROM projects WHERE project_id=$1",
     [project_id],
   );
   if (rows.length == 0) {

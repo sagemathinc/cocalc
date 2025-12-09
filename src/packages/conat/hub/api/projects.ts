@@ -245,6 +245,7 @@ export interface Projects {
     project_id: string;
     authorized_keys?: string;
     run_quota?: any;
+    image?: string;
   }) => Promise<void>;
   stop: (opts: { account_id?: string; project_id: string }) => Promise<void>;
   updateAuthorizedKeysOnHost: (opts: {
