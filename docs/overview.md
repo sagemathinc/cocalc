@@ -1,0 +1,15 @@
+# Recent Architecture Docs (past month)
+
+Use this as a quick entry point to the new subsystem docs added in late 2025. Each link is to a full write\-up; the paragraph summarizes the concrete behavior and implementation details.
+
+- [project-rootfs.md](./project-rootfs.md) — How a project’s root filesystem image is chosen and flows through the stack. The hub reads `rootfs_image` (or legacy `compute_image`), sends it to the project-host, which normalizes and persists it, then passes it to project-runner. Images are cached locally, run with overlayfs uppers under `.local/share/overlay/` (per image), and those overlays are captured in snapshots/backups and move with the project. Supports Docker/OCI refs today (defaulting to Docker Hub), with planned support for local rootfs directories.
+
+- [project-backups.md](./project-backups.md) — Backup pipeline using btrfs snapshots + rustic. Describes what’s included (project files + per-project persist store), excluded (btrfs snapshots), flow (take RO snapshot, rustic backup to repo, drop snapshot), restore to any host, job states, failure/restart behavior, and storage models (GCS Autoclass on cocalc.com, per-host buckets for untrusted, configurable elsewhere). Notes daily scheduling, concurrency limits, observability, and open items like pruning policy.
+
+- [project-move.md](./project-move.md) — End-to-end project move between hosts. Covers the Postgres-backed state machine (`project_moves`, `projects.move_status`), maintenance-worker orchestration, and two data paths: direct `btrfs send | sshpiperd | btrfs receive` and staged stream files + rsync. Explains snapshot ordering (siblings by generation), destination re-homing of snapshots and writable clone, forced-command `btrfs receive`, keying/authorization via sshpiperd, and performance/robustness notes.
+
+- [ssh-key-distribution.md](./ssh-key-distribution.md) — Control-hub ↔ project-host SSH key lifecycle. Details host-to-host and sshpiperd keypairs, where they’re stored (sqlite + secrets), how they’re generated on host startup, how public keys are broadcast over conat and cached, and how they’re used for ingress SSH and inter-host SSH (single-key authorization per username). Includes rotation guidance and a mermaid for the registration/broadcast flow.
+
+- [ssh-proxy.md](./ssh-proxy.md) — SSH path for user access to projects via sshpiperd. Shows components (project container sshd, host sshpiperd), the auth flow (username → project lookup, assembled authorized_keys from DB + project files + managed file), port selection from sqlite, and how full SSH features (port/X11 forwarding, rsync) are preserved. Points to the key code paths for auth and key refresh.
+
+- [http-proxy.md](./http-proxy.md) — HTTP/WebSocket proxying to project services (e.g., JupyterLab). Describes the URL shape `/PROJECT/port/<p>/...`, hub-level host resolution and proxying, project-host proxying into the container’s internal proxy on port 80 with `prependPath:false` and `xfwd`, and the single exposed path for WS upgrades. Includes a diagram and pointers to the hub and project-host proxy code.
