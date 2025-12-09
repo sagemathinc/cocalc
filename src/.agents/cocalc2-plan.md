@@ -62,7 +62,11 @@
 - [ ] implement clone but to another project-host.
    - this is exactly like move but without snapshots, a differnet target project_id, and don't delete the source.
 
+- [ ] delete project data permanently
+
+
 ## Checklist for public release
+
 
 - [ ] security: use forcecommand for btrfs container
 

@@ -60,6 +60,9 @@ export default async function createProject(opts: CreateProjectOptions) {
     project_id = v4();
   }
 
+  const pool = getPool();
+  let host_id: string | undefined;
+  let host: object | undefined;
   if (src_project_id) {
     if (
       !account_id ||
@@ -67,6 +70,13 @@ export default async function createProject(opts: CreateProjectOptions) {
     ) {
       throw Error("user must be a collaborator on src_project_id");
     }
+    // keep the clone on the same project-host as the source
+    const { rows } = await pool.query(
+      "SELECT host_id, host FROM projects WHERE project_id=$1",
+      [src_project_id],
+    );
+    host_id = rows[0]?.host_id;
+    host = rows[0]?.host;
     // create filesystem for new project as a clone.
     // Route clone to the host that owns the source project.
     const client = filesystemClient({ project_id: src_project_id });
@@ -86,9 +96,8 @@ export default async function createProject(opts: CreateProjectOptions) {
 
   const envs = await getSoftwareEnvironments("server");
 
-  const pool = getPool();
   await pool.query(
-    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited, rootfs_image, ephemeral) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8::BIGINT)",
+    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited, rootfs_image, ephemeral, host_id, host) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8::BIGINT, $9, $10)",
     [
       project_id,
       title ?? "No Title",
@@ -98,6 +107,8 @@ export default async function createProject(opts: CreateProjectOptions) {
       image ?? envs?.default ?? DEFAULT_COMPUTE_IMAGE,
       rootfs_image,
       ephemeral ?? null,
+      host_id ?? null,
+      host != null ? JSON.stringify(host) : null,
     ],
   );
 
