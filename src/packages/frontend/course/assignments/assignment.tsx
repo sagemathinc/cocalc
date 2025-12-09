@@ -190,7 +190,12 @@ export function Assignment({
           <Button
             icon={<Icon name="pencil" />}
             type={noteEditing ? "primary" : "default"}
-            onClick={() => setNoteEditing(!noteEditing)}
+            onClick={() => {
+              if (noteEditing) {
+                actions.assignments.set_assignment_note(assignmentId, noteValue);
+              }
+              setNoteEditing(!noteEditing);
+            }}
           >
             {noteEditing ? "Done" : "Notes:"}
           </Button>
@@ -199,16 +204,11 @@ export function Assignment({
           {noteEditing ? (
             <MultiMarkdownInput
               value={noteValue}
-              onChange={(value: string) => {
-                setNoteValue(value);
-                actions.assignments.set_assignment_note(
-                  assignment.get("assignment_id"),
-                  value,
-                );
-              }}
+              onChange={(value: string) => setNoteValue(value)}
               placeholder="Private notes about this assignment (not visible to students)"
               height="200px"
               minimal
+              enableUpload={false}
             />
           ) : (
             <StaticMarkdown value={noteValue ?? ""} />
