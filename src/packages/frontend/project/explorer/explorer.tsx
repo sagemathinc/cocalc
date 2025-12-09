@@ -45,6 +45,7 @@ import useFs from "@cocalc/frontend/project/listing/use-fs";
 import useListing, {
   type SortField,
 } from "@cocalc/frontend/project/listing/use-listing";
+import useBackupsListing from "@cocalc/frontend/project/listing/use-backups";
 import filterListing from "@cocalc/frontend/project/listing/filter-listing";
 import ShowError from "@cocalc/frontend/components/error";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
@@ -148,17 +149,33 @@ export function Explorer() {
   );
 
   const fs = useFs({ project_id, compute_server_id });
+  const isBackupsPath =
+    current_path === ".backups" || current_path?.startsWith(".backups/");
   let {
     refresh,
     listing,
     error: listingError,
   } = useListing({
-    fs,
+    fs: isBackupsPath ? null : fs,
     path: current_path,
     ...sortDesc(active_file_sort),
     cacheId: actions?.getCacheId(compute_server_id),
     mask,
   });
+  const {
+    listing: backupsListing,
+    error: backupsError,
+    refresh: refreshBackups,
+  } = useBackupsListing({
+    project_id,
+    path: current_path,
+    ...sortDesc(active_file_sort),
+  });
+  if (isBackupsPath) {
+    listing = backupsListing;
+    listingError = backupsError;
+    refresh = refreshBackups;
+  }
   const showHidden = useTypedRedux({ project_id }, "show_hidden");
   const flyout = useTypedRedux({ project_id }, "flyout");
 

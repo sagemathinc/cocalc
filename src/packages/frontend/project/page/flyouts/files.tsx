@@ -52,6 +52,7 @@ import { FilesHeader } from "./files-header";
 import { fileItemStyle } from "./utils";
 import useFs from "@cocalc/frontend/project/listing/use-fs";
 import useListing from "@cocalc/frontend/project/listing/use-listing";
+import useBackupsListing from "@cocalc/frontend/project/listing/use-backups";
 import ShowError from "@cocalc/frontend/components/error";
 import { getSort } from "@cocalc/frontend/project/explorer/config";
 
@@ -139,15 +140,28 @@ export function FilesFlyout({
     }
   }, [checked_files]);
 
+  const isBackupsPath =
+    current_path === ".backups" || current_path?.startsWith(".backups/");
   const fs = useFs({ project_id, compute_server_id });
   const {
     listing: directoryListing,
     error: listingError,
     refresh,
   } = useListing({
-    fs,
+    fs: isBackupsPath ? null : fs,
     path: current_path,
   });
+  const {
+    listing: backupsListing,
+    error: backupsError,
+    refresh: refreshBackups,
+  } = useBackupsListing({
+    project_id,
+    path: current_path,
+  });
+  const effectiveListing = isBackupsPath ? backupsListing : directoryListing;
+  const effectiveError = isBackupsPath ? backupsError : listingError;
+  const effectiveRefresh = isBackupsPath ? refreshBackups : refresh;
 
   // active file: current editor is the file in the listing
   // empty: either no files, or just the ".." for the parent dir
@@ -157,7 +171,7 @@ export function FilesFlyout({
     DirectoryListingEntry | null,
     boolean,
   ] => {
-    const files = directoryListing;
+    const files = effectiveListing;
     if (files == null) return EMPTY_LISTING;
     let activeFile: DirectoryListingEntry | null = null;
     computeFileMasks(files);
@@ -240,7 +254,7 @@ export function FilesFlyout({
 
     return [processedFiles, fileMap, activeFile, isEmpty];
   }, [
-    directoryListing,
+    effectiveListing,
     activeFileSort,
     hidden,
     file_search,
@@ -605,7 +619,7 @@ export function FilesFlyout({
   }
 
   function renderListing(): React.JSX.Element {
-    if (directoryListing == null) {
+    if (effectiveListing == null) {
       return renderLoadingOrStartProject();
     }
 
@@ -648,7 +662,7 @@ export function FilesFlyout({
       ref={rootRef}
       style={{ flex: "1 0 auto", flexDirection: "column", display: "flex" }}
     >
-      <ShowError error={listingError} setError={refresh} />
+      <ShowError error={effectiveError} setError={effectiveRefresh} />
       <FilesHeader
         activeFile={activeFile}
         getFile={getFile}

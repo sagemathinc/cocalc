@@ -7,7 +7,7 @@
 
 // cSpell:ignore issymlink
 
-import { Spin } from "antd";
+import { Alert, Button, Spin } from "antd";
 import * as immutable from "immutable";
 import { useEffect, useRef } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
@@ -16,6 +16,7 @@ import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-h
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import { path_to_file, rowBackground } from "@cocalc/util/misc";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import { FileRow } from "./file-row";
 import { ListingHeader } from "./listing-header";
 import NoFiles from "./no-files";
@@ -156,6 +157,32 @@ export function FileListing({
           flexDirection: "column",
         }}
       >
+        {current_path === SNAPSHOTS ||
+        current_path.startsWith(SNAPSHOTS + "/") ? (
+          <Alert
+            style={{ marginBottom: 8 }}
+            type="info"
+            showIcon
+            message="Snapshots vs Backups"
+            description={
+              <>
+                Snapshots in this folder are fast local filesystem checkpoints
+                on the current project host. Backups are durable, deduplicated
+                archives stored separately. Use Backups to restore files that
+                might be missing from snapshots or if a project host is not
+                available.
+              </>
+            }
+            action={
+              <Button
+                size="small"
+                onClick={() => actions.open_directory(".backups")}
+              >
+                Open Backups
+              </Button>
+            }
+          />
+        ) : null}
         <ListingHeader active_file_sort={active_file_sort} sort_by={sort_by} />
         {listing.length > 0 ? renderRows() : render_no_files()}
       </div>
