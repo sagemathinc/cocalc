@@ -1,8 +1,9 @@
 ## Checklist for alpha release
 
-- [ ] eliminate this: src/packages/conat/project/runner/load\-balancer.ts
-
 ## Checklist for beta release
+
+- [ ] eliminate this: src/packages/conat/project/runner/load-balancer.ts
+
 
 - [ ] bootlog seems flakie -- sometimes it isn't connected
 

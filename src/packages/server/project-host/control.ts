@@ -92,15 +92,20 @@ async function ensurePlacement(project_id: string): Promise<HostPlacement> {
   if (meta.host_id) {
     const hostInfo =
       meta.host ?? (await loadHostFromRegistry(meta.host_id)) ?? undefined;
-    if (hostInfo) {
-      if (!meta.host) {
-        await savePlacement(project_id, {
-          host_id: meta.host_id,
-          host: hostInfo,
-        });
-      }
-      return { host_id: meta.host_id, host: hostInfo };
+    if (!hostInfo) {
+      // Project is already placed, but the host is missing/unregistered.
+      // Never auto-reassign here to avoid split-brain/data loss; require an explicit move.
+      throw Error(
+        `project is assigned to host ${meta.host_id} but it is unavailable`,
+      );
     }
+    if (!meta.host) {
+      await savePlacement(project_id, {
+        host_id: meta.host_id,
+        host: hostInfo,
+      });
+    }
+    return { host_id: meta.host_id, host: hostInfo };
   }
 
   const chosen = await selectActiveHost();
