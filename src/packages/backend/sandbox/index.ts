@@ -89,6 +89,8 @@ import { sha1 } from "@cocalc/backend/sha1";
 import { apply_patch, type CompressedPatch } from "@cocalc/util/dmp";
 //import getLogger from "@cocalc/backend/logger";
 
+export { SyncFsWatchStore } from "./sync-fs-watch";
+
 //const logger = getLogger("sandbox:fs");
 
 // max time code can run (in safe mode), e.g., for find,
