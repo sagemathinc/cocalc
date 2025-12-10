@@ -620,9 +620,9 @@ async function writeFileDeltaImpl(
       saveLast,
     );
   } catch (err: any) {
-    if (!PATCH_FALLBACK_CODES.has(err?.code)) {
-      throw err;
-    }
+      if (!PATCH_FALLBACK_CODES.has(err?.code)) {
+        throw err;
+      }
     await writeFile(path, content, saveLast);
   }
 }

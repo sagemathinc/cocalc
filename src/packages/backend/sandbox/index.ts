@@ -599,7 +599,9 @@ export class SandboxedFilesystem {
         this.lastOnDisk.set(p, patched);
         this.lastOnDiskHash.set(`${p}-${sha1(patched)}`, true);
       }
-      globalSyncFsService.recordLocalWrite(p, patched);
+      if (saveLast) {
+        globalSyncFsService.recordLocalWrite(p, patched, true);
+      }
       return;
     }
     if (saveLast && typeof data == "string") {
@@ -607,8 +609,8 @@ export class SandboxedFilesystem {
       this.lastOnDiskHash.set(`${p}-${sha1(data)}`, true);
     }
     await writeFile(p, data);
-    if (typeof data === "string") {
-      globalSyncFsService.recordLocalWrite(p, data);
+    if (saveLast === true && typeof data === "string") {
+      globalSyncFsService.recordLocalWrite(p, data, true);
     }
   };
 

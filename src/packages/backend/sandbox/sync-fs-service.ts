@@ -74,8 +74,9 @@ export class SyncFsService extends EventEmitter {
 
   // Update the persisted snapshot when we know a local write/delete happened
   // via our own filesystem API. This prevents echo patches on the next fs event.
-  recordLocalWrite(path: string, content: string): void {
+  recordLocalWrite(path: string, content: string, suppress: boolean = false): void {
     this.store.setContent(path, content);
+    if (!suppress) return;
     if (this.suppressOnce.has(path)) {
       clearTimeout(this.suppressOnce.get(path)!);
     }
@@ -170,6 +171,13 @@ export class SyncFsService extends EventEmitter {
       });
 
       await ready;
+      // Seed the snapshot so later diffs have a correct base.
+      try {
+        const initial = await readFile(path, "utf8");
+        this.store.setContent(path, initial as string);
+      } catch {
+        // file may not exist yet; that's fine
+      }
     } else {
       if (!existing) return;
       existing.paths.delete(path);
@@ -280,7 +288,9 @@ export class SyncFsService extends EventEmitter {
     const fsHead = this.store.getFsHead(string_id);
     const parents =
       heads.length > 0 ? heads : fsHead ? [fsHead.time] : [];
-    const time = Math.max(Date.now(), (fsHead?.time ?? 0) + 1);
+    const parentMax =
+      parents.length > 0 ? Math.max(...parents) : fsHead?.time ?? 0;
+    const time = Math.max(Date.now(), parentMax + 1);
     const version = Math.max(maxVersion, fsHead?.version ?? 0) + 1;
     const obj: any = {
       string_id,
