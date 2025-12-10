@@ -2436,6 +2436,12 @@ export class SyncDoc extends EventEmitter {
       return false;
     }
     let current: Document | undefined;
+    // If there are multiple heads, we need to emit a merge patch even when the
+    // content is identical, so that the heads collapse to a single tip.
+    const forceMerge =
+      this.patchflowReady() &&
+      this.patchflowSession != null &&
+      this.patchflowSession.getHeads().length > 1;
     try {
       current = this.patchflowSession.getDocument() as Document;
     } catch {
@@ -2445,6 +2451,7 @@ export class SyncDoc extends EventEmitter {
     const compareAgainst = current;
     if (
       !allowDuplicate &&
+      !forceMerge &&
       this.documentsEqual(compareAgainst as Document, next)
     ) {
       return false;

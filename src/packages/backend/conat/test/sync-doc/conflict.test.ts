@@ -85,9 +85,9 @@ describe("synchronized editing with branching and merging", () => {
     await waitUntilSynced([s1, s2]);
     const heads1 = s1.getHeads();
     const heads2 = s2.getHeads();
+    expect(heads1).toEqual(heads2);
     expect(heads1.length).toBe(1);
     expect(heads2.length).toBe(1);
-    expect(heads1).toEqual(heads2);
   });
 
   it("set values inconsistently again and explicitly resolve the merge conflict in a way that is different than the default", async () => {
