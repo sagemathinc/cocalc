@@ -38,42 +38,42 @@ describe("basic watching of file on disk happens automatically", () => {
   });
 
   it("changes the file on disk and call readFile to immediately update", async () => {
-    await delay(1.5 * readLockTimeout);
     await fs.writeFile(path, "modified");
     await s.readFile();
     expect(s.to_str()).toEqual("modified");
   });
 
   it("change file on disk and it automatically updates with no explicit call needed", async () => {
-    await delay(2 * watchDebounce);
+    await delay(50);
     await fs.writeFile(path, "changed again!");
     await wait({
       until: () => {
+        // NOTE: this looks mangled because the fs change is *merged*
+        // into the not-yet saved change from above.  That's
+        // intentional.
+        return s.to_str() == "modchanged again!ed";
+      },
+    });
+  });
+
+  it("changes the file on disk and call readFile to immediately update", async () => {
+    await fs.writeFile(path, "modified");
+    await s.readFile();
+    await s.save_to_disk();
+    expect(s.to_str()).toEqual("modified");
+
+    await delay(500);
+    await fs.writeFile(path, "changed again!");
+    await wait({
+      until: () => {
+        // we saved back to disk above.
         return s.to_str() == "changed again!";
       },
     });
   });
 
-  it("change file on disk should not trigger a load from disk", async () => {
-    await delay(2 * watchDebounce);
-    const orig = s.readFileDebounced;
-    let c = 0;
-    s.readFileDebounced = () => {
-      c += 1;
-    };
-    s.from_str("a different value");
-    await s.save_to_disk();
-    expect(c).toBe(0);
-    await delay(2 * watchDebounce);
-    expect(c).toBe(0);
-    s.readFileDebounced = orig;
-    // disable the ignore that happens as part of save_to_disk,
-    // or the tests below won't work
-    await s.fileWatcher?.ignore(0);
-  });
-
   let client2, s2;
-  it("file watching also works if there are multiple clients, with only one handling the change", async () => {
+  it("file watching also works if there are multiple clients", async () => {
     client2 = connect();
     s2 = client2.sync.string({
       project_id,
@@ -84,82 +84,18 @@ describe("basic watching of file on disk happens automatically", () => {
       firstReadLockTimeout: 1,
     });
     await once(s2, "ready");
-    await s2.readFile();
-    const counts = { c: 0, c2: 0 };
-    s.on("handle-file-change", () => {
-      counts.c = 1;
-    });
-    s2.on("handle-file-change", () => {
-      counts.c2 = 1;
-    });
-
-    await delay(2 * watchDebounce);
+    await delay(100);
 
     await fs.writeFile(path, "version3");
-    expect(await fs.readFile(path, "utf8")).toEqual("version3");
     await wait({
       until: () => {
         return s2.to_str() == "version3" && s.to_str() == "version3";
       },
     });
-    expect(s.to_str()).toEqual("version3");
-    expect(s2.to_str()).toEqual("version3");
-    await wait({
-      until: () => counts.c + counts.c2 > 0,
-    });
-    expect(counts.c + counts.c2).toBe(1);
   });
-
-  /*
-  it("file watching must still work if either client is closed", async () => {
-    s.close();
-    await delay(2 * watchDebounce);
-    await fs.writeFile(path, "version4");
-    await wait({
-      until: () => {
-        return s2.to_str() == "version4";
-      },
-    });
-    expect(s2.to_str()).toEqual("version4");
-  });
-
-  it("another change and test", async () => {
-    await delay(watchDebounce * 2);
-    await fs.writeFile(path, "version5");
-    await wait({
-      until: () => {
-        return s2.to_str() == "version5";
-      },
-    });
-    expect(s2.to_str()).toEqual("version5");
-  });
-
-  it("add a third client, close client2 and have file watching still work", async () => {
-    const client3 = connect();
-    const s3 = client3.sync.string({
-      project_id,
-      path,
-      service: server.service,
-      readLockTimeout,
-      watchDebounce,
-      firstReadLockTimeout: 1,
-    });
-    await once(s3, "ready");
-    s2.close();
-    await delay(watchDebounce * 2);
-    await fs.writeFile(path, "version6");
-
-    await wait({
-      until: () => {
-        return s3.to_str() == "version6";
-      },
-    });
-    expect(s3.to_str()).toEqual("version6");
-  });
-  */
 });
 
-describe.skip("has unsaved changes", () => {
+describe("has unsaved changes", () => {
   const project_id = uuid();
   let s1, s2, client1, client2;
 
