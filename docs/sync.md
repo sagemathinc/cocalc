@@ -45,6 +45,7 @@ Filesystem integration
 ----------------------
 Disk changes enter the same patch stream that editors use: a single backend watcher diffs disk against stored snapshots, emits patches with a reserved user, and clients converge via Patchflow. It’s the bridge between the filesystem and the realtime DAG.
 
+- **Deployment note**: the fileserver runs one shared watcher service with a durable SQLite file (e.g., `data/sync-fs.sqlite` via `new SyncFsService(new SyncFsWatchStore(join(data, "sync-fs.sqlite")))`), so heads/lastSeq survive restarts and streams resume with `start_seq` instead of replaying history.
 - **Backend watcher (sync-fs-service)**:
   - One chokidar watcher per directory on the fileserver; heartbeats from clients keep watches alive.
   - Stores last-on-disk snapshot in a lightweight SQLite DB (diffable without replaying patch history).
