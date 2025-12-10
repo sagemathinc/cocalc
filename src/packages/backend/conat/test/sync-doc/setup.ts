@@ -31,13 +31,19 @@ export async function waitUntilSynced(syncdocs: any[]) {
   await wait({
     until: () => {
       const X = new Set<string>();
-      for (const s of syncdocs) {
-        X.add(JSON.stringify(s.patch_list.getHeads()?.sort()));
-        if (X.size > 1) {
-          return false;
+      try {
+        for (const s of syncdocs) {
+          const heads = s.getHeads?.() ?? [];
+          X.add(JSON.stringify([...heads].sort()));
+          if (X.size > 1) {
+            return false;
+          }
         }
+        return true;
+      } catch (err) {
+        console.log(err);
+        return false;
       }
-      return true;
     },
   });
 }

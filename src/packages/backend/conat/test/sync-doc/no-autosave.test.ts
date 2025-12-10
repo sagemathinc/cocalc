@@ -73,8 +73,8 @@ describe("confirm noAutosave works", () => {
     await waitUntilSynced([s1, s2]);
     expect(s1.to_str()).toEqual("new-ver-1-2");
     expect(s2.to_str()).toEqual("new-ver-1-2");
-    expect(s1.patch_list.getHeads().length).toBe(2);
-    expect(s2.patch_list.getHeads().length).toBe(2);
+    expect(s1.getHeads().length).toBe(2);
+    expect(s2.getHeads().length).toBe(2);
   });
 
   it("string state info matches", async () => {

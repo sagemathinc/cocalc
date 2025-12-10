@@ -65,8 +65,8 @@ describe("synchronized editing with branching and merging", () => {
 
   it("wait until both clients see two heads", async () => {
     await waitUntilSynced([s1, s2]);
-    const heads1 = s1.patch_list.getHeads();
-    const heads2 = s2.patch_list.getHeads();
+    const heads1 = s1.getHeads();
+    const heads2 = s2.getHeads();
     expect(heads1.length).toBe(2);
     expect(heads2.length).toBe(2);
     expect(heads1).toEqual(heads2);
@@ -83,8 +83,8 @@ describe("synchronized editing with branching and merging", () => {
     s1.commit();
     await s1.save();
     await waitUntilSynced([s1, s2]);
-    const heads1 = s1.patch_list.getHeads();
-    const heads2 = s2.patch_list.getHeads();
+    const heads1 = s1.getHeads();
+    const heads2 = s2.getHeads();
     expect(heads1.length).toBe(1);
     expect(heads2.length).toBe(1);
     expect(heads1).toEqual(heads2);
@@ -202,8 +202,8 @@ describe("do the example in the blog post 'Lies I was Told About Collaborative E
   });
 
   it("There are two heads; either client can resolve the merge conflict.", async () => {
-    expect(alice.patch_list.getHeads().length).toBe(2);
-    expect(bob.patch_list.getHeads().length).toBe(2);
+    expect(alice.getHeads().length).toBe(2);
+    expect(bob.getHeads().length).toBe(2);
     bob.from_str("The Colour of Pomegranates");
     bob.commit();
     await bob.save();
@@ -244,7 +244,7 @@ describe(`create editing conflict with ${numHeads} heads`, () => {
       docs[i].save();
     }
     await waitUntilSynced(docs);
-    const heads = docs[0].patch_list.getHeads();
+    const heads = docs[0].getHeads();
     expect(heads.length).toBe(docs.length);
   });
 

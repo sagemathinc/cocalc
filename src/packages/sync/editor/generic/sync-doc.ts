@@ -739,6 +739,13 @@ export class SyncDoc extends EventEmitter {
     return v;
   };
 
+  getHeads = (): number[] => {
+    if (!this.patchflowReady() || this.patchflowSession == null) {
+      throw new Error("patchflow session not ready");
+    }
+    return this.patchflowSession.getHeads();
+  };
+
   wallTime = (version: number): number | undefined => {
     const patch = this.patchflowPatch(version);
     return patch?.wall;

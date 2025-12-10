@@ -14,8 +14,41 @@ Collected current sync-related issues, normalized for tracking and triage. Tags 
    - [ ] conat/test/sync-doc/no-autosave.test.ts 
    - [ ] conat/test/sync-doc/delete.test.ts
    - [ ] conat/test/sync-doc/conflict.test.ts
+   
+- [ ] Save to disk bug
+   - I was editing src/packages/backend/conat/test/sync-doc/setup.ts and hit some major amplification!
+```
+      } catch (err) (err) (err) {
+        console.log(err);
+        console.log(err);
+        console.log(err);
+        return false;
+      }
+    },
+```
+but I typed
+```
+      } catch (err) {
+        console.log(err);
+        return false;
+      }
+```
+The extra changes are clear in two separate commits in TimeTravel as being due to "the project" (i.e., due to file changing on disk).
 
-## Unclear Reproducible Blockers
+and it keeps happening every minute:
+```
+      } catch (err) (err) (err) (err) {
+        console.log(err);
+        console.log(err);
+        console.log(err);
+        console.log(err);
+        return false;
+      }
+```
+A revert to correct version and save to disk also got weirdly corrupted.
+I refreshed the browser and reverted and it worked fine again.
+
+## Unclear Blockers
 
 - [x] Chat rich/markdown input: recent typing can vanish; may be autosave or editor bug (#blocker #sync).
    - this is not easy to reproduce - I type for an 30 minutes and see it once.  I have seen this many times though.
