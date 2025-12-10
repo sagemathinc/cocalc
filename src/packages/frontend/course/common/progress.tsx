@@ -37,6 +37,13 @@ export function Progress({ done, not_done, step, skipped }: ProgressProps) {
           <Gap />
         </span>
       );
+    } else {
+      return (
+        <span style={{ fontSize: "12pt" }}>
+          <Icon name="pie-chart" />
+          <Gap />
+        </span>
+      );
     }
   }
 
@@ -44,7 +51,7 @@ export function Progress({ done, not_done, step, skipped }: ProgressProps) {
     if (!skipped) {
       return (
         <>
-          ({done} / {not_done + done} {step})
+          {done} / {not_done + done}
         </>
       );
     } else {
