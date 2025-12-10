@@ -15,7 +15,7 @@ if (!Number.isInteger(index) || index < 0) {
   process.exit(1);
 }
 const root = path.join(__dirname, "..");
-const data = path.join(root, `data-${index}`);
+const data = process.env.COCALC_DATA
 const logPath = path.join(data, `log`);
 const pidPath = path.join(data, `daemon.pid`);
 
@@ -60,7 +60,7 @@ function start() {
     ...process.env,
     COCALC_DISABLE_BEES: "yes",
     // note: they ALL backup to the same rustic repo!
-    COCALC_RUSTIC_REPO: path.join(root, `data-0`, "rustic"),
+    COCALC_RUSTIC_REPO: path.join(process.env.COCALC_RUSTIC, "rustic"),
     MASTER_CONAT_SERVER: "http://localhost:9001",
     PROJECT_HOST_NAME: `host-${index}`,
     PROJECT_HOST_REGION: "west",
