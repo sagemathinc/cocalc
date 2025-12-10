@@ -49,6 +49,8 @@ import {
 import { DEDICATED_VM_ONPREM_MACHINE } from "./upgrades/consts";
 import { PRICES } from "./upgrades/dedicated";
 
+const DISK_QUOTA = 1000;
+
 export type SiteLicenseQuotas = { [uuid: string]: { quota: SiteLicenseQuota } };
 
 describe("main quota functionality", () => {
@@ -58,7 +60,7 @@ describe("main quota functionality", () => {
     const exp = {
       cpu_limit: 1,
       cpu_request: 0.02,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       member_host: false,
       memory_limit: 1000,
@@ -78,7 +80,7 @@ describe("main quota functionality", () => {
     const exp = {
       cpu_limit: 1,
       cpu_request: 0.05, // set at the top of quota config
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       member_host: true, // what this upgrade is about
       memory_limit: 1000, // set at the top of quota config
@@ -98,7 +100,7 @@ describe("main quota functionality", () => {
     const exp = {
       cpu_limit: 1,
       cpu_request: 0.05, // set at the top of quota config
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       member_host: true, // what this upgrade is about
       memory_limit: 1000, // set at the top of quota config
@@ -150,7 +152,7 @@ describe("main quota functionality", () => {
       privileged: false,
       gpu: false,
       idle_timeout: 1899, // 1800 secs free
-      disk_quota: 4000,
+      disk_quota: 2000,
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
@@ -179,7 +181,7 @@ describe("main quota functionality", () => {
       privileged: false,
       gpu: false,
       idle_timeout: 1800, // 1800 secs free
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
@@ -271,7 +273,7 @@ describe("main quota functionality", () => {
           member_host: true,
           network: true,
           memory_request: 3210,
-          disk_quota: 3000, // settings are already near max
+          disk_quota: DISK_QUOTA, // settings are already near max
           cores: 2,
           mintime: 24 * 3600 * 50,
           cpu_shares: 1024 * 0.5,
@@ -297,7 +299,7 @@ describe("main quota functionality", () => {
       privileged: false,
       gpu: false,
       idle_timeout: 24 * 3600 * (Math.min(90, 50 + 50) + 33) - 1800, // 1800 secs free
-      disk_quota: 22000,
+      disk_quota: 20000,
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
@@ -325,7 +327,7 @@ describe("main quota functionality", () => {
       memory_limit: 20000,
       cpu_limit: 1,
       cpu_request: 0.05,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       memory_request: 2000,
       privileged: false,
@@ -434,7 +436,7 @@ describe("main quota functionality", () => {
       memory_request: 1020, // (4100 + 1000) / 5
       cpu_limit: 1,
       cpu_request: 0.05,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       member_host: true,
       network: true,
       privileged: false,
@@ -672,7 +674,7 @@ describe("main quota functionality", () => {
       privileged: false,
       gpu: false,
       idle_timeout: 1800,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
@@ -746,7 +748,7 @@ describe("main quota functionality", () => {
       cpu_request: 0.05,
       dedicated_disks: [],
       dedicated_vm: false,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       member_host: true,
       memory_limit: 22000,
@@ -806,7 +808,7 @@ describe("main quota functionality", () => {
         cpu_request: 0.25,
         dedicated_disks: [],
         dedicated_vm: false,
-        disk_quota: 3000,
+        disk_quota: DISK_QUOTA,
         idle_timeout: 1800,
         member_host: false,
         memory_limit: 45000,
@@ -855,7 +857,7 @@ describe("main quota functionality", () => {
       cpu_request: 11,
       dedicated_disks: [],
       dedicated_vm: false,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       member_host: true,
       memory_limit: 19000,
@@ -902,7 +904,7 @@ describe("main quota functionality", () => {
       cpu_request: 16,
       dedicated_disks: [],
       dedicated_vm: false,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       member_host: true,
       memory_limit: 32000,
@@ -1020,7 +1022,7 @@ describe("always running", () => {
     const exp = {
       cpu_limit: 1,
       cpu_request: 0.05, // set at the top of quota config
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       member_host: true, // what this upgrade is about
       memory_limit: 1000, // set at the top of quota config
@@ -1080,7 +1082,7 @@ describe("site licenses", () => {
       always_running: false,
       cpu_limit: 1,
       cpu_request: 0.02,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       memory_limit: 1000,
       memory_request: 200,
       network: false,
@@ -1408,7 +1410,7 @@ describe("site licenses", () => {
       memory_request: 531,
       cpu_limit: 2.5,
       cpu_request: 0.5,
-      disk_quota: 3345, // 3gb free
+      disk_quota: 1345,
       member_host: true,
       network: true,
       privileged: false,
@@ -1456,7 +1458,7 @@ describe("site licenses", () => {
 
     expect(q1.memory_limit).toEqual(2234);
     // not +222, because always_running has higher priority than member hosting
-    expect(q1.disk_quota).toBe(3000 + 321 + 111 + 333);
+    expect(q1.disk_quota).toBe(DISK_QUOTA + 321 + 111 + 333);
     expect(q1.member_host).toBe(false);
     expect(q1.network).toBe(true);
     expect(q1.cpu_limit).toBe(1.25);
@@ -1738,7 +1740,7 @@ describe("dedicated", () => {
       cpu_request: 0.05,
       dedicated_disks: [],
       dedicated_vm: false,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       member_host: true,
       memory_limit: 3000,
@@ -1770,7 +1772,7 @@ describe("dedicated", () => {
       cpu_request: 0.05,
       dedicated_disks: [],
       dedicated_vm: false,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       member_host: true,
       memory_limit: 12000,
@@ -2139,7 +2141,7 @@ describe("idle timeout license", () => {
       always_running: true,
       cpu_limit: 1,
       cpu_request: 0.05,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: ito,
       member_host: true,
       memory_limit: 1000, // 1000 min for members
@@ -2176,7 +2178,7 @@ describe("boost", () => {
       always_running: false,
       cpu_limit: 1,
       cpu_request: 0.05,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       member_host: true,
       memory_limit: 5000,
@@ -2216,7 +2218,7 @@ describe("boost", () => {
       always_running: false,
       cpu_limit: 2,
       cpu_request: 0.05,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 86400,
       member_host: true,
       memory_limit: 4000,
@@ -2375,7 +2377,7 @@ describe("boost", () => {
       always_running: false,
       cpu_limit: 1,
       cpu_request: 0.05,
-      disk_quota: 3000, // default
+      disk_quota: DISK_QUOTA, // default
       idle_timeout: 7200, // both selected licenses are medium
       member_host: true,
       memory_limit: 6000, // both medium from above
@@ -2403,7 +2405,7 @@ describe("boost", () => {
       always_running: false,
       cpu_limit: 1,
       cpu_request: 0.02,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       member_host: false,
       memory_limit: 1000,
@@ -2437,7 +2439,7 @@ describe("boost", () => {
       always_running: false,
       cpu_limit: 2,
       cpu_request: 0.05,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       member_host: true,
       memory_limit: 1000,
@@ -2477,7 +2479,7 @@ describe("boost", () => {
       always_running: false,
       cpu_limit: 1,
       cpu_request: 0.05,
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 7200,
       member_host: true,
       memory_limit: 2000,
@@ -2566,7 +2568,7 @@ describe("cobine quota/patch with regular licenses", () => {
       dedicated_disks: [],
       dedicated_vm: false,
       patch: [...deep_copy(patch1), ...deep_copy(patch2)],
-      disk_quota: 3000,
+      disk_quota: DISK_QUOTA,
       idle_timeout: 1800,
       member_host: true,
       memory_limit: 2000,
