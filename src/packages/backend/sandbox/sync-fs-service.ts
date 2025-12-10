@@ -198,9 +198,15 @@ export class SyncFsService extends EventEmitter {
     if (!relativePath) return;
     const string_id =
       meta.string_id ?? client_db.sha1(meta.project_id, relativePath);
+    const { heads, maxVersion } = await this.getStreamHeads({
+      project_id: meta.project_id,
+      string_id,
+    });
     const fsHead = this.store.getFsHead(string_id);
+    const parents =
+      heads.length > 0 ? heads : fsHead ? [fsHead.time] : [];
     const time = Math.max(Date.now(), (fsHead?.time ?? 0) + 1);
-    const version = (fsHead?.version ?? 0) + 1;
+    const version = Math.max(maxVersion, fsHead?.version ?? 0) + 1;
     const obj: any = {
       string_id,
       project_id: meta.project_id,
@@ -209,7 +215,7 @@ export class SyncFsService extends EventEmitter {
       wall: time,
       user_id: 0,
       is_snapshot: false,
-      parents: fsHead ? [fsHead.time] : [],
+      parents,
       version,
       file: true,
     };
@@ -253,5 +259,36 @@ export class SyncFsService extends EventEmitter {
     });
     this.patchWriters.set(string_id, writer);
     return writer;
+  }
+
+  private async getStreamHeads({
+    project_id,
+    string_id,
+  }: {
+    project_id: string;
+    string_id: string;
+  }): Promise<{ heads: number[]; maxVersion: number }> {
+    const writer = await this.getPatchWriter({ project_id, string_id });
+    const parentSet = new Set<number>();
+    const times: number[] = [];
+    let maxVersion = 0;
+    // [ ] TODO: this is NOT efficient -- just need to pass {start_seq} to getAll,
+    // based on last sequence number we got when writing to the patchWriter.
+    try {
+      for await (const { mesg } of writer.getAll()) {
+        const p: any = mesg;
+        if (p.time != null) times.push(p.time);
+        if (Array.isArray(p.parents)) {
+          for (const t of p.parents) parentSet.add(t);
+        }
+        if (typeof p.version === "number") {
+          maxVersion = Math.max(maxVersion, p.version);
+        }
+      }
+    } catch {
+      // fall through with whatever we gathered
+    }
+    const heads = times.filter((t) => !parentSet.has(t));
+    return { heads, maxVersion };
   }
 }
