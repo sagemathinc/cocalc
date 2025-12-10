@@ -152,9 +152,6 @@ describe("opening a new syncstring for a file that does NOT exist on disk does n
       deletedCheckInterval: 50,
       watchRecreateWait: 50,
     });
-    // file has to exist in order for us to delete it:
-    await s.fs.writeFile(s.path, "foo");
-    await s.readFile();
     s.on("deleted", () => {
       deleted++;
     });

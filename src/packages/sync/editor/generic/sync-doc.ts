@@ -245,6 +245,9 @@ export class SyncDoc extends EventEmitter {
 
   private noAutosave?: boolean;
 
+  // The isDeleted flag is set to true if the file existed and then 
+  // was actively deleted after the session started. It would
+  // then only be set back to false if the file appears again.
   public isDeleted: boolean = false;
 
   constructor(opts: SyncOpts) {
@@ -2170,14 +2173,19 @@ export class SyncDoc extends EventEmitter {
       this.from_str(contents);
     } catch (err) {
       if (err.code == "ENOENT") {
-        // console.log(this.client.client.id, "reset doc and set isDeleted=true");
-        if (!this.isDeleted) {
-          this.isDeleted = true;
-          this.emit("deleted");
-        }
         dbg("file no longer exists -- setting to blank");
         this.from_str("");
-        this.commit({ file: true });
+        this.valueOnDisk = "";
+        if (this.hasReadFile) {
+          // Previously existed; treat as deletion.
+          if (!this.isDeleted) {
+            this.isDeleted = true;
+            this.emit("deleted");
+          }
+        } else {
+          // First attempt to read a missing file: do not mark deleted yet.
+          this.isDeleted = false;
+        }
       } else {
         throw err;
       }
@@ -2550,6 +2558,8 @@ export class SyncDoc extends EventEmitter {
       throw err;
     }
     if (this.isClosed()) return;
+    this.hasReadFile = true;
+    this.isDeleted = false;
     this.valueOnDisk = value;
     this.emit("save-to-disk");
   };

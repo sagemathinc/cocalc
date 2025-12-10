@@ -10,6 +10,10 @@ Collected current sync-related issues, normalized for tracking and triage. Tags 
 - Jupyter kernel state stuck spinning - #blocker #jupyter #sync
 
 - [ ] Most `conat` sync-doc backend tests failing (#blocker #sync).
+   - [ ] conat/test/sync-doc/syncstring.test.ts
+   - [ ] conat/test/sync-doc/no-autosave.test.ts 
+   - [ ] conat/test/sync-doc/delete.test.ts
+   - [ ] conat/test/sync-doc/conflict.test.ts
 
 ## Unclear Reproducible Blockers
 
