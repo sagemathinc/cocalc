@@ -1431,15 +1431,9 @@ importers:
       '@cocalc/database':
         specifier: workspace:*
         version: link:../database
-      '@cocalc/file-server':
-        specifier: workspace:*
-        version: link:../file-server
       '@cocalc/gcloud-pricing-calculator':
         specifier: ^1.17.0
         version: 1.17.0
-      '@cocalc/project-proxy':
-        specifier: workspace:*
-        version: link:../project-proxy
       '@cocalc/project-runner':
         specifier: workspace:*
         version: link:../project-runner
@@ -16787,7 +16781,7 @@ snapshots:
 
   axios@1.13.1:
     dependencies:
-      follow-redirects: 1.15.11(debug@4.4.3)
+      follow-redirects: 1.15.11
       form-data: 4.0.4
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -18964,6 +18958,8 @@ snapshots:
   flatten-vertex-data@1.0.2:
     dependencies:
       dtype: 2.0.0
+
+  follow-redirects@1.15.11: {}
 
   follow-redirects@1.15.11(debug@4.4.3):
     optionalDependencies:
