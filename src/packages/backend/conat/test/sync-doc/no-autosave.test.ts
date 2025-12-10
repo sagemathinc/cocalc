@@ -43,7 +43,7 @@ describe("confirm noAutosave works", () => {
     expect(s2.noAutosave).toEqual(true);
 
     // note: the user_id's are distinct:
-    expect(new Set([s1.my_user_id, s2.my_user_id])).toEqual(new Set([0, 1]));
+    expect(new Set([s1.my_user_id, s2.my_user_id])).toEqual(new Set([1, 2]));
   });
 
   const howLong = 750;
@@ -76,7 +76,9 @@ describe("confirm noAutosave works", () => {
     await waitUntilSynced([s1, s2]);
     // Order depends on logical-time slot ordering; just assert convergence.
     expect(s1.to_str()).toEqual(s2.to_str());
-    expect(new Set(s1.to_str().split("-"))).toEqual(new Set(["new", "ver", "1", "2"]));
+    expect(new Set(s1.to_str().split("-"))).toEqual(
+      new Set(["new", "ver", "1", "2"]),
+    );
     expect(s1.getHeads().length).toBe(2);
     expect(s2.getHeads().length).toBe(2);
   });
@@ -86,7 +88,7 @@ describe("confirm noAutosave works", () => {
     const a2 = s2.syncstring_table_get_one().toJS();
     expect(a1).toEqual(a2);
     expect(new Set(a1.users)).toEqual(
-      new Set([s1.client.client_id(), s2.client.client_id()]),
+      new Set([s1.client.client_id(), s2.client.client_id(), "__filesystem__"]),
     );
   });
 });
