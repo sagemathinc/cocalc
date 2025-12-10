@@ -41,6 +41,9 @@ describe("confirm noAutosave works", () => {
     await once(s2, "ready");
     expect(s1.noAutosave).toEqual(true);
     expect(s2.noAutosave).toEqual(true);
+
+    // note: the user_id's are distinct:
+    expect(new Set([s1.my_user_id, s2.my_user_id])).toEqual(new Set([0, 1]));
   });
 
   const howLong = 750;
@@ -71,8 +74,9 @@ describe("confirm noAutosave works", () => {
 
   it("there are two heads and value is merged", async () => {
     await waitUntilSynced([s1, s2]);
-    expect(s1.to_str()).toEqual("new-ver-1-2");
-    expect(s2.to_str()).toEqual("new-ver-1-2");
+    // Order depends on logical-time slot ordering; just assert convergence.
+    expect(s1.to_str()).toEqual(s2.to_str());
+    expect(new Set(s1.to_str().split("-"))).toEqual(new Set(["new", "ver", "1", "2"]));
     expect(s1.getHeads().length).toBe(2);
     expect(s2.getHeads().length).toBe(2);
   });
