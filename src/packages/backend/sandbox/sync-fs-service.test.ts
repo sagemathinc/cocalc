@@ -3,6 +3,32 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { once } from "events";
 import { SyncFsService } from "./sync-fs-service";
+import { tmpNameSync } from "tmp-promise";
+import { SyncFsWatchStore } from "./sync-fs-watch";
+
+class FakeAStream {
+  private messages: { mesg: any; seq: number }[] = [];
+  private seq = 0;
+  public lastStartSeq?: number;
+
+  async publish(mesg: any): Promise<{ seq: number }> {
+    const seq = ++this.seq;
+    this.messages.push({ mesg, seq });
+    return { seq };
+  }
+
+  async *getAll(opts: { start_seq?: number; timeout?: number }) {
+    this.lastStartSeq = opts.start_seq;
+    for (const m of this.messages) {
+      if (opts.start_seq != null && m.seq < opts.start_seq) continue;
+      yield m;
+    }
+  }
+
+  close(): void {
+    // no-op
+  }
+}
 
 describe("SyncFsService", () => {
   let dir: string;
@@ -73,5 +99,41 @@ describe("SyncFsService", () => {
     const [evt] = (await once(svc, "event")) as any[];
     expect(evt.type).toBe("delete");
     svc.close();
+  }, 10_000);
+
+  it("reuses persisted heads/lastSeq and resumes with start_seq", async () => {
+    const dbPath = tmpNameSync({ prefix: "sync-fs-heads-", postfix: ".db" });
+    const store1 = new SyncFsWatchStore(dbPath);
+    const svc1 = new SyncFsService(store1);
+    const fake = new FakeAStream();
+
+    // Monkeypatch writer factory for testing.
+    (svc1 as any).getPatchWriter = async () => fake;
+
+    const meta = { project_id: "p1", relativePath: "a.txt", string_id: "sid" };
+    const change = { patch: [], content: "v1", hash: "h1", deleted: false };
+    await (svc1 as any).appendPatch(meta, "change", change);
+    const head1 = store1.getFsHead("sid");
+    expect(head1?.lastSeq).toBe(1);
+    svc1.close();
+
+    // Simulate an external patch arriving while service is down.
+    await fake.publish({ time: 200, parents: [], version: 2 });
+
+    const store2 = new SyncFsWatchStore(dbPath);
+    const svc2 = new SyncFsService(store2);
+    (svc2 as any).getPatchWriter = async () => fake;
+
+    const change2 = { patch: [], content: "v2", hash: "h2", deleted: false };
+    await (svc2 as any).appendPatch(meta, "change", change2);
+
+    expect(fake.lastStartSeq).toBe(2); // resume after persisted lastSeq
+    const head2 = store2.getFsHead("sid");
+    expect(head2?.lastSeq).toBe(3);
+    expect(head2?.version).toBe(3);
+    expect(head2?.heads?.length).toBe(1);
+    expect((head2?.heads ?? [])[0]).toBeGreaterThan(200);
+
+    svc2.close();
   }, 10_000);
 });

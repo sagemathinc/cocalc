@@ -31,6 +31,13 @@ const HEARTBEAT_TTL = 60_000; // ms to keep a watch alive without heartbeats
 const DEBOUNCE_MS = 250; // coalesce rapid events
 const SUPPRESS_TTL_MS = 5_000; // suppress self-inflicted fs events briefly
 
+type StreamInfo = {
+  heads: Set<number>;
+  maxVersion: number;
+  maxTime: number;
+  lastSeq?: number;
+};
+
 /**
  * Centralized filesystem watcher that:
  * - Maintains a durable snapshot of last-on-disk content (via SyncFsWatchStore).
@@ -46,15 +53,7 @@ export class SyncFsService extends EventEmitter {
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
   private metaByPath: Map<string, WatchMeta> = new Map();
   private patchWriters: Map<string, AStream<any>> = new Map();
-  private streamInfo: Map<
-    string,
-    {
-      parents: Set<number>;
-      times: Set<number>;
-      maxVersion: number;
-      lastSeq?: number;
-    }
-  > = new Map();
+  private streamInfo: Map<string, StreamInfo> = new Map();
   private suppressOnce: Map<string, NodeJS.Timeout> = new Map();
   private conatClient?: any;
 
@@ -297,16 +296,14 @@ export class SyncFsService extends EventEmitter {
     }
     const string_id =
       meta.string_id ?? client_db.sha1(meta.project_id, relativePath);
-    const { heads, maxVersion } = await this.getStreamHeads({
+    const { heads, maxVersion, maxTime } = await this.getStreamHeads({
       project_id: meta.project_id,
       string_id,
     });
-    const fsHead = this.store.getFsHead(string_id);
-    const parents = heads.length > 0 ? heads : fsHead ? [fsHead.time] : [];
-    const parentMax =
-      parents.length > 0 ? Math.max(...parents) : (fsHead?.time ?? 0);
+    const parents = heads;
+    const parentMax = parents.length > 0 ? Math.max(...parents) : maxTime;
     const time = Math.max(Date.now(), parentMax + 1);
-    const version = Math.max(maxVersion, fsHead?.version ?? 0) + 1;
+    const version = Math.max(maxVersion, 0) + 1;
     const obj: any = {
       string_id,
       project_id: meta.project_id,
@@ -383,22 +380,32 @@ export class SyncFsService extends EventEmitter {
   }
 
   private updateStreamInfo(string_id: string, patch: any, seq: number): void {
-    const info = this.streamInfo.get(string_id) ?? {
-      parents: new Set<number>(),
-      times: new Set<number>(),
-      maxVersion: 0,
+    const persisted = this.store.getFsHead(string_id);
+    const info: StreamInfo = this.streamInfo.get(string_id) ?? {
+      heads: new Set<number>(persisted?.heads ?? []),
+      maxVersion: persisted?.version ?? 0,
+      maxTime: persisted?.time ?? 0,
+      lastSeq: persisted?.lastSeq,
     };
     info.lastSeq = seq;
     if (Array.isArray(patch.parents)) {
-      for (const t of patch.parents) info.parents.add(t);
+      for (const t of patch.parents) info.heads.delete(t);
     }
     if (typeof patch.time === "number") {
-      info.times.add(patch.time);
+      info.heads.add(patch.time);
+      info.maxTime = Math.max(info.maxTime, patch.time);
     }
     if (typeof patch.version === "number") {
       info.maxVersion = Math.max(info.maxVersion, patch.version);
     }
     this.streamInfo.set(string_id, info);
+    this.store.setFsHead({
+      string_id,
+      time: info.maxTime,
+      version: info.maxVersion,
+      heads: [...info.heads],
+      lastSeq: info.lastSeq,
+    });
   }
 
   private getConatClient() {
@@ -414,16 +421,15 @@ export class SyncFsService extends EventEmitter {
   }: {
     project_id: string;
     string_id: string;
-  }): Promise<{ heads: number[]; maxVersion: number }> {
+  }): Promise<{ heads: number[]; maxVersion: number; maxTime: number }> {
     const writer = await this.getPatchWriter({ project_id, string_id });
-    const info = this.streamInfo.get(string_id) ?? {
-      parents: new Set<number>(),
-      times: new Set<number>(),
-      maxVersion: 0,
+    const persisted = this.store.getFsHead(string_id);
+    const info: StreamInfo = this.streamInfo.get(string_id) ?? {
+      heads: new Set<number>(persisted?.heads ?? []),
+      maxVersion: persisted?.version ?? 0,
+      maxTime: persisted?.time ?? 0,
+      lastSeq: persisted?.lastSeq,
     };
-    const parentSet = info.parents;
-    const times = info.times;
-    let maxVersion = info.maxVersion ?? 0;
     const start_seq = info.lastSeq != null ? info.lastSeq + 1 : undefined;
     if (process.env.SYNC_FS_DEBUG) {
       console.log("sync-fs getStreamHeads start", { string_id, start_seq });
@@ -435,12 +441,15 @@ export class SyncFsService extends EventEmitter {
       })) {
         const p: any = mesg;
         if (typeof seq === "number") info.lastSeq = seq;
-        if (p.time != null) times.add(p.time);
         if (Array.isArray(p.parents)) {
-          for (const t of p.parents) parentSet.add(t);
+          for (const t of p.parents) info.heads.delete(t);
+        }
+        if (typeof p.time === "number") {
+          info.heads.add(p.time);
+          info.maxTime = Math.max(info.maxTime, p.time);
         }
         if (typeof p.version === "number") {
-          maxVersion = Math.max(maxVersion, p.version);
+          info.maxVersion = Math.max(info.maxVersion, p.version);
         }
       }
     } catch (err) {
@@ -452,14 +461,22 @@ export class SyncFsService extends EventEmitter {
     if (process.env.SYNC_FS_DEBUG) {
       console.log("sync-fs getStreamHeads done", {
         string_id,
-        times: times.size,
-        parents: parentSet.size,
-        maxVersion,
+        heads: info.heads.size,
+        maxVersion: info.maxVersion,
       });
     }
-    const heads = [...times].filter((t) => !parentSet.has(t));
-    info.maxVersion = maxVersion;
     this.streamInfo.set(string_id, info);
-    return { heads, maxVersion };
+    this.store.setFsHead({
+      string_id,
+      time: info.maxTime,
+      version: info.maxVersion,
+      heads: [...info.heads],
+      lastSeq: info.lastSeq,
+    });
+    return {
+      heads: [...info.heads],
+      maxVersion: info.maxVersion,
+      maxTime: info.maxTime,
+    };
   }
 }

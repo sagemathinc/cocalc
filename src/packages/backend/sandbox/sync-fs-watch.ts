@@ -46,6 +46,8 @@ export interface FsHead {
   string_id: string;
   time: number;
   version: number;
+  heads?: number[];
+  lastSeq?: number;
 }
 
 /**
@@ -98,9 +100,18 @@ export class SyncFsWatchStore {
       CREATE TABLE IF NOT EXISTS fs_heads (
         string_id TEXT PRIMARY KEY,
         time INTEGER NOT NULL,
-        version INTEGER NOT NULL
+        version INTEGER NOT NULL,
+        heads TEXT,
+        lastSeq INTEGER
       );
     `);
+    // Backward-compatible migrations; ignore if columns already exist.
+    try {
+      this.db.exec("ALTER TABLE fs_heads ADD COLUMN heads TEXT");
+    } catch {}
+    try {
+      this.db.exec("ALTER TABLE fs_heads ADD COLUMN lastSeq INTEGER");
+    } catch {}
   }
 
   get(path: string): WatchState | undefined {
@@ -184,22 +195,47 @@ export class SyncFsWatchStore {
 
   getFsHead(string_id: string): FsHead | undefined {
     const row = this.db
-      .prepare("SELECT string_id, time, version FROM fs_heads WHERE string_id = ?")
+      .prepare(
+        "SELECT string_id, time, version, heads, lastSeq FROM fs_heads WHERE string_id = ?",
+      )
       .get(string_id) as FsHead | undefined;
-    return row;
+    if (!row) return;
+    let heads: number[] | undefined;
+    if (typeof (row as any).heads === "string") {
+      try {
+        heads = JSON.parse((row as any).heads);
+      } catch {
+        heads = undefined;
+      }
+    }
+    return {
+      string_id: row.string_id,
+      time: row.time,
+      version: row.version,
+      heads,
+      lastSeq: (row as any).lastSeq,
+    };
   }
 
   setFsHead(head: FsHead): void {
     this.db
       .prepare(
         `
-        INSERT INTO fs_heads(string_id, time, version)
-        VALUES(?, ?, ?)
+        INSERT INTO fs_heads(string_id, time, version, heads, lastSeq)
+        VALUES(?, ?, ?, ?, ?)
         ON CONFLICT(string_id) DO UPDATE SET
           time=excluded.time,
-          version=excluded.version;
+          version=excluded.version,
+          heads=excluded.heads,
+          lastSeq=excluded.lastSeq;
       `,
       )
-      .run(head.string_id, head.time, head.version);
+      .run(
+        head.string_id,
+        head.time,
+        head.version,
+        head.heads ? JSON.stringify(head.heads) : null,
+        head.lastSeq ?? null,
+      );
   }
 }
