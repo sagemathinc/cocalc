@@ -24,8 +24,8 @@ describe("SyncFsService", () => {
     writeFileSync(path, "hello");
 
     const svc = new SyncFsService();
-    svc.heartbeat(path);
-    await new Promise((r) => setTimeout(r, 300));
+    await svc.heartbeat(path);
+    await new Promise((r) => setTimeout(r, 50));
 
     // external edit
     writeFileSync(path, "hello world");
@@ -42,11 +42,11 @@ describe("SyncFsService", () => {
     writeFileSync(path, "keep");
 
     const svc = new SyncFsService();
-    svc.heartbeat(path);
-    await new Promise((r) => setTimeout(r, 300));
+    await svc.heartbeat(path);
+    await new Promise((r) => setTimeout(r, 50));
 
     // drop interest
-    svc.heartbeat(path, false);
+    await svc.heartbeat(path, false);
 
     writeFileSync(path, "keep2");
 
@@ -65,8 +65,8 @@ describe("SyncFsService", () => {
     writeFileSync(path, "bye");
 
     const svc = new SyncFsService();
-    svc.heartbeat(path);
-    await new Promise((r) => setTimeout(r, 300));
+    await svc.heartbeat(path);
+    await new Promise((r) => setTimeout(r, 50));
 
     rmSync(path);
 

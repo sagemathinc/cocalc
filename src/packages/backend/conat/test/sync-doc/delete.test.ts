@@ -8,6 +8,8 @@ import {
   once,
   wait,
 } from "./setup";
+import { unlink, writeFile } from "node:fs/promises";
+import { join } from "path";
 
 beforeAll(before);
 afterAll(after);
@@ -103,7 +105,6 @@ describe("deleting a file that is open as a syncdoc", () => {
     });
   });
 
-  // [ ] TODO: this is broken
   it(`deleting 'a.txt' again -- still triggers deleted events`, async () => {
     const start = Date.now();
     const d1 = waitDeleted(s1);
@@ -117,7 +118,7 @@ describe("deleting a file that is open as a syncdoc", () => {
   });
 });
 
-describe.skip("deleting a file then recreate it quickly does NOT trigger a 'deleted' event", () => {
+describe("deleting a file then recreate it quickly does NOT trigger a 'deleted' event", () => {
   const project_id = uuid();
   const path = "a.txt";
   let client1, s1, fs;
@@ -143,10 +144,15 @@ describe.skip("deleting a file then recreate it quickly does NOT trigger a 'dele
     s1.once("deleted", () => {
       c1++;
     });
-    await fs.unlink("a.txt");
-    await delay(deletedThreshold - 100);
+    await unlink(join(server.path, project_id, "a.txt"));
+    await delay(10);
     await fs.writeFile(path, "I'm back!");
     await delay(deletedThreshold);
     expect(c1).toBe(0);
+  });
+
+  it("delete directly and wait and that is detected", async () => {
+    await unlink(join(server.path, project_id, "a.txt"));
+    await once(s1, "deleted");
   });
 });

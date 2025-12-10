@@ -637,7 +637,7 @@ export class SandboxedFilesystem {
         : project_id && relativePath
           ? client_db.sha1(project_id, relativePath)
           : undefined;
-    globalSyncFsService.heartbeat(abs, active, {
+    await globalSyncFsService.heartbeat(abs, active, {
       project_id,
       relativePath,
       string_id,

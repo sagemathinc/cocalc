@@ -1122,7 +1122,7 @@ export class SyncDoc extends EventEmitter {
     // when a snapshot is available.
     await this.init_syncstring_table();
     await this.init_patchflow();
-    this.startBackendFsWatch();
+    await this.startBackendFsWatch();
     await Promise.all([
       this.init_cursors(),
       this.init_evaluator(),
@@ -2357,6 +2357,8 @@ export class SyncDoc extends EventEmitter {
   private handlePatchflowPatch = (env: PatchEnvelope): void => {
     if (env.meta?.deleted) {
       this.emitDeleted();
+    } else if (this.isDeleted) {
+      this.isDeleted = false;
     }
   };
 
@@ -2726,9 +2728,15 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  private startBackendFsWatch(): void {
+  private async startBackendFsWatch(): Promise<void> {
     if (!this.useBackendFsWatcher || this.opts.noSaveToDisk) return;
-    this.sendBackendFsWatch(true);
+    if (process.env.SYNC_FS_DEBUG) {
+      console.log("startBackendFsWatch", {
+        path: this.path,
+        useBackendFsWatcher: this.useBackendFsWatcher,
+      });
+    }
+    await this.sendBackendFsWatch(true);
     if (this.backendFsWatchTimer != null) {
       clearInterval(this.backendFsWatchTimer);
     }

@@ -45,7 +45,8 @@ export class SyncFsService extends EventEmitter {
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
   private metaByPath: Map<string, WatchMeta> = new Map();
   private patchWriters: Map<string, AStream<any>> = new Map();
-  private conatClient = conat();
+  private suppressOnce: Set<string> = new Set();
+  private conatClient?: any;
 
   constructor(store?: SyncFsWatchStore) {
     super();
@@ -74,20 +75,29 @@ export class SyncFsService extends EventEmitter {
   // via our own filesystem API. This prevents echo patches on the next fs event.
   recordLocalWrite(path: string, content: string): void {
     this.store.setContent(path, content);
+    this.suppressOnce.add(path);
   }
 
   async recordLocalDelete(path: string): Promise<void> {
-    this.store.markDeleted(path);
+    let change: ExternalChange = { deleted: true, content: "", hash: "" };
+    try {
+      const computed = await this.store.handleExternalChange(path, async () => "");
+      change = { ...computed, deleted: true };
+    } catch {
+      this.store.markDeleted(path);
+    }
     // If we already know the meta for this path, append a delete patch immediately
     // so clients see the deletion even if the watcher event is delayed.
     const meta = this.metaByPath.get(path);
+    if (process.env.SYNC_FS_DEBUG) {
+      console.log("sync-fs recordLocalDelete", {
+        path,
+        hasMeta: meta != null,
+      });
+    }
     if (meta) {
       try {
-        await this.appendPatch(meta, "delete", {
-          deleted: true,
-          content: "",
-          hash: "",
-        });
+        await this.appendPatch(meta, "delete", change);
       } catch (err) {
         this.emit("error", err);
       }
@@ -96,9 +106,14 @@ export class SyncFsService extends EventEmitter {
 
   /**
    * Indicate interest in a file. Ensures a directory watcher exists and is fresh.
-   * If active is false, drops interest immediately.
+   * If active is false, drops interest immediately. Resolves once a newly
+   * created watcher has emitted "ready" so callers know the watch is armed.
    */
-  heartbeat(path: string, active: boolean = true, meta?: WatchMeta): void {
+  async heartbeat(
+    path: string,
+    active: boolean = true,
+    meta?: WatchMeta,
+  ): Promise<void> {
     const dir = dirname(path);
     const existing = this.watchers.get(dir);
     if (active) {
@@ -124,12 +139,30 @@ export class SyncFsService extends EventEmitter {
         paths: new Set([path]),
       });
 
+      // Wait until the watcher is ready before returning so callers know the
+      // backend is actively watching.
+      const ready = new Promise<void>((resolve, reject) => {
+        let settled = false;
+        const settle = (fn: () => void) => {
+          if (settled) return;
+          settled = true;
+          fn();
+        };
+        watcher.once("ready", () => settle(resolve));
+        watcher.once("error", (err) => settle(() => reject(err)));
+      });
+      if (process.env.SYNC_FS_DEBUG) {
+        console.log("sync-fs heartbeat: start watcher", { dir, path });
+      }
+
       watcher.on("add", (p) => this.onFsEvent(dir, p, "add"));
       watcher.on("change", (p) => this.onFsEvent(dir, p, "change"));
       watcher.on("unlink", (p) => this.onFsEvent(dir, p, "unlink"));
       watcher.on("error", (err) => {
         this.emit("error", err);
       });
+
+      await ready;
     } else {
       if (!existing) return;
       existing.paths.delete(path);
@@ -155,19 +188,33 @@ export class SyncFsService extends EventEmitter {
       this.debounceTimers.delete(path);
       const meta = this.metaByPath.get(path);
       if (event === "unlink") {
-        this.store.markDeleted(path);
-        const change = { deleted: true, content: "", hash: "" };
-        this.emitEvent({ path, type: "delete", change });
-        if (meta) {
-          await this.appendPatch(meta, "delete", change);
+        try {
+          const change = await this.store.handleExternalChange(
+            path,
+            async () => "",
+          );
+          const payload = { ...change, deleted: true };
+          this.emitEvent({ path, type: "delete", change: payload });
+          if (meta) {
+            await this.appendPatch(meta, "delete", payload);
+          }
+        } catch (err) {
+          this.emit("error", err);
         }
         return;
         }
       // add/change
       try {
+        if (this.suppressOnce.has(path)) {
+          this.suppressOnce.delete(path);
+          return;
+        }
         const change = await this.store.handleExternalChange(path, async () => {
           return (await readFile(path, "utf8")) as string;
         });
+        if (!change.deleted && change.patch == null) {
+          return;
+        }
         this.emitEvent({ path, type: "change", change });
         if (meta) {
           await this.appendPatch(meta, "change", change);
@@ -210,6 +257,12 @@ export class SyncFsService extends EventEmitter {
     if (!meta.project_id) return;
     const relativePath = meta.relativePath;
     if (!relativePath) return;
+    if (process.env.SYNC_FS_DEBUG) {
+      console.log("sync-fs appendPatch start", {
+        relativePath,
+        type,
+      });
+    }
     const string_id =
       meta.string_id ?? client_db.sha1(meta.project_id, relativePath);
     const { heads, maxVersion } = await this.getStreamHeads({
@@ -235,7 +288,7 @@ export class SyncFsService extends EventEmitter {
     };
     if (type === "delete") {
       obj.meta = { deleted: true };
-      obj.patch = "[]";
+      obj.patch = JSON.stringify(change.patch ?? []);
     } else {
       obj.meta = change.deleted ? { deleted: true } : undefined;
       obj.patch = JSON.stringify(change.patch ?? []);
@@ -248,9 +301,29 @@ export class SyncFsService extends EventEmitter {
         project_id: meta.project_id,
         string_id,
       });
+      if (process.env.SYNC_FS_DEBUG) {
+        console.log("sync-fs appendPatch publish", {
+          type,
+          parents,
+          time,
+          version,
+        });
+      }
       await writer.publish(obj);
       this.store.setFsHead({ string_id, time, version });
+      if (process.env.SYNC_FS_DEBUG) {
+        console.log("sync-fs appendPatch", {
+          path: meta.relativePath,
+          type,
+          time,
+          version,
+          parents,
+        });
+      }
     } catch (err) {
+      if (process.env.SYNC_FS_DEBUG) {
+        console.log("sync-fs appendPatch error", err);
+      }
       this.emit("error", err);
     }
   }
@@ -267,12 +340,19 @@ export class SyncFsService extends EventEmitter {
     const writer = new AStream({
       name: patchesStreamName({ string_id }),
       project_id,
-      client: this.conatClient,
+      client: this.getConatClient(),
       noInventory: true,
       noAutosave: true,
     });
     this.patchWriters.set(string_id, writer);
     return writer;
+  }
+
+  private getConatClient() {
+    if (!this.conatClient) {
+      this.conatClient = conat();
+    }
+    return this.conatClient;
   }
 
   private async getStreamHeads({
@@ -286,10 +366,13 @@ export class SyncFsService extends EventEmitter {
     const parentSet = new Set<number>();
     const times: number[] = [];
     let maxVersion = 0;
+    if (process.env.SYNC_FS_DEBUG) {
+      console.log("sync-fs getStreamHeads start", { string_id });
+    }
     // [ ] TODO: this is NOT efficient -- just need to pass {start_seq} to getAll,
     // based on last sequence number we got when writing to the patchWriter.
     try {
-      for await (const { mesg } of writer.getAll()) {
+      for await (const { mesg } of writer.getAll({ timeout: 1000 })) {
         const p: any = mesg;
         if (p.time != null) times.push(p.time);
         if (Array.isArray(p.parents)) {
@@ -299,8 +382,19 @@ export class SyncFsService extends EventEmitter {
           maxVersion = Math.max(maxVersion, p.version);
         }
       }
-    } catch {
+    } catch (err) {
+      if (process.env.SYNC_FS_DEBUG) {
+        console.log("sync-fs getStreamHeads error", err);
+      }
       // fall through with whatever we gathered
+    }
+    if (process.env.SYNC_FS_DEBUG) {
+      console.log("sync-fs getStreamHeads done", {
+        string_id,
+        times: times.length,
+        parents: parentSet.size,
+        maxVersion,
+      });
     }
     const heads = times.filter((t) => !parentSet.has(t));
     return { heads, maxVersion };
