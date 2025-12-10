@@ -86,32 +86,52 @@ export class SyncFsWatchStore {
     // Relax locking so concurrent test workers or multiple backend requests
     // do not immediately trip "database is locked" errors.
     // WAL allows concurrent readers/writers; busy_timeout gives SQLite time
-    // to retry instead of failing instantly.
-    this.db.exec(`
-      PRAGMA journal_mode=WAL;
-      PRAGMA busy_timeout=5000;
-      CREATE TABLE IF NOT EXISTS files (
-        path TEXT PRIMARY KEY,
-        content TEXT NOT NULL,
-        hash TEXT NOT NULL,
-        deleted INTEGER NOT NULL DEFAULT 0,
-        updatedAt INTEGER NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS fs_heads (
-        string_id TEXT PRIMARY KEY,
-        time INTEGER NOT NULL,
-        version INTEGER NOT NULL,
-        heads TEXT,
-        lastSeq INTEGER
-      );
-    `);
-    // Backward-compatible migrations; ignore if columns already exist.
-    try {
-      this.db.exec("ALTER TABLE fs_heads ADD COLUMN heads TEXT");
-    } catch {}
-    try {
-      this.db.exec("ALTER TABLE fs_heads ADD COLUMN lastSeq INTEGER");
-    } catch {}
+    // to retry instead of failing instantly. Wrap in a tiny retry loop in
+    // case the pragma itself races with another opener.
+    const bootstrap = () => {
+      this.db.exec(`
+        PRAGMA journal_mode=WAL;
+        PRAGMA busy_timeout=5000;
+        CREATE TABLE IF NOT EXISTS files (
+          path TEXT PRIMARY KEY,
+          content TEXT NOT NULL,
+          hash TEXT NOT NULL,
+          deleted INTEGER NOT NULL DEFAULT 0,
+          updatedAt INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS fs_heads (
+          string_id TEXT PRIMARY KEY,
+          time INTEGER NOT NULL,
+          version INTEGER NOT NULL,
+          heads TEXT,
+          lastSeq INTEGER
+        );
+      `);
+      // Backward-compatible migrations; ignore if columns already exist.
+      try {
+        this.db.exec("ALTER TABLE fs_heads ADD COLUMN heads TEXT");
+      } catch {}
+      try {
+        this.db.exec("ALTER TABLE fs_heads ADD COLUMN lastSeq INTEGER");
+      } catch {}
+    };
+
+    for (let attempt = 0; ; attempt++) {
+      try {
+        bootstrap();
+        break;
+      } catch (err) {
+        if (attempt >= 4) {
+          throw err;
+        }
+        // short backoff without introducing async into constructor
+        const delay = 10 * (attempt + 1);
+        const end = Date.now() + delay;
+        while (Date.now() < end) {
+          // busy wait briefly
+        }
+      }
+    }
   }
 
   get(path: string): WatchState | undefined {
