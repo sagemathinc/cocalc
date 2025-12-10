@@ -298,6 +298,10 @@ export class PersistentStream extends EventEmitter {
   };
 
   private initSchema = () => {
+    // Avoid immediate "database is locked" errors under concurrent access
+    // (e.g., jest workers) by enabling WAL and a small busy timeout.
+    this.db.prepare("PRAGMA journal_mode=WAL").run();
+    this.db.prepare("PRAGMA busy_timeout=5000").run();
     if (!this.options.sync && !this.options.ephemeral) {
       // Unless sync is set, we do not require that the filesystem has commited changes
       // to disk after every insert. This can easily make things 10x faster.  sets are

@@ -81,7 +81,13 @@ export class SyncFsWatchStore {
   }
 
   private init(): void {
+    // Relax locking so concurrent test workers or multiple backend requests
+    // do not immediately trip "database is locked" errors.
+    // WAL allows concurrent readers/writers; busy_timeout gives SQLite time
+    // to retry instead of failing instantly.
     this.db.exec(`
+      PRAGMA journal_mode=WAL;
+      PRAGMA busy_timeout=5000;
       CREATE TABLE IF NOT EXISTS files (
         path TEXT PRIMARY KEY,
         content TEXT NOT NULL,
