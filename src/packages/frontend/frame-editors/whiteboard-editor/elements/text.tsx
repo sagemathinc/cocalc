@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState, useCallback } from "react";
 import { useFrameContext } from "../hooks";
 import { Element } from "../types";
 import { DEFAULT_FONT_SIZE } from "../tools/defaults";
@@ -92,6 +92,13 @@ function EditText({
   const mergeHelperRef = useRef<SimpleInputMerge>(
     new SimpleInputMerge(element.str ?? element.data?.initStr ?? ""),
   );
+  const saveAndResetDirty = useCallback(() => {
+    const current = getValueRef.current?.() ?? "";
+    dirtyRef.current = false;
+    setLocalValue(current);
+    actions.setElement({ obj: { id: element.id, str: current } });
+    mergeHelperRef.current.noteSaved(current);
+  }, [actions, element.id]);
 
   // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
   // including break first render of the overall canvas if any text is focused.
@@ -124,10 +131,10 @@ function EditText({
       if (!dirtyRef.current) {
         return;
       }
-      dirtyRef.current = false;
-      const id = element.id;
       const current = str ?? getValueRef.current?.() ?? "";
-      actions.setElement({ obj: { id, str: current } });
+      dirtyRef.current = false;
+      setLocalValue(current);
+      actions.setElement({ obj: { id: element.id, str: current } });
       mergeHelperRef.current.noteSaved(current);
     };
     return () => {
@@ -200,6 +207,18 @@ function EditText({
       The problem is that opening it immediately restores selection, and that breaks something about
       CSS/layout/etc.  Not sure why, but I'm ok with not having this feature for now.
   */
+  const mergedMarkdownProps = {
+    ...markdownProps,
+    onModeChange: (mode: string) => {
+      // Save current edits before mode switch to avoid losing buffer during re-render.
+      saveAndResetDirty();
+      const handler = (markdownProps as any)?.onModeChange;
+      if (typeof handler === "function") {
+        handler(mode);
+      }
+    },
+  };
+
   const body = (
     <MultiMarkdownInput
       dirtyRef={dirtyRef}
@@ -235,7 +254,7 @@ function EditText({
       onRedo={() => {
         actions.redo();
       }}
-      {...markdownProps}
+      {...mergedMarkdownProps}
     />
   );
 
