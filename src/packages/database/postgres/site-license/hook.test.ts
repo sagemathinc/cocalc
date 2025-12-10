@@ -5,7 +5,7 @@
 
 /**
 
-pnpm test hook.test.ts 
+pnpm test hook.test.ts
 
  * This tests the core of ./hook.ts
  * It's not using it directly, though, because of the complex dependency of the database.
@@ -83,7 +83,7 @@ test("allow for much larger max_upgrades", () => {
       gpu: false,
       memory_request: 1000,
       cpu_request: 0.1,
-      disk_quota: 3000,
+      disk_quota: 1000,
       memory_limit: 13000,
       cpu_limit: 2,
       idle_timeout: 1800,
@@ -107,7 +107,7 @@ test("allow for much larger max_upgrades", () => {
       cpu_request: 0.25,
       dedicated_disks: [],
       dedicated_vm: false,
-      disk_quota: 3000,
+      disk_quota: 1000,
       idle_timeout: 1800,
       member_host: false,
       memory_limit: 45000,
@@ -170,7 +170,7 @@ test("two licenses", () => {
       gpu: false,
       memory_request: 1000,
       cpu_request: 0.05,
-      disk_quota: 3000,
+      disk_quota: 1000,
       memory_limit: 13000,
       cpu_limit: 1,
       idle_timeout: 1800,
@@ -195,7 +195,7 @@ test("two licenses", () => {
       gpu: false,
       memory_request: 1000,
       cpu_request: 0.05,
-      disk_quota: 3000,
+      disk_quota: 1000,
       memory_limit: 13000,
       cpu_limit: 1,
       idle_timeout: 1800,
@@ -213,7 +213,7 @@ test("two licenses", () => {
       cpu_request: 0.2,
       dedicated_disks: [],
       dedicated_vm: false,
-      disk_quota: 3000,
+      disk_quota: 1000,
       idle_timeout: 1800,
       member_host: false,
       memory_limit: 45000,
@@ -228,100 +228,3 @@ test("two licenses", () => {
   // in particular, this implies that the second license indeed HAS an effect and hence will be used.
   expect(isEqual(q1, q2)).toBe(false);
 });
-
-// TODO the test below would be very important to get to work, but the call to the site_license_hook has no effect at all
-
-// describe("site_license_hook", () => {
-//   const pool = getPool();
-//   const account_id = uuid();
-//   const license_id_1 = uuid();
-//   const license_id_2 = uuid();
-
-//   let project_id;
-//   test("creates a project", async () => {
-//     project_id = await createProject({
-//       account_id,
-//       title: "Test Project",
-//     });
-//   });
-
-//   test("setup project license", async () => {
-//     const site_licenses_data: SiteLicenses = {
-//       [license_id_1]: {
-//         quota: {
-//           dedicated_disk: { speed: "standard", size_gb: 128, name: "bar" },
-//         },
-//       },
-//       [license_id_2]: {
-//         quota: {
-//           ram: 2,
-//           cpu: 1,
-//           disk: 3,
-//           always_running: true,
-//           member: true,
-//           user: "academic",
-//         },
-//       },
-//     };
-
-//     await pool.query(
-//       "UPDATE projects SET site_license=$1 WHERE project_id=$2",
-//       [site_licenses_data, project_id]
-//     );
-//   });
-
-//   test("PAYGO mixes with dedicated disk", async () => {
-//     // run the hook -- "true" means there are PAYGO upgrades, different mode of how the license hook operates
-//     await site_license_hook(db(), project_id, true);
-
-//     const { rows } = await pool.query(
-//       "SELECT * FROM projects WHERE project_id=$1",
-//       [project_id]
-//     );
-//     expect(rows.length).toBe(1);
-//     const site_licenses = rows[0].site_license;
-//     expect(rows[0].site_license).toEqual({
-//       [license_id_1]: {
-//         quota: {
-//           dedicated_disk: { name: "bar", size_gb: 128, speed: "standard" },
-//         },
-//       },
-//       [license_id_2]: {
-//         quota: {
-//           always_running: true,
-//           cpu: 1,
-//           disk: 3,
-//           member: true,
-//           ram: 2,
-//           user: "academic",
-//         },
-//       },
-//     });
-
-//     const q = quota_with_reasons({}, { [account_id]: {} }, site_licenses);
-//     // projects on dedicated VMs get this quota
-//     expect(q).toEqual({
-//       quota: {
-//         always_running: false,
-//         cpu_limit: 1,
-//         cpu_request: 0.02,
-//         dedicated_disks: [
-//           {
-//             name: "bar",
-//             size_gb: 128,
-//             speed: "standard",
-//           },
-//         ],
-//         dedicated_vm: false,
-//         disk_quota: 3000,
-//         idle_timeout: 1800,
-//         member_host: false,
-//         memory_limit: 1000,
-//         memory_request: 200,
-//         network: false,
-//            privileged: false,gpu:false,
-//       },
-//       reasons: {},
-//     });
-//   });
-// });
