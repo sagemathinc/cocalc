@@ -132,6 +132,12 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     group: "Main",
     hidden: true, // any project that is set to "ubuntu2004" will be shown a banner → either update to ubuntu2204 or keep ubuntu2004-eol
   },
+  "ubuntu2404-2025-08-27": {
+    title: "Ubuntu 24.04 (2025-08-27)",
+    short: "2025-08-27",
+    descr: "Frozen on 2025-08-27 and no longer updated",
+    group: "Ubuntu 24.04",
+  },
   "ubuntu2404-2025-06-26": {
     title: "Ubuntu 24.04 (2025-06-26)",
     short: "2025-06-26",
