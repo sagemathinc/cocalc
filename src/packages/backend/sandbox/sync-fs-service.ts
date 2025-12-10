@@ -46,6 +46,15 @@ export class SyncFsService extends EventEmitter {
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
   private metaByPath: Map<string, WatchMeta> = new Map();
   private patchWriters: Map<string, AStream<any>> = new Map();
+  private streamInfo: Map<
+    string,
+    {
+      parents: Set<number>;
+      times: Set<number>;
+      maxVersion: number;
+      lastSeq?: number;
+    }
+  > = new Map();
   private suppressOnce: Map<string, NodeJS.Timeout> = new Map();
   private conatClient?: any;
 
@@ -74,7 +83,11 @@ export class SyncFsService extends EventEmitter {
 
   // Update the persisted snapshot when we know a local write/delete happened
   // via our own filesystem API. This prevents echo patches on the next fs event.
-  recordLocalWrite(path: string, content: string, suppress: boolean = false): void {
+  recordLocalWrite(
+    path: string,
+    content: string,
+    suppress: boolean = false,
+  ): void {
     this.store.setContent(path, content);
     if (!suppress) return;
     if (this.suppressOnce.has(path)) {
@@ -89,7 +102,10 @@ export class SyncFsService extends EventEmitter {
   async recordLocalDelete(path: string): Promise<void> {
     let change: ExternalChange = { deleted: true, content: "", hash: "" };
     try {
-      const computed = await this.store.handleExternalChange(path, async () => "");
+      const computed = await this.store.handleExternalChange(
+        path,
+        async () => "",
+      );
       change = { ...computed, deleted: true };
     } catch {
       this.store.markDeleted(path);
@@ -217,7 +233,7 @@ export class SyncFsService extends EventEmitter {
           this.emit("error", err);
         }
         return;
-        }
+      }
       // add/change
       try {
         if (this.suppressOnce.has(path)) {
@@ -286,10 +302,9 @@ export class SyncFsService extends EventEmitter {
       string_id,
     });
     const fsHead = this.store.getFsHead(string_id);
-    const parents =
-      heads.length > 0 ? heads : fsHead ? [fsHead.time] : [];
+    const parents = heads.length > 0 ? heads : fsHead ? [fsHead.time] : [];
     const parentMax =
-      parents.length > 0 ? Math.max(...parents) : fsHead?.time ?? 0;
+      parents.length > 0 ? Math.max(...parents) : (fsHead?.time ?? 0);
     const time = Math.max(Date.now(), parentMax + 1);
     const version = Math.max(maxVersion, fsHead?.version ?? 0) + 1;
     const obj: any = {
@@ -327,8 +342,9 @@ export class SyncFsService extends EventEmitter {
           version,
         });
       }
-      await writer.publish(obj);
+      const { seq } = await writer.publish(obj);
       this.store.setFsHead({ string_id, time, version });
+      this.updateStreamInfo(string_id, obj, seq);
       if (process.env.SYNC_FS_DEBUG) {
         console.log("sync-fs appendPatch", {
           path: meta.relativePath,
@@ -366,6 +382,25 @@ export class SyncFsService extends EventEmitter {
     return writer;
   }
 
+  private updateStreamInfo(string_id: string, patch: any, seq: number): void {
+    const info = this.streamInfo.get(string_id) ?? {
+      parents: new Set<number>(),
+      times: new Set<number>(),
+      maxVersion: 0,
+    };
+    info.lastSeq = seq;
+    if (Array.isArray(patch.parents)) {
+      for (const t of patch.parents) info.parents.add(t);
+    }
+    if (typeof patch.time === "number") {
+      info.times.add(patch.time);
+    }
+    if (typeof patch.version === "number") {
+      info.maxVersion = Math.max(info.maxVersion, patch.version);
+    }
+    this.streamInfo.set(string_id, info);
+  }
+
   private getConatClient() {
     if (!this.conatClient) {
       this.conatClient = conat();
@@ -381,18 +416,26 @@ export class SyncFsService extends EventEmitter {
     string_id: string;
   }): Promise<{ heads: number[]; maxVersion: number }> {
     const writer = await this.getPatchWriter({ project_id, string_id });
-    const parentSet = new Set<number>();
-    const times: number[] = [];
-    let maxVersion = 0;
+    const info = this.streamInfo.get(string_id) ?? {
+      parents: new Set<number>(),
+      times: new Set<number>(),
+      maxVersion: 0,
+    };
+    const parentSet = info.parents;
+    const times = info.times;
+    let maxVersion = info.maxVersion ?? 0;
+    const start_seq = info.lastSeq != null ? info.lastSeq + 1 : undefined;
     if (process.env.SYNC_FS_DEBUG) {
-      console.log("sync-fs getStreamHeads start", { string_id });
+      console.log("sync-fs getStreamHeads start", { string_id, start_seq });
     }
-    // [ ] TODO: this is NOT efficient -- just need to pass {start_seq} to getAll,
-    // based on last sequence number we got when writing to the patchWriter.
     try {
-      for await (const { mesg } of writer.getAll({ timeout: 1000 })) {
+      for await (const { mesg, seq } of writer.getAll({
+        timeout: 15000,
+        start_seq,
+      })) {
         const p: any = mesg;
-        if (p.time != null) times.push(p.time);
+        if (typeof seq === "number") info.lastSeq = seq;
+        if (p.time != null) times.add(p.time);
         if (Array.isArray(p.parents)) {
           for (const t of p.parents) parentSet.add(t);
         }
@@ -409,12 +452,14 @@ export class SyncFsService extends EventEmitter {
     if (process.env.SYNC_FS_DEBUG) {
       console.log("sync-fs getStreamHeads done", {
         string_id,
-        times: times.length,
+        times: times.size,
         parents: parentSet.size,
         maxVersion,
       });
     }
-    const heads = times.filter((t) => !parentSet.has(t));
+    const heads = [...times].filter((t) => !parentSet.has(t));
+    info.maxVersion = maxVersion;
+    this.streamInfo.set(string_id, info);
     return { heads, maxVersion };
   }
 }
