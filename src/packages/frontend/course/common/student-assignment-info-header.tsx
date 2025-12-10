@@ -31,7 +31,7 @@ export function StudentAssignmentInfoHeader({
         return {
           title: intl.formatMessage({
             id: "course.student-assignment-info-header.assign.label",
-            defaultMessage: "Assign to Student",
+            defaultMessage: "Assign",
             description: "Student in an online course",
           }),
           tip: intl.formatMessage({
@@ -45,7 +45,7 @@ export function StudentAssignmentInfoHeader({
         return {
           title: intl.formatMessage({
             id: "course.student-assignment-info-header.collect.label",
-            defaultMessage: "Collect from Student",
+            defaultMessage: "Collect",
             description: "Student in an online course",
           }),
           tip: intl.formatMessage({
@@ -59,7 +59,7 @@ export function StudentAssignmentInfoHeader({
         return {
           title: intl.formatMessage({
             id: "course.student-assignment-info-header.grade.label",
-            defaultMessage: "Record Homework Grade",
+            defaultMessage: "Grade",
             description: "For a student in an online course",
           }),
           tip: intl.formatMessage({
@@ -73,7 +73,7 @@ export function StudentAssignmentInfoHeader({
         return {
           title: intl.formatMessage({
             id: "course.student-assignment-info-header.peer_assignment.label",
-            defaultMessage: "Assign Peer Grading",
+            defaultMessage: "Peer Assign",
             description: "For a group of students in an online course",
           }),
           tip: intl.formatMessage({
@@ -88,7 +88,7 @@ export function StudentAssignmentInfoHeader({
         return {
           title: intl.formatMessage({
             id: "course.student-assignment-info-header.peer_collect.label",
-            defaultMessage: "Collect Peer Grading",
+            defaultMessage: "Peer Collect",
             description: "For a group of students in an online course",
           }),
           tip: intl.formatMessage({
@@ -103,7 +103,7 @@ export function StudentAssignmentInfoHeader({
         return {
           title: intl.formatMessage({
             id: "course.student-assignment-info-header.return.label",
-            defaultMessage: "Return to Student",
+            defaultMessage: "Return",
             description: "For a student in an online course",
           }),
           tip: intl.formatMessage({
@@ -119,19 +119,13 @@ export function StudentAssignmentInfoHeader({
     throw new Error(`unknown key: ${key}`);
   }
 
-  function render_col(
-    number: number,
-    key: AssignmentCopyStep | "grade",
-    width: 4 | 6,
-  ) {
+  function render_col(key: AssignmentCopyStep | "grade", width: 4 | 6) {
     const { tip, title } = tip_title(key);
 
     return (
       <Col md={width} key={key}>
         <Tip title={title} tip={tip}>
-          <b>
-            {number}. {title}
-          </b>
+          <b>{title}</b>
         </Tip>
       </Col>
     );
@@ -141,10 +135,10 @@ export function StudentAssignmentInfoHeader({
     const w = 6;
     return (
       <Row>
-        {render_col(1, "assignment", w)}
-        {render_col(2, "collect", w)}
-        {render_col(3, "grade", w)}
-        {render_col(4, "return_graded", w)}
+        {render_col("assignment", w)}
+        {render_col("collect", w)}
+        {render_col("grade", w)}
+        {render_col("return_graded", w)}
       </Row>
     );
   }
@@ -153,12 +147,12 @@ export function StudentAssignmentInfoHeader({
     const w = 4;
     return (
       <Row>
-        {render_col(1, "assignment", w)}
-        {render_col(2, "collect", w)}
-        {render_col(3, "peer_assignment", w)}
-        {render_col(4, "peer_collect", w)}
-        {render_col(5, "grade", w)}
-        {render_col(6, "return_graded", w)}
+        {render_col("assignment", w)}
+        {render_col("collect", w)}
+        {render_col("peer_assignment", w)}
+        {render_col("peer_collect", w)}
+        {render_col("grade", w)}
+        {render_col("return_graded", w)}
       </Row>
     );
   }
