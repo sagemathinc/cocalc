@@ -90,6 +90,7 @@ import { apply_patch, type CompressedPatch } from "@cocalc/util/dmp";
 //import getLogger from "@cocalc/backend/logger";
 
 export { SyncFsWatchStore } from "./sync-fs-watch";
+import { SyncFsService } from "./sync-fs-service";
 
 //const logger = getLogger("sandbox:fs");
 
@@ -608,11 +609,14 @@ export class SandboxedFilesystem {
   };
 
   // Heartbeat indicating a client is actively editing this path.
-  // Placeholder; wiring to shared backend watcher will be added.
-  syncFsWatch = async (_path: string, _active: boolean = true): Promise<void> => {
-    return;
+  syncFsWatch = async (path: string, active: boolean = true): Promise<void> => {
+    const abs = await this.safeAbsPath(path);
+    globalSyncFsService.heartbeat(abs, active);
   };
 }
+
+// Shared watcher instance per process.
+const globalSyncFsService = new SyncFsService();
 
 export class SandboxError extends Error {
   code: string;

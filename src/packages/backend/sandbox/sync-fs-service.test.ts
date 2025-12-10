@@ -37,6 +37,29 @@ describe("SyncFsService", () => {
     svc.close();
   }, 10_000);
 
+  it("stops watching when active=false", async () => {
+    const path = join(dir, "c.txt");
+    writeFileSync(path, "keep");
+
+    const svc = new SyncFsService();
+    svc.heartbeat(path);
+    await new Promise((r) => setTimeout(r, 300));
+
+    // drop interest
+    svc.heartbeat(path, false);
+
+    writeFileSync(path, "keep2");
+
+    let eventReceived = false;
+    svc.once("event", () => {
+      eventReceived = true;
+    });
+
+    await new Promise((r) => setTimeout(r, 500));
+    expect(eventReceived).toBe(false);
+    svc.close();
+  }, 10_000);
+
   it("emits delete when file removed", async () => {
     const path = join(dir, "b.txt");
     writeFileSync(path, "bye");

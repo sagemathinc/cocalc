@@ -13,6 +13,7 @@ export interface WatchEvent {
 interface WatchEntry {
   watcher: FSWatcher;
   lastHeartbeat: number;
+  paths: Set<string>;
 }
 
 const HEARTBEAT_TTL = 60_000; // ms to keep a watch alive without heartbeats
@@ -53,33 +54,53 @@ export class SyncFsService extends EventEmitter {
 
   /**
    * Indicate interest in a file. Ensures a directory watcher exists and is fresh.
+   * If active is false, drops interest immediately.
    */
-  heartbeat(path: string): void {
+  heartbeat(path: string, active: boolean = true): void {
     const dir = dirname(path);
     const existing = this.watchers.get(dir);
-    if (existing) {
-      existing.lastHeartbeat = Date.now();
-      return;
-    }
-    const watcher = chokidarWatch(dir, {
-      depth: 0,
-      ignoreInitial: true,
-      awaitWriteFinish: {
-        stabilityThreshold: 200,
-        pollInterval: 100,
-      },
-    });
-    this.watchers.set(dir, { watcher, lastHeartbeat: Date.now() });
+    if (active) {
+      if (existing) {
+        existing.lastHeartbeat = Date.now();
+        existing.paths.add(path);
+        return;
+      }
+      const watcher = chokidarWatch(dir, {
+        depth: 0,
+        ignoreInitial: true,
+        awaitWriteFinish: {
+          stabilityThreshold: 200,
+          pollInterval: 100,
+        },
+      });
+      this.watchers.set(dir, {
+        watcher,
+        lastHeartbeat: Date.now(),
+        paths: new Set([path]),
+      });
 
-    watcher.on("add", (p) => this.onFsEvent(p, "add"));
-    watcher.on("change", (p) => this.onFsEvent(p, "change"));
-    watcher.on("unlink", (p) => this.onFsEvent(p, "unlink"));
-    watcher.on("error", (err) => {
-      this.emit("error", err);
-    });
+      watcher.on("add", (p) => this.onFsEvent(dir, p, "add"));
+      watcher.on("change", (p) => this.onFsEvent(dir, p, "change"));
+      watcher.on("unlink", (p) => this.onFsEvent(dir, p, "unlink"));
+      watcher.on("error", (err) => {
+        this.emit("error", err);
+      });
+    } else {
+      if (!existing) return;
+      existing.paths.delete(path);
+      if (existing.paths.size === 0) {
+        this.closeEntry(dir);
+      }
+    }
   }
 
-  private onFsEvent(path: string, event: "add" | "change" | "unlink"): void {
+  private onFsEvent(
+    dir: string,
+    path: string,
+    event: "add" | "change" | "unlink",
+  ): void {
+    const entry = this.watchers.get(dir);
+    if (!entry || !entry.paths.has(path)) return;
     // Debounce per path to avoid rapid duplicate events
     if (this.debounceTimers.has(path)) {
       clearTimeout(this.debounceTimers.get(path)!);
@@ -111,10 +132,16 @@ export class SyncFsService extends EventEmitter {
   private pruneStale = (): void => {
     const now = Date.now();
     for (const [dir, entry] of this.watchers.entries()) {
-      if (now - entry.lastHeartbeat > HEARTBEAT_TTL) {
-        entry.watcher.close();
-        this.watchers.delete(dir);
+      if (entry.paths.size === 0 || now - entry.lastHeartbeat > HEARTBEAT_TTL) {
+        this.closeEntry(dir);
       }
     }
   };
+
+  private closeEntry(dir: string): void {
+    const entry = this.watchers.get(dir);
+    if (!entry) return;
+    entry.watcher.close();
+    this.watchers.delete(dir);
+  }
 }
