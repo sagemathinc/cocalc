@@ -25,6 +25,10 @@ const MAX_FILE_SIZE_MB = 32;
 // cursors less responsive.
 const CURSOR_THROTTLE_MS = 150;
 
+// Reserved slot/user for backend filesystem-originated patches.
+const FILESYSTEM_USER_ID = 0;
+const FILESYSTEM_CLIENT_ID = "__filesystem__";
+
 // If file does not exist for this long, then syncdoc emits a 'deleted' event.
 export const DELETED_THRESHOLD = 2000;
 export const DELETED_CHECK_INTERVAL = 750;
@@ -507,7 +511,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   get_my_user_id = (): number => {
-    return this.my_user_id != null ? this.my_user_id : 0;
+    return this.my_user_id != null ? this.my_user_id : 1;
   };
 
   private assert_not_closed(desc: string): void {
@@ -1291,11 +1295,11 @@ export class SyncDoc extends EventEmitter {
     try {
       this.patchflowCodec = this.buildPatchflowCodec();
       this.patchflowStore = this.createPatchflowStore();
-      this.patchflowSession = new PatchflowSession({
-        codec: this.patchflowCodec,
-        patchStore: this.patchflowStore,
-        clock: () => this.client?.server_time().valueOf() ?? Date.now(),
-        userId: this.my_user_id ?? 0,
+    this.patchflowSession = new PatchflowSession({
+      codec: this.patchflowCodec,
+      patchStore: this.patchflowStore,
+      clock: () => this.client?.server_time().valueOf() ?? Date.now(),
+      userId: this.my_user_id ?? 1,
         docId: this.string_id,
         presenceAdapter: await this.createCursorPresenceAdapter(),
       });
@@ -2082,8 +2086,9 @@ export class SyncDoc extends EventEmitter {
     // Brand new syncstring
     // TODO: worry about race condition with everybody making themselves
     // have user_id 0... and also setting doctype.
-    this.my_user_id = 0;
-    this.users = [this.client.client_id()];
+    // Reserve slot 0 for filesystem-originated patches; first user starts at 1.
+    this.my_user_id = 1;
+    this.users = [FILESYSTEM_CLIENT_ID, this.client.client_id()];
     const obj = {
       string_id: this.string_id,
       project_id: this.project_id,
@@ -2134,16 +2139,20 @@ export class SyncDoc extends EventEmitter {
     }
 
     if (this.client != null) {
-      // Ensure that this client is in the list of clients
+      // Ensure that this client is in the list of clients and uses a non-reserved slot.
       const client_id: string = this.client_id();
-      this.my_user_id = this.users.indexOf(client_id);
-      if (this.my_user_id === -1) {
-        this.my_user_id = this.users.length;
+      let idx = this.users.indexOf(client_id);
+      if (idx === -1) {
         this.users.push(client_id);
-        await this.set_syncstring_table({
-          users: this.users,
-        });
+        idx = this.users.length - 1;
+        await this.set_syncstring_table({ users: this.users });
+      } else if (idx === FILESYSTEM_USER_ID && this.users[idx] !== FILESYSTEM_CLIENT_ID) {
+        // Slot 0 is reserved for filesystem patches; if we collide, append a new slot.
+        this.users.push(client_id);
+        idx = this.users.length - 1;
+        await this.set_syncstring_table({ users: this.users });
       }
+      this.my_user_id = Math.max(1, idx);
     }
     this.emit("metadata-change");
   };
