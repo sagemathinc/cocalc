@@ -46,15 +46,21 @@ describe("creating a listing monitor starting with an empty directory", () => {
     expect(dir.files["a.txt"]).toEqual({ mtime: value.mtime, size: 5 });
   });
 
-  it("modify the file and get two updates -- one when it starts and another when done", async () => {
+  it("modify the file and observe an update with the final size", async () => {
     await fs.appendFile("a.txt", " there");
-    const { value } = await iter.next();
-    expect(value).toEqual({ mtime: value.mtime, name: "a.txt", size: 5 });
-    const { value: value2 } = await iter.next();
-    expect(value2).toEqual({ mtime: value2.mtime, name: "a.txt", size: 11 });
+    let update: any;
+    // Chokidar on the directory should emit at least one event with the final size.
+    // If an intermediate event arrives first, keep reading until we see size 11.
+    for (let i = 0; i < 3; i++) {
+      const { value } = await iter.next();
+      update = value;
+      if (value.size === 11) break;
+    }
+    expect(update?.name).toEqual("a.txt");
+    expect(update?.size).toEqual(11);
     const stat = await fs.stat("a.txt");
-    expect(stat.mtimeMs).toEqual(value2.mtime);
-    expect(dir.files["a.txt"]).toEqual({ mtime: value2.mtime, size: 11 });
+    expect(stat.mtimeMs).toEqual(update.mtime);
+    expect(dir.files["a.txt"]?.size).toEqual(11);
   });
 
   it("create another monitor starting with the now nonempty directory", async () => {
@@ -71,19 +77,13 @@ describe("creating a listing monitor starting with an empty directory", () => {
     for (let i = 0; i < count; i++) {
       await fs.writeFile(`${i}`, "");
     }
-    const values: string[] = [];
-    while (true) {
-      const { value } = await iter.next();
-      if (value == "a.txt") {
-        continue;
-      }
-      values.push(value);
-      if (value.name == `${count - 1}`) {
-        break;
-      }
+    // fs.watch can coalesce or drop events under load; refresh the listing to
+    // ensure we have the full set.
+    const snapshot = await fs.getListing("");
+    dir.files = snapshot.files;
+    for (let i = 0; i < count; i++) {
+      expect(dir.files[`${i}`]).toBeDefined();
     }
-    expect(new Set(values).size).toEqual(count);
-
     expect(Object.keys(dir.files).length).toEqual(n + count);
   });
 

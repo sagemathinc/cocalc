@@ -123,8 +123,11 @@ export class Listing extends EventEmitter {
         const data: FileData = {
           mtime: stats.mtimeMs,
           size: stats.size,
-          type: stats.type,
         };
+        if (stats.type != null) {
+          // Some platforms provide a type hint; include it only when present.
+          data.type = stats.type;
+        }
         if (stats.isSymbolicLink()) {
           // resolve target.
           data.linkTarget = await this.opts.fs.readlink(
