@@ -35,6 +35,7 @@ import { useMentionableUsers } from "./mentionable-users";
 import { submit_mentions } from "./mentions";
 import { EditorFunctions } from "./multimode";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { SimpleInputMerge } from "@cocalc/sync/editor/generic/simple-input-merge";
 
 type EventHandlerFunction = (cm: CodeMirror.Editor) => void;
 
@@ -616,6 +617,7 @@ export function MarkdownInput(props: Props) {
   }, [options]);
 
   const ignoreChangeRef = useRef<boolean>(false);
+  const mergeHelperRef = useRef<SimpleInputMerge>(new SimpleInputMerge(value ?? ""));
   // use valueRef since we can't just refer to value in saveValue
   // below, due to not wanted to regenerate the saveValue function
   // every time, due to debouncing, etc.
@@ -639,6 +641,7 @@ export function MarkdownInput(props: Props) {
       const newValue = cm.current.getValue();
       if (valueRef.current !== newValue) {
         onChange(newValue);
+        mergeHelperRef.current.noteSaved(newValue);
       }
     };
     if (saveDebounceMs) {
@@ -662,11 +665,25 @@ export function MarkdownInput(props: Props) {
   }, []);
 
   useEffect(() => {
-    setValueNoJump(value);
+    if (cm.current == null) {
+      mergeHelperRef.current.reset(value ?? "");
+    } else {
+      const saver: any = saveValue;
+      if (typeof saver?.flush === "function") {
+        saver.flush();
+      }
+      mergeHelperRef.current.handleRemote({
+        remote: value ?? "",
+        getLocal: () => cm.current?.getValue() ?? "",
+        applyMerged: (v) => {
+          setValueNoJump(v);
+        },
+      });
+    }
     if (upload_close_preview_ref.current != null) {
       upload_close_preview_ref.current(true);
     }
-  }, [value]);
+  }, [value, setValueNoJump, saveValue]);
 
   function upload_sending(file: { name: string }): void {
     if (project_id == null || path == null) {
