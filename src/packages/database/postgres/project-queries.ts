@@ -3,14 +3,21 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { omit } from "lodash";
-import { PostgreSQL } from "./types";
-import { callback2 } from "@cocalc/util/async-utils";
-import { query } from "./query";
 import debug from "debug";
-const L = debug("hub:project-queries");
-import { DUMMY_SECRET } from "@cocalc/util/consts";
+import { omit } from "lodash";
+
+import { callback2 } from "@cocalc/util/async-utils";
+import {
+  DUMMY_SECRET,
+  PORT_MAX,
+  PORT_MIN,
+  validatePortNumber,
+} from "@cocalc/util/consts";
 import { DatastoreConfig } from "@cocalc/util/types";
+import { query } from "./query";
+import { PostgreSQL } from "./types";
+
+const L = debug("hub:project-queries");
 
 export async function project_has_network_access(
   db: PostgreSQL,
@@ -86,15 +93,22 @@ export async function project_datastore_set(
   // check data from user
   for (const [key, val] of Object.entries(config)) {
     if (val == null) continue;
+    if (key === "port") {
+      const port = validatePortNumber(val);
+      if (port == null) {
+        throw new Error(
+          `Invalid value -- 'port' must be an integer between ${PORT_MIN} and ${PORT_MAX}`,
+        );
+      }
+      config.port = port;
+      continue;
+    }
     if (
       typeof val !== "string" &&
       typeof val !== "boolean" &&
       typeof val !== "number"
     ) {
       throw new Error(`Invalid value -- '${key}' is not a valid type`);
-    }
-    if (typeof val === "number" && (val < 0 || val > 2 ** 32)) {
-      throw new Error(`Invalid value -- '${key}' is out of range`);
     }
     if (typeof val === "string" && val.length > 100000) {
       throw new Error(`Invalid value -- '${key}' is too long`);

@@ -51,6 +51,7 @@ import Password, {
 } from "@cocalc/frontend/components/password";
 import { labels } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { PORT_MAX, PORT_MIN, validatePortNumber } from "@cocalc/util/consts";
 import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { DATASTORE_TITLE } from "@cocalc/util/db-schema/site-defaults";
 import { unreachable } from "@cocalc/util/misc";
@@ -83,8 +84,11 @@ const RULE_PORT = [
   {
     validator: (_: any, value: number | null) => {
       if (value == null) return Promise.resolve();
-      if (!Number.isInteger(value) || value < 1) {
-        return Promise.reject("Port must be an integer greater or equal to 1.");
+      const port = validatePortNumber(value);
+      if (port == null) {
+        return Promise.reject(
+          `Port must be an integer between ${PORT_MIN} and ${PORT_MAX}.`,
+        );
       }
       return Promise.resolve();
     },
@@ -611,12 +615,8 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   async function save_config(values: any): Promise<void> {
     const config = { ...values, readonly: form_readonly };
     if ("port" in config) {
-      const portNum = Number(config.port);
-      if (!Number.isFinite(portNum) || portNum < 1) {
-        config.port = 22;
-      } else {
-        config.port = Math.floor(portNum);
-      }
+      const port = validatePortNumber(config.port);
+      config.port = port ?? 22;
     }
     try {
       await set(config);

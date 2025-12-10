@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020 – 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -14,3 +14,5 @@ export { CONAT_LLM_HISTORY_KEY } from "./llm";
 export { DUMMY_SECRET } from "./project";
 
 export { SERVER_SETTINGS_ENV_PREFIX } from "./server_settings";
+
+export { PORT_MAX, PORT_MIN, validatePortNumber } from "./portnumber";
