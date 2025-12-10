@@ -72,7 +72,7 @@ import fd, { type FdOptions } from "./fd";
 import dust, { type DustOptions } from "./dust";
 import rustic from "./rustic";
 import { type ExecOutput } from "./exec";
-import { rusticRepo } from "@cocalc/backend/data";
+import { rusticRepo, data } from "@cocalc/backend/data";
 import ouch, { type OuchOptions } from "./ouch";
 import cpExec from "./cp";
 import {
@@ -89,7 +89,8 @@ import { sha1 } from "@cocalc/backend/sha1";
 import { apply_patch, type CompressedPatch } from "@cocalc/util/dmp";
 //import getLogger from "@cocalc/backend/logger";
 
-export { SyncFsWatchStore } from "./sync-fs-watch";
+import { SyncFsWatchStore } from "./sync-fs-watch";
+export { SyncFsWatchStore };
 import { SyncFsService } from "./sync-fs-service";
 import { client_db } from "@cocalc/util/db-schema/client-db";
 
@@ -620,7 +621,12 @@ export class SandboxedFilesystem {
   syncFsWatch = async (
     path: string,
     active: boolean = true,
-    info?: { project_id?: string; relativePath?: string; string_id?: string; doctype?: any },
+    info?: {
+      project_id?: string;
+      relativePath?: string;
+      string_id?: string;
+      doctype?: any;
+    },
   ): Promise<void> => {
     const abs = await this.safeAbsPath(path);
     const project_id = info?.project_id ?? this.host;
@@ -641,7 +647,10 @@ export class SandboxedFilesystem {
 }
 
 // Shared watcher instance per process.
-const globalSyncFsService = new SyncFsService();
+// TODO: location below is TEMPORARY -- just need something stable for now
+const globalSyncFsService = new SyncFsService(
+  new SyncFsWatchStore(join(data, "sync-fs.sqlite")),
+);
 
 export class SandboxError extends Error {
   code: string;
