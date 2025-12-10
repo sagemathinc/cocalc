@@ -44,8 +44,6 @@ const STAT_DEBOUNCE = 10000;
 
 import { DEFAULT_SNAPSHOT_INTERVAL } from "@cocalc/util/db-schema/syncstring-schema";
 
-type XPatch = any;
-
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { cancel_scheduled, once, until } from "@cocalc/util/async-utils";
@@ -86,6 +84,7 @@ import { type WatchIterator } from "@cocalc/conat/files/watch";
 import { getLogger } from "@cocalc/conat/client";
 import * as remote from "./remote";
 import { DiffMatchPatch, decompressPatch } from "@cocalc/util/dmp";
+import type { JSONValue } from "@cocalc/util/types";
 
 const fallbackCursorPresence = new PatchflowMemoryPresenceAdapter();
 
@@ -229,7 +228,7 @@ export class SyncDoc extends EventEmitter {
   private settings: Map<string, any> = Map();
 
   // patches that this client made during this editing session.
-  private my_patches: { [time: string]: XPatch } = {};
+  private my_patches: { [time: string]: any } = {};
 
   private undo_mode = false;
 
@@ -245,10 +244,17 @@ export class SyncDoc extends EventEmitter {
 
   private noAutosave?: boolean;
 
-  // The isDeleted flag is set to true if the file existed and then 
+  // The isDeleted flag is set to true if the file existed and then
   // was actively deleted after the session started. It would
   // then only be set back to false if the file appears again.
   public isDeleted: boolean = false;
+
+  private emitDeleted = (): void => {
+    if (!this.isDeleted) {
+      this.isDeleted = true;
+      this.emit("deleted");
+    }
+  };
 
   constructor(opts: SyncOpts) {
     super();
@@ -1315,6 +1321,7 @@ export class SyncDoc extends EventEmitter {
       if (this.cursors) {
         this.patchflowSession.on("cursors", this.handlePatchflowCursors);
       }
+      this.patchflowSession.on("patch", this.handlePatchflowPatch);
       this.patchflowSession.on("change", (doc) => {
         const next = doc as Document;
         if (!this.doc || !this.doc.is_equal(next)) {
@@ -1762,6 +1769,10 @@ export class SyncDoc extends EventEmitter {
       version: x.get("version"),
       file: x.get("file"),
     };
+    if (x.has("meta")) {
+      const m = x.get("meta");
+      obj.meta = Map.isMap(m) ? m.toJS() : m;
+    }
     if (is_snapshot) {
       obj.snapshot = x.get("snapshot"); // this is a string
       obj.seq_info = x.get("seq_info")?.toJS();
@@ -1793,6 +1804,7 @@ export class SyncDoc extends EventEmitter {
       snapshot: p.snapshot,
       seqInfo: p.seq_info,
       file: p.file,
+      meta: p.meta,
     };
   };
 
@@ -1809,6 +1821,7 @@ export class SyncDoc extends EventEmitter {
       snapshot: env.snapshot,
       seq_info: env.seqInfo,
       file: env.file,
+      meta: env.meta,
     };
   };
 
@@ -1902,6 +1915,9 @@ export class SyncDoc extends EventEmitter {
           } else {
             obj.snapshot = patch.snapshot;
             obj.seq_info = patch.seq_info;
+          }
+          if (patch.meta != null) {
+            obj.meta = patch.meta;
           }
           if (this.doctype.patch_format != null) {
             obj.format = this.doctype.patch_format;
@@ -2183,16 +2199,10 @@ export class SyncDoc extends EventEmitter {
         dbg("file no longer exists -- setting to blank");
         this.from_str("");
         this.valueOnDisk = "";
-        if (this.hasReadFile) {
-          // Previously existed; treat as deletion.
-          if (!this.isDeleted) {
-            this.isDeleted = true;
-            this.emit("deleted");
-          }
-        } else {
-          // First attempt to read a missing file: do not mark deleted yet.
-          this.isDeleted = false;
-        }
+        // Defer deletion signaling to the threshold-based watcher so we
+        // don't fire for transient deletes/recreates.
+        await this.signalIfFileDeleted();
+        return;
       } else {
         throw err;
       }
@@ -2338,6 +2348,12 @@ export class SyncDoc extends EventEmitter {
     }
   };
 
+  private handlePatchflowPatch = (env: PatchEnvelope): void => {
+    if (env.meta?.deleted) {
+      this.emitDeleted();
+    }
+  };
+
   private patchflowPrevSeqForMoreHistory = (): number | undefined => {
     if (!this.patchflowReady() || this.patchflowSession == null) return;
     const history = this.patchflowSession.history({ includeSnapshots: true });
@@ -2423,10 +2439,12 @@ export class SyncDoc extends EventEmitter {
     emitChangeImmediately = false,
     file = false,
     allowDuplicate = false,
+    meta,
   }: {
     emitChangeImmediately?: boolean;
     file?: boolean;
     allowDuplicate?: boolean;
+    meta?: { [key: string]: JSONValue };
   }): boolean => {
     if (!this.patchflowReady() || this.patchflowSession == null) {
       throw new Error("patchflow session is not initialized");
@@ -2463,7 +2481,7 @@ export class SyncDoc extends EventEmitter {
     // Ensure save loops don't spin while the async commit runs.
     this.last = next;
     try {
-      const env = this.patchflowSession.commit(next as any, { file });
+      const env = this.patchflowSession.commit(next as any, { file, meta });
       const myPatches = (this.my_patches = this.my_patches ?? {});
       myPatches[env.time.valueOf()] = { time: env.time } as any;
       this.snapshotIfNecessary();
@@ -2495,17 +2513,20 @@ export class SyncDoc extends EventEmitter {
     emitChangeImmediately = false,
     file = false,
     allowDuplicate = false,
+    meta,
   }: {
     emitChangeImmediately?: boolean;
     // mark this as a commit obtained by loading the file from disk,
     // which can be used as input to the merge conflict resolution.
     file?: boolean;
     allowDuplicate?: boolean;
+    meta?: { [key: string]: JSONValue };
   } = {}): boolean => {
     return this.commitWithPatchflow({
       emitChangeImmediately,
       file,
       allowDuplicate,
+      meta,
     });
   };
 
@@ -2711,6 +2732,8 @@ export class SyncDoc extends EventEmitter {
 
     // not closed -- so if above succeeds we start watching.
     // if not, we loop waiting for file to be created so we can watch it
+    this.isDeleted = false;
+    this.hasReadFile = true;
     let expectedSeq = 0;
     (async () => {
       if (this.fileWatcher != null) {
@@ -2834,14 +2857,12 @@ export class SyncDoc extends EventEmitter {
         // file still doesn't exist -- consider it deleted -- browsers
         // should close the tab and possibly notify user.
         this.from_str("");
-        this.commit();
+        this.commit({ meta: { deleted: true }, allowDuplicate: true });
         // console.log("emit deleted and set isDeleted=true");
-        if (!this.isDeleted) {
-          this.isDeleted = true;
-          this.emit("deleted");
-        }
+        this.emitDeleted();
         return;
       }
+
       await delay(
         Math.min(
           this.opts.deletedCheckInterval ?? DELETED_CHECK_INTERVAL,

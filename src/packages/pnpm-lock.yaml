@@ -1898,8 +1898,8 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
       patchflow:
-        specifier: ^0.4.4
-        version: 0.4.4
+        specifier: ^0.4.6
+        version: 0.4.6
     devDependencies:
       '@types/lodash':
         specifier: ^4.17.20
@@ -4856,9 +4856,6 @@ packages:
 
   '@types/node@22.19.1':
     resolution: {integrity: sha512-LCCV0HdSZZZb34qifBsyWlUmok6W7ouER+oQIGBScS8EsZsQbrtFTUrDX4hOl+CS6p7cnNC4td+qrSVGSCTUfQ==}
-
-  '@types/node@24.10.2':
-    resolution: {integrity: sha512-WOhQTZ4G8xZ1tjJTvKOpyEVSGgOTvJAfDK3FNFgELyaTpzhdgHVHeqW8V+UJvzF5BT+/B54T/1S2K6gd9c7bbA==}
 
   '@types/nodemailer@6.4.21':
     resolution: {integrity: sha512-Eix+sb/Nj28MNnWvO2X1OLrk5vuD4C9SMnb2Vf4itWnxphYeSceqkFX7IdmxTzn+dvmnNz7paMbg4Uc60wSfJg==}
@@ -9815,8 +9812,8 @@ packages:
     engines: {node: '>= 0.4.0'}
     hasBin: true
 
-  patchflow@0.4.4:
-    resolution: {integrity: sha512-pMBGWDEKwCOo0ii5doHQBths5CWHti1Bi+TtQp/3j1l5eKicWs37o0Kv5dfoU/3cu+5avVpO6lwDMJvZjRX4SQ==}
+  patchflow@0.4.6:
+    resolution: {integrity: sha512-VgEqwVm9jP+NYIPRk8Gm1w61nWT760h+wWTf3FprbBeSYrKUy/VA1ofSJgNr1Hoa9/hTMB1ZIHjWZW/bZ+4u6g==}
 
   path-browserify@1.0.1:
     resolution: {integrity: sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==}
@@ -11782,9 +11779,6 @@ packages:
 
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
-
-  undici-types@7.16.0:
-    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
 
   unicorn-magic@0.3.0:
     resolution: {integrity: sha512-+QBBXBCvifc56fsbuxZQ6Sic3wqqc3WWaqxs58gvJrcOuN83HGTCwz3oS5phzU9LthRNE9VrJCFCLUgHeeFnfA==}
@@ -15994,10 +15988,6 @@ snapshots:
   '@types/node@22.19.1':
     dependencies:
       undici-types: 6.21.0
-
-  '@types/node@24.10.2':
-    dependencies:
-      undici-types: 7.16.0
 
   '@types/nodemailer@6.4.21':
     dependencies:
@@ -20587,7 +20577,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 24.10.2
+      '@types/node': 22.19.1
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -22034,7 +22024,7 @@ snapshots:
 
   password-hash@1.2.2: {}
 
-  patchflow@0.4.4:
+  patchflow@0.4.6:
     dependencies:
       '@cocalc/diff-match-patch': 1.0.1
       events: 3.3.0
@@ -24407,8 +24397,6 @@ snapshots:
   underscore@1.13.7: {}
 
   undici-types@6.21.0: {}
-
-  undici-types@7.16.0: {}
 
   unicorn-magic@0.3.0: {}
 

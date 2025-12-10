@@ -18,6 +18,7 @@ import type {
   CallConatServiceFunction,
   CreateConatServiceFunction,
 } from "@cocalc/conat/service";
+import type { JSONValue } from "@cocalc/util/types";
 
 export interface Patch {
   // time = LOGICAL time of when patch made; this used to be ms since the epoch, but just
@@ -62,6 +63,9 @@ export interface Patch {
   // if true, this patch puts the document into a state where it
   // just read the file from disk.
   file?: boolean;
+
+  // metadata
+  meta?: { [key: string]: JSONValue };
 }
 
 export interface Document extends PFDocument {

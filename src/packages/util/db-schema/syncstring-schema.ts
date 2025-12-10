@@ -329,6 +329,10 @@ Table({
       pg_type: "INTEGER[]",
       desc: "The parent timestamps as ms since epoch",
     },
+    meta: {
+      type: "map",
+      desc: "Optional immutable metadata attached to the patch (e.g., delete markers or commit messages).",
+    },
     version: {
       type: "integer",
       desc: "Version number of this patch.  Not necessarily globally unique across branches.  Used only to provide users a convenient way to refer to a particular version.",
@@ -355,6 +359,7 @@ Table({
           version: null,
           format: null,
           parents: null,
+          meta: null,
         },
         check_hook(db, obj, account_id, project_id, cb) {
           // this verifies that user has read access to these patches
@@ -381,6 +386,7 @@ Table({
           version: true,
           parents: true,
           format: true,
+          meta: true,
         },
         required_fields: {
           string_id: true,
