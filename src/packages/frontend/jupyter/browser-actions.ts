@@ -70,7 +70,6 @@ import {
   js_idx_to_char_idx,
 } from "@cocalc/jupyter/util/misc";
 import {
-  WATCH_RECREATE_WAIT,
   DELETED_THRESHOLD,
   DELETED_CHECK_INTERVAL,
 } from "@cocalc/sync/editor/generic/sync-doc";
@@ -85,6 +84,7 @@ const dmpFileWatcher = new DiffMatchPatch({
 
 const OUTPUT_FPS = 29;
 const DEFAULT_OUTPUT_MESSAGE_LIMIT = 500;
+const WATCH_RECREATE_WAIT = 3000;
 
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = Map<string, Kernels>();
@@ -157,7 +157,9 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.once("ready", () => {
       const ipywidgets_state = this.syncdb.ipywidgets_state;
       if (ipywidgets_state == null) {
-        throw Error("bug -- ipywidgets_state must be defined (browser-actions)");
+        throw Error(
+          "bug -- ipywidgets_state must be defined (browser-actions)",
+        );
       }
       this.widget_manager = new WidgetManager({
         ipywidgets_state: ipywidgets_state!,
@@ -2158,8 +2160,8 @@ export class JupyterActions extends JupyterActions0 {
         return false;
       },
       {
-        min: this.syncdb.opts.watchRecreateWait ?? WATCH_RECREATE_WAIT,
-        max: this.syncdb.opts.watchRecreateWait ?? WATCH_RECREATE_WAIT,
+        min: WATCH_RECREATE_WAIT,
+        max: WATCH_RECREATE_WAIT,
       },
     );
   };
