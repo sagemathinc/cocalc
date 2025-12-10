@@ -606,6 +606,12 @@ export class SandboxedFilesystem {
     // this is just to make typescript happy
     throw Error("not implemented");
   };
+
+  // Heartbeat indicating a client is actively editing this path.
+  // Placeholder; wiring to shared backend watcher will be added.
+  syncFsWatch = async (_path: string, _active: boolean = true): Promise<void> => {
+    return;
+  };
 }
 
 export class SandboxError extends Error {

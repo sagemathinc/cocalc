@@ -194,6 +194,10 @@ export interface Filesystem {
     content: string | Buffer,
     options?: WriteFileDeltaOptions,
   ) => Promise<void>;
+  // Signal interest in a file so the backend can keep a shared watcher alive.
+  // active=false can be used to drop interest immediately (otherwise TTL will prune).
+  // Returns a simple acknowledgment; backend may later enforce limits here.
+  syncFsWatch?: (path: string, active?: boolean) => Promise<void>;
   // todo: typing
   watch: (path: string, options?) => Promise<WatchIterator>;
 
@@ -528,6 +532,10 @@ export async function fsServer({
         subject: `watch-${subject}`,
         watch: f.watch,
       });
+    },
+    async syncFsWatch(path: string, active: boolean = true) {
+      const f = await fs(this.subject);
+      return await f.syncFsWatch?.(path, active);
     },
   });
   logger.debug("fsServer: created subscription to ", subject);
