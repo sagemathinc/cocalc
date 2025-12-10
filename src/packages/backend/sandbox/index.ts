@@ -87,14 +87,14 @@ import TTL from "@isaacs/ttlcache";
 import watch, { type WatchIterator, type WatchOptions } from "./watch";
 import { sha1 } from "@cocalc/backend/sha1";
 import { apply_patch, type CompressedPatch } from "@cocalc/util/dmp";
-//import getLogger from "@cocalc/backend/logger";
+import getLogger from "@cocalc/backend/logger";
 
 import { SyncFsWatchStore } from "./sync-fs-watch";
 export { SyncFsWatchStore };
 import { SyncFsService } from "./sync-fs-service";
 import { client_db } from "@cocalc/util/db-schema/client-db";
 
-//const logger = getLogger("sandbox:fs");
+const logger = getLogger("sandbox:fs");
 
 // max time code can run (in safe mode), e.g., for find,
 // ripgrep, fd, and dust.
@@ -651,6 +651,9 @@ export class SandboxedFilesystem {
 const globalSyncFsService = new SyncFsService(
   new SyncFsWatchStore(join(data, "sync-fs.sqlite")),
 );
+globalSyncFsService.on("error", (err) => {
+  logger.error("sync-fs-service error", err);
+});
 
 export class SandboxError extends Error {
   code: string;

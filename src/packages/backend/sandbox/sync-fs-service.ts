@@ -29,6 +29,7 @@ interface WatchEntry {
 
 const HEARTBEAT_TTL = 60_000; // ms to keep a watch alive without heartbeats
 const DEBOUNCE_MS = 250; // coalesce rapid events
+const SUPPRESS_TTL_MS = 5_000; // suppress self-inflicted fs events briefly
 
 /**
  * Centralized filesystem watcher that:
@@ -45,7 +46,7 @@ export class SyncFsService extends EventEmitter {
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
   private metaByPath: Map<string, WatchMeta> = new Map();
   private patchWriters: Map<string, AStream<any>> = new Map();
-  private suppressOnce: Set<string> = new Set();
+  private suppressOnce: Map<string, NodeJS.Timeout> = new Map();
   private conatClient?: any;
 
   constructor(store?: SyncFsWatchStore) {
@@ -75,7 +76,13 @@ export class SyncFsService extends EventEmitter {
   // via our own filesystem API. This prevents echo patches on the next fs event.
   recordLocalWrite(path: string, content: string): void {
     this.store.setContent(path, content);
-    this.suppressOnce.add(path);
+    if (this.suppressOnce.has(path)) {
+      clearTimeout(this.suppressOnce.get(path)!);
+    }
+    const timer = setTimeout(() => {
+      this.suppressOnce.delete(path);
+    }, SUPPRESS_TTL_MS);
+    this.suppressOnce.set(path, timer);
   }
 
   async recordLocalDelete(path: string): Promise<void> {
@@ -206,6 +213,7 @@ export class SyncFsService extends EventEmitter {
       // add/change
       try {
         if (this.suppressOnce.has(path)) {
+          clearTimeout(this.suppressOnce.get(path)!);
           this.suppressOnce.delete(path);
           return;
         }
