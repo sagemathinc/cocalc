@@ -243,6 +243,8 @@ export class SyncDoc extends EventEmitter {
   public readonly fs: Filesystem;
 
   private noAutosave?: boolean;
+  private useBackendFsWatcher: boolean = false;
+  private backendFsWatchTimer?: NodeJS.Timeout;
 
   // The isDeleted flag is set to true if the file existed and then
   // was actively deleted after the session started. It would
@@ -288,6 +290,7 @@ export class SyncDoc extends EventEmitter {
         this[field] = opts[field];
       }
     }
+    this.useBackendFsWatcher = typeof this.fs.syncFsWatch === "function";
 
     this.client.once("closed", this.close);
 
@@ -848,6 +851,8 @@ export class SyncDoc extends EventEmitter {
 
     this.emit("close");
 
+    this.stopBackendFsWatch();
+
     // must be after the emits above, so clients know
     // what happened and can respond.
     this.removeAllListeners();
@@ -1117,6 +1122,7 @@ export class SyncDoc extends EventEmitter {
     // when a snapshot is available.
     await this.init_syncstring_table();
     await this.init_patchflow();
+    this.startBackendFsWatch();
     await Promise.all([
       this.init_cursors(),
       this.init_evaluator(),
@@ -2686,6 +2692,9 @@ export class SyncDoc extends EventEmitter {
   }, 60000);
 
   private initFileWatcherFirstTime = () => {
+    if (this.useBackendFsWatcher || this.opts.noSaveToDisk) {
+      return;
+    }
     // set this going, but don't await it.
     (async () => {
       await until(
@@ -2703,9 +2712,45 @@ export class SyncDoc extends EventEmitter {
     })();
   };
 
+  private async sendBackendFsWatch(active: boolean): Promise<void> {
+    if (!this.useBackendFsWatcher || this.opts.noSaveToDisk) return;
+    try {
+      await this.fs.syncFsWatch?.(this.path, active, {
+        project_id: this.project_id,
+        relativePath: this.path,
+        string_id: this.string_id,
+        doctype: this.doctype,
+      });
+      console.log("successfully pinged syncFsWatch");
+    } catch (err) {
+      console.log("failed to ping syncFsWatch", err);
+      this.dbg("syncFsWatch")(`failed: ${err?.message ?? err}`);
+    }
+  }
+
+  private startBackendFsWatch(): void {
+    if (!this.useBackendFsWatcher || this.opts.noSaveToDisk) return;
+    this.sendBackendFsWatch(true);
+    if (this.backendFsWatchTimer != null) {
+      clearInterval(this.backendFsWatchTimer);
+    }
+    // Keep the backend watcher alive; TTL is 60s so ping every 30s.
+    this.backendFsWatchTimer = setInterval(() => {
+      void this.sendBackendFsWatch(true);
+    }, 30000);
+  }
+
+  private stopBackendFsWatch(): void {
+    if (this.backendFsWatchTimer != null) {
+      clearInterval(this.backendFsWatchTimer);
+      this.backendFsWatchTimer = undefined;
+    }
+    void this.sendBackendFsWatch(false);
+  }
+
   private fileWatcher?: WatchIterator;
   private initFileWatcher = async () => {
-    if (this.opts.noSaveToDisk) {
+    if (this.opts.noSaveToDisk || this.useBackendFsWatcher) {
       return;
     }
     // use this.fs interface to watch path for changes -- we try once:
