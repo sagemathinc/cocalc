@@ -28,7 +28,6 @@ const CURSOR_THROTTLE_MS = 150;
 // If file does not exist for this long, then syncdoc emits a 'deleted' event.
 export const DELETED_THRESHOLD = 2000;
 export const DELETED_CHECK_INTERVAL = 750;
-export const WATCH_RECREATE_WAIT = 3000;
 
 // Length of time file is locked for reading (so that only
 // one client reads it at a time), very first time reading it:
@@ -80,22 +79,11 @@ import type {
 import { isTestClient, patch_cmp } from "./util";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { type Filesystem, type Stats } from "@cocalc/conat/files/fs";
-import { type WatchIterator } from "@cocalc/conat/files/watch";
 import { getLogger } from "@cocalc/conat/client";
 import * as remote from "./remote";
-import { DiffMatchPatch, decompressPatch } from "@cocalc/util/dmp";
 import type { JSONValue } from "@cocalc/util/types";
 
 const fallbackCursorPresence = new PatchflowMemoryPresenceAdapter();
-
-// this is used specifically for loading from disk, where the patch
-// explaining the last change on disk gets merged into the live version
-// of the doc, so there is likely to difficulty matching, but we
-// very much don't want to discard the changes:
-const dmpFileWatcher = new DiffMatchPatch({
-  matchThreshold: 1,
-  diffTimeout: 0.5,
-});
 
 const DEBUG = false;
 
@@ -141,13 +129,9 @@ export interface SyncOpts0 {
   noSaveToDisk?: boolean;
 
   // optional timeout for how long to wait from when a file is
-  // deleted until emiting a 'deleted' event.
+  // deleted until emitting a 'deleted' event.
   deletedThreshold?: number;
   deletedCheckInterval?: number;
-  // how long to wait before trying to recreate a watch -- this mainly
-  // matters in cases when the file is deleted and the client ignores
-  // the 'deleted' event.
-  watchRecreateWait?: number;
 
   watchDebounce?: number;
   firstReadLockTimeout?: number;
@@ -243,7 +227,6 @@ export class SyncDoc extends EventEmitter {
   public readonly fs: Filesystem;
 
   private noAutosave?: boolean;
-  private useBackendFsWatcher: boolean = false;
   private backendFsWatchTimer?: NodeJS.Timeout;
 
   // The isDeleted flag is set to true if the file existed and then
@@ -290,7 +273,6 @@ export class SyncDoc extends EventEmitter {
         this[field] = opts[field];
       }
     }
-    this.useBackendFsWatcher = typeof (this.fs as any)?.syncFsWatch === "function";
 
     this.client.once("closed", this.close);
 
@@ -868,12 +850,6 @@ export class SyncDoc extends EventEmitter {
       cancel_scheduled(this.emit_change);
     }
 
-    // Stop watching for file changes.  It's important to
-    // do this *before* all the await's below, since
-    // this syncdoc can't do anything in response to a
-    // a file change in its current state.
-    this.closeFileWatcher();
-
     this.patchflowSession?.close();
 
     try {
@@ -1126,7 +1102,6 @@ export class SyncDoc extends EventEmitter {
     await Promise.all([
       this.init_cursors(),
       this.init_evaluator(),
-      this.initFileWatcherFirstTime(),
     ]);
     this.assert_not_closed(
       "initAll -- successful init patchflow, cursors, evaluator, and ipywidgets",
@@ -2693,31 +2668,12 @@ export class SyncDoc extends EventEmitter {
     }
   }, 60000);
 
-  private initFileWatcherFirstTime = () => {
-    if (this.useBackendFsWatcher || this.opts.noSaveToDisk) {
-      return;
-    }
-    // set this going, but don't await it.
-    (async () => {
-      await until(
-        async () => {
-          if (this.isClosed()) return true;
-          try {
-            await this.initFileWatcher();
-            return true;
-          } catch {
-            return false;
-          }
-        },
-        { min: this.opts?.watchRecreateWait ?? WATCH_RECREATE_WAIT },
-      );
-    })();
-  };
-
   private async sendBackendFsWatch(active: boolean): Promise<void> {
-    if (!this.useBackendFsWatcher || this.opts?.noSaveToDisk) return;
+    if (this.opts?.noSaveToDisk) return;
+    const syncFsWatch = (this.fs as any)?.syncFsWatch;
+    if (typeof syncFsWatch !== "function") return;
     try {
-      await this.fs.syncFsWatch?.(this.path, active, {
+      await syncFsWatch(this.path, active, {
         project_id: this.project_id,
         relativePath: this.path,
         string_id: this.string_id,
@@ -2729,11 +2685,12 @@ export class SyncDoc extends EventEmitter {
   }
 
   private async startBackendFsWatch(): Promise<void> {
-    if (!this.useBackendFsWatcher || this.opts.noSaveToDisk) return;
+    if (this.opts.noSaveToDisk) return;
+    const syncFsWatch = (this.fs as any)?.syncFsWatch;
+    if (typeof syncFsWatch !== "function") return;
     if (process.env.SYNC_FS_DEBUG) {
       console.log("startBackendFsWatch", {
         path: this.path,
-        useBackendFsWatcher: this.useBackendFsWatcher,
       });
     }
     await this.sendBackendFsWatch(true);
@@ -2753,117 +2710,6 @@ export class SyncDoc extends EventEmitter {
     }
     void this.sendBackendFsWatch(false);
   }
-
-  private fileWatcher?: WatchIterator;
-  private initFileWatcher = async () => {
-    if (this.opts.noSaveToDisk || this.useBackendFsWatcher) {
-      return;
-    }
-    // use this.fs interface to watch path for changes -- we try once:
-    try {
-      this.fileWatcher = await this.fs.watch(this.path, {
-        unique: true,
-        patch: true,
-      });
-      if (this.isDeleted) {
-        await this.readFile();
-      }
-    } catch (err) {
-      // console.log("error creating watcher", err);
-      if (err.code == "ENOENT") {
-        // the file was deleted -- check if this stays deleted long enough to count
-        await this.signalIfFileDeleted();
-      }
-      // throwing this error just causes initFileWatcher to get
-      // initialized again soon (a few seconds), again attemping a watch,
-      // unless it is the first time initializing the document.
-      throw err;
-    }
-    if (this.isClosed()) return;
-
-    // not closed -- so if above succeeds we start watching.
-    // if not, we loop waiting for file to be created so we can watch it
-    this.isDeleted = false;
-    this.hasReadFile = true;
-    let expectedSeq = 0;
-    (async () => {
-      if (this.fileWatcher != null) {
-        this.emit("watching");
-        for await (const { event, ignore, patch, patchSeq } of this
-          .fileWatcher) {
-          //           console.log("watch", {
-          //             path: this.path,
-          //             event,
-          //             patch,
-          //             patchSeq,
-          //             expectedSeq,
-          //             ignore,
-          //           });
-          if (this.isClosed()) return;
-          if (event.startsWith("unlink")) {
-            break;
-          }
-          if (!ignore) {
-            if (patch != null && expectedSeq == patchSeq) {
-              // sequence number match and there is a patch
-              const value = this.to_str();
-              const [newValue] = dmpFileWatcher.patch_apply(
-                decompressPatch(patch),
-                value,
-              );
-              this.from_str(newValue);
-              this.commit({ emitChangeImmediately: true, file: true });
-              this.emit("handle-file-change");
-              await this.save();
-              this.emit("after-change");
-            } else {
-              // we don't know what's on disk anymore, so record
-              // that and reload from disk.  Also, can't use patch because
-              // not given or sequence number doesn't match (e.g., we
-              // refreshed browser, changed to be leader, etc.)
-              this.valueOnDisk = undefined;
-              // console.log(this.path, "loading from disk directly - no patch");
-              try {
-                await this.readFile();
-              } catch {
-                // can't read -- maybe deleted/locked
-                break;
-              }
-            }
-            if (patchSeq != null) {
-              expectedSeq = patchSeq + 1;
-            }
-          } else {
-            this.debouncedStat();
-          }
-        }
-        // check if file was deleted
-        this.signalIfFileDeleted();
-        this.fileWatcher?.close();
-        delete this.fileWatcher;
-      }
-      if (this.isClosed()) return;
-      // start a new watcher since file descriptor probably changed or maybe file deleted
-      await delay(this.opts?.watchRecreateWait ?? WATCH_RECREATE_WAIT);
-      await until(
-        async () => {
-          if (this.isClosed()) return true;
-          try {
-            await this.initFileWatcher();
-            return true;
-          } catch {
-            return false;
-          }
-        },
-        { min: this.opts?.watchRecreateWait ?? WATCH_RECREATE_WAIT },
-      );
-    })();
-  };
-
-  private closeFileWatcher = () => {
-    this.fileWatcher?.close();
-    delete this.fileWatcher;
-  };
 
   // returns true if file definitely exists right now,
   // false if it definitely does not, and throws exception otherwise,
