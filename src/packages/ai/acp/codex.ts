@@ -1,7 +1,7 @@
 /*
 Codex ACP Client.
 
-NOTE: Set COCALC_ACP_MAX_SESSIONS to a number to cause codex-acp to 
+NOTE: Set COCALC_ACP_MAX_SESSIONS to a number to cause codex-acp to
 limit the number of sessions in memory at once, to avoid using too
 much RAM.
 */
@@ -227,10 +227,10 @@ class CodexClientHandler implements TerminalClient {
   }
 
   async sessionUpdate(params: SessionNotification): Promise<void> {
-    log.debug("acp.sessionUpdate", {
-      sessionId: params.sessionId,
-      update: params.update.sessionUpdate,
-    });
+    //     log.debug("acp.sessionUpdate", {
+    //       sessionId: params.sessionId,
+    //       update: params.update.sessionUpdate,
+    //     });
     if (!this.stream) return;
     const usageMeta =
       (params.update as any)?.meta?.token_usage ??
