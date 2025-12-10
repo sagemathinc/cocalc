@@ -295,5 +295,13 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
     }
 
     return render_main();
-  }, [compute_image, updating, hide, project_state]);
+  }, [
+    compute_image,
+    updating,
+    hide,
+    project_state,
+    software_envs,
+    default_compute_image,
+    is_student_project,
+  ]);
 };
