@@ -24,9 +24,12 @@ export async function initHostStatusService() {
           }>("SELECT host_id FROM projects WHERE project_id=$1", [project_id]);
           const currentHost = rows[0]?.host_id ?? null;
           if (currentHost && currentHost !== host_id) {
-            throw Error(
-              `state report ignored: project assigned to ${currentHost}, not ${host_id}; delete local copy`,
-            );
+            logger.debug("ignoring state from non-owner host", {
+              project_id,
+              currentHost,
+              host_id,
+            });
+            return { action: "delete" as const };
           }
         }
         const stateObj =

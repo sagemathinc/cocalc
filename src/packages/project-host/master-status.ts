@@ -14,6 +14,7 @@ import {
   listUnreportedProjects,
   markProjectStateReported,
 } from "./sqlite/projects";
+import { deleteProjectLocal } from "./sqlite/projects";
 
 let statusClient: HostStatusApi | undefined;
 let hostInfo: Pick<HostProjectStatus, "host_id" | "host"> | undefined;
@@ -52,11 +53,16 @@ export async function reportProjectStateToMaster(
   if (!statusClient || !hostInfo) return;
   try {
     logger.debug("reportProjectStateToMaster", { project_id, state });
-    await statusClient.reportProjectState({
+    const res = await statusClient.reportProjectState({
       ...hostInfo,
       project_id,
       state,
     });
+    if ((res as any)?.action === "delete") {
+      logger.debug("master requested local project deletion", { project_id });
+      deleteProjectLocal(project_id);
+      return;
+    }
     markProjectStateReported(project_id);
   } catch (err) {
     logger.debug("reportProjectStateToMaster failed", { project_id, err });
@@ -69,11 +75,18 @@ async function reportPendingStates() {
   for (const row of pending) {
     if (!row.state) continue;
     try {
-      await statusClient.reportProjectState({
+      const res = await statusClient.reportProjectState({
         ...hostInfo,
         project_id: row.project_id,
         state: row.state,
       });
+      if ((res as any)?.action === "delete") {
+        logger.debug("master requested local project deletion", {
+          project_id: row.project_id,
+        });
+        deleteProjectLocal(row.project_id);
+        continue;
+      }
       markProjectStateReported(row.project_id);
     } catch (err) {
       logger.debug("reportPendingStates failed", {

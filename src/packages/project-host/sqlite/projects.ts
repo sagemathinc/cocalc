@@ -3,6 +3,7 @@ import {
   getDatabase,
   upsertRow,
   getRow,
+  deleteRow,
 } from "@cocalc/lite/hub/sqlite/database";
 import { account_id } from "@cocalc/backend/data";
 
@@ -265,6 +266,13 @@ export function markProjectStateReported(project_id: string) {
   db.prepare(
     "UPDATE projects SET state_reported=1 WHERE project_id=?",
   ).run(project_id);
+}
+
+export function deleteProjectLocal(project_id: string) {
+  ensureProjectsTable();
+  const db = getDatabase();
+  db.prepare("DELETE FROM projects WHERE project_id=?").run(project_id);
+  deleteRow("projects", JSON.stringify({ project_id }));
 }
 
 export function getProjectPorts(

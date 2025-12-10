@@ -108,7 +108,9 @@ export interface HostProjectStatus {
 }
 
 export interface HostStatusApi {
-  reportProjectState: (opts: HostProjectStatus) => Promise<void>;
+  reportProjectState: (
+    opts: HostProjectStatus,
+  ) => Promise<{ action?: "delete" } | void>;
 }
 
 export function createHostStatusClient({

@@ -15,7 +15,7 @@ if (!Number.isInteger(index) || index < 0) {
   process.exit(1);
 }
 const root = path.join(__dirname, "..");
-const data = path.join(root, `data-${index}`);
+const data = process.env.COCALC_DATA
 const pidPath = path.join(data, `daemon.pid`);
 
 function isRunning(pid) {
