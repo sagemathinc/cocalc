@@ -290,7 +290,7 @@ export class SyncDoc extends EventEmitter {
         this[field] = opts[field];
       }
     }
-    this.useBackendFsWatcher = typeof this.fs.syncFsWatch === "function";
+    this.useBackendFsWatcher = typeof (this.fs as any)?.syncFsWatch === "function";
 
     this.client.once("closed", this.close);
 
@@ -2713,7 +2713,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   private async sendBackendFsWatch(active: boolean): Promise<void> {
-    if (!this.useBackendFsWatcher || this.opts.noSaveToDisk) return;
+    if (!this.useBackendFsWatcher || this.opts?.noSaveToDisk) return;
     try {
       await this.fs.syncFsWatch?.(this.path, active, {
         project_id: this.project_id,
@@ -2721,9 +2721,7 @@ export class SyncDoc extends EventEmitter {
         string_id: this.string_id,
         doctype: this.doctype,
       });
-      console.log("successfully pinged syncFsWatch");
     } catch (err) {
-      console.log("failed to ping syncFsWatch", err);
       this.dbg("syncFsWatch")(`failed: ${err?.message ?? err}`);
     }
   }

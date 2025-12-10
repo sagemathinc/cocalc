@@ -76,8 +76,22 @@ export class SyncFsService extends EventEmitter {
     this.store.setContent(path, content);
   }
 
-  recordLocalDelete(path: string): void {
+  async recordLocalDelete(path: string): Promise<void> {
     this.store.markDeleted(path);
+    // If we already know the meta for this path, append a delete patch immediately
+    // so clients see the deletion even if the watcher event is delayed.
+    const meta = this.metaByPath.get(path);
+    if (meta) {
+      try {
+        await this.appendPatch(meta, "delete", {
+          deleted: true,
+          content: "",
+          hash: "",
+        });
+      } catch (err) {
+        this.emit("error", err);
+      }
+    }
   }
 
   /**

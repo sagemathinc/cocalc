@@ -478,7 +478,7 @@ export class SandboxedFilesystem {
     const f = async (absPath: string) => {
       this.assertWritable(absPath);
       await rm(absPath, options);
-      globalSyncFsService.recordLocalDelete(absPath);
+      void globalSyncFsService.recordLocalDelete(absPath);
     };
     await Promise.all(v.map(f));
   };
@@ -509,7 +509,7 @@ export class SandboxedFilesystem {
     this.assertWritable(path);
     const abs = await this.safeAbsPath(path);
     await unlink(abs);
-    globalSyncFsService.recordLocalDelete(abs);
+    void globalSyncFsService.recordLocalDelete(abs);
   };
 
   utimes = async (

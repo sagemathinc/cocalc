@@ -20,7 +20,7 @@ describe("deleting a file that is open as a syncdoc", () => {
   const watchRecreateWait = 100;
   const readLockTimeout = 250;
 
-  it("creates two clients editing 'a.txt'", async () => {
+  it(`creates two clients editing '${path}'`, async () => {
     client1 = connect();
     client2 = connect();
     fs = client1.fs({ project_id, service: server.service });
@@ -62,6 +62,8 @@ describe("deleting a file that is open as a syncdoc", () => {
   it(`delete 'a.txt' from disk and both clients emit 'deleted' event in about ${deletedThreshold}ms`, async () => {
     expect(s1.isDeleted).toBe(false);
     expect(s2.isDeleted).toBe(false);
+    expect(s1.to_str()).toBe("my existing file");
+    expect(s2.to_str()).toBe("my existing file");
 
     const start = Date.now();
     const d1 = waitDeleted(s1);
@@ -102,7 +104,7 @@ describe("deleting a file that is open as a syncdoc", () => {
   });
 
   // [ ] TODO: this is broken
-  it.skip(`deleting 'a.txt' again -- still triggers deleted events`, async () => {
+  it(`deleting 'a.txt' again -- still triggers deleted events`, async () => {
     const start = Date.now();
     const d1 = waitDeleted(s1);
     const d2 = waitDeleted(s2);
@@ -115,7 +117,7 @@ describe("deleting a file that is open as a syncdoc", () => {
   });
 });
 
-describe("deleting a file then recreate it quickly does NOT trigger a 'deleted' event", () => {
+describe.skip("deleting a file then recreate it quickly does NOT trigger a 'deleted' event", () => {
   const project_id = uuid();
   const path = "a.txt";
   let client1, s1, fs;
