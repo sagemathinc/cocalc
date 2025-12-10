@@ -3,11 +3,22 @@ import { readFile } from "node:fs/promises";
 import { EventEmitter } from "events";
 import { dirname } from "path";
 import { SyncFsWatchStore, type ExternalChange } from "./sync-fs-watch";
+import { AStream } from "@cocalc/conat/sync/astream";
+import { patchesStreamName } from "@cocalc/conat/sync/synctable-stream";
+import { conat } from "@cocalc/backend/conat/conat";
+import { client_db } from "@cocalc/util/db-schema/client-db";
 
 export interface WatchEvent {
   path: string;
   type: "change" | "delete";
   change?: ExternalChange;
+}
+
+export interface WatchMeta {
+  project_id?: string;
+  relativePath?: string;
+  string_id?: string;
+  doctype?: any;
 }
 
 interface WatchEntry {
@@ -32,6 +43,9 @@ export class SyncFsService extends EventEmitter {
   private store: SyncFsWatchStore;
   private watchers: Map<string, WatchEntry> = new Map();
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
+  private metaByPath: Map<string, WatchMeta> = new Map();
+  private patchWriters: Map<string, AStream<any>> = new Map();
+  private conatClient = conat();
 
   constructor(store?: SyncFsWatchStore) {
     super();
@@ -48,6 +62,10 @@ export class SyncFsService extends EventEmitter {
       clearTimeout(timer);
     }
     this.debounceTimers.clear();
+    for (const writer of this.patchWriters.values()) {
+      writer.close();
+    }
+    this.patchWriters.clear();
     this.store.close();
     this.removeAllListeners();
   }
@@ -56,10 +74,13 @@ export class SyncFsService extends EventEmitter {
    * Indicate interest in a file. Ensures a directory watcher exists and is fresh.
    * If active is false, drops interest immediately.
    */
-  heartbeat(path: string, active: boolean = true): void {
+  heartbeat(path: string, active: boolean = true, meta?: WatchMeta): void {
     const dir = dirname(path);
     const existing = this.watchers.get(dir);
     if (active) {
+      if (meta) {
+        this.metaByPath.set(path, meta);
+      }
       if (existing) {
         existing.lastHeartbeat = Date.now();
         existing.paths.add(path);
@@ -88,6 +109,7 @@ export class SyncFsService extends EventEmitter {
     } else {
       if (!existing) return;
       existing.paths.delete(path);
+      this.metaByPath.delete(path);
       if (existing.paths.size === 0) {
         this.closeEntry(dir);
       }
@@ -107,9 +129,14 @@ export class SyncFsService extends EventEmitter {
     }
     const timer = setTimeout(async () => {
       this.debounceTimers.delete(path);
+      const meta = this.metaByPath.get(path);
       if (event === "unlink") {
         this.store.markDeleted(path);
-        this.emitEvent({ path, type: "delete", change: { deleted: true, content: "", hash: "" } });
+        const change = { deleted: true, content: "", hash: "" };
+        this.emitEvent({ path, type: "delete", change });
+        if (meta) {
+          await this.appendPatch(meta, "delete", change);
+        }
         return;
         }
       // add/change
@@ -118,6 +145,9 @@ export class SyncFsService extends EventEmitter {
           return (await readFile(path, "utf8")) as string;
         });
         this.emitEvent({ path, type: "change", change });
+        if (meta) {
+          await this.appendPatch(meta, "change", change);
+        }
       } catch (err) {
         this.emit("error", err);
       }
@@ -141,7 +171,77 @@ export class SyncFsService extends EventEmitter {
   private closeEntry(dir: string): void {
     const entry = this.watchers.get(dir);
     if (!entry) return;
+    for (const p of entry.paths) {
+      this.metaByPath.delete(p);
+    }
     entry.watcher.close();
     this.watchers.delete(dir);
+  }
+
+  private async appendPatch(
+    meta: WatchMeta,
+    type: "change" | "delete",
+    change: ExternalChange,
+  ): Promise<void> {
+    if (!meta.project_id) return;
+    const relativePath = meta.relativePath;
+    if (!relativePath) return;
+    const string_id =
+      meta.string_id ?? client_db.sha1(meta.project_id, relativePath);
+    const fsHead = this.store.getFsHead(string_id);
+    const time = Math.max(Date.now(), (fsHead?.time ?? 0) + 1);
+    const version = (fsHead?.version ?? 0) + 1;
+    const obj: any = {
+      string_id,
+      project_id: meta.project_id,
+      path: relativePath,
+      time,
+      wall: time,
+      user_id: 0,
+      is_snapshot: false,
+      parents: fsHead ? [fsHead.time] : [],
+      version,
+      file: true,
+    };
+    if (type === "delete") {
+      obj.meta = { deleted: true };
+      obj.patch = "[]";
+    } else {
+      obj.meta = change.deleted ? { deleted: true } : undefined;
+      obj.patch = JSON.stringify(change.patch ?? []);
+    }
+    if (meta.doctype?.patch_format) {
+      obj.format = meta.doctype.patch_format;
+    }
+    try {
+      const writer = await this.getPatchWriter({
+        project_id: meta.project_id,
+        string_id,
+      });
+      await writer.publish(obj);
+      this.store.setFsHead({ string_id, time, version });
+    } catch (err) {
+      this.emit("error", err);
+    }
+  }
+
+  private async getPatchWriter({
+    project_id,
+    string_id,
+  }: {
+    project_id: string;
+    string_id: string;
+  }): Promise<AStream<any>> {
+    const cached = this.patchWriters.get(string_id);
+    if (cached) return cached;
+    const writer = new AStream({
+      name: patchesStreamName({ string_id }),
+      project_id,
+      client: this.conatClient,
+      noInventory: true,
+      noAutosave: true,
+    });
+    this.patchWriters.set(string_id, writer);
+    return writer;
   }
 }

@@ -196,8 +196,13 @@ export interface Filesystem {
   ) => Promise<void>;
   // Signal interest in a file so the backend can keep a shared watcher alive.
   // active=false can be used to drop interest immediately (otherwise TTL will prune).
+  // Optional metadata can be sent to help the backend map to patch streams.
   // Returns a simple acknowledgment; backend may later enforce limits here.
-  syncFsWatch?: (path: string, active?: boolean) => Promise<void>;
+  syncFsWatch?: (
+    path: string,
+    active?: boolean,
+    info?: { project_id?: string; relativePath?: string; string_id?: string; doctype?: any },
+  ) => Promise<void>;
   // todo: typing
   watch: (path: string, options?) => Promise<WatchIterator>;
 
@@ -462,6 +467,9 @@ export async function fsServer({
     },
     async realpath(path: string) {
       return await (await fs(this.subject)).realpath(path);
+    },
+    async syncFsWatch(path: string, active: boolean = true, info?: any) {
+      return await (await fs(this.subject)).syncFsWatch(path, active, info);
     },
     async rename(oldPath: string, newPath: string) {
       await (await fs(this.subject)).rename(oldPath, newPath);
@@ -743,6 +751,19 @@ export function fsClient({
     options?: WriteFileDeltaOptions,
   ) => {
     await writeFileDeltaImpl(call.writeFile, path, content, options);
+  };
+
+  call.syncFsWatch = async (
+    path: string,
+    active: boolean = true,
+    info?: { project_id?: string; relativePath?: string; string_id?: string; doctype?: any },
+  ) => {
+    return await fs_client.request({
+      path,
+      active,
+      info,
+      method: "syncFsWatch",
+    });
   };
 
   return call;

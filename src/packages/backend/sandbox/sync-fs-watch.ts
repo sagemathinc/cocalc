@@ -42,6 +42,12 @@ export interface ExternalChange {
   deleted: boolean;
 }
 
+export interface FsHead {
+  string_id: string;
+  time: number;
+  version: number;
+}
+
 /**
  * Lightweight backend-only helper that tracks on-disk content for many files
  * and computes patches when the filesystem changes behind our back.
@@ -82,6 +88,11 @@ export class SyncFsWatchStore {
         hash TEXT NOT NULL,
         deleted INTEGER NOT NULL DEFAULT 0,
         updatedAt INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS fs_heads (
+        string_id TEXT PRIMARY KEY,
+        time INTEGER NOT NULL,
+        version INTEGER NOT NULL
       );
     `);
   }
@@ -163,5 +174,26 @@ export class SyncFsWatchStore {
 
   private sha(content: string): string {
     return createHash("sha256").update(content, "utf8").digest("hex");
+  }
+
+  getFsHead(string_id: string): FsHead | undefined {
+    const row = this.db
+      .prepare("SELECT string_id, time, version FROM fs_heads WHERE string_id = ?")
+      .get(string_id) as FsHead | undefined;
+    return row;
+  }
+
+  setFsHead(head: FsHead): void {
+    this.db
+      .prepare(
+        `
+        INSERT INTO fs_heads(string_id, time, version)
+        VALUES(?, ?, ?)
+        ON CONFLICT(string_id) DO UPDATE SET
+          time=excluded.time,
+          version=excluded.version;
+      `,
+      )
+      .run(head.string_id, head.time, head.version);
   }
 }

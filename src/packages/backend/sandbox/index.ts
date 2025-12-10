@@ -91,6 +91,7 @@ import { apply_patch, type CompressedPatch } from "@cocalc/util/dmp";
 
 export { SyncFsWatchStore } from "./sync-fs-watch";
 import { SyncFsService } from "./sync-fs-service";
+import { client_db } from "@cocalc/util/db-schema/client-db";
 
 //const logger = getLogger("sandbox:fs");
 
@@ -609,9 +610,26 @@ export class SandboxedFilesystem {
   };
 
   // Heartbeat indicating a client is actively editing this path.
-  syncFsWatch = async (path: string, active: boolean = true): Promise<void> => {
+  syncFsWatch = async (
+    path: string,
+    active: boolean = true,
+    info?: { project_id?: string; relativePath?: string; string_id?: string; doctype?: any },
+  ): Promise<void> => {
     const abs = await this.safeAbsPath(path);
-    globalSyncFsService.heartbeat(abs, active);
+    const project_id = info?.project_id ?? this.host;
+    const relativePath = info?.relativePath ?? path;
+    const string_id =
+      info?.string_id && info.string_id.length > 0 && project_id && relativePath
+        ? info.string_id
+        : project_id && relativePath
+          ? client_db.sha1(project_id, relativePath)
+          : undefined;
+    globalSyncFsService.heartbeat(abs, active, {
+      project_id,
+      relativePath,
+      string_id,
+      doctype: info?.doctype,
+    });
   };
 }
 
