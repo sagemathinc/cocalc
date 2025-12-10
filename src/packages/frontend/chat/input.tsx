@@ -156,13 +156,18 @@ export default function ChatInput({
       if (!input || syncdb == null) {
         return;
       }
-      if (
-        syncdb.get_one({
-          event: "draft",
-          sender_id,
-          date,
-        }) == null
-      ) {
+      try {
+        if (
+          syncdb.get_one({
+            event: "draft",
+            sender_id,
+            date,
+          }) == null
+        ) {
+          return;
+        }
+      } catch {
+        // sometimes syncdb.get_one throws
         return;
       }
       syncdb.set({

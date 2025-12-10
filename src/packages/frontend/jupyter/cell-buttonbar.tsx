@@ -34,7 +34,7 @@ import {
 import { LLMCellTool } from "./llm/cell-tool";
 
 export function PlaceholderButtonBar() {
-  return <div style={CODE_BAR_BTN_STYLE}>hi</div>;
+  return <div style={CODE_BAR_BTN_STYLE} />;
 }
 
 interface Props {
