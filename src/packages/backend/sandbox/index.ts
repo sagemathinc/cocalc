@@ -474,9 +474,10 @@ export class SandboxedFilesystem {
 
   rm = async (path: string | string[], options?) => {
     const v = await this.safeAbsPaths(path);
-    const f = async (path) => {
-      this.assertWritable(path);
-      await rm(path, options);
+    const f = async (absPath: string) => {
+      this.assertWritable(absPath);
+      await rm(absPath, options);
+      globalSyncFsService.recordLocalDelete(absPath);
     };
     await Promise.all(v.map(f));
   };
@@ -505,7 +506,9 @@ export class SandboxedFilesystem {
 
   unlink = async (path: string) => {
     this.assertWritable(path);
-    await unlink(await this.safeAbsPath(path));
+    const abs = await this.safeAbsPath(path);
+    await unlink(abs);
+    globalSyncFsService.recordLocalDelete(abs);
   };
 
   utimes = async (
@@ -595,13 +598,17 @@ export class SandboxedFilesystem {
         this.lastOnDisk.set(p, patched);
         this.lastOnDiskHash.set(`${p}-${sha1(patched)}`, true);
       }
+      globalSyncFsService.recordLocalWrite(p, patched);
       return;
     }
     if (saveLast && typeof data == "string") {
       this.lastOnDisk.set(p, data);
       this.lastOnDiskHash.set(`${p}-${sha1(data)}`, true);
     }
-    return await writeFile(p, data);
+    await writeFile(p, data);
+    if (typeof data === "string") {
+      globalSyncFsService.recordLocalWrite(p, data);
+    }
   };
 
   writeFileDelta = async (..._args) => {

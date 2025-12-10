@@ -70,6 +70,16 @@ export class SyncFsService extends EventEmitter {
     this.removeAllListeners();
   }
 
+  // Update the persisted snapshot when we know a local write/delete happened
+  // via our own filesystem API. This prevents echo patches on the next fs event.
+  recordLocalWrite(path: string, content: string): void {
+    this.store.setContent(path, content);
+  }
+
+  recordLocalDelete(path: string): void {
+    this.store.markDeleted(path);
+  }
+
   /**
    * Indicate interest in a file. Ensures a directory watcher exists and is fresh.
    * If active is false, drops interest immediately.
