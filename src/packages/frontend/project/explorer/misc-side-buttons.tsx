@@ -32,7 +32,6 @@ interface Props {
   kucalc?: string;
   project_id: string;
   show_hidden?: boolean;
-  show_masked?: boolean;
 }
 
 export const MiscSideButtons: React.FC<Props> = (props) => {
@@ -43,7 +42,6 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     kucalc,
     project_id,
     show_hidden,
-    show_masked,
   } = props;
 
   const intl = useIntl();
@@ -55,13 +53,6 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     e.preventDefault();
     return actions.setState({
       show_hidden: !show_hidden,
-    });
-  };
-
-  const handle_masked_toggle = (e: React.MouseEvent): void => {
-    e.preventDefault();
-    actions.setState({
-      show_masked: !show_masked,
     });
   };
 
@@ -82,25 +73,6 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
           placement={"bottom"}
         >
           <Icon name={icon} />
-        </Tip>
-      </Button>
-    );
-  }
-
-  function render_masked_toggle(): React.JSX.Element {
-    return (
-      <Button
-        onClick={handle_masked_toggle}
-        active={!show_masked}
-        bsSize={"small"}
-      >
-        <Tip
-          title={intl.formatMessage(labels.masked_files, {
-            masked: show_masked,
-          })}
-          placement={"bottomLeft"}
-        >
-          <Icon name={"mask"} />
         </Tip>
       </Button>
     );
@@ -218,7 +190,6 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       <div className="pull-right">
         <Space.Compact>
           {render_hidden_toggle()}
-          {render_masked_toggle()}
           {render_backup()}
           <TourButton project_id={project_id} />
         </Space.Compact>

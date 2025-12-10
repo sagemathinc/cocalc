@@ -1046,7 +1046,6 @@
   "labels.linux_terminal": "Linux-Terminal",
   "labels.loading": "Laden...",
   "labels.log": "Protokoll",
-  "labels.masked_files": "{masked, select, true {Maskierte Dateien ausblenden} other {Maskierte Dateien anzeigen}}. Maskierte Dateien sind automatisch generierte oder temporäre Dateien, die nicht bearbeitet werden sollen. Sie sind ausgegraut.",
   "labels.message.plural": "{num, plural, one {Nachricht} other {Nachrichten}}",
   "labels.messages": "Nachrichten",
   "labels.messages.all_messages": "Alle Nachrichten",

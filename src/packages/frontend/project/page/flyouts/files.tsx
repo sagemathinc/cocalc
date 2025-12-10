@@ -29,13 +29,13 @@ import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
   DirectoryListing,
   DirectoryListingEntry,
   FileMap,
 } from "@cocalc/frontend/project/explorer/types";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
+import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import {
@@ -123,10 +123,12 @@ export function FilesFlyout({
     "active_file_sort",
   );
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
-  const show_masked = useTypedRedux({ project_id }, "show_masked");
   const hidden = useTypedRedux({ project_id }, "show_hidden");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
+  const otherSettings = useTypedRedux("account", "other_settings");
+  const maskFiles = otherSettings?.get("mask_files");
+  const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
   // mainly controls what a single click does, plus additional UI elements
   const [mode, setMode] = useState<"open" | "select">("open");
   const [prevSelected, setPrevSelected] = useState<number | null>(null);
@@ -191,7 +193,9 @@ export function FilesFlyout({
     const files: DirectoryListing | null = filesStore.toJS?.();
     if (files == null) return EMPTY_LISTING;
     let activeFile: DirectoryListingEntry | null = null;
-    compute_file_masks(files);
+    if (maskFiles) {
+      compute_file_masks(files);
+    }
     const searchWords = search_split(file_search.trim().toLowerCase());
 
     const procFiles = files
@@ -205,9 +209,6 @@ export function FilesFlyout({
           ((file.isdir ?? false) && search_match(`${fName}/`, searchWords))
         );
       })
-      .filter(
-        (file: DirectoryListingEntry) => show_masked || !(file.mask === true),
-      )
       .filter(
         (file: DirectoryListingEntry) => hidden || !file.name.startsWith("."),
       );
@@ -297,9 +298,9 @@ export function FilesFlyout({
     hidden,
     file_search,
     openFiles,
-    show_masked,
     current_path,
     strippedPublicPaths,
+    maskFiles,
   ]);
 
   const prev_current_path = usePrevious(current_path);
@@ -631,6 +632,7 @@ export function FilesFlyout({
             item.isdir && !fullPath.endsWith("/") ? `${fullPath}/` : fullPath;
           manageStarredFiles.setStarredPath(normalizedPath, starState);
         }}
+        dimFileExtensions={dimFileExtensions}
       />
     );
   }

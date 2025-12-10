@@ -35,6 +35,8 @@ export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
   "jpeg",
 ] as const;
 
+const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
+
 interface Props {
   isdir: boolean;
   name: string;
@@ -57,6 +59,7 @@ interface Props {
   computeServerId?: number;
   isStarred?: boolean;
   onToggleStar?: (path: string, starred: boolean) => void;
+  dimFileExtensions?: boolean;
 }
 
 export const FileRow: React.FC<Props> = React.memo((props) => {
@@ -68,7 +71,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   function render_icon() {
     const style: React.CSSProperties = {
-      color: props.mask ? "#bbbbbb" : COLORS.FILE_ICON,
+      color: props.mask ? COLORS.FILE_DIMMED : COLORS.FILE_ICON,
       verticalAlign: "sub",
     } as const;
     let body: React.JSX.Element;
@@ -117,12 +120,11 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
   }
 
   function render_name_link(styles, name, ext) {
+    const extStyle = props.dimFileExtensions ? DIMMED_STYLE : undefined;
     return (
       <a style={styles} cocalc-test="file-line">
         {misc.trunc_middle(name, 50)}
-        <span style={{ color: !props.mask ? COLORS.GRAY_M : undefined }}>
-          {ext === "" ? "" : `.${ext}`}
-        </span>
+        <span style={extStyle}>{ext === "" ? "" : `.${ext}`}</span>
         {render_link_target()}
       </a>
     );
@@ -147,7 +149,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       wordWrap: "break-word",
       overflowWrap: "break-word",
       verticalAlign: "middle",
-      color: props.mask ? "#bbbbbb" : COLORS.TAB,
+      color: props.mask ? COLORS.FILE_DIMMED : COLORS.TAB,
     };
 
     if (show_tip) {

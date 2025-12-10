@@ -1046,7 +1046,6 @@
   "labels.linux_terminal": "Terminal Linux",
   "labels.loading": "Chargement...",
   "labels.log": "Journal",
-  "labels.masked_files": "{masked, select, true {Masquer les fichiers masqués} other {Afficher les fichiers masqués}}. Les fichiers masqués sont des fichiers générés automatiquement ou temporaires, qui ne sont pas destinés à être modifiés. Ils sont grisés.",
   "labels.message.plural": "{num, plural, one {message} other {messages}}",
   "labels.messages": "Messages",
   "labels.messages.all_messages": "Tous les messages",
