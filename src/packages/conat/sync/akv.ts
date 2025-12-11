@@ -49,6 +49,7 @@ export class AKV<T = any> {
     this.user = {
       account_id: options.account_id,
       project_id: options.project_id,
+      host_id: options.host_id,
     };
     this.storage = { path: storagePath(options) };
     const client = options.client ?? connect();

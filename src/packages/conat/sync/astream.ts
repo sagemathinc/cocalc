@@ -53,8 +53,10 @@ export class AStream<T = any> {
     this.user = {
       account_id: options.account_id,
       project_id: options.project_id,
+      host_id: options.host_id,
     };
     this.storage = { path: storagePath(options) };
+    console.log(options, this.storage);
     this.client = options.client ?? connect();
     this.stream = stream({
       client: this.client,

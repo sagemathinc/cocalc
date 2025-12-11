@@ -106,6 +106,7 @@ export interface CoreStreamOptions {
   // may or may not being who is accessing it.
   account_id?: string;
   project_id?: string;
+  host_id?: string;
   config?: Partial<Configuration>;
   // only load historic messages starting at the given seq number.
   start_seq?: number;
@@ -128,11 +129,13 @@ export interface CoreStreamOptions {
 export interface User {
   account_id?: string;
   project_id?: string;
+  host_id?: string;
 }
 
 export function storagePath({
   account_id,
   project_id,
+  host_id,
   name,
 }: User & { name: string }) {
   let userPath;
@@ -140,6 +143,8 @@ export function storagePath({
     userPath = `accounts/${account_id}`;
   } else if (project_id) {
     userPath = `projects/${project_id}`;
+  } else if (host_id) {
+    userPath = `hosts/${host_id}`;
   } else {
     userPath = "hub";
   }
@@ -179,6 +184,7 @@ export class CoreStream<T = any> extends EventEmitter {
     name,
     project_id,
     account_id,
+    host_id,
     config,
     start_seq,
     ephemeral = false,
@@ -193,10 +199,10 @@ export class CoreStream<T = any> extends EventEmitter {
     }
     this.client = client;
     this.service = service;
-    this.user = { account_id, project_id };
+    this.user = { account_id, project_id, host_id };
     this.name = name;
     this.storage = {
-      path: storagePath({ account_id, project_id, name }),
+      path: storagePath({ account_id, project_id, host_id, name }),
       ephemeral,
       sync,
     };

@@ -2,12 +2,13 @@ import {
   Button,
   Card,
   Col,
+  Collapse,
+  Divider,
+  Drawer,
   Form,
   Input,
   Row,
   Select,
-  Collapse,
-  Divider,
   Slider,
   Space,
   Tag,
@@ -23,6 +24,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import Bootlog from "@cocalc/frontend/project/bootlog";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 
 const WRAP_STYLE: CSS = {
@@ -64,12 +66,18 @@ const GPU_TYPES = [
 
 export const HostsPage: React.FC = () => {
   const [hosts, setHosts] = useState<Host[]>([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selected, setSelected] = useState<Host | undefined>(undefined);
   const [creating, setCreating] = useState<boolean>(false);
   const hub = webapp_client.conat_client.hub;
 
   const refresh = async () => {
     const list = await hub.hosts.listHosts({});
     setHosts(list);
+    if (selected) {
+      const updated = list.find((h) => h.id === selected.id);
+      setSelected(updated);
+    }
   };
 
   useEffect(() => {
@@ -109,6 +117,13 @@ export const HostsPage: React.FC = () => {
 
   const setStatus = async (id: string, action: "start" | "stop") => {
     try {
+      setHosts((prev) =>
+        prev.map((h) =>
+          h.id === id
+            ? { ...h, status: action === "start" ? "starting" : "stopping" }
+            : h,
+        ),
+      );
       if (action === "start") {
         await hub.hosts.startHost({ id });
       } else {
@@ -176,6 +191,16 @@ export const HostsPage: React.FC = () => {
                   onClick={() => setStatus(host.id, "stop")}
                 >
                   Stop
+                </Button>,
+                <Button
+                  key="details"
+                  type="link"
+                  onClick={() => {
+                    setSelected(host);
+                    setDrawerOpen(true);
+                  }}
+                >
+                  Details
                 </Button>,
                 <Button
                   key="delete"
@@ -303,6 +328,40 @@ export const HostsPage: React.FC = () => {
           {content}
         </Col>
       </Row>
+      <Drawer
+        title={
+          <Space>
+            <Icon name="server" /> {selected?.name ?? "Host details"}
+            {selected && (
+              <Tag color={STATUS_COLOR[selected.status]}>{selected.status}</Tag>
+            )}
+          </Space>
+        }
+        width={640}
+        onClose={() => setDrawerOpen(false)}
+        open={drawerOpen && !!selected}
+      >
+        {selected ? (
+          <Space direction="vertical" style={{ width: "100%" }} size="middle">
+            <Space size="small">
+              <Tag>{selected.region}</Tag>
+              <Tag>{selected.size}</Tag>
+              {selected.gpu && <Tag color="purple">GPU</Tag>}
+            </Space>
+            <Typography.Text>Projects: {selected.projects ?? 0}</Typography.Text>
+            <Typography.Text type="secondary">
+              Last seen: {selected.last_seen ?? "n/a"}
+            </Typography.Text>
+            <Divider />
+            <Typography.Title level={5}>Activity</Typography.Title>
+            <Bootlog host_id={selected.id} style={{ maxWidth: "100%" }} />
+          </Space>
+        ) : (
+          <Typography.Text type="secondary">
+            Select a host to see details.
+          </Typography.Text>
+        )}
+      </Drawer>
     </div>
   );
 };

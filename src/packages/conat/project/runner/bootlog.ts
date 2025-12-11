@@ -51,9 +51,15 @@ export async function resetBootlog({
   host_id,
   compute_server_id = 0,
   client = conat(),
-}:{host_id?:string; project_id?:string; compute_server_id?:number; client?:Client}) {
+}: {
+  host_id?: string;
+  project_id?: string;
+  compute_server_id?: number;
+  client?: Client;
+}) {
   const stream = client.sync.astream<Event>({
     project_id,
+    host_id,
     name: getName({ host_id, project_id, compute_server_id }),
   });
   try {
@@ -84,6 +90,7 @@ export async function bootlog(opts: Options) {
   } = opts;
   const stream = client.sync.astream<Event>({
     project_id,
+    host_id,
     name: getName({ host_id, project_id, compute_server_id }),
   });
   if (event.error != null && typeof event.error != "string") {
@@ -144,6 +151,7 @@ export async function get({
   // Prefer project_id if given; otherwise use host_id
   return await client.sync.dstream<Event>({
     project_id,
+    host_id,
     name: getName({ host_id, project_id, compute_server_id }),
   });
 }

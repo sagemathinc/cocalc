@@ -15,6 +15,12 @@ export function getUserId(subject: string, service = SERVICE): string {
       `${service}.account-`.length + 36,
     );
   }
+  if (subject.startsWith(`${service}.host-`)) {
+    return subject.slice(
+      `${service}.host-`.length,
+      `${service}.host-`.length + 36,
+    );
+  }
   return "";
 }
 
@@ -27,6 +33,7 @@ export function assertHasWritePermission({
   // see this message:
   //   ${service}.account-${account_id}.> or
   //   ${service}.project-${project_id}.> or
+  //   ${service}.host-${host_id}.> or
   //   ${service}.hub.>
   //   ${service}.SOMETHING-WRONG
   // A user is only allowed to write to a subject if they have rights
@@ -34,6 +41,7 @@ export function assertHasWritePermission({
   // The path can a priori be any string.  However, here's what's allowed
   //   accounts/[account_id]/any...thing
   //   projects/[project_id]/any...thing
+  //   hosts/[host_id]/any...thing
   //   hub/any...thing  <- only hub can write to this.
   // Also, we don't allow malicious paths, which means by definition that
   //     normalize(path) != path.
@@ -69,7 +77,7 @@ export function assertHasWritePermission({
     // hub user can write to any path
     return;
   }
-  for (const cls of ["account", "project"]) {
+  for (const cls of ["account", "project", "host"]) {
     if (s.startsWith(cls + "-")) {
       const user_id = getUserId(subject, service);
       const base = cls + "s/" + user_id + "/";

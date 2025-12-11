@@ -111,6 +111,7 @@ export interface DKVOptions {
   name: string;
   account_id?: string;
   project_id?: string;
+  host_id?: string;
   desc?: JSONValue;
   client?: Client;
   // 3-way merge conflict resolution

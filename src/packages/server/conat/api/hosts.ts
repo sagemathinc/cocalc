@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import type { Host, HostMachine, HostStatus } from "@cocalc/conat/hub/api/hosts";
 import getPool from "@cocalc/database/pool";
+import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 function pool() {
   return getPool();
 }
@@ -113,12 +114,25 @@ export async function startHost({
 }): Promise<Host> {
   await loadOwnedHost(id, account_id);
   const now = new Date();
+  // emit bootlog for host start
+  bootlog({
+    host_id: id,
+    type: "starting",
+    desc: "Starting host...",
+    progress: 5,
+  }).catch(() => {});
   await pool().query(
     `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
     [id, "running", now],
   );
   const { rows } = await pool().query(`SELECT * FROM project_hosts WHERE id=$1`, [id]);
   if (!rows[0]) throw new Error("host not found");
+  bootlog({
+    host_id: id,
+    type: "running",
+    desc: "Host is running",
+    progress: 100,
+  }).catch(() => {});
   return parseRow(rows[0]);
 }
 
@@ -131,12 +145,24 @@ export async function stopHost({
 }): Promise<Host> {
   await loadOwnedHost(id, account_id);
   const now = new Date();
+  bootlog({
+    host_id: id,
+    type: "stopping",
+    desc: "Stopping host...",
+    progress: 5,
+  }).catch(() => {});
   await pool().query(
     `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
     [id, "off", now],
   );
   const { rows } = await pool().query(`SELECT * FROM project_hosts WHERE id=$1`, [id]);
   if (!rows[0]) throw new Error("host not found");
+  bootlog({
+    host_id: id,
+    type: "off",
+    desc: "Host stopped",
+    progress: 100,
+  }).catch(() => {});
   return parseRow(rows[0]);
 }
 

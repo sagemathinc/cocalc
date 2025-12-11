@@ -228,7 +228,7 @@ async function isAccountAllowed({
   // account accessing a project
   const project_id = extractProjectSubject(subject);
   if (!project_id) {
-    // account accessing a host bootlog: bootlog.host.<host_id>.>
+    // account accessing a host subject: *.host.{host_id}.>  and also *.host-{host_id}.>
     const host_id = extractHostSubject(subject);
     if (host_id) {
       return await isHostOwnerOrCollaborator({ account_id, host_id });
@@ -240,8 +240,14 @@ async function isAccountAllowed({
 
 function extractHostSubject(subject: string): string {
   const parts = subject.split(".");
-  if (parts[0] === "bootlog" && parts[1] === "host") {
+  if (parts[1] === "host") {
     const host_id = parts[2];
+    if (isValidUUID(host_id)) {
+      return host_id;
+    }
+  }
+  if (parts[1].startsWith("host-")) {
+    const host_id = parts[1].slice("host-".length, "host-".length + 36);
     if (isValidUUID(host_id)) {
       return host_id;
     }

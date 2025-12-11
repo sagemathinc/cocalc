@@ -49,6 +49,7 @@ export interface DStreamOptions {
   name: string;
   account_id?: string;
   project_id?: string;
+  host_id?: string;
   config?: Partial<Configuration>;
   // only load historic messages starting at the given seq number.
   start_seq?: number;

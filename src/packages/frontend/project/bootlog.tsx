@@ -27,7 +27,7 @@ export default function Bootlog({
 
   useAsyncEffect(async () => {
     const log = await webapp_client.conat_client.projectBootlog({
-      project_id,
+      project_id: !host_id ? project_id : undefined,
       compute_server_id,
       host_id,
     });
@@ -41,7 +41,7 @@ export default function Bootlog({
       // free up reference to the dstream
       log.close();
     };
-  }, [project_id, compute_server_id]);
+  }, [host_id, project_id, compute_server_id]);
 
   if (log == null) {
     return <Spin />;
