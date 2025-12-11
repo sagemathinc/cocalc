@@ -10,6 +10,7 @@ import { type Org, org } from "./org";
 import { type Messages, messages } from "./messages";
 import { type Compute, compute } from "./compute";
 import { type FileSync, fileSync } from "./file-sync";
+import { type Hosts, hosts } from "./hosts";
 
 export interface HubApi {
   system: System;
@@ -22,6 +23,7 @@ export interface HubApi {
   messages: Messages;
   compute: Compute;
   fileSync: FileSync;
+  hosts: Hosts;
 }
 
 const HubApiStructure = {
@@ -35,6 +37,7 @@ const HubApiStructure = {
   messages,
   compute,
   fileSync,
+  hosts,
 } as const;
 
 export function transformArgs({ name, args, account_id, project_id }) {
