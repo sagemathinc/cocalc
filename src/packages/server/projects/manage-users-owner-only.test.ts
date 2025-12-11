@@ -52,6 +52,7 @@ describe("without site enforcement (default)", () => {
       firstName: "Owner",
       lastName: "One",
       account_id: ownerId,
+      noFirstProject: true,
     });
     await createAccount({
       email: `collab-${collaboratorId}@example.com`,
@@ -59,6 +60,7 @@ describe("without site enforcement (default)", () => {
       firstName: "Collab",
       lastName: "Two",
       account_id: collaboratorId,
+      noFirstProject: true,
     });
     await createAccount({
       email: `collab-${collaboratorToRemove}@example.com`,
@@ -66,6 +68,7 @@ describe("without site enforcement (default)", () => {
       firstName: "Collab",
       lastName: "Three",
       account_id: collaboratorToRemove,
+      noFirstProject: true,
     });
     await createAccount({
       email: `collab-${newCollaboratorId}@example.com`,
@@ -73,6 +76,7 @@ describe("without site enforcement (default)", () => {
       firstName: "Collab",
       lastName: "Four",
       account_id: newCollaboratorId,
+      noFirstProject: true,
     });
     await createAccount({
       email: `owner-collab-${ownerCollaboratorId}@example.com`,
@@ -80,11 +84,13 @@ describe("without site enforcement (default)", () => {
       firstName: "Owner",
       lastName: "Collab",
       account_id: ownerCollaboratorId,
+      noFirstProject: true,
     });
 
     projectId = await createProject({
       account_id: ownerId,
       title: "Default setting test",
+      start: false,
     });
 
     await addCollaborator({
@@ -176,6 +182,7 @@ describe("strict collaborator management site setting", () => {
       firstName: "Owner",
       lastName: "One",
       account_id: ownerId,
+      noFirstProject: true,
     });
     await createAccount({
       email: `collab-${collaboratorId}@example.com`,
@@ -183,6 +190,7 @@ describe("strict collaborator management site setting", () => {
       firstName: "Collab",
       lastName: "Two",
       account_id: collaboratorId,
+      noFirstProject: true,
     });
     await createAccount({
       email: `collab-${otherCollaboratorId}@example.com`,
@@ -190,6 +198,7 @@ describe("strict collaborator management site setting", () => {
       firstName: "Collab",
       lastName: "Three",
       account_id: otherCollaboratorId,
+      noFirstProject: true,
     });
     await createAccount({
       email: `owner-collab-${ownerCollaboratorId}@example.com`,
@@ -197,6 +206,7 @@ describe("strict collaborator management site setting", () => {
       firstName: "Owner",
       lastName: "Collab",
       account_id: ownerCollaboratorId,
+      noFirstProject: true,
     });
     await createAccount({
       email: `collab-remove-${collaboratorToRemoveByOwner}@example.com`,
@@ -204,11 +214,13 @@ describe("strict collaborator management site setting", () => {
       firstName: "Collab",
       lastName: "ToRemove",
       account_id: collaboratorToRemoveByOwner,
+      noFirstProject: true,
     });
 
     projectId = await createProject({
       account_id: ownerId,
       title: "Strict setting test",
+      start: false,
     });
 
     await addCollaborator({

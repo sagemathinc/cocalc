@@ -60,11 +60,16 @@ describe("confirm managing of purchases works", () => {
       firstName: "User",
       lastName: "One",
       account_id,
+      noFirstProject: true,
     });
     project_id = await createProject({
       account_id,
       title: "My First Project",
+      start: false,
     });
+    // sometimes above isn't noticed below, which is weird, so we put in slight delay.
+    // TODO: it's surely because of using a connection pool instead of a single connection.
+    await delay(300);
     const s = {
       title: "myserver",
       idle_timeout: 15,

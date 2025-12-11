@@ -17,6 +17,7 @@ import {
   closePurchase,
 } from "./close";
 import { getPurchase } from "./util";
+import { delay } from "awaiting";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -39,12 +40,17 @@ describe("creates account, project, test compute server, and purchase, then clos
       firstName: "User",
       lastName: "One",
       account_id,
+      noFirstProject: true,
     });
     // Only User One:
     project_id = await createProject({
       account_id,
       title: "My First Project",
+      start: false,
     });
+    // sometimes above isn't noticed below, which is weird, so we put in slight delay.
+    // TODO: it's surely because of using a connection pool instead of a single connection.
+    await delay(300);
   });
 
   it("creates compute server on the 'test' cloud", async () => {

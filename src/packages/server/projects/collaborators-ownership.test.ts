@@ -52,6 +52,7 @@ async function createUser(emailPrefix: string): Promise<string> {
     firstName: "Test",
     lastName: "User",
     account_id,
+    noFirstProject: true,
   });
   return account_id;
 }
@@ -64,6 +65,7 @@ async function createProjectWithOwner(): Promise<{
   const projectId = await createProject({
     account_id: ownerId,
     title: "Ownership test project",
+    start: false,
   });
   return { ownerId, projectId };
 }
