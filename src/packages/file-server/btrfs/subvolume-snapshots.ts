@@ -84,11 +84,25 @@ export class SubvolumeSnapshots {
       const path = join(this.snapshotsDir, name);
       try {
         // Only keep readonly btrfs subvolumes (actual snapshots).
-        const readonly = await getSubvolumeField(path, "Read-only");
-        if (readonly?.toLowerCase().startsWith("yes")) {
+        let flags: string | undefined;
+        try {
+          flags = await getSubvolumeField(path, "Flags");
+        } catch {
+          // Some versions expose a Read-only field instead.
+          flags = await getSubvolumeField(path, "Read-only");
+        }
+        const ro = flags?.toLowerCase() ?? "";
+        if (
+          ro.includes("readonly") ||
+          ro.startsWith("yes") ||
+          ro === "true"
+        ) {
           snapshots.push(name);
         }
       } catch (err) {
+        if (process.env.DEBUG_SNAPTEST) {
+          console.log("readdir skip", name, err);
+        }
         logger.debug("readdir: skipping non-snapshot entry", {
           path,
           err: `${err}`,

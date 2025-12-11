@@ -131,8 +131,13 @@ export async function getSubvolumeField(
     args: ["subvolume", "show", path],
     verbose: false,
   });
-  // avoid any possibilitiy of a sneaky named snapshot breaking this
-  return stdout.split(`${field}:`)[1].split("\n")[0].trim();
+  // Avoid relying on positional splits; scan lines for the field name.
+  const re = new RegExp(`^\\s*${field}\\s*:\\s*(.+)$`, "im");
+  const match = stdout.match(re);
+  if (!match?.[1]) {
+    throw new Error(`field '${field}' not found in btrfs show output for ${path}`);
+  }
+  return match[1].trim();
 }
 
 export async function getSubvolumeId(path: string): Promise<number> {

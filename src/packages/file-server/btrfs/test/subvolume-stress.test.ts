@@ -29,9 +29,7 @@ describe(`stress test creating ${numSnapshots} snapshots`, () => {
       `created ${Math.round((numSnapshots / (Date.now() - start)) * 1000)} snapshots per second in serial`,
     );
     snaps.sort();
-    expect(
-      (await vol.snapshots.readdir()).filter((x) => !x.startsWith(".")).sort(),
-    ).toEqual(snaps.sort());
+    expect(await vol.snapshots.readdir()).toEqual(snaps.sort());
   });
 
   it(`delete our ${numSnapshots} snapshots`, async () => {
@@ -58,7 +56,7 @@ describe(`create ${numFiles} files`, () => {
     log(
       `created ${Math.round((numFiles / (Date.now() - start)) * 1000)} files per second in serial`,
     );
-    const v = await vol.fs.readdir("");
+    const v = (await vol.fs.readdir("")).filter((x) => x !== ".snapshots");
     expect(v.sort()).toEqual(names.sort());
   });
 
