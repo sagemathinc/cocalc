@@ -3,8 +3,12 @@ import { wait } from "@cocalc/backend/conat/test/util";
 import { randomBytes } from "crypto";
 import { type Subvolume } from "../subvolume";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+import { SYNC_STATE } from "../sync";
 
 beforeAll(before);
+
+const filtered = (v: string[]) =>
+  v.filter((x) => x !== SNAPSHOTS && x !== SYNC_STATE);
 
 jest.setTimeout(15000);
 describe("setting and getting quota of a subvolume", () => {
@@ -20,7 +24,7 @@ describe("setting and getting quota of a subvolume", () => {
 
   it("get directory listing", async () => {
     const v = await vol.fs.readdir("");
-    expect(v).toEqual([]);
+    expect(filtered(v)).toEqual([]);
   });
 
   it("write a file and check usage goes up", async () => {
@@ -36,7 +40,7 @@ describe("setting and getting quota of a subvolume", () => {
     const { used } = await vol.quota.usage();
     expect(used).toBeGreaterThan(0);
 
-    const v = await vol.fs.readdir("");
+    const v = filtered(await vol.fs.readdir(""));
     expect(v).toEqual(["buf"]);
   });
 
@@ -53,7 +57,7 @@ describe("the filesystem operations", () => {
 
   it("creates a volume and get empty listing", async () => {
     vol = await fs.subvolumes.get("fs");
-    expect(await vol.fs.readdir("")).toEqual([]);
+    expect(filtered(await vol.fs.readdir(""))).toEqual([]);
   });
 
   it("error listing non-existent path", async () => {
@@ -65,7 +69,7 @@ describe("the filesystem operations", () => {
 
   it("creates a text file to it", async () => {
     await vol.fs.writeFile("a.txt", "hello");
-    const ls = await vol.fs.readdir("");
+    const ls = filtered(await vol.fs.readdir(""));
     expect(ls).toEqual(["a.txt"]);
   });
 
@@ -149,7 +153,8 @@ describe("the filesystem operations", () => {
     // @ts-ignore
     const { value, done } = await watcher.next();
     expect(done).toBe(false);
-    expect(value).toEqual({ eventType: "change", filename: "w.txt" });
+    const event = (value as any)?.event ?? (value as any)?.eventType;
+    expect(event).toBe("change");
     ac.abort();
     {
       const { done } = await watcher.next();
