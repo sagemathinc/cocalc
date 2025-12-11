@@ -45,10 +45,22 @@ type Operation =
   | "close"
   | "closed";
 
+// These icon names must be a subset of the known names in frontend/componten/icon.tsx (we can't import IconName here, though)
+export type ComputeStateIcon =
+  | "file-archive"
+  | "download"
+  | "paper-plane"
+  | "gears"
+  | "stop"
+  | "times-rectangle"
+  | "flash"
+  | "hand-stop"
+  | "run";
+
 export type ComputeState = {
   desc: IntlMessage; // shows up in the UI (default)
   desc_cocalccom?: IntlMessage; // if set, use this string instead of desc in "cocalc.com" mode
-  icon: string;
+  icon: ComputeStateIcon;
   display: IntlMessage;
   stable?: boolean;
   to: { [key in Operation]?: State };

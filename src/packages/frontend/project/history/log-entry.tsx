@@ -5,6 +5,7 @@
 import { Space, Tooltip } from "antd";
 import React from "react";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { Col, Grid, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -145,6 +146,8 @@ export const LogEntry: React.FC<Props> = React.memo(
       "customize",
       "software",
     );
+    const otherSettings = useTypedRedux("account", "other_settings");
+    const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
 
     function render_open_file(event: OpenFile): React.JSX.Element {
       return (
@@ -157,6 +160,7 @@ export const LogEntry: React.FC<Props> = React.memo(
             style={cursor ? selected_item : undefined}
             trunc={TRUNC}
             project_id={project_id}
+            dimExtensions={dimFileExtensions}
             onOpen={() =>
               track("open-file", {
                 how: "project-log",
@@ -192,6 +196,7 @@ export const LogEntry: React.FC<Props> = React.memo(
                   style={cursor ? selected_item : undefined}
                   trunc={TRUNC}
                   project_id={project_id}
+                  dimExtensions={dimFileExtensions}
                 />
               ),
               event: event.disabled ? "disabled" : "enabled",
@@ -227,7 +232,9 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_start_project(event: ProjectControlEvent): React.JSX.Element {
+    function render_start_project(
+      event: ProjectControlEvent,
+    ): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -347,6 +354,7 @@ export const LogEntry: React.FC<Props> = React.memo(
           trunc={TRUNC}
           link={link}
           project_id={project_id != null ? project_id : props.project_id}
+          dimExtensions={dimFileExtensions}
           onOpen={() =>
             track("open-file", {
               how: "project-log",
@@ -507,11 +515,40 @@ export const LogEntry: React.FC<Props> = React.memo(
       for (const key in obj) {
         i += 1;
         const value = obj[key];
-        if (key == "image") {
+        if (key === "image") {
           result.push(
             <span key={i}>
               set project image to{" "}
               <img src={value} width="16px" height="16px" />
+            </span>,
+          );
+          continue;
+        }
+        if (key === "color") {
+          const textColor = value ? avatar_fontcolor(value) : "black";
+          result.push(
+            <span key={i}>
+              set{" "}
+              <a
+                onClick={click_set}
+                style={cursor ? selected_item : undefined}
+                href=""
+              >
+                color
+              </a>{" "}
+              to{" "}
+              <span
+                style={{
+                  backgroundColor: value || "transparent",
+                  color: textColor,
+                  padding: "2px 6px",
+                  borderRadius: "3px",
+                  border: value ? "none" : "1px solid " + COLORS.GRAY_L,
+                  fontFamily: "monospace",
+                }}
+              >
+                {value || "(none)"}
+              </span>
             </span>,
           );
           continue;
@@ -577,6 +614,7 @@ export const LogEntry: React.FC<Props> = React.memo(
           style={cursor ? selected_item : undefined}
           trunc={TRUNC}
           project_id={project_id}
+          dimExtensions={dimFileExtensions}
         />
       );
 
@@ -638,6 +676,7 @@ export const LogEntry: React.FC<Props> = React.memo(
                 style={cursor ? selected_item : undefined}
                 trunc={TRUNC}
                 project_id={project_id}
+                dimExtensions={dimFileExtensions}
               />
             </span>
           );
@@ -725,7 +764,9 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_invite_nonuser(event: CollaboratorEvent): React.JSX.Element {
+    function render_invite_nonuser(
+      event: CollaboratorEvent,
+    ): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -737,7 +778,9 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_remove_collaborator(event: CollaboratorEvent): React.JSX.Element {
+    function render_remove_collaborator(
+      event: CollaboratorEvent,
+    ): React.JSX.Element {
       return (
         <span>
           {" "}

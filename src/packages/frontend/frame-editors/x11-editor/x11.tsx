@@ -23,6 +23,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { retry_until_success } from "@cocalc/util/async-utils";
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
 import { cmp } from "@cocalc/util/misc";
 import { Actions } from "./actions";
 import { TAB_BAR_GREY } from "./theme";
@@ -56,7 +57,8 @@ export function X11({
   const windowRef = useRef<HTMLDivElement>(null as any);
   const focusRef = useRef<HTMLTextAreaElement>(null as any);
 
-  const default_font_size = useTypedRedux("account", "font_size") ?? 14;
+  const default_font_size =
+    useTypedRedux("account", "font_size") ?? DEFAULT_FONT_SIZE;
   const windows: Map<string, any> = useRedux(name, "windows");
   const x11_is_idle: boolean = useRedux(name, "x11_is_idle");
   const disabled: boolean = useRedux(name, "disabled");

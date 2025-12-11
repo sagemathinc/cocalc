@@ -9,7 +9,7 @@ pnpm test ./dkv-merge.test.ts
 
 import { dkv as createDkv } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
-import { diff_match_patch } from "@cocalc/util/dmp";
+import { DiffMatchPatch } from "@cocalc/util/dmp";
 import { before, after } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
@@ -118,7 +118,7 @@ describe("test a trivial merge conflict resolution function", () => {
 });
 
 describe("test a 3-way merge of strings conflict resolution function", () => {
-  const dmp = new diff_match_patch();
+  const dmp = new DiffMatchPatch();
   const threeWayMerge = (opts: {
     prev: string;
     local: string;

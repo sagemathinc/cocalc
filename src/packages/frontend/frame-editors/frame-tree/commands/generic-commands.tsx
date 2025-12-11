@@ -21,6 +21,7 @@ import {
   undo as chatUndo,
 } from "@cocalc/frontend/frame-editors/generic/chat";
 import { get_default_font_size } from "@cocalc/frontend/frame-editors/generic/client";
+import { Actions as LatexEditorActions } from "@cocalc/frontend/frame-editors/latex-editor/actions";
 import { labels, menu } from "@cocalc/frontend/i18n";
 import { editor } from "@cocalc/frontend/i18n/common";
 import { open_new_tab as openNewTab } from "@cocalc/frontend/misc/open-browser-tab";
@@ -28,45 +29,17 @@ import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai
 import { AI_GENERATE_DOC_TAG } from "@cocalc/frontend/project/page/home-page/ai-generate-utils";
 import openSupportTab from "@cocalc/frontend/support/open";
 import userTracking from "@cocalc/frontend/user-tracking";
+import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 import { filename_extension } from "@cocalc/util/misc";
 import { addCommands } from "./commands";
-import { SEARCH_COMMANDS } from "./const";
-
-// Predefined zoom percentages for consistent zoom options across the application
-export const ZOOM_PERCENTAGES = [50, 85, 100, 115, 125, 150, 200, 400] as const;
-
-// Build on save icon constants - exported for consistent iconography across components
-export const BUILD_ON_SAVE_ICON_ENABLED = "delivered-procedure-outlined";
-export const BUILD_ON_SAVE_ICON_DISABLED = "stop-filled";
-export const BUILD_ON_SAVE_LABEL = defineMessage({
-  id: "command.generic.build_on_save.label",
-  defaultMessage:
-    "Build on Save {enabled, select, true {(Enabled)} other {(Disabled)}}",
-});
-
-// Export zoom-related messages for use in other components
-export const ZOOM_MESSAGES = {
-  zoomPageWidth: {
-    title: defineMessage({
-      id: "command.generic.zoom_page_width.title",
-      defaultMessage: "Zoom to page width",
-    }),
-    label: defineMessage({
-      id: "command.generic.zoom_page_width.label",
-      defaultMessage: "Zoom to Width",
-    }),
-  },
-  zoomPageHeight: {
-    title: defineMessage({
-      id: "command.generic.zoom_page_height.title",
-      defaultMessage: "Zoom to page height",
-    }),
-    label: defineMessage({
-      id: "command.generic.zoom_page_height.label",
-      defaultMessage: "Zoom to Height",
-    }),
-  },
-};
+import {
+  BUILD_ON_SAVE_ICON_DISABLED,
+  BUILD_ON_SAVE_ICON_ENABLED,
+  BUILD_ON_SAVE_LABEL,
+  SEARCH_COMMANDS,
+  ZOOM_MESSAGES,
+  ZOOM_PERCENTAGES,
+} from "./const";
 
 addCommands({
   "split-row": {
@@ -329,6 +302,24 @@ addCommands({
         },
       };
     }),
+  },
+  toggle_pdf_dark_mode: {
+    pos: 6,
+    group: "zoom",
+    stayOpenOnClick: true,
+    title: editor.toggle_pdf_dark_mode_title,
+    label: editor.toggle_pdf_dark_mode_label,
+    icon: () => <Icon unicode={DARK_MODE_ICON} />,
+    isVisible: () => {
+      const other_settings = redux
+        .getStore("account")
+        .get("other_settings")
+        ?.toJS();
+      return other_settings?.dark_mode ?? false;
+    },
+    onClick: ({ props }) => {
+      props.actions.toggle_pdf_dark_mode?.(props.id);
+    },
   },
   scrollToTop: {
     group: "scroll",
@@ -1310,9 +1301,12 @@ addCommands({
     children: ({ frameTypeCommands }) => frameTypeCommands(false),
   },
   reset_local_view_state: {
-    alwaysShow: true,
     icon: "layout",
     group: "frame_types",
+    isVisible: ({ props }) =>
+      // always show it, except for the LateX Editor: there we have classic_layout and new_layout
+      props.editor_actions == null ||
+      !(props.editor_actions instanceof LatexEditorActions),
     title: defineMessage({
       id: "command.generic.reset_local_view_state.title",
       defaultMessage: "Reset the layout of all frames to the default",
@@ -1329,11 +1323,21 @@ addCommands({
   new_layout: {
     icon: "layout",
     group: "frame_types",
-    title: defineMessage({
-      id: "command.generic.new_layout.title",
-      defaultMessage:
-        "Switch to a simplified layout with LaTeX source editor and multi-purpose output panel",
-    }),
+    title: ({ props }) => {
+      // Check if this is a LaTeX editor using instanceof
+      const isLatexEditor = props.editor_actions instanceof LatexEditorActions;
+      if (isLatexEditor) {
+        return defineMessage({
+          id: "command.generic.new_layout.title.latex",
+          defaultMessage:
+            "Switch to the new layout with LaTeX source editor and multi-purpose output panel",
+        });
+      }
+      return defineMessage({
+        id: "command.generic.new_layout.title.generic",
+        defaultMessage: "Switch to the new layout",
+      });
+    },
     label: defineMessage({
       id: "command.generic.new_layout.label",
       defaultMessage: "New Layout",
@@ -1343,19 +1347,62 @@ addCommands({
       defaultMessage: "New",
     }),
     isVisible: ({ props }) =>
-      typeof props.actions?._new_latex_frame_tree === "function",
+      typeof props.actions?._new_frame_tree_layout === "function",
     onClick: ({ props }) => {
       try {
-        // Check if this is a LaTeX editor and use its specific layout method
+        // Use the editor's custom layout method if available
         if (
-          props.actions._new_latex_frame_tree &&
-          props.actions.replace_frame_tree_with_custom
+          props.actions._new_frame_tree_layout &&
+          props.actions.replace_frame_tree
         ) {
-          const tree = props.actions._new_latex_frame_tree();
-          props.actions.replace_frame_tree_with_custom(tree);
+          const tree = props.actions._new_frame_tree_layout();
+          props.actions.replace_frame_tree(tree);
         }
       } catch (error) {
         console.error("Error in New Layout:", error);
+      }
+    },
+  },
+  classic_layout: {
+    icon: "layout",
+    group: "frame_types",
+    title: ({ props }) => {
+      // Check if this is a LaTeX editor using instanceof
+      const isLatexEditor = props.editor_actions instanceof LatexEditorActions;
+      if (isLatexEditor) {
+        return defineMessage({
+          id: "command.generic.classic_layout.title.latex",
+          defaultMessage:
+            "Switch to the classic 4-panel layout with separate frames for source, table of contents, errors, PDF, and build log",
+        });
+      }
+      return defineMessage({
+        id: "command.generic.classic_layout.title.generic",
+        defaultMessage: "Switch back to the classic layout",
+      });
+    },
+    label: defineMessage({
+      id: "command.generic.classic_layout.label",
+      defaultMessage: "Classic Layout",
+    }),
+    button: defineMessage({
+      id: "command.generic.classic_layout.button",
+      defaultMessage: "Classic",
+    }),
+    isVisible: ({ props }) =>
+      typeof props.actions?._classic_frame_tree_layout === "function",
+    onClick: ({ props }) => {
+      try {
+        // Use the editor's classic layout method if available
+        if (
+          props.actions._classic_frame_tree_layout &&
+          props.actions.replace_frame_tree
+        ) {
+          const tree = props.actions._classic_frame_tree_layout();
+          props.actions.replace_frame_tree(tree);
+        }
+      } catch (error) {
+        console.error("Error in Classic Layout:", error);
       }
     },
   },

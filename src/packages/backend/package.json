@@ -18,7 +18,6 @@
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
     "build": "pnpm exec tsc --build",
-    "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit",
     "test-conat": " pnpm exec jest --forceExit conat",
     "testp": "pnpm exec jest --forceExit",

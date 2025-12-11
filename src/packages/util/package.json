@@ -18,7 +18,6 @@
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
     "build": "pnpm exec tsc --build",
-    "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest",
     "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test"
@@ -40,6 +39,7 @@
   "dependencies-COMMENT": "We must install react so that react-intl doesn't install the wrong version! See https://github.com/sagemathinc/cocalc/issues/8132",
   "dependencies": {
     "@ant-design/colors": "^6.0.0",
+    "@cocalc/diff-match-patch": "^1.0.0",
     "@cocalc/util": "workspace:*",
     "@isaacs/ttlcache": "^1.4.1",
     "async": "^1.5.2",
@@ -58,6 +58,7 @@
     "react": "^19.1.1",
     "react-intl": "^7.1.11",
     "redux": "^4.2.1",
+    "request-ip": "^3.3.0",
     "reselect": "^4.1.8",
     "sha1": "^1.1.1",
     "underscore": "^1.12.1",

@@ -19,18 +19,19 @@ import { cloneDeep, isEqual } from "lodash";
 import { useEffect, useRef, useState } from "react";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { getServiceCosts } from "@cocalc/frontend/purchases/api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { LLM_COST, service2model_core } from "@cocalc/util/db-schema/llm-utils";
 import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { currency } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { TITLE_BAR_BORDER } from "../frame-editors/frame-tree/style";
 import Cost from "./pay-as-you-go/cost";
 import ServiceTag from "./service";
 import { SectionDivider } from "./util";
 
-export const QUOTA_LIMIT_ICON_NAME = "ColumnHeightOutlined";
+export const QUOTA_LIMIT_ICON_NAME: IconName = "ColumnHeightOutlined";
 
 export const PRESETS = [0, 25, 100, 2000];
 export const PRESETS_LLM = [0, 5, 10, 20];
@@ -195,7 +196,7 @@ export default function AllQuotasConfig() {
               />
               <Button
                 style={{
-                  border: "1px solid #d9d9d9",
+                  border: TITLE_BAR_BORDER,
                   borderLeft: "none",
                   borderRadius: "0 5px 5px 0",
                   padding: "0 8px",

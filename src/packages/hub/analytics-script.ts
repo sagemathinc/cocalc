@@ -15,13 +15,16 @@
  * e.g. this filters the SSO auth pages, which are uninteresting referrals
  */
 
-// variable PREFIX, NAME, DOMAIN and ID are injected in the hub's http server
-declare var NAME, ID, DOMAIN, PREFIX, window, document;
+// variable PREFIX, NAME, DOMAIN, ID, and ANALYTICS_ENABLED are injected in the hub's http server
+declare var NAME, ID, DOMAIN, PREFIX, ANALYTICS_ENABLED, window, document;
 
-// write cookie. it would be cool to set this via the http request itself,
-// but for reasons I don't know it doesn't work across subdomains.
-const maxage = 7 * 24 * 60 * 60; // 7 days
-document.cookie = `${NAME}=${ID}; path=/; domain=${DOMAIN}; max-age=${maxage}`;
+// write cookie only if analytics is enabled (for privacy in cookieless mode)
+if (ANALYTICS_ENABLED) {
+  // it would be cool to set this via the http request itself,
+  // but for reasons I don't know it doesn't work across subdomains.
+  const maxage = 7 * 24 * 60 * 60; // 7 days
+  document.cookie = `${NAME}=${ID}; path=/; domain=${DOMAIN}; max-age=${maxage}`;
+}
 
 const { href, protocol, host, pathname } = window.location;
 

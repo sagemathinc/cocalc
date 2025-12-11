@@ -3,10 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// cSpell:ignore userdefined
+
 import { List, Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import type { Locale, OTHER_SETTINGS_LOCALE_KEY } from "@cocalc/frontend/i18n";
+import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
 import {
   NEW_FILENAMES,
   NewFilenameTypes,
@@ -15,14 +18,15 @@ import {
 import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
-import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
-import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
+import { type PreferencesSubTabKey } from "@cocalc/util/types/settings";
 import { ACTIVITY_BAR_LABELS } from "../project/page/activity-bar-consts";
+import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 
 // this is incomplete...
 
 export interface AccountState {
   active_page: string;
+  active_sub_tab?: PreferencesSubTabKey;
   user_type: string;
   account_id: string;
   groups?: List<string>;
@@ -32,6 +36,11 @@ export interface AccountState {
   name?: string;
   unlisted?: boolean;
   profile: TypedMap<{ color: string }>;
+  customize?: {
+    disableCollaborators?: boolean;
+    disableAI?: boolean;
+    [key: string]: any;
+  };
   email_address?: string;
   editor_settings: TypedMap<{
     jupyter_classic?: boolean;
@@ -51,7 +60,6 @@ export interface AccountState {
     dark_mode_brightness: number;
     dark_mode_contrast: number;
     dark_mode_sepia: number;
-    dark_mode_grayscale: number;
     news_read_until: number; // JavaScript timestamp in milliseconds
     [OTHER_SETTINGS_USERDEFINED_LLM]: string; // string is JSON: CustomLLM[]
     [OTHER_SETTINGS_LOCALE_KEY]?: string;
@@ -60,6 +68,7 @@ export interface AccountState {
     use_balance_toward_subscriptions?: boolean;
     show_symbol_bar_labels?: boolean; // whether to show labels on the menu buttons
     [ACTIVITY_BAR_LABELS]?: boolean; // whether to show labels on the vertical activity bar
+    accessibility?: string; // string is JSON: { enabled: boolean }
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };
@@ -87,6 +96,7 @@ export interface AccountState {
   is_ready: boolean; // user signed in and account settings have been loaded.
   lti_id?: List<string>;
   created?: Date;
+  ephemeral?: number;
   strategies?: List<TypedMap<PassportStrategyFrontend>>;
   token?: boolean; // whether or not a registration token is required when creating an account
   keyboard_variant_options?: List<any>;

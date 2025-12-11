@@ -40,6 +40,7 @@ while true; do
         echo "✓ All auto-translation jobs completed!"
         break
     else
-        echo "  $active_jobs job(s) still running..."
+        pending_langs=$(echo "$jobs_response" | jq -r '.data[] | select(.state != "SUCCESS" and .state != "FAILED") | .metadata.targetLanguage // .metadata.targetProjectLanguage' | tr '\n' ' ')
+        echo "  $active_jobs job(s) still running: $pending_langs"
     fi
 done

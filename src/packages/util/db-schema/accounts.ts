@@ -70,6 +70,12 @@ export const AUTOBALANCE_DEFAULTS = {
   enabled: true,
 } as AutoBalance;
 
+export const DARK_MODE_DEFAULTS = {
+  brightness: 100,
+  contrast: 90,
+  sepia: 0,
+} as const;
+
 // throw error if not valid
 export function ensureAutoBalanceValid(obj) {
   if (obj == null) {
@@ -146,6 +152,10 @@ Table({
     created: {
       type: "timestamp",
       desc: "When the account was created.",
+    },
+    ephemeral: {
+      type: "number",
+      desc: "If set, number of milliseconds this account is allowed to exist after creation.",
     },
     created_by: {
       type: "string",
@@ -265,6 +275,10 @@ Table({
     profile: {
       type: "map",
       desc: "Information related to displaying an avatar for this user's location and presence in a document or chatroom.",
+    },
+    customize: {
+      type: "map",
+      desc: "Admin-managed configuration overrides for this account.",
     },
     groups: {
       type: "array",
@@ -488,7 +502,8 @@ Table({
           other_settings: {
             katex: true,
             confirm_close: false,
-            mask_files: true,
+            mask_files: false,
+            dim_file_extensions: false,
             page_size: 500,
             standby_timeout_m: 15,
             default_file_sort: "name",
@@ -501,10 +516,9 @@ Table({
             no_free_warnings: false,
             allow_mentions: true,
             dark_mode: false,
-            dark_mode_brightness: 100,
-            dark_mode_contrast: 90,
-            dark_mode_sepia: 0,
-            dark_mode_grayscale: 0,
+            dark_mode_brightness: DARK_MODE_DEFAULTS.brightness,
+            dark_mode_contrast: DARK_MODE_DEFAULTS.contrast,
+            dark_mode_sepia: DARK_MODE_DEFAULTS.sepia,
             news_read_until: 0,
             hide_project_popovers: false,
             hide_file_popovers: false,
@@ -536,8 +550,10 @@ Table({
             image: undefined,
             color: "rgb(170,170,170)",
           },
+          customize: null,
           ssh_keys: {},
           created: null,
+          ephemeral: null,
           unlisted: false,
           tags: null,
           tours: null,
@@ -640,6 +656,8 @@ export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
   "base16-light": "Base 16 light",
   bespin: "Bespin",
   blackboard: "Blackboard",
+  "cocalc-dark": "CoCalc Dark",
+  "cocalc-light": "CoCalc Light",
   cobalt: "Cobalt",
   colorforth: "Colorforth",
   darcula: "Darcula",

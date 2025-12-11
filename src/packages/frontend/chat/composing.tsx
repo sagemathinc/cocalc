@@ -41,7 +41,7 @@ export default function Composing({ projectId, path, accountId, userMap }) {
             seconds={5 /* seconds until answer starts stream */}
           />
         )}
-      </div>
+      </div>,
     );
     // NOTE: We use a longer chatgpt estimate here than in the frontend nextjs
     // app, since the nature of questions when you're fully using cocalc

@@ -112,7 +112,6 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
   const kucalc = useTypedRedux("customize", "kucalc");
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
   const hidden = useTypedRedux({ project_id }, "show_hidden");
-  const show_masked = useTypedRedux({ project_id }, "show_masked");
   const file_creation_error = useTypedRedux(
     { project_id },
     "file_creation_error",
@@ -218,7 +217,10 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
-  function renderSortButton(name: string, display: string): React.JSX.Element {
+  function renderSortButton(
+    name: string,
+    display: string | React.JSX.Element,
+  ): React.JSX.Element {
     const isActive = activeFileSort.get("column_name") === name;
     const direction = isActive ? (
       <Icon
@@ -319,7 +321,9 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
           <FormattedMessage
             id="page.flyouts.files.stale-directory.description"
             defaultMessage={"To update, <A>start this project</A>."}
-            description={"to update the outdated information in a file directory listing of a project"}
+            description={
+              "to update the outdated information in a file directory listing of a project"
+            }
             values={{
               A: (c) => (
                 <a
@@ -386,6 +390,10 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
             }}
           >
             <Radio.Group size="small">
+              {renderSortButton(
+                "starred",
+                <Icon name="star-filled" style={{ fontSize: "10pt" }} />,
+              )}
               {renderSortButton("name", "Name")}
               {renderSortButton("size", "Size")}
               {renderSortButton("time", "Time")}
@@ -449,17 +457,6 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
               onClick={() => actions?.setState({ show_hidden: !hidden })}
             >
               <Icon name={hidden ? "eye" : "eye-slash"} />
-            </BootstrapButton>
-            <BootstrapButton
-              title={intl.formatMessage(labels.masked_files, {
-                masked: show_masked,
-              })}
-              bsSize="xsmall"
-              style={{ flex: "0" }}
-              active={!show_masked}
-              onClick={() => actions?.setState({ show_masked: !show_masked })}
-            >
-              <Icon name={"mask"} />
             </BootstrapButton>
           </Space.Compact>
           {kucalc === KUCALC_COCALC_COM ? (

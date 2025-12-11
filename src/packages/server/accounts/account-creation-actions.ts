@@ -16,12 +16,17 @@ export default async function accountCreationActions({
   account_id,
   tags,
   noFirstProject,
+  dontStartProject,
+  ephemeral,
 }: {
   email_address?: string;
   account_id: string;
   tags?: string[];
   // if set, don't do any initial project actions (i.e., creating or starting projects)
   noFirstProject?: boolean;
+  // if set, create the first project but do not start it. Only applies if noFirstProject is false.
+  dontStartProject?: boolean;
+  ephemeral?: number;
 }): Promise<void> {
   log.debug({ account_id, email_address, tags });
 
@@ -56,7 +61,12 @@ export default async function accountCreationActions({
           const projects = await getProjects({ account_id, limit: 1 });
           if (projects.length == 0) {
             // you really have no projects at all.
-            await firstProject({ account_id, tags });
+            await firstProject({
+              account_id,
+              tags,
+              dontStartProject,
+              ephemeral,
+            });
           }
         } catch (err) {
           // non-fatal; they can make their own project
@@ -65,19 +75,22 @@ export default async function accountCreationActions({
       })();
     } else if (numProjects > 0) {
       // Make sure project is running so they have a good first experience.
-      (async () => {
-        try {
-          const { project_id } = await getOneProject(account_id);
-          const project = getProject(project_id);
-          await project.start();
-        } catch (err) {
-          log.error(
-            "failed to start newest project invited to",
-            err,
-            account_id,
-          );
-        }
-      })();
+      // Only start if dontStartProject is not set
+      if (!dontStartProject) {
+        (async () => {
+          try {
+            const { project_id } = await getOneProject(account_id);
+            const project = getProject(project_id);
+            await project.start();
+          } catch (err) {
+            log.error(
+              "failed to start newest project invited to",
+              err,
+              account_id,
+            );
+          }
+        })();
+      }
     }
   }
 }

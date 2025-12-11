@@ -57,7 +57,7 @@ import {
   startswith,
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-// import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+import * as tree_ops from "../frame-tree/tree-ops";
 import { bibtex } from "./bibtex";
 import { clean } from "./clean";
 import { KNITR_EXTS } from "./constants";
@@ -71,6 +71,7 @@ import {
   get_engine_from_config,
   latexmk,
 } from "./latexmk";
+import { PDFWatcher } from "./pdf-watcher";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { pythontex, pythontex_errors } from "./pythontex";
 import { sagetex, sagetex_errors, sagetex_hash } from "./sagetex";
@@ -81,12 +82,10 @@ import {
   BuildLogs,
   BuildSpecName,
   IBuildSpecs,
-  // JobInfos,
   ScrollIntoViewMap,
   ScrollIntoViewRecord,
 } from "./types";
 import { ensureTargetPathIsCorrect, pdf_path } from "./util";
-import * as tree_ops from "../frame-tree/tree-ops";
 
 interface LatexEditorState extends CodeEditorState {
   build_logs: BuildLogs;
@@ -142,6 +141,12 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   private _last_sync_time = 0;
 
+  // PDF file watcher - watches directory for PDF file changes
+  private pdf_watcher?: PDFWatcher;
+
+  // Debounced version - initialized in _init2()
+  update_pdf: (time: number, force: boolean) => void;
+
   // Auto-sync function for cursor position changes (forward sync: source → PDF)
   private async handle_cursor_sync_to_pdf(
     line: number,
@@ -177,6 +182,11 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   _init2(): void {
     this.set_gutter = this.set_gutter.bind(this);
+    // Debounce update_pdf with 500ms delay, trailing only, has to work when PDF watcher fires during the build
+    this.update_pdf = debounce(this._update_pdf.bind(this), 500, {
+      leading: false,
+      trailing: true,
+    });
     if (!this.is_public) {
       this.init_bad_filename();
       this.init_ext_filename(); // safe to set before syncstring init
@@ -197,8 +207,23 @@ export class Actions extends BaseActions<LatexEditorState> {
         "change",
         debounce(this.ensureNonempty.bind(this), 1500),
       );
+      this._init_pdf_directory_watcher();
     }
     this.word_count = reuseInFlight(this._word_count.bind(this));
+  }
+
+  // Watch the directory containing the PDF file for changes
+  private async _init_pdf_directory_watcher(): Promise<void> {
+    const pdfPath = pdf_path(this.path);
+    this.pdf_watcher = new PDFWatcher(
+      this.project_id,
+      pdfPath,
+      // We ignore the PDFs timestamp (mtime) and use last_save_time for consistency with build-triggered updates
+      (_mtime: number, force: boolean) => {
+        this.update_pdf(this.last_save_time(), force);
+      },
+    );
+    await this.pdf_watcher.init();
   }
 
   // similar to jupyter, where an empty document is really
@@ -613,7 +638,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     return change;
   }
 
-  _raw_default_frame_tree(): FrameTree {
+  // this was the default until we made the new output.tsx one-stop-shop panel the default
+  _classic_frame_tree_layout(): FrameTree {
     if (this.is_public) {
       return { type: "cm" };
     } else {
@@ -645,7 +671,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  _new_latex_frame_tree(): FrameTree {
+  _new_frame_tree_layout(): FrameTree {
     if (this.is_public) {
       return { type: "cm" };
     } else {
@@ -659,35 +685,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  // Method to replace the entire frame tree with a custom tree structure
-  replace_frame_tree_with_custom(customTree: FrameTree): void {
-    let local = this.store.get("local_view_state");
-
-    // Process the custom tree: assign IDs and ensure uniqueness
-    let frame_tree = fromJS(customTree) as Map<string, any>;
-    frame_tree = tree_ops.assign_ids(frame_tree);
-    frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
-
-    // Set the frame tree to the custom tree
-    local = local.set("frame_tree", frame_tree);
-
-    // Also make some id active, since existing active_id is no longer valid
-    local = local.set("active_id", tree_ops.get_some_leaf_id(frame_tree));
-
-    // Update state, so visible to UI
-    this.setState({ local_view_state: local });
-
-    // And save this new state to localStorage
-    this.save_local_view_state();
-
-    // Emit new-frame events for all leaf nodes
-    for (const id in this._get_leaf_ids()) {
-      const leaf = this._get_frame_node(id);
-      if (leaf != null) {
-        const type = leaf.get("type");
-        this.store.emit("new-frame", { id, type });
-      }
-    }
+  // Override to make new layout the default
+  _raw_default_frame_tree(): FrameTree {
+    return this._new_frame_tree_layout();
   }
 
   check_for_fatal_error(): void {
@@ -727,6 +727,10 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   close(): void {
     this._forget_pdf_document();
+    if (this.pdf_watcher != null) {
+      this.pdf_watcher.close();
+      this.pdf_watcher = undefined;
+    }
     super.close();
   }
 
@@ -1071,7 +1075,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.check_for_fatal_error();
     this.update_gutters();
     this.update_gutters_soon();
-
+    // Explicit PDF reload after latex compilation
     if (update_pdf) {
       this.update_pdf(time, force);
     }
@@ -1210,7 +1214,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
-  update_pdf(time: number, force: boolean): void {
+  private _update_pdf(time: number, force: boolean): void {
     const timestamp = this.make_timestamp(time, force);
     // forget currently cached pdf
     this._forget_pdf_document();
@@ -1438,20 +1442,20 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  // Check if auto-sync is enabled for any output panel
-  private is_auto_sync_enabled(): boolean {
+  // Check if forward auto-sync (CM → PDF) is enabled for any output panel
+  private is_auto_sync_forward_enabled(): boolean {
     const local_view_state = this.store.get("local_view_state");
     if (!local_view_state) return false;
 
-    // Check all output panels for auto-sync enabled
+    // Check all output panels for forward auto-sync enabled
     for (const [key, value] of local_view_state.entrySeq()) {
       // Only check output panels
       if (this._is_output_panel(key) && value) {
-        const autoSyncEnabled =
+        const autoSyncForward =
           typeof value.get === "function"
-            ? value.get("autoSyncEnabled")
-            : value.autoSyncEnabled;
-        if (autoSyncEnabled) {
+            ? value.get("autoSyncForward")
+            : value.autoSyncForward;
+        if (autoSyncForward) {
           return true;
         }
       }
@@ -1471,7 +1475,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   // Handle cursor movement - called by BaseActions.set_cursor_locs
   public handle_cursor_move(locs: any[]): void {
-    if (!this.is_auto_sync_enabled() || locs.length === 0) return;
+    if (!this.is_auto_sync_forward_enabled() || locs.length === 0) return;
 
     // Prevent duplicate sync operations
     if (this.is_auto_sync_in_progress()) return;
@@ -1497,15 +1501,15 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   _get_most_recent_output_panel(): string | undefined {
     let result = this._get_most_recent_active_frame_id_of_type("output");
-    console.log(
-      "LaTeX: _get_most_recent_output_panel() via active history returning",
-      result,
-    );
+    // console.log(
+    //   "LaTeX: _get_most_recent_output_panel() via active history returning",
+    //   result,
+    // );
 
     // If no recently active output panel found, look for any output panel
     if (!result) {
       result = this._get_any_frame_id_of_type("output");
-      console.log("LaTeX: _get_any_frame_id_of_type() returning", result);
+      //console.log("LaTeX: _get_any_frame_id_of_type() returning", result);
     }
 
     return result;
@@ -1850,7 +1854,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (
       !force &&
       !this.get_matching_frame({ type: "latex_table_of_contents" }) &&
-      !this.get_matching_frame({ type: "latex-output" })
+      !this.get_matching_frame({ type: "output" })
     ) {
       // There is no table of contents frame or output frame so don't update that info.
       return;

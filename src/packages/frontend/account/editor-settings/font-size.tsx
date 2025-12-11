@@ -5,6 +5,7 @@
 
 import { InputNumber } from "antd";
 import { LabeledRow } from "@cocalc/frontend/components";
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
 import { useIntl } from "react-intl";
 
 interface Props {
@@ -24,7 +25,7 @@ export function EditorSettingsFontSize(props: Props) {
       className="cc-account-prefs-font-size"
     >
       <InputNumber
-        onChange={(n) => props.on_change("font_size", n ?? 14)}
+        onChange={(n) => props.on_change("font_size", n ?? DEFAULT_FONT_SIZE)}
         min={5}
         max={32}
         value={props.font_size}

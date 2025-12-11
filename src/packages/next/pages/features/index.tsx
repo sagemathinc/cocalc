@@ -22,7 +22,7 @@ import apiScreenshot from "/public/features/api-screenshot.png";
 import ChatGptInChatroom from "/public/features/chatgpt-fix-code.png";
 import teachingScreenshot from "/public/features/cocalc-course-assignments-2019.png";
 import JupyterTF from "/public/features/cocalc-jupyter2-20170508.png";
-import LatexEditorImage from "/public/features/cocalc-latex-editor-2019.png";
+import LatexEditorImage from "public/features/latex-editor-main-20251003.png";
 import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
 import RJupyter from "/public/features/cocalc-r-jupyter.png";
 import linuxShellScript from "/public/features/cocalc-shell-script-run.png";

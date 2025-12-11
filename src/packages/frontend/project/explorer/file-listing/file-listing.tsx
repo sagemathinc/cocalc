@@ -5,8 +5,6 @@
 
 // Show a file listing.
 
-// cSpell:ignore issymlink
-
 import { Alert, Spin } from "antd";
 import * as immutable from "immutable";
 import React, { useEffect, useRef, useState } from "react";
@@ -26,6 +24,7 @@ import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-h
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
+import { useStarredFilesManager } from "@cocalc/frontend/project/page/flyouts/store";
 import * as misc from "@cocalc/util/misc";
 import { FileRow } from "./file-row";
 import { ListingHeader } from "./listing-header";
@@ -85,8 +84,10 @@ export const FileListing: React.FC<Props> = ({
   configuration_main,
   file_search = "",
   isRunning,
+  other_settings,
 }: Props) => {
   const [starting, setStarting] = useState<boolean>(false);
+  const { starred, setStarredPath } = useStarredFilesManager(project_id);
 
   const prev_current_path = usePrevious(current_path);
 
@@ -120,6 +121,7 @@ export const FileListing: React.FC<Props> = ({
   }, [current_path, isRunning]);
 
   const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
+  const dimFileExtensions = !!other_settings?.get?.("dim_file_extensions");
 
   function render_row(
     name,
@@ -136,6 +138,10 @@ export const FileListing: React.FC<Props> = ({
     const checked = checked_files.has(misc.path_to_file(current_path, name));
     const color = misc.rowBackground({ index, checked });
     const { is_public } = file_map[name];
+    const fullPath = misc.path_to_file(current_path, name);
+    // For directories, add trailing slash to match flyout convention
+    const pathForStar = isdir ? `${fullPath}/` : fullPath;
+    const isStarred = starred.includes(pathForStar);
 
     return (
       <FileRow
@@ -159,6 +165,14 @@ export const FileListing: React.FC<Props> = ({
         no_select={shift_is_down}
         link_target={link_target}
         computeServerId={computeServerId}
+        isStarred={isStarred}
+        onToggleStar={(path, starState) => {
+          // For directories, ensure trailing slash
+          const normalizedPath =
+            isdir && !path.endsWith("/") ? `${path}/` : path;
+          setStarredPath(normalizedPath, starState);
+        }}
+        dimFileExtensions={dimFileExtensions}
       />
     );
   }

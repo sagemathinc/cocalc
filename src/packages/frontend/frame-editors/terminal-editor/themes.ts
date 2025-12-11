@@ -8,10 +8,10 @@ Our predefined terminal color themes.
 */
 
 import { ITheme, Terminal } from "@xterm/xterm";
-import { color_themes } from "./theme-data";
+import { COLOR_THEMES } from "./theme-data";
 
 export function background_color(theme_name: string): string {
-  const t = color_themes[theme_name];
+  const t = COLOR_THEMES[theme_name];
   if (t == null) {
     // should never happen
     return "white";
@@ -20,9 +20,9 @@ export function background_color(theme_name: string): string {
 }
 
 export function setTheme(terminal: Terminal, theme_name: string): void {
-  let t = color_themes[theme_name];
+  let t = COLOR_THEMES[theme_name];
   if (t == null) {
-    t = color_themes["default"];
+    t = COLOR_THEMES["default"];
     if (t == null) {
       // can't happen
       return;

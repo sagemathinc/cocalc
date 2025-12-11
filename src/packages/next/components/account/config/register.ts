@@ -3,7 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { IconName } from "@cocalc/frontend/components/icon";
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { capitalize } from "@cocalc/util/misc";
 import { register as registerSearch } from "./search/entries";
 

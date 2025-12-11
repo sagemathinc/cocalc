@@ -11,6 +11,7 @@
 export const SHARE_AUTHENTICATED_ICON = "user";
 export const SHARE_AUTHENTICATED_EXPLANATION =
   "only visible to those who are signed in";
+
 // boolean flags for various shared files visibility modes
 export const SHARE_FLAGS = {
   LISTED: { unlisted: false, disabled: false, authenticated: false }, // aka PUBLIC
@@ -28,3 +29,19 @@ export const DOC_AI = "https://doc.cocalc.com/ai.html";
 // to all legal requirements. We thus don't use their trademark
 // anywhere in our frontend.
 export const R_IDE = "R IDE";
+
+// Default font size for account settings and UI elements
+export const DEFAULT_FONT_SIZE = 14;
+
+// Icon unicode character for dark mode toggle (☽ - first quarter moon)
+export const DARK_MODE_ICON = 0x263d;
+
+// Icon unicode character for accessibility (♿ - wheelchair symbol)
+export const ACCESSIBILITY_ICON = 0x267f;
+
+// Keyword for accessibility settings, in account settings and URL query parameter
+export const A11Y = "accessibility";
+
+// Icon unicode characters for auto-sync arrows in LaTeX editor
+export const SYNC_FORWARD_ICON = 0x21a6; // ↦ - rightwards arrow $mapto$
+export const SYNC_INVERSE_ICON = 0x21a4; // ↤ - leftwards arrow $mapfrom$

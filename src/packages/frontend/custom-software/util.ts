@@ -3,9 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { join as path_join } from "path";
+
 import { COLORS } from "@cocalc/util/theme";
-import { IconName } from "@cocalc/frontend/components/icon";
 
 export const RESET_ICON: IconName = "redo";
 

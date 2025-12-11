@@ -157,7 +157,7 @@ export async function writeFileLz4(path: string, contents: string) {
   // lz4-napi has no docs, but compressFrame works to create a file
   // that the lz4 command can decompress, but "compress" does not.
   const compressed = await compressFrame(Buffer.from(contents));
-  await writeFile(path, compressed);
+  await writeFile(path, compressed as any);
 }
 
 /*

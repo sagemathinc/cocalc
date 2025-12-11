@@ -13,6 +13,8 @@ import { isEqual, throttle } from "lodash";
 import { join } from "path";
 import { defineMessage } from "react-intl";
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import {
   computeServerManager,
   type ComputeServerManager,
@@ -27,7 +29,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import { initChat } from "@cocalc/frontend/chat/register";
-import { IconName } from "@cocalc/frontend/components";
 import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
 import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 import { TabName, setServerTab } from "@cocalc/frontend/compute/tab";
@@ -109,6 +110,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
 import { get_editor } from "./editors/react-wrapper";
+import { EditorLoadError } from "./file-editors-error";
 
 const { defaults, required } = misc;
 
@@ -750,33 +752,52 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           // the UI appear to weirdly block the first time you open a given type
           // of file.
           (async () => {
-            const { name, Editor } = await this.init_file_react_redux(
-              path,
-              is_public,
-              this.open_files?.get(path, "ext"),
-            );
-            if (this.open_files == null) return;
-            info.redux_name = name;
-            info.Editor = Editor;
-            // IMPORTANT: we make a *copy* of info below to trigger an update
-            // of the component that displays this editor.  Otherwise, the user
-            // would just see a spinner until they tab away and tab back.
-            this.open_files.set(path, "component", { ...info });
-            // just like in the case where it is already loaded, we have to "show" it.
-            // this is important, because e.g. the store has a "visible" field, which stays undefined
-            // which in turn causes e.g. https://github.com/sagemathinc/cocalc/issues/5398
-            if (!opts.noFocus) {
-              this.show_file(path);
-            }
-            // If a fragment identifier is set, we also jump there.
-            const fragmentId = store
-              .get("open_files")
-              .getIn([path, "fragmentId"]) as any;
-            if (fragmentId) {
-              this.gotoFragment(path, fragmentId);
-            }
-            if (this.open_files.get(path, "chatState") == "pending") {
-              this.open_chat({ path });
+            try {
+              const { name, Editor } = await this.init_file_react_redux(
+                path,
+                is_public,
+                this.open_files?.get(path, "ext"),
+              );
+              if (this.open_files == null) return;
+              info.redux_name = name;
+              info.Editor = Editor;
+              // IMPORTANT: we make a *copy* of info below to trigger an update
+              // of the component that displays this editor.  Otherwise, the user
+              // would just see a spinner until they tab away and tab back.
+              this.open_files.set(path, "component", { ...info });
+              // just like in the case where it is already loaded, we have to "show" it.
+              // this is important, because e.g. the store has a "visible" field, which stays undefined
+              // which in turn causes e.g. https://github.com/sagemathinc/cocalc/issues/5398
+              if (!opts.noFocus) {
+                this.show_file(path);
+              }
+              // If a fragment identifier is set, we also jump there.
+              const fragmentId = store
+                .get("open_files")
+                .getIn([path, "fragmentId"]) as any;
+              if (fragmentId) {
+                this.gotoFragment(path, fragmentId);
+              }
+              if (this.open_files.get(path, "chatState") == "pending") {
+                this.open_chat({ path });
+              }
+            } catch (err) {
+              // Error already reported to user by alert_message in file-editors.ts
+              // Show error component in the editor area
+              if (this.open_files == null) return;
+              const error = err as Error;
+              info.Editor = () =>
+                require("react").createElement(EditorLoadError, {
+                  path,
+                  error,
+                });
+              this.open_files.set(path, "component", { ...info });
+              if (!opts.noFocus) {
+                this.show_file(path);
+              }
+              console.debug(
+                `Editor initialization failed for ${path}, error already shown to user`,
+              );
             }
           })();
         } else {
@@ -1548,8 +1569,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId =
-      await computeServerAssociations.getServerIdForPath(sidePath);
+    const currentId = await computeServerAssociations.getServerIdForPath(
+      sidePath,
+    );
     if (currentId != null) {
       // already set
       return;
@@ -2333,8 +2355,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-          ? { compute_server_id: opts.src_compute_server_id }
-          : undefined),
+        ? { compute_server_id: opts.src_compute_server_id }
+        : undefined),
     });
 
     if (opts.only_contents) {

@@ -4,8 +4,8 @@
  */
 
 import type { ReactNode } from "react";
+import type { IconName, IconRotation } from "@cocalc/frontend/components/icon";
 
-import { IconName, IconRotation } from "@cocalc/frontend/components/icon";
 import { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
 import { IntlMessage } from "@cocalc/frontend/i18n";
 import type { ManageCommands } from "./manage";
@@ -58,6 +58,17 @@ interface PopconfirmOpts {
 }
 
 /**
+ * Type for command text fields (title, label, button) that can be:
+ * - A static ReactNode
+ * - A static IntlMessage for internationalization
+ * - A function that returns either ReactNode or IntlMessage based on context
+ */
+export type CommandText =
+  | ReactNode
+  | IntlMessage
+  | ((opts: ManageCommands) => ReactNode | IntlMessage);
+
+/**
  * Defines a command that can appear in frame editor menus, toolbars, and buttons.
  * For example, split frame, zoom, save, etc.
  *
@@ -89,7 +100,7 @@ export interface Command {
   pos?: number;
 
   // Tooltip text shown when hovering over the command
-  title?: ReactNode | ((opts: ManageCommands) => ReactNode) | IntlMessage;
+  title?: CommandText;
 
   // Icon to display for this command.
   icon?: IconName | ReactNode | ((opts: ManageCommands) => ReactNode);
@@ -98,13 +109,13 @@ export interface Command {
   iconRotate?: IconRotation;
 
   // Label for button bar buttons. Separate from 'label' to allow different text in menus vs. compact button bar.
-  button?: ReactNode | ((opts: ManageCommands) => ReactNode) | IntlMessage;
+  button?: CommandText;
 
   // unclear?
   //color?: string | ((opts: ManageCommands) => string);
 
   // Primary label for the command in menus.
-  label?: ReactNode | ((opts: ManageCommands) => ReactNode) | IntlMessage;
+  label?: CommandText;
 
   /**
    * Click handler for the command. If not provided, the system falls back to

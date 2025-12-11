@@ -5,6 +5,7 @@
 
 import { Card, Typography } from "antd";
 import { CSSProperties, ReactNode } from "react";
+
 import { CloseX2 } from "./close-x2";
 import { Icon, IconName } from "./icon";
 
@@ -41,7 +42,7 @@ export function SettingBox({
       title={
         show_header ? (
           <div style={{ whiteSpace: "normal" }}>
-            <Title level={4}>
+            <Title level={4} style={{ display: "flex" }}>
               {icon && <Icon name={icon} />}&nbsp;{title}
             </Title>
             {subtitle}

@@ -32,7 +32,7 @@
     "random-key": "^0.3.2",
     "read": "^1.0.7",
     "sql-string-escape": "^1.1.6",
-    "validator": "^13.6.0"
+    "validator": "^13.15.22"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.202",
@@ -44,7 +44,6 @@
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc  --build && coffee -c -o dist/ ./",
     "clean": "rm -rf dist",
-    "tsc": "../node_modules/.bin/tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit --runInBand",
     "depcheck": "pnpx depcheck | grep -Ev '\\.coffee|coffee$'",
     "prepublishOnly": "pnpm test"
