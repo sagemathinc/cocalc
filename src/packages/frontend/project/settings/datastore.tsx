@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 – 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2021 – 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -21,6 +21,7 @@ import {
   Checkbox,
   Form,
   Input,
+  InputNumber,
   Modal,
   Popconfirm,
   Space,
@@ -50,6 +51,7 @@ import Password, {
 } from "@cocalc/frontend/components/password";
 import { labels } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { PORT_MAX, PORT_MIN, validatePortNumber } from "@cocalc/util/consts";
 import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { DATASTORE_TITLE } from "@cocalc/util/db-schema/site-defaults";
 import { unreachable } from "@cocalc/util/misc";
@@ -78,6 +80,21 @@ const RULE_ALPHANUM = [
   },
 ];
 
+const RULE_PORT = [
+  {
+    validator: (_: any, value: number | null) => {
+      if (value == null) return Promise.resolve();
+      const port = validatePortNumber(value);
+      if (port == null) {
+        return Promise.reject(
+          `Port must be an integer between ${PORT_MIN} and ${PORT_MAX}.`,
+        );
+      }
+      return Promise.resolve();
+    },
+  },
+];
+
 // convert the configuration from the DB to fields for the table
 function raw2configs(raw: { [name: string]: Config }): Config[] {
   const ret: Config[] = [];
@@ -96,11 +113,15 @@ function raw2configs(raw: { [name: string]: Config }): Config[] {
         v.about = `Bucket: ${v.bucket}`;
         break;
       case "sshfs":
-        v.about = [
+        const about_sshfs = [
           `User: ${v.user}`,
           `Host: ${v.host}`,
           `Path: ${v.path ?? `/user/${v.user}`}`,
-        ].join("\n");
+        ];
+        if (v.port != null && v.port !== 22) {
+          about_sshfs.push(`Port: ${v.port}`);
+        }
+        v.about = about_sshfs.join("\n");
         break;
       default:
         unreachable(v);
@@ -175,6 +196,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           user: "",
           host: "",
           path: "",
+          port: 22,
         });
         break;
       default:
@@ -308,6 +330,9 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     const conf: Config = { ...record };
     conf.secret = "";
     delete conf.about;
+    if (conf.type === "sshfs" && conf.port == null) {
+      conf.port = 22;
+    }
     set_new_config(conf);
     set_form_readonly(conf.readonly ?? READONLY_DEFAULT);
     setEditMode(true);
@@ -424,7 +449,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
               >
                 <div style={{ fontSize: "90%" }}>
                   <Icon
-                    name={record.readonly ?? false ? "lock" : "lock-open"}
+                    name={(record.readonly ?? false) ? "lock" : "lock-open"}
                   />{" "}
                   {record.readonly ? "Read-only" : "Read/write"}
                 </div>
@@ -588,9 +613,13 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   }
 
   async function save_config(values: any): Promise<void> {
-    values.readonly = form_readonly;
+    const config = { ...values, readonly: form_readonly };
+    if ("port" in config) {
+      const port = validatePortNumber(config.port);
+      config.port = port ?? 22;
+    }
     try {
-      await set(values);
+      await set(config);
     } catch (err) {
       if (err) set_error(err);
     }
@@ -773,6 +802,15 @@ function NewSSHFS({
         tooltip="The host in [user]@[host]"
       >
         <Input placeholder="login.server.edu" />
+      </Form.Item>
+      <Form.Item
+        label="Port"
+        name="port"
+        rules={RULE_PORT}
+        tooltip="The SSH port, defaults to 22"
+        help="Leave empty to use port 22."
+      >
+        <InputNumber min={1} placeholder="22" style={{ width: "100%" }} />
       </Form.Item>
       <Form.Item
         label="Remote Path"

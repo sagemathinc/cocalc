@@ -20,8 +20,7 @@ async function handle(req, res) {
       throw Error("must be signed in");
     }
 
-    await deleteProject({ project_id, account_id });
-
+    await deleteProject({ account_id, project_id });
     res.json(OkStatus);
   } catch (err) {
     res.json({ error: err.message });

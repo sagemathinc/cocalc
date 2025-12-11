@@ -58,6 +58,7 @@
     "react": "^19.1.1",
     "react-intl": "^7.1.11",
     "redux": "^4.2.1",
+    "request-ip": "^3.3.0",
     "reselect": "^4.1.8",
     "sha1": "^1.1.1",
     "underscore": "^1.12.1",
