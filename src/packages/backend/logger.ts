@@ -12,9 +12,10 @@ process.env.DEBUG_HIDE_DATE = "yes"; // since we supply it ourselves
 // otherwise, maybe stuff like this works: (debug as any).inspectOpts["hideDate"] = true;
 
 import debug, { Debugger } from "debug";
-import { mkdirSync, createWriteStream, statSync, ftruncate } from "fs";
-import { format, inspect } from "util";
+import { createWriteStream, ftruncate, mkdirSync, statSync } from "fs";
 import { dirname, join } from "path";
+import { format, inspect } from "util";
+
 import { logs } from "./data";
 
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
@@ -128,7 +129,9 @@ function initTransports() {
     // Similar as in debug source code, except I stuck a timestamp
     // at the beginning, which I like... except also aware of
     // non-printf formatting.
-    const line = `${new Date().toISOString()} (${process.pid}):${myFormat(...args)}\n`;
+    const line = `${new Date().toISOString()} (${process.pid}):${myFormat(
+      ...args,
+    )}\n`;
 
     if (transports.console) {
       // the console transport:
@@ -196,13 +199,13 @@ class Logger {
 }
 
 export interface WinstonLogger {
-  error: Function;
-  warn: Function;
-  info: Function;
-  http: Function;
-  verbose: Function;
-  debug: Function;
-  silly: Function;
+  error: Debugger;
+  warn: Debugger;
+  info: Debugger;
+  http: Debugger;
+  verbose: Debugger;
+  debug: Debugger;
+  silly: Debugger;
   extend: (name: string) => WinstonLogger;
   isEnabled: (level: Level) => boolean;
 }

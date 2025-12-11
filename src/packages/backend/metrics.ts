@@ -1,6 +1,6 @@
 import { Counter, Gauge, Histogram } from "prom-client";
 
-type Aspect = "db" | "database" | "server" | "llm";
+type Aspect = "db" | "database" | "server" | "llm" | "database";
 
 function withPrefix(aspect: Aspect, name: string): string {
   return `cocalc_${aspect}_${name}`;
@@ -13,7 +13,7 @@ export function newCounter(
   name: string,
   help: string,
   labelNames: string[] = [],
-) {
+): Counter<string> {
   name = withPrefix(aspect, name);
   const key = `counter-${name}`;
   if (cache[key] != null) {
