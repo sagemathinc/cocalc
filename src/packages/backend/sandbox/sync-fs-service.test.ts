@@ -7,9 +7,14 @@ import { tmpNameSync } from "tmp-promise";
 import { SyncFsWatchStore } from "./sync-fs-watch";
 
 class FakeAStream {
-  private messages: { mesg: any; seq: number }[] = [];
-  private seq = 0;
+  public messages: { mesg: any; seq: number }[] = [];
   public lastStartSeq?: number;
+  private seq: number;
+
+  constructor(messages: { mesg: any; seq: number }[] = []) {
+    this.messages = [...messages];
+    this.seq = messages.reduce((max, m) => Math.max(max, m.seq), 0);
+  }
 
   async publish(mesg: any): Promise<{ seq: number }> {
     const seq = ++this.seq;
@@ -135,5 +140,38 @@ describe("SyncFsService", () => {
     expect((head2?.heads ?? [])[0]).toBeGreaterThan(200);
 
     svc2.close();
+  }, 10_000);
+
+  it("falls back to full replay when heads are missing but lastSeq exists", async () => {
+    const dbPath = tmpNameSync({ prefix: "sync-fs-heads-", postfix: ".db" });
+    const store = new SyncFsWatchStore(dbPath);
+    store.setFsHead({
+      string_id: "sid2",
+      time: 50,
+      version: 1,
+      heads: [],
+      lastSeq: 5,
+    });
+
+    const fake = new FakeAStream([
+      { mesg: { time: 50, parents: [], version: 1 }, seq: 1 },
+    ]);
+    const svc = new SyncFsService(store);
+    (svc as any).getPatchWriter = async () => fake;
+
+    const meta = { project_id: "p2", relativePath: "c.txt", string_id: "sid2" };
+    const change = { patch: [], content: "v3", hash: "h3", deleted: false };
+    await (svc as any).appendPatch(meta, "change", change);
+
+    expect(fake.lastStartSeq).toBeUndefined();
+    const published = fake.messages[fake.messages.length - 1].mesg;
+    expect(Array.isArray(published.parents)).toBe(true);
+    expect(published.parents.length).toBe(1);
+    expect(published.parents[0]).toBe(50);
+
+    const head = store.getFsHead("sid2");
+    expect(head?.heads).toEqual([published.time]);
+    expect(head?.lastSeq).toBe(fake.messages.length);
+    svc.close();
   }, 10_000);
 });
