@@ -5,4 +5,7 @@ module.exports = {
   setupFiles: ["./test/setup.js"],
   testMatch: ["**/?(*.)+(spec|test).ts?(x)"],
   maxConcurrency: 1,
+  moduleNameMapper: {
+    "^@cocalc/backend/(.*)$": "<rootDir>/../backend/$1",
+  },
 };
