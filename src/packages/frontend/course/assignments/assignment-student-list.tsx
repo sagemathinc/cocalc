@@ -9,7 +9,7 @@ import { useIntl } from "react-intl";
 import { AppRedux, useMemo, useRedux } from "@cocalc/frontend/app-framework";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 import { search_match, search_split, trunc_middle } from "@cocalc/util/misc";
-import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "../common";
+import { StudentAssignmentInfo } from "../common";
 import type {
   AssignmentRecord,
   CourseStore,
@@ -145,11 +145,6 @@ export function StudentListForAssignment({
 
   return (
     <div style={{ height: "70vh", display: "flex", flexDirection: "column" }}>
-      <StudentAssignmentInfoHeader
-        key="header"
-        title="Student"
-        peer_grade={is_peer_graded()}
-      />
       {render_students()}
     </div>
   );

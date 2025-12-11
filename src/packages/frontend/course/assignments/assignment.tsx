@@ -31,7 +31,7 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { course, labels } from "@cocalc/frontend/i18n";
 import { capitalize, trunc_middle } from "@cocalc/util/misc";
 import { CourseActions } from "../actions";
-import { BigTime, Progress } from "../common";
+import { BigTime, Progress, StudentAssignmentInfoHeader } from "../common";
 import { STEP_NAMES, STEPS_INTL } from "../common/consts";
 import { NbgraderButton } from "../nbgrader/nbgrader-button";
 import type {
@@ -390,17 +390,24 @@ export function Assignment({
       body = render_no_content();
     } else {
       body = (
-        <StudentListForAssignment
-          redux={redux}
-          frame_id={frame_id}
-          name={name}
-          assignment={assignment}
-          students={students}
-          user_map={user_map}
-          active_feedback_edits={active_feedback_edits}
-          nbgrader_run_info={nbgrader_run_info}
-          search={student_search}
-        />
+        <>
+          <StudentAssignmentInfoHeader
+            key="header"
+            title="Student"
+            peer_grade={is_peer_graded()}
+          />
+          <StudentListForAssignment
+            redux={redux}
+            frame_id={frame_id}
+            name={name}
+            assignment={assignment}
+            students={students}
+            user_map={user_map}
+            active_feedback_edits={active_feedback_edits}
+            nbgrader_run_info={nbgrader_run_info}
+            search={student_search}
+          />
+        </>
       );
     }
     return (
