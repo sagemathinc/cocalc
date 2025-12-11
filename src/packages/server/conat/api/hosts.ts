@@ -1,7 +1,9 @@
 import { randomUUID } from "crypto";
-import type { Host } from "@cocalc/conat/hub/api/hosts";
-
-const hosts: Host[] = [];
+import type { Host, HostMachine, HostStatus } from "@cocalc/conat/hub/api/hosts";
+import getPool from "@cocalc/database/pool";
+function pool() {
+  return getPool();
+}
 
 function requireAccount(account_id?: string): string {
   if (!account_id) {
@@ -10,12 +12,34 @@ function requireAccount(account_id?: string): string {
   return account_id;
 }
 
-function findHost(id: string): Host {
-  const h = hosts.find((x) => x.id === id);
-  if (!h) {
+function parseRow(row: any): Host {
+  const metadata = row.metadata ?? {};
+  const machine: HostMachine | undefined = metadata.machine;
+  return {
+    id: row.id,
+    name: row.name ?? "Host",
+    owner: metadata.owner ?? "",
+    region: row.region ?? "",
+    size: metadata.size ?? "",
+    gpu: !!metadata.gpu,
+    status: (row.status as HostStatus) ?? "off",
+    machine,
+    projects: row.capacity?.projects ?? 0,
+    last_seen: row.last_seen ? new Date(row.last_seen).toISOString() : undefined,
+  };
+}
+
+async function loadOwnedHost(id: string, account_id?: string): Promise<any> {
+  const owner = requireAccount(account_id);
+  const { rows } = await pool().query(`SELECT * FROM project_hosts WHERE id=$1`, [id]);
+  const row = rows[0];
+  if (!row) {
     throw new Error("host not found");
   }
-  return h;
+  if (row.metadata?.owner && row.metadata.owner !== owner) {
+    throw new Error("not authorized");
+  }
+  return row;
 }
 
 export async function listHosts({
@@ -23,9 +47,12 @@ export async function listHosts({
 }: {
   account_id?: string;
 }): Promise<Host[]> {
-  requireAccount(account_id);
-  // In a real implementation, filter by ownership/ACL.
-  return hosts;
+  const owner = requireAccount(account_id);
+  const { rows } = await pool().query(
+    `SELECT * FROM project_hosts WHERE metadata->>'owner' = $1 ORDER BY updated DESC NULLS LAST, created DESC NULLS LAST`,
+    [owner],
+  );
+  return rows.map(parseRow);
 }
 
 export async function createHost({
@@ -44,8 +71,27 @@ export async function createHost({
   machine?: Host["machine"];
 }): Promise<Host> {
   const owner = requireAccount(account_id);
-  const host: Host = {
-    id: randomUUID(),
+  const id = randomUUID();
+  const now = new Date();
+  await pool().query(
+    `INSERT INTO project_hosts (id, name, region, status, metadata, created, updated, last_seen)
+     VALUES ($1,$2,$3,$4,$5,NOW(),NOW(),$6)`,
+    [
+      id,
+      name,
+      region,
+      "off",
+      {
+        owner,
+        size,
+        gpu,
+        machine: machine ?? {},
+      },
+      now,
+    ],
+  );
+  return {
+    id,
     name,
     owner,
     region,
@@ -54,10 +100,8 @@ export async function createHost({
     status: "off",
     machine,
     projects: 0,
-    last_seen: new Date().toISOString(),
+    last_seen: now.toISOString(),
   };
-  hosts.unshift(host);
-  return host;
 }
 
 export async function startHost({
@@ -67,11 +111,15 @@ export async function startHost({
   account_id?: string;
   id: string;
 }): Promise<Host> {
-  requireAccount(account_id);
-  const h = findHost(id);
-  h.status = "running";
-  h.last_seen = new Date().toISOString();
-  return h;
+  await loadOwnedHost(id, account_id);
+  const now = new Date();
+  await pool().query(
+    `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
+    [id, "running", now],
+  );
+  const { rows } = await pool().query(`SELECT * FROM project_hosts WHERE id=$1`, [id]);
+  if (!rows[0]) throw new Error("host not found");
+  return parseRow(rows[0]);
 }
 
 export async function stopHost({
@@ -81,11 +129,15 @@ export async function stopHost({
   account_id?: string;
   id: string;
 }): Promise<Host> {
-  requireAccount(account_id);
-  const h = findHost(id);
-  h.status = "off";
-  h.last_seen = new Date().toISOString();
-  return h;
+  await loadOwnedHost(id, account_id);
+  const now = new Date();
+  await pool().query(
+    `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
+    [id, "off", now],
+  );
+  const { rows } = await pool().query(`SELECT * FROM project_hosts WHERE id=$1`, [id]);
+  if (!rows[0]) throw new Error("host not found");
+  return parseRow(rows[0]);
 }
 
 export async function deleteHost({
@@ -95,9 +147,6 @@ export async function deleteHost({
   account_id?: string;
   id: string;
 }): Promise<void> {
-  requireAccount(account_id);
-  const i = hosts.findIndex((x) => x.id === id);
-  if (i !== -1) {
-    hosts.splice(i, 1);
-  }
+  await loadOwnedHost(id, account_id);
+  await pool().query(`DELETE FROM project_hosts WHERE id=$1`, [id]);
 }

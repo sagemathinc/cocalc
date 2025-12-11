@@ -430,7 +430,10 @@ export class SyncFsService extends EventEmitter {
       maxTime: persisted?.time ?? 0,
       lastSeq: persisted?.lastSeq,
     };
-    const start_seq = info.lastSeq != null ? info.lastSeq + 1 : undefined;
+    // If we don't have any heads persisted yet, rebuild from the beginning so
+    // we don't publish an orphaned head with empty parents.
+    const start_seq =
+      info.heads.size === 0 || info.lastSeq == null ? undefined : info.lastSeq + 1;
     if (process.env.SYNC_FS_DEBUG) {
       console.log("sync-fs getStreamHeads start", { string_id, start_seq });
     }
@@ -457,6 +460,13 @@ export class SyncFsService extends EventEmitter {
         console.log("sync-fs getStreamHeads error", err);
       }
       // fall through with whatever we gathered
+    }
+    // If we still have no heads but saw versions, fallback to full replay once.
+    if (info.heads.size === 0 && info.maxVersion > 0 && start_seq !== undefined) {
+      if (process.env.SYNC_FS_DEBUG) {
+        console.log("sync-fs getStreamHeads retry from start", { string_id });
+      }
+      return this.getStreamHeads({ project_id, string_id });
     }
     if (process.env.SYNC_FS_DEBUG) {
       console.log("sync-fs getStreamHeads done", {
