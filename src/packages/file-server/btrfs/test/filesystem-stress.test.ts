@@ -1,9 +1,15 @@
 import { before, after, fs } from "./setup";
+import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+import { SYNC_STATE } from "../sync";
+import { RUSTIC } from "../subvolume-rustic";
 
 beforeAll(before);
 
 const DEBUG = false;
 const log = DEBUG ? console.log : (..._args) => {};
+
+const RESERVED = new Set([SNAPSHOTS, SYNC_STATE, RUSTIC]);
+const filtered = (list: string[]) => list.filter((n) => !RESERVED.has(n));
 
 describe("stress operations with subvolumes", () => {
   const count1 = 10;
@@ -18,7 +24,7 @@ describe("stress operations with subvolumes", () => {
   });
 
   it("list them and confirm", async () => {
-    const v = await fs.subvolumes.list();
+    const v = filtered(await fs.subvolumes.list());
     expect(v.length).toBe(count1);
   });
 
@@ -36,12 +42,12 @@ describe("stress operations with subvolumes", () => {
   });
 
   it("list them and confirm", async () => {
-    const v = await fs.subvolumes.list();
+    const v = filtered(await fs.subvolumes.list());
     expect(v.length).toBe(count1 + count2);
   });
 
   it("write a file to each volume", async () => {
-    for (const name of await fs.subvolumes.list()) {
+    for (const name of filtered(await fs.subvolumes.list())) {
       const vol = await fs.subvolumes.get(name);
       await vol.fs.writeFile("a.txt", "hi");
     }
@@ -92,7 +98,7 @@ describe("stress operations with subvolumes", () => {
   });
 
   it("everything should be gone except the clones", async () => {
-    const v = await fs.subvolumes.list();
+    const v = filtered(await fs.subvolumes.list());
     expect(v.length).toBe(count1 + count2);
   });
 });
