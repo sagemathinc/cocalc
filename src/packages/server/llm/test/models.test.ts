@@ -22,6 +22,8 @@ import { evaluateUserDefinedLLM } from "../user-defined";
 import { enableModels, setupAPIKeys, test_llm } from "./shared";
 import { before, after, getPool } from "@cocalc/server/test";
 
+const LOG_MISSING = false;
+
 // sometimes (flaky case) they take more than 10s to even start a response
 const LLM_TIMEOUT = 15_000;
 
@@ -340,7 +342,8 @@ describe("User-defined LLMs", () => {
     async () => {
       const openaiKey = process.env.COCALC_TEST_OPENAI_KEY;
       if (!openaiKey) {
-        console.log("Skipping user-defined OpenAI test - no API key");
+        if (LOG_MISSING)
+          console.log("Skipping user-defined OpenAI test - no API key");
         return;
       }
 
@@ -375,7 +378,8 @@ describe("User-defined LLMs", () => {
     async () => {
       const googleKey = process.env.COCALC_TEST_GOOGLE_GENAI_KEY;
       if (!googleKey) {
-        console.log("Skipping user-defined Google test - no API key");
+        if (LOG_MISSING)
+          console.log("Skipping user-defined Google test - no API key");
         return;
       }
 
@@ -410,7 +414,8 @@ describe("User-defined LLMs", () => {
     async () => {
       const anthropicKey = process.env.COCALC_TEST_ANTHROPIC_KEY;
       if (!anthropicKey) {
-        console.log("Skipping user-defined Anthropic test - no API key");
+        if (LOG_MISSING)
+          console.log("Skipping user-defined Anthropic test - no API key");
         return;
       }
 
@@ -445,7 +450,8 @@ describe("User-defined LLMs", () => {
     async () => {
       const mistralKey = process.env.COCALC_TEST_MISTRAL_AI_KEY;
       if (!mistralKey) {
-        console.log("Skipping user-defined Mistral test - no API key");
+        if (LOG_MISSING)
+          console.log("Skipping user-defined Mistral test - no API key");
         return;
       }
 
@@ -480,7 +486,8 @@ describe("User-defined LLMs", () => {
     async () => {
       const openaiKey = process.env.COCALC_TEST_OPENAI_KEY;
       if (!openaiKey) {
-        console.log("Skipping user-defined custom OpenAI test - no API key");
+        if (LOG_MISSING)
+          console.log("Skipping user-defined custom OpenAI test - no API key");
         return;
       }
 
