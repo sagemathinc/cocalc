@@ -6,7 +6,7 @@
 /*
 React component to render a Sage worksheet statically.  This is
 mainly for use by server-side share server, so needs to run fine
-under node.js and in the frotend.
+under node.js and in the frontend.
 */
 
 import { field_cmp } from "@cocalc/util/misc";
