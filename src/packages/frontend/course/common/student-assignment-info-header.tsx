@@ -5,6 +5,7 @@
 
 import { Col, Row } from "antd";
 import { useIntl } from "react-intl";
+import type { ReactNode } from "react";
 
 import { Tip } from "@cocalc/frontend/components";
 import { capitalize, unreachable } from "@cocalc/util/misc";
@@ -14,11 +15,19 @@ import { course } from "@cocalc/frontend/i18n";
 interface StudentAssignmentInfoHeaderProps {
   title: "Assignment" | "Handout" | "Student";
   peer_grade?: boolean;
+  mode?: "assignment" | "student";
+  actions?: Partial<Record<AssignmentCopyStep | "grade", ReactNode | ReactNode[]>>;
+  filter?: ReactNode;
+  progress?: Partial<Record<AssignmentCopyStep | "grade", ReactNode>>;
 }
 
 export function StudentAssignmentInfoHeader({
   title,
   peer_grade,
+  mode = "student",
+  actions,
+  filter,
+  progress,
 }: StudentAssignmentInfoHeaderProps) {
   const intl = useIntl();
 
@@ -121,12 +130,38 @@ export function StudentAssignmentInfoHeader({
 
   function render_col(key: AssignmentCopyStep | "grade", width: 4 | 6) {
     const { tip, title } = tip_title(key);
+    const actionNodes =
+      mode === "assignment" && actions != null ? actions[key] : undefined;
+    const renderedActions =
+      actionNodes == null
+        ? null
+        : Array.isArray(actionNodes)
+          ? actionNodes
+          : [actionNodes];
+    const progressNode =
+      mode === "assignment" && progress != null ? progress[key] : undefined;
 
     return (
       <Col md={width} key={key}>
-        <Tip title={title} tip={tip}>
-          <b>{title}</b>
-        </Tip>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Tip title={title} tip={tip}>
+              <b>{title}</b>
+            </Tip>
+            {renderedActions ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {renderedActions}
+              </div>
+            ) : null}
+          </div>
+          {progressNode}
+        </div>
       </Col>
     );
   }
@@ -183,11 +218,14 @@ export function StudentAssignmentInfoHeader({
 
   return (
     <div>
-      <Row style={{ borderBottom: "2px solid #aaa" }}>
-        <Col md={4} key="title">
-          <Tip title={title} tip={tooltip}>
-            <b>{capitalize(titleIntl())}</b>
-          </Tip>
+      <Row>
+        <Col md={4} key="title" style={{ paddingRight: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <Tip title={title} tip={tooltip}>
+              <b>{capitalize(titleIntl())}</b>
+            </Tip>
+            {filter}
+          </div>
         </Col>
         <Col md={20} key="rest">
           {peer_grade ? render_headers_peer() : render_headers()}

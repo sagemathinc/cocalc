@@ -13,6 +13,7 @@ import {
   Input,
   Popconfirm,
   Row,
+  Switch,
   Space,
 } from "antd";
 import { ReactElement, useEffect, useState } from "react";
@@ -120,6 +121,20 @@ export function Assignment({
       setNoteValue(noteProp);
     }
   }, [noteProp, noteEditing]);
+
+  useEffect(() => {
+    if (is_peer_graded()) {
+      for (const step of ["assignment", "collect"] as const) {
+        if (assignment.get(`skip_${step}` as any)) {
+          actions.assignments.set_skip(
+            assignmentId,
+            step,
+            false,
+          );
+        }
+      }
+    }
+  }, [assignmentId, assignment.getIn(["peer_grade", "enabled"])]);
 
   const [
     copy_assignment_confirm_overwrite,
@@ -271,7 +286,6 @@ export function Assignment({
   }
 
   function render_more_header(num_files: number) {
-    let width;
     const status: AssignmentStatus | undefined =
       get_store().get_assignment_status(assignment.get("assignment_id"));
     if (status == null) {
@@ -318,43 +332,115 @@ export function Assignment({
 
         {(() => {
           const peer = is_peer_graded();
-          width = peer ? 4 : 6;
+          const width = peer ? 4 : 6;
+          const totalStudents = get_store().get_student_ids({ deleted: false }).length;
 
           if (num_files === 0) return null;
 
-          const buttons: ReactElement<any>[] = [];
+          const actions: Partial<
+            Record<AssignmentCopyStep | "grade", ReactElement<any>[]>
+          > = {};
+          const progress: Partial<Record<AssignmentCopyStep | "grade", ReactElement<any>>> = {};
+
+          function add_action(
+            step: AssignmentCopyStep | "grade",
+            element: ReactElement<any>,
+          ) {
+            actions[step] = [...(actions[step] ?? []), element];
+          }
+
           const insert_grade_button = (key: string) => {
-            const b2 = render_skip_grading_button(status);
-            return buttons.push(
-              <Col md={width} key={key}>
+            add_action(
+              "grade",
+              <span key={key}>
                 {render_nbgrader_button(status)}
-                {b2}
-              </Col>,
+              </span>,
             );
           };
 
+          const renderedMap: Partial<Record<AssignmentCopyStep, boolean>> = {};
+
           for (const name of STEPS(peer)) {
-            const b = render_button(name, status);
+            const rendered = render_button(name, status);
             // squeeze in the skip grading button (don't add it to STEPS!)
             if (!peer && name === "return_graded") {
               insert_grade_button("skip_grading");
             }
-            if (b != null) {
-              buttons.push(
-                <Col md={width} key={name}>
-                  {b}
-                </Col>,
-              );
+            if (rendered != null) {
+              renderedMap[name] = true;
+              if (Array.isArray(rendered)) {
+                const buttons = rendered.filter(
+                  (elem) => elem?.type !== Progress,
+                );
+                const prog = rendered.find(
+                  (elem) => elem?.type === Progress,
+                ) as ReactElement | undefined;
+                if (buttons.length > 0) {
+                  add_action(name, <span key={name}>{buttons}</span>);
+                }
+                if (prog) {
+                  progress[name] = prog;
+                }
+              } else {
+                add_action(name, <span key={name}>{rendered}</span>);
+              }
               if (peer && name === "peer_collect") {
                 insert_grade_button("skip_peer_collect");
               }
             }
+
+            if (rendered && !peer && name === "assignment") {
+              add_action(
+                "assignment",
+                <span key="skip-assignment">
+                  {render_skip_switch("assignment")}
+                </span>,
+              );
+            } else if (rendered && !peer && name === "collect") {
+              add_action(
+                "collect",
+                <span key="skip-collect">
+                  {render_skip_switch("collect")}
+                </span>,
+              );
+            }
+          }
+
+          const nbgrader = render_nbgrader_button(status);
+          if (nbgrader && status.collect > 0) {
+            add_action("grade", <span key="nbgrader">{nbgrader}</span>);
+          }
+
+          if (status.collect > 0 && renderedMap.collect) {
+            add_action(
+              "grade",
+              <span key="skip-grade">
+                {render_skip_switch("grading", status.collect === 0)}
+              </span>,
+            );
+          }
+
+          if (renderedMap.return_graded) {
+            progress["return_graded"] = (
+              <Progress
+                key="progress-return"
+                done={status.return_graded}
+                not_done={status.not_return_graded}
+                step="returned"
+              />
+            );
           }
 
           return (
             <>
-              <Row key="header-control">
-                <Col md={4} key="search" style={{ paddingRight: "15px" }}>
+              <StudentAssignmentInfoHeader
+                key="header"
+                title="Student"
+                peer_grade={peer}
+                mode="assignment"
+                actions={actions}
+                progress={progress}
+                filter={
                   <DebounceInput
                     debounceTimeout={500}
                     element={Input as any}
@@ -362,11 +448,8 @@ export function Assignment({
                     value={student_search}
                     onChange={(e) => set_student_search(e.target.value)}
                   />
-                </Col>
-                <Col md={20} key="buttons">
-                  <Row>{buttons}</Row>
-                </Col>
-              </Row>
+                }
+              />
 
               <Row key="header2-copy">
                 <Col md={20} offset={4}>
@@ -390,24 +473,17 @@ export function Assignment({
       body = render_no_content();
     } else {
       body = (
-        <>
-          <StudentAssignmentInfoHeader
-            key="header"
-            title="Student"
-            peer_grade={is_peer_graded()}
-          />
-          <StudentListForAssignment
-            redux={redux}
-            frame_id={frame_id}
-            name={name}
-            assignment={assignment}
-            students={students}
-            user_map={user_map}
-            active_feedback_edits={active_feedback_edits}
-            nbgrader_run_info={nbgrader_run_info}
-            search={student_search}
-          />
-        </>
+        <StudentListForAssignment
+          redux={redux}
+          frame_id={frame_id}
+          name={name}
+          assignment={assignment}
+          students={students}
+          user_map={user_map}
+          active_feedback_edits={active_feedback_edits}
+          nbgrader_run_info={nbgrader_run_info}
+          search={student_search}
+        />
       );
     }
     return (
@@ -502,6 +578,7 @@ export function Assignment({
         type={type}
         onClick={show_copy_confirm}
         disabled={copy_confirm}
+        size="small"
       >
         <Tip
           title={
@@ -512,7 +589,7 @@ export function Assignment({
           }
           tip={tooltip}
         >
-          <Icon name="share-square" /> {label}...
+          <Icon name="forward" style={{ fontSize: 16 }} />
         </Tip>
       </Button>,
       <Progress
@@ -652,6 +729,34 @@ export function Assignment({
       <div style={{ float: "right" }}>
         <SkipCopy assignment={assignment} step={step} actions={actions} />
       </div>
+    );
+  }
+
+  function render_skip_switch(
+    step: "assignment" | "collect" | "grading",
+    disabled?: boolean,
+  ) {
+    const skipped = assignment.get(`skip_${step}` as any);
+    return (
+      <Tip
+        title="Skip step in workflow"
+        tip="Toggle to allow proceeding to the next step without completing this one."
+      >
+        <Switch
+          checked={!!skipped}
+          onChange={() =>
+            actions.assignments.set_skip(
+              assignment.get("assignment_id"),
+              step,
+              !skipped,
+            )
+          }
+          checkedChildren="Skip"
+          unCheckedChildren="Skip"
+          size="small"
+          disabled={disabled}
+        />
+      </Tip>
     );
   }
 
@@ -882,6 +987,7 @@ export function Assignment({
         }}
         disabled={copy_confirm}
         type={type}
+        size="small"
       >
         <Tip
           title={
@@ -893,11 +999,7 @@ export function Assignment({
           }
           tip={render_collect_tip()}
         >
-          <Icon name="share-square" rotate={"180"} />{" "}
-          {intl.formatMessage(STEPS_INTL, {
-            step: STEP_NAMES.indexOf("Collect"),
-          })}
-          ...
+          <Icon name="forward" style={{ fontSize: 16 }} />
         </Tip>
       </Button>,
       <Progress
@@ -956,6 +1058,7 @@ export function Assignment({
         }}
         disabled={copy_confirm}
         type={type}
+        size="small"
       >
         <Tip
           title={
@@ -967,7 +1070,7 @@ export function Assignment({
           }
           tip={render_peer_assign_tip()}
         >
-          <Icon name="share-square" /> {label}...
+          <Icon name="forward" style={{ fontSize: 16 }} />
         </Tip>
       </Button>,
       <Progress
@@ -1023,6 +1126,7 @@ export function Assignment({
         }}
         disabled={copy_confirm}
         type={type}
+        size="small"
       >
         <Tip
           title={
@@ -1034,7 +1138,7 @@ export function Assignment({
           }
           tip={render_peer_collect_tip()}
         >
-          <Icon name="share-square" rotate="180" /> {label}...
+          <Icon name="forward" style={{ fontSize: 16 }} />
         </Tip>
       </Button>,
       <Progress
@@ -1044,29 +1148,6 @@ export function Assignment({
         step="peer collected"
       />,
     ];
-  }
-
-  function toggle_skip_grading() {
-    actions.assignments.set_skip(
-      assignment.get("assignment_id"),
-      "grading",
-      !assignment.get("skip_grading"),
-    );
-  }
-
-  function render_skip_grading_button(status) {
-    if (status.collect === 0) {
-      // No button if nothing collected.
-      return;
-    }
-    const icon: IconName = assignment.get("skip_grading")
-      ? "check-square-o"
-      : "square-o";
-    return (
-      <Button onClick={toggle_skip_grading}>
-        <Icon name={icon} /> Skip entering grades
-      </Button>
-    );
   }
 
   function render_nbgrader_button(status) {
@@ -1128,6 +1209,7 @@ export function Assignment({
         }}
         disabled={copy_confirm}
         type={type}
+        size="small"
       >
         <Tip
           title={
@@ -1139,7 +1221,7 @@ export function Assignment({
           }
           tip="Copy the graded versions of files for this assignment from this project to all other student projects."
         >
-          <Icon name="share-square" /> {label}...
+          <Icon name="forward" style={{ fontSize: 16 }} />
         </Tip>
       </Button>,
       <Progress
