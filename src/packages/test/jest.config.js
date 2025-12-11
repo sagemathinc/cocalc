@@ -10,4 +10,8 @@ module.exports = {
   },
   testMatch: ["**/?(*.)+(spec|test).ts?(x)"],
   setupFilesAfterEnv: ["./test/setup.js"],
+  moduleNameMapper: {
+    "^@cocalc/backend/(.*)$": "<rootDir>/../backend/$1",
+    "^@cocalc/frontend/(.*)$": "<rootDir>/../frontend/$1",
+  },
 };
