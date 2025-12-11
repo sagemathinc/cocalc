@@ -5,6 +5,12 @@ class PingResponse(TypedDict):
     now: int
 
 
+class TestResponse(TypedDict, total=False):
+    account_id: Optional[str]
+    project_id: Optional[str]
+    server_time: int
+
+
 class ExecuteCodeOutput(TypedDict):
     stdout: str
     stderr: str

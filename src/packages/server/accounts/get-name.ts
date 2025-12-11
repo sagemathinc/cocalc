@@ -37,8 +37,8 @@ type Names = {
 function canonicalName(row) {
   // some accounts have these null for some reason sometimes, but it is nice if client code can assume not null.
   let { first_name = "", last_name = "", profile } = row;
-  first_name = first_name.trim();
-  last_name = last_name.trim();
+  first_name = (first_name ?? "").trim();
+  last_name = (last_name ?? "").trim();
   if (!first_name && !last_name) {
     // Also ensure both are not empty so you can always see something.  I think the frontend and/or api doesn't
     // allow a user to make their name empty, but *just in case* we do this.

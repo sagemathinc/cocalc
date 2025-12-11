@@ -3,36 +3,41 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { join } from "path";
-import ms from "ms";
-import { isEqual } from "lodash";
-import { Router, json } from "express";
-import {
-  analytics_cookie_name,
-  is_valid_uuid_string,
-  uuid,
-} from "@cocalc/util/misc";
-import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { get_server_settings } from "@cocalc/database/postgres/server-settings";
-import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
+import cors from "cors"; // express-js cors plugin
+import { json, Router } from "express";
 import * as fs from "fs";
-const UglifyJS = require("uglify-js");
-// express-js cors plugin:
-import cors from "cors";
+import { isEqual } from "lodash";
+import ms from "ms";
 import {
-  parseDomain,
   fromUrl,
-  ParseResultType,
+  parseDomain,
   ParseResult,
+  ParseResultType,
 } from "parse-domain";
+import { join } from "path";
+const UglifyJS = require("uglify-js");
+
+import { is_valid_uuid_string, uuid } from "@cocalc/util/misc";
+
+import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
+import { get_server_settings } from "@cocalc/database/postgres/server-settings";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import { ANALYTICS_COOKIE_NAME } from "@cocalc/util/consts";
+
 import { getLogger } from "./logger";
+
+// Rate limiting for analytics data - 10 entries per second
+const RATE_LIMIT_ENTRIES_PER_SECOND = 10;
+const RATE_LIMIT_WINDOW_MS = 1000;
+let rateLimitCounter = 0;
+let rateLimitWindowStart = Date.now();
 
 // Minifying analytics-script.js.  Note
 // that this file analytics.ts gets compiled to
 // dist/analytics.js and also analytics-script.ts
 // gets compiled to dist/analytics-script.js.
 const result = UglifyJS.minify(
-  fs.readFileSync(join(__dirname, "analytics-script.js")).toString()
+  fs.readFileSync(join(__dirname, "analytics-script.js")).toString(),
 );
 if (result.error) {
   throw Error(`Error minifying analytics-script.js -- ${result.error}`);
@@ -42,6 +47,25 @@ export const analytics_js =
 
 function create_log(name) {
   return getLogger(`analytics.${name}`).debug;
+}
+
+// Rate limiting check - returns true if request should be allowed
+function checkRateLimit(): boolean {
+  const now = Date.now();
+
+  // Reset counter if window has passed
+  if (now - rateLimitWindowStart >= RATE_LIMIT_WINDOW_MS) {
+    rateLimitCounter = 0;
+    rateLimitWindowStart = now;
+  }
+
+  // Check if we're under the limit
+  if (rateLimitCounter < RATE_LIMIT_ENTRIES_PER_SECOND) {
+    rateLimitCounter++;
+    return true;
+  }
+
+  return false;
 }
 
 /*
@@ -76,39 +100,65 @@ function sanitize(obj: object, recursive = 0): any {
 // record analytics data
 // case 1: store "token" with associated "data", referrer, utm, etc.
 // case 2: update entry with a known "token" with the account_id + 2nd timestamp
+// case 3: cookieless tracking - store data without user association
 function recordAnalyticsData(
   db: any,
-  token: string,
+  token: string | null,
   payload: object | undefined,
-  pii_retention: number | false
+  pii_retention: number | false,
 ): void {
   if (payload == null) return;
-  if (!is_valid_uuid_string(token)) return;
+
+  // Rate limiting check - applies to all analytics data recording
+  if (!checkRateLimit()) {
+    const dbg = create_log("record");
+    dbg("Rate limit exceeded, dropping analytics data");
+    return;
+  }
+
   const dbg = create_log("record");
   dbg({ token, payload });
+
   // sanitize data (limits size and number of characters)
   const rec_data = sanitize(payload);
   dbg("sanitized data", rec_data);
   const expire = pii_retention_to_future(pii_retention);
 
-  if (rec_data.account_id != null) {
-    // dbg("update analytics", rec_data.account_id);
-    // only update if account id isn't already set!
-    db._query({
-      query: "UPDATE analytics",
-      where: [{ "token = $::UUID": token }, "account_id IS NULL"],
-      set: {
-        "account_id       :: UUID": rec_data.account_id,
-        "account_id_time  :: TIMESTAMP": new Date(),
-        "expire           :: TIMESTAMP": expire,
-      },
-    });
+  // Cookie-based tracking (with user association)
+  if (token != null && is_valid_uuid_string(token)) {
+    if (rec_data.account_id != null) {
+      // dbg("update analytics", rec_data.account_id);
+      // only update if account id isn't already set!
+      db._query({
+        query: "UPDATE analytics",
+        where: [{ "token = $::UUID": token }, "account_id IS NULL"],
+        set: {
+          "account_id       :: UUID": rec_data.account_id,
+          "account_id_time  :: TIMESTAMP": new Date(),
+          "expire           :: TIMESTAMP": expire,
+        },
+      });
+    } else {
+      db._query({
+        query: "INSERT INTO analytics",
+        values: {
+          "token     :: UUID": token,
+          "data      :: JSONB": rec_data,
+          "data_time :: TIMESTAMP": new Date(),
+          "expire    :: TIMESTAMP": expire,
+        },
+        conflict: "token",
+      });
+    }
   } else {
+    // Cookieless tracking (no user association, privacy-focused)
+    // Generate a random token for this single entry
+    const anonymousToken = uuid();
     db._query({
       query: "INSERT INTO analytics",
       values: {
-        "token     :: UUID": token,
-        "data      :: JSONB": rec_data,
+        "token     :: UUID": anonymousToken,
+        "data      :: JSONB": { ...rec_data, cookieless: true },
         "data_time :: TIMESTAMP": new Date(),
         "expire    :: TIMESTAMP": expire,
       },
@@ -118,10 +168,10 @@ function recordAnalyticsData(
 }
 
 // could throw an error
-function check_cors(
+function checkCORS(
   origin: string | undefined,
   dns_parsed: ParseResult,
-  dbg: Function
+  dbg: Function,
 ): boolean {
   // no origin, e.g. when loaded as usual in a script tag
   if (origin == null) return true;
@@ -184,7 +234,7 @@ import base_path from "@cocalc/backend/base-path";
 
 export async function initAnalytics(
   router: Router,
-  database: PostgreSQL
+  database: PostgreSQL,
 ): Promise<void> {
   const dbg = create_log("analytics_js/cors");
 
@@ -193,6 +243,7 @@ export async function initAnalytics(
   const DNS = settings.dns;
   const dns_parsed = parseDomain(DNS);
   const pii_retention = settings.pii_retention;
+  const analytics_enabled = settings.analytics_cookie;
 
   if (
     dns_parsed.type !== ParseResultType.Listed &&
@@ -201,7 +252,7 @@ export async function initAnalytics(
     dbg(
       `WARNING: the configured domain name ${DNS} cannot be parsed properly. ` +
         `Please fix it in Admin → Site Settings!\n` +
-        `dns_parsed="${JSON.stringify(dns_parsed)}}"`
+        `dns_parsed="${JSON.stringify(dns_parsed)}}"`,
     );
   }
 
@@ -213,7 +264,7 @@ export async function initAnalytics(
     origin: function (origin, cb) {
       dbg(`check origin='${origin}'`);
       try {
-        if (check_cors(origin, dns_parsed, dbg)) {
+        if (checkCORS(origin, dns_parsed, dbg)) {
           cb(null, true);
         } else {
           cb(`origin="${origin}" is not allowed`, false);
@@ -235,27 +286,25 @@ export async function initAnalytics(
     // in case user was already here, do not send it again.
     // only the first hit is interesting.
     dbg(
-      `/analytics.js GET analytics_cookie='${req.cookies[analytics_cookie_name]}'`
+      `/analytics.js GET analytics_cookie='${req.cookies[ANALYTICS_COOKIE_NAME]}'`,
     );
 
-    if (!req.cookies[analytics_cookie_name]) {
-      // No analytics cookie is set, so we set one.
-      // We always set this despite any issues with parsing or
-      // or whether or not we are actually using the analytics.js
-      // script, since it's *also* useful to have this cookie set
-      // for other purposes, e.g., logging.
+    if (!req.cookies[ANALYTICS_COOKIE_NAME] && analytics_enabled) {
+      // No analytics cookie is set and cookies are enabled, so we set one.
+      // When analytics_enabled is false, we skip setting cookies to enable
+      // cookieless tracking for better privacy.
       setAnalyticsCookie(res /* DNS */);
     }
 
-    // also, don't write a script if the DNS is not valid
+    // Return NOOP if DNS is invalid, or if cookies are enabled and already exist
     if (
-      req.cookies[analytics_cookie_name] ||
-      dns_parsed.type !== ParseResultType.Listed
+      dns_parsed.type !== ParseResultType.Listed ||
+      (analytics_enabled && req.cookies[ANALYTICS_COOKIE_NAME])
     ) {
       // cache for 6 hours -- max-age has unit seconds
       res.header(
         "Cache-Control",
-        `private, max-age=${6 * 60 * 60}, must-revalidate`
+        `private, max-age=${6 * 60 * 60}, must-revalidate`,
       );
       res.write("// NOOP");
       res.end();
@@ -267,11 +316,12 @@ export async function initAnalytics(
     res.header("Cache-Control", "no-cache, no-store");
 
     const DOMAIN = `${dns_parsed.domain}.${dns_parsed.topLevelDomains.join(
-      "."
+      ".",
     )}`;
-    res.write(`var NAME = '${analytics_cookie_name}';\n`);
+    res.write(`var NAME = '${ANALYTICS_COOKIE_NAME}';\n`);
     res.write(`var ID = '${uuid()}';\n`);
     res.write(`var DOMAIN = '${DOMAIN}';\n`);
+    res.write(`var ANALYTICS_ENABLED = ${analytics_enabled};\n`);
     //  BASE_PATH
     if (req.query.fqd === "false") {
       res.write(`var PREFIX = '${base_path}';\n`);
@@ -301,17 +351,17 @@ export async function initAnalytics(
   */
 
   router.post("/analytics.js", cors(analytics_cors), function (req, res): void {
-    // check if token is in the cookie (see above)
-    // if not, ignore it
-    const token = req.cookies[analytics_cookie_name];
+    const token = req.cookies[ANALYTICS_COOKIE_NAME];
     dbg(`/analytics.js POST token='${token}'`);
-    if (token) {
-      // req.body is an object (json middlewhere somewhere?)
-      // e.g. {"utm":{"source":"asdfasdf"},"landing":"https://cocalc.com/..."}
-      // ATTN key/values could be malicious
-      // record it, there is no need for a callback
-      recordAnalyticsData(database, token, req.body, pii_retention);
-    }
+
+    // req.body is an object (json middleware somewhere?)
+    // e.g. {"utm":{"source":"asdfasdf"},"landing":"https://cocalc.com/..."}
+    // ATTN key/values could be malicious
+
+    // Always record analytics data - either with token (cookie-based) or without (cookieless)
+    // The recordAnalyticsData function handles both cases
+    recordAnalyticsData(database, token || null, req.body, pii_retention);
+
     res.end();
   });
 
@@ -324,7 +374,7 @@ function setAnalyticsCookie(res /* DNS: string */): void {
   // set the cookie (TODO sign it?  that would be good so that
   // users can fake a cookie.)
   const analytics_token = uuid();
-  res.cookie(analytics_cookie_name, analytics_token, {
+  res.cookie(ANALYTICS_COOKIE_NAME, analytics_token, {
     path: "/",
     maxAge: ms("7 days"),
     // httpOnly: true,

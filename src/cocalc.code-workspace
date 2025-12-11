@@ -2,11 +2,14 @@
   "folders": [
     {
       "name": "cocalc",
-      "path": "."
+      "path": ".",
     },
     {
-      "path": "dev"
-    }
+      "path": "dev",
+    },
+    {
+      "path": "../.github",
+    },
   ],
   "settings": {
     "search.followSymlinks": false,
@@ -14,7 +17,7 @@
       "compute",
       "sync-client",
       "comm",
-      "api-client"
+      "api-client",
     ],
     "jest.autoRun": "off",
     "files.exclude": {
@@ -31,8 +34,8 @@
       "smc_pyutil": true,
       "smc_sagews": true,
       ".mypy_cache": true,
-      "pnpm-lock.yaml": true
+      "pnpm-lock.yaml": true,
     },
-    "prettier.trailingComma": "all"
-  }
+    "prettier.trailingComma": "all",
+  },
 }
