@@ -1,3 +1,72 @@
+## Major Bugs and Issues
+
+### Thinking/acp updates
+
+(Seems not true) The biggest problem by far and top priority is that NONE of the thinking/progress updates actually appear anymore until the very end of the turn.  They *all* do 
+appear right when the turn ends.  They simply aren't committed before that though.
+Basically there is one big commit to the sync-doc right at the end.
+This bug started very recently after the entire realtime sync implementation
+got mostly rewritten, using a new library we wrote called Patchflow
+(see https://github.com/sagemathinc/patchflow and the directory patchflow right here).   The codex/acp integration didn't change during the last week, so something about how the API of syncdoc's work (see src/packages/sync/generic/sync-doc.ts) 
+did change, which broke things.  Probably we need to make an explicit
+call to commit() where we didn't before.
+
+Second, these thinking logs are very interesting right when they happen, but
+they are huge.  I don't actually want to store them longterm at all.  It would 
+be much better to refactor the code and store the logs separately from the
+actual chat document, and make it easy to discard the logs. That's the real
+problem to solve.  However, if there is a quick fix to at least commit the logs
+while they are being generated, that would be very nice, since otherwise it's
+quite hard to work on anything at all.   
+
+Thoughts?  Can you look into this?
+
+### Sync - backend user is constantly new/changing
+
+See the version letter. Basically it is a new user for each turn, from the POV of chat.
+
+### Bug with multiple chunks of final output
+
+If there are multiple chunks in the final agent response, only the very last is actually displayed.  I have an image showing this.
+
+### Session config display
+
+the session config is displayed incorrectly until you click on it -- wrong model at least. Any rerender (e.g., toggling panels) causes this.
+
+### Bug: first message in chatrooms blanked.
+
+first message in chatrooms keeps getting blanked.  weird bug. 
+
+### Diffs
+
+They are unusable and very buggy. rethink and rewrite completely.
+
+### Terminal UI
+
+It's hard to read and see still.  Not very friendly.  Should use the user's color scheme, don't scroll overflow.
+
+### Markdown UI
+
+Get rid of Copy/Run/Kernel at the top of each triple backtick code block in slate.  It's annoying.  Better UI possible?
+
+### Chat
+
+Do not render older messages that you've already seen unless you explicitly click a "load more" button.  Otherwise chat can have 1000 messages in a thread and be overwhelming.
+
+
+### Update Codex-acp and codex-cli
+
+codex-cli has  had many releases in the last 1-2 weeks, and we have a fork of it. Is there any hope we can merge?
+
+### Make Codex Agent integration work with full cocalc with podman containers, not just with cocalc-lite
+
+
+
+
+---
+
+# Old stuff below
+
 ## Goal
 Bring Codex agents into CoCalc chat so users can open a thread, point it at a workspace, and let a fully capable agent edit files, run commands, and stream results safely.
 

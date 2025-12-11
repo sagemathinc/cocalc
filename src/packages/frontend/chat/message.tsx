@@ -28,6 +28,7 @@ import CopyButton from "@cocalc/frontend/components/copy-button";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { User } from "@cocalc/frontend/users";
@@ -288,15 +289,62 @@ export default function Message({
     return typeof author_id === "string" && isLanguageModelService(author_id);
   }, [message]);
 
+  const acpLogInfo = useMemo(() => {
+    const store = message.get("acp_log_store");
+    const key = message.get("acp_log_key");
+    const thread = message.get("acp_log_thread");
+    const turn = message.get("acp_log_turn");
+    const subject = message.get("acp_log_subject");
+    if (!store || !key) return null;
+    return { store, key, thread, turn, subject };
+  }, [message]);
+
+  const [fetchedLog, setFetchedLog] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    setFetchedLog(null);
+  }, [acpLogInfo?.key, acpLogInfo?.store]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchLog() {
+      if (!acpLogInfo || !project_id || fetchedLog != null) return;
+      try {
+        const cn = webapp_client.conat_client.conat();
+        const kv = cn.sync.akv<any[]>({
+          project_id,
+          name: acpLogInfo.store,
+        });
+        const data = await kv.get(acpLogInfo.key);
+        if (!cancelled) {
+          setFetchedLog(data ?? []);
+        }
+      } catch (err) {
+        console.warn("failed to fetch acp log", err);
+      } finally {
+        // nothing
+      }
+    }
+    void fetchLog();
+    return () => {
+      cancelled = true;
+    };
+  }, [acpLogInfo?.key, acpLogInfo?.store, project_id, fetchedLog]);
+
   const codexEvents = useMemo(() => {
+    if (fetchedLog) return fetchedLog;
     const ev = message.get("acp_events");
     if (!ev) return undefined;
-    // Immutable.js collections have toJS
     if (typeof (ev as any)?.toJS === "function") {
       return (ev as any).toJS();
     }
     return ev;
-  }, [message]);
+  }, [message, fetchedLog]);
+
+  const showCodexActivity = useMemo(
+    () => Boolean(codexEvents?.length || acpLogInfo),
+    [codexEvents, acpLogInfo],
+  );
 
   const threadRootMs = useMemo(() => {
     const root = getThreadRootDate({ date, messages });
@@ -306,33 +354,59 @@ export default function Message({
     return Number.isFinite(date) ? date : undefined;
   }, [date, messages]);
 
-  const deleteActivityLog = useCallback(() => {
+  const deleteActivityLog = useCallback(async () => {
     if (!actions?.syncdb) return;
     const d = message.get("date");
     if (!(d instanceof Date)) return;
+    const store = acpLogInfo?.store;
+    const key = acpLogInfo?.key;
+    if (store && key && project_id) {
+      try {
+        const cn = webapp_client.conat_client.conat();
+        const kv = cn.sync.akv({ project_id, name: store });
+        await kv.delete(key);
+      } catch (err) {
+        console.warn("failed to delete acp log", err);
+      }
+    }
     actions.syncdb.set({
       event: "chat",
       date: d.toISOString(),
       acp_events: null,
+      codex_events: null,
+      acp_log_store: null,
+      acp_log_key: null,
+      acp_log_thread: null,
+      acp_log_turn: null,
+      acp_log_subject: null,
     });
     actions.syncdb.commit();
-  }, [actions, message]);
+    setFetchedLog(null);
+  }, [actions, message, acpLogInfo, project_id]);
 
   const deleteAllActivityLogs = useCallback(async () => {
     if (!actions?.syncdb) return;
     const dates: Date[] = [];
+    const logRefs: { store: string; key: string }[] = [];
     const rootIso =
       threadRootMs != null ? new Date(threadRootMs).toISOString() : undefined;
     if (rootIso && actions?.getMessagesInThread) {
       const seq = actions.getMessagesInThread(rootIso);
       seq?.forEach((msg) => {
         const d = msg?.get?.("date");
-        if (d instanceof Date && msg.get("acp_events")) dates.push(d);
+        if (d instanceof Date) {
+          dates.push(d);
+          const store = msg.get?.("acp_log_store");
+          const key = msg.get?.("acp_log_key");
+          if (store && key) {
+            logRefs.push({ store, key });
+          }
+        }
       });
     } else if (messages?.forEach) {
       messages.forEach((msg) => {
         const d = msg?.get?.("date");
-        if (!(d instanceof Date) || !msg.get("acp_events")?.size) return;
+        if (!(d instanceof Date)) return;
         const root = getThreadRootDate({
           date: d.valueOf(),
           messages,
@@ -340,12 +414,28 @@ export default function Message({
         const rootMs = root?.valueOf?.();
         if (rootMs != null && rootMs === threadRootMs) {
           dates.push(d);
+          const store = msg.get?.("acp_log_store");
+          const key = msg.get?.("acp_log_key");
+          if (store && key) {
+            logRefs.push({ store, key });
+          }
         }
       });
     }
     if (!dates.length) {
       const d = message.get("date");
       if (d instanceof Date) dates.push(d);
+    }
+    if (project_id) {
+      for (const ref of logRefs) {
+        try {
+          const cn = webapp_client.conat_client.conat();
+          const kv = cn.sync.akv({ project_id, name: ref.store });
+          await kv.delete(ref.key);
+        } catch (err) {
+          console.warn("failed to delete acp log", err);
+        }
+      }
     }
     let i = 0;
     for (const d of dates) {
@@ -357,10 +447,17 @@ export default function Message({
         event: "chat",
         date: d.toISOString(),
         acp_events: null,
+        codex_events: null,
+        acp_log_store: null,
+        acp_log_key: null,
+        acp_log_thread: null,
+        acp_log_turn: null,
+        acp_log_subject: null,
       });
     }
     actions.syncdb.commit();
-  }, [actions, messages, threadRootMs, message]);
+    setFetchedLog(null);
+  }, [actions, messages, threadRootMs, message, project_id]);
 
   const threadKeyForSession = useMemo(() => {
     return threadRootMs != null ? `${threadRootMs}` : undefined;
@@ -869,42 +966,44 @@ export default function Message({
 
     return (
       <>
-        {codexEvents?.length ? (
-          <CodexActivity
-            events={codexEvents}
-            generating={generating === true}
-            fontSize={font_size}
-            persistKey={`${(project_id ?? "no-project").slice(0, 8)}:${
-              path ?? ""
-            }:${date}`}
-            basePath={path ? path.substring(0, path.lastIndexOf("/")) : ""}
-            durationLabel={
-              generating === true
-                ? elapsedLabel
-                : formatTurnDuration({
-                    startMs: date,
-                    history: message.get("history"),
-                  })
-            }
-            canResolveApproval={
-              message.get("acp_account_id") === account_id ||
-              isLanguageModelService(message.get("sender_id")) ||
-              is_viewers_message
-            }
-            projectId={project_id}
-            onResolveApproval={
-              actions && typeof actions.resolveAcpApproval === "function"
-                ? ({ approvalId, optionId }) =>
-                    actions.resolveAcpApproval({
-                      date: message.get("date"),
-                      approvalId,
-                      optionId,
+        {showCodexActivity ? (
+          <>
+            <CodexActivity
+              events={codexEvents ?? []}
+              generating={generating === true}
+              fontSize={font_size}
+              persistKey={`${(project_id ?? "no-project").slice(0, 8)}:${
+                path ?? ""
+              }:${date}`}
+              basePath={path ? path.substring(0, path.lastIndexOf("/")) : ""}
+              durationLabel={
+                generating === true
+                  ? elapsedLabel
+                  : formatTurnDuration({
+                      startMs: date,
+                      history: message.get("history"),
                     })
-                : undefined
-            }
-            onDeleteEvents={deleteActivityLog}
-            onDeleteAllEvents={deleteAllActivityLogs}
-          />
+              }
+              canResolveApproval={
+                message.get("acp_account_id") === account_id ||
+                isLanguageModelService(message.get("sender_id")) ||
+                is_viewers_message
+              }
+              projectId={project_id}
+              onResolveApproval={
+                actions && typeof actions.resolveAcpApproval === "function"
+                  ? ({ approvalId, optionId }) =>
+                      actions.resolveAcpApproval({
+                        date: message.get("date"),
+                        approvalId,
+                        optionId,
+                      })
+                  : undefined
+              }
+              onDeleteEvents={deleteActivityLog}
+              onDeleteAllEvents={deleteAllActivityLogs}
+            />
+          </>
         ) : null}
         {renderContextNotice()}
         <MostlyStaticMarkdown

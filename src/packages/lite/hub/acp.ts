@@ -26,7 +26,6 @@ import {
 } from "@cocalc/util/ai/codex";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import { getBlobstore } from "./blobs/download";
-import { type AKV } from "@cocalc/conat/sync/akv";
 import { buildChatMessage, type MessageHistory } from "@cocalc/chat";
 import { createChatSyncDB } from "@cocalc/chat/server";
 import { appendStreamMessage, extractEventText } from "@cocalc/chat";
@@ -39,6 +38,8 @@ import {
   clearAcpPayloads,
 } from "./sqlite/acp-queue";
 import { throttle } from "lodash";
+import { akv, type AKV } from "@cocalc/conat/sync/akv";
+import { client_db } from "@cocalc/util/db-schema";
 
 // how many ms between saving output during a running turn
 // so that everybody sees it.
@@ -154,6 +155,14 @@ class ChatStreamWriter {
   private interruptNotified = false;
   private disposeTimer?: NodeJS.Timeout;
   private sessionKey?: string;
+  private logStore?: AKV<AcpStreamMessage[]>;
+  private logStoreName: string;
+  private logKey: string;
+  private logThreadId: string;
+  private logTurnId: string;
+  private logSubject: string;
+  private logPersisted = false;
+  private client: ConatClient;
 
   constructor({
     metadata,
@@ -171,6 +180,7 @@ class ChatStreamWriter {
     this.metadata = metadata;
     this.approverAccountId = approverAccountId;
     this.autoApprove = autoApprove;
+    this.client = client;
     this.chatKey = chatKey(metadata);
     this.syncdb = createChatSyncDB({
       client,
@@ -182,6 +192,12 @@ class ChatStreamWriter {
     if (sessionKey) {
       this.registerThreadKey(sessionKey);
     }
+    this.logThreadId = metadata.reply_to ?? metadata.message_date;
+    this.logTurnId = sessionKey ?? randomUUID();
+    const hash = client_db.sha1(metadata.project_id, metadata.path);
+    this.logStoreName = `acp-log:${hash}`;
+    this.logKey = `${this.logThreadId}:${this.logTurnId}`;
+    this.logSubject = `project.${metadata.project_id}.acp-log.${this.logThreadId}.${this.logTurnId}`;
     // ensure initialization rejections are observed immediately
     this.ready = this.initialize();
     this.waitUntilReady();
@@ -274,6 +290,7 @@ class ChatStreamWriter {
       return;
     }
     this.events = appendStreamMessage(this.events, payload);
+    this.publishLog(payload);
     if (payload.type === "event") {
       const text = extractEventText(payload.event);
       if (payload.event?.type === "approval") {
@@ -313,12 +330,14 @@ class ChatStreamWriter {
       }
       clearAcpPayloads(this.metadata);
       this.finished = true;
+      void this.persistLog();
       return;
     }
     if (payload.type === "error") {
       this.content = `\n\n<span style='color:#b71c1c'>${payload.error}</span>\n\n`;
       clearAcpPayloads(this.metadata);
       this.finished = true;
+      void this.persistLog();
     }
   }
 
@@ -368,11 +387,15 @@ class ChatStreamWriter {
       content: this.content,
       generating,
       reply_to: this.metadata.reply_to,
-      acp_events: this.events,
+      acp_log_store: this.logStoreName,
+      acp_log_key: this.logKey,
+      acp_log_thread: this.logThreadId,
+      acp_log_turn: this.logTurnId,
+      acp_log_subject: this.logSubject,
       acp_thread_id: this.threadId,
       acp_usage: this.usage,
       acp_account_id: this.approverAccountId,
-    });
+    } as any);
     this.syncdb.set(message);
     this.syncdb.commit();
     (async () => {
@@ -416,6 +439,7 @@ class ChatStreamWriter {
     if (!this.finished) {
       clearAcpPayloads(this.metadata);
     }
+    void this.persistLog();
     (async () => {
       try {
         await this.syncdb.save();
@@ -462,6 +486,35 @@ class ChatStreamWriter {
     if (!key) return;
     this.threadKeys.add(key);
     chatWritersByThreadId.set(key, this);
+  }
+
+  private getLogStore(): AKV<AcpStreamMessage[]> {
+    if (this.logStore) return this.logStore;
+    this.logStore = akv<AcpStreamMessage[]>({
+      project_id: this.metadata.project_id,
+      name: this.logStoreName,
+      client: this.client,
+    });
+    return this.logStore;
+  }
+
+  private publishLog(event: AcpStreamMessage): void {
+    if (this.closed) return;
+    void this.client
+      .publish(this.logSubject, event)
+      .catch((err) => logger.debug("publish log failed", err));
+  }
+
+  private async persistLog(): Promise<void> {
+    if (this.logPersisted) return;
+    if (this.events.length === 0) return;
+    try {
+      const store = this.getLogStore();
+      await store.set(this.logKey, this.events);
+      this.logPersisted = true;
+    } catch (err) {
+      logger.warn("failed to persist acp log", err);
+    }
   }
 }
 
