@@ -78,7 +78,7 @@
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
     "ms": "2.1.2",
-    "next": "15.5.0",
+    "next": "15.5.7",
     "next-rest-framework": "6.0.0-beta.4",
     "next-translate": "^2.6.2",
     "password-hash": "^1.2.2",
@@ -91,7 +91,7 @@
     "timeago-react": "^3.0.4",
     "use-async-effect": "^2.2.7",
     "uuid": "^8.3.2",
-    "xmlbuilder2": "^3.0.2",
+    "xmlbuilder2": "^4.0.1",
     "zod": "^3.23.5"
   },
   "devDependencies": {

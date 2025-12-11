@@ -22,10 +22,12 @@ const log = getLogger("server:accounts:first-project");
 export default async function firstProject({
   account_id,
   tags,
+  dontStartProject,
   ephemeral,
 }: {
   account_id: string;
   tags?: string[];
+  dontStartProject?: boolean;
   ephemeral?: number;
 }): Promise<string> {
   log.debug(account_id, tags);
@@ -38,8 +40,10 @@ export default async function firstProject({
     ephemeral,
   });
   log.debug("created new project", project_id);
-  const project = getProject(project_id);
-  await project.start();
+  if (!dontStartProject) {
+    const project = getProject(project_id);
+    await project.start();
+  }
   if (!WELCOME_FILES || tags == null || tags.length == 0) {
     return project_id;
   }
