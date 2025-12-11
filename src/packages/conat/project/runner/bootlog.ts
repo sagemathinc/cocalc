@@ -51,7 +51,7 @@ export async function resetBootlog({
   host_id,
   compute_server_id = 0,
   client = conat(),
-}) {
+}:{host_id?:string; project_id?:string; compute_server_id?:number; client?:Client}) {
   const stream = client.sync.astream<Event>({
     project_id,
     name: getName({ host_id, project_id, compute_server_id }),
