@@ -206,11 +206,11 @@ describe("create a subscription license and edit it and confirm the subscription
     await editLicense({
       account_id: item.account_id,
       license_id,
-      changes: { custom_ram: 8, custom_cpu: 3 },
+      changes: { custom_ram: 8, custom_cpu: 1 },
     });
     const subs2 = await getSubscriptions({ account_id: item.account_id });
     const cost2 = computeCost({
-      cpu: 3,
+      cpu: 1,
       ram: 8,
       disk: 3,
       type: "quota",
