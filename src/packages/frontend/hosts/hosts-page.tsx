@@ -6,6 +6,9 @@ import {
   Input,
   Row,
   Select,
+  Collapse,
+  Divider,
+  Slider,
   Space,
   Tag,
   Typography,
@@ -50,6 +53,13 @@ const SIZES = [
   { value: "small", label: "Small (2 vCPU / 8 GB)" },
   { value: "medium", label: "Medium (4 vCPU / 16 GB)" },
   { value: "large", label: "Large (8 vCPU / 32 GB)" },
+  { value: "gpu", label: "GPU (4 vCPU / 24 GB + GPU)" },
+];
+
+const GPU_TYPES = [
+  { value: "none", label: "No GPU" },
+  { value: "l4", label: "NVIDIA L4" },
+  { value: "a10g", label: "NVIDIA A10G" },
 ];
 
 export const HostsPage: React.FC = () => {
@@ -181,15 +191,66 @@ export const HostsPage: React.FC = () => {
               <Form.Item name="size" label="Size" initialValue={SIZES[0].value}>
                 <Select options={SIZES} />
               </Form.Item>
-              <Form.Item name="gpu" label="GPU">
-                <Select
-                  options={[
-                    { value: false, label: "No GPU" },
-                    { value: true, label: "GPU enabled" },
-                  ]}
-                />
-              </Form.Item>
-              <Form.Item>
+              <Collapse ghost style={{ marginBottom: 8 }}>
+                <Collapse.Panel header="Advanced options" key="adv">
+                  <Row gutter={[12, 12]}>
+                    <Col span={24}>
+                      <Form.Item
+                        name="gpu"
+                        label="GPU"
+                        initialValue="none"
+                        tooltip="Only needed for GPU workloads."
+                      >
+                        <Select options={GPU_TYPES} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={24}>
+                      <Form.Item
+                        name="disk"
+                        label="Disk size (GB)"
+                        initialValue={100}
+                        tooltip="Root disk for projects on this host."
+                      >
+                        <Slider min={50} max={1000} step={50} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={24}>
+                      <Form.Item
+                        name="shared"
+                        label="Shared volume"
+                        tooltip="Optional Btrfs subvolume bind-mounted into projects on this host."
+                        initialValue="none"
+                      >
+                        <Select
+                          options={[
+                            { value: "none", label: "None" },
+                            { value: "rw", label: "Shared volume (rw)" },
+                            { value: "ro", label: "Shared volume (ro)" },
+                          ]}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={24}>
+                      <Form.Item
+                        name="bucket"
+                        label="Mount bucket (gcsfuse)"
+                        tooltip="Optional bucket to mount via gcsfuse on this host."
+                      >
+                        <Input placeholder="bucket-name (optional)" />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </Collapse.Panel>
+              </Collapse>
+              <Divider style={{ margin: "8px 0" }} />
+              <Space
+                direction="vertical"
+                style={{ width: "100%" }}
+                size="small"
+              >
+                <Typography.Text type="secondary">
+                  Cost estimate (placeholder): updates with size/region
+                </Typography.Text>
                 <Button
                   type="primary"
                   htmlType="submit"
@@ -198,7 +259,7 @@ export const HostsPage: React.FC = () => {
                 >
                   Create host
                 </Button>
-              </Form.Item>
+              </Space>
             </Form>
           </Card>
         </Col>
