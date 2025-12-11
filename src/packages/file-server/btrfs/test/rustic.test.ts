@@ -23,7 +23,8 @@ describe("test rustic backups", () => {
     expect(Math.abs(Date.now() - v[0].time.valueOf())).toBeLessThan(10000);
     const { id } = v[0];
     const w = await vol.rustic.ls({ id });
-    expect(w).toEqual([SNAPSHOTS, "a.txt"]);
+    const names = w.map((z) => (typeof z === "string" ? z : z.name));
+    expect(names).toEqual([SNAPSHOTS, "a.txt"]);
   });
 
   it("delete a.txt, then restore it from the backup", async () => {
@@ -42,13 +43,12 @@ describe("test rustic backups", () => {
     expect(v.length == 2);
     const { id } = v[1];
     const w = await vol.rustic.ls({ id });
-    expect(w).toEqual([
-      SNAPSHOTS,
-      "a.txt",
-      "my-dir",
-      "my-dir/file.txt",
-      "my-dir/file2.txt",
-    ]);
+    const names = w.map((z) => (typeof z === "string" ? z : z.name));
+    expect(names).toEqual([SNAPSHOTS, "a.txt", "my-dir"]);
+    const dirNames = (
+      await vol.rustic.ls({ id, path: "my-dir" })
+    ).map((z) => (typeof z === "string" ? z : z.name));
+    expect(dirNames).toEqual(["file.txt", "file2.txt"]);
     await vol.fs.rm("my-dir", { recursive: true });
 
     // rustic all, including the path we just deleted
