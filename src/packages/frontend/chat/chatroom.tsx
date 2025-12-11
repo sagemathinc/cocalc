@@ -961,6 +961,7 @@ export function ChatPanel({
           <ChatInput
             fontSize={fontSize}
             autoFocus
+            focusWhenFrameFocused
             cacheId={`${path}${project_id}-new`}
             input={input}
             on_send={on_send}

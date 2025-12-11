@@ -729,6 +729,15 @@ interface Props {
   onMouseOut?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  onKeyDown?: (event: React.KeyboardEvent) => void;
+  // ARIA attributes for accessibility
+  role?: string;
+  "aria-label"?: string;
+  "aria-expanded"?: boolean;
+  "aria-pressed"?: boolean;
+  "aria-live"?: "polite" | "assertive" | "off";
+  "aria-atomic"?: boolean;
+  tabIndex?: number;
 }
 
 const UNICODE_STYLE = {
@@ -765,7 +774,22 @@ export const Icon: React.FC<Props> = (props: Props) => {
     }
 
     return (
-      <span style={style}>
+      <span
+        style={style}
+        role={props.role}
+        aria-label={props["aria-label"]}
+        aria-expanded={props["aria-expanded"]}
+        aria-pressed={props["aria-pressed"]}
+        aria-live={props["aria-live"]}
+        aria-atomic={props["aria-atomic"]}
+        tabIndex={props.tabIndex}
+        onClick={props.onClick}
+        onKeyDown={props.onKeyDown}
+        onMouseOver={props.onMouseOver}
+        onMouseOut={props.onMouseOut}
+        onMouseEnter={props.onMouseEnter}
+        onMouseLeave={props.onMouseLeave}
+      >
         {String.fromCharCode(props.unicode!)}
       </span>
     );
@@ -780,14 +804,31 @@ export const Icon: React.FC<Props> = (props: Props) => {
     C = IconSpec[name.slice(0, name.length - 2)];
   }
   if (C != null) {
+    const ariaProps = {
+      role: props.role,
+      "aria-label": props["aria-label"],
+      "aria-expanded": props["aria-expanded"],
+      "aria-pressed": props["aria-pressed"],
+      "aria-live": props["aria-live"],
+      "aria-atomic": props["aria-atomic"],
+      tabIndex: props.tabIndex,
+      onKeyDown: props.onKeyDown,
+    };
     if (typeof C.IconFont == "string") {
       // @ts-ignore
       if (IconFont == null) {
         return <span>(IconFonts not available)</span>;
       }
-      return <IconFont type={"icon-" + C.IconFont} {...props} alt={name} />;
+      return (
+        <IconFont
+          type={"icon-" + C.IconFont}
+          {...props}
+          {...ariaProps}
+          alt={name}
+        />
+      );
     }
-    return <C {...props} alt={name} />;
+    return <C {...props} {...ariaProps} alt={name} />;
   }
 
   // this is when the icon is broken.

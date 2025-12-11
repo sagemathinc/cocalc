@@ -31,6 +31,12 @@ import {
   get_dark_mode_config,
 } from "./dark-mode";
 import { EditorSettingsColorScheme } from "./editor-settings/color-schemes";
+import { HotkeyDelayTest } from "./hotkey-delay-test";
+import {
+  DEFAULT_HOTKEY,
+  DEFAULT_HOTKEY_DELAY_MS,
+  HotkeySelector,
+} from "./hotkey-selector";
 import { I18NSelector, I18N_MESSAGE, I18N_TITLE } from "./i18n-selector";
 import { OtherSettings } from "./other-settings";
 import { TerminalSettings } from "./terminal-settings";
@@ -169,6 +175,8 @@ export function AccountPreferencesAppearance() {
     return (
       <Panel
         size="small"
+        role="region"
+        aria-label="Dark mode settings"
         header={
           <>
             <Icon unicode={DARK_MODE_ICON} /> Dark Mode
@@ -265,9 +273,14 @@ export function AccountPreferencesAppearance() {
   }
 
   function renderUserInterfacePanel(): ReactElement {
+    const quick_nav_hotkey =
+      other_settings.get("quick_nav_hotkey") ?? DEFAULT_HOTKEY;
+
     return (
       <Panel
         size="small"
+        role="region"
+        aria-label="User interface settings"
         header={
           <>
             <Icon name="desktop" />{" "}
@@ -293,6 +306,95 @@ export function AccountPreferencesAppearance() {
             </HelpIcon>
           </div>
         </LabeledRow>
+        <LabeledRow
+          label={
+            <>
+              <Icon name="flash" /> Quick Navigation Hotkey
+            </>
+          }
+        >
+          <HotkeySelector
+            value={quick_nav_hotkey}
+            onChange={(value) => on_change("quick_nav_hotkey", value)}
+            style={{ width: 200 }}
+          />
+        </LabeledRow>
+        {quick_nav_hotkey === "shift+shift" && (
+          <LabeledRow
+            label={
+              <>
+                <Icon name="clock" /> Hotkey Delay
+              </>
+            }
+          >
+            <div style={{ display: "flex", gap: 16, alignItems: "stretch" }}>
+              <div
+                style={{
+                  flex: "1 1 auto",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <Slider
+                  min={100}
+                  max={800}
+                  step={100}
+                  value={
+                    other_settings.get("quick_nav_hotkey_delay") ??
+                    DEFAULT_HOTKEY_DELAY_MS
+                  }
+                  onChange={(value) =>
+                    on_change("quick_nav_hotkey_delay", value)
+                  }
+                  style={{ flex: 1 }}
+                  marks={Object.fromEntries(
+                    Array.from({ length: 8 }, (_, i) => (i + 1) * 100).map(
+                      (ms) => [ms, `${ms}ms`],
+                    ),
+                  )}
+                />
+                <span
+                  style={{
+                    minWidth: 60,
+                    textAlign: "right",
+                    fontWeight: 500,
+                    color: COLORS.GRAY_M,
+                    marginLeft: 12,
+                  }}
+                >
+                  {other_settings.get("quick_nav_hotkey_delay") ??
+                    DEFAULT_HOTKEY_DELAY_MS}
+                  ms
+                </span>
+              </div>
+              <div
+                style={{
+                  flex: "0 1 auto",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                <HotkeyDelayTest
+                  delayMs={
+                    other_settings.get("quick_nav_hotkey_delay") ??
+                    DEFAULT_HOTKEY_DELAY_MS
+                  }
+                />
+              </div>
+            </div>
+          </LabeledRow>
+        )}
+        <Switch
+          checked={!!other_settings.get("auto_focus")}
+          onChange={(e) => on_change("auto_focus", e.target.checked)}
+        >
+          <FormattedMessage
+            id="account.other-settings.auto_focus"
+            defaultMessage={`<strong>Auto Focus Text Input:</strong>
+            automatically focus text input fields when they appear (e.g., file explorer, projects, ...)`}
+          />
+        </Switch>
         <Switch
           checked={!!other_settings.get("hide_file_popovers")}
           onChange={(e) => on_change("hide_file_popovers", e.target.checked)}
@@ -348,7 +450,7 @@ export function AccountPreferencesAppearance() {
   }
 
   return (
-    <>
+    <div role="region" aria-label="Appearance settings">
       {renderUserInterfacePanel()}
       <OtherSettings
         other_settings={other_settings}
@@ -368,6 +470,6 @@ export function AccountPreferencesAppearance() {
         font_size={font_size}
       />
       <TerminalSettings />
-    </>
+    </div>
   );
 }

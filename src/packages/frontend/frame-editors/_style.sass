@@ -3,6 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+  // cSpell:ignore tabpane tabindex
+
+@use '../colors'
+
 // make buttons and button-groups wrap with a larger vertical space (not 0 px)
 .cc-frame-tree-title-bar-buttons
 
@@ -64,3 +68,30 @@
     &:not(.ant-tabs-tabpane-hidden)
       display: flex
       flex-direction: column
+
+// Frame Editor Focus Styles
+// Provides visual feedback for ARIA keyboard navigation through frame editors
+// and the main content landmark.
+
+// Main content landmark focus indicator
+[role="main"][tabindex="0"]:focus-visible
+      outline: 2px solid colors.$COL_ANTD_LINK_BLUE
+      outline-offset: 2px
+
+// Frame editor focus when navigating with keyboard (Tab, Return)
+// This applies the blue indicator whenever a frame is focused via keyboard
+.smc-vfill:focus-visible
+  // Provide a subtle focus indicator without obscuring content
+  box-shadow: inset 0 0 0 2px colors.$COL_ANTD_LINK_BLUE
+  background-color: colors.$COL_ANTD_BG_BLUE_L
+
+// Frame editor active state (highlighted from hotkey/menu selection)
+// This shows the blue background/border when frame is active even if not focused
+.frame-editor-active
+  box-shadow: inset 0 0 0 2px colors.$COL_ANTD_LINK_BLUE
+  background-color: colors.$COL_ANTD_BG_BLUE_L
+
+// Content region while focused via landmark navigation
+div[role="main"]:focus
+  outline: 2px solid colors.$COL_ANTD_LINK_BLUE
+  outline-offset: 2px

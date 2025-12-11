@@ -9,10 +9,11 @@ Tabs for the open files in a project.
 
 import type { TabsProps } from "antd";
 import { Tabs } from "antd";
+
 import { useActions } from "@cocalc/frontend/app-framework";
 import {
-  renderTabBar,
   SortableTabs,
+  SortableTab,
   useItemContext,
   useSortable,
 } from "@cocalc/frontend/components/sortable-tabs";
@@ -22,7 +23,14 @@ import { FileTab } from "./file-tab";
 
 const MIN_WIDTH = 48;
 
-function Label({ path, project_id, label }) {
+interface LabelProps {
+  path: string;
+  project_id: string;
+  label: string;
+  isActive?: boolean;
+}
+
+function Label({ path, project_id, label, isActive }: LabelProps) {
   const { width } = useItemContext();
   const { active } = useSortable({ id: project_id });
   return (
@@ -37,6 +45,9 @@ function Label({ path, project_id, label }) {
           ? { width: Math.max(MIN_WIDTH, width + 15), marginRight: "-10px" }
           : undefined),
       }}
+      role="tab"
+      aria-selected={isActive ?? false}
+      aria-controls={`content-${path.replace(/[^a-zA-Z0-9-]/g, "-")}`}
     />
   );
 }
@@ -58,6 +69,22 @@ function pathToKey(s: string): string {
 
 function keyToPath(s: string): string {
   return s.replace(/\uFE35/g, '"');
+}
+
+function renderTabBar(tabBarProps, DefaultTabBar, activateTab) {
+  return (
+    <DefaultTabBar {...tabBarProps}>
+      {(node) => (
+        <SortableTab
+          key={node.key}
+          id={node.key}
+          onKeyReturn={() => activateTab(keyToPath(node.key))}
+        >
+          {node}
+        </SortableTab>
+      )}
+    </DefaultTabBar>
+  );
 }
 
 export default function FileTabs({ openFiles, project_id, activeTab }) {
@@ -82,15 +109,21 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
 
   const labels = file_tab_labels(paths);
   const items: TabsProps["items"] = [];
+  const activeKey = activeTab.startsWith(EDITOR_PREFIX)
+    ? pathToKey(activeTab.slice(EDITOR_PREFIX.length))
+    : "";
 
   for (let index = 0; index < labels.length; index++) {
+    const pathKey = pathToKey(paths[index]);
+    const isActive = pathKey === activeKey;
     items.push({
-      key: pathToKey(paths[index]),
+      key: pathKey,
       label: (
         <Label
           path={paths[index]}
           project_id={project_id}
           label={labels[index]}
+          isActive={isActive}
         />
       ),
     });
@@ -128,10 +161,6 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     });
   }
 
-  const activeKey = activeTab.startsWith(EDITOR_PREFIX)
-    ? pathToKey(activeTab.slice(EDITOR_PREFIX.length))
-    : "";
-
   function onDragStart(event) {
     if (actions == null) return;
     if (event?.active?.id != activeKey) {
@@ -143,28 +172,45 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     }
   }
 
+  function activateTab(path: string) {
+    if (actions == null) return;
+    actions.set_active_tab(path_to_tab(path));
+  }
+
   return (
-    <SortableTabs items={keys} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <Tabs
-        animated={false}
-        renderTabBar={renderTabBar}
-        tabBarStyle={{
-          minHeight: "36px",
-          background: "#e8e8e8",
-          borderTop: "2px solid lightgrey",
-        }}
-        onEdit={onEdit}
-        style={{ width: "100%" }}
-        size="small"
-        items={items}
-        activeKey={activeKey}
-        type={"editable-card"}
-        onChange={(key) => {
-          if (actions == null) return;
-          actions.set_active_tab(path_to_tab(keyToPath(key)));
-        }}
-        popupClassName={"cocalc-files-tabs-more"}
-      />
-    </SortableTabs>
+    <nav
+      role="main"
+      aria-label="Open files"
+      style={{ flex: 1, display: "flex" }}
+    >
+      <SortableTabs
+        items={keys}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+      >
+        <Tabs
+          animated={false}
+          renderTabBar={(tabBarProps, DefaultTabBar) =>
+            renderTabBar(tabBarProps, DefaultTabBar, activateTab)
+          }
+          tabBarStyle={{
+            minHeight: "36px",
+            background: "#e8e8e8",
+            borderTop: "2px solid lightgrey",
+          }}
+          onEdit={onEdit}
+          style={{ width: "100%" }}
+          size="small"
+          items={items}
+          activeKey={activeKey}
+          type={"editable-card"}
+          onChange={(key) => {
+            if (actions == null) return;
+            actions.set_active_tab(path_to_tab(keyToPath(key)));
+          }}
+          popupClassName={"cocalc-files-tabs-more"}
+        />
+      </SortableTabs>
+    </nav>
   );
 }

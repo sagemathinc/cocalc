@@ -44,6 +44,8 @@ interface Props {
   filename: string;
   makeNewFilename?: (ext: string) => void;
   filenameChanged?: boolean;
+  role?: string;
+  "aria-label"?: string;
 }
 
 // Use Rows and Cols to append more buttons to this class.
@@ -60,6 +62,8 @@ export function FileTypeSelector({
   filename,
   makeNewFilename,
   filenameChanged,
+  role,
+  "aria-label": ariaLabel,
 }: Props) {
   const { project_id } = useProjectContext();
   const intl = useIntl();
@@ -685,7 +689,7 @@ export function FileTypeSelector({
   }
 
   return (
-    <div>
+    <div role={role} aria-label={ariaLabel}>
       {renderJupyterNotebook()}
       {renderLinux()}
       {renderMarkdown()}

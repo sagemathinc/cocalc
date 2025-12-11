@@ -11,5 +11,9 @@ import { KeyboardSettings } from "./keyboard-settings";
 export const KEYBOARD_ICON_NAME: IconName = "keyboard";
 
 export function AccountPreferencesKeyboard() {
-  return <KeyboardSettings />;
+  return (
+    <div role="region" aria-label="Keyboard settings">
+      <KeyboardSettings />
+    </div>
+  );
 }
