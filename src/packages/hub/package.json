@@ -12,6 +12,7 @@
     "@cocalc/cdn": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/database": "workspace:*",
+    "@cocalc/project-host": "workspace:*",
     "@cocalc/hub": "workspace:*",
     "@cocalc/next": "workspace:*",
     "@cocalc/server": "workspace:*",

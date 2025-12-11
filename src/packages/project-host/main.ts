@@ -33,6 +33,9 @@ const logger = getLogger("project-host:main");
 
 export interface ProjectHostConfig {
   hostId?: string;
+  embedded?: boolean;
+  host?: string;
+  port?: number;
 }
 
 export interface ProjectHostContext {
@@ -55,8 +58,12 @@ export async function main(
   _config: ProjectHostConfig = {},
 ): Promise<ProjectHostContext> {
   const runnerId = process.env.PROJECT_RUNNER_NAME || "project-host";
-  const host = process.env.HOST ?? "0.0.0.0";
-  const port = Number(process.env.PORT) || (await getPort());
+  const host = _config.host ?? process.env.HOST ?? "0.0.0.0";
+  const port = _config.port ?? (Number(process.env.PORT) || (await getPort()));
+  const embeddedEnv =
+    process.env.COCALC_EMBEDDED_PROJECT_HOST === "1" ||
+    process.env.COCALC_EMBEDDED_PROJECT_HOST === "true";
+  const embedded = _config.embedded ?? embeddedEnv;
 
   logger.info(`starting project-host on ${host}:${port} (runner=${runnerId})`);
 
@@ -71,12 +78,15 @@ export async function main(
   if (conatServer.state !== "ready") {
     await once(conatServer, "ready");
   }
-  setConatServer(conatServer.address());
   const conatClient = conatServer.client({ path: "/" });
-  setConatClient({
-    conat: () => conatClient,
-    getLogger,
-  });
+  // In embedded mode we avoid clobbering the hub's global conat client/server.
+  if (!embedded) {
+    setConatServer(conatServer.address());
+    setConatClient({
+      conat: () => conatClient,
+      getLogger,
+    });
+  }
 
   // Local sqlite + changefeeds for UI data
   initSqlite();

@@ -813,6 +813,9 @@ importers:
       '@cocalc/next':
         specifier: workspace:*
         version: link:../next
+      '@cocalc/project-host':
+        specifier: workspace:*
+        version: link:../project-host
       '@cocalc/server':
         specifier: workspace:*
         version: link:../server
@@ -16781,7 +16784,7 @@ snapshots:
 
   axios@1.13.1:
     dependencies:
-      follow-redirects: 1.15.11
+      follow-redirects: 1.15.11(debug@4.4.3)
       form-data: 4.0.4
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -18958,8 +18961,6 @@ snapshots:
   flatten-vertex-data@1.0.2:
     dependencies:
       dtype: 2.0.0
-
-  follow-redirects@1.15.11: {}
 
   follow-redirects@1.15.11(debug@4.4.3):
     optionalDependencies:

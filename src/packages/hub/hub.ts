@@ -56,6 +56,7 @@ import { migrateBookmarksToConat } from "./migrate-bookmarks";
 import { setConatClient } from "@cocalc/conat/client";
 import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
 import { createProjectHostProxyHandlers } from "./proxy/project-host";
+import { maybeStartEmbeddedProjectHost } from "./servers/project-host";
 
 // Logger tagged with 'hub' for this file.
 const logger = getLogger("hub");
@@ -207,6 +208,8 @@ async function startServer(): Promise<void> {
   if (program.conatServer) {
     await initConatHostRegistry();
   }
+
+  await maybeStartEmbeddedProjectHost();
 
   if (program.conatServer) {
     if (program.mode == "single-user" && process.env.USER == "user") {

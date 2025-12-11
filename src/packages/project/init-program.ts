@@ -65,19 +65,26 @@ program
     "--init [string]",
     "Runs the given script via bash and redirects output to .log and .err files.",
   )
-  .option("--daemon", "Run as a daemon")
-  .parse(process.argv);
+  .option("--daemon", "Run as a daemon");
 
-function init(): Options {
+let OPTIONS: Options | null = null;
+
+function init(argv = process.argv): Options {
+  if (OPTIONS) return OPTIONS;
+  program.parse(argv);
   const opts = program.opts();
   for (const key in opts) {
     DEFAULTS[key] = opts[key];
   }
-  return DEFAULTS;
+  OPTIONS = DEFAULTS;
+  return OPTIONS;
 }
 
-const OPTIONS = init();
-
 export function getOptions() {
-  return OPTIONS;
+  return init();
+}
+
+// If invoked directly, parse immediately (normal CLI behavior).
+if (require.main === module) {
+  init();
 }

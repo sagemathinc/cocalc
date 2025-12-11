@@ -43,7 +43,9 @@ interface Status {
 // require('prometheus-gc-stats')()()
 
 // collect some recommended default metrics
-prom_client.collectDefaultMetrics();
+try {
+  prom_client.collectDefaultMetrics();
+} catch {}
 
 // --- end prometheus setup
 
