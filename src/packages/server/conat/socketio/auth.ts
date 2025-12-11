@@ -16,6 +16,7 @@ import {
 import { getAccountWithApiKey } from "@cocalc/server/api/manage";
 import { getProjectSecretToken } from "@cocalc/server/projects/control/secret-token";
 import { getAdmins } from "@cocalc/server/accounts/is-admin";
+import getPool from "@cocalc/database/pool";
 
 const COOKIES = `'${HUB_PASSWORD_COOKIE_NAME}', '${REMEMBER_ME_COOKIE_NAME}', ${API_COOKIE_NAME}, '${PROJECT_SECRET_COOKIE_NAME}' or '${PROJECT_ID_COOKIE_NAME}'`;
 
@@ -227,9 +228,43 @@ async function isAccountAllowed({
   // account accessing a project
   const project_id = extractProjectSubject(subject);
   if (!project_id) {
+    // account accessing a host bootlog: bootlog.host.<host_id>.>
+    const host_id = extractHostSubject(subject);
+    if (host_id) {
+      return await isHostOwnerOrCollaborator({ account_id, host_id });
+    }
     return false;
   }
   return await isCollaborator({ account_id, project_id });
+}
+
+function extractHostSubject(subject: string): string {
+  const parts = subject.split(".");
+  if (parts[0] === "bootlog" && parts[1] === "host") {
+    const host_id = parts[2];
+    if (isValidUUID(host_id)) {
+      return host_id;
+    }
+  }
+  return "";
+}
+
+async function isHostOwnerOrCollaborator({
+  account_id,
+  host_id,
+}: {
+  account_id: string;
+  host_id: string;
+}): Promise<boolean> {
+  const { rows } = await getPool().query(
+    "SELECT metadata FROM project_hosts WHERE id=$1",
+    [host_id],
+  );
+  if (!rows[0]) return false;
+  const metadata = rows[0].metadata ?? {};
+  if (metadata.owner === account_id) return true;
+  const collabs: string[] = metadata.collaborators ?? [];
+  return collabs.includes(account_id);
 }
 
 function extractProjectSubject(subject: string): string {

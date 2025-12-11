@@ -568,10 +568,12 @@ export class ConatClient extends EventEmitter {
   refCacheInfo = () => refCacheInfo();
 
   projectBootlog = (opts: {
-    project_id: string;
+    project_id?: string;
+    host_id?: string;
     compute_server_id?: number;
   }) => {
-    return getBootlog({ ...opts, client: this.conat() });
+    // Bootlog now supports either project_id or host_id; at least one must be set by caller.
+    return getBootlog({ client: this.conat(), ...opts } as any);
   };
 
   terminalClient = (opts: {

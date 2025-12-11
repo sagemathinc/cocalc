@@ -13,8 +13,10 @@ import { TimeAgo } from "@cocalc/frontend/components";
 export default function Bootlog({
   style,
   compute_server_id,
+  host_id,
 }: {
   compute_server_id?: number;
+  host_id?: string;
   style?;
 }) {
   const { project_id, isRunning } = useProjectContext();
@@ -27,6 +29,7 @@ export default function Bootlog({
     const log = await webapp_client.conat_client.projectBootlog({
       project_id,
       compute_server_id,
+      host_id,
     });
     // maximally DUMB for now!
     setLog(log.getAll().reverse());

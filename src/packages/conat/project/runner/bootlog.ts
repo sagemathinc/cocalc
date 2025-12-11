@@ -25,30 +25,43 @@ export interface Event {
 }
 
 export interface Options extends Event {
-  project_id: string;
-  compute_server_id?: number;
+  project_id?: string;
+  host_id?: string;
+  compute_server_id?: number; // legacy
   client?: Client;
   ttl?: number;
 }
 
-function getName({ compute_server_id = 0 }: { compute_server_id: number }) {
+function getName({
+  host_id,
+  project_id,
+  compute_server_id = 0,
+}: {
+  host_id?: string;
+  project_id?: string;
+  compute_server_id?: number;
+}) {
+  if (host_id) return `bootlog.host.${host_id}`;
+  if (project_id) return `bootlog.project.${project_id}`;
   return `bootlog.${compute_server_id}`;
 }
 
 export async function resetBootlog({
   project_id,
+  host_id,
   compute_server_id = 0,
   client = conat(),
 }) {
   const stream = client.sync.astream<Event>({
     project_id,
-    name: getName({ compute_server_id }),
+    name: getName({ host_id, project_id, compute_server_id }),
   });
   try {
     await stream.delete({ all: true });
   } catch (err) {
     logger.debug("ERROR reseting log", {
       project_id,
+      host_id,
       compute_server_id,
       err,
     });
@@ -61,6 +74,7 @@ const start: { [key: string]: number } = {};
 export async function bootlog(opts: Options) {
   const {
     project_id,
+    host_id,
     compute_server_id = 0,
     client = conat(),
     ttl = DEFAULT_TTL,
@@ -70,12 +84,12 @@ export async function bootlog(opts: Options) {
   } = opts;
   const stream = client.sync.astream<Event>({
     project_id,
-    name: getName({ compute_server_id }),
+    name: getName({ host_id, project_id, compute_server_id }),
   });
   if (event.error != null && typeof event.error != "string") {
     event.error = `${event.error}`;
   }
-  const key = `${project_id}-${compute_server_id}-${event.type}`;
+  const key = `${project_id ?? ""}-${host_id ?? ""}-${compute_server_id}-${event.type}`;
   let progress;
   if (event.progress != null) {
     if (!event.progress) {
@@ -93,6 +107,7 @@ export async function bootlog(opts: Options) {
   } catch (err) {
     logger.debug("ERROR publishing to bootlog", {
       project_id,
+      host_id,
       compute_server_id,
       err,
     });
@@ -117,15 +132,18 @@ export function shiftProgress<T extends number | undefined>({
 // be sure to call .close() on the result when done
 export async function get({
   project_id,
+  host_id,
   compute_server_id = 0,
   client = conat(),
 }: {
-  project_id: string;
+  project_id?: string;
+  host_id?: string;
   compute_server_id?: number;
   client?: Client;
 }): Promise<DStream<Event>> {
+  // Prefer project_id if given; otherwise use host_id
   return await client.sync.dstream<Event>({
     project_id,
-    name: getName({ compute_server_id }),
+    name: getName({ host_id, project_id, compute_server_id }),
   });
 }
