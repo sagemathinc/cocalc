@@ -41,7 +41,7 @@
     "uglify-js": "^3.14.1",
     "underscore": "^1.12.1",
     "uuid": "^8.3.2",
-    "validator": "^13.15.20",
+    "validator": "^13.15.22",
     "webpack-dev-middleware": "^7.4.2",
     "webpack-hot-middleware": "^2.26.1"
   },

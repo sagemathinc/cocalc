@@ -11,6 +11,7 @@ import { useIntl } from "react-intl";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { ACTIVITY_BAR_LABELS } from "@cocalc/frontend/project/page/activity-bar-consts";
+import { A11Y } from "@cocalc/util/consts/ui";
 import { COLORS } from "@cocalc/util/theme";
 import { getBaseAntdTheme } from "./antd-base-theme";
 import { NARROW_THRESHOLD_PX, PageStyle } from "./top-nav-consts";
@@ -86,6 +87,18 @@ export function useAntdStyleProvider() {
   const branded = other_settings?.get("antd_brandcolors", false);
   const compact = other_settings?.get("antd_compact", false);
 
+  // Parse accessibility settings
+  const accessibilityStr = other_settings?.get(A11Y);
+  let accessibilityEnabled = false;
+  if (accessibilityStr) {
+    try {
+      const accessibilitySettings = JSON.parse(accessibilityStr);
+      accessibilityEnabled = accessibilitySettings.enabled ?? false;
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
   const borderStyle = rounded
     ? undefined
     : { borderRadius: 0, borderRadiusLG: 0, borderRadiusSM: 0 };
@@ -95,6 +108,16 @@ export function useAntdStyleProvider() {
   const primaryColor = branded
     ? undefined
     : { colorPrimary: COLORS.ANTD_LINK_BLUE };
+
+  // Accessibility: Set all text to pure black for maximum contrast
+  const accessibilityTextColor = accessibilityEnabled
+    ? {
+        colorText: "#000000",
+        colorTextSecondary: "#000000",
+        colorTextTertiary: "#000000",
+        colorTextQuaternary: "#000000",
+      }
+    : undefined;
 
   const algorithm = compact ? { algorithm: theme.compactAlgorithm } : undefined;
 
@@ -106,6 +129,7 @@ export function useAntdStyleProvider() {
       ...primaryColor,
       ...borderStyle,
       ...animationStyle,
+      ...accessibilityTextColor,
     },
     components: {
       Button: {
