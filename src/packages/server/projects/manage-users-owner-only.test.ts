@@ -11,6 +11,7 @@ import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import {
   addCollaborator,
+  changeUserType,
   removeCollaborator,
 } from "@cocalc/server/projects/collaborators";
 import { resetServerSettingsCache } from "@cocalc/database/settings/server-settings";
@@ -25,7 +26,9 @@ async function setSiteStrictCollab(value: "yes" | "no") {
 }
 
 beforeAll(async () => {
-  await initEphemeralDatabase();
+  // Start from a clean slate to avoid interference from other tests sharing
+  // the ephemeral database (compute server tables, settings, etc.).
+  await initEphemeralDatabase({ reset: true });
 }, 15000);
 
 afterAll(async () => {
@@ -37,6 +40,7 @@ describe("without site enforcement (default)", () => {
   const collaboratorId = uuid();
   const collaboratorToRemove = uuid();
   const newCollaboratorId = uuid();
+  const ownerCollaboratorId = uuid();
   let projectId: string;
 
   beforeAll(async () => {
@@ -70,6 +74,13 @@ describe("without site enforcement (default)", () => {
       lastName: "Four",
       account_id: newCollaboratorId,
     });
+    await createAccount({
+      email: `owner-collab-${ownerCollaboratorId}@example.com`,
+      password: "pass",
+      firstName: "Owner",
+      lastName: "Collab",
+      account_id: ownerCollaboratorId,
+    });
 
     projectId = await createProject({
       account_id: ownerId,
@@ -84,6 +95,27 @@ describe("without site enforcement (default)", () => {
       account_id: ownerId,
       opts: { project_id: projectId, account_id: collaboratorToRemove },
     });
+    await addCollaborator({
+      account_id: ownerId,
+      opts: { project_id: projectId, account_id: ownerCollaboratorId },
+    });
+
+    // Promote ownerCollaboratorId to owner
+    await changeUserType({
+      account_id: ownerId,
+      opts: {
+        project_id: projectId,
+        target_account_id: ownerCollaboratorId,
+        new_group: "owner",
+      },
+    });
+
+    // Verify they are actually an owner
+    const { rows } = await getPool().query(
+      "SELECT users FROM projects WHERE project_id=$1",
+      [projectId],
+    );
+    expect(rows[0].users[ownerCollaboratorId]).toEqual({ group: "owner" });
   });
 
   test("collaborator can add collaborators when site enforcement is off", async () => {
@@ -115,6 +147,15 @@ describe("without site enforcement (default)", () => {
     );
     expect(rows[0].users[collaboratorToRemove]).toBeUndefined();
   });
+
+  test("collaborator cannot remove another owner collaborator when site enforcement is off", async () => {
+    await expect(
+      removeCollaborator({
+        account_id: collaboratorId,
+        opts: { project_id: projectId, account_id: ownerCollaboratorId },
+      }),
+    ).rejects.toThrow("Cannot remove an owner. Demote to collaborator first.");
+  });
 });
 
 describe("strict collaborator management site setting", () => {
@@ -122,6 +163,8 @@ describe("strict collaborator management site setting", () => {
   const collaboratorId = uuid();
   const otherCollaboratorId = uuid();
   const newCollaboratorId = uuid();
+  const ownerCollaboratorId = uuid();
+  const collaboratorToRemoveByOwner = uuid();
   let projectId: string;
 
   beforeAll(async () => {
@@ -148,6 +191,20 @@ describe("strict collaborator management site setting", () => {
       lastName: "Three",
       account_id: otherCollaboratorId,
     });
+    await createAccount({
+      email: `owner-collab-${ownerCollaboratorId}@example.com`,
+      password: "pass",
+      firstName: "Owner",
+      lastName: "Collab",
+      account_id: ownerCollaboratorId,
+    });
+    await createAccount({
+      email: `collab-remove-${collaboratorToRemoveByOwner}@example.com`,
+      password: "pass",
+      firstName: "Collab",
+      lastName: "ToRemove",
+      account_id: collaboratorToRemoveByOwner,
+    });
 
     projectId = await createProject({
       account_id: ownerId,
@@ -162,6 +219,31 @@ describe("strict collaborator management site setting", () => {
       account_id: ownerId,
       opts: { project_id: projectId, account_id: otherCollaboratorId },
     });
+    await addCollaborator({
+      account_id: ownerId,
+      opts: { project_id: projectId, account_id: ownerCollaboratorId },
+    });
+    await addCollaborator({
+      account_id: ownerId,
+      opts: { project_id: projectId, account_id: collaboratorToRemoveByOwner },
+    });
+
+    // Promote ownerCollaboratorId to owner
+    await changeUserType({
+      account_id: ownerId,
+      opts: {
+        project_id: projectId,
+        target_account_id: ownerCollaboratorId,
+        new_group: "owner",
+      },
+    });
+
+    // Verify they are actually an owner
+    const { rows } = await getPool().query(
+      "SELECT users FROM projects WHERE project_id=$1",
+      [projectId],
+    );
+    expect(rows[0].users[ownerCollaboratorId]).toEqual({ group: "owner" });
   });
 
   test("owner can still add collaborators when site enforcement is on", async () => {
@@ -193,5 +275,32 @@ describe("strict collaborator management site setting", () => {
     ).rejects.toThrow(
       "Only owners can manage collaborators when this setting is enabled",
     );
+  });
+
+  test("owner can remove non-owner collaborators when site enforcement is on", async () => {
+    await expect(
+      removeCollaborator({
+        account_id: ownerId,
+        opts: {
+          project_id: projectId,
+          account_id: collaboratorToRemoveByOwner,
+        },
+      }),
+    ).resolves.toBeUndefined();
+
+    const { rows } = await getPool().query(
+      "SELECT users FROM projects WHERE project_id=$1",
+      [projectId],
+    );
+    expect(rows[0].users[collaboratorToRemoveByOwner]).toBeUndefined();
+  });
+
+  test("collaborator cannot remove owner collaborator when site enforcement is on", async () => {
+    await expect(
+      removeCollaborator({
+        account_id: collaboratorId,
+        opts: { project_id: projectId, account_id: ownerCollaboratorId },
+      }),
+    ).rejects.toThrow("Cannot remove an owner. Demote to collaborator first.");
   });
 });
