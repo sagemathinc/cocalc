@@ -367,12 +367,19 @@ export async function initFileServer({
   client: ConatClient;
   enableSsh?: boolean;
 }) {
+  logger.debug("initFileServer", { enableSsh });
   if (servers != null) {
+    logger.debug("initFileServer: already initialized");
+
     return servers;
   }
 
   if (fs == null) {
     if (fileServerMountpoint) {
+      logger.debug("initFileServer: initializing fs mountpoint", {
+        fileServerMountpoint,
+        rusticRepo,
+      });
       fs = await filesystem({
         mount: fileServerMountpoint,
         rustic: rusticRepo,
@@ -380,6 +387,10 @@ export async function initFileServer({
     } else {
       const imageDir = join(data, "btrfs", "image");
       const mountPoint = join(data, "btrfs", "mnt");
+      logger.debug("initFileServer: initializing fs mountpoint", {
+        mountPoint,
+        rusticRepo,
+      });
       if (!(await exists(imageDir))) {
         await mkdir(imageDir, { recursive: true });
       }
@@ -394,6 +405,8 @@ export async function initFileServer({
       });
     }
   }
+
+  logger.debug("initFileServer: create conat server");
 
   const file = await createFileServer({
     client,
@@ -421,20 +434,28 @@ export async function initFileServer({
     getSync,
     syncCommand,
   });
+  logger.debug("initFileServer: fs successfully initialized");
 
   let ssh: any = { close: () => {}, projectProxyHandlers: [] };
   if (enableSsh) {
+    logger.debug("initFileServer: configure ssh proxy");
+
     let proxyPublicKey: string | undefined;
     let hostSshPort: number | null = null;
     let btrfsSshPort: number | null = null;
+    logger.debug("initFileServer: get host id...");
     const hostId = requireHostId();
+    logger.debug("initFileServer: hostId", hostId);
     // sshpiperd must use the stable per-host keypair persisted in sqlite.
     const sshpiperdKey = ensureSshpiperdKey(hostId);
+    logger.debug("initFileServer: got key");
     const hostKeyPath = join(secrets, "sshpiperd", "host_key");
+    logger.debug("initFileServer: create", dirname(hostKeyPath));
     await mkdir(dirname(hostKeyPath), { recursive: true });
+    logger.debug("initFileServer: create", hostKeyPath);
     await writeFile(hostKeyPath, sshpiperdKey.privateKey, { mode: 0o600 });
     await chmod(hostKeyPath, 0o600);
-
+    logger.debug("initFileServer: ssh configured");
     async function startHostContainer() {
       if (!proxyPublicKey) {
         throw Error("proxy public key not yet available");
@@ -525,6 +546,8 @@ export async function initFileServer({
       return keys.join("\n");
     };
 
+    logger.debug("initFileServer: start ssh server");
+
     ssh = await initSshServer({
       proxyHandlers: true,
       getSshdPort,
@@ -534,16 +557,20 @@ export async function initFileServer({
 
     proxyPublicKey = ssh.publicKey;
     try {
+      logger.debug("initFileServer: start host container");
       await startHostContainer();
     } catch (err) {
       logger.warn("failed to start host ssh container", { err: `${err}` });
     }
     try {
+      logger.debug("initFileServer: start btrfs container");
       await startBtrfsServer();
     } catch (err) {
       logger.warn("failed to start btrfs ssh server", { err: `${err}` });
     }
   }
+
+  logger.debug("initFileServer: success");
 
   servers = { file, ssh };
   return servers;

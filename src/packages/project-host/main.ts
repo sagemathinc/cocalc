@@ -33,7 +33,6 @@ const logger = getLogger("project-host:main");
 
 export interface ProjectHostConfig {
   hostId?: string;
-  embedded?: boolean;
   host?: string;
   port?: number;
 }
@@ -60,10 +59,6 @@ export async function main(
   const runnerId = process.env.PROJECT_RUNNER_NAME || "project-host";
   const host = _config.host ?? process.env.HOST ?? "0.0.0.0";
   const port = _config.port ?? (Number(process.env.PORT) || (await getPort()));
-  const embeddedEnv =
-    process.env.COCALC_EMBEDDED_PROJECT_HOST === "1" ||
-    process.env.COCALC_EMBEDDED_PROJECT_HOST === "true";
-  const embedded = _config.embedded ?? embeddedEnv;
 
   logger.info(`starting project-host on ${host}:${port} (runner=${runnerId})`);
 
@@ -79,16 +74,13 @@ export async function main(
     await once(conatServer, "ready");
   }
   const conatClient = conatServer.client({ path: "/" });
-  // In embedded mode we avoid clobbering the hub's global conat client/server.
-  if (!embedded) {
-    setConatServer(conatServer.address());
-    setConatClient({
-      conat: () => conatClient,
-      getLogger,
-    });
-  }
+  setConatServer(conatServer.address());
+  setConatClient({
+    conat: () => conatClient,
+    getLogger,
+  });
 
-  // Local sqlite + changefeeds for UI data
+  logger.info("Local sqlite + changefeeds for UI data");
   initSqlite();
   initChangefeeds({ client: conatClient });
   await initHubApi({ client: conatClient });
@@ -96,10 +88,15 @@ export async function main(
   // Minimal local persistence so DKV/state works (no external hub needed).
   const persistServer = createPersistServer({ client: conatClient });
 
-  // 2) File-server (local btrfs + optional ssh proxy if enabled)
-  await initFileServer({ client: conatClient });
+  logger.info("File-server (local btrfs + optional ssh proxy if enabled)");
+  try {
+    await initFileServer({ client: conatClient });
+  } catch (err) {
+    logger.error("FATAL: Failed to init file server", err);
+    process.exit(1);
+  }
 
-  // Proxy HTTP/WS traffic to running project containers.
+  logger.info("Proxy HTTP/WS traffic to running project containers.");
   attachProjectProxy({
     httpServer,
     app,
@@ -114,13 +111,15 @@ export async function main(
     },
   });
 
-  // Serve per-project files via the fs.* conat service, mounting from the local file-server.
+  logger.info(
+    "Serve per-project files via the fs.* conat service, mounting from the local file-server.",
+  );
   const fsServer = await initFsServer({ client: conatClient });
 
-  // HTTP static + customize + API wiring
+  logger.info("HTTP static + customize + API wiring");
   await initHttp({ app, conatClient });
 
-  // 3) Project-runner bound to the same conat + file-server
+  logger.info("Project-runner bound to the same conat + file-server");
   await initRunner({ id: runnerId, client: conatClient });
   const runnerApi = projectRunnerClient({
     client: conatClient,
@@ -129,11 +128,12 @@ export async function main(
   });
   wireProjectsApi(runnerApi);
 
-  // 4) Minimal HTTP API
+  logger.info("Minimal HTTP API");
   app.get("/healthz", (_req, res) => res.json({ ok: true }));
 
   addCatchAll(app);
 
+  logger.info("start Master Registration");
   const stopMasterRegistration = await startMasterRegistration({
     hostId: _config.hostId ?? process.env.PROJECT_HOST_ID,
     runnerId,

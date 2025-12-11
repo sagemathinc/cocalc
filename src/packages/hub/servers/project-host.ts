@@ -11,16 +11,10 @@ import { mkdirSync } from "fs";
 import { join } from "path";
 import { data as dataDir } from "@cocalc/backend/data";
 import port from "@cocalc/backend/port";
-import { main as startEmbeddedProjectHost } from "@cocalc/project-host/main";
+import { fork, ChildProcess } from "child_process";
 import { getLogger } from "../logger";
 
 const logger = getLogger("hub:embedded-project-host");
-
-function setDefaultEnv(key: string, value: string) {
-  if (!process.env[key]) {
-    process.env[key] = value;
-  }
-}
 
 export async function maybeStartEmbeddedProjectHost() {
   const flag = process.env.COCALC_EMBEDDED_PROJECT_HOST;
@@ -28,6 +22,13 @@ export async function maybeStartEmbeddedProjectHost() {
     return;
   }
   logger.info("starting embedded project-host (dev mode)");
+  const env: any = { ...process.env };
+  function setDefaultEnv(key: string, value: string) {
+    // console.log(key, value);
+    env[key] = value;
+  }
+  setDefaultEnv("DATA", dataDir);
+
   const base =
     process.env.COCALC_EMBEDDED_PROJECT_HOST_DIR ||
     join(dataDir, "embedded-project-host");
@@ -50,6 +51,7 @@ export async function maybeStartEmbeddedProjectHost() {
   );
 
   const logPath = process.env.DEBUG_FILE || join(base, "log");
+  logger.info("embedded project-host logging to ", logPath);
   setDefaultEnv("DEBUG_FILE", logPath);
   setDefaultEnv("DEBUG", process.env.DEBUG || "cocalc:*");
   setDefaultEnv("DEBUG_CONSOLE", process.env.DEBUG_CONSOLE || "no");
@@ -59,7 +61,10 @@ export async function maybeStartEmbeddedProjectHost() {
   const basePort = Number(
     process.env.COCALC_EMBEDDED_PROJECT_HOST_PORT || "9100",
   );
-  const host = process.env.COCALC_EMBEDDED_PROJECT_HOST_BIND || "127.0.0.1";
+  // TODO: we have tomake the host 0.0.0.0 right now, or the podman container can't connnect.
+  // Maybe there is another way with better use of podman networking, obviously.
+
+  const host = '0.0.0.0'; //process.env.COCALC_EMBEDDED_PROJECT_HOST_BIND || "127.0.0.1";
   setDefaultEnv("HOST", host);
   setDefaultEnv("PORT", String(basePort));
 
@@ -95,11 +100,39 @@ export async function maybeStartEmbeddedProjectHost() {
     "MASTER_CONAT_SERVER",
     process.env.MASTER_CONAT_SERVER || `http://localhost:${port}`,
   );
-  await startEmbeddedProjectHost({
-    embedded: true,
-    hostId: process.env.PROJECT_HOST_ID,
-    host,
-    port: basePort,
+  const entry = join(__dirname, "../../../project-host/dist/main.js");
+  const child: ChildProcess = fork(entry, [], {
+    env: {
+      ...env,
+      EMBEDDED: "true",
+      HOST: host,
+      PORT: String(basePort),
+    },
+    stdio: "inherit",
+  });
+  const stopChild = () => {
+    if (child.killed) return;
+    child.kill("SIGTERM");
+  };
+  process.on("exit", stopChild);
+  process.on("SIGTERM", () => {
+    stopChild();
+    process.exit();
+  });
+  process.on("SIGINT", () => {
+    stopChild();
+    process.exit();
+  });
+  child.on("exit", (code, signal) => {
+    logger.info("embedded project-host exited", { code, signal });
+    console.error(
+      "SERIOUS ERROR: embedded project-host exited: shutting down",
+      {
+        code,
+        signal,
+      },
+    );
+    process.exit(1);
   });
   logger.info("embedded project-host started", {
     url: process.env.PROJECT_HOST_PUBLIC_URL,

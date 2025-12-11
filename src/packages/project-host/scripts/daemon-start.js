@@ -68,7 +68,6 @@ function start() {
     PROJECT_HOST_INTERNAL_URL: `http://localhost:${9002 + index}`,
     PROJECT_HOST_SSH_SERVER: `localhost:${2222 + index}`,
     // Keep the legacy variable in sync for components that still read it.
-    COCALC_SSH_SERVER: `localhost:${2222 + index}`,
     COCALC_FILE_SERVER_MOUNTPOINT:
       process.env.COCALC_FILE_SERVER_MOUNTPOINT ||
       `/home/wstein/scratch/btrfs2/mnt/${index}`,
