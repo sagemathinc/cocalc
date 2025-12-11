@@ -599,7 +599,6 @@ export const Footer: React.FC = React.memo(() => {
   const webappVersionInfo =
     `Version ${smc_version} @ ${build_date}` + ` | ${smc_git_rev.slice(0, 8)}`;
   const style: React.CSSProperties = {
-    color: "gray",
     textAlign: "center",
     paddingBottom: `${UNIT}px`,
   };

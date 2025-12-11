@@ -305,6 +305,11 @@ export function assert_valid_account_id(uuid?: any): void {
 }
 export const isValidUUID = is_valid_uuid_string;
 
+// this should work for IP addresses, also short IPv6, and any UUIDs
+export function isValidAnonymousID(id: unknown) {
+  return typeof id === "string" && id.length >= 3;
+}
+
 export function assertValidAccountID(account_id?: any) {
   if (!isValidUUID(account_id)) {
     throw Error("account_id is invalid");
@@ -2455,9 +2460,6 @@ export function sanitize_html_attributes($, node): void {
     }
   });
 }
-
-// cocalc analytics cookie name
-export const analytics_cookie_name = "CC_ANA";
 
 // convert a jupyter kernel language (i.e. "python" or "r", usually short and lowercase)
 // to a canonical name.

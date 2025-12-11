@@ -394,8 +394,10 @@ export function useFilesMenuItems(
 
     return files.map((file) => {
       const filename = typeof file === "string" ? file : file.filename;
-      const info = file_options(filename);
-      const icon: IconName = info?.icon ?? "file";
+      const isDirectory = filename.endsWith("/");
+      const icon: IconName = isDirectory
+        ? "folder-open"
+        : (file_options(filename)?.icon ?? "file");
 
       const label = labelStyle ? (
         <span style={labelStyle}>{trunc_middle(filename, truncLength)}</span>

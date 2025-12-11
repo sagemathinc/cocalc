@@ -18,7 +18,11 @@ import {
   LabeledRow,
 } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
-import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
+import {
+  A11Y,
+  ACCESSIBILITY_ICON,
+  DARK_MODE_ICON,
+} from "@cocalc/util/consts/ui";
 import { DARK_MODE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
 import { COLORS } from "@cocalc/util/theme";
 import {
@@ -68,6 +72,18 @@ const DARK_MODE_LABELS = defineMessages({
   },
 });
 
+const ACCESSIBILITY_MESSAGES = defineMessages({
+  title: {
+    id: "account.appearance.accessibility.title",
+    defaultMessage: "Accessibility",
+  },
+  enabled: {
+    id: "account.appearance.accessibility.enabled",
+    defaultMessage:
+      "<strong>Enable Accessibility Mode:</strong> optimize the user interface for accessibility features",
+  },
+});
+
 export function AccountPreferencesAppearance() {
   const intl = useIntl();
   const other_settings = useTypedRedux("account", "other_settings");
@@ -110,6 +126,46 @@ export function AccountPreferencesAppearance() {
           values={{ katex: <A href={"https://katex.org/"}>KaTeX</A> }}
         />
       </Switch>
+    );
+  }
+
+  function getAccessibilitySettings(): { enabled: boolean } {
+    const settingsStr = other_settings.get(A11Y);
+    if (!settingsStr) {
+      return { enabled: false };
+    }
+    try {
+      return JSON.parse(settingsStr);
+    } catch {
+      return { enabled: false };
+    }
+  }
+
+  function setAccessibilitySettings(settings: { enabled: boolean }): void {
+    on_change(A11Y, JSON.stringify(settings));
+  }
+
+  function renderAccessibilityPanel(): ReactElement {
+    const settings = getAccessibilitySettings();
+    return (
+      <Panel
+        size="small"
+        header={
+          <>
+            <Icon unicode={ACCESSIBILITY_ICON} />{" "}
+            {intl.formatMessage(ACCESSIBILITY_MESSAGES.title)}
+          </>
+        }
+      >
+        <Switch
+          checked={settings.enabled}
+          onChange={(e) =>
+            setAccessibilitySettings({ ...settings, enabled: e.target.checked })
+          }
+        >
+          <FormattedMessage {...ACCESSIBILITY_MESSAGES.enabled} />
+        </Switch>
+      </Panel>
     );
   }
 
@@ -405,6 +461,7 @@ export function AccountPreferencesAppearance() {
         mode="appearance"
       />
       {renderDarkModePanel()}
+      {renderAccessibilityPanel()}
       <EditorSettingsColorScheme
         size="small"
         theme={editor_settings?.get("theme") ?? "default"}

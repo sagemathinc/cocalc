@@ -103,7 +103,6 @@ interface ReduxProps {
     | "upload";
   file_search: string;
   show_hidden?: boolean;
-  show_masked?: boolean;
   error?: string;
   checked_files: immutable.Set<string>;
   selected_file_index?: number;
@@ -182,7 +181,6 @@ const Explorer0 = rclass(
           file_action: rtypes.string,
           file_search: rtypes.string,
           show_hidden: rtypes.bool,
-          show_masked: rtypes.bool,
           error: rtypes.string,
           checked_files: rtypes.immutable,
           selected_file_index: rtypes.number,
@@ -649,11 +647,6 @@ const Explorer0 = rclass(
               this.props.show_hidden != undefined
                 ? this.props.show_hidden
                 : false
-            }
-            show_masked={
-              this.props.show_masked != undefined
-                ? this.props.show_masked
-                : true
             }
             actions={this.props.actions}
             kucalc={this.props.kucalc}

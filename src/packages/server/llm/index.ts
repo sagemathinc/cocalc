@@ -145,7 +145,7 @@ async function evaluateImpl({
   account_id,
   project_id,
   path,
-  analytics_cookie,
+  anonymous_id,
   history,
   model = DEFAULT_MODEL,
   tag,
@@ -158,7 +158,7 @@ async function evaluateImpl({
   //     history,
   //     system,
   //     account_id,
-  //     analytics_cookie,
+  //     anonymous_id,
   //     project_id,
   //     path,
   //     model,
@@ -168,7 +168,7 @@ async function evaluateImpl({
   //   });
 
   const start = Date.now();
-  await checkForAbuse({ account_id, analytics_cookie, model });
+  await checkForAbuse({ account_id, anonymous_id, model });
 
   stream = wrapStream(stream);
 
@@ -281,7 +281,7 @@ async function evaluateImpl({
     output,
     history,
     account_id,
-    analytics_cookie,
+    anonymous_id,
     project_id,
     path,
     total_tokens,

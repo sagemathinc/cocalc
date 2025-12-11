@@ -43,6 +43,7 @@
     "onprem",
     "pdflatex",
     "plotly",
+    "pulseaudio",
     "pythontex",
     "rclass",
     "rereturn",
@@ -81,7 +82,8 @@
     "undeletes",
     "undeleting",
     "xelatex",
-    "xetex"
+    "xetex",
+    "xpra"
   ],
   "ignoreWords": [
     "antd",
@@ -113,6 +115,7 @@
     "nprocs",
     "payg",
     "pchildren",
+    "pgrep",
     "pids",
     "Popconfirm",
     "PoweroffOutlined",

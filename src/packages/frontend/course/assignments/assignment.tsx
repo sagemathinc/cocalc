@@ -3,8 +3,19 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Card, Col, Input, Popconfirm, Row, Space } from "antd";
-import { ReactElement, useState } from "react";
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  ConfigProvider,
+  Divider,
+  Input,
+  Popconfirm,
+  Row,
+  Space,
+} from "antd";
+import { ReactElement, useEffect, useState } from "react";
 import { DebounceInput } from "react-debounce-input";
 import { FormattedMessage, useIntl } from "react-intl";
 import { AppRedux, useActions } from "@cocalc/frontend/app-framework";
@@ -13,9 +24,10 @@ import {
   Icon,
   IconName,
   Loading,
-  MarkdownInput,
   Tip,
 } from "@cocalc/frontend/components";
+import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { course, labels } from "@cocalc/frontend/i18n";
 import { capitalize, trunc_middle } from "@cocalc/util/misc";
 import { CourseActions } from "../actions";
@@ -93,6 +105,21 @@ export function Assignment({
 }: AssignmentProps) {
   const intl = useIntl();
   const size = useButtonSize();
+  const assignmentId = assignment.get("assignment_id");
+  const noteProp = assignment.get("note") ?? "";
+  const [noteValue, setNoteValue] = useState<string>(noteProp);
+  const [noteEditing, setNoteEditing] = useState<boolean>(false);
+
+  useEffect(() => {
+    setNoteValue(noteProp);
+    setNoteEditing(false);
+  }, [assignmentId]);
+
+  useEffect(() => {
+    if (!noteEditing) {
+      setNoteValue(noteProp);
+    }
+  }, [noteProp, noteEditing]);
 
   const [
     copy_assignment_confirm_overwrite,
@@ -122,21 +149,19 @@ export function Assignment({
 
   function render_due() {
     return (
-      <Space>
-        <div style={{ marginTop: "8px", color: "#666" }}>
-          <Tip
-            placement="top"
-            title="Set the due date"
-            tip="Set the due date for the assignment.  This changes how the list of assignments is sorted.  Note that you must explicitly click a button to collect student assignments when they are due -- they are not automatically collected on the due date.  {intl.formatMessage(labels.you)} should also tell students when assignments are due (e.g., at the top of the assignment)."
-          >
-            Due
-          </Tip>
-        </div>
-        <DateTimePicker
-          placeholder={"Set Due Date"}
-          value={assignment.get("due_date")}
-          onChange={date_change}
-        />
+      <Space align="center">
+        <div>Due:</div>
+        <Tip
+          placement="top"
+          title="Set the due date"
+          tip="Set the due date for the assignment.  This changes how the list of assignments is sorted.  Note that you must explicitly click a button to collect student assignments when they are due -- they are not automatically collected on the due date.  You should also tell students when assignments are due (e.g., at the top of the assignment)."
+        >
+          <DateTimePicker
+            placeholder={"Set Due Date"}
+            value={assignment.get("due_date")}
+            onChange={date_change}
+          />
+        </Tip>
       </Space>
     );
   }
@@ -150,90 +175,82 @@ export function Assignment({
 
   function render_note() {
     return (
-      <Row key="note" style={styles.note}>
-        <Col xs={4}>
-          <Tip
-            title="Notes about this assignment"
-            tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment."
+      <Space
+        key="note"
+        align="start"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "auto 1fr",
+        }}
+      >
+        <Tip
+          title="Notes about this assignment"
+          tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment."
+        >
+          <Button
+            icon={<Icon name="pencil" />}
+            type={noteEditing ? "primary" : "default"}
+            onClick={() => {
+              if (noteEditing) {
+                actions.assignments.set_assignment_note(assignmentId, noteValue);
+              }
+              setNoteEditing(!noteEditing);
+            }}
           >
-            Private Assignment Notes
-            <br />
-            <span style={{ color: "#666" }} />
-          </Tip>
-        </Col>
-        <Col xs={20}>
-          <MarkdownInput
-            persist_id={
-              assignment.get("path") + assignment.get("assignment_id") + "note"
-            }
-            attach_to={name}
-            rows={6}
-            placeholder="Private notes about this assignment (not visible to students)"
-            default_value={assignment.get("note")}
-            on_save={(value) =>
-              actions.assignments.set_assignment_note(
-                assignment.get("assignment_id"),
-                value,
-              )
-            }
-          />
-        </Col>
-      </Row>
+            {noteEditing ? "Done" : "Notes:"}
+          </Button>
+        </Tip>
+        <div style={{ minWidth: 0, width: "100%" }}>
+          {noteEditing ? (
+            <MultiMarkdownInput
+              value={noteValue}
+              onChange={(value: string) => setNoteValue(value)}
+              placeholder="Private notes about this assignment (not visible to students)"
+              height="200px"
+              minimal
+              enableUpload={false}
+            />
+          ) : (
+            <StaticMarkdown value={noteValue ?? ""} />
+          )}
+        </div>
+      </Space>
     );
   }
 
   function render_export_file_use_times() {
     return (
-      <Row key="file-use-times-export-used">
-        <Col xs={4}>
-          <Tip
-            title="Export when students used files"
-            tip="Export a JSON file containing extensive information about exactly when students have opened or edited files in this assignment.  The JSON file will open in a new tab; the access_times (in milliseconds since the UNIX epoch) are when they opened the file and the edit_times are when they actually changed it through CoCalc's web-based editor."
-          >
-            Export file use times
-            <br />
-            <span style={{ color: "#666" }} />
-          </Tip>
-        </Col>
-        <Col xs={20}>
-          <Button
-            onClick={() =>
-              actions.export.file_use_times(assignment.get("assignment_id"))
-            }
-          >
-            Export file use times for this assignment
-          </Button>
-        </Col>
-      </Row>
+      <Tip
+        title="Export when students used files"
+        tip="Export a JSON file containing extensive information about exactly when students have opened or edited files in this assignment.  The JSON file will open in a new tab; the access_times (in milliseconds since the UNIX epoch) are when they opened the file and the edit_times are when they actually changed it through CoCalc's web-based editor."
+      >
+        <Button
+          onClick={() =>
+            actions.export.file_use_times(assignment.get("assignment_id"))
+          }
+        >
+          File Use Times
+        </Button>
+      </Tip>
     );
   }
 
   function render_export_assignment() {
     return (
-      <Row key="file-use-times-export-collected">
-        <Col xs={4}>
-          <Tip
-            title="Export collected student files"
-            tip="Export all student work to files in a single directory that are easy to grade or archive outside of CoCalc.  Any Jupyter notebooks or Sage worksheets are first converted to PDF (if possible), and all files are renamed with the student as a filename prefix."
-          >
-            Export collected student files
-            <br />
-            <span style={{ color: "#666" }} />
-          </Tip>
-        </Col>
-        <Col xs={20}>
-          <Button
-            onClick={() =>
-              actions.assignments.export_collected(
-                assignment.get("assignment_id"),
-              )
-            }
-          >
-            Export collected student files to single directory, converting
-            Jupyter notebooks to pdf and html for easy offline grading.
-          </Button>
-        </Col>
-      </Row>
+      <Tip
+        title="Export collected student files"
+        tip="Export all student work to files in a single directory that are easy to grade or archive outside of CoCalc.  Any Jupyter notebooks or Sage worksheets are first converted to PDF (if possible), and all files are renamed with the student as a filename prefix."
+      >
+        <Button
+          onClick={() =>
+            actions.assignments.export_collected(
+              assignment.get("assignment_id"),
+            )
+          }
+        >
+          Export
+        </Button>
+      </Tip>
     );
   }
 
@@ -261,109 +278,106 @@ export function Assignment({
       return <Loading key="loading_more" />;
     }
     const v: ReactElement<any>[] = [];
+    const stackSize = size === "small" ? "small" : "middle";
 
-    const bottom = {
-      borderBottom: "1px solid grey",
-      paddingBottom: "15px",
-      marginBottom: "15px",
-    };
     v.push(
-      <Row key="header3" style={{ ...bottom, marginTop: "15px" }}>
-        <Col md={4}>{render_open_button()}</Col>
-        <Col md={20}>
-          <Row>
-            <Col md={8} style={{ fontSize: "14px" }} key="due">
+      <Space
+        key="header-stack"
+        direction="vertical"
+        size={stackSize}
+        style={{ width: "100%" }}
+      >
+        <Row gutter={[8, 4]} align="top" justify="space-between">
+          <Col md={16}>
+            <Space wrap size={[12, 6]}>
+              {render_open_button()}
               {render_due()}
-            </Col>
-            <Col md={16} key="delete">
-              <Row>
-                <Col md={10}>{render_peer_button()}</Col>
-                <Col md={14}>
-                  <ComputeServerButton
-                    actions={actions}
-                    unit={assignment as any}
+              {render_peer_button()}
+              <ComputeServerButton actions={actions} unit={assignment as any} />
+            </Space>
+          </Col>
+          <Col md={8} style={{ marginLeft: "auto" }}>
+            <Space
+              wrap
+              size={[12, 6]}
+              style={{ width: "100%", justifyContent: "flex-end" }}
+            >
+              {render_export_file_use_times()}
+              {render_export_assignment()}
+              {render_delete_button()}
+            </Space>
+          </Col>
+        </Row>
+
+        {expand_peer_config ? (
+          <ConfigurePeerGrading actions={actions} assignment={assignment} />
+        ) : null}
+
+        {render_note()}
+        <Divider style={{ borderTopWidth: 3, margin: 0 }} />
+
+        {(() => {
+          const peer = is_peer_graded();
+          width = peer ? 4 : 6;
+
+          if (num_files === 0) return null;
+
+          const buttons: ReactElement<any>[] = [];
+          const insert_grade_button = (key: string) => {
+            const b2 = render_skip_grading_button(status);
+            return buttons.push(
+              <Col md={width} key={key}>
+                {render_nbgrader_button(status)}
+                {b2}
+              </Col>,
+            );
+          };
+
+          for (const name of STEPS(peer)) {
+            const b = render_button(name, status);
+            // squeeze in the skip grading button (don't add it to STEPS!)
+            if (!peer && name === "return_graded") {
+              insert_grade_button("skip_grading");
+            }
+            if (b != null) {
+              buttons.push(
+                <Col md={width} key={name}>
+                  {b}
+                </Col>,
+              );
+              if (peer && name === "peer_collect") {
+                insert_grade_button("skip_peer_collect");
+              }
+            }
+          }
+
+          return (
+            <>
+              <Row key="header-control">
+                <Col md={4} key="search" style={{ paddingRight: "15px" }}>
+                  <DebounceInput
+                    debounceTimeout={500}
+                    element={Input as any}
+                    placeholder={"Filter students..."}
+                    value={student_search}
+                    onChange={(e) => set_student_search(e.target.value)}
                   />
-                  <span className="pull-right">{render_delete_button()}</span>
+                </Col>
+                <Col md={20} key="buttons">
+                  <Row>{buttons}</Row>
                 </Col>
               </Row>
-            </Col>
-          </Row>
-        </Col>
-      </Row>,
-    );
 
-    if (expand_peer_config) {
-      v.push(
-        <Row key="header2-peer" style={bottom}>
-          <Col md={20} offset={4}>
-            {render_configure_peer()}
-          </Col>
-        </Row>,
-      );
-    }
-
-    const peer = is_peer_graded();
-    if (peer) {
-      width = 4;
-    } else {
-      width = 6;
-    }
-
-    if (num_files > 0) {
-      const buttons: ReactElement<any>[] = [];
-      const insert_grade_button = (key: string) => {
-        const b2 = render_skip_grading_button(status);
-        return buttons.push(
-          <Col md={width} key={key}>
-            {render_nbgrader_button(status)}
-            {b2}
-          </Col>,
-        );
-      };
-
-      for (const name of STEPS(peer)) {
-        const b = render_button(name, status);
-        // squeeze in the skip grading button (don't add it to STEPS!)
-        if (!peer && name === "return_graded") {
-          insert_grade_button("skip_grading");
-        }
-        if (b != null) {
-          buttons.push(
-            <Col md={width} key={name}>
-              {b}
-            </Col>,
+              <Row key="header2-copy">
+                <Col md={20} offset={4}>
+                  {render_copy_confirms(status)}
+                </Col>
+              </Row>
+            </>
           );
-          if (peer && name === "peer_collect") {
-            insert_grade_button("skip_peer_collect");
-          }
-        }
-      }
-
-      v.push(
-        <Row key="header-control">
-          <Col md={4} key="search" style={{ paddingRight: "15px" }}>
-            <DebounceInput
-              debounceTimeout={500}
-              element={Input as any}
-              placeholder={"Filter students..."}
-              value={student_search}
-              onChange={(e) => set_student_search(e.target.value)}
-            />
-          </Col>
-          <Col md={20} key="buttons">
-            <Row>{buttons}</Row>
-          </Col>
-        </Row>,
-      );
-
-      v.push(
-        <Row key="header2-copy">
-          <Col md={20} offset={4}>
-            {render_copy_confirms(status)}
-          </Col>
-        </Row>,
-      );
-    }
+        })()}
+      </Space>,
+    );
     /* The whiteSpace:'normal' here is because we put this in an
          antd Card title, which has line wrapping disabled. */
     return <div style={{ whiteSpace: "normal" }}>{v}</div>;
@@ -376,32 +390,28 @@ export function Assignment({
       body = render_no_content();
     } else {
       body = (
-        <>
-          <StudentListForAssignment
-            redux={redux}
-            frame_id={frame_id}
-            name={name}
-            assignment={assignment}
-            students={students}
-            user_map={user_map}
-            active_feedback_edits={active_feedback_edits}
-            nbgrader_run_info={nbgrader_run_info}
-            search={student_search}
-          />
-          {render_note()}
-          <br />
-          <hr />
-          <br />
-          {render_export_file_use_times()}
-          <br />
-          {render_export_assignment()}
-        </>
+        <StudentListForAssignment
+          redux={redux}
+          frame_id={frame_id}
+          name={name}
+          assignment={assignment}
+          students={students}
+          user_map={user_map}
+          active_feedback_edits={active_feedback_edits}
+          nbgrader_run_info={nbgrader_run_info}
+          search={student_search}
+        />
       );
     }
     return (
       <Row key="more">
         <Col sm={24}>
-          <Card title={render_more_header(num_files)}> {body}</Card>
+          <ConfigProvider componentSize={size}>
+            <Card>
+              {render_more_header(num_files)}
+              {body}
+            </Card>
+          </ConfigProvider>
         </Col>
       </Row>
     );
@@ -438,7 +448,7 @@ export function Assignment({
         tip="Open the directory in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment."
       >
         <Button onClick={open_assignment_path}>
-          <Icon name="folder-open" /> {intl.formatMessage(labels.open)}...
+          <Icon name="folder-open" /> {intl.formatMessage(labels.open)}
         </Button>
       </Tip>
     );
@@ -483,7 +493,6 @@ export function Assignment({
       <Button
         key="assign"
         type={type}
-        size={size}
         onClick={show_copy_confirm}
         disabled={copy_confirm}
       >
@@ -866,7 +875,6 @@ export function Assignment({
         }}
         disabled={copy_confirm}
         type={type}
-        size={size}
       >
         <Tip
           title={
@@ -941,7 +949,6 @@ export function Assignment({
         }}
         disabled={copy_confirm}
         type={type}
-        size={size}
       >
         <Tip
           title={
@@ -1009,7 +1016,6 @@ export function Assignment({
         }}
         disabled={copy_confirm}
         type={type}
-        size={size}
       >
         <Tip
           title={
@@ -1050,7 +1056,7 @@ export function Assignment({
       ? "check-square-o"
       : "square-o";
     return (
-      <Button onClick={toggle_skip_grading} size={size}>
+      <Button onClick={toggle_skip_grading}>
         <Icon name={icon} /> Skip entering grades
       </Button>
     );
@@ -1115,7 +1121,6 @@ export function Assignment({
         }}
         disabled={copy_confirm}
         type={type}
-        size={size}
       >
         <Tip
           title={
@@ -1192,16 +1197,12 @@ export function Assignment({
           onConfirm={delete_assignment}
           cancelText={intl.formatMessage(labels.cancel)}
         >
-          <Button size={size}>
+          <Button>
             <Icon name="trash" /> {intl.formatMessage(labels.delete)}...
           </Button>
         </Popconfirm>
       );
     }
-  }
-
-  function render_configure_peer() {
-    return <ConfigurePeerGrading actions={actions} assignment={assignment} />;
   }
 
   function render_peer_button() {

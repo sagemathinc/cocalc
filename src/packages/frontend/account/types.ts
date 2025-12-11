@@ -71,6 +71,7 @@ export interface AccountState {
     [ACTIVITY_BAR_LABELS]?: boolean; // whether to show labels on the vertical activity bar
     quick_nav_hotkey?: Hotkey; // hotkey for quick navigation dialog
     quick_nav_hotkey_delay?: number; // delay threshold in milliseconds for shift+shift detection
+    accessibility?: string; // string is JSON: { enabled: boolean }
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };

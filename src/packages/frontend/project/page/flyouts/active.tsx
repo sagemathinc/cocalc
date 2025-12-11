@@ -133,6 +133,8 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const justClosed = useTypedRedux({ project_id }, "just_closed_files");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
+  const otherSettings = useTypedRedux("account", "other_settings");
+  const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
   const [filterTerm, setFilterTerm] = useState<string>("");
   const [showStarred, setShowStarred] = useState<boolean>(
     getFlyoutActiveShowStarred(project_id),
@@ -195,7 +197,7 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
     filteredFiles.forEach((path) => {
       const { head, tail } = path_split(path);
       const group =
-        mode === "folder" ? head : filename_extension_notilde(tail) ?? "";
+        mode === "folder" ? head : (filename_extension_notilde(tail) ?? "");
       if (grouped[group] == null) grouped[group] = [];
       grouped[group].push(path);
     });
@@ -317,6 +319,7 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
             />
           ) : undefined
         }
+        dimFileExtensions={dimFileExtensions}
       />
     );
   }
@@ -473,6 +476,7 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
           setStarredPath={setStarredPath}
           showStarred={showStarred}
           isLast={fileNames.length === 0}
+          dimFileExtensions={dimFileExtensions}
         />,
       );
 

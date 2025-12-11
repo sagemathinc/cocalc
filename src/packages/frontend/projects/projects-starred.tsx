@@ -21,7 +21,7 @@ import {
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
-import { trunc } from "@cocalc/util/misc";
+import { sha1, trunc } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useBookmarkedProjects } from "./use-bookmarked-projects";
 
@@ -135,9 +135,7 @@ export function StarredProjectsBar() {
           title: project.get("title") ?? "Untitled",
           description: project.get("description") ?? "",
           last_edited: project.get("last_edited"),
-          state: project.get("state"),
           avatar_image_tiny: project.get("avatar_image_tiny"),
-          users: project.get("users"),
           color: project.get("color"),
         };
       })
@@ -146,6 +144,24 @@ export function StarredProjectsBar() {
     // Return projects in their bookmarked order
     return projects;
   }, [bookmarkedProjects, project_map]);
+
+  // Hash only the fields that impact layout so we can avoid unnecessary re-measurements.
+  const layoutKey = useMemo(() => {
+    if (starredProjects.length === 0) {
+      return "";
+    }
+    const signature = starredProjects
+      .map((project) =>
+        [
+          project.project_id,
+          project.title,
+          project.color ?? "",
+          project.avatar_image_tiny ?? "",
+        ].join("|"),
+      )
+      .join("::");
+    return sha1(signature);
+  }, [starredProjects]);
 
   // Drag and drop sensors
   const mouseSensor = useSensor(MouseSensor, {
@@ -219,7 +235,7 @@ export function StarredProjectsBar() {
   useLayoutEffect(() => {
     setMeasurementPhase(true);
     setVisibleCount(0);
-  }, [starredProjects]);
+  }, [layoutKey]);
 
   // Measure button widths from hidden container and calculate visible count
   useLayoutEffect(() => {
