@@ -190,6 +190,12 @@ export class PageActions extends Actions<PageState> {
         }
         set_window_title(intl.formatMessage(labels.admin));
         return;
+      case "hosts":
+        if (change_history) {
+          set_url("/hosts");
+        }
+        set_window_title("Project Hosts");
+        return;
       case "notifications":
         if (change_history) {
           set_url("/notifications");

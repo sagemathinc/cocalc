@@ -12,6 +12,7 @@ type TopTab =
   | "about" // the "/help" page
   | "account"
   | "admin"
+  | "hosts"
   | "help" // i.e., the support dialog that makes a ZenDesk ticket....
   | "project"
   | "projects"

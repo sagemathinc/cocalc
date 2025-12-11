@@ -221,6 +221,10 @@ export function load_target(
       redux.getActions("page").set_active_tab("notifications", change_history);
       break;
 
+    case "hosts":
+      redux.getActions("page").set_active_tab("hosts", change_history);
+      break;
+
     case "file-use":
       // not implemented
       break;
@@ -244,7 +248,15 @@ window.onpopstate = (_) => {
 };
 
 export function parse_target(target?: string):
-  | { page: "projects" | "help" | "file-use" | "notifications" | "admin" }
+  | {
+      page:
+        | "projects"
+        | "help"
+        | "file-use"
+        | "notifications"
+        | "admin"
+        | "hosts";
+    }
   | { page: "project"; target: string }
   | { page: "profile" | "settings" }
   | {
@@ -308,6 +320,8 @@ export function parse_target(target?: string):
       return { page: "file-use" };
     case "admin":
       return { page: "admin" };
+    case "hosts":
+      return { page: "hosts" };
     default:
       return { page: "profile" };
   }

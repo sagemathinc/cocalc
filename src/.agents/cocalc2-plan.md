@@ -1,9 +1,57 @@
-## Checklist for alpha release
+## Implement Compute Servers
+
+Dedicated project-hosts replace “compute servers”: users provision a VM (often with one or more GPU's), we boot a project-host on it, and they and their collaborators create/run normal projects on that host while it’s up. The master keeps the host registry and placement map; hosts register with metadata (`type: dedicated`, `owner`, region, URLs, ssh). There’s no legacy migration—schema can change freely. Storage options include local Btrfs, optional shared subvolumes bind-mounted into projects, and user-supplied object storage via gcsfuse (API keys). Frontend must give a “manage my hosts” experience: create/start/stop hosts, view costs/usage, add collaborators, and create/move projects onto a chosen host.
+
+**Compute Servers → Dedicated Project Hosts (Todo)**
+
+- [ ] Data model: drop compute_servers concept; extend `project_hosts` with owner_account_id, type=dedicated, metadata (region/size/GPU, billing ref), allowed collaborators list/policy, public/internal URLs, ssh_server.
+
+- [ ] Provisioning: reuse `packages/servers/compute` to create VMs; install/start project-host with owner credentials + master endpoint; ensure host registers on boot/shutdown and marks type=dedicated.
+
+- [ ] Auth/ACL: owner always allowed; collaborators allowed to create/use projects on that host; enforce via host-side checks pulled from master; no root on VM (only podman).
+
+- [ ] Projects on host: create/move projects onto a chosen dedicated host (placement API); projects unavailable when host is stopped; support bind-mounted shared Btrfs subvolume (rw/ro) for projects on the same host.
+
+- [ ] Storage: default local Btrfs; optional gcsfuse-mounted bucket via user-provided API key; keep snapshots/backups per project as today.
+
+- [ ] GPU/Resources: ensure podman runs with host GPU (nvidia setup) when VM has GPU.
+
+- [ ] Frontend: new “My Project Hosts” UI to list/start/stop hosts, show costs/usage, manage collaborators, and “New project on this host”; replace legacy “compute server tied to a project” flows; projects view shows host info.
+
+- [ ] Routing: master returns host endpoints; existing multi-conat routing handles per-host sockets; no iframe.
+
+- [ ] Billing/limits: track runtime per host for charging; surface quotas/headroom in UI.
+
+**Mermaid**
+
+```mermaid
+flowchart TB
+  subgraph Master
+    Reg["Project-host registry<br/>(type, owner, urls, ssh)"]
+    Place["Placement API<br/>create/move project -> host"]
+    Billing["Billing/usage"]
+  end
+
+  subgraph DedicatedHost["Project-Host (dedicated)"]
+    PH["project-host <br/>(podman+btrfs+file-server)"]
+    Meta["metadata:<br/>owner, collaborators, region, gpu"]
+    Shared["optional shared subvolume<br/>bind-mounted into projects"]
+  end
+
+  User["Owner/Collaborator"]
+  UI["My Project Hosts UI"]
+
+  User --> UI
+  UI --> Place
+  Place --> Reg
+  Place --> DedicatedHost
+  DedicatedHost --> Reg
+  DedicatedHost --> Shared
+```
 
 ## Checklist for beta release
 
 - [ ] eliminate this: src/packages/conat/project/runner/load-balancer.ts
-
 
 - [ ] bootlog seems flakie -- sometimes it isn't connected
 
@@ -62,9 +110,7 @@
 
 - [ ] delete project data permanently
 
-
 ## Checklist for public release
-
 
 - [ ] security: use forcecommand for btrfs container
 

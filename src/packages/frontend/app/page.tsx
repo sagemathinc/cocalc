@@ -213,6 +213,20 @@ export const Page: React.FC = () => {
     }
   }
 
+  function render_hosts_tab(): React.JSX.Element | null {
+    if (!is_logged_in) return null;
+    return (
+      <NavTab
+        name="hosts"
+        label_class={NAV_CLASS}
+        icon={"server"}
+        active_top_tab={active_top_tab}
+        hide_label={!show_label}
+        tooltip="Manage your project hosts"
+      />
+    );
+  }
+
   function render_sign_in_tab(): React.JSX.Element | null {
     if (lite || is_logged_in || !showSignInTab) return null;
 
@@ -380,6 +394,7 @@ export const Page: React.FC = () => {
         <nav className="smc-top-bar" style={topBarStyle}>
           <AppLogo size={pageStyle.height} />
           {is_logged_in && render_project_nav_button()}
+          {render_hosts_tab()}
           {!isNarrow ? (
             <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
           ) : (
