@@ -14,20 +14,16 @@ import {
   Typography,
   message,
 } from "antd";
-import { CSS, React, useMemo, useState } from "@cocalc/frontend/app-framework";
+import {
+  CSS,
+  React,
+  useEffect,
+  useMemo,
+  useState,
+} from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-
-type Status = "stopped" | "running" | "provisioning";
-type Host = {
-  id: string;
-  name: string;
-  region: string;
-  size: string;
-  gpu: boolean;
-  status: Status;
-  last_seen?: string;
-  projects?: number;
-};
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import type { Host } from "@cocalc/conat/hub/api/hosts";
 
 const WRAP_STYLE: CSS = {
   padding: "24px",
@@ -37,11 +33,15 @@ const WRAP_STYLE: CSS = {
   boxSizing: "border-box",
 };
 
-const STATUS_COLOR: Record<Status, string> = {
+const STATUS_COLOR = {
   stopped: "red",
   running: "green",
   provisioning: "blue",
-};
+  starting: "blue",
+  stopping: "orange",
+  deprovisioned: "default",
+  off: "red",
+} as const;
 
 const REGIONS = [
   { value: "us-west", label: "US West" },
@@ -65,34 +65,70 @@ const GPU_TYPES = [
 export const HostsPage: React.FC = () => {
   const [hosts, setHosts] = useState<Host[]>([]);
   const [creating, setCreating] = useState<boolean>(false);
+  const hub = webapp_client.conat_client.hub;
+
+  const refresh = async () => {
+    const list = await hub.hosts.listHosts({});
+    setHosts(list);
+  };
+
+  useEffect(() => {
+    refresh().catch((err) => {
+      console.error("failed to load hosts", err);
+      message.error("Unable to load hosts");
+    });
+  }, []);
 
   const onCreate = async (vals: any) => {
+    if (creating) return;
     setCreating(true);
     try {
-      const newHost: Host = {
-        id: crypto.randomUUID(),
+      await hub.hosts.createHost({
         name: vals.name ?? "My Host",
         region: vals.region ?? REGIONS[0].value,
         size: vals.size ?? SIZES[0].value,
-        gpu: !!vals.gpu,
-        status: "stopped",
-        projects: 0,
-      };
-      setHosts((prev) => [newHost, ...prev]);
-      message.success("Host created (placeholder)");
+        gpu: vals.gpu && vals.gpu !== "none",
+        machine: {
+          gpu_type: vals.gpu,
+          disk_gb: vals.disk,
+          metadata: {
+            shared: vals.shared,
+            bucket: vals.bucket,
+          },
+        },
+      });
+      await refresh();
+      message.success("Host created");
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to create host");
     } finally {
       setCreating(false);
     }
   };
 
-  const toggleStatus = (id: string, next: Status) => {
-    setHosts((prev) =>
-      prev.map((h) => (h.id === id ? { ...h, status: next } : h)),
-    );
+  const setStatus = async (id: string, action: "start" | "stop") => {
+    try {
+      if (action === "start") {
+        await hub.hosts.startHost({ id });
+      } else {
+        await hub.hosts.stopHost({ id });
+      }
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      message.error(`Failed to ${action} host`);
+    }
   };
 
-  const removeHost = (id: string) => {
-    setHosts((prev) => prev.filter((h) => h.id !== id));
+  const removeHost = async (id: string) => {
+    try {
+      await hub.hosts.deleteHost({ id });
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to delete host");
+    }
   };
 
   const content = useMemo(() => {
@@ -129,7 +165,7 @@ export const HostsPage: React.FC = () => {
                   key="start"
                   type="link"
                   disabled={host.status === "running"}
-                  onClick={() => toggleStatus(host.id, "running")}
+                  onClick={() => setStatus(host.id, "start")}
                 >
                   Start
                 </Button>,
@@ -137,7 +173,7 @@ export const HostsPage: React.FC = () => {
                   key="stop"
                   type="link"
                   disabled={host.status !== "running"}
-                  onClick={() => toggleStatus(host.id, "stopped")}
+                  onClick={() => setStatus(host.id, "stop")}
                 >
                   Stop
                 </Button>,
