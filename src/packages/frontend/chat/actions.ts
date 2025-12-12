@@ -1354,9 +1354,18 @@ export class ChatActions extends Actions<ChatState> {
     if (!dateNum || Number.isNaN(dateNum)) {
       throw Error(`setCodexConfig: invalid threadKey ${threadKey}`);
     }
+    const dateObj = new Date(dateNum);
+    const existing =
+      this.syncdb.get_one({ event: "chat", date: dateObj }) ??
+      this.getThreadRootDoc(threadKey)?.message;
+    const base =
+      existing && typeof (existing as any).toJS === "function"
+        ? (existing as any).toJS()
+        : existing ?? {};
     this.syncdb.set({
+      ...base,
       event: "chat",
-      date: new Date(dateNum),
+      date: base.date ?? dateObj.toISOString(),
       acp_config: config,
     });
     this.syncdb.commit();

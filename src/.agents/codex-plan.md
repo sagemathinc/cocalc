@@ -1,6 +1,6 @@
 ## Major Bugs and Issues
 
-### Thinking/acp updates
+### (done) Thinking/acp updates
 
 (Seems not true) The biggest problem by far and top priority is that NONE of the thinking/progress updates actually appear anymore until the very end of the turn.  They *all* do 
 appear right when the turn ends.  They simply aren't committed before that though.
@@ -21,9 +21,26 @@ quite hard to work on anything at all.
 
 Thoughts?  Can you look into this?
 
-### Sync - backend user is constantly new/changing
+### Bug: first message in chatrooms blanked.
 
-See the version letter. Basically it is a new user for each turn, from the POV of chat.
+first message in chatrooms keeps getting blanked.  weird bug. 
+
+### Diffs
+
+They are unusable and very buggy. rethink and rewrite completely.
+
+
+## Other less clear/critical bugs/issues
+
+
+### Chat
+
+Do not render older messages that you've already seen unless you explicitly click a "load more" button.  Otherwise chat can have 1000 messages in a thread and be overwhelming.
+
+
+### Terminal UI
+
+It's hard to read and see still.  Not very friendly.  Should use the user's color scheme, don't scroll overflow.
 
 ### Bug with multiple chunks of final output
 
@@ -33,25 +50,10 @@ If there are multiple chunks in the final agent response, only the very last is 
 
 the session config is displayed incorrectly until you click on it -- wrong model at least. Any rerender (e.g., toggling panels) causes this.
 
-### Bug: first message in chatrooms blanked.
-
-first message in chatrooms keeps getting blanked.  weird bug. 
-
-### Diffs
-
-They are unusable and very buggy. rethink and rewrite completely.
-
-### Terminal UI
-
-It's hard to read and see still.  Not very friendly.  Should use the user's color scheme, don't scroll overflow.
 
 ### Markdown UI
 
 Get rid of Copy/Run/Kernel at the top of each triple backtick code block in slate.  It's annoying.  Better UI possible?
-
-### Chat
-
-Do not render older messages that you've already seen unless you explicitly click a "load more" button.  Otherwise chat can have 1000 messages in a thread and be overwhelming.
 
 
 ### Update Codex-acp and codex-cli
