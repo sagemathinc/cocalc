@@ -35,10 +35,11 @@ import { User } from "@cocalc/frontend/users";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
 import { plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { appendStreamMessage } from "@cocalc/chat";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
-import CodexActivity, { codexEventsToMarkdown } from "./codex-activity";
+import { codexEventsToMarkdown } from "./codex-activity";
+import CodexLogPanel from "./codex-log-panel";
+import { useCodexLog } from "./use-codex-log";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
@@ -300,83 +301,22 @@ export default function Message({
     return { store, key, thread, turn, subject };
   }, [message]);
 
-  const [fetchedLog, setFetchedLog] = useState<any[] | null>(null);
-  const [liveLog, setLiveLog] = useState<any[]>([]);
+  const codexLog = useCodexLog({
+    projectId: project_id,
+    logStore: acpLogInfo?.store ?? undefined,
+    logKey: acpLogInfo?.key ?? undefined,
+    logSubject: acpLogInfo?.subject ?? undefined,
+    generating: generating === true,
+    legacyEvents: message.get("acp_events"),
+  });
 
-  useEffect(() => {
-    setFetchedLog(null);
-    setLiveLog([]);
-  }, [acpLogInfo?.key, acpLogInfo?.store]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchLog() {
-      if (!acpLogInfo || !project_id || fetchedLog != null) return;
-      try {
-        const cn = webapp_client.conat_client.conat();
-        const kv = cn.sync.akv<any[]>({
-          project_id,
-          name: acpLogInfo.store,
-        });
-        const data = await kv.get(acpLogInfo.key);
-        if (!cancelled) {
-          setFetchedLog(data ?? []);
-        }
-      } catch (err) {
-        console.warn("failed to fetch acp log", err);
-      } finally {
-        // nothing
-      }
-    }
-    void fetchLog();
-    return () => {
-      cancelled = true;
-    };
-  }, [acpLogInfo?.key, acpLogInfo?.store, project_id, fetchedLog]);
-
-  // Subscribe to live log stream while generating.
-  useEffect(() => {
-    let sub: any;
-    let stopped = false;
-    async function subscribe() {
-      if (!generating || !acpLogInfo?.subject) return;
-      try {
-        const cn = webapp_client.conat_client.conat();
-        sub = await cn.subscribe(acpLogInfo.subject);
-        for await (const mesg of sub) {
-          if (stopped) break;
-          const evt = mesg?.data;
-          if (!evt) continue;
-          setLiveLog((prev) => appendStreamMessage(prev ?? [], evt));
-        }
-      } catch (err) {
-        console.warn("live log subscribe failed", err);
-      }
-    }
-    void subscribe();
-    return () => {
-      stopped = true;
-      try {
-        sub?.close?.();
-      } catch {
-        // ignore
-      }
-    };
-  }, [generating, acpLogInfo?.subject]);
-
-  const codexEvents = useMemo(() => {
-    if (fetchedLog) return fetchedLog;
-    if (liveLog.length > 0) return liveLog;
-    const ev = message.get("acp_events");
-    if (!ev) return undefined;
-    if (typeof (ev as any)?.toJS === "function") {
-      return (ev as any).toJS();
-    }
-    return ev;
-  }, [message, fetchedLog]);
+  const codexEvents = codexLog.events;
 
   const showCodexActivity = useMemo(
-    () => Boolean(codexEvents?.length || acpLogInfo || generating),
+    () =>
+      Boolean(
+        (codexEvents && codexEvents.length > 0) || acpLogInfo || generating,
+      ),
     [codexEvents, acpLogInfo, generating],
   );
 
@@ -392,17 +332,7 @@ export default function Message({
     if (!actions?.syncdb) return;
     const d = message.get("date");
     if (!(d instanceof Date)) return;
-    const store = acpLogInfo?.store;
-    const key = acpLogInfo?.key;
-    if (store && key && project_id) {
-      try {
-        const cn = webapp_client.conat_client.conat();
-        const kv = cn.sync.akv({ project_id, name: store });
-        await kv.delete(key);
-      } catch (err) {
-        console.warn("failed to delete acp log", err);
-      }
-    }
+    await codexLog.deleteLog();
     actions.syncdb.set({
       event: "chat",
       date: d.toISOString(),
@@ -415,7 +345,7 @@ export default function Message({
       acp_log_subject: null,
     });
     actions.syncdb.commit();
-    setFetchedLog(null);
+    // no local state now
   }, [actions, message, acpLogInfo, project_id]);
 
   const deleteAllActivityLogs = useCallback(async () => {
@@ -490,7 +420,6 @@ export default function Message({
       });
     }
     actions.syncdb.commit();
-    setFetchedLog(null);
   }, [actions, messages, threadRootMs, message, project_id]);
 
   const threadKeyForSession = useMemo(() => {
@@ -1002,20 +931,8 @@ export default function Message({
       <>
         {showCodexActivity ? (
           <>
-            <CodexActivity
-              events={
-                codexEvents && codexEvents.length > 0
-                  ? codexEvents
-                  : generating
-                    ? [
-                        {
-                          type: "event",
-                          event: { type: "thinking", text: "" },
-                          seq: 0,
-                        },
-                      ]
-                    : []
-              }
+            <CodexLogPanel
+              events={codexEvents ?? []}
               generating={generating === true}
               fontSize={font_size}
               persistKey={`${(project_id ?? "no-project").slice(0, 8)}:${
