@@ -1,31 +1,7 @@
 import { Map as iMap, fromJS } from "immutable";
-import { getThreadRootDate } from "./utils";
 import { normalizeChatMessage } from "./normalize";
 
-export function initFromSyncDB({ syncdb, store }) {
-  const v = {};
-  let upgradedCount = 0;
-  const rows: any[] =
-    typeof syncdb.get().toJS === "function" ? syncdb.get().toJS() : syncdb.get();
-  for (let x of rows) {
-    const { message, upgraded } = normalizeChatMessage(x);
-    if (message != null) {
-      v[message.date.valueOf()] = message;
-      // NOTE: We used to write upgraded rows back here, but Immer-based
-      // SyncDoc.set can recurse when called during initial load. Since
-      // the normalized message is what we render from, we skip the
-      // write-back here and rely on future edits to persist upgrades.
-      if (upgraded) {
-        upgradedCount++;
-      }
-    }
-  }
-  store.setState({
-    messages: fromJS(v),
-  });
-  // If we skipped upgrade writes, there's nothing to commit here.
-  // Any future change will persist the normalized form.
-}
+export function initFromSyncDB({}: { syncdb: any; store: any }) {}
 
 export function handleSyncDBChange({ syncdb, store, changes }) {
   if (syncdb == null || store == null || changes == null) {
@@ -71,38 +47,18 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
       }
 
       case "chat": {
-        let changed: boolean = false;
-        let messages = store.get("messages") ?? iMap();
         const record = syncdb.get_one(where);
         const x =
           typeof (record as any)?.toJS === "function" ? record.toJS() : record;
-        if (x == null) {
-          // delete
-          messages = messages.delete(`${obj.date.valueOf()}`);
-          changed = true;
-        } else {
-          const { message } = normalizeChatMessage(x);
-          if (message != null) {
-            messages = messages.set(
-              `${message.date.valueOf()}`,
-              fromJS(message),
-            );
-            changed = true;
-          }
-        }
-        if (changed) {
-          store.setState({ messages });
-          if (activityReady) {
-            const root =
-              getThreadRootDate({
-                date: obj.date.valueOf(),
-                messages,
-              }) ?? obj.date.valueOf();
-            const key = `${root}`;
-            const now = Date.now();
-            const activity = (store.get("activity") ?? iMap()).set(key, now);
-            store.setState({ activity });
-          }
+        const { message } = normalizeChatMessage(x);
+        if (activityReady && message) {
+          const root = message.reply_to
+            ? new Date(message.reply_to).valueOf()
+            : message.date.valueOf();
+          const key = `${root}`;
+          const now = Date.now();
+          const activity = (store.get("activity") ?? iMap()).set(key, now);
+          store.setState({ activity });
         }
         return;
       }

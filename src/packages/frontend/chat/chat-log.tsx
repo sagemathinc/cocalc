@@ -22,7 +22,7 @@ import {
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
-import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
@@ -54,6 +54,7 @@ import { dateValue, field, replyTo, foldingList } from "./access";
 interface Props {
   project_id: string; // used to render links more effectively
   path: string;
+  messages?: ChatMessages;
   mode: Mode;
   scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
   setLastVisible?: (x: Date | null) => void;
@@ -75,6 +76,7 @@ interface Props {
 export function ChatLog({
   project_id,
   path,
+  messages: messagesProp,
   scrollToBottomRef,
   mode,
   setLastVisible,
@@ -91,14 +93,9 @@ export function ChatLog({
   costEstimate,
   scrollCacheId,
 }: Props) {
-  const storeMessages = useRedux(
-    ["messages"],
-    project_id,
-    path,
-  ) as ChatMessages | undefined;
   const singleThreadView = selectedThread != null;
   const messages = useMemo(() => {
-    const base = storeMessages ?? new Map();
+    const base = messagesProp ?? new Map();
     if (!selectedThread) {
       return base;
     }
@@ -118,7 +115,7 @@ export function ChatLog({
       }
     }
     return filtered as ChatMessages;
-  }, [storeMessages, selectedThread]);
+  }, [messagesProp, selectedThread]);
   // see similar code in task list:
   const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
     return getSelectedHashtagsSearch(selectedHashtags0);

@@ -90,6 +90,25 @@ export class ChatActions extends Actions<ChatState> {
     this.setState({ syncdbReady: Date.now() });
   };
 
+  // Read the current chat messages directly from the SyncDoc (Immer).
+  // [ ] TODO: this is MASSIVELY inefficient and needs to
+  // be unified with doc-context.tsx.  We need one clean
+  // source of truth for processed message state, which is
+  // updated precisely when the syncdb changes, and is never
+  // recomputed.
+  private getAllMessages(): Map<string, ChatMessageTyped> {
+    const map = new Map<string, ChatMessageTyped>();
+    const doc = this.syncdb?.get();
+    const rows = doc?.get?.() ?? [];
+    for (const row of rows ?? []) {
+      const { message } = normalizeChatMessage(row);
+      if (message) {
+        map.set(`${message.date.valueOf()}`, message);
+      }
+    }
+    return map;
+  }
+
   private toImmutableRecord(record: any): any {
     if (record == null) return null;
     return typeof record?.get === "function" ? record : fromJS(record);
@@ -143,9 +162,8 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   foldAllThreads = (onlyLLM = true) => {
-    if (this.syncdb == null || this.store == null) return;
-    const messages = this.store.get("messages");
-    if (messages == null) return;
+    if (this.syncdb == null) return;
+    const messages = this.getAllMessages();
     const account_id = this.redux.getStore("account").get_account_id();
     for (const [_timestamp, message] of messages) {
       const date = dateValue(message);
@@ -253,7 +271,7 @@ export class ChatActions extends Actions<ChatState> {
       (message as any).name = trimmedName;
     }
     this.setSyncdb(message);
-    const messagesState = this.store.get("messages");
+    const messagesState = this.getAllMessages();
     let selectedThreadKey: string;
     if (!reply_to) {
       this.deleteDraft(0);
@@ -267,15 +285,15 @@ export class ChatActions extends Actions<ChatState> {
     } else {
       // when replying we make sure that the thread is expanded, since otherwise
       // our reply won't be visible
-      if (messagesState) {
-        const replyKey = `${reply_to.valueOf()}`;
-        const replyMsg =
-          (messagesState as any)?.get?.(replyKey) ??
-          (messagesState instanceof Map ? messagesState.get(replyKey) : null);
-        const folding = foldingList(replyMsg);
-        if (folding?.includes?.(sender_id)) {
-          this.toggleFoldThread(reply_to);
-        }
+      // If the replied-to thread is folded, ensure it's expanded. In the
+      // new flow we rely on the live sync doc and foldingList handles plain data.
+      const replyMsg = this.syncdb?.get_one({
+        event: "chat",
+        date: reply_to,
+      });
+      const folding = foldingList(replyMsg);
+      if (folding?.includes?.(sender_id)) {
+        this.toggleFoldThread(reply_to);
       }
       const root =
         getThreadRootDate({
@@ -555,13 +573,10 @@ export class ChatActions extends Actions<ChatState> {
   // returns number of deleted messages
   // threadKey = iso timestamp root of thread.
   deleteThread = (threadKey: string): number => {
-    if (this.syncdb == null || this.store == null) {
+    if (this.syncdb == null) {
       return 0;
     }
-    const messages = this.store.get("messages");
-    if (messages == null) {
-      return 0;
-    }
+    const messages = this.getAllMessages();
     const rootTarget = parseInt(`${threadKey}`);
     if (!isFinite(rootTarget)) {
       return 0;
@@ -653,13 +668,8 @@ export class ChatActions extends Actions<ChatState> {
   private getThreadRootDoc = (
     threadKey: string,
   ): { doc: any; message: ChatMessageTyped } | null => {
-    if (this.store == null) {
-      return null;
-    }
-    const messages = this.store.get("messages");
-    if (messages == null) {
-      return null;
-    }
+    if (this.syncdb == null) return null;
+    const messages = this.getAllMessages();
     const normalizedKey = toMsString(threadKey);
     const fallbackKey = `${parseInt(threadKey, 10)}`;
     const candidates = [normalizedKey, threadKey, fallbackKey];
@@ -750,9 +760,8 @@ export class ChatActions extends Actions<ChatState> {
 
   // Exports the currently visible chats to a markdown file and opens it.
   export_to_markdown = async (): Promise<void> => {
-    if (!this.store) return;
-    const messages = this.store.get("messages");
-    if (messages == null) return;
+    if (!this.syncdb || !this.store) return;
+    const messages = this.getAllMessages();
     const path = this.store.get("path") + ".md";
     const project_id = this.store.get("project_id");
     if (project_id == null) return;

@@ -1,9 +1,8 @@
 import { CSS } from "@cocalc/frontend/app-framework";
-import { useActions, useRedux } from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/components";
+import { useActions } from "@cocalc/frontend/app-framework";
 import type { ChatActions } from "./actions";
 import { ChatPanel } from "./chatroom";
-import type { ChatMessages } from "./types";
+import { ChatDocProvider, useChatDoc } from "./doc-context";
 
 interface Props {
   project_id: string;
@@ -24,35 +23,44 @@ export default function SideChat({
 }: Props) {
   const actionsViaContext = useActions(project_id, path);
   const actions: ChatActions = actions0 ?? actionsViaContext;
-  const messages = useRedux(["messages"], project_id, path) as
-    | ChatMessages
-    | undefined;
-
-  if (messages == null) {
-    return <Loading theme="medium" />;
-  }
 
   return (
-    <div
-      style={{
-        height: "100%",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#efefef",
-        ...style,
-      }}
-    >
-      <ChatPanel
-        actions={actions}
-        project_id={project_id}
-        path={path}
-        messages={messages}
-        fontSize={fontSize}
-        desc={desc}
-        variant="compact"
-        disableFilters
-      />
-    </div>
+    <ChatDocProvider syncdb={(actions as any)?.syncdb}>
+      <div
+        style={{
+          height: "100%",
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#efefef",
+          ...style,
+        }}
+      >
+        <SideChatInner
+          actions={actions}
+          project_id={project_id}
+          path={path}
+          fontSize={fontSize}
+          desc={desc}
+        />
+      </div>
+    </ChatDocProvider>
+  );
+}
+
+function SideChatInner(props: Props & { actions: ChatActions }) {
+  const { messages } = useChatDoc();
+  const msgs = messages ?? new Map();
+  return (
+    <ChatPanel
+      actions={props.actions}
+      project_id={props.project_id}
+      path={props.path}
+      messages={msgs}
+      fontSize={props.fontSize}
+      desc={props.desc}
+      variant="compact"
+      disableFilters
+    />
   );
 }

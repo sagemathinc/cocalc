@@ -4,7 +4,6 @@
  */
 
 import { Store } from "@cocalc/frontend/app-framework";
-import type { ChatMessages } from "./types";
 import type { Map as ImmutableMap } from "immutable";
 
 export interface ChatState {
@@ -12,7 +11,6 @@ export interface ChatState {
   path?: string;
   height: number; // 0 means not rendered; otherwise is the height of the chat editor
   message_plain_text: string; // What the user sees in the chat box eg. stripped of internal mention markup
-  messages?: ChatMessages;
   drafts?: Map<string, any>;
   // last activity timestamp per thread (ms since epoch)
   activity?: ImmutableMap<string, number>;
@@ -31,7 +29,6 @@ export function getInitialState() {
   return {
     height: 0,
     message_plain_text: "",
-    messages: undefined,
     drafts: undefined,
     activity: undefined,
     activityReady: false,

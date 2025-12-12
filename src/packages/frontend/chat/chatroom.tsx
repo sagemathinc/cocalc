@@ -1218,6 +1218,7 @@ export function ChatPanel({
             actions={actions}
             project_id={project_id}
             path={path}
+            messages={messages as ChatMessages}
             scrollToBottomRef={scrollToBottomRef}
             scrollCacheId={scrollCacheId}
             mode={variant === "compact" ? "sidechat" : "standalone"}
