@@ -315,6 +315,7 @@ describe("User-defined LLMs", () => {
         firstName: "Test",
         lastName: "User",
         account_id,
+        noFirstProject: true,
       });
       accountCreated = true;
     }

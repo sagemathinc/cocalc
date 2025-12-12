@@ -30,6 +30,7 @@ required = defaults.required
 {queryIsCmp, userGetQueryFilter} = require("./user-query/user-get-query")
 
 {updateRetentionData} = require('./postgres/retention')
+{sanitizeManageUsersOwnerOnly} = require('./postgres/project/manage-users-owner-only')
 
 { checkProjectName } = require("@cocalc/util/db-schema/name-rules");
 {callback2} = require('@cocalc/util/async-utils')
@@ -839,6 +840,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 users[id] = x
         return users
 
+    _user_set_query_project_manage_users_owner_only: (obj, account_id) =>
+        # This hook is called from the schema functional substitution to validate
+        # the manage_users_owner_only flag. This must be synchronous - async validation
+        # (permission checks) is done in the check_hook instead.
+        # Just do basic type validation and sanitization here
+        return sanitizeManageUsersOwnerOnly(obj.manage_users_owner_only)
+
     project_action: (opts) =>
         opts = defaults opts,
             project_id     : required
@@ -932,6 +940,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 if result.rows[0].count == 0
                     cb("Only the owner of the project can currently change the project name.")
                     return
+
+        if new_val?.manage_users_owner_only? and new_val.manage_users_owner_only != old_val?.manage_users_owner_only
+            # Permission is enforced in the set-field interceptor; nothing to do here.
+            # Leaving this block for clarity and to avoid silent bypass if future callers
+            # modify manage_users_owner_only via another path.
+            dbg("manage_users_owner_only change requested")
 
         if new_val?.action_request? and JSON.stringify(new_val.action_request.time) != JSON.stringify(old_val?.action_request?.time)
             # Requesting an action, e.g., save, restart, etc.

@@ -48,8 +48,10 @@ export interface QueryOptions<T = UntypedQueryResult> {
   cb?: CB<QueryRows<T>>;
 }
 
-export interface AsyncQueryOptions<T = UntypedQueryResult>
-  extends Omit<QueryOptions<T>, "cb"> {}
+export interface AsyncQueryOptions<T = UntypedQueryResult> extends Omit<
+  QueryOptions<T>,
+  "cb"
+> {}
 
 export interface UserQueryOptions {
   client_id?: string; // if given, uses to control number of queries at once by one client.
@@ -148,6 +150,12 @@ export interface PostgreSQL extends EventEmitter {
   }): void;
 
   remove_user_from_project(opts: {
+    account_id: string;
+    project_id: string;
+    cb: CB;
+  }): void;
+
+  remove_collaborator_from_project(opts: {
     account_id: string;
     project_id: string;
     cb: CB;
@@ -406,8 +414,13 @@ export interface PostgreSQL extends EventEmitter {
   webapp_error(opts: object);
 
   set_project_settings(opts: { project_id: string; settings: object; cb?: CB });
-  
-  uncaught_exception: (err:any) => void;
+
+  _user_set_query_project_manage_users_owner_only(
+    obj: any,
+    account_id: string,
+  ): string | undefined;
+
+  uncaught_exception: (err: any) => void;
 }
 
 // This is an extension of BaseProject in projects/control/base.ts

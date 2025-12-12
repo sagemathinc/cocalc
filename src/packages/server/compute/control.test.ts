@@ -25,12 +25,17 @@ describe("creates account, project and a test compute server, then control it", 
       firstName: "User",
       lastName: "One",
       account_id,
+      noFirstProject: true,
     });
     // Only User One:
     project_id = await createProject({
       account_id,
       title: "My First Project",
+      start: false,
     });
+    // sometimes above isn't noticed below, which is weird, so we put in slight delay.
+    // TODO: it's surely because of using a connection pool instead of a single connection.
+    await delay(300);
   });
 
   let id;

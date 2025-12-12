@@ -58,6 +58,7 @@ describe("create a subscription license and edit it and confirm the subscription
       firstName: "Test",
       lastName: "User",
       account_id: item.account_id,
+      noFirstProject: true,
     });
 
     // set min balance so this all works below
@@ -137,6 +138,7 @@ describe("create a subscription license and edit it and confirm the subscription
       firstName: "Test",
       lastName: "User",
       account_id: item.account_id,
+      noFirstProject: true,
     });
 
     // set min balance so this all works below

@@ -86,7 +86,7 @@ function parse_bsStyle(props: {
   let type =
     props.bsStyle == null
       ? "default"
-      : BS_STYLE_TO_TYPE[props.bsStyle] ?? "default";
+      : (BS_STYLE_TO_TYPE[props.bsStyle] ?? "default");
 
   let style: React.CSSProperties | undefined = undefined;
   // antd has no analogue of "success" & "warning", it's not clear to me what

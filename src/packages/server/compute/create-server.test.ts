@@ -5,6 +5,7 @@ import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import createServer from "./create-server";
 import { CLOUDS_BY_NAME } from "@cocalc/util/db-schema/compute-servers";
+import { delay } from "awaiting";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -25,12 +26,17 @@ describe("creates account, project and then compute servers in various ways", ()
       firstName: "User",
       lastName: "One",
       account_id,
+      noFirstProject: true,
     });
     // Only User One:
     project_id = await createProject({
       account_id,
       title: "My First Project",
+      start: false,
     });
+    // sometimes above isn't noticed below, which is weird, so we put in slight delay.
+    // TODO: it's surely because of using a connection pool instead of a single connection.
+    await delay(300);
   });
 
   it("creates a compute server for project one and gets it", async () => {
