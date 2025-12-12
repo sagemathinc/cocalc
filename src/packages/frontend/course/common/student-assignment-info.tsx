@@ -95,7 +95,7 @@ export function StudentAssignmentInfo({
   nbgrader_run_info,
 }: StudentAssignmentInfoProps) {
   const intl = useIntl();
-  const clicked_nbgrader = useRef<Date|undefined>(undefined);
+  const clicked_nbgrader = useRef<Date | undefined>(undefined);
   const actions = useActions<CourseActions>({ name });
   const size = useButtonSize();
   const [recopy, set_recopy] = useRecopy();
@@ -344,7 +344,12 @@ export function StudentAssignmentInfo({
         </Tip>,
       );
       v.push(
-        <Tip key="recopy_confirm" title={step} placement={placement} tip={copy_tip}>
+        <Tip
+          key="recopy_confirm"
+          title={step}
+          placement={placement}
+          tip={copy_tip}
+        >
           <Button
             danger
             size={size}
@@ -365,10 +370,7 @@ export function StudentAssignmentInfo({
       if (step.toLowerCase() === "assign") {
         // inline-block because buttons above are float:left
         v.push(
-          <div
-            key="what-happens"
-            style={{ margin: "5px", display: "inline-block" }}
-          >
+          <div key="what-happens">
             <a
               target="_blank"
               href="https://doc.cocalc.com/teaching-tips_and_tricks.html#how-exactly-are-assignments-copied-to-students"
@@ -383,40 +385,29 @@ export function StudentAssignmentInfo({
           </div>,
         );
       }
-      return <Space wrap>{v}</Space>;
+      return v;
     } else {
-      return (
-        <Tip title={step} placement={placement} tip={copy_tip}>
+      return [
+        <Tip key="copy" title={step} placement={placement} tip={copy_tip}>
           <Button
-            key="copy"
             type="dashed"
             size={size}
             onClick={() => set_recopy(step, true)}
           >
             <Icon name="redo" />
           </Button>
-        </Tip>
-      );
+        </Tip>,
+      ];
     }
   }
 
-  function render_open_recopy(
-    step: Steps,
-    open,
-    copy,
-    copy_tip: string,
-    open_tip: string,
-  ) {
-    const placement = step === "Return" ? "left" : "right";
+  function render_open(open, tip: string, placement: string) {
     return (
-      <Space key="open_recopy" wrap>
-        {render_recopy_confirm(step, copy, copy_tip, placement)}
-        <Tip title="Open assignment" placement={placement} tip={open_tip}>
-          <Button key="open" size={size} onClick={open}>
-            <Icon name="folder-open" />
-          </Button>
-        </Tip>
-      </Space>
+      <Tip key="open" title="Open assignment" tip={tip} placement={placement}>
+        <Button onClick={open} size={size}>
+          <Icon name="folder-open" />
+        </Button>
+      </Tip>
     );
   }
 
@@ -426,31 +417,25 @@ export function StudentAssignmentInfo({
     });
   }
 
-  function render_open_copying(step: Steps, open, stop) {
-    return (
-      <Space key="open_copying" wrap>
-        <Button key="copy" disabled={true} size={size}>
-          <Spin /> {step_intl(step, true)}
-        </Button>
-        <Button key="stop" danger onClick={stop} size={size}>
-          {intl.formatMessage(labels.cancel)} <Icon name="times" />
-        </Button>
-        <Tip title="Open assignment" placement={step === "Return" ? "left" : "right"} tip="">
-          <Button key="open" onClick={open} size={size}>
-            <Icon name="folder-open" />
-          </Button>
-        </Tip>
-      </Space>
-    );
+  function render_copying(step: Steps, stop) {
+    return [
+      <Button key="stop" danger onClick={stop} size={size}>
+        {intl.formatMessage(labels.cancel)}
+      </Button>,
+      <Button key="copy" disabled={true} size={size}>
+        <Spin /> {step_intl(step, true)}
+      </Button>,
+    ];
   }
 
-  function render_copy(step: Steps, copy: () => void, copy_tip: string) {
-    let placement;
-    if (step === "Return") {
-      placement = "left";
-    }
+  function render_copy(
+    step: Steps,
+    copy: () => void,
+    tip: string,
+    placement: string,
+  ) {
     return (
-      <Tip key="copy" title={step} tip={copy_tip} placement={placement}>
+      <Tip key="copy" title={step} tip={tip} placement={placement}>
         <Button onClick={copy} size={size}>
           <Icon name="caret-right" />
         </Button>
@@ -503,21 +488,26 @@ export function StudentAssignmentInfo({
     const do_copy = () => copy(type, info.assignment_id, info.student_id);
     const do_stop = () => stop(type, info.assignment_id, info.student_id);
     const v: React.JSX.Element[] = [];
+    const placement = step === "Return" ? "left" : "right";
     if (enable_copy) {
-      if (webapp_client.server_time() - (data.start ?? 0) < COPY_TIMEOUT_MS) {
-        v.push(render_open_copying(step, do_open, do_stop));
+      const now = webapp_client.server_time();
+      const in_progress =
+        data.start != null && now - data.start < COPY_TIMEOUT_MS;
+      if (in_progress) {
+        v.push(...render_copying(step, do_stop));
+        v.push(render_open(do_open, open_tip, placement));
       } else if (data.time) {
         v.push(
-          render_open_recopy(
+          ...render_recopy_confirm(
             step,
-            do_open,
             do_copy,
             copy_tip as string,
-            open_tip as string,
+            placement,
           ),
         );
+        v.push(render_open(do_open, open_tip as string, placement));
       } else {
-        v.push(render_copy(step, do_copy, copy_tip as string));
+        v.push(render_copy(step, do_copy, copy_tip as string, placement));
       }
     }
     if (data.time) {
@@ -526,7 +516,7 @@ export function StudentAssignmentInfo({
     if (data.error && !omit_errors) {
       v.push(render_error(step, data.error));
     }
-    return <>{v}</>;
+    return <Space wrap>{v}</Space>;
   }
 
   let show_grade_col, show_return_graded;
