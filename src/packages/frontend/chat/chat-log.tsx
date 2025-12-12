@@ -95,21 +95,29 @@ export function ChatLog({
     ["messages"],
     project_id,
     path,
-  ) as ChatMessages;
+  ) as ChatMessages | undefined;
   const singleThreadView = selectedThread != null;
   const messages = useMemo(() => {
-    if (!selectedThread || storeMessages == null) {
-      return storeMessages;
+    const base = storeMessages ?? new Map();
+    if (!selectedThread) {
+      return base;
     }
-    return storeMessages.filter((message) => {
-      if (message == null) return false;
+    const filtered = new Map<string, ChatMessageTyped>();
+    for (const [key, message] of base) {
+      if (message == null) continue;
       const replyToVal = replyTo(message);
       if (replyTo != null) {
-        return `${new Date(replyToVal!).valueOf()}` === selectedThread;
+        if (`${new Date(replyToVal!).valueOf()}` === selectedThread) {
+          filtered.set(key, message);
+        }
+        continue;
       }
       const d = dateValue(message)?.valueOf();
-      return d != null ? `${d}` === selectedThread : false;
-    }) as ChatMessages;
+      if (d != null && `${d}` === selectedThread) {
+        filtered.set(key, message);
+      }
+    }
+    return filtered as ChatMessages;
   }, [storeMessages, selectedThread]);
   // see similar code in task list:
   const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
@@ -217,6 +225,7 @@ export function ChatLog({
     }
     for (const date of sortedDates) {
       const message = messages.get(date);
+      if (!message) continue;
       const value = newest_content(message);
       for (const x of parse_hashtags(value)) {
         const tag = value.slice(x[0] + 1, x[1]).toLowerCase();

@@ -267,12 +267,15 @@ export class ChatActions extends Actions<ChatState> {
     } else {
       // when replying we make sure that the thread is expanded, since otherwise
       // our reply won't be visible
-      if (
-        messagesState
-          ?.getIn([`${reply_to.valueOf()}`, "folding"])
-          ?.includes(sender_id)
-      ) {
-        this.toggleFoldThread(reply_to);
+      if (messagesState) {
+        const replyKey = `${reply_to.valueOf()}`;
+        const replyMsg =
+          (messagesState as any)?.get?.(replyKey) ??
+          (messagesState instanceof Map ? messagesState.get(replyKey) : null);
+        const folding = foldingList(replyMsg);
+        if (folding?.includes?.(sender_id)) {
+          this.toggleFoldThread(reply_to);
+        }
       }
       const root =
         getThreadRootDate({

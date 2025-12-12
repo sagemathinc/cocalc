@@ -19,12 +19,13 @@ import React, {
 import type { ImmerDB } from "@cocalc/sync/editor/immer-db";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import { normalizeChatMessage } from "./normalize";
+import type { PlainChatMessage } from "./types";
 
 type DocCtx = {
   syncdb?: ImmerDB;
   doc?: Document;
   version: number;
-  messages?: Map<string, any> | null;
+  messages?: Map<string, PlainChatMessage> | null;
 };
 
 const ChatDocContext = createContext<DocCtx>({
@@ -40,12 +41,12 @@ export function ChatDocProvider({
   children: React.ReactNode;
 }) {
   const [version, setVersion] = useState<number>(0);
-  const messagesRef = useRef<Map<string, any> | null>(null);
+  const messagesRef = useRef<Map<string, PlainChatMessage> | null>(null);
 
   useEffect(() => {
     if (!syncdb) return;
     const doc = syncdb.get();
-    const map = new Map<string, any>();
+    const map = new Map<string, PlainChatMessage>();
     for (const row of doc?.get?.() ?? []) {
       const { message } = normalizeChatMessage(row);
       if (message) {

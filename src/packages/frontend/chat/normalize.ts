@@ -1,9 +1,9 @@
-import type { ChatMessage } from "./types";
+import type { PlainChatMessage } from "./types";
 
 export const CURRENT_CHAT_MESSAGE_VERSION = 1;
 
 export interface NormalizedChatMessage {
-  message?: ChatMessage;
+  message?: PlainChatMessage;
   upgraded: boolean;
 }
 
@@ -76,5 +76,5 @@ export function normalizeChatMessage(raw: any): NormalizedChatMessage {
     upgraded = true;
   }
 
-  return { message: x as ChatMessage, upgraded };
+  return { message: x as PlainChatMessage, upgraded };
 }

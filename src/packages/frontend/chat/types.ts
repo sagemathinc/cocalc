@@ -1,12 +1,7 @@
-import { List, Map } from "immutable";
 import { MutableRefObject } from "react";
 
-import { TypedMap } from "@cocalc/frontend/app-framework";
 import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import type {
-  ChatMessage as SharedChatMessage,
-  MessageHistory as SharedMessageHistory,
-} from "@cocalc/chat";
+import type { ChatMessage as SharedChatMessage } from "@cocalc/chat";
 export { addToHistory } from "@cocalc/chat";
 
 export type Mode = "standalone" | "sidechat";
@@ -18,18 +13,50 @@ export function isFeedback(feedback: unknown): feedback is Feedback {
   return FEEDBACKS.includes(feedback as Feedback);
 }
 
-type Mention = TypedMap<{
+export type Mention = {
   id: string;
   display: string;
   type?: string;
   index: number;
   plainTextIndex: number;
-}>;
+};
 
-export type MentionList = List<Mention>;
+export type MentionList = Mention[];
 
-export type ChatMessage = SharedChatMessage;
-export type MessageHistory = SharedMessageHistory;
+export interface MessageHistory {
+  author_id: string;
+  content: string;
+  date: string; // ISO string
+}
+
+// Plain chat message shape used by the Immer-based syncdoc flow.
+export interface PlainChatMessage {
+  sender_id: string;
+  event: "chat";
+  history: MessageHistory[];
+  date: Date;
+  reply_to?: string;
+  generating?: boolean;
+  editing: Record<string, any>;
+  folding?: string[];
+  feedback?: Record<string, Feedback>;
+  name?: string;
+  pin?: boolean | string | number;
+  schema_version?: number;
+  acp_usage?: any;
+  codex_usage?: any;
+  acp_log_store?: any;
+  acp_log_info?: any;
+  [key: string]: any;
+}
+
+// Legacy alias for shared/chat consumers; the shared type is also plain.
+export type ChatMessage = SharedChatMessage | PlainChatMessage;
+
+export type ChatMessageTyped = PlainChatMessage;
+
+// Map keyed by millisecond timestamp (stringified) to message.
+export type ChatMessages = Map<string, ChatMessageTyped>;
 
 // this type isn't explicitly used anywhere yet, but the actual structure is and I just
 // wanted to document it.
@@ -46,26 +73,6 @@ export interface Draft {
   // input = string contents of current version of the message
   input: "string";
 }
-
-export type ChatMessageTyped = TypedMap<{
-  sender_id: string;
-  event: "chat";
-  history: List<TypedMap<MessageHistory>>;
-  date: Date;
-  reply_to?: string;
-  generating?: boolean;
-  editing: TypedMap<{
-    [author_id: string]: "FUTURE" | null;
-  }>;
-  folding?: List<string>;
-  feedback?: Map<string, Feedback>; // encoded as map of {[account_id]:Feedback}
-}>;
-
-export type ChatMessages = TypedMap<{
-  // NOTE: the number is the epoch timestamp, but it is also sometimes a string
-  // both point to the same message
-  [date: number | string]: ChatMessageTyped;
-}>;
 
 export type SubmitMentionsFn = (
   fragmentId?: FragmentId,
