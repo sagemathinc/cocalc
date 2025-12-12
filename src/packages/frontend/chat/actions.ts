@@ -86,6 +86,8 @@ export class ChatActions extends Actions<ChatState> {
   set_syncdb = (syncdb: ImmerDB, store: ChatStore): void => {
     this.syncdb = syncdb;
     this.store = store;
+    // trigger react subscribers to re-render when syncdb attaches
+    this.setState({ syncdbReady: Date.now() });
   };
 
   private toImmutableRecord(record: any): any {

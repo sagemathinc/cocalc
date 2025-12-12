@@ -51,6 +51,7 @@ import {
   getThreadRootDate,
   markChatAsReadIfUnseen,
 } from "./utils";
+import { field, dateValue } from "./access";
 import {
   ALL_THREADS_KEY,
   groupThreadsByRecency,
@@ -342,12 +343,10 @@ export function ChatPanel({
   const threads = useMemo<ThreadMeta[]>(() => {
     return rawThreads.map((thread) => {
       const rootMessage = thread.rootMessage;
-      const storedName = (
-        rootMessage?.get("name") as string | undefined
-      )?.trim();
+      const storedName = field<string>(rootMessage, "name")?.trim();
       const hasCustomName = !!storedName;
       const displayLabel = storedName || thread.label;
-      const pinValue = rootMessage?.get("pin");
+      const pinValue = field<any>(rootMessage, "pin");
       const isPinned =
         pinValue === true ||
         pinValue === "true" ||
@@ -355,7 +354,7 @@ export function ChatPanel({
         pinValue === "1";
       const readField =
         account_id && rootMessage
-          ? rootMessage.get(`read-${account_id}`)
+          ? field<any>(rootMessage, `read-${account_id}`)
           : null;
       const readValue =
         typeof readField === "number"
@@ -461,12 +460,8 @@ export function ChatPanel({
     let message = messages.get(keyStr) as ChatMessageTyped | undefined;
     if (message == null) {
       for (const [, msg] of messages) {
-        const dateField = msg?.get("date");
-        if (
-          dateField != null &&
-          typeof dateField.valueOf === "function" &&
-          dateField.valueOf() === parsed
-        ) {
+        const dateField = dateValue(msg);
+        if (dateField?.valueOf?.() === parsed) {
           message = msg;
           break;
         }
@@ -1573,13 +1568,14 @@ function computeThreadContextRemaining(
     typeof seq.toArray === "function" ? seq.toArray() : Array.from(seq);
   if (!list?.length) return null;
   list.sort((a, b) => {
-    const aDate = a?.get("date")?.valueOf?.() ?? 0;
-    const bDate = b?.get("date")?.valueOf?.() ?? 0;
+  const aDate = dateValue(a)?.valueOf?.() ?? 0;
+  const bDate = dateValue(b)?.valueOf?.() ?? 0;
     return aDate - bDate;
   });
   let remaining: number | null = null;
   for (const entry of list) {
-    const usageRaw: any = entry?.get("acp_usage") ?? entry?.get("codex_usage");
+    const usageRaw: any =
+      field(entry, "acp_usage") ?? field(entry, "codex_usage");
     if (!usageRaw) continue;
     const usage =
       typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
@@ -1631,18 +1627,6 @@ function calcUsedTokens(usage: any): number | undefined {
   return total > 0 ? total : undefined;
 }
 
-function useDocMessages(
-  fallback: ChatMessages | undefined,
-): ChatMessages | undefined {
-  const { messages } = useChatDoc();
-  return useMemo(() => {
-    if (messages) {
-      return messages as unknown as ChatMessages;
-    }
-    return fallback;
-  }, [messages, fallback]);
-}
-
 function ChatRoomInner({
   actions,
   project_id,
@@ -1652,14 +1636,15 @@ function ChatRoomInner({
 }: EditorComponentProps) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
   const activity = useEditor("activity");
-  const fallbackMessages = useEditor("messages") as ChatMessages | undefined;
-  const messages = useDocMessages(fallbackMessages);
+  // subscribe to syncdbReady to force re-render when sync attaches
+  useEditor("syncdbReady");
+  const { messages } = useChatDoc();
   return (
     <ChatPanel
       actions={actions}
       project_id={project_id}
       path={path}
-      messages={messages}
+      messages={messages as ChatMessages | undefined}
       activity={activity as any}
       fontSize={font_size}
       desc={desc}

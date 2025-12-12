@@ -23,6 +23,8 @@ export interface ChatState {
   saved_position?: number;
   search: string;
   add_collab: boolean;
+  // timestamp when syncdb was attached (to trigger rerenders)
+  syncdbReady?: number;
 }
 
 export function getInitialState() {
@@ -38,6 +40,7 @@ export function getInitialState() {
     saved_position: undefined,
     search: "",
     add_collab: false,
+    syncdbReady: undefined,
   };
 }
 

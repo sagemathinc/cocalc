@@ -6,6 +6,7 @@ import { React } from "@cocalc/frontend/app-framework";
 
 import type { ChatMessageTyped, ChatMessages } from "./types";
 import { newest_content } from "./utils";
+import { replyTo, dateValue, field } from "./access";
 
 export const ALL_THREADS_KEY = "__ALL_THREADS__";
 
@@ -32,7 +33,7 @@ export interface ThreadSection<T extends ThreadListItem = ThreadListItem> {
 
 export function useThreadList(messages?: ChatMessages): ThreadListItem[] {
   return React.useMemo(() => {
-    if (messages == null || messages.size === 0) {
+    if (messages == null) {
       return [];
     }
 
@@ -50,8 +51,8 @@ export function useThreadList(messages?: ChatMessages): ThreadListItem[] {
       if (message == null) continue;
       const timeString =
         typeof timeRaw === "string" ? timeRaw : `${timeRaw ?? ""}`;
-      const replyTo = message.get("reply_to");
-      const rootKey = replyTo ? `${new Date(replyTo).valueOf()}` : timeString;
+      const rep = replyTo(message);
+      const rootKey = rep ? `${new Date(rep).valueOf()}` : timeString;
       let thread = threads.get(rootKey);
       if (thread == null) {
         thread = {
@@ -62,11 +63,11 @@ export function useThreadList(messages?: ChatMessages): ThreadListItem[] {
         threads.set(rootKey, thread);
       }
       thread.messageCount += 1;
-      const dateValue = message.get("date")?.valueOf();
-      if (dateValue != null && dateValue > thread.newestTime) {
-        thread.newestTime = dateValue;
+      const d = dateValue(message)?.valueOf?.();
+      if (d != null && d > thread.newestTime) {
+        thread.newestTime = d;
       }
-      if (!replyTo) {
+      if (!rep) {
         thread.rootMessage = message;
       }
     }
@@ -97,7 +98,7 @@ export function deriveThreadLabel(
   rootMessage: ChatMessageTyped | undefined,
   fallbackKey: string,
 ): string {
-  const explicitName = rootMessage?.get("name") as string | undefined;
+  const explicitName = field<string>(rootMessage, "name");
   if (typeof explicitName === "string") {
     const trimmed = explicitName.trim();
     if (trimmed) {
@@ -146,10 +147,9 @@ function recencyKeyForDelta(delta: number): RecencyKey {
   return "older";
 }
 
-export function groupThreadsByRecency<T extends ThreadListItem & { isPinned?: boolean }>(
-  threads: T[],
-  options: GroupOptions = {},
-): ThreadSection<T>[] {
+export function groupThreadsByRecency<
+  T extends ThreadListItem & { isPinned?: boolean },
+>(threads: T[], options: GroupOptions = {}): ThreadSection<T>[] {
   if (!threads || threads.length === 0) {
     return [];
   }
