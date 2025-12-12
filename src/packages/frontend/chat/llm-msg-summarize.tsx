@@ -18,6 +18,7 @@ import { useProjectContext } from "@cocalc/frontend/project/context";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { ChatMessageTyped } from "./types";
+import { replyTo } from "./access";
 
 export function SummarizeThread({
   message,
@@ -26,7 +27,7 @@ export function SummarizeThread({
   message: ChatMessageTyped;
   actions?: ChatActions;
 }) {
-  const reply_to = message.get("reply_to");
+  const reply_to = replyTo(message);
   const { project_id } = useProjectContext();
   const [model, setModel] = useLanguageModelSetting(project_id);
   const [visible, setVisible] = useState(false);

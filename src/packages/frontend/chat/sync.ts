@@ -8,17 +8,14 @@ export function initFromSyncDB({ syncdb, store }) {
   const rows: any[] =
     typeof syncdb.get().toJS === "function" ? syncdb.get().toJS() : syncdb.get();
   for (let x of rows) {
-    const originalDate = x?.date;
     const { message, upgraded } = normalizeChatMessage(x);
     if (message != null) {
       v[message.date.valueOf()] = message;
+      // NOTE: We used to write upgraded rows back here, but Immer-based
+      // SyncDoc.set can recurse when called during initial load. Since
+      // the normalized message is what we render from, we skip the
+      // write-back here and rely on future edits to persist upgrades.
       if (upgraded) {
-        // Preserve the original PK encoding to avoid duplicate rows.
-        const patch = {
-          ...message,
-          date: originalDate ?? message.date,
-        };
-        syncdb.set(patch);
         upgradedCount++;
       }
     }
@@ -26,9 +23,8 @@ export function initFromSyncDB({ syncdb, store }) {
   store.setState({
     messages: fromJS(v),
   });
-  if (upgradedCount > 0) {
-    syncdb.commit();
-  }
+  // If we skipped upgrade writes, there's nothing to commit here.
+  // Any future change will persist the normalized form.
 }
 
 export function handleSyncDBChange({ syncdb, store, changes }) {
