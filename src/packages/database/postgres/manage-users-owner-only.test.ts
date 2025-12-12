@@ -8,17 +8,10 @@ import { db } from "@cocalc/database";
 import { uuid } from "@cocalc/util/misc";
 
 let pool: ReturnType<typeof getPool> | undefined;
-let dbAvailable = true;
 
 beforeAll(async () => {
-  try {
-    await initEphemeralDatabase();
-    pool = getPool();
-  } catch (err) {
-    // Skip locally if postgres is unavailable.
-    dbAvailable = false;
-    console.warn("Skipping manage_users_owner_only tests: " + err);
-  }
+  await initEphemeralDatabase();
+  pool = getPool();
 }, 15000);
 
 afterAll(async () => {
@@ -51,12 +44,10 @@ describe("manage_users_owner_only set hook", () => {
   const collaboratorId = uuid();
 
   beforeAll(async () => {
-    if (!dbAvailable) return;
     await insertProject({ projectId, ownerId, collaboratorId });
   });
 
   test("owner can set manage_users_owner_only", async () => {
-    if (!dbAvailable) return;
     const value = await db()._user_set_query_project_manage_users_owner_only(
       { project_id: projectId, manage_users_owner_only: true },
       ownerId,
@@ -65,7 +56,6 @@ describe("manage_users_owner_only set hook", () => {
   });
 
   test("collaborator call returns sanitized value (permission enforced elsewhere)", async () => {
-    if (!dbAvailable) return;
     const value = await db()._user_set_query_project_manage_users_owner_only(
       { project_id: projectId, manage_users_owner_only: true },
       collaboratorId,
@@ -74,7 +64,6 @@ describe("manage_users_owner_only set hook", () => {
   });
 
   test("invalid type is rejected", async () => {
-    if (!dbAvailable) return;
     expect(() =>
       db()._user_set_query_project_manage_users_owner_only(
         { project_id: projectId, manage_users_owner_only: "yes" as any },
