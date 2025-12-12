@@ -538,18 +538,22 @@ export class SyncDoc extends EventEmitter {
   // Convenience function to avoid having to do
   // get_doc and set_doc constantly.
   set = (x: any): void => {
+    this.assert_is_ready("set");
     this.set_doc(this.doc.set(x));
   };
 
   delete = (x?: any): void => {
+    this.assert_is_ready("delete");
     this.set_doc(this.doc.delete(x));
   };
 
   get = (x?: any): any => {
+    this.assert_is_ready("get");
     return this.doc.get(x);
   };
 
   get_one(x?: any): any {
+    this.assert_is_ready("get_one");
     return this.doc.get_one?.(x);
   }
 
@@ -1103,10 +1107,7 @@ export class SyncDoc extends EventEmitter {
     await this.init_syncstring_table();
     await this.init_patchflow();
     await this.startBackendFsWatch();
-    await Promise.all([
-      this.init_cursors(),
-      this.init_evaluator(),
-    ]);
+    await Promise.all([this.init_cursors(), this.init_evaluator()]);
     this.assert_not_closed(
       "initAll -- successful init patchflow, cursors, evaluator, and ipywidgets",
     );
@@ -1295,11 +1296,11 @@ export class SyncDoc extends EventEmitter {
     try {
       this.patchflowCodec = this.buildPatchflowCodec();
       this.patchflowStore = this.createPatchflowStore();
-    this.patchflowSession = new PatchflowSession({
-      codec: this.patchflowCodec,
-      patchStore: this.patchflowStore,
-      clock: () => this.client?.server_time().valueOf() ?? Date.now(),
-      userId: this.my_user_id ?? 1,
+      this.patchflowSession = new PatchflowSession({
+        codec: this.patchflowCodec,
+        patchStore: this.patchflowStore,
+        clock: () => this.client?.server_time().valueOf() ?? Date.now(),
+        userId: this.my_user_id ?? 1,
         docId: this.string_id,
         presenceAdapter: await this.createCursorPresenceAdapter(),
       });
@@ -2146,7 +2147,10 @@ export class SyncDoc extends EventEmitter {
         this.users.push(client_id);
         idx = this.users.length - 1;
         await this.set_syncstring_table({ users: this.users });
-      } else if (idx === FILESYSTEM_USER_ID && this.users[idx] !== FILESYSTEM_CLIENT_ID) {
+      } else if (
+        idx === FILESYSTEM_USER_ID &&
+        this.users[idx] !== FILESYSTEM_CLIENT_ID
+      ) {
         // Slot 0 is reserved for filesystem patches; if we collide, append a new slot.
         this.users.push(client_id);
         idx = this.users.length - 1;
