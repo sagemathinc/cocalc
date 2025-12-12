@@ -35,6 +35,7 @@ import { User } from "@cocalc/frontend/users";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
 import { plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { appendStreamMessage } from "@cocalc/chat";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import CodexActivity, { codexEventsToMarkdown } from "./codex-activity";
@@ -300,9 +301,11 @@ export default function Message({
   }, [message]);
 
   const [fetchedLog, setFetchedLog] = useState<any[] | null>(null);
+  const [liveLog, setLiveLog] = useState<any[]>([]);
 
   useEffect(() => {
     setFetchedLog(null);
+    setLiveLog([]);
   }, [acpLogInfo?.key, acpLogInfo?.store]);
 
   useEffect(() => {
@@ -331,8 +334,39 @@ export default function Message({
     };
   }, [acpLogInfo?.key, acpLogInfo?.store, project_id, fetchedLog]);
 
+  // Subscribe to live log stream while generating.
+  useEffect(() => {
+    let sub: any;
+    let stopped = false;
+    async function subscribe() {
+      if (!generating || !acpLogInfo?.subject) return;
+      try {
+        const cn = webapp_client.conat_client.conat();
+        sub = await cn.subscribe(acpLogInfo.subject);
+        for await (const mesg of sub) {
+          if (stopped) break;
+          const evt = mesg?.data;
+          if (!evt) continue;
+          setLiveLog((prev) => appendStreamMessage(prev ?? [], evt));
+        }
+      } catch (err) {
+        console.warn("live log subscribe failed", err);
+      }
+    }
+    void subscribe();
+    return () => {
+      stopped = true;
+      try {
+        sub?.close?.();
+      } catch {
+        // ignore
+      }
+    };
+  }, [generating, acpLogInfo?.subject]);
+
   const codexEvents = useMemo(() => {
     if (fetchedLog) return fetchedLog;
+    if (liveLog.length > 0) return liveLog;
     const ev = message.get("acp_events");
     if (!ev) return undefined;
     if (typeof (ev as any)?.toJS === "function") {
@@ -342,8 +376,8 @@ export default function Message({
   }, [message, fetchedLog]);
 
   const showCodexActivity = useMemo(
-    () => Boolean(codexEvents?.length || acpLogInfo),
-    [codexEvents, acpLogInfo],
+    () => Boolean(codexEvents?.length || acpLogInfo || generating),
+    [codexEvents, acpLogInfo, generating],
   );
 
   const threadRootMs = useMemo(() => {
@@ -969,7 +1003,19 @@ export default function Message({
         {showCodexActivity ? (
           <>
             <CodexActivity
-              events={codexEvents ?? []}
+              events={
+                codexEvents && codexEvents.length > 0
+                  ? codexEvents
+                  : generating
+                    ? [
+                        {
+                          type: "event",
+                          event: { type: "thinking", text: "" },
+                          seq: 0,
+                        },
+                      ]
+                    : []
+              }
               generating={generating === true}
               fontSize={font_size}
               persistKey={`${(project_id ?? "no-project").slice(0, 8)}:${
