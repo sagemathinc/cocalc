@@ -557,25 +557,14 @@ export class ChatActions extends Actions<ChatState> {
     let deleted = 0;
     for (const [_, message] of messages) {
       if (message == null) continue;
-      const dateField = message.get("date");
-      let dateValue: number | undefined;
-      let dateIso: string | undefined;
-      if (dateField instanceof Date) {
-        dateValue = dateField.valueOf();
-        dateIso = toISOString(dateField);
-      } else if (typeof dateField === "number") {
-        dateValue = dateField;
-        dateIso = toISOString(new Date(dateField));
-      } else if (typeof dateField === "string") {
-        const t = Date.parse(dateField);
-        dateValue = isNaN(t) ? undefined : t;
-        dateIso = dateField;
-      }
-      if (dateValue == null || dateIso == null) {
+      const d = dateValue(message);
+      const dateValueMs = d?.valueOf();
+      const dateIso = toISOString(d);
+      if (dateValueMs == null || dateIso == null) {
         continue;
       }
       const rootDate =
-        getThreadRootDate({ date: dateValue, messages }) || dateValue;
+        getThreadRootDate({ date: dateValueMs, messages }) || dateValueMs;
       if (rootDate !== rootTarget) {
         continue;
       }

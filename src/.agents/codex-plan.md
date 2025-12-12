@@ -11,6 +11,7 @@ Currently broken by this:
 
 - [ ] editing messages doesn't work
 - [ ] ai output appears in the wrong message.
+- [ ] clicking thumbs up button doesn't work
 
 - **Typed Immer everywhere**: Tighten types so `syncdb` is `ImmerDB` only (already started), and add proper TypeScript defs for `webapp_client.conat_client.conat().sync.immer` so we can drop `any` casts (e.g., in `chat/register.ts`).
 
