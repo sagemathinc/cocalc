@@ -12,42 +12,46 @@ export interface NormalizedChatMessage {
  * Ensures date is a Date instance and legacy payload/mesg fields are converted
  * into a history entry. Adds empty defaults and stamps schema_version.
  */
-export function normalizeChatMessage(raw: any): NormalizedChatMessage {
-  if (!raw || raw.event !== "chat") return { message: undefined, upgraded: false };
+export function normalizeChatMessage(base: any): NormalizedChatMessage {
+  if (!base || base.event !== "chat")
+    return { message: undefined, upgraded: false };
   // Drop legacy video chat payloads
-  if ((raw as any).video_chat?.is_video_chat) return { message: undefined, upgraded: false };
+  if (base.video_chat?.is_video_chat)
+    return { message: undefined, upgraded: false };
 
   // Work on a shallow copy so we never mutate readonly/frozen inputs.
-  const x: any = { ...raw };
+  const x = { ...base };
   let upgraded = false;
 
-  // Coerce date
+  // Coerce date -- this is a normalization -- the raw date is always an iso string.
   if (!(x.date instanceof Date)) {
     x.date = new Date(x.date);
-    upgraded = true;
+  }
+  if (x.schema_version == CURRENT_CHAT_MESSAGE_VERSION) {
+    return { message: x as PlainChatMessage, upgraded: false };
   }
 
   // Patch legacy payload/mesg shapes into history
   if ((x.history?.length ?? 0) === 0) {
-    if ((x as any).payload?.content != null) {
+    if (x.payload?.content != null) {
       x.history = [
         {
-          content: (x as any).payload.content,
+          content: x.payload.content,
           author_id: x.sender_id,
           date: new Date(x.date).toISOString(),
         },
       ];
-      delete (x as any).payload;
+      delete x.payload;
       upgraded = true;
-    } else if ((x as any).mesg?.content != null) {
+    } else if (x.mesg?.content != null) {
       x.history = [
         {
-          content: (x as any).mesg.content,
+          content: x.mesg.content,
           author_id: x.sender_id,
           date: new Date(x.date).toISOString(),
         },
       ];
-      delete (x as any).mesg;
+      delete x.mesg;
       upgraded = true;
     }
   }

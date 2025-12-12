@@ -78,19 +78,52 @@ export class ChatMessageCache {
     this.emitter.emit("version", this.version);
   }
 
+  // After calling this, if it returns true, then
+  // the date field will be a valid ISO string
+  private validateDate(row: any): boolean {
+    // completely ignore any row whose date is not a valid -- there's nothing
+    // to be done with such records.
+    const date = row?.date;
+    if (!date) {
+      return false;
+    }
+    if (typeof date != "string") {
+      return false;
+    }
+    try {
+      const d = new Date(date);
+      if (!isFinite(d.valueOf())) {
+        return false;
+      }
+      row.date = d.toISOString();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   private rebuildFromDoc() {
     if (!this.syncdb || this.syncdb.get_state?.() !== "ready") {
       return;
     }
     const map = new Map<string, PlainChatMessage>();
     const rows = this.syncdb.get() ?? [];
+    const toPersist: PlainChatMessage[] = [];
+
     for (const row of rows ?? []) {
-      const { message } = normalizeChatMessage(row);
+      if (!this.validateDate(row)) continue;
+      const { message, upgraded } = normalizeChatMessage(row);
       if (message) {
         map.set(`${message.date.valueOf()}`, message);
+        if (upgraded) {
+          toPersist.push(message);
+        }
       }
     }
     this.messages = map;
+    if (toPersist.length > 0) {
+      this.persist(toPersist);
+    }
     this.bumpVersion();
   }
 
@@ -103,8 +136,13 @@ export class ChatMessageCache {
         : changes == null
           ? []
           : [changes];
+    const toPersist: PlainChatMessage[] = [];
     for (const row of rows) {
-      // SyncDoc.get_one requires only primary key fields.
+      if (!this.validateDate(row)) {
+        continue;
+      }
+      // SyncDoc.get_one requires only primary key fields so we make an object
+      // where that ONLY has those fields and no others.
       const where: Record<string, unknown> = {};
       if (row?.event != null) where.event = row.event;
       if (row?.sender_id != null) where.sender_id = row.sender_id;
@@ -120,7 +158,7 @@ export class ChatMessageCache {
         }
         continue;
       }
-      const { message } = normalizeChatMessage(rec);
+      const { message, upgraded } = normalizeChatMessage(rec);
       const key =
         message?.date != null
           ? `${message.date.valueOf()}`
@@ -130,11 +168,50 @@ export class ChatMessageCache {
       if (key == null) continue;
       if (message) {
         m.set(key, message);
+        if (upgraded) {
+          toPersist.push(message);
+        }
       } else {
         m.delete(key);
       }
     }
     this.messages = m;
+    if (toPersist.length > 0) {
+      this.persist(toPersist);
+    }
     this.bumpVersion();
+  }
+
+  // Commit upgrades outside the current call stack to avoid recursive change events.
+  private persist(messages: PlainChatMessage[]) {
+    if (!this.syncdb || this.syncdb.get_state?.() !== "ready") return;
+    Promise.resolve().then(() => {
+      if (this.syncdb && this.syncdb.get_state?.() === "ready") {
+        let changed = false;
+        for (const message of messages) {
+          if (this.persistUpgrade(message)) {
+            changed = true;
+          }
+        }
+        if (changed) {
+          this.syncdb.commit();
+        }
+      }
+    });
+  }
+
+  // Persist upgraded schema/version back into syncdb so legacy rows are fixed on disk.
+  private persistUpgrade(message: PlainChatMessage): boolean {
+    if (!this.syncdb || this.syncdb.get_state?.() !== "ready") return false;
+    // normalizeChatMessage guarantees a Date; skip if somehow not.
+    if (!(message.date instanceof Date)) return false;
+    if (!isFinite(message.date.valueOf())) return false;
+    const dateIso = message.date.toISOString();
+    const toSave: any = {
+      ...message,
+      date: dateIso,
+    };
+    this.syncdb.set(toSave);
+    return true;
   }
 }
