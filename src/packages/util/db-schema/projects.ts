@@ -11,13 +11,13 @@ import {
   ExecuteCodeOptionsAsyncGet,
   ExecuteCodeOutput,
 } from "@cocalc/util/types/execute-code";
-import { callback2 } from "@cocalc/util/async-utils";
 import { DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
 import { isUserGroup } from "@cocalc/util/project-ownership";
 
 import { NOTES } from "./crm";
 import { FALLBACK_COMPUTE_IMAGE } from "./defaults";
 import { SCHEMA as schema } from "./index";
+import { callback2 } from "@cocalc/util/async-utils";
 import { Table } from "./types";
 
 export const MAX_FILENAME_SEARCH_RESULTS = 100;
@@ -141,9 +141,8 @@ Table({
               }
 
               const siteSettings =
-                (await callback2(db.get_site_settings, {})) ?? {};
-              const siteEnforced =
-                siteSettings.strict_collaborator_management === true;
+                (await callback2(db.get_server_settings_cached, {})) ?? {};
+              const siteEnforced = !!siteSettings.strict_collaborator_management;
               if (siteEnforced && obj.manage_users_owner_only !== true) {
                 throw Error(
                   "Collaborator management is enforced by the site administrator and cannot be disabled.",

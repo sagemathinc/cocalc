@@ -3,18 +3,19 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { callback2 } from "@cocalc/util/async-utils";
-import { uuid } from "@cocalc/util/misc";
 import { db } from "@cocalc/database";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { resetServerSettingsCache } from "@cocalc/database/settings/server-settings";
+import userQuery from "@cocalc/database/user-query";
 import createAccount from "@cocalc/server/accounts/create-account";
-import createProject from "@cocalc/server/projects/create";
 import {
   addCollaborator,
   changeUserType,
   removeCollaborator,
 } from "@cocalc/server/projects/collaborators";
-import { resetServerSettingsCache } from "@cocalc/database/settings/server-settings";
+import createProject from "@cocalc/server/projects/create";
+import { callback2 } from "@cocalc/util/async-utils";
+import { uuid } from "@cocalc/util/misc";
 
 async function setSiteStrictCollab(value: "yes" | "no") {
   await callback2(db().set_server_setting, {
@@ -286,6 +287,22 @@ describe("strict collaborator management site setting", () => {
       }),
     ).rejects.toThrow(
       "Only owners can manage collaborators when this setting is enabled",
+    );
+  });
+
+  test("owner cannot disable manage_users_owner_only when site enforcement is on", async () => {
+    await expect(
+      userQuery({
+        account_id: ownerId,
+        query: {
+          projects: {
+            project_id: projectId,
+            manage_users_owner_only: false,
+          },
+        },
+      }),
+    ).rejects.toMatch(
+      "Collaborator management is enforced by the site administrator and cannot be disabled.",
     );
   });
 
