@@ -3,8 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { List, Map } from "immutable";
-
 import { Well } from "@cocalc/frontend/antd-bootstrap";
 import { TimeAgo } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
@@ -15,6 +13,7 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { isValidUUID, trunc_middle } from "@cocalc/util/misc";
 import { LLMModelName } from "../components/llm-name";
+import { historyArray } from "./access";
 
 export function HistoryTitle() {
   return (
@@ -41,8 +40,8 @@ export function HistoryFooter() {
 }
 
 interface HistoryProps {
-  history?: List<any>;
-  user_map?: Map<string, any>;
+  history?: any;
+  user_map?: any;
 }
 
 export function History({ history, user_map }: HistoryProps) {
@@ -66,7 +65,7 @@ export function History({ history, user_map }: HistoryProps) {
   }
 
   // convert to javascript from immutable, and remove current version.
-  const historyList = history.toJS().slice(1);
+  const historyList = historyArray({ history }).slice(1);
   const v: React.JSX.Element[] = [];
   for (const index in historyList) {
     const message = historyList[index];

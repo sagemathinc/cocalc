@@ -59,6 +59,13 @@ import {
 } from "./utils";
 import { CONTEXT_WARN_PCT, CONTEXT_CRITICAL_PCT } from "./codex";
 import { delay } from "awaiting";
+import {
+  dateValue,
+  field,
+  firstHistory,
+  historyArray,
+  replyTo,
+} from "./access";
 
 const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
@@ -192,15 +199,15 @@ export default function Message({
 
   // date as ms since epoch or 0
   const date: number = useMemo(() => {
-    return message?.get("date")?.valueOf() ?? 0;
-  }, [message.get("date")]);
+    return dateValue(message)?.valueOf() ?? 0;
+  }, [message]);
 
   const showEditButton = Date.now() - date < SHOW_EDIT_BUTTON_MS;
 
-  const generating = message.get("generating");
+  const generating = field<boolean>(message, "generating");
 
   const history_size = useMemo(
-    () => message.get("history")?.size ?? 0,
+    () => historyArray(message).length,
     [message],
   );
 
@@ -210,8 +217,9 @@ export default function Message({
   );
 
   const editor_name = useMemo(() => {
-    return get_user_name(message.get("history")?.first()?.get("author_id"));
-  }, [message]);
+    const first = firstHistory(message);
+    return get_user_name(first?.author_id);
+  }, [message, get_user_name]);
 
   const reverseRowOrdering =
     !is_thread_body && sender_is_viewer(account_id, message);
@@ -231,7 +239,9 @@ export default function Message({
     if (draft == null) {
       return false;
     }
-    if (draft.get("active") <= 1720071100408) {
+    const active =
+      (draft as any)?.get?.("active") ?? (draft as any)?.active ?? undefined;
+    if (typeof active === "number" && active <= 1720071100408) {
       // before this point in time, drafts never ever got deleted when sending replies!  So there's a massive
       // clutter of reply drafts sitting in chats, and we don't want to resurrect them.
       return false;
@@ -254,8 +264,8 @@ export default function Message({
 
   const is_viewers_message = sender_is_viewer(account_id, message);
   const isLLMThread = useMemo(
-    () => actions?.isLanguageModelThread(message.get("date")),
-    [message, actions != null],
+    () => actions?.isLanguageModelThread(dateValue(message)),
+    [message, actions],
   );
   const isCodexThread =
     typeof isLLMThread === "string" && isLLMThread.includes("codex");
@@ -288,16 +298,16 @@ export default function Message({
   }, [elapsedMs]);
 
   const msgWrittenByLLM = useMemo(() => {
-    const author_id = message.get("history")?.first()?.get("author_id");
+    const author_id = firstHistory(message)?.author_id;
     return typeof author_id === "string" && isLanguageModelService(author_id);
   }, [message]);
 
   const acpLogInfo = useMemo(() => {
-    const store = message.get("acp_log_store") ?? undefined;
-    const key = message.get("acp_log_key") ?? undefined;
-    const thread = message.get("acp_log_thread") ?? undefined;
-    const turn = message.get("acp_log_turn") ?? undefined;
-    const subject = message.get("acp_log_subject") ?? undefined;
+    const store = field<string>(message, "acp_log_store") ?? undefined;
+    const key = field<string>(message, "acp_log_key") ?? undefined;
+    const thread = field<string>(message, "acp_log_thread") ?? undefined;
+    const turn = field<string>(message, "acp_log_turn") ?? undefined;
+    const subject = field<string>(message, "acp_log_subject") ?? undefined;
     if (store && key) {
       return { store, key, thread, turn, subject };
     }
@@ -313,10 +323,10 @@ export default function Message({
   const fallbackLogRefs = useMemo(() => {
     const thread =
       acpLogInfo?.thread ??
-      message.get("acp_thread_id") ??
-      message.get("reply_to") ??
-      message.get("date")?.toString?.();
-    const turn = acpLogInfo?.turn ?? message.get("date")?.toString?.();
+      field<string>(message, "acp_thread_id") ??
+      replyTo(message) ??
+      dateValue(message)?.toString?.();
+    const turn = acpLogInfo?.turn ?? dateValue(message)?.toString?.();
     const store =
       acpLogInfo?.store ??
       (project_id && path
@@ -338,7 +348,7 @@ export default function Message({
     logKey: fallbackLogRefs.key,
     logSubject: fallbackLogRefs.subject,
     generating: generating === true,
-    legacyEvents: message.get("acp_events"),
+    legacyEvents: field(message, "acp_events"),
   });
 
   const codexEvents = codexLog.events;
@@ -363,7 +373,7 @@ export default function Message({
 
   const deleteActivityLog = useCallback(async () => {
     if (!actions?.syncdb) return;
-    const d = message.get("date");
+    const d = dateValue(message);
     if (!(d instanceof Date)) return;
     await codexLog.deleteLog();
     actions.syncdb.set({

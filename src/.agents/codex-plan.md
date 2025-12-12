@@ -22,6 +22,10 @@ Here’s a concise plan to finish the Immer migration and clean up chat code qua
 
 These steps will finish the Immer switch, reduce RAM overhead, and make the chat codebase easier to maintain and test.
 
+Bonus:
+
+- make history more efficient using diff-match-patch and a version bump.
+
 
 ## Major Bugs and Issues
 
