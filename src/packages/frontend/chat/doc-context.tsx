@@ -18,8 +18,8 @@ import React, {
 } from "react";
 import type { ImmerDB } from "@cocalc/sync/editor/immer-db";
 import type { Document } from "@cocalc/sync/editor/generic/types";
-import { normalizeChatMessage } from "./normalize";
 import type { PlainChatMessage } from "./types";
+import { ChatMessageCache } from "./message-cache";
 
 type DocCtx = {
   syncdb?: ImmerDB;
@@ -35,87 +35,40 @@ const ChatDocContext = createContext<DocCtx>({
 
 export function ChatDocProvider({
   syncdb,
+  cache: cacheProp,
   children,
 }: {
   syncdb?: ImmerDB;
+  cache?: ChatMessageCache;
   children: React.ReactNode;
 }) {
   const [version, setVersion] = useState<number>(0);
-  const messagesRef = useRef<Map<string, PlainChatMessage> | null>(null);
+  const cacheRef = useRef<ChatMessageCache | null>(null);
 
   useEffect(() => {
-    if (!syncdb) return;
-    const doc = syncdb.get();
-    const map = new Map<string, PlainChatMessage>();
-    for (const row of doc?.get?.() ?? []) {
-      const { message } = normalizeChatMessage(row);
-      if (message) {
-        map.set(`${message.date.valueOf()}`, message);
-      }
-    }
-    messagesRef.current = map;
-    setVersion((v) => v + 1);
-  }, [syncdb]);
-
-  useEffect(() => {
-    if (!syncdb) return;
-    const onChange = (changes: Set<Record<string, unknown>> | undefined) => {
-      if (!messagesRef.current) {
-        messagesRef.current = new Map();
-      }
-      const m = new Map(messagesRef.current);
-      // Patchflow emits a Set of primary-key objects for Db changes.
-      const rows: Record<string, unknown>[] =
-        changes instanceof Set
-          ? Array.from(changes)
-          : changes == null
-            ? []
-            : [changes];
-      for (const row of rows) {
-        // change payloads may be just primary keys; fetch full record
-        const rec = syncdb.get_one(row);
-        if (!rec) {
-          // deleted row
-          const key =
-            row?.date != null
-              ? `${new Date(row.date as string | number | Date).valueOf()}`
-              : undefined;
-          if (key != null) {
-            m.delete(key);
-          }
-          continue;
-        }
-        const { message } = normalizeChatMessage(rec);
-        const key =
-          message?.date != null
-            ? `${message.date.valueOf()}`
-            : row?.date
-              ? `${new Date(row.date as string).valueOf()}`
-              : undefined;
-        if (key == null) continue;
-        if (message) {
-          m.set(key, message);
-        } else {
-          m.delete(key);
-        }
-      }
-      messagesRef.current = m;
-      setVersion((v) => v + 1);
-    };
-    syncdb.on("change", onChange);
+    const cache = cacheProp ?? new ChatMessageCache(syncdb);
+    cacheRef.current = cache;
+    const onVersion = (v: number) => setVersion(v);
+    cache.onVersion(onVersion);
+    // ensure initial version is reflected
+    setVersion(cache.getVersion());
     return () => {
-      syncdb.off("change", onChange);
+      cache.offVersion(onVersion);
+      if (!cacheProp) {
+        cache.dispose();
+      }
     };
-  }, [syncdb]);
+  }, [syncdb, cacheProp]);
 
+  const cache = cacheRef.current;
   const value = useMemo<DocCtx>(
     () => ({
-      syncdb,
-      doc: syncdb?.get(),
+      syncdb: cache?.getSyncdb(),
+      doc: cache?.getSyncdb()?.get(),
       version,
-      messages: messagesRef.current ?? undefined,
+      messages: cache?.getMessages(),
     }),
-    [syncdb, version],
+    [cache, version],
   );
 
   return (

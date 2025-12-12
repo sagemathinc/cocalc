@@ -1651,7 +1651,10 @@ function ChatRoomInner({
 
 export function ChatRoom(props: EditorComponentProps) {
   return (
-    <ChatDocProvider syncdb={(props.actions as any)?.syncdb}>
+    <ChatDocProvider
+      syncdb={(props.actions as any)?.syncdb}
+      cache={(props.actions as any)?.messageCache}
+    >
       <ChatRoomInner {...props} />
     </ChatDocProvider>
   );

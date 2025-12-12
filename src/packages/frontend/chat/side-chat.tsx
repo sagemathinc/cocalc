@@ -25,7 +25,10 @@ export default function SideChat({
   const actions: ChatActions = actions0 ?? actionsViaContext;
 
   return (
-    <ChatDocProvider syncdb={(actions as any)?.syncdb}>
+    <ChatDocProvider
+      syncdb={(actions as any)?.syncdb}
+      cache={(actions as any)?.messageCache}
+    >
       <div
         style={{
           height: "100%",

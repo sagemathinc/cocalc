@@ -68,12 +68,14 @@ import {
   replyTo,
   senderId,
 } from "./access";
+import { ChatMessageCache } from "./message-cache";
 
 const MAX_CHAT_STREAM = 10;
 
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: ImmerDB;
   public store?: ChatStore;
+  public messageCache?: ChatMessageCache;
   // We use this to ensure at most once chatgpt output is streaming
   // at a time in a given chatroom.  I saw a bug where hundreds started
   // at once and it really did send them all to openai at once, and
@@ -86,27 +88,18 @@ export class ChatActions extends Actions<ChatState> {
   set_syncdb = (syncdb: ImmerDB, store: ChatStore): void => {
     this.syncdb = syncdb;
     this.store = store;
+    this.messageCache = new ChatMessageCache(syncdb);
     // trigger react subscribers to re-render when syncdb attaches
     this.setState({ syncdbReady: Date.now() });
   };
 
   // Read the current chat messages directly from the SyncDoc (Immer).
-  // [ ] TODO: this is MASSIVELY inefficient and needs to
-  // be unified with doc-context.tsx.  We need one clean
-  // source of truth for processed message state, which is
-  // updated precisely when the syncdb changes, and is never
-  // recomputed.
   private getAllMessages(): Map<string, ChatMessageTyped> {
-    const map = new Map<string, ChatMessageTyped>();
-    const doc = this.syncdb?.get();
-    const rows = doc?.get?.() ?? [];
-    for (const row of rows ?? []) {
-      const { message } = normalizeChatMessage(row);
-      if (message) {
-        map.set(`${message.date.valueOf()}`, message);
-      }
+    if (this.messageCache) {
+      return this.messageCache.getMessages();
     }
-    return map;
+    // empty fallback since syncdb isn't defined yet
+    return new Map<string, ChatMessageTyped>();
   }
 
   private toImmutableRecord(record: any): any {
@@ -192,7 +185,7 @@ export class ChatActions extends Actions<ChatState> {
     const feedbacks =
       typeof (feedbacksRaw as any)?.toJS === "function"
         ? (feedbacksRaw as any).toJS()
-        : feedbacksRaw ?? {};
+        : (feedbacksRaw ?? {});
     const next = { ...feedbacks, [account_id]: feedback };
     this.setSyncdb({ feedback: next, date });
     this.syncdb.commit();
