@@ -333,31 +333,34 @@ export function StudentAssignmentInfo({
     if (recopy[step]) {
       const v: React.JSX.Element[] = [];
       v.push(
-        <Button
+        <Tip
           key="copy_cancel"
-          size={size}
-          onClick={() => set_recopy(step, false)}
+          title={intl.formatMessage(labels.cancel)}
+          tip={intl.formatMessage(labels.cancel)}
         >
-          {intl.formatMessage(labels.cancel)}
-        </Button>,
+          <Button size={size} onClick={() => set_recopy(step, false)}>
+            {intl.formatMessage(labels.cancel)}
+          </Button>
+        </Tip>,
       );
       v.push(
-        <Button
-          key="recopy_confirm"
-          danger
-          size={size}
-          onClick={() => {
-            set_recopy(step, false);
-            copy();
-          }}
-        >
-          <FormattedMessage
-            id="course.student-assignment-info.recopy_confirm.label"
-            defaultMessage={`Yes, {activity} again`}
-            description={"Confirm an activity, like 'assign', 'collect', ..."}
-            values={{ activity: step_intl(step, false).toLowerCase() }}
-          />
-        </Button>,
+        <Tip key="recopy_confirm" title={step} placement={placement} tip={copy_tip}>
+          <Button
+            danger
+            size={size}
+            onClick={() => {
+              set_recopy(step, false);
+              copy();
+            }}
+          >
+            <FormattedMessage
+              id="course.student-assignment-info.recopy_confirm.label"
+              defaultMessage={`Yes, {activity} again`}
+              description={"Confirm an activity, like 'assign', 'collect', ..."}
+              values={{ activity: step_intl(step, false).toLowerCase() }}
+            />
+          </Button>
+        </Tip>,
       );
       if (step.toLowerCase() === "assign") {
         // inline-block because buttons above are float:left
@@ -383,16 +386,16 @@ export function StudentAssignmentInfo({
       return <Space wrap>{v}</Space>;
     } else {
       return (
-        <Button
-          key="copy"
-          type="dashed"
-          size={size}
-          onClick={() => set_recopy(step, true)}
-        >
-          <Tip title={step} placement={placement} tip={copy_tip}>
+        <Tip title={step} placement={placement} tip={copy_tip}>
+          <Button
+            key="copy"
+            type="dashed"
+            size={size}
+            onClick={() => set_recopy(step, true)}
+          >
             <Icon name="redo" />
-          </Tip>
-        </Button>
+          </Button>
+        </Tip>
       );
     }
   }
@@ -408,11 +411,11 @@ export function StudentAssignmentInfo({
     return (
       <Space key="open_recopy" wrap>
         {render_recopy_confirm(step, copy, copy_tip, placement)}
-        <Button key="open" size={size} onClick={open}>
-          <Tip title="Open assignment" placement={placement} tip={open_tip}>
+        <Tip title="Open assignment" placement={placement} tip={open_tip}>
+          <Button key="open" size={size} onClick={open}>
             <Icon name="folder-open" />
-          </Tip>
-        </Button>
+          </Button>
+        </Tip>
       </Space>
     );
   }
@@ -432,9 +435,11 @@ export function StudentAssignmentInfo({
         <Button key="stop" danger onClick={stop} size={size}>
           {intl.formatMessage(labels.cancel)} <Icon name="times" />
         </Button>
-        <Button key="open" onClick={open} size={size}>
-          <Icon name="folder-open" />
-        </Button>
+        <Tip title="Open assignment" placement={step === "Return" ? "left" : "right"} tip="">
+          <Button key="open" onClick={open} size={size}>
+            <Icon name="folder-open" />
+          </Button>
+        </Tip>
       </Space>
     );
   }
