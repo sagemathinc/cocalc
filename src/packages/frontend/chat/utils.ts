@@ -13,7 +13,13 @@ import type {
   ChatMessage,
 } from "./types";
 import { is_date as isDate } from "@cocalc/util/misc";
-import { firstHistory, senderId, editingArray } from "./access";
+import {
+  firstHistory,
+  senderId,
+  editingArray,
+  dateValue,
+  replyTo as replyToField,
+} from "./access";
 
 export const INPUT_HEIGHT = "auto";
 
@@ -161,14 +167,17 @@ export function getRootMessage({
   message: ChatMessage;
   messages: ChatMessages;
 }): ChatMessageTyped | undefined {
-  const { reply_to, date } = message;
+  const reply_to = replyToField(message);
+  const date = dateValue(message);
   // we can't find the original message, if there is no reply_to
   if (!reply_to) {
     // the msssage itself is the root
-    return messages.get(`${new Date(date).valueOf()}`);
+    const key = `${new Date(date ?? Date.now()).valueOf()}`;
+    return messages.get?.(key) as any;
   } else {
     // All messages in a thread have the same reply_to, which points to the root.
-    return messages.get(`${new Date(reply_to).valueOf()}`);
+    const key = `${new Date(reply_to).valueOf()}`;
+    return messages.get?.(key) as any;
   }
 }
 
@@ -180,8 +189,7 @@ export function getReplyToRoot({
   messages: ChatMessages;
 }): Date | undefined {
   const root = getRootMessage({ message, messages });
-  const date = root?.get("date");
-  // date is a "Date" object, but we're just double checking it is not a string by accident
+  const date = dateValue(root);
   return date ? new Date(date) : undefined;
 }
 
@@ -195,7 +203,11 @@ export function getThreadRootDate({
   if (messages == null) {
     return 0;
   }
-  const message = messages.get(`${date}`)?.toJS();
+  const raw = messages.get?.(`${date}`);
+  const message =
+    raw && typeof (raw as any)?.toJS === "function"
+      ? (raw as any).toJS()
+      : (raw as any);
   if (message == null) {
     return 0;
   }

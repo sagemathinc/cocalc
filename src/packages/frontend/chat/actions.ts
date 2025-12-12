@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { List, Map, Seq, Map as immutableMap, fromJS } from "immutable";
+import { Seq, Map as immutableMap, fromJS } from "immutable";
 import { debounce } from "lodash";
 import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
@@ -59,7 +59,15 @@ import type {
 import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
 import { addToHistory } from "@cocalc/chat";
 import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
-import { historyArray, dateValue, editingArray } from "./access";
+import {
+  field,
+  foldingList,
+  historyArray,
+  dateValue,
+  editingArray,
+  replyTo,
+  senderId,
+} from "./access";
 
 const MAX_CHAT_STREAM = 10;
 
@@ -109,14 +117,12 @@ export class ChatActions extends Actions<ChatState> {
   toggleFoldThread = (reply_to: Date, messageIndex?: number) => {
     if (this.syncdb == null) return;
     const account_id = this.redux.getStore("account").get_account_id();
-    const cur = this.toImmutableRecord(
-      this.syncdb.get_one({ event: "chat", date: reply_to }),
-    );
-    const folding = cur?.get("folding") ?? List([]);
+    const cur = this.syncdb.get_one({ event: "chat", date: reply_to });
+    const folding = foldingList(cur);
     const folded = folding.includes(account_id);
     const next = folded
       ? folding.filter((x) => x !== account_id)
-      : folding.push(account_id);
+      : [...folding, account_id];
 
     const d = toISOString(reply_to);
     if (!d) {
@@ -140,18 +146,17 @@ export class ChatActions extends Actions<ChatState> {
     if (messages == null) return;
     const account_id = this.redux.getStore("account").get_account_id();
     for (const [_timestamp, message] of messages) {
+      const date = dateValue(message);
       // ignore replies
-      if (message.get("reply_to") != null) continue;
-      const date = message.get("date");
-      if (!(date instanceof Date)) continue;
+      if (replyTo(message) != null || !date) continue;
       const isLLMThread = this.isLanguageModelThread(date) !== false;
       if (onlyLLM && !isLLMThread) continue;
-      const folding = message?.get("folding") ?? List([]);
+      const folding = foldingList(message);
       const folded = folding.includes(account_id);
       if (!folded) {
         this.setSyncdb({
-          folding: folding.push(account_id),
-          date,
+          folding: [...folding, account_id],
+          date: toISOString(date),
         });
       }
     }
@@ -159,14 +164,16 @@ export class ChatActions extends Actions<ChatState> {
 
   feedback = (message: ChatMessageTyped, feedback: Feedback | null) => {
     if (this.syncdb == null) return;
-    const date = message.get("date");
+    const date = dateValue(message);
     if (!(date instanceof Date)) return;
     const account_id = this.redux.getStore("account").get_account_id();
-    const cur = this.toImmutableRecord(
-      this.syncdb.get_one({ event: "chat", date }),
-    );
-    const feedbacks = cur?.get("feedback") ?? Map({});
-    const next = feedbacks.set(account_id, feedback);
+    const cur = this.syncdb.get_one({ event: "chat", date });
+    const feedbacksRaw = field<any>(cur, "feedback");
+    const feedbacks =
+      typeof (feedbacksRaw as any)?.toJS === "function"
+        ? (feedbacksRaw as any).toJS()
+        : feedbacksRaw ?? {};
+    const next = { ...feedbacks, [account_id]: feedback };
     this.setSyncdb({ feedback: next, date });
     this.syncdb.commit();
     const model = this.isLanguageModelThread(date);
@@ -660,12 +667,15 @@ export class ChatActions extends Actions<ChatState> {
     if (message == null) {
       return null;
     }
-    const dateField = message.get("date");
+    const dateField = dateValue(message);
     const dateIso = toISOString(dateField);
     if (!dateIso) {
       return null;
     }
-    const doc = { ...message.toJS(), date: dateIso };
+    const doc =
+      typeof (message as any)?.toJS === "function"
+        ? { ...(message as any).toJS(), date: dateIso }
+        : { ...(message as any), date: dateIso };
     return { doc, message };
   };
 
@@ -850,7 +860,7 @@ export class ChatActions extends Actions<ChatState> {
     }
 
     const thread = this.getMessagesInThread(
-      toISOString(rootMessage.get("date")) ?? `${rootMs}`,
+      toISOString(dateValue(rootMessage)) ?? `${rootMs}`,
     );
     if (thread == null) {
       return false;
@@ -860,15 +870,15 @@ export class ChatActions extends Actions<ChatState> {
     if (firstMessage == null) {
       return false;
     }
-    const firstHistory = firstMessage.get("history")?.first();
+    const firstHistory = historyArray(firstMessage)[0];
     if (firstHistory == null) {
       return false;
     }
-    const sender_id = firstHistory.get("author_id");
+    const sender_id = firstHistory.author_id;
     if (isLanguageModelService(sender_id)) {
       return service2model(sender_id);
     }
-    const input = firstHistory.get("content")?.toLowerCase();
+    const input = firstHistory.content?.toLowerCase();
     if (mentionsLanguageModel(input)) {
       return getLanguageModel(input);
     }
@@ -884,7 +894,7 @@ export class ChatActions extends Actions<ChatState> {
     if (!threadKey) return;
     const entry = this.getThreadRootDoc(threadKey);
     if (entry == null) return;
-    const dateField = entry.message.get("date");
+    const dateField = dateValue(entry.message);
     const replyDate =
       dateField instanceof Date
         ? dateField
@@ -1273,12 +1283,14 @@ export class ChatActions extends Actions<ChatState> {
       messages // @ts-ignore -- immutablejs typings are wrong (?)
         .filter(
           (message) =>
-            message.get("reply_to") == dateStr ||
-            toISOString(message.get("date")) == dateStr,
+            replyTo(message) == dateStr ||
+            toISOString(dateValue(message)) == dateStr,
         )
         // @ts-ignore -- immutablejs typings are wrong (?)
         .valueSeq()
-        .sort((a, b) => cmp(a.get("date"), b.get("date")))
+        .sort((a, b) =>
+          cmp(dateValue(a)?.valueOf?.(), dateValue(b)?.valueOf?.()),
+        )
     );
   };
 
@@ -1305,16 +1317,16 @@ export class ChatActions extends Actions<ChatState> {
     if (!threadMessages) return history;
 
     for (const message of threadMessages) {
-      const mostRecent = message.get("history")?.first();
+      const mostRecent = historyArray(message)[0];
       // there must be at least one history entry, otherwise the message is broken
       if (!mostRecent) continue;
-      const content = stripMentions(mostRecent.get("content"));
+      const content = stripMentions(mostRecent.content);
       // We take the message's sender ID, not the most recent version from the history
       // Why? e.g. a user could have edited an LLM message, which should still count as an LLM message
       // otherwise the forth-and-back between AI and human would be broken.
-      const sender_id = message.get("sender_id");
+      const sender_id = senderId(message);
       const role = isLanguageModelService(sender_id) ? "assistant" : "user";
-      const date = message.get("date");
+      const date = dateValue(message);
       history.push({ content, role, date });
     }
     return history;
@@ -1330,8 +1342,8 @@ export class ChatActions extends Actions<ChatState> {
     const entry = this.getThreadRootDoc(`${rootMs}`);
     const rootMessage = entry?.message;
     if (!rootMessage) return;
-    // @ts-ignore
-    return rootMessage.get("acp_config")?.toJS();
+    const cfg = field<any>(rootMessage, "acp_config");
+    return typeof (cfg as any)?.toJS === "function" ? (cfg as any).toJS() : cfg;
   };
 
   setCodexConfig = (threadKey: string, config: any): void => {
@@ -1455,18 +1467,19 @@ export class ChatActions extends Actions<ChatState> {
     if (!user_map) {
       return;
     }
-    const threadMessages = this.getMessagesInThread(reply_to);
+    const replyKey = reply_to as string;
+    const threadMessages = this.getMessagesInThread(replyKey);
     if (!threadMessages) {
       return;
     }
 
     const history: { author: string; content: string }[] = [];
     for (const message of threadMessages) {
-      const mostRecent = message.get("history")?.first();
+      const mostRecent = historyArray(message)[0];
       if (!mostRecent) continue;
-      const sender_id: string | undefined = message.get("sender_id");
+      const sender_id: string = senderId(message) ?? "";
       const author = getUserName(user_map, sender_id);
-      const content = stripMentions(mostRecent.get("content"));
+      const content = stripMentions(mostRecent.content);
       history.push({ author, content });
     }
 
