@@ -213,6 +213,7 @@ export function syncdb(opts: SyncDBOpts): any {
 }
 
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
+import type { ImmerDB } from "@cocalc/sync/editor/immer-db";
 
 export function syncdb2(opts: SyncDBOpts): SyncDB {
   if (opts.primary_keys.length <= 0) {
@@ -221,6 +222,17 @@ export function syncdb2(opts: SyncDBOpts): SyncDB {
   const opts1: any = opts;
   opts1.client = webapp_client;
   return webapp_client.conat_client.conat().sync.db(opts1);
+}
+
+export type ImmerDBOpts = SyncDBOpts;
+
+export function immerdb2(opts: ImmerDBOpts): ImmerDB {
+  if (opts.primary_keys.length <= 0) {
+    throw Error("primary_keys must be array of positive length");
+  }
+  const opts1: any = opts;
+  opts1.client = webapp_client;
+  return webapp_client.conat_client.conat().sync.immer(opts1);
 }
 
 interface QueryOpts {

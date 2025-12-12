@@ -26,7 +26,8 @@ export function initChat(project_id: string, path: string): ChatActions {
     redux.getProjectActions(project_id)?.setNotDeleted(path);
   }
 
-  const syncdb = webapp_client.conat_client.conat().sync.db({
+  const sync = (webapp_client.conat_client.conat() as any).sync;
+  const syncdb = sync.immer({
     project_id,
     path,
     primary_keys: ["date", "sender_id", "event"],

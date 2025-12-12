@@ -98,6 +98,7 @@ import {
   get_default_font_size,
   log_error,
   syncdb2,
+  immerdb2,
   syncstring,
   syncstring2,
 } from "../generic/client";
@@ -411,6 +412,38 @@ export class Actions<
           throw Error("primary_keys must be array of positive length");
         }
         this._syncstring = syncdb2({
+          project_id: this.project_id,
+          path: this.path,
+          compute_server_id: this.getComputeServerId(),
+          primary_keys: this.primary_keys,
+          string_cols: this.string_cols,
+          cursors: !this.disable_cursors,
+        });
+        if (this.searchEmbeddings != null) {
+          if (!this.primary_keys.includes(this.searchEmbeddings.primaryKey)) {
+            throw Error(
+              `search embedding primaryKey must be in ${JSON.stringify(
+                this.primary_keys,
+              )}`,
+            );
+          }
+          if (!this.string_cols.includes(this.searchEmbeddings.textColumn)) {
+            throw Error(
+              `search embedding textColumn must be in ${JSON.stringify(
+                this.string_cols,
+              )}`,
+            );
+          }
+        }
+      } else if (this.doctype == "immer") {
+        if (
+          this.primary_keys == null ||
+          this.primary_keys.length == null ||
+          this.primary_keys.length <= 0
+        ) {
+          throw Error("primary_keys must be array of positive length");
+        }
+        this._syncstring = immerdb2({
           project_id: this.project_id,
           path: this.path,
           compute_server_id: this.getComputeServerId(),

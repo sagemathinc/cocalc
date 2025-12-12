@@ -5,7 +5,9 @@ import { normalizeChatMessage } from "./normalize";
 export function initFromSyncDB({ syncdb, store }) {
   const v = {};
   let upgradedCount = 0;
-  for (let x of syncdb.get().toJS()) {
+  const rows: any[] =
+    typeof syncdb.get().toJS === "function" ? syncdb.get().toJS() : syncdb.get();
+  for (let x of rows) {
     const originalDate = x?.date;
     const { message, upgraded } = normalizeChatMessage(x);
     if (message != null) {
@@ -35,8 +37,9 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
     return;
   }
   const activityReady = store.get("activityReady") === true;
-  changes.map((obj) => {
-    obj = obj.toJS();
+  const rows: any[] =
+    typeof (changes as any).toJS === "function" ? (changes as any).toJS() : changes;
+  rows.map((obj) => {
     switch (obj.event) {
       case "draft": {
         let drafts = store.get("drafts") ?? (fromJS({}) as any);
@@ -56,7 +59,7 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
         let changed: boolean = false;
         let messages = store.get("messages") ?? iMap();
         const record = syncdb.get_one(obj);
-        let x = record?.toJS();
+        let x = typeof (record as any)?.toJS === "function" ? record.toJS() : record;
         if (x == null) {
           // delete
           messages = messages.delete(`${obj.date.valueOf()}`);

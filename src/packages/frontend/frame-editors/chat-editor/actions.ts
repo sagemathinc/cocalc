@@ -30,7 +30,7 @@ const FRAME_TYPE = "chatroom";
 type ChatEditorState = CodeEditorState & ChatState;
 
 export class Actions extends CodeEditorActions<ChatEditorState> {
-  protected doctype: string = "syncdb";
+  protected doctype: string = "immer";
   protected primary_keys = ["date", "sender_id", "event"];
   // used only for drafts, since store lots of versions as user types:
   protected string_cols = ["input"];
