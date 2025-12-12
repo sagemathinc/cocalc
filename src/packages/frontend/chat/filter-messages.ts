@@ -60,17 +60,16 @@ export function filterMessages({
 
   // Finally take all messages in all threads that have root in matchingRootTimes.
   // Return all messages in these threads
-  // @ts-ignore -- immutable js typing seems wrong for filter
-  const matchingThreads = messages.filter((message, time) => {
-    const reply_to = message.get("reply_to"); // iso string if defined
-    let rootTime: string;
-    if (reply_to != null) {
-      rootTime = `${new Date(reply_to).valueOf()}`;
-    } else {
-      rootTime = time;
+  const matchingThreads: ChatMessages = new Map();
+  for (const [time, message] of messages) {
+    if (!message) continue;
+    const reply_to = replyTo(message);
+    const rootTime =
+      reply_to != null ? `${new Date(reply_to).valueOf()}` : `${time}`;
+    if (matchingRootTimes.has(rootTime)) {
+      matchingThreads.set(`${time}`, message);
     }
-    return matchingRootTimes.has(rootTime);
-  });
+  }
 
   return matchingThreads;
 }
