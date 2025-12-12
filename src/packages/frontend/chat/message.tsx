@@ -35,6 +35,7 @@ import { User } from "@cocalc/frontend/users";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
 import { plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { client_db } from "@cocalc/util/db-schema";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import { codexEventsToMarkdown } from "./codex-activity";
@@ -301,11 +302,31 @@ export default function Message({
     return { store, key, thread, turn, subject };
   }, [message]);
 
+  const fallbackThread =
+    acpLogInfo?.thread ??
+    message.get("acp_thread_id") ??
+    message.get("reply_to") ??
+    message.get("date")?.toString?.();
+  const fallbackTurn = acpLogInfo?.turn ?? message.get("date")?.toString?.();
+  const fallbackStore =
+    acpLogInfo?.store ??
+    (project_id && path ? `acp-log:${client_db.sha1(project_id, path)}` : null);
+  const fallbackKey =
+    acpLogInfo?.key ??
+    (fallbackThread && fallbackTurn
+      ? `${fallbackThread}:${fallbackTurn}`
+      : null);
+  const fallbackSubject =
+    acpLogInfo?.subject ??
+    (project_id && fallbackThread && fallbackTurn
+      ? `project.${project_id}.acp-log.${fallbackThread}.${fallbackTurn}`
+      : null);
+
   const codexLog = useCodexLog({
     projectId: project_id,
-    logStore: acpLogInfo?.store ?? undefined,
-    logKey: acpLogInfo?.key ?? undefined,
-    logSubject: acpLogInfo?.subject ?? undefined,
+    logStore: fallbackStore ?? undefined,
+    logKey: fallbackKey ?? undefined,
+    logSubject: fallbackSubject ?? undefined,
     generating: generating === true,
     legacyEvents: message.get("acp_events"),
   });

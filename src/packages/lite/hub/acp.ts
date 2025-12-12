@@ -193,7 +193,9 @@ class ChatStreamWriter {
       this.registerThreadKey(sessionKey);
     }
     this.logThreadId = metadata.reply_to ?? metadata.message_date;
-    this.logTurnId = sessionKey ?? randomUUID();
+    // Use the message timestamp as a unique turn identifier so each turn gets
+    // an isolated log key; avoid reusing the session key which can span turns.
+    this.logTurnId = metadata.message_date ?? randomUUID();
     const hash = client_db.sha1(metadata.project_id, metadata.path);
     this.logStoreName = `acp-log:${hash}`;
     this.logKey = `${this.logThreadId}:${this.logTurnId}`;

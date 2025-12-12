@@ -104,12 +104,12 @@ export function useCodexLog({
   }, [generating, logSubject]);
 
   const events = useMemo(() => {
-    if (hasLogRef) {
-      if (fetchedLog) return fetchedLog;
-      if (liveLog.length > 0) return liveLog;
-      return generating ? liveLog : undefined;
-    }
-    return legacy;
+    // Prefer live stream, then persisted log, then legacy.
+    if (liveLog.length > 0) return liveLog;
+    if (hasLogRef && fetchedLog) return fetchedLog;
+    if (legacy && (!hasLogRef || !generating)) return legacy;
+    if (generating && hasLogRef) return liveLog;
+    return hasLogRef ? fetchedLog ?? legacy : legacy ?? (generating ? liveLog : undefined);
   }, [hasLogRef, fetchedLog, liveLog, generating, legacy]);
 
   const deleteLog = async () => {
