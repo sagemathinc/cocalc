@@ -103,6 +103,7 @@ export function CodexConfigButton({
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm();
   const [models, setModels] = useState<ModelOption[]>([]);
+  const [value, setValue] = useState<any>(null);
 
   useEffect(() => {
     const initialModels = DEFAULT_CODEX_MODELS.map((m) => ({
@@ -116,7 +117,12 @@ export function CodexConfigButton({
   }, []);
 
   useEffect(() => {
-    if (!models.length || !open) return;
+    if (!models.length) return;
+    const ms = parseInt(threadKey, 10);
+    if (Number.isNaN(ms)) {
+      console.warn("invalid chat message threadKey", { threadKey });
+      return;
+    }
     const baseModel = models[0]?.value ?? DEFAULT_MODEL_NAME;
     const baseReasoning = getReasoningForModel({
       models,
@@ -131,12 +137,8 @@ export function CodexConfigButton({
       envPath: "",
       sessionMode: "auto" as CodexSessionMode,
     };
-    const ms = parseInt(threadKey, 10);
-    const saved =
-      !Number.isNaN(ms) && actions?.getCodexConfig
-        ? actions.getCodexConfig(new Date(ms))
-        : undefined;
-    const merged = { ...defaults, ...(saved ?? {}) };
+    const saved = actions?.getCodexConfig?.(new Date(ms));
+    const merged = { ...defaults, ...saved };
     const model = models.some((m) => m.value === merged.model)
       ? merged.model
       : baseModel;
@@ -147,17 +149,21 @@ export function CodexConfigButton({
     });
     const sessionMode = resolveCodexSessionMode(merged);
     form.resetFields();
-    form.setFieldsValue({
+    const currentValue = {
       ...merged,
       model,
       reasoning,
       sessionMode,
-    });
+    };
+    form.setFieldsValue(currentValue);
+    setValue(currentValue);
   }, [models, threadKey, chatPath, actions, form, open]);
 
-  const selectedModelValue = Form.useWatch("model", form);
-  const selectedReasoningValue = Form.useWatch("reasoning", form);
-  const currentSessionMode = Form.useWatch("sessionMode", form);
+  const selectedModelValue = Form.useWatch("model", form) ?? value?.model;
+  const selectedReasoningValue =
+    Form.useWatch("reasoning", form) ?? value?.reasoning;
+  const currentSessionMode =
+    Form.useWatch("sessionMode", form) ?? value?.sessionMode;
   const messageMap = actions?.store?.get("messages");
   const usageSummary = useMemo(() => {
     return getCodexUsageSummary(threadKey, actions, messageMap);
@@ -185,10 +191,13 @@ export function CodexConfigButton({
       allowWrite: sessionMode !== "read-only",
     };
     actions?.setCodexConfig?.(threadKey, finalValues);
-    setOpen(false);
+
     if (opts?.compact) {
       actions?.runCodexCompact?.(threadKey);
     }
+    setTimeout(() => {
+      setOpen(false);
+    }, 1);
   };
 
   const onSave = () => saveConfig();

@@ -658,24 +658,6 @@ export class ChatActions extends Actions<ChatState> {
     return { doc, message };
   };
 
-  private findCodexSessionId(threadKey: string): string | undefined {
-    const entry = this.getThreadRootDoc(threadKey);
-    const rootMessage = entry?.message;
-    if (!rootMessage) return;
-    const dateField = rootMessage.get("date");
-    const iso = toISOString(dateField);
-    if (!iso) return;
-    const threadMessages = this.getMessagesInThread(iso);
-    if (!threadMessages) return;
-    for (const msg of threadMessages) {
-      const sessionId = msg.get("acp_thread_id") as any;
-      if (typeof sessionId === "string" && sessionId.trim().length) {
-        return sessionId;
-      }
-    }
-    return undefined;
-  }
-
   save_scroll_state = (position, height, offset): void => {
     if (height == 0) {
       // height == 0 means chat room is not rendered
@@ -1333,19 +1315,8 @@ export class ChatActions extends Actions<ChatState> {
     const entry = this.getThreadRootDoc(`${rootMs}`);
     const rootMessage = entry?.message;
     if (!rootMessage) return;
-    const base =
-      rootMessage.get("acp_config") ?? rootMessage.get("codex_config");
-    let cfg =
-      base && typeof (base as any).toJS === "function"
-        ? (base as any).toJS()
-        : base;
-    if (!cfg || cfg.sessionId == null) {
-      const fallbackSessionId = this.findCodexSessionId(`${rootMs}`);
-      if (fallbackSessionId) {
-        cfg = { ...(cfg ?? {}), sessionId: fallbackSessionId };
-      }
-    }
-    return cfg;
+    // @ts-ignore
+    return rootMessage.get("acp_config")?.toJS();
   };
 
   setCodexConfig = (threadKey: string, config: any): void => {
@@ -1355,17 +1326,9 @@ export class ChatActions extends Actions<ChatState> {
       throw Error(`setCodexConfig: invalid threadKey ${threadKey}`);
     }
     const dateObj = new Date(dateNum);
-    const existing =
-      this.syncdb.get_one({ event: "chat", date: dateObj }) ??
-      this.getThreadRootDoc(threadKey)?.message;
-    const base =
-      existing && typeof (existing as any).toJS === "function"
-        ? (existing as any).toJS()
-        : existing ?? {};
     this.syncdb.set({
-      ...base,
       event: "chat",
-      date: base.date ?? dateObj.toISOString(),
+      date: dateObj.toISOString(),
       acp_config: config,
     });
     this.syncdb.commit();
