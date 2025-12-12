@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020 - 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -8,6 +8,10 @@ import { is_array, is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import isSandbox from "@cocalc/server/projects/is-sandbox";
 import idleSandboxUsers from "@cocalc/server/projects/idle-sandbox-users";
+import {
+  ensureCanManageCollaborators,
+  ensureCanRemoveUser,
+} from "./ownership-checks";
 
 const GROUPS = ["owner", "collaborator"] as const;
 
@@ -40,6 +44,18 @@ export async function add_collaborators_to_projects(
     Also, the input is uuid's, which typescript can't check. */
   verify_types(account_id, accounts, projects);
 
+  // Check strict_collaborator_management setting before database changes
+  // Only check if not using tokens (tokens have their own permission system)
+  if (!tokens) {
+    for (const project_id of new Set(projects)) {
+      if (!project_id) continue; // skip empty strings
+      await ensureCanManageCollaborators({
+        project_id,
+        account_id,
+      });
+    }
+  }
+
   // We now know that account_id is allowed to add users to all of the projects,
   // *OR* at that there are valid tokens to permit adding users.
 
@@ -71,7 +87,7 @@ export async function remove_collaborators_from_projects(
   db: PostgreSQL,
   account_id: string,
   accounts: string[],
-  projects: string[], // can be empty strings if tokens specified (since they determine project_id)
+  projects: string[],
 ): Promise<void> {
   try {
     // Ensure user is allowed to modify project(s)
@@ -91,6 +107,31 @@ export async function remove_collaborators_from_projects(
     (e.g., api from user), so we have to do extra type checking.
     Also, the input is uuid's, which typescript can't check. */
   verify_types(account_id, accounts, projects);
+
+  // Check strict_collaborator_management setting before database changes
+  // Skip check if the user is only removing themselves
+  const is_self_remove_only =
+    accounts.length === 1 && accounts[0] === account_id;
+  if (!is_self_remove_only) {
+    for (const project_id of new Set(projects)) {
+      if (!project_id) continue; // skip empty strings
+      await ensureCanManageCollaborators({
+        project_id,
+        account_id,
+      });
+    }
+  }
+
+  // CRITICAL: Verify that no target users are owners
+  // Owners must be demoted to collaborator first, then removed
+  for (const i in projects) {
+    const project_id: string = projects[i];
+    const target_account_id: string = accounts[i];
+    await ensureCanRemoveUser({
+      project_id,
+      target_account_id,
+    });
+  }
 
   // Remove users from projects
   //

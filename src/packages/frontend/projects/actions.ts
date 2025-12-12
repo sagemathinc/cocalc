@@ -640,13 +640,14 @@ export class ProjectsActions extends Actions<ProjectsState> {
   ): Promise<void> {
     const removed_name = redux.getStore("users").get_name(account_id);
     try {
-      await this.redux
-        .getProjectActions(project_id)
-        .async_log({ event: "remove_collaborator", removed_name });
       await webapp_client.project_collaborators.remove({
         project_id,
         account_id,
       });
+      // Log AFTER successful removal
+      await this.redux
+        .getProjectActions(project_id)
+        .async_log({ event: "remove_collaborator", removed_name });
     } catch (err) {
       const message = `Error removing ${removed_name} from project ${project_id} -- ${err}`;
       alert_message({ type: "error", message });
@@ -693,11 +694,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
     replyto?: string,
     replyto_name?: string,
   ): Promise<void> {
-    await this.redux.getProjectActions(project_id).async_log({
-      event: "invite_user",
-      invitee_account_id: account_id,
-    });
-
     const title = store.get_title(project_id);
     const link2proj = `https://${window.location.hostname}/projects/${project_id}/`;
     // convert body from markdown to html, which is what the backend expects
@@ -713,6 +709,11 @@ export class ProjectsActions extends Actions<ProjectsState> {
         replyto_name,
         email,
         subject,
+      });
+      // Log AFTER successful invite
+      await this.redux.getProjectActions(project_id).async_log({
+        event: "invite_user",
+        invitee_account_id: account_id,
       });
     } catch (err) {
       if (!silent) {
@@ -732,11 +733,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
     replyto: string | undefined,
     replyto_name: string | undefined,
   ): Promise<void> {
-    await this.redux.getProjectActions(project_id).async_log({
-      event: "invite_nonuser",
-      invitee_email: to,
-    });
-
     const title = store.get_title(project_id);
     if (body == null) {
       const name = this.redux.getStore("account").get_fullname();
@@ -755,6 +751,11 @@ export class ProjectsActions extends Actions<ProjectsState> {
         to,
         email,
         subject,
+      });
+      // Log AFTER successful invite
+      await this.redux.getProjectActions(project_id).async_log({
+        event: "invite_nonuser",
+        invitee_email: to,
       });
       if (!silent) {
         alert_message({

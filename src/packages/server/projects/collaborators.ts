@@ -25,63 +25,15 @@ import {
   OwnershipErrorCode,
 } from "@cocalc/util/project-ownership";
 import { query } from "@cocalc/database/postgres/query";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import {
+  ensureCanManageCollaborators,
+  ensureCanRemoveUser,
+  OwnershipError,
+} from "./ownership-checks";
 
 const logger = getLogger("project:collaborators");
 
-export class OwnershipError extends Error {
-  code: OwnershipErrorCode;
-  constructor(message: string, code: OwnershipErrorCode) {
-    super(message);
-    this.name = "OwnershipError";
-    this.code = code;
-  }
-}
-
-/**
- * Helper function to check if a user can manage collaborators based on the
- * manage_users_owner_only setting.
- *
- * @throws {OwnershipError} If the project is not found or the user is not allowed to manage collaborators
- */
-async function ensureCanManageCollaborators(opts: {
-  project_id: string;
-  account_id: string;
-  database?: any;
-}): Promise<void> {
-  const { project_id, account_id, database = db() } = opts;
-  const serverSettings = await getServerSettings();
-  const siteEnforced = !!serverSettings.strict_collaborator_management;
-
-  const project = await query({
-    db: database,
-    table: "projects",
-    select: ["users", "manage_users_owner_only"],
-    where: { project_id },
-    one: true,
-  });
-
-  if (!project) {
-    throw new OwnershipError(
-      "Project not found",
-      OwnershipErrorCode.INVALID_PROJECT_STATE,
-    );
-  }
-
-  const manage_users_owner_only = project.manage_users_owner_only ?? false;
-  const requesting_user_group = project.users?.[account_id]?.group as
-    | UserGroup
-    | undefined;
-
-  const restrictToOwners = siteEnforced || manage_users_owner_only;
-
-  if (restrictToOwners && requesting_user_group !== "owner") {
-    throw new OwnershipError(
-      "Only owners can manage collaborators when this setting is enabled",
-      OwnershipErrorCode.NOT_OWNER,
-    );
-  }
-}
+export { OwnershipError } from "./ownership-checks";
 
 export async function removeCollaborator({
   account_id,
@@ -97,31 +49,12 @@ export async function removeCollaborator({
     throw Error("user must be a collaborator");
   }
 
-  // Get fresh project data to check user groups
-  const project = await query({
-    db: db(),
-    table: "projects",
-    select: ["users"],
-    where: { project_id: opts.project_id },
-    one: true,
-  });
-
-  if (!project) {
-    throw Error("Project not found");
-  }
-
-  const target_user_group = project.users?.[opts.account_id]?.group as
-    | UserGroup
-    | undefined;
-
   // CRITICAL: Block ALL owner removals (anyone trying to remove an owner)
   // Owners must be demoted to collaborator first, THEN removed
-  if (target_user_group === "owner") {
-    throw new OwnershipError(
-      "Cannot remove an owner. Demote to collaborator first.",
-      OwnershipErrorCode.CANNOT_REMOVE_OWNER,
-    );
-  }
+  await ensureCanRemoveUser({
+    project_id: opts.project_id,
+    target_account_id: opts.account_id,
+  });
 
   // Check manage_users_owner_only setting (unless removing self)
   const is_self_remove = account_id === opts.account_id;
@@ -311,7 +244,6 @@ export async function inviteCollaborator({
   await ensureCanManageCollaborators({
     project_id: opts.project_id,
     account_id,
-    database,
   });
 
   // Actually add user to project
@@ -412,7 +344,6 @@ export async function inviteCollaboratorWithoutAccount({
   await ensureCanManageCollaborators({
     project_id: opts.project_id,
     account_id,
-    database,
   });
 
   if (opts.to.length > 1024) {
