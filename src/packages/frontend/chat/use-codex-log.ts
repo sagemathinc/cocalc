@@ -109,7 +109,9 @@ export function useCodexLog({
     if (hasLogRef && fetchedLog) return fetchedLog;
     if (legacy && (!hasLogRef || !generating)) return legacy;
     if (generating && hasLogRef) return liveLog;
-    return hasLogRef ? fetchedLog ?? legacy : legacy ?? (generating ? liveLog : undefined);
+    return hasLogRef
+      ? (fetchedLog ?? legacy)
+      : (legacy ?? (generating ? liveLog : undefined));
   }, [hasLogRef, fetchedLog, liveLog, generating, legacy]);
 
   const deleteLog = async () => {

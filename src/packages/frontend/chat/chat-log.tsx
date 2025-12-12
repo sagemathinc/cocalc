@@ -103,7 +103,7 @@ export function ChatLog({
     for (const [key, message] of base) {
       if (message == null) continue;
       const replyToVal = replyTo(message);
-      if (replyTo != null) {
+      if (replyToVal != null) {
         if (`${new Date(replyToVal!).valueOf()}` === selectedThread) {
           filtered.set(key, message);
         }
@@ -261,7 +261,7 @@ export function ChatLog({
     scrollToBottomRef.current = (force?: boolean) => {
       if (manualScrollRef.current && !force) return;
       manualScrollRef.current = false;
-       setManualScroll(false);
+      setManualScroll(false);
       const doScroll = () =>
         virtuosoRef.current?.scrollToIndex({ index: Number.MAX_SAFE_INTEGER });
 
@@ -383,7 +383,9 @@ function isFolded(
   }
   const rootMsg = getRootMessage({
     message:
-      typeof (message as any)?.toJS === "function" ? message.toJS() : (message as any),
+      typeof (message as any)?.toJS === "function"
+        ? message.toJS()
+        : (message as any),
     messages,
   }) as any;
   const folding = rootMsg ? foldingList(rootMsg) : undefined;
@@ -655,13 +657,13 @@ export function MessageList({
             }}
           >
             <DivTempHeight height={h ? `${h}px` : undefined}>
-          <Message
-            messages={messages}
-            numChildren={
-              numChildren?.[dateValue(message)?.valueOf() ?? NaN]
-            }
-            key={date}
-            index={index}
+              <Message
+                messages={messages}
+                numChildren={
+                  numChildren?.[dateValue(message)?.valueOf() ?? NaN]
+                }
+                key={date}
+                index={index}
                 account_id={account_id}
                 user_map={user_map}
                 message={message}
@@ -692,21 +694,21 @@ export function MessageList({
                     ? () => virtuosoRef.current?.scrollIntoView({ index })
                     : undefined
                 }
-            allowReply={
-              !singleThreadView &&
-              (() => {
-                const next = messages.get(sortedDates[index + 1]);
-                return next == null ? true : replyTo(next) == null;
-              })()
-            }
-            costEstimate={costEstimate}
-            threadViewMode={singleThreadView}
-            onForceScrollToBottom={forceScrollToBottom}
-          />
-        </DivTempHeight>
-      </div>
-    );
-  }}
+                allowReply={
+                  !singleThreadView &&
+                  (() => {
+                    const next = messages.get(sortedDates[index + 1]);
+                    return next == null ? true : replyTo(next) == null;
+                  })()
+                }
+                costEstimate={costEstimate}
+                threadViewMode={singleThreadView}
+                onForceScrollToBottom={forceScrollToBottom}
+              />
+            </DivTempHeight>
+          </div>
+        );
+      }}
       rangeChanged={
         manualScrollRef
           ? ({ endIndex }) => {

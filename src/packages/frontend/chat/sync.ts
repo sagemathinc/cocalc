@@ -11,11 +11,13 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
   const primaryKeys = ["date", "sender_id", "event"];
   const activityReady = store.get("activityReady") === true;
   const raw =
-    typeof (changes as any).toJS === "function" ? (changes as any).toJS() : changes;
+    typeof (changes as any).toJS === "function"
+      ? (changes as any).toJS()
+      : changes;
   const rows: any[] = Array.isArray(raw)
     ? raw
     : raw == null
-    ? []
+      ? []
       : typeof (raw as any).values === "function"
         ? Array.from((raw as any).values())
         : [raw];

@@ -10,7 +10,10 @@ jest.mock(
   { virtual: true },
 );
 
-import { normalizeChatMessage, CURRENT_CHAT_MESSAGE_VERSION } from "../normalize";
+import {
+  normalizeChatMessage,
+  CURRENT_CHAT_MESSAGE_VERSION,
+} from "../normalize";
 import { handleSyncDBChange } from "../sync";
 
 class MockStore {
@@ -59,7 +62,9 @@ describe("handleSyncDBChange", () => {
       event: "chat",
       sender_id: "user-1",
       date,
-      history: [{ content: "hi", author_id: "user-1", date: date.toISOString() }],
+      history: [
+        { content: "hi", author_id: "user-1", date: date.toISOString() },
+      ],
       editing: {},
       folding: [],
       feedback: {},

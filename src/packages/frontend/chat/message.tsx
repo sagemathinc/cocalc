@@ -470,7 +470,10 @@ export default function Message({
     return threadRootMs != null ? `${threadRootMs}` : undefined;
   }, [threadRootMs]);
 
-  const acpThreadId = useMemo(() => field<string>(message, "acp_thread_id"), [message]);
+  const acpThreadId = useMemo(
+    () => field<string>(message, "acp_thread_id"),
+    [message],
+  );
 
   const sessionIdForInterrupt = acpThreadId ?? threadKeyForSession;
 
@@ -522,7 +525,8 @@ export default function Message({
   }, [latestThreadMessageMs, date]);
 
   const usage = useMemo(() => {
-    const usageRaw: any = field(message, "acp_usage") ?? field(message, "codex_usage");
+    const usageRaw: any =
+      field(message, "acp_usage") ?? field(message, "codex_usage");
     if (!usageRaw) return undefined;
     return typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
   }, [message]);
@@ -560,10 +564,7 @@ export default function Message({
       } else if (otherCount > 1) {
         // Multiple other editors
         text = `${otherCount} other users are also editing this!`;
-      } else if (
-        history_size !== historyEntries.length &&
-        new_changes
-      ) {
+      } else if (history_size !== historyEntries.length && new_changes) {
         text = `${editor_name} has updated this message. Esc to discard your changes and see theirs`;
       } else {
         if (IS_TOUCH) {
@@ -756,7 +757,7 @@ export default function Message({
                     {Object.keys(
                       typeof feedbackMap?.toJS === "function"
                         ? feedbackMap.toJS()
-                        : feedbackMap ?? {},
+                        : (feedbackMap ?? {}),
                     ).map((account_id) => (
                       <div key={account_id} style={{ marginBottom: "2px" }}>
                         <Avatar size={24} account_id={account_id} />{" "}
@@ -1004,10 +1005,12 @@ export default function Message({
                       startMs: date,
                       history: historyEntries as any,
                     })
-                }
-                canResolveApproval={
+              }
+              canResolveApproval={
                 field<string>(message, "acp_account_id") === account_id ||
-                isLanguageModelService(field<string>(message, "sender_id") ?? "") ||
+                isLanguageModelService(
+                  field<string>(message, "sender_id") ?? "",
+                ) ||
                 is_viewers_message
               }
               projectId={project_id}
@@ -1107,7 +1110,8 @@ export default function Message({
       return null;
     }
     const showEditingStatus =
-      history_size > 1 || (Array.isArray(editingState) && editingState.length > 0);
+      history_size > 1 ||
+      (Array.isArray(editingState) && editingState.length > 0);
     if (!showEditingStatus) {
       return null;
     }
@@ -1460,7 +1464,10 @@ export default function Message({
         <Tip title={"Click to unfold this thread to show all messages."}>
           <Button
             onClick={() =>
-              actions?.toggleFoldThread(dateValue(message) ?? new Date(date), index)
+              actions?.toggleFoldThread(
+                dateValue(message) ?? new Date(date),
+                index,
+              )
             }
             type="link"
             block
@@ -1535,7 +1542,8 @@ function formatTurnDuration({
   if (!entries.length) return "";
   const last = entries[entries.length - 1];
   const endDate =
-    last?.date ?? (typeof last?.get === "function" ? last.get("date") : undefined);
+    last?.date ??
+    (typeof last?.get === "function" ? last.get("date") : undefined);
   const endMs =
     endDate instanceof Date
       ? endDate.valueOf()
@@ -1619,7 +1627,10 @@ export function message_to_markdown(
   const includeLog = options?.includeLog ?? false;
   let value = newest_content(message);
   const user_map = redux.getStore("users").get("user_map");
-  const sender = getUserName(user_map, field<string>(message, "sender_id") ?? "");
+  const sender = getUserName(
+    user_map,
+    field<string>(message, "sender_id") ?? "",
+  );
   const date = dateValue(message)?.toString() ?? "";
 
   if (includeLog) {

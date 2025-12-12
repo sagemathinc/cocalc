@@ -87,7 +87,7 @@ export class VideoChat {
     redux.getActions("file_use")?.mark_file(this.project_id, this.path, "chat");
     setTimeout(() => actions?.scrollToBottom(), 100);
     setTimeout(() => actions?.scrollToBottom(), 1000);
-    return `[${this.getUserName()} joined Video Chat](${this.url()})`
+    return `[${this.getUserName()} joined Video Chat](${this.url()})`;
   };
 
   // The canonical secret chatroom id.

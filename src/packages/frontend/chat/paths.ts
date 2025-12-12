@@ -5,7 +5,9 @@ export const CHAT_FILE_EXTENSIONS = ["chat", "sage-chat"] as const;
 export function isChatExtension(ext?: string | null): boolean {
   if (!ext) return false;
   const lower = ext.toLowerCase();
-  return CHAT_FILE_EXTENSIONS.includes(lower as (typeof CHAT_FILE_EXTENSIONS)[number]);
+  return CHAT_FILE_EXTENSIONS.includes(
+    lower as (typeof CHAT_FILE_EXTENSIONS)[number],
+  );
 }
 
 export function isChatPath(path?: string | null): boolean {
