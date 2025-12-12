@@ -13,6 +13,7 @@ import type {
   ChatMessage,
 } from "./types";
 import { is_date as isDate } from "@cocalc/util/misc";
+import { firstHistory, senderId, editingMap } from "./access";
 
 export const INPUT_HEIGHT = "auto";
 
@@ -76,15 +77,15 @@ export function compute_cursor_offset_position(
 }
 
 export function newest_content(message: ChatMessageTyped): string {
-  const history = message.get("history");
-  return history?.first()?.get("content") ?? "";
+  const first = firstHistory(message);
+  return first?.content ?? "";
 }
 
 export function sender_is_viewer(
   account_id: string,
   message: ChatMessageTyped,
 ): boolean {
-  return account_id == message.get("sender_id");
+  return account_id == senderId(message);
 }
 
 export function message_colors(
@@ -113,7 +114,12 @@ export function is_editing(
   message: ChatMessageTyped,
   account_id: string,
 ): boolean {
-  return message.get("editing")?.has(account_id);
+  const editing = editingMap(message);
+  if (editing == null) return false;
+  if (typeof editing.has === "function") {
+    return editing.has(account_id);
+  }
+  return editing[account_id] != null;
 }
 
 export const markChatAsReadIfUnseen: (

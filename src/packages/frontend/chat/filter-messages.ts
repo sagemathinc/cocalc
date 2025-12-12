@@ -6,14 +6,13 @@ NOTE: chat uses every imaginable way to store a timestamp at once,
 which is the may source of weirdness in the code below...  Beware.
 */
 
-import { List } from "immutable";
 import LRU from "lru-cache";
 
-import type { TypedMap } from "@cocalc/frontend/app-framework";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { search_match, search_split } from "@cocalc/util/misc";
 import type { ChatMessages, ChatMessageTyped, MessageHistory } from "./types";
+import { firstHistory, replyTo } from "./access";
 
 export function filterMessages({
   messages,
@@ -77,18 +76,16 @@ export function filterMessages({
 }
 
 function getContent(message: ChatMessageTyped, userMap): string {
-  const first = message.get("history", List()).first() as
-    | TypedMap<MessageHistory>
-    | undefined;
+  const first = firstHistory(message) as MessageHistory | undefined;
   if (!first) {
     return "";
   }
-  let content = first.get("content") ?? "";
+  let content = first.content ?? "";
 
   // add in name of most recent author of message.  We do this using userMap, which
   // might not be complete in general, but is VERY FAST.... which is fine
   // for a search filter.
-  const author_id = first.get("author_id");
+  const author_id = first.author_id;
   const user = userMap?.get(author_id);
   if (user != null) {
     content =
@@ -133,9 +130,9 @@ export function getSearchData({
       continue;
     }
     let rootTime: string;
-    if (message.get("reply_to")) {
+    if (replyTo(message)) {
       // non-root in thread
-      rootTime = `${new Date(message.get("reply_to")!).valueOf()}`;
+      rootTime = `${new Date(replyTo(message)!).valueOf()}`;
     } else {
       // new root thread
       rootTime = time;
