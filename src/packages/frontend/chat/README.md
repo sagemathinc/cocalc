@@ -5,6 +5,11 @@ this file; instead, only trust the code itself! Nobody ever looks at
 docs like this, except people very new to the codebase, hence they tend
 to just maximize confusion.
 
+## State/normalization notes (2025-02)
+
+- Incoming chat records from syncdb are normalized/upgraded in `normalize.ts` before being stored, and upgraded records are written back once (with a `schema_version`).
+- We still keep chat state in the legacy Immutable-powered store, but the goal is to move toward plain objects + immer (Patchflow supports both). Keeping normalization centralized makes that migration easier and testable.
+
 ## Timestamps
 
 Note: There are a couple of ways to represent a time in Javascript:

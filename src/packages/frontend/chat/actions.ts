@@ -45,7 +45,11 @@ import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
 import { processAcpLLM } from "./acp-api";
-import { handleSyncDBChange, initFromSyncDB, processSyncDBObj } from "./sync";
+import { handleSyncDBChange, initFromSyncDB } from "./sync";
+import {
+  normalizeChatMessage,
+  CURRENT_CHAT_MESSAGE_VERSION,
+} from "./normalize";
 import type {
   ChatMessage,
   ChatMessageTyped,
@@ -205,9 +209,10 @@ export class ChatActions extends Actions<ChatState> {
       return "";
     }
     const trimmedName = name?.trim();
-    const message: ChatMessage = {
+    const message = {
       sender_id,
       event: "chat",
+      schema_version: CURRENT_CHAT_MESSAGE_VERSION,
       history: [
         {
           author_id: sender_id,
@@ -218,7 +223,7 @@ export class ChatActions extends Actions<ChatState> {
       date: time_stamp_str,
       reply_to: toISOString(reply_to),
       editing: {},
-    };
+    } as ChatMessage;
     if (trimmedName && !reply_to) {
       (message as any).name = trimmedName;
     }
@@ -1493,7 +1498,7 @@ export class ChatActions extends Actions<ChatState> {
     if (obj == null) {
       return;
     }
-    const message = processSyncDBObj(obj.toJS() as ChatMessage);
+    const { message } = normalizeChatMessage(obj.toJS() as ChatMessage);
     if (message == null) {
       return;
     }

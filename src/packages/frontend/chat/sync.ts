@@ -1,18 +1,32 @@
 import { Map as iMap, fromJS } from "immutable";
-import type { ChatMessage } from "./types";
 import { getThreadRootDate } from "./utils";
+import { normalizeChatMessage } from "./normalize";
 
 export function initFromSyncDB({ syncdb, store }) {
   const v = {};
+  let upgradedCount = 0;
   for (let x of syncdb.get().toJS()) {
-    x = processSyncDBObj(x);
-    if (x != null) {
-      v[x.date.valueOf()] = x;
+    const originalDate = x?.date;
+    const { message, upgraded } = normalizeChatMessage(x);
+    if (message != null) {
+      v[message.date.valueOf()] = message;
+      if (upgraded) {
+        // Preserve the original PK encoding to avoid duplicate rows.
+        const patch = {
+          ...message,
+          date: originalDate ?? message.date,
+        };
+        syncdb.set(patch);
+        upgradedCount++;
+      }
     }
   }
   store.setState({
     messages: fromJS(v),
   });
+  if (upgradedCount > 0) {
+    syncdb.commit();
+  }
 }
 
 export function handleSyncDBChange({ syncdb, store, changes }) {
@@ -48,9 +62,12 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
           messages = messages.delete(`${obj.date.valueOf()}`);
           changed = true;
         } else {
-          x = processSyncDBObj(x);
-          if (x != null) {
-            messages = messages.set(`${x.date.valueOf()}`, fromJS(x));
+          const { message } = normalizeChatMessage(x);
+          if (message != null) {
+            messages = messages.set(
+              `${message.date.valueOf()}`,
+              fromJS(message),
+            );
             changed = true;
           }
         }
@@ -78,49 +95,4 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
   if (!activityReady) {
     store.setState({ activityReady: true });
   }
-}
-
-// NOTE: x must be already a plain JS object (.toJS()).
-// This function mutates x.
-export function processSyncDBObj(x: ChatMessage): ChatMessage | undefined {
-  if (x.event !== "chat") {
-    // Event used to be used for video chat, etc...; but we have a better approach now, so
-    // all events we care about are chat.
-    return;
-  }
-  if ((x as any).video_chat?.is_video_chat) {
-    // discard/ignore anything else related to the old old video chat approach
-    return;
-  }
-  x.date = new Date(x.date);
-  if ((x.history?.length ?? 0) > 0) {
-    // nontrivial history -- nothing to do
-  } else if ((x as any).payload != null) {
-    // for old chats with payload: content (2014-2016)... plus the script @hsy wrote in the work project ;-(
-    x.history = [];
-    x.history.push({
-      content: (x as any).payload.content,
-      author_id: x.sender_id,
-      date: new Date(x.date).toISOString(),
-    });
-    delete (x as any).payload;
-  } else if ((x as any).mesg != null) {
-    // for old chats with mesg: content (up to 2014)
-    x.history = [];
-    x.history.push({
-      content: (x as any).mesg.content,
-      author_id: x.sender_id,
-      date: new Date(x.date).toISOString(),
-    });
-    delete (x as any).mesg;
-  }
-  if (x.history == null) {
-    x.history = [];
-  }
-  if (!x.editing) {
-    x.editing = {};
-  }
-  x.folding ??= [];
-  x.feedback ??= {};
-  return x;
 }

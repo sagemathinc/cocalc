@@ -9,6 +9,7 @@ export interface ChatMessage {
   sender_id: string;
   history: MessageHistory[];
   date: Date | string;
+  schema_version?: number;
   reply_to?: string;
   generating?: boolean;
   editing?: Record<string, "FUTURE" | null>;
@@ -51,6 +52,7 @@ export interface BuildChatMessageOptions {
   prevHistory: MessageHistory[] | undefined;
   content: string;
   generating: boolean;
+  schema_version?: number;
   reply_to?: string;
   acp_events?: any[];
   acp_log_store?: string | null;
@@ -84,6 +86,7 @@ export function buildChatMessage(
     history,
     generating: options.generating,
     reply_to: options.reply_to,
+    schema_version: options.schema_version,
     acp_events: options.acp_events,
     acp_log_store: options.acp_log_store,
     acp_log_key: options.acp_log_key,

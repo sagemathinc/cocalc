@@ -1,5 +1,11 @@
 ## Major Bugs and Issues
 
+
+### Diffs
+
+They are unusable and very buggy. rethink and rewrite completely.
+
+
 ### (done) Thinking/acp updates
 
 (Seems not true) The biggest problem by far and top priority is that NONE of the thinking/progress updates actually appear anymore until the very end of the turn.  They *all* do 
@@ -21,14 +27,9 @@ quite hard to work on anything at all.
 
 Thoughts?  Can you look into this?
 
-### Bug: first message in chatrooms blanked.
+### (done) Bug: first message in chatrooms blanked.
 
 first message in chatrooms keeps getting blanked.  weird bug. 
-
-### Diffs
-
-They are unusable and very buggy. rethink and rewrite completely.
-
 
 ## Other less clear/critical bugs/issues
 
