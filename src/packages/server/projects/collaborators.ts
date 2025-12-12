@@ -132,7 +132,6 @@ export async function removeCollaborator({
     });
   }
 
-  // @ts-ignore
   await callback2(db().remove_collaborator_from_project, opts);
 }
 

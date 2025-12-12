@@ -155,6 +155,12 @@ export interface PostgreSQL extends EventEmitter {
     cb: CB;
   }): void;
 
+  remove_collaborator_from_project(opts: {
+    account_id: string;
+    project_id: string;
+    cb: CB;
+  }): void;
+
   user_is_in_project_group(opts: {
     account_id: string;
     project_id: string;
