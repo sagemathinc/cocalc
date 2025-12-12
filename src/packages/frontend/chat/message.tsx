@@ -6,7 +6,6 @@
 // cSpell:ignore blankcolumn
 
 import { Badge, Button, Col, Row, Tooltip } from "antd";
-import { List, Map } from "immutable";
 import {
   CSSProperties,
   ReactNode,
@@ -64,7 +63,7 @@ import {
   field,
   historyArray,
   replyTo,
-  editingMap,
+  editingArray,
 } from "./access";
 
 const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
@@ -197,7 +196,7 @@ export default function Message({
     () => (historyEntries.length > 0 ? historyEntries[0] : undefined),
     [historyEntries],
   );
-  const editingState = useMemo(() => editingMap(message), [message]);
+  const editingState = useMemo(() => editingArray(message), [message]);
 
   const new_changes = useMemo(
     () => edited_message !== newest_content(message),
@@ -544,30 +543,17 @@ export default function Message({
   function render_editing_status(is_editing: boolean) {
     let text;
 
-    const editing = editingState;
-    const other_editors =
-      editing && typeof editing.remove === "function"
-        ? editing.remove(account_id).keySeq?.() ?? List()
-        : editing && typeof editing === "object"
-          ? Object.keys(editing).filter((k) => k !== account_id)
-          : [];
-    const otherCount =
-      typeof (other_editors as any)?.size === "number"
-        ? (other_editors as any).size
-        : Array.isArray(other_editors)
-          ? other_editors.length
-          : 0;
+    const other_editors = Array.isArray(editingState)
+      ? editingState.filter((id) => id !== account_id)
+      : [];
+    const otherCount = other_editors.length;
 
     if (is_editing) {
       if (otherCount === 1) {
         // This user and someone else is also editing
         text = (
           <>
-            {`WARNING: ${get_user_name(
-              Array.isArray(other_editors)
-                ? other_editors[0]
-                : other_editors.first?.(),
-            )} is also editing this! `}
+            {`WARNING: ${get_user_name(other_editors[0])} is also editing this! `}
             <b>Simultaneous editing of messages is not supported.</b>
           </>
         );
@@ -589,11 +575,7 @@ export default function Message({
     } else {
       if (otherCount === 1) {
         // One person is editing
-        text = `${get_user_name(
-          Array.isArray(other_editors)
-            ? other_editors[0]
-            : other_editors.first?.(),
-        )} is editing this message`;
+        text = `${get_user_name(other_editors[0])} is editing this message`;
       } else if (otherCount > 1) {
         // Multiple editors
         text = `${otherCount} people are editing this message`;
@@ -1125,9 +1107,7 @@ export default function Message({
       return null;
     }
     const showEditingStatus =
-      history_size > 1 ||
-      (editingState?.size ??
-        Object.keys(editingState ?? {}).length) > 0;
+      history_size > 1 || (Array.isArray(editingState) && editingState.length > 0);
     if (!showEditingStatus) {
       return null;
     }

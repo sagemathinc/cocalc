@@ -13,7 +13,7 @@ import type {
   ChatMessage,
 } from "./types";
 import { is_date as isDate } from "@cocalc/util/misc";
-import { firstHistory, senderId, editingMap } from "./access";
+import { firstHistory, senderId, editingArray } from "./access";
 
 export const INPUT_HEIGHT = "auto";
 
@@ -114,12 +114,9 @@ export function is_editing(
   message: ChatMessageTyped,
   account_id: string,
 ): boolean {
-  const editing = editingMap(message);
-  if (editing == null) return false;
-  if (typeof editing.has === "function") {
-    return editing.has(account_id);
-  }
-  return editing[account_id] != null;
+  const editing = editingArray(message);
+  if (!Array.isArray(editing)) return false;
+  return editing.includes(account_id);
 }
 
 export const markChatAsReadIfUnseen: (

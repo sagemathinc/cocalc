@@ -49,6 +49,7 @@ import {
   getThreadRootDate,
   newest_content,
 } from "./utils";
+import { dateValue, field, replyTo, foldingList } from "./access";
 
 interface Props {
   project_id: string; // used to render links more effectively
@@ -102,12 +103,12 @@ export function ChatLog({
     }
     return storeMessages.filter((message) => {
       if (message == null) return false;
-      const replyTo = message.get("reply_to");
+      const replyToVal = replyTo(message);
       if (replyTo != null) {
-        return `${new Date(replyTo).valueOf()}` === selectedThread;
+        return `${new Date(replyToVal!).valueOf()}` === selectedThread;
       }
-      const dateValue = message.get("date")?.valueOf();
-      return dateValue != null ? `${dateValue}` === selectedThread : false;
+      const d = dateValue(message)?.valueOf();
+      return d != null ? `${d}` === selectedThread : false;
     }) as ChatMessages;
   }, [storeMessages, selectedThread]);
   // see similar code in task list:
@@ -235,7 +236,7 @@ export function ChatLog({
     if (!messages) return false;
     for (const date of sortedDates) {
       const msg = messages.get(date);
-      if (msg?.get("generating") === true) {
+      if (field(msg, "generating") === true) {
         return true;
       }
     }
@@ -337,7 +338,7 @@ function isNextMessageSender(
   return (
     currentMessage != null &&
     nextMessage != null &&
-    currentMessage.get("sender_id") === nextMessage.get("sender_id")
+    field(currentMessage, "sender_id") === field(nextMessage, "sender_id")
   );
 }
 
@@ -354,15 +355,16 @@ function isPrevMessageSender(
   return (
     currentMessage != null &&
     prevMessage != null &&
-    currentMessage.get("sender_id") === prevMessage.get("sender_id")
+    field(currentMessage, "sender_id") === field(prevMessage, "sender_id")
   );
 }
 
 function isThread(message: ChatMessageTyped, numChildren: NumChildren) {
-  if (message.get("reply_to") != null) {
+  if (replyTo(message) != null) {
     return true;
   }
-  return (numChildren[message.get("date").valueOf()] ?? 0) > 0;
+  const d = dateValue(message)?.valueOf();
+  return d != null ? (numChildren[d] ?? 0) > 0 : false;
 }
 
 function isFolded(
@@ -373,8 +375,13 @@ function isFolded(
   if (account_id == null) {
     return false;
   }
-  const rootMsg = getRootMessage({ message: message.toJS(), messages });
-  return rootMsg?.get("folding")?.includes(account_id) ?? false;
+  const rootMsg = getRootMessage({
+    message:
+      typeof (message as any)?.toJS === "function" ? message.toJS() : (message as any),
+    messages,
+  }) as any;
+  const folding = rootMsg ? foldingList(rootMsg) : undefined;
+  return Boolean(folding?.includes?.(account_id));
 }
 
 // messages is an immutablejs map from
@@ -412,7 +419,7 @@ export function getSortedDates(
   // getSortedDates is O(n) instead of O(n^2) !
   const numChildren: NumChildren = {};
   for (const [_, message] of m) {
-    const parent = message.get("reply_to");
+    const parent = replyTo(message);
     if (parent != null) {
       const d = new Date(parent).valueOf();
       numChildren[d] = (numChildren[d] ?? 0) + 1;
@@ -427,7 +434,7 @@ export function getSortedDates(
     if (!disableFolding && !search) {
       const is_thread = isThread(message, numChildren);
       const is_folded = is_thread && isFolded(messages, message, account_id);
-      const is_thread_body = is_thread && message.get("reply_to") != null;
+      const is_thread_body = is_thread && replyTo(message) != null;
       const folded = is_thread && is_folded && is_thread_body;
       if (folded) {
         numFolded++;
@@ -435,7 +442,7 @@ export function getSortedDates(
       }
     }
 
-    const reply_to = message.get("reply_to");
+    const reply_to = replyTo(message);
     v.push([
       typeof date === "string" ? parseInt(date) : date,
       reply_to != null ? new Date(reply_to).valueOf() : undefined,
@@ -631,7 +638,7 @@ export function MessageList({
           !singleThreadView &&
           is_thread &&
           isFolded(messages, message, account_id);
-        const is_thread_body = is_thread && message.get("reply_to") != null;
+        const is_thread_body = is_thread && replyTo(message) != null;
         const h = virtuosoHeightsRef.current?.[index];
 
         return (
@@ -644,7 +651,9 @@ export function MessageList({
             <DivTempHeight height={h ? `${h}px` : undefined}>
           <Message
             messages={messages}
-            numChildren={numChildren?.[message.get("date").valueOf()]}
+            numChildren={
+              numChildren?.[dateValue(message)?.valueOf() ?? NaN]
+            }
             key={date}
             index={index}
                 account_id={account_id}
@@ -679,7 +688,10 @@ export function MessageList({
                 }
             allowReply={
               !singleThreadView &&
-              messages.getIn([sortedDates[index + 1], "reply_to"]) == null
+              (() => {
+                const next = messages.get(sortedDates[index + 1]);
+                return next == null ? true : replyTo(next) == null;
+              })()
             }
             costEstimate={costEstimate}
             threadViewMode={singleThreadView}

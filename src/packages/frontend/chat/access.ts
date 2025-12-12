@@ -52,11 +52,34 @@ export function replyTo(msg: any): string | undefined {
   return field<string>(msg, "reply_to");
 }
 
-export function editingMap(msg: any): any {
+// Return list of account IDs currently editing the message.
+export function editingArray(msg: any): string[] {
   const e = field<any>(msg, "editing");
-  return e;
+  if (e == null) return [];
+  // Immutable Map
+  if (typeof (e as any)?.keySeq === "function") {
+    return (e as any).keySeq().toArray();
+  }
+  // Immutable Set / List
+  if (typeof (e as any)?.toArray === "function") {
+    return (e as any).toArray();
+  }
+  // Immutable Map via toJS
+  if (typeof (e as any)?.toJS === "function") {
+    return Object.keys((e as any).toJS());
+  }
+  // Plain object
+  if (typeof e === "object") {
+    return Object.keys(e);
+  }
+  return [];
 }
 
 export function foldingList(msg: any): any {
-  return field<any>(msg, "folding");
+  const f = field<any>(msg, "folding");
+  if (f == null) return [];
+  if (Array.isArray(f)) return f;
+  if (typeof (f as any)?.toArray === "function") return (f as any).toArray();
+  if (typeof (f as any)?.toJS === "function") return (f as any).toJS();
+  return f;
 }
