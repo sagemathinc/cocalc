@@ -258,6 +258,11 @@ import {
   type SyncDB,
   type SyncDBOptions,
 } from "@cocalc/conat/sync-doc/syncdb";
+import {
+  immerdb,
+  type ImmerDB,
+  type ImmerDBOptions,
+} from "@cocalc/conat/sync-doc/immer-db";
 import { fsClient, fsSubject } from "@cocalc/conat/files/fs";
 import TTL from "@isaacs/ttlcache";
 import {
@@ -1568,6 +1573,8 @@ export class Client extends EventEmitter {
       syncstring({ ...opts, client: this }),
     db: (opts: Omit<Omit<SyncDBOptions, "client">, "fs">): SyncDB =>
       syncdb({ ...opts, client: this }),
+    immer: (opts: Omit<Omit<ImmerDBOptions, "client">, "fs">): ImmerDB =>
+      immerdb({ ...opts, client: this }),
     mutagen: ({
       project_id,
       compute_server_id = 0,
