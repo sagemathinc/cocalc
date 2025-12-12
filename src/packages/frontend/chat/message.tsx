@@ -62,9 +62,9 @@ import { delay } from "awaiting";
 import {
   dateValue,
   field,
-  firstHistory,
   historyArray,
   replyTo,
+  editingMap,
 } from "./access";
 
 const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
@@ -192,6 +192,13 @@ export default function Message({
 
   const [show_history, set_show_history] = useState(false);
 
+  const historyEntries = useMemo(() => historyArray(message), [message]);
+  const firstHistoryEntry = useMemo(
+    () => (historyEntries.length > 0 ? historyEntries[0] : undefined),
+    [historyEntries],
+  );
+  const editingState = useMemo(() => editingMap(message), [message]);
+
   const new_changes = useMemo(
     () => edited_message !== newest_content(message),
     [message] /* note -- edited_message is a function of message */,
@@ -206,10 +213,7 @@ export default function Message({
 
   const generating = field<boolean>(message, "generating");
 
-  const history_size = useMemo(
-    () => historyArray(message).length,
-    [message],
-  );
+  const history_size = historyEntries.length;
 
   const isEditing = useMemo(
     () => is_editing(message, account_id),
@@ -217,9 +221,8 @@ export default function Message({
   );
 
   const editor_name = useMemo(() => {
-    const first = firstHistory(message);
-    return get_user_name(first?.author_id);
-  }, [message, get_user_name]);
+    return get_user_name(firstHistoryEntry?.author_id);
+  }, [firstHistoryEntry, get_user_name]);
 
   const reverseRowOrdering =
     !is_thread_body && sender_is_viewer(account_id, message);
@@ -298,9 +301,9 @@ export default function Message({
   }, [elapsedMs]);
 
   const msgWrittenByLLM = useMemo(() => {
-    const author_id = firstHistory(message)?.author_id;
+    const author_id = firstHistoryEntry?.author_id;
     return typeof author_id === "string" && isLanguageModelService(author_id);
-  }, [message]);
+  }, [firstHistoryEntry]);
 
   const acpLogInfo = useMemo(() => {
     const store = field<string>(message, "acp_log_store") ?? undefined;
@@ -400,19 +403,18 @@ export default function Message({
     if (rootIso && actions?.getMessagesInThread) {
       const seq = actions.getMessagesInThread(rootIso);
       seq?.forEach((msg) => {
-        const d = msg?.get?.("date");
-        if (d instanceof Date) {
-          dates.push(d);
-          const store = msg.get?.("acp_log_store");
-          const key = msg.get?.("acp_log_key");
-          if (store && key) {
-            logRefs.push({ store, key });
-          }
+        const d = dateValue(msg);
+        if (!(d instanceof Date)) return;
+        dates.push(d);
+        const store = field<string>(msg, "acp_log_store");
+        const key = field<string>(msg, "acp_log_key");
+        if (store && key) {
+          logRefs.push({ store, key });
         }
       });
     } else if (messages?.forEach) {
       messages.forEach((msg) => {
-        const d = msg?.get?.("date");
+        const d = dateValue(msg);
         if (!(d instanceof Date)) return;
         const root = getThreadRootDate({
           date: d.valueOf(),
@@ -421,8 +423,8 @@ export default function Message({
         const rootMs = root?.valueOf?.();
         if (rootMs != null && rootMs === threadRootMs) {
           dates.push(d);
-          const store = msg.get?.("acp_log_store");
-          const key = msg.get?.("acp_log_key");
+          const store = field<string>(msg, "acp_log_store");
+          const key = field<string>(msg, "acp_log_key");
           if (store && key) {
             logRefs.push({ store, key });
           }
@@ -430,7 +432,7 @@ export default function Message({
       });
     }
     if (!dates.length) {
-      const d = message.get("date");
+      const d = dateValue(message);
       if (d instanceof Date) dates.push(d);
     }
     if (project_id) {
@@ -469,9 +471,7 @@ export default function Message({
     return threadRootMs != null ? `${threadRootMs}` : undefined;
   }, [threadRootMs]);
 
-  const acpThreadId = useMemo(() => {
-    return message.get("acp_thread_id");
-  }, [message]);
+  const acpThreadId = useMemo(() => field<string>(message, "acp_thread_id"), [message]);
 
   const sessionIdForInterrupt = acpThreadId ?? threadKeyForSession;
 
@@ -483,11 +483,11 @@ export default function Message({
       const arr = (seq as any).toArray();
       if (arr.length > 0) {
         const last = arr[arr.length - 1];
-        const lastMs = toMessageMs(last?.get?.("date"));
+        const lastMs = toMessageMs(dateValue(last));
         if (lastMs != null) return lastMs;
         let max = -Infinity;
         for (const msg of arr) {
-          const ms = toMessageMs(msg?.get?.("date"));
+          const ms = toMessageMs(dateValue(msg));
           if (ms != null && ms > max) {
             max = ms;
           }
@@ -500,13 +500,13 @@ export default function Message({
       messages.forEach((msg) => {
         if (!msg) return;
         const root = getThreadRootDate({
-          date: msg.get?.("date")?.valueOf?.() ?? 0,
+          date: dateValue(msg)?.valueOf?.() ?? 0,
           messages,
         });
         const rootMs =
           root?.valueOf?.() ?? (typeof root === "number" ? root : undefined);
         if (rootMs === threadRootMs) {
-          const ms = msg.get?.("date")?.valueOf?.();
+          const ms = dateValue(msg)?.valueOf?.();
           if (typeof ms === "number" && Number.isFinite(ms) && ms > max) {
             max = ms;
           }
@@ -523,13 +523,14 @@ export default function Message({
   }, [latestThreadMessageMs, date]);
 
   const usage = useMemo(() => {
-    const usageRaw: any =
-      message.get("acp_usage") ?? message.get("codex_usage");
+    const usageRaw: any = field(message, "acp_usage") ?? field(message, "codex_usage");
     if (!usageRaw) return undefined;
     return typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
   }, [message]);
 
   const remainingContext = useMemo(() => calcRemainingPercent(usage), [usage]);
+
+  const feedbackMap = useMemo(() => field<any>(message, "feedback"), [message]);
 
   const isActive =
     selected || isHovered || replying || show_history || isEditing;
@@ -543,24 +544,38 @@ export default function Message({
   function render_editing_status(is_editing: boolean) {
     let text;
 
-    let other_editors = // @ts-ignore -- keySeq *is* a method of TypedMap
-      message.get("editing")?.remove(account_id).keySeq() ?? List();
+    const editing = editingState;
+    const other_editors =
+      editing && typeof editing.remove === "function"
+        ? editing.remove(account_id).keySeq?.() ?? List()
+        : editing && typeof editing === "object"
+          ? Object.keys(editing).filter((k) => k !== account_id)
+          : [];
+    const otherCount =
+      typeof (other_editors as any)?.size === "number"
+        ? (other_editors as any).size
+        : Array.isArray(other_editors)
+          ? other_editors.length
+          : 0;
+
     if (is_editing) {
-      if (other_editors.size === 1) {
+      if (otherCount === 1) {
         // This user and someone else is also editing
         text = (
           <>
             {`WARNING: ${get_user_name(
-              other_editors.first(),
+              Array.isArray(other_editors)
+                ? other_editors[0]
+                : other_editors.first?.(),
             )} is also editing this! `}
             <b>Simultaneous editing of messages is not supported.</b>
           </>
         );
-      } else if (other_editors.size > 1) {
+      } else if (otherCount > 1) {
         // Multiple other editors
-        text = `${other_editors.size} other users are also editing this!`;
+        text = `${otherCount} other users are also editing this!`;
       } else if (
-        history_size !== (message.get("history")?.size ?? 0) &&
+        history_size !== historyEntries.length &&
         new_changes
       ) {
         text = `${editor_name} has updated this message. Esc to discard your changes and see theirs`;
@@ -572,14 +587,16 @@ export default function Message({
         }
       }
     } else {
-      if (other_editors.size === 1) {
+      if (otherCount === 1) {
         // One person is editing
         text = `${get_user_name(
-          other_editors.first(),
+          Array.isArray(other_editors)
+            ? other_editors[0]
+            : other_editors.first?.(),
         )} is editing this message`;
-      } else if (other_editors.size > 1) {
+      } else if (otherCount > 1) {
         // Multiple editors
-        text = `${other_editors.size} people are editing this message`;
+        text = `${otherCount} people are editing this message`;
       } else if (newest_content(message).trim() === "") {
         text = `Deleted by ${editor_name}`;
       }
@@ -591,12 +608,12 @@ export default function Message({
 
     if (
       !is_editing &&
-      other_editors.size === 0 &&
+      otherCount === 0 &&
       newest_content(message).trim() !== ""
     ) {
       const edit = "Last edit ";
       const name = ` by ${editor_name}`;
-      const msg_date = message.get("history").first()?.get("date");
+      const msg_date = firstHistoryEntry?.date;
       return (
         <div
           style={{
@@ -641,7 +658,7 @@ export default function Message({
   }
 
   function avatar_column() {
-    const sender_id = message.get("sender_id");
+    const sender_id = field<string>(message, "sender_id");
     let style: CSSProperties = {};
     if (!is_prev_sender) {
       style.marginTop = "22px";
@@ -706,7 +723,10 @@ export default function Message({
       >
         <Button
           onClick={() => {
-            actions?.setFragment(message.get("date"));
+            const d = dateValue(message);
+            if (d != null) {
+              actions?.setFragment(d);
+            }
           }}
           size="small"
           type={"text"}
@@ -725,9 +745,20 @@ export default function Message({
   function renderLLMFeedbackButtons() {
     if (isLLMThread) return;
 
-    const feedback = message.getIn(["feedback", account_id]);
+    const feedback =
+      typeof feedbackMap?.get === "function"
+        ? feedbackMap.get(account_id)
+        : feedbackMap?.[account_id];
     const otherFeedback =
-      isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
+      isLLMThread && msgWrittenByLLM
+        ? 0
+        : typeof feedbackMap?.size === "number"
+          ? feedbackMap.size
+          : Array.isArray(feedbackMap)
+            ? feedbackMap.length
+            : feedbackMap && typeof feedbackMap === "object"
+              ? Object.keys(feedbackMap).length
+              : 0;
     const showOtherFeedback = otherFeedback > 0;
 
     const iconColor = showOtherFeedback ? "darkblue" : COLORS.GRAY_D;
@@ -740,14 +771,16 @@ export default function Message({
             : () => {
                 return (
                   <div>
-                    {Object.keys(message.get("feedback")?.toJS() ?? {}).map(
-                      (account_id) => (
-                        <div key={account_id} style={{ marginBottom: "2px" }}>
-                          <Avatar size={24} account_id={account_id} />{" "}
-                          <User account_id={account_id} />
-                        </div>
-                      ),
-                    )}
+                    {Object.keys(
+                      typeof feedbackMap?.toJS === "function"
+                        ? feedbackMap.toJS()
+                        : feedbackMap ?? {},
+                    ).map((account_id) => (
+                      <div key={account_id} style={{ marginBottom: "2px" }}>
+                        <Avatar size={24} account_id={account_id} />{" "}
+                        <User account_id={account_id} />
+                      </div>
+                    ))}
                   </div>
                 );
               }
@@ -884,7 +917,7 @@ export default function Message({
       );
     }
 
-    const historySize = message.get("history")?.size ?? 0;
+    const historySize = history_size;
     if (historySize > 1) {
       buttons.push(
         <Tip
@@ -987,12 +1020,12 @@ export default function Message({
                   ? elapsedLabel
                   : formatTurnDuration({
                       startMs: date,
-                      history: message.get("history"),
+                      history: historyEntries as any,
                     })
-              }
-              canResolveApproval={
-                message.get("acp_account_id") === account_id ||
-                isLanguageModelService(message.get("sender_id")) ||
+                }
+                canResolveApproval={
+                field<string>(message, "acp_account_id") === account_id ||
+                isLanguageModelService(field<string>(message, "sender_id") ?? "") ||
                 is_viewers_message
               }
               projectId={project_id}
@@ -1000,7 +1033,7 @@ export default function Message({
                 actions && typeof actions.resolveAcpApproval === "function"
                   ? ({ approvalId, optionId }) =>
                       actions.resolveAcpApproval({
-                        date: message.get("date"),
+                        date: dateValue(message) ?? new Date(date),
                         approvalId,
                         optionId,
                       })
@@ -1092,8 +1125,9 @@ export default function Message({
       return null;
     }
     const showEditingStatus =
-      (message.get("history")?.size ?? 0) > 1 ||
-      (message.get("editing")?.size ?? 0) > 0;
+      history_size > 1 ||
+      (editingState?.size ??
+        Object.keys(editingState ?? {}).length) > 0;
     if (!showEditingStatus) {
       return null;
     }
@@ -1136,7 +1170,7 @@ export default function Message({
           onClick={() => {
             actions?.languageModelStopGenerating(new Date(date), {
               threadId: sessionIdForInterrupt,
-              replyTo: message.get("reply_to"),
+              replyTo: replyTo(message),
             });
           }}
         >
@@ -1189,13 +1223,14 @@ export default function Message({
         <div
           style={{ display: "flex" }}
           onClick={() => {
-            actions?.setFragment(message.get("date"));
+            const d = dateValue(message);
+            if (d != null) actions?.setFragment(d);
           }}
         >
           {!is_prev_sender &&
           !is_viewers_message &&
-          message.get("sender_id") ? (
-            <Name sender_name={get_user_name(message.get("sender_id"))} />
+          field<string>(message, "sender_id") ? (
+            <Name sender_name={get_user_name(field(message, "sender_id"))} />
           ) : undefined}
         </div>
         <div
@@ -1221,7 +1256,7 @@ export default function Message({
     return (
       <div>
         <HistoryTitle />
-        <History history={message.get("history")} user_map={user_map} />
+        <History history={historyEntries} user_map={user_map} />
         <HistoryFooter />
       </div>
     );
@@ -1295,7 +1330,10 @@ export default function Message({
       reply = replyMessageRef.current;
     }
     actions.sendReply({
-      message: message.toJS(),
+      message:
+        typeof (message as any)?.toJS === "function"
+          ? (message as any).toJS()
+          : message,
       reply,
       submitMentionsRef: replyMentionsRef,
     });
@@ -1317,7 +1355,7 @@ export default function Message({
     if (isLLMThread) {
       input = "";
     } else {
-      const replying_to = message.get("history")?.first()?.get("author_id");
+      const replying_to = firstHistoryEntry?.author_id;
       if (!replying_to || replying_to == account_id) {
         input = "";
       } else {
@@ -1442,7 +1480,7 @@ export default function Message({
         <Tip title={"Click to unfold this thread to show all messages."}>
           <Button
             onClick={() =>
-              actions?.toggleFoldThread(message.get("date"), index)
+              actions?.toggleFoldThread(dateValue(message) ?? new Date(date), index)
             }
             type="link"
             block
@@ -1504,10 +1542,20 @@ function formatTurnDuration({
   history,
 }: {
   startMs?: number;
-  history?: List<any>;
+  history?: any;
 }): string {
-  if (!startMs || !history || history.size === 0) return "";
-  const endDate = history.first()?.get("date");
+  if (!startMs || !history) return "";
+  const entries = Array.isArray(history)
+    ? history
+    : typeof history?.toArray === "function"
+      ? history.toArray()
+      : typeof history?.toJS === "function"
+        ? history.toJS()
+        : [];
+  if (!entries.length) return "";
+  const last = entries[entries.length - 1];
+  const endDate =
+    last?.date ?? (typeof last?.get === "function" ? last.get("date") : undefined);
   const endMs =
     endDate instanceof Date
       ? endDate.valueOf()
@@ -1591,8 +1639,8 @@ export function message_to_markdown(
   const includeLog = options?.includeLog ?? false;
   let value = newest_content(message);
   const user_map = redux.getStore("users").get("user_map");
-  const sender = getUserName(user_map, message.get("sender_id"));
-  const date = message.get("date").toString();
+  const sender = getUserName(user_map, field<string>(message, "sender_id") ?? "");
+  const date = dateValue(message)?.toString() ?? "";
 
   if (includeLog) {
     const logMarkdown = message_codex_log_to_markdown(message);
