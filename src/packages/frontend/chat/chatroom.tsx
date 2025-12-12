@@ -62,6 +62,7 @@ import CodexConfigButton from "./codex";
 import { CONTEXT_WARN_PCT, CONTEXT_CRITICAL_PCT } from "./codex";
 import { Resizable } from "re-resizable";
 import { ChatDocProvider, useChatDoc } from "./doc-context";
+import * as immutable from "immutable";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -158,7 +159,7 @@ export interface ChatPanelProps {
   project_id: string;
   path: string;
   messages?: ChatMessages;
-  activity?: any;
+  activity?: immutable.Map<string, number>;
   fontSize?: number;
   desc?: NodeDesc;
   variant?: "default" | "compact";
@@ -376,10 +377,7 @@ export function ChatPanel({
         }
         llmCacheRef.current.set(thread.key, isAI);
       }
-      const lastActivityAt =
-        activity && typeof (activity as any).get === "function"
-          ? (activity as any).get(thread.key)
-          : undefined;
+      const lastActivityAt = activity?.get(thread.key);
       return {
         ...thread,
         displayLabel,
@@ -388,8 +386,7 @@ export function ChatPanel({
         unreadCount,
         isAI: !!isAI,
         isPinned,
-        lastActivityAt:
-          typeof lastActivityAt === "number" ? lastActivityAt : undefined,
+        lastActivityAt,
         contextRemaining: contextRemainingByThread.get(thread.key),
       };
     });
@@ -1632,8 +1629,6 @@ function ChatRoomInner({
 }: EditorComponentProps) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
   const activity = useEditor("activity");
-  // subscribe to syncdbReady to force re-render when sync attaches
-  useEditor("syncdbReady");
   const { messages } = useChatDoc();
   return (
     <ChatPanel
@@ -1641,7 +1636,7 @@ function ChatRoomInner({
       project_id={project_id}
       path={path}
       messages={messages as ChatMessages | undefined}
-      activity={activity as any}
+      activity={activity}
       fontSize={font_size}
       desc={desc}
       variant="default"
