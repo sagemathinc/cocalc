@@ -35,7 +35,7 @@ const ChatDocContext = createContext<DocCtx>({
 
 export function ChatDocProvider({
   syncdb,
-  cache: cacheProp,
+  cache,
   children,
 }: {
   syncdb?: ImmerDB;
@@ -46,29 +46,29 @@ export function ChatDocProvider({
   const cacheRef = useRef<ChatMessageCache | null>(null);
 
   useEffect(() => {
-    const cache = cacheProp ?? new ChatMessageCache(syncdb);
-    cacheRef.current = cache;
+    const nextCache = cache ?? new ChatMessageCache(syncdb);
+    cacheRef.current = nextCache;
     const onVersion = (v: number) => setVersion(v);
-    cache.onVersion(onVersion);
+    nextCache.onVersion(onVersion);
     // ensure initial version is reflected
-    setVersion(cache.getVersion());
+    setVersion(nextCache.getVersion());
     return () => {
-      cache.offVersion(onVersion);
-      if (!cacheProp) {
-        cache.dispose();
+      nextCache.offVersion(onVersion);
+      if (!cache) {
+        nextCache.dispose();
       }
     };
-  }, [syncdb, cacheProp]);
+  }, [syncdb, cache]);
 
-  const cache = cacheRef.current;
+  const cacheInst = cacheRef.current;
   const value = useMemo<DocCtx>(
     () => ({
-      syncdb: cache?.getSyncdb(),
-      doc: cache?.getSyncdb()?.get(),
+      syncdb: cacheInst?.getSyncdb(),
+      doc: cacheInst?.getSyncdb()?.get(),
       version,
-      messages: cache?.getMessages(),
+      messages: cacheInst?.getMessages(),
     }),
-    [cache, version],
+    [cacheInst, version],
   );
 
   return (

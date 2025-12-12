@@ -24,6 +24,7 @@ import { aux_file } from "@cocalc/util/misc";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { delay } from "awaiting";
 import { getSearchData } from "@cocalc/frontend/chat/filter-messages";
+import { ChatMessageCache } from "@cocalc/frontend/chat/message-cache";
 
 const FRAME_TYPE = "chatroom";
 
@@ -36,6 +37,7 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
   protected string_cols = ["input"];
   private chatActions: { [frameId: string]: ChatActions } = {};
   private auxPath: string;
+  private messageCache?: ChatMessageCache;
 
   _init2(): void {
     this.auxPath = aux_file(this.path, "tasks");
@@ -46,6 +48,8 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
       path: this.path,
     });
     const syncdb = this._syncstring;
+    // Single shared message cache for all chat frames attached to this syncdoc.
+    this.messageCache = new ChatMessageCache(syncdb);
     syncdb.once("ready", () => {
       initFromSyncDB({ syncdb, store });
     });
@@ -56,11 +60,11 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
 
   foldAIThreads(id: string) {
     this.chatActions[id]?.foldAllThreads(true);
-  };
+  }
 
   foldAllThreads(id: string) {
     this.chatActions[id]?.foldAllThreads(false);
-  };
+  }
 
   getChatActions(frameId?): ChatActions | undefined {
     if (frameId == null) {
@@ -82,8 +86,11 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
     const auxPath = this.auxPath + frameId;
     const reduxName = redux_name(this.project_id, auxPath);
     const actions = this.redux.createActions(reduxName, ChatActions);
+    if (!this.messageCache) {
+      this.messageCache = new ChatMessageCache(syncdb);
+    }
     // our store is not exactly a ChatStore but it's close enough
-    actions.set_syncdb(syncdb, this.store as ChatStore);
+    actions.set_syncdb(syncdb, this.store as ChatStore, this.messageCache);
     actions.frameId = frameId;
     actions.frameTreeActions = this as any;
     this.chatActions[frameId] = actions;
@@ -114,6 +121,7 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
     if (actions == null) {
       return;
     }
+    actions.dispose?.();
     delete this.chatActions[frameId];
     const name = actions.name;
     this.redux.removeActions(name);
@@ -126,6 +134,8 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
     for (const frameId in this.chatActions) {
       this.closeChatFrame(frameId);
     }
+    this.messageCache?.dispose?.();
+    this.messageCache = undefined;
     super.close();
   }
 

@@ -54,6 +54,8 @@ export function initChat(project_id: string, path: string): ChatActions {
 export function remove(path: string, redux, project_id: string): string {
   const name = redux_name(project_id, path);
   const actions = redux.getActions(name);
+  // Dispose per-chat resources before tearing down redux.
+  actions?.dispose?.();
   actions?.syncdb?.close();
   const store = redux.getStore(name);
   if (store == null) {

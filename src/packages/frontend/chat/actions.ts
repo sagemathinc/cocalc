@@ -75,7 +75,6 @@ const MAX_CHAT_STREAM = 10;
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: ImmerDB;
   public store?: ChatStore;
-  public messageCache?: ChatMessageCache;
   // We use this to ensure at most once chatgpt output is streaming
   // at a time in a given chatroom.  I saw a bug where hundreds started
   // at once and it really did send them all to openai at once, and
@@ -84,11 +83,36 @@ export class ChatActions extends Actions<ChatState> {
   public frameId: string = "";
   // this might not be set e.g., for deprecated side chat on sagews:
   public frameTreeActions?: CodeEditorActions;
+  // Shared message cache for this actions instance; used by both React and actions.
+  public messageCache?: ChatMessageCache;
+  // Track whether this actions instance owns the cache lifecycle.
+  private ownsMessageCache = false;
 
-  set_syncdb = (syncdb: ImmerDB, store: ChatStore): void => {
+  set_syncdb = (
+    syncdb: ImmerDB,
+    store: ChatStore,
+    messageCache?: ChatMessageCache,
+  ): void => {
     this.syncdb = syncdb;
     this.store = store;
-    this.messageCache = new ChatMessageCache(syncdb);
+
+    // If a cache is provided, reuse it without taking ownership.
+    if (messageCache) {
+      if (this.ownsMessageCache && this.messageCache) {
+        this.messageCache.dispose();
+      }
+      this.messageCache = messageCache;
+      this.ownsMessageCache = false;
+      this.messageCache.setSyncdb(syncdb);
+    } else {
+      // Otherwise create and own a private cache.
+      if (this.ownsMessageCache && this.messageCache) {
+        this.messageCache.dispose();
+      }
+      this.messageCache = new ChatMessageCache(syncdb);
+      this.ownsMessageCache = true;
+    }
+
     // trigger react subscribers to re-render when syncdb attaches
     this.setState({ syncdbReady: Date.now() });
   };
@@ -111,6 +135,15 @@ export class ChatActions extends Actions<ChatState> {
     if (this.syncdb == null) return;
     const plain = obj && typeof obj.toJS === "function" ? obj.toJS() : obj;
     this.syncdb.set(plain);
+  }
+
+  // Dispose resources tied to this actions instance.
+  dispose(): void {
+    if (this.ownsMessageCache) {
+      this.messageCache?.dispose?.();
+    }
+    this.messageCache = undefined;
+    this.syncdb = undefined;
   }
 
   // Initialize the state of the store from the contents of the syncdb.

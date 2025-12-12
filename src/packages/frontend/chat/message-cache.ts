@@ -36,7 +36,12 @@ export class ChatMessageCache {
       this.syncdb.off("change", this.onChangeBound);
     }
     this.syncdb = syncdb;
-    this.rebuildFromDoc();
+    // Clear stale data; populate from the next change event after ready.
+    this.messages = new Map();
+    // If already ready (e.g., hot swap), build immediately.
+    if (this.syncdb.get_state?.() === "ready") {
+      this.rebuildFromDoc();
+    }
     this.syncdb.on("change", this.onChangeBound);
   }
 
@@ -74,8 +79,11 @@ export class ChatMessageCache {
   }
 
   private rebuildFromDoc() {
+    if (!this.syncdb || this.syncdb.get_state?.() !== "ready") {
+      return;
+    }
     const map = new Map<string, PlainChatMessage>();
-    const rows = this.syncdb?.get()?.get?.() ?? [];
+    const rows = this.syncdb.get() ?? [];
     for (const row of rows ?? []) {
       const { message } = normalizeChatMessage(row);
       if (message) {
@@ -87,7 +95,7 @@ export class ChatMessageCache {
   }
 
   private onChange(changes: Set<Record<string, unknown>> | undefined) {
-    if (!this.syncdb) return;
+    if (!this.syncdb || this.syncdb.get_state?.() !== "ready") return;
     const m = new Map(this.messages);
     const rows: Record<string, unknown>[] =
       changes instanceof Set
