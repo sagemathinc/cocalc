@@ -1,4 +1,31 @@
+## Code Quality improvements to chat -- immer
+
+Here’s a concise plan to finish the Immer migration and clean up chat code quality:
+
+- **Single source of truth**: Stop storing a second copy of chat data in Redux. Consume the ImmerDB data directly (or via lightweight selectors) so we don’t double-memory or normalize twice. Phase out `messages: fromJS(...)` in the chat store once components can read plain objects.
+
+- **Remove Immutable.js usage in chat**: Replace `Map/List/fromJS/toJS` in `chat/actions.ts`, `chat/store.ts`, `chat/message.tsx`, `chat/chatroom.tsx`, `chat/utils.ts` with plain JS/Immer-friendly structures. Add small helpers/selectors for common computed state (thread lookup, unread counts) to avoid reimplementing Immutable semantics.
+
+- **Typed Immer everywhere**: Tighten types so `syncdb` is `ImmerDB` only (already started), and add proper TypeScript defs for `webapp_client.conat_client.conat().sync.immer` so we can drop `any` casts (e.g., in `chat/register.ts`).
+
+- **Normalization/versioning**: Keep `normalizeChatMessage` minimal and non-mutating. Add a `schema_version` guard and an upgrader that runs once per message in sync init; skip writebacks on change handlers. Consider a lightweight per-message “validated” flag to avoid re-normalizing hot paths.
+
+- **Component refactors**: Split `chat/message.tsx` into smaller pieces (header/meta, body, logs/thinking, controls) so logic is isolated and easier to test. Move ACP/log display into its own component with clear props. Do similarly for input-related UI (mentions, toolbar) to shrink `input.tsx`.
+
+- **Memoized selectors**: Introduce memoized helpers (e.g., `getThreadMessages`, `getUnreadCount`, `getLastActivityAt`) over plain arrays/maps to replace ad-hoc filtering/sorting each render. Keep them pure and typed.
+
+- **Tests**: Add unit tests for normalization and selectors using plain JS fixtures (no Immutable). Add a minimal render test for input with drafts to catch regressions like the @-mention crash. If possible, add a playback test that feeds change events into `handleSyncDBChange` and asserts store state.
+
+- **Side effects & events**: Audit all `syncdb.on("change")` handlers to ensure they assume plain objects, and remove any lingering `.get()` or `.toJS()` calls. Ensure we don’t write back inside change handlers except for explicit migrations.
+
+- **Cleanup legacy paths**: Remove or gate any remaining code paths that reference `SyncDB` in chat, and delete unused Immutable utilities once components are migrated.
+
+These steps will finish the Immer switch, reduce RAM overhead, and make the chat codebase easier to maintain and test.
+
+
 ## Major Bugs and Issues
+
+
 
 ### Issues with the new pub/sub agent output
 

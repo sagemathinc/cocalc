@@ -5,3 +5,6 @@ process.env.COCALC_TEST_MODE = true;
 const { TextEncoder, TextDecoder } = require("util");
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
+
+// In production builds DEBUG is injected by the bundler. For tests, default to false.
+global.DEBUG = false;
