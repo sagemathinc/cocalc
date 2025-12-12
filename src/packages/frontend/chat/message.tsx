@@ -525,8 +525,7 @@ export default function Message({
   }, [latestThreadMessageMs, date]);
 
   const usage = useMemo(() => {
-    const usageRaw: any =
-      field(message, "acp_usage") ?? field(message, "codex_usage");
+    const usageRaw: any = field(message, "acp_usage");
     if (!usageRaw) return undefined;
     return typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
   }, [message]);

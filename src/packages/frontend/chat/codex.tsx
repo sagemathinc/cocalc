@@ -27,6 +27,7 @@ import {
 import { COLORS } from "@cocalc/util/theme";
 import type { ChatMessageTyped } from "./types";
 import { toMsString } from "./utils";
+import { dateValue } from "./access";
 import type { ChatActions } from "./actions";
 
 const { Text } = Typography;
@@ -164,7 +165,7 @@ export function CodexConfigButton({
     Form.useWatch("reasoning", form) ?? value?.reasoning;
   const currentSessionMode =
     Form.useWatch("sessionMode", form) ?? value?.sessionMode;
-  const messageMap = actions?.store?.get("messages");
+  const messageMap = actions?.getAllMessages();
   const usageSummary = useMemo(() => {
     return getCodexUsageSummary(threadKey, actions, messageMap);
   }, [threadKey, actions, messageMap]);
@@ -571,17 +572,18 @@ function getCodexUsageSummary(
   actions?: ChatActions,
   messages?: any,
 ): UsageSummary | undefined {
-  const map = messages ?? actions?.store?.get("messages");
-  if (!map || !actions?.getMessagesInThread) return undefined;
+  const map = messages ?? actions?.getAllMessages();
+  if (!map || !actions) return undefined;
   const root = getMessageByKey(map, threadKey);
   if (!root) return undefined;
-  const rootDate = root.get("date");
+  const rootDate = dateValue(root);
   const rootIso =
     rootDate instanceof Date
       ? rootDate.toISOString()
-      : typeof rootDate === "string"
-        ? rootDate
-        : new Date(rootDate).toISOString();
+      : rootDate != null
+        ? new Date(rootDate as any).toISOString()
+        : undefined;
+  if (!rootIso) return undefined;
   const seq = actions.getMessagesInThread(rootIso);
   if (!seq) return undefined;
   const threadMessages: ChatMessageTyped[] =
@@ -589,8 +591,8 @@ function getCodexUsageSummary(
   // Messages can arrive out of order from the SyncDB; normalize to chronological
   // order so usage totals reflect the most recent turn.
   const sortedMessages = threadMessages.sort((a, b) => {
-    const aDate = toMsSafe(a?.get("date"));
-    const bDate = toMsSafe(b?.get("date"));
+    const aDate = toMsSafe(dateValue(a));
+    const bDate = toMsSafe(dateValue(b));
     return aDate - bDate;
   });
   let latest;
@@ -599,9 +601,11 @@ function getCodexUsageSummary(
   let contextWindow: number | undefined;
   let hasAggregate = false;
   for (const entry of sortedMessages) {
-    const usage: any = entry.get("acp_usage") ?? entry.get("codex_usage");
+    const rawUsage: any = (entry as any).acp_usage;
+    const usage: any =
+      typeof rawUsage?.toJS === "function" ? rawUsage.toJS() : rawUsage;
     if (!usage) continue;
-    const usageData = typeof usage?.toJS === "function" ? usage.toJS() : usage;
+    const usageData = usage;
     if (usageData?.total_tokens != null) {
       totalTokens = usageData.total_tokens;
       hasAggregate = true;
@@ -624,7 +628,10 @@ function getCodexUsageSummary(
   return { latest, totalTokens, usedTokens, contextWindow };
 }
 
-function getMessageByKey(map, key: string): ChatMessageTyped | undefined {
+function getMessageByKey(
+  map: Map<string, ChatMessageTyped> | Record<string, any>,
+  key: string,
+): ChatMessageTyped | undefined {
   if (!key) return undefined;
   let candidates;
   try {
@@ -639,7 +646,10 @@ function getMessageByKey(map, key: string): ChatMessageTyped | undefined {
   }
   for (const k of candidates) {
     if (!k) continue;
-    const msg = map.get(k);
+    const msg =
+      typeof (map as any).get === "function"
+        ? (map as any).get(k)
+        : (map as any)[k];
     if (msg != null) return msg;
   }
   return undefined;

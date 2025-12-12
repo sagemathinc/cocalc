@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Seq, Map as immutableMap, fromJS } from "immutable";
+import { Map as immutableMap, fromJS } from "immutable";
 import { debounce } from "lodash";
 import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
@@ -101,13 +101,13 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   // Read the current chat messages directly from the SyncDoc (Immer).
-  private getAllMessages(): Map<string, ChatMessageTyped> {
+  getAllMessages = (): Map<string, ChatMessageTyped> => {
     if (this.messageCache) {
       return this.messageCache.getMessages();
     }
     // empty fallback since syncdb isn't defined yet
     return new Map<string, ChatMessageTyped>();
-  }
+  };
 
   private toImmutableRecord(record: any): any {
     if (record == null) return null;
@@ -466,7 +466,7 @@ export class ChatActions extends Actions<ChatState> {
         ? reply_to.valueOf()
         : getThreadRootDate({
             date: new Date(message.date).valueOf(),
-            messages: store.get("messages"),
+            messages: this.getAllMessages(),
           });
     const time_stamp_str = this.sendChat({
       input: reply,
@@ -525,7 +525,7 @@ export class ChatActions extends Actions<ChatState> {
     let model: LanguageModel | null | false = getLanguageModel(input);
     input = stripMentions(input);
     let history: string[] = [];
-    const messages = this.store.get("messages");
+    const messages = this.getAllMessages();
     // message != null means this is a reply or edit and we have to get the whole chat thread
     if (!model && message != null && messages != null) {
       const root = getReplyToRoot({ message, messages });
@@ -804,8 +804,8 @@ export class ChatActions extends Actions<ChatState> {
     includeLogs?: boolean;
   }): Promise<void> => {
     if (!this.store) return;
-    const messages = this.store.get("messages");
-    if (messages == null) return;
+    const messages = this.getAllMessages();
+    if (messages == null || messages.size === 0) return;
     const project_id = this.store.get("project_id");
     if (project_id == null) return;
     const outputPath = path?.trim();
@@ -867,8 +867,8 @@ export class ChatActions extends Actions<ChatState> {
     if (date == null || this.store == null) {
       return false;
     }
-    const messages = this.store.get("messages");
-    if (messages == null) {
+    const messages = this.getAllMessages();
+    if (messages == null || messages.size === 0) {
       return false;
     }
     const rootMs =
@@ -882,11 +882,11 @@ export class ChatActions extends Actions<ChatState> {
     const thread = this.getMessagesInThread(
       toISOString(dateValue(rootMessage)) ?? `${rootMs}`,
     );
-    if (thread == null) {
+    if (thread == null || thread.length === 0) {
       return false;
     }
 
-    const firstMessage = thread.first();
+    const firstMessage = thread[0];
     if (firstMessage == null) {
       return false;
     }
@@ -1029,7 +1029,7 @@ export class ChatActions extends Actions<ChatState> {
     //input = stripDetails(input);
 
     if (typeof model === "string" && model.includes("codex")) {
-      const messagesMap = store.get("messages");
+      const messagesMap = this.getAllMessages();
       let threadKey: string | undefined;
       const baseDate =
         reply_to?.valueOf() ??
@@ -1192,7 +1192,7 @@ export class ChatActions extends Actions<ChatState> {
     // The sender_id might change if we explicitly set the LLM model.
     if (tag === "regenerate" && llm != null) {
       if (!this.store) return;
-      const messages = this.store.get("messages");
+      const messages = this.getAllMessages();
       if (!messages) return;
       if (message.sender_id !== sender_id) {
         // if that happens, create a new message with the existing history and the new sender_id
@@ -1293,25 +1293,23 @@ export class ChatActions extends Actions<ChatState> {
    */
   getMessagesInThread = (
     dateStr: string,
-  ): Seq.Indexed<ChatMessageTyped> | undefined => {
-    const messages = this.store?.get("messages");
-    if (messages == null) {
-      return;
+  ):
+    | (ChatMessageTyped[] & { toArray?: () => ChatMessageTyped[] })
+    | undefined => {
+    const messages = this.getAllMessages();
+    if (!messages || messages.size === 0) return undefined;
+    const list: ChatMessageTyped[] = [];
+    for (const msg of messages.values()) {
+      if (replyTo(msg) === dateStr || toISOString(dateValue(msg)) === dateStr) {
+        list.push(msg);
+      }
     }
-
-    return (
-      messages // @ts-ignore -- immutablejs typings are wrong (?)
-        .filter(
-          (message) =>
-            replyTo(message) == dateStr ||
-            toISOString(dateValue(message)) == dateStr,
-        )
-        // @ts-ignore -- immutablejs typings are wrong (?)
-        .valueSeq()
-        .sort((a, b) =>
-          cmp(dateValue(a)?.valueOf?.(), dateValue(b)?.valueOf?.()),
-        )
+    list.sort((a, b) =>
+      cmp(dateValue(a)?.valueOf?.(), dateValue(b)?.valueOf?.()),
     );
+    // Preserve legacy API shape where callers sometimes expect a toArray() helper.
+    (list as any).toArray = () => list;
+    return list as any;
   };
 
   private async saveSyncdb(): Promise<void> {
@@ -1354,7 +1352,7 @@ export class ChatActions extends Actions<ChatState> {
 
   getCodexConfig = (reply_to?: Date): any => {
     if (reply_to == null || this.store == null) return;
-    const messages = this.store.get("messages");
+    const messages = this.getAllMessages();
     if (!messages) return;
     const rootMs =
       getThreadRootDate({ date: reply_to.valueOf(), messages }) ||

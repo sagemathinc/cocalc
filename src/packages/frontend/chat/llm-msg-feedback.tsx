@@ -21,8 +21,7 @@ export function FeedbackLLM({ actions, message }: FeedackLLMProps) {
   if (actions == null) return null;
   const account_id = redux.getStore("account").get_account_id();
 
-  //const date = message.get("date")?.getTime() ?? 0;
-  const val = message.getIn(["feedback", account_id]);
+  const val = message.feedback?.[account_id];
 
   function feedback(what: Feedback) {
     return `Give ${what} feedback about this answer written by the language model.`;

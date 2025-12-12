@@ -1568,8 +1568,7 @@ function computeThreadContextRemaining(
   });
   let remaining: number | null = null;
   for (const entry of list) {
-    const usageRaw: any =
-      field(entry, "acp_usage") ?? field(entry, "codex_usage");
+    const usageRaw: any = field(entry, "acp_usage");
     if (!usageRaw) continue;
     const usage =
       typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
