@@ -39,7 +39,7 @@ export class ChatMessageCache {
     // Clear stale data; populate from the next change event after ready.
     this.messages = new Map();
     // If already ready (e.g., hot swap), build immediately.
-    if (this.syncdb.get_state?.() === "ready") {
+    if (this.syncdb.get_state() === "ready") {
       this.rebuildFromDoc();
     }
     this.syncdb.on("change", this.onChangeBound);
@@ -80,38 +80,40 @@ export class ChatMessageCache {
 
   // After calling this, if it returns true, then
   // the date field will be a valid ISO string
-  private validateDate(row: any): boolean {
+  private validateDate(row?: { date?: any }): any {
     // completely ignore any row whose date is not a valid -- there's nothing
     // to be done with such records.
     const date = row?.date;
     if (!date) {
-      return false;
+      return;
     }
     if (typeof date != "string") {
-      return false;
+      return;
     }
     try {
       const d = new Date(date);
       if (!isFinite(d.valueOf())) {
-        return false;
+        return;
       }
-      row.date = d.toISOString();
-      return true;
-    } catch {
-      return false;
+      return { ...row, date: d.toISOString() };
+    } catch (err) {
+      // should not happen, hence log it
+      console.log(err);
+      return;
     }
   }
 
   private rebuildFromDoc() {
-    if (!this.syncdb || this.syncdb.get_state?.() !== "ready") {
+    if (this.syncdb?.get_state() !== "ready") {
       return;
     }
     const map = new Map<string, PlainChatMessage>();
     const rows = this.syncdb.get() ?? [];
     const toPersist: PlainChatMessage[] = [];
 
-    for (const row of rows ?? []) {
-      if (!this.validateDate(row)) continue;
+    for (const row0 of rows ?? []) {
+      const row = this.validateDate(row0);
+      if (row == null) continue;
       const { message, upgraded } = normalizeChatMessage(row);
       if (message) {
         map.set(`${message.date.valueOf()}`, message);
@@ -137,10 +139,9 @@ export class ChatMessageCache {
           ? []
           : [changes];
     const toPersist: PlainChatMessage[] = [];
-    for (const row of rows) {
-      if (!this.validateDate(row)) {
-        continue;
-      }
+    for (const row0 of rows) {
+      const row = this.validateDate(row0);
+      if (row == null) continue;
       // SyncDoc.get_one requires only primary key fields so we make an object
       // where that ONLY has those fields and no others.
       const where: Record<string, unknown> = {};
