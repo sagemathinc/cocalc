@@ -239,8 +239,7 @@ export function ChatPanel({
     isAI: boolean;
   } | null>(null);
   const [exportFilename, setExportFilename] = useState<string>("");
-  const [exportIncludeLogs, setExportIncludeLogs] =
-    useState<boolean>(false);
+  const [exportIncludeLogs, setExportIncludeLogs] = useState<boolean>(false);
   const [allowAutoSelectThread, setAllowAutoSelectThread] =
     useState<boolean>(true);
   const [activityNow, setActivityNow] = useState<number>(Date.now());
@@ -597,11 +596,7 @@ export function ChatPanel({
     closeRenameModal();
   };
 
-  const openExportModal = (
-    threadKey: string,
-    label: string,
-    isAI: boolean,
-  ) => {
+  const openExportModal = (threadKey: string, label: string, isAI: boolean) => {
     setExportThread({ key: threadKey, label, isAI });
   };
 
@@ -1568,8 +1563,8 @@ function computeThreadContextRemaining(
     typeof seq.toArray === "function" ? seq.toArray() : Array.from(seq);
   if (!list?.length) return null;
   list.sort((a, b) => {
-  const aDate = dateValue(a)?.valueOf?.() ?? 0;
-  const bDate = dateValue(b)?.valueOf?.() ?? 0;
+    const aDate = dateValue(a)?.valueOf?.() ?? 0;
+    const bDate = dateValue(b)?.valueOf?.() ?? 0;
     return aDate - bDate;
   });
   let remaining: number | null = null;
