@@ -318,13 +318,13 @@ export function StudentAssignmentInfo({
 
   function render_last_time(time: string | number | Date) {
     return (
-      <div key="time" style={{ color: "#666" }}>
+      <Space key="time" wrap>
         <BigTime date={time} />
-      </div>
+      </Space>
     );
   }
 
-  function render_open_recopy_confirm(
+  function render_recopy_confirm(
     step: Steps,
     copy: Function,
     copy_tip: string,
@@ -351,10 +351,6 @@ export function StudentAssignmentInfo({
             copy();
           }}
         >
-          <Icon
-            name="share-square"
-            rotate={step.indexOf("ollect") !== -1 ? "180" : undefined}
-          />{" "}
           <FormattedMessage
             id="course.student-assignment-info.recopy_confirm.label"
             defaultMessage={`Yes, {activity} again`}
@@ -393,12 +389,8 @@ export function StudentAssignmentInfo({
           size={size}
           onClick={() => set_recopy(step, true)}
         >
-          <Tip title={step} placement={placement} tip={<span>{copy_tip}</span>}>
-            <Icon
-              name="share-square"
-              rotate={step.indexOf("ollect") !== -1 ? "180" : undefined}
-            />{" "}
-            {step_intl(step, false)}...
+          <Tip title={step} placement={placement} tip={copy_tip}>
+            <Icon name="redo" />
           </Tip>
         </Button>
       );
@@ -414,15 +406,14 @@ export function StudentAssignmentInfo({
   ) {
     const placement = step === "Return" ? "left" : "right";
     return (
-      <div key="open_recopy">
-        {render_open_recopy_confirm(step, copy, copy_tip, placement)}
-        <Gap />
+      <Space key="open_recopy" wrap>
+        {render_recopy_confirm(step, copy, copy_tip, placement)}
         <Button key="open" size={size} onClick={open}>
           <Tip title="Open assignment" placement={placement} tip={open_tip}>
-            <Icon name="folder-open" /> {intl.formatMessage(labels.open)}
+            <Icon name="folder-open" />
           </Tip>
         </Button>
-      </div>
+      </Space>
     );
   }
 
@@ -442,7 +433,7 @@ export function StudentAssignmentInfo({
           {intl.formatMessage(labels.cancel)} <Icon name="times" />
         </Button>
         <Button key="open" onClick={open} size={size}>
-          <Icon name="folder-open" /> {intl.formatMessage(labels.open)}
+          <Icon name="folder-open" />
         </Button>
       </Space>
     );
@@ -456,11 +447,7 @@ export function StudentAssignmentInfo({
     return (
       <Tip key="copy" title={step} tip={copy_tip} placement={placement}>
         <Button onClick={copy} size={size}>
-          <Icon
-            name="share-square"
-            rotate={step.indexOf("ollect") !== -1 ? "180" : undefined}
-          />{" "}
-          {step_intl(step, false)}
+          <Icon name="caret-right" />
         </Button>
       </Tip>
     );
