@@ -85,33 +85,16 @@ export class ChatActions extends Actions<ChatState> {
   public frameTreeActions?: CodeEditorActions;
   // Shared message cache for this actions instance; used by both React and actions.
   public messageCache?: ChatMessageCache;
-  // Track whether this actions instance owns the cache lifecycle.
-  private ownsMessageCache = false;
 
   set_syncdb = (
     syncdb: ImmerDB,
     store: ChatStore,
-    messageCache?: ChatMessageCache,
+    messageCache: ChatMessageCache,
   ): void => {
     this.syncdb = syncdb;
     this.store = store;
 
-    // If a cache is provided, reuse it without taking ownership.
-    if (messageCache) {
-      if (this.ownsMessageCache && this.messageCache) {
-        this.messageCache.dispose();
-      }
-      this.messageCache = messageCache;
-      this.ownsMessageCache = false;
-      this.messageCache.setSyncdb(syncdb);
-    } else {
-      // Otherwise create and own a private cache.
-      if (this.ownsMessageCache && this.messageCache) {
-        this.messageCache.dispose();
-      }
-      this.messageCache = new ChatMessageCache(syncdb);
-      this.ownsMessageCache = true;
-    }
+    this.messageCache = messageCache;
 
     // trigger react subscribers to re-render when syncdb attaches
     this.setState({ syncdbReady: Date.now() });
@@ -139,9 +122,6 @@ export class ChatActions extends Actions<ChatState> {
 
   // Dispose resources tied to this actions instance.
   dispose(): void {
-    if (this.ownsMessageCache) {
-      this.messageCache?.dispose?.();
-    }
     this.messageCache = undefined;
     this.syncdb = undefined;
   }

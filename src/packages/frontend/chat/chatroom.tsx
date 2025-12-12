@@ -159,7 +159,6 @@ export interface ChatPanelProps {
   project_id: string;
   path: string;
   messages?: ChatMessages;
-  activity?: immutable.Map<string, number>;
   fontSize?: number;
   desc?: NodeDesc;
   variant?: "default" | "compact";
@@ -180,12 +179,14 @@ export function ChatPanel({
   project_id,
   path,
   messages,
-  activity,
   fontSize = 13,
   desc,
   variant = "default",
   disableFilters: disableFiltersProp,
 }: ChatPanelProps) {
+  const useEditor = useEditorRedux<ChatState>({ project_id, path });
+  const activity: undefined | immutable.Map<string, number> =
+    useEditor("activity");
   const account_id = useTypedRedux("account", "account_id");
   if (IS_MOBILE) {
     variant = "compact";
@@ -1627,16 +1628,16 @@ function ChatRoomInner({
   font_size,
   desc,
 }: EditorComponentProps) {
-  const useEditor = useEditorRedux<ChatState>({ project_id, path });
-  const activity = useEditor("activity");
   const { messages } = useChatDoc();
+  const useEditor = useEditorRedux<ChatState>({ project_id, path });
+  // subscribe to syncdbReady to force re-render when sync attaches
+  useEditor("syncdbReady");
   return (
     <ChatPanel
       actions={actions}
       project_id={project_id}
       path={path}
-      messages={messages as ChatMessages | undefined}
-      activity={activity}
+      messages={messages}
       fontSize={font_size}
       desc={desc}
       variant="default"
@@ -1646,10 +1647,7 @@ function ChatRoomInner({
 
 export function ChatRoom(props: EditorComponentProps) {
   return (
-    <ChatDocProvider
-      syncdb={(props.actions as any)?.syncdb}
-      cache={(props.actions as any)?.messageCache}
-    >
+    <ChatDocProvider cache={props.actions?.messageCache}>
       <ChatRoomInner {...props} />
     </ChatDocProvider>
   );

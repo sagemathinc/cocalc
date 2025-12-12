@@ -87,7 +87,7 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
     const reduxName = redux_name(this.project_id, auxPath);
     const actions = this.redux.createActions(reduxName, ChatActions);
     if (!this.messageCache) {
-      this.messageCache = new ChatMessageCache(syncdb);
+      throw Error("messageCache must be defined");
     }
     // our store is not exactly a ChatStore but it's close enough
     actions.set_syncdb(syncdb, this.store as ChatStore, this.messageCache);

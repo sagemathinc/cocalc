@@ -17,24 +17,14 @@ import type { PlainChatMessage } from "./types";
  * React components (via ChatDocProvider) and ChatActions; it avoids rebuilding
  * on every call and keeps O(1) updates relative to syncdb changes.
  */
-export class ChatMessageCache {
-  private syncdb?: ImmerDB;
+export class ChatMessageCache extends EventEmitter {
+  private syncdb: ImmerDB;
   private messages: Map<string, PlainChatMessage> = new Map();
   private version = 0;
-  private emitter = new EventEmitter();
   private onChangeBound = this.onChange.bind(this);
 
-  constructor(syncdb?: ImmerDB) {
-    if (syncdb) {
-      this.setSyncdb(syncdb);
-    }
-  }
-
-  setSyncdb(syncdb: ImmerDB) {
-    if (this.syncdb === syncdb) return;
-    if (this.syncdb) {
-      this.syncdb.off("change", this.onChangeBound);
-    }
+  constructor(syncdb: ImmerDB) {
+    super();
     this.syncdb = syncdb;
     // Clear stale data; populate from the next change event after ready.
     this.messages = new Map();
@@ -57,25 +47,15 @@ export class ChatMessageCache {
     return this.version;
   }
 
-  onVersion(cb: (v: number) => void) {
-    this.emitter.on("version", cb);
-  }
-
-  offVersion(cb: (v: number) => void) {
-    this.emitter.off("version", cb);
-  }
-
   dispose() {
-    if (this.syncdb) {
-      this.syncdb.off("change", this.onChangeBound);
-    }
+    this.syncdb.off("change", this.onChangeBound);
     this.messages.clear();
-    this.emitter.removeAllListeners();
+    this.removeAllListeners();
   }
 
   private bumpVersion() {
     this.version += 1;
-    this.emitter.emit("version", this.version);
+    this.emit("version", this.version);
   }
 
   // After calling this, if it returns true, then
@@ -130,7 +110,7 @@ export class ChatMessageCache {
   }
 
   private onChange(changes: Set<Record<string, unknown>> | undefined) {
-    if (!this.syncdb || this.syncdb.get_state?.() !== "ready") return;
+    if (this.syncdb.get_state() !== "ready") return;
     const m = new Map(this.messages);
     const rows: Record<string, unknown>[] =
       changes instanceof Set
@@ -185,7 +165,7 @@ export class ChatMessageCache {
 
   // Commit upgrades outside the current call stack to avoid recursive change events.
   private persist(messages: PlainChatMessage[]) {
-    if (!this.syncdb || this.syncdb.get_state?.() !== "ready") return;
+    if (this.syncdb.get_state() !== "ready") return;
     Promise.resolve().then(() => {
       if (this.syncdb && this.syncdb.get_state?.() === "ready") {
         let changed = false;
@@ -203,7 +183,7 @@ export class ChatMessageCache {
 
   // Persist upgraded schema/version back into syncdb so legacy rows are fixed on disk.
   private persistUpgrade(message: PlainChatMessage): boolean {
-    if (!this.syncdb || this.syncdb.get_state?.() !== "ready") return false;
+    if (this.syncdb.get_state() !== "ready") return false;
     // normalizeChatMessage guarantees a Date; skip if somehow not.
     if (!(message.date instanceof Date)) return false;
     if (!isFinite(message.date.valueOf())) return false;

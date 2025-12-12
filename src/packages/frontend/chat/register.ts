@@ -9,6 +9,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_split, startswith } from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
 import { ChatStore } from "./store";
+import { ChatMessageCache } from "@cocalc/frontend/chat/message-cache";
 
 // it is fine to call this more than once.
 export function initChat(project_id: string, path: string): ChatActions {
@@ -34,6 +35,10 @@ export function initChat(project_id: string, path: string): ChatActions {
     // used only for drafts, since store lots of versions as user types:
     string_cols: ["input"],
   });
+  const cache = new ChatMessageCache(syncdb);
+  syncdb.once("close", () => {
+    cache.dispose();
+  });
 
   syncdb.once("error", (err) => {
     const mesg = `Error using '${path}' -- ${err}`;
@@ -42,7 +47,7 @@ export function initChat(project_id: string, path: string): ChatActions {
   });
 
   syncdb.once("ready", () => {
-    actions.set_syncdb(syncdb, store);
+    actions.set_syncdb(syncdb, store, cache);
     actions.init_from_syncdb();
     syncdb.on("change", actions.syncdbChange);
     redux.getProjectActions(project_id)?.log_opened_time(path);

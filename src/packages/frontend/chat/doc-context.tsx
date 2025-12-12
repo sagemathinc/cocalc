@@ -16,16 +16,12 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type { ImmerDB } from "@cocalc/sync/editor/immer-db";
-import type { Document } from "@cocalc/sync/editor/generic/types";
 import type { PlainChatMessage } from "./types";
 import { ChatMessageCache } from "./message-cache";
 
 type DocCtx = {
-  syncdb?: ImmerDB;
-  doc?: Document;
   version: number;
-  messages?: Map<string, PlainChatMessage> | null;
+  messages?: Map<string, PlainChatMessage>;
 };
 
 const ChatDocContext = createContext<DocCtx>({
@@ -34,42 +30,34 @@ const ChatDocContext = createContext<DocCtx>({
 });
 
 export function ChatDocProvider({
-  syncdb,
   cache,
   children,
 }: {
-  syncdb?: ImmerDB;
   cache?: ChatMessageCache;
   children: React.ReactNode;
 }) {
-  const [version, setVersion] = useState<number>(0);
-  const cacheRef = useRef<ChatMessageCache | null>(null);
+  const [version, setVersion] = useState<number>(-1);
+  const cacheRef = useRef<ChatMessageCache | null>(cache);
 
   useEffect(() => {
-    const nextCache = cache ?? new ChatMessageCache(syncdb);
-    cacheRef.current = nextCache;
-    const onVersion = (v: number) => setVersion(v);
-    nextCache.onVersion(onVersion);
-    // ensure initial version is reflected
-    setVersion(nextCache.getVersion());
+    cacheRef.current = cache;
+    if (!cache) {
+      setVersion(-1);
+      return;
+    }
+    cache.on("version", setVersion);
+    setVersion(0);
     return () => {
-      nextCache.offVersion(onVersion);
-      if (!cache) {
-        nextCache.dispose();
-      }
+      cache.removeListener("version", setVersion);
     };
-  }, [syncdb, cache]);
+  }, [cache]);
 
-  const cacheInst = cacheRef.current;
-  const value = useMemo<DocCtx>(
-    () => ({
-      syncdb: cacheInst?.getSyncdb(),
-      doc: cacheInst?.getSyncdb()?.get(),
+  const value = useMemo<DocCtx>(() => {
+    return {
       version,
-      messages: cacheInst?.getMessages(),
-    }),
-    [cacheInst, version],
-  );
+      messages: cacheRef.current?.getMessages(),
+    };
+  }, [version]);
 
   return (
     <ChatDocContext.Provider value={value}>{children}</ChatDocContext.Provider>
