@@ -293,40 +293,50 @@ export default function Message({
   }, [message]);
 
   const acpLogInfo = useMemo(() => {
-    const store = message.get("acp_log_store");
-    const key = message.get("acp_log_key");
-    const thread = message.get("acp_log_thread");
-    const turn = message.get("acp_log_turn");
-    const subject = message.get("acp_log_subject");
-    if (!store || !key) return null;
-    return { store, key, thread, turn, subject };
+    const store = message.get("acp_log_store") ?? undefined;
+    const key = message.get("acp_log_key") ?? undefined;
+    const thread = message.get("acp_log_thread") ?? undefined;
+    const turn = message.get("acp_log_turn") ?? undefined;
+    const subject = message.get("acp_log_subject") ?? undefined;
+    if (store && key) {
+      return { store, key, thread, turn, subject };
+    }
+    return null;
   }, [message]);
 
-  const fallbackThread =
-    acpLogInfo?.thread ??
-    message.get("acp_thread_id") ??
-    message.get("reply_to") ??
-    message.get("date")?.toString?.();
-  const fallbackTurn = acpLogInfo?.turn ?? message.get("date")?.toString?.();
-  const fallbackStore =
-    acpLogInfo?.store ??
-    (project_id && path ? `acp-log:${client_db.sha1(project_id, path)}` : null);
-  const fallbackKey =
-    acpLogInfo?.key ??
-    (fallbackThread && fallbackTurn
-      ? `${fallbackThread}:${fallbackTurn}`
-      : null);
-  const fallbackSubject =
-    acpLogInfo?.subject ??
-    (project_id && fallbackThread && fallbackTurn
-      ? `project.${project_id}.acp-log.${fallbackThread}.${fallbackTurn}`
-      : null);
+  // Resolve log identifiers for this message/turn:
+  // - thread: stable thread id (acp_log_thread, then acp_thread_id, then reply_to/date)
+  // - turn:   per-message turn id (defaults to this message date)
+  // - store:  AKV name (acp_log_store or sha1(project_id, path))
+  // - key:    AKV key `${thread}:${turn}`
+  // - subject: conat pub/sub subject for live log streaming
+  const fallbackLogRefs = useMemo(() => {
+    const thread =
+      acpLogInfo?.thread ??
+      message.get("acp_thread_id") ??
+      message.get("reply_to") ??
+      message.get("date")?.toString?.();
+    const turn = acpLogInfo?.turn ?? message.get("date")?.toString?.();
+    const store =
+      acpLogInfo?.store ??
+      (project_id && path
+        ? `acp-log:${client_db.sha1(project_id, path)}`
+        : undefined);
+    const key =
+      acpLogInfo?.key ?? (thread && turn ? `${thread}:${turn}` : undefined);
+    const subject =
+      acpLogInfo?.subject ??
+      (project_id && thread && turn
+        ? `project.${project_id}.acp-log.${thread}.${turn}`
+        : undefined);
+    return { thread, turn, store, key, subject };
+  }, [acpLogInfo, message, project_id, path]);
 
   const codexLog = useCodexLog({
     projectId: project_id,
-    logStore: fallbackStore ?? undefined,
-    logKey: fallbackKey ?? undefined,
-    logSubject: fallbackSubject ?? undefined,
+    logStore: fallbackLogRefs.store,
+    logKey: fallbackLogRefs.key,
+    logSubject: fallbackLogRefs.subject,
     generating: generating === true,
     legacyEvents: message.get("acp_events"),
   });
@@ -336,9 +346,11 @@ export default function Message({
   const showCodexActivity = useMemo(
     () =>
       Boolean(
-        (codexEvents && codexEvents.length > 0) || acpLogInfo || generating,
+        (codexEvents && codexEvents.length > 0) ||
+          codexLog.hasLogRef ||
+          generating,
       ),
-    [codexEvents, acpLogInfo, generating],
+    [codexEvents, codexLog.hasLogRef, generating],
   );
 
   const threadRootMs = useMemo(() => {
