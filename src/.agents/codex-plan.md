@@ -1,5 +1,12 @@
 ## Major Bugs and Issues
 
+### Issues with the new pub/sub agent output
+
+- [ ] it breaks ALL non-agent ai evaluations, since they try to subscribe
+      but those don't use pub/sub
+- [ ] first few messages are missed. Client should start listener before submit, not after some messages already sent
+- [ ] provide api to get everything not sent with a sequence number so refreshed browsers work.
+
 
 ### Diffs
 

@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { List, Map, Seq, Map as immutableMap } from "immutable";
+import { List, Map, Seq, Map as immutableMap, fromJS } from "immutable";
 import { debounce } from "lodash";
 import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
@@ -22,7 +22,7 @@ import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { SyncDB } from "@cocalc/sync/editor/db";
+import { ImmerDB } from "@cocalc/sync/editor/immer-db";
 import {
   CUSTOM_OPENAI_PREFIX,
   LANGUAGE_MODEL_PREFIXES,
@@ -63,7 +63,7 @@ import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
 const MAX_CHAT_STREAM = 10;
 
 export class ChatActions extends Actions<ChatState> {
-  public syncdb?: SyncDB;
+  public syncdb?: ImmerDB;
   public store?: ChatStore;
   // We use this to ensure at most once chatgpt output is streaming
   // at a time in a given chatroom.  I saw a bug where hundreds started
@@ -74,10 +74,21 @@ export class ChatActions extends Actions<ChatState> {
   // this might not be set e.g., for deprecated side chat on sagews:
   public frameTreeActions?: CodeEditorActions;
 
-  set_syncdb = (syncdb: SyncDB, store: ChatStore): void => {
+  set_syncdb = (syncdb: ImmerDB, store: ChatStore): void => {
     this.syncdb = syncdb;
     this.store = store;
   };
+
+  private toImmutableRecord(record: any): any {
+    if (record == null) return null;
+    return typeof record?.get === "function" ? record : fromJS(record);
+  }
+
+  private setSyncdb(obj: any): void {
+    if (this.syncdb == null) return;
+    const plain = obj && typeof obj.toJS === "function" ? obj.toJS() : obj;
+    this.syncdb.set(plain);
+  }
 
   // Initialize the state of the store from the contents of the syncdb.
   init_from_syncdb = (): void => {
@@ -97,7 +108,9 @@ export class ChatActions extends Actions<ChatState> {
   toggleFoldThread = (reply_to: Date, messageIndex?: number) => {
     if (this.syncdb == null) return;
     const account_id = this.redux.getStore("account").get_account_id();
-    const cur = this.syncdb.get_one({ event: "chat", date: reply_to });
+    const cur = this.toImmutableRecord(
+      this.syncdb.get_one({ event: "chat", date: reply_to }),
+    );
     const folding = cur?.get("folding") ?? List([]);
     const folded = folding.includes(account_id);
     const next = folded
@@ -108,7 +121,7 @@ export class ChatActions extends Actions<ChatState> {
     if (!d) {
       return;
     }
-    this.syncdb.set({
+    this.setSyncdb({
       folding: next,
       date: d,
     });
@@ -135,7 +148,7 @@ export class ChatActions extends Actions<ChatState> {
       const folding = message?.get("folding") ?? List([]);
       const folded = folding.includes(account_id);
       if (!folded) {
-        this.syncdb.set({
+        this.setSyncdb({
           folding: folding.push(account_id),
           date,
         });
@@ -148,10 +161,12 @@ export class ChatActions extends Actions<ChatState> {
     const date = message.get("date");
     if (!(date instanceof Date)) return;
     const account_id = this.redux.getStore("account").get_account_id();
-    const cur = this.syncdb.get_one({ event: "chat", date });
+    const cur = this.toImmutableRecord(
+      this.syncdb.get_one({ event: "chat", date }),
+    );
     const feedbacks = cur?.get("feedback") ?? Map({});
     const next = feedbacks.set(account_id, feedback);
-    this.syncdb.set({ feedback: next, date });
+    this.setSyncdb({ feedback: next, date });
     this.syncdb.commit();
     const model = this.isLanguageModelThread(date);
     if (isLanguageModel(model)) {
@@ -227,7 +242,7 @@ export class ChatActions extends Actions<ChatState> {
     if (trimmedName && !reply_to) {
       (message as any).name = trimmedName;
     }
-    this.syncdb.set(message);
+    this.setSyncdb(message);
     const messagesState = this.store.get("messages");
     let selectedThreadKey: string;
     if (!reply_to) {
@@ -316,7 +331,7 @@ export class ChatActions extends Actions<ChatState> {
     if (!d) {
       return;
     }
-    this.syncdb.set({
+    this.setSyncdb({
       history: message.get("history").toJS(),
       editing: editing.toJS(),
       date: d,
@@ -342,7 +357,7 @@ export class ChatActions extends Actions<ChatState> {
     if (!d) {
       return;
     }
-    this.syncdb.set({
+    this.setSyncdb({
       history: addToHistory(
         message.get("history").toJS() as unknown as MessageHistory[],
         {
@@ -374,7 +389,7 @@ export class ChatActions extends Actions<ChatState> {
       return { date, prevHistory: [] };
     }
     const prevHistory: MessageHistory[] = message.history ?? [];
-    this.syncdb.set({
+    this.setSyncdb({
       history: addToHistory(prevHistory, {
         author_id,
         content,
@@ -585,7 +600,7 @@ export class ChatActions extends Actions<ChatState> {
     } else {
       delete entry.doc.name;
     }
-    this.syncdb.set(entry.doc);
+    this.setSyncdb(entry.doc);
     this.syncdb.commit();
     return true;
   };
@@ -603,7 +618,7 @@ export class ChatActions extends Actions<ChatState> {
     } else {
       entry.doc.pin = false;
     }
-    this.syncdb.set(entry.doc);
+    this.setSyncdb(entry.doc);
     this.syncdb.commit();
     return true;
   };
@@ -625,7 +640,7 @@ export class ChatActions extends Actions<ChatState> {
       return false;
     }
     entry.doc[`read-${account_id}`] = count;
-    this.syncdb.set(entry.doc);
+    this.setSyncdb(entry.doc);
     if (commit) {
       this.syncdb.commit();
     }
@@ -1073,7 +1088,7 @@ export class ChatActions extends Actions<ChatState> {
       );
       if (this.syncdb != null) {
         // This should never happen in normal use, but could prevent an expensive blowup due to a bug.
-        this.syncdb.set({
+        this.setSyncdb({
           date,
           history: [
             {
@@ -1160,14 +1175,16 @@ export class ChatActions extends Actions<ChatState> {
       if (!messages) return;
       if (message.sender_id !== sender_id) {
         // if that happens, create a new message with the existing history and the new sender_id
-        const cur = this.syncdb.get_one({ event: "chat", date });
+        const cur = this.toImmutableRecord(
+          this.syncdb.get_one({ event: "chat", date }),
+        );
         if (cur == null) return;
         const reply_to = getReplyToRoot({
           message: cur.toJS() as any as ChatMessage,
           messages,
         });
         this.syncdb.delete({ event: "chat", date });
-        this.syncdb.set({
+        this.setSyncdb({
           date,
           history: cur?.get("history") ?? [],
           event: "chat",
@@ -1186,8 +1203,10 @@ export class ChatActions extends Actions<ChatState> {
       }
 
       // we check if user clicked on the "stop generating" button
-      const cur = this.syncdb.get_one({ event: "chat", date });
-      if (cur?.get("generating") === false) {
+      const cur = this.toImmutableRecord(
+        this.syncdb.get_one({ event: "chat", date }),
+      );
+      if (cur?.get?.("generating") === false) {
         halted = true;
         this.chatStreams.delete(id);
         return;
@@ -1209,7 +1228,7 @@ export class ChatActions extends Actions<ChatState> {
         generating: token != null, // it's generating as token is not null
         reply_to: toISOString(reply_to),
       };
-      this.syncdb.set(msg);
+      this.setSyncdb(msg);
 
       // if it was the last output, close this
       if (token == null) {
@@ -1242,7 +1261,7 @@ export class ChatActions extends Actions<ChatState> {
         generating: false,
         reply_to: toISOString(reply_to),
       };
-      this.syncdb.set(msg);
+      this.setSyncdb(msg);
       this.syncdb.commit();
     });
   };
@@ -1331,7 +1350,7 @@ export class ChatActions extends Actions<ChatState> {
       throw Error(`setCodexConfig: invalid threadKey ${threadKey}`);
     }
     const dateObj = new Date(dateNum);
-    this.syncdb.set({
+    this.setSyncdb({
       event: "chat",
       date: dateObj.toISOString(),
       acp_config: config,
@@ -1345,7 +1364,7 @@ export class ChatActions extends Actions<ChatState> {
     options?: { threadId?: string; replyTo?: Date | string | null },
   ) => {
     if (this.syncdb == null) return;
-    this.syncdb.set({
+    this.setSyncdb({
       event: "chat",
       date: toISOString(date),
       generating: false,
@@ -1494,11 +1513,15 @@ export class ChatActions extends Actions<ChatState> {
   regenerateLLMResponse = async (date0: Date, llm?: LanguageModel) => {
     if (this.syncdb == null) return;
     const date = toISOString(date0);
-    const obj = this.syncdb.get_one({ event: "chat", date });
+    const obj = this.toImmutableRecord(
+      this.syncdb.get_one({ event: "chat", date }),
+    );
     if (obj == null) {
       return;
     }
-    const { message } = normalizeChatMessage(obj.toJS() as ChatMessage);
+    const { message } = normalizeChatMessage(
+      (obj.toJS?.() ?? obj) as ChatMessage,
+    );
     if (message == null) {
       return;
     }

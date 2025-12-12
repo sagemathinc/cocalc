@@ -3,7 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import {
+  CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useIntl } from "react-intl";
 import { useDebouncedCallback } from "use-debounce";
 import { CSS, redux, useIsMountedRef } from "@cocalc/frontend/app-framework";
@@ -11,13 +18,13 @@ import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import type { SyncDB } from "@cocalc/sync/editor/db";
+import type { ImmerDB } from "@cocalc/sync/editor/immer-db";
 import { SubmitMentionsRef } from "./types";
 
 interface Props {
   on_send: (value: string) => void;
   onChange: (string) => void;
-  syncdb: SyncDB | undefined;
+  syncdb: ImmerDB | undefined;
   // date:
   //   - ms since epoch of when this message was first sent
   //   - set to 0 for editing new message
@@ -70,14 +77,19 @@ export default function ChatInput({
   );
   const controlRef = useRef<any>(null);
   const [input, setInput] = useState<string>("");
+
+  const getDraftInput = useCallback(() => {
+    const rec = syncdb?.get_one({
+      event: "draft",
+      sender_id,
+      date,
+    });
+    if (rec == null) return undefined;
+    return (rec as any).input;
+  }, [syncdb, sender_id, date]);
+
   useEffect(() => {
-    const dbInput = syncdb
-      ?.get_one({
-        event: "draft",
-        sender_id,
-        date,
-      })
-      ?.get("input");
+    const dbInput = getDraftInput();
     // take version from syncdb if it is there; otherwise, version from input prop.
     // the db version is used when you refresh your browser while editing, or scroll up and down
     // thus unmounting and remounting the currently editing message (due to virtualization).
@@ -92,7 +104,7 @@ export default function ChatInput({
         }, n);
       }
     }
-  }, [date, sender_id, propsInput]);
+  }, [date, sender_id, propsInput, getDraftInput]);
 
   const currentInputRef = useRef<string>(input);
   const saveOnUnmountRef = useRef<boolean>(true);
@@ -112,13 +124,7 @@ export default function ChatInput({
       // but definitely don't save (thus updating active) if
       // the input didn't really change, since we use active for
       // showing that a user is writing to other users.
-      const input0 = syncdb
-        .get_one({
-          event: "draft",
-          sender_id,
-          date,
-        })
-        ?.get("input");
+      const input0 = getDraftInput();
       if (input0 != input) {
         if (input0 == null && !input) {
           // DO NOT save if you haven't written a draft before, and
@@ -190,7 +196,7 @@ export default function ChatInput({
         sender_id,
         date,
       });
-      const input = x?.get("input") ?? "";
+      const input = (x as any)?.input ?? "";
       if (input != lastSavedRef.current) {
         setInput(input);
         currentInputRef.current = input;

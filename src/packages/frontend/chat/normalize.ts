@@ -17,7 +17,8 @@ export function normalizeChatMessage(raw: any): NormalizedChatMessage {
   // Drop legacy video chat payloads
   if ((raw as any).video_chat?.is_video_chat) return { message: undefined, upgraded: false };
 
-  const x: any = raw;
+  // Work on a shallow copy so we never mutate readonly/frozen inputs.
+  const x: any = { ...raw };
   let upgraded = false;
 
   // Coerce date

@@ -36,20 +36,39 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
     console.warn("handleSyncDBChange: inputs should not be null");
     return;
   }
+  const primaryKeys = ["date", "sender_id", "event"];
   const activityReady = store.get("activityReady") === true;
-  const rows: any[] =
+  const raw =
     typeof (changes as any).toJS === "function" ? (changes as any).toJS() : changes;
+  const rows: any[] = Array.isArray(raw)
+    ? raw
+    : raw == null
+    ? []
+      : typeof (raw as any).values === "function"
+        ? Array.from((raw as any).values())
+        : [raw];
   rows.map((obj) => {
+    const where = primaryKeys.reduce((acc: any, key) => {
+      if (obj[key] != null) {
+        acc[key] = obj[key];
+      }
+      return acc;
+    }, {});
     switch (obj.event) {
       case "draft": {
         let drafts = store.get("drafts") ?? (fromJS({}) as any);
         // used to show that another user is editing a message.
-        const record = syncdb.get_one(obj);
+        const record = syncdb.get_one(where);
         const key = `${obj.sender_id}:${obj.date}`;
         if (record == null) {
           drafts = drafts.delete(key);
         } else {
-          drafts = drafts.set(key, record);
+          drafts = drafts.set(
+            key,
+            typeof (record as any)?.toJS === "function"
+              ? (record as any).toJS()
+              : record,
+          );
         }
         store.setState({ drafts });
         return;
@@ -58,8 +77,9 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
       case "chat": {
         let changed: boolean = false;
         let messages = store.get("messages") ?? iMap();
-        const record = syncdb.get_one(obj);
-        let x = typeof (record as any)?.toJS === "function" ? record.toJS() : record;
+        const record = syncdb.get_one(where);
+        const x =
+          typeof (record as any)?.toJS === "function" ? record.toJS() : record;
         if (x == null) {
           // delete
           messages = messages.delete(`${obj.date.valueOf()}`);
