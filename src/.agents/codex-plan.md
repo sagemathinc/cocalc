@@ -2,9 +2,15 @@
 
 Here’s a concise plan to finish the Immer migration and clean up chat code quality:
 
+
 - **Single source of truth**: Stop storing a second copy of chat data in Redux. Consume the ImmerDB data directly (or via lightweight selectors) so we don’t double-memory or normalize twice. Phase out `messages: fromJS(...)` in the chat store once components can read plain objects.
 
 - **Remove Immutable.js usage in chat**: Replace `Map/List/fromJS/toJS` in `chat/actions.ts`, `chat/store.ts`, `chat/message.tsx`, `chat/chatroom.tsx`, `chat/utils.ts` with plain JS/Immer-friendly structures. Add small helpers/selectors for common computed state (thread lookup, unread counts) to avoid reimplementing Immutable semantics.
+
+Currently broken by this:
+
+- [ ] editing messages doesn't work
+- [ ] ai output appears in the wrong message.
 
 - **Typed Immer everywhere**: Tighten types so `syncdb` is `ImmerDB` only (already started), and add proper TypeScript defs for `webapp_client.conat_client.conat().sync.immer` so we can drop `any` casts (e.g., in `chat/register.ts`).
 

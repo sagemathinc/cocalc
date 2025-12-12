@@ -59,6 +59,7 @@ import type {
 import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
 import { addToHistory } from "@cocalc/chat";
 import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
+import { historyArray, dateValue, editingArray } from "./access";
 
 const MAX_CHAT_STREAM = 10;
 
@@ -321,19 +322,20 @@ export class ChatActions extends Actions<ChatState> {
     }
     const author_id = this.redux.getStore("account").get_account_id();
 
-    // "FUTURE" = save edit changes
-    const editing = message
-      .get("editing")
-      .set(author_id, is_editing ? "FUTURE" : null);
+    const editingIds = new Set(editingArray(message));
+    if (is_editing) {
+      editingIds.add(author_id);
+    } else {
+      editingIds.delete(author_id);
+    }
 
-    // console.log("Currently Editing:", editing.toJS())
-    const d = toISOString(message.get("date"));
+    const d = toISOString(dateValue(message));
     if (!d) {
       return;
     }
     this.setSyncdb({
-      history: message.get("history").toJS(),
-      editing: editing.toJS(),
+      history: historyArray(message),
+      editing: Array.from(editingIds),
       date: d,
     });
     // commit now so others users know this user is editing
@@ -353,23 +355,23 @@ export class ChatActions extends Actions<ChatState> {
     // OPTIMIZATION: send less data over the network?
     const date = webapp_client.server_time().toISOString();
 
-    const d = toISOString(message.get("date"));
+    const d = toISOString(dateValue(message));
     if (!d) {
       return;
     }
     this.setSyncdb({
-      history: addToHistory(
-        message.get("history").toJS() as unknown as MessageHistory[],
-        {
-          author_id,
-          content,
-          date,
-        },
-      ),
-      editing: message.get("editing").set(author_id, null).toJS(),
+      history: addToHistory(historyArray(message) as MessageHistory[], {
+        author_id,
+        content,
+        date,
+      }),
+      editing: [],
       date: d,
     });
-    this.deleteDraft(message.get("date")?.valueOf());
+    const draftKey = dateValue(message)?.valueOf();
+    if (draftKey != null) {
+      this.deleteDraft(draftKey);
+    }
   };
 
   saveHistory = (
