@@ -60,6 +60,7 @@ import type { ThreadListItem, ThreadSection } from "./threads";
 import CodexConfigButton from "./codex";
 import { CONTEXT_WARN_PCT, CONTEXT_CRITICAL_PCT } from "./codex";
 import { Resizable } from "re-resizable";
+import { ChatDocProvider, useChatDoc } from "./doc-context";
 
 const FILTER_RECENT_NONE = {
   value: 0,
@@ -1630,7 +1631,19 @@ function calcUsedTokens(usage: any): number | undefined {
   return total > 0 ? total : undefined;
 }
 
-export function ChatRoom({
+function useDocMessages(
+  fallback: ChatMessages | undefined,
+): ChatMessages | undefined {
+  const { messages } = useChatDoc();
+  return useMemo(() => {
+    if (messages) {
+      return messages as unknown as ChatMessages;
+    }
+    return fallback;
+  }, [messages, fallback]);
+}
+
+function ChatRoomInner({
   actions,
   project_id,
   path,
@@ -1638,8 +1651,9 @@ export function ChatRoom({
   desc,
 }: EditorComponentProps) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
-  const messages = useEditor("messages") as ChatMessages | undefined;
   const activity = useEditor("activity");
+  const fallbackMessages = useEditor("messages") as ChatMessages | undefined;
+  const messages = useDocMessages(fallbackMessages);
   return (
     <ChatPanel
       actions={actions}
@@ -1651,5 +1665,13 @@ export function ChatRoom({
       desc={desc}
       variant="default"
     />
+  );
+}
+
+export function ChatRoom(props: EditorComponentProps) {
+  return (
+    <ChatDocProvider syncdb={(props.actions as any)?.syncdb}>
+      <ChatRoomInner {...props} />
+    </ChatDocProvider>
   );
 }
