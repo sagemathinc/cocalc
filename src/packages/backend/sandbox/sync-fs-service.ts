@@ -10,6 +10,9 @@ import { client_db } from "@cocalc/util/db-schema/client-db";
 import {
   createDbCodec,
   createImmerDbCodec,
+  MemoryPatchStore,
+  Session,
+  StringCodec,
   type DocCodec,
 } from "@cocalc/sync/patchflow";
 
@@ -78,6 +81,26 @@ export class SyncFsService extends EventEmitter {
       meta.string_id ?? client_db.sha1(meta.project_id, meta.relativePath);
     const codec = this.resolveCodec(meta);
     try {
+      // If we already have a snapshot of on-disk content, just diff against it.
+      const existing = this.store.get(path);
+      if (!existing) {
+        // Fresh store entry but history may already exist in the patch stream.
+        const { heads, maxVersion } = await this.getStreamHeads({
+          project_id: meta.project_id,
+          string_id,
+        });
+        if (heads.length > 0 || maxVersion > 0) {
+          // Reconstruct the current document from the patch stream to avoid
+          // emitting an orphaned "initial" patch that duplicates content.
+          const current = await this.loadDocFromStream({
+            project_id: meta.project_id,
+            string_id,
+            codec,
+          });
+          this.store.setContent(path, current);
+        }
+      }
+
       const change = await this.store.handleExternalChange(
         path,
         async () => (await readFile(path, "utf8")) as string,
@@ -300,6 +323,44 @@ export class SyncFsService extends EventEmitter {
 
   private emitEvent(evt: WatchEvent): void {
     this.emit("event", evt);
+  }
+
+  // Reconstruct the current document value from the patch stream to seed the
+  // snapshot store without emitting a bogus "initial" patch.
+  private async loadDocFromStream({
+    project_id,
+    string_id,
+    codec,
+  }: {
+    project_id: string;
+    string_id: string;
+    codec?: DocCodec;
+  }): Promise<string> {
+    const writer = await this.getPatchWriter({ project_id, string_id });
+    const patches: any[] = [];
+    for await (const { mesg } of writer.getAll({ timeout: 15000 })) {
+      const p: any = mesg;
+      const patch =
+        typeof p.patch === "string" ? JSON.parse(p.patch) : p.patch ?? [];
+      patches.push({
+        time: p.time,
+        wall: p.wall,
+        patch,
+        parents: p.parents ?? [],
+        version: p.version,
+        userId: p.user_id ?? p.userId,
+        meta: p.meta,
+        format: p.format,
+      });
+    }
+    const patchStore = new MemoryPatchStore(patches);
+    const session = new Session({
+      codec: codec ?? StringCodec,
+      patchStore,
+      userId: 0,
+    });
+    await session.init();
+    return (codec ?? StringCodec).toString(session.value());
   }
 
   // Choose an appropriate codec for structured documents so we can compute

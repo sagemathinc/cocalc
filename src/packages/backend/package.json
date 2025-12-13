@@ -25,7 +25,7 @@
     "install-all-tools": "echo 'require(\"@cocalc/backend/sandbox/install\").install(null,{optional:true})' | node",
     "install-bin-tools": "./bin/install.sh",
     "build": "pnpm exec tsc --build && pnpm install-sandbox-tools && pnpm install-bin-tools",
-    "test": "pnpm exec jest --forceExit",
+    "test": "NODE_NO_WARNINGS=1 pnpm exec jest --forceExit",
     "test-conat": " pnpm exec jest --forceExit conat",
     "depcheck": "pnpx depcheck --ignores events,reflect-sync",
     "prepublishOnly": "pnpm test",
