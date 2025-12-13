@@ -883,6 +883,12 @@ function TerminalPreview({
     setTheme(term, colorScheme);
     termRef.current = term;
     term.open(host);
+    const viewport = host.querySelector(".xterm-viewport") as
+      | HTMLDivElement
+      | null;
+    if (viewport) {
+      viewport.style.overflow = "hidden";
+    }
     return () => term.dispose();
   }, [
     colorScheme,
@@ -898,6 +904,15 @@ function TerminalPreview({
     if (!term) return;
     term.reset();
     setTheme(term, colorScheme);
+    const host = containerRef.current;
+    if (host) {
+      const viewport = host.querySelector(".xterm-viewport") as
+        | HTMLDivElement
+        | null;
+      if (viewport) {
+        viewport.style.overflow = "hidden";
+      }
+    }
     const rendered = normalizedText.replace(/\r?\n/g, "\r\n");
     if (rendered.length) {
       term.write(rendered);
@@ -914,8 +929,7 @@ function TerminalPreview({
         borderRadius: 6,
         background,
         color: foreground,
-        height: containerHeight,
-        overflow: "hidden",
+        overflowX: "scroll",
         padding: "4px 6px",
         fontFamily,
         fontSize: Math.max(11, fontSize - 1),
