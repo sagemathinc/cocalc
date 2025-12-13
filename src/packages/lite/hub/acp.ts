@@ -161,8 +161,19 @@ class ChatStreamWriter {
   private logThreadId: string;
   private logTurnId: string;
   private logSubject: string;
-  private logPersisted = false;
   private client: ConatClient;
+  private persistLogProgress = throttle(
+    async () => {
+      try {
+        const store = this.getLogStore();
+        await store.set(this.logKey, this.events);
+      } catch (err) {
+        logger.debug("failed to persist acp log incrementally", err);
+      }
+    },
+    1000,
+    { leading: true, trailing: true },
+  );
 
   constructor({
     metadata,
@@ -293,6 +304,7 @@ class ChatStreamWriter {
     }
     this.events = appendStreamMessage(this.events, payload);
     this.publishLog(payload);
+    this.persistLogProgress();
     if (payload.type === "event") {
       const text = extractEventText(payload.event);
       if (payload.event?.type === "approval") {
@@ -441,6 +453,11 @@ class ChatStreamWriter {
     if (!this.finished) {
       clearAcpPayloads(this.metadata);
     }
+    try {
+      this.persistLogProgress.flush();
+    } catch {
+      // ignore
+    }
     void this.persistLog();
     (async () => {
       try {
@@ -508,12 +525,10 @@ class ChatStreamWriter {
   }
 
   private async persistLog(): Promise<void> {
-    if (this.logPersisted) return;
     if (this.events.length === 0) return;
     try {
       const store = this.getLogStore();
       await store.set(this.logKey, this.events);
-      this.logPersisted = true;
     } catch (err) {
       logger.warn("failed to persist acp log", err);
     }

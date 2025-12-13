@@ -78,7 +78,7 @@ export function useCodexLog({
     let sub: any;
     let stopped = false;
     async function subscribe() {
-      if (!generating || !logSubject) return;
+      if (!logSubject) return;
       try {
         const cn = webapp_client.conat_client.conat();
         sub = await cn.subscribe(logSubject);
