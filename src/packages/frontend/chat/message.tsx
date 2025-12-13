@@ -991,27 +991,31 @@ export default function Message({
       <>
         {showCodexActivity ? (
           <>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 8,
-                flexWrap: "wrap",
-              }}
-            >
-              <Badge status={generating ? "processing" : "default"} />
-              <Button
-                size="small"
-                onClick={() => setShowCodexDrawer(true)}
-                title="View Codex activity log"
-              >
-                View activity ({codexEventCount || "…"})
-              </Button>
-              {generating ? (
-                <span style={{ color: COLORS.GRAY_D }}>Live</span>
-              ) : null}
-            </div>
+            {generating ||
+              ((codexEventCount ?? 0) > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 8,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Badge status={generating ? "processing" : "default"} />
+
+                  <Button
+                    size="small"
+                    onClick={() => setShowCodexDrawer(true)}
+                    title="View Codex activity log"
+                  >
+                    View activity ({codexEventCount || "…"})
+                  </Button>
+                  {generating ? (
+                    <span style={{ color: COLORS.GRAY_D }}>Live</span>
+                  ) : null}
+                </div>
+              ))}
             <Drawer
               title="Codex activity"
               placement="right"
