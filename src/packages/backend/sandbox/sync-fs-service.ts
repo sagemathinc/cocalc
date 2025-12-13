@@ -10,11 +10,9 @@ import { client_db } from "@cocalc/util/db-schema/client-db";
 import {
   createDbCodec,
   createImmerDbCodec,
-  MemoryPatchStore,
-  Session,
-  StringCodec,
   type DocCodec,
 } from "@cocalc/sync/patchflow";
+import { type SyncDoc } from "@cocalc/sync";
 
 export interface WatchEvent {
   path: string;
@@ -90,14 +88,18 @@ export class SyncFsService extends EventEmitter {
           string_id,
         });
         if (heads.length > 0 || maxVersion > 0) {
-          // Reconstruct the current document from the patch stream to avoid
-          // emitting an orphaned "initial" patch that duplicates content.
-          const current = await this.loadDocFromStream({
+          // Reconstruct the current document from the patch stream (respecting
+          // snapshots) to avoid emitting an orphaned "initial" patch that
+          // duplicates content.
+          const current = await this.loadDocViaSyncDoc({
             project_id: meta.project_id,
             string_id,
-            codec,
+            relativePath: meta.relativePath,
+            doctype: meta.doctype,
           });
-          this.store.setContent(path, current);
+          if (current != null) {
+            this.store.setContent(path, current);
+          }
         }
       }
 
@@ -327,40 +329,83 @@ export class SyncFsService extends EventEmitter {
 
   // Reconstruct the current document value from the patch stream to seed the
   // snapshot store without emitting a bogus "initial" patch.
-  private async loadDocFromStream({
+  private async loadDocViaSyncDoc({
     project_id,
     string_id,
-    codec,
+    relativePath,
+    doctype,
   }: {
     project_id: string;
     string_id: string;
-    codec?: DocCodec;
-  }): Promise<string> {
-    const writer = await this.getPatchWriter({ project_id, string_id });
-    const patches: any[] = [];
-    for await (const { mesg } of writer.getAll({ timeout: 15000 })) {
-      const p: any = mesg;
-      const patch =
-        typeof p.patch === "string" ? JSON.parse(p.patch) : p.patch ?? [];
-      patches.push({
-        time: p.time,
-        wall: p.wall,
-        patch,
-        parents: p.parents ?? [],
-        version: p.version,
-        userId: p.user_id ?? p.userId,
-        meta: p.meta,
-        format: p.format,
+    relativePath: string;
+    doctype?: WatchMeta["doctype"];
+  }): Promise<string | undefined> {
+    const client = this.getConatClient();
+
+    const commonOpts = {
+      project_id,
+      path: relativePath,
+      string_id,
+      // important to avoid any possible feedback loop
+      noSaveToDisk: true,
+      noAutosave: true,
+      firstReadLockTimeout: 1,
+    };
+
+    const toArray = (val: unknown): string[] | undefined => {
+      if (Array.isArray(val)) return val;
+      if (val instanceof Set) return Array.from(val);
+      return undefined;
+    };
+
+    const format = doctype?.patch_format;
+    const opts = (doctype?.opts ?? {}) as Record<string, unknown>;
+    const primaryKeys =
+      toArray(
+        (opts as { primary_keys?: unknown; primaryKeys?: unknown })
+          .primary_keys,
+      ) ??
+      toArray(
+        (opts as { primary_keys?: unknown; primaryKeys?: unknown }).primaryKeys,
+      ) ??
+      [];
+    const stringCols =
+      toArray(
+        (opts as { string_cols?: unknown; stringCols?: unknown }).string_cols,
+      ) ??
+      toArray(
+        (opts as { string_cols?: unknown; stringCols?: unknown }).stringCols,
+      ) ??
+      [];
+
+    let doc: SyncDoc | undefined;
+    try {
+      if (format === 1 && primaryKeys.length > 0) {
+        doc = client.sync.db({
+          ...commonOpts,
+          primary_keys: primaryKeys,
+          string_cols: stringCols,
+        });
+      } else {
+        doc = client.sync.string(commonOpts);
+      }
+      await new Promise<void>((resolve, reject) => {
+        doc!.once("ready", () => resolve());
+        doc!.once("error", (err) => reject(err));
       });
+      const value = doc?.to_str();
+      doc?.close?.();
+      return value;
+    } catch (err) {
+      try {
+        doc?.close?.();
+      } catch {
+        // ignore close errors
+      }
+      this.emit("error", err as Error);
     }
-    const patchStore = new MemoryPatchStore(patches);
-    const session = new Session({
-      codec: codec ?? StringCodec,
-      patchStore,
-      userId: 0,
-    });
-    await session.init();
-    return (codec ?? StringCodec).toString(session.value());
+
+    return;
   }
 
   // Choose an appropriate codec for structured documents so we can compute
