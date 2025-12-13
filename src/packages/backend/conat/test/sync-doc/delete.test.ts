@@ -85,22 +85,14 @@ describe("deleting a file that is open as a syncdoc", () => {
     s1.from_str("back");
     await s1.save_to_disk();
 
-    // note: we lock for a moment after write to avoid a race condition
-    // with multiple clientss editing.
-    while (true) {
-      try {
-        await fs.readFile("a.txt", "utf8");
-        break;
-      } catch (err) {
-        expect(`${err}`).toContain("locked");
-      }
-      await delay(readLockTimeout * 2);
-    }
     expect(await fs.readFile("a.txt", "utf8")).toEqual("back");
+    await wait({
+      until: () => s2.to_str() == "back",
+    });
     expect(s2.to_str()).toEqual("back");
 
     // no longer deleted:
-    wait({
+    await wait({
       until: () => !s1.isDeleted && !s2.isDeleted,
     });
   });

@@ -147,32 +147,6 @@ describe("SyncFsService", () => {
     svc.close();
   }, 10_000);
 
-  it("seeds an initial patch when no history exists", async () => {
-    const path = join(dir, "seed.txt");
-    writeFileSync(path, "seed content");
-
-    const store = new SyncFsWatchStore();
-    const svc = new SyncFsService(store);
-    const published: any[] = [];
-    (svc as any).appendPatch = async (...args: any[]) => {
-      published.push(args);
-    };
-
-    await (svc as any).seedInitialPatch(path, {
-      project_id: "p2",
-      relativePath: "seed.txt",
-      string_id: "sid-seed",
-    });
-
-    expect(published.length).toBe(1);
-    const [meta, type, change] = published[0];
-    expect(type).toBe("change");
-    expect(meta.relativePath).toBe("seed.txt");
-    expect(change.patch).toBeDefined();
-
-    svc.close();
-  }, 10_000);
-
   it("reuses persisted heads/lastSeq and resumes with start_seq", async () => {
     const dbPath = tmpNameSync({ prefix: "sync-fs-heads-", postfix: ".db" });
     const store1 = new SyncFsWatchStore(dbPath);

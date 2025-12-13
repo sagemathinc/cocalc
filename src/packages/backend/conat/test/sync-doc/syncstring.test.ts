@@ -29,7 +29,7 @@ describe("create syncstring without setting fs, so saving to disk and loading fr
     });
     await once(s, "ready");
     expect(s.to_str()).toBe("");
-    expect(s.versions().length).toBe(0);
+    expect(s.versions().length).toBe(1);
     s.close();
   });
 
@@ -126,8 +126,8 @@ describe("synchronized editing with two copies of a syncstring", () => {
   });
 
   it("view the history from each", async () => {
-    expect(s1.versions().length).toEqual(2);
-    expect(s2.versions().length).toEqual(2);
+    expect(s1.versions().length).toEqual(3);
+    expect(s2.versions().length).toEqual(3);
 
     const v1: string[] = [],
       v2: string[] = [];
@@ -157,7 +157,7 @@ describe("opening a new syncstring for a file that does NOT exist on disk does n
     });
     await once(s, "ready");
     expect(s.to_str()).toBe("");
-    expect(s.versions().length).toBe(0);
+    expect(s.versions().length).toBe(1);
   });
 
   it("wait a bit and deleted is NOT emited", async () => {

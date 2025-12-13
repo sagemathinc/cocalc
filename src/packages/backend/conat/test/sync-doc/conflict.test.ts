@@ -221,6 +221,16 @@ describe(`create editing conflict with ${numHeads} heads`, () => {
     clients: any[] = [];
 
   it(`create ${numHeads} clients`, async () => {
+    // first initialize 
+    const client = connect();
+    const doc0 = client.sync.string({
+      project_id,
+      path: "a.txt",
+      service: server.service,
+      noAutosave: true,
+    });
+    await once(doc0, "ready");
+
     const v: any[] = [];
     for (let i = 0; i < numHeads; i++) {
       const client = connect();

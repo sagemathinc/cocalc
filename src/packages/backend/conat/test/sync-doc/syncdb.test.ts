@@ -31,7 +31,8 @@ describe("loading/saving syncstring to disk and setting values", () => {
     });
     await once(s, "ready");
     expect(s.to_str()).toBe("");
-    expect(s.versions().length).toBe(0);
+    // there's one version loading the empty string from disk.
+    expect(s.versions().length).toBe(1);
   });
 
   it("store a record", async () => {
