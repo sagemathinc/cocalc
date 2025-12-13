@@ -5,7 +5,7 @@
 
 // cSpell:ignore blankcolumn
 
-import { Badge, Button, Col, Row, Tooltip } from "antd";
+import { Badge, Button, Col, Drawer, Row, Tooltip } from "antd";
 import {
   CSSProperties,
   ReactNode,
@@ -354,6 +354,8 @@ export default function Message({
   });
 
   const codexEvents = codexLog.events;
+  const [showCodexDrawer, setShowCodexDrawer] = useState(false);
+  const codexEventCount = codexEvents?.length ?? 0;
 
   const showCodexActivity = useMemo(
     () =>
@@ -989,43 +991,73 @@ export default function Message({
       <>
         {showCodexActivity ? (
           <>
-            <CodexLogPanel
-              events={codexEvents ?? []}
-              generating={generating === true}
-              fontSize={font_size}
-              persistKey={`${(project_id ?? "no-project").slice(0, 8)}:${
-                path ?? ""
-              }:${date}`}
-              basePath={path ? path.substring(0, path.lastIndexOf("/")) : ""}
-              durationLabel={
-                generating === true
-                  ? elapsedLabel
-                  : formatTurnDuration({
-                      startMs: date,
-                      history: historyEntries as any,
-                    })
-              }
-              canResolveApproval={
-                field<string>(message, "acp_account_id") === account_id ||
-                isLanguageModelService(
-                  field<string>(message, "sender_id") ?? "",
-                ) ||
-                is_viewers_message
-              }
-              projectId={project_id}
-              onResolveApproval={
-                actions && typeof actions.resolveAcpApproval === "function"
-                  ? ({ approvalId, optionId }) =>
-                      actions.resolveAcpApproval({
-                        date: dateValue(message) ?? new Date(date),
-                        approvalId,
-                        optionId,
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              <Badge status={generating ? "processing" : "default"} />
+              <Button
+                size="small"
+                onClick={() => setShowCodexDrawer(true)}
+                title="View Codex activity log"
+              >
+                View activity ({codexEventCount || "…"})
+              </Button>
+              {generating ? (
+                <span style={{ color: COLORS.GRAY_D }}>Live</span>
+              ) : null}
+            </div>
+            <Drawer
+              title="Codex activity"
+              placement="right"
+              width={620}
+              open={showCodexDrawer}
+              onClose={() => setShowCodexDrawer(false)}
+              destroyOnClose
+            >
+              <CodexLogPanel
+                events={codexEvents ?? []}
+                generating={generating === true}
+                fontSize={font_size}
+                persistKey={`${(project_id ?? "no-project").slice(0, 8)}:${
+                  path ?? ""
+                }:${date}`}
+                basePath={path ? path.substring(0, path.lastIndexOf("/")) : ""}
+                durationLabel={
+                  generating === true
+                    ? elapsedLabel
+                    : formatTurnDuration({
+                        startMs: date,
+                        history: historyEntries as any,
                       })
-                  : undefined
-              }
-              onDeleteEvents={deleteActivityLog}
-              onDeleteAllEvents={deleteAllActivityLogs}
-            />
+                }
+                canResolveApproval={
+                  field<string>(message, "acp_account_id") === account_id ||
+                  isLanguageModelService(
+                    field<string>(message, "sender_id") ?? "",
+                  ) ||
+                  is_viewers_message
+                }
+                projectId={project_id}
+                onResolveApproval={
+                  actions && typeof actions.resolveAcpApproval === "function"
+                    ? ({ approvalId, optionId }) =>
+                        actions.resolveAcpApproval({
+                          date: dateValue(message) ?? new Date(date),
+                          approvalId,
+                          optionId,
+                        })
+                    : undefined
+                }
+                onDeleteEvents={deleteActivityLog}
+                onDeleteAllEvents={deleteAllActivityLogs}
+              />
+            </Drawer>
           </>
         ) : null}
         {renderContextNotice()}

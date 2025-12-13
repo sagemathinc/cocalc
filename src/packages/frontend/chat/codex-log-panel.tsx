@@ -42,6 +42,7 @@ export function CodexLogPanel({
 
   return (
     <CodexActivity
+      expanded
       events={activityEvents}
       generating={generating === true}
       fontSize={fontSize}

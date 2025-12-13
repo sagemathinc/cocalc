@@ -127,6 +127,7 @@ export interface CodexActivityProps {
   basePath?: string;
   onDeleteEvents?: () => void;
   onDeleteAllEvents?: () => void;
+  expanded?: boolean;
 }
 
 // Persist log visibility per chat message so Virtuoso remounts don’t reset it.
@@ -144,6 +145,7 @@ export function CodexActivity({
   basePath,
   onDeleteEvents,
   onDeleteAllEvents,
+  expanded: initExpanded,
 }: CodexActivityProps): React.ReactElement | null {
   const entries = useMemo(() => normalizeEvents(events ?? []), [events]);
   const hasPendingApproval = useMemo(
@@ -156,7 +158,7 @@ export function CodexActivity({
       if (persisted != null) return persisted;
     }
     // Default closed unless generating or an approval is pending.
-    return hasPendingApproval;
+    return hasPendingApproval || !!initExpanded;
   });
   const [hovered, setHovered] = useState(false);
 
