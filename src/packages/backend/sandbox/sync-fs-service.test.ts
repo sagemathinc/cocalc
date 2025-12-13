@@ -112,7 +112,13 @@ describe("SyncFsService", () => {
     writeFileSync(path, "first");
 
     const svc = new SyncFsService();
-    await svc.heartbeat(path);
+    const fake = new FakeAStream();
+    (svc as any).getPatchWriter = async () => fake;
+    await svc.heartbeat(path, true, {
+      project_id: "p1",
+      relativePath: "recreate.txt",
+      string_id: "sid-recreate",
+    });
     await new Promise((r) => setTimeout(r, 50));
 
     rmSync(path);
@@ -136,6 +142,33 @@ describe("SyncFsService", () => {
     const finalState = (svc as any).store.get(path);
     expect(finalState?.deleted).toBe(false);
     expect(finalState?.content).toBe("second");
+
+    await new Promise((r) => setTimeout(r, 100));
+    svc.close();
+  }, 10_000);
+
+  it("seeds an initial patch when no history exists", async () => {
+    const path = join(dir, "seed.txt");
+    writeFileSync(path, "seed content");
+
+    const store = new SyncFsWatchStore();
+    const svc = new SyncFsService(store);
+    const published: any[] = [];
+    (svc as any).appendPatch = async (...args: any[]) => {
+      published.push(args);
+    };
+
+    await (svc as any).seedInitialPatch(path, {
+      project_id: "p2",
+      relativePath: "seed.txt",
+      string_id: "sid-seed",
+    });
+
+    expect(published.length).toBe(1);
+    const [meta, type, change] = published[0];
+    expect(type).toBe("change");
+    expect(meta.relativePath).toBe("seed.txt");
+    expect(change.patch).toBeDefined();
 
     svc.close();
   }, 10_000);
