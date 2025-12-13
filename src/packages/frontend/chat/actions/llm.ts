@@ -15,7 +15,10 @@ import {
   model2vendor,
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import { toOllamaModel, toCustomOpenAIModel } from "@cocalc/util/db-schema/llm-utils";
+import {
+  toOllamaModel,
+  toCustomOpenAIModel,
+} from "@cocalc/util/db-schema/llm-utils";
 import { uuid } from "@cocalc/util/misc";
 import { addToHistory } from "@cocalc/chat";
 import type { ChatMessage, MessageHistory } from "../types";
@@ -130,14 +133,36 @@ export async function processLLM({
   history = regen?.history ?? history;
   input = regen?.input ?? input;
 
-  const chatStream = webapp_client.openai_client.queryStream({
-    input,
-    history,
-    project_id,
-    path,
-    model,
-    tag: effectiveTag,
-  });
+  let chatStream;
+  let content = "";
+  const dateIso = toISOString(date) ?? (typeof date === "string" ? date : undefined);
+  try {
+    chatStream = webapp_client.openai_client.queryStream({
+      input,
+      history,
+      project_id,
+      path,
+      model,
+      tag: effectiveTag,
+    });
+  } catch (err) {
+    ctx.chatStreams.delete(id);
+    if (!ctx.syncdb) return;
+    content += `\n\n<span style='color:#b71c1c'>${err}</span>`;
+    ctx.syncdb.set({
+      event: "chat",
+      sender_id,
+      date: dateIso ?? new Date(date),
+      history: addToHistory(prevHistory, {
+        author_id: sender_id,
+        content,
+      }),
+      generating: false,
+      reply_to: toISOString(reply_to),
+    });
+    ctx.syncdb.commit();
+    return;
+  }
 
   // Adjust sender_id when regenerating with explicit model
   if (tag === "regenerate" && llm != null && message.sender_id !== sender_id) {
@@ -159,13 +184,14 @@ export async function processLLM({
     }
   }
 
-  let content: string = "";
   let halted = false;
 
   chatStream.on("token", (token) => {
-    if (halted || !ctx.syncdb) return;
+    if (halted || !ctx.syncdb) {
+      return;
+    }
 
-    const cur = ctx.syncdb.get_one({ event: "chat", date });
+    const cur = ctx.syncdb.get_one({ event: "chat", date: dateIso ?? date });
     if ((cur as any)?.generating === false) {
       halted = true;
       ctx.chatStreams.delete(id);
@@ -177,7 +203,7 @@ export async function processLLM({
     ctx.syncdb.set({
       event: "chat",
       sender_id,
-      date: new Date(date),
+      date: dateIso ?? new Date(date),
       history: addToHistory(prevHistory, {
         author_id: sender_id,
         content,
@@ -208,7 +234,7 @@ export async function processLLM({
     ctx.syncdb.set({
       event: "chat",
       sender_id,
-      date: new Date(date),
+      date: dateIso ?? new Date(date),
       history: addToHistory(prevHistory, {
         author_id: sender_id,
         content,
@@ -347,7 +373,9 @@ async function handleCodexTurn({
   const project_id = store.get("project_id");
   const path = store.get("path");
   if (!project_id || !path) {
-    throw new Error("chat actions missing project_id or path; cannot run Codex turn");
+    throw new Error(
+      "chat actions missing project_id or path; cannot run Codex turn",
+    );
   }
 
   const baseDate =
@@ -410,7 +438,9 @@ function throttleWarning({
 
 function getLLMServiceStatusCheckMD(vendorName: string): string {
   // lazy import to avoid circular issues
-  const { getLLMServiceStatusCheckMD } = require("@cocalc/util/db-schema/llm-utils");
+  const {
+    getLLMServiceStatusCheckMD,
+  } = require("@cocalc/util/db-schema/llm-utils");
   return getLLMServiceStatusCheckMD(vendorName);
 }
 
