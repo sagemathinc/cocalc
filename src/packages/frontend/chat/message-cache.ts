@@ -209,7 +209,7 @@ export class ChatMessageCache extends EventEmitter {
       date: dateIso,
     };
     this.syncdb.set(toSave);
-    console.log("set ", toSave);
+    log("set ", toSave);
     return true;
   }
 }
