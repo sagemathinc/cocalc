@@ -28,23 +28,20 @@ import {
   LANGUAGE_MODEL_PREFIXES,
   OLLAMA_PREFIX,
   USER_LLM_PREFIX,
-  getLLMServiceStatusCheckMD,
   isFreeModel,
   isLanguageModel,
   isLanguageModelService,
   model2service,
-  model2vendor,
   service2model,
   toCustomOpenAIModel,
   toOllamaModel,
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import { cmp, history_path, isValidUUID, uuid } from "@cocalc/util/misc";
+import { cmp, history_path, isValidUUID } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
-import { processAcpLLM } from "./acp-api";
 import { handleSyncDBChange, initFromSyncDB } from "./sync";
 import {
   normalizeChatMessage,
@@ -57,7 +54,6 @@ import type {
   MessageHistory,
 } from "./types";
 import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
-import { addToHistory } from "@cocalc/chat";
 import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
 import {
   field,
@@ -69,8 +65,8 @@ import {
   senderId,
 } from "./access";
 import { ChatMessageCache } from "./message-cache";
-
-const MAX_CHAT_STREAM = 10;
+import { processLLM as processLLMExternal, type LLMContext } from "./actions/llm";
+import { addToHistory } from "@cocalc/chat";
 
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: ImmerDB;
@@ -947,8 +943,7 @@ export class ChatActions extends Actions<ChatState> {
     llm?: LanguageModel;
     dateLimit?: Date; // only for regenerate, filter history
   }) => {
-    const store = this.store;
-    if (this.syncdb == null || !store) {
+    if (this.syncdb == null || !this.store) {
       console.warn("processLLM called before chat actions initialized");
       return;
     }
@@ -959,320 +954,37 @@ export class ChatActions extends Actions<ChatState> {
         .getProjectsStore()
         .hasLanguageModelEnabled(this.store?.get("project_id"))
     ) {
-      // No need to check whether a language model is enabled at all.
-      // We only do this check if tag is not set, e.g., directly typing @chatgpt
-      // into the input box.  If the tag is set, then the request to use
-      // an LLM came from some place, e.g., the "Explain" button, so
-      // we trust that.
-      // We also do the check when replying.
       return;
-    }
-    // if an llm is explicitly set, we only allow that for regenerate and we also check if it is enabled and selectable by the user
-    if (typeof llm === "string") {
-      if (tag !== "regenerate") {
-        console.warn(`chat/llm: llm=${llm} is only allowed for tag=regenerate`);
-        return;
-      }
     }
     if (tag !== "regenerate" && !isValidUUID(message.history?.[0]?.author_id)) {
-      // do NOT respond to a message that an LLM is sending,
-      // because that would result in an infinite recursion.
-      // Note: LLMs do not use a valid UUID, but a special string.
-      // For regenerate, we delete the last message, though…
-      return;
-    }
-    let input = message.history?.[0]?.content as string | undefined;
-    // if there is no input in the last message, something is really wrong
-    if (input == null) return;
-    // there are cases, where there is nothing in the last message – but we want to regenerate it
-    if (!input && tag !== "regenerate") return;
-
-    let model: LanguageModel | false = false;
-    if (llm != null) {
-      // This is a request to regenerate the last message with a specific model.
-      // The message.tsx/RegenerateLLM component already checked if the LLM is enabled and selectable by the user.
-      // ATTN: we trust that information!
-      model = llm;
-    } else if (!mentionsLanguageModel(input)) {
-      // doesn't mention a language model explicitly, but might be a reply to something that does:
-      if (reply_to == null) {
-        return;
-      }
-      model = this.isLanguageModelThread(reply_to);
-      if (!model) {
-        // definitely not a language model chat situation
-        return;
-      }
-    } else {
-      // it mentions a language model -- which one?
-      model = getLanguageModel(input);
-    }
-
-    if (model === false) {
       return;
     }
 
-    // without any mentions, of course:
-    input = stripMentions(input);
-    // also important to strip details, since they tend to confuse an LLM:
-    //input = stripDetails(input);
+    const ctx: LLMContext = {
+      syncdb: this.syncdb,
+      store: this.store,
+      chatStreams: this.chatStreams,
+      getAllMessages: () => this.getAllMessages(),
+      sendReply: this.sendReply,
+      saveHistory: this.saveHistory,
+      getLLMHistory: this.getLLMHistory,
+      getCodexConfig: (d?: Date) => this.getCodexConfig(d),
+      setCodexConfig: this.setCodexConfig,
+      computeThreadKey: (ms?: number) => this.computeThreadKey(ms),
+      project_id: this.store.get("project_id"),
+      path: this.store.get("path"),
+    };
 
-    if (typeof model === "string" && model.includes("codex")) {
-      const messagesMap = this.getAllMessages();
-      let threadKey: string | undefined;
-      const baseDate =
-        reply_to?.valueOf() ??
-        (message.date instanceof Date
-          ? message.date.valueOf()
-          : new Date(message.date ?? Date.now()).valueOf());
-      if (baseDate != null && !Number.isNaN(baseDate) && messagesMap) {
-        const rootMs = getThreadRootDate({
-          date: baseDate,
-          messages: messagesMap,
-        });
-        const normalized =
-          typeof rootMs === "number" && rootMs > 0 ? rootMs : baseDate;
-        threadKey = `${normalized}`;
-      } else if (baseDate != null && !Number.isNaN(baseDate)) {
-        threadKey = `${baseDate}`;
-      }
+    const threadModel = reply_to ? this.isLanguageModelThread(reply_to) : null;
 
-      const project_id = store.get("project_id");
-      const path = store.get("path");
-      if (!project_id || !path) {
-        throw new Error(
-          "chat actions missing project_id or path; cannot run Codex turn",
-        );
-      }
-
-      await processAcpLLM({
-        message,
-        reply_to,
-        tag,
-        model,
-        input,
-        dateLimit,
-        context: {
-          syncdb: this.syncdb,
-          path,
-          project_id,
-          chatStreams: this.chatStreams,
-          sendReply: this.sendReply,
-          saveHistory: this.saveHistory,
-          getLLMHistory: this.getLLMHistory,
-          getCodexConfig: (reply_to_date?: Date) =>
-            this.getCodexConfig(reply_to_date ?? reply_to ?? undefined),
-          setCodexConfig: this.setCodexConfig,
-          threadKey,
-        },
-      });
-      return;
-    }
-
-    const sender_id = (function () {
-      try {
-        return model2service(model);
-      } catch {
-        return model;
-      }
-    })();
-
-    const thinking = ":robot: Thinking...";
-    // prevHistory: in case of regenerate, it's the history *before* we added the "Thinking..." message (which we ignore)
-    const { date, prevHistory = [] } =
-      tag === "regenerate"
-        ? this.saveHistory(message, thinking, sender_id, true)
-        : {
-            date: this.sendReply({
-              message,
-              reply: thinking,
-              from: sender_id,
-              noNotification: true,
-              reply_to,
-            }),
-          };
-
-    if (this.chatStreams.size > MAX_CHAT_STREAM) {
-      console.trace(
-        `processLanguageModel called when ${MAX_CHAT_STREAM} streams active`,
-      );
-      if (this.syncdb != null) {
-        // This should never happen in normal use, but could prevent an expensive blowup due to a bug.
-        this.setSyncdb({
-          date,
-          history: [
-            {
-              author_id: sender_id,
-              content: `\n\n<span style='color:#b71c1c'>There are already ${MAX_CHAT_STREAM} language model responses being written. Please try again once one finishes.</span>\n\n`,
-              date,
-            },
-          ],
-          event: "chat",
-          sender_id,
-        });
-        this.syncdb.commit();
-      }
-      return;
-    }
-
-    // keep updating when the LLM is doing something:
-    const project_id = store.get("project_id");
-    const path = store.get("path");
-    if (!tag && reply_to) {
-      tag = "reply";
-    }
-
-    // record that we're about to submit message to a language model.
-    track("chatgpt", {
-      project_id,
-      path,
-      type: "chat",
-      is_reply: !!reply_to,
+    await processLLMExternal({
+      ctx,
+      message,
+      reply_to,
       tag,
-      model,
-    });
-
-    // submit question to the given language model
-    const id = uuid();
-    this.chatStreams.add(id);
-    setTimeout(
-      () => {
-        this.chatStreams.delete(id);
-      },
-      3 * 60 * 1000,
-    );
-
-    // construct the LLM history for the given thread
-    const history = reply_to ? this.getLLMHistory(reply_to) : undefined;
-
-    if (tag === "regenerate") {
-      if (history && history.length >= 2) {
-        history.pop(); // remove the last LLM message, which is the one we're regenerating
-
-        // if dateLimit is earlier than the last message's date, remove the last two
-        while (dateLimit != null && history.length >= 2) {
-          const last = history[history.length - 1];
-          if (last.date != null && last.date > dateLimit) {
-            history.pop();
-            history.pop();
-          } else {
-            break;
-          }
-        }
-
-        input = stripMentions(history.pop()?.content ?? ""); // the last user message is the input
-      } else {
-        console.warn(
-          `chat/llm: regenerate called without enough history for thread starting at ${reply_to}`,
-        );
-        return;
-      }
-    }
-
-    const chatStream = webapp_client.openai_client.queryStream({
-      input,
-      history,
-      project_id,
-      path,
-      model,
-      tag,
-    });
-
-    // The sender_id might change if we explicitly set the LLM model.
-    if (tag === "regenerate" && llm != null) {
-      if (!this.store) return;
-      const messages = this.getAllMessages();
-      if (!messages) return;
-      if (message.sender_id !== sender_id) {
-        // if that happens, create a new message with the existing history and the new sender_id
-        const cur = this.toImmutableRecord(
-          this.syncdb.get_one({ event: "chat", date }),
-        );
-        if (cur == null) return;
-        const reply_to = getReplyToRoot({
-          message: cur.toJS() as any as ChatMessage,
-          messages,
-        });
-        this.syncdb.delete({ event: "chat", date });
-        this.setSyncdb({
-          date,
-          history: cur?.get("history") ?? [],
-          event: "chat",
-          sender_id,
-          reply_to,
-        });
-      }
-    }
-
-    let content: string = "";
-    let halted = false;
-
-    chatStream.on("token", (token) => {
-      if (halted || this.syncdb == null) {
-        return;
-      }
-
-      // we check if user clicked on the "stop generating" button
-      const cur = this.toImmutableRecord(
-        this.syncdb.get_one({ event: "chat", date }),
-      );
-      if (cur?.get?.("generating") === false) {
-        halted = true;
-        this.chatStreams.delete(id);
-        return;
-      }
-
-      // collect more of the output
-      if (token != null) {
-        content += token;
-      }
-
-      const msg: ChatMessage = {
-        event: "chat",
-        sender_id,
-        date: new Date(date),
-        history: addToHistory(prevHistory, {
-          author_id: sender_id,
-          content,
-        }),
-        generating: token != null, // it's generating as token is not null
-        reply_to: toISOString(reply_to),
-      };
-      this.setSyncdb(msg);
-
-      // if it was the last output, close this
-      if (token == null) {
-        this.chatStreams.delete(id);
-        this.syncdb.commit();
-      }
-    });
-
-    chatStream.on("error", (err) => {
-      this.chatStreams.delete(id);
-      if (this.syncdb == null || halted) return;
-
-      if (!model) {
-        throw new Error(
-          `bug: No model set, but we're in language model error handler`,
-        );
-      }
-
-      const vendor = model2vendor(model);
-      const statusCheck = getLLMServiceStatusCheckMD(vendor.name);
-      content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\n${statusCheck}`;
-      const msg: ChatMessage = {
-        event: "chat",
-        sender_id,
-        date: new Date(date),
-        history: addToHistory(prevHistory, {
-          author_id: sender_id,
-          content,
-        }),
-        generating: false,
-        reply_to: toISOString(reply_to),
-      };
-      this.setSyncdb(msg);
-      this.syncdb.commit();
+      llm,
+      threadModel,
+      dateLimit,
     });
   };
 
@@ -1308,6 +1020,17 @@ export class ChatActions extends Actions<ChatState> {
     } catch (err) {
       console.error("chat: failed to save syncdb", err);
     }
+  }
+
+  private computeThreadKey(baseDate?: number): string | undefined {
+    if (baseDate == null || Number.isNaN(baseDate)) return undefined;
+    const messagesMap = this.getAllMessages();
+    if (messagesMap && messagesMap.size > 0) {
+      const rootMs = getThreadRootDate({ date: baseDate, messages: messagesMap });
+      const normalized = typeof rootMs === "number" && rootMs > 0 ? rootMs : baseDate;
+      return `${normalized}`;
+    }
+    return `${baseDate}`;
   }
 
   // the input and output for the thread ending in the
@@ -1652,7 +1375,9 @@ function mentionsLanguageModel(input?: string): boolean {
   const sys = LANGUAGE_MODEL_PREFIXES.some((prefix) =>
     x.includes(`account-id=${prefix}`),
   );
-  return sys || x.includes(`account-id=${USER_LLM_PREFIX}`);
+  if (sys || x.includes(`account-id=${USER_LLM_PREFIX}`)) return true;
+  if (x.includes("openai-codex-agent") || x.includes("@codex")) return true;
+  return false;
 }
 
 /**
@@ -1661,6 +1386,9 @@ function mentionsLanguageModel(input?: string): boolean {
 function getLanguageModel(input?: string): false | LanguageModel {
   if (!input) return false;
   const x = input.toLowerCase();
+  if (x.includes("openai-codex-agent") || x.includes("@codex")) {
+    return "codex-agent";
+  }
   if (x.includes("account-id=chatgpt4")) {
     return "gpt-4";
   }
