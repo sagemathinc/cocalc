@@ -24,17 +24,11 @@ import {
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import Ansi from "@cocalc/frontend/components/ansi-to-react";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import {
-  DiffMatchPatch,
-  decompressPatch,
-  type CompressedPatch,
-} from "@cocalc/util/dmp";
+import type { LineDiffResult } from "@cocalc/util/line-diff";
 import { plural } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 const { Text } = Typography;
-const diffPrinter = new DiffMatchPatch();
-
 type ActivityEntry =
   | {
       kind: "reasoning";
@@ -61,7 +55,7 @@ type ActivityEntry =
       id: string;
       seq: number;
       path: string;
-      patch: CompressedPatch;
+      diff: LineDiffResult;
     }
   | {
       kind: "terminal";
@@ -385,15 +379,7 @@ function ActivityRow({
             basePath={basePath}
             bold
           />
-          <div
-            style={{
-              fontFamily: "monospace",
-              fontSize,
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            <Ansi>{patchToText(entry.patch)}</Ansi>
-          </div>
+          <DiffPreview diff={entry.diff} fontSize={fontSize} />
         </div>
       );
     case "terminal":
@@ -499,7 +485,7 @@ function createEventEntry({
       id: `diff-${seq}`,
       seq,
       path: stringifyPath(event.path),
-      patch: normalizePatch(event.patch),
+      diff: event.diff,
     };
   }
   if (event?.type === "terminal" && event.terminalId) {
@@ -631,26 +617,10 @@ function formatErrorDetail(error: unknown): string {
   }
 }
 
-function patchToText(patch: CompressedPatch): string {
-  try {
-    return diffPrinter.patch_toText(decompressPatch(normalizePatch(patch)));
-  } catch (err) {
-    return `Failed to render diff: ${err}`;
-  }
-}
-
 function eventHasText(
   event?: AcpStreamEvent,
 ): event is Extract<AcpStreamEvent, { text: string }> {
   return event?.type === "thinking" || event?.type === "message";
-}
-
-function normalizePatch(patch: any): CompressedPatch {
-  if (patch == null) return [];
-  if (typeof patch.toJS === "function") {
-    return patch.toJS();
-  }
-  return patch as CompressedPatch;
 }
 
 function stringifyPath(pathValue: any): string {
@@ -725,6 +695,67 @@ function PathLink({
     );
   }
   return node;
+}
+
+function DiffPreview({
+  diff,
+  fontSize,
+}: {
+  diff: LineDiffResult;
+  fontSize: number;
+}) {
+  if (!diff.lines.length) {
+    return (
+      <Text type="secondary" style={{ fontSize: Math.max(11, fontSize - 2) }}>
+        No changes detected.
+      </Text>
+    );
+  }
+  const codeFontSize = Math.max(11, fontSize - 1);
+  const chunkEnds = new Set(diff.chunkBoundaries ?? []);
+  return (
+    <div
+      style={{
+        marginTop: 6,
+        fontFamily: "monospace",
+        fontSize: codeFontSize,
+        border: `1px solid ${COLORS.GRAY_L}`,
+        borderRadius: 6,
+        overflow: "hidden",
+      }}
+    >
+      {diff.lines.map((line, i) => {
+        const op = diff.types[i] ?? 0;
+        const gutter = diff.gutters[i] ?? "";
+        const background =
+          op === -1
+            ? "#ffeef0"
+            : op === 1
+              ? "#e6ffed"
+              : "transparent";
+        const color = op === 0 ? COLORS.GRAY_D : "inherit";
+        const borderTop = chunkEnds.has(i) ? `1px solid ${COLORS.GRAY_L}` : "none";
+        return (
+          <div
+            key={i}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "auto 1fr",
+              gap: 8,
+              padding: "2px 8px",
+              background,
+              color,
+              borderTop,
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            <span style={{ color: COLORS.GRAY_D }}>{gutter}</span>
+            <span>{line.length ? line : " "}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function resolvePath(path?: string, basePath?: string): string | undefined {

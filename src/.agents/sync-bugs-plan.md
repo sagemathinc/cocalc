@@ -9,11 +9,7 @@ Collected current sync-related issues, normalized for tracking and triage. Tags 
 
 - Jupyter kernel state stuck spinning - #blocker #jupyter #sync
 
-- [ ] Most `conat` sync-doc backend tests failing (#blocker #sync).
-   - [ ] conat/test/sync-doc/syncstring.test.ts
-   - [ ] conat/test/sync-doc/no-autosave.test.ts 
-   - [ ] conat/test/sync-doc/delete.test.ts
-   - [ ] conat/test/sync-doc/conflict.test.ts
+- [x] Most `conat` sync-doc backend tests failing (#blocker #sync).
    
 - [ ] Save to disk bug
    - I was editing src/packages/backend/conat/test/sync-doc/setup.ts and hit some major amplification!
@@ -55,7 +51,7 @@ I refreshed the browser and reverted and it worked fine again.
 -[x] Switching between Rich Text and Markdown doesn’t save current version unless defocused (#blocker #sync).  This is ONLY in the whiteboard; in chat it works fine.
 
 
-- Whiteboard: drawing a line hides the previous one until the next draw; likely missing change event (#blocker #sync).
+- [x] Whiteboard: drawing a line hides the previous one until the next draw; likely missing change event (#blocker #sync).
    - can't reproduce this at all right now.
 - Memory leak suspected in sync/chat; may be tied to cache size (#blocker #sync).
    - the massive codex chat which I thought kept doing this is currently in a browser tab using under 800MB that has been running for a while.
@@ -63,7 +59,7 @@ I refreshed the browser and reverted and it worked fine again.
    - i saw this only once
 - First message in chatrooms gets blanked (likely sync rewrite regression) (#unclear #blocker #codex #sync).
 
-- Chat `input.tsx` crash: `syncdb.get_one` can throw; need safe guard (#easy #blocker #bug #0 #lite).
+- [x] Chat `input.tsx` crash: `syncdb.get_one` can throw; need safe guard (#easy #blocker #bug #0 #lite).
    - haven't seen this in a long time
 
 

@@ -40,7 +40,7 @@ import type {
 } from "@agentclientprotocol/sdk/dist/schema";
 
 import getLogger from "@cocalc/backend/logger";
-import { make_patch } from "@cocalc/util/dmp";
+import { computeLineDiff } from "@cocalc/util/line-diff";
 import {
   resolveCodexSessionMode,
   type CodexSessionConfig,
@@ -1181,14 +1181,14 @@ class CodexClientHandler implements TerminalClient {
       return false;
     }
     if (previous === next) return false;
-    const patch = make_patch(previous, next);
-    if (!patch.length) return false;
+    const diff = computeLineDiff(previous, next);
+    if (!diff.lines.length) return false;
     await this.stream({
       type: "event",
       event: {
         type: "diff",
         path: this.formatWorkspacePath(filePath) ?? filePath,
-        patch,
+        diff,
       },
     });
     return true;

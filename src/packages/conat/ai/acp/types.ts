@@ -1,5 +1,5 @@
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
-import type { CompressedPatch } from "@cocalc/util/dmp";
+import type { LineDiffResult } from "@cocalc/util/line-diff";
 
 export interface AcpChatContext {
   project_id: string;
@@ -64,7 +64,7 @@ export type AcpStreamEvent =
   | {
       type: "diff";
       path: string;
-      patch: CompressedPatch;
+      diff: LineDiffResult;
     }
   | {
       type: "file";
