@@ -11,6 +11,7 @@ import { Tip } from "@cocalc/frontend/components";
 import { capitalize, unreachable } from "@cocalc/util/misc";
 import { AssignmentCopyStep } from "../types";
 import { course } from "@cocalc/frontend/i18n";
+import { GRADE_FLEX } from "./consts";
 
 interface StudentAssignmentInfoHeaderProps {
   title: "Assignment" | "Handout" | "Student";
@@ -128,7 +129,7 @@ export function StudentAssignmentInfoHeader({
     throw new Error(`unknown key: ${key}`);
   }
 
-  function render_col(key: AssignmentCopyStep | "grade", width: 4 | 6) {
+  function render_col(key: AssignmentCopyStep | "grade", flex: string) {
     const { tip, title } = tip_title(key);
     const actionNodes =
       mode === "assignment" && actions != null ? actions[key] : undefined;
@@ -142,7 +143,7 @@ export function StudentAssignmentInfoHeader({
       mode === "assignment" && progress != null ? progress[key] : undefined;
 
     return (
-      <Col md={width} key={key}>
+      <Col flex={flex} key={key}>
         <div
           style={{
             display: "flex",
@@ -167,27 +168,25 @@ export function StudentAssignmentInfoHeader({
   }
 
   function render_headers() {
-    const w = 6;
     return (
       <Row>
-        {render_col("assignment", w)}
-        {render_col("collect", w)}
-        {render_col("grade", w)}
-        {render_col("return_graded", w)}
+        {render_col("assignment", "1")}
+        {render_col("collect", "1")}
+        {render_col("grade", GRADE_FLEX)}
+        {render_col("return_graded", "1")}
       </Row>
     );
   }
 
   function render_headers_peer() {
-    const w = 4;
     return (
       <Row>
-        {render_col("assignment", w)}
-        {render_col("collect", w)}
-        {render_col("peer_assignment", w)}
-        {render_col("peer_collect", w)}
-        {render_col("grade", w)}
-        {render_col("return_graded", w)}
+        {render_col("assignment", "1")}
+        {render_col("collect", "1")}
+        {render_col("peer_assignment", "1")}
+        {render_col("peer_collect", "1")}
+        {render_col("grade", GRADE_FLEX)}
+        {render_col("return_graded", "1")}
       </Row>
     );
   }
@@ -217,7 +216,16 @@ export function StudentAssignmentInfoHeader({
   }
 
   return (
-    <div>
+    <div
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 1,
+        background: "white",
+        paddingTop: 8,
+        paddingBottom: 8,
+      }}
+    >
       <Row>
         <Col md={4} key="title" style={{ paddingRight: 16 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>

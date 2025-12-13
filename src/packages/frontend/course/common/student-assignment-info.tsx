@@ -26,7 +26,13 @@ import {
 } from "../store";
 import { AssignmentCopyType } from "../types";
 import { useButtonSize } from "../util";
-import { STEP_NAMES, Steps, STEPS_INTL, STEPS_INTL_ACTIVE } from "./consts";
+import {
+  GRADE_FLEX,
+  STEP_NAMES,
+  Steps,
+  STEPS_INTL,
+  STEPS_INTL_ACTIVE,
+} from "./consts";
 
 interface StudentAssignmentInfoProps {
   name: string;
@@ -466,7 +472,6 @@ export function StudentAssignmentInfo({
         key="error"
         error={error}
         style={{
-          marginTop: "5px",
           maxHeight: "140px",
           overflow: "auto",
           display: "block",
@@ -535,11 +540,9 @@ export function StudentAssignmentInfo({
       (skip_grading && skip_collect);
   }
 
-  const width = peer_grade ? 4 : 6;
-
   function render_assignment_col() {
     return (
-      <Col md={width} key="last_assignment">
+      <Col flex="1" key="last_assignment">
         <Status
           step="Assign"
           data={info.last_assignment}
@@ -564,7 +567,7 @@ export function StudentAssignmentInfo({
 
   function render_collect_col() {
     return (
-      <Col md={width} key="last_collect">
+      <Col flex="1" key="last_collect">
         {skip_assignment ||
         !(info.last_assignment != null
           ? info.last_assignment.error
@@ -598,7 +601,7 @@ export function StudentAssignmentInfo({
     if (!info.peer_assignment) return;
     if (info.last_collect?.error != null) return;
     return (
-      <Col md={4} key="peer_assign">
+      <Col flex="1" key="peer_assign">
         <Status
           step="Peer Assign"
           data={info.last_peer_assignment}
@@ -625,7 +628,7 @@ export function StudentAssignmentInfo({
     if (!peer_grade) return;
     if (!info.peer_collect) return;
     return (
-      <Col md={4} key="peer_collect">
+      <Col flex="1" key="peer_collect">
         <Status
           step="Peer Collect"
           data={info.last_peer_collect}
@@ -652,7 +655,7 @@ export function StudentAssignmentInfo({
   function render_grade_col() {
     //      {render_enter_grade()}
     return (
-      <Col md={width} key="grade">
+      <Col flex={GRADE_FLEX} key="grade">
         {show_grade_col && (
           <div>
             {render_save_button()}
@@ -667,7 +670,7 @@ export function StudentAssignmentInfo({
 
   function render_return_graded_col() {
     return (
-      <Col md={width} key="return_graded">
+      <Col flex="1" key="return_graded">
         {show_return_graded ? (
           <Status
             step="Return"
