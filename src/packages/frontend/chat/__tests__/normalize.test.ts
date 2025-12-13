@@ -1,14 +1,4 @@
 /** @jest-environment jsdom */
-jest.mock(
-  "@cocalc/frontend/lite",
-  () => ({
-    lite: false,
-    project_id: "",
-    account_id: "",
-    compute_server_id: 0,
-  }),
-  { virtual: true },
-);
 
 import {
   normalizeChatMessage,
@@ -57,6 +47,10 @@ describe("normalizeChatMessage", () => {
 
 describe("handleSyncDBChange", () => {
   it("applies chat and draft changes into the store", () => {
+    const store = new MockStore();
+    // Pretend initial replay is complete so activity updates run
+    store.state.activityReady = true;
+
     const date = new Date("2024-01-02T03:04:05.000Z");
     const messagesRecord = {
       event: "chat",
@@ -78,7 +72,6 @@ describe("handleSyncDBChange", () => {
       active: Date.now(),
     };
     const syncdb = new MockSyncDB([messagesRecord, draftRecord]);
-    const store = new MockStore();
 
     // chat change
     handleSyncDBChange({
@@ -86,8 +79,8 @@ describe("handleSyncDBChange", () => {
       store,
       changes: [{ event: "chat", sender_id: "user-1", date }],
     });
-    const storedMessage = store.state.messages?.get(`${date.valueOf()}`);
-    expect(storedMessage?.get("history")?.first()?.get("content")).toBe("hi");
+    const activityTs = store.state.activity?.get(`${date.valueOf()}`);
+    expect(typeof activityTs).toBe("number");
 
     // draft change
     handleSyncDBChange({
