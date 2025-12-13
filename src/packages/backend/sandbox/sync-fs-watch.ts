@@ -191,7 +191,18 @@ export class SyncFsWatchStore {
     loader: () => Promise<string>,
     deleted = false,
   ): Promise<ExternalChange> {
-    const current = await loader();
+    let current;
+    if (deleted) {
+      current = "";
+    } else {
+      try {
+        current = await loader();
+      } catch {
+        // file doesn't exist
+        deleted = true;
+        current = "";
+      }
+    }
     const currentHash = this.sha(current);
     const prev = this.get(path);
     if (prev && prev.hash === currentHash && !prev.deleted && !deleted) {

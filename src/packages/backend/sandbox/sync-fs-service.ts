@@ -63,30 +63,19 @@ export class SyncFsService extends EventEmitter {
     setInterval(this.pruneStale, HEARTBEAT_TTL);
   }
 
-  // Seed an initial patch from disk when the patch stream has no history.
-  // This avoids relying on a browser-side read that could create duplicate
-  // initial patches.
-  private async seedInitialPatch(
-    path: string,
-    meta?: WatchMeta,
-  ): Promise<void> {
-    console.log("seedInitialPatch", { path, meta });
+  private async initPath(path: string, meta?: WatchMeta): Promise<void> {
     if (!meta?.project_id || !meta.relativePath) return;
     const string_id =
       meta.string_id ?? client_db.sha1(meta.project_id, meta.relativePath);
-    const existing = this.store.getFsHead(string_id);
-    if (existing?.version && existing.version > 0) {
-      return; // already seeded
-    }
     try {
-      // Force an empty base so the initial patch is "" -> current content.
-      this.store.markDeleted(path);
       const change = await this.store.handleExternalChange(
         path,
         async () => (await readFile(path, "utf8")) as string,
       );
-      const payload: ExternalChange = { ...change, deleted: false };
-      await this.appendPatch({ ...meta, string_id }, "change", payload);
+      if (change.patch) {
+        const payload: ExternalChange = { ...change, deleted: false };
+        await this.appendPatch({ ...meta, string_id }, "change", payload);
+      }
     } catch (err) {
       this.emit("error", err);
     }
@@ -168,13 +157,18 @@ export class SyncFsService extends EventEmitter {
     active: boolean = true,
     meta?: WatchMeta,
   ): Promise<void> {
-    console.log("heartbeat", { path, active });
     const dir = dirname(path);
     const existing = this.watchers.get(dir);
     if (active) {
       if (meta) {
+        // Record metadata
         this.metaByPath.set(path, meta);
       }
+
+      if (!existing?.paths.has(path)) {
+        await this.initPath(path, meta);
+      }
+
       if (existing) {
         existing.lastHeartbeat = Date.now();
         existing.paths.add(path);
@@ -218,15 +212,6 @@ export class SyncFsService extends EventEmitter {
       });
 
       await ready;
-      // Seed the snapshot so later diffs have a correct base.
-      try {
-        const initial = await readFile(path, "utf8");
-        this.store.setContent(path, initial as string);
-        await this.seedInitialPatch(path, meta);
-      } catch (err) {
-        console.log("");
-        // file may not exist yet; that's fine
-      }
     } else {
       if (!existing) return;
       existing.paths.delete(path);

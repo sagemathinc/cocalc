@@ -2597,8 +2597,6 @@ export class SyncDoc extends EventEmitter {
 
   private async startBackendFsWatch(): Promise<void> {
     if (this.opts.noSaveToDisk) return;
-    const syncFsWatch = (this.fs as any)?.syncFsWatch;
-    if (typeof syncFsWatch !== "function") return;
     if (process.env.SYNC_FS_DEBUG) {
       console.log("startBackendFsWatch", {
         path: this.path,
