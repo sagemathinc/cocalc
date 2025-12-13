@@ -879,13 +879,14 @@ function TerminalPreview({
       fontSize: fontSizePref,
       scrollback: 5000,
       rows,
+      cols: 256,
     });
     setTheme(term, colorScheme);
     termRef.current = term;
     term.open(host);
-    const viewport = host.querySelector(".xterm-viewport") as
-      | HTMLDivElement
-      | null;
+    const viewport = host.querySelector(
+      ".xterm-viewport",
+    ) as HTMLDivElement | null;
     if (viewport) {
       viewport.style.overflow = "hidden";
     }
@@ -906,9 +907,9 @@ function TerminalPreview({
     setTheme(term, colorScheme);
     const host = containerRef.current;
     if (host) {
-      const viewport = host.querySelector(".xterm-viewport") as
-        | HTMLDivElement
-        | null;
+      const viewport = host.querySelector(
+        ".xterm-viewport",
+      ) as HTMLDivElement | null;
       if (viewport) {
         viewport.style.overflow = "hidden";
       }
