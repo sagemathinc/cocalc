@@ -674,29 +674,18 @@ export class ChatActions extends Actions<ChatState> {
   private getThreadRootDoc = (
     threadKey: string,
   ): { doc: any; message: ChatMessageTyped } | null => {
-    if (this.syncdb == null) return null;
+    // threadKey must be the stringified millisecond timestamp of the thread root.
+    if (!/^\d+$/.test(threadKey)) {
+      throw new Error(
+        `getThreadRootDoc expected threadKey as ms string, got '${threadKey}'`,
+      );
+    }
     const messages = this.getAllMessages();
-    const normalizedKey = toMsString(threadKey);
-    const fallbackKey = `${parseInt(threadKey, 10)}`;
-    const candidates = [normalizedKey, threadKey, fallbackKey];
-    let message: ChatMessageTyped | undefined;
-    for (const key of candidates) {
-      if (!key) continue;
-      message = messages.get(key);
-      if (message != null) break;
-    }
-    if (message == null) {
-      return null;
-    }
-    const dateField = dateValue(message);
-    const dateIso = toISOString(dateField);
-    if (!dateIso) {
-      return null;
-    }
-    const doc =
-      typeof (message as any)?.toJS === "function"
-        ? { ...(message as any).toJS(), date: dateIso }
-        : { ...(message as any), date: dateIso };
+    const message = messages.get(threadKey);
+    if (!message) return null;
+    const dateIso = toISOString(dateValue(message));
+    if (!dateIso) return null;
+    const doc = { ...(message as any), date: dateIso };
     return { doc, message };
   };
 
