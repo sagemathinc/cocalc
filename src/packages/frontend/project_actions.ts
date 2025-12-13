@@ -118,6 +118,7 @@ import {
 import { getSearch } from "@cocalc/frontend/project/explorer/config";
 import dust from "@cocalc/frontend/project/disk-usage/dust";
 import { EditorLoadError } from "./file-editors-error";
+import { lite } from "@cocalc/frontend/lite";
 
 const { defaults, required } = misc;
 
@@ -3464,7 +3465,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   initSnapshots = reuseInFlight(async () => {
     await until(
       async () => {
-        if (this.isClosed()) return true;
+        if (lite || this.isClosed()) return true;
         const store = redux.getStore("projects");
         if (store == null) {
           return false;
@@ -3500,7 +3501,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   initBackups = reuseInFlight(async () => {
     await until(
       async () => {
-        if (this.isClosed()) return true;
+        if (lite || this.isClosed()) return true;
         const store = redux.getStore("projects");
         if (store == null) {
           return false;

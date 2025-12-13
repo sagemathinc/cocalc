@@ -3,7 +3,6 @@
 import type { LLMContext } from "../actions/llm";
 import { processLLM } from "../actions/llm";
 
-// Mocks
 const mockQueryStream = jest.fn();
 let emitter: any;
 
@@ -26,6 +25,10 @@ jest.mock("@cocalc/frontend/webapp-client", () => ({
   },
 }));
 
+jest.mock("../acp-api", () => ({
+  processAcpLLM: jest.fn(),
+}));
+
 function createEmitter() {
   const handlers: Record<string, (...args: any[]) => void> = {};
   return {
@@ -42,6 +45,7 @@ function makeCtx(): {
   ctx: LLMContext;
   syncdb: any;
   sendReply: jest.Mock;
+  setSpy: jest.Mock;
 } {
   const set = jest.fn();
   const commit = jest.fn();
@@ -74,7 +78,7 @@ function makeCtx(): {
     project_id: "proj",
     path: "chat.chat",
   };
-  return { ctx, syncdb, sendReply };
+  return { ctx, syncdb, sendReply, setSpy: set };
 }
 
 function makeMessage() {
@@ -83,7 +87,11 @@ function makeMessage() {
     event: "chat" as const,
     sender_id: "user-1",
     history: [
-      { author_id: "user-1", content: "hello", date: now.toISOString() },
+      {
+        author_id: "00000000-1000-4000-8000-000000000001",
+        content: "hello",
+        date: now.toISOString(),
+      },
     ],
     date: now,
   };
@@ -123,12 +131,11 @@ describe("processLLM streaming updates", () => {
   it("writes an error message and stops generating on stream error", async () => {
     const { ctx, syncdb } = makeCtx();
     const message = makeMessage();
-    const reply_to = new Date("2025-02-02T01:00:00.000Z");
 
     await processLLM({
       ctx,
       message,
-      reply_to,
+      reply_to: new Date("2025-02-02T01:00:00.000Z"),
       threadModel: "gpt-4",
     });
 
@@ -138,5 +145,81 @@ describe("processLLM streaming updates", () => {
     const lastSet = syncdb.set.mock.calls.pop()?.[0];
     expect(lastSet?.generating).toBe(false);
     expect(String(lastSet?.history?.[0]?.content)).toContain("boom");
+  });
+});
+
+describe("processLLM guards", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    emitter = undefined;
+  });
+
+  it("throttles when too many streams are active", async () => {
+    const { ctx, syncdb } = makeCtx();
+    for (let i = 0; i < 11; i++) ctx.chatStreams.add(`id-${i}`);
+    const message = makeMessage();
+    await processLLM({
+      ctx,
+      message,
+      reply_to: new Date("2025-02-02T01:00:00.000Z"),
+      threadModel: "gpt-4",
+    });
+    expect(mockQueryStream).not.toHaveBeenCalled();
+    const lastSet = syncdb.set.mock.calls.pop()?.[0];
+    expect(String(lastSet?.history?.[0]?.content)).toContain(
+      "language model responses",
+    );
+    expect(lastSet?.generating).toBeUndefined();
+  });
+
+  it("halts streaming when generating is set false mid-stream", async () => {
+    const { ctx, syncdb } = makeCtx();
+    syncdb.get_one.mockImplementation(() => ({ generating: false }));
+    const message = makeMessage();
+    await processLLM({
+      ctx,
+      message,
+      reply_to: new Date("2025-02-02T01:00:00.000Z"),
+      threadModel: "gpt-4",
+    });
+    expect(emitter).toBeDefined();
+    emitter?.emit("token", "A");
+    expect(ctx.chatStreams.size).toBe(0);
+  });
+});
+
+describe("processLLM model resolution and Codex dispatch", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+    emitter = undefined;
+  });
+
+  it("falls back to thread model when no mention", async () => {
+    const { ctx } = makeCtx();
+    const message = makeMessage();
+    message.history[0].content = "please do something";
+    await processLLM({
+      ctx,
+      message,
+      reply_to: new Date("2025-02-02T01:00:00.000Z"),
+      threadModel: "gpt-4",
+    });
+    expect(mockQueryStream).toHaveBeenCalled();
+    const args = mockQueryStream.mock.calls[0][0];
+    expect(args.model).toBe("gpt-4");
+  });
+
+  it("routes codex models through processAcpLLM", async () => {
+    const { ctx } = makeCtx();
+    const message = makeMessage();
+    message.history[0].content = "@codex do something";
+    const { processAcpLLM } = require("../acp-api");
+    await processLLM({
+      ctx,
+      message,
+      reply_to: new Date("2025-02-02T01:00:00.000Z"),
+      threadModel: "codex-agent",
+    });
+    expect(processAcpLLM).toHaveBeenCalled();
   });
 });
