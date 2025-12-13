@@ -51,6 +51,7 @@ import {
 import { log_opened_time } from "@cocalc/frontend/project/open-file";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+import { type SyncOpts } from "@cocalc/sync";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { apply_patch, make_patch } from "@cocalc/util/patch";
 import type { SyncString } from "@cocalc/sync/editor/string/sync";
@@ -194,6 +195,7 @@ export class Actions<
   // these are for doctype "syncdb":
   protected primary_keys: string[] = [];
   protected string_cols: string[] = [];
+  protected syncDocOptions: Partial<SyncOpts> = {};
   protected disable_cursors: boolean = false;
   // If this is set, then we get automatic computation of
   // search embeddings
@@ -395,6 +397,7 @@ export class Actions<
           after_change_hook: () => this.set_codemirror_to_syncstring(),
           fake: true,
           patch_interval: 500,
+          ...this.syncDocOptions,
         }) as SyncString;
       } else if (this.doctype == "syncstring") {
         this._syncstring = syncstring2({
@@ -402,6 +405,7 @@ export class Actions<
           path: this.path,
           compute_server_id: this.getComputeServerId(),
           cursors: !this.disable_cursors,
+          ...this.syncDocOptions,
         });
       } else if (this.doctype == "syncdb") {
         if (
@@ -418,6 +422,7 @@ export class Actions<
           primary_keys: this.primary_keys,
           string_cols: this.string_cols,
           cursors: !this.disable_cursors,
+          ...this.syncDocOptions,
         });
         if (this.searchEmbeddings != null) {
           if (!this.primary_keys.includes(this.searchEmbeddings.primaryKey)) {
@@ -450,6 +455,7 @@ export class Actions<
           primary_keys: this.primary_keys,
           string_cols: this.string_cols,
           cursors: !this.disable_cursors,
+          ...this.syncDocOptions,
         });
         if (this.searchEmbeddings != null) {
           if (!this.primary_keys.includes(this.searchEmbeddings.primaryKey)) {

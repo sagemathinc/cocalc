@@ -35,6 +35,7 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
   protected primary_keys = ["date", "sender_id", "event"];
   // used only for drafts, since store lots of versions as user types:
   protected string_cols = ["input"];
+  protected syncDocOptions = { ignoreInitialChanges: true };
   private chatActions: { [frameId: string]: ChatActions } = {};
   private auxPath: string;
   private messageCache?: ChatMessageCache;

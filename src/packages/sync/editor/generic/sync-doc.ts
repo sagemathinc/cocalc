@@ -135,6 +135,12 @@ export interface SyncOpts0 {
 
   watchDebounce?: number;
   firstReadLockTimeout?: number;
+
+  // if not set (the default), right when the document is 'ready',
+  // there will be a change event with (for db's) an argument that
+  // is the Set of all values.  If true, that initial big
+  // change event happens, but the Set is empty.
+  ignoreInitialChanges?: boolean;
 }
 
 export interface SyncOpts extends SyncOpts0 {
@@ -358,9 +364,13 @@ export class SyncDoc extends EventEmitter {
       { start: 3000, max: 15000, decay: 1.3 },
     );
     if (this.isClosed()) return;
+    this.set_state("ready");
 
     // Success -- everything initialized with no issues.
-    this.set_state("ready");
+    if (this.opts.ignoreInitialChanges) {
+      // clear all changes up to this point
+      this.before_change = this.doc;
+    }
     this.emit_change(); // from nothing to something.
   });
 

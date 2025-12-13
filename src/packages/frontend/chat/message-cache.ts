@@ -2,6 +2,7 @@ import { EventEmitter } from "events";
 import type { ImmerDB } from "@cocalc/sync/editor/immer-db";
 import { normalizeChatMessage } from "./normalize";
 import type { PlainChatMessage } from "./types";
+import { once } from "@cocalc/util/async-utils";
 
 /**
  * ChatMessageCache
@@ -17,6 +18,10 @@ import type { PlainChatMessage } from "./types";
  * React components (via ChatDocProvider) and ChatActions; it avoids rebuilding
  * on every call and keeps O(1) updates relative to syncdb changes.
  */
+
+//const log = (...args) => console.log("message-cache", ...args);
+const log = (..._args) => {};
+
 export class ChatMessageCache extends EventEmitter {
   private syncdb: ImmerDB;
   private messages: Map<string, PlainChatMessage> = new Map();
@@ -26,13 +31,18 @@ export class ChatMessageCache extends EventEmitter {
   constructor(syncdb: ImmerDB) {
     super();
     this.syncdb = syncdb;
+    log("constructor");
     // Clear stale data; populate from the next change event after ready.
     this.messages = new Map();
-    // If already ready (e.g., hot swap), build immediately.
-    if (this.syncdb.get_state() === "ready") {
+    this.syncdb.on("change", this.onChangeBound);
+    if (
+      this.syncdb.opts.ignoreInitialChanges ||
+      this.syncdb.get_state() === "ready"
+    ) {
+      // If already ready (should never happen) *or* ignoreInitialChanges is set (should ALWAYS happen),
+      // build immediately, which is vastly faster than churning through all changes.
       this.rebuildFromDoc();
     }
-    this.syncdb.on("change", this.onChangeBound);
   }
 
   getSyncdb(): ImmerDB | undefined {
@@ -83,13 +93,21 @@ export class ChatMessageCache extends EventEmitter {
     }
   }
 
-  private rebuildFromDoc() {
-    if (this.syncdb?.get_state() !== "ready") {
-      return;
+  private async rebuildFromDoc() {
+    log("rebuildFromDoc");
+    if (this.syncdb.get_state() !== "ready") {
+      log("rebuildFromDoc: waiting until ready");
+      try {
+        await once(this.syncdb, "ready");
+      } catch (err) {
+        log("rebuildFromDoc: never ready", err);
+        return;
+      }
     }
     const map = new Map<string, PlainChatMessage>();
     const rows = this.syncdb.get() ?? [];
     const toPersist: PlainChatMessage[] = [];
+    log("rebuildFromDoc: got rows", rows);
 
     for (const row0 of rows ?? []) {
       const row = this.validateDate(row0);
@@ -110,14 +128,13 @@ export class ChatMessageCache extends EventEmitter {
   }
 
   private onChange(changes: Set<Record<string, unknown>> | undefined) {
+    if (changes == null || changes.size === 0) {
+      return;
+    }
+    log("onChange", changes);
     if (this.syncdb.get_state() !== "ready") return;
     const m = new Map(this.messages);
-    const rows: Record<string, unknown>[] =
-      changes instanceof Set
-        ? Array.from(changes)
-        : changes == null
-          ? []
-          : [changes];
+    const rows: Record<string, unknown>[] = Array.from(changes);
     const toPersist: PlainChatMessage[] = [];
     for (const row0 of rows) {
       const row = this.validateDate(row0);
@@ -166,6 +183,7 @@ export class ChatMessageCache extends EventEmitter {
   // Commit upgrades outside the current call stack to avoid recursive change events.
   private persist(messages: PlainChatMessage[]) {
     if (this.syncdb.get_state() !== "ready") return;
+    log("persist", messages.length);
     Promise.resolve().then(() => {
       if (this.syncdb && this.syncdb.get_state?.() === "ready") {
         let changed = false;
@@ -185,14 +203,13 @@ export class ChatMessageCache extends EventEmitter {
   private persistUpgrade(message: PlainChatMessage): boolean {
     if (this.syncdb.get_state() !== "ready") return false;
     // normalizeChatMessage guarantees a Date; skip if somehow not.
-    if (!(message.date instanceof Date)) return false;
-    if (!isFinite(message.date.valueOf())) return false;
     const dateIso = message.date.toISOString();
     const toSave: any = {
       ...message,
       date: dateIso,
     };
     this.syncdb.set(toSave);
+    console.log("set ", toSave);
     return true;
   }
 }
