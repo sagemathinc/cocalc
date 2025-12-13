@@ -3,72 +3,63 @@ import { normalizeChatMessage } from "./normalize";
 
 export function initFromSyncDB({}: { syncdb: any; store: any }) {}
 
-export function handleSyncDBChange({ syncdb, store, changes }) {
-  if (syncdb == null || store == null || changes == null) {
+export function handleSyncDBChange({
+  syncdb,
+  store,
+  changes,
+}: {
+  syncdb: any;
+  store: any;
+  changes: Set<Record<string, unknown>> | Record<string, unknown>[] | undefined;
+}): void {
+  if (!syncdb || !store || changes == null) {
     console.warn("handleSyncDBChange: inputs should not be null");
     return;
   }
-  const primaryKeys = ["date", "sender_id", "event"];
+
   const activityReady = store.get("activityReady") === true;
-  const raw =
-    typeof (changes as any).toJS === "function"
-      ? (changes as any).toJS()
-      : changes;
-  const rows: any[] = Array.isArray(raw)
-    ? raw
-    : raw == null
-      ? []
-      : typeof (raw as any).values === "function"
-        ? Array.from((raw as any).values())
-        : [raw];
-  rows.map((obj) => {
-    const where = primaryKeys.reduce((acc: any, key) => {
-      if (obj[key] != null) {
-        acc[key] = obj[key];
-      }
-      return acc;
-    }, {});
-    switch (obj.event) {
-      case "draft": {
-        let drafts = store.get("drafts") ?? (fromJS({}) as any);
-        // used to show that another user is editing a message.
-        const record = syncdb.get_one(where);
-        const key = `${obj.sender_id}:${obj.date}`;
-        if (record == null) {
-          drafts = drafts.delete(key);
-        } else {
-          drafts = drafts.set(
-            key,
-            typeof (record as any)?.toJS === "function"
-              ? (record as any).toJS()
-              : record,
-          );
-        }
-        store.setState({ drafts });
-        return;
-      }
+  const rows = Array.isArray(changes) ? changes : Array.from(changes);
 
-      case "chat": {
-        const record = syncdb.get_one(where);
-        const x =
-          typeof (record as any)?.toJS === "function" ? record.toJS() : record;
-        const { message } = normalizeChatMessage(x);
-        if (activityReady && message) {
-          const root = message.reply_to
-            ? new Date(message.reply_to).valueOf()
-            : message.date.valueOf();
-          const key = `${root}`;
-          const now = Date.now();
-          const activity = (store.get("activity") ?? iMap()).set(key, now);
-          store.setState({ activity });
-        }
-        return;
-      }
+  for (const obj of rows) {
+    const event = (obj as any)?.event;
+    const sender_id = (obj as any)?.sender_id;
+    const date = (obj as any)?.date;
+    const where: any = {};
+    if (event != null) where.event = event;
+    if (sender_id != null) where.sender_id = sender_id;
+    if (date != null) where.date = date;
 
-      default:
-        console.warn("unknown chat event: ", obj.event);
+    if (event === "draft") {
+      let drafts = store.get("drafts") ?? (fromJS({}) as any);
+      const record = syncdb.get_one(where);
+      const key = `${sender_id}:${date}`;
+      if (record == null) {
+        drafts = drafts.delete(key);
+      } else {
+        drafts = drafts.set(key, record);
+      }
+      store.setState({ drafts });
+      continue;
     }
-  });
+
+    if (event === "chat") {
+      const record = syncdb.get_one(where);
+      if (!record) continue;
+      const { message } = normalizeChatMessage(record);
+      if (!activityReady || !message) continue;
+      const root = message.reply_to
+        ? new Date(message.reply_to).valueOf()
+        : message.date.valueOf();
+      const key = `${root}`;
+      const now = Date.now();
+      const activity = (store.get("activity") ?? iMap()).set(key, now);
+      store.setState({ activity });
+      continue;
+    }
+
+    console.warn("unknown chat event: ", event);
+  }
+
   if (!activityReady) {
     store.setState({ activityReady: true });
   }

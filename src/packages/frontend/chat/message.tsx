@@ -1370,7 +1370,7 @@ export default function Message({
             actions?.llmEstimateCost({
               date: replyDate,
               input,
-              message: message.toJS(),
+              message,
             });
           }}
           placeholder={"Reply to the above message..."}

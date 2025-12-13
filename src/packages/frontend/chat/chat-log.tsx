@@ -382,10 +382,7 @@ function isFolded(
     return false;
   }
   const rootMsg = getRootMessage({
-    message:
-      typeof (message as any)?.toJS === "function"
-        ? message.toJS()
-        : (message as any),
+    message,
     messages,
   }) as any;
   const folding = rootMsg ? foldingList(rootMsg) : undefined;
