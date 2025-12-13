@@ -22,7 +22,14 @@ import {
   useState,
 } from "@cocalc/frontend/app-framework";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
-import Ansi from "@cocalc/frontend/components/ansi-to-react";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Terminal as XTerm } from "@xterm/xterm";
+import "@xterm/xterm/css/xterm.css";
+import {
+  background_color,
+  setTheme,
+} from "@cocalc/frontend/frame-editors/terminal-editor/themes";
+import { COLOR_THEMES } from "@cocalc/frontend/frame-editors/terminal-editor/theme-data";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import type { LineDiffResult } from "@cocalc/util/line-diff";
 import { plural } from "@cocalc/util/misc";
@@ -787,7 +794,6 @@ function TerminalRow({
   const status = formatTerminalStatus(entry);
   const hasOutput = Boolean(entry.output && entry.output.length > 0);
   const secondarySize = Math.max(11, fontSize - 2);
-  const codeFontSize = Math.max(11, fontSize - 1);
   const showHeader = Boolean(commandLine || entry.cwd);
   return (
     <div>
@@ -796,17 +802,7 @@ function TerminalRow({
       </Tag>
       <div
         style={{
-          background: "#0f172a",
-          color: "#e2e8f0",
-          borderRadius: 6,
-          padding: "10px 12px",
-          fontFamily: "monospace",
-          fontSize: codeFontSize,
-          whiteSpace: "pre-wrap",
-          lineHeight: 1.45,
-          border: `1px solid ${COLORS.GRAY_L}`,
-          maxHeight: 360,
-          overflowY: "auto",
+          marginBottom: 6,
         }}
       >
         {showHeader ? (
@@ -827,11 +823,20 @@ function TerminalRow({
           </div>
         ) : null}
         {hasOutput ? (
-          <Ansi>{entry.output}</Ansi>
+          <TerminalPreview
+            text={entry.output}
+            maxHeight={360}
+            fontSize={fontSize}
+          />
         ) : (
-          <Text type="secondary" style={{ fontSize: secondarySize }}>
-            {entry.exitStatus ? "No output captured." : "Waiting for output…"}
-          </Text>
+          <TerminalPreview
+            text={
+              entry.exitStatus ? "No output captured." : "Waiting for output…"
+            }
+            maxHeight={180}
+            fontSize={fontSize}
+            placeholder
+          />
         )}
       </div>
       <Space size={8} wrap align="center" style={{ marginTop: 6 }}>
@@ -846,6 +851,90 @@ function TerminalRow({
           </Tag>
         ) : null}
       </Space>
+    </div>
+  );
+}
+
+function TerminalPreview({
+  text,
+  maxHeight,
+  fontSize,
+  placeholder = false,
+}: {
+  text: string;
+  maxHeight: number;
+  fontSize: number;
+  placeholder?: boolean;
+}) {
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const termRef = React.useRef<XTerm | null>(null);
+  const terminalPrefs =
+    useTypedRedux("account", "terminal")?.toJS() ?? undefined;
+  const colorScheme = terminalPrefs?.color_scheme ?? "default";
+  const fontFamily = terminalPrefs?.font ?? "monospace";
+  const fontSizePref = terminalPrefs?.font_size ?? Math.max(12, fontSize);
+  const theme = COLOR_THEMES[colorScheme] ?? COLOR_THEMES["default"];
+  const background = background_color(colorScheme);
+  const foreground = theme?.colors?.[16] ?? "#e2e8f0";
+
+  React.useEffect(() => {
+    const host = containerRef.current;
+    if (!host) return;
+    const term = new XTerm({
+      convertEol: true,
+      disableStdin: true,
+      fontFamily,
+      fontSize: fontSizePref,
+      scrollback: 5000,
+    });
+    setTheme(term, colorScheme);
+    termRef.current = term;
+    term.open(host);
+    term.focus();
+    const rendered = placeholder ? "" : text.replace(/\r?\n/g, "\r\n");
+    if (rendered.length) {
+      term.write(rendered);
+      term.scrollToBottom();
+    }
+    return () => term.dispose();
+  }, [colorScheme, fontFamily, fontSizePref]);
+
+  React.useEffect(() => {
+    const term = termRef.current;
+    if (!term) return;
+    term.reset();
+    setTheme(term, colorScheme);
+    const rendered = placeholder ? "" : text.replace(/\r?\n/g, "\r\n");
+    if (rendered.length) {
+      term.write(rendered);
+      term.scrollToBottom();
+    }
+  }, [text, colorScheme, placeholder]);
+
+  return (
+    <div
+      style={{
+        border: `1px solid ${COLORS.GRAY_L}`,
+        borderRadius: 6,
+        background,
+        color: foreground,
+        maxHeight,
+        overflow: "auto",
+        padding: "6px 8px",
+        fontFamily,
+        fontSize: Math.max(11, fontSize - 1),
+      }}
+    >
+      <div
+        ref={containerRef}
+        style={{ minHeight: placeholder ? 60 : 24 }}
+        aria-label="terminal-output"
+      />
+      {placeholder ? (
+        <Text type="secondary" style={{ fontSize: Math.max(11, fontSize - 2) }}>
+          {text}
+        </Text>
+      ) : null}
     </div>
   );
 }
