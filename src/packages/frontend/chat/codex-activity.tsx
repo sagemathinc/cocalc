@@ -20,9 +20,9 @@ import {
   useEffect,
   useMemo,
   useState,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import {
@@ -341,9 +341,9 @@ function ActivityRow({
     case "reasoning":
       return (
         <Space>
-          <Tag color="purple" style={{ marginBottom: 4 }}>
+          {/*<Tag color="purple" style={{ marginBottom: 4 }}>
             Reasoning
-          </Tag>
+          </Tag>*/}
           {entry.text ? (
             <StaticMarkdown
               value={entry.text}
@@ -377,9 +377,9 @@ function ActivityRow({
     case "diff":
       return (
         <div>
-          <Tag color="geekblue" style={{ marginBottom: 4 }}>
+          {/* <Tag color="geekblue" style={{ marginBottom: 4 }}>
             Diff
-          </Tag>
+          </Tag>*/}
           <PathLink
             path={entry.path}
             projectId={projectId}
@@ -735,13 +735,11 @@ function DiffPreview({
         const op = diff.types[i] ?? 0;
         const gutter = diff.gutters[i] ?? "";
         const background =
-          op === -1
-            ? "#ffeef0"
-            : op === 1
-              ? "#e6ffed"
-              : "transparent";
+          op === -1 ? "#ffeef0" : op === 1 ? "#e6ffed" : "transparent";
         const color = op === 0 ? COLORS.GRAY_D : "inherit";
-        const borderTop = chunkEnds.has(i) ? `1px solid ${COLORS.GRAY_L}` : "none";
+        const borderTop = chunkEnds.has(i)
+          ? `1px solid ${COLORS.GRAY_L}`
+          : "none";
         return (
           <div
             key={i}
@@ -794,51 +792,28 @@ function TerminalRow({
   const status = formatTerminalStatus(entry);
   const hasOutput = Boolean(entry.output && entry.output.length > 0);
   const secondarySize = Math.max(11, fontSize - 2);
-  const showHeader = Boolean(commandLine || entry.cwd);
+  const cwdPrompt = entry.cwd ? shortenPath(entry.cwd) : "~";
+  const promptLine = `${cwdPrompt} $${commandLine ? " " + commandLine : ""}`;
+  const truncatedNote = entry.truncated ? "\n[output truncated]" : "";
+  const terminalText = hasOutput
+    ? `${promptLine}\n${entry.output.trimEnd()}${truncatedNote}`
+    : `${promptLine}${truncatedNote}`;
+  const placeholderText = entry.exitStatus
+    ? "No output captured."
+    : "Waiting for output…";
+
   return (
     <div>
-      <Tag color={COLORS.STAR} style={{ marginBottom: 6 }}>
+      {/* <Tag color={COLORS.STAR} style={{ marginBottom: 6 }}>
         Terminal
-      </Tag>
-      <div
-        style={{
-          marginBottom: 6,
-        }}
-      >
-        {showHeader ? (
-          <div style={{ marginBottom: hasOutput ? 8 : 0 }}>
-            <span style={{ color: "#94a3b8" }}>$</span>{" "}
-            {commandLine ?? <span style={{ color: "#cbd5e1" }}>Command</span>}
-            {entry.cwd ? (
-              <span
-                style={{
-                  marginLeft: 8,
-                  color: "#94a3b8",
-                  fontSize: secondarySize,
-                }}
-              >
-                ({entry.cwd})
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-        {hasOutput ? (
-          <TerminalPreview
-            text={entry.output}
-            maxHeight={360}
-            fontSize={fontSize}
-          />
-        ) : (
-          <TerminalPreview
-            text={
-              entry.exitStatus ? "No output captured." : "Waiting for output…"
-            }
-            maxHeight={180}
-            fontSize={fontSize}
-            placeholder
-          />
-        )}
-      </div>
+      </Tag>*/}
+      <TerminalPreview
+        text={terminalText}
+        maxHeight={360}
+        fontSize={fontSize}
+        placeholder={!hasOutput}
+        placeholderText={placeholderText}
+      />
       <Space size={8} wrap align="center" style={{ marginTop: 6 }}>
         {status ? (
           <Text type="secondary" style={{ fontSize: secondarySize }}>
@@ -860,11 +835,13 @@ function TerminalPreview({
   maxHeight,
   fontSize,
   placeholder = false,
+  placeholderText,
 }: {
   text: string;
   maxHeight: number;
   fontSize: number;
   placeholder?: boolean;
+  placeholderText?: string;
 }) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const termRef = React.useRef<XTerm | null>(null);
@@ -872,10 +849,24 @@ function TerminalPreview({
     useTypedRedux("account", "terminal")?.toJS() ?? undefined;
   const colorScheme = terminalPrefs?.color_scheme ?? "default";
   const fontFamily = terminalPrefs?.font ?? "monospace";
-  const fontSizePref = terminalPrefs?.font_size ?? Math.max(12, fontSize);
+  const fontSizePref = Number.isFinite(fontSize)
+    ? fontSize
+    : terminalPrefs?.font_size ?? 13;
   const theme = COLOR_THEMES[colorScheme] ?? COLOR_THEMES["default"];
   const background = background_color(colorScheme);
   const foreground = theme?.colors?.[16] ?? "#e2e8f0";
+  const normalizedText = (text ?? "").trimEnd();
+  const lineCount = Math.max(
+    1,
+    placeholder ? 1 : normalizedText.split(/\r?\n/).length,
+  );
+  const lineHeight = (fontSizePref || 13) * 1.45;
+  const maxRows =
+    maxHeight && maxHeight > 0
+      ? Math.max(1, Math.floor(maxHeight / lineHeight))
+      : 20;
+  const rows = Math.min(maxRows, lineCount);
+  const containerHeight = rows * lineHeight + 8;
 
   React.useEffect(() => {
     const host = containerRef.current;
@@ -886,30 +877,34 @@ function TerminalPreview({
       fontFamily,
       fontSize: fontSizePref,
       scrollback: 5000,
+      rows,
     });
     setTheme(term, colorScheme);
     termRef.current = term;
     term.open(host);
-    term.focus();
-    const rendered = placeholder ? "" : text.replace(/\r?\n/g, "\r\n");
-    if (rendered.length) {
-      term.write(rendered);
-      term.scrollToBottom();
-    }
     return () => term.dispose();
-  }, [colorScheme, fontFamily, fontSizePref]);
+  }, [
+    colorScheme,
+    fontFamily,
+    fontSizePref,
+    rows,
+    normalizedText,
+    placeholder,
+  ]);
 
   React.useEffect(() => {
     const term = termRef.current;
     if (!term) return;
     term.reset();
     setTheme(term, colorScheme);
-    const rendered = placeholder ? "" : text.replace(/\r?\n/g, "\r\n");
+    const rendered = normalizedText.replace(/\r?\n/g, "\r\n");
     if (rendered.length) {
       term.write(rendered);
-      term.scrollToBottom();
     }
-  }, [text, colorScheme, placeholder]);
+    term.scrollToTop();
+    // xterm sometimes scrolls after write; ensure we stay at the top.
+    setTimeout(() => term.scrollToTop(), 0);
+  }, [normalizedText, colorScheme, placeholder]);
 
   return (
     <div
@@ -918,25 +913,38 @@ function TerminalPreview({
         borderRadius: 6,
         background,
         color: foreground,
-        maxHeight,
-        overflow: "auto",
-        padding: "6px 8px",
+        height: containerHeight,
+        overflow: "hidden",
+        padding: "4px 6px",
         fontFamily,
         fontSize: Math.max(11, fontSize - 1),
       }}
     >
       <div
         ref={containerRef}
-        style={{ minHeight: placeholder ? 60 : 24 }}
+        style={{ minHeight: placeholder ? containerHeight - 8 : 0 }}
         aria-label="terminal-output"
       />
       {placeholder ? (
         <Text type="secondary" style={{ fontSize: Math.max(11, fontSize - 2) }}>
-          {text}
+          {placeholderText ?? text}
         </Text>
       ) : null}
     </div>
   );
+}
+
+function shortenPath(path: string): string {
+  if (!path) return "~";
+  const homeMatch = path.match(/^\/home\/([^/]+)(.*)$/);
+  if (homeMatch) {
+    return homeMatch[2] ? `~${homeMatch[2]}` : "~";
+  }
+  const rootMatch = path.match(/^\/root(.*)$/);
+  if (rootMatch) {
+    return rootMatch[1] ? `~${rootMatch[1]}` : "~";
+  }
+  return path;
 }
 
 function approvalStatusColor(status: AcpApprovalStatus): string {
@@ -1035,7 +1043,7 @@ function FileRow({
   return (
     <div>
       <Space size={6} wrap align="center" style={{ marginBottom: 6 }}>
-        <Tag color={isRead ? "blue" : "green"}>File</Tag>
+        {/*<Tag color={isRead ? "blue" : "green"}>File</Tag> */}
         <Text strong style={{ fontSize }}>
           {actionLabel}
         </Text>
