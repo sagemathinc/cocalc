@@ -890,7 +890,13 @@ function TerminalPreview({
     if (viewport) {
       viewport.style.overflow = "hidden";
     }
-    return () => term.dispose();
+    return () => {
+      try {
+        term.dispose();
+      } catch {
+        // ignore
+      }
+    };
   }, [
     colorScheme,
     fontFamily,
@@ -903,8 +909,13 @@ function TerminalPreview({
   React.useEffect(() => {
     const term = termRef.current;
     if (!term) return;
+    let scrollTimer: any;
     term.reset();
-    setTheme(term, colorScheme);
+    try {
+      setTheme(term, colorScheme);
+    } catch {
+      // ignore theme errors when disposed
+    }
     const host = containerRef.current;
     if (host) {
       const viewport = host.querySelector(
@@ -920,7 +931,16 @@ function TerminalPreview({
     }
     term.scrollToTop();
     // xterm sometimes scrolls after write; ensure we stay at the top.
-    setTimeout(() => term.scrollToTop(), 0);
+    scrollTimer = setTimeout(() => {
+      try {
+        term.scrollToTop();
+      } catch {
+        // ignore
+      }
+    }, 0);
+    return () => {
+      if (scrollTimer) clearTimeout(scrollTimer);
+    };
   }, [normalizedText, colorScheme, placeholder]);
 
   return (
