@@ -1778,8 +1778,8 @@ export function decode({
   }
 }
 
-let textEncoder: TextEncoder | undefined = undefined;
-let textDecoder: TextDecoder | undefined = undefined;
+let textEncoder: any = undefined;
+let textDecoder: any = undefined;
 
 function jsonEncoder(obj: any) {
   if (textEncoder === undefined) {

@@ -22,6 +22,7 @@ import { unlinkSync } from "node:fs";
 import { DatabaseSync as Database } from "node:sqlite";
 import { DiffMatchPatch, compressPatch } from "@cocalc/util/dmp";
 import { tmpNameSync } from "tmp-promise";
+import type { DocCodec } from "@cocalc/sync/patchflow";
 
 const dmp = new DiffMatchPatch({
   diffTimeout: 0.5,
@@ -36,7 +37,7 @@ export interface WatchState {
 }
 
 export interface ExternalChange {
-  patch?: ReturnType<typeof compressPatch>;
+  patch?: unknown;
   content: string;
   hash: string;
   deleted: boolean;
@@ -190,6 +191,7 @@ export class SyncFsWatchStore {
     path: string,
     loader: () => Promise<string>,
     deleted = false,
+    codec?: DocCodec,
   ): Promise<ExternalChange> {
     let current;
     if (deleted) {
@@ -205,6 +207,39 @@ export class SyncFsWatchStore {
     }
     const currentHash = this.sha(current);
     const prev = this.get(path);
+
+    // Structured documents (patch_format != 0)
+    if (codec) {
+      try {
+        const baseDoc = codec.fromString(prev?.content ?? "");
+        const nextDoc = codec.fromString(current);
+        // Fast no-op check if hashes match and docs compare equal.
+        const equal =
+          prev &&
+          prev.hash === currentHash &&
+          !prev.deleted &&
+          typeof (baseDoc as any).isEqual === "function"
+            ? (baseDoc as any).isEqual(nextDoc)
+            : false;
+        if (equal && !deleted) {
+          return { content: prev!.content, hash: currentHash, deleted: false };
+        }
+        const nextStr = codec.toString(nextDoc);
+        const patch = codec.makePatch(baseDoc, nextDoc);
+        this.setContent(path, nextStr);
+        if (deleted) this.markDeleted(path);
+        return {
+          patch,
+          content: nextStr,
+          hash: this.sha(nextStr),
+          deleted: false,
+        };
+      } catch {
+        // Fall back to string diff below on codec failure.
+      }
+    }
+
+    // Plain string path (or codec failure fallback)
     if (prev && prev.hash === currentHash && !prev.deleted && !deleted) {
       return { content: current, hash: currentHash, deleted: false };
     }

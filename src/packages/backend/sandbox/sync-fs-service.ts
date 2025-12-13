@@ -7,6 +7,11 @@ import { AStream } from "@cocalc/conat/sync/astream";
 import { patchesStreamName } from "@cocalc/conat/sync/synctable-stream";
 import { conat } from "@cocalc/backend/conat/conat";
 import { client_db } from "@cocalc/util/db-schema/client-db";
+import {
+  createDbCodec,
+  createImmerDbCodec,
+  type DocCodec,
+} from "@cocalc/sync/patchflow";
 
 export interface WatchEvent {
   path: string;
@@ -18,7 +23,11 @@ export interface WatchMeta {
   project_id?: string;
   relativePath?: string;
   string_id?: string;
-  doctype?: any;
+  doctype?: {
+    type?: string;
+    patch_format?: number;
+    opts?: Record<string, unknown>;
+  };
 }
 
 interface WatchEntry {
@@ -67,10 +76,13 @@ export class SyncFsService extends EventEmitter {
     if (!meta?.project_id || !meta.relativePath) return;
     const string_id =
       meta.string_id ?? client_db.sha1(meta.project_id, meta.relativePath);
+    const codec = this.resolveCodec(meta);
     try {
       const change = await this.store.handleExternalChange(
         path,
         async () => (await readFile(path, "utf8")) as string,
+        false,
+        codec,
       );
       if (change.patch) {
         const payload: ExternalChange = { ...change, deleted: false };
@@ -118,11 +130,14 @@ export class SyncFsService extends EventEmitter {
 
   async recordLocalDelete(path: string): Promise<void> {
     let change: ExternalChange = { deleted: true, content: "", hash: "" };
+    const meta = this.metaByPath.get(path);
+    const codec = this.resolveCodec(meta);
     try {
       const computed = await this.store.handleExternalChange(
         path,
         async () => "",
         true,
+        codec,
       );
       change = { ...computed, deleted: true };
     } catch {
@@ -131,7 +146,6 @@ export class SyncFsService extends EventEmitter {
     }
     // If we already know the meta for this path, append a delete patch immediately
     // so clients see the deletion even if the watcher event is delayed.
-    const meta = this.metaByPath.get(path);
     if (process.env.SYNC_FS_DEBUG) {
       console.log("sync-fs recordLocalDelete", {
         path,
@@ -236,12 +250,14 @@ export class SyncFsService extends EventEmitter {
     const timer = setTimeout(async () => {
       this.debounceTimers.delete(path);
       const meta = this.metaByPath.get(path);
+      const codec = this.resolveCodec(meta);
       if (event === "unlink") {
         try {
           const change = await this.store.handleExternalChange(
             path,
             async () => "",
             true,
+            codec,
           );
           const payload = { ...change, deleted: true };
           this.emitEvent({ path, type: "delete", change: payload });
@@ -260,9 +276,14 @@ export class SyncFsService extends EventEmitter {
           this.suppressOnce.delete(path);
           return;
         }
-        const change = await this.store.handleExternalChange(path, async () => {
-          return (await readFile(path, "utf8")) as string;
-        });
+        const change = await this.store.handleExternalChange(
+          path,
+          async () => {
+            return (await readFile(path, "utf8")) as string;
+          },
+          false,
+          codec,
+        );
         if (!change.deleted && change.patch == null) {
           return;
         }
@@ -279,6 +300,38 @@ export class SyncFsService extends EventEmitter {
 
   private emitEvent(evt: WatchEvent): void {
     this.emit("event", evt);
+  }
+
+  // Choose an appropriate codec for structured documents so we can compute
+  // patches without falling back to text diffing.
+  private resolveCodec(meta?: WatchMeta): DocCodec | undefined {
+    const toArray = (val: unknown): string[] | undefined => {
+      if (Array.isArray(val)) return val;
+      if (val instanceof Set) return Array.from(val);
+      return undefined;
+    };
+    const format = meta?.doctype?.patch_format;
+    if (format !== 1) return;
+    const opts = (meta?.doctype?.opts ?? {}) as Record<string, unknown>;
+    const primaryKeys = toArray(
+      (opts as any).primary_keys ?? (opts as any).primaryKeys,
+    );
+    const stringCols =
+      toArray((opts as any).string_cols ?? (opts as any).stringCols) ?? [];
+    if (!primaryKeys || primaryKeys.length === 0) {
+      return;
+    }
+    const type = meta?.doctype?.type ?? "";
+    if (typeof type === "string" && type.toLowerCase().includes("immer")) {
+      return createImmerDbCodec({
+        primaryKeys,
+        stringCols,
+      });
+    }
+    return createDbCodec({
+      primaryKeys,
+      stringCols,
+    });
   }
 
   private pruneStale = (): void => {

@@ -150,6 +150,9 @@ importers:
       '@cocalc/conat':
         specifier: workspace:*
         version: link:../conat
+      '@cocalc/sync':
+        specifier: workspace:*
+        version: link:../sync
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util

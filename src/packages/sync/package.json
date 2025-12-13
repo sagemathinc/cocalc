@@ -7,6 +7,7 @@
     "./index": "./dist/index.js",
     "./*": "./dist/*.js",
     "./table": "./dist/table/index.js",
+    "./patchflow": "./dist/patchflow.js",
     "./listings": "./dist/listings/index.js",
     "./editor/db": "./dist/editor/db/index.js",
     "./editor/immer-db": "./dist/editor/immer-db/index.js"
@@ -19,17 +20,9 @@
     "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "realtime synchronization"
-  ],
+  "keywords": ["cocalc", "realtime synchronization"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/conat": "workspace:*",
