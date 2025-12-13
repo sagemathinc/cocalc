@@ -59,7 +59,6 @@ import {
 } from "./threads";
 import type { ThreadListItem, ThreadSection } from "./threads";
 import CodexConfigButton from "./codex";
-import { CONTEXT_WARN_PCT, CONTEXT_CRITICAL_PCT } from "./codex";
 import { Resizable } from "re-resizable";
 import { ChatDocProvider, useChatDoc } from "./doc-context";
 import * as immutable from "immutable";
@@ -691,26 +690,9 @@ export function ChatPanel({
     const isRecentlyActive =
       thread.lastActivityAt != null &&
       activityNow - thread.lastActivityAt < ACTIVITY_RECENT_MS;
-    const contextRemaining = thread.contextRemaining;
-    const contextSeverity =
-      contextRemaining == null
-        ? null
-        : contextRemaining < CONTEXT_CRITICAL_PCT
-          ? "critical"
-          : contextRemaining < CONTEXT_WARN_PCT
-            ? "warning"
-            : null;
-    const showDot = isRecentlyActive || contextSeverity != null;
-    const dotColor =
-      contextSeverity === "critical"
-        ? COLORS.FG_RED
-        : contextSeverity === "warning"
-          ? "#f5a623"
-          : COLORS.BLUE;
-    const dotTitle =
-      contextSeverity != null && contextRemaining != null
-        ? `Context ${contextRemaining}% left — compact soon.`
-        : "Recent activity";
+    const showDot = isRecentlyActive;
+    const dotColor = COLORS.BLUE;
+    const dotTitle = "Recent activity";
     const iconTooltip = thread.isAI
       ? "This thread started with an AI request, so the AI responds automatically."
       : "This thread started as human-only. AI replies only when explicitly mentioned.";
@@ -742,10 +724,6 @@ export function ChatPanel({
                   height: 8,
                   borderRadius: "50%",
                   background: dotColor,
-                  boxShadow:
-                    contextSeverity != null
-                      ? `0 0 0 6px rgba(0,0,0,0.04)`
-                      : undefined,
                   flexShrink: 0,
                 }}
               />

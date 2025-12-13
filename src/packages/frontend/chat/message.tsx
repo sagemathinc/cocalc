@@ -357,15 +357,9 @@ export default function Message({
   const [showCodexDrawer, setShowCodexDrawer] = useState(false);
   const codexEventCount = codexEvents?.length ?? 0;
 
-  const showCodexActivity = useMemo(
-    () =>
-      Boolean(
-        (codexEvents && codexEvents.length > 0) ||
-          codexLog.hasLogRef ||
-          generating,
-      ),
-    [codexEvents, codexLog.hasLogRef, generating],
-  );
+  const showCodexActivity = useMemo(() => {
+    return Boolean((codexEvents && codexEvents.length > 0) || generating);
+  }, [codexEvents, codexLog.hasLogRef, generating]);
 
   const threadRootMs = useMemo(() => {
     const root = getThreadRootDate({ date, messages });
@@ -989,33 +983,31 @@ export default function Message({
 
     return (
       <>
-        {showCodexActivity ? (
+        {showCodexActivity && (
           <>
-            {generating ||
-              ((codexEventCount ?? 0) > 0 && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 8,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <Badge status={generating ? "processing" : "default"} />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              <Badge status={generating ? "processing" : "default"} />
 
-                  <Button
-                    size="small"
-                    onClick={() => setShowCodexDrawer(true)}
-                    title="View Codex activity log"
-                  >
-                    View activity ({codexEventCount || "…"})
-                  </Button>
-                  {generating ? (
-                    <span style={{ color: COLORS.GRAY_D }}>Live</span>
-                  ) : null}
-                </div>
-              ))}
+              <Button
+                size="small"
+                onClick={() => setShowCodexDrawer(true)}
+                title="View Codex activity log"
+              >
+                View activity ({codexEventCount || "…"})
+              </Button>
+              {generating ? (
+                <span style={{ color: COLORS.GRAY_D }}>Live</span>
+              ) : null}
+            </div>
+
             <Drawer
               title="Codex activity"
               placement="right"
@@ -1063,7 +1055,7 @@ export default function Message({
               />
             </Drawer>
           </>
-        ) : null}
+        )}
         {renderContextNotice()}
         <MostlyStaticMarkdown
           style={MARKDOWN_STYLE}
