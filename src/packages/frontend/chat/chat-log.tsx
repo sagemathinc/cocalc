@@ -392,7 +392,7 @@ function isFolded(
   return Boolean(folding?.includes?.(account_id));
 }
 
-// messages is an immutablejs map from
+// messages is a Javascript map from
 //   - timestamps (ms since epoch as string)
 // to
 //   - message objects {date: , event:, history, sender_id, reply_to}

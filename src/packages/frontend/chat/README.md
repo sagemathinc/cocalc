@@ -1,27 +1,15 @@
 # Chat
 
-WARNING: like all development docs, don't trust anything technical in
-this file; instead, only trust the code itself! Nobody ever looks at
-docs like this, except people very new to the codebase, hence they tend
-to just maximize confusion.
+## State / normalization (2025-02)
 
-## State/normalization notes (2025-02)
-
-- Incoming chat records from syncdb are normalized/upgraded in `normalize.ts` before being stored, and upgraded records are written back once (with a `schema_version`).
-- We still keep chat state in the legacy Immutable-powered store, but the goal is to move toward plain objects + immer (Patchflow supports both). Keeping normalization centralized makes that migration easier and testable.
+- Chat data now lives in a single source of truth: the SyncDoc backed by Patchflow/Immer. `message-cache.ts` listens to SyncDoc change events, normalizes each row via `normalize.ts`, and exposes a plain `Map<string, ChatMessage>` (keyed by the thread root date in milliseconds as a string).
+- Normalization upgrades legacy rows (adds `schema_version`, coerces dates, flattens history/payload) and writes the upgraded record back once so disk stays consistent.
+- The Redux store still uses immutable.js for unrelated UI state (e.g., hashtag filters), but chat messages themselves are plain JS objects served from the cache/context.
 
 ## Timestamps
 
-Note: There are a couple of ways to represent a time in Javascript:
-
-- iso string
-- ms since epoch as a number
-- string version of ms since epoch
-- Date object
-
-The data structures for chat have somehow evolved since that
-crazy Sage Days by the Ocean in WA to use all of these at once, which is
-confusing and annoying. Be careful!
+- Stored on disk as ISO strings; in memory we normalize to `Date` objects for all chat messages.
+- Thread keys and message keys use the millisecond timestamp as a string (e.g., `"1733958748000"`). Callers are expected to pass keys in that form.
 
 ## Overview
 
@@ -67,13 +55,13 @@ Example object:
 
 ---
 
-Chat message types after immutable conversion:
-(immutable.Map)
+Chat message shape after normalization (plain JS):
 
 ```
-sender_id : String
-event     : String
-date      : Date Object
-history   : immutable.List of immutable.Maps
-editing   : immutable.Map
+sender_id : string
+event     : "chat" | "draft"
+date      : Date          // normalized from stored ISO
+history   : MessageHistory[]  // newest first
+editing   : string[]      // account_ids currently editing
+schema_version : number   // current schema version written back to disk
 ```
