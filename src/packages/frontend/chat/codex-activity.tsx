@@ -711,7 +711,8 @@ function DiffPreview({
   diff: LineDiffResult;
   fontSize: number;
 }) {
-  if (!diff.lines.length) {
+  if (!diff?.lines?.length) {
+    // ?'s for old input
     return (
       <Text type="secondary" style={{ fontSize: Math.max(11, fontSize - 2) }}>
         No changes detected.
@@ -851,7 +852,7 @@ function TerminalPreview({
   const fontFamily = terminalPrefs?.font ?? "monospace";
   const fontSizePref = Number.isFinite(fontSize)
     ? fontSize
-    : terminalPrefs?.font_size ?? 13;
+    : (terminalPrefs?.font_size ?? 13);
   const theme = COLOR_THEMES[colorScheme] ?? COLOR_THEMES["default"];
   const background = background_color(colorScheme);
   const foreground = theme?.colors?.[16] ?? "#e2e8f0";
