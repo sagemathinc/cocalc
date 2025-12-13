@@ -33,10 +33,6 @@ const FILESYSTEM_CLIENT_ID = "__filesystem__";
 export const DELETED_THRESHOLD = 2000;
 export const DELETED_CHECK_INTERVAL = 750;
 
-// Length of time file is locked for reading (so that only
-// one client reads it at a time), very first time reading it:
-const FIRST_READ_LOCK_TIMEOUT = 2000;
-
 import {
   COMPUTE_THRESH_MS,
   COMPUTER_SERVER_CURSOR_TYPE,
@@ -1118,10 +1114,6 @@ export class SyncDoc extends EventEmitter {
     log("file_use_interval");
     this.init_file_use_interval();
 
-    if (!SyncDoc.lite) {
-      await this.loadFromDiskIfNewer();
-    }
-
     this.emit("init");
     this.assert_not_closed("initAll -- after waiting until fully ready");
 
@@ -1169,52 +1161,6 @@ export class SyncDoc extends EventEmitter {
     });
     //console.trace("SYNC WAIT -- got it!");
     return result;
-  };
-
-  loadFromDiskIfNewer = async ({
-    lastChanged,
-  }: { lastChanged?: number } = {}): Promise<boolean> => {
-    const dbg = this.dbg("loadFromDiskIfNewer");
-    let stats;
-    try {
-      stats = await this.stat();
-    } catch (err) {
-      this.valueOnDisk = undefined; // nonexistent or don't know
-      if (err.code == "ENOENT") {
-        // path does not exist -- nothing further to do
-        return false;
-      } else {
-        // no clue
-        return true;
-      }
-    }
-    dbg("path exists");
-    lastChanged = lastChanged ?? this.last_changed();
-    const firstLoad = this.versions().length == 0;
-    const mtime = stats.mtime.valueOf();
-    if (firstLoad || mtime > lastChanged) {
-      dbg(
-        `disk file changed more recently than edits, so loading ${mtime} > ${lastChanged}; firstLoad=${firstLoad}`,
-      );
-      try {
-        await this.readFile();
-      } catch (err) {
-        if (err.code != "LOCK") {
-          throw err;
-        }
-      }
-      if (firstLoad) {
-        dbg("emitting first-load event");
-        // this event is emited the first time the document is ever
-        // loaded from disk.  It's used, e.g., for notebook "trust" state,
-        // so important from a security POV.
-        this.emit("first-load");
-      }
-      dbg("loaded");
-    } else {
-      dbg("stick with sync version");
-    }
-    return false;
   };
 
   private patch_table_query = (cutoff?: number) => {
@@ -2161,53 +2107,6 @@ export class SyncDoc extends EventEmitter {
     this.emit("metadata-change");
   };
 
-  private hasReadFile: boolean = false;
-  readFile = reuseInFlight(async (): Promise<void> => {
-    if (this.isClosed() || this.opts.noSaveToDisk) {
-      return;
-    }
-    const dbg = this.dbg("readFile");
-
-    try {
-      // This lock is *extremely* important when opening the document
-      // since it prevents having two identical patches, e.g,. when
-      // two clients initialize the doc at the same time, which would
-      // result in "doubled content" (when the merge conflict happens).
-      let lock = 0;
-      if (!this.hasReadFile) {
-        lock = this.opts.firstReadLockTimeout ?? FIRST_READ_LOCK_TIMEOUT;
-      }
-      const contents: string = (await this.fs.readFile(
-        this.path,
-        "utf8",
-        lock,
-      )) as string;
-      this.hasReadFile = true;
-      // console.log(this.client.client.id, "read from disk --isDeleted = false");
-      this.isDeleted = false;
-      this.valueOnDisk = contents;
-      dbg("file exists");
-      this.from_str(contents);
-    } catch (err) {
-      if (err.code == "ENOENT") {
-        dbg("file no longer exists -- setting to blank");
-        this.from_str("");
-        this.valueOnDisk = "";
-        // Defer deletion signaling to the threshold-based watcher so we
-        // don't fire for transient deletes/recreates.
-        await this.signalIfFileDeleted();
-        return;
-      } else {
-        throw err;
-      }
-    }
-    // save new version to stream, which we just set via from_str
-    this.commit({ emitChangeImmediately: true, file: true });
-    this.emit("handle-file-change");
-    await this.save();
-    this.emit("after-change");
-  });
-
   is_read_only = (): boolean => {
     if (this.stats) {
       return isReadOnlyForOwner(this.stats);
@@ -2589,7 +2488,6 @@ export class SyncDoc extends EventEmitter {
       throw err;
     }
     if (this.isClosed()) return;
-    this.hasReadFile = true;
     this.isDeleted = false;
     this.valueOnDisk = value;
     this.emit("save-to-disk");
@@ -2723,64 +2621,6 @@ export class SyncDoc extends EventEmitter {
     }
     void this.sendBackendFsWatch(false);
   }
-
-  // returns true if file definitely exists right now,
-  // false if it definitely does not, and throws exception otherwise,
-  // e.g., network error.
-  private fileExists = async (): Promise<boolean> => {
-    try {
-      await this.stat();
-      return true;
-    } catch (err) {
-      // console.log("sync fileExists err", err);
-      if (err.code == "ENOENT") {
-        // file not there now.
-        return false;
-      }
-      throw err;
-    }
-  };
-
-  private signalIfFileDeleted = async (): Promise<void> => {
-    if (this.isClosed()) return;
-    if (!this.hasReadFile) {
-      // can't be a 'deleted' because it doesn't even exist yet.
-      return;
-    }
-    const start = Date.now();
-    const threshold = this.opts.deletedThreshold ?? DELETED_THRESHOLD;
-    while (!this.isClosed()) {
-      try {
-        if (await this.fileExists()) {
-          // file definitely exists right now -- NOT deleted.
-          return;
-        }
-        // file definitely does NOT exist right now.
-      } catch {
-        // network not working or project off -- no way to know.
-        return;
-      }
-      const elapsed = Date.now() - start;
-      if (elapsed > threshold) {
-        // out of time to appear again, and definitely concluded
-        // it does not exist above
-        // file still doesn't exist -- consider it deleted -- browsers
-        // should close the tab and possibly notify user.
-        this.from_str("");
-        this.commit({ meta: { deleted: true }, allowDuplicate: true });
-        // console.log("emit deleted and set isDeleted=true");
-        this.emitDeleted();
-        return;
-      }
-
-      await delay(
-        Math.min(
-          this.opts.deletedCheckInterval ?? DELETED_CHECK_INTERVAL,
-          threshold - elapsed,
-        ),
-      );
-    }
-  };
 
   push = (doc: SyncDoc, { source }: { source?: string | number } = {}) => {
     remote.push({ local: this, remote: doc, source });

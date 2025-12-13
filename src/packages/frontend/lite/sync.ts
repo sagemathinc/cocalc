@@ -51,31 +51,27 @@ export function remoteClient() {
 
 // doc must be local
 export async function connectToRemote(doc: SyncDoc) {
+  console.log("WARNING: remote sync is NOT fully implemented!!");
   if (doc.get_state() != "ready") {
     await once(doc, "ready");
   }
 
   const client = remoteClient();
+  // @ts-ignore
   const conat = client.conat();
-  if (!conat.info?.user && !doc.last_changed()) {
-    // not signed in and new doc, so better load from disk ASAP, since
-    // otherwise doc appears broken/blank
-    await doc.loadFromDiskIfNewer();
-  }
 
   const doc2 = await remoteSyncDoc(doc);
   if (doc2.get_state() != "ready") {
     try {
       await once(doc2, "ready", REMOTE_READY_TIMEOUT);
+      // @ts-ignore
       const lastChanged =
         Math.max(doc.last_changed() ?? 0, doc2.last_changed() ?? 0) +
         WRITE_LOCK_TIME;
       doc.push(doc2);
       doc.pull(doc2);
-      await doc.loadFromDiskIfNewer({ lastChanged });
     } catch (err) {
       console.log("timed out waiting for remote doc to be ready");
-      await doc.loadFromDiskIfNewer();
     }
   }
 
