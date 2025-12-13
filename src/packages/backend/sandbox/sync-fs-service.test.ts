@@ -5,6 +5,7 @@ import { once } from "events";
 import { SyncFsService } from "./sync-fs-service";
 import { tmpNameSync } from "tmp-promise";
 import { SyncFsWatchStore } from "./sync-fs-watch";
+import { DiffMatchPatch, decompressPatch } from "@cocalc/util/dmp";
 
 class FakeAStream {
   public messages: { mesg: any; seq: number }[] = [];
@@ -103,6 +104,39 @@ describe("SyncFsService", () => {
 
     const [evt] = (await once(svc, "event")) as any[];
     expect(evt.type).toBe("delete");
+    svc.close();
+  }, 10_000);
+
+  it("emits delete then rebuilds patches from empty base on recreate", async () => {
+    const path = join(dir, "recreate.txt");
+    writeFileSync(path, "first");
+
+    const svc = new SyncFsService();
+    await svc.heartbeat(path);
+    await new Promise((r) => setTimeout(r, 50));
+
+    rmSync(path);
+    const [delEvt] = (await once(svc, "event")) as any[];
+    expect(delEvt.type).toBe("delete");
+    // store should mark the path deleted (not just empty content)
+    const deletedState = (svc as any).store.get(path);
+    expect(deletedState?.deleted).toBe(true);
+
+    // recreate with different content; change patch should be from empty -> "second"
+    writeFileSync(path, "second");
+    const [chgEvt] = (await once(svc, "event")) as any[];
+    expect(chgEvt.type).toBe("change");
+
+    const dmp = new DiffMatchPatch({ diffTimeout: 0.5 });
+    const patches = decompressPatch(chgEvt.change.patch);
+    const [result, applied] = dmp.patch_apply(patches, "");
+    expect(applied.every(Boolean)).toBe(true);
+    expect(result).toBe("second");
+
+    const finalState = (svc as any).store.get(path);
+    expect(finalState?.deleted).toBe(false);
+    expect(finalState?.content).toBe("second");
+
     svc.close();
   }, 10_000);
 

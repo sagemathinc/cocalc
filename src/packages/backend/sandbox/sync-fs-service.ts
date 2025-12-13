@@ -104,9 +104,11 @@ export class SyncFsService extends EventEmitter {
       const computed = await this.store.handleExternalChange(
         path,
         async () => "",
+        true,
       );
       change = { ...computed, deleted: true };
     } catch {
+      // at least do this:
       this.store.markDeleted(path);
     }
     // If we already know the meta for this path, append a delete patch immediately
@@ -222,6 +224,7 @@ export class SyncFsService extends EventEmitter {
           const change = await this.store.handleExternalChange(
             path,
             async () => "",
+            true,
           );
           const payload = { ...change, deleted: true };
           this.emitEvent({ path, type: "delete", change: payload });
@@ -433,7 +436,9 @@ export class SyncFsService extends EventEmitter {
     // If we don't have any heads persisted yet, rebuild from the beginning so
     // we don't publish an orphaned head with empty parents.
     const start_seq =
-      info.heads.size === 0 || info.lastSeq == null ? undefined : info.lastSeq + 1;
+      info.heads.size === 0 || info.lastSeq == null
+        ? undefined
+        : info.lastSeq + 1;
     if (process.env.SYNC_FS_DEBUG) {
       console.log("sync-fs getStreamHeads start", { string_id, start_seq });
     }
@@ -462,7 +467,11 @@ export class SyncFsService extends EventEmitter {
       // fall through with whatever we gathered
     }
     // If we still have no heads but saw versions, fallback to full replay once.
-    if (info.heads.size === 0 && info.maxVersion > 0 && start_seq !== undefined) {
+    if (
+      info.heads.size === 0 &&
+      info.maxVersion > 0 &&
+      start_seq !== undefined
+    ) {
       if (process.env.SYNC_FS_DEBUG) {
         console.log("sync-fs getStreamHeads retry from start", { string_id });
       }

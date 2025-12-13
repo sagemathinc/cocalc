@@ -189,11 +189,12 @@ export class SyncFsWatchStore {
   async handleExternalChange(
     path: string,
     loader: () => Promise<string>,
+    deleted = false,
   ): Promise<ExternalChange> {
     const current = await loader();
     const currentHash = this.sha(current);
     const prev = this.get(path);
-    if (prev && prev.hash === currentHash && !prev.deleted) {
+    if (prev && prev.hash === currentHash && !prev.deleted && !deleted) {
       return { content: current, hash: currentHash, deleted: false };
     }
 
@@ -206,6 +207,7 @@ export class SyncFsWatchStore {
     }
 
     this.setContent(path, current);
+    if (deleted) this.markDeleted(path);
     return { patch, content: current, hash: currentHash, deleted: false };
   }
 
