@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Col, Row, Space, Spin } from "antd";
+import { Button, Col, Input, Row, Space, Spin } from "antd";
 import { ReactNode, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -151,43 +151,65 @@ export function StudentAssignmentInfo({
   function render_grade() {
     if (is_editing) {
       return (
-        <MarkdownInput
-          placeholder="Grade..."
-          value={grade || ""}
-          onBlur={(grade) => {
-            actions.assignments.set_grade(
-              assignment.get("assignment_id"),
-              student.get("student_id"),
-              grade,
-            );
-          }}
-          onShiftEnter={() => stop_editing()}
-          height="3em"
-          hideHelp
-          style={{ margin: "5px 0" }}
-          autoFocus
-        />
+        <Space align="start" style={{ margin: "5px 0" }}>
+          <Input
+            placeholder="Grade..."
+            value={grade ?? ""}
+            onChange={(e) =>
+              actions.assignments.set_grade(
+                assignment.get("assignment_id"),
+                student.get("student_id"),
+                e.target.value,
+              )
+            }
+            onPressEnter={() => stop_editing()}
+            size={size}
+            style={{ maxWidth: 180 }}
+            autoFocus
+          />
+          <Button type="primary" size={size} onClick={() => stop_editing()}>
+            Done
+          </Button>
+        </Space>
       );
     } else {
-      const text = intl.formatMessage(
+      const hasGrade = !!(grade ?? "").trim();
+      const gradeText = intl.formatMessage(
         {
           id: "course.student-assignment-info.grade.label",
           defaultMessage: `{show, select, true {Grade: {grade}} other {Enter grade...}}`,
           description: "Grade of an assignment in an online course",
         },
-        { grade, show: !!((grade ?? "").trim() || (comments ?? "").trim()) },
+        { grade, show: hasGrade },
       );
 
-      return (
-        <Button
-          key="edit"
-          onClick={() => set_edited_feedback()}
-          disabled={is_editing}
-          size={size}
-        >
-          {text}
-        </Button>
-      );
+      if (hasGrade) {
+        return (
+          <Space align="center">
+            <span>{gradeText}</span>
+            <Button
+              icon={<Icon name="pencil" />}
+              onClick={() => set_edited_feedback()}
+              disabled={is_editing}
+              size={size}
+              aria-label="Edit grade"
+              title="Edit grade"
+            />
+          </Space>
+        );
+      } else {
+        return (
+          <Button
+            key="edit"
+            icon={<Icon name="pencil" />}
+            onClick={() => set_edited_feedback()}
+            disabled={is_editing}
+            size={size}
+          >
+            {gradeText}
+          </Button>
+        );
+      }
     }
   }
 
@@ -244,12 +266,12 @@ export function StudentAssignmentInfo({
           student_id={student.get("student_id")}
           assignment_id={assignment.get("assignment_id")}
         />
-        {render_run_nbgrader("Run nbgrader again")}
+        {render_run_nbgrader(false)}
       </div>
     );
   }
 
-  function render_run_nbgrader(label: React.JSX.Element | string) {
+  function render_run_nbgrader(firstRun: boolean) {
     let running = false;
     if (nbgrader_run_info != null) {
       const t = nbgrader_run_info.get(
@@ -264,42 +286,48 @@ export function StudentAssignmentInfo({
         running = true;
       }
     }
-    label = running ? (
-      <span>
-        {" "}
-        <Spin /> Running nbgrader
-      </span>
-    ) : (
-      <span>{label}</span>
+
+    const iconName = firstRun ? "caret-right" : "redo";
+    const tipTitle = firstRun ? "Run nbgrader" : "Run nbgrader again";
+    const tipText = firstRun
+      ? "Run nbgrader on this student's collected submission."
+      : "Re-run nbgrader for this student's collected submission.";
+
+    const button = (
+      <Button
+        key="nbgrader"
+        icon={<Icon name={iconName} />}
+        disabled={running}
+        loading={running}
+        size={size}
+        onClick={() => {
+          if (
+            clicked_nbgrader.current != null &&
+            webapp_client.server_time() - clicked_nbgrader.current.valueOf() <=
+              3000
+          ) {
+            // User *just* clicked, and we want to avoid double click
+            // running nbgrader twice.
+            return;
+          }
+
+          clicked_nbgrader.current = new Date();
+          actions.assignments.run_nbgrader_for_one_student(
+            assignment.get("assignment_id"),
+            student.get("student_id"),
+          );
+        }}
+      />
     );
 
     return (
       <div style={{ marginTop: "5px" }}>
-        <Button
-          key="nbgrader"
-          disabled={running}
-          size={size}
-          onClick={() => {
-            if (
-              clicked_nbgrader.current != null &&
-              webapp_client.server_time() -
-                clicked_nbgrader.current.valueOf() <=
-                3000
-            ) {
-              // User *just* clicked, and we want to avoid double click
-              // running nbgrader twice.
-              return;
-            }
-
-            clicked_nbgrader.current = new Date();
-            actions.assignments.run_nbgrader_for_one_student(
-              assignment.get("assignment_id"),
-              student.get("student_id"),
-            );
-          }}
+        <Tip
+          title={tipTitle}
+          tip={tipText}
         >
-          <Icon name="graduation-cap" /> {label}
-        </Button>
+          {button}
+        </Tip>
       </div>
     );
   }
@@ -310,16 +338,7 @@ export function StudentAssignmentInfo({
     }
     if (!assignment.get("nbgrader") || assignment.get("skip_grading")) return;
 
-    return render_run_nbgrader("Run nbgrader");
-  }
-
-  function render_save_button() {
-    if (!is_editing) return;
-    return (
-      <Button key="save" size={size} onClick={() => stop_editing()}>
-        Save
-      </Button>
-    );
+    return render_run_nbgrader(true);
   }
 
   function render_last_time(time: string | number | Date) {
@@ -396,12 +415,10 @@ export function StudentAssignmentInfo({
       return [
         <Tip key="copy" title={step} placement={placement} tip={copy_tip}>
           <Button
-            type="dashed"
             size={size}
+            icon={<Icon name="redo" />}
             onClick={() => set_recopy(step, true)}
-          >
-            <Icon name="redo" />
-          </Button>
+          />
         </Tip>,
       ];
     }
@@ -410,9 +427,11 @@ export function StudentAssignmentInfo({
   function render_open(open, tip: string, placement: string) {
     return (
       <Tip key="open" title="Open assignment" tip={tip} placement={placement}>
-        <Button onClick={open} size={size}>
-          <Icon name="folder-open" />
-        </Button>
+        <Button
+          onClick={open}
+          size={size}
+          icon={<Icon name="folder-open" />}
+        />
       </Tip>
     );
   }
@@ -442,9 +461,7 @@ export function StudentAssignmentInfo({
   ) {
     return (
       <Tip key="copy" title={step} tip={tip} placement={placement}>
-        <Button onClick={copy} size={size}>
-          <Icon name="caret-right" />
-        </Button>
+        <Button onClick={copy} size={size} icon={<Icon name="caret-right" />} />
       </Tip>
     );
   }
@@ -658,7 +675,6 @@ export function StudentAssignmentInfo({
       <Col flex={GRADE_FLEX} key="grade">
         {show_grade_col && (
           <div>
-            {render_save_button()}
             {render_grade()}
             {render_comments()}
             {render_nbgrader()}

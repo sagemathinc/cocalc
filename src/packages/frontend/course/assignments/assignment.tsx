@@ -126,11 +126,7 @@ export function Assignment({
     if (is_peer_graded()) {
       for (const step of ["assignment", "collect"] as const) {
         if (assignment.get(`skip_${step}` as any)) {
-          actions.assignments.set_skip(
-            assignmentId,
-            step,
-            false,
-          );
+          actions.assignments.set_skip(assignmentId, step, false);
         }
       }
     }
@@ -207,7 +203,10 @@ export function Assignment({
             type={noteEditing ? "primary" : "default"}
             onClick={() => {
               if (noteEditing) {
-                actions.assignments.set_assignment_note(assignmentId, noteValue);
+                actions.assignments.set_assignment_note(
+                  assignmentId,
+                  noteValue,
+                );
               }
               setNoteEditing(!noteEditing);
             }}
@@ -333,14 +332,18 @@ export function Assignment({
         {(() => {
           const peer = is_peer_graded();
           const width = peer ? 4 : 6;
-          const totalStudents = get_store().get_student_ids({ deleted: false }).length;
+          const totalStudents = get_store().get_student_ids({
+            deleted: false,
+          }).length;
 
           if (num_files === 0) return null;
 
           const actions: Partial<
             Record<AssignmentCopyStep | "grade", ReactElement<any>[]>
           > = {};
-          const progress: Partial<Record<AssignmentCopyStep | "grade", ReactElement<any>>> = {};
+          const progress: Partial<
+            Record<AssignmentCopyStep | "grade", ReactElement<any>>
+          > = {};
 
           function add_action(
             step: AssignmentCopyStep | "grade",
@@ -349,23 +352,11 @@ export function Assignment({
             actions[step] = [...(actions[step] ?? []), element];
           }
 
-          const insert_grade_button = (key: string) => {
-            add_action(
-              "grade",
-              <span key={key}>
-                {render_nbgrader_button(status)}
-              </span>,
-            );
-          };
-
           const renderedMap: Partial<Record<AssignmentCopyStep, boolean>> = {};
 
           for (const name of STEPS(peer)) {
             const rendered = render_button(name, status);
             // squeeze in the skip grading button (don't add it to STEPS!)
-            if (!peer && name === "return_graded") {
-              insert_grade_button("skip_grading");
-            }
             if (rendered != null) {
               renderedMap[name] = true;
               if (Array.isArray(rendered)) {
@@ -384,31 +375,30 @@ export function Assignment({
               } else {
                 add_action(name, <span key={name}>{rendered}</span>);
               }
-              if (peer && name === "peer_collect") {
-                insert_grade_button("skip_peer_collect");
-              }
             }
 
-            if (rendered && !peer && name === "assignment") {
-              add_action(
-                "assignment",
-                <span key="skip-assignment">
-                  {render_skip_switch("assignment")}
-                </span>,
-              );
-            } else if (rendered && !peer && name === "collect") {
-              add_action(
-                "collect",
-                <span key="skip-collect">
-                  {render_skip_switch("collect")}
-                </span>,
-              );
+            if (!peer) {
+              if (rendered && name === "assignment") {
+                add_action(
+                  "assignment",
+                  <span key="skip-assignment">
+                    {render_skip_switch("assignment")}
+                  </span>,
+                );
+              } else if (rendered && name === "collect") {
+                add_action(
+                  "collect",
+                  <span key="skip-collect">
+                    {render_skip_switch("collect")}
+                  </span>,
+                );
+              }
             }
           }
 
-          const nbgrader = render_nbgrader_button(status);
-          if (nbgrader && status.collect > 0) {
-            add_action("grade", <span key="nbgrader">{nbgrader}</span>);
+          const nbgraderAction = render_nbgrader_button(status);
+          if (nbgraderAction && status.collect > 0) {
+            add_action("grade", nbgraderAction);
           }
 
           if (status.collect > 0 && renderedMap.collect) {
@@ -417,6 +407,28 @@ export function Assignment({
               <span key="skip-grade">
                 {render_skip_switch("grading", status.collect === 0)}
               </span>,
+            );
+          }
+
+          if (status.peer_assignment != null && progress.peer_assignment == null) {
+            progress["peer_assignment"] = (
+              <Progress
+                key="progress-peer-assign"
+                done={status.peer_assignment}
+                not_done={status.not_peer_assignment}
+                step="peer assigned"
+              />
+            );
+          }
+
+          if (status.peer_collect != null && progress.peer_collect == null) {
+            progress["peer_collect"] = (
+              <Progress
+                key="progress-peer-collect"
+                done={status.peer_collect}
+                not_done={status.not_peer_collect}
+                step="peer collected"
+              />
             );
           }
 
@@ -573,25 +585,24 @@ export function Assignment({
     });
 
     return [
-      <Button
+      <Tip
         key="assign"
-        type={type}
-        onClick={show_copy_confirm}
-        disabled={copy_confirm}
-        size="small"
+        title={
+          <span>
+            {label}: <Icon name="user-secret" /> {you}{" "}
+            <Icon name="arrow-right" /> <Icon name="users" /> {students}{" "}
+          </span>
+        }
+        tip={tooltip}
       >
-        <Tip
-          title={
-            <span>
-              {label}: <Icon name="user-secret" /> {you}{" "}
-              <Icon name="arrow-right" /> <Icon name="users" /> {students}{" "}
-            </span>
-          }
-          tip={tooltip}
-        >
-          <Icon name="forward" style={{ fontSize: 16 }} />
-        </Tip>
-      </Button>,
+        <Button
+          type={type}
+          onClick={show_copy_confirm}
+          disabled={copy_confirm}
+          size="small"
+          icon={<Icon name="forward" />}
+        />
+      </Tip>,
       <Progress
         key="progress"
         done={status.assignment}
@@ -979,29 +990,28 @@ export function Assignment({
       type = "primary";
     }
     return [
-      <Button
+      <Tip
         key="collect"
-        onClick={() => {
-          set_copy_confirm_state("collect", true);
-          set_copy_confirm(true);
-        }}
-        disabled={copy_confirm}
-        type={type}
-        size="small"
+        title={
+          <span>
+            Collect: <Icon name="users" />{" "}
+            {intl.formatMessage(course.students)} <Icon name="arrow-right" />{" "}
+            <Icon name="user-secret" /> You
+          </span>
+        }
+        tip={render_collect_tip()}
       >
-        <Tip
-          title={
-            <span>
-              Collect: <Icon name="users" />{" "}
-              {intl.formatMessage(course.students)} <Icon name="arrow-right" />{" "}
-              <Icon name="user-secret" /> You
-            </span>
-          }
-          tip={render_collect_tip()}
-        >
-          <Icon name="forward" style={{ fontSize: 16 }} />
-        </Tip>
-      </Button>,
+        <Button
+          onClick={() => {
+            set_copy_confirm_state("collect", true);
+            set_copy_confirm(true);
+          }}
+          disabled={copy_confirm}
+          type={type}
+          size="small"
+          icon={<Icon name="forward" />}
+        />
+      </Tip>,
       <Progress
         key="progress"
         done={status.collect}
@@ -1050,29 +1060,28 @@ export function Assignment({
       step: STEP_NAMES.indexOf("Peer Assign"),
     });
     return [
-      <Button
+      <Tip
         key="peer-assign"
-        onClick={() => {
-          set_copy_confirm_state("peer_assignment", true);
-          set_copy_confirm(true);
-        }}
-        disabled={copy_confirm}
-        type={type}
-        size="small"
+        title={
+          <span>
+            {label}: <Icon name="users" /> {intl.formatMessage(labels.you)}{" "}
+            <Icon name="arrow-right" /> <Icon name="user-secret" />{" "}
+            {intl.formatMessage(course.students)}
+          </span>
+        }
+        tip={render_peer_assign_tip()}
       >
-        <Tip
-          title={
-            <span>
-              {label}: <Icon name="users" /> {intl.formatMessage(labels.you)}{" "}
-              <Icon name="arrow-right" /> <Icon name="user-secret" />{" "}
-              {intl.formatMessage(course.students)}
-            </span>
-          }
-          tip={render_peer_assign_tip()}
-        >
-          <Icon name="forward" style={{ fontSize: 16 }} />
-        </Tip>
-      </Button>,
+        <Button
+          onClick={() => {
+            set_copy_confirm_state("peer_assignment", true);
+            set_copy_confirm(true);
+          }}
+          disabled={copy_confirm}
+          type={type}
+          size="small"
+          icon={<Icon name="forward" />}
+        />
+      </Tip>,
       <Progress
         key="progress"
         done={status.peer_assignment}
@@ -1118,29 +1127,27 @@ export function Assignment({
       step: STEP_NAMES.indexOf("Peer Collect"),
     });
     return [
-      <Button
+      <Tip
         key="peer-collect"
-        onClick={() => {
-          set_copy_confirm_state("peer_collect", true);
-          set_copy_confirm(true);
-        }}
-        disabled={copy_confirm}
-        type={type}
-        size="small"
+        title={
+          <span>
+            {label}: <Icon name="users" /> {intl.formatMessage(course.students)}{" "}
+            <Icon name="arrow-right" /> <Icon name="user-secret" /> You
+          </span>
+        }
+        tip={render_peer_collect_tip()}
       >
-        <Tip
-          title={
-            <span>
-              {label}: <Icon name="users" />{" "}
-              {intl.formatMessage(course.students)} <Icon name="arrow-right" />{" "}
-              <Icon name="user-secret" /> You
-            </span>
-          }
-          tip={render_peer_collect_tip()}
-        >
-          <Icon name="forward" style={{ fontSize: 16 }} />
-        </Tip>
-      </Button>,
+        <Button
+          onClick={() => {
+            set_copy_confirm_state("peer_collect", true);
+            set_copy_confirm(true);
+          }}
+          disabled={copy_confirm}
+          type={type}
+          size="small"
+          icon={<Icon name="forward" />}
+        />
+      </Tip>,
       <Progress
         key="progress"
         done={status.peer_collect}
@@ -1201,29 +1208,28 @@ export function Assignment({
       step: STEP_NAMES.indexOf("Return"),
     });
     return [
-      <Button
+      <Tip
         key="return"
-        onClick={() => {
-          set_copy_confirm_state("return_graded", true);
-          set_copy_confirm(true);
-        }}
-        disabled={copy_confirm}
-        type={type}
-        size="small"
+        title={
+          <span>
+            {label}: <Icon name="user-secret" /> You{" "}
+            <Icon name="arrow-right" /> <Icon name="users" />{" "}
+            {intl.formatMessage(course.students)}{" "}
+          </span>
+        }
+        tip="Copy the graded versions of files for this assignment from this project to all other student projects."
       >
-        <Tip
-          title={
-            <span>
-              {label}: <Icon name="user-secret" /> You{" "}
-              <Icon name="arrow-right" /> <Icon name="users" />{" "}
-              {intl.formatMessage(course.students)}{" "}
-            </span>
-          }
-          tip="Copy the graded versions of files for this assignment from this project to all other student projects."
-        >
-          <Icon name="forward" style={{ fontSize: 16 }} />
-        </Tip>
-      </Button>,
+        <Button
+          onClick={() => {
+            set_copy_confirm_state("return_graded", true);
+            set_copy_confirm(true);
+          }}
+          disabled={copy_confirm}
+          type={type}
+          size="small"
+          icon={<Icon name="forward" />}
+        />
+      </Tip>,
       <Progress
         key="progress"
         done={status.return_graded}
