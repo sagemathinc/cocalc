@@ -216,16 +216,7 @@ export function StudentAssignmentInfoHeader({
   }
 
   return (
-    <div
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 1,
-        background: "white",
-        paddingTop: 8,
-        paddingBottom: 8,
-      }}
-    >
+    <div>
       <Row>
         <Col md={4} key="title" style={{ paddingRight: 16 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
