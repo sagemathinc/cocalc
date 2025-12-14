@@ -5,7 +5,7 @@ import A from "components/misc/A";
 export default function Help() {
   return (
     <>
-      <Divider orientation="left" style={{ width: "600px" }}>
+      <Divider titlePlacement="start" style={{ width: "600px" }}>
         <A href="https://doc.cocalc.com/vouchers.html">
           <Icon name="medkit" /> Vouchers
         </A>{" "}

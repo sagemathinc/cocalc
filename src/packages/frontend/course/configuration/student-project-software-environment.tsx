@@ -141,7 +141,7 @@ export function StudentProjectSoftwareEnvironment({
     if (inherit) return;
     return (
       <>
-        <Divider orientation="left">
+        <Divider titlePlacement="start">
           {intl.formatMessage(labels.configuration)}
         </Divider>
         {render_controls_body()}

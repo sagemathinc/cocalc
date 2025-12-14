@@ -457,7 +457,7 @@ export function AIGenerateCodeCell({
   function renderContext() {
     return (
       <>
-        <Divider orientation="left">
+        <Divider titlePlacement="start">
           <Text>Context</Text>
         </Divider>
         <LLMCellContextSelector

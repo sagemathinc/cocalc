@@ -52,7 +52,7 @@ export function SectionDivider({ onRefresh, loading, children }) {
   return (
     <Flex>
       <div style={{ flex: 1 }}>
-        <Divider orientation="left">
+        <Divider titlePlacement="start">
           {children}
           {loading && <Spin style={{ marginLeft: "15px" }} />}
         </Divider>

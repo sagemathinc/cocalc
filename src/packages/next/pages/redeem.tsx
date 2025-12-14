@@ -167,7 +167,7 @@ export default function Redeem({ customize, id }: Props) {
                       </Button>
                     </div>
                   )}
-                  <Divider orientation="left" style={{ width: "400px" }}>
+                  <Divider titlePlacement="start" style={{ width: "400px" }}>
                     <A href="https://doc.cocalc.com/vouchers.html">
                       <Icon name="medkit" /> Vouchers
                     </A>

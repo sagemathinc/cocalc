@@ -164,7 +164,7 @@ function Purchases0({
                 changeOnBlur
                 allowClear
                 value={cutoff}
-                onChange={setCutoff}
+                onChange={(date) => setCutoff(date ?? undefined)}
                 disabledDate={(current) => current >= dayjs().startOf("day")}
               />
             </div>

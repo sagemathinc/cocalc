@@ -234,7 +234,7 @@ export function CommandsGuide({ actions, local_view_state }: Props) {
         <Command cmd="uname -a" descr="kernel info" />
         <Command cmd="lsb_release -a" descr="LSB info" />
 
-        <Divider orientation="left" plain>
+        <Divider titlePlacement="start" plain>
           Processes &amp; Memory
         </Divider>
         <Command cmd="ps auxwf" descr="processes" />
@@ -296,7 +296,7 @@ export function CommandsGuide({ actions, local_view_state }: Props) {
         <Command cmd="git grep" descr="search file content" userarg={true} />
         <Command cmd="git pull" descr="pull changes" />
 
-        <Divider orientation="left" plain>
+        <Divider titlePlacement="start" plain>
           Commit &amp; Push
         </Divider>
 
@@ -312,7 +312,7 @@ export function CommandsGuide({ actions, local_view_state }: Props) {
         <Command cmd="git commit -m" descr="commit changes" userarg={true} />
         <Command cmd="git push" descr="push changes" />
 
-        <Divider orientation="left" plain>
+        <Divider titlePlacement="start" plain>
           Setup
         </Divider>
         <Command

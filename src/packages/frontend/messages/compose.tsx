@@ -506,7 +506,7 @@ export function ComposeModal() {
     <Modal
       destroyOnHidden
       open={compose}
-      styles={{ content: { maxWidth: "1000px", margin: "auto" } }}
+      styles={{ body: { maxWidth: "1000px", margin: "auto" } }}
       width={"85%"}
       onCancel={close}
       onOk={close}

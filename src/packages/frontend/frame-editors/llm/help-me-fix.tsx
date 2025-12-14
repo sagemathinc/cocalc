@@ -4,7 +4,6 @@ If chatgpt is disabled or not available it renders as null.
 */
 
 import { Alert, Space } from "antd";
-import type { BaseButtonProps } from "antd/lib/button/button";
 import { CSSProperties, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
@@ -29,7 +28,7 @@ interface Props {
   extraFileInfo?: string;
   style?: CSSProperties;
   outerStyle?: CSSProperties;
-  size?: BaseButtonProps["size"];
+  size?;
   prioritize?: "start" | "start-end" | "end"; // start: truncate right, start-end: truncate middle, end: truncate left.
 }
 

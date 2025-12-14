@@ -129,7 +129,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
   }
   return (
     <div>
-      <Divider orientation="left">
+      <Divider titlePlacement="start">
         <Button
           size="large"
           type="primary"

@@ -130,7 +130,7 @@ export default function Payments({
     <div>
       <Flex>
         <div style={{ flex: 1 }}>
-          <Divider orientation="left">
+          <Divider titlePlacement="start">
             <Tooltip title="These are payments to CoCalc from some outside source (your credit card, bank, etc.).">
               {describeNumberOf({
                 n: data?.length,

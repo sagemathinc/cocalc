@@ -180,7 +180,7 @@ export default function Processing() {
           refreshPaymentsRef={refreshPaymentsRef}
         />
 
-        <Divider orientation="left" style={{ marginTop: "30px" }}>
+        <Divider titlePlacement="start" style={{ marginTop: "30px" }}>
           Your Items
         </Divider>
         {params != null && (

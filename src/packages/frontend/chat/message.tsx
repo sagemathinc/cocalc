@@ -537,6 +537,9 @@ export default function Message({
     }
   }, [replying]);
 
+  // todo: localstorage?
+  const [activitySize, setActivitySize] = useState<number>(600);
+
   function render_editing_status(is_editing: boolean) {
     let text;
 
@@ -1013,10 +1016,13 @@ export default function Message({
             <Drawer
               title="Codex activity"
               placement="right"
-              width={620}
               open={showCodexDrawer}
               onClose={() => setShowCodexDrawer(false)}
               destroyOnClose
+              size={activitySize}
+              resizable={{
+                onResize: setActivitySize,
+              }}
             >
               <CodexLogPanel
                 events={codexEvents ?? []}

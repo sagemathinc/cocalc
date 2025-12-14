@@ -50,7 +50,7 @@ export default function PaymentConfig({
       <div style={{ textAlign: "center" }}>
         <MoneyStatistic title={"Current Balance"} value={balance} roundDown />
       </div>
-      <Divider plain orientation="left">
+      <Divider plain titlePlacement="start">
         Amount in US dollars{" "}
         {minAmount > 0 ? ` (at least ${currency(minAmount)})` : ""}
         <Tooltip
