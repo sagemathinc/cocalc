@@ -350,7 +350,6 @@ export default function Message({
     logKey: fallbackLogRefs.key,
     logSubject: fallbackLogRefs.subject,
     generating: generating === true,
-    legacyEvents: field(message, "acp_events"),
   });
 
   const codexEvents = codexLog.events;

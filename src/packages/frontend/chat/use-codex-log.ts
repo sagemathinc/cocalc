@@ -8,11 +8,10 @@ export interface CodexLogOptions {
   logKey?: string | null;
   logSubject?: string | null;
   generating?: boolean;
-  legacyEvents?: any;
 }
 
 export interface CodexLogResult {
-  events: any[] | undefined;
+  events: any[] | null | undefined;
   hasLogRef: boolean;
   deleteLog: () => Promise<void>;
 }
@@ -27,17 +26,8 @@ export function useCodexLog({
   logKey,
   logSubject,
   generating,
-  legacyEvents,
 }: CodexLogOptions): CodexLogResult {
   const hasLogRef = Boolean(logStore && logKey);
-  const legacy =
-    useMemo(() => {
-      if (!legacyEvents) return undefined;
-      if (typeof (legacyEvents as any)?.toJS === "function") {
-        return (legacyEvents as any).toJS();
-      }
-      return legacyEvents;
-    }, [legacyEvents]) ?? undefined;
 
   const [fetchedLog, setFetchedLog] = useState<any[] | null>(null);
   const [liveLog, setLiveLog] = useState<any[]>([]);
@@ -60,6 +50,7 @@ export function useCodexLog({
           name: logStore!,
         });
         const data = await kv.get(logKey!);
+        // console.log("got ", data);
         if (!cancelled) {
           setFetchedLog(data ?? []);
         }
@@ -85,6 +76,7 @@ export function useCodexLog({
         for await (const mesg of sub) {
           if (stopped) break;
           const evt = mesg?.data;
+          // console.log("sub got ", evt);
           if (!evt) continue;
           setLiveLog((prev) => appendStreamMessage(prev ?? [], evt));
         }
@@ -104,15 +96,12 @@ export function useCodexLog({
   }, [generating, logSubject]);
 
   const events = useMemo(() => {
-    // Prefer live stream, then persisted log, then legacy.
+    // Prefer live stream, then persisted log.
     if (liveLog.length > 0) return liveLog;
     if (hasLogRef && fetchedLog) return fetchedLog;
-    if (legacy && (!hasLogRef || !generating)) return legacy;
     if (generating && hasLogRef) return liveLog;
-    return hasLogRef
-      ? (fetchedLog ?? legacy)
-      : (legacy ?? (generating ? liveLog : undefined));
-  }, [hasLogRef, fetchedLog, liveLog, generating, legacy]);
+    return hasLogRef ? fetchedLog : generating ? liveLog : undefined;
+  }, [hasLogRef, fetchedLog, liveLog, generating]);
 
   const deleteLog = async () => {
     if (!hasLogRef || !projectId || !logStore || !logKey) return;
