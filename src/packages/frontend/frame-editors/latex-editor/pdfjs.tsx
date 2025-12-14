@@ -681,6 +681,11 @@ export function PDFJS({
   }, [zoom, font_size]);
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const scrollerElRef = useRef<HTMLDivElement | null>(null);
+  const virtuosoRangeRef = useRef<{ startIndex: number; endIndex: number }>({
+    startIndex: 0,
+    endIndex: 0,
+  });
 
   function renderPagesUsingVirtuoso() {
     if (pages == null || pages.length == 0) return [];
@@ -692,8 +697,18 @@ export function PDFJS({
         increaseViewportBy={2000}
         ref={virtuosoRef}
         cacheId={name ? `${name}${id}` : `pdfjs-${id}`}
+        scrollerRef={(el: any) => {
+          scrollerElRef.current = el ?? null;
+        }}
         defaultItemHeight={height}
         totalCount={doc.numPages}
+        initialTopMostItemIndex={
+          editor_state.get("scrollState")?.get?.("index") ?? 0
+        }
+        initialScrollTop={
+          editor_state.get("scrollState")?.get?.("offset") ??
+          editor_state.get("scrollState")?.offset
+        }
         itemContent={(index) => {
           const page = pages[index];
           if (page == null) {
@@ -715,7 +730,15 @@ export function PDFJS({
             />
           );
         }}
-        onScroll={(scrollState) => {
+        rangeChanged={(visibleRange) => {
+          virtuosoRangeRef.current = visibleRange;
+        }}
+        onScroll={(e: any) => {
+          const offset =
+            e?.currentTarget?.scrollTop ?? scrollerElRef.current?.scrollTop ?? 0;
+          const index = virtuosoRangeRef.current.startIndex ?? 0;
+          const scrollState = { index, offset };
+          actions.save_editor_state(id, { scrollState });
           updateCurrentPage(scrollState);
         }}
       />
