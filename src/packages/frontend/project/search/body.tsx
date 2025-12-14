@@ -42,7 +42,6 @@ import { isChatExtension } from "@cocalc/frontend/chat/paths";
 import { COLORS } from "@cocalc/util/theme";
 import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 import { Virtuoso } from "react-virtuoso";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { A } from "@cocalc/frontend/components/A";
 import ShowError from "@cocalc/frontend/components/error";
 import { getSearch, setSearch } from "@cocalc/frontend/project/explorer/config";
@@ -269,10 +268,6 @@ function ProjectSearchOutput({
   const search_error = useTypedRedux({ project_id }, "search_error");
   const too_many_results = useTypedRedux({ project_id }, "too_many_results");
 
-  const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: `search-${project_id}`,
-  });
-
   const search_results = useMemo(() => {
     const f = filter?.trim();
     if (!f) {
@@ -308,6 +303,7 @@ function ProjectSearchOutput({
     return (
       <Virtuoso
         totalCount={search_results.size}
+        initialTopMostItemIndex={0}
         itemContent={(index) => {
           const result = search_results.get(index);
           if (result == null) {
@@ -326,7 +322,6 @@ function ProjectSearchOutput({
             />
           );
         }}
-        {...virtuosoScroll}
       />
     );
   }
@@ -492,7 +487,13 @@ function ProjectSearchResultLine({
   );
 }
 
-const MARKDOWN_EXTS = ["tasks", "slides", "board", "chat", "sage-chat"] as const;
+const MARKDOWN_EXTS = [
+  "tasks",
+  "slides",
+  "board",
+  "chat",
+  "sage-chat",
+] as const;
 
 function Snippet({
   ext,
