@@ -6,9 +6,9 @@
 import { Button } from "antd";
 import { List } from "immutable";
 import { FormattedMessage } from "react-intl";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import { VirtuosoHandle } from "react-virtuoso";
 
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
 import {
   React,
   redux,
@@ -168,19 +168,17 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
     );
   }
 
-  const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: `log-${project_id}`,
-  });
   function render_log_entries(): React.JSX.Element {
     if (state.current.next_cursor_pos) {
       delete state.current.next_cursor_pos;
     }
     return (
-      <Virtuoso
+      <StatefulVirtuoso
         ref={virtuosoRef}
         totalCount={get_log().size + 1}
         itemContent={row_renderer}
-        {...virtuosoScroll}
+        cacheId={`log-${project_id}`}
+        initialTopMostItemIndex={0}
       />
     );
   }
