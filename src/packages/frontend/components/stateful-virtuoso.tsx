@@ -8,9 +8,57 @@ interface CoreProps extends React.ComponentProps<typeof Virtuoso> {
   initialIndex?: number;
 }
 
+const STORAGE_KEY = "cocalc-stateful-virtuoso-cache";
 const cache = new LRUCache<string, StateSnapshot>({ max: 500 });
 const SAVE_THROTTLE_MS = 50;
+const PERSIST_THROTTLE_MS = 1000;
 const DEFAULT_VIEWPORT = 1000;
+
+const hasStorage =
+  typeof window !== "undefined" &&
+  typeof window.localStorage !== "undefined" &&
+  (() => {
+    try {
+      const key = "__stateful_virtuoso_probe__";
+      window.localStorage.setItem(key, "1");
+      window.localStorage.removeItem(key);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+// Restore any previously saved scroll snapshots.
+if (hasStorage) {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const entries: [string, StateSnapshot][] = JSON.parse(raw);
+      if (Array.isArray(entries)) {
+        for (const [k, v] of entries) {
+          cache.set(k, v);
+        }
+      }
+    }
+  } catch {
+    // ignore storage errors – persistence is best-effort
+  }
+}
+
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+const schedulePersist = () => {
+  if (!hasStorage) return;
+  if (persistTimer) return;
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    try {
+      const payload = Array.from(cache.entries());
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch {
+      // ignore persistence errors – keep runtime behavior intact
+    }
+  }, PERSIST_THROTTLE_MS);
+};
 
 function StatefulVirtuosoCore(
   { cacheId, initialTopMostItemIndex, initialScrollTop, ...rest }: CoreProps,
@@ -36,6 +84,7 @@ function StatefulVirtuosoCore(
         snapshotRef.current = snapshot;
         if (cacheId) {
           cache.set(cacheId, snapshot);
+          schedulePersist();
         }
         savingRef.current = false;
       });
