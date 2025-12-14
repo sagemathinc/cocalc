@@ -10,9 +10,9 @@
 import { Alert, Button, Spin } from "antd";
 import * as immutable from "immutable";
 import { useEffect, useRef } from "react";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import { VirtuosoHandle } from "react-virtuoso";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import { path_to_file, rowBackground } from "@cocalc/util/misc";
@@ -84,9 +84,6 @@ export function FileListing({
     );
   }
 
-  const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: name + current_path,
-  });
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
   const lastSelectedFileIndexRef = useRef<undefined | number>(
@@ -111,10 +108,12 @@ export function FileListing({
 
   function renderRows() {
     return (
-      <Virtuoso
+      <StatefulVirtuoso
         ref={virtuosoRef}
+        cacheId={`${name}${current_path}`}
         increaseViewportBy={2000}
         totalCount={listing.length}
+        initialTopMostItemIndex={0}
         itemContent={(index) => {
           const file = listing[index];
           if (file == null) {
@@ -123,7 +122,6 @@ export function FileListing({
           }
           return renderRow(index, file);
         }}
-        {...virtuosoScroll}
       />
     );
   }

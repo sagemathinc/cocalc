@@ -12,8 +12,7 @@ import { delay } from "awaiting";
 import type { Set as iSet } from "immutable";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack.mjs";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-
+import { VirtuosoHandle } from "react-virtuoso";
 import {
   redux,
   useActions,
@@ -28,7 +27,7 @@ import {
   Paragraph,
   Text,
 } from "@cocalc/frontend/components";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import usePinchToZoom, {
   Data,
@@ -681,14 +680,6 @@ export function PDFJS({
     virtuosoRef.current?.scrollToIndex(x);
   }, [zoom, font_size]);
 
-  const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: name + id,
-    onScroll: (scrollState) => {
-      actions.save_editor_state(id, { scrollState });
-      updateCurrentPage(scrollState);
-    },
-    initialState: editor_state.get("scrollState")?.toJS(),
-  });
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
   function renderPagesUsingVirtuoso() {
@@ -697,9 +688,10 @@ export function PDFJS({
     const viewport = pages[0]?.getViewport({ scale });
     const height = (viewport?.height ?? 500) + PAGE_GAP;
     return (
-      <Virtuoso
+      <StatefulVirtuoso
         increaseViewportBy={2000}
         ref={virtuosoRef}
+        cacheId={name ? `${name}${id}` : `pdfjs-${id}`}
         defaultItemHeight={height}
         totalCount={doc.numPages}
         itemContent={(index) => {
@@ -723,7 +715,9 @@ export function PDFJS({
             />
           );
         }}
-        {...virtuosoScroll}
+        onScroll={(scrollState) => {
+          updateCurrentPage(scrollState);
+        }}
       />
     );
   }

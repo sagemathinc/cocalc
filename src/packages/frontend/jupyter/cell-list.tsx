@@ -20,7 +20,7 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import { VirtuosoHandle } from "react-virtuoso";
 import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import {
@@ -28,7 +28,7 @@ import {
   SortableItem,
   SortableList,
 } from "@cocalc/frontend/components/sortable-list";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
@@ -507,27 +507,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   const cellListRef = useRef<any>(cell_list);
   cellListRef.current = cell_list;
-  const virtuosoScroll = useVirtuosoScrollHook(
-    use_windowed_list
-      ? {
-          initialState: scrollTop?.toJS?.(),
-          cacheId:
-            name != null && frameActions.current != null
-              ? `${name}${frameActions.current?.frame_id}`
-              : undefined,
-          onScroll: (scrollState) => {
-            lastScrollStateRef.current = {
-              ...scrollState,
-              id: cellListRef.current?.get(scrollState.index),
-            };
-            for (const key in scrollOrResize) {
-              scrollOrResize[key]();
-            }
-          },
-          scrollerRef: handleCellListRef,
-        }
-      : { disabled: true },
-  );
 
   useLayoutEffect(() => {
     if (!use_windowed_list) return;
@@ -582,8 +561,13 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         value={{ cellListDivRef, scrollOrResize, enabled: true }}
       >
         <div ref={cellListDivRef} className="smc-vfill">
-          <Virtuoso
+          <StatefulVirtuoso
             ref={virtuosoRef}
+            cacheId={
+              name != null && frameActions.current != null
+                ? `${name}${frameActions.current?.frame_id}`
+                : "jupyter-cell-list"
+            }
             onClick={actions != null && complete != null ? on_click : undefined}
             topItemCount={0}
             style={{
@@ -591,6 +575,10 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               flex: 1,
               overflowX: "hidden",
             }}
+            initialTopMostItemIndex={scrollTop?.get?.("index") ?? 0}
+            initialScrollTop={
+              scrollTop?.get?.("offset") ?? scrollTop?.offset ?? undefined
+            }
             totalCount={cell_list.size + EXTRA_BOTTOM_CELLS}
             itemSize={(el) => {
               // We capture measured heights -- see big coment above the
@@ -639,7 +627,20 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             rangeChanged={(visibleRange) => {
               virtuosoRangeRef.current = visibleRange;
             }}
-            {...virtuosoScroll}
+            scrollerRef={handleCellListRef}
+            onScroll={(e) => {
+              const offset =
+                (e?.currentTarget as HTMLElement | undefined)?.scrollTop ?? 0;
+              const index = virtuosoRangeRef.current.startIndex ?? 0;
+              lastScrollStateRef.current = {
+                offset,
+                index,
+                id: cellListRef.current?.get(index),
+              };
+              for (const key in scrollOrResize) {
+                scrollOrResize[key]();
+              }
+            }}
           />
         </div>
       </StableHtmlContext.Provider>

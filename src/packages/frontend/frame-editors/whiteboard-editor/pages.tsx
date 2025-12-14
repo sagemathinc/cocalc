@@ -4,10 +4,8 @@ where the page size expands to fit the width.
 */
 
 import { CSSProperties, useEffect, useRef, useState } from "react";
-import { Virtuoso } from "react-virtuoso";
 import useResizeObserver from "use-resize-observer";
-
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
 import { useFrameContext } from "./hooks";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
@@ -35,10 +33,6 @@ export default function Pages() {
   const elementsMap = useEditor("elements");
   const pages = Math.max(1, pagesMap?.size ?? 1);
   const sortedPageIds = useEditor("sortedPageIds");
-
-  const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: `whiteboard-pages-${project_id}-${path}-${desc.get("id")}`,
-  });
 
   const divRef = useRef<any>(null);
   const resize = useResizeObserver({ ref: divRef });
@@ -173,14 +167,16 @@ export default function Pages() {
           actions.setPage(frameId, newIndex + 1);
         }}
       >
-        <Virtuoso
+        <StatefulVirtuoso
           style={{
             width: "100%",
             height: "100%",
             marginBottom: "10px",
           }}
+          cacheId={`whiteboard-pages-${project_id}-${path}-${desc.get("id")}`}
           totalCount={pages + 1}
           increaseViewportBy={1.5 * height}
+          initialTopMostItemIndex={0}
           itemContent={(index) => {
             return (
               <SortableItem id={sortedPageIds.get(index) ?? index}>
@@ -188,7 +184,6 @@ export default function Pages() {
               </SortableItem>
             );
           }}
-          {...virtuosoScroll}
         />
       </SortableList>
     </div>

@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { Input } from "antd";
-import { Virtuoso } from "react-virtuoso";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
 import { useFrameContext } from "./hooks";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
@@ -40,10 +39,6 @@ export default function Search() {
     return sortedElements(elementsMap, sortedPageIds, search);
   }, [elementsMap, desc.get("search")]);
 
-  const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: `whiteboard-search-${project_id}-${path}-${desc.get("id")}`,
-  });
-
   if (!isLoaded) {
     return <Loading theme="medium" />;
   }
@@ -64,12 +59,14 @@ export default function Search() {
           height: "100%",
         }}
       >
-        <Virtuoso
+        <StatefulVirtuoso
           style={{
             marginBottom: "10px",
           }}
+          cacheId={`whiteboard-search-${project_id}-${path}-${desc.get("id")}`}
           increaseViewportBy={500}
           totalCount={(elements?.length ?? 0) + 1}
+          initialTopMostItemIndex={0}
           itemContent={(index) => {
             if (index >= (elements?.length ?? 0)) {
               // extra space to not feel cramped.
@@ -116,7 +113,6 @@ export default function Search() {
               </div>
             );
           }}
-          {...virtuosoScroll}
         />
       </div>
     </div>
