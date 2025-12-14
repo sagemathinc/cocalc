@@ -1,60 +1,69 @@
 /*
-A hook to preserve and report scroll state for windowed virtuoso scrolling lists.
+A hook to preserve and restore scroll state for Virtuoso lists.
 
-Uses an LRU cache in memory.
-
-This uses the index of the top rendered item along with its offset from the
-top of the list, so restoring the scroll position doesn't involve any async
-nonsense at all!  It's much more robust than other approaches.
-
-(This isn't long but took a lot of work to write, with many rewrites!)
-
-LICENSE: I hereby license this particular file under the MIT License, the same as
-the upstream Virtuoso project:  https://github.com/petyosi/react-virtuoso/blob/master/LICENSE
+- Uses an in-memory LRU cache keyed by `cacheId`.
+- Avoids caching the initial "top" state when an initial target is provided.
+  Without this guard, the very first itemsRendered callback can overwrite the
+  intended initial position (e.g., newest item) with index 0.
 */
-import LRU from "lru-cache";
+
+import LRUCache from "lru-cache";
 import { useCallback, useMemo, useRef } from "react";
 
+type ScrollState = { index: number; offset: number };
+
 const DEFAULT_VIEWPORT = 1000;
-
-export interface ScrollState {
-  index: number;
-  offset: number;
-}
-
-const cache = new LRU<string, ScrollState>({ max: 500 });
+const cache = new LRUCache<string, ScrollState>({ max: 500 });
 
 export default function useVirtuosoScrollHook({
   cacheId,
   onScroll,
   initialState,
   disabled,
-  scrollerRef: scrollerRef0,
+  scrollerRef: scrollerRefProp,
 }: {
   cacheId?: string;
   onScroll?: (state: ScrollState) => void;
   initialState?: ScrollState;
-  disabled?: boolean; // if true, assume not going to be used.
-  scrollerRef?;
+  disabled?: boolean;
+  scrollerRef?: (ref: any) => void;
 }) {
-  const itemRef = useRef<{ index: number; offset: number }>({
+  const itemRef = useRef<ScrollState>({
     index: 0,
     offset: 0,
   });
-  const scrollerRef = useRef<HTMLDivElement | null>(null);
-  const handleScrollerRef = useCallback((ref) => {
-    scrollerRef.current = ref;
-    scrollerRef0?.(ref);
-  }, []);
-  if (disabled) return {};
-  const lastScrollRef = useRef<ScrollState>(
-    initialState ?? { index: 0, offset: 0 },
+  const scrollerRef = useRef<any>(null);
+
+  const cached = cacheId ? cache.get(cacheId) : undefined;
+  const target = cached ?? initialState ?? { index: 0, offset: 0 };
+
+  const handleScrollerRef = useCallback(
+    (ref: any) => {
+      scrollerRef.current = ref;
+      scrollerRefProp?.(ref);
+    },
+    [scrollerRefProp],
   );
+
+  const lastScrollRef = useRef<ScrollState>(target);
+  // Avoid caching the very first "top" state when we intend to start elsewhere.
+  const recordingReadyRef = useRef<boolean>(
+    cached != null || target.index === 0,
+  );
+
   const recordScrollState = useMemo(() => {
     return (state: ScrollState) => {
+      // console.log("recordScrollState", cacheId, state);
+      if (!recordingReadyRef.current) {
+        if (state.index >= target.index) {
+          recordingReadyRef.current = true;
+        } else {
+          return;
+        }
+      }
       if (
-        lastScrollRef.current.index != state.index ||
-        lastScrollRef.current.offset != state.offset
+        lastScrollRef.current.index !== state.index ||
+        lastScrollRef.current.offset !== state.offset
       ) {
         if (cacheId) {
           cache.set(cacheId, state);
@@ -63,12 +72,15 @@ export default function useVirtuosoScrollHook({
         onScroll?.(state);
       }
     };
-  }, [onScroll, cacheId]);
+  }, [onScroll, cacheId, target.index]);
+
+  if (disabled) return {};
+
+  //console.log("useVirtuosoScrollHook", cacheId, target);
 
   return {
     increaseViewportBy: DEFAULT_VIEWPORT,
-    initialTopMostItemIndex:
-      (cacheId ? (cache.get(cacheId) ?? initialState) : initialState) ?? 0,
+    initialTopMostItemIndex: target.index,
     scrollerRef: handleScrollerRef,
     onScroll: () => {
       const scrollTop = scrollerRef.current?.scrollTop;
@@ -79,8 +91,8 @@ export default function useVirtuosoScrollHook({
       };
       recordScrollState(state);
     },
-    itemsRendered: (items) => {
-      if (items.length == 0) return;
+    itemsRendered: (items: ScrollState[]) => {
+      if (items.length === 0) return;
       const scrollTop = scrollerRef.current?.scrollTop;
       if (scrollTop == null) return;
       itemRef.current = items[0];

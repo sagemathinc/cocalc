@@ -19,8 +19,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { VirtuosoHandle } from "react-virtuoso";
+import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -263,7 +263,7 @@ export function ChatLog({
       manualScrollRef.current = false;
       setManualScroll(false);
       const doScroll = () =>
-        virtuosoRef.current?.scrollToIndex({ index: Number.MAX_SAFE_INTEGER });
+      virtuosoRef.current?.scrollToIndex({ index: Number.MAX_SAFE_INTEGER });
 
       doScroll();
       // sometimes scrolling to bottom is requested before last entry added,
@@ -594,10 +594,8 @@ export function MessageList({
 }) {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   const [atBottom, setAtBottom] = useState(true);
-  const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: scrollCacheId ?? `${project_id}${path}`,
-    initialState: { index: Math.max(sortedDates.length - 1, 0), offset: 0 }, // starts scrolled to the newest message.
-  });
+  const cacheId = scrollCacheId ?? `${project_id}${path}`;
+  const initialIndex = Math.max(sortedDates.length - 1, 0); // start at newest
 
   const forceScrollToBottom = useCallback(() => {
     if (manualScrollRef) {
@@ -608,9 +606,11 @@ export function MessageList({
   }, [manualScrollRef, scrollToBottomRef, setManualScroll]);
 
   return (
-    <Virtuoso
+    <StatefulVirtuoso
       ref={virtuosoRef}
       totalCount={sortedDates.length + 1}
+      cacheId={cacheId}
+      initialTopMostItemIndex={initialIndex}
       itemSize={(el) => {
         // see comment in jupyter/cell-list.tsx
         const h = el.getBoundingClientRect().height;
@@ -730,7 +730,6 @@ export function MessageList({
           : undefined
       }
       followOutput={!manualScroll && atBottom ? "smooth" : false}
-      {...virtuosoScroll}
     />
   );
 }
