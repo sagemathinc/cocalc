@@ -1394,9 +1394,9 @@ export function ChatPanel({
         open={sidebarVisible}
         onClose={() => setSidebarVisible(false)}
         placement="right"
-        width={Math.max(200, sidebarWidth + 40)}
         title="Chats"
         destroyOnClose
+        resizable
       >
         {renderSidebarContent()}
       </Drawer>

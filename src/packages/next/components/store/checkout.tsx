@@ -216,7 +216,9 @@ export default function Checkout() {
         <Slider
           min={0}
           max={max}
-          tipFormatter={currency}
+          tooltip={{
+            formatter: (value) => currency(value ?? 0),
+          }}
           step={0.01}
           value={applyCredit ?? 0}
           onChange={setApplyCredit}

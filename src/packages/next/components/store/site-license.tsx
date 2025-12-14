@@ -260,6 +260,13 @@ function CreateSiteLicense({
     }
   }
 
+  const handleFormValuesChange = (
+    _changedValues: Partial<any>,
+    _values: any,
+  ) => {
+    onLicenseChange();
+  };
+
   useEffect(() => {
     // Disable URL encoding during initialization
     setAllowUrlEncoding(false);
@@ -425,7 +432,7 @@ function CreateSiteLicense({
         labelCol={{ span: 3 }}
         wrapperCol={{ span: 21 }}
         autoComplete="off"
-        onValuesChange={onLicenseChange}
+        onValuesChange={handleFormValuesChange}
       >
         <Form.Item wrapperCol={{ offset: 0, span: 24 }}>{addBox}</Form.Item>
         {/* Hidden form item to track which page (license or course) created this license */}

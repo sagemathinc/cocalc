@@ -297,7 +297,6 @@ export default function AllNews(props: Props) {
     return (
       <>
         <Divider
-          orientation="center"
           style={{
             marginTop: "60px",
             textAlign: "center",
