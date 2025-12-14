@@ -98,7 +98,11 @@ export function useCodexLog({
         console.warn("failed to fetch acp log", err);
       }
     }
-    // Delay to let the throttled writer persist the first batch.
+    fetchLog();
+    if (!generating) {
+      return;
+    }
+    // Also delay and call again to let the throttled writer persist the first batch.
     // This is not 100% guaranteed to work in always cases, but is only
     // for the live log stage. To make this 100% robust we would need
     // to make the sequence number contiguous and refetch.
