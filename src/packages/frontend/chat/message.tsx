@@ -344,21 +344,20 @@ export default function Message({
     return { thread, turn, store, key, subject };
   }, [acpLogInfo, message, project_id, path]);
 
+  const [showCodexDrawer, setShowCodexDrawer] = useState(false);
   const codexLog = useCodexLog({
     projectId: project_id,
     logStore: fallbackLogRefs.store,
     logKey: fallbackLogRefs.key,
     logSubject: fallbackLogRefs.subject,
     generating: generating === true,
+    enabled: showCodexDrawer,
   });
 
   const codexEvents = codexLog.events;
-  const [showCodexDrawer, setShowCodexDrawer] = useState(false);
-  const codexEventCount = codexEvents?.length ?? 0;
-
   const showCodexActivity = useMemo(() => {
-    return Boolean((codexEvents && codexEvents.length > 0) || generating);
-  }, [codexEvents, codexLog.hasLogRef, generating]);
+    return Boolean(message.acp_log_subject || message.acp_log_key);
+  }, [message]);
 
   const threadRootMs = useMemo(() => {
     const root = getThreadRootDate({ date, messages });
@@ -1000,7 +999,11 @@ export default function Message({
                 onClick={() => setShowCodexDrawer(true)}
                 title="View Codex activity log"
               >
-                View activity ({codexEventCount || "…"})
+                {generating ? "Working" : "Worked"} for{" "}
+                {formatTurnDuration({
+                  startMs: date,
+                  history: historyEntries,
+                })}
               </Button>
               {generating ? (
                 <span style={{ color: COLORS.GRAY_D }}>Live</span>
@@ -1028,7 +1031,7 @@ export default function Message({
                     ? elapsedLabel
                     : formatTurnDuration({
                         startMs: date,
-                        history: historyEntries as any,
+                        history: historyEntries,
                       })
                 }
                 canResolveApproval={

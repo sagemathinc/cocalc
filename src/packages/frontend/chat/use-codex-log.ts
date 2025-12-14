@@ -8,6 +8,7 @@ export interface CodexLogOptions {
   logKey?: string | null;
   logSubject?: string | null;
   generating?: boolean;
+  enabled?: boolean;
 }
 
 export interface CodexLogResult {
@@ -26,6 +27,7 @@ export function useCodexLog({
   logKey,
   logSubject,
   generating,
+  enabled = true,
 }: CodexLogOptions): CodexLogResult {
   const hasLogRef = Boolean(logStore && logKey);
 
@@ -42,7 +44,7 @@ export function useCodexLog({
   useEffect(() => {
     let cancelled = false;
     async function fetchLog() {
-      if (!hasLogRef || !projectId || fetchedLog != null) return;
+      if (!enabled || !hasLogRef || !projectId || fetchedLog != null) return;
       try {
         const cn = webapp_client.conat_client.conat();
         const kv = cn.sync.akv<any[]>({
@@ -62,14 +64,14 @@ export function useCodexLog({
     return () => {
       cancelled = true;
     };
-  }, [hasLogRef, projectId, logStore, logKey, fetchedLog]);
+  }, [hasLogRef, projectId, logStore, logKey, fetchedLog, enabled]);
 
   // Subscribe to live events while generating.
   useEffect(() => {
     let sub: any;
     let stopped = false;
     async function subscribe() {
-      if (!logSubject) return;
+      if (!enabled || !logSubject) return;
       try {
         const cn = webapp_client.conat_client.conat();
         sub = await cn.subscribe(logSubject);
@@ -93,7 +95,7 @@ export function useCodexLog({
         // ignore
       }
     };
-  }, [generating, logSubject]);
+  }, [enabled, generating, logSubject]);
 
   const events = useMemo(() => {
     // Prefer live stream, then persisted log.
