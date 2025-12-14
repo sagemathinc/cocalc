@@ -731,13 +731,18 @@ export class Actions<
     s.close();
   }
 
-  private __save_local_view_state(): void {
+  private __save_local_view_state = (): void => {
     if (!this.store?.get("local_view_state")) return;
-    set_local_storage(
-      this.name,
-      JSON.stringify(this.store.get("local_view_state")),
-    );
-  }
+    let value, s;
+    try {
+      s = this.store.get("local_view_state");
+      value = JSON.stringify(s);
+    } catch (err) {
+      // window.x = s;
+      throw err;
+    }
+    set_local_storage(this.name, value);
+  };
 
   _load_local_view_state(): LocalViewState {
     let local_view_state;

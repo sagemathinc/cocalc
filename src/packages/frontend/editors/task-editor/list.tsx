@@ -9,10 +9,7 @@ List of Tasks -- we use windowing via Virtuoso, so that even task lists with 500
 
 import { List, Set as immutableSet } from "immutable";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import { useDebouncedCallback } from "use-debounce";
-import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
 import { TaskActions } from "./actions";
 import Task from "./task";
 import { LocalTaskStateMap, SelectedHashtags, Tasks } from "./types";
@@ -30,7 +27,6 @@ interface Props {
   visible: List<string>;
   current_task_id?: string;
   local_task_state?: LocalTaskStateMap;
-  scrollState?: any;
   font_size: number;
   sortable?: boolean;
   read_only?: boolean;
@@ -46,7 +42,6 @@ export default function TaskList({
   visible: visible0,
   current_task_id,
   local_task_state,
-  scrollState,
   font_size,
   sortable,
   read_only,
@@ -54,18 +49,6 @@ export default function TaskList({
   search_terms,
 }: Props) {
   const mainDivRef = useRef<any>(null);
-  const isMountedRef = useIsMountedRef();
-  const saveScroll = useDebouncedCallback((scrollState) => {
-    if (isMountedRef.current && actions != null) {
-      actions.set_local_view_state({ scrollState });
-    }
-  }, 250);
-  const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: actions?.name,
-    initialState: scrollState,
-    onScroll: saveScroll,
-  });
-  const virtuosoRef = useRef<VirtuosoHandle>(null);
   const [visible, setVisible] = useState<List<string>>(visible0);
   useEffect(() => {
     setVisible(visible0);
@@ -86,10 +69,6 @@ export default function TaskList({
   const searchWords: string[] | undefined = useMemo(() => {
     return search_terms?.toJS();
   }, [search_terms]);
-
-  useEffect(() => {
-    actions?.setVirtuosoRef(virtuosoRef);
-  }, [actions, virtuosoRef]);
 
   function render_task(task_id, index?) {
     if (index === visible.size) {
@@ -159,7 +138,9 @@ export default function TaskList({
         setVisible(visible1);
         // must set visible0 (in the store) in next render loop, or the above
         // gets combined with this and there is flicker.
-        setTimeout(() => actions?.reorder_tasks(oldIndex, newIndex), 1);
+        setTimeout(() => {
+          actions?.reorder_tasks(oldIndex, newIndex);
+        }, 0);
       }}
     >
       <div
@@ -168,14 +149,13 @@ export default function TaskList({
         onClick={on_click}
         style={{ overflow: "hidden" }}
       >
-        <Virtuoso
+        <StatefulVirtuoso
           overscan={500}
-          ref={virtuosoRef}
           totalCount={visible.size + 1}
           itemContent={(index) =>
             render_task(visible.get(index) ?? `${index}filler`, index)
           }
-          {...virtuosoScroll}
+          cacheId={actions?.name ?? "task-list"}
         />
       </div>
     </SortableList>

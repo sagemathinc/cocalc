@@ -126,7 +126,6 @@ export function TaskEditor({
           visible={visible}
           current_task_id={current_task_id}
           local_task_state={local_task_state}
-          scrollState={(local_view_state as any).get("scrollState")?.toJS?.()}
           font_size={desc.get("font_size")}
           sortable={
             !read_only &&

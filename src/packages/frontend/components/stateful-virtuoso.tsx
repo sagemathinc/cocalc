@@ -73,8 +73,8 @@ function StatefulVirtuosoCore(
 
   return (
     <Virtuoso
-      increaseViewportBy={DEFAULT_VIEWPORT}
       restoreStateFrom={snapshotRef.current}
+      increaseViewportBy={DEFAULT_VIEWPORT}
       ref={handleRef}
       scrollerRef={handleScrollerRef}
       onScroll={(...args) => {
@@ -85,16 +85,12 @@ function StatefulVirtuosoCore(
         if (items.length === 0) return;
         userItemsRendered?.(items as any);
       }}
-      {
-        // only use initialIndex if nothing is cached!
-        ...(snapshotRef.current != null
-          ? undefined
-          : { initialTopMostItemIndex })
-      }
-      {
-        // only use initialIndex if nothing is cached!
-        ...(snapshotRef.current != null ? undefined : { initialScrollTop })
-      }
+      {...(snapshotRef.current == null && initialTopMostItemIndex != null
+        ? { initialTopMostItemIndex }
+        : {})}
+      {...(snapshotRef.current == null && initialScrollTop != null
+        ? { initialScrollTop }
+        : {})}
       {...restProps}
     />
   );
