@@ -142,6 +142,9 @@ class CodexClientHandler implements TerminalClient {
   setStream(stream?: AcpStreamHandler) {
     this.stream = stream;
     this.lastResponse = "";
+    // Snapshots are turn-local: clear any stale file baselines when a new stream
+    // begins so diffs cannot leak across turns.
+    this.fileSnapshots.clear();
   }
 
   clearStream() {
@@ -1164,12 +1167,10 @@ class CodexClientHandler implements TerminalClient {
         ...eventPayload,
       },
     });
-    if (payload.phase === "exit") {
-      // In sandboxed mode edits often happen via shell commands, so attempt to
-      // surface diffs for any files we've previously snapshotted via read_text_file.
-      // This runs after the terminal exit to avoid interfering with command output.
-      await this.emitSnapshotDiffs();
-    }
+    // NOTE: we intentionally skip emitSnapshotDiffs() here. Diffing across
+    // terminal exits caused stale turn-to-turn diffs because snapshots can be
+    // from an older turn. Diffs are now only emitted from explicit write/read
+    // paths within the current turn.
   }
 
   private async emitDiffEvent(
@@ -1210,24 +1211,24 @@ class CodexClientHandler implements TerminalClient {
     });
   }
 
-  // Compare cached snapshots (from read_text_file) with current disk state and emit diffs.
-  private async emitSnapshotDiffs(): Promise<void> {
-    if (!this.stream || this.fileSnapshots.size === 0) return;
-    for (const [absolute, previous] of this.fileSnapshots.entries()) {
-      if (typeof previous !== "string") continue;
-      try {
-        const next = await fs.readFile(absolute, "utf8");
-        if (next === previous) continue;
-        const emitted = await this.emitDiffEvent(absolute, previous, next);
-        if (emitted) {
-          this.fileSnapshots.set(absolute, next);
-        }
-      } catch (err) {
-        // Ignore missing files or read errors; nothing to diff.
-        log.debug("emitSnapshotDiffs.skip", { path: absolute, err });
-      }
-    }
-  }
+  //   // Compare cached snapshots (from read_text_file) with current disk state and emit diffs.
+  //   private async emitSnapshotDiffs(): Promise<void> {
+  //     if (!this.stream || this.fileSnapshots.size === 0) return;
+  //     for (const [absolute, previous] of this.fileSnapshots.entries()) {
+  //       if (typeof previous !== "string") continue;
+  //       try {
+  //         const next = await fs.readFile(absolute, "utf8");
+  //         if (next === previous) continue;
+  //         const emitted = await this.emitDiffEvent(absolute, previous, next);
+  //         if (emitted) {
+  //           this.fileSnapshots.set(absolute, next);
+  //         }
+  //       } catch (err) {
+  //         // Ignore missing files or read errors; nothing to diff.
+  //         log.debug("emitSnapshotDiffs.skip", { path: absolute, err });
+  //       }
+  //     }
+  //   }
 }
 
 function isAsyncIterable(value: any): value is AsyncIterable<string> {
