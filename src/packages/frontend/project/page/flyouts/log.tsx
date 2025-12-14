@@ -7,7 +7,7 @@ import { Alert, Button, Flex, Input, Space, Tooltip } from "antd";
 import immutable from "immutable";
 import { debounce } from "lodash";
 import { FormattedMessage, useIntl } from "react-intl";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import { VirtuosoHandle } from "react-virtuoso";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -22,7 +22,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, Loading, TimeAgo } from "@cocalc/frontend/components";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
 import { labels } from "@cocalc/frontend/i18n";
 import { LogEntry } from "@cocalc/frontend/project/history/log-entry";
 import {
@@ -252,9 +252,6 @@ export function LogFlyout({
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const otherSettings = useTypedRedux("account", "other_settings");
   const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
-  const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: `${project_id}::flyout::log`,
-  });
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
   const search = useTypedRedux({ project_id }, "search") ?? "";
@@ -461,11 +458,13 @@ export function LogFlyout({
 
   function list(): React.JSX.Element {
     return (
-      <Virtuoso
+      <StatefulVirtuoso
         ref={virtuosoRef}
+        cacheId={`${project_id}::flyout::log`}
         style={{}}
         increaseViewportBy={10}
         totalCount={log.length + 1}
+        initialTopMostItemIndex={0}
         itemContent={(index) => {
           if (index == log.length) {
             return renderShowAll();
@@ -482,7 +481,6 @@ export function LogFlyout({
               return renderHistoryItem(index, entry);
           }
         }}
-        {...virtuosoScroll}
       />
     );
   }

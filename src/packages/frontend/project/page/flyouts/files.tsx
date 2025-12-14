@@ -6,7 +6,7 @@
 import { Alert, InputRef } from "antd";
 import { List } from "immutable";
 import { debounce, fromPairs } from "lodash";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import { VirtuosoHandle } from "react-virtuoso";
 import {
   React,
   redux,
@@ -15,7 +15,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Loading, TimeAgo } from "@cocalc/frontend/components";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
@@ -123,9 +123,6 @@ export function FilesFlyout({
     useStudentProjectFunctionality(project_id);
   const disableUploads = student_project_functionality.disableUploads ?? false;
   const virtuosoRef = useRef<VirtuosoHandle>(null as any);
-  const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: `${project_id}::flyout::files::${current_path}`,
-  });
   const activePath = useMemo(() => {
     return tab_to_path(activeTab);
   }, [activeTab]);
@@ -624,12 +621,14 @@ export function FilesFlyout({
     }
 
     return (
-      <Virtuoso
+      <StatefulVirtuoso
         ref={virtuosoRef}
+        cacheId={`${project_id}::flyout::files::${current_path}`}
         style={{}}
         increaseViewportBy={10}
         onMouseLeave={() => setShowCheckboxIndex(null)}
         totalCount={directoryFiles.length}
+        initialTopMostItemIndex={0}
         itemContent={(index) => {
           const file = directoryFiles[index];
           if (file == null) {
@@ -638,7 +637,6 @@ export function FilesFlyout({
           }
           return renderListItem(index, file);
         }}
-        {...virtuosoScroll}
       />
     );
   }
