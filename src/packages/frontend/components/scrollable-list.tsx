@@ -10,8 +10,8 @@ positioned are in an LRU cache, so use a bounded amount of memory.
 import { ReactNode, useEffect, useRef } from "react";
 import LRU from "lru-cache";
 import { useDebouncedCallback } from "use-debounce";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { VirtuosoHandle } from "react-virtuoso";
+import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
 
 const cache = new LRU<string, number>({ max: 250 });
 
@@ -39,14 +39,14 @@ function VirtualizedScrollableList({
   cacheId,
 }: Props) {
   const virtuosoRef = useRef<VirtuosoHandle>(null);
-  const virtuosoScroll = useVirtuosoScrollHook({ cacheId });
   return (
     <div className={"smc-vfill"}>
-      <Virtuoso
+      <StatefulVirtuoso
         ref={virtuosoRef}
+        cacheId={cacheId ?? "scrollable-list"}
         totalCount={rowCount}
+        initialTopMostItemIndex={0}
         itemContent={(index) => rowRenderer({ index, key: rowKey(index) })}
-        {...virtuosoScroll}
       />
     </div>
   );
