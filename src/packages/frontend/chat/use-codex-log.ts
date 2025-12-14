@@ -2,6 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { appendStreamMessage } from "@cocalc/chat";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 
+// Backend throttles AKV persistence in lite/hub/acp.ts via lodash.throttle
+// with {leading:true, trailing:true, wait:1000}. We delay the initial AKV
+// fetch to let the first batch land, so mid-turn openings still see early
+// events. If the throttle changes, update this constant too.
+const LOG_PERSIST_THROTTLE_MS = 1000;
+
 export interface CodexLogOptions {
   projectId?: string;
   logStore?: string | null;
@@ -34,6 +40,38 @@ export function useCodexLog({
   const [fetchedLog, setFetchedLog] = useState<any[] | null>(null);
   const [liveLog, setLiveLog] = useState<any[]>([]);
 
+  const mergeLogs = useMemo(() => {
+    return (a: any[] | null, b: any[]): any[] => {
+      const combined = [...(a ?? []), ...b];
+      if (combined.length === 0) return combined;
+      const seen = new Map<number | string, any>();
+      for (const evt of combined) {
+        const key =
+          typeof evt?.seq === "number" || typeof evt?.seq === "string"
+            ? evt.seq
+            : undefined;
+        if (key === undefined) {
+          // no seq — append with synthetic key
+          seen.set(`no-seq-${seen.size}`, evt);
+          continue;
+        }
+        if (!seen.has(key)) {
+          seen.set(key, evt);
+        }
+      }
+      const ordered = Array.from(seen.values());
+      ordered.sort((x, y) => {
+        const sx = x?.seq;
+        const sy = y?.seq;
+        if (typeof sx === "number" && typeof sy === "number") return sx - sy;
+        if (typeof sx === "string" && typeof sy === "string")
+          return sx.localeCompare(sy);
+        return 0;
+      });
+      return ordered;
+    };
+  }, []);
+
   // Reset when log ref changes.
   useEffect(() => {
     setFetchedLog(null);
@@ -43,6 +81,7 @@ export function useCodexLog({
   // Load from AKV once per key.
   useEffect(() => {
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     async function fetchLog() {
       if (!enabled || !hasLogRef || !projectId || fetchedLog != null) return;
       try {
@@ -52,7 +91,6 @@ export function useCodexLog({
           name: logStore!,
         });
         const data = await kv.get(logKey!);
-        // console.log("got ", data);
         if (!cancelled) {
           setFetchedLog(data ?? []);
         }
@@ -60,9 +98,14 @@ export function useCodexLog({
         console.warn("failed to fetch acp log", err);
       }
     }
-    void fetchLog();
+    // Delay to let the throttled writer persist the first batch.
+    // This is not 100% guaranteed to work in always cases, but is only
+    // for the live log stage. To make this 100% robust we would need
+    // to make the sequence number contiguous and refetch.
+    timer = setTimeout(fetchLog, LOG_PERSIST_THROTTLE_MS + 500);
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
   }, [hasLogRef, projectId, logStore, logKey, fetchedLog, enabled]);
 
@@ -78,7 +121,7 @@ export function useCodexLog({
         for await (const mesg of sub) {
           if (stopped) break;
           const evt = mesg?.data;
-          // console.log("sub got ", evt);
+          console.log("sub got ", evt);
           if (!evt) continue;
           setLiveLog((prev) => appendStreamMessage(prev ?? [], evt));
         }
@@ -98,12 +141,12 @@ export function useCodexLog({
   }, [enabled, generating, logSubject]);
 
   const events = useMemo(() => {
-    // Prefer live stream, then persisted log.
-    if (liveLog.length > 0) return liveLog;
-    if (hasLogRef && fetchedLog) return fetchedLog;
-    if (generating && hasLogRef) return liveLog;
-    return hasLogRef ? fetchedLog : generating ? liveLog : undefined;
-  }, [hasLogRef, fetchedLog, liveLog, generating]);
+    if (!hasLogRef) return generating ? liveLog : undefined;
+    // Merge fetched + live, preserving order by seq and de-duplicating.
+    const merged = mergeLogs(fetchedLog, liveLog);
+    if (merged.length > 0) return merged;
+    return generating ? liveLog : fetchedLog;
+  }, [hasLogRef, fetchedLog, liveLog, generating, mergeLogs]);
 
   const deleteLog = async () => {
     if (!hasLogRef || !projectId || !logStore || !logKey) return;

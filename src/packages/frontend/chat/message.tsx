@@ -1002,11 +1002,13 @@ export default function Message({
                 onClick={() => setShowCodexDrawer(true)}
                 title="View Codex activity log"
               >
-                {generating ? "Working" : "Worked"} for{" "}
-                {formatTurnDuration({
+                {generating
+                  ? "Working"
+                  : `Worked for
+                ${formatTurnDuration({
                   startMs: date,
                   history: historyEntries,
-                })}
+                })}`}
               </Button>
               {generating ? (
                 <span style={{ color: COLORS.GRAY_D }}>Live</span>
