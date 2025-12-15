@@ -66,6 +66,19 @@ function getUserId(subject: string): string {
   return "hub";
 }
 
+function getProjectId(subject: string): string | undefined {
+  if (subject.startsWith(`${SUBJECT}.project-`)) {
+    const id = subject.slice(
+      `${SUBJECT}.project-`.length,
+      `${SUBJECT}.project-`.length + 36,
+    );
+    if (isValidUUID(id)) {
+      return id;
+    }
+  }
+  return undefined;
+}
+
 let apiSub: Subscription | null = null;
 let approvalSub: Subscription | null = null;
 let interruptSub: Subscription | null = null;
@@ -154,7 +167,12 @@ function listenInterrupts(interruptHandler: InterruptHandler): void {
 
 async function handleMessage(mesg, evaluate: EvaluateHandler) {
   const options = mesg.data ?? {};
-  logger.debug("handleMessage", options);
+  const project_id = getProjectId(mesg.subject);
+  logger.debug("handleMessage", {
+    subject: mesg.subject,
+    project_id,
+    hasChat: !!options.chat,
+  });
 
   let done = false;
   let seq = -1;
@@ -197,8 +215,25 @@ async function handleMessage(mesg, evaluate: EvaluateHandler) {
     // TODO: the account_id is not actually used for anything yet; it should
     // be added somewhere for attribution.  The authentication is by the
     // fact they could write to the subject, which determines the project_id.
+    // TODO: Actually, the account_id should be used for approvals as well.
     if (!isValidUUID(options.account_id)) {
       throw Error("account_id must be a valid uuid");
+    }
+
+    // In project-scoped requests, derive the project_id from the subject to
+    // avoid trusting client-provided IDs. Ensure any provided project_id
+    // matches what was derived.
+    if (project_id) {
+      if (options.project_id && options.project_id !== project_id) {
+        throw Error("project_id does not match subject");
+      }
+      options.project_id = project_id;
+      if (options.chat) {
+        if (options.chat.project_id && options.chat.project_id !== project_id) {
+          throw Error("chat.project_id does not match subject");
+        }
+        options.chat.project_id = project_id;
+      }
     }
 
     await evaluate({

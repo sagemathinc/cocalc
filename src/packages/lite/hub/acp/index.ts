@@ -25,11 +25,7 @@ import {
   type CodexSessionConfig,
 } from "@cocalc/util/ai/codex";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
-import {
-  type AcpExecutor,
-  ContainerExecutor,
-  LocalExecutor,
-} from "./executor";
+import { type AcpExecutor, ContainerExecutor, LocalExecutor } from "./executor";
 import {
   preferContainerExecutor,
   resolveWorkspaceRoot,
@@ -593,12 +589,7 @@ function buildExecutorBindings(
   executor: AcpExecutor,
   workspaceRoot: string,
 ): ExecutorBindings {
-  const shellHandler = async ({
-    command,
-    args,
-    cwd,
-    env,
-  }: any) => {
+  const shellHandler = async ({ command, args, cwd, env }: any) => {
     const joined =
       args && Array.isArray(args) && args.length > 0
         ? `${command} ${args.join(" ")}`
@@ -675,14 +666,23 @@ export async function evaluate({
   const config = normalizeConfig(request.config);
   const sessionMode = resolveCodexSessionMode(config);
   const useNativeTerminal = sessionMode === "auto";
-  const workspaceRoot = resolveWorkspaceRoot(config, request.chat?.project_id);
-  const useContainer = preferContainerExecutor() && request.chat?.project_id;
+  const projectId = request.chat?.project_id ?? request.project_id;
+  if (!projectId) {
+    throw Error("project_id must be set");
+  }
+  const workspaceRoot = resolveWorkspaceRoot(config, projectId);
+  const useContainer = preferContainerExecutor();
+  logger.debug("evaluate: mode selection", {
+    useContainer,
+    workspaceRoot,
+    project_id: projectId,
+  });
   if (useContainer && !conatClient) {
     throw Error("conat client must be initialized");
   }
   const executor: AcpExecutor = useContainer
     ? new ContainerExecutor({
-        projectId: request.chat!.project_id,
+        projectId,
         workspaceRoot,
         conatClient: conatClient!,
       })
@@ -756,7 +756,11 @@ export async function evaluate({
 }
 
 export async function init(client: ConatClient): Promise<void> {
-  logger.debug("initializing ACP conat server");
+  logger.debug(
+    "initializing ACP conat server",
+    "preferContainerExecutor =",
+    preferContainerExecutor(),
+  );
   conatClient = client;
   process.once("exit", () => {
     for (const agent of agents.values()) {

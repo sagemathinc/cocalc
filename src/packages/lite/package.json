@@ -3,12 +3,10 @@
   "version": "0.2.6",
   "description": "CoCalc Lite Standalone Server that Optional Syncs with an existing CoCalc instance",
   "exports": {
-    "./*": "./dist/*.js"
+    "./*": "./dist/*.js",
+    "./hub/acp": "./dist/hub/acp/index.js"
   },
-  "keywords": [
-    "lite",
-    "cocalc"
-  ],
+  "keywords": ["lite", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf build dist node_modules tsconfig.tsbuildinfo",

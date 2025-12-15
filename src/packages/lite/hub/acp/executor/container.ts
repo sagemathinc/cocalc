@@ -16,6 +16,7 @@ import path from "node:path";
 import { execFile } from "node:child_process";
 import type { Client } from "@cocalc/conat/core/client";
 import { projectApiClient, type ProjectApi } from "@cocalc/conat/project/api";
+import getLogger from "@cocalc/backend/logger";
 
 // Container executor for multiuser (podman) mode.
 // Wraps project-scoped conat APIs to run commands and read/write files
@@ -31,10 +32,15 @@ export interface ContainerExecutorOptions {
 
 type ContainerFileIO = {
   readFile: (projectId: string, path: string) => Promise<string>;
-  writeFile: (projectId: string, path: string, content: string) => Promise<void>;
+  writeFile: (
+    projectId: string,
+    path: string,
+    content: string,
+  ) => Promise<void>;
 };
 
 let containerFileIO: ContainerFileIO | null = null;
+const logger = getLogger("lite:hub:acp:container-exec");
 
 export function setContainerFileIO(io: ContainerFileIO | null): void {
   containerFileIO = io;
@@ -45,6 +51,10 @@ export class ContainerExecutor {
   private readonly base: string;
 
   constructor(private readonly options: ContainerExecutorOptions) {
+    if (!options.projectId) {
+      // important for security reasons, etc.
+      throw Error("projectId must be set for container executor");
+    }
     this.api =
       options.projectApi ??
       projectApiClient({
@@ -100,10 +110,12 @@ export class ContainerExecutor {
       cmd,
     ];
 
+    logger.debug("podman exec", { args, cwd, env });
     const { stdout, stderr, code, signal } = await this.podmanExec(
       args,
       opts?.timeoutMs,
     );
+    logger.debug("podman exec result", { code, signal, stdout, stderr });
     return { stdout, stderr, exitCode: code, signal };
   }
 
@@ -122,7 +134,12 @@ export class ContainerExecutor {
   private async podmanExec(
     args: string[],
     timeoutMs?: number,
-  ): Promise<{ stdout: string; stderr: string; code: number | null; signal?: string }> {
+  ): Promise<{
+    stdout: string;
+    stderr: string;
+    code: number | null;
+    signal?: string;
+  }> {
     return await new Promise((resolve) => {
       execFile(
         "podman",

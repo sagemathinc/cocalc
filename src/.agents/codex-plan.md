@@ -2,6 +2,14 @@
 
 **Goal:** support Codex/ACP in podman (multiuser) mode with a single ACP coordinator per project-host, routing every tool call into the correct project container. Frontend API should remain the same except for picking a project-scoped conat subject.
 
+To not forget:
+
+- [ ] make sure approvals in lite mode still work (see conat/ai/acp/server.ts discussion about account_id)
+- [ ] remove sandbox option in container mode
+- [ ] make readonly mode be implemented using full access, but where we do the sandboxing in project-host, obviously... and have to make it clear how it differs.
+- [ ] make the highly insecure "cocalc-plus" mode require explicitly setting it everywhere, instead of it being the default.  I worry about a project-host coming up half broken, and leaving open a vulnerability.
+
+
 ### Detailed plan
 
 1) **Carve out a shared ACP hub core**
