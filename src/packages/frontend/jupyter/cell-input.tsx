@@ -29,6 +29,23 @@ import { InputPrompt } from "./prompt/input";
 import { SimpleInputMerge } from "@cocalc/sync/editor/generic/simple-input-merge";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 
+type HoverListener = (id: string | null) => void;
+const hoverListeners = new Set<HoverListener>();
+let hoveredCellId: string | null = null;
+
+function notifyHoverChange(id: string | null) {
+  if (hoveredCellId === id) return;
+  hoveredCellId = id;
+  for (const listener of hoverListeners) {
+    listener(id);
+  }
+}
+
+function subscribeToHover(listener: HoverListener) {
+  hoverListeners.add(listener);
+  return () => hoverListeners.delete(listener);
+}
+
 function attachmentTransform(
   cell: Map<string, any>,
   href?: string,
@@ -79,6 +96,24 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
   (props) => {
     const frameActions = useNotebookFrameActions();
     const [showButtons, setShowButtons] = useState<boolean>(IS_TOUCH);
+
+    // Keep only one cell's button bar visible at a time; fast mouse moves can
+    // otherwise leave multiple bars showing because mouseleave isn't always fired.
+    useEffect(() => {
+      if (IS_TOUCH) return;
+      const listener = (hoveredId: string | null) => {
+        setShowButtons(hoveredId === props.id);
+      };
+      const unsubscribe = subscribeToHover(listener);
+      // initialize to current hover state
+      listener(hoveredCellId);
+      return () => {
+        unsubscribe();
+        if (hoveredCellId === props.id) {
+          notifyHoverChange(null);
+        }
+      };
+    }, [props.id]);
 
     // input should always be a string, but typescript doesn't
     // guarantee it. I have hit this in production: https://sagemathcloud.zendesk.com/agent/tickets/8963
@@ -438,10 +473,12 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       >
         <div
           onMouseEnter={() => {
-            if (!IS_TOUCH) setShowButtons(true);
+            if (!IS_TOUCH) notifyHoverChange(props.id);
           }}
           onMouseLeave={() => {
-            if (!IS_TOUCH) setShowButtons(false);
+            if (!IS_TOUCH && hoveredCellId === props.id) {
+              notifyHoverChange(null);
+            }
           }}
         >
           {render_cell_buttonbar()}
