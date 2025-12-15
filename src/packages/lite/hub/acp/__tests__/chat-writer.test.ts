@@ -1,5 +1,5 @@
 #!/usr/bin/env ts-node
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect, beforeEach } from "@jest/globals";
 import { setTimeout as delay } from "node:timers/promises";
 import type {
   AcpChatContext,
@@ -7,6 +7,7 @@ import type {
 } from "@cocalc/conat/ai/acp/types";
 import type { Client as ConatClient } from "@cocalc/conat/core/client";
 import { ChatStreamWriter } from "../index";
+import * as queue from "../../sqlite/acp-queue";
 
 // Mock ACP pieces that pull in ESM deps we don't need for this unit.
 jest.mock("@cocalc/ai/acp", () => ({
@@ -28,6 +29,11 @@ jest.mock("@cocalc/backend/logger", () => ({
     warn: () => {},
     error: () => {},
   }),
+}));
+jest.mock("../../sqlite/acp-queue", () => ({
+  enqueueAcpPayload: jest.fn(),
+  listAcpPayloads: jest.fn(() => []),
+  clearAcpPayloads: jest.fn(),
 }));
 
 type RecordedSet = { generating?: boolean; content?: string };
@@ -76,6 +82,13 @@ const baseMetadata: AcpChatContext = {
   message_date: "123",
   sender_id: "u",
 } as any;
+
+beforeEach(() => {
+  (queue.listAcpPayloads as any)?.mockReset?.();
+  (queue.listAcpPayloads as any)?.mockImplementation?.(() => []);
+  (queue.enqueueAcpPayload as any)?.mockReset?.();
+  (queue.clearAcpPayloads as any)?.mockReset?.();
+});
 
 async function flush(writer: ChatStreamWriter) {
   (writer as any).commit.flush();
@@ -146,6 +159,66 @@ describe("ChatStreamWriter", () => {
     const final = sets[sets.length - 1];
     expect(final.generating).toBe(false);
     expect((writer as any).usage).toBeTruthy();
+    (writer as any).dispose?.(true);
+  });
+
+  it("replays queued payloads without losing content", async () => {
+    (queue.listAcpPayloads as any).mockReturnValue([
+      {
+        type: "event",
+        event: { type: "message", text: "queued" },
+        seq: 0,
+      },
+    ]);
+    const { syncdb, sets } = makeFakeSyncDB();
+    const writer: any = new ChatStreamWriter({
+      metadata: baseMetadata,
+      client: makeFakeClient(),
+      approverAccountId: "u",
+      syncdbOverride: syncdb as any,
+      logStoreFactory: () =>
+        ({
+          set: async () => {},
+        }) as any,
+    });
+    await (writer as any).handle({
+      type: "summary",
+      seq: 1,
+    } as AcpStreamMessage);
+    await flush(writer);
+    expect((queue.enqueueAcpPayload as any).mock.calls.length).toBe(1);
+    (writer as any).dispose?.(true);
+  });
+
+  it("publishes logs and persists AKV", async () => {
+    const publish = jest.fn().mockResolvedValue(undefined);
+    const logSet = jest.fn().mockResolvedValue(undefined);
+    const { syncdb } = makeFakeSyncDB();
+    const writer: any = new ChatStreamWriter({
+      metadata: baseMetadata,
+      client: { publish } as any,
+      approverAccountId: "u",
+      syncdbOverride: syncdb as any,
+      logStoreFactory: () =>
+        ({
+          set: logSet,
+        }) as any,
+    });
+    const payload: AcpStreamMessage = {
+      type: "event",
+      event: { type: "message", text: "hi" } as any,
+      seq: 0,
+    };
+    await (writer as any).handle(payload);
+    (writer as any).persistLogProgress.flush();
+    await (writer as any).handle({
+      type: "summary",
+      finalResponse: "done",
+      seq: 1,
+    } as AcpStreamMessage);
+    await flush(writer);
+    expect(publish).toHaveBeenCalled();
+    expect(logSet).toHaveBeenCalled();
     (writer as any).dispose?.(true);
   });
 });
