@@ -14,7 +14,6 @@ much RAM.
 */
 
 import { spawn, type ChildProcess } from "node:child_process";
-import { promises as fs } from "node:fs";
 import path from "node:path";
 import { Readable, Writable } from "node:stream";
 import {
@@ -37,7 +36,7 @@ import type {
   AcpAgent,
   ApprovalDecision,
 } from "./types";
-import { CodexClientHandler, MAX_TERMINAL_STREAM_CHARS } from "./codex-handler";
+import { CodexClientHandler } from "./codex-handler";
 import type { FileAdapter, TerminalAdapter, PathResolver, PathResolution } from "./adapters";
 
 const log = getLogger("ai:acp");
@@ -62,89 +61,6 @@ function defaultPathResolver(workspaceRoot: string): PathResolver {
         workspaceRoot: root,
       };
     },
-  };
-}
-
-function createLocalAdapters(workspaceRoot: string): {
-  fileAdapter: FileAdapter;
-  terminalAdapter: TerminalAdapter;
-  pathResolver: PathResolver;
-} {
-  const fileAdapter: FileAdapter = {
-    async readTextFile(p: string): Promise<string> {
-      return await fs.readFile(p, "utf8");
-    },
-    async writeTextFile(p: string, content: string): Promise<void> {
-      await fs.mkdir(path.dirname(p), { recursive: true });
-      await fs.writeFile(p, content, "utf8");
-    },
-  };
-
-  const terminalAdapter: TerminalAdapter = {
-    async start(options, onOutput) {
-      const { command, args, cwd, env, limit } = options;
-      const child = spawn(command, args ?? [], {
-        cwd,
-        env: { ...process.env, ...env },
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-      let output = "";
-      let truncated = false;
-      const max = limit ?? MAX_TERMINAL_STREAM_CHARS;
-      const handleChunk = (buf: Buffer) => {
-        const text = buf.toString("utf8");
-        output += text;
-        if (max != null && output.length > max) {
-          output = output.slice(output.length - max);
-          truncated = true;
-        }
-        void onOutput(text);
-      };
-      child.stdout?.on("data", handleChunk);
-      child.stderr?.on("data", handleChunk);
-
-      const exitPromise = new Promise<{
-        exitStatus: { exitCode?: number; signal?: string };
-        output: string;
-        truncated: boolean;
-      }>((resolve) => {
-        child.once("exit", (code, signal) => {
-          resolve({
-            exitStatus: {
-              exitCode: code == null ? undefined : Number(code),
-              signal: signal ?? undefined,
-            },
-            output,
-            truncated,
-          });
-        });
-        child.once("error", (err) => {
-          resolve({
-            exitStatus: {
-              exitCode: undefined,
-              signal: err.message,
-            },
-            output,
-            truncated,
-          });
-        });
-      });
-
-      return {
-        async kill() {
-          child.kill();
-        },
-        async waitForExit() {
-          return await exitPromise;
-        },
-      };
-    },
-  };
-
-  return {
-    fileAdapter,
-    terminalAdapter,
-    pathResolver: defaultPathResolver(workspaceRoot),
   };
 }
 
@@ -193,15 +109,17 @@ export class CodexAcpAgent implements AcpAgent {
       options.binaryPath ?? process.env.COCALC_ACP_AGENT_BIN ?? "codex-acp";
     const useNativeTerminal = options.useNativeTerminal === true;
     const workspaceRoot = path.resolve(options.cwd ?? process.cwd());
-    const adapters =
-      options.fileAdapter && options.terminalAdapter
-        ? {
-            fileAdapter: options.fileAdapter,
-            terminalAdapter: options.terminalAdapter,
-            pathResolver:
-              options.pathResolver ?? defaultPathResolver(workspaceRoot),
-          }
-        : createLocalAdapters(workspaceRoot);
+    if (!options.fileAdapter || !options.terminalAdapter) {
+      throw new Error(
+        "fileAdapter and terminalAdapter must be provided when creating CodexAcpAgent",
+      );
+    }
+    const adapters = {
+      fileAdapter: options.fileAdapter,
+      terminalAdapter: options.terminalAdapter,
+      pathResolver:
+        options.pathResolver ?? defaultPathResolver(workspaceRoot),
+    };
 
     const args: string[] = [];
     if (options.disableSessionPersist) {
