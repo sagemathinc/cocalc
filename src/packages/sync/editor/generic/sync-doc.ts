@@ -1249,37 +1249,33 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     const dbg = this.dbg("initPatchflowSession");
-    try {
-      this.patchflowCodec = this.buildPatchflowCodec();
-      this.patchflowStore = this.createPatchflowStore();
-      this.patchflowSession = new PatchflowSession({
-        codec: this.patchflowCodec,
-        patchStore: this.patchflowStore,
-        clock: () => this.client?.server_time().valueOf() ?? Date.now(),
-        userId: this.my_user_id ?? 1,
-        docId: this.string_id,
-        presenceAdapter: await this.createCursorPresenceAdapter(),
-      });
-      if (this.cursors) {
-        this.patchflowSession.on("cursors", this.handlePatchflowCursors);
-      }
-      this.patchflowSession.on("patch", this.handlePatchflowPatch);
-      this.patchflowSession.on("change", (doc) => {
-        const next = doc as Document;
-        if (!this.doc || !this.doc.is_equal(next)) {
-          this.last = this.doc = next;
-          if (this.state === "ready") {
-            this.emit("after-change");
-            this.emit_change();
-          }
-        }
-      });
-      await this.patchflowSession.init();
-      dbg("patchflow session initialized");
-      this.emit("patchflow-ready");
-    } catch (err) {
-      dbg(`patchflow session init failed -- ${err}`);
+    this.patchflowCodec = this.buildPatchflowCodec();
+    this.patchflowStore = this.createPatchflowStore();
+    this.patchflowSession = new PatchflowSession({
+      codec: this.patchflowCodec,
+      patchStore: this.patchflowStore,
+      clock: () => this.client?.server_time().valueOf() ?? Date.now(),
+      userId: this.my_user_id ?? 1,
+      docId: this.string_id,
+      presenceAdapter: await this.createCursorPresenceAdapter(),
+    });
+    if (this.cursors) {
+      this.patchflowSession.on("cursors", this.handlePatchflowCursors);
     }
+    this.patchflowSession.on("patch", this.handlePatchflowPatch);
+    this.patchflowSession.on("change", (doc) => {
+      const next = doc as Document;
+      if (!this.doc || !this.doc.is_equal(next)) {
+        this.last = this.doc = next;
+        if (this.state === "ready") {
+          this.emit("after-change");
+          this.emit_change();
+        }
+      }
+    });
+    await this.patchflowSession.init();
+    dbg("patchflow session initialized");
+    this.emit("patchflow-ready");
   });
 
   private init_evaluator = async () => {
