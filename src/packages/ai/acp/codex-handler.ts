@@ -13,8 +13,6 @@ much RAM.
 */
 
 import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
-import { spawn, type ChildProcess } from "node:child_process";
 import path from "node:path";
 import { type Client } from "@agentclientprotocol/sdk";
 import type {
@@ -40,18 +38,19 @@ import type {
 
 import getLogger from "@cocalc/backend/logger";
 import { computeLineDiff } from "@cocalc/util/line-diff";
-import type {
-  AcpStreamUsage,
-  AcpStreamEvent,
-  AcpStreamHandler,
-  CommandOutput,
-  CustomCommandHandler,
-  ApprovalDecision,
-} from "./types";
+import type { AcpStreamUsage, AcpStreamEvent, AcpStreamHandler, CommandOutput, CustomCommandHandler, ApprovalDecision } from "./types";
 import type {
   AcpApprovalOptionKind,
   AcpApprovalStatus,
 } from "@cocalc/conat/ai/acp/types";
+import type {
+  FileAdapter,
+  TerminalAdapter,
+  TerminalHandle,
+  TerminalStartOptions,
+  PathResolver,
+  PathResolution,
+} from "./adapters";
 
 const log = getLogger("ai:acp");
 const MAX_TERMINAL_STREAM_CHARS = 4000;
@@ -72,7 +71,7 @@ interface TerminalClient extends Client {
 }
 
 type TerminalState = {
-  child?: ChildProcess;
+  handle?: TerminalHandle;
   stop?: () => void;
   output: string;
   truncated: boolean;
@@ -80,16 +79,16 @@ type TerminalState = {
   waiters: Array<(status: TerminalExitStatus) => void>;
   limit?: number;
   sessionId?: string;
+  waitPromise?: Promise<TerminalExitStatus | undefined>;
 };
 
 type CodexClientHandlerOptions = {
   commandHandlers?: Map<string, CustomCommandHandler>;
   captureToolCalls?: boolean;
   workspaceRoot?: string;
-  fsProvider?: {
-    readTextFile: (path: string) => Promise<string>;
-    writeTextFile: (path: string, content: string) => Promise<void>;
-  };
+  fileAdapter: FileAdapter;
+  terminalAdapter: TerminalAdapter;
+  pathResolver?: PathResolver;
 };
 
 type AcpApprovalEvent = Extract<AcpStreamEvent, { type: "approval" }>;
@@ -116,16 +115,17 @@ export class CodexClientHandler implements TerminalClient {
   private terminalBuffers = new Map<string, string>();
   private readonly captureToolCalls: boolean;
   private workspaceRoot: string;
-  private readonly fsProvider?: {
-    readTextFile: (path: string) => Promise<string>;
-    writeTextFile: (path: string, content: string) => Promise<void>;
-  };
+  private readonly fileAdapter: FileAdapter;
+  private readonly terminalAdapter: TerminalAdapter;
+  private readonly pathResolver?: PathResolver;
 
-  constructor(options?: CodexClientHandlerOptions) {
-    this.commandHandlers = options?.commandHandlers;
-    this.captureToolCalls = options?.captureToolCalls ?? false;
-    this.workspaceRoot = path.resolve(options?.workspaceRoot ?? process.cwd());
-    this.fsProvider = options?.fsProvider;
+  constructor(options: CodexClientHandlerOptions) {
+    this.commandHandlers = options.commandHandlers;
+    this.captureToolCalls = options.captureToolCalls ?? false;
+    this.workspaceRoot = path.resolve(options.workspaceRoot ?? process.cwd());
+    this.fileAdapter = options.fileAdapter;
+    this.terminalAdapter = options.terminalAdapter;
+    this.pathResolver = options.pathResolver;
   }
 
   setStream(stream?: AcpStreamHandler) {
@@ -523,26 +523,28 @@ export class CodexClientHandler implements TerminalClient {
     }
   }
 
-  private resolvePath(filePath: string): string {
+  private resolvePath(filePath: string): PathResolution {
+    if (this.pathResolver) {
+      return this.pathResolver.resolve(filePath);
+    }
     const base = this.workspaceRoot ?? process.cwd();
-    return path.isAbsolute(filePath) ? filePath : path.resolve(base, filePath);
+    const absolute = path.isAbsolute(filePath)
+      ? filePath
+      : path.resolve(base, filePath);
+    return {
+      absolute,
+      relative: this.toRelativePath(absolute),
+      workspaceRoot: this.workspaceRoot,
+    };
   }
 
   private formatWorkspacePath(targetPath?: string): string | undefined {
     if (!targetPath) return targetPath;
-    try {
-      const absolute = path.isAbsolute(targetPath)
-        ? targetPath
-        : path.resolve(this.workspaceRoot, targetPath);
-      const relative = path.relative(this.workspaceRoot, absolute);
-      const normalizedRelative = toPosix(relative);
-      if (normalizedRelative && !normalizedRelative.startsWith("..")) {
-        return `./${normalizedRelative}`;
-      }
-      return toPosix(absolute);
-    } catch {
-      return targetPath;
+    const { absolute, relative } = this.resolvePath(targetPath);
+    if (relative && !relative.startsWith("..")) {
+      return `./${relative}`;
     }
+    return toPosix(absolute);
   }
 
   private toRelativePath(absolute: string): string | undefined {
@@ -563,16 +565,13 @@ export class CodexClientHandler implements TerminalClient {
     limit,
     line,
   }: ReadTextFileRequest): Promise<ReadTextFileResponse> {
-    const absolute = this.resolvePath(targetPath);
-    const relative = this.toRelativePath(absolute) ?? targetPath;
+    const { absolute } = this.resolvePath(targetPath);
     log.debug("acp.read_text_file", {
       path: absolute,
       line,
       limit,
     });
-    const data = this.fsProvider
-      ? await this.fsProvider.readTextFile(relative)
-      : await fs.readFile(absolute, "utf8");
+    const data = await this.fileAdapter.readTextFile(absolute);
     this.fileSnapshots.set(absolute, data);
     const content =
       line != null || limit != null
@@ -598,19 +597,13 @@ export class CodexClientHandler implements TerminalClient {
     path: targetPath,
     content,
   }: WriteTextFileRequest): Promise<WriteTextFileResponse> {
-    const absolute = this.resolvePath(targetPath);
-    const relative = this.toRelativePath(absolute) ?? targetPath;
+    const { absolute } = this.resolvePath(targetPath);
     const previous = this.fileSnapshots.get(absolute);
     log.debug("acp.write_text_file", {
       path: absolute,
       bytes: content.length,
     });
-    if (this.fsProvider) {
-      await this.fsProvider.writeTextFile(relative, content);
-    } else {
-      await fs.mkdir(path.dirname(absolute), { recursive: true });
-      await fs.writeFile(absolute, content, "utf8");
-    }
+    await this.fileAdapter.writeTextFile(absolute, content);
     this.fileSnapshots.set(absolute, content);
     const emittedDiff = await this.emitDiffEvent(absolute, previous, content);
     if (!emittedDiff) {
@@ -745,7 +738,7 @@ export class CodexClientHandler implements TerminalClient {
       proxied,
       workspaceRoot: this.workspaceRoot,
     });
-    const envVars: NodeJS.ProcessEnv = this.buildEnv(env);
+    const envVars = this.buildEnv(env);
     const limit =
       outputByteLimit != null
         ? Number(outputByteLimit)
@@ -766,76 +759,89 @@ export class CodexClientHandler implements TerminalClient {
       return { terminalId };
     }
 
-    const child = spawn(command, args ?? [], {
-      cwd: cwd ?? this.workspaceRoot ?? process.cwd(),
-      env: envVars,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
     const state: TerminalState = {
-      child,
       output: "",
       truncated: false,
       exitStatus: undefined,
       waiters: [],
       limit,
       sessionId,
-      stop: () => {
-        child.kill();
-      },
+    };
+    this.terminals.set(terminalId, state);
+    const startOptions: TerminalStartOptions = {
+      terminalId,
+      command,
+      args: args ?? [],
+      cwd: cwd ?? this.workspaceRoot ?? process.cwd(),
+      env: envVars,
+      sessionId,
+      limit,
     };
 
-    const handleChunk = (chunk: Buffer) => {
-      const text = chunk.toString("utf8");
-      state.output += text;
+    const handleChunk = (chunk: string) => {
+      if (!chunk) return;
+      state.output += chunk;
       if (state.limit != null && state.output.length > state.limit) {
         state.output = state.output.slice(state.output.length - state.limit);
         state.truncated = true;
       }
       void this.emitTerminalEvent(terminalId, {
         phase: "data",
-        chunk: text,
+        chunk,
         truncated: state.truncated,
       });
     };
 
-    child.stdout?.on("data", handleChunk);
-    child.stderr?.on("data", handleChunk);
-    child.once("exit", (code, signal) => {
-      state.exitStatus = {
-        exitCode: code == null ? undefined : Number(code),
-        signal: signal ?? undefined,
-      };
+    const waitForExit = async (): Promise<TerminalExitStatus | undefined> => {
+      try {
+        const result = await state.handle?.waitForExit();
+        if (result) {
+          state.exitStatus = result.exitStatus;
+          if (typeof result.output === "string" && result.output.length) {
+            state.output = result.output;
+          }
+          if (result.truncated) {
+            state.truncated = true;
+          }
+        }
+      } catch (err: any) {
+        state.exitStatus = { exitCode: undefined, signal: err?.message };
+      }
+      if (state.exitStatus == null) {
+        state.exitStatus = { exitCode: undefined };
+      }
       for (const waiter of state.waiters) {
         waiter(state.exitStatus);
       }
       state.waiters.length = 0;
-      void this.emitTerminalEvent(terminalId, {
+      await this.emitTerminalEvent(terminalId, {
         phase: "exit",
         exitStatus: normalizeTerminalExitStatus(state.exitStatus),
         output: state.output,
         truncated: state.truncated,
       });
-    });
+      return state.exitStatus;
+    };
 
-    child.once("error", (err) => {
-      state.exitStatus = {
-        exitCode: undefined,
-        signal: err.message,
+    try {
+      state.handle = await this.terminalAdapter.start(startOptions, (chunk) =>
+        handleChunk(chunk),
+      );
+      state.waitPromise = waitForExit();
+      state.stop = async () => {
+        await state.handle?.kill();
       };
-      for (const waiter of state.waiters) {
-        waiter(state.exitStatus);
-      }
-      state.waiters.length = 0;
-      void this.emitTerminalEvent(terminalId, {
+    } catch (err: any) {
+      state.exitStatus = { exitCode: undefined, signal: err?.message };
+      await this.emitTerminalEvent(terminalId, {
         phase: "exit",
         exitStatus: normalizeTerminalExitStatus(state.exitStatus),
         output: state.output,
         truncated: state.truncated,
       });
-    });
+      throw err;
+    }
 
-    this.terminals.set(terminalId, state);
     await this.emitTerminalEvent(terminalId, {
       phase: "start",
       command,
@@ -847,10 +853,13 @@ export class CodexClientHandler implements TerminalClient {
     };
   }
 
-  private buildEnv(env?: { name: string; value: string }[]): NodeJS.ProcessEnv {
-    const envVars: NodeJS.ProcessEnv = {
-      ...process.env,
-    };
+  private buildEnv(env?: { name: string; value: string }[]): Record<string, string> {
+    const envVars: Record<string, string> = {};
+    for (const [key, value] of Object.entries(process.env)) {
+      if (value != null) {
+        envVars[key] = String(value);
+      }
+    }
     for (const variable of env ?? []) {
       envVars[variable.name] = variable.value;
     }
@@ -1093,11 +1102,26 @@ export class CodexClientHandler implements TerminalClient {
     if (state.exitStatus != null) {
       return toWaitResponse(state.exitStatus);
     }
-    return await new Promise((resolve) => {
-      state.waiters.push((status) => {
-        resolve(toWaitResponse(status));
-      });
-    });
+    if (!state.waitPromise) {
+      state.waitPromise = (async () => {
+        const result = await state.handle?.waitForExit();
+        if (result) {
+          state.exitStatus = result.exitStatus;
+          if (typeof result.output === "string" && result.output.length) {
+            state.output = result.output;
+          }
+          if (result.truncated) {
+            state.truncated = true;
+          }
+        }
+        return state.exitStatus;
+      })();
+    }
+    const status = await state.waitPromise;
+    if (status) {
+      return toWaitResponse(status);
+    }
+    return toWaitResponse({ exitCode: undefined });
   }
 
   async killTerminal({
@@ -1108,7 +1132,11 @@ export class CodexClientHandler implements TerminalClient {
     if (state == null) {
       throw new Error(`Unknown terminal ${terminalId}`);
     }
-    state.stop?.();
+    if (state.handle) {
+      await state.handle.kill();
+    } else {
+      await state.stop?.();
+    }
     return {};
   }
 
@@ -1120,7 +1148,11 @@ export class CodexClientHandler implements TerminalClient {
     if (state == null) {
       return {};
     }
-    state.stop?.();
+    if (state.handle) {
+      await state.handle.kill();
+    } else {
+      await state.stop?.();
+    }
     this.terminals.delete(terminalId);
     return {};
   }
