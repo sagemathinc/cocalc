@@ -125,7 +125,7 @@ export function useCodexLog({
         for await (const mesg of sub) {
           if (stopped) break;
           const evt = mesg?.data;
-          console.log("sub got ", evt);
+          //console.log("sub got ", evt);
           if (!evt) continue;
           setLiveLog((prev) => appendStreamMessage(prev ?? [], evt));
         }
