@@ -25,7 +25,15 @@ import {
   type CodexSessionConfig,
 } from "@cocalc/util/ai/codex";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
-import { type AcpExecutor, LocalExecutor } from "./executor";
+import {
+  type AcpExecutor,
+  ContainerExecutor,
+  LocalExecutor,
+} from "./executor";
+import {
+  preferContainerExecutor,
+  resolveWorkspaceRoot,
+} from "./workspace-root";
 import { getBlobstore } from "../blobs/download";
 import { buildChatMessage, type MessageHistory } from "@cocalc/chat";
 import { createChatSyncDB } from "@cocalc/chat/server";
@@ -667,8 +675,18 @@ export async function evaluate({
   const config = normalizeConfig(request.config);
   const sessionMode = resolveCodexSessionMode(config);
   const useNativeTerminal = sessionMode === "auto";
-  const workspaceRoot = config?.workingDirectory ?? process.cwd();
-  const executor = new LocalExecutor(workspaceRoot);
+  const workspaceRoot = resolveWorkspaceRoot(config, request.chat?.project_id);
+  const useContainer = preferContainerExecutor() && request.chat?.project_id;
+  if (useContainer && !conatClient) {
+    throw Error("conat client must be initialized");
+  }
+  const executor: AcpExecutor = useContainer
+    ? new ContainerExecutor({
+        projectId: request.chat!.project_id,
+        workspaceRoot,
+        conatClient: conatClient!,
+      })
+    : new LocalExecutor(workspaceRoot);
   const bindings = buildExecutorBindings(executor, workspaceRoot);
   const currentAgent = await ensureAgent(useNativeTerminal, bindings);
   const { prompt, cleanup } = await materializeBlobs(request.prompt ?? "");
