@@ -2075,7 +2075,7 @@ export class SyncDoc extends EventEmitter {
     this.setLastSnapshot(x.last_snapshot);
     this.last_seq = x.last_seq;
     this.snapshot_interval = x.snapshot_interval ?? DEFAULT_SNAPSHOT_INTERVAL;
-    this.users = x.users ?? [];
+    this.users = x.users ?? [FILESYSTEM_USER_ID];
     if (x.project_id) {
       // @ts-ignore
       this.project_id = x.project_id;
@@ -2109,6 +2109,18 @@ export class SyncDoc extends EventEmitter {
         await this.set_syncstring_table({ users: this.users });
       }
       this.my_user_id = Math.max(1, idx);
+      if (this.my_user_id >= 1024) {
+        // if somehow we hit over 1024 users of a single file, we
+        // have to make the id at most 1024, so we do this horrible
+        // hack.  This is bad, but better than completely breaking
+        // the document.
+        this.my_user_id %= 1024;
+        if (this.my_user_id == FILESYSTEM_USER_ID) {
+          this.my_user_id++;
+        }
+        this.users[this.my_user_id] = client_id;
+        await this.set_syncstring_table({ users: this.users });
+      }
     }
     this.emit("metadata-change");
   };
