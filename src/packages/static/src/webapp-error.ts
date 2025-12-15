@@ -148,7 +148,7 @@ function isWhitelisted({ error }): boolean {
       return true;
     }
     if (
-      stack.includex("xterm") ||
+      stack.includes("xterm") ||
       stack.includes("xterm-addon-webgl") ||
       stack.includes("reading 'loadCell'") ||
       stack.includes("renderRows") // xtermjs in general...
