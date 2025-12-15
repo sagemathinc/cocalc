@@ -1,7 +1,44 @@
+## Bring Codex integration to Multiuser Mode
+
+**Goal:** support Codex/ACP in podman (multiuser) mode with a single ACP coordinator per project-host, routing every tool call into the correct project container. Frontend API should remain the same except for picking a project-scoped conat subject.
+
+### Detailed plan
+
+1) **Carve out a shared ACP hub core**
+   - Extract coordinator logic from [src/packages/lite/hub/acp/index.ts](./src/packages/lite/hub/acp/index.ts) into a reusable `hub-core` with a pluggable `Executor`.
+   - `Executor` should mirror the behaviors in [src/packages/ai/acp/codex.ts](./src/packages/ai/acp/codex.ts): file read/write with per-turn snapshots, terminal lifecycle (`start/data/exit` with chunking/truncation), approval delivery, and usage streaming. Keep snapshot clearing per turn (see `fileSnapshots.clear()` in `setStream`) in the core so it stays consistent across executors.
+
+2) **Implement executors**
+   - **Lite executor (existing):** local fs + local processes; keep current behavior.
+   - **Container executor (new):** build atop project conat APIs in [src/packages/conat/project](./src/packages/conat/project):
+     - Files: use `readTextFileFromProject` / `writeTextFileToProject` (or a small `applyPatchToProject`) so all file IO is project-scoped and sandboxed.
+     - Commands: prefer `exec` in [src/packages/conat/project/api/system.ts](./src/packages/conat/project/api/system.ts) (bash with timeout, cwd/env passed through). If we need true pty streaming, fall back to the terminal API in [src/packages/conat/project/terminal](./src/packages/conat/project/terminal) (start → data → exit, then close).
+     - Preserve terminal/file semantics from codex.ts: chunking/truncation (`MAX_TERMINAL_STREAM_CHARS`), start/data/exit events, and per-turn file snapshots for diffs.
+     - Reject cross-project paths; normalize `workspaceRoot` (container path) to prevent breakout; full-access only at first.
+
+3) **Conat routing**
+   - Add `acp.project.<project_id>` subjects served by project-host; enforce project membership/role before dispatch.
+   - Frontend: pick the project subject; otherwise unchanged. Approval subjects remain per-account; project-host forwards to the right ACP session.
+
+4) **Session wiring**
+   - On session start, pass `project_id`, `workspaceRoot` (container path), execution mode, and env/cwd to the executor.
+   - Ensure terminal/file events emitted by the executor match current formatting so `codex-activity` rendering stays unchanged (diffs come from file snapshots; terminals honor exit statuses/truncation).
+
+5) **Persistence & replay**
+   - Keep SQLite/AKV persistence as today (queued payloads + manifests). On host restart, replay queued payloads before live streaming.
+   - Add integration smoke tests: two projects concurrently, container restart/replay, file diff + terminal output + approvals in podman mode.
+
+6) **Security & rollout**
+   - Feature flag in project-host; require membership on subjects and sandbox paths in the container executor.
+   - Clear errors for unsupported modes (sandbox/read-only) and for approval timeouts (`APPROVAL_TIMEOUT_MS` in codex.ts).
+
+7) **Frontend verification**
+   - Verify approvals/thinking/terminal/file diffs still render; confirm multiple summary chunks are concatenated (fixed in ChatStreamWriter).
+   - Run smoke flow in a podman project: read/write file, run command, observe terminal + diff, resume session after reload.
+
 ## Code Quality improvements to chat -- immer
 
 Here’s a concise plan to finish the Immer migration and clean up chat code quality:
-
 
 - **Single source of truth**: Stop storing a second copy of chat data in Redux. Consume the ImmerDB data directly (or via lightweight selectors) so we don’t double-memory or normalize twice. Phase out `messages: fromJS(...)` in the chat store once components can read plain objects.
 
@@ -33,12 +70,10 @@ Bonus:
 
 - make history more efficient using diff-match-patch and a version bump.
 
-
 ## Major Bugs and Issues
 
 - [x] The read-file-from-disk content doubling bug is still there. NOT fixed by recent change.  This file: http://localhost:7000/projects/00000000-1000-4000-8000-000000000000/files/build/cocalc-lite/src/packages/sync/editor/generic/sync-doc.ts#line=2037
 got doubled.
-
 
 ### Issues with the new pub/sub agent output
 
@@ -47,11 +82,9 @@ got doubled.
 - [ ] first few messages are missed. Client should start listener before submit, not after some messages already sent
 - [ ] provide api to get everything not sent with a sequence number so refreshed browsers work.
 
-
 ### Diffs
 
 They are unusable and very buggy. rethink and rewrite completely.
-
 
 ### (done) Thinking/acp updates
 
@@ -80,11 +113,9 @@ first message in chatrooms keeps getting blanked.  weird bug.
 
 ## Other less clear/critical bugs/issues
 
-
 ### Chat
 
 Do not render older messages that you've already seen unless you explicitly click a "load more" button.  Otherwise chat can have 1000 messages in a thread and be overwhelming.
-
 
 ### Terminal UI
 
@@ -98,11 +129,9 @@ If there are multiple chunks in the final agent response, only the very last is 
 
 the session config is displayed incorrectly until you click on it -- wrong model at least. Any rerender (e.g., toggling panels) causes this.
 
-
 ### Markdown UI
 
 Get rid of Copy/Run/Kernel at the top of each triple backtick code block in slate.  It's annoying.  Better UI possible?
-
 
 ### Update Codex-acp and codex-cli
 
@@ -110,17 +139,16 @@ codex-cli has  had many releases in the last 1-2 weeks, and we have a fork of it
 
 ### Make Codex Agent integration work with full cocalc with podman containers, not just with cocalc-lite
 
-
-
-
 ---
 
 # Old stuff below
 
 ## Goal
+
 Bring Codex agents into CoCalc chat so users can open a thread, point it at a workspace, and let a fully capable agent edit files, run commands, and stream results safely.
 
 ## Architecture snapshot (Nov 25)
+
 - **AI layer** (`packages/ai/acp`): wraps our forked `codex-acp`/`codex-core`. Tools (terminal, read/write, apply patch) are implemented via ACP so every operation round-trips through CoCalc code (lite hub today, podman later).
 - **Frontend** (`packages/frontend/chat`): contains Codex configuration modal (working dir, session id, model, reasoning, env overrides, execution mode). Context meter turns red <30 %. Threads call `webapp_client.conat_client.streamAcp()`.
 - **Lite hub backend** (`packages/lite/hub/acp.ts`): launches ACP jobs, streams events, and writes them straight into the chat SyncDB via `ChatStreamWriter`. Payloads are throttled/saved and mirrored into SQLite so restarts replay missed events.
@@ -128,6 +156,7 @@ Bring Codex agents into CoCalc chat so users can open a thread, point it at a wo
 - **Codex binaries**: custom fork adds tool delegation, `--session-persist`, and native-shell gateway. Lite uses local codex CLI (with sandbox for terminal); full CoCalc will run it inside podman.
 
 ## What works now
+
 - Codex threads appear as chat conversations; output/events render via `codex-activity.tsx` with reasoning cards, terminal chunks, and file diffs (diffs generated from saved file snapshots).
 - Session persistence: per-thread `sessionId` stored so dialog shows current ID, hub resumes sessions with persisted manifests (`acp_queue`+`codex_sessions`).
 - Image handling: pasted blobs get downloaded to `/tmp/cocalc-blobs/<hash>.<ext>` and agents receive direct paths even without network access.
@@ -135,6 +164,7 @@ Bring Codex agents into CoCalc chat so users can open a thread, point it at a wo
 - Lite security: commands run in user’s environment, but filesystem reads/writes still flow through ACP so we log and diff everything.
 
 ## Next priorities
+
 1. **Activity UX**
    - Add elapsed time counter, stop button confirmation, tab activity indicator, and combine repeated “Thinking” fragments before saving.
    - Render command cards with consistent bullet layout and clickable file links (markdown `[foo.py](./foo.py)`).
@@ -152,6 +182,7 @@ Bring Codex agents into CoCalc chat so users can open a thread, point it at a wo
    - Investigate Codex OAuth flow: hook into CLI-provided login URL, capture callback, inject tokens for hosted projects. For lite, rely on user-managed login for now.
 
 ## Outstanding tasks (from checklist)
+
 - Disallow editing AI output; guard video-chat button in agent threads.
 - Clear composer immediately on send; ensure “Thinking…” banner reflects backend state.
 - Auto-highlight context meter (done) and show per-turn elapsed time (todo).
@@ -159,6 +190,7 @@ Bring Codex agents into CoCalc chat so users can open a thread, point it at a wo
 - Build codex-acp binaries and installation script.
 
 ## Reference files
+
 - Backend streaming: `packages/lite/hub/acp.ts`, `packages/ai/acp/*`.
 - Frontend chat: `packages/frontend/chat/{actions,acp-api,codex,codex-activity}.tsx`.
 - Flyout activity renderer: `packages/frontend/project/page/flyouts/*` (now support dimming extensions).
