@@ -7,11 +7,7 @@ import type {
   AcpRequest,
   AcpStreamMessage,
 } from "./types";
-import {
-  acpApprovalSubject,
-  acpInterruptSubject,
-  acpSubject,
-} from "./server";
+import { acpApprovalSubject, acpInterruptSubject, acpSubject } from "./server";
 
 interface StreamOptions {
   timeout?: number;
@@ -24,14 +20,18 @@ export async function* streamAcp(
 ): AsyncGenerator<AcpStreamMessage> {
   const { timeout = 1000 * 60 * 60 * 2 } = options;
 
+  if (!isValidUUID(request.project_id)) {
+    throw Error("project_id must be a valid uuid");
+  }
   if (!isValidUUID(request.account_id)) {
     throw Error("account_id must be a valid uuid");
   }
 
-  const subject = acpSubject({ account_id: request.account_id });
+  const subject = acpSubject({ project_id: request.project_id });
   const cn = client ?? (await conat());
   let seq = -1;
 
+  console.log("streamAcp, sending", request);
   for await (const resp of await cn.requestMany(subject, request, {
     maxWait: timeout,
   })) {

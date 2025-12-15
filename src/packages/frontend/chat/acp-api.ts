@@ -145,6 +145,7 @@ export async function processAcpLLM({
   const sessionKey = config?.sessionId ?? context.threadKey;
   try {
     const stream = await webapp_client.conat_client.streamAcp({
+      project_id: context.project_id,
       prompt: workingInput,
       session_id: sessionKey,
       config: buildAcpConfig({

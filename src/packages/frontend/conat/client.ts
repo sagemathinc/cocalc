@@ -502,7 +502,7 @@ export class ConatClient extends EventEmitter {
 
   streamAcp = async (request, options?) => {
     return await acp.streamAcp(
-      { account_id: this.client.account_id, ...request },
+      { ...request, account_id: this.client.account_id },
       options,
       this.conat(),
     );

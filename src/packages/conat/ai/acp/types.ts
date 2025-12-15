@@ -10,6 +10,7 @@ export interface AcpChatContext {
 }
 
 export type AcpRequest = {
+  project_id: string;
   account_id: string;
   prompt: string;
   session_id?: string;

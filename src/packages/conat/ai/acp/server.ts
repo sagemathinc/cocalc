@@ -154,6 +154,7 @@ function listenInterrupts(interruptHandler: InterruptHandler): void {
 
 async function handleMessage(mesg, evaluate: EvaluateHandler) {
   const options = mesg.data ?? {};
+  logger.debug("handleMessage", options);
 
   let done = false;
   let seq = -1;
@@ -193,11 +194,11 @@ async function handleMessage(mesg, evaluate: EvaluateHandler) {
   };
 
   try {
+    // TODO: the account_id is not actually used for anything yet; it should
+    // be added somewhere for attribution.  The authentication is by the
+    // fact they could write to the subject, which determines the project_id.
     if (!isValidUUID(options.account_id)) {
       throw Error("account_id must be a valid uuid");
-    }
-    if (options.account_id !== getUserId(mesg.subject)) {
-      throw Error("account_id is invalid");
     }
 
     await evaluate({
