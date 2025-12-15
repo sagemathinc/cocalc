@@ -92,7 +92,7 @@ export function startedUp() {
 function isWhitelisted({ error }): boolean {
   try {
     const stack = `${error?.stack ?? error}`;
-    
+
     if (stack.toLowerCase().includes("minified react error")) {
       // these are not useful to report to the user at all
       return true;
@@ -148,6 +148,7 @@ function isWhitelisted({ error }): boolean {
       return true;
     }
     if (
+      stack.includex("xterm") ||
       stack.includes("xterm-addon-webgl") ||
       stack.includes("reading 'loadCell'") ||
       stack.includes("renderRows") // xtermjs in general...

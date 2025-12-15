@@ -135,7 +135,7 @@ function resolveApproval(decision: ApprovalDecision): boolean {
   return false;
 }
 
-class ChatStreamWriter {
+export class ChatStreamWriter {
   private syncdb: SyncDB;
   private metadata: AcpChatContext;
   private readonly chatKey: string;
@@ -181,23 +181,29 @@ class ChatStreamWriter {
     approverAccountId,
     autoApprove,
     sessionKey,
+    syncdbOverride,
+    logStoreFactory,
   }: {
     metadata: AcpChatContext;
     client: ConatClient;
     approverAccountId: string;
     autoApprove?: (event: ApprovalEvent) => void;
     sessionKey?: string;
+    syncdbOverride?: any;
+    logStoreFactory?: () => AKV<AcpStreamMessage[]>;
   }) {
     this.metadata = metadata;
     this.approverAccountId = approverAccountId;
     this.autoApprove = autoApprove;
     this.client = client;
     this.chatKey = chatKey(metadata);
-    this.syncdb = createChatSyncDB({
-      client,
-      project_id: metadata.project_id,
-      path: metadata.path,
-    });
+    this.syncdb =
+      syncdbOverride ??
+      createChatSyncDB({
+        client,
+        project_id: metadata.project_id,
+        path: metadata.path,
+      });
     chatWritersByChatKey.set(this.chatKey, this);
     this.sessionKey = sessionKey ?? undefined;
     if (sessionKey) {
@@ -214,6 +220,9 @@ class ChatStreamWriter {
     // ensure initialization rejections are observed immediately
     this.ready = this.initialize();
     this.waitUntilReady();
+    if (logStoreFactory) {
+      this.logStore = logStoreFactory();
+    }
   }
 
   private waitUntilReady = async () => {
