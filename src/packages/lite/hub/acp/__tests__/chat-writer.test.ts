@@ -221,4 +221,87 @@ describe("ChatStreamWriter", () => {
     expect(logSet).toHaveBeenCalled();
     (writer as any).dispose?.(true);
   });
+
+  it("clears generating and queue on error", async () => {
+    const { syncdb, sets, setCurrent } = makeFakeSyncDB();
+    setCurrent({
+      get: (key: string) => (key === "generating" ? true : undefined),
+    });
+    const writer: any = new ChatStreamWriter({
+      metadata: baseMetadata,
+      client: makeFakeClient(),
+      approverAccountId: "u",
+      syncdbOverride: syncdb as any,
+      logStoreFactory: () =>
+        ({
+          set: async () => {},
+        }) as any,
+    });
+
+    await (writer as any).handle({
+      type: "event",
+      event: { type: "message", text: "oops" } as any,
+      seq: 0,
+    } as AcpStreamMessage);
+    await (writer as any).handle({
+      type: "error",
+      error: "failed",
+      seq: 1,
+    } as AcpStreamMessage);
+    await flush(writer);
+
+    const final = sets[sets.length - 1];
+    expect(final.generating).toBe(false);
+    expect((queue.clearAcpPayloads as any).mock.calls.length).toBe(1);
+    (writer as any).dispose?.(true);
+  });
+
+  it("addLocalEvent writes an in-flight commit", async () => {
+    const { syncdb, sets } = makeFakeSyncDB();
+    const writer: any = new ChatStreamWriter({
+      metadata: baseMetadata,
+      client: makeFakeClient(),
+      approverAccountId: "u",
+      syncdbOverride: syncdb as any,
+      logStoreFactory: () =>
+        ({
+          set: async () => {},
+        }) as any,
+    });
+    (writer as any).addLocalEvent({
+      type: "message",
+      text: "local",
+    });
+    (writer as any).commit.flush();
+    await delay(0);
+
+    expect(sets.length).toBeGreaterThan(0);
+    expect(sets[sets.length - 1].generating).toBe(true);
+    (writer as any).dispose?.(true);
+  });
+
+  it("registers thread ids from summary", async () => {
+    const { syncdb } = makeFakeSyncDB();
+    const writer: any = new ChatStreamWriter({
+      metadata: baseMetadata,
+      client: makeFakeClient(),
+      approverAccountId: "u",
+      syncdbOverride: syncdb as any,
+      logStoreFactory: () =>
+        ({
+          set: async () => {},
+        }) as any,
+    });
+
+    await (writer as any).handle({
+      type: "summary",
+      finalResponse: "done",
+      threadId: "thread-1",
+      seq: 0,
+    } as AcpStreamMessage);
+    await flush(writer);
+
+    expect((writer as any).getKnownThreadIds()).toContain("thread-1");
+    (writer as any).dispose?.(true);
+  });
 });
