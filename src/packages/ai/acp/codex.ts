@@ -75,6 +75,10 @@ interface CodexAcpAgentOptions {
   disableSessionPersist?: boolean;
   commandHandlers?: Record<string, CustomCommandHandler>;
   useNativeTerminal?: boolean;
+  fsProvider?: {
+    readTextFile: (path: string) => Promise<string>;
+    writeTextFile: (path: string, content: string) => Promise<void>;
+  };
 }
 
 interface TerminalClient extends Client {
@@ -106,6 +110,10 @@ type CodexClientHandlerOptions = {
   commandHandlers?: Map<string, CustomCommandHandler>;
   captureToolCalls?: boolean;
   workspaceRoot?: string;
+  fsProvider?: {
+    readTextFile: (path: string) => Promise<string>;
+    writeTextFile: (path: string, content: string) => Promise<void>;
+  };
 };
 
 type AcpApprovalEvent = Extract<AcpStreamEvent, { type: "approval" }>;
@@ -132,11 +140,16 @@ class CodexClientHandler implements TerminalClient {
   private terminalBuffers = new Map<string, string>();
   private readonly captureToolCalls: boolean;
   private workspaceRoot: string;
+  private readonly fsProvider?: {
+    readTextFile: (path: string) => Promise<string>;
+    writeTextFile: (path: string, content: string) => Promise<void>;
+  };
 
   constructor(options?: CodexClientHandlerOptions) {
     this.commandHandlers = options?.commandHandlers;
     this.captureToolCalls = options?.captureToolCalls ?? false;
     this.workspaceRoot = path.resolve(options?.workspaceRoot ?? process.cwd());
+    this.fsProvider = options?.fsProvider;
   }
 
   setStream(stream?: AcpStreamHandler) {
@@ -556,18 +569,34 @@ class CodexClientHandler implements TerminalClient {
     }
   }
 
+  private toRelativePath(absolute: string): string | undefined {
+    try {
+      const relative = path.relative(this.workspaceRoot, absolute);
+      const normalized = toPosix(relative);
+      if (normalized && !normalized.startsWith("..")) {
+        return normalized || ".";
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   async readTextFile({
     path: targetPath,
     limit,
     line,
   }: ReadTextFileRequest): Promise<ReadTextFileResponse> {
     const absolute = this.resolvePath(targetPath);
+    const relative = this.toRelativePath(absolute) ?? targetPath;
     log.debug("acp.read_text_file", {
       path: absolute,
       line,
       limit,
     });
-    const data = await fs.readFile(absolute, "utf8");
+    const data = this.fsProvider
+      ? await this.fsProvider.readTextFile(relative)
+      : await fs.readFile(absolute, "utf8");
     this.fileSnapshots.set(absolute, data);
     const content =
       line != null || limit != null
@@ -594,13 +623,18 @@ class CodexClientHandler implements TerminalClient {
     content,
   }: WriteTextFileRequest): Promise<WriteTextFileResponse> {
     const absolute = this.resolvePath(targetPath);
+    const relative = this.toRelativePath(absolute) ?? targetPath;
     const previous = this.fileSnapshots.get(absolute);
     log.debug("acp.write_text_file", {
       path: absolute,
       bytes: content.length,
     });
-    await fs.mkdir(path.dirname(absolute), { recursive: true });
-    await fs.writeFile(absolute, content, "utf8");
+    if (this.fsProvider) {
+      await this.fsProvider.writeTextFile(relative, content);
+    } else {
+      await fs.mkdir(path.dirname(absolute), { recursive: true });
+      await fs.writeFile(absolute, content, "utf8");
+    }
     this.fileSnapshots.set(absolute, content);
     const emittedDiff = await this.emitDiffEvent(absolute, previous, content);
     if (!emittedDiff) {
@@ -1487,6 +1521,7 @@ export class CodexAcpAgent implements AcpAgent {
           : undefined,
       captureToolCalls: useNativeTerminal,
       workspaceRoot,
+      fsProvider: options.fsProvider,
     });
     const connection = new ClientSideConnection(() => handler, stream);
 

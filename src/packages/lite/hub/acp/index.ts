@@ -25,6 +25,7 @@ import {
   type CodexSessionConfig,
 } from "@cocalc/util/ai/codex";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
+import { type AcpExecutor, LocalExecutor } from "./executor";
 import { getBlobstore } from "../blobs/download";
 import { buildChatMessage, type MessageHistory } from "@cocalc/chat";
 import { createChatSyncDB } from "@cocalc/chat/server";
@@ -571,8 +572,59 @@ function getLatestMessageText(events: AcpStreamMessage[]): string | undefined {
   return undefined;
 }
 
-async function ensureAgent(useNativeTerminal: boolean): Promise<AcpAgent> {
-  const key = useNativeTerminal ? "native" : "proxy";
+type ExecutorBindings = {
+  workspaceRoot: string;
+  fsProvider?: {
+    readTextFile: (path: string) => Promise<string>;
+    writeTextFile: (path: string, content: string) => Promise<void>;
+  };
+  commandHandlers?: Record<string, any>;
+};
+
+function buildExecutorBindings(
+  executor: AcpExecutor,
+  workspaceRoot: string,
+): ExecutorBindings {
+  const shellHandler = async ({
+    command,
+    args,
+    cwd,
+    env,
+  }: any) => {
+    const joined =
+      args && Array.isArray(args) && args.length > 0
+        ? `${command} ${args.join(" ")}`
+        : command;
+    const result = await executor.exec(joined, {
+      cwd,
+      env,
+    });
+    return {
+      output: `${result.stdout ?? ""}${result.stderr ?? ""}`,
+      exitStatus: result.exitCode ?? undefined,
+      signal: result.signal,
+    };
+  };
+
+  return {
+    workspaceRoot,
+    fsProvider: {
+      readTextFile: (p: string) => executor.readTextFile(p),
+      writeTextFile: (p: string, c: string) => executor.writeTextFile(p, c),
+    },
+    commandHandlers: {
+      bash: shellHandler,
+      sh: shellHandler,
+      zsh: shellHandler,
+    },
+  };
+}
+
+async function ensureAgent(
+  useNativeTerminal: boolean,
+  bindings: ExecutorBindings,
+): Promise<AcpAgent> {
+  const key = `${useNativeTerminal ? "native" : "proxy"}:${bindings.workspaceRoot}`;
   const existing = agents.get(key);
   if (existing != null) return existing;
   const mode = process.env.COCALC_ACP_MODE;
@@ -590,10 +642,12 @@ async function ensureAgent(useNativeTerminal: boolean): Promise<AcpAgent> {
     logger.debug("ensureAgent: creating codex acp agent");
     const created = await CodexAcpAgent.create({
       binaryPath: process.env.COCALC_ACP_AGENT_BIN,
-      cwd: process.cwd(),
+      cwd: bindings.workspaceRoot ?? process.cwd(),
       sessionPersistPath: sessionsDir,
       useNativeTerminal,
-    });
+      commandHandlers: bindings.commandHandlers,
+      fsProvider: bindings.fsProvider,
+    } as any);
     logger.info("codex-acp agent ready", { key });
     agents.set(key, created);
   } catch (err) {
@@ -613,7 +667,10 @@ export async function evaluate({
   const config = normalizeConfig(request.config);
   const sessionMode = resolveCodexSessionMode(config);
   const useNativeTerminal = sessionMode === "auto";
-  const currentAgent = await ensureAgent(useNativeTerminal);
+  const workspaceRoot = config?.workingDirectory ?? process.cwd();
+  const executor = new LocalExecutor(workspaceRoot);
+  const bindings = buildExecutorBindings(executor, workspaceRoot);
+  const currentAgent = await ensureAgent(useNativeTerminal, bindings);
   const { prompt, cleanup } = await materializeBlobs(request.prompt ?? "");
   if (!conatClient) {
     throw Error("conat client must be initialized");

@@ -13,3 +13,4 @@ export interface AcpExecutor {
 }
 
 export { ContainerExecutor } from "./container";
+export { LocalExecutor } from "./local";
