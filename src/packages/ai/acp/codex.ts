@@ -14,6 +14,7 @@ much RAM.
 */
 
 import { spawn, type ChildProcess } from "node:child_process";
+import { promises as fs } from "node:fs";
 import path from "node:path";
 import { Readable, Writable } from "node:stream";
 import {
@@ -36,12 +37,116 @@ import type {
   AcpAgent,
   ApprovalDecision,
 } from "./types";
-import { CodexClientHandler } from "./codex-handler";
+import { CodexClientHandler, MAX_TERMINAL_STREAM_CHARS } from "./codex-handler";
+import type { FileAdapter, TerminalAdapter, PathResolver, PathResolution } from "./adapters";
 
 const log = getLogger("ai:acp");
 
 const FILE_LINK_GUIDANCE =
   "When referencing workspace files, output markdown links relative to the project root so they stay clickable in CoCalc, e.g., foo.py -> [foo.py](./foo.py) (no backticks around the link). For images use ![](./image.png).";
+
+const toPosix = (p: string): string => p.replace(/\\/g, "/");
+
+function defaultPathResolver(workspaceRoot: string): PathResolver {
+  const root = path.resolve(workspaceRoot);
+  return {
+    resolve(filePath: string): PathResolution {
+      const absolute = path.isAbsolute(filePath)
+        ? filePath
+        : path.resolve(root, filePath);
+      const relRaw = path.relative(root, absolute);
+      const relative = relRaw ? toPosix(relRaw) : ".";
+      return {
+        absolute,
+        relative: relative.startsWith("..") ? undefined : relative || ".",
+        workspaceRoot: root,
+      };
+    },
+  };
+}
+
+function createLocalAdapters(workspaceRoot: string): {
+  fileAdapter: FileAdapter;
+  terminalAdapter: TerminalAdapter;
+  pathResolver: PathResolver;
+} {
+  const fileAdapter: FileAdapter = {
+    async readTextFile(p: string): Promise<string> {
+      return await fs.readFile(p, "utf8");
+    },
+    async writeTextFile(p: string, content: string): Promise<void> {
+      await fs.mkdir(path.dirname(p), { recursive: true });
+      await fs.writeFile(p, content, "utf8");
+    },
+  };
+
+  const terminalAdapter: TerminalAdapter = {
+    async start(options, onOutput) {
+      const { command, args, cwd, env, limit } = options;
+      const child = spawn(command, args ?? [], {
+        cwd,
+        env: { ...process.env, ...env },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      let output = "";
+      let truncated = false;
+      const max = limit ?? MAX_TERMINAL_STREAM_CHARS;
+      const handleChunk = (buf: Buffer) => {
+        const text = buf.toString("utf8");
+        output += text;
+        if (max != null && output.length > max) {
+          output = output.slice(output.length - max);
+          truncated = true;
+        }
+        void onOutput(text);
+      };
+      child.stdout?.on("data", handleChunk);
+      child.stderr?.on("data", handleChunk);
+
+      const exitPromise = new Promise<{
+        exitStatus: { exitCode?: number; signal?: string };
+        output: string;
+        truncated: boolean;
+      }>((resolve) => {
+        child.once("exit", (code, signal) => {
+          resolve({
+            exitStatus: {
+              exitCode: code == null ? undefined : Number(code),
+              signal: signal ?? undefined,
+            },
+            output,
+            truncated,
+          });
+        });
+        child.once("error", (err) => {
+          resolve({
+            exitStatus: {
+              exitCode: undefined,
+              signal: err.message,
+            },
+            output,
+            truncated,
+          });
+        });
+      });
+
+      return {
+        async kill() {
+          child.kill();
+        },
+        async waitForExit() {
+          return await exitPromise;
+        },
+      };
+    },
+  };
+
+  return {
+    fileAdapter,
+    terminalAdapter,
+    pathResolver: defaultPathResolver(workspaceRoot),
+  };
+}
 
 interface CodexAcpAgentOptions {
   binaryPath?: string;
@@ -51,10 +156,9 @@ interface CodexAcpAgentOptions {
   disableSessionPersist?: boolean;
   commandHandlers?: Record<string, CustomCommandHandler>;
   useNativeTerminal?: boolean;
-  fsProvider?: {
-    readTextFile: (path: string) => Promise<string>;
-    writeTextFile: (path: string, content: string) => Promise<void>;
-  };
+  fileAdapter?: FileAdapter;
+  terminalAdapter?: TerminalAdapter;
+  pathResolver?: PathResolver;
 }
 
 type SessionState = {
@@ -89,6 +193,15 @@ export class CodexAcpAgent implements AcpAgent {
       options.binaryPath ?? process.env.COCALC_ACP_AGENT_BIN ?? "codex-acp";
     const useNativeTerminal = options.useNativeTerminal === true;
     const workspaceRoot = path.resolve(options.cwd ?? process.cwd());
+    const adapters =
+      options.fileAdapter && options.terminalAdapter
+        ? {
+            fileAdapter: options.fileAdapter,
+            terminalAdapter: options.terminalAdapter,
+            pathResolver:
+              options.pathResolver ?? defaultPathResolver(workspaceRoot),
+          }
+        : createLocalAdapters(workspaceRoot);
 
     const args: string[] = [];
     if (options.disableSessionPersist) {
@@ -143,7 +256,9 @@ export class CodexAcpAgent implements AcpAgent {
           : undefined,
       captureToolCalls: useNativeTerminal,
       workspaceRoot,
-      fsProvider: options.fsProvider,
+      fileAdapter: adapters.fileAdapter,
+      terminalAdapter: adapters.terminalAdapter,
+      pathResolver: adapters.pathResolver,
     });
     const connection = new ClientSideConnection(() => handler, stream);
 

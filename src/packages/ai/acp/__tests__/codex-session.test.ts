@@ -17,7 +17,34 @@ jest.mock("@agentclientprotocol/sdk/dist/schema", () => ({}));
 
 import path from "node:path";
 import { CodexAcpAgent, CodexClientHandler } from "../codex";
+import type { FileAdapter, TerminalAdapter } from "../adapters";
 import { delay } from "awaiting";
+
+const dummyFileAdapter: FileAdapter = {
+  async readTextFile() {
+    return "";
+  },
+  async writeTextFile() {
+    return;
+  },
+};
+
+const dummyTerminalAdapter: TerminalAdapter = {
+  async start(_opts, _onOutput) {
+    return {
+      async kill() {
+        return;
+      },
+      async waitForExit() {
+        return {
+          exitStatus: { exitCode: 0 },
+          output: "",
+          truncated: false,
+        };
+      },
+    };
+  },
+};
 
 function makeAgent() {
   const connection = {
@@ -97,6 +124,8 @@ describe("CodexClientHandler proxied terminals", () => {
     const handler = new CodexClientHandler({
       workspaceRoot: "/root/project",
       commandHandlers: new Map([["bash", bashHandler]]),
+      fileAdapter: dummyFileAdapter,
+      terminalAdapter: dummyTerminalAdapter,
     });
 
     const events: any[] = [];
@@ -129,6 +158,8 @@ describe("CodexClientHandler proxied terminals", () => {
     const handler = new CodexClientHandler({
       workspaceRoot: "/root/project",
       commandHandlers: new Map([["bash", bashHandler]]),
+      fileAdapter: dummyFileAdapter,
+      terminalAdapter: dummyTerminalAdapter,
     });
 
     const events: any[] = [];

@@ -664,6 +664,14 @@ export async function evaluate({
 }: AcpRequest & {
   stream: (payload?: AcpStreamPayload | null) => Promise<void>;
 }): Promise<void> {
+  const reqId = randomUUID();
+  const startedAt = Date.now();
+  logger.debug("evaluate: start", {
+    reqId,
+    session_id: request.session_id,
+    chat: request.chat,
+    project_id: request.chat?.project_id ?? request.project_id,
+  });
   const config = normalizeConfig(request.config);
   const sessionMode = resolveCodexSessionMode(config);
   const projectId = request.chat?.project_id ?? request.project_id;
@@ -753,6 +761,8 @@ export async function evaluate({
       stream: wrappedStream,
     });
   } finally {
+    const elapsedMs = Date.now() - startedAt;
+    logger.debug("evaluate: end", { reqId, elapsedMs });
     // TODO: we might not want to immediately close, since there is
     // overhead in creating the syncdoc each time.
     chatWriter?.dispose();

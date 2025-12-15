@@ -11,6 +11,14 @@ export type {
   AcpAgent,
   ApprovalDecision,
 } from "./types";
+export type {
+  FileAdapter,
+  TerminalAdapter,
+  TerminalHandle,
+  TerminalStartOptions,
+  PathResolver,
+  PathResolution,
+} from "./adapters";
 
 export { EchoAgent, echoAgent } from "./echo";
 export { CodexAcpAgent } from "./codex";
