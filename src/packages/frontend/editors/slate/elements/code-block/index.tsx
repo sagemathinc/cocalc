@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Tooltip } from "antd";
+import { Button, Popover, Tooltip } from "antd";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import { Element } from "slate";
 import { register, SlateElement, RenderElementProps } from "../register";
@@ -24,6 +24,115 @@ export interface CodeBlock extends SlateElement {
   fence: boolean;
   value: string;
   info: string;
+}
+
+interface FloatingActionMenuProps {
+  editing: boolean;
+  canEdit: boolean;
+  info: string;
+  content: string;
+  onSaveOrEdit: () => void;
+  onDownload: () => void;
+  renderActions: (size?: "small" | "middle" | "large") => ReactNode;
+}
+
+function FloatingActionMenu({
+  editing,
+  canEdit,
+  info,
+  content,
+  onSaveOrEdit,
+  onDownload,
+  renderActions,
+}: FloatingActionMenuProps) {
+  const [open, setOpen] = useState(false);
+
+  const actionContent = (
+    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+      {canEdit && (
+        <Tooltip
+          title={
+            <>
+              Make a <i>temporary</i> change to this code.{" "}
+              <b>This is not saved permanently anywhere!</b>
+            </>
+          }
+        >
+          <Button
+            size="small"
+            type={editing ? undefined : "text"}
+            style={
+              editing
+                ? { background: "#5cb85c", color: "white" }
+                : { color: "#666", textAlign: "left" }
+            }
+            onClick={() => {
+              onSaveOrEdit();
+              setOpen(false);
+            }}
+          >
+            <Icon name={"pencil"} /> {editing ? "Save" : "Edit"}
+          </Button>
+        </Tooltip>
+      )}
+      <div
+        style={{
+          display: "flex",
+          gap: "6px",
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        {renderActions("small")}
+        <Button
+          size="small"
+          type="text"
+          style={{ color: "#666" }}
+          onClick={() => {
+            onDownload();
+            setOpen(false);
+          }}
+        >
+          <Icon name="download" /> Download
+        </Button>
+      </div>
+      <div style={{ color: "#888", fontSize: "11px" }}>
+        {info ? info : "plain text"}, {content.split("\n").length} lines
+      </div>
+    </div>
+  );
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 4,
+        right: 4,
+        zIndex: 2,
+      }}
+    >
+      <Popover
+        trigger="click"
+        open={open}
+        onOpenChange={(next) => setOpen(next)}
+        content={actionContent}
+        placement="bottomRight"
+      >
+        <Button
+          size="small"
+          type="text"
+          style={{
+            color: "#666",
+            transition: "opacity 120ms ease",
+            boxShadow: "none",
+          }}
+          aria-label="Code block actions"
+        >
+          <Icon name="ellipsis" rotate="90" />
+        </Button>
+      </Popover>
+    </div>
+  );
 }
 
 export const StaticElement: React.FC<RenderElementProps> = ({
@@ -101,7 +210,51 @@ export const StaticElement: React.FC<RenderElementProps> = ({
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
   // editable since even CodeMirrorStatic is editable, but meant to be *ephemeral* editing.
   return (
-    <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
+    <div
+      {...attributes}
+      style={{ marginBottom: "1em", textIndent: 0, position: "relative" }}
+    >
+      {!disableMarkdownCodebar && (
+        <FloatingActionMenu
+          editing={editing}
+          info={temporaryInfo ?? element.info}
+          onSaveOrEdit={() => {
+            if (editing) {
+              save(newValue, false);
+            } else {
+              setEditing(true);
+            }
+          }}
+          canEdit={!!jupyterApiEnabled}
+          content={newValue ?? element.value}
+          onDownload={() => {
+            const blob = new Blob([newValue ?? element.value], {
+              type: "text/plain;charset=utf-8",
+            });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            const ext = infoToMode(temporaryInfo ?? element.info) || "txt";
+            link.download = `code-block.${ext}`;
+            link.click();
+            URL.revokeObjectURL(url);
+          }}
+          renderActions={(size = "small") => (
+            <ActionButtons
+              size={size}
+              runRef={runRef}
+              input={newValue ?? element.value}
+              history={history}
+              setOutput={setOutput}
+              output={output}
+              info={temporaryInfo ?? element.info}
+              setInfo={(info) => {
+                setTemporaryInfo(info);
+              }}
+            />
+          )}
+        />
+      )}
       <CodeMirrorStatic
         editable={editing}
         onChange={(event) => {
@@ -116,63 +269,6 @@ export const StaticElement: React.FC<RenderElementProps> = ({
         onDoubleClick={() => {
           setEditing(true);
         }}
-        addonBefore={
-          !disableMarkdownCodebar && (
-            <div
-              style={{
-                borderBottom: "1px solid #ccc",
-                padding: "3px",
-                display: "flex",
-                background: "#f8f8f8",
-              }}
-            >
-              <div style={{ flex: 1 }}></div>
-              {jupyterApiEnabled && (
-                <Tooltip
-                  title={
-                    <>
-                      Make a <i>temporary</i> change to this code.{" "}
-                      <b>This is not saved permanently anywhere!</b>
-                    </>
-                  }
-                >
-                  <Button
-                    size="small"
-                    type={
-                      editing && newValue != element.value ? undefined : "text"
-                    }
-                    style={
-                      editing && newValue != element.value
-                        ? { background: "#5cb85c", color: "white" }
-                        : { color: "#666" }
-                    }
-                    onClick={() => {
-                      if (editing) {
-                        save(newValue, false);
-                      } else {
-                        setEditing(true);
-                      }
-                    }}
-                  >
-                    <Icon name={"pencil"} /> {editing ? "Save" : "Edit"}
-                  </Button>{" "}
-                </Tooltip>
-              )}
-              <ActionButtons
-                size="small"
-                runRef={runRef}
-                input={newValue ?? element.value}
-                history={history}
-                setOutput={setOutput}
-                output={output}
-                info={temporaryInfo ?? element.info}
-                setInfo={(info) => {
-                  setTemporaryInfo(info);
-                }}
-              />
-            </div>
-          )
-        }
         value={newValue ?? element.value}
         style={{
           background: "white",
