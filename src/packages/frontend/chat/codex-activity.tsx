@@ -812,7 +812,7 @@ function TerminalRow({
       </Tag>*/}
       <TerminalPreview
         text={terminalText}
-        maxHeight={4000}
+        maxHeight={600}
         fontSize={fontSize}
         placeholder={!hasOutput}
         placeholderText={placeholderText}
