@@ -122,7 +122,7 @@ packages/lite/
   - Loads API keys from settings (OpenAI, Google Vertex AI, Anthropic, Mistral)
   - Provides token counting via heuristics
 
-- **`hub/acp.ts`**: Agent Codex Protocol (AI prompt execution)
+- **`hub/acp/`**: Agent Client Protocol (AI prompt execution)
   - Manages CodexAcpAgent for code execution
   - Falls back to EchoAgent if CodexAcpAgent unavailable
   - Materializes blobs for prompts

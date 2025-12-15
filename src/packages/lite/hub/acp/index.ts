@@ -25,7 +25,7 @@ import {
   type CodexSessionConfig,
 } from "@cocalc/util/ai/codex";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
-import { getBlobstore } from "./blobs/download";
+import { getBlobstore } from "../blobs/download";
 import { buildChatMessage, type MessageHistory } from "@cocalc/chat";
 import { createChatSyncDB } from "@cocalc/chat/server";
 import { appendStreamMessage, extractEventText } from "@cocalc/chat";
@@ -36,7 +36,7 @@ import {
   enqueueAcpPayload,
   listAcpPayloads,
   clearAcpPayloads,
-} from "./sqlite/acp-queue";
+} from "../sqlite/acp-queue";
 import { throttle } from "lodash";
 import { akv, type AKV } from "@cocalc/conat/sync/akv";
 import { client_db } from "@cocalc/util/db-schema";
