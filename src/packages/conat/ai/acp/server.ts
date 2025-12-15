@@ -136,7 +136,14 @@ function listenApi(evaluate: EvaluateHandler): void {
   if (apiSub == null) throw Error("must init first");
   (async () => {
     for await (const mesg of apiSub!) {
-      await handleMessage(mesg, evaluate);
+      // we do NOT block on handling each message
+      (async () => {
+        try {
+          await handleMessage(mesg, evaluate);
+        } catch (err) {
+          logger.debug("error handling acp message", err);
+        }
+      })();
     }
   })().catch((err) => {
     logger.warn("acp api listener stopped", err);
