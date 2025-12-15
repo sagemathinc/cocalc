@@ -254,24 +254,26 @@ export function StudentAssignmentInfo({
   }
 
   function render_nbgrader_scores() {
-    if (!nbgrader_scores) return;
+    const scores = nbgrader_scores ?? {};
+    const hasScores = Object.keys(scores).length > 0;
     return (
       <div>
         <NbgraderScores
           show_all={is_editing}
           set_show_all={() => set_edited_feedback()}
-          nbgrader_scores={nbgrader_scores}
+          nbgrader_scores={scores}
           nbgrader_score_ids={nbgrader_score_ids}
           name={name}
           student_id={student.get("student_id")}
           assignment_id={assignment.get("assignment_id")}
+          run_button={render_run_nbgrader(hasScores ? "redo" : "first")}
+          buttonSize={size}
         />
-        {render_run_nbgrader(false)}
       </div>
     );
   }
 
-  function render_run_nbgrader(firstRun: boolean) {
+  function render_run_nbgrader(mode: "first" | "redo") {
     let running = false;
     if (nbgrader_run_info != null) {
       const t = nbgrader_run_info.get(
@@ -287,58 +289,47 @@ export function StudentAssignmentInfo({
       }
     }
 
-    const iconName = firstRun ? "caret-right" : "redo";
-    const tipTitle = firstRun ? "Run nbgrader" : "Run nbgrader again";
-    const tipText = firstRun
+    const isFirst = mode === "first";
+    const iconName = isFirst ? "caret-right" : "redo";
+    const tipTitle = isFirst ? "Run nbgrader" : "Run nbgrader again";
+    const tipText = isFirst
       ? "Run nbgrader on this student's collected submission."
       : "Re-run nbgrader for this student's collected submission.";
 
-    const button = (
-      <Button
-        key="nbgrader"
-        icon={<Icon name={iconName} />}
-        disabled={running}
-        loading={running}
-        size={size}
-        onClick={() => {
-          if (
-            clicked_nbgrader.current != null &&
-            webapp_client.server_time() - clicked_nbgrader.current.valueOf() <=
-              3000
-          ) {
-            // User *just* clicked, and we want to avoid double click
-            // running nbgrader twice.
-            return;
-          }
-
-          clicked_nbgrader.current = new Date();
-          actions.assignments.run_nbgrader_for_one_student(
-            assignment.get("assignment_id"),
-            student.get("student_id"),
-          );
-        }}
-      />
-    );
-
     return (
-      <div style={{ marginTop: "5px" }}>
-        <Tip
-          title={tipTitle}
-          tip={tipText}
-        >
-          {button}
-        </Tip>
-      </div>
+      <Tip title={tipTitle} tip={tipText}>
+        <Button
+          key="nbgrader"
+          icon={<Icon name={iconName} />}
+          disabled={running}
+          loading={running}
+          size={size}
+          onClick={() => {
+            if (
+              clicked_nbgrader.current != null &&
+              webapp_client.server_time() -
+                clicked_nbgrader.current.valueOf() <=
+                3000
+            ) {
+              // avoid firing nbgrader twice on rapid double-clicks
+              return;
+            }
+
+            clicked_nbgrader.current = new Date();
+            actions.assignments.run_nbgrader_for_one_student(
+              assignment.get("assignment_id"),
+              student.get("student_id"),
+            );
+          }}
+        />
+      </Tip>
     );
   }
 
   function render_nbgrader() {
-    if (nbgrader_scores) {
-      return render_nbgrader_scores();
-    }
     if (!assignment.get("nbgrader") || assignment.get("skip_grading")) return;
 
-    return render_run_nbgrader(true);
+    return render_nbgrader_scores();
   }
 
   function render_last_time(time: string | number | Date) {
