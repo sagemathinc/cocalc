@@ -20,7 +20,7 @@
     "database": "cd dev/project && ./start_postgres.py",
     "database-remove-locks": "./scripts/database-remove-locks",
     "c": "LOGS=/tmp/ DEBUG='cocalc:*' ./scripts/c",
-    "version-check": "pip3 install typing_extensions mypy  || pip3 install --break-system-packages typing_extensions mypy && ./workspaces.py version-check && mypy scripts/check_npm_packages.py",
+    "version-check": "cd packages && pnpm check-deps",
     "test-parallel": "unset DEBUG && pnpm run version-check && cd packages && pnpm run -r --parallel test",
     "test": "unset DEBUG && pnpm run depcheck && pnpm run version-check && ./workspaces.py test",
     "test-github-ci": "unset DEBUG && pnpm run depcheck && pnpm run version-check && ./workspaces.py test --test-github-ci --exclude=jupyter --retries=1",
