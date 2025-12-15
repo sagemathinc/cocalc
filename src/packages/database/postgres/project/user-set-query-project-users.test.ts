@@ -34,12 +34,47 @@ describe("_user_set_query_project_users sanitizer", () => {
       sanitizeUserSetQueryProjectUsers(
         {
           users: {
-            [otherId]: { hide: true },
+            [otherId]: { upgrades: { memory: 1024 } },
           },
         },
         accountId,
       ),
-    ).toThrow("users set queries may only modify the requesting account");
+    ).toThrow(
+      "users set queries may only change upgrades for the requesting account",
+    );
+  });
+
+  test("allows system-style updates when no account_id is provided", () => {
+    const value = sanitizeUserSetQueryProjectUsers({
+      users: {
+        [accountId]: { hide: false, ssh_keys: {} },
+      },
+    });
+    expect(value).toEqual({
+      [accountId]: { hide: false, ssh_keys: {} },
+    });
+  });
+
+  test("allows system operations to set group to owner", () => {
+    const value = sanitizeUserSetQueryProjectUsers({
+      users: {
+        [accountId]: { group: "owner", hide: false },
+      },
+    });
+    expect(value).toEqual({
+      [accountId]: { group: "owner", hide: false },
+    });
+  });
+
+  test("allows system operations to set group to collaborator", () => {
+    const value = sanitizeUserSetQueryProjectUsers({
+      users: {
+        [accountId]: { group: "collaborator" },
+      },
+    });
+    expect(value).toEqual({
+      [accountId]: { group: "collaborator" },
+    });
   });
 
   test("rejects group changes", () => {
@@ -53,6 +88,32 @@ describe("_user_set_query_project_users sanitizer", () => {
         accountId,
       ),
     ).toThrow("changing collaborator group via user_set_query is not allowed");
+  });
+
+  test("rejects invalid group values in system operations", () => {
+    expect(() =>
+      sanitizeUserSetQueryProjectUsers({
+        users: {
+          [accountId]: { group: "admin" },
+        },
+      }),
+    ).toThrow(
+      "invalid group value 'admin' - must be 'owner' or 'collaborator'",
+    );
+  });
+
+  test("allows hiding another collaborator", () => {
+    const value = sanitizeUserSetQueryProjectUsers(
+      {
+        users: {
+          [otherId]: { hide: true },
+        },
+      },
+      accountId,
+    );
+    expect(value).toEqual({
+      [otherId]: { hide: true },
+    });
   });
 
   test("rejects invalid upgrade field", () => {

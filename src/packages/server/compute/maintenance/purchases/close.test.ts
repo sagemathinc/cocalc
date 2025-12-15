@@ -17,7 +17,7 @@ import {
   closePurchase,
 } from "./close";
 import { getPurchase } from "./util";
-import { delay } from "awaiting";
+import { waitToAvoidTestFailure } from "@cocalc/server/test-utils";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -48,9 +48,7 @@ describe("creates account, project, test compute server, and purchase, then clos
       title: "My First Project",
       start: false,
     });
-    // sometimes above isn't noticed below, which is weird, so we put in slight delay.
-    // TODO: it's surely because of using a connection pool instead of a single connection.
-    await delay(300);
+    await waitToAvoidTestFailure();
   });
 
   it("creates compute server on the 'test' cloud", async () => {
@@ -64,6 +62,7 @@ describe("creates account, project, test compute server, and purchase, then clos
       project_id,
       ...s,
     });
+    await waitToAvoidTestFailure();
   });
 
   it("creates a purchase", async () => {

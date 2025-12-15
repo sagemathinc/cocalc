@@ -1,10 +1,12 @@
+import { delay } from "awaiting";
+
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import createServer from "./create-server";
 import * as control from "./control";
-import { delay } from "awaiting";
+import { waitToAvoidTestFailure } from "@cocalc/server/test-utils";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -33,9 +35,7 @@ describe("creates account, project and a test compute server, then control it", 
       title: "My First Project",
       start: false,
     });
-    // sometimes above isn't noticed below, which is weird, so we put in slight delay.
-    // TODO: it's surely because of using a connection pool instead of a single connection.
-    await delay(300);
+    await waitToAvoidTestFailure();
   });
 
   let id;
@@ -50,6 +50,7 @@ describe("creates account, project and a test compute server, then control it", 
       project_id,
       ...s,
     });
+    await waitToAvoidTestFailure();
   });
 
   it("start the server", async () => {

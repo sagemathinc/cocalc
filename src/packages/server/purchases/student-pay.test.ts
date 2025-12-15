@@ -5,7 +5,7 @@ import studentPay from "./student-pay";
 import createProject from "@cocalc/server/projects/create";
 import createCredit from "./create-credit";
 import dayjs from "dayjs";
-import { delay } from "awaiting";
+import { waitToAvoidTestFailure } from "@cocalc/server/test-utils";
 
 beforeAll(async () => {
   await initEphemeralDatabase({});
@@ -34,9 +34,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
       title: "My First Project",
       start: false,
     });
-    // sometimes above isn't noticed below, which is weird, so we put in slight delay.
-    // TODO: it's surely because of using a connection pool instead of a single connection.
-    await delay(300);
+    await waitToAvoidTestFailure();
   });
 
   it("fails because student pay not configured yet", async () => {

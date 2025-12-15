@@ -5,7 +5,7 @@ import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import addUserToProject from "@cocalc/server/projects/add-user-to-project";
 import createServer from "./create-server";
-import { delay } from "awaiting";
+import { waitToAvoidTestFailure } from "@cocalc/server/test-utils";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -77,18 +77,14 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
       title: "My First Project",
       start: false,
     });
-    // sometimes above isn't noticed below, which is weird, so we put in slight delay.
-    // TODO: it's surely because of using a connection pool instead of a single connection.
-    await delay(300);
+    await waitToAvoidTestFailure();
     // Both users
     project_id2 = await createProject({
       account_id: account_id2,
       title: "My Second Project",
       start: false,
     });
-    // sometimes above isn't noticed below, which is weird, so we put in slight delay.
-    // TODO: it's surely because of using a connection pool instead of a single connection.
-    await delay(300);
+    await waitToAvoidTestFailure();
     await addUserToProject({
       account_id: account_id1,
       project_id: project_id2,
@@ -116,6 +112,7 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
       account_id: account_id1,
       project_id: project_id1,
     });
+    await waitToAvoidTestFailure();
 
     expect(
       await getServers({
@@ -193,6 +190,7 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
       account_id: account_id2,
       project_id: project_id2,
     });
+    await waitToAvoidTestFailure();
 
     expect(
       await getServers({

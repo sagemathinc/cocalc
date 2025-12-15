@@ -20,7 +20,7 @@ import {
   MAX_PURCHASE_LENGTH_MS,
 } from "./manage-purchases";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
-import { delay } from "awaiting";
+import { waitToAvoidTestFailure } from "@cocalc/server/test-utils";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -58,9 +58,7 @@ describe("creates account, project, test compute server, and purchase", () => {
       title: "My First Project",
       start: false,
     });
-    // sometimes above isn't noticed below, which is weird, so we put in slight delay.
-    // TODO: it's surely because of using a connection pool instead of a single connection.
-    await delay(300);
+    await waitToAvoidTestFailure();
   });
 
   let id;
@@ -75,6 +73,7 @@ describe("creates account, project, test compute server, and purchase", () => {
       project_id,
       ...s,
     });
+    await waitToAvoidTestFailure();
   });
 
   it("runs ongoingPurchases and confirms that our new server did NOT get flagged", async () => {

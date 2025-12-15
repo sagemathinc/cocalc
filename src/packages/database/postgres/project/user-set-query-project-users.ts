@@ -9,20 +9,28 @@ import {
   is_object,
   is_valid_uuid_string,
 } from "@cocalc/util/misc";
+import { type UserGroup } from "@cocalc/util/project-ownership";
 
 type AllowedUserFields = {
+  group?: UserGroup;
   hide?: boolean;
   upgrades?: Record<string, unknown>;
   ssh_keys?: Record<string, Record<string, unknown> | undefined>;
 };
 
-function ensureAllowedKeys(user: Record<string, unknown>): void {
+function ensureAllowedKeys(
+  user: Record<string, unknown>,
+  allowGroupChanges: boolean,
+): void {
   const allowed = new Set(["hide", "upgrades", "ssh_keys"]);
   for (const key of Object.keys(user)) {
     if (key === "group") {
-      throw Error(
-        "changing collaborator group via user_set_query is not allowed",
-      );
+      if (!allowGroupChanges) {
+        throw Error(
+          "changing collaborator group via user_set_query is not allowed",
+        );
+      }
+      continue;
     }
     if (!allowed.has(key)) {
       throw Error(`unknown field '${key}'`);
@@ -79,12 +87,14 @@ function sanitizeSshKeys(
  */
 export function sanitizeUserSetQueryProjectUsers(
   obj: { users?: unknown } | undefined,
-  account_id: string,
+  account_id?: string,
 ): Record<string, AllowedUserFields> | undefined {
   if (obj?.users == null) {
     return undefined;
   }
-  assert_valid_account_id(account_id);
+  if (account_id != null) {
+    assert_valid_account_id(account_id);
+  }
   if (!is_object(obj.users)) {
     throw Error("users must be an object");
   }
@@ -96,17 +106,29 @@ export function sanitizeUserSetQueryProjectUsers(
     if (!is_valid_uuid_string(id)) {
       throw Error(`invalid account_id '${id}'`);
     }
-    if (id !== account_id) {
-      throw Error("users set queries may only modify the requesting account");
-    }
     const user = usersInput[id];
     if (!is_object(user)) {
       throw Error("user entry must be an object");
     }
 
-    ensureAllowedKeys(user as Record<string, unknown>);
+    const isSelf = account_id == null || id === account_id;
+    ensureAllowedKeys(user as Record<string, unknown>, account_id == null);
 
     const entry: AllowedUserFields = {};
+    if ("group" in user) {
+      if (account_id != null) {
+        throw Error(
+          "changing collaborator group via user_set_query is not allowed",
+        );
+      }
+      const group = (user as any).group;
+      if (group !== "owner" && group !== "collaborator") {
+        throw Error(
+          `invalid group value '${group}' - must be 'owner' or 'collaborator'`,
+        );
+      }
+      entry.group = group;
+    }
     if ("hide" in user) {
       if (typeof (user as any).hide !== "boolean") {
         throw Error("invalid type for field 'hide'");
@@ -114,9 +136,19 @@ export function sanitizeUserSetQueryProjectUsers(
       entry.hide = (user as any).hide;
     }
     if ("upgrades" in user) {
+      if (!isSelf) {
+        throw Error(
+          "users set queries may only change upgrades for the requesting account",
+        );
+      }
       entry.upgrades = sanitizeUpgrades((user as any).upgrades);
     }
     if ("ssh_keys" in user) {
+      if (!isSelf) {
+        throw Error(
+          "users set queries may only change ssh_keys for the requesting account",
+        );
+      }
       entry.ssh_keys = sanitizeSshKeys((user as any).ssh_keys);
     }
     sanitized[id] = entry;

@@ -2,6 +2,8 @@
 Test managing purchases
 */
 
+import { delay } from "awaiting";
+
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import createAccount from "@cocalc/server/accounts/create-account";
 import { setTestNetworkUsage } from "@cocalc/server/compute/control";
@@ -13,7 +15,7 @@ import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { setPurchaseQuota } from "@cocalc/server/purchases/purchase-quotas";
 import { ComputeServer } from "@cocalc/util/db-schema/purchases";
 import { uuid } from "@cocalc/util/misc";
-import { delay } from "awaiting";
+import { waitToAvoidTestFailure } from "@cocalc/server/test-utils";
 import managePurchases, {
   MAX_NETWORK_USAGE_UPDATE_INTERVAL_MS,
   MAX_PURCHASE_LENGTH_MS,
@@ -67,9 +69,7 @@ describe("confirm managing of purchases works", () => {
       title: "My First Project",
       start: false,
     });
-    // sometimes above isn't noticed below, which is weird, so we put in slight delay.
-    // TODO: it's surely because of using a connection pool instead of a single connection.
-    await delay(300);
+    await waitToAvoidTestFailure();
     const s = {
       title: "myserver",
       idle_timeout: 15,
@@ -80,6 +80,7 @@ describe("confirm managing of purchases works", () => {
       project_id,
       ...s,
     });
+    await waitToAvoidTestFailure();
     // give user $10.
     await createPurchase({
       account_id,

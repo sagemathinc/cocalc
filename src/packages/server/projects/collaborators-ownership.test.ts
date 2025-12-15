@@ -37,7 +37,7 @@ async function setSiteStrictCollab(value: "yes" | "no") {
 }
 
 beforeAll(async () => {
-  await initEphemeralDatabase({ reset: true });
+  await initEphemeralDatabase();
 }, 15000);
 
 afterAll(async () => {

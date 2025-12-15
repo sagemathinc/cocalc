@@ -27,9 +27,7 @@ async function setSiteStrictCollab(value: "yes" | "no") {
 }
 
 beforeAll(async () => {
-  // Start from a clean slate to avoid interference from other tests sharing
-  // the ephemeral database (compute server tables, settings, etc.).
-  await initEphemeralDatabase({ reset: true });
+  await initEphemeralDatabase();
 }, 15000);
 
 afterAll(async () => {
