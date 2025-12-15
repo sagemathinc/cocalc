@@ -338,4 +338,96 @@ describe("ChatStreamWriter", () => {
     expect(autoApprove).toHaveBeenCalled();
     (writer as any).dispose?.(true);
   });
+
+  it("uses interrupted text when summary arrives", async () => {
+    const { syncdb, sets } = makeFakeSyncDB();
+    const writer: any = new ChatStreamWriter({
+      metadata: baseMetadata,
+      client: makeFakeClient(),
+      approverAccountId: "u",
+      syncdbOverride: syncdb as any,
+      logStoreFactory: () =>
+        ({
+          set: async () => {},
+        }) as any,
+    });
+
+    (writer as any).notifyInterrupted("Please fix X");
+    await (writer as any).handle({
+      type: "summary",
+      finalResponse: "",
+      seq: 0,
+    } as AcpStreamMessage);
+    await flush(writer);
+
+    expect((writer as any).content).toContain("Please fix X");
+    const final = sets[sets.length - 1];
+    expect(final.generating).toBe(false);
+    (writer as any).dispose?.(true);
+  });
+
+  it("concatenates multiple agent messages into final content", async () => {
+    const { syncdb } = makeFakeSyncDB();
+    const writer: any = new ChatStreamWriter({
+      metadata: baseMetadata,
+      client: makeFakeClient(),
+      approverAccountId: "u",
+      syncdbOverride: syncdb as any,
+      logStoreFactory: () =>
+        ({
+          set: async () => {},
+        }) as any,
+    });
+
+    await (writer as any).handle({
+      type: "event",
+      event: { type: "message", text: "first" } as any,
+      seq: 0,
+    } as AcpStreamMessage);
+    await (writer as any).handle({
+      type: "event",
+      event: { type: "message", text: "second" } as any,
+      seq: 1,
+    } as AcpStreamMessage);
+    await (writer as any).handle({
+      type: "summary",
+      finalResponse: "",
+      seq: 2,
+    } as AcpStreamMessage);
+    await flush(writer);
+
+    expect((writer as any).content).toContain("first");
+    expect((writer as any).content).toContain("second");
+    (writer as any).dispose?.(true);
+  });
+
+  it("aggregates multiple summary payloads", async () => {
+    const { syncdb } = makeFakeSyncDB();
+    const writer: any = new ChatStreamWriter({
+      metadata: baseMetadata,
+      client: makeFakeClient(),
+      approverAccountId: "u",
+      syncdbOverride: syncdb as any,
+      logStoreFactory: () =>
+        ({
+          set: async () => {},
+        }) as any,
+    });
+
+    await (writer as any).handle({
+      type: "summary",
+      finalResponse: "Hello",
+      seq: 0,
+    } as AcpStreamMessage);
+    await (writer as any).handle({
+      type: "summary",
+      finalResponse: " world",
+      seq: 1,
+    } as AcpStreamMessage);
+    await flush(writer);
+
+    expect((writer as any).content).toContain("Hello");
+    expect((writer as any).content).toContain("world");
+    (writer as any).dispose?.(true);
+  });
 });

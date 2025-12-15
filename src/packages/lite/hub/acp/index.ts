@@ -337,13 +337,27 @@ export class ChatStreamWriter {
     }
     if (payload.type === "summary") {
       const latestMessage = getLatestMessageText(this.events);
-      const finalText =
+      const candidate =
         (latestMessage && latestMessage.trim().length > 0
           ? latestMessage
           : payload.finalResponse) ??
         this.interruptedMessage ??
         this.content;
-      this.content = finalText;
+      if (candidate != null) {
+        if (
+          this.content &&
+          this.content.length > 0 &&
+          candidate.length > 0 &&
+          candidate !== this.content &&
+          !candidate.startsWith(this.content)
+        ) {
+          // Multiple summaries can arrive; append new text if it doesn't already
+          // include the existing accumulated content.
+          this.content = `${this.content}${candidate}`;
+        } else {
+          this.content = candidate;
+        }
+      }
       if (payload.usage) {
         this.usage = payload.usage;
       }
