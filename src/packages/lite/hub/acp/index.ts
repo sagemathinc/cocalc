@@ -25,6 +25,12 @@ import {
   type CodexSessionConfig,
 } from "@cocalc/util/ai/codex";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
+import type {
+  FileAdapter,
+  TerminalAdapter,
+  PathResolver,
+  TerminalStartOptions,
+} from "@cocalc/ai/acp/adapters";
 import { type AcpExecutor, ContainerExecutor, LocalExecutor } from "./executor";
 import {
   preferContainerExecutor,
@@ -578,32 +584,9 @@ function getLatestMessageText(events: AcpStreamMessage[]): string | undefined {
 
 type ExecutorAdapters = {
   workspaceRoot: string;
-  fileAdapter: {
-    readTextFile: (path: string) => Promise<string>;
-    writeTextFile: (path: string, content: string) => Promise<void>;
-  };
-  terminalAdapter: {
-    start: (
-      opts: {
-        command: string;
-        args?: string[];
-        cwd?: string;
-        env?: Record<string, string>;
-        limit?: number;
-      },
-      onOutput: (chunk: string) => Promise<void> | void,
-    ) => Promise<{
-      kill: () => Promise<void>;
-      waitForExit: () => Promise<{
-        exitStatus: { exitCode?: number; signal?: string };
-        output: string;
-        truncated: boolean;
-      }>;
-    }>;
-  };
-  pathResolver: {
-    resolve: (p: string) => { absolute: string; relative?: string; workspaceRoot: string };
-  };
+  fileAdapter: FileAdapter;
+  terminalAdapter: TerminalAdapter;
+  pathResolver: PathResolver;
   commandHandlers?: Record<string, any>;
 };
 
@@ -636,7 +619,7 @@ function buildExecutorAdapters(
     return rel || ".";
   };
 
-  const fileAdapter = {
+  const fileAdapter: FileAdapter = {
     readTextFile: async (p: string) => {
       const rel = toRelative(p);
       return await executor.readTextFile(rel);
@@ -647,8 +630,8 @@ function buildExecutorAdapters(
     },
   };
 
-  const terminalAdapter = {
-    async start(options, onOutput) {
+  const terminalAdapter: TerminalAdapter = {
+    async start(options: TerminalStartOptions, onOutput) {
       const { command, args, cwd, env, limit } = options;
       const joined =
         args && Array.isArray(args) && args.length > 0
