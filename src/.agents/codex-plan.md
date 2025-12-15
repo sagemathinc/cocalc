@@ -4,12 +4,13 @@
 
 To not forget:
 
+- [ ] often when making a new codex session, no id gets assigned at all, which breaks everything.
 - [ ] make sure approvals in lite mode still work (see conat/ai/acp/server.ts discussion about account_id)
 - [ ] remove sandbox option in container mode
 - [ ] make readonly mode be implemented using full access, but where we do the sandboxing in project-host, obviously... and have to make it clear how it differs.
 - [ ] make the highly insecure "cocalc-plus" mode require explicitly setting it everywhere, instead of it being the default.  I worry about a project-host coming up half broken, and leaving open a vulnerability.
 - [ ] do a security audit
-- [ ] ensure multiple concurrent sessions can run at once.  I have evidence they don't, and the solution would be spinning up a pool: http://localhost:7000/projects/00000000-1000-4000-8000-000000000000/files/build/cocalc-lite/a.chat#chat=1765836152408
+- [x] ensure multiple concurrent sessions can run at once.  I have evidence they don't, and the solution would be spinning up a pool: http://localhost:7000/projects/00000000-1000-4000-8000-000000000000/files/build/cocalc-lite/a.chat#chat=1765836152408
 
 ### Detailed plan
 

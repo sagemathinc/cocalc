@@ -32,9 +32,17 @@
     "test": "pnpm exec jest",
     "depcheck": "pnpx depcheck --ignores events,bufferutil,utf-8-validate"
   },
-  "files": ["dist/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "conat", "cocalc"],
+  "keywords": [
+    "utilities",
+    "conat",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/comm": "workspace:*",
@@ -53,6 +61,7 @@
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
     "mime-types": "^3.0.1",
+    "p-limit": "^4.0.0",
     "sha256": "^0.2.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",

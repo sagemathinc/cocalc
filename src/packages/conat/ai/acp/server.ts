@@ -8,6 +8,7 @@ import type {
   AcpRequest,
   AcpStreamPayload,
 } from "./types";
+import pLimit from "p-limit";
 
 const logger = getLogger("conat:ai:acp:server");
 
@@ -82,6 +83,20 @@ function getProjectId(subject: string): string | undefined {
 let apiSub: Subscription | null = null;
 let approvalSub: Subscription | null = null;
 let interruptSub: Subscription | null = null;
+const MAX_CONCURRENCY = Number(
+  process.env.COCALC_ACP_MAX_CONCURRENCY ?? 64,
+);
+const limiter = pLimit(MAX_CONCURRENCY);
+
+async function runLimited(label: string, fn: () => Promise<void>): Promise<void> {
+  void limiter(async () => {
+    try {
+      await fn();
+    } catch (err) {
+      logger.debug(`error handling acp ${label}`, err);
+    }
+  });
+}
 
 type StreamHandler = (payload?: AcpStreamPayload | null) => Promise<void>;
 
@@ -136,14 +151,7 @@ function listenApi(evaluate: EvaluateHandler): void {
   if (apiSub == null) throw Error("must init first");
   (async () => {
     for await (const mesg of apiSub!) {
-      // we do NOT block on handling each message
-      (async () => {
-        try {
-          await handleMessage(mesg, evaluate);
-        } catch (err) {
-          logger.debug("error handling acp message", err);
-        }
-      })();
+      void runLimited("message", () => handleMessage(mesg, evaluate));
     }
   })().catch((err) => {
     logger.warn("acp api listener stopped", err);
@@ -154,7 +162,9 @@ function listenApprovals(approvalHandler: ApprovalHandler): void {
   if (approvalSub == null) return;
   (async () => {
     for await (const mesg of approvalSub!) {
-      await handleApprovalMessage(mesg, approvalHandler);
+      void runLimited("approval", () =>
+        handleApprovalMessage(mesg, approvalHandler),
+      );
     }
   })().catch((err) => {
     logger.warn("acp approval listener stopped", err);
@@ -165,7 +175,9 @@ function listenInterrupts(interruptHandler: InterruptHandler): void {
   if (interruptSub == null) return;
   (async () => {
     for await (const mesg of interruptSub!) {
-      await handleInterruptMessage(mesg, interruptHandler);
+      void runLimited("interrupt", () =>
+        handleInterruptMessage(mesg, interruptHandler),
+      );
     }
   })().catch((err) => {
     logger.warn("acp interrupt listener stopped", err);
