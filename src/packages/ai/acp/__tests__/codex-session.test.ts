@@ -1,5 +1,23 @@
+// Mock the ACP SDK (ESM-only) so Jest can run under CJS transpilation.
+jest.mock("@agentclientprotocol/sdk", () => {
+  const mockConn = jest.fn(() => ({
+    initialize: jest.fn(),
+    newSession: jest.fn(),
+    loadSession: jest.fn(),
+    setSessionMode: jest.fn(),
+    setSessionModel: jest.fn(),
+  }));
+  return {
+    ClientSideConnection: mockConn,
+    PROTOCOL_VERSION: 1,
+    ndJsonStream: jest.fn(),
+  };
+});
+jest.mock("@agentclientprotocol/sdk/dist/schema", () => ({}));
+
 import path from "node:path";
 import { CodexAcpAgent, CodexClientHandler } from "../codex";
+import { delay } from "awaiting";
 
 function makeAgent() {
   const connection = {
@@ -95,11 +113,13 @@ describe("CodexClientHandler proxied terminals", () => {
     } as any);
 
     expect(terminalId).toBeTruthy();
-    expect(bashHandler).toHaveBeenCalledWith(
-      expect.objectContaining({ cwd: "/root/project" }),
-    );
+    expect(bashHandler).toHaveBeenCalledTimes(1);
+    const callArg = (bashHandler as jest.Mock).mock.calls[0]?.[0];
+    expect(callArg?.cwd).toBe("/root/project");
     const start = events.find((e) => e.event?.phase === "start");
     expect(start?.event.cwd).toBe("/root/project");
+    // wait to finish
+    await delay(1);
     const exit = events.find((e) => e.event?.phase === "exit");
     expect(exit?.event.output).toContain("/root/project");
   });

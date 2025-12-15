@@ -776,12 +776,13 @@ class CodexClientHandler implements TerminalClient {
         : MAX_TERMINAL_STREAM_CHARS;
     const customInvocation = this.resolveCustomCommand(command, args ?? []);
     if (customInvocation) {
+      const cwdResolved = cwd ?? this.workspaceRoot ?? process.cwd();
       await this.startCustomCommand({
         sessionId,
         terminalId,
         command: customInvocation.command,
         args: customInvocation.args,
-        cwd: cwd ?? process.cwd(),
+        cwd: cwdResolved,
         env: envVars,
         limit,
         handler: customInvocation.handler,
