@@ -538,7 +538,15 @@ export default function Message({
   }, [replying]);
 
   // todo: localstorage?
-  const [activitySize, setActivitySize] = useState<number>(600);
+  const [activitySize, setActivitySize0] = useState<number>(
+    parseInt(localStorage?.acpActivitySize ?? "600"),
+  );
+  const setActivitySize = (size: number) => {
+    setActivitySize0(size);
+    try {
+      localStorage.acpActivitySize = size;
+    } catch {}
+  };
 
   function render_editing_status(is_editing: boolean) {
     let text;
