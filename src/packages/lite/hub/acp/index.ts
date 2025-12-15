@@ -590,6 +590,7 @@ function buildExecutorBindings(
   workspaceRoot: string,
 ): ExecutorBindings {
   const shellHandler = async ({ command, args, cwd, env }: any) => {
+    logger.debug("shellHandler exec", { command, args, cwd, env });
     const joined =
       args && Array.isArray(args) && args.length > 0
         ? `${command} ${args.join(" ")}`
@@ -665,17 +666,21 @@ export async function evaluate({
 }): Promise<void> {
   const config = normalizeConfig(request.config);
   const sessionMode = resolveCodexSessionMode(config);
-  const useNativeTerminal = sessionMode === "auto";
   const projectId = request.chat?.project_id ?? request.project_id;
   if (!projectId) {
     throw Error("project_id must be set");
   }
   const workspaceRoot = resolveWorkspaceRoot(config, projectId);
+  const effectiveConfig = { ...(config ?? {}), workingDirectory: workspaceRoot };
   const useContainer = preferContainerExecutor();
+  // When using the container executor, force proxied terminals so commands run
+  // inside the project container via our handler, not locally on the agent host.
+  const useNativeTerminal = useContainer ? false : sessionMode === "auto";
   logger.debug("evaluate: mode selection", {
     useContainer,
     workspaceRoot,
     project_id: projectId,
+    useNativeTerminal,
   });
   if (useContainer && !conatClient) {
     throw Error("conat client must be initialized");
@@ -744,7 +749,7 @@ export async function evaluate({
     await currentAgent.evaluate({
       ...request,
       prompt,
-      config,
+      config: effectiveConfig,
       stream: wrappedStream,
     });
   } finally {

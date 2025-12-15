@@ -98,6 +98,7 @@ export class ContainerExecutor {
     const defaultCwd = this.base === "/" ? "/" : this.base.slice(0, -1);
     const cwd = opts?.cwd ? this.resolvePath(opts.cwd) : defaultCwd;
     const env = { ...(this.options.env ?? {}), ...(opts?.env ?? {}) };
+    logger.debug("container executor exec", { cmd, cwd, env });
     const args = [
       "exec",
       "-i",

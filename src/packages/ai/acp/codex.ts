@@ -760,11 +760,14 @@ class CodexClientHandler implements TerminalClient {
     outputByteLimit,
   }: CreateTerminalRequest): Promise<CreateTerminalResponse> {
     const terminalId = randomUUID();
+    const proxied = this.commandHandlers?.size && !this.captureToolCalls;
     log.debug("acp.create_terminal", {
       command,
       args,
       cwd,
       terminalId,
+      proxied,
+      workspaceRoot: this.workspaceRoot,
     });
     const envVars: NodeJS.ProcessEnv = this.buildEnv(env);
     const limit =
@@ -787,7 +790,7 @@ class CodexClientHandler implements TerminalClient {
     }
 
     const child = spawn(command, args ?? [], {
-      cwd: cwd ?? process.cwd(),
+      cwd: cwd ?? this.workspaceRoot ?? process.cwd(),
       env: envVars,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -1622,6 +1625,11 @@ export class CodexAcpAgent implements AcpAgent {
   ): Promise<SessionState> {
     const normalizedKey = this.normalizeSessionKey(sessionKey);
     const cwd = this.normalizeWorkingDirectory(config);
+    log.debug("acp.session.ensure", {
+      sessionKey: normalizedKey,
+      cwd,
+      configWorkspace: config?.workingDirectory,
+    });
     let session = this.sessions.get(normalizedKey);
     if (session == null && config?.sessionId) {
       session = this.findSessionById(config.sessionId);
@@ -1649,6 +1657,7 @@ export class CodexAcpAgent implements AcpAgent {
   }
 
   private async createSession(cwd: string): Promise<SessionState> {
+    log.debug("acp.session.new", { cwd });
     const response = await this.connection.newSession({
       cwd,
       mcpServers: [],
@@ -1770,3 +1779,6 @@ export class CodexAcpAgent implements AcpAgent {
     await this.connection.closed;
   }
 }
+
+// Exposed for tests so we can validate terminal routing and workspace handling.
+export { CodexClientHandler };

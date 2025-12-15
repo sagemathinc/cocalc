@@ -8,7 +8,7 @@ To not forget:
 - [ ] remove sandbox option in container mode
 - [ ] make readonly mode be implemented using full access, but where we do the sandboxing in project-host, obviously... and have to make it clear how it differs.
 - [ ] make the highly insecure "cocalc-plus" mode require explicitly setting it everywhere, instead of it being the default.  I worry about a project-host coming up half broken, and leaving open a vulnerability.
-
+- [ ] do a security audit
 
 ### Detailed plan
 
