@@ -132,10 +132,23 @@ export function Assignment({
     }
   }, [assignmentId, assignment.getIn(["peer_grade", "enabled"])]);
 
+  useEffect(() => {
+    if (assignment.get("nbgrader") && is_peer_graded()) {
+      actions.assignments.set_peer_grade(assignmentId, { enabled: false });
+      setPeerDisabledForNbgrader(true);
+    }
+  }, [
+    assignmentId,
+    assignment.get("nbgrader"),
+    assignment.getIn(["peer_grade", "enabled"]),
+  ]);
+
   const [
     copy_assignment_confirm_overwrite,
     set_copy_assignment_confirm_overwrite,
   ] = useState<boolean>(false);
+  const [peerDisabledForNbgrader, setPeerDisabledForNbgrader] =
+    useState(false);
   const [
     copy_assignment_confirm_overwrite_text,
     set_copy_assignment_confirm_overwrite_text,
@@ -321,6 +334,18 @@ export function Assignment({
             </Space>
           </Col>
         </Row>
+
+        {peerDisabledForNbgrader ? (
+          <div style={{ marginTop: 8 }}>
+            <Alert
+              type="warning"
+              showIcon
+              closable
+              onClose={() => setPeerDisabledForNbgrader(false)}
+              message="Peer grading was disabled because nbgrader notebooks were detected. Remove nbgrader metadata to re-enable peer grading."
+            />
+          </div>
+        ) : null}
 
         {expand_peer_config ? (
           <ConfigurePeerGrading actions={actions} assignment={assignment} />
@@ -1307,9 +1332,10 @@ export function Assignment({
     } else {
       icon = "square-o";
     }
-    return (
+    const disabledForNbgrader = !!assignment.get("nbgrader");
+    const button = (
       <Button
-        disabled={expand_peer_config}
+        disabled={expand_peer_config || disabledForNbgrader}
         onClick={() =>
           actions.toggle_item_expansion(
             "peer_config",
@@ -1319,6 +1345,14 @@ export function Assignment({
       >
         <Icon name={icon} /> Peer Grading...
       </Button>
+    );
+    if (!disabledForNbgrader) {
+      return button;
+    }
+    return (
+      <Tip title="Peer grading is disabled because nbgrader notebooks were detected">
+        <span>{button}</span>
+      </Tip>
     );
   }
 
