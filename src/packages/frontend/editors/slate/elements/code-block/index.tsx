@@ -122,8 +122,6 @@ function FloatingActionMenu({
           size="small"
           type="text"
           style={{
-            color: "#666",
-            transition: "opacity 120ms ease",
             boxShadow: "none",
           }}
           aria-label="Code block actions"
