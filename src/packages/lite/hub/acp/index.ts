@@ -576,19 +576,41 @@ function getLatestMessageText(events: AcpStreamMessage[]): string | undefined {
   return undefined;
 }
 
-type ExecutorBindings = {
+type ExecutorAdapters = {
   workspaceRoot: string;
-  fsProvider?: {
+  fileAdapter: {
     readTextFile: (path: string) => Promise<string>;
     writeTextFile: (path: string, content: string) => Promise<void>;
+  };
+  terminalAdapter: {
+    start: (
+      opts: {
+        command: string;
+        args?: string[];
+        cwd?: string;
+        env?: Record<string, string>;
+        limit?: number;
+      },
+      onOutput: (chunk: string) => Promise<void> | void,
+    ) => Promise<{
+      kill: () => Promise<void>;
+      waitForExit: () => Promise<{
+        exitStatus: { exitCode?: number; signal?: string };
+        output: string;
+        truncated: boolean;
+      }>;
+    }>;
+  };
+  pathResolver: {
+    resolve: (p: string) => { absolute: string; relative?: string; workspaceRoot: string };
   };
   commandHandlers?: Record<string, any>;
 };
 
-function buildExecutorBindings(
+function buildExecutorAdapters(
   executor: AcpExecutor,
   workspaceRoot: string,
-): ExecutorBindings {
+): ExecutorAdapters {
   const shellHandler = async ({ command, args, cwd, env }: any) => {
     logger.debug("shellHandler exec", { command, args, cwd, env });
     const joined =
@@ -606,11 +628,75 @@ function buildExecutorBindings(
     };
   };
 
+  const toRelative = (absolute: string): string => {
+    const rel = path.relative(workspaceRoot, absolute || "");
+    if (rel.startsWith("..")) {
+      throw new Error(`path ${absolute} is outside workspace root`);
+    }
+    return rel || ".";
+  };
+
+  const fileAdapter = {
+    readTextFile: async (p: string) => {
+      const rel = toRelative(p);
+      return await executor.readTextFile(rel);
+    },
+    writeTextFile: async (p: string, content: string) => {
+      const rel = toRelative(p);
+      await executor.writeTextFile(rel, content);
+    },
+  };
+
+  const terminalAdapter = {
+    async start(options, onOutput) {
+      const { command, args, cwd, env, limit } = options;
+      const joined =
+        args && Array.isArray(args) && args.length > 0
+          ? `${command} ${args.join(" ")}`
+          : command;
+      const relCwd = cwd ? toRelative(cwd) : undefined;
+      const result = await executor.exec(joined, {
+        cwd: relCwd,
+        env,
+      });
+      let output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+      let truncated = false;
+      if (limit != null && output.length > limit) {
+        output = output.slice(output.length - limit);
+        truncated = true;
+      }
+      await onOutput(output);
+      const exitStatus = {
+        exitCode: result.exitCode ?? undefined,
+        signal: result.signal,
+      };
+      return {
+        async kill() {
+          /* no-op for non-streaming exec */
+        },
+        async waitForExit() {
+          return { exitStatus, output, truncated };
+        },
+      };
+    },
+  };
+
   return {
     workspaceRoot,
-    fsProvider: {
-      readTextFile: (p: string) => executor.readTextFile(p),
-      writeTextFile: (p: string, c: string) => executor.writeTextFile(p, c),
+    fileAdapter,
+    terminalAdapter,
+    pathResolver: {
+      resolve(filePath: string) {
+        const absolute = path.isAbsolute(filePath)
+          ? filePath
+          : path.resolve(workspaceRoot, filePath);
+        const rel = path.relative(workspaceRoot, absolute);
+        return {
+          absolute,
+          relative: rel && !rel.startsWith("..") ? rel || "." : undefined,
+          workspaceRoot,
+        };
+      },
     },
     commandHandlers: {
       bash: shellHandler,
@@ -622,7 +708,7 @@ function buildExecutorBindings(
 
 async function ensureAgent(
   useNativeTerminal: boolean,
-  bindings: ExecutorBindings,
+  bindings: ExecutorAdapters,
 ): Promise<AcpAgent> {
   const key = `${useNativeTerminal ? "native" : "proxy"}:${bindings.workspaceRoot}`;
   const existing = agents.get(key);
@@ -646,8 +732,10 @@ async function ensureAgent(
       sessionPersistPath: sessionsDir,
       useNativeTerminal,
       commandHandlers: bindings.commandHandlers,
-      fsProvider: bindings.fsProvider,
-    } as any);
+      fileAdapter: bindings.fileAdapter,
+      terminalAdapter: bindings.terminalAdapter,
+      pathResolver: bindings.pathResolver,
+    });
     logger.info("codex-acp agent ready", { key });
     agents.set(key, created);
   } catch (err) {
@@ -700,7 +788,7 @@ export async function evaluate({
         conatClient: conatClient!,
       })
     : new LocalExecutor(workspaceRoot);
-  const bindings = buildExecutorBindings(executor, workspaceRoot);
+  const bindings = buildExecutorAdapters(executor, workspaceRoot);
   const currentAgent = await ensureAgent(useNativeTerminal, bindings);
   const { prompt, cleanup } = await materializeBlobs(request.prompt ?? "");
   if (!conatClient) {

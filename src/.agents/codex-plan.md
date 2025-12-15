@@ -4,6 +4,7 @@
 
 To not forget:
 
+- [ ] turns on not queued up properly; basically make 2-3 requests and all but the first stays stuck forever.
 - [ ] often when making a new codex session, no id gets assigned at all, which breaks everything.
 - [ ] make sure approvals in lite mode still work (see conat/ai/acp/server.ts discussion about account_id)
 - [ ] remove sandbox option in container mode
