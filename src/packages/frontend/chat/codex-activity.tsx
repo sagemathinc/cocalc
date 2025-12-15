@@ -802,7 +802,7 @@ function TerminalRow({
     ? `${promptLine}\n${entry.output.trimEnd()}${truncatedNote}`
     : `${promptLine}${truncatedNote}`;
   const placeholderText = entry.exitStatus
-    ? "No output captured."
+    ? "No output."
     : "Waiting for output…";
 
   return (
@@ -812,7 +812,7 @@ function TerminalRow({
       </Tag>*/}
       <TerminalPreview
         text={terminalText}
-        maxHeight={600}
+        maxHeight={500}
         fontSize={fontSize}
         placeholder={!hasOutput}
         placeholderText={placeholderText}
