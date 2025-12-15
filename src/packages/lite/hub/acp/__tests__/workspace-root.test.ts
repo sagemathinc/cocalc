@@ -17,20 +17,20 @@ describe("resolveWorkspaceRoot", () => {
         { workingDirectory: "sub" } as any,
         "proj-123",
       );
-      expect(root).toBe("/projects/proj-123/sub");
+      expect(root).toBe("/root/sub");
     });
 
     it("respects absolute container working dir", () => {
       const root = resolveWorkspaceRoot(
-        { workingDirectory: "/projects/proj-123/custom" } as any,
+        { workingDirectory: "/root/custom" } as any,
         "proj-123",
       );
-      expect(root).toBe("/projects/proj-123/custom");
+      expect(root).toBe("/root/custom");
     });
 
     it("falls back to project root when unset", () => {
       const root = resolveWorkspaceRoot(undefined, "proj-123");
-      expect(root).toBe("/projects/proj-123");
+      expect(root).toBe("/root");
     });
   });
 

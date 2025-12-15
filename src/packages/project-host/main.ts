@@ -28,6 +28,8 @@ import { init as initHubApi } from "@cocalc/lite/hub/api";
 import { wireProjectsApi } from "./hub/projects";
 import { startMasterRegistration } from "./master";
 import { startReconciler } from "./reconcile";
+import { init as initAcp } from "@cocalc/lite/hub/acp";
+import { setPreferContainerExecutor } from "@cocalc/lite/hub/acp/workspace-root";
 
 const logger = getLogger("project-host:main");
 
@@ -84,6 +86,10 @@ export async function main(
   initSqlite();
   initChangefeeds({ client: conatClient });
   await initHubApi({ client: conatClient });
+
+  // ACP runs inside project-host in container mode (no env flag needed).
+  setPreferContainerExecutor(true);
+  await initAcp(conatClient);
 
   // Minimal local persistence so DKV/state works (no external hub needed).
   const persistServer = createPersistServer({ client: conatClient });

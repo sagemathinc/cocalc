@@ -1,9 +1,16 @@
 import path from "node:path";
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
 
+let preferContainerOverride: boolean | undefined;
+
+export function setPreferContainerExecutor(force: boolean): void {
+  preferContainerOverride = force;
+}
+
 export function preferContainerExecutor(): boolean {
   // Explicit opt-in to container executor; default remains local to avoid
   // surprises in lite/single-user mode.
+  if (preferContainerOverride !== undefined) return preferContainerOverride;
   return process.env.COCALC_ACP_EXECUTOR === "container";
 }
 
@@ -13,10 +20,9 @@ export function resolveWorkspaceRoot(
 ): string {
   const requested = config?.workingDirectory;
   if (projectId && preferContainerExecutor()) {
-    // Container path: base project root plus optional relative working dir.
-    // [ ] TODO: this is of course not right YET -- we need to use the
-    // file-server module.
-    const base = `/projects/${projectId}`;
+    // Container path: project HOME plus optional relative working dir.
+    // (project containers run as root; adjust if that ever changes)
+    const base = `/root`;
     if (!requested) return base;
     return path.posix.isAbsolute(requested)
       ? requested
