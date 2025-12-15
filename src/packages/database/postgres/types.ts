@@ -161,6 +161,11 @@ export interface PostgreSQL extends EventEmitter {
     cb: CB;
   }): void;
 
+  _user_set_query_project_users(
+    obj: any,
+    account_id: string,
+  ): Record<string, unknown> | undefined;
+
   user_is_in_project_group(opts: {
     account_id: string;
     project_id: string;

@@ -26,11 +26,12 @@ lodash       = require('lodash')
 {defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
 
-{PROJECT_UPGRADES, SCHEMA, OPERATORS, isToOperand} = require('@cocalc/util/schema')
+{SCHEMA, OPERATORS, isToOperand} = require('@cocalc/util/schema')
 {queryIsCmp, userGetQueryFilter} = require("./user-query/user-get-query")
 
 {updateRetentionData} = require('./postgres/retention')
 {sanitizeManageUsersOwnerOnly} = require('./postgres/project/manage-users-owner-only')
+{sanitizeUserSetQueryProjectUsers} = require('./postgres/project/user-set-query-project-users')
 
 { checkProjectName } = require("@cocalc/util/db-schema/name-rules");
 {callback2} = require('@cocalc/util/async-utils')
@@ -794,51 +795,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                                     y[k0] = v0
 
     _user_set_query_project_users: (obj, account_id) =>
-        dbg = @_dbg("_user_set_query_project_users")
-        if not obj.users?
-            # nothing to do -- not changing users.
-            return
-        ##dbg("disabled")
-        ##return obj.users
-        #   - ensures all keys of users are valid uuid's (though not that they are valid users).
-        #   - and format is:
-        #          {group:'owner' or 'collaborator', hide:bool, upgrades:{a map}}
-        #     with valid upgrade fields.
-        upgrade_fields = PROJECT_UPGRADES.params
-        users = {}
-        # TODO: we obviously should check that a user is only changing the part
-        # of this object involving themselves... or adding/removing collaborators.
-        # That is not currently done below.  TODO TODO TODO  SECURITY.
-        for id, x of obj.users
-            if misc.is_valid_uuid_string(id)
-                for key in misc.keys(x)
-                    if key not in ['group', 'hide', 'upgrades', 'ssh_keys']
-                        throw Error("unknown field '#{key}")
-                if x.group? and (x.group not in ['owner', 'collaborator'])
-                    throw Error("invalid value for field 'group'")
-                if x.hide? and typeof(x.hide) != 'boolean'
-                    throw Error("invalid type for field 'hide'")
-                if x.upgrades?
-                    if not misc.is_object(x.upgrades)
-                        throw Error("invalid type for field 'upgrades'")
-                    for k,_ of x.upgrades
-                        if not upgrade_fields[k]
-                            throw Error("invalid upgrades field '#{k}'")
-                if x.ssh_keys
-                    # do some checks.
-                    if not misc.is_object(x.ssh_keys)
-                        throw Error("ssh_keys must be an object")
-                    for fingerprint, key of x.ssh_keys
-                        if not key # deleting
-                            continue
-                        if not misc.is_object(key)
-                            throw Error("each key in ssh_keys must be an object")
-                        for k, v of key
-                            # the two dates are just numbers not actual timestamps...
-                            if k not in ['title', 'value', 'creation_date', 'last_use_date']
-                                throw Error("invalid ssh_keys field '#{k}'")
-                users[id] = x
-        return users
+        return sanitizeUserSetQueryProjectUsers(obj, account_id)
 
     _user_set_query_project_manage_users_owner_only: (obj, account_id) =>
         # This hook is called from the schema functional substitution to validate
