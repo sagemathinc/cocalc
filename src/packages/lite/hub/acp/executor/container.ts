@@ -1,3 +1,17 @@
+/*
+This will implement the following in a project for purposes of ACP:
+
+- read text file
+- write text file
+- run a bash command
+
+What's implement below probably doesn't work, and is just a first iteration.
+We will also likely try multiple versions of this to figure out what is best.
+e.g., we could do one that uses the local fs sandbox directly (not the project
+podman container), and also creates a container for each terminal execution,
+so this can be run without even "starting the project".  So we will see.
+*/
+
 import path from "node:path";
 import type { Client } from "@cocalc/conat/core/client";
 import { projectApiClient, type ProjectApi } from "@cocalc/conat/project/api";
@@ -10,8 +24,8 @@ export interface ContainerExecutorOptions {
   projectId: string;
   workspaceRoot: string; // absolute path inside the project container
   conatClient?: Client;
-  computeServerId?: number;
   env?: Record<string, string>;
+  projectApi?: ProjectApi; // for testing or prebuilt clients
 }
 
 export class ContainerExecutor {
@@ -19,11 +33,12 @@ export class ContainerExecutor {
   private readonly base: string;
 
   constructor(private readonly options: ContainerExecutorOptions) {
-    this.api = projectApiClient({
-      project_id: options.projectId,
-      client: options.conatClient,
-      compute_server_id: options.computeServerId,
-    });
+    this.api =
+      options.projectApi ??
+      projectApiClient({
+        project_id: options.projectId,
+        client: options.conatClient,
+      });
     // Normalize workspace root with trailing slash for prefix checks.
     const normalized = path.posix.normalize(options.workspaceRoot || "/");
     this.base = normalized.endsWith("/") ? normalized : `${normalized}/`;
