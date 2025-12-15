@@ -6,6 +6,7 @@
     "lib": ["ES2021", "dom"],
     "target": "ES2021",
     "baseUrl": ".",
+    "isolatedModules": true,
     "paths": {
       "@langchain/core/*": ["../ai/node_modules/@langchain/core/dist/*"],
       "@cocalc/chat": ["../chat/dist/index"],

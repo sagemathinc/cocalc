@@ -13,7 +13,7 @@
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf build dist node_modules tsconfig.tsbuildinfo",
     "build": "pnpm exec tsc --build",
-    "test": "pnpm exec jest --runInBand --forceExit",
+    "test": "pnpm exec jest --forceExit",
     "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node",
     "app": "pnpm exec cocalc-lite"
   },
