@@ -7,6 +7,7 @@
     "target": "ES2021",
     "baseUrl": ".",
     "isolatedModules": true,
+    "types": ["node", "jest"],
     "paths": {
       "@langchain/core/*": ["../ai/node_modules/@langchain/core/dist/*"],
       "@cocalc/chat": ["../chat/dist/index"],

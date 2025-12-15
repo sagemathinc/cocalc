@@ -1,5 +1,4 @@
 #!/usr/bin/env ts-node
-import { describe, it, expect, beforeEach } from "@jest/globals";
 import { setTimeout as delay } from "node:timers/promises";
 import type {
   AcpChatContext,
@@ -170,7 +169,7 @@ describe("ChatStreamWriter", () => {
         seq: 0,
       },
     ]);
-    const { syncdb, sets } = makeFakeSyncDB();
+    const { syncdb } = makeFakeSyncDB();
     const writer: any = new ChatStreamWriter({
       metadata: baseMetadata,
       client: makeFakeClient(),
@@ -302,6 +301,41 @@ describe("ChatStreamWriter", () => {
     await flush(writer);
 
     expect((writer as any).getKnownThreadIds()).toContain("thread-1");
+    (writer as any).dispose?.(true);
+  });
+
+  it("auto-approves pending approval events", async () => {
+    const autoApprove = jest.fn();
+    const { syncdb } = makeFakeSyncDB();
+    const writer: any = new ChatStreamWriter({
+      metadata: baseMetadata,
+      client: makeFakeClient(),
+      approverAccountId: "u",
+      autoApprove,
+      syncdbOverride: syncdb as any,
+      logStoreFactory: () =>
+        ({
+          set: async () => {},
+        }) as any,
+    });
+
+    await (writer as any).handle({
+      type: "event",
+      event: {
+        type: "approval",
+        status: "pending",
+        approvalId: "a1",
+        options: [
+          { optionId: "opt1", name: "Allow", kind: "allow" as any },
+        ],
+        requestedAt: new Date().toISOString(),
+        requestedBy: "u",
+      },
+      seq: 0,
+    } as unknown as AcpStreamMessage);
+    await flush(writer);
+
+    expect(autoApprove).toHaveBeenCalled();
     (writer as any).dispose?.(true);
   });
 });
