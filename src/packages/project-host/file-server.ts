@@ -37,6 +37,15 @@ import { ensureHostKey } from "./ssh/host-key";
 import { ensureSshpiperdKey } from "./ssh/sshpiperd-key";
 import { getHostPublicKey } from "./ssh/host-keys";
 import { getLocalHostId } from "./sqlite/hosts";
+import { setContainerFileIO } from "@cocalc/lite/hub/acp/executor/container";
+import {
+  readFile as nodeReadFile,
+  writeFile as nodeWriteFile,
+  open as nodeOpen,
+  realpath as nodeRealpath,
+} from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
+import path from "node:path";
 
 type SshTarget =
   | { type: "project"; project_id: string }
@@ -94,6 +103,25 @@ function getFileSync() {
     throw Error("file server not initialized");
   }
   return fs.fileSync;
+}
+
+// Map a container path (relative to /root) to an absolute host path inside the
+// project's btrfs subvolume. Throws if the path escapes the project root.
+// Returns both the resolved path and the project base for additional checks.
+async function projectHostPath(
+  project_id: string,
+  containerPath: string,
+): Promise<{ hostPath: string; base: string }> {
+  const vol = await getVolume(project_id);
+  const base = vol.path; // absolute host path to project root
+  const rel = path.posix.isAbsolute(containerPath)
+    ? path.posix.relative("/root", containerPath)
+    : containerPath;
+  const joined = path.normalize(path.join(base, rel));
+  if (!joined.startsWith(base)) {
+    throw Error(`path escapes project root: ${containerPath}`);
+  }
+  return { hostPath: joined, base };
 }
 
 async function mount({
@@ -435,6 +463,55 @@ export async function initFileServer({
     syncCommand,
   });
   logger.debug("initFileServer: fs successfully initialized");
+
+  // Expose fast in-host file I/O for ACP/container executor when running inside
+  // project-host. Paths are expected to be relative to /root inside the
+  // project container.
+  setContainerFileIO({
+    readFile: async (project_id: string, p: string) => {
+      const { hostPath, base } = await projectHostPath(project_id, p);
+      const fd = await nodeOpen(
+        hostPath,
+        fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW,
+      );
+      try {
+        // TOCTOU mitigation: re-resolve via /proc/self/fd/<fd> AFTER open with
+        // O_NOFOLLOW. If a user flips the path to a symlink between path
+        // resolution and open, O_NOFOLLOW blocks the follow; if they flip it
+        // after open, realpath on the FD confirms we're still under the
+        // project root. This protects against symlink races into host paths.
+        const real = await nodeRealpath(`/proc/self/fd/${fd.fd}`);
+        if (!real.startsWith(base)) {
+          throw Error(`resolved path escapes project root: ${real}`);
+        }
+        return await nodeReadFile(fd, "utf8");
+      } finally {
+        await fd.close();
+      }
+    },
+    writeFile: async (project_id: string, p: string, content: string) => {
+      const { hostPath, base } = await projectHostPath(project_id, p);
+      const fd = await nodeOpen(
+        hostPath,
+        fsConstants.O_CREAT |
+          fsConstants.O_TRUNC |
+          fsConstants.O_WRONLY |
+          fsConstants.O_NOFOLLOW,
+        0o600,
+      );
+      try {
+        // Same TOCTOU guard as read: confirm the opened FD still resolves
+        // inside the project root before writing.
+        const real = await nodeRealpath(`/proc/self/fd/${fd.fd}`);
+        if (!real.startsWith(base)) {
+          throw Error(`resolved path escapes project root: ${real}`);
+        }
+        await nodeWriteFile(fd, content, "utf8");
+      } finally {
+        await fd.close();
+      }
+    },
+  });
 
   let ssh: any = { close: () => {}, projectProxyHandlers: [] };
   if (enableSsh) {

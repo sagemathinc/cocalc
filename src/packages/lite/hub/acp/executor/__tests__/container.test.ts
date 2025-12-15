@@ -1,5 +1,8 @@
 import { execFile } from "node:child_process";
-import { ContainerExecutor } from "../container";
+import {
+  ContainerExecutor,
+  setContainerFileIO,
+} from "../container";
 
 jest.mock("node:child_process", () => {
   const execFileMock = jest.fn();
@@ -21,6 +24,9 @@ function makeMockApi() {
 describe("ContainerExecutor", () => {
   const projectId = "00000000-0000-4000-8000-000000000000";
   const workspaceRoot = "/projects/test/";
+  afterEach(() => {
+    setContainerFileIO(null);
+  });
 
   it("reads and writes within workspace", async () => {
     const { api, readTextFileFromProject, writeTextFileToProject } =
@@ -41,6 +47,25 @@ describe("ContainerExecutor", () => {
       path: "/projects/test/sub/file.txt",
       content: "hello",
     });
+  });
+
+  it("uses injected file IO when provided", async () => {
+    const { api } = makeMockApi();
+    const reader = jest.fn().mockResolvedValue("native");
+    const writer = jest.fn().mockResolvedValue(undefined);
+    setContainerFileIO({
+      readFile: reader,
+      writeFile: writer,
+    });
+    const exec = new ContainerExecutor({
+      projectId,
+      workspaceRoot,
+      projectApi: api as any,
+    });
+    await expect(exec.readTextFile("foo.txt")).resolves.toBe("native");
+    expect(reader).toHaveBeenCalledWith(projectId, "/projects/test/foo.txt");
+    await exec.writeTextFile("bar.txt", "ok");
+    expect(writer).toHaveBeenCalledWith(projectId, "/projects/test/bar.txt", "ok");
   });
 
   it("prevents path escape", async () => {

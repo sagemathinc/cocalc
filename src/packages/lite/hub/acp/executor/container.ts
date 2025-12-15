@@ -19,13 +19,25 @@ import { projectApiClient, type ProjectApi } from "@cocalc/conat/project/api";
 
 // Container executor for multiuser (podman) mode.
 // Wraps project-scoped conat APIs to run commands and read/write files
-// inside a project container.
+// inside a project container. If direct file I/O hooks are registered
+// (e.g., by project-host), they are used instead of the network APIs.
 export interface ContainerExecutorOptions {
   projectId: string;
   workspaceRoot: string; // absolute path inside the project container
   conatClient?: Client;
   env?: Record<string, string>;
   projectApi?: ProjectApi; // for testing or prebuilt clients
+}
+
+type ContainerFileIO = {
+  readFile: (projectId: string, path: string) => Promise<string>;
+  writeFile: (projectId: string, path: string, content: string) => Promise<void>;
+};
+
+let containerFileIO: ContainerFileIO | null = null;
+
+export function setContainerFileIO(io: ContainerFileIO | null): void {
+  containerFileIO = io;
 }
 
 export class ContainerExecutor {
@@ -47,12 +59,19 @@ export class ContainerExecutor {
   // Read a project file relative to the project root/workspaceRoot.
   async readTextFile(relativePath: string): Promise<string> {
     const target = this.resolvePath(relativePath);
+    if (containerFileIO) {
+      return await containerFileIO.readFile(this.options.projectId, target);
+    }
     return await this.api.system.readTextFileFromProject({ path: target });
   }
 
   // Write a project file relative to the project root/workspaceRoot.
   async writeTextFile(relativePath: string, content: string): Promise<void> {
     const target = this.resolvePath(relativePath);
+    if (containerFileIO) {
+      await containerFileIO.writeFile(this.options.projectId, target, content);
+      return;
+    }
     await this.api.system.writeTextFileToProject({ path: target, content });
   }
 
