@@ -13,9 +13,9 @@ so this can be run without even "starting the project".  So we will see.
 */
 
 import path from "node:path";
+import { execFile } from "node:child_process";
 import type { Client } from "@cocalc/conat/core/client";
 import { projectApiClient, type ProjectApi } from "@cocalc/conat/project/api";
-import type { ExecuteCodeOutput } from "@cocalc/util/types/execute-code";
 
 // Container executor for multiuser (podman) mode.
 // Wraps project-scoped conat APIs to run commands and read/write files
@@ -68,25 +68,24 @@ export class ContainerExecutor {
   }> {
     const defaultCwd = this.base === "/" ? "/" : this.base.slice(0, -1);
     const cwd = opts?.cwd ? this.resolvePath(opts.cwd) : defaultCwd;
-    const timeoutSeconds =
-      opts?.timeoutMs != null ? Math.ceil(opts.timeoutMs / 1000) : undefined;
     const env = { ...(this.options.env ?? {}), ...(opts?.env ?? {}) };
-    const output = (await this.api.system.exec({
-      command: cmd,
-      bash: true,
+    const args = [
+      "exec",
+      "-i",
+      "--workdir",
       cwd,
-      timeout: timeoutSeconds,
-      env,
-      err_on_exit: false,
-    })) as ExecuteCodeOutput;
+      ...Object.entries(env).flatMap(([k, v]) => ["--env", `${k}=${v}`]),
+      `project-${this.options.projectId}`,
+      "bash",
+      "-lc",
+      cmd,
+    ];
 
-    const exitCode = (output as any)?.exit_code ?? null;
-    return {
-      stdout: (output as any)?.stdout ?? "",
-      stderr: (output as any)?.stderr ?? "",
-      exitCode,
-      signal: (output as any)?.signal ?? undefined,
-    };
+    const { stdout, stderr, code, signal } = await this.podmanExec(
+      args,
+      opts?.timeoutMs,
+    );
+    return { stdout, stderr, exitCode: code, signal };
   }
 
   private resolvePath(relative: string): string {
@@ -99,5 +98,31 @@ export class ContainerExecutor {
       throw new Error(`Path escapes workspace: ${relative}`);
     }
     return combined;
+  }
+
+  private async podmanExec(
+    args: string[],
+    timeoutMs?: number,
+  ): Promise<{ stdout: string; stderr: string; code: number | null; signal?: string }> {
+    return await new Promise((resolve) => {
+      execFile(
+        "podman",
+        args,
+        { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (error: any, stdout?: string, stderr?: string) => {
+          if (error) {
+            resolve({
+              stdout: stdout ?? "",
+              stderr: stderr ?? error?.message ?? "",
+              code: typeof error?.code === "number" ? error.code : null,
+              signal: error?.signal,
+            });
+          } else {
+            resolve({ stdout: stdout ?? "", stderr: stderr ?? "", code: 0 });
+          }
+        },
+      );
+    });
   }
 }

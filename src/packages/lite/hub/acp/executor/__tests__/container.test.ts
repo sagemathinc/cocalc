@@ -1,21 +1,21 @@
+import { execFile } from "node:child_process";
 import { ContainerExecutor } from "../container";
+
+jest.mock("node:child_process", () => {
+  const execFileMock = jest.fn();
+  return { execFile: execFileMock };
+});
 
 function makeMockApi() {
   const readTextFileFromProject = jest.fn().mockResolvedValue("data");
   const writeTextFileToProject = jest.fn().mockResolvedValue(undefined);
-  const exec = jest.fn().mockResolvedValue({
-    stdout: "out",
-    stderr: "err",
-    exit_code: 0,
-  });
   const api: any = {
     system: {
       readTextFileFromProject,
       writeTextFileToProject,
-      exec,
     },
   };
-  return { api, readTextFileFromProject, writeTextFileToProject, exec };
+  return { api, readTextFileFromProject, writeTextFileToProject };
 }
 
 describe("ContainerExecutor", () => {
@@ -56,13 +56,24 @@ describe("ContainerExecutor", () => {
   });
 
   it("executes commands with cwd/env/timeout", async () => {
-    const { api, exec: execFn } = makeMockApi();
+    const { api } = makeMockApi();
     const executor = new ContainerExecutor({
       projectId,
       workspaceRoot,
       projectApi: api as any,
       env: { BASE: "1" },
     });
+    (execFile as unknown as jest.Mock).mockImplementation(
+      (
+        _cmd: string,
+        _args: string[],
+        _opts: Record<string, unknown>,
+        cb: (...args: any[]) => void,
+      ) => {
+        cb(null, "out", "err");
+        return null as any;
+      },
+    );
     const result = await executor.exec("echo hi", {
       cwd: "subdir",
       timeoutMs: 1200,
@@ -74,13 +85,24 @@ describe("ContainerExecutor", () => {
       exitCode: 0,
       signal: undefined,
     });
-    expect(execFn).toHaveBeenCalledWith({
-      command: "echo hi",
-      bash: true,
-      cwd: "/projects/test/subdir",
-      timeout: 2,
-      env: { BASE: "1", EXTRA: "yes" },
-      err_on_exit: false,
-    });
+    expect(execFile).toHaveBeenCalledWith(
+      "podman",
+      expect.arrayContaining([
+        "exec",
+        "-i",
+        "--workdir",
+        "/projects/test/subdir",
+        "--env",
+        "BASE=1",
+        "--env",
+        "EXTRA=yes",
+        `project-${projectId}`,
+        "bash",
+        "-lc",
+        "echo hi",
+      ]),
+      expect.objectContaining({ timeout: 1200, maxBuffer: expect.any(Number) }),
+      expect.any(Function),
+    );
   });
 });
