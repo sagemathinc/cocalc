@@ -119,17 +119,61 @@ describe("ContainerExecutor", () => {
         "-i",
         "--workdir",
         "/projects/test/subdir",
-        "--env",
-        "BASE=1",
-        "--env",
-        "EXTRA=yes",
         `project-${projectId}`,
-        "bash",
+        "/bin/bash",
         "-lc",
         "echo hi",
       ]),
       expect.objectContaining({ timeout: 1200, maxBuffer: expect.any(Number) }),
       expect.any(Function),
     );
+  });
+
+  it("respects explicit PATH and keeps defaults otherwise", async () => {
+    const { api } = makeMockApi();
+    const executor = new ContainerExecutor({
+      projectId,
+      workspaceRoot,
+      projectApi: api as any,
+      env: { PATH: "/custom/bin" },
+    });
+    (execFile as unknown as jest.Mock).mockImplementation(
+      (
+        _cmd: string,
+        args: string[],
+        _opts: Record<string, unknown>,
+        cb: (...args: any[]) => void,
+      ) => {
+        // No env passthrough expected now
+        expect(args).not.toContain("--env");
+        cb(null, "", "");
+        return null as any;
+      },
+    );
+    await executor.exec("which bash");
+  });
+
+  it("unwraps existing bash -lc to avoid double shell", async () => {
+    const { api } = makeMockApi();
+    const executor = new ContainerExecutor({
+      projectId,
+      workspaceRoot,
+      projectApi: api as any,
+    });
+    (execFile as unknown as jest.Mock).mockImplementation(
+      (
+        _cmd: string,
+        args: string[],
+        _opts: Record<string, unknown>,
+        cb: (...args: any[]) => void,
+      ) => {
+        // Should only have a single bash -lc with the inner script.
+        const tail = args.slice(-3);
+        expect(tail).toEqual(["/bin/bash", "-lc", "apt-get update"]);
+        cb(null, "", "");
+        return null as any;
+      },
+    );
+    await executor.exec("/bin/bash -lc apt-get update");
   });
 });

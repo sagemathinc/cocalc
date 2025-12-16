@@ -17,6 +17,7 @@ import { execFile } from "node:child_process";
 import type { Client } from "@cocalc/conat/core/client";
 import { projectApiClient, type ProjectApi } from "@cocalc/conat/project/api";
 import getLogger from "@cocalc/backend/logger";
+import { argsJoin } from "@cocalc/util/args";
 
 // Container executor for multiuser (podman) mode.
 // Wraps project-scoped conat APIs to run commands and read/write files
@@ -97,7 +98,7 @@ export class ContainerExecutor {
     await this.api.system.writeTextFileToProject({ path: target, content });
   }
 
-  // Run a command inside the project container (non-interactive by default).
+  // Run a command inside the project container using podman.
   async exec(
     cmd: string,
     opts?: { cwd?: string; timeoutMs?: number; env?: Record<string, string> },
@@ -109,21 +110,32 @@ export class ContainerExecutor {
   }> {
     const defaultCwd = this.base === "/" ? "/" : this.base.slice(0, -1);
     const cwd = opts?.cwd ? this.resolvePath(opts.cwd) : defaultCwd;
-    const env = { ...(this.options.env ?? {}), ...(opts?.env ?? {}) };
-    logger.debug("container executor exec", { cmd, cwd, env });
+    logger.debug("container executor exec", { cmd, cwd: opts?.cwd });
+
+    // If the incoming command already looks like a shell invocation
+    // (`/bin/bash -lc ...`), unwrap it so we only spawn a single shell.
+    const shellMatch = cmd.match(
+      /^\s*(?:\/(?:usr\/)?bin\/)?(?:ba?sh|sh)\s+-l?c\s+([\s\S]+)/,
+    );
+    const script = shellMatch ? shellMatch[1] : cmd;
+
+    // The host environment is not meaningful inside the container; skip passing
+    // through env vars to avoid leaking/overwriting the project's container env.
+    const envArgs: string[] = [];
+
     const args = [
       "exec",
       "-i",
       "--workdir",
       cwd,
-      ...Object.entries(env).flatMap(([k, v]) => ["--env", `${k}=${v}`]),
+      ...envArgs,
       `project-${this.options.projectId}`,
-      "bash",
+      "/bin/bash",
       "-lc",
-      cmd,
+      script,
     ];
 
-    logger.debug("podman exec", { args, cwd, env });
+    logger.debug("podman ", argsJoin(args));
     const { stdout, stderr, code, signal } = await this.podmanExec(
       args,
       opts?.timeoutMs,
