@@ -261,6 +261,10 @@ async function resolveProjectScript(): Promise<ScriptResolution> {
   };
 }
 
+export function networkArgument() {
+  return "--network=slirp4netns";
+}
+
 export async function start({
   project_id,
   config = {},
@@ -440,7 +444,7 @@ export async function start({
     args.push("--label", `project_id=${project_id}`, "--label", `role=project`);
     args.push("--rm");
     args.push("--replace");
-    args.push("--network=slirp4netns");
+    args.push(networkArgument());
     args.push("-p", `${ssh_port}:22`);
     args.push("-p", `${http_port}:80`);
 

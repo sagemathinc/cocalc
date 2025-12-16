@@ -16,9 +16,7 @@ import { start, stop, status, save } from "./podman";
 const logger = getLogger("project-runner:run");
 
 let client: ConatClient | null = null;
-export async function init(
-  opts: { id?: string; client?: ConatClient; localPath?; sshServers? } = {},
-) {
+export async function init(opts: { id?: string; client?: ConatClient } = {}) {
   logger.debug("init");
   const id = opts.id ?? process.env.PROJECT_RUNNER_NAME;
   if (!id) {
@@ -36,7 +34,7 @@ export async function init(
     move: async () => {
       throw new Error("project move is not implemented yet");
     },
-    localPath: opts.localPath ?? localPath,
-    sshServers: opts.sshServers ?? sshServers,
+    localPath,
+    sshServers,
   });
 }
