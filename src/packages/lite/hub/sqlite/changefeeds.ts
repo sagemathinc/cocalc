@@ -20,4 +20,3 @@ export function close(): void {
   server?.close();
   server = null;
 }
-

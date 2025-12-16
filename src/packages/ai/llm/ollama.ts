@@ -32,7 +32,6 @@ export async function evaluateOllama(
   ctx?: OllamaContext,
   client?: Ollama,
 ): Promise<ChatOutput> {
-
   if (client == null && !isOllamaLLM(opts.model)) {
     throw new Error(`model ${opts.model} not supported`);
   }

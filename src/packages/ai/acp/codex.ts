@@ -21,9 +21,7 @@ import {
   PROTOCOL_VERSION,
   ndJsonStream,
 } from "@agentclientprotocol/sdk";
-import type {
-  PromptRequest,
-} from "@agentclientprotocol/sdk/dist/schema";
+import type { PromptRequest } from "@agentclientprotocol/sdk/dist/schema";
 
 import getLogger from "@cocalc/backend/logger";
 import {
@@ -37,7 +35,12 @@ import type {
   ApprovalDecision,
 } from "./types";
 import { CodexClientHandler } from "./codex-handler";
-import type { FileAdapter, TerminalAdapter, PathResolver, PathResolution } from "./adapters";
+import type {
+  FileAdapter,
+  TerminalAdapter,
+  PathResolver,
+  PathResolution,
+} from "./adapters";
 
 const log = getLogger("ai:acp");
 
@@ -117,8 +120,7 @@ export class CodexAcpAgent implements AcpAgent {
     const adapters = {
       fileAdapter: options.fileAdapter,
       terminalAdapter: options.terminalAdapter,
-      pathResolver:
-        options.pathResolver ?? defaultPathResolver(workspaceRoot),
+      pathResolver: options.pathResolver ?? defaultPathResolver(workspaceRoot),
     };
 
     const args: string[] = [];

@@ -1,8 +1,5 @@
 import { execFile } from "node:child_process";
-import {
-  ContainerExecutor,
-  setContainerFileIO,
-} from "../container";
+import { ContainerExecutor, setContainerFileIO } from "../container";
 
 jest.mock("node:child_process", () => {
   const execFileMock = jest.fn();
@@ -65,7 +62,11 @@ describe("ContainerExecutor", () => {
     await expect(exec.readTextFile("foo.txt")).resolves.toBe("native");
     expect(reader).toHaveBeenCalledWith(projectId, "/projects/test/foo.txt");
     await exec.writeTextFile("bar.txt", "ok");
-    expect(writer).toHaveBeenCalledWith(projectId, "/projects/test/bar.txt", "ok");
+    expect(writer).toHaveBeenCalledWith(
+      projectId,
+      "/projects/test/bar.txt",
+      "ok",
+    );
   });
 
   it("prevents path escape", async () => {

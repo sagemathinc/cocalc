@@ -38,7 +38,14 @@ import type {
 
 import getLogger from "@cocalc/backend/logger";
 import { computeLineDiff } from "@cocalc/util/line-diff";
-import type { AcpStreamUsage, AcpStreamEvent, AcpStreamHandler, CommandOutput, CustomCommandHandler, ApprovalDecision } from "./types";
+import type {
+  AcpStreamUsage,
+  AcpStreamEvent,
+  AcpStreamHandler,
+  CommandOutput,
+  CustomCommandHandler,
+  ApprovalDecision,
+} from "./types";
 import type {
   AcpApprovalOptionKind,
   AcpApprovalStatus,
@@ -52,7 +59,7 @@ import type {
   PathResolution,
 } from "./adapters";
 
-const log = getLogger("ai:acp");
+const log = getLogger("ai:acp:codex-handler");
 const MAX_TERMINAL_STREAM_CHARS = 4000;
 const APPROVAL_TIMEOUT_MS = 1000 * 60 * 60 * 8; // 8 hours
 
@@ -853,7 +860,9 @@ export class CodexClientHandler implements TerminalClient {
     };
   }
 
-  private buildEnv(env?: { name: string; value: string }[]): Record<string, string> {
+  private buildEnv(
+    env?: { name: string; value: string }[],
+  ): Record<string, string> {
     const envVars: Record<string, string> = {};
     for (const [key, value] of Object.entries(process.env)) {
       if (value != null) {

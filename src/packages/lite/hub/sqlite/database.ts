@@ -80,9 +80,7 @@ export function clearTable(table: string): void {
 export function listRows(table: string): any[] {
   const database = getDatabase();
   const stmt = database.prepare("SELECT row FROM data WHERE table_name = ?");
-  return stmt
-    .all(table)
-    .map((x: { row: string }) => JSON.parse(x.row));
+  return stmt.all(table).map((x: { row: string }) => JSON.parse(x.row));
 }
 
 export function getRow(table: string, pk: string): any | undefined {
@@ -109,5 +107,7 @@ export function upsertRow(
 
 export function deleteRow(table: string, pk: string): void {
   const database = getDatabase();
-  database.prepare("DELETE FROM data WHERE table_name = ? AND pk = ?").run(table, pk);
+  database
+    .prepare("DELETE FROM data WHERE table_name = ? AND pk = ?")
+    .run(table, pk);
 }

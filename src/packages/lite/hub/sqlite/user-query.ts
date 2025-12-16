@@ -94,7 +94,9 @@ export default function userQuery(opts: QueryOpts): any {
     }
     const results = [] as any[];
     for (const q of query) {
-      results.push(userQuery({ ...opts, query: q, changes: undefined, cb: undefined }));
+      results.push(
+        userQuery({ ...opts, query: q, changes: undefined, cb: undefined }),
+      );
     }
     return results;
   }
@@ -111,8 +113,7 @@ export default function userQuery(opts: QueryOpts): any {
       break;
     }
   }
-  isSetQuery ??=
-    misc.is_array(query) || !misc.has_null_leaf(query);
+  isSetQuery ??= misc.is_array(query) || !misc.has_null_leaf(query);
 
   const result = isSetQuery
     ? userSetQuery(query, options)
@@ -154,7 +155,10 @@ function normalizeValue(value: any): any {
   return value;
 }
 
-function buildPrimaryKey(table: string, obj: Record<string, any>): string | undefined {
+function buildPrimaryKey(
+  table: string,
+  obj: Record<string, any>,
+): string | undefined {
   const keys = getPrimaryKeys(table);
   if (keys.length === 0) return undefined;
   const pk: Record<string, any> = {};
@@ -168,7 +172,10 @@ function buildPrimaryKey(table: string, obj: Record<string, any>): string | unde
   return JSON.stringify(pk);
 }
 
-function matchesRow(row: Record<string, any>, filter: Record<string, any>): boolean {
+function matchesRow(
+  row: Record<string, any>,
+  filter: Record<string, any>,
+): boolean {
   for (const key of Object.keys(filter)) {
     const value = filter[key];
     if (value == null) continue;
@@ -179,7 +186,10 @@ function matchesRow(row: Record<string, any>, filter: Record<string, any>): bool
   return true;
 }
 
-function filterRows(rows: Record<string, any>[], filter: Record<string, any>): any[] {
+function filterRows(
+  rows: Record<string, any>[],
+  filter: Record<string, any>,
+): any[] {
   const matches = rows.filter((row) => matchesRow(row, filter));
   return matches.map((row) => cloneDeep(row));
 }
@@ -319,7 +329,10 @@ function setDefaults(table: string, rows: any[], fields: string[]): void {
   }
 }
 
-const listeners: Record<string, { table: string; listener: (...args: any[]) => void }> = {};
+const listeners: Record<
+  string,
+  { table: string; listener: (...args: any[]) => void }
+> = {};
 
 function serveChangefeed({
   table,

@@ -2,7 +2,7 @@
 
 ## Overview
 
-`@cocalc/lite` is a **standalone, single-machine CoCalc instance** that can run completely offline or optionally sync with a remote CoCalc hub as a compute server.  This package essentially provides a "CoCalc in a box" that mirrors the full architecture but in a simplified, single-machine format.
+`@cocalc/lite` is a **standalone, single-machine CoCalc instance** that can run completely offline or optionally sync with a remote CoCalc hub as a compute server. This package essentially provides a "CoCalc in a box" that mirrors the full architecture but in a simplified, single-machine format.
 
 ## Role and Boundaries
 

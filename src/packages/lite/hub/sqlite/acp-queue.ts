@@ -1,4 +1,7 @@
-import type { AcpChatContext, AcpStreamMessage } from "@cocalc/conat/ai/acp/types";
+import type {
+  AcpChatContext,
+  AcpStreamMessage,
+} from "@cocalc/conat/ai/acp/types";
 import { getDatabase } from "./database";
 
 const TABLE = "acp_queue";
@@ -52,9 +55,7 @@ export function enqueueAcpPayload(
   pruneExpired();
 }
 
-export function listAcpPayloads(
-  context: AcpChatContext,
-): AcpStreamMessage[] {
+export function listAcpPayloads(context: AcpChatContext): AcpStreamMessage[] {
   ensureInit();
   const db = getDatabase();
   const stmt = db.prepare(

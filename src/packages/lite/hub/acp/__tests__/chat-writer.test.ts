@@ -325,9 +325,7 @@ describe("ChatStreamWriter", () => {
         type: "approval",
         status: "pending",
         approvalId: "a1",
-        options: [
-          { optionId: "opt1", name: "Allow", kind: "allow" as any },
-        ],
+        options: [{ optionId: "opt1", name: "Allow", kind: "allow" as any }],
         requestedAt: new Date().toISOString(),
         requestedBy: "u",
       },

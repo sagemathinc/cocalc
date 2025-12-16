@@ -287,7 +287,9 @@ describe("evaluateWithLangChain", () => {
         { input: "hi", model: "custom_openai-gpt-4o-mini" },
         { settings: {}, tokenCounter: (s) => s.length },
       ),
-    ).rejects.toThrow("Custom OpenAI requested but no getCustomOpenAI provider supplied");
+    ).rejects.toThrow(
+      "Custom OpenAI requested but no getCustomOpenAI provider supplied",
+    );
   });
 
   it("streams chunks and terminates with null", async () => {
@@ -390,7 +392,11 @@ describe("evaluateWithLangChain", () => {
     };
 
     const result = await evaluateWithLangChain(
-      { input: "abc", model: "gpt-4o", history: [{ role: "user", content: "h" }] },
+      {
+        input: "abc",
+        model: "gpt-4o",
+        history: [{ role: "user", content: "h" }],
+      },
       ctx,
     );
 
@@ -412,7 +418,11 @@ describe("evaluateWithLangChain", () => {
             yield { content: [{ type: "text", text: "A" }] };
             yield {
               content: [{ type: "text", text: "B" }],
-              usage_metadata: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
+              usage_metadata: {
+                input_tokens: 10,
+                output_tokens: 20,
+                total_tokens: 30,
+              },
             };
           }
         },
@@ -511,7 +521,9 @@ describe("evaluateWithLangChain", () => {
     // prompt_tokens = len("hi") + historyTokens, completion_tokens = len("X")
     expect(result.prompt_tokens).toBe(2 + historyTokens);
     expect(result.completion_tokens).toBe(1);
-    expect(result.total_tokens).toBe(result.prompt_tokens + result.completion_tokens);
+    expect(result.total_tokens).toBe(
+      result.prompt_tokens + result.completion_tokens,
+    );
   });
 
   it("uses user-provided apiKey when mode=user (OpenAI)", async () => {
@@ -522,7 +534,11 @@ describe("evaluateWithLangChain", () => {
 
     await evaluateWithLangChain(
       { input: "hi", model: "gpt-4o", apiKey: "user-key" },
-      { settings: { openai_api_key: "server-key" }, mode: "user", tokenCounter: (s) => s.length },
+      {
+        settings: { openai_api_key: "server-key" },
+        mode: "user",
+        tokenCounter: (s) => s.length,
+      },
     );
 
     expect(captures[0].apiKey).toBe("user-key");
@@ -546,7 +562,11 @@ describe("evaluateWithLangChain", () => {
 
     await evaluateWithLangChain(
       { input: "hi", model: "gemini-2.5-flash-8k", apiKey: "user-key" },
-      { settings: { google_vertexai_key: "server-key" }, mode: "user", tokenCounter: (s) => s.length },
+      {
+        settings: { google_vertexai_key: "server-key" },
+        mode: "user",
+        tokenCounter: (s) => s.length,
+      },
     );
 
     expect(googleArgs[0].apiKey).toBe("user-key");
@@ -570,7 +590,11 @@ describe("evaluateWithLangChain", () => {
 
     await evaluateWithLangChain(
       { input: "hi", model: "claude-4-sonnet-8k", apiKey: "user-key" },
-      { settings: { anthropic_api_key: "server-key" }, mode: "user", tokenCounter: (s) => s.length },
+      {
+        settings: { anthropic_api_key: "server-key" },
+        mode: "user",
+        tokenCounter: (s) => s.length,
+      },
     );
 
     expect(anthropicArgs[0].apiKey).toBe("user-key");
@@ -614,7 +638,10 @@ describe("evaluateWithLangChain", () => {
       const { evaluateWithLangChain } = require("../evaluate-lc");
       await evaluateWithLangChain(
         { input: "hi", model: "o1-mini" },
-        { settings: { openai_api_key: "server-key" }, tokenCounter: (s: string) => s.length },
+        {
+          settings: { openai_api_key: "server-key" },
+          tokenCounter: (s: string) => s.length,
+        },
       );
     });
 
@@ -647,7 +674,13 @@ describe("evaluateWithLangChain", () => {
         apiKey: "user-key",
         endpoint: "https://example.com",
       },
-      { settings: {}, tokenCounter: (s) => s.length, getCustomOpenAI: async () => { throw new Error("should not be called"); } },
+      {
+        settings: {},
+        tokenCounter: (s) => s.length,
+        getCustomOpenAI: async () => {
+          throw new Error("should not be called");
+        },
+      },
     );
 
     expect(captures[0].configuration?.baseURL).toBe("https://example.com");
@@ -734,7 +767,9 @@ describe("evaluateOllama", () => {
     // token heuristic: ceil(len/4)
     expect(result.prompt_tokens).toBe(Math.ceil("abc".length / 4) + 2);
     expect(result.completion_tokens).toBe(Math.ceil("OK".length / 4));
-    expect(result.total_tokens).toBe(result.prompt_tokens + result.completion_tokens);
+    expect(result.total_tokens).toBe(
+      result.prompt_tokens + result.completion_tokens,
+    );
   });
 
   it("throws when Ollama client is unavailable", async () => {

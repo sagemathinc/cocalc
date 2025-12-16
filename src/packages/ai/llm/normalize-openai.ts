@@ -1,4 +1,7 @@
-import { isOpenAIModel, type OpenAIModel } from "@cocalc/util/db-schema/llm-utils";
+import {
+  isOpenAIModel,
+  type OpenAIModel,
+} from "@cocalc/util/db-schema/llm-utils";
 
 // Normalize OpenAI model names by collapsing preview/8k variants to a base name.
 export function normalizeOpenAIModel(model: string): OpenAIModel {
@@ -28,4 +31,3 @@ export function normalizeOpenAIModel(model: string): OpenAIModel {
   }
   return model;
 }
-

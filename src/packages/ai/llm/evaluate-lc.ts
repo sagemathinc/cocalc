@@ -31,10 +31,7 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { ChatMistralAI } from "@langchain/mistralai";
 import { ChatOpenAI } from "@langchain/openai";
 import { transformHistoryToMessages } from "./chat-history";
-import {
-  heuristicNumTokens,
-  type TokenCounter,
-} from "./chatgpt-numtokens";
+import { heuristicNumTokens, type TokenCounter } from "./chatgpt-numtokens";
 import { normalizeOpenAIModel } from "./normalize-openai";
 
 const log = getLogger("llm:evaluate-lc");
@@ -85,13 +82,13 @@ export interface LLMProviderConfig {
   getSystemRole?: (model: string) => string;
 
   // Token counting fallback
-    getTokenCountFallback?: (
-      input: string,
-      output: string,
-      historyTokens: number,
-      model: string,
-      ctx: LLMContext,
-    ) => Promise<{ prompt_tokens: number; completion_tokens: number }>;
+  getTokenCountFallback?: (
+    input: string,
+    output: string,
+    historyTokens: number,
+    model: string,
+    ctx: LLMContext,
+  ) => Promise<{ prompt_tokens: number; completion_tokens: number }>;
 }
 
 function isO1Model(normalizedModel) {
@@ -125,7 +122,13 @@ export const PROVIDER_CONFIGS = {
     },
     canonicalModel: (model) => normalizeOpenAIModel(model),
     getSystemRole: (_model) => "system",
-    getTokenCountFallback: async (input, output, historyTokens, _model, ctx) => {
+    getTokenCountFallback: async (
+      input,
+      output,
+      historyTokens,
+      _model,
+      ctx,
+    ) => {
       const count = ctx.tokenCounter ?? heuristicNumTokens;
       return {
         prompt_tokens: count(input) + historyTokens,
@@ -139,12 +142,10 @@ export const PROVIDER_CONFIGS = {
     createClient: async (options, ctx) => {
       const mode = ctx.mode ?? "cocalc";
       const apiKey =
-        mode === "cocalc"
-          ? ctx.settings?.google_vertexai_key
-          : options.apiKey;
+        mode === "cocalc" ? ctx.settings?.google_vertexai_key : options.apiKey;
       const modelName =
         mode === "cocalc"
-          ? GOOGLE_MODEL_TO_ID[options.model as GoogleModel] ?? options.model
+          ? (GOOGLE_MODEL_TO_ID[options.model as GoogleModel] ?? options.model)
           : options.model;
 
       log.debug(
@@ -164,7 +165,13 @@ export const PROVIDER_CONFIGS = {
     },
     canonicalModel: (model) =>
       GOOGLE_MODEL_TO_ID[model as GoogleModel] ?? model,
-    getTokenCountFallback: async (input, output, historyTokens, _model, ctx) => {
+    getTokenCountFallback: async (
+      input,
+      output,
+      historyTokens,
+      _model,
+      ctx,
+    ) => {
       const count = ctx.tokenCounter ?? heuristicNumTokens;
       return {
         prompt_tokens: count(input) + historyTokens,
@@ -207,7 +214,13 @@ export const PROVIDER_CONFIGS = {
       }
       return version;
     },
-    getTokenCountFallback: async (input, output, historyTokens, _model, ctx) => {
+    getTokenCountFallback: async (
+      input,
+      output,
+      historyTokens,
+      _model,
+      ctx,
+    ) => {
       const count = ctx.tokenCounter ?? heuristicNumTokens;
       return {
         prompt_tokens: count(input) + historyTokens,
@@ -230,7 +243,13 @@ export const PROVIDER_CONFIGS = {
         apiKey,
       });
     },
-    getTokenCountFallback: async (input, output, historyTokens, _model, ctx) => {
+    getTokenCountFallback: async (
+      input,
+      output,
+      historyTokens,
+      _model,
+      ctx,
+    ) => {
       const count = ctx.tokenCounter ?? heuristicNumTokens;
       return {
         prompt_tokens: count(input) + historyTokens,
@@ -263,7 +282,13 @@ export const PROVIDER_CONFIGS = {
       return await ctx.getCustomOpenAI(transformedModel);
     },
     canonicalModel: (model) => fromCustomOpenAIModel(model),
-    getTokenCountFallback: async (input, output, historyTokens, _model, ctx) => {
+    getTokenCountFallback: async (
+      input,
+      output,
+      historyTokens,
+      _model,
+      ctx,
+    ) => {
       const count = ctx.tokenCounter ?? heuristicNumTokens;
       return {
         prompt_tokens: count(input) + historyTokens,
@@ -368,9 +393,8 @@ export async function evaluateWithLangChain(
     inputMessagesKey: "input",
     historyMessagesKey,
     getMessageHistory: async () => {
-      const { messageHistory, tokens } = await transformHistoryToMessages(
-        history,
-      );
+      const { messageHistory, tokens } =
+        await transformHistoryToMessages(history);
       historyTokens = tokens;
       return messageHistory;
     },

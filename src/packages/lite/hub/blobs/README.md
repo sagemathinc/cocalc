@@ -11,7 +11,7 @@ key the sha1 hash of the file being stored.
 
 TODO: When we implement sync we'll have a separate background tasks to send
 such blobs to the relevant main server... or maybe we'll switch to the main
-site using conat AKV as well.  We'll see.
+site using conat AKV as well. We'll see.
 
 This code is a rewrite of:
 
