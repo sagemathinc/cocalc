@@ -150,6 +150,7 @@ export class ChatStreamWriter {
   private syncdb?: SyncDB;
   private syncdbPromise: Promise<SyncDB>;
   private usePool: boolean;
+  private syncdbError?: unknown;
   private metadata: AcpChatContext;
   private readonly chatKey: string;
   private threadKeys = new Set<string>();
@@ -222,6 +223,12 @@ export class ChatStreamWriter {
     if (syncdbOverride != null) {
       this.syncdb = syncdbOverride as any;
     }
+    // Ensure rejections are observed and mark the writer closed on failure.
+    this.syncdbPromise.catch((err) => {
+      logger.warn("chat syncdb failed to initialize", err);
+      this.syncdbError = err;
+      this.closed = true;
+    });
     chatWritersByChatKey.set(this.chatKey, this);
     this.sessionKey = sessionKey ?? undefined;
     if (sessionKey) {
@@ -248,6 +255,7 @@ export class ChatStreamWriter {
       await this.ready;
     } catch (err) {
       logger.warn("chat stream writer failed to initialize", err);
+      this.syncdbError = err;
       this.closed = true;
       throw err;
     }
@@ -528,7 +536,7 @@ export class ChatStreamWriter {
     if (this.closed) return;
     void (async () => {
       await this.ready;
-      if (this.closed) return;
+      if (this.closed || this.syncdbError) return;
       const message: AcpStreamMessage = {
         type: "event",
         event,
