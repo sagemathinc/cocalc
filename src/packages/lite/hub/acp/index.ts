@@ -35,7 +35,10 @@ import {
 } from "./workspace-root";
 import { getBlobstore } from "../blobs/download";
 import { buildChatMessage, type MessageHistory } from "@cocalc/chat";
-import { createChatSyncDB } from "@cocalc/chat/server";
+import {
+  acquireChatSyncDB,
+  releaseChatSyncDB,
+} from "@cocalc/chat/server";
 import { appendStreamMessage, extractEventText } from "@cocalc/chat";
 import type { SyncDB } from "@cocalc/conat/sync-doc/syncdb";
 import type { AcpStreamUsage } from "@cocalc/ai/acp";
@@ -144,7 +147,9 @@ function resolveApproval(decision: ApprovalDecision): boolean {
 }
 
 export class ChatStreamWriter {
-  private syncdb: SyncDB;
+  private syncdb?: SyncDB;
+  private syncdbPromise: Promise<SyncDB>;
+  private usePool: boolean;
   private metadata: AcpChatContext;
   private readonly chatKey: string;
   private threadKeys = new Set<string>();
@@ -205,13 +210,18 @@ export class ChatStreamWriter {
     this.autoApprove = autoApprove;
     this.client = client;
     this.chatKey = chatKey(metadata);
-    this.syncdb =
-      syncdbOverride ??
-      createChatSyncDB({
-        client,
-        project_id: metadata.project_id,
-        path: metadata.path,
-      });
+    this.usePool = syncdbOverride == null;
+    this.syncdbPromise =
+      syncdbOverride != null
+        ? Promise.resolve(syncdbOverride)
+        : acquireChatSyncDB({
+            client,
+            project_id: metadata.project_id,
+            path: metadata.path,
+          });
+    if (syncdbOverride != null) {
+      this.syncdb = syncdbOverride as any;
+    }
     chatWritersByChatKey.set(this.chatKey, this);
     this.sessionKey = sessionKey ?? undefined;
     if (sessionKey) {
@@ -244,15 +254,17 @@ export class ChatStreamWriter {
   };
 
   private async initialize(): Promise<void> {
-    if (!this.syncdb.isReady()) {
+    const db = await this.syncdbPromise;
+    this.syncdb = db;
+    if (!db.isReady()) {
       try {
-        await once(this.syncdb, "ready");
+        await once(db, "ready");
       } catch (err) {
         logger.warn("chat syncdb failed to become ready", err);
         throw err;
       }
     }
-    const current = this.syncdb.get_one({
+    const current = db.get_one({
       event: "chat",
       date: this.metadata.message_date,
     });
@@ -400,19 +412,19 @@ export class ChatStreamWriter {
       // Even if there was no text payload, make sure we drop the spinner when finished.
       if (!generating) {
         try {
-          const current = this.syncdb.get_one({
+          const current = this.syncdb!.get_one({
             event: "chat",
             date: this.metadata.message_date,
           });
           if (current != null && current.get("generating") !== false) {
-            this.syncdb.set({
+            this.syncdb!.set({
               date: this.metadata.message_date,
               generating: false,
             });
-            this.syncdb.commit();
+            this.syncdb!.commit();
             (async () => {
               try {
-                await this.syncdb.save();
+                await this.syncdb!.save();
               } catch (err) {
                 logger.warn("chat syncdb save failed", err);
               }
@@ -441,11 +453,11 @@ export class ChatStreamWriter {
       acp_usage: this.usage,
       acp_account_id: this.approverAccountId,
     } as any);
-    this.syncdb.set(message);
-    this.syncdb.commit();
+    this.syncdb!.set(message);
+    this.syncdb!.commit();
     (async () => {
       try {
-        await this.syncdb.save();
+        await this.syncdb!.save();
       } catch (err) {
         logger.warn("chat syncdb save failed", err);
       }
@@ -492,12 +504,20 @@ export class ChatStreamWriter {
     void this.persistLog();
     (async () => {
       try {
-        await this.syncdb.save();
+        await this.syncdbPromise;
+        await this.syncdb!.save();
       } catch (err) {
         logger.warn("failed to save chat syncdb", err);
       }
       try {
-        await this.syncdb.close();
+        if (this.usePool) {
+          await releaseChatSyncDB(
+            this.metadata.project_id,
+            this.metadata.path,
+          );
+        } else {
+          await this.syncdb!.close();
+        }
       } catch (err) {
         logger.warn("failed to close chat syncdb", err);
       }
@@ -506,13 +526,17 @@ export class ChatStreamWriter {
 
   addLocalEvent(event: AcpStreamEvent): void {
     if (this.closed) return;
-    const message: AcpStreamMessage = {
-      type: "event",
-      event,
-      seq: this.seq++,
-    };
-    this.processPayload(message, { persist: true });
-    this.commit(true);
+    void (async () => {
+      await this.ready;
+      if (this.closed) return;
+      const message: AcpStreamMessage = {
+        type: "event",
+        event,
+        seq: this.seq++,
+      };
+      this.processPayload(message, { persist: true });
+      this.commit(true);
+    })();
   }
 
   notifyInterrupted(text: string): void {
