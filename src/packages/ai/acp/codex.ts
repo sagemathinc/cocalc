@@ -82,7 +82,8 @@ interface CodexAcpAgentOptions {
 
 type SessionState = {
   sessionId: string;
-  cwd: string;
+  cwdContainer: string;
+  cwdHost: string;
   modelId?: string;
   modeId?: string;
 };
@@ -91,6 +92,7 @@ export class CodexAcpAgent implements AcpAgent {
   private readonly child: ChildProcess;
   private readonly connection: ClientSideConnection;
   private readonly handler: CodexClientHandler;
+  private readonly pathResolver: PathResolver;
   private running = false;
   private readonly sessions = new Map<string, SessionState>();
   private static readonly DEFAULT_SESSION_KEY = "__default__";
@@ -99,10 +101,12 @@ export class CodexAcpAgent implements AcpAgent {
     child: ChildProcess;
     connection: ClientSideConnection;
     handler: CodexClientHandler;
+    pathResolver: PathResolver;
   }) {
     this.child = options.child;
     this.connection = options.connection;
     this.handler = options.handler;
+    this.pathResolver = options.pathResolver;
   }
 
   static async create(
@@ -203,6 +207,7 @@ export class CodexAcpAgent implements AcpAgent {
       child,
       connection,
       handler,
+      pathResolver: adapters.pathResolver,
     });
   }
 
@@ -222,7 +227,7 @@ export class CodexAcpAgent implements AcpAgent {
     this.handler.resetUsage();
     const key = session_id ?? CodexAcpAgent.DEFAULT_SESSION_KEY;
     const session = await this.ensureSession(key, config);
-    this.handler.setWorkspaceRoot(session.cwd);
+    this.handler.setWorkspaceRoot(session.cwdContainer);
     this.handler.setStream(stream);
 
     try {
@@ -271,9 +276,15 @@ export class CodexAcpAgent implements AcpAgent {
       : CodexAcpAgent.DEFAULT_SESSION_KEY;
   }
 
-  private normalizeWorkingDirectory(config?: CodexSessionConfig): string {
-    const dir = config?.workingDirectory ?? process.cwd();
-    return path.resolve(dir);
+  private resolveWorkingDirectory(
+    config?: CodexSessionConfig,
+  ): { container: string; host: string } {
+    const target = config?.workingDirectory ?? ".";
+    const resolved = this.pathResolver.resolve(target);
+    return {
+      container: resolved.absolute,
+      host: resolved.hostAbsolute ?? resolved.absolute,
+    };
   }
 
   private async ensureSession(
@@ -281,20 +292,26 @@ export class CodexAcpAgent implements AcpAgent {
     config?: CodexSessionConfig,
   ): Promise<SessionState> {
     const normalizedKey = this.normalizeSessionKey(sessionKey);
-    const cwd = this.normalizeWorkingDirectory(config);
+    const { container: cwdContainer, host: cwdHost } =
+      this.resolveWorkingDirectory(config);
     logger.debug("acp.session.ensure", {
       sessionKey: normalizedKey,
-      cwd,
+      cwd: cwdContainer,
+      hostCwd: cwdHost,
       configWorkspace: config?.workingDirectory,
     });
     let session = this.sessions.get(normalizedKey);
     if (session == null && config?.sessionId) {
       session = this.findSessionById(config.sessionId);
     }
-    if (session == null || session.cwd !== cwd) {
+    if (
+      session == null ||
+      session.cwdContainer !== cwdContainer ||
+      session.cwdHost !== cwdHost
+    ) {
       session =
-        (await this.tryResumeSession(cwd, config)) ??
-        (await this.createSession(cwd));
+        (await this.tryResumeSession(cwdHost, config)) ??
+        (await this.createSession({ cwdContainer, cwdHost }));
       this.sessions.set(normalizedKey, session);
     }
     if (!this.sessions.has(session.sessionId)) {
@@ -313,22 +330,29 @@ export class CodexAcpAgent implements AcpAgent {
     return undefined;
   }
 
-  private async createSession(cwd: string): Promise<SessionState> {
-    logger.debug("acp.session.new", { cwd });
+  private async createSession({
+    cwdContainer,
+    cwdHost,
+  }: {
+    cwdContainer: string;
+    cwdHost: string;
+  }): Promise<SessionState> {
+    logger.debug("acp.session.new", { cwdHost, cwdContainer });
     const response = await this.connection.newSession({
-      cwd,
+      cwd: cwdHost,
       mcpServers: [],
     });
     return {
       sessionId: response.sessionId,
-      cwd,
+      cwdContainer,
+      cwdHost,
       modelId: response.models?.currentModelId ?? undefined,
       modeId: response.modes?.currentModeId ?? undefined,
     };
   }
 
   private async tryResumeSession(
-    cwd: string,
+    cwdHost: string,
     config?: CodexSessionConfig,
   ): Promise<SessionState | undefined> {
     const target = config?.sessionId?.trim();
@@ -336,13 +360,14 @@ export class CodexAcpAgent implements AcpAgent {
     try {
       const response = await this.connection.loadSession({
         sessionId: target,
-        cwd,
+        cwd: cwdHost,
         mcpServers: [],
       });
       logger.info("acp.session.resume", { sessionId: target });
       return {
         sessionId: target,
-        cwd,
+        cwdContainer: cwdHost,
+        cwdHost,
         modelId: response.models?.currentModelId ?? undefined,
         modeId: response.modes?.currentModeId ?? undefined,
       };

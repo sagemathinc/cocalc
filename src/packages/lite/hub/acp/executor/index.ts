@@ -1,4 +1,5 @@
 export interface AcpExecutor {
+  getMountPoint?: () => string;
   readTextFile(relativePath: string): Promise<string>;
   writeTextFile(relativePath: string, content: string): Promise<void>;
   exec(

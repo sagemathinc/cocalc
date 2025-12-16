@@ -674,8 +674,14 @@ function buildExecutorAdapters(
           ? filePath
           : path.resolve(workspaceRoot, filePath);
         const rel = path.relative(workspaceRoot, absolute);
+        let hostAbsolute: string | undefined = undefined;
+        const mountPoint = executor.getMountPoint?.();
+        if (mountPoint && (!rel || !rel.startsWith(".."))) {
+          hostAbsolute = path.join(mountPoint, rel || "");
+        }
         return {
           absolute,
+          hostAbsolute,
           relative: rel && !rel.startsWith("..") ? rel || "." : undefined,
           workspaceRoot,
         };
