@@ -96,6 +96,7 @@ type CodexClientHandlerOptions = {
   fileAdapter: FileAdapter;
   terminalAdapter: TerminalAdapter;
   pathResolver?: PathResolver;
+  displayPathRewriter?: (text: string) => string;
 };
 
 type AcpApprovalEvent = Extract<AcpStreamEvent, { type: "approval" }>;
@@ -125,6 +126,7 @@ export class CodexClientHandler implements TerminalClient {
   private readonly fileAdapter: FileAdapter;
   private readonly terminalAdapter: TerminalAdapter;
   private readonly pathResolver?: PathResolver;
+  private readonly displayPathRewriter?: (text: string) => string;
 
   constructor(options: CodexClientHandlerOptions) {
     this.commandHandlers = options.commandHandlers;
@@ -133,6 +135,7 @@ export class CodexClientHandler implements TerminalClient {
     this.fileAdapter = options.fileAdapter;
     this.terminalAdapter = options.terminalAdapter;
     this.pathResolver = options.pathResolver;
+    this.displayPathRewriter = options.displayPathRewriter;
     logger.debug("CodexClientHandler", {
       workspaceRoot: this.workspaceRoot,
       fileAdapter: this.fileAdapter.toString(),
@@ -1202,23 +1205,31 @@ export class CodexClientHandler implements TerminalClient {
     payload: Omit<AcpTerminalEvent, "type" | "terminalId">,
   ): Promise<void> {
     if (!this.stream) return;
+    const rewrite = this.displayPathRewriter;
     const eventPayload: Omit<AcpTerminalEvent, "type" | "terminalId"> = {
       ...payload,
     };
     if (payload.phase === "data" && typeof payload.chunk === "string") {
-      const formatted = formatTerminalOutput(payload.chunk);
+      const chunk = rewrite ? rewrite(payload.chunk) : payload.chunk;
+      const formatted = formatTerminalOutput(chunk);
       if (formatted.truncated) {
         eventPayload.chunk = formatted.text;
+      } else if (chunk !== payload.chunk) {
+        eventPayload.chunk = chunk;
       }
     }
     if (payload.phase === "exit" && typeof payload.output === "string") {
-      const formatted = formatTerminalOutput(payload.output);
+      const output = rewrite ? rewrite(payload.output) : payload.output;
+      const formatted = formatTerminalOutput(output);
       if (formatted.truncated) {
         eventPayload.output = formatted.text;
+      } else if (output !== payload.output) {
+        eventPayload.output = output;
       }
     }
     if (eventPayload.cwd) {
-      eventPayload.cwd = this.formatWorkspacePath(eventPayload.cwd);
+      const mappedCwd = this.formatWorkspacePath(eventPayload.cwd);
+      eventPayload.cwd = rewrite && mappedCwd ? rewrite(mappedCwd) : mappedCwd;
     }
     await this.stream({
       type: "event",

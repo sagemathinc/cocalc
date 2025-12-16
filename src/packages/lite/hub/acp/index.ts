@@ -620,6 +620,7 @@ type ExecutorAdapters = {
   fileAdapter: FileAdapter;
   terminalAdapter: TerminalAdapter;
   pathResolver: PathResolver;
+  displayPathRewriter?: (text: string) => string;
   commandHandlers?: Record<string, any>;
 };
 
@@ -663,6 +664,29 @@ function buildExecutorAdapters(
 
   const normalizedWorkspace = path.normalize(workspaceRoot || "/");
   const normalizedHostRoot = hostRoot ? path.normalize(hostRoot) : undefined;
+
+  // this is necessary since we need to show the paths INSIDE the container
+  // to the user, but the agent sees them as outside the container.
+  // See rewriteHostPaths in container.ts
+  const makeDisplayPathRewriter = (): ((text: string) => string) | undefined => {
+    if (!normalizedHostRoot) return undefined;
+    const hostNoSlash = normalizedHostRoot.endsWith("/")
+      ? normalizedHostRoot.slice(0, -1)
+      : normalizedHostRoot;
+    const hostWithSlash = `${hostNoSlash}/`;
+    const workspaceNoSlash = normalizedWorkspace.endsWith("/")
+      ? normalizedWorkspace.slice(0, -1)
+      : normalizedWorkspace;
+    const replaceAll = (haystack: string, needle: string, replacement: string) =>
+      needle ? haystack.split(needle).join(replacement) : haystack;
+    return (text: string) => {
+      if (!text) return text;
+      let out = replaceAll(text, hostWithSlash, `${workspaceNoSlash}/`);
+      out = replaceAll(out, hostNoSlash, workspaceNoSlash);
+      return out;
+    };
+  };
+  const displayPathRewriter = makeDisplayPathRewriter();
 
   const toRelative = (p: string): string => {
     const absolute = path.isAbsolute(p)
@@ -762,6 +786,7 @@ function buildExecutorAdapters(
       sh: shellHandler,
       zsh: shellHandler,
     },
+    displayPathRewriter,
   };
 }
 
@@ -794,6 +819,7 @@ async function ensureAgent(
       fileAdapter: bindings.fileAdapter,
       terminalAdapter: bindings.terminalAdapter,
       pathResolver: bindings.pathResolver,
+      displayPathRewriter: bindings.displayPathRewriter,
     });
     logger.info("codex-acp agent ready", { key });
     agents.set(key, created);

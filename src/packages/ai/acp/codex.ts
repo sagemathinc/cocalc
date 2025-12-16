@@ -78,12 +78,14 @@ interface CodexAcpAgentOptions {
   fileAdapter?: FileAdapter;
   terminalAdapter?: TerminalAdapter;
   pathResolver?: PathResolver;
+  displayPathRewriter?;
 }
 
 type SessionState = {
   sessionId: string;
   cwdContainer: string;
   cwdHost: string;
+  cwd?: string;
   modelId?: string;
   modeId?: string;
 };
@@ -101,12 +103,13 @@ export class CodexAcpAgent implements AcpAgent {
     child: ChildProcess;
     connection: ClientSideConnection;
     handler: CodexClientHandler;
-    pathResolver: PathResolver;
+    pathResolver?: PathResolver;
   }) {
     this.child = options.child;
     this.connection = options.connection;
     this.handler = options.handler;
-    this.pathResolver = options.pathResolver;
+    this.pathResolver =
+      options.pathResolver ?? defaultPathResolver(process.cwd());
   }
 
   static async create(
@@ -186,6 +189,7 @@ export class CodexAcpAgent implements AcpAgent {
       fileAdapter: adapters.fileAdapter,
       terminalAdapter: adapters.terminalAdapter,
       pathResolver: adapters.pathResolver,
+      displayPathRewriter: options.displayPathRewriter,
     });
     const connection = new ClientSideConnection(() => handler, stream);
 
@@ -276,9 +280,10 @@ export class CodexAcpAgent implements AcpAgent {
       : CodexAcpAgent.DEFAULT_SESSION_KEY;
   }
 
-  private resolveWorkingDirectory(
-    config?: CodexSessionConfig,
-  ): { container: string; host: string } {
+  private resolveWorkingDirectory(config?: CodexSessionConfig): {
+    container: string;
+    host: string;
+  } {
     const target = config?.workingDirectory ?? ".";
     const resolved = this.pathResolver.resolve(target);
     return {
@@ -346,6 +351,7 @@ export class CodexAcpAgent implements AcpAgent {
       sessionId: response.sessionId,
       cwdContainer,
       cwdHost,
+      cwd: cwdHost,
       modelId: response.models?.currentModelId ?? undefined,
       modeId: response.modes?.currentModeId ?? undefined,
     };
@@ -368,6 +374,7 @@ export class CodexAcpAgent implements AcpAgent {
         sessionId: target,
         cwdContainer: cwdHost,
         cwdHost,
+        cwd: cwdHost,
         modelId: response.models?.currentModelId ?? undefined,
         modeId: response.modes?.currentModeId ?? undefined,
       };
