@@ -66,7 +66,8 @@ export class ContainerExecutor {
     this.base = normalized.endsWith("/") ? normalized : `${normalized}/`;
   }
 
-  toString = () => `ContainerExecutor(base=${this.base})`;
+  toString = () =>
+    `ContainerExecutor(base=${this.base}, project=${this.options.projectId})`;
 
   // Read a project file relative to the project root/workspaceRoot.
   async readTextFile(relativePath: string): Promise<string> {
@@ -129,7 +130,9 @@ export class ContainerExecutor {
         : path.posix.join(this.base, relative),
     );
     if (!combined.startsWith(this.base)) {
-      throw new Error(`Path escapes workspace: ${relative}`);
+      throw new Error(
+        `Path escapes workspace: ${relative}, combined=${combined}, base=${this.base}`,
+      );
     }
     return combined;
   }

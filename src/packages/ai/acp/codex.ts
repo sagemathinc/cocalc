@@ -42,7 +42,7 @@ import type {
   PathResolution,
 } from "./adapters";
 
-const log = getLogger("ai:acp");
+const logger = getLogger("ai:acp");
 
 const FILE_LINK_GUIDANCE =
   "When referencing workspace files, output markdown links relative to the project root so they stay clickable in CoCalc, e.g., foo.py -> [foo.py](./foo.py) (no backticks around the link). For images use ![](./image.png).";
@@ -158,10 +158,10 @@ export class CodexAcpAgent implements AcpAgent {
     child.stderr?.on("data", (chunk) => {
       const text = chunk.toString();
       if (text.trim().length === 0) return;
-      log.warn("acp.child.stderr", { text: text.trimEnd() });
+      logger.warn("acp.child.stderr", { text: text.trimEnd() });
     });
     child.stderr?.on("error", (err) => {
-      log.warn("acp.child.stderr_error", { err });
+      logger.warn("acp.child.stderr_error", { err });
     });
 
     const output = Writable.toWeb(
@@ -192,7 +192,7 @@ export class CodexAcpAgent implements AcpAgent {
       },
       terminal: !useNativeTerminal,
     };
-    log.debug("acp.initialize", { clientCapabilities });
+    logger.debug("acp.initialize", { clientCapabilities });
 
     await connection.initialize({
       protocolVersion: PROTOCOL_VERSION,
@@ -212,7 +212,7 @@ export class CodexAcpAgent implements AcpAgent {
     session_id,
     config,
   }: AcpEvaluateRequest): Promise<void> {
-    log.debug("acp.prompt.start", {
+    logger.debug("acp.prompt.start", {
       session: session_id,
     });
     if (this.running) {
@@ -242,7 +242,7 @@ export class CodexAcpAgent implements AcpAgent {
           },
         ],
       };
-      log.debug("acp.prompt.send", {
+      logger.debug("acp.prompt.send", {
         sessionId: session.sessionId,
         bytes: prompt.length,
       });
@@ -256,7 +256,7 @@ export class CodexAcpAgent implements AcpAgent {
         usage: usage ?? undefined,
       });
     } finally {
-      log.debug("acp.prompt.end", {
+      logger.debug("acp.prompt.end", {
         session: session_id ?? session.sessionId,
       });
       this.handler.clearStream();
@@ -282,7 +282,7 @@ export class CodexAcpAgent implements AcpAgent {
   ): Promise<SessionState> {
     const normalizedKey = this.normalizeSessionKey(sessionKey);
     const cwd = this.normalizeWorkingDirectory(config);
-    log.debug("acp.session.ensure", {
+    logger.debug("acp.session.ensure", {
       sessionKey: normalizedKey,
       cwd,
       configWorkspace: config?.workingDirectory,
@@ -314,7 +314,7 @@ export class CodexAcpAgent implements AcpAgent {
   }
 
   private async createSession(cwd: string): Promise<SessionState> {
-    log.debug("acp.session.new", { cwd });
+    logger.debug("acp.session.new", { cwd });
     const response = await this.connection.newSession({
       cwd,
       mcpServers: [],
@@ -339,7 +339,7 @@ export class CodexAcpAgent implements AcpAgent {
         cwd,
         mcpServers: [],
       });
-      log.info("acp.session.resume", { sessionId: target });
+      logger.info("acp.session.resume", { sessionId: target });
       return {
         sessionId: target,
         cwd,
@@ -347,7 +347,7 @@ export class CodexAcpAgent implements AcpAgent {
         modeId: response.modes?.currentModeId ?? undefined,
       };
     } catch (err) {
-      log.warn("acp.session.resume_failed", { sessionId: target, err });
+      logger.warn("acp.session.resume_failed", { sessionId: target, err });
       return undefined;
     }
   }
@@ -426,7 +426,7 @@ export class CodexAcpAgent implements AcpAgent {
       await this.connection.cancel({ sessionId: session.sessionId });
       return true;
     } catch (err) {
-      log.warn("acp.session.interrupt_failed", { threadId, err });
+      logger.warn("acp.session.interrupt_failed", { threadId, err });
       return false;
     }
   }

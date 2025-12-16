@@ -20,10 +20,7 @@ import type {
   AcpApprovalDecisionRequest,
   AcpInterruptRequest,
 } from "@cocalc/conat/ai/acp/types";
-import {
-  resolveCodexSessionMode,
-  type CodexSessionConfig,
-} from "@cocalc/util/ai/codex";
+import { resolveCodexSessionMode } from "@cocalc/util/ai/codex";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import type {
   FileAdapter,
@@ -744,19 +741,22 @@ export async function evaluate({
 }): Promise<void> {
   const reqId = randomUUID();
   const startedAt = Date.now();
+  const { config } = request;
+  const projectId = request.chat?.project_id ?? request.project_id;
+  const sessionMode = resolveCodexSessionMode(config);
+  const workspaceRoot = resolveWorkspaceRoot(config);
   logger.debug("evaluate: start", {
     reqId,
     session_id: request.session_id,
     chat: request.chat,
-    project_id: request.chat?.project_id ?? request.project_id,
+    projectId,
+    config,
+    sessionMode,
+    workspaceRoot,
   });
-  const config = normalizeConfig(request.config);
-  const sessionMode = resolveCodexSessionMode(config);
-  const projectId = request.chat?.project_id ?? request.project_id;
   if (!projectId) {
     throw Error("project_id must be set");
   }
-  const workspaceRoot = resolveWorkspaceRoot(config);
   const effectiveConfig = {
     ...(config ?? {}),
     workingDirectory: workspaceRoot,
@@ -878,17 +878,6 @@ export async function init(client: ConatClient): Promise<void> {
     },
     client,
   );
-}
-
-function normalizeConfig(
-  config?: CodexSessionConfig,
-): CodexSessionConfig | undefined {
-  if (config == null) return;
-  const normalized: CodexSessionConfig = { ...config };
-  if (config.workingDirectory) {
-    normalized.workingDirectory = path.resolve(config.workingDirectory);
-  }
-  return normalized;
 }
 
 type BlobReference = {
