@@ -606,8 +606,9 @@ export function StudentAssignmentInfo({
 
   function render_peer_assign_col() {
     if (!peer_grade) return;
-    if (!info.peer_assignment) return;
-    if (info.last_collect?.error != null) return;
+    if (!info.peer_assignment || info.last_collect?.error != null) {
+      return <Col flex="1" key="peer_assign" />;
+    }
     return (
       <Col flex="1" key="peer_assign">
         <Status
@@ -634,7 +635,7 @@ export function StudentAssignmentInfo({
 
   function render_peer_collect_col() {
     if (!peer_grade) return;
-    if (!info.peer_collect) return;
+    if (!info.peer_collect) return <Col flex="1" key="peer_collect" />;
     return (
       <Col flex="1" key="peer_collect">
         <Status
