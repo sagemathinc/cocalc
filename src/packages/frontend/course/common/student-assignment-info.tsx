@@ -327,7 +327,7 @@ export function StudentAssignmentInfo({
   }
 
   function render_nbgrader() {
-    if (!assignment.get("nbgrader") || assignment.get("skip_grading")) return;
+    if (!assignment.get("nbgrader")) return;
 
     return render_nbgrader_scores();
   }
@@ -538,10 +538,10 @@ export function StudentAssignmentInfo({
   const skip_assignment: boolean = !!assignment.get("skip_assignment");
   const skip_collect: boolean = !!assignment.get("skip_collect");
   if (peer_grade) {
-    show_grade_col = !skip_grading && info.last_peer_collect;
+    show_grade_col = info.last_peer_collect;
     show_return_graded = grade || (skip_grading && info.last_peer_collect);
   } else {
-    show_grade_col = (!skip_grading && info.last_collect) || skip_collect;
+    show_grade_col = info.last_collect || skip_collect;
     show_return_graded =
       grade ||
       (skip_grading && info.last_collect) ||
