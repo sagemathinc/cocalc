@@ -126,8 +126,10 @@ export async function mount({
   await mkdir(upperdir, { recursive: true });
   await mkdir(workdir, { recursive: true });
   await mkdir(merged, { recursive: true });
+
   // Persist image info for later lookup (e.g., ephemeral exec when the container is stopped).
   await writeFile(imageName, image);
+
   bootlog({
     project_id,
     type: "mount-rootfs",

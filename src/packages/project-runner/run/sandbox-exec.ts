@@ -6,6 +6,7 @@ import { getImageNamePath, mount as mountRootFs } from "./rootfs";
 import { readFile } from "fs/promises";
 import { networkArgument } from "./podman";
 import { mountArg } from "@cocalc/backend/podman";
+import { getEnvironment } from "./env";
 
 export interface SandboxExecOptions {
   project_id: string;
@@ -72,11 +73,19 @@ export async function sandboxExec({
   noNetwork,
 }: SandboxExecOptions): Promise<SandboxExecResult> {
   const args: string[] = [];
+  let HOME;
   if (useEphemeral) {
     const { home, scratch } = await localPath({
       project_id,
     });
+    HOME = useHostHomeMount ? home : "/root";
     const image = await getContainerImage(home);
+    const env = await getEnvironment({
+      project_id,
+      HOME,
+      image,
+    });
+
     // Build a one-off container run.
     args.push("run", "--rm", "-i");
     // execFile timeout still applies; podman itself doesn't have a timeout flag.
@@ -86,7 +95,11 @@ export async function sandboxExec({
     if (cwd) {
       args.push("--workdir", cwd);
     }
-    const HOME = useHostHomeMount ? home : "/root";
+
+    for (const key in env) {
+      args.push("-e", `${key}=${env[key]}`);
+    }
+
     args.push(mountArg({ source: home, target: HOME }));
     if (scratch) {
       args.push(mountArg({ source: scratch, target: "/scratch" }));
@@ -99,6 +112,7 @@ export async function sandboxExec({
     args.push("--name", `sandbox-${project_id}-${Date.now()}`);
     args.push("/bin/bash", "-lc", script);
   } else {
+    HOME = "/root";
     args.push(
       "exec",
       "-i",
