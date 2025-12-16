@@ -715,7 +715,7 @@ export function StudentAssignmentInfo({
           {title}
         </Col>
         <Col md={20} key="rest">
-          <Row>
+          <Row gutter={[8, 0]}>
             {render_assignment_col()}
             {render_collect_col()}
             {render_peer_assign_col()}
