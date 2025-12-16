@@ -12,11 +12,12 @@ import {
   Divider,
   Input,
   Popconfirm,
+  Popover,
   Row,
   Switch,
   Space,
 } from "antd";
-import { ReactElement, useEffect, useState } from "react";
+import { ReactElement, ReactNode, useEffect, useState } from "react";
 import { DebounceInput } from "react-debounce-input";
 import { FormattedMessage, useIntl } from "react-intl";
 import { AppRedux, useActions } from "@cocalc/frontend/app-framework";
@@ -53,7 +54,6 @@ import {
 import { StudentListForAssignment } from "./assignment-student-list";
 import { ConfigurePeerGrading } from "./configure-peer";
 import { STUDENT_SUBDIR } from "./consts";
-import { SkipCopy } from "./skip";
 import { ComputeServerButton } from "../compute";
 
 interface AssignmentProps {
@@ -147,8 +147,7 @@ export function Assignment({
     copy_assignment_confirm_overwrite,
     set_copy_assignment_confirm_overwrite,
   ] = useState<boolean>(false);
-  const [peerDisabledForNbgrader, setPeerDisabledForNbgrader] =
-    useState(false);
+  const [peerDisabledForNbgrader, setPeerDisabledForNbgrader] = useState(false);
   const [
     copy_assignment_confirm_overwrite_text,
     set_copy_assignment_confirm_overwrite_text,
@@ -356,10 +355,6 @@ export function Assignment({
 
         {(() => {
           const peer = is_peer_graded();
-          const width = peer ? 4 : 6;
-          const totalStudents = get_store().get_student_ids({
-            deleted: false,
-          }).length;
 
           if (num_files === 0) return null;
 
@@ -380,7 +375,7 @@ export function Assignment({
           const renderedMap: Partial<Record<AssignmentCopyStep, boolean>> = {};
 
           for (const name of STEPS(peer)) {
-            const rendered = render_button(name, status);
+            const rendered = render_step_run_all(name, status);
             // squeeze in the skip grading button (don't add it to STEPS!)
             if (rendered != null) {
               renderedMap[name] = true;
@@ -435,7 +430,10 @@ export function Assignment({
             );
           }
 
-          if (status.peer_assignment != null && progress.peer_assignment == null) {
+          if (
+            status.peer_assignment != null &&
+            progress.peer_assignment == null
+          ) {
             progress["peer_assignment"] = (
               <Progress
                 key="progress-peer-assign"
@@ -487,12 +485,6 @@ export function Assignment({
                   />
                 }
               />
-
-              <Row key="header2-copy">
-                <Col md={20} offset={4}>
-                  {render_copy_confirms(status)}
-                </Col>
-              </Row>
             </>
           );
         })()}
@@ -574,11 +566,51 @@ export function Assignment({
     );
   }
 
-  function show_copy_confirm(): void {
-    set_copy_confirm_state("assignment", true);
-    set_copy_confirm(true);
-    const assignment_id: string | undefined = assignment.get("assignment_id");
-    actions.assignments.update_listing(assignment_id);
+  function render_step_popover(
+    step: AssignmentCopyStep,
+    opts: {
+      type: "primary" | "default" | "dashed";
+      title: ReactNode;
+      tip: ReactNode;
+      content: ReactNode;
+      onOpen?: () => void;
+      onClose?: () => void;
+    },
+  ) {
+    const open = copy_confirm_state[step];
+    const handleOpenChange = (next: boolean) => {
+      set_copy_confirm_state(step, next);
+      set_copy_confirm(next);
+      if (next) {
+        opts.onOpen?.();
+      } else {
+        set_copy_confirm_all(step, false);
+        opts.onClose?.();
+      }
+    };
+    return (
+      <Popover
+        key={step}
+        placement="bottom"
+        trigger="click"
+        open={open}
+        onOpenChange={handleOpenChange}
+        content={opts.content}
+        overlayInnerStyle={{ maxWidth: 545 }}
+      >
+        <span style={{ display: "inline-block" }}>
+          <Tip placement="bottom" title={opts.title} tip={opts.tip}>
+            <Button
+              type={opts.type}
+              disabled={copy_confirm && !open}
+              size="small"
+              icon={<Icon name="forward" />}
+              onClick={() => handleOpenChange(true)}
+            />
+          </Tip>
+        </span>
+      </Popover>
+    );
   }
 
   function render_assignment_button(status) {
@@ -610,24 +642,25 @@ export function Assignment({
     });
 
     return [
-      <Tip
-        key="assign"
-        title={
+      render_step_popover("assignment", {
+        type,
+        title: (
           <span>
             {label}: <Icon name="user-secret" /> {you}{" "}
             <Icon name="arrow-right" /> <Icon name="users" /> {students}{" "}
           </span>
-        }
-        tip={tooltip}
-      >
-        <Button
-          type={type}
-          onClick={show_copy_confirm}
-          disabled={copy_confirm}
-          size="small"
-          icon={<Icon name="forward" />}
-        />
-      </Tip>,
+        ),
+        tip: tooltip,
+        content: render_step_confirm("assignment", status),
+        onOpen: () => {
+          const assignment_id: string | undefined =
+            assignment.get("assignment_id");
+          actions.assignments.update_listing(assignment_id);
+        },
+        onClose: () => {
+          set_copy_assignment_confirm_overwrite(false);
+        },
+      }),
       <Progress
         key="progress"
         done={status.assignment}
@@ -638,44 +671,8 @@ export function Assignment({
     ];
   }
 
-  function render_copy_confirms(status) {
-    const steps = STEPS(is_peer_graded());
-    const result: (ReactElement<any> | undefined)[] = [];
-    for (const step of steps) {
-      if (copy_confirm_state[step]) {
-        result.push(render_copy_confirm(step, status));
-      } else {
-        result.push(undefined);
-      }
-    }
-    return result;
-  }
-
-  function render_copy_confirm(step, status) {
-    return (
-      <span key={`copy_confirm_${step}`}>
-        {status[step] === 0
-          ? render_copy_confirm_to_all(step, status)
-          : undefined}
-        {status[step] !== 0
-          ? render_copy_confirm_to_all_or_new(step, status)
-          : undefined}
-      </span>
-    );
-  }
-
-  function render_copy_cancel(step) {
-    const cancel = () => {
-      set_copy_confirm_state(step, false);
-      set_copy_confirm_all(step, false);
-      set_copy_confirm(false);
-      set_copy_assignment_confirm_overwrite(false);
-    };
-    return (
-      <Button key="cancel" onClick={cancel} size={size}>
-        {intl.formatMessage(labels.close)}
-      </Button>
-    );
+  function render_step_confirm(step, status) {
+    return render_copy_confirm(step, status);
   }
 
   function render_copy_assignment_confirm_overwrite(step) {
@@ -699,10 +696,10 @@ export function Assignment({
           style={{ marginTop: "1ex" }}
         />
         <Space style={{ textAlign: "center", marginTop: "15px" }}>
-          {render_copy_cancel(step)}
           <Button
             disabled={copy_assignment_confirm_overwrite_text !== "OVERWRITE"}
             danger
+            type="primary"
             onClick={do_it}
           >
             <Icon name="exclamation-triangle" /> Confirm replacing files
@@ -757,17 +754,6 @@ export function Assignment({
     set_copy_confirm(false);
   }
 
-  function render_skip(step: AssignmentCopyStep) {
-    if (step === "return_graded") {
-      return;
-    }
-    return (
-      <div style={{ float: "right" }}>
-        <SkipCopy assignment={assignment} step={step} actions={actions} />
-      </div>
-    );
-  }
-
   function render_skip_switch(
     step: "assignment" | "collect" | "grading",
     disabled?: boolean,
@@ -796,107 +782,44 @@ export function Assignment({
     );
   }
 
-  function render_has_student_subdir(step: AssignmentCopyStep) {
-    if (step != "assignment" || !assignment.get("has_student_subdir")) return;
-    return (
-      <Alert
-        style={{ marginBottom: "15px" }}
-        type="info"
-        message={`NOTE: Only the ${STUDENT_SUBDIR}/ subdirectory will be copied to the students.`}
-      />
-    );
-  }
-
-  function render_parallel() {
-    const n = get_store().get_copy_parallel();
-    return (
-      <Tip
-        title={`Parallel limit: copy ${n} assignments at a time`}
-        tip="This is the max number of assignments to copy in parallel.  Change this in course configuration."
-      >
-        <div style={{ marginTop: "10px", fontWeight: 400 }}>
-          Copy up to {n} assignments at once.
-        </div>
-      </Tip>
-    );
-  }
-
-  function render_copy_confirm_to_all(step: AssignmentCopyStep, status) {
-    const n = status[`not_${step}`];
-    const message = (
-      <div>
-        <div style={{ marginBottom: "15px" }}>
-          {capitalize(step_verb(step))} this homework {step_direction(step)} the{" "}
-          {n} student{n > 1 ? "s" : ""}
-          {step_ready(step, n)}?
-        </div>
-        {render_has_student_subdir(step)}
-        {render_skip(step)}
-        <Space wrap>
-          {render_copy_cancel(step)}
-          <Button
-            key="yes"
-            type="primary"
-            onClick={() => copy_assignment(step, false)}
-          >
-            Yes
-          </Button>
-        </Space>
-        {render_parallel()}
-      </div>
-    );
-    return (
-      <Alert
-        type="warning"
-        key={`${step}_confirm_to_all`}
-        style={{ marginTop: "15px" }}
-        message={message}
-      />
-    );
-  }
-
   function copy_confirm_all_caution(step: AssignmentCopyStep) {
+    const caution = "CAUTION: All files will be copied again.";
+    const it_will =
+      "it will get copied to a backup file ending in a tilde (~), or possibly only be available in snapshots.";
     switch (step) {
       case "assignment":
         return (
           <span>
-            This will recopy all of the files to them. CAUTION: if you update a
-            file that a student has also worked on, their work will get copied
-            to a backup file ending in a tilde, or possibly only be available in
-            snapshots. Select "Replace student files!" in case you do <b>not</b>{" "}
-            want to create any backups and also <b>delete</b> all other files in
-            the assignment folder of their projects.{" "}
+            {caution} If you updated a file that a student has also worked on,{" "}
+            {it_will} Select "Replace student files!" if you do <b>not</b> want
+            to create any backups and want to <b>delete</b> all other files in
+            the assignment folder of student projects.{" "}
             <a
               target="_blank"
-              href="https://github.com/sagemathinc/cocalc/wiki/CourseCopy"
+              href="https://doc.cocalc.com/teaching-tips_and_tricks.html#how-exactly-are-assignments-copied-to-students"
             >
-              (more details)
+              Details
             </a>
-            .
           </span>
         );
       case "collect":
-        return "This will recollect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.";
-      case "return_graded":
-        return "This will rereturn all of the graded files to them.";
-      case "peer_assignment":
-        return "This will recopy all of the files to them.  CAUTION: if there is a file a student has also worked on grading, their work will get copied to a backup file ending in a tilde, or possibly be only available in snapshots.";
       case "peer_collect":
-        return "This will recollect all of the peer-graded homework from the students.  CAUTION: if you have graded/edited a previously collected file that a student has updated, your work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots.";
+        return `${caution} If you have graded or edited a file that a student has updated, ${it_will}`;
+      case "peer_assignment":
+        return `${caution} If a student worked on a previously assigned file, ${it_will}`;
+      case "return_graded":
+        return `${caution} If a student edited a previously returned file, ${it_will}`;
     }
   }
 
   function render_copy_confirm_overwrite_all(step: AssignmentCopyStep) {
     return (
-      <div key={"copy_confirm_overwrite_all"} style={{ marginTop: "15px" }}>
-        <div style={{ marginBottom: "15px" }}>
-          {copy_confirm_all_caution(step)}
-        </div>
-        <Space wrap>
-          {render_copy_cancel(step)}
+      <div key={"copy_confirm_overwrite_all"}>
+        <div>{copy_confirm_all_caution(step)}</div>
+        <Space>
           <Button
             key={"all"}
-            type={"dashed"}
+            type="primary"
             disabled={copy_assignment_confirm_overwrite}
             onClick={() => copy_assignment(step, false)}
           >
@@ -905,68 +828,97 @@ export function Assignment({
           {step === "assignment" ? (
             <Button
               key={"all-overwrite"}
-              type={"dashed"}
+              danger
               onClick={() => set_copy_assignment_confirm_overwrite(true)}
               disabled={copy_assignment_confirm_overwrite}
             >
               Replace student files!
             </Button>
           ) : undefined}
+          <Button
+            key="back"
+            onClick={() => {
+              set_copy_confirm_all(step, false);
+              set_copy_assignment_confirm_overwrite(false);
+            }}
+          >
+            Back
+          </Button>
         </Space>
         {render_copy_assignment_confirm_overwrite(step)}
       </div>
     );
   }
 
-  function render_copy_confirm_to_all_or_new(step: AssignmentCopyStep, status) {
-    const n = status[`not_${step}`];
-    const m = n + status[step];
+  function render_copy_confirm(step: AssignmentCopyStep, status) {
+    const not_done = status[`not_${step}`];
+    const possible = not_done + status[step];
+    const total = get_store().num_students();
     const message = (
-      <div>
-        <div style={{ marginBottom: "15px" }}>
-          {capitalize(step_verb(step))} this homework {step_direction(step)}
-          ...
+      <Space
+        direction="vertical"
+        style={{ display: "inline-flex", alignItems: "stretch" }}
+      >
+        {/* Only the student/ subdirectory will be copied to the students. nbgrader docs */}
+        {step === "assignment" && assignment.get("has_student_subdir") ? (
+          <Alert
+            type="info"
+            message={
+              <span>
+                Only the {STUDENT_SUBDIR}/ subdirectory will be copied to the
+                students.{" "}
+                <a
+                  target="_blank"
+                  href="https://doc.cocalc.com/teaching-nbgrader.html#student-version"
+                >
+                  nbgrader docs
+                </a>
+              </span>
+            }
+          />
+        ) : undefined}
+        {/* Assign this assignment to */}
+        <div>
+          {capitalize(step_verb(step))} this assignment {step_direction(step)}
         </div>
-        {render_has_student_subdir(step)}
-        {render_skip(step)}
-        <Space wrap>
-          {render_copy_cancel(step)}
+        {/* The 15 students not already assigned to */}
+        {not_done && !copy_confirm_all[step] ? (
+          <Button
+            key="new"
+            type="primary"
+            onClick={() => copy_assignment(step, true)}
+          >
+            {not_done === total ? (
+              <>All {total} students</>
+            ) : (
+              <>
+                The {not_done} student{not_done > 1 ? "s" : ""} not already{" "}
+                {step_verb(step)}ed {step_direction(step)}
+              </>
+            )}
+          </Button>
+        ) : undefined}
+        {/* All 19 students... */}
+        {not_done !== possible ? (
           <Button
             key="all"
             danger
+            disabled={copy_confirm_all[step]}
             onClick={() => {
               set_copy_confirm_all(step, true);
-              set_copy_confirm(true);
             }}
-            disabled={copy_confirm_all[step]}
           >
-            {step === "assignment" ? "All" : "The"} {m} students
-            {step_ready(step, m)}...
+            All {possible} students
+            {step_ready(step, possible)}...
           </Button>
-          {n ? (
-            <Button
-              key="new"
-              type="primary"
-              onClick={() => copy_assignment(step, true)}
-            >
-              The {n} student{n > 1 ? "s" : ""} not already {step_verb(step)}
-              ed {step_direction(step)}
-            </Button>
-          ) : undefined}
-        </Space>
+        ) : undefined}
         {copy_confirm_all[step]
           ? render_copy_confirm_overwrite_all(step)
           : undefined}
-        {render_parallel()}
-      </div>
+      </Space>
     );
     return (
-      <Alert
-        type="warning"
-        key={`${step}_confirm_to_all_or_new`}
-        style={{ marginTop: "15px" }}
-        message={message}
-      />
+      <Alert key={`copy_confirm_${step}`} type="warning" message={message} />
     );
   }
 
@@ -983,7 +935,7 @@ export function Assignment({
     );
   }
 
-  function render_button(state: AssignmentCopyStep, status) {
+  function render_step_run_all(state: AssignmentCopyStep, status) {
     switch (state) {
       case "collect":
         return render_collect_button(status);
@@ -1015,28 +967,17 @@ export function Assignment({
       type = "primary";
     }
     return [
-      <Tip
-        key="collect"
-        title={
+      render_step_popover("collect", {
+        type,
+        title: (
           <span>
-            Collect: <Icon name="users" />{" "}
-            {intl.formatMessage(course.students)} <Icon name="arrow-right" />{" "}
-            <Icon name="user-secret" /> You
+            Collect: <Icon name="users" /> {intl.formatMessage(course.students)}{" "}
+            <Icon name="arrow-right" /> <Icon name="user-secret" /> You
           </span>
-        }
-        tip={render_collect_tip()}
-      >
-        <Button
-          onClick={() => {
-            set_copy_confirm_state("collect", true);
-            set_copy_confirm(true);
-          }}
-          disabled={copy_confirm}
-          type={type}
-          size="small"
-          icon={<Icon name="forward" />}
-        />
-      </Tip>,
+        ),
+        tip: render_collect_tip(),
+        content: render_step_confirm("collect", status),
+      }),
       <Progress
         key="progress"
         done={status.collect}
@@ -1085,28 +1026,18 @@ export function Assignment({
       step: STEP_NAMES.indexOf("Peer Assign"),
     });
     return [
-      <Tip
-        key="peer-assign"
-        title={
+      render_step_popover("peer_assignment", {
+        type,
+        title: (
           <span>
             {label}: <Icon name="users" /> {intl.formatMessage(labels.you)}{" "}
             <Icon name="arrow-right" /> <Icon name="user-secret" />{" "}
             {intl.formatMessage(course.students)}
           </span>
-        }
-        tip={render_peer_assign_tip()}
-      >
-        <Button
-          onClick={() => {
-            set_copy_confirm_state("peer_assignment", true);
-            set_copy_confirm(true);
-          }}
-          disabled={copy_confirm}
-          type={type}
-          size="small"
-          icon={<Icon name="forward" />}
-        />
-      </Tip>,
+        ),
+        tip: render_peer_assign_tip(),
+        content: render_step_confirm("peer_assignment", status),
+      }),
       <Progress
         key="progress"
         done={status.peer_assignment}
@@ -1152,27 +1083,17 @@ export function Assignment({
       step: STEP_NAMES.indexOf("Peer Collect"),
     });
     return [
-      <Tip
-        key="peer-collect"
-        title={
+      render_step_popover("peer_collect", {
+        type,
+        title: (
           <span>
             {label}: <Icon name="users" /> {intl.formatMessage(course.students)}{" "}
             <Icon name="arrow-right" /> <Icon name="user-secret" /> You
           </span>
-        }
-        tip={render_peer_collect_tip()}
-      >
-        <Button
-          onClick={() => {
-            set_copy_confirm_state("peer_collect", true);
-            set_copy_confirm(true);
-          }}
-          disabled={copy_confirm}
-          type={type}
-          size="small"
-          icon={<Icon name="forward" />}
-        />
-      </Tip>,
+        ),
+        tip: render_peer_collect_tip(),
+        content: render_step_confirm("peer_collect", status),
+      }),
       <Progress
         key="progress"
         done={status.peer_collect}
@@ -1233,28 +1154,17 @@ export function Assignment({
       step: STEP_NAMES.indexOf("Return"),
     });
     return [
-      <Tip
-        key="return"
-        title={
+      render_step_popover("return_graded", {
+        type,
+        title: (
           <span>
-            {label}: <Icon name="user-secret" /> You{" "}
-            <Icon name="arrow-right" /> <Icon name="users" />{" "}
-            {intl.formatMessage(course.students)}{" "}
+            {label}: <Icon name="user-secret" /> You <Icon name="arrow-right" />{" "}
+            <Icon name="users" /> {intl.formatMessage(course.students)}{" "}
           </span>
-        }
-        tip="Copy the graded versions of files for this assignment from this project to all other student projects."
-      >
-        <Button
-          onClick={() => {
-            set_copy_confirm_state("return_graded", true);
-            set_copy_confirm(true);
-          }}
-          disabled={copy_confirm}
-          type={type}
-          size="small"
-          icon={<Icon name="forward" />}
-        />
-      </Tip>,
+        ),
+        tip: "Copy the graded versions of files for this assignment from this project to all other student projects.",
+        content: render_step_confirm("return_graded", status),
+      }),
       <Progress
         key="progress"
         done={status.return_graded}
