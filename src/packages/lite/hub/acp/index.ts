@@ -590,7 +590,24 @@ type ExecutorAdapters = {
 function buildExecutorAdapters(
   executor: AcpExecutor,
   workspaceRoot: string,
+  hostRoot: string,
 ): ExecutorAdapters {
+  // In container mode we expect:
+  // - container paths to live under /root (workspaceRoot is the container path)
+  // - host paths to point to the bind mount on the host (never /root)
+  // This lets us distinguish whether an incoming absolute path is host-side or
+  // container-side. Warn early if we can't tell the difference.
+  if (
+    workspaceRoot.startsWith("/root") &&
+    hostRoot.startsWith("/root") &&
+    workspaceRoot !== hostRoot
+  ) {
+    logger.warn("hostRoot unexpectedly looks like a container path", {
+      workspaceRoot,
+      hostRoot,
+    });
+  }
+
   const shellHandler = async ({ command, args, cwd, env }: any) => {
     logger.debug("shellHandler exec", { command, args, cwd, env });
     const joined =
@@ -608,8 +625,25 @@ function buildExecutorAdapters(
     };
   };
 
-  const toRelative = (absolute: string): string => {
-    const rel = path.relative(workspaceRoot, absolute || "");
+  const normalizedWorkspace = path.normalize(workspaceRoot || "/");
+  const normalizedHostRoot = hostRoot ? path.normalize(hostRoot) : undefined;
+
+  const toRelative = (p: string): string => {
+    const absolute = path.isAbsolute(p)
+      ? path.normalize(p)
+      : path.resolve(normalizedWorkspace, path.normalize(p));
+
+    // If the path is under the host mount, prefer that mapping.
+    if (normalizedHostRoot && absolute.startsWith(normalizedHostRoot)) {
+      const relHost = path.relative(normalizedHostRoot, absolute);
+      if (relHost.startsWith("..")) {
+        throw new Error(`path ${absolute} is outside host root`);
+      }
+      return relHost || ".";
+    }
+
+    // Otherwise, treat it as a container path relative to the workspaceRoot.
+    const rel = path.relative(normalizedWorkspace, absolute);
     if (rel.startsWith("..")) {
       throw new Error(`path ${absolute} is outside workspace root`);
     }
@@ -668,17 +702,17 @@ function buildExecutorAdapters(
     fileAdapter,
     terminalAdapter,
     pathResolver: {
-      toString: () => `pathResolver(workspaceRoot='${workspaceRoot}')`,
+      toString: () =>
+        `pathResolver(workspaceRoot='${workspaceRoot}', hostRoot='${hostRoot}')`,
       resolve(filePath: string) {
         const absolute = path.isAbsolute(filePath)
-          ? filePath
+          ? path.normalize(filePath)
           : path.resolve(workspaceRoot, filePath);
         const rel = path.relative(workspaceRoot, absolute);
-        let hostAbsolute: string | undefined = undefined;
-        const mountPoint = executor.getMountPoint?.();
-        if (mountPoint && (!rel || !rel.startsWith(".."))) {
-          hostAbsolute = path.join(mountPoint, rel || "");
-        }
+        const hostAbsolute =
+          rel && rel.startsWith("..")
+            ? undefined
+            : path.normalize(path.join(hostRoot, rel || ""));
         return {
           absolute,
           hostAbsolute,
@@ -763,11 +797,22 @@ export async function evaluate({
   if (!projectId) {
     throw Error("project_id must be set");
   }
+  const executor: AcpExecutor = preferContainerExecutor()
+    ? new ContainerExecutor({
+        projectId,
+        workspaceRoot,
+        conatClient: conatClient!,
+      })
+    : new LocalExecutor(workspaceRoot);
   const effectiveConfig = {
     ...(config ?? {}),
     workingDirectory: workspaceRoot,
   };
   const useContainer = preferContainerExecutor();
+  const hostRoot =
+    useContainer && executor instanceof ContainerExecutor
+      ? executor.getMountPoint()
+      : workspaceRoot;
   // Container mode must always proxy terminals (useNativeTerminal=false) so ACP
   // routes commands through our adapter into the project container. In local
   // mode, respect "auto" behavior.
@@ -781,14 +826,7 @@ export async function evaluate({
   if (useContainer && !conatClient) {
     throw Error("conat client must be initialized");
   }
-  const executor: AcpExecutor = useContainer
-    ? new ContainerExecutor({
-        projectId,
-        workspaceRoot,
-        conatClient: conatClient!,
-      })
-    : new LocalExecutor(workspaceRoot);
-  const bindings = buildExecutorAdapters(executor, workspaceRoot);
+  const bindings = buildExecutorAdapters(executor, workspaceRoot, hostRoot);
   const currentAgent = await ensureAgent(useNativeTerminal, bindings);
   const { prompt, cleanup } = await materializeBlobs(request.prompt ?? "");
   if (!conatClient) {

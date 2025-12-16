@@ -138,7 +138,16 @@ export class ContainerExecutor {
         ? relative
         : path.posix.join(this.base, relative),
     );
-    if (!combined.startsWith(this.base)) {
+    // Allow either the trailing-slash form (this.base) or the same path without
+    // the trailing slash (e.g., combined === "/root" when base === "/root/").
+    const baseNoSlash = this.base.endsWith("/")
+      ? this.base.slice(0, -1)
+      : this.base;
+    const insideBase =
+      combined === baseNoSlash ||
+      combined === this.base ||
+      combined.startsWith(this.base);
+    if (!insideBase) {
       throw new Error(
         `Path escapes workspace: ${relative}, combined=${combined}, base=${this.base}`,
       );
