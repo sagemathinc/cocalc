@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -9,288 +9,46 @@ Input box for setting the account creation token.
 
 import {
   Button as AntdButton,
-  Checkbox,
-  DatePicker,
-  Form,
-  Input,
-  InputNumber,
+  Descriptions,
   Popconfirm,
-  Radio,
-  Space,
+  Progress,
   Switch,
   Table,
 } from "antd";
-import type { RadioChangeEvent } from "antd";
-import dayjs from "dayjs";
+import type { DescriptionsProps } from "antd";
 import { List } from "immutable";
-import { pick, sortBy } from "lodash";
+import { sortBy } from "lodash";
 
-import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { CopyOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
-import {
-  React,
-  redux,
-  Rendered,
-  TypedMap,
-} from "@cocalc/frontend/app-framework";
+import { redux, Rendered, TypedMap } from "@cocalc/frontend/app-framework";
 import {
   ErrorDisplay,
   Icon,
   Saving,
   TimeAgo,
+  Tip,
 } from "@cocalc/frontend/components";
 import Copyable from "@cocalc/frontend/components/copy-to-clipboard";
-import { query } from "@cocalc/frontend/frame-editors/generic/client";
-import { CancelText } from "@cocalc/frontend/i18n/components";
-import { RegistrationTokenSetFields } from "@cocalc/util/db-schema/types";
-import { cmp_dayjs, round1, secure_random_token } from "@cocalc/util/misc";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import {
+  cmp_dayjs,
+  round1,
+  seconds2hms,
+  trunc,
+  trunc_middle,
+} from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
+import dayjs from "dayjs";
 
-interface Token {
-  key?: string; // used in the table, not for the database
-  token: string;
-  disabled?: boolean;
-  active?: boolean; // active is just !disabled
-  descr?: string;
-  limit?: number;
-  counter?: number; // readonly
-  expires?: dayjs.Dayjs; // DB uses Date objects, watch out!
-  ephemeral?: number;
-  customize?: {
-    disableCollaborators?: boolean;
-    disableAI?: boolean;
-  };
-}
-
-const HOUR_MS = 60 * 60 * 1000;
-const EPHEMERAL_PRESETS = [
-  { key: "6h", label: "6 hours", value: 6 * HOUR_MS },
-  { key: "1d", label: "1 day", value: 24 * HOUR_MS },
-  { key: "1w", label: "1 week", value: 7 * 24 * HOUR_MS },
-] as const;
-const CUSTOM_PRESET_KEY = "custom";
-
-function msToHours(value?: number): number | undefined {
-  if (value == null) return undefined;
-  return value / HOUR_MS;
-}
-
-function findPresetKey(value?: number): string | undefined {
-  if (value == null) return undefined;
-  return EPHEMERAL_PRESETS.find((preset) => preset.value === value)?.key;
-}
-
-function formatEphemeralHours(value?: number): string {
-  const hours = msToHours(value);
-  return hours == null ? "" : `${round1(hours)} h`;
-}
-
-function ephemeralSignupUrl(token?: string): string {
-  if (!token) return "";
-  if (typeof window === "undefined") {
-    return `/ephemeral?token=${token}`;
-  }
-  const { protocol, host } = window.location;
-  return `${protocol}//${host}/ephemeral?token=${token}`;
-}
-
-function use_registration_tokens() {
-  const [data, set_data] = React.useState<{ [key: string]: Token }>({});
-  const [no_or_all_inactive, set_no_or_all_inactive] =
-    React.useState<boolean>(false);
-  const [editing, set_editing] = React.useState<Token | null>(null);
-  const [saving, set_saving] = React.useState<boolean>(false);
-  const [deleting, set_deleting] = React.useState<boolean>(false);
-  const [loading, set_loading] = React.useState<boolean>(false);
-  const [last_saved, set_last_saved] = React.useState<Token | null>(null);
-  const [error, set_error] = React.useState<string>("");
-  const [sel_rows, set_sel_rows] = React.useState<any>([]);
-
-  // Antd
-  const [form] = Form.useForm();
-
-  // we load the data in a map, indexed by the token
-  // dates are converted to dayjs on the fly
-  async function load() {
-    let result: any;
-    set_loading(true);
-    try {
-      // TODO query should be limited by disabled != true
-      result = await query({
-        query: {
-          registration_tokens: {
-            token: "*",
-            descr: null,
-            expires: null,
-            limit: null,
-            disabled: null,
-            ephemeral: null,
-            customize: null,
-          },
-        },
-      });
-      const data = {};
-      let warn_signup = true;
-      for (const x of result.query.registration_tokens) {
-        if (x.expires) x.expires = dayjs(x.expires);
-        x.active = !x.disabled;
-        data[x.token] = x;
-        // we have at least one active token → no need to warn user
-        if (x.active) warn_signup = false;
-      }
-      set_no_or_all_inactive(warn_signup);
-      set_error("");
-      set_data(data);
-    } catch (err) {
-      set_error(err.message);
-    } finally {
-      set_loading(false);
-    }
-  }
-
-  React.useEffect(() => {
-    // every time we show or hide, clear the selection
-    set_sel_rows([]);
-    load();
-  }, []);
-
-  React.useEffect(() => {
-    if (editing != null) {
-      // antd's form want's something called "Store" – which is just this?
-      form.setFieldsValue(editing as any);
-    }
-    if (last_saved != null) {
-      set_last_saved(null);
-    }
-  }, [editing]);
-
-  // saving a specific token value converts dayjs back to pure Date objects
-  // we also record the last saved token as a template for the next add operation
-  async function save(val): Promise<void> {
-    // antd wraps the time in a dayjs object
-    const val_orig: Token = { ...val };
-    if (editing != null) set_editing(null);
-
-    // data preparation
-    if (val.expires != null && dayjs.isDayjs(val.expires)) {
-      val.expires = dayjs(val.expires).toDate();
-    }
-    val.disabled = !val.active;
-    val = pick(val, [
-      "token",
-      "disabled",
-      "expires",
-      "limit",
-      "descr",
-      "ephemeral",
-      "customize",
-    ] as RegistrationTokenSetFields[]);
-    // set optional field to undefined (to get rid of it)
-    ["descr", "limit", "expires", "ephemeral"].forEach(
-      (k: RegistrationTokenSetFields) => (val[k] = val[k] ?? undefined),
-    );
-    if (val.customize != null) {
-      const { disableCollaborators, disableAI } = val.customize;
-      if (!disableCollaborators && !disableAI) {
-        val.customize = undefined;
-      }
-    }
-    try {
-      set_saving(true);
-      await query({
-        query: {
-          registration_tokens: val,
-        },
-      });
-      // we save the original one, with dayjs in it!
-      set_last_saved(val_orig);
-      set_saving(false);
-      await load();
-    } catch (err) {
-      set_error(err);
-      set_editing(val_orig);
-    } finally {
-      set_saving(false);
-    }
-  }
-
-  async function delete_token(
-    token: string | undefined,
-    single: boolean = false,
-  ) {
-    if (token == null) return;
-    if (single) set_deleting(true);
-
-    try {
-      await query({
-        query: {
-          registration_tokens: { token },
-        },
-        options: [{ delete: true }],
-      });
-      if (single) load();
-    } catch (err) {
-      if (single) {
-        set_error(err);
-      } else {
-        throw err;
-      }
-    } finally {
-      if (single) set_deleting(false);
-    }
-  }
-
-  async function delete_tokens(): Promise<void> {
-    set_deleting(true);
-    try {
-      // it's not possible to delete several tokens at once
-      await sel_rows.map(async (token) => await delete_token(token));
-      set_sel_rows([]);
-      load();
-    } catch (err) {
-      set_error(err);
-    } finally {
-      set_deleting(false);
-    }
-  }
-
-  // we generate a random token and make sure it doesn't exist
-  // TODO also let the user generate one with a validation check
-  function new_random_token(): string {
-    return secure_random_token(16);
-  }
-
-  function edit_new_token(): void {
-    set_editing({
-      ...last_saved,
-      ...{ token: new_random_token(), active: true },
-    });
-  }
-
-  return {
-    data,
-    form,
-    editing,
-    saving,
-    deleting,
-    delete_token,
-    delete_tokens,
-    loading,
-    last_saved,
-    error,
-    set_error,
-    sel_rows,
-    set_sel_rows,
-    set_deleting,
-    set_editing,
-    new_random_token,
-    edit_new_token,
-    save,
-    load,
-    no_or_all_inactive,
-  };
-}
+import RegistrationTokenDialog from "./registration-token-dialog";
+import {
+  ephemeralSignupUrl,
+  formatEphemeralHours,
+  useRegistrationTokens,
+} from "./registration-token-hook";
+import { type Token } from "./types";
 
 export function RegistrationToken() {
   // TODO I'm sure this could be done in a smarter way ...
@@ -298,190 +56,36 @@ export function RegistrationToken() {
     data,
     form,
     error,
-    set_error,
+    setError,
     deleting,
-    delete_token,
-    delete_tokens,
-    editing,
-    set_editing,
+    deleteToken,
+    deleteTokens,
     saving,
-    sel_rows,
-    set_sel_rows,
-    last_saved,
-    new_random_token,
-    no_or_all_inactive,
-    edit_new_token,
+    selRows,
+    setSelRows,
+    lastSaved,
+    newRandomToken,
+    noOrAllInactive,
     save,
     load,
     loading,
-  } = use_registration_tokens();
-
-  function render_edit(): Rendered {
-    const layout = {
-      style: { margin: "20px 0" },
-      labelCol: { span: 2 },
-      wrapperCol: { span: 8 },
-    };
-
-    const tailLayout = {
-      wrapperCol: { offset: 2, span: 8 },
-    };
-
-    const onFinish = (values) => save(values);
-    const onRandom = () => form.setFieldsValue({ token: new_random_token() });
-    const limit_min = editing != null ? (editing.counter ?? 0) : 0;
-
-    return (
-      <Form
-        {...layout}
-        size={"middle"}
-        form={form}
-        name="add-account-token"
-        onFinish={onFinish}
-      >
-        <Form.Item name="token" label="Token" rules={[{ required: true }]}>
-          <Input disabled={true} />
-        </Form.Item>
-        <Form.Item
-          name="descr"
-          label="Description"
-          rules={[{ required: false }]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item name="expires" label="Expires" rules={[{ required: false }]}>
-          <DatePicker />
-        </Form.Item>
-        <Form.Item name="limit" label="Limit" rules={[{ required: false }]}>
-          <InputNumber min={limit_min} step={1} />
-        </Form.Item>
-        <Form.Item name="ephemeral" hidden>
-          <InputNumber />
-        </Form.Item>
-        <Form.Item label="Ephemeral lifetime">
-          <Form.Item
-            noStyle
-            shouldUpdate={(prev, curr) => prev.ephemeral !== curr.ephemeral}
-          >
-            {(formInstance) => {
-              const ephemeral = formInstance.getFieldValue("ephemeral");
-              const presetKey = findPresetKey(ephemeral);
-              const selection =
-                presetKey ??
-                (ephemeral != null ? CUSTOM_PRESET_KEY : undefined);
-              const customHours = msToHours(ephemeral);
-
-              const handleRadioChange = ({
-                target: { value },
-              }: RadioChangeEvent) => {
-                if (value === CUSTOM_PRESET_KEY) {
-                  if (ephemeral == null) {
-                    formInstance.setFieldsValue({ ephemeral: HOUR_MS });
-                  }
-                  return;
-                }
-                const preset = EPHEMERAL_PRESETS.find(
-                  (option) => option.key === value,
-                );
-                formInstance.setFieldsValue({
-                  ephemeral: preset?.value,
-                });
-              };
-
-              const handleCustomHoursChange = (
-                hours: number | string | null,
-              ) => {
-                const numeric =
-                  typeof hours === "string" ? parseFloat(hours) : hours;
-                if (typeof numeric === "number" && !isNaN(numeric)) {
-                  formInstance.setFieldsValue({
-                    ephemeral: numeric >= 0 ? numeric * HOUR_MS : undefined,
-                  });
-                } else {
-                  formInstance.setFieldsValue({ ephemeral: undefined });
-                }
-              };
-
-              return (
-                <>
-                  <Radio.Group value={selection} onChange={handleRadioChange}>
-                    {EPHEMERAL_PRESETS.map(({ key, label }) => (
-                      <Radio key={key} value={key}>
-                        {label}
-                      </Radio>
-                    ))}
-                    <Radio value={CUSTOM_PRESET_KEY}>Custom</Radio>
-                  </Radio.Group>
-                  {selection === CUSTOM_PRESET_KEY && (
-                    <div style={{ marginTop: "10px" }}>
-                      <InputNumber
-                        min={0}
-                        step={1}
-                        value={customHours ?? undefined}
-                        onChange={handleCustomHoursChange}
-                        placeholder="Enter hours"
-                      />{" "}
-                      hours
-                    </div>
-                  )}
-                </>
-              );
-            }}
-          </Form.Item>
-        </Form.Item>
-        <Form.Item label="Restrictions">
-          <Space direction="vertical">
-            <Form.Item
-              name={["customize", "disableCollaborators"]}
-              valuePropName="checked"
-              noStyle
-            >
-              <Checkbox>Disable configuring collaborators</Checkbox>
-            </Form.Item>
-            <Form.Item
-              name={["customize", "disableAI"]}
-              valuePropName="checked"
-              noStyle
-            >
-              <Checkbox>Disable artificial intelligence</Checkbox>
-            </Form.Item>
-          </Space>
-        </Form.Item>
-        <Form.Item name="active" label="Active" valuePropName="checked">
-          <Switch />
-        </Form.Item>
-        <Form.Item {...tailLayout}>
-          <AntdButton.Group>
-            <AntdButton type="primary" htmlType="submit">
-              Save
-            </AntdButton>
-            <AntdButton
-              htmlType="button"
-              onClick={() => {
-                form.resetFields();
-                edit_new_token();
-              }}
-            >
-              Reset
-            </AntdButton>
-            <AntdButton htmlType="button" onClick={() => set_editing(null)}>
-              <CancelText />
-            </AntdButton>
-            <AntdButton onClick={onRandom}>Randomize</AntdButton>
-          </AntdButton.Group>
-        </Form.Item>
-      </Form>
-    );
-  }
+    // Modal-related
+    modalVisible,
+    editingToken,
+    handleModalOpen,
+    handleModalCancel,
+    handleModalReset,
+    handleModalSave,
+  } = useRegistrationTokens();
 
   function render_buttons() {
-    const any_selected = sel_rows.length > 0;
+    const any_selected = selRows.length > 0;
     return (
       <AntdButton.Group style={{ margin: "10px 0" }}>
         <AntdButton
           type={!any_selected ? "primary" : "default"}
           disabled={any_selected}
-          onClick={() => edit_new_token()}
+          onClick={() => handleModalOpen()}
         >
           <Icon name="plus" />
           Add
@@ -489,12 +93,12 @@ export function RegistrationToken() {
 
         <AntdButton
           type={any_selected ? "primary" : "default"}
-          onClick={delete_tokens}
+          onClick={deleteTokens}
           disabled={!any_selected}
           loading={deleting}
         >
           <Icon name="trash" />
-          {any_selected ? `Delete ${sel_rows.length} token(s)` : "Delete"}
+          {any_selected ? `Delete ${selRows.length} token(s)` : "Delete"}
         </AntdButton>
 
         <AntdButton onClick={() => load()}>
@@ -503,6 +107,72 @@ export function RegistrationToken() {
         </AntdButton>
       </AntdButton.Group>
     );
+  }
+
+  function render_expanded_row(token: Token): Rendered {
+    const uses = token.counter ?? 0;
+    const limit = token.limit;
+    const pct =
+      limit == null
+        ? undefined
+        : limit === 0
+        ? 100
+        : round1((100 * uses) / limit);
+    const usageLabel =
+      pct == null
+        ? `${uses}/${limit ?? "∞"} (–%)`
+        : `${uses}/${limit} (${pct}%)`;
+    const lifetime =
+      token.ephemeral != null
+        ? seconds2hms(token.ephemeral / 1000, true)
+        : "No";
+    const ephemeralLink = ephemeralSignupUrl(token.token);
+
+    const items: DescriptionsProps["items"] = [
+      {
+        key: "descr",
+        label: "Description",
+        children: token.descr || "(no description)",
+        span: 2,
+      },
+      {
+        key: "usage",
+        label: "Usage",
+        children: usageLabel,
+      },
+      {
+        key: "ephemeral",
+        label: "Ephemeral link",
+        span: 2,
+        children: ephemeralLink ? (
+          <Copyable value={ephemeralLink} />
+        ) : (
+          "Not available"
+        ),
+      },
+      {
+        key: "lifetime",
+        label: "Lifetime",
+        children: lifetime,
+      },
+      {
+        key: "disableCollaborators",
+        label: "Restrict collaborators",
+        children: token.customize?.disableCollaborators ? "Yes" : "No",
+      },
+      {
+        key: "disableAI",
+        label: "Disable AI",
+        children: token.customize?.disableAI ? "Yes" : "No",
+      },
+      {
+        key: "disableInternet",
+        label: "Disable internet",
+        children: token.customize?.disableInternet ? "Yes" : "No",
+      },
+    ];
+
+    return <Descriptions items={items} column={3} size="small" />;
   }
 
   function render_view(): Rendered {
@@ -514,8 +184,8 @@ export function RegistrationToken() {
       "token",
     );
     const rowSelection = {
-      selectedRowKeys: sel_rows,
-      onChange: set_sel_rows,
+      selectedRowKeys: selRows,
+      onChange: setSelRows,
     };
     return (
       <>
@@ -532,91 +202,140 @@ export function RegistrationToken() {
             showSizeChanger: true,
           }}
           rowClassName={(row) =>
-            row.token === last_saved?.token
-              ? "cocalc-highlight-saved-token"
-              : ""
+            row.token === lastSaved?.token ? "cocalc-highlight-saved-token" : ""
           }
+          expandable={{
+            expandedRowRender: (record) => render_expanded_row(record),
+          }}
         >
           <Table.Column<Token>
             title="Token"
             dataIndex="token"
             defaultSortOrder={"ascend"}
             sorter={(a, b) => a.token.localeCompare(b.token)}
-          />
-          <Table.Column<Token>
-            title="Ephemeral link"
-            width={240}
-            render={(_, token) => {
-              if (!token?.ephemeral) return null;
-              const url = ephemeralSignupUrl(token.token);
-              if (!url) return null;
+            render={(token: string) => {
               return (
-                <Copyable
-                  value={url}
-                  inputWidth="14em"
-                  outerStyle={{ width: "100%" }}
-                />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <span title={token}>{trunc_middle(token, 7)}</span>
+                  <Tip title={`Click to copy token`}>
+                    <AntdButton
+                      type="text"
+                      size="small"
+                      icon={<CopyOutlined />}
+                      onClick={() => {
+                        navigator.clipboard.writeText(token);
+                      }}
+                    />
+                  </Tip>
+                </div>
               );
             }}
           />
-          <Table.Column<Token> title="Description" dataIndex="descr" />
           <Table.Column<Token>
-            title="Uses"
-            dataIndex="counter"
-            render={(text) => text ?? 0}
-          />
-          <Table.Column<Token>
-            title="Limit"
-            dataIndex="limit"
-            render={(text) => (text != null ? text : "∞")}
-          />
-          <Table.Column<Token>
-            title="Ephemeral (hours)"
-            dataIndex="ephemeral"
-            render={(value) => formatEphemeralHours(value)}
-          />
-          <Table.Column<Token>
-            title="Restrict collaborators"
-            render={(_, token) =>
-              token.customize?.disableCollaborators ? "Yes" : ""
+            title="Description"
+            dataIndex="descr"
+            render={(text) =>
+              text ? <span title={text}>{trunc(text, 30)}</span> : ""
             }
+            sorter={(a, b) => {
+              const aDescr = a.descr || "";
+              const bDescr = b.descr || "";
+              return aDescr.localeCompare(bDescr);
+            }}
           />
           <Table.Column<Token>
-            title="Disable AI"
-            render={(_, token) => (token.customize?.disableAI ? "Yes" : "")}
+            title="Ephemeral"
+            dataIndex="ephemeral"
+            render={(value, token) => {
+              if (value == null) return "-";
+              const url = ephemeralSignupUrl(token.token);
+              return (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <span>{formatEphemeralHours(value)}</span>
+                  {url && (
+                    <AntdButton
+                      type="text"
+                      size="small"
+                      icon={<Icon name="link" />}
+                      onClick={() => {
+                        navigator.clipboard.writeText(url);
+                      }}
+                      title={`${url} - Click to copy`}
+                    />
+                  )}
+                </div>
+              );
+            }}
           />
           <Table.Column<Token>
             title="% Used"
             dataIndex="used"
             render={(_text, token) => {
               const { limit, counter } = token;
-              if (limit != null) {
-                if (limit == 0) {
-                  return "100%";
-                } else {
-                  // codemirror -_-
-                  const c = counter ?? 0;
-                  const pct = (100 * c) / limit;
-                  return {
-                    props: {
-                      style: {
-                        backgroundColor:
-                          pct > 90 ? COLORS.ANTD_BG_RED_L : undefined,
-                      },
-                    },
-                    children: `${round1(pct)}%`,
-                  };
-                }
-              } else {
-                return "";
-              }
+              if (limit == null) return "";
+
+              const c = counter ?? 0;
+              const pct = limit === 0 ? 100 : (100 * c) / limit;
+              const status =
+                pct > 90 ? "exception" : pct > 75 ? "normal" : "success";
+
+              const tooltipContent = (
+                <div>
+                  <div>
+                    <strong>Uses:</strong> {c}
+                  </div>
+                  <div>
+                    <strong>Limit:</strong> {limit}
+                  </div>
+                  <div>
+                    <strong>Percentage:</strong> {round1(pct)}%
+                  </div>
+                </div>
+              );
+
+              return (
+                <Tip title={tooltipContent}>
+                  <Progress
+                    percent={round1(pct)}
+                    size="small"
+                    status={status}
+                    strokeColor={pct > 90 ? COLORS.ANTD_RED : undefined}
+                  />
+                </Tip>
+              );
             }}
           />
           <Table.Column<Token>
             title="Expires"
             dataIndex="expires"
             sortDirections={["ascend", "descend"]}
-            render={(v) => (v != null ? <TimeAgo date={v} /> : "never")}
+            render={(v) => {
+              const now = dayjs(webapp_client.server_time());
+              const expired = v != null && cmp_dayjs(v, now) < 0;
+              return {
+                props: {
+                  style: {
+                    background: expired ? COLORS.ANTD_BG_RED_L : undefined,
+                    padding: "0 4px",
+                  },
+                },
+                children: v != null ? <TimeAgo date={v} /> : "never",
+              };
+            }}
             sorter={(a, b) => cmp_dayjs(a.expires, b.expires, true)}
           />
 
@@ -624,17 +343,26 @@ export function RegistrationToken() {
             title="Active"
             dataIndex="disabled"
             render={(_text, token) => {
-              const click = () => save({ ...token, active: !token.active });
-              return (
-                <Checkbox checked={token.active} onChange={click}></Checkbox>
-              );
+              const onChange = async (checked: boolean) => {
+                try {
+                  await save({ ...token, active: checked });
+                } catch (err) {
+                  // Error already set by save(), just prevent unhandled rejection
+                }
+              };
+              return <Switch checked={token.active} onChange={onChange} />;
+            }}
+            sorter={(a, b) => {
+              const aActive = a.active ? 1 : 0;
+              const bActive = b.active ? 1 : 0;
+              return aActive - bActive;
             }}
           />
           <Table.Column<Token>
             title="Edit"
             dataIndex="edit"
             render={(_text, token) => (
-              <EditOutlined onClick={() => set_editing(token)} />
+              <EditOutlined onClick={() => handleModalOpen(token)} />
             )}
           />
           <Table.Column<Token>
@@ -643,7 +371,7 @@ export function RegistrationToken() {
             render={(_text, token) => (
               <Popconfirm
                 title="Sure to delete?"
-                onConfirm={() => delete_token(token.key, true)}
+                onConfirm={() => deleteToken(token.key, true)}
               >
                 <DeleteOutlined />
               </Popconfirm>
@@ -654,23 +382,15 @@ export function RegistrationToken() {
     );
   }
 
-  function render_control(): Rendered {
-    if (editing != null) {
-      return render_edit();
-    } else {
-      return render_view();
-    }
-  }
-
   function render_error(): Rendered {
     if (error) {
-      return <ErrorDisplay error={error} onClose={() => set_error("")} />;
+      return <ErrorDisplay error={error} onClose={() => setError("")} />;
     }
   }
 
   // this tells an admin that users can sign in freely if there are no tokens or no active tokens
   function render_no_active_token_warning(): Rendered {
-    if (no_or_all_inactive) {
+    if (noOrAllInactive) {
       return (
         <Alert bsStyle="warning">
           No tokens, or there are no active tokens. This means anybody can use
@@ -713,6 +433,22 @@ export function RegistrationToken() {
       .some((s) => s.get("public"));
   }
 
+  function render_dialog() {
+    return (
+      <RegistrationTokenDialog
+        open={modalVisible}
+        isEdit={editingToken != null}
+        editingToken={editingToken}
+        onCancel={handleModalCancel}
+        onSave={handleModalSave}
+        onReset={handleModalReset}
+        form={form}
+        newRandomToken={newRandomToken}
+        saving={saving}
+      />
+    );
+  }
+
   const account_store: any = redux.getStore("account");
   if (account_store == null) {
     return <div>Account store not defined -- try again...</div>;
@@ -730,7 +466,8 @@ export function RegistrationToken() {
       <div>
         {render_no_active_token_warning()}
         {render_error()}
-        {render_control()}
+        {render_view()}
+        {render_dialog()}
         {render_info()}
       </div>
     );
