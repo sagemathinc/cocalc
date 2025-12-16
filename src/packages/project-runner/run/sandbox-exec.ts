@@ -103,7 +103,7 @@ export async function sandboxExec({
       "exec",
       "-i",
       "--workdir",
-      cwd ?? "/",
+      cwd ?? HOME,
       `project-${project_id}`,
       "/bin/bash",
       "-lc",
