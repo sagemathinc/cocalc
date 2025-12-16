@@ -212,18 +212,12 @@ export function CodexConfigButton({
 
   const contextWindow =
     usageSummary?.contextWindow ?? getModelContextWindow(selectedModelValue);
-  const usedTokens =
-    usageSummary?.usedTokens ??
-    (usageSummary?.totalTokens != null ? usageSummary.totalTokens : 0);
-  const cappedUsedTokens =
-    contextWindow != null ? Math.min(usedTokens, contextWindow) : usedTokens;
+  const inputTokens = usageSummary?.latest?.input_tokens;
   const remainingPercent =
-    usageSummary != null && contextWindow != null
+    contextWindow != null && inputTokens != null
       ? Math.max(
           0,
-          Math.round(
-            ((contextWindow - cappedUsedTokens) / contextWindow) * 100,
-          ),
+          Math.round(((contextWindow - inputTokens) / contextWindow) * 100),
         )
       : null;
 
