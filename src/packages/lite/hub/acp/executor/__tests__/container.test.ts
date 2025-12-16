@@ -53,6 +53,7 @@ describe("ContainerExecutor", () => {
     setContainerFileIO({
       readFile: reader,
       writeFile: writer,
+      mountPoint: (projectId: string) => `/projects/${projectId}`,
     });
     const exec = new ContainerExecutor({
       projectId,

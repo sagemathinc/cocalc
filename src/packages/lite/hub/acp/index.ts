@@ -629,7 +629,7 @@ function buildExecutorAdapters(
   };
 
   const terminalAdapter: TerminalAdapter = {
-    toString: () => `TerminalAdpater(${executor})`,
+    toString: () => `TerminalAdapter(${executor})`,
     async start(options: TerminalStartOptions, onOutput) {
       const { command, args, cwd, env, limit } = options;
       const joined =

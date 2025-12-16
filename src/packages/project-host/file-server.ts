@@ -105,15 +105,19 @@ function getFileSync() {
   return fs.fileSync;
 }
 
+function projectMountpoint(project_id: string): string {
+  return join(getMountPoint(), `project-${project_id}`);
+}
+
 // Map a container path (relative to /root) to an absolute host path inside the
 // project's btrfs subvolume. Throws if the path escapes the project root.
 // Returns both the resolved path and the project base for additional checks.
-async function projectHostPath(
+function projectHostPath(
   project_id: string,
   containerPath: string,
-): Promise<{ hostPath: string; base: string }> {
-  const vol = await getVolume(project_id);
-  const base = vol.path; // absolute host path to project root
+): { hostPath: string; base: string } {
+  // absolute host path to project root
+  const base = projectMountpoint(project_id);
   const rel = path.posix.isAbsolute(containerPath)
     ? path.posix.relative("/root", containerPath)
     : containerPath;
@@ -468,8 +472,9 @@ export async function initFileServer({
   // project-host. Paths are expected to be relative to /root inside the
   // project container.
   setContainerFileIO({
+    mountPoint: projectMountpoint,
     readFile: async (project_id: string, p: string) => {
-      const { hostPath, base } = await projectHostPath(project_id, p);
+      const { hostPath, base } = projectHostPath(project_id, p);
       const fd = await nodeOpen(
         hostPath,
         fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW,
@@ -490,7 +495,7 @@ export async function initFileServer({
       }
     },
     writeFile: async (project_id: string, p: string, content: string) => {
-      const { hostPath, base } = await projectHostPath(project_id, p);
+      const { hostPath, base } = projectHostPath(project_id, p);
       const fd = await nodeOpen(
         hostPath,
         fsConstants.O_CREAT |

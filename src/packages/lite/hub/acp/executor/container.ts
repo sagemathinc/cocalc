@@ -37,6 +37,7 @@ type ContainerFileIO = {
     path: string,
     content: string,
   ) => Promise<void>;
+  mountPoint: (projectId: string) => string;
 };
 
 let containerFileIO: ContainerFileIO | null = null;
@@ -67,7 +68,15 @@ export class ContainerExecutor {
   }
 
   toString = () =>
-    `ContainerExecutor(base=${this.base}, project=${this.options.projectId})`;
+    `ContainerExecutor(base='${this.base}', project='${this.options.projectId}', mount='${this.getMountPoint()}')`;
+
+  // where the project is mounted on the host filesystem
+  getMountPoint = (): string => {
+    if (!containerFileIO) {
+      throw Error("containerFileIO must be defined");
+    }
+    return containerFileIO.mountPoint(this.options.projectId);
+  };
 
   // Read a project file relative to the project root/workspaceRoot.
   async readTextFile(relativePath: string): Promise<string> {
