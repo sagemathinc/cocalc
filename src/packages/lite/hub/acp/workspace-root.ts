@@ -16,24 +16,23 @@ export function preferContainerExecutor(): boolean {
 
 export function resolveWorkspaceRoot(
   config: CodexSessionConfig | undefined,
-  projectId?: string,
 ): string {
   const requested = config?.workingDirectory;
-  if (projectId && preferContainerExecutor()) {
+  if (preferContainerExecutor()) {
     // Container path: always anchor to /root inside the project. Ignore
     // absolute paths outside /root to avoid leaking host paths from the
     // caller; treat them as relative segments under /root instead.
     const base = `/root`;
     if (!requested) return base;
-    if (path.posix.isAbsolute(requested)) {
-      if (requested.startsWith(base)) {
-        return path.posix.normalize(requested);
-      }
-      // Strip leading slash and treat as relative to /root.
-      const rel = requested.replace(/^\//, "");
-      return path.posix.normalize(path.posix.join(base, rel));
+    // Normalize and strip any leading slashes; also drop leading ../ segments.
+    const withoutLeadingSlash = requested.replace(/^\/+/, "");
+    const noParentSegments = withoutLeadingSlash.replace(/^(\.\.\/)+/, "");
+    if (!noParentSegments) return base;
+    // If the caller passed an absolute path under /root, respect it as-is.
+    if (requested.startsWith(base)) {
+      return path.posix.normalize(requested);
     }
-    return path.posix.normalize(path.posix.join(base, requested));
+    return path.posix.normalize(path.posix.join(base, noParentSegments));
   }
   // Lite/local mode: respect absolute working dir, otherwise resolve from cwd.
   if (!requested) return process.cwd();

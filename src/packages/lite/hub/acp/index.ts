@@ -753,8 +753,11 @@ export async function evaluate({
   if (!projectId) {
     throw Error("project_id must be set");
   }
-  const workspaceRoot = resolveWorkspaceRoot(config, projectId);
-  const effectiveConfig = { ...(config ?? {}), workingDirectory: workspaceRoot };
+  const workspaceRoot = resolveWorkspaceRoot(config);
+  const effectiveConfig = {
+    ...(config ?? {}),
+    workingDirectory: workspaceRoot,
+  };
   const useContainer = preferContainerExecutor();
   // Container mode must always proxy terminals (useNativeTerminal=false) so ACP
   // routes commands through our adapter into the project container. In local

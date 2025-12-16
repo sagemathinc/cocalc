@@ -13,23 +13,19 @@ describe("resolveWorkspaceRoot", () => {
     });
 
     it("builds container workspace with project id and relative dir", () => {
-      const root = resolveWorkspaceRoot(
-        { workingDirectory: "sub" } as any,
-        "proj-123",
-      );
+      const root = resolveWorkspaceRoot({ workingDirectory: "sub" } as any);
       expect(root).toBe("/root/sub");
     });
 
     it("respects absolute container working dir", () => {
-      const root = resolveWorkspaceRoot(
-        { workingDirectory: "/root/custom" } as any,
-        "proj-123",
-      );
+      const root = resolveWorkspaceRoot({
+        workingDirectory: "/root/custom",
+      } as any);
       expect(root).toBe("/root/custom");
     });
 
     it("falls back to project root when unset", () => {
-      const root = resolveWorkspaceRoot(undefined, "proj-123");
+      const root = resolveWorkspaceRoot(undefined);
       expect(root).toBe("/root");
     });
   });
@@ -45,7 +41,7 @@ describe("resolveWorkspaceRoot", () => {
     });
 
     it("returns cwd when nothing specified", () => {
-      const root = resolveWorkspaceRoot(undefined, undefined);
+      const root = resolveWorkspaceRoot(undefined);
       expect(root).toBe(process.cwd());
     });
   });
