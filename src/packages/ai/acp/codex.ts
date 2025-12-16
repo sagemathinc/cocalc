@@ -137,10 +137,13 @@ export class CodexAcpAgent implements AcpAgent {
     }
 
     const HOME = process.env.COCALC_ORIGINAL_HOME ?? process.env.HOME;
+    // Do not set cwd here: agents may serve multiple sessions with different
+    // working directories, and container-mode paths (e.g. "/root") are invalid
+    // on the host running codex-acp. Let the process inherit the host cwd; the
+    // session-specific working directory is handled per request.
     const child = spawn(binary, args, {
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env, HOME, ...options.env },
-      cwd: workspaceRoot,
     });
 
     await new Promise<void>((resolve, reject) => {

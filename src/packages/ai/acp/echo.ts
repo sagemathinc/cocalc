@@ -5,6 +5,7 @@ import type { AcpAgent, AcpEvaluateRequest } from "./types";
  * It emits a short thinking event and a summary containing the user's prompt.
  */
 export class EchoAgent implements AcpAgent {
+  constructor(private readonly message?: string) {}
   async evaluate({ prompt, stream }: AcpEvaluateRequest): Promise<void> {
     await stream({
       type: "event",
@@ -28,7 +29,7 @@ export class EchoAgent implements AcpAgent {
 
     await stream({
       type: "summary",
-      finalResponse: `ACP Echo: ${prompt}`,
+      finalResponse: this.message ?? `ACP Echo: ${prompt}`,
       usage: {
         input_tokens: prompt.length,
         output_tokens: prompt.length + 10,

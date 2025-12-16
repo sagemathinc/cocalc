@@ -20,13 +20,20 @@ export function resolveWorkspaceRoot(
 ): string {
   const requested = config?.workingDirectory;
   if (projectId && preferContainerExecutor()) {
-    // Container path: project HOME plus optional relative working dir.
-    // (project containers run as root; adjust if that ever changes)
+    // Container path: always anchor to /root inside the project. Ignore
+    // absolute paths outside /root to avoid leaking host paths from the
+    // caller; treat them as relative segments under /root instead.
     const base = `/root`;
     if (!requested) return base;
-    return path.posix.isAbsolute(requested)
-      ? requested
-      : path.posix.normalize(path.posix.join(base, requested));
+    if (path.posix.isAbsolute(requested)) {
+      if (requested.startsWith(base)) {
+        return path.posix.normalize(requested);
+      }
+      // Strip leading slash and treat as relative to /root.
+      const rel = requested.replace(/^\//, "");
+      return path.posix.normalize(path.posix.join(base, rel));
+    }
+    return path.posix.normalize(path.posix.join(base, requested));
   }
   // Lite/local mode: respect absolute working dir, otherwise resolve from cwd.
   if (!requested) return process.cwd();

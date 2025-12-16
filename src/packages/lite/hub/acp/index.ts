@@ -721,12 +721,16 @@ async function ensureAgent(
     });
     logger.info("codex-acp agent ready", { key });
     agents.set(key, created);
+    return created;
   } catch (err) {
-    logger.error("failed to start codex-acp, falling back to echo agent", err);
-    const fallback = new EchoAgent();
-    agents.set(key, fallback);
+    // Fail loudly: use an echo agent that emits an explicit error to the user.
+    logger.error("failed to start codex-acp agent; using echo agent", err);
+    const echo = new EchoAgent(
+      `ERROR: codex-acp failed to start (${(err as Error)?.message ?? "unknown error"})`,
+    );
+    agents.set(key, echo);
+    return echo;
   }
-  return agents.get(key)!;
 }
 
 export async function evaluate({
@@ -752,8 +756,9 @@ export async function evaluate({
   const workspaceRoot = resolveWorkspaceRoot(config, projectId);
   const effectiveConfig = { ...(config ?? {}), workingDirectory: workspaceRoot };
   const useContainer = preferContainerExecutor();
-  // When using the container executor, force proxied terminals so commands run
-  // inside the project container via our handler, not locally on the agent host.
+  // Container mode must always proxy terminals (useNativeTerminal=false) so ACP
+  // routes commands through our adapter into the project container. In local
+  // mode, respect "auto" behavior.
   const useNativeTerminal = useContainer ? false : sessionMode === "auto";
   logger.debug("evaluate: mode selection", {
     useContainer,
