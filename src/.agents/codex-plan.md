@@ -4,7 +4,13 @@
 
 To not forget:
 
-- [ ] interrrupt frequently doesn't work
+- [ ] our whole approach may be doomed: "Creating minimal Julia notebook
+I'm creating a minimal .ipynb file named demo.ipynb with basic cells and Julia kernel metadata, using JSON content written via cat >. and then it does this: "~/scratch/btrfs2/mnt/0/project-7f8daff5-720d-40e1-8689-1d2572a42811 $ cat <<'EOF' > /home/wstein/scratch/btrfs2/mnt/0/project-7f8daff5-720d-40e1-8689-1d2572a42811/julia_demo.ipynb ..."
+
+    - note the path; maybe this is just a doomed idea and we should give up.
+
+
+- [ ] interrrupt  doesn't work: with this error in frontend console.log "failed to interrupt codex turn ConatError: request -- no subscribers matching 'acp.account-d0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb.interrupt'"
 - [ ] submitting a new turn while one is running return sthis error "{seq: 0, error: 'Error: ACP agent is already processing a request', type: 'error'}"
 - [ ] turns on not queued up properly; basically make 2-3 requests and all but the first stays stuck forever.
 - [ ] often when making a new codex session, no id gets assigned at all, which breaks everything.

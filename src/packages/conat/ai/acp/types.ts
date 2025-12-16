@@ -19,6 +19,7 @@ export type AcpRequest = {
 };
 
 export type AcpApprovalDecisionRequest = {
+  project_id: string;
   account_id: string;
   approvalId: string;
   optionId?: string;
@@ -26,6 +27,7 @@ export type AcpApprovalDecisionRequest = {
 };
 
 export type AcpInterruptRequest = {
+  project_id: string;
   account_id: string;
   threadId?: string;
   chat?: AcpChatContext;

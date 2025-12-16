@@ -21,11 +21,11 @@ function buildSubjectPrefix({
   account_id?: string;
   project_id?: string;
 }): string {
-  if (account_id) {
-    return `${SUBJECT}.account-${account_id}`;
-  }
   if (project_id) {
     return `${SUBJECT}.project-${project_id}`;
+  }
+  if (account_id) {
+    return `${SUBJECT}.account-${account_id}`;
   }
   return `${SUBJECT}.hub`;
 }
@@ -48,6 +48,10 @@ export function acpInterruptSubject(opts: {
   account_id?: string;
   project_id?: string;
 }): string {
+  console.log("acpInterruptSubject", {
+    opts,
+    subject: buildSubjectPrefix(opts),
+  });
   return `${buildSubjectPrefix(opts)}.interrupt`;
 }
 
@@ -83,12 +87,13 @@ function getProjectId(subject: string): string | undefined {
 let apiSub: Subscription | null = null;
 let approvalSub: Subscription | null = null;
 let interruptSub: Subscription | null = null;
-const MAX_CONCURRENCY = Number(
-  process.env.COCALC_ACP_MAX_CONCURRENCY ?? 64,
-);
+const MAX_CONCURRENCY = Number(process.env.COCALC_ACP_MAX_CONCURRENCY ?? 64);
 const limiter = pLimit(MAX_CONCURRENCY);
 
-async function runLimited(label: string, fn: () => Promise<void>): Promise<void> {
+async function runLimited(
+  label: string,
+  fn: () => Promise<void>,
+): Promise<void> {
   void limiter(async () => {
     try {
       await fn();

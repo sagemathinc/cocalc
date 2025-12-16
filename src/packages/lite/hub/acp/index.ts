@@ -413,7 +413,11 @@ export class ChatStreamWriter {
       content: this.content,
       events: this.events.length,
     });
-    if (this.closed) return;
+    if (this.closed || this.syncdbError) return;
+    if (!this.syncdb) {
+      logger.warn("chat stream writer commit skipped: syncdb not ready");
+      return;
+    }
     const hasContent = !!this.content && this.events.length > 0;
 
     if (!hasContent) {
