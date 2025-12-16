@@ -48,6 +48,10 @@ export function setContainerFileIO(io: ContainerFileIO | null): void {
   containerFileIO = io;
 }
 
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export class ContainerExecutor {
   private readonly api: ProjectApi;
   private readonly base: string;
@@ -117,7 +121,7 @@ export class ContainerExecutor {
     const shellMatch = cmd.match(
       /^\s*(?:\/(?:usr\/)?bin\/)?(?:ba?sh|sh)\s+-l?c\s+([\s\S]+)/,
     );
-    const script = shellMatch ? shellMatch[1] : cmd;
+    const script = this.rewriteHostPaths(shellMatch ? shellMatch[1] : cmd);
 
     // The host environment is not meaningful inside the container; skip passing
     // through env vars to avoid leaking/overwriting the project's container env.
@@ -165,6 +169,49 @@ export class ContainerExecutor {
       );
     }
     return combined;
+  }
+
+  // Rewrite host filesystem paths in shell text to the container view.
+  //
+  // Why this exists:
+  // - Codex/ACP runs in the host and sometimes embeds absolute host paths
+  //   (e.g., /home/.../project-<id>/file.txt) inside ad-hoc shell commands that
+  //   are later executed inside the project container, where the workspace is
+  //   mounted at /root (or similar).
+  // - We can’t reliably parse arbitrary shell snippets, but the project mount
+  //   prefix is unique, so a straightforward string substitution keeps most
+  //   commands working without overhauling Codex/ACP to pass structured paths.
+  // - This is a pragmatic hack: if the text contains no host prefix, it’s left
+  //   unchanged. For a fully robust solution, Codex/ACP would need to avoid
+  //   embedding host paths in free-form shell text.
+  private rewriteHostPaths(text: string): string {
+    if (!containerFileIO) return text;
+    try {
+      const host = this.getMountPoint();
+      const containerBase = this.base.endsWith("/")
+        ? this.base.slice(0, -1)
+        : this.base;
+      const hostWithSlash = host.endsWith("/") ? host : `${host}/`;
+      const reWithSlash = new RegExp(escapeRegExp(hostWithSlash), "g");
+      const reNoSlash = new RegExp(
+        escapeRegExp(host.endsWith("/") ? host.slice(0, -1) : host),
+        "g",
+      );
+      let out = text.replace(reWithSlash, `${containerBase}/`);
+      out = out.replace(reNoSlash, containerBase);
+      if (out !== text) {
+        logger.debug("rewrite host paths in command", {
+          before: text,
+          after: out,
+        });
+      }
+      return out;
+    } catch (err) {
+      logger.debug("rewrite host paths failed; using original command", {
+        error: `${err}`,
+      });
+      return text;
+    }
   }
 
   private async podmanExec(

@@ -176,4 +176,33 @@ describe("ContainerExecutor", () => {
     );
     await executor.exec("/bin/bash -lc apt-get update");
   });
+
+  it("rewrites host paths inside shell script", async () => {
+    const { api } = makeMockApi();
+    setContainerFileIO({
+      readFile: jest.fn(),
+      writeFile: jest.fn(),
+      mountPoint: () => "/host/projects/test",
+    });
+    const executor = new ContainerExecutor({
+      projectId,
+      workspaceRoot: "/root",
+      projectApi: api as any,
+    });
+    (execFile as unknown as jest.Mock).mockImplementation(
+      (
+        _cmd: string,
+        args: string[],
+        _opts: Record<string, unknown>,
+        cb: (...args: any[]) => void,
+      ) => {
+        const script = args[args.length - 1];
+        expect(script).toContain("/root/data.txt");
+        expect(script).not.toContain("/host/projects/test");
+        cb(null, "", "");
+        return null as any;
+      },
+    );
+    await executor.exec("/bin/bash -lc 'cat /host/projects/test/data.txt'");
+  });
 });
