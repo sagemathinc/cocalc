@@ -628,9 +628,11 @@ function buildExecutorAdapters(
       const rel = toRelative(p);
       await executor.writeTextFile(rel, content);
     },
+    toString: () => `FileAdapter(${executor})`,
   };
 
   const terminalAdapter: TerminalAdapter = {
+    toString: () => `TerminalAdpater(${executor})`,
     async start(options: TerminalStartOptions, onOutput) {
       const { command, args, cwd, env, limit } = options;
       const joined =
@@ -669,6 +671,7 @@ function buildExecutorAdapters(
     fileAdapter,
     terminalAdapter,
     pathResolver: {
+      toString: () => `pathResolver(workspaceRoot='${workspaceRoot}')`,
       resolve(filePath: string) {
         const absolute = path.isAbsolute(filePath)
           ? filePath

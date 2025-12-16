@@ -66,6 +66,8 @@ export class ContainerExecutor {
     this.base = normalized.endsWith("/") ? normalized : `${normalized}/`;
   }
 
+  toString = () => `ContainerExecutor(base=${this.base})`;
+
   // Read a project file relative to the project root/workspaceRoot.
   async readTextFile(relativePath: string): Promise<string> {
     const target = this.resolvePath(relativePath);

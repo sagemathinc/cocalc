@@ -15,6 +15,8 @@ const exec = promisify(cpExec);
 export class LocalExecutor implements AcpExecutor {
   constructor(private readonly workspaceRoot: string) {}
 
+  toString = () => `LocalExecutor(workspaceRoot=${this.workspaceRoot})`;
+
   private resolvePath(relativePath: string): string {
     const base = path.resolve(this.workspaceRoot || process.cwd());
     const target = path.resolve(base, relativePath);

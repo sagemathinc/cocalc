@@ -9,6 +9,7 @@ without changing the handler logic.
 import type { TerminalExitStatus } from "@agentclientprotocol/sdk/dist/schema";
 
 export type FileAdapter = {
+  toString: () => string;
   // Read the full UTF-8 text contents of an absolute path.
   readTextFile(path: string): Promise<string>;
   // Write UTF-8 text to an absolute path, replacing any existing contents.
@@ -38,6 +39,7 @@ export type TerminalHandle = {
 };
 
 export type TerminalAdapter = {
+  toString: () => string;
   // Start a command. onOutput is invoked for streamed stdout/stderr chunks.
   start(
     options: TerminalStartOptions,
@@ -55,5 +57,6 @@ export type PathResolution = {
 };
 
 export type PathResolver = {
+  toString: () => string;
   resolve(filePath: string): PathResolution;
 };

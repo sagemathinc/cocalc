@@ -59,7 +59,7 @@ import type {
   PathResolution,
 } from "./adapters";
 
-const log = getLogger("ai:acp:codex-handler");
+const logger = getLogger("ai:acp:codex-handler");
 const MAX_TERMINAL_STREAM_CHARS = 4000;
 const APPROVAL_TIMEOUT_MS = 1000 * 60 * 60 * 8; // 8 hours
 
@@ -133,6 +133,12 @@ export class CodexClientHandler implements TerminalClient {
     this.fileAdapter = options.fileAdapter;
     this.terminalAdapter = options.terminalAdapter;
     this.pathResolver = options.pathResolver;
+    logger.debug("CodexClientHandler", {
+      workspaceRoot: this.workspaceRoot,
+      fileAdapter: this.fileAdapter.toString(),
+      terminalAdapter: this.terminalAdapter.toString(),
+      pathResolver: this.pathResolver?.toString(),
+    });
   }
 
   setStream(stream?: AcpStreamHandler) {
@@ -168,7 +174,7 @@ export class CodexClientHandler implements TerminalClient {
       };
     }
     if (!this.stream) {
-      log.warn("requestPermission without active stream, auto-cancelling", {
+      logger.warn("requestPermission without active stream, auto-cancelling", {
         toolCallId: params.toolCall.toolCallId,
       });
       return {
@@ -182,7 +188,7 @@ export class CodexClientHandler implements TerminalClient {
     try {
       await this.emitApprovalEvent(event);
     } catch (err) {
-      log.warn("failed to emit approval request, auto-cancelling", err);
+      logger.warn("failed to emit approval request, auto-cancelling", err);
       return {
         outcome: {
           outcome: "cancelled",
@@ -226,7 +232,7 @@ export class CodexClientHandler implements TerminalClient {
   }
 
   async sessionUpdate(params: SessionNotification): Promise<void> {
-    //     log.debug("acp.sessionUpdate", {
+    //     logger.debug("acp.sessionUpdate", {
     //       sessionId: params.sessionId,
     //       update: params.update.sessionUpdate,
     //     });
@@ -282,7 +288,7 @@ export class CodexClientHandler implements TerminalClient {
   }
 
   private async handleToolCall(update: any): Promise<void> {
-    log.debug("acp.tool_call", {
+    logger.debug("acp.tool_call", {
       meta: getMeta(update),
       rawInput: update.rawInput,
     });
@@ -318,7 +324,7 @@ export class CodexClientHandler implements TerminalClient {
     // solely inside `rawInput`/`rawOutput`.  Rather than patch Codex itself again, we
     // synthesize terminal events here by tracking the command/aggregated output and emitting
     // “start / data / exit” updates whenever the ACP metadata is missing.
-    log.debug("acp.tool_call_update", {
+    logger.debug("acp.tool_call_update", {
       meta: getMeta(update),
       rawOutput: update.rawOutput,
     });
@@ -573,7 +579,7 @@ export class CodexClientHandler implements TerminalClient {
     line,
   }: ReadTextFileRequest): Promise<ReadTextFileResponse> {
     const { absolute } = this.resolvePath(targetPath);
-    log.debug("acp.read_text_file", {
+    logger.debug("acp.read_text_file", {
       path: absolute,
       line,
       limit,
@@ -584,7 +590,7 @@ export class CodexClientHandler implements TerminalClient {
       line != null || limit != null
         ? sliceByLines(data, line ?? undefined, limit ?? undefined)
         : data;
-    log.debug("acp.read_text_file.ok", {
+    logger.debug("acp.read_text_file.ok", {
       path: absolute,
       bytes: content.length,
     });
@@ -606,7 +612,7 @@ export class CodexClientHandler implements TerminalClient {
   }: WriteTextFileRequest): Promise<WriteTextFileResponse> {
     const { absolute } = this.resolvePath(targetPath);
     const previous = this.fileSnapshots.get(absolute);
-    log.debug("acp.write_text_file", {
+    logger.debug("acp.write_text_file", {
       path: absolute,
       bytes: content.length,
     });
@@ -737,7 +743,7 @@ export class CodexClientHandler implements TerminalClient {
   }: CreateTerminalRequest): Promise<CreateTerminalResponse> {
     const terminalId = randomUUID();
     const proxied = this.commandHandlers?.size && !this.captureToolCalls;
-    log.debug("acp.create_terminal", {
+    logger.debug("acp.create_terminal", {
       command,
       args,
       cwd,
@@ -1067,7 +1073,7 @@ export class CodexClientHandler implements TerminalClient {
     };
 
     run().catch((err) => {
-      log.error("custom command failed", err);
+      logger.error("custom command failed", err);
       emitChunk(`${err}\n`);
       complete({ exitCode: 1, signal: undefined });
     });
@@ -1076,7 +1082,7 @@ export class CodexClientHandler implements TerminalClient {
   async terminalOutput({
     terminalId,
   }: TerminalOutputRequest): Promise<TerminalOutputResponse> {
-    log.debug("acp.terminal_output", { terminalId });
+    logger.debug("acp.terminal_output", { terminalId });
     const state = this.terminals.get(terminalId);
     if (state == null) {
       throw new Error(`Unknown terminal ${terminalId}`);
@@ -1103,7 +1109,7 @@ export class CodexClientHandler implements TerminalClient {
   async waitForTerminalExit({
     terminalId,
   }: WaitForTerminalExitRequest): Promise<WaitForTerminalExitResponse> {
-    log.debug("acp.wait_for_terminal_exit", { terminalId });
+    logger.debug("acp.wait_for_terminal_exit", { terminalId });
     const state = this.terminals.get(terminalId);
     if (state == null) {
       throw new Error(`Unknown terminal ${terminalId}`);
@@ -1136,7 +1142,7 @@ export class CodexClientHandler implements TerminalClient {
   async killTerminal({
     terminalId,
   }: KillTerminalCommandRequest): Promise<KillTerminalResponse> {
-    log.debug("acp.kill_terminal", { terminalId });
+    logger.debug("acp.kill_terminal", { terminalId });
     const state = this.terminals.get(terminalId);
     if (state == null) {
       throw new Error(`Unknown terminal ${terminalId}`);
@@ -1152,7 +1158,7 @@ export class CodexClientHandler implements TerminalClient {
   async releaseTerminal({
     terminalId,
   }: ReleaseTerminalRequest): Promise<ReleaseTerminalResponse> {
-    log.debug("acp.release_terminal", { terminalId });
+    logger.debug("acp.release_terminal", { terminalId });
     const state = this.terminals.get(terminalId);
     if (state == null) {
       return {};
@@ -1182,7 +1188,7 @@ export class CodexClientHandler implements TerminalClient {
         try {
           state.stop?.();
         } catch (err) {
-          log.warn("failed to stop terminal during interrupt", {
+          logger.warn("failed to stop terminal during interrupt", {
             terminalId,
             err,
           });
