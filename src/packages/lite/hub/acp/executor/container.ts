@@ -42,10 +42,21 @@ type ContainerFileIO = {
 };
 
 let containerFileIO: ContainerFileIO | null = null;
+type ContainerExec = (opts: {
+  projectId: string;
+  script: string;
+  cwd: string;
+  timeoutMs?: number;
+}) => Promise<{ stdout: string; stderr: string; code: number | null; signal?: string }>;
+let containerExec: ContainerExec | null = null;
 const logger = getLogger("lite:hub:acp:container-exec");
 
 export function setContainerFileIO(io: ContainerFileIO | null): void {
   containerFileIO = io;
+}
+
+export function setContainerExec(fn: ContainerExec | null): void {
+  containerExec = fn;
 }
 
 function escapeRegExp(str: string): string {
@@ -140,10 +151,15 @@ export class ContainerExecutor {
     ];
 
     logger.debug("podman ", argsJoin(args));
-    const { stdout, stderr, code, signal } = await this.podmanExec(
-      args,
-      opts?.timeoutMs,
-    );
+    const runner = containerExec;
+    const { stdout, stderr, code, signal } = runner
+      ? await runner({
+          projectId: this.options.projectId,
+          script,
+          cwd,
+          timeoutMs: opts?.timeoutMs,
+        })
+      : await this.podmanExec(args, opts?.timeoutMs);
     logger.debug("podman exec result", { code, signal, stdout, stderr });
     return { stdout, stderr, exitCode: code, signal };
   }

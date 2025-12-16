@@ -5,21 +5,30 @@
 To not forget:
 
 - [ ] our whole approach may be doomed: "Creating minimal Julia notebook
-I'm creating a minimal .ipynb file named demo.ipynb with basic cells and Julia kernel metadata, using JSON content written via cat >. and then it does this: "~/scratch/btrfs2/mnt/0/project-7f8daff5-720d-40e1-8689-1d2572a42811 $ cat <<'EOF' > /home/wstein/scratch/btrfs2/mnt/0/project-7f8daff5-720d-40e1-8689-1d2572a42811/julia_demo.ipynb ..."
+  I'm creating a minimal .ipynb file named demo.ipynb with basic cells and Julia kernel metadata, using JSON content written via cat &gt;. and then it does this: "~/scratch/btrfs2/mnt/0/project\-7f8daff5\-720d\-40e1\-8689\-1d2572a42811 \$ cat &lt;&lt;'EOF' &gt; /home/wstein/scratch/btrfs2/mnt/0/project\-7f8daff5\-720d\-40e1\-8689\-1d2572a42811/julia\_demo.ipynb ..."
+  - note the path; maybe this is just a doomed idea and we should give up.
 
-    - note the path; maybe this is just a doomed idea and we should give up.
+  - we did a bunch, but path rewriting for user display is still pretty broken: ![](http://localhost:7000/blobs/paste-0.10530121993630592?uuid=8235dc88-1a6e-44fc-be12-78a784e1931c)
 
+- [ ] interrrupt  doesn't work: with this error in frontend console.log "failed to interrupt codex turn ConatError: request \-\- no subscribers matching 'acp.account\-d0bdabfd\-850e\-4c8d\-8510\-f6f1ecb9a5eb.interrupt'"
 
-- [ ] interrrupt  doesn't work: with this error in frontend console.log "failed to interrupt codex turn ConatError: request -- no subscribers matching 'acp.account-d0bdabfd-850e-4c8d-8510-f6f1ecb9a5eb.interrupt'"
 - [ ] submitting a new turn while one is running return sthis error "{seq: 0, error: 'Error: ACP agent is already processing a request', type: 'error'}"
-- [ ] turns on not queued up properly; basically make 2-3 requests and all but the first stays stuck forever.
+
+- [ ] turns on not queued up properly; basically make 2\-3 requests and all but the first stays stuck forever.
+
 - [ ] often when making a new codex session, no id gets assigned at all, which breaks everything.
-- [ ] make sure approvals in lite mode still work (see conat/ai/acp/server.ts discussion about account_id)
+
+- [ ] make sure approvals in lite mode still work \(see conat/ai/acp/server.ts discussion about account\_id\)
+
 - [ ] remove sandbox option in container mode
-- [ ] make readonly mode be implemented using full access, but where we do the sandboxing in project-host, obviously... and have to make it clear how it differs.
-- [ ] make the highly insecure "cocalc-plus" mode require explicitly setting it everywhere, instead of it being the default.  I worry about a project-host coming up half broken, and leaving open a vulnerability.
+
+- [ ] make readonly mode be implemented using full access, but where we do the sandboxing in project\-host, obviously... and have to make it clear how it differs.
+
+- [ ] make the highly insecure "cocalc\-plus" mode require explicitly setting it everywhere, instead of it being the default.  I worry about a project\-host coming up half broken, and leaving open a vulnerability.
+
 - [ ] do a security audit
-- [x] ensure multiple concurrent sessions can run at once.  I have evidence they don't, and the solution would be spinning up a pool: http://localhost:7000/projects/00000000-1000-4000-8000-000000000000/files/build/cocalc-lite/a.chat#chat=1765836152408
+
+- [x] ensure multiple concurrent sessions can run at once.  I have evidence they don't, and the solution would be spinning up a pool: [http://localhost:7000/projects/00000000\-1000\-4000\-8000\-000000000000/files/build/cocalc\-lite/a.chat\#chat=1765836152408](http://localhost:7000/projects/00000000-1000-4000-8000-000000000000/files/build/cocalc-lite/a.chat#chat=1765836152408)
 
 ### Detailed plan
 
@@ -216,3 +225,4 @@ Bring Codex agents into CoCalc chat so users can open a thread, point it at a wo
 - Settings UI: `packages/frontend/account/lite-ai-settings.tsx`, `/customize` logic in `packages/lite/hub/settings.ts`.
 
 Keep this summary handy when switching workspaces so the next session can pick up Codex integration without re-reading history.
+

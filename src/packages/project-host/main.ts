@@ -29,7 +29,9 @@ import { wireProjectsApi } from "./hub/projects";
 import { startMasterRegistration } from "./master";
 import { startReconciler } from "./reconcile";
 import { init as initAcp } from "@cocalc/lite/hub/acp";
+import { setContainerExec } from "@cocalc/lite/hub/acp/executor/container";
 import { setPreferContainerExecutor } from "@cocalc/lite/hub/acp/workspace-root";
+import { sandboxExec } from "@cocalc/project-runner/run/sandbox-exec";
 
 const logger = getLogger("project-host:main");
 
@@ -89,6 +91,8 @@ export async function main(
 
   // ACP runs inside project-host in container mode (no env flag needed).
   setPreferContainerExecutor(true);
+  // Use the in-host podman exec helper for ACP container execution.
+  setContainerExec(sandboxExec);
   await initAcp(conatClient);
 
   // Minimal local persistence so DKV/state works (no external hub needed).

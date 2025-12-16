@@ -78,7 +78,7 @@ interface CodexAcpAgentOptions {
   fileAdapter?: FileAdapter;
   terminalAdapter?: TerminalAdapter;
   pathResolver?: PathResolver;
-  displayPathRewriter?;
+  displayPathRewriter?: (text: string) => string;
 }
 
 type SessionState = {
