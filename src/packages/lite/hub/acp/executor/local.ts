@@ -1,4 +1,4 @@
-import { exec as cpExec } from "node:child_process";
+import { exec as cpExec, execFile as cpExecFile } from "node:child_process";
 import { promisify } from "node:util";
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -6,6 +6,7 @@ import path from "node:path";
 import type { AcpExecutor } from "./index";
 
 const exec = promisify(cpExec);
+const execFile = promisify(cpExecFile);
 
 /**
  * Local executor used in lite/single-process mode.
@@ -49,15 +50,42 @@ export class LocalExecutor implements AcpExecutor {
     const cwd = opts?.cwd
       ? this.resolvePath(opts.cwd)
       : path.resolve(this.workspaceRoot || process.cwd());
-    const { stdout, stderr } = await exec(cmd, {
-      cwd,
-      env: { ...process.env, ...(opts?.env ?? {}) },
-      timeout: opts?.timeoutMs,
-    });
-    return {
-      stdout: stdout ?? "",
-      stderr: stderr ?? "",
-      exitCode: 0,
-    };
+    const shellMatch = cmd.match(
+      /^\s*(?:\/(?:usr\/)?bin\/)?(?:ba?sh|sh)\s+-l?c\s+([\s\S]+)/,
+    );
+    if (shellMatch) {
+      const script = shellMatch[1];
+      return await this.run("/bin/bash", ["-lc", script], cwd, opts);
+    }
+    return await this.run(cmd, undefined, cwd, opts);
+  }
+
+  private async run(
+    command: string,
+    args: string[] | undefined,
+    cwd: string,
+    opts?: { timeoutMs?: number; env?: Record<string, string> },
+  ) {
+    try {
+      const execFn = args ? execFile : exec;
+      const { stdout, stderr } = await execFn(command, args ?? [], {
+        cwd,
+        env: { ...process.env, ...(opts?.env ?? {}) },
+        timeout: opts?.timeoutMs,
+        maxBuffer: 10 * 1024 * 1024,
+      } as any);
+      return {
+        stdout: stdout?.toString?.() ?? stdout ?? "",
+        stderr: stderr?.toString?.() ?? stderr ?? "",
+        exitCode: 0,
+      };
+    } catch (err: any) {
+      return {
+        stdout: err?.stdout ?? "",
+        stderr: err?.stderr ?? err?.message ?? "",
+        exitCode: typeof err?.code === "number" ? err.code : null,
+        signal: err?.signal,
+      };
+    }
   }
 }
