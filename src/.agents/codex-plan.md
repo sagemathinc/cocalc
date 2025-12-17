@@ -24,11 +24,18 @@ To not forget:
 
 - [ ] make readonly mode be implemented using full access, but where we do the sandboxing in project\-host, obviously... and have to make it clear how it differs.
 
+- [ ] add a succinct prompt explaining the environment (root in container)
+
 - [ ] make the highly insecure "cocalc\-plus" mode require explicitly setting it everywhere, instead of it being the default.  I worry about a project\-host coming up half broken, and leaving open a vulnerability.
 
 - [ ] mounts created here src/packages/project-runner/run/sandbox-exec.ts do not get freed, which would lead to resource leakage.   The overlayfs mount *is* shared with the project if it is running, so this is subtle.  We only want to unmount if we actually make the mount and the project or another container didn't similarly start using it.  I.e., we need reference counting for the mount/unmount command.
 
 - [ ] do a security audit
+
+- [ ] this is not good from a security point of view "      // Pass through select env vars (OpenAI/Anthropic) to the container.
+      const passthroughKeys = Object.keys(process.env).filter((k) =>
+        /^(OPENAI_|ANTHROPIC_)/.test(k),
+      );"  because these keys will be visible right there in "ps -ax". Better to write to a file in the container somehow...?
 
 - [x] ensure multiple concurrent sessions can run at once.  I have evidence they don't, and the solution would be spinning up a pool: [http://localhost:7000/projects/00000000\-1000\-4000\-8000\-000000000000/files/build/cocalc\-lite/a.chat\#chat=1765836152408](http://localhost:7000/projects/00000000-1000-4000-8000-000000000000/files/build/cocalc-lite/a.chat#chat=1765836152408)
 

@@ -16,6 +16,7 @@ much RAM.
 import { spawn, type ChildProcess } from "node:child_process";
 import path from "node:path";
 import { Readable, Writable } from "node:stream";
+import { randomUUID } from "node:crypto";
 import {
   ClientSideConnection,
   PROTOCOL_VERSION,
@@ -117,6 +118,7 @@ export class CodexAcpAgent implements AcpAgent {
   ): Promise<CodexAcpAgent> {
     const binary =
       options.binaryPath ?? process.env.COCALC_ACP_AGENT_BIN ?? "codex-acp";
+    const podmanImage = process.env.COCALC_ACP_PODMAN_IMAGE;
     const useNativeTerminal = options.useNativeTerminal === true;
     const workspaceRoot = path.resolve(options.cwd ?? process.cwd());
     if (!options.fileAdapter || !options.terminalAdapter) {
@@ -131,6 +133,9 @@ export class CodexAcpAgent implements AcpAgent {
     };
 
     const args: string[] = [];
+    let childCmd = binary;
+    let childEnv = { ...process.env, ...options.env };
+
     if (options.disableSessionPersist) {
       args.push("--no-session-persist");
     } else if (options.sessionPersistPath) {
@@ -145,14 +150,78 @@ export class CodexAcpAgent implements AcpAgent {
       args.push("-c", `approval_policy="${approvalPolicy}"`);
     }
 
+    if (podmanImage) {
+      // Run codex-acp inside a rootless podman container for isolation.
+      const sessionDirHost =
+        options.sessionPersistPath ??
+        path.join(process.cwd(), "data/codex-sessions");
+      const sessionDirContainer = "/state";
+      // Rebuild args so codex-acp sees the container path.
+      const codexArgs: string[] = [];
+      if (options.disableSessionPersist) {
+        codexArgs.push("--no-session-persist");
+      } else {
+        codexArgs.push("--session-persist", sessionDirContainer);
+      }
+      if (useNativeTerminal) {
+        codexArgs.push("--native-shell");
+      }
+      if (approvalPolicy) {
+        codexArgs.push("-c", `approval_policy="${approvalPolicy}"`);
+      }
+
+      const name = `codex-acp-${randomUUID().slice(0, 8)}`;
+      const podmanArgs: string[] = [
+        "run",
+        "--rm",
+        "-i",
+        "--name",
+        name,
+        "--network",
+        process.env.COCALC_ACP_PODMAN_NETWORK ?? "slirp4netns",
+        "-v",
+        `${sessionDirHost}:${sessionDirContainer}:rw`,
+        "-e",
+        "HOME=/root",
+        "-w",
+        "/root",
+      ];
+
+      // Pass through select env vars (OpenAI/Anthropic) to the container.
+      const passthroughKeys = Object.keys(process.env).filter((k) =>
+        /^(OPENAI_|ANTHROPIC_)/.test(k),
+      );
+      for (const key of passthroughKeys) {
+        const val = process.env[key];
+        if (val != null) {
+          podmanArgs.push("-e", `${key}=${val}`);
+        }
+      }
+      // Allow additional env overrides.
+      if (options.env) {
+        for (const [k, v] of Object.entries(options.env)) {
+          if (v != null) {
+            podmanArgs.push("-e", `${k}=${v}`);
+          }
+        }
+      }
+
+      podmanArgs.push(podmanImage, "/usr/local/bin/codex-acp", ...codexArgs);
+      childCmd = "podman";
+      args.length = 0;
+      args.push(...podmanArgs);
+      // env for the podman client process only.
+      childEnv = { ...process.env };
+    }
+
     const HOME = process.env.COCALC_ORIGINAL_HOME ?? process.env.HOME;
     // Do not set cwd here: agents may serve multiple sessions with different
     // working directories, and container-mode paths (e.g. "/root") are invalid
     // on the host running codex-acp. Let the process inherit the host cwd; the
     // session-specific working directory is handled per request.
-    const child = spawn(binary, args, {
+    const child = spawn(childCmd, args, {
       stdio: ["pipe", "pipe", "pipe"],
-      env: { ...process.env, HOME, ...options.env },
+      env: { ...childEnv, HOME },
     });
 
     await new Promise<void>((resolve, reject) => {
