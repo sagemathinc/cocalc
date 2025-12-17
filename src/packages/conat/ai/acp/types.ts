@@ -116,6 +116,7 @@ export type AcpStreamEvent =
     };
 
 export type AcpStreamPayload =
+  | { type: "status"; state: "init" | "running" }
   | {
       type: "event";
       event: AcpStreamEvent;

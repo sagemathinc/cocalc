@@ -32,6 +32,8 @@ To not forget:
 but it was totally broken, and using `codex resume` in the terminal showed it had read only mode.
 
 - [ ] submitting a new turn while one is running returns this error "{seq: 0, error: 'Error: ACP agent is already processing a request', type: 'error'}".  Thus turns are not queued up properly; basically make 2\-3 requests and all but the first stays stuck forever.
+  - Frontend is I think doing the right thing.
+  - Backend is NOT updating the syncdb document properly at all.
 
 - [ ] if the codex-acp subprocess is killed then everything is broken forever; instead it should get restarted
 

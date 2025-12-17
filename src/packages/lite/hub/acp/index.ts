@@ -872,6 +872,7 @@ export async function evaluate({
     : null;
 
   let wrappedStream;
+  stream({ type: "status", state: "init" });
   if (chatWriter != null) {
     await chatWriter.waitUntilReady();
     if (chatWriter.isClosed()) {
@@ -894,12 +895,15 @@ export async function evaluate({
   }
 
   try {
+    stream({ type: "status", state: "running" });
+    logger.debug("evaluate: running", { reqId });
     await currentAgent.evaluate({
       ...request,
       prompt,
       config: effectiveConfig,
       stream: wrappedStream,
     });
+    logger.debug("evaluate: done", { reqId });
   } finally {
     const elapsedMs = Date.now() - startedAt;
     logger.debug("evaluate: end", { reqId, elapsedMs });

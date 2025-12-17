@@ -9,6 +9,47 @@ import {
 import { uuid } from "@cocalc/util/misc";
 import type { ChatMessage, MessageHistory } from "./types";
 
+type QueueKey = string;
+type QueueState = { running: boolean; items: Array<() => Promise<void>> };
+const turnQueues: Map<QueueKey, QueueState> = new Map();
+
+function getQueue(key: QueueKey): QueueState {
+  let q = turnQueues.get(key);
+  if (q == null) {
+    q = { running: false, items: [] };
+    turnQueues.set(key, q);
+  }
+  return q;
+}
+
+function makeQueueKey(context: AcpContext): QueueKey {
+  const project = context.project_id ?? "";
+  const path = context.path ?? "";
+  const thread = context.threadKey ?? "";
+  return `${project}::${path}::${thread}`;
+}
+
+async function runQueue(key: QueueKey): Promise<void> {
+  const q = turnQueues.get(key);
+  if (!q) return;
+  const next = q.items.shift();
+  if (!next) {
+    q.running = false;
+    if (q.items.length === 0) {
+      turnQueues.delete(key);
+    }
+    return;
+  }
+  q.running = true;
+  try {
+    await next();
+  } catch (err) {
+    console.error("ACP turn queue job failed", err);
+  } finally {
+    void runQueue(key);
+  }
+}
+
 interface AcpContext {
   syncdb?: {
     set: (opts: any) => void;
@@ -121,7 +162,6 @@ export async function processAcpLLM({
     });
   }
   if (!date) {
-    console.log("date not set", date);
     return;
   }
   syncdb.commit();
@@ -146,36 +186,48 @@ export async function processAcpLLM({
     reply_to,
   });
   const sessionKey = config?.sessionId ?? context.threadKey;
-  try {
-    const stream = await webapp_client.conat_client.streamAcp({
-      project_id: context.project_id,
-      prompt: workingInput,
-      session_id: sessionKey,
-      config: buildAcpConfig({
-        path,
-        config,
-        model: normalizedModel,
-      }),
-      chat: chatMetadata,
-    });
-    for await (const message of stream) {
-      // TODO: this is excess logging for development purposes
-      console.log("ACP message", message);
-      // when something goes wrong, the stream may send this sort of message:
-      // {seq: 0, error: 'Error: ACP agent is already processing a request', type: 'error'}
-      if (message?.type == "error") {
-        throw Error(message.error);
+  const queueKey = makeQueueKey(context);
+  const job = async (): Promise<void> => {
+    try {
+      console.log("Starting ACP turn for", message);
+      const stream = await webapp_client.conat_client.streamAcp({
+        project_id: context.project_id,
+        prompt: workingInput,
+        session_id: sessionKey,
+        config: buildAcpConfig({
+          path,
+          config,
+          model: normalizedModel,
+        }),
+        chat: chatMetadata,
+      });
+      console.log("Sent ACP turn request for", message);
+      for await (const response of stream) {
+        // TODO: this is excess logging for development purposes
+        console.log("ACP message response", response);
+        // when something goes wrong, the stream may send this sort of message:
+        // {seq: 0, error: 'Error: ACP agent is already processing a request', type: 'error'}
+        if (response?.type == "error") {
+          throw Error(response.error);
+        }
       }
+      console.log("ACP message responses done");
+    } catch (err) {
+      chatStreams.delete(id);
+      // set to the error message and stop generating
+      let s = `${err}`;
+      if (s.startsWith("Error: Error:")) {
+        s = s.slice("Error: ".length);
+      }
+      saveHistory({ date }, s, sender_id, false);
+      syncdb.commit();
     }
-  } catch (err) {
-    chatStreams.delete(id);
-    // set to the error message and stop generating
-    let s = `${err}`;
-    if (s.startsWith("Error: Error:")) {
-      s = s.slice("Error: ".length);
-    }
-    saveHistory({ date }, s, sender_id, false);
-    syncdb.commit();
+  };
+
+  const q = getQueue(queueKey);
+  q.items.push(job);
+  if (!q.running) {
+    void runQueue(queueKey);
   }
 }
 
