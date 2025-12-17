@@ -269,12 +269,33 @@ export class ChatStreamWriter {
         throw err;
       }
     }
-    const current = db.get_one({
+    let current = db.get_one({
       event: "chat",
       date: this.metadata.message_date,
     });
-    if (current == null) return;
-    const history = current.get("history");
+    if (current == null) {
+      // Create a placeholder chat row so backend-owned updates don’t race with a missing record.
+      const placeholder = buildChatMessage({
+        sender_id: this.metadata.sender_id,
+        date: this.metadata.message_date,
+        prevHistory: [],
+        content: ":robot: Thinking...",
+        generating: true,
+        reply_to: this.metadata.reply_to,
+      } as any);
+      db.set(placeholder);
+      db.commit();
+      try {
+        await db.save();
+      } catch (err) {
+        logger.warn("chat syncdb save failed during init", err);
+      }
+      current = db.get_one({
+        event: "chat",
+        date: this.metadata.message_date,
+      });
+    }
+    const history = current?.get("history");
     const arr = this.historyToArray(history);
     if (arr.length > 0) {
       this.prevHistory = arr.slice(1);

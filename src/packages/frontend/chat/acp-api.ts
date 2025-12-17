@@ -1,4 +1,3 @@
-import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
 import {
@@ -75,7 +74,6 @@ interface AcpContext {
     date: string;
     prevHistory: MessageHistory[];
   };
-  getLLMHistory: (reply_to: Date) => LanguageModelHistory;
   getCodexConfig?: (reply_to?: Date) => any;
   setCodexConfig?: (threadKey: string, config: any) => void;
   threadKey?: string;
@@ -101,8 +99,7 @@ export async function processAcpLLM({
   context,
   dateLimit,
 }: ProcessAcpRequest): Promise<void> {
-  const { syncdb, path, chatStreams, sendReply, saveHistory, getLLMHistory } =
-    context;
+  const { syncdb, path, chatStreams, sendReply, saveHistory } = context;
   if (syncdb == null) return;
 
   let workingInput = input?.trim();
@@ -123,44 +120,18 @@ export async function processAcpLLM({
   const normalizedModel =
     typeof model === "string" ? normalizeCodexMention(model) : undefined;
 
-  if (tag === "regenerate") {
-    const history = reply_to ? getLLMHistory(reply_to) : [];
-    if (history.length >= 2) {
-      history.pop();
-      while (dateLimit != null && history.length >= 2) {
-        const last = history[history.length - 1];
-        const lastMs =
-          last.date != null ? new Date(last.date as any).valueOf() : undefined;
-        if (lastMs != null && lastMs > dateLimit.valueOf()) {
-          history.pop();
-          history.pop();
-        } else {
-          break;
-        }
-      }
-      workingInput = history.pop()?.content ?? workingInput;
-    } else {
-      return;
-    }
-  }
-
   const sender_id = model || "openai-codex-agent";
   const thinking = ":robot: Thinking...";
 
   // date is the iso timestamp of the response message, which
   // will be set to thinking initially.
-  let date: string;
-  if (tag == "renerate") {
-    ({ date } = saveHistory(message, thinking, sender_id, true));
-  } else {
-    date = sendReply({
-      message,
-      reply: thinking,
-      from: sender_id,
-      noNotification: true,
-      reply_to,
-    });
-  }
+  const date = sendReply({
+    message,
+    reply: thinking,
+    from: sender_id,
+    noNotification: true,
+    reply_to,
+  });
   if (!date) {
     return;
   }
