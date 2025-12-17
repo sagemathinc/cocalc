@@ -796,7 +796,8 @@ function TerminalRow({
   const hasOutput = Boolean(entry.output && entry.output.length > 0);
   const secondarySize = Math.max(11, fontSize - 2);
   const cwdPrompt = entry.cwd ? shortenPath(entry.cwd) : "~";
-  const promptLine = `${cwdPrompt} $${commandLine ? " " + commandLine : ""}`;
+  const coloredCwd = `\u001b[01;34m${cwdPrompt}\u001b[0m`;
+  const promptLine = `${coloredCwd}$${commandLine ? " " + commandLine : ""}`;
   const truncatedNote = entry.truncated ? "\n[output truncated]" : "";
   const terminalText = hasOutput
     ? `${promptLine}\n${(entry.output ?? "").trimEnd()}${truncatedNote}`
@@ -912,8 +913,8 @@ function TerminalPreview({
     const term = termRef.current;
     if (!term) return;
     let scrollTimer: any;
-    term.reset();
     try {
+      term.reset();
       setTheme(term, colorScheme);
     } catch {
       // ignore theme errors when disposed
@@ -923,7 +924,7 @@ function TerminalPreview({
       const viewport = host.querySelector(
         ".xterm-viewport",
       ) as HTMLDivElement | null;
-      if (viewport) {
+      if (viewport?.style) {
         viewport.style.overflow = "hidden";
       }
     }
