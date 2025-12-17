@@ -1,9 +1,21 @@
+/**
+ * Lightweight manager for chat SyncDB instances.
+ *
+ * - Provides createChatSyncDB with sane defaults for chats.
+ * - Maintains a ref-counted pool so a given project/path SyncDB is opened only once
+ *   in this process, and reused across turns.
+ * - Delays closing for a short interval to keep the connection warm, but cancels
+ *   a pending close immediately if a new acquire arrives (avoids long stalls).
+ */
 import type { Client as ConatClient } from "@cocalc/conat/core/client";
 import {
   syncdb,
   type SyncDBOptions,
   type SyncDB,
 } from "@cocalc/conat/sync-doc/syncdb";
+import { getLogger } from "@cocalc/conat/client";
+
+const logger = getLogger("chat:server");
 
 export const CHAT_PRIMARY_KEYS = ["date", "sender_id", "event"];
 export const CHAT_STRING_COLS = ["input"];
@@ -52,7 +64,8 @@ type PoolEntry = {
   db: SyncDB;
   ready: Promise<void>;
   refs: number;
-  closing?: Promise<void>;
+  closingPromise?: Promise<void>;
+  closingTimer?: NodeJS.Timeout;
 };
 
 const pool = new Map<string, PoolEntry>();
@@ -62,19 +75,17 @@ function poolKey(project_id: string, path: string): string {
   return `${project_id}:${path}`;
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 async function makeEntry(
   key: string,
   opts: CreateChatSyncDBOptions,
 ): Promise<PoolEntry> {
   const db = createChatSyncDB(opts);
-  const ready = db.isReady() ? Promise.resolve() : new Promise<void>((res, rej) => {
-    db.once("ready", res);
-    db.once("error", rej);
-  });
+  const ready = db.isReady()
+    ? Promise.resolve()
+    : new Promise<void>((res, rej) => {
+        db.once("ready", res);
+        db.once("error", rej);
+      });
   const entry: PoolEntry = { db, ready, refs: 1 };
   pool.set(key, entry);
   try {
@@ -90,18 +101,29 @@ export async function acquireChatSyncDB(
   opts: CreateChatSyncDBOptions,
 ): Promise<SyncDB> {
   const key = poolKey(opts.project_id, opts.path);
-  // Loop to handle the case where an entry is closing; wait for close then retry.
+  // Loop to handle the case where an entry was closing; cancel close and reuse.
   for (;;) {
     const entry = pool.get(key);
     if (entry) {
-      if (entry.closing) {
-        await entry.closing;
+      if (entry.closingTimer) {
+        clearTimeout(entry.closingTimer);
+        entry.closingTimer = undefined;
+        entry.closingPromise = undefined;
+        logger.debug("acquireChatSyncDB: canceled pending close", { key });
+      } else if (entry.closingPromise) {
+        // Close already in progress; wait and retry.
+        await entry.closingPromise;
         continue;
       }
       entry.refs += 1;
       await entry.ready;
+      logger.debug("acquireChatSyncDB: reuse existing", {
+        key,
+        refs: entry.refs,
+      });
       return entry.db;
     }
+    logger.debug("acquireChatSyncDB: create new", { key });
     return (await makeEntry(key, opts)).db;
   }
 }
@@ -114,21 +136,24 @@ export async function releaseChatSyncDB(
   const entry = pool.get(key);
   if (!entry) return;
   entry.refs = Math.max(0, entry.refs - 1);
+  logger.debug("releaseChatSyncDB", { key, refs: entry.refs });
   if (entry.refs > 0) return;
-  if (entry.closing) return;
+  if (entry.closingTimer || entry.closingPromise) return;
 
-  entry.closing = (async () => {
-    await delay(CLOSE_DELAY_MS);
-    if (entry.refs === 0) {
-      try {
-        await entry.db.close();
-      } catch (err) {
-        // ignore close errors
-      } finally {
-        pool.delete(key);
+  entry.closingTimer = setTimeout(() => {
+    entry.closingTimer = undefined;
+    entry.closingPromise = (async () => {
+      if (entry.refs === 0) {
+        try {
+          await entry.db.close();
+          logger.debug("releaseChatSyncDB: closed", { key });
+        } catch (err) {
+          logger.debug("releaseChatSyncDB: close failed", { key, err });
+        } finally {
+          pool.delete(key);
+        }
       }
-    }
-    entry.closing = undefined;
-  })();
-  await entry.closing;
+      entry.closingPromise = undefined;
+    })();
+  }, CLOSE_DELAY_MS);
 }
