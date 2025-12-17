@@ -267,7 +267,6 @@ export class CodexAcpAgent implements AcpAgent {
       fileAdapter: adapters.fileAdapter,
       terminalAdapter: adapters.terminalAdapter,
       pathResolver: adapters.pathResolver,
-      displayPathRewriter: options.displayPathRewriter,
     });
     const connection = new ClientSideConnection(() => handler, stream);
 

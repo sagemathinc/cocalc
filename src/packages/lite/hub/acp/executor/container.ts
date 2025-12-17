@@ -139,7 +139,6 @@ export class ContainerExecutor {
     const shellMatch = cmd.match(
       /^\s*(?:\/(?:usr\/)?bin\/)?(?:ba?sh|sh)\s+-l?c\s+([\s\S]+)/,
     );
-    //const script = this.rewriteHostPaths(shellMatch ? shellMatch[1] : cmd);
     const script = shellMatch ? shellMatch[1] : cmd;
 
     // The host environment is not meaningful inside the container; skip passing
