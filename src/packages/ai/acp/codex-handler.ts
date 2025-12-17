@@ -55,7 +55,6 @@ import type {
   TerminalAdapter,
   TerminalHandle,
   TerminalStartOptions,
-  PathResolver,
   PathResolution,
 } from "./adapters";
 
@@ -95,7 +94,6 @@ type CodexClientHandlerOptions = {
   workspaceRoot?: string;
   fileAdapter: FileAdapter;
   terminalAdapter: TerminalAdapter;
-  pathResolver?: PathResolver;
   displayPathRewriter?: (text: string) => string;
 };
 
@@ -125,7 +123,6 @@ export class CodexClientHandler implements TerminalClient {
   private workspaceRoot: string;
   private readonly fileAdapter: FileAdapter;
   private readonly terminalAdapter: TerminalAdapter;
-  private readonly pathResolver?: PathResolver;
   private readonly displayPathRewriter?: (text: string) => string;
 
   constructor(options: CodexClientHandlerOptions) {
@@ -134,13 +131,11 @@ export class CodexClientHandler implements TerminalClient {
     this.workspaceRoot = path.resolve(options.workspaceRoot ?? process.cwd());
     this.fileAdapter = options.fileAdapter;
     this.terminalAdapter = options.terminalAdapter;
-    this.pathResolver = options.pathResolver;
     this.displayPathRewriter = options.displayPathRewriter;
     logger.debug("CodexClientHandler", {
       workspaceRoot: this.workspaceRoot,
       fileAdapter: this.fileAdapter.toString(),
       terminalAdapter: this.terminalAdapter.toString(),
-      pathResolver: this.pathResolver?.toString(),
     });
   }
 
@@ -312,11 +307,12 @@ export class CodexClientHandler implements TerminalClient {
       this.callToTerminal.set(callId, terminalId);
     }
     const { command, args, cwd } = this.extractCommandInfo(update.rawInput);
+    const effectiveCwd = cwd ?? info?.cwd ?? this.workspaceRoot;
     await this.emitTerminalEvent(terminalId, {
       phase: "start",
       command,
       args,
-      cwd: cwd ?? info?.cwd,
+      cwd: effectiveCwd,
     });
   }
 
@@ -540,12 +536,9 @@ export class CodexClientHandler implements TerminalClient {
   }
 
   private resolvePath(filePath: string): PathResolution {
-    if (this.pathResolver) {
-      return this.pathResolver.resolve(filePath);
-    }
     const base = this.workspaceRoot ?? process.cwd();
     const absolute = path.isAbsolute(filePath)
-      ? filePath
+      ? path.normalize(filePath)
       : path.resolve(base, filePath);
     return {
       absolute,

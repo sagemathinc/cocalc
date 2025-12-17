@@ -38,37 +38,12 @@ import type {
   ApprovalDecision,
 } from "./types";
 import { CodexClientHandler } from "./codex-handler";
-import type {
-  FileAdapter,
-  TerminalAdapter,
-  PathResolver,
-  PathResolution,
-} from "./adapters";
+import type { FileAdapter, TerminalAdapter } from "./adapters";
 
 const logger = getLogger("ai:acp:codex");
 
 const FILE_LINK_GUIDANCE =
   "When referencing workspace files, output markdown links relative to the project root so they stay clickable in CoCalc, e.g., foo.py -> [foo.py](./foo.py) (no backticks around the link). For images use ![](./image.png).";
-
-const toPosix = (p: string): string => p.replace(/\\/g, "/");
-
-function defaultPathResolver(workspaceRoot: string): PathResolver {
-  const root = path.resolve(workspaceRoot);
-  return {
-    resolve(filePath: string): PathResolution {
-      const absolute = path.isAbsolute(filePath)
-        ? filePath
-        : path.resolve(root, filePath);
-      const relRaw = path.relative(root, absolute);
-      const relative = relRaw ? toPosix(relRaw) : ".";
-      return {
-        absolute,
-        relative: relative.startsWith("..") ? undefined : relative || ".",
-        workspaceRoot: root,
-      };
-    },
-  };
-}
 
 interface CodexAcpAgentOptions {
   binaryPath?: string;
@@ -80,7 +55,6 @@ interface CodexAcpAgentOptions {
   useNativeTerminal?: boolean;
   fileAdapter?: FileAdapter;
   terminalAdapter?: TerminalAdapter;
-  pathResolver?: PathResolver;
   displayPathRewriter?: (text: string) => string;
 }
 
@@ -97,7 +71,6 @@ export class CodexAcpAgent implements AcpAgent {
   private readonly child: ChildProcess;
   private readonly connection: ClientSideConnection;
   private readonly handler: CodexClientHandler;
-  private readonly pathResolver: PathResolver;
   private running = false;
   private readonly sessions = new Map<string, SessionState>();
   private static readonly DEFAULT_SESSION_KEY = "__default__";
@@ -106,13 +79,10 @@ export class CodexAcpAgent implements AcpAgent {
     child: ChildProcess;
     connection: ClientSideConnection;
     handler: CodexClientHandler;
-    pathResolver?: PathResolver;
   }) {
     this.child = options.child;
     this.connection = options.connection;
     this.handler = options.handler;
-    this.pathResolver =
-      options.pathResolver ?? defaultPathResolver(process.cwd());
   }
 
   static async create(
@@ -131,7 +101,7 @@ export class CodexAcpAgent implements AcpAgent {
     const adapters = {
       fileAdapter: options.fileAdapter,
       terminalAdapter: options.terminalAdapter,
-      pathResolver: options.pathResolver ?? defaultPathResolver(workspaceRoot),
+      workspaceRoot,
     };
 
     const args: string[] = [];
@@ -266,7 +236,6 @@ export class CodexAcpAgent implements AcpAgent {
       workspaceRoot,
       fileAdapter: adapters.fileAdapter,
       terminalAdapter: adapters.terminalAdapter,
-      pathResolver: adapters.pathResolver,
     });
     const connection = new ClientSideConnection(() => handler, stream);
 
@@ -288,7 +257,6 @@ export class CodexAcpAgent implements AcpAgent {
       child,
       connection,
       handler,
-      pathResolver: adapters.pathResolver,
     });
   }
 
@@ -362,11 +330,19 @@ export class CodexAcpAgent implements AcpAgent {
     host: string;
   } {
     const target = config?.workingDirectory ?? ".";
-    const resolved = this.pathResolver.resolve(target);
+    const base = this.handlerWorkspaceRoot();
+    const absolute = path.isAbsolute(target)
+      ? path.normalize(target)
+      : path.resolve(base, target);
     return {
-      container: resolved.absolute,
-      host: resolved.hostAbsolute ?? resolved.absolute,
+      container: absolute,
+      host: absolute,
     };
+  }
+
+  private handlerWorkspaceRoot(): string {
+    // best-effort; handler tracks its workspace root internally
+    return (this.handler as any)?.["workspaceRoot"] ?? process.cwd();
   }
 
   private async ensureSession(

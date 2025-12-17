@@ -25,7 +25,6 @@ import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import type {
   FileAdapter,
   TerminalAdapter,
-  PathResolver,
   TerminalStartOptions,
 } from "@cocalc/ai/acp/adapters";
 import { type AcpExecutor, ContainerExecutor, LocalExecutor } from "./executor";
@@ -619,7 +618,6 @@ type ExecutorAdapters = {
   workspaceRoot: string;
   fileAdapter: FileAdapter;
   terminalAdapter: TerminalAdapter;
-  pathResolver: PathResolver;
   commandHandlers?: Record<string, any>;
 };
 
@@ -737,26 +735,6 @@ function buildExecutorAdapters(
     workspaceRoot,
     fileAdapter,
     terminalAdapter,
-    pathResolver: {
-      toString: () =>
-        `pathResolver(workspaceRoot='${workspaceRoot}', hostRoot='${hostRoot}')`,
-      resolve(filePath: string) {
-        const absolute = path.isAbsolute(filePath)
-          ? path.normalize(filePath)
-          : path.resolve(workspaceRoot, filePath);
-        const rel = path.relative(workspaceRoot, absolute);
-        const hostAbsolute =
-          rel && rel.startsWith("..")
-            ? undefined
-            : path.normalize(path.join(hostRoot, rel || ""));
-        return {
-          absolute,
-          hostAbsolute,
-          relative: rel && !rel.startsWith("..") ? rel || "." : undefined,
-          workspaceRoot,
-        };
-      },
-    },
     commandHandlers: {
       bash: shellHandler,
       sh: shellHandler,
@@ -793,7 +771,6 @@ async function ensureAgent(
       commandHandlers: bindings.commandHandlers,
       fileAdapter: bindings.fileAdapter,
       terminalAdapter: bindings.terminalAdapter,
-      pathResolver: bindings.pathResolver,
     });
     logger.info("codex-acp agent ready", { key });
     agents.set(key, created);

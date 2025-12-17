@@ -94,6 +94,7 @@ export function useCodexLog({
         if (!cancelled) {
           setFetchedLog(data ?? []);
         }
+        // console.log(data);
       } catch (err) {
         console.warn("failed to fetch acp log", err);
       }

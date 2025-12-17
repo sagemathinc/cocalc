@@ -50,16 +50,8 @@ export type TerminalAdapter = {
 export type PathResolution = {
   // Absolute path that should be used for file/terminal operations.
   absolute: string;
-  // Absolute path on the host filesystem (if different from `absolute`, e.g.,
-  // when running inside a container and the host has a different mount point).
-  hostAbsolute?: string;
   // Optional relative path for presenting in UI/logging.
   relative?: string;
   // Workspace root used for this resolution, e.g., "/root" in a container.
   workspaceRoot?: string;
-};
-
-export type PathResolver = {
-  toString: () => string;
-  resolve(filePath: string): PathResolution;
 };

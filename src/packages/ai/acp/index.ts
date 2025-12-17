@@ -16,7 +16,6 @@ export type {
   TerminalAdapter,
   TerminalHandle,
   TerminalStartOptions,
-  PathResolver,
   PathResolution,
 } from "./adapters";
 
