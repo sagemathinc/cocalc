@@ -30,66 +30,84 @@ export class QueryClient {
     timeout?: number; // ms
     cb?: CB; // support old cb interface
   }): Promise<any> => {
-    // Deprecation warnings:
-    for (const field of ["standby", "no_post", "ignore_response"]) {
-      if (opts[field] != null) {
-        console.trace(`WARNING: passing '${field}' to query is deprecated`);
-      }
-    }
-    if (opts.options != null && !is_array(opts.options)) {
-      // should never happen...
-      throw Error("options must be an array");
-    }
-    if (opts.changes) {
-      const { cb } = opts;
-      if (cb == null) {
-        throw Error("for changefeed, must specify opts.cb");
-      }
-      let changefeed;
-      try {
-        changefeed = new ConatChangefeed({
-          account_id: this.client.account_id,
-          query: opts.query,
-          options: opts.options,
-        });
-        // id for canceling this changefeed
-        const id = uuid();
-        const initval = await changefeed.connect();
-        const query = {
-          [Object.keys(opts.query)[0]]: initval,
-        };
-        this.changefeeds[id] = changefeed;
-        cb(undefined, { query, id });
-        changefeed.on("update", (change) => {
-          cb(undefined, change);
-        });
-      } catch (err) {
-        cb(`${err}`);
-        return;
-      }
-    } else {
-      try {
-        const err = validate_client_query(opts.query, this.client.account_id);
-        if (err) {
-          throw Error(err);
-        }
-        const query = await this.client.conat_client.hub.db.userQuery({
-          query: opts.query,
-          options: opts.options,
-          timeout: opts.timeout,
-        });
+    const timeoutMs = opts.timeout ?? 15000;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`Query timed out after ${timeoutMs} ms`)),
+        timeoutMs,
+      );
+    });
 
-        if (opts.cb == null) {
-          return { query };
-        } else {
-          opts.cb(undefined, { query });
+    try {
+      // Deprecation warnings:
+      for (const field of ["standby", "no_post", "ignore_response"]) {
+        if (opts[field] != null) {
+          console.trace(`WARNING: passing '${field}' to query is deprecated`);
         }
-      } catch (err) {
-        if (opts.cb == null) {
-          throw err;
-        } else {
-          opts.cb(err);
+      }
+      if (opts.options != null && !is_array(opts.options)) {
+        // should never happen...
+        throw Error("options must be an array");
+      }
+      if (opts.changes) {
+        const { cb } = opts;
+        if (cb == null) {
+          throw Error("for changefeed, must specify opts.cb");
         }
+        let changefeed;
+        try {
+          changefeed = new ConatChangefeed({
+            account_id: this.client.account_id,
+            query: opts.query,
+            options: opts.options,
+          });
+          // id for canceling this changefeed
+          const id = uuid();
+          const initval = await changefeed.connect();
+          const query = {
+            [Object.keys(opts.query)[0]]: initval,
+          };
+          this.changefeeds[id] = changefeed;
+          cb(undefined, { query, id });
+          changefeed.on("update", (change) => {
+            cb(undefined, change);
+          });
+        } catch (err) {
+          cb(`${err}`);
+          return;
+        }
+      } else {
+        try {
+          const err = validate_client_query(opts.query, this.client.account_id);
+          if (err) {
+            throw Error(err);
+          }
+          const query = await Promise.race([
+            this.client.conat_client.hub.db.userQuery({
+              query: opts.query,
+              options: opts.options,
+              timeout: opts.timeout,
+            }),
+            timeoutPromise,
+          ]);
+
+          if (opts.cb == null) {
+            return { query };
+          } else {
+            opts.cb(undefined, { query });
+          }
+        } catch (err) {
+          if (opts.cb == null) {
+            throw err;
+          } else {
+            opts.cb(err);
+          }
+        }
+      }
+    } finally {
+      if (timer != null) {
+        clearTimeout(timer);
       }
     }
   };

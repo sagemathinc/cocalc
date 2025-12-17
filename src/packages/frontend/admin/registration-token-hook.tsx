@@ -16,7 +16,12 @@ import { query } from "@cocalc/frontend/frame-editors/generic/client";
 import { RegistrationTokenSetFields } from "@cocalc/util/db-schema/types";
 import { seconds2hms, secure_random_token } from "@cocalc/util/misc";
 
-import { CUSTOM_PRESET_KEY, findPresetKey, type Token } from "./types";
+import {
+  CUSTOM_PRESET_KEY,
+  EPHEMERAL_OFF_KEY,
+  findPresetKey,
+  type Token,
+} from "./types";
 
 export function formatEphemeralHours(value?: number): string {
   if (value == null) return "";
@@ -35,7 +40,9 @@ export function ephemeralSignupUrl(token?: string): string {
 
 export function getEphemeralMode(ephemeral?: number): string | undefined {
   const presetKey = findPresetKey(ephemeral);
-  return presetKey || (ephemeral != null ? CUSTOM_PRESET_KEY : undefined);
+  if (presetKey) return presetKey;
+  if (ephemeral == null) return EPHEMERAL_OFF_KEY;
+  return CUSTOM_PRESET_KEY;
 }
 
 export function useRegistrationTokens() {
@@ -50,6 +57,7 @@ export function useRegistrationTokens() {
   const [lastSaved, setLastSaved] = useState<Token | null>(null);
   const [error, setError] = useState<string>("");
   const [selRows, setSelRows] = useState<any>([]);
+  const [modalError, setModalError] = useState<string>("");
 
   // Antd
   const [form] = Form.useForm();
@@ -215,6 +223,7 @@ export function useRegistrationTokens() {
 
   // Modal event handlers
   function handleModalOpen(token?: Token): void {
+    setModalError("");
     // IMPORTANT: Reset form first to avoid leaking previous values
     form.resetFields();
 
@@ -241,10 +250,12 @@ export function useRegistrationTokens() {
   function handleModalCancel(): void {
     setModalVisible(false);
     setEditingToken(null);
+    setModalError("");
     form.resetFields();
   }
 
   function handleModalReset(): void {
+    setModalError("");
     // Mimics old Reset button: regenerate token, keep lastSaved template
     form.resetFields(); // Clear first to avoid stale values
     const newToken = {
@@ -258,6 +269,7 @@ export function useRegistrationTokens() {
   }
 
   async function handleModalSave(values: Token): Promise<void> {
+    setModalError("");
     const val_orig: Token = { ...values };
 
     try {
@@ -270,6 +282,8 @@ export function useRegistrationTokens() {
     } catch (err) {
       // Error - keep modal open and preserve user input
       // save() already set the error state, we just need to prevent closing
+      const message = err?.message ?? String(err);
+      setModalError(message);
       setEditingToken(val_orig); // Preserve for limit validation
       form.setFieldsValue(val_orig); // Restore form with user's values
     }
@@ -296,6 +310,7 @@ export function useRegistrationTokens() {
     // Modal-related
     modalVisible,
     editingToken,
+    modalError,
     handleModalOpen,
     handleModalCancel,
     handleModalReset,

@@ -28,6 +28,7 @@ export const EPHEMERAL_PRESETS = [
 ] as const;
 
 export const CUSTOM_PRESET_KEY = "custom";
+export const EPHEMERAL_OFF_KEY = "off";
 
 export function msToHours(value?: number): number | undefined {
   if (value == null) return undefined;

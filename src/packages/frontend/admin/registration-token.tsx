@@ -16,9 +16,9 @@ import {
   Table,
 } from "antd";
 import type { DescriptionsProps } from "antd";
+import dayjs from "dayjs";
 import { List } from "immutable";
 import { sortBy } from "lodash";
-import dayjs from "dayjs";
 
 import { CopyOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
@@ -48,6 +48,7 @@ import {
   formatEphemeralHours,
   useRegistrationTokens,
 } from "./registration-token-hook";
+import LicenseSummary from "./registration-token-license-summary";
 import { type Token } from "./types";
 
 export function RegistrationToken() {
@@ -72,6 +73,7 @@ export function RegistrationToken() {
     // Modal-related
     modalVisible,
     editingToken,
+    modalError,
     handleModalOpen,
     handleModalCancel,
     handleModalReset,
@@ -116,8 +118,8 @@ export function RegistrationToken() {
       limit == null
         ? undefined
         : limit === 0
-        ? 100
-        : round1((100 * uses) / limit);
+          ? 100
+          : round1((100 * uses) / limit);
     const usageLabel =
       pct == null
         ? `${uses}/${limit ?? "∞"} (–%)`
@@ -174,7 +176,7 @@ export function RegistrationToken() {
         key: "license",
         label: "License",
         span: 3,
-        children: token.customize?.license || "None",
+        children: <LicenseSummary licenseId={token.customize?.license} />,
       },
     ];
 
@@ -448,6 +450,7 @@ export function RegistrationToken() {
         onCancel={handleModalCancel}
         onSave={handleModalSave}
         onReset={handleModalReset}
+        error={modalError}
         form={form}
         newRandomToken={newRandomToken}
         saving={saving}

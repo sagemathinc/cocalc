@@ -39,7 +39,7 @@ export default async function firstProject({
   }
   const project_id = await createProject({
     account_id,
-    title: "My First Project",
+    title: ephemeral ? "My Project" : "My First Project",
     ephemeral,
     customize,
   });
