@@ -105,13 +105,15 @@ export async function main(
 
   // ACP runs inside project-host in container mode (no env flag needed).
   setPreferContainerExecutor(true);
-  // Use the in-host podman exec helper for ACP container execution.
+  // Use containerized podman for ACP container execution.
   setContainerExec((opts) =>
     sandboxExec({
       ...opts,
       project_id: opts.projectId,
+      // use ephemeral so works even if project is off, and get clean
+      // container for each terminal command, with no process's left around
+      // as side effects
       useEphemeral: true,
-      useHostHomeMount: true,
     }),
   );
   await initAcp(conatClient);

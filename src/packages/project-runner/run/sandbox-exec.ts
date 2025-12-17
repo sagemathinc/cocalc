@@ -8,6 +8,7 @@ import { networkArgument } from "./podman";
 import { mountArg } from "@cocalc/backend/podman";
 import { getEnvironment } from "./env";
 import { join } from "node:path";
+import { getCoCalcMounts } from "./mounts";
 
 export interface SandboxExecOptions {
   project_id: string;
@@ -23,13 +24,6 @@ export interface SandboxExecOptions {
    * or we don't have sufficient information to run it and there will be an error.
    */
   useEphemeral?: boolean;
-  /**
-   * When true mount the path to the project's files into the container as is
-   * instead of mounting it to /root.   E.g., if files are in /projects/project-{project_id},
-   * then in the container we mount /projects/project-{project_id} as /projects/project-{project_id}
-   * and set HOME to /projects/project-{project_id}.
-   */
-  useHostHomeMount?: boolean;
 
   /** Optionally disable network for ephemeral runs */
   noNetwork?: boolean;
@@ -55,8 +49,7 @@ async function getContainerImage(home: string): Promise<string> {
  * This mirrors the behavior of the container executor used by ACP:
  * - By default executes inside `project-${project_id}` with podman exec.
  * - When useEphemeral is true, starts a one-off container (podman run --rm)
- *   using the same image as the project container, optionally binding a custom
- *   hostHomeMount at /root.
+ *   using the same image as the project container.
  * - Uses /bin/bash -lc to run the provided script
  * - Allows a custom cwd inside the container
  * - Captures stdout/stderr/exit code
@@ -70,18 +63,16 @@ export async function sandboxExec({
   cwd,
   timeoutMs,
   useEphemeral,
-  useHostHomeMount,
   noNetwork,
 }: SandboxExecOptions): Promise<SandboxExecResult> {
   logger.debug("sandboxExec", {
     project_id,
     useEphemeral,
-    useHostHomeMount,
     cwd,
     script,
   });
   const args: string[] = [];
-  let HOME;
+  const HOME = "/root";
   const getWorkdir = () => {
     if (cwd?.startsWith("/")) {
       return cwd;
@@ -94,7 +85,6 @@ export async function sandboxExec({
     const { home, scratch } = await localPath({
       project_id,
     });
-    HOME = useHostHomeMount ? home : "/root";
     const image = await getContainerImage(home);
     const env = await getEnvironment({
       project_id,
@@ -118,6 +108,12 @@ export async function sandboxExec({
     if (scratch) {
       args.push(mountArg({ source: scratch, target: "/scratch" }));
     }
+    const mounts = getCoCalcMounts();
+    for (const path in mounts) {
+      args.push(
+        mountArg({ source: path, target: mounts[path], readOnly: true }),
+      );
+    }
 
     // Name the container for easier debugging; allow reuse without conflicts.
     args.push("--name", `sandbox-${project_id}-${Date.now()}`);
@@ -127,8 +123,6 @@ export async function sandboxExec({
 
     args.push("/bin/bash", "-lc", script);
   } else {
-    HOME = "/root";
-
     args.push(
       "exec",
       "-i",
