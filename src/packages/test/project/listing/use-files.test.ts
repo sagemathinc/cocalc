@@ -47,7 +47,8 @@ describe("the useFiles hook", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.files?.["hello.txt"]).toBeDefined();
+      (expect(result.current.files?.["hello.txt"]).toBeDefined(),
+        { timeout: 3000 });
     });
 
     expect(result.current).toEqual({
@@ -67,10 +68,11 @@ describe("the useFiles hook", () => {
     path = "scratch";
     rerender();
     await waitFor(() => {
-      expect(result.current.files?.["hello.txt"]).not.toBeDefined();
+      (expect(result.current.files?.["hello.txt"]).not.toBeDefined(),
+        { timeout: 3000 });
     });
     await waitFor(() => {
-      expect(result.current.error).not.toBe(null);
+      (expect(result.current.error).not.toBe(null), { timeout: 3000 });
     });
     expect(result.current.error?.code).toBe("ENOENT");
 

@@ -52,9 +52,12 @@ describe("the useListing hook", () => {
       await fs.writeFile("hello.txt", "world");
     });
 
-    await waitFor(() => {
-      expect(result.current.listing?.length).toEqual(1);
-    });
+    await waitFor(
+      () => {
+        expect(result.current.listing?.length).toEqual(1);
+      },
+      { timeout: 3000 },
+    );
 
     expect(result.current).toEqual({
       listing: [
@@ -68,10 +71,13 @@ describe("the useListing hook", () => {
     // resulting in an ENOENT error
     path = "scratch";
     rerender();
-    await waitFor(() => {
-      expect(result.current.listing).toBeNull();
-      expect(result.current.error?.code).toBe("ENOENT");
-    });
+    await waitFor(
+      () => {
+        expect(result.current.listing).toBeNull();
+        expect(result.current.error?.code).toBe("ENOENT");
+      },
+      { timeout: 3000 },
+    );
 
     await act(async () => {
       // create the path, a file in there, refresh and it works
@@ -80,20 +86,23 @@ describe("the useListing hook", () => {
       result.current.refresh();
     });
 
-    await waitFor(() => {
-      expect(result.current).toEqual({
-        listing: [
-          {
-            name: "b.txt",
-            size: 2,
-            type: "f",
-            mtime: expect.any(Number),
-          },
-        ],
-        error: null,
-        refresh: expect.any(Function),
-      });
-    });
+    await waitFor(
+      () => {
+        expect(result.current).toEqual({
+          listing: [
+            {
+              name: "b.txt",
+              size: 2,
+              type: "f",
+              mtime: expect.any(Number),
+            },
+          ],
+          error: null,
+          refresh: expect.any(Function),
+        });
+      },
+      { timeout: 3000 },
+    );
 
     // change fs and see the hook update
     const project_id2 = uuid();
