@@ -6,6 +6,31 @@ To not forget:
 
 - [ ] when making a new codex session, no session id gets assigned at all, so the session is lost whenever we restart.
 
+- [ ] also just had a problem where the mode on the codex side was "read only" but in the cocalc UI it was "full access".  This was in cocalc-plus mode, and the message to start the session was:
+```
+2025-12-17T15:30:26.602Z (77924):cocalc:debug:lite:hub:acp evaluate: start {
+  reqId: '6dff39a7-b4d4-4ab7-8d8d-480e61fb3d89',
+  session_id: '019b1b1a-3c68-7340-ac59-eb38beb294a9',
+  chat: {
+    project_id: '00000000-1000-4000-8000-000000000000',
+    path: 'build/cocalc-lite/a.chat',
+    sender_id: 'codex-agent',
+    message_date: '2025-12-17T15:30:26.578Z',
+    reply_to: '2025-12-14T04:23:53.485Z'
+  },  projectId: '00000000-1000-4000-8000-000000000000',
+  config: {
+    workingDirectory: 'build/cocalc-lite',    model: 'gpt-5.1-codex-max',
+    reasoning: 'medium',
+    sessionMode: 'full-access',
+    allowWrite: true,
+    sessionId: '019b1b1a-3c68-7340-ac59-eb38beb294a9'
+  },
+  sessionMode: 'full-access',
+  workspaceRoot: '/home/wstein/build/cocalc-lite'
+}
+```
+but it was totally broken, and using `codex resume` in the terminal showed it had read only mode.
+
 - [ ] submitting a new turn while one is running returns this error "{seq: 0, error: 'Error: ACP agent is already processing a request', type: 'error'}".  Thus turns are not queued up properly; basically make 2\-3 requests and all but the first stays stuck forever.
 
 - [ ] interrupt often doesn't work: with this error in frontend console.log "failed to interrupt codex turn ConatError: request \-\- no subscribers matching 'acp.account\-d0bdabfd\-850e\-4c8d\-8510\-f6f1ecb9a5eb.interrupt'"

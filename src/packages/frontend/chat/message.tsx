@@ -524,7 +524,10 @@ export default function Message({
     return typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
   }, [message]);
 
-  const remainingContext = useMemo(() => calcRemainingPercent(usage), [usage]);
+  const remainingContext = useMemo(
+    () => calcRemainingPercent(usage, isLLMThread),
+    [usage, isLLMThread],
+  );
 
   const feedbackMap = useMemo(() => field<any>(message, "feedback"), [message]);
 
@@ -1609,45 +1612,47 @@ function formatTurnDuration({
   return `${minutes}:${pad(seconds)}`;
 }
 
-function calcRemainingPercent(usage: any): number | null {
+function calcRemainingPercent(
+  usage: any,
+  model?: string | boolean | null,
+): number | null {
   if (!usage || typeof usage !== "object") return null;
-  const contextWindow = usage.model_context_window;
-  const usedTokens =
-    calcUsedTokens(usage) ??
-    (typeof usage.total_tokens === "number" ? usage.total_tokens : undefined);
+  const contextWindow =
+    usage.model_context_window ??
+    (typeof model === "string" ? getModelContextWindow(model) : undefined);
+  const inputTokens = usage.input_tokens;
   if (
     typeof contextWindow !== "number" ||
     !Number.isFinite(contextWindow) ||
     contextWindow <= 0 ||
-    typeof usedTokens !== "number" ||
-    !Number.isFinite(usedTokens)
+    typeof inputTokens !== "number" ||
+    !Number.isFinite(inputTokens)
   ) {
     return null;
   }
-  const cappedUsed = Math.min(usedTokens, contextWindow);
   return Math.max(
     0,
-    Math.round(((contextWindow - cappedUsed) / contextWindow) * 100),
+    Math.round(((contextWindow - inputTokens) / contextWindow) * 100),
   );
 }
 
-function calcUsedTokens(usage: any): number | undefined {
-  if (!usage || typeof usage !== "object") return undefined;
-  const keys = [
-    "input_tokens",
-    "cached_input_tokens",
-    "output_tokens",
-    "reasoning_output_tokens",
-  ] as const;
-  let total = 0;
-  for (const key of keys) {
-    const value = usage[key];
-    if (typeof value === "number" && Number.isFinite(value)) {
-      total += value;
+function getModelContextWindow(model?: string): number | undefined {
+  if (!model) return DEFAULT_CONTEXT_WINDOW;
+  for (const [prefix, window] of Object.entries(MODEL_CONTEXT_WINDOWS)) {
+    if (model.startsWith(prefix)) {
+      return window;
     }
   }
-  return total > 0 ? total : undefined;
+  return DEFAULT_CONTEXT_WINDOW;
 }
+
+const DEFAULT_CONTEXT_WINDOW = 272_000;
+const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
+  "gpt-5.1-codex-max": 272_000,
+  "gpt-5.1-codex": 272_000,
+  "gpt-5.1-codex-mini": 136_000,
+  "gpt-5.1": 272_000,
+};
 
 function toMessageMs(value: any): number | null {
   if (value instanceof Date) {
