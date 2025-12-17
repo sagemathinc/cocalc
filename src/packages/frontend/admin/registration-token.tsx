@@ -147,7 +147,7 @@ export function RegistrationToken() {
         label: "Ephemeral link",
         span: 2,
         children: ephemeralLink ? (
-          <Copyable value={ephemeralLink} />
+          <Copyable value={ephemeralLink} size={"small"} />
         ) : (
           "Not available"
         ),

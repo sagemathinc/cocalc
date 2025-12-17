@@ -68,8 +68,6 @@ export default async function createProject(opts: CreateProjectOptions) {
     return true;
   });
 
-  // Convert back to comma-separated string for database
-  let license = licenses.length > 0 ? licenses.join(",") : undefined;
   let project_id;
   if (opts.project_id) {
     if (!account_id || !(await isAdmin(account_id))) {
@@ -80,7 +78,7 @@ export default async function createProject(opts: CreateProjectOptions) {
     // Try to get from pool if no license and no image specified (so the default),
     // and not "noPool".  NOTE: we may improve the pool to also provide some
     // basic licensed projects later, and better support for images.  Maybe.
-    if (!noPool && !license && account_id != null) {
+    if (!noPool && licenses.length === 0 && account_id != null) {
       project_id = await getFromPool({
         account_id,
         title,
@@ -99,9 +97,9 @@ export default async function createProject(opts: CreateProjectOptions) {
   const users =
     account_id == null ? null : { [account_id]: { group: "owner" } };
   let site_license;
-  if (license) {
+  if (licenses.length > 0) {
     site_license = {};
-    for (const license_id of license.split(",")) {
+    for (const license_id of licenses) {
       site_license[license_id] = {};
     }
   } else {
