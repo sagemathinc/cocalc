@@ -35,18 +35,41 @@ export default async function createProject(opts: CreateProjectOptions) {
     noPool,
     start,
     ephemeral,
+    customize,
   } = opts;
-  let license = opts.license;
+
+  // Build licenses array from all sources
+  let licenses: string[] = [];
+
+  // Add licenses from opts.license (may be comma-separated)
+  if (opts.license) {
+    licenses.push(...opts.license.split(",").map((s) => s.trim()));
+  }
+
+  // Add license from customize if present
+  if (customize?.license) {
+    licenses.push(customize.license);
+  }
+
+  // Add license from public_path_id if present
   if (public_path_id) {
     const site_license_id = await associatedLicense(public_path_id);
     if (site_license_id) {
-      if (!license) {
-        license = site_license_id;
-      } else {
-        license = license + "," + site_license_id;
-      }
+      licenses.push(site_license_id);
     }
   }
+
+  // Validate all licenses are valid UUIDs
+  licenses = licenses.filter((lic) => {
+    if (!isValidUUID(lic)) {
+      log.warn("Invalid license UUID, skipping:", lic);
+      return false;
+    }
+    return true;
+  });
+
+  // Convert back to comma-separated string for database
+  let license = licenses.length > 0 ? licenses.join(",") : undefined;
   let project_id;
   if (opts.project_id) {
     if (!account_id || !(await isAdmin(account_id))) {
@@ -87,8 +110,14 @@ export default async function createProject(opts: CreateProjectOptions) {
 
   const envs = await getSoftwareEnvironments("server");
 
+  // Build settings object from customize parameters
+  let settings: { disableInternet?: boolean } | undefined;
+  if (customize?.disableInternet) {
+    settings = { disableInternet: true };
+  }
+
   await pool.query(
-    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited, ephemeral) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7::BIGINT)",
+    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited, ephemeral, settings) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7::BIGINT, $8::JSONB)",
     [
       project_id,
       title ?? "No Title",
@@ -97,6 +126,7 @@ export default async function createProject(opts: CreateProjectOptions) {
       site_license != null ? JSON.stringify(site_license) : undefined,
       image ?? envs?.default ?? DEFAULT_COMPUTE_IMAGE,
       ephemeral ?? null,
+      settings != null ? JSON.stringify(settings) : undefined,
     ],
   );
 

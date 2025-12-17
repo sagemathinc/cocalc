@@ -18,6 +18,7 @@ import {
 import type { DescriptionsProps } from "antd";
 import { List } from "immutable";
 import { sortBy } from "lodash";
+import dayjs from "dayjs";
 
 import { CopyOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
@@ -40,7 +41,6 @@ import {
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
-import dayjs from "dayjs";
 
 import RegistrationTokenDialog from "./registration-token-dialog";
 import {
@@ -169,6 +169,12 @@ export function RegistrationToken() {
         key: "disableInternet",
         label: "Disable internet",
         children: token.customize?.disableInternet ? "Yes" : "No",
+      },
+      {
+        key: "license",
+        label: "License",
+        span: 3,
+        children: token.customize?.license || "None",
       },
     ];
 

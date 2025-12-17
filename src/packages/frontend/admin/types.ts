@@ -4,6 +4,8 @@
  */
 import type { Dayjs } from "dayjs";
 
+import type { RegistrationTokenCustomize } from "@cocalc/util/types/registration-token";
+
 export interface Token {
   key?: string; // used in the table, not for the database
   token: string;
@@ -14,11 +16,7 @@ export interface Token {
   limit?: number;
   counter?: number;
   ephemeral?: number;
-  customize?: {
-    disableCollaborators?: boolean;
-    disableAI?: boolean;
-    disableInternet?: boolean;
-  };
+  customize?: RegistrationTokenCustomize;
 }
 
 export const HOUR_MS = 60 * 60 * 1000;

@@ -8,6 +8,7 @@ import { getProject } from "@cocalc/server/projects/control";
 import callProject from "@cocalc/server/projects/call";
 import getKernels from "@cocalc/server/jupyter/kernels";
 import { isValidUUID } from "@cocalc/util/misc";
+import type { RegistrationTokenCustomize } from "@cocalc/util/types/registration-token";
 
 // If true, create welcome files based on tags.
 // disabled because based on data with users, it doesn't help.
@@ -24,11 +25,13 @@ export default async function firstProject({
   tags,
   dontStartProject,
   ephemeral,
+  customize,
 }: {
   account_id: string;
   tags?: string[];
   dontStartProject?: boolean;
   ephemeral?: number;
+  customize?: RegistrationTokenCustomize;
 }): Promise<string> {
   log.debug(account_id, tags);
   if (!isValidUUID(account_id)) {
@@ -38,6 +41,7 @@ export default async function firstProject({
     account_id,
     title: "My First Project",
     ephemeral,
+    customize,
   });
   log.debug("created new project", project_id);
   if (!dontStartProject) {

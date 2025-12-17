@@ -18,6 +18,7 @@ import {
 import type { RadioChangeEvent } from "antd";
 
 import { CancelText } from "@cocalc/frontend/i18n/components";
+import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import {
   CUSTOM_PRESET_KEY,
   EPHEMERAL_PRESETS,
@@ -215,6 +216,18 @@ export default function RegistrationTokenDialog({
               <Checkbox>Disable internet access</Checkbox>
             </Form.Item>
           </Space>
+        </Form.Item>
+        <Form.Item
+          name={["customize", "license"]}
+          label="License"
+          extra="Optional: Apply a site license to projects created via this token"
+        >
+          <SiteLicenseInput
+            defaultLicenseId={editingToken?.customize?.license}
+            onChange={(licenseId) =>
+              form.setFieldValue(["customize", "license"], licenseId)
+            }
+          />
         </Form.Item>
         <Form.Item name="active" label="Active" valuePropName="checked">
           <Switch />

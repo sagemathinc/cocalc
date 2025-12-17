@@ -135,9 +135,9 @@ export function useRegistrationTokens() {
       (k: RegistrationTokenSetFields) => (val[k] = val[k] ?? undefined),
     );
     if (val.customize != null) {
-      const { disableCollaborators, disableAI, disableInternet } =
+      const { disableCollaborators, disableAI, disableInternet, license } =
         val.customize;
-      if (!disableCollaborators && !disableAI && !disableInternet) {
+      if (!disableCollaborators && !disableAI && !disableInternet && !license) {
         val.customize = undefined;
       }
     }
