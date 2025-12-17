@@ -65,21 +65,42 @@ export class LocalExecutor implements AcpExecutor {
     args: string[] | undefined,
     cwd: string,
     opts?: { timeoutMs?: number; env?: Record<string, string> },
-  ) {
+  ): Promise<{
+    stdout: string;
+    stderr: string;
+    exitCode: number | null;
+    signal?: string;
+  }> {
     try {
-      const execFn = args ? execFile : exec;
-      const { stdout, stderr } = await execFn(command, args ?? [], {
+      if (args) {
+        const { stdout, stderr } = await execFile(command, args, {
+          cwd,
+          env: { ...process.env, ...(opts?.env ?? {}) },
+          timeout: opts?.timeoutMs,
+          maxBuffer: 10 * 1024 * 1024,
+        });
+        return {
+          stdout: stdout?.toString?.() ?? stdout ?? "",
+          stderr: stderr?.toString?.() ?? stderr ?? "",
+          exitCode: 0,
+        };
+      }
+      const { stdout, stderr } = await exec(command, {
         cwd,
         env: { ...process.env, ...(opts?.env ?? {}) },
         timeout: opts?.timeoutMs,
         maxBuffer: 10 * 1024 * 1024,
-      } as any);
+      });
       return {
         stdout: stdout?.toString?.() ?? stdout ?? "",
         stderr: stderr?.toString?.() ?? stderr ?? "",
         exitCode: 0,
       };
     } catch (err: any) {
+      // Propagate failures for callers that expect rejection on nonzero exit.
+      if (typeof err?.code === "number") {
+        throw new Error(err?.stderr?.toString?.() ?? err?.message ?? "exec failed");
+      }
       return {
         stdout: err?.stdout ?? "",
         stderr: err?.stderr ?? err?.message ?? "",

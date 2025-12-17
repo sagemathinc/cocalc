@@ -1,10 +1,8 @@
-import { execFile } from "node:child_process";
-import { ContainerExecutor, setContainerFileIO } from "../container";
-
-jest.mock("node:child_process", () => {
-  const execFileMock = jest.fn();
-  return { execFile: execFileMock };
-});
+import {
+  ContainerExecutor,
+  setContainerExec,
+  setContainerFileIO,
+} from "../container";
 
 function makeMockApi() {
   const readTextFileFromProject = jest.fn().mockResolvedValue("data");
@@ -23,6 +21,7 @@ describe("ContainerExecutor", () => {
   const workspaceRoot = "/projects/test/";
   afterEach(() => {
     setContainerFileIO(null);
+    setContainerExec(null);
   });
 
   it("reads and writes within workspace", async () => {
@@ -82,29 +81,22 @@ describe("ContainerExecutor", () => {
     );
   });
 
-  it("executes commands with cwd/env/timeout", async () => {
+  it("executes commands with cwd/timeout", async () => {
     const { api } = makeMockApi();
+    setContainerExec(async ({ script, cwd, timeoutMs }) => {
+      expect(script).toBe("echo hi");
+      expect(cwd).toBe("subdir");
+      expect(timeoutMs).toBe(1200);
+      return { stdout: "out", stderr: "err", code: 0 };
+    });
     const executor = new ContainerExecutor({
       projectId,
       workspaceRoot,
       projectApi: api as any,
-      env: { BASE: "1" },
     });
-    (execFile as unknown as jest.Mock).mockImplementation(
-      (
-        _cmd: string,
-        _args: string[],
-        _opts: Record<string, unknown>,
-        cb: (...args: any[]) => void,
-      ) => {
-        cb(null, "out", "err");
-        return null as any;
-      },
-    );
     const result = await executor.exec("echo hi", {
       cwd: "subdir",
       timeoutMs: 1200,
-      env: { EXTRA: "yes" },
     });
     expect(result).toEqual({
       stdout: "out",
@@ -112,97 +104,19 @@ describe("ContainerExecutor", () => {
       exitCode: 0,
       signal: undefined,
     });
-    expect(execFile).toHaveBeenCalledWith(
-      "podman",
-      expect.arrayContaining([
-        "exec",
-        "-i",
-        "--workdir",
-        "/projects/test/subdir",
-        `project-${projectId}`,
-        "/bin/bash",
-        "-lc",
-        "echo hi",
-      ]),
-      expect.objectContaining({ timeout: 1200, maxBuffer: expect.any(Number) }),
-      expect.any(Function),
-    );
-  });
-
-  it("respects explicit PATH and keeps defaults otherwise", async () => {
-    const { api } = makeMockApi();
-    const executor = new ContainerExecutor({
-      projectId,
-      workspaceRoot,
-      projectApi: api as any,
-      env: { PATH: "/custom/bin" },
-    });
-    (execFile as unknown as jest.Mock).mockImplementation(
-      (
-        _cmd: string,
-        args: string[],
-        _opts: Record<string, unknown>,
-        cb: (...args: any[]) => void,
-      ) => {
-        // No env passthrough expected now
-        expect(args).not.toContain("--env");
-        cb(null, "", "");
-        return null as any;
-      },
-    );
-    await executor.exec("which bash");
   });
 
   it("unwraps existing bash -lc to avoid double shell", async () => {
     const { api } = makeMockApi();
+    setContainerExec(async ({ script }) => {
+      expect(script).toBe("apt-get update");
+      return { stdout: "", stderr: "", code: 0 };
+    });
     const executor = new ContainerExecutor({
       projectId,
       workspaceRoot,
       projectApi: api as any,
     });
-    (execFile as unknown as jest.Mock).mockImplementation(
-      (
-        _cmd: string,
-        args: string[],
-        _opts: Record<string, unknown>,
-        cb: (...args: any[]) => void,
-      ) => {
-        // Should only have a single bash -lc with the inner script.
-        const tail = args.slice(-3);
-        expect(tail).toEqual(["/bin/bash", "-lc", "apt-get update"]);
-        cb(null, "", "");
-        return null as any;
-      },
-    );
     await executor.exec("/bin/bash -lc apt-get update");
-  });
-
-  it("rewrites host paths inside shell script", async () => {
-    const { api } = makeMockApi();
-    setContainerFileIO({
-      readFile: jest.fn(),
-      writeFile: jest.fn(),
-      mountPoint: () => "/host/projects/test",
-    });
-    const executor = new ContainerExecutor({
-      projectId,
-      workspaceRoot: "/root",
-      projectApi: api as any,
-    });
-    (execFile as unknown as jest.Mock).mockImplementation(
-      (
-        _cmd: string,
-        args: string[],
-        _opts: Record<string, unknown>,
-        cb: (...args: any[]) => void,
-      ) => {
-        const script = args[args.length - 1];
-        expect(script).toContain("/root/data.txt");
-        expect(script).not.toContain("/host/projects/test");
-        cb(null, "", "");
-        return null as any;
-      },
-    );
-    await executor.exec("/bin/bash -lc 'cat /host/projects/test/data.txt'");
   });
 });

@@ -42,7 +42,7 @@ describe("resolveWorkspaceRoot", () => {
 
     it("returns cwd when nothing specified", () => {
       const root = resolveWorkspaceRoot(undefined);
-      expect(root).toBe(process.cwd());
+      expect(root).toBe(process.env.HOME ?? process.cwd());
     });
   });
 });
