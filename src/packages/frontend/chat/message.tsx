@@ -56,7 +56,6 @@ import {
   newest_content,
   sender_is_viewer,
 } from "./utils";
-import { CONTEXT_WARN_PCT, CONTEXT_CRITICAL_PCT } from "./codex";
 import { delay } from "awaiting";
 import {
   dateValue,
@@ -470,64 +469,6 @@ export default function Message({
   );
 
   const sessionIdForInterrupt = acpThreadId ?? threadKeyForSession;
-
-  const latestThreadMessageMs = useMemo(() => {
-    if (threadRootMs == null) return null;
-    const iso = new Date(threadRootMs).toISOString();
-    const seq = actions?.getMessagesInThread?.(iso);
-    if (seq && typeof (seq as any).toArray === "function") {
-      const arr = (seq as any).toArray();
-      if (arr.length > 0) {
-        const last = arr[arr.length - 1];
-        const lastMs = toMessageMs(dateValue(last));
-        if (lastMs != null) return lastMs;
-        let max = -Infinity;
-        for (const msg of arr) {
-          const ms = toMessageMs(dateValue(msg));
-          if (ms != null && ms > max) {
-            max = ms;
-          }
-        }
-        return Number.isFinite(max) ? max : null;
-      }
-    }
-    if (messages && typeof messages.forEach === "function") {
-      let max = -Infinity;
-      messages.forEach((msg) => {
-        if (!msg) return;
-        const root = getThreadRootDate({
-          date: dateValue(msg)?.valueOf?.() ?? 0,
-          messages,
-        });
-        const rootMs =
-          root?.valueOf?.() ?? (typeof root === "number" ? root : undefined);
-        if (rootMs === threadRootMs) {
-          const ms = dateValue(msg)?.valueOf?.();
-          if (typeof ms === "number" && Number.isFinite(ms) && ms > max) {
-            max = ms;
-          }
-        }
-      });
-      return Number.isFinite(max) ? max : null;
-    }
-    return null;
-  }, [actions, messages, threadRootMs]);
-
-  const isLatestMessageInThread = useMemo(() => {
-    if (latestThreadMessageMs == null) return true;
-    return date >= latestThreadMessageMs;
-  }, [latestThreadMessageMs, date]);
-
-  const usage = useMemo(() => {
-    const usageRaw: any = field(message, "acp_usage");
-    if (!usageRaw) return undefined;
-    return typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
-  }, [message]);
-
-  const remainingContext = useMemo(
-    () => calcRemainingPercent(usage, isLLMThread),
-    [usage, isLLMThread],
-  );
 
   const feedbackMap = useMemo(() => field<any>(message, "feedback"), [message]);
 
@@ -1077,7 +1018,6 @@ export default function Message({
             </Drawer>
           </>
         )}
-        {renderContextNotice()}
         <MostlyStaticMarkdown
           style={MARKDOWN_STYLE}
           value={value}
@@ -1094,62 +1034,6 @@ export default function Message({
           }
         />
       </>
-    );
-  }
-
-  function renderContextNotice() {
-    if (generating === true || !usage || !isLatestMessageInThread) return null;
-    const remaining = remainingContext;
-    if (remaining == null || remaining > CONTEXT_WARN_PCT) return null;
-    const severity =
-      remaining <= CONTEXT_CRITICAL_PCT
-        ? ("critical" as const)
-        : ("warning" as const);
-    const colors =
-      severity === "critical"
-        ? { bg: "rgba(211, 47, 47, 0.12)", border: "#d32f2f", text: "#b71c1c" }
-        : {
-            bg: "rgba(245, 166, 35, 0.12)",
-            border: "#f5a623",
-            text: "#8a5b00",
-          };
-    const rootKey =
-      threadRootMs != null && Number.isFinite(threadRootMs)
-        ? `${threadRootMs}`
-        : `${date}`;
-    const label =
-      severity === "critical"
-        ? "Context nearly exhausted — compact now"
-        : "Context low — compact soon";
-    return (
-      <div
-        style={{
-          margin: "6px 0 8px",
-          padding: "8px 10px",
-          borderRadius: 6,
-          background: colors.bg,
-          border: `1px solid ${colors.border}`,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          flexWrap: "wrap",
-          color: colors.text,
-        }}
-      >
-        <span style={{ fontWeight: 600 }}>
-          {label} ({remaining}% left)
-        </span>
-        {actions?.runCodexCompact ? (
-          <Button
-            size="small"
-            type={severity === "critical" ? "primary" : "default"}
-            danger={severity === "critical"}
-            onClick={() => actions.runCodexCompact(rootKey)}
-          >
-            Compact
-          </Button>
-        ) : null}
-      </div>
     );
   }
 
@@ -1610,63 +1494,6 @@ function formatTurnDuration({
     return `${hours}:${pad(minutes)}:${pad(seconds)}`;
   }
   return `${minutes}:${pad(seconds)}`;
-}
-
-function calcRemainingPercent(
-  usage: any,
-  model?: string | boolean | null,
-): number | null {
-  if (!usage || typeof usage !== "object") return null;
-  const contextWindow =
-    usage.model_context_window ??
-    (typeof model === "string" ? getModelContextWindow(model) : undefined);
-  const inputTokens = usage.input_tokens;
-  if (
-    typeof contextWindow !== "number" ||
-    !Number.isFinite(contextWindow) ||
-    contextWindow <= 0 ||
-    typeof inputTokens !== "number" ||
-    !Number.isFinite(inputTokens)
-  ) {
-    return null;
-  }
-  return Math.max(
-    0,
-    Math.round(((contextWindow - inputTokens) / contextWindow) * 100),
-  );
-}
-
-function getModelContextWindow(model?: string): number | undefined {
-  if (!model) return DEFAULT_CONTEXT_WINDOW;
-  for (const [prefix, window] of Object.entries(MODEL_CONTEXT_WINDOWS)) {
-    if (model.startsWith(prefix)) {
-      return window;
-    }
-  }
-  return DEFAULT_CONTEXT_WINDOW;
-}
-
-const DEFAULT_CONTEXT_WINDOW = 272_000;
-const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
-  "gpt-5.1-codex-max": 272_000,
-  "gpt-5.1-codex": 272_000,
-  "gpt-5.1-codex-mini": 136_000,
-  "gpt-5.1": 272_000,
-};
-
-function toMessageMs(value: any): number | null {
-  if (value instanceof Date) {
-    const ms = value.valueOf();
-    return Number.isFinite(ms) ? ms : null;
-  }
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null;
-  }
-  if (typeof value === "string") {
-    const parsed = Date.parse(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
 }
 
 // Used for exporting chat to markdown file
