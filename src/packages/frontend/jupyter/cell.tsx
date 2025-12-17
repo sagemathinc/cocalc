@@ -272,10 +272,8 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         : "10px";
 
     const style: React.CSSProperties = {
-      border: `1px solid ${color}`,
-      borderLeft: `10px solid ${color}`,
-      borderRight: `10px solid ${color}`,
-      borderRadius: "10px",
+      borderLeft: `5px solid ${color}`,
+      borderRadius: "5px",
       position: "relative",
       padding: "2px 2px 5px 2px",
       // The bigger top margin when in fully read only mode (no props.actions,
