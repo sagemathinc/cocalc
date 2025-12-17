@@ -65,7 +65,10 @@ import {
   senderId,
 } from "./access";
 import { ChatMessageCache } from "./message-cache";
-import { processLLM as processLLMExternal, type LLMContext } from "./actions/llm";
+import {
+  processLLM as processLLMExternal,
+  type LLMContext,
+} from "./actions/llm";
 import { addToHistory } from "@cocalc/chat";
 
 export class ChatActions extends Actions<ChatState> {
@@ -110,11 +113,9 @@ export class ChatActions extends Actions<ChatState> {
     return typeof record?.get === "function" ? record : fromJS(record);
   }
 
-  private setSyncdb(obj: any): void {
-    if (this.syncdb == null) return;
-    const plain = obj && typeof obj.toJS === "function" ? obj.toJS() : obj;
-    this.syncdb.set(plain);
-  }
+  private setSyncdb = (obj: any): void => {
+    this.syncdb?.set(obj);
+  };
 
   // Dispose resources tied to this actions instance.
   dispose(): void {
@@ -407,7 +408,7 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   saveHistory = (
-    message: ChatMessage,
+    message: { date: string | Date; history?: MessageHistory[] },
     content: string,
     author_id: string,
     generating: boolean = false,
@@ -442,7 +443,7 @@ export class ChatActions extends Actions<ChatState> {
     reply_to,
     submitMentionsRef,
   }: {
-    message: ChatMessage;
+    message: { date: string | Date };
     reply?: string;
     from?: string;
     noNotification?: boolean;
@@ -1026,8 +1027,12 @@ export class ChatActions extends Actions<ChatState> {
     if (baseDate == null || Number.isNaN(baseDate)) return undefined;
     const messagesMap = this.getAllMessages();
     if (messagesMap && messagesMap.size > 0) {
-      const rootMs = getThreadRootDate({ date: baseDate, messages: messagesMap });
-      const normalized = typeof rootMs === "number" && rootMs > 0 ? rootMs : baseDate;
+      const rootMs = getThreadRootDate({
+        date: baseDate,
+        messages: messagesMap,
+      });
+      const normalized =
+        typeof rootMs === "number" && rootMs > 0 ? rootMs : baseDate;
       return `${normalized}`;
     }
     return `${baseDate}`;

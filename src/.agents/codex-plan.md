@@ -33,9 +33,12 @@ but it was totally broken, and using `codex resume` in the terminal showed it ha
 
 - [ ] submitting a new turn while one is running returns this error "{seq: 0, error: 'Error: ACP agent is already processing a request', type: 'error'}".  Thus turns are not queued up properly; basically make 2\-3 requests and all but the first stays stuck forever.
 
+- [ ] if the codex-acp subprocess is killed then everything is broken forever; instead it should get restarted
+
 - [ ] interrupt often doesn't work: with this error in frontend console.log "failed to interrupt codex turn ConatError: request \-\- no subscribers matching 'acp.account\-d0bdabfd\-850e\-4c8d\-8510\-f6f1ecb9a5eb.interrupt'"
 
-- [ ] make sure approvals in lite mode still work \(see conat/ai/acp/server.ts discussion about account\_id\).  They might -- this is just a test.
+- [ ] in lite mode nothing but "full access" works. They might -- this is just a test.
+   - "sandbox/readonly in lite hangs; prompt.start with no end; likely codex-acp failure (no stderr surfaced)"
 
 - [ ] change what sandbox option in container mode means (as configured in frontend/chat), i.e., when 'lite' is true, where `import {lite} from @cocalc/frontend/lite`. see other tasks below. The codex internal sandbox mode doesn't make any sense, but having a sandbox mode does.
 

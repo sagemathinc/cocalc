@@ -7,7 +7,6 @@ import {
   type CodexSessionConfig,
 } from "@cocalc/util/ai/codex";
 import { uuid } from "@cocalc/util/misc";
-
 import type { ChatMessage, MessageHistory } from "./types";
 
 interface AcpContext {
@@ -19,7 +18,7 @@ interface AcpContext {
   path?: string;
   chatStreams: Set<string>;
   sendReply: (opts: {
-    message: ChatMessage;
+    message: { date: string | Date };
     reply?: string;
     from?: string;
     noNotification?: boolean;
@@ -27,7 +26,7 @@ interface AcpContext {
     submitMentionsRef?: any;
   }) => string;
   saveHistory: (
-    message: ChatMessage,
+    message: { date: string | Date; history?: MessageHistory[] },
     content: string,
     author_id: string,
     generating?: boolean,
@@ -106,31 +105,35 @@ export async function processAcpLLM({
 
   const sender_id = model || "openai-codex-agent";
   const thinking = ":robot: Thinking...";
-  const { date } =
-    tag === "regenerate"
-      ? saveHistory(message, thinking, sender_id, true)
-      : {
-          date: sendReply({
-            message,
-            reply: thinking,
-            from: sender_id,
-            noNotification: true,
-            reply_to,
-          }),
-        };
+
+  // date is the iso timestamp of the response message, which
+  // will be set to thinking initially.
+  let date: string;
+  if (tag == "renerate") {
+    ({ date } = saveHistory(message, thinking, sender_id, true));
+  } else {
+    date = sendReply({
+      message,
+      reply: thinking,
+      from: sender_id,
+      noNotification: true,
+      reply_to,
+    });
+  }
+  if (!date) {
+    console.log("date not set", date);
+    return;
+  }
+  syncdb.commit();
 
   const id = uuid();
   chatStreams.add(id);
+  // NOTE: the stream is ONLY used to submit the message for acp;
+  // the actual resonse is via a pub/sub channel.  Thus this 3 minutes
+  // is fine, even if the response is very long.
   setTimeout(() => chatStreams.delete(id), 3 * 60 * 1000);
 
-  let messageDate: Date;
-  if (date && typeof date !== "string") {
-    messageDate = date;
-  } else if (typeof date === "string") {
-    messageDate = new Date(date);
-  } else {
-    messageDate = new Date();
-  }
+  let messageDate: Date = new Date(date);
   if (Number.isNaN(messageDate.valueOf())) {
     throw new Error("Codex chat message has invalid date");
   }
@@ -156,10 +159,23 @@ export async function processAcpLLM({
       chat: chatMetadata,
     });
     for await (const message of stream) {
-      console.log(message);
+      // TODO: this is excess logging for development purposes
+      console.log("ACP message", message);
+      // when something goes wrong, the stream may send this sort of message:
+      // {seq: 0, error: 'Error: ACP agent is already processing a request', type: 'error'}
+      if (message?.type == "error") {
+        throw Error(message.error);
+      }
     }
   } catch (err) {
-    console.warn("AI eval problem:", err);
+    chatStreams.delete(id);
+    // set to the error message and stop generating
+    let s = `${err}`;
+    if (s.startsWith("Error: Error:")) {
+      s = s.slice("Error: ".length);
+    }
+    saveHistory({ date }, s, sender_id, false);
+    syncdb.commit();
   }
 }
 
