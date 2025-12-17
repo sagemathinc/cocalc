@@ -34,10 +34,7 @@ import {
 } from "./workspace-root";
 import { getBlobstore } from "../blobs/download";
 import { buildChatMessage, type MessageHistory } from "@cocalc/chat";
-import {
-  acquireChatSyncDB,
-  releaseChatSyncDB,
-} from "@cocalc/chat/server";
+import { acquireChatSyncDB, releaseChatSyncDB } from "@cocalc/chat/server";
 import { appendStreamMessage, extractEventText } from "@cocalc/chat";
 import type { SyncDB } from "@cocalc/conat/sync-doc/syncdb";
 import type { AcpStreamUsage } from "@cocalc/ai/acp";
@@ -146,10 +143,10 @@ function resolveApproval(decision: ApprovalDecision): boolean {
 }
 
 export class ChatStreamWriter {
+  public syncdbError?: unknown;
   private syncdb?: SyncDB;
   private syncdbPromise: Promise<SyncDB>;
   private usePool: boolean;
-  private syncdbError?: unknown;
   private metadata: AcpChatContext;
   private readonly chatKey: string;
   private threadKeys = new Set<string>();
@@ -249,16 +246,17 @@ export class ChatStreamWriter {
     }
   }
 
-  private waitUntilReady = async () => {
+  waitUntilReady = async () => {
     try {
       await this.ready;
     } catch (err) {
       logger.warn("chat stream writer failed to initialize", err);
       this.syncdbError = err;
       this.closed = true;
-      throw err;
     }
   };
+
+  isClosed = () => this.closed;
 
   private async initialize(): Promise<void> {
     const db = await this.syncdbPromise;
@@ -522,10 +520,7 @@ export class ChatStreamWriter {
       }
       try {
         if (this.usePool) {
-          await releaseChatSyncDB(
-            this.metadata.project_id,
-            this.metadata.path,
-          );
+          await releaseChatSyncDB(this.metadata.project_id, this.metadata.path);
         } else {
           await this.syncdb!.close();
         }
@@ -878,6 +873,12 @@ export async function evaluate({
 
   let wrappedStream;
   if (chatWriter != null) {
+    await chatWriter.waitUntilReady();
+    if (chatWriter.isClosed()) {
+      throw Error(
+        `failed to initialize chat writer -- ${chatWriter.syncdbError}`,
+      );
+    }
     wrappedStream = async (payload?: AcpStreamPayload | null) => {
       try {
         await chatWriter.handle(payload);
