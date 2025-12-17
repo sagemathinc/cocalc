@@ -973,8 +973,11 @@ function TerminalPreview({
   );
 }
 
-function shortenPath(path: string): string {
+function shortenPath(path?: string): string {
   if (!path) return "~";
+  if (path.startsWith("./")) {
+    return "~" + path.slice(1);
+  }
   const homeMatch = path.match(/^\/home\/([^/]+)(.*)$/);
   if (homeMatch) {
     return homeMatch[2] ? `~${homeMatch[2]}` : "~";
