@@ -13,5 +13,6 @@ module.exports = {
   moduleNameMapper: {
     "^@cocalc/backend/(.*)$": "<rootDir>/../backend/$1",
     "^@cocalc/frontend/(.*)$": "<rootDir>/../frontend/$1",
+    "^p-limit$": "<rootDir>/mocks/p-limit.js",
   },
 };
