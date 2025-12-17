@@ -4,8 +4,6 @@
 
 To not forget:
 
-- [ ] completely remove sandbox option in container mode (as configured in frontend/chat), i.e., when 'lite' is true, where `import {lite} from @cocalc/frontend/lite`. 
-
 - [ ] when making a new codex session, no session id gets assigned at all, so the session is lost whenever we restart.
 
 - [ ] submitting a new turn while one is running returns this error "{seq: 0, error: 'Error: ACP agent is already processing a request', type: 'error'}".  Thus turns are not queued up properly; basically make 2\-3 requests and all but the first stays stuck forever.
@@ -14,9 +12,11 @@ To not forget:
 
 - [ ] make sure approvals in lite mode still work \(see conat/ai/acp/server.ts discussion about account\_id\).  They might -- this is just a test.
 
-- [ ] implemented a readonly container mode by mounting the sandboxExec container fs readonly
+- [ ] change what sandbox option in container mode means (as configured in frontend/chat), i.e., when 'lite' is true, where `import {lite} from @cocalc/frontend/lite`. see other tasks below. The codex internal sandbox mode doesn't make any sense, but having a sandbox mode does.
 
-- [ ] limit agent to only be able to write inside the workspace by mounting only a subset of the project's directory writable and the rest readonly.
+- [ ] limit agent to only be able to write inside the workspace by mounting only a subset of the project's directory writable and the rest readonly, when doing sandboxExec. This is the key needed for sandbox mode.  Also handle fs calls differently.
+
+- [ ] implemented readonly container mode by mounting the sandboxExec container fs readonly
 
 - [ ] mounts created via src/packages/project-runner/run/sandbox-exec.ts do not get freed, which would lead to resource leakage.   The overlayfs mount *is* shared with the project if it is running, so this is subtle.  We only want to unmount if we actually make the mount and the project or another container didn't similarly start using it.  I.e., we need reference counting for the mount/unmount command.
 
