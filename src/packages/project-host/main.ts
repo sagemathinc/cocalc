@@ -32,6 +32,10 @@ import { init as initAcp } from "@cocalc/lite/hub/acp";
 import { setContainerExec } from "@cocalc/lite/hub/acp/executor/container";
 import { setPreferContainerExecutor } from "@cocalc/lite/hub/acp/workspace-root";
 import { sandboxExec } from "@cocalc/project-runner/run/sandbox-exec";
+import {
+  DEFAULT_CODEX_ACP_IMAGE,
+  ensureCodexContainerImage,
+} from "@cocalc/ai/acp/containers/codex";
 
 const logger = getLogger("project-host:main");
 
@@ -88,6 +92,16 @@ export async function main(
   initSqlite();
   initChangefeeds({ client: conatClient });
   await initHubApi({ client: conatClient });
+
+  // Ensure the codex-acp container image exists and configure codex to use it.
+  const codexImage =
+    process.env.COCALC_ACP_PODMAN_IMAGE ?? DEFAULT_CODEX_ACP_IMAGE;
+  try {
+    await ensureCodexContainerImage(codexImage);
+    process.env.COCALC_ACP_PODMAN_IMAGE = codexImage;
+  } catch (err) {
+    logger.warn("failed to ensure codex-acp container image", err);
+  }
 
   // ACP runs inside project-host in container mode (no env flag needed).
   setPreferContainerExecutor(true);

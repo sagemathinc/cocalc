@@ -35,6 +35,7 @@
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
+    "@cocalc/ai": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/file-server": "workspace:*",
     "@cocalc/lite": "workspace:*",

@@ -1341,6 +1341,9 @@ importers:
 
   project-host:
     dependencies:
+      '@cocalc/ai':
+        specifier: workspace:*
+        version: link:../ai
       '@cocalc/backend':
         specifier: workspace:*
         version: link:../backend

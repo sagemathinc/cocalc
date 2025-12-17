@@ -23,6 +23,8 @@ import {
   ndJsonStream,
 } from "@agentclientprotocol/sdk";
 import type { PromptRequest } from "@agentclientprotocol/sdk/dist/schema";
+import { argsJoin } from "@cocalc/util/args";
+import { join } from "node:path";
 
 import getLogger from "@cocalc/backend/logger";
 import {
@@ -43,7 +45,7 @@ import type {
   PathResolution,
 } from "./adapters";
 
-const logger = getLogger("ai:acp");
+const logger = getLogger("ai:acp:codex");
 
 const FILE_LINK_GUIDANCE =
   "When referencing workspace files, output markdown links relative to the project root so they stay clickable in CoCalc, e.g., foo.py -> [foo.py](./foo.py) (no backticks around the link). For images use ![](./image.png).";
@@ -181,6 +183,10 @@ export class CodexAcpAgent implements AcpAgent {
         process.env.COCALC_ACP_PODMAN_NETWORK ?? "slirp4netns",
         "-v",
         `${sessionDirHost}:${sessionDirContainer}:rw`,
+        // make host auth available
+        // TODO: this may only be for development
+        "-v",
+        `${join(process.env.HOME ?? "", ".codex")}:/root/.codex:rw`,
         "-e",
         "HOME=/root",
         "-w",
@@ -206,7 +212,7 @@ export class CodexAcpAgent implements AcpAgent {
         }
       }
 
-      podmanArgs.push(podmanImage, "/usr/local/bin/codex-acp", ...codexArgs);
+      podmanArgs.push(podmanImage, ...codexArgs);
       childCmd = "podman";
       args.length = 0;
       args.push(...podmanArgs);
@@ -215,6 +221,9 @@ export class CodexAcpAgent implements AcpAgent {
     }
 
     const HOME = process.env.COCALC_ORIGINAL_HOME ?? process.env.HOME;
+
+    logger.debug(`${childCmd}`, argsJoin(args), { HOME });
+
     // Do not set cwd here: agents may serve multiple sessions with different
     // working directories, and container-mode paths (e.g. "/root") are invalid
     // on the host running codex-acp. Let the process inherit the host cwd; the
