@@ -34,9 +34,8 @@ export function resolveWorkspaceRoot(
     }
     return path.posix.normalize(path.posix.join(base, noParentSegments));
   }
-  // Lite/local mode: respect absolute working dir, otherwise resolve from cwd.
-  if (!requested) return process.cwd();
-  return path.isAbsolute(requested)
-    ? requested
-    : path.resolve(process.cwd(), requested);
+  // Lite/local mode: respect absolute working dir; otherwise resolve from HOME.
+  const home = process.env.HOME ?? process.cwd();
+  if (!requested) return home;
+  return path.isAbsolute(requested) ? requested : path.resolve(home, requested);
 }
