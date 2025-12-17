@@ -7,6 +7,7 @@ import { readFile } from "fs/promises";
 import { networkArgument } from "./podman";
 import { mountArg } from "@cocalc/backend/podman";
 import { getEnvironment } from "./env";
+import { join } from "node:path";
 
 export interface SandboxExecOptions {
   project_id: string;
@@ -72,8 +73,23 @@ export async function sandboxExec({
   useHostHomeMount,
   noNetwork,
 }: SandboxExecOptions): Promise<SandboxExecResult> {
+  logger.debug("sandboxExec", {
+    project_id,
+    useEphemeral,
+    useHostHomeMount,
+    cwd,
+    script,
+  });
   const args: string[] = [];
   let HOME;
+  const getWorkdir = () => {
+    if (cwd?.startsWith("/")) {
+      return cwd;
+    } else {
+      return cwd ? join(HOME, cwd) : HOME;
+    }
+  };
+
   if (useEphemeral) {
     const { home, scratch } = await localPath({
       project_id,
@@ -92,9 +108,7 @@ export async function sandboxExec({
     if (!noNetwork) {
       args.push(networkArgument());
     }
-    if (cwd) {
-      args.push("--workdir", cwd);
-    }
+    args.push("--workdir", getWorkdir());
 
     for (const key in env) {
       args.push("-e", `${key}=${env[key]}`);
@@ -105,19 +119,21 @@ export async function sandboxExec({
       args.push(mountArg({ source: scratch, target: "/scratch" }));
     }
 
+    // Name the container for easier debugging; allow reuse without conflicts.
+    args.push("--name", `sandbox-${project_id}-${Date.now()}`);
+
     const rootfs = await mountRootFs({ project_id, home, config: { image } });
     args.push("--rootfs", rootfs);
 
-    // Name the container for easier debugging; allow reuse without conflicts.
-    args.push("--name", `sandbox-${project_id}-${Date.now()}`);
     args.push("/bin/bash", "-lc", script);
   } else {
     HOME = "/root";
+
     args.push(
       "exec",
       "-i",
       "--workdir",
-      cwd ?? HOME,
+      getWorkdir(),
       `project-${project_id}`,
       "/bin/bash",
       "-lc",
@@ -125,7 +141,7 @@ export async function sandboxExec({
     );
   }
 
-  logger.debug("podman ", argsJoin(args));
+  logger.debug("podman", argsJoin(args));
 
   return await new Promise((resolve) => {
     execFile(

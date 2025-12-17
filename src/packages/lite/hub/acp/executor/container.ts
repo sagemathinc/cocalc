@@ -13,11 +13,9 @@ so this can be run without even "starting the project".  So we will see.
 */
 
 import path from "node:path";
-import { execFile } from "node:child_process";
 import type { Client } from "@cocalc/conat/core/client";
 import { projectApiClient, type ProjectApi } from "@cocalc/conat/project/api";
 import getLogger from "@cocalc/backend/logger";
-import { argsJoin } from "@cocalc/util/args";
 
 // Container executor for multiuser (podman) mode.
 // Wraps project-scoped conat APIs to run commands and read/write files
@@ -45,7 +43,7 @@ let containerFileIO: ContainerFileIO | null = null;
 type ContainerExec = (opts: {
   projectId: string;
   script: string;
-  cwd: string;
+  cwd?: string;
   timeoutMs?: number;
 }) => Promise<{
   stdout: string;
@@ -128,9 +126,13 @@ export class ContainerExecutor {
     exitCode: number | null;
     signal?: string;
   }> {
-    const defaultCwd = this.base === "/" ? "/" : this.base.slice(0, -1);
-    const cwd = opts?.cwd ? this.resolvePath(opts.cwd) : defaultCwd;
-    logger.debug("container executor exec", { cmd, cwd: opts?.cwd });
+    if (!containerExec) {
+      throw Error(
+        "setContainerExec must be called to initialize container execution",
+      );
+    }
+    const cwd = opts?.cwd;
+    logger.debug("container executor exec", { cmd, cwd });
 
     // If the incoming command already looks like a shell invocation
     // (`/bin/bash -lc ...`), unwrap it so we only spawn a single shell.
@@ -142,30 +144,12 @@ export class ContainerExecutor {
 
     // The host environment is not meaningful inside the container; skip passing
     // through env vars to avoid leaking/overwriting the project's container env.
-    const envArgs: string[] = [];
-
-    const args = [
-      "exec",
-      "-i",
-      "--workdir",
-      cwd,
-      ...envArgs,
-      `project-${this.options.projectId}`,
-      "/bin/bash",
-      "-lc",
+    const { stdout, stderr, code, signal } = await containerExec({
+      projectId: this.options.projectId,
       script,
-    ];
-
-    logger.debug("podman ", argsJoin(args));
-    const runner = containerExec;
-    const { stdout, stderr, code, signal } = runner
-      ? await runner({
-          projectId: this.options.projectId,
-          script,
-          cwd,
-          timeoutMs: opts?.timeoutMs,
-        })
-      : await this.podmanExec(args, opts?.timeoutMs);
+      cwd,
+      timeoutMs: opts?.timeoutMs,
+    });
     logger.debug("podman exec result", { code, signal, stdout, stderr });
     return { stdout, stderr, exitCode: code, signal };
   }
@@ -191,79 +175,5 @@ export class ContainerExecutor {
       );
     }
     return combined;
-  }
-
-  // Rewrite host filesystem paths in shell text to the container view.
-  //
-  // Why this exists:
-  // - Codex/ACP runs in the host and sometimes embeds absolute host paths
-  //   (e.g., /home/.../project-<id>/file.txt) inside ad-hoc shell commands that
-  //   are later executed inside the project container, where the workspace is
-  //   mounted at /root (or similar).
-  // - We can’t reliably parse arbitrary shell snippets, but the project mount
-  //   prefix is unique, so a straightforward string substitution keeps most
-  //   commands working without overhauling Codex/ACP to pass structured paths.
-  // - This is a pragmatic hack: if the text contains no host prefix, it’s left
-  //   unchanged. For a fully robust solution, Codex/ACP would need to avoid
-  //   embedding host paths in free-form shell text.
-  //   private rewriteHostPaths(text: string): string {
-  //     if (!containerFileIO) return text;
-  //     try {
-  //       const host = this.getMountPoint();
-  //       const containerBase = this.base.endsWith("/")
-  //         ? this.base.slice(0, -1)
-  //         : this.base;
-  //       const hostWithSlash = host.endsWith("/") ? host : `${host}/`;
-  //       const reWithSlash = new RegExp(escapeRegExp(hostWithSlash), "g");
-  //       const reNoSlash = new RegExp(
-  //         escapeRegExp(host.endsWith("/") ? host.slice(0, -1) : host),
-  //         "g",
-  //       );
-  //       let out = text.replace(reWithSlash, `${containerBase}/`);
-  //       out = out.replace(reNoSlash, containerBase);
-  //       if (out !== text) {
-  //         logger.debug("rewrite host paths in command", {
-  //           before: text,
-  //           after: out,
-  //         });
-  //       }
-  //       return out;
-  //     } catch (err) {
-  //       logger.debug("rewrite host paths failed; using original command", {
-  //         error: `${err}`,
-  //       });
-  //       return text;
-  //     }
-  //   }
-
-  private async podmanExec(
-    args: string[],
-    timeoutMs?: number,
-  ): Promise<{
-    stdout: string;
-    stderr: string;
-    code: number | null;
-    signal?: string;
-  }> {
-    return await new Promise((resolve) => {
-      execFile(
-        "podman",
-        args,
-        { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (error: any, stdout?: string, stderr?: string) => {
-          if (error) {
-            resolve({
-              stdout: stdout ?? "",
-              stderr: stderr ?? error?.message ?? "",
-              code: typeof error?.code === "number" ? error.code : null,
-              signal: error?.signal,
-            });
-          } else {
-            resolve({ stdout: stdout ?? "", stderr: stderr ?? "", code: 0 });
-          }
-        },
-      );
-    });
   }
 }
