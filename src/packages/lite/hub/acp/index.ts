@@ -226,7 +226,7 @@ export class ChatStreamWriter {
       this.closed = true;
     });
     chatWritersByChatKey.set(this.chatKey, this);
-    this.sessionKey = sessionKey ?? undefined;
+    this.sessionKey = sessionKey;
     if (sessionKey) {
       this.registerThreadKey(sessionKey);
     }
@@ -888,7 +888,7 @@ export async function evaluate({
         client: conatClient,
         autoApprove,
         approverAccountId: request.account_id,
-        sessionKey: request.session_id ?? undefined,
+        sessionKey: request.session_id,
       })
     : null;
 

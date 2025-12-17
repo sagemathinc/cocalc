@@ -316,7 +316,7 @@ export default function Message({
   }, [message]);
 
   // Resolve log identifiers for this message/turn:
-  // - thread: stable thread id (acp_log_thread, then acp_thread_id, then reply_to/date)
+  // - thread: stable thread id
   // - turn:   per-message turn id (defaults to this message date)
   // - store:  AKV name (acp_log_store or sha1(project_id, path))
   // - key:    AKV key `${thread}:${turn}`
@@ -324,7 +324,6 @@ export default function Message({
   const fallbackLogRefs = useMemo(() => {
     const thread =
       acpLogInfo?.thread ??
-      field<string>(message, "acp_thread_id") ??
       replyTo(message) ??
       dateValue(message)?.toString?.();
     const turn = acpLogInfo?.turn ?? dateValue(message)?.toString?.();
