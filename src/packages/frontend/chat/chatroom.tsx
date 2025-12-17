@@ -73,7 +73,6 @@ const FILTER_RECENT_NONE = {
 } as const;
 
 const GRID_STYLE: React.CSSProperties = {
-  maxWidth: "1200px",
   display: "flex",
   flexDirection: "column",
   width: "100%",
