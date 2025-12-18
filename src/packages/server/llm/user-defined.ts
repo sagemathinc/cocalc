@@ -23,6 +23,7 @@ import { evaluateAnthropic } from "./anthropic";
 import { evaluateMistral } from "./mistral";
 import { evaluateGoogleGenAILC } from "./google-lc";
 import { evaluateOpenAILC } from "./openai-lc";
+import { evaluateXai } from "./xai";
 
 const log = getLogger("llm:userdefined");
 
@@ -110,56 +111,30 @@ export async function evaluateUserDefinedLLM(
         { ...opts, model: um.model, apiKey: conf.apiKey },
         "user",
       );
-    // return await evaluateWithLangChain(
-    //   {
-    //     ...opts,
-    //     model: um.model,
-    //     apiKey: conf.apiKey,
-    //   },
-    //   "user",
-    // );
 
     case "mistralai":
       return await evaluateMistral(
         { ...opts, model: um.model, apiKey: conf.apiKey },
         "user",
       );
-    // return await evaluateWithLangChain(
-    //   {
-    //     ...opts,
-    //     model: um.model,
-    //     apiKey: conf.apiKey,
-    //   },
-    //   "user",
-    // );
 
     case "google":
       return await evaluateGoogleGenAILC(
         { ...opts, model: um.model, apiKey: conf.apiKey },
         "user",
       );
-    // return await evaluateWithLangChain(
-    //   {
-    //     ...opts,
-    //     model: um.model,
-    //     apiKey: conf.apiKey,
-    //   },
-    //   "user",
-    // );
 
     case "openai":
       return await evaluateOpenAILC(
         { ...opts, model: um.model, apiKey: conf.apiKey },
         "user",
       );
-    // return await evaluateWithLangChain(
-    //   {
-    //     ...opts,
-    //     model: um.model,
-    //     apiKey: conf.apiKey,
-    //   },
-    //   "user",
-    // );
+
+    case "xai":
+      return await evaluateXai(
+        { ...opts, model: um.model, apiKey: conf.apiKey },
+        "user",
+      );
 
     default:
       unreachable(service);

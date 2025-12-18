@@ -163,8 +163,8 @@ function content2string(content: MessageContent): string {
     return content;
   } else {
     const output0 = content[0];
-    if (output0.type === "text") {
-      return output0.text;
+    if (output0.type === "text" && "text" in output0) {
+      return output0.text as string;
     } else {
       log.debug("content2string unable to process", content);
       return "Problem processing returned message content.";

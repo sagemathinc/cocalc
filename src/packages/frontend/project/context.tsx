@@ -72,6 +72,7 @@ export const emptyProjectContext = {
     mistralai: false,
     anthropic: false,
     custom_openai: false,
+    xai: false,
     user: false,
   },
   flipTabs: [0, () => {}],

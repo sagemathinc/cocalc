@@ -77,6 +77,7 @@ const anthropic_enabled = (conf: SiteSettings) =>
 const ollama_enabled = (conf: SiteSettings) => to_bool(conf.ollama_enabled);
 const custom_openai_enabled = (conf: SiteSettings) =>
   to_bool(conf.custom_openai_enabled);
+const xai_enabled = (conf: SiteSettings) => to_bool(conf.xai_enabled);
 const any_llm_enabled = (conf: SiteSettings) =>
   openai_enabled(conf) ||
   vertexai_enabled(conf) ||
@@ -210,6 +211,7 @@ export type SiteSettingsExtrasKeys =
   | "custom_openai_configuration"
   | "mistral_api_key"
   | "anthropic_api_key"
+  | "xai_api_key"
   | "salesloft_section"
   | "salesloft_api_key"
   | "jupyter_section"
@@ -324,6 +326,14 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: anthropic_enabled,
+    tags: ["AI LLM"],
+  },
+  xai_api_key: {
+    name: "xAI API Key",
+    desc: "Create an API Key in the [xAI Console](https://console.x.ai/) and paste it here.",
+    default: "",
+    password: true,
+    show: xai_enabled,
     tags: ["AI LLM"],
   },
   ollama_configuration: {

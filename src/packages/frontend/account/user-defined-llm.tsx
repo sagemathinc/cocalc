@@ -41,7 +41,7 @@ import {
   toUserLLMModelName,
 } from "@cocalc/util/db-schema/llm-utils";
 import { trunc, unreachable } from "@cocalc/util/misc";
-import { Panel } from "../antd-bootstrap";
+import { Panel } from "@cocalc/frontend/antd-bootstrap";
 
 // @cspell:ignore mixtral userdefined
 
@@ -265,6 +265,8 @@ export function UserDefinedLLMComponent({ style, on_change }: Props) {
         return "'open-mixtral-8x22b'";
       case "google":
         return "'gemini-2.0-flash'";
+      case "xai":
+        return "'grok-4-1-fast-non-reasoning-16k'";
       default:
         unreachable(service);
         return "'llama3:latest'";

@@ -19,6 +19,8 @@ import {
   isGoogleModel,
   isMistralModel,
   isOpenAIModel,
+  isXaiModel,
+  toXaiProviderModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
 import { ChatAnthropic } from "@langchain/anthropic";
@@ -32,6 +34,7 @@ import { concat } from "@langchain/core/utils/stream";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { ChatMistralAI } from "@langchain/mistralai";
 import { ChatOpenAI } from "@langchain/openai";
+import { ChatXAI } from "@langchain/xai";
 import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
 import { getCustomOpenAI } from "./client";
@@ -122,7 +125,7 @@ export const PROVIDER_CONFIGS = {
         mode === "cocalc" ? settings.google_vertexai_key : options.apiKey;
       const modelName =
         mode === "cocalc"
-          ? GOOGLE_MODEL_TO_ID[options.model as GoogleModel] ?? options.model
+          ? (GOOGLE_MODEL_TO_ID[options.model as GoogleModel] ?? options.model)
           : options.model;
 
       log.debug(
@@ -206,6 +209,33 @@ export const PROVIDER_CONFIGS = {
     }),
   },
 
+  xai: {
+    name: "xAI",
+    createClient: async (options, settings, mode) => {
+      const apiKey = mode === "cocalc" ? settings.xai_api_key : options.apiKey;
+      const modelName =
+        mode === "cocalc"
+          ? toXaiProviderModel(options.model as any)
+          : options.model;
+
+      log.debug(
+        `xAI createClient: original=${options.model}, modelName=${modelName}`,
+      );
+
+      return new ChatXAI({
+        model: modelName,
+        apiKey,
+        maxTokens: options.maxTokens,
+        streaming: true,
+      });
+    },
+    canonicalModel: (model) => toXaiProviderModel(model as any),
+    getTokenCountFallback: async (input, output, historyTokens) => ({
+      prompt_tokens: numTokens(input) + historyTokens,
+      completion_tokens: numTokens(output),
+    }),
+  },
+
   "custom-openai": {
     name: "Custom OpenAI",
     createClient: async (options, _settings) => {
@@ -233,6 +263,8 @@ export function getProviderConfig(model: string): LLMProviderConfig {
     return PROVIDER_CONFIGS.anthropic;
   } else if (isMistralModel(model)) {
     return PROVIDER_CONFIGS.mistral;
+  } else if (isXaiModel(model)) {
+    return PROVIDER_CONFIGS.xai;
   } else if (isCustomOpenAI(model)) {
     return PROVIDER_CONFIGS["custom-openai"];
   } else {
@@ -317,9 +349,8 @@ export async function evaluateWithLangChain(
     inputMessagesKey: "input",
     historyMessagesKey,
     getMessageHistory: async () => {
-      const { messageHistory, tokens } = await transformHistoryToMessages(
-        history,
-      );
+      const { messageHistory, tokens } =
+        await transformHistoryToMessages(history);
       historyTokens = tokens;
       return messageHistory;
     },
