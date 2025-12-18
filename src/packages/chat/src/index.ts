@@ -55,11 +55,6 @@ export interface BuildChatMessageOptions {
   schema_version?: number;
   reply_to?: string;
   acp_events?: any[];
-  acp_log_store?: string | null;
-  acp_log_key?: string | null;
-  acp_log_thread?: string | null;
-  acp_log_turn?: string | null;
-  acp_log_subject?: string | null;
   acp_thread_id?: string | null;
   acp_usage?: any;
   historyAuthorId?: string;
@@ -82,17 +77,12 @@ export function buildChatMessage(
   return {
     event: "chat",
     sender_id: options.sender_id,
-    date: messageDate,
+    date: messageDate.toISOString(),
     history,
     generating: options.generating,
     reply_to: options.reply_to,
     schema_version: options.schema_version,
     acp_events: options.acp_events,
-    acp_log_store: options.acp_log_store,
-    acp_log_key: options.acp_log_key,
-    acp_log_thread: options.acp_log_thread,
-    acp_log_turn: options.acp_log_turn,
-    acp_log_subject: options.acp_log_subject,
     acp_thread_id: options.acp_thread_id,
     acp_usage: options.acp_usage,
     acp_account_id: options.acp_account_id,

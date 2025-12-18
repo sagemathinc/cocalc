@@ -445,43 +445,44 @@ export class ChatStreamWriter {
       closed: this.closed,
       content: this.content,
       events: this.events.length,
+      metadata: this.metadata,
     });
     if (this.closed || this.syncdbError) return;
     if (!this.syncdb) {
       logger.warn("chat stream writer commit skipped: syncdb not ready");
       return;
     }
-    const hasContent = !!this.content && this.events.length > 0;
+    //     const hasContent = !!this.content && this.events.length > 0;
 
-    if (!hasContent) {
-      // Even if there was no text payload, make sure we drop the spinner when finished.
-      if (!generating) {
-        try {
-          const current = this.syncdb!.get_one({
-            event: "chat",
-            date: this.metadata.message_date,
-          });
-          const currentGenerating = this.recordField(current, "generating");
-          if (current != null && currentGenerating !== false) {
-            this.syncdb!.set({
-              date: this.metadata.message_date,
-              generating: false,
-            });
-            this.syncdb!.commit();
-            (async () => {
-              try {
-                await this.syncdb!.save();
-              } catch (err) {
-                logger.warn("chat syncdb save failed", err);
-              }
-            })();
-          }
-        } catch (err) {
-          logger.warn("chat stream writer failed to clear generating", err);
-        }
-      }
-      return;
-    }
+    //     if (!hasContent) {
+    //       // Even if there was no text payload, make sure we drop the spinner when finished.
+    //       if (!generating) {
+    //         try {
+    //           const current = this.syncdb!.get_one({
+    //             event: "chat",
+    //             date: this.metadata.message_date,
+    //           });
+    //           const currentGenerating = this.recordField(current, "generating");
+    //           if (current != null && currentGenerating !== false) {
+    //             this.syncdb!.set({
+    //               date: this.metadata.message_date,
+    //               generating: false,
+    //             });
+    //             this.syncdb!.commit();
+    //             (async () => {
+    //               try {
+    //                 await this.syncdb!.save();
+    //               } catch (err) {
+    //                 logger.warn("chat syncdb save failed", err);
+    //               }
+    //             })();
+    //           }
+    //         } catch (err) {
+    //           logger.warn("chat stream writer failed to clear generating", err);
+    //         }
+    //       }
+    //       return;
+    //     }
 
     const message = buildChatMessage({
       sender_id: this.metadata.sender_id,
@@ -493,7 +494,8 @@ export class ChatStreamWriter {
       acp_thread_id: this.threadId,
       acp_usage: this.usage,
       acp_account_id: this.approverAccountId,
-    } as any);
+    });
+    logger.debug("commit updated message", message);
     this.syncdb!.set(message);
     this.syncdb!.commit();
     (async () => {
