@@ -19,25 +19,25 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
 
 ### 2) Make the backend the sole writer of assistant-reply ACP state (avoid sync races)
 
-- [ ] Frontend should not write ACP metadata into the assistant reply row beyond “user submitted a turn”.
+- [x] Frontend should not write ACP metadata into the assistant reply row beyond “user submitted a turn”.
   - Frontend can show optimistic UI locally, but should not compete with backend for the same row fields.
-- [ ] Backend should create (or ensure) the assistant reply row exists and own fields like:
+- [x] Backend should create (or ensure) the assistant reply row exists and own fields like:
   - `generating`, `acp_log_*`, any “running/init” markers, etc.
-- [ ] Ensure “turn finished” always clears `generating` even if the assistant row didn’t exist yet at start.
+- [x] Ensure “turn finished” always clears `generating` even if the assistant row didn’t exist yet at start.
 
-### 3) Server-assign Codex `session_id` when blank and persist to the chat thread root message
+### 3) (NOW) Server-assign Codex `session_id` when blank and persist to the chat thread root message
 
 - [ ] Define a canonical field on the **root message of a thread** for the Codex session id:
-  - Proposed: `acp_session_id` (string UUID).
+  - Proposed: `acp_config.sessionId` (string UUID).
   - This is distinct from all `acp_log_*` fields, which are per-turn log identifiers.
 - [ ] Backend behavior (authoritative):
-  - If the incoming request has `session_id` blank/undefined, backend starts a new Codex session and obtains `session_id` from the summary.
-  - Backend writes `acp_session_id` onto the thread root message (once known) so refresh/other clients reuse it.
-  - Backend should not rely on the frontend to create/update the assistant reply row before it can persist `acp_session_id`.
+  - If the incoming request has `sessionId` blank/undefined, backend starts a new Codex session and obtains `sessionId` from the root message.
+  - Backend writes `acp_config.sessionId` onto the thread root message (once known) so refresh/other clients reuse it.
+  - Backend should not rely on the frontend to create/update the assistant reply row before it can persist `acp_config.sessionId`.
 - [ ] Frontend behavior:
-  - When a root message already has `acp_session_id`, include it in subsequent ACP requests (`session_id`).
+  - When a root message already has `acp_config.sessionId`, optionally include it in subsequent ACP requests (`session_id`), though the backend can just read it from the root message.
   - When it is blank, do **not** invent one client-side; let the backend populate it.
-  - The session config dialog should display the current `acp_session_id` once it exists; blank means “will be created by backend on first run”.
+  - The session config dialog should display the current `acp_config.sessionId` once it exists; blank means “will be created by backend on first run”.
 
 ### 4) Rename ACP “threadId” → `session_id` everywhere (no compat)
 

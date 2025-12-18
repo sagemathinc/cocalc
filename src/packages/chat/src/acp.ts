@@ -2,6 +2,24 @@ import type {
   AcpStreamEvent,
   AcpStreamMessage,
 } from "@cocalc/conat/ai/acp/types";
+import type {
+  CodexSessionMode,
+  CodexReasoningLevel,
+} from "@cocalc/util/ai/codex";
+
+// Configuration stored on the chat thread root for Codex/ACP turns.
+// This is persisted as `acp_config` on the root message.
+export interface CodexThreadConfig {
+  sessionId?: string; // Codex session/thread id (UUID string)
+  model?: string;
+  reasoning?: CodexReasoningLevel["id"];
+  workingDirectory?: string;
+  envHome?: string;
+  envPath?: string;
+  sessionMode?: CodexSessionMode;
+  allowWrite?: boolean;
+  codexPathOverride?: string;
+}
 
 export function appendStreamMessage(
   events: AcpStreamMessage[],

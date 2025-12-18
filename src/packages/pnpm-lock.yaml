@@ -229,6 +229,9 @@ importers:
       '@cocalc/conat':
         specifier: workspace:*
         version: link:../conat
+      '@cocalc/util':
+        specifier: workspace:*
+        version: link:../util
       sha1:
         specifier: ^1.1.1
         version: 1.1.1

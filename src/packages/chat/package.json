@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@cocalc/conat": "workspace:*",
+    "@cocalc/util": "workspace:*",
     "sha1": "^1.1.1"
   },
   "devDependencies": {

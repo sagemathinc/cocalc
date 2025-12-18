@@ -53,6 +53,7 @@ import type {
   Feedback,
   MessageHistory,
 } from "./types";
+import type { CodexThreadConfig } from "@cocalc/chat";
 import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
 import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
 import {
@@ -1067,7 +1068,7 @@ export class ChatActions extends Actions<ChatState> {
     return history;
   };
 
-  getCodexConfig = (reply_to?: Date): any => {
+  getCodexConfig = (reply_to?: Date): CodexThreadConfig | undefined => {
     if (reply_to == null || this.store == null) return;
     const messages = this.getAllMessages();
     if (!messages) return;
@@ -1077,11 +1078,11 @@ export class ChatActions extends Actions<ChatState> {
     const entry = this.getThreadRootDoc(`${rootMs}`);
     const rootMessage = entry?.message;
     if (!rootMessage) return;
-    const cfg = field<any>(rootMessage, "acp_config");
-    return typeof (cfg as any)?.toJS === "function" ? (cfg as any).toJS() : cfg;
+    const cfg = field<CodexThreadConfig>(rootMessage, "acp_config");
+    return cfg;
   };
 
-  setCodexConfig = (threadKey: string, config: any): void => {
+  setCodexConfig = (threadKey: string, config: CodexThreadConfig): void => {
     if (this.syncdb == null) return;
     const dateNum = parseInt(threadKey, 10);
     if (!dateNum || Number.isNaN(dateNum)) {

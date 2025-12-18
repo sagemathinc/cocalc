@@ -452,38 +452,6 @@ export class ChatStreamWriter {
       logger.warn("chat stream writer commit skipped: syncdb not ready");
       return;
     }
-    //     const hasContent = !!this.content && this.events.length > 0;
-
-    //     if (!hasContent) {
-    //       // Even if there was no text payload, make sure we drop the spinner when finished.
-    //       if (!generating) {
-    //         try {
-    //           const current = this.syncdb!.get_one({
-    //             event: "chat",
-    //             date: this.metadata.message_date,
-    //           });
-    //           const currentGenerating = this.recordField(current, "generating");
-    //           if (current != null && currentGenerating !== false) {
-    //             this.syncdb!.set({
-    //               date: this.metadata.message_date,
-    //               generating: false,
-    //             });
-    //             this.syncdb!.commit();
-    //             (async () => {
-    //               try {
-    //                 await this.syncdb!.save();
-    //               } catch (err) {
-    //                 logger.warn("chat syncdb save failed", err);
-    //               }
-    //             })();
-    //           }
-    //         } catch (err) {
-    //           logger.warn("chat stream writer failed to clear generating", err);
-    //         }
-    //       }
-    //       return;
-    //     }
-
     const message = buildChatMessage({
       sender_id: this.metadata.sender_id,
       date: this.metadata.message_date,
@@ -495,7 +463,6 @@ export class ChatStreamWriter {
       acp_usage: this.usage,
       acp_account_id: this.approverAccountId,
     });
-    //    logger.debug("commit updated message", message);
     this.syncdb!.set({ ...message, reply_to2: this.metadata.reply_to });
     this.syncdb!.commit();
     (async () => {
@@ -505,13 +472,6 @@ export class ChatStreamWriter {
         logger.warn("chat syncdb save failed", err);
       }
     })();
-    // For debugging: fetch the saved record in a way that works with both real
-    // syncdb instances and unit-test fakes (which may not implement `.get()`).
-    //     const saved = this.syncdb!.get_one({
-    //       event: "chat",
-    //       date: this.metadata.message_date,
-    //     });
-    //    logger.debug("message we just saved", saved);
   }, COMMIT_INTERVAL);
 
   dispose(forceImmediate: boolean = false): void {
@@ -607,6 +567,7 @@ export class ChatStreamWriter {
     if (!key) return;
     this.threadKeys.add(key);
     chatWritersByThreadId.set(key, this);
+    void this.persistSessionId(key);
   }
 
   private getLogStore(): AKV<AcpStreamMessage[]> {
@@ -633,6 +594,32 @@ export class ChatStreamWriter {
       await store.set(this.logKey, this.events);
     } catch (err) {
       logger.warn("failed to persist acp log", err);
+    }
+  }
+
+  // Persist the session/thread id into the thread root's acp_config so
+  // the frontend can display and reuse it across turns/refreshes.
+  private async persistSessionId(sessionId: string): Promise<void> {
+    await this.ready;
+    if (this.closed || !this.syncdb) return;
+    const threadRoot = this.metadata.reply_to ?? this.metadata.message_date;
+    try {
+      const current = this.syncdb.get_one({
+        event: "chat",
+        date: threadRoot,
+      });
+      const prevCfg = this.recordField<any>(current, "acp_config");
+      const cfg = prevCfg ?? {};
+      if (cfg.sessionId === sessionId) return;
+      this.syncdb.set({
+        event: "chat",
+        date: threadRoot,
+        acp_config: { ...cfg, sessionId },
+      });
+      this.syncdb.commit();
+      await this.syncdb.save();
+    } catch (err) {
+      logger.debug("persistSessionId failed", err);
     }
   }
 }

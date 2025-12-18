@@ -7,6 +7,7 @@ import {
 } from "@cocalc/util/ai/codex";
 import { uuid } from "@cocalc/util/misc";
 import type { ChatMessage, MessageHistory } from "./types";
+import type { CodexThreadConfig } from "@cocalc/chat";
 
 type QueueKey = string;
 type QueueState = { running: boolean; items: Array<() => Promise<void>> };
@@ -74,8 +75,11 @@ interface AcpContext {
     date: string;
     prevHistory: MessageHistory[];
   };
-  getCodexConfig?: (reply_to?: Date) => any;
-  setCodexConfig?: (threadKey: string, config: any) => void;
+  getCodexConfig?: (reply_to?: Date) => CodexThreadConfig | undefined;
+  setCodexConfig?: (
+    threadKey: string,
+    config: CodexThreadConfig,
+  ) => void;
   threadKey?: string;
   project_id?: string;
 }
@@ -218,7 +222,7 @@ function buildAcpConfig({
   model,
 }: {
   path?: string;
-  config?: any;
+  config?: CodexThreadConfig;
   model?: string;
 }): CodexSessionConfig {
   const baseWorkingDir = resolveWorkingDir(path);
@@ -235,7 +239,14 @@ function buildAcpConfig({
   const selectedReasoning =
     config?.reasoning ?? modelInfo?.reasoning?.find((r) => r.default)?.id;
   if (selectedReasoning) {
-    opts.reasoning = selectedReasoning;
+    if (["low", "medium", "high", "extra_high"].includes(selectedReasoning)) {
+      opts.reasoning = selectedReasoning as CodexSessionConfig["reasoning"];
+    } else {
+      console.error(
+        "Invalid Codex reasoning level; expected one of low|medium|high|extra_high:",
+        selectedReasoning,
+      );
+    }
   }
   const sessionMode = resolveCodexSessionMode(config);
   opts.sessionMode = sessionMode;

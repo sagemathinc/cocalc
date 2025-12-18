@@ -1,3 +1,5 @@
+import type { CodexThreadConfig } from "./acp";
+
 export interface MessageHistory {
   author_id: string;
   content: string;
@@ -23,7 +25,7 @@ export interface ChatMessage {
   acp_log_subject?: string | null;
   acp_thread_id?: string | null;
   acp_usage?: any;
-  acp_config?: any;
+  acp_config?: CodexThreadConfig;
   acp_account_id?: string;
 }
 

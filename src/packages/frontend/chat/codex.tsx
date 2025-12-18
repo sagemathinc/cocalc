@@ -22,10 +22,12 @@ import {
   DEFAULT_CODEX_MODELS,
   resolveCodexSessionMode,
   type CodexReasoningLevel,
+  type CodexReasoningId,
   type CodexSessionMode,
 } from "@cocalc/util/ai/codex";
 import { COLORS } from "@cocalc/util/theme";
 import type { ChatMessageTyped } from "./types";
+import type { CodexThreadConfig } from "@cocalc/chat";
 import { toMsString } from "./utils";
 import { dateValue } from "./access";
 import type { ChatActions } from "./actions";
@@ -104,7 +106,7 @@ export function CodexConfigButton({
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm();
   const [models, setModels] = useState<ModelOption[]>([]);
-  const [value, setValue] = useState<any>(null);
+  const [value, setValue] = useState<Partial<CodexThreadConfig> | null>(null);
 
   useEffect(() => {
     const initialModels = DEFAULT_CODEX_MODELS.map((m) => ({
@@ -129,7 +131,7 @@ export function CodexConfigButton({
       models,
       modelValue: baseModel,
     });
-    const defaults = {
+    const defaults: CodexThreadConfig = {
       workingDirectory: defaultWorkingDir(chatPath),
       sessionId: "",
       model: baseModel,
@@ -139,7 +141,7 @@ export function CodexConfigButton({
       sessionMode: "auto" as CodexSessionMode,
     };
     const saved = actions?.getCodexConfig?.(new Date(ms));
-    const merged = { ...defaults, ...saved };
+    const merged: CodexThreadConfig = { ...defaults, ...saved };
     const model = models.some((m) => m.value === merged.model)
       ? merged.model
       : baseModel;
@@ -675,8 +677,8 @@ function getReasoningForModel({
 }: {
   models: ModelOption[];
   modelValue?: string;
-  desired?: string;
-}): string | undefined {
+  desired?: CodexReasoningId;
+}): CodexReasoningId | undefined {
   if (!models.length) return undefined;
   const model =
     models.find((m) => m.value === modelValue) ?? models[0] ?? undefined;
