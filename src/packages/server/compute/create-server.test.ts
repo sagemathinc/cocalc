@@ -5,6 +5,7 @@ import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import createServer from "./create-server";
 import { CLOUDS_BY_NAME } from "@cocalc/util/db-schema/compute-servers";
+import { waitToAvoidTestFailure } from "@cocalc/server/test-utils";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -25,12 +26,15 @@ describe("creates account, project and then compute servers in various ways", ()
       firstName: "User",
       lastName: "One",
       account_id,
+      noFirstProject: true,
     });
     // Only User One:
     project_id = await createProject({
       account_id,
       title: "My First Project",
+      start: false,
     });
+    await waitToAvoidTestFailure();
   });
 
   it("creates a compute server for project one and gets it", async () => {
@@ -38,6 +42,7 @@ describe("creates account, project and then compute servers in various ways", ()
       account_id,
       project_id,
     });
+    await waitToAvoidTestFailure();
 
     expect(
       await getServers({
@@ -80,6 +85,7 @@ describe("creates account, project and then compute servers in various ways", ()
       project_id,
       ...s,
     });
+    await waitToAvoidTestFailure();
     expect(
       await getServers({
         account_id,

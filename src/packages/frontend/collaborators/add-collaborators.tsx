@@ -7,8 +7,11 @@
 Add collaborators to a project
 */
 
+// cSpell:ignore replyto noncloud collabs
+
 import { Alert, Button, Input, Select } from "antd";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import { labels } from "@cocalc/frontend/i18n";
 import {
   React,
@@ -17,12 +20,19 @@ import {
   useIsMountedRef,
   useMemo,
   useRef,
+  useRedux,
   useTypedRedux,
   useState,
 } from "../app-framework";
-import { Well } from "../antd-bootstrap";
-import { A, Icon, Loading, ErrorDisplay, Gap } from "../components";
-import { webapp_client } from "../webapp-client";
+import { Well } from "@cocalc/frontend/antd-bootstrap";
+import {
+  A,
+  Icon,
+  Loading,
+  ErrorDisplay,
+  Gap,
+} from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SITE_NAME } from "@cocalc/util/theme";
 import {
   contains_url,
@@ -34,10 +44,10 @@ import {
   search_match,
   search_split,
 } from "@cocalc/util/misc";
-import { Project } from "../projects/store";
-import { Avatar } from "../account/avatar/avatar";
+import { Project } from "@cocalc/frontend/projects/store";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { ProjectInviteTokens } from "./project-invite-tokens";
-import { alert_message } from "../alerts";
+import { alert_message } from "@cocalc/frontend/alerts";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import Sandbox from "./sandbox";
 import track from "@cocalc/frontend/user-tracking";
@@ -104,6 +114,20 @@ export const AddCollaborators: React.FC<Props> = ({
     () => project_map?.get(project_id),
     [project_id, project_map],
   );
+  const get_account_id = useRedux("account", "get_account_id");
+  const current_account_id = get_account_id();
+  const strict_collaborator_management =
+    useTypedRedux("customize", "strict_collaborator_management") ?? false;
+  const manage_users_owner_only =
+    strict_collaborator_management ||
+    (project?.get("manage_users_owner_only") ?? false);
+  const current_user_group = project?.getIn([
+    "users",
+    current_account_id,
+    "group",
+  ]);
+  const isOwner = current_user_group === "owner";
+  const collaboratorManagementRestricted = manage_users_owner_only && !isOwner;
 
   // search that user has typed in so far
   const [search, set_search] = useState<string>("");
@@ -257,7 +281,7 @@ export const AddCollaborators: React.FC<Props> = ({
         // react rendered version of this that is much nicer (with pictures!) someday.
         const extra: string[] = [];
         if (r.account_id != null && user_map.get(r.account_id)) {
-          extra.push("Collaborator");
+          extra.push(intl.formatMessage(labels.collaborator));
         }
         if (r.last_active) {
           extra.push(`Active ${new Date(r.last_active).toLocaleDateString()}`);
@@ -689,6 +713,21 @@ export const AddCollaborators: React.FC<Props> = ({
 
   if (student.disableCollaborators || accountCustomize?.disableCollaborators) {
     return <div></div>;
+  }
+
+  if (collaboratorManagementRestricted) {
+    return (
+      <Alert
+        type="info"
+        showIcon={false}
+        message={
+          <FormattedMessage
+            id="project.collaborators.add.owner_only_setting"
+            defaultMessage="Only project owners can add collaborators when owner-only management is enabled."
+          />
+        }
+      />
+    );
   }
 
   return (

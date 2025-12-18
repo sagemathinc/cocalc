@@ -33,6 +33,7 @@ describe("creates and get purchases using various options", () => {
       firstName: "Test",
       lastName: "User",
       account_id,
+      noFirstProject: true,
     });
     await createPurchase({
       account_id,

@@ -146,6 +146,7 @@ export interface CustomizeState {
   organization_name: string;
   organization_url: string;
   share_server: boolean;
+  strict_collaborator_management: boolean;
   site_description: string;
   site_name: string;
   splash_image: string;
@@ -261,7 +262,7 @@ export class CustomizeActions extends Actions<CustomizeState> {
       unlicensed_project_timetravel_limit: undefined,
     });
   };
-  
+
   reload = async () => {
     await loadCustomizeState();
   };
