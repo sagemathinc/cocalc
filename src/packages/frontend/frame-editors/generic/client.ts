@@ -258,6 +258,7 @@ interface QueryOpts {
   changes?: boolean;
   options?: object[]; // e.g., [{limit:5}],
   no_post?: boolean;
+  timeout?: number; // ms
 }
 
 export async function query(opts: QueryOpts): Promise<any> {
