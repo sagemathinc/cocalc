@@ -94,7 +94,11 @@ describe("create syncstring and test doing some edits", () => {
 
   it("last_changed is the time of the last version", () => {
     const vers = syncstring.versions();
-    expect(syncstring.last_changed()).toEqual(vers[vers.length - 1]);
+    const lastId = vers[vers.length - 1];
+    const lastMs = syncstring.patchTime(lastId);
+    // last_changed returns ms since epoch; for new PatchIds decode via syncdoc method.
+    expect(syncstring.last_changed()).toBe(lastMs);
+    expect(syncstring.last_changed()).toBeGreaterThan(0);
   });
 
   it("is not read only", () => {

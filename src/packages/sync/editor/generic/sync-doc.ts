@@ -222,7 +222,7 @@ export class SyncDoc extends EventEmitter {
   private settings: Map<string, any> = Map();
 
   // patches that this client made during this editing session.
-  private my_patches: { [time: string]: any } = {};
+  private my_patches: { [time: PatchId]: any } = {};
 
   private undo_mode = false;
 
@@ -736,10 +736,9 @@ export class SyncDoc extends EventEmitter {
     return t;
   };
 
-  /* List of logical timestamps of the versions of this string in the sync
+  /* List of patch ids of the versions of this string in the sync
      table that we opened to start editing (so starts with what was
-     the most recent snapshot when we started).  The list of timestamps
-     is sorted from oldest to newest. */
+     the most recent snapshot when we started), sorted from oldest to newest. */
   versions = (): PatchId[] => {
     const v = this.patchflowVersions();
     if (v == null) {
@@ -758,6 +757,12 @@ export class SyncDoc extends EventEmitter {
   wallTime = (version: PatchId): number | undefined => {
     const patch = this.patchflowPatch(version);
     return patch?.wall;
+  };
+
+  // return time of a patch, which is encoded in the patchid,
+  // and is NOT guaranteed to be unique among patches.
+  patchTime = (version: PatchId): number => {
+    return decodePatchId(version).timeMs;
   };
 
   // newest version of any non-staging known patch on this client,
@@ -1685,7 +1690,7 @@ export class SyncDoc extends EventEmitter {
       if (typeof raw === "number") {
         return legacyPatchId(raw);
       }
-      throw new Error(`invalid patch time: ${raw}`);
+      throw new Error(`invalid patch time: raw='${raw}'`);
     };
 
     const time = normalizePatchId(x.get("time"));
@@ -1885,7 +1890,7 @@ export class SyncDoc extends EventEmitter {
           if (this.doctype.patch_format != null) {
             obj.format = this.doctype.patch_format;
           }
-          this.my_patches[patch.time.valueOf()] = obj;
+          this.my_patches[patch.time] = obj;
           let x = this.patches_table.set(obj, "none");
           if (x == null) {
             x = fromJS(obj);
@@ -2320,7 +2325,9 @@ export class SyncDoc extends EventEmitter {
     const lastSnapshotTime =
       snapshots.length > 0 ? snapshots[snapshots.length - 1].time : undefined;
     const window = history.filter((p) =>
-      lastSnapshotTime != null ? comparePatchId(p.time, lastSnapshotTime) >= 0 : true,
+      lastSnapshotTime != null
+        ? comparePatchId(p.time, lastSnapshotTime) >= 0
+        : true,
     );
     if (window.length === 0) return;
     // Rule 1: interval count

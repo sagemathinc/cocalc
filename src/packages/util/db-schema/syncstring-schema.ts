@@ -283,8 +283,8 @@ Table({
       desc: "id of the syncstring that this patch belongs to.",
     },
     time: {
-      type: "timestamp",
-      desc: "the logical timestamp of the patch",
+      type: "string",
+      desc: "the logical timestamp of the patch -- this is now a patchflow PatchId, but used to be a numerical time in ms",
     },
     wall: {
       type: "timestamp",
