@@ -64,6 +64,7 @@ import {
   replyTo,
   editingArray,
 } from "./access";
+import type { CodexThreadConfig } from "@cocalc/chat";
 
 const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
@@ -315,7 +316,8 @@ export default function Message({
   // invent subjects/keys in multiple places.
   const fallbackLogRefs = useMemo(() => {
     const msgDate = dateValue(message);
-    const turn_date = msgDate instanceof Date ? msgDate.toISOString() : undefined;
+    const turn_date =
+      msgDate instanceof Date ? msgDate.toISOString() : undefined;
     const thread_root_date =
       threadRootMs != null ? new Date(threadRootMs).toISOString() : undefined;
 
@@ -445,16 +447,27 @@ export default function Message({
     actions.syncdb.commit();
   }, [actions, messages, threadRootMs, message, project_id]);
 
-  const threadKeyForSession = useMemo(() => {
-    return threadRootMs != null ? `${threadRootMs}` : undefined;
-  }, [threadRootMs]);
+  const threadKeyForSession = useMemo(
+    () => (threadRootMs != null ? `${threadRootMs}` : undefined),
+    [threadRootMs],
+  );
 
   const acpThreadId = useMemo(
     () => field<string>(message, "acp_thread_id"),
     [message],
   );
 
-  const sessionIdForInterrupt = acpThreadId ?? threadKeyForSession;
+  // Prefer the persisted sessionId on the thread root's acp_config; fall back
+  // to the thread id we get from the ACP payload, then the thread key.
+  const sessionIdForInterrupt = useMemo(() => {
+    const rootMessage =
+      threadKeyForSession != null
+        ? messages?.get(threadKeyForSession)
+        : undefined;
+    const cfg = field<CodexThreadConfig>(rootMessage, "acp_config");
+    const sessionId = cfg?.sessionId;
+    return sessionId ?? acpThreadId ?? threadKeyForSession;
+  }, [messages, threadKeyForSession, acpThreadId]);
 
   const feedbackMap = useMemo(() => field<any>(message, "feedback"), [message]);
 

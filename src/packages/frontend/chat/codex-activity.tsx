@@ -808,9 +808,6 @@ function TerminalRow({
 
   return (
     <div>
-      {/* <Tag color={COLORS.STAR} style={{ marginBottom: 6 }}>
-        Terminal
-      </Tag>*/}
       <TerminalPreview
         text={terminalText}
         maxHeight={500}

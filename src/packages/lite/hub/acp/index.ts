@@ -64,7 +64,7 @@ let conatClient: ConatClient | null = null;
 type ApprovalEvent = Extract<AcpStreamEvent, { type: "approval" }>;
 
 const INTERRUPT_STATUS_TEXT =
-  "Conversation interrupted - tell the model what to do differently.";
+  "Conversation interrupted - tell me what to do differently.";
 
 const chatWritersByChatKey = new Map<string, ChatStreamWriter>();
 const chatWritersByThreadId = new Map<string, ChatStreamWriter>();

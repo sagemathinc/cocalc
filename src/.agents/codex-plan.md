@@ -25,17 +25,17 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
   - `generating`, `acp_log_*`, any “running/init” markers, etc.
 - [x] Ensure “turn finished” always clears `generating` even if the assistant row didn’t exist yet at start.
 
-### 3) (NOW) Server-assign Codex `session_id` when blank and persist to the chat thread root message
+### 3) Server-assign Codex `session_id` when blank and persist to the chat thread root message
 
-- [ ] Define a canonical field on the **root message of a thread** for the Codex session id:
+- [x] Define a canonical field on the **root message of a thread** for the Codex session id:
   - Proposed: `acp_config.sessionId` (string UUID).
   - This is distinct from all `acp_log_*` fields, which are per-turn log identifiers.
-- [ ] Backend behavior (authoritative):
+- [x] Backend behavior (authoritative):
   - If the incoming request has `sessionId` blank/undefined, backend starts a new Codex session and obtains `sessionId` from the root message.
   - Backend writes `acp_config.sessionId` onto the thread root message (once known) so refresh/other clients reuse it.
   - Backend should not rely on the frontend to create/update the assistant reply row before it can persist `acp_config.sessionId`.
-- [ ] Frontend behavior:
-  - When a root message already has `acp_config.sessionId`, optionally include it in subsequent ACP requests (`session_id`), though the backend can just read it from the root message.
+- [x] Frontend behavior:
+  - When a root message already has `acp_config.sessionId`, include it in subsequent ACP requests (`session_id`).
   - When it is blank, do **not** invent one client-side; let the backend populate it.
   - The session config dialog should display the current `acp_config.sessionId` once it exists; blank means “will be created by backend on first run”.
 
@@ -106,7 +106,7 @@ but it was totally broken, and using `codex resume` in the terminal showed it ha
 
 - [ ] if the codex-acp subprocess is killed then everything is broken forever; instead it should get restarted
 
-- [ ] interrupt often doesn't work: with this error in frontend console.log "failed to interrupt codex turn ConatError: request \-\- no subscribers matching 'acp.account\-d0bdabfd\-850e\-4c8d\-8510\-f6f1ecb9a5eb.interrupt'"
+- [x] interrupt often doesn't work: with this error in frontend console.log "failed to interrupt codex turn ConatError: request \-\- no subscribers matching 'acp.account\-d0bdabfd\-850e\-4c8d\-8510\-f6f1ecb9a5eb.interrupt'"
 
 - [ ] in lite mode nothing but "full access" works. They might -- this is just a test.
    - "sandbox/readonly in lite hangs; prompt.start with no end; likely codex-acp failure (no stderr surfaced)"

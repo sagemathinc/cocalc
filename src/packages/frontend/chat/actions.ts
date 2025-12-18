@@ -1155,6 +1155,7 @@ export class ChatActions extends Actions<ChatState> {
     }
     try {
       await webapp_client.conat_client.interruptAcp({
+        project_id,
         threadId,
         chat,
       });

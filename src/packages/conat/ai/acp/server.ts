@@ -55,22 +55,6 @@ export function acpInterruptSubject(opts: {
   return `${buildSubjectPrefix(opts)}.interrupt`;
 }
 
-function getUserId(subject: string): string {
-  if (subject.startsWith(`${SUBJECT}.account-`)) {
-    return subject.slice(
-      `${SUBJECT}.account-`.length,
-      `${SUBJECT}.account-`.length + 36,
-    );
-  }
-  if (subject.startsWith(`${SUBJECT}.project-`)) {
-    return subject.slice(
-      `${SUBJECT}.project-`.length,
-      `${SUBJECT}.project-`.length + 36,
-    );
-  }
-  return "hub";
-}
-
 function getProjectId(subject: string): string | undefined {
   if (subject.startsWith(`${SUBJECT}.project-`)) {
     const id = subject.slice(
@@ -191,10 +175,8 @@ function listenInterrupts(interruptHandler: InterruptHandler): void {
 
 async function handleMessage(mesg, evaluate: EvaluateHandler) {
   const options = mesg.data ?? {};
-  const project_id = getProjectId(mesg.subject);
   logger.debug("handleMessage", {
     subject: mesg.subject,
-    project_id,
     hasChat: !!options.chat,
   });
 
@@ -239,7 +221,7 @@ async function handleMessage(mesg, evaluate: EvaluateHandler) {
     // TODO: the account_id is not actually used for anything yet; it should
     // be added somewhere for attribution.  The authentication is by the
     // fact they could write to the subject, which determines the project_id.
-    // TODO: Actually, the account_id should be used for approvals as well.
+    // TODO: Actually, the account_id might be used for approvals as well (?)
     if (!isValidUUID(options.account_id)) {
       throw Error("account_id must be a valid uuid");
     }
@@ -247,18 +229,7 @@ async function handleMessage(mesg, evaluate: EvaluateHandler) {
     // In project-scoped requests, derive the project_id from the subject to
     // avoid trusting client-provided IDs. Ensure any provided project_id
     // matches what was derived.
-    if (project_id) {
-      if (options.project_id && options.project_id !== project_id) {
-        throw Error("project_id does not match subject");
-      }
-      options.project_id = project_id;
-      if (options.chat) {
-        if (options.chat.project_id && options.chat.project_id !== project_id) {
-          throw Error("chat.project_id does not match subject");
-        }
-        options.chat.project_id = project_id;
-      }
-    }
+    validateOptions(options, mesg.subject);
 
     await evaluate({
       ...options,
@@ -274,6 +245,23 @@ async function handleMessage(mesg, evaluate: EvaluateHandler) {
   }
 }
 
+function validateOptions(options, subject) {
+  const project_id = getProjectId(subject);
+  if (!isValidUUID(project_id)) {
+    throw Error("project_id must be a valid uuid");
+  }
+  if (options.project_id && options.project_id !== project_id) {
+    throw Error("project_id does not match subject");
+  }
+  options.project_id = project_id;
+  if (options.chat) {
+    if (options.chat.project_id && options.chat.project_id !== project_id) {
+      throw Error("chat.project_id does not match subject");
+    }
+    options.chat.project_id = project_id;
+  }
+}
+
 async function handleApprovalMessage(
   mesg,
   approval: ApprovalHandler,
@@ -286,14 +274,9 @@ async function handleApprovalMessage(
     }
     await mesg.respond(data, { noThrow: true });
   };
+  validateOptions(options, mesg.subject);
 
   try {
-    if (!isValidUUID(options.account_id)) {
-      throw Error("account_id must be a valid uuid");
-    }
-    if (options.account_id !== getUserId(mesg.subject)) {
-      throw Error("account_id is invalid");
-    }
     await approval(options);
     await respond({ status: "ok" });
   } catch (err) {
@@ -315,12 +298,7 @@ async function handleInterruptMessage(
   };
 
   try {
-    if (!isValidUUID(options.account_id)) {
-      throw Error("account_id must be a valid uuid");
-    }
-    if (options.account_id !== getUserId(mesg.subject)) {
-      throw Error("account_id is invalid");
-    }
+    validateOptions(options, mesg.subject);
     await interrupt(options);
     await respond();
   } catch (err) {
