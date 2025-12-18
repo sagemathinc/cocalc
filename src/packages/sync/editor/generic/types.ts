@@ -21,10 +21,12 @@ import type {
 import type { JSONValue } from "@cocalc/util/types";
 
 export interface Patch {
-  // time = LOGICAL time of when patch made; this used to be ms since the epoch, but just
-  // has to an increasing sequence of numbers.  It does distinguish between different users
-  // by the congruence class of the number.
-  time: number;
+  // time = PatchId (opaque logical id) of when patch was made.
+  // Historically this was a number (ms since epoch-ish). In patchflow@0.5.0+ it is a
+  // string of the form "<time36>_<client>", where time36 is a fixed-width base36
+  // timestamp prefix (lex-sortable) and client is a per-session random suffix to
+  // avoid collisions when the same user commits concurrently from multiple clients.
+  time: string;
   // wall = wallclock time of when patch made; plays no role at all in the algorithm and
   // is purely to **display to the user**.  For backward compat and display, if wall is
   // not defined in then this should fall back to the time field.
@@ -56,7 +58,7 @@ export interface Patch {
   // required by this data structure: instead parents could just be the branches
   // that we are merging.  I.e., we might only add something when
   // the user wants to manually do a merge.  That's for later...
-  parents?: number[];
+  parents?: string[];
 
   version?: number;
 

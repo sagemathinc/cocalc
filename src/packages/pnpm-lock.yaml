@@ -1928,8 +1928,8 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
       patchflow:
-        specifier: ^0.4.6
-        version: 0.4.6
+        specifier: ^0.5.0
+        version: 0.5.0
     devDependencies:
       '@types/lodash':
         specifier: ^4.17.20
@@ -10263,8 +10263,8 @@ packages:
     engines: {node: '>= 0.4.0'}
     hasBin: true
 
-  patchflow@0.4.6:
-    resolution: {integrity: sha512-VgEqwVm9jP+NYIPRk8Gm1w61nWT760h+wWTf3FprbBeSYrKUy/VA1ofSJgNr1Hoa9/hTMB1ZIHjWZW/bZ+4u6g==}
+  patchflow@0.5.0:
+    resolution: {integrity: sha512-6CQLZf6AlFL5b5AqHHswZ5QtvlilkfAsY5eAJjC0ZazVRFmaeugdxusL6vBTKPYuMYRjDMAEVPc03hnGn7eULw==}
 
   path-browserify@1.0.1:
     resolution: {integrity: sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==}
@@ -23105,7 +23105,7 @@ snapshots:
 
   password-hash@1.2.2: {}
 
-  patchflow@0.4.6:
+  patchflow@0.5.0:
     dependencies:
       '@cocalc/diff-match-patch': 1.0.1
       events: 3.3.0

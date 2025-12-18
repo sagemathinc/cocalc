@@ -64,6 +64,10 @@ import { IpywidgetsState } from "./ipywidgets-state";
 import {
   Session as PatchflowSession,
   type DocCodec,
+  type PatchId,
+  comparePatchId,
+  decodePatchId,
+  legacyPatchId,
   type PatchEnvelope,
   type PatchStore as PatchflowPatchStore,
   type PresenceAdapter as PatchflowPresenceAdapter,
@@ -209,7 +213,7 @@ export class SyncDoc extends EventEmitter {
   private last_user_change: Date = minutes_ago(60);
   private last_save_to_disk_time: Date = new Date(0);
 
-  private last_snapshot?: number;
+  private last_snapshot?: PatchId;
   private last_seq?: number;
   private snapshot_interval: number;
 
@@ -594,14 +598,14 @@ export class SyncDoc extends EventEmitter {
   // Version of the document at a given point in time; if no
   // time specified, gives the version right now.
   // If not fully initialized, will throw exception.
-  version = (time?: number): Document => {
+  version = (time?: PatchId): Document => {
     return this.requirePatchflowSession().value({ time }) as Document;
   };
 
   /* Compute version of document if the patches at the given times
      were simply not included.  This is a building block that is
      used for implementing undo functionality for client editors. */
-  version_without = (without_times: number[]): Document => {
+  version_without = (without_times: PatchId[]): Document => {
     return this.requirePatchflowSession().value({
       withoutTimes: without_times,
     }) as Document;
@@ -611,7 +615,7 @@ export class SyncDoc extends EventEmitter {
   // There doesn't have to be a patch at exactly that point in
   // time -- if there isn't it just uses the patch before that
   // point in time.
-  revert = (time: number): void => {
+  revert = (time: PatchId): void => {
     this.set_doc(this.version(time));
   };
 
@@ -701,7 +705,7 @@ export class SyncDoc extends EventEmitter {
 
   // account_id of the user who made the edit at
   // the given point in time.
-  account_id = (time: number): string | undefined => {
+  account_id = (time: PatchId): string | undefined => {
     this.assert_is_ready("account_id");
     const patch = this.patchflowPatch(time);
     if (patch?.file) {
@@ -712,7 +716,7 @@ export class SyncDoc extends EventEmitter {
 
   // Integer index of user who made the edit at given
   // point in time.
-  user_id = (time: number): number => {
+  user_id = (time: PatchId): number => {
     const patch = this.patchflowPatch(time);
     if (patch == null) {
       throw new Error(`no patch at time ${time}`);
@@ -736,7 +740,7 @@ export class SyncDoc extends EventEmitter {
      table that we opened to start editing (so starts with what was
      the most recent snapshot when we started).  The list of timestamps
      is sorted from oldest to newest. */
-  versions = (): number[] => {
+  versions = (): PatchId[] => {
     const v = this.patchflowVersions();
     if (v == null) {
       throw new Error("patchflow session not ready");
@@ -744,21 +748,21 @@ export class SyncDoc extends EventEmitter {
     return v;
   };
 
-  getHeads = (): number[] => {
+  getHeads = (): PatchId[] => {
     if (!this.patchflowReady() || this.patchflowSession == null) {
       throw new Error("patchflow session not ready");
     }
     return this.patchflowSession.getHeads();
   };
 
-  wallTime = (version: number): number | undefined => {
+  wallTime = (version: PatchId): number | undefined => {
     const patch = this.patchflowPatch(version);
     return patch?.wall;
   };
 
   // newest version of any non-staging known patch on this client,
   // including ones just made locally.
-  newestVersion = (): number | undefined => {
+  newestVersion = (): PatchId | undefined => {
     const v = this.patchflowVersions();
     if (v != null && v.length > 0) {
       return v[v.length - 1];
@@ -766,7 +770,7 @@ export class SyncDoc extends EventEmitter {
     return undefined;
   };
 
-  hasVersion = (time: number): boolean => {
+  hasVersion = (time: PatchId): boolean => {
     const v = this.patchflowVersions();
     if (v != null) {
       return v.includes(time);
@@ -790,14 +794,15 @@ export class SyncDoc extends EventEmitter {
     return;
   };
 
-  historyVersionNumber = (time: number): number | undefined => {
+  historyVersionNumber = (time: PatchId): number | undefined => {
     const patch = this.patchflowPatch(time);
     return patch?.version;
   };
 
   last_changed = (): number => {
     const v = this.versions();
-    return v[v.length - 1] ?? 0;
+    const last = v[v.length - 1];
+    return last ? decodePatchId(last).timeMs : 0;
   };
 
   private init_table_close_handlers(): void {
@@ -1173,7 +1178,7 @@ export class SyncDoc extends EventEmitter {
     return result;
   };
 
-  private patch_table_query = (cutoff?: number) => {
+  private patch_table_query = (cutoff?: PatchId) => {
     const query = {
       string_id: this.string_id,
       is_snapshot: false, // only used with conat
@@ -1196,12 +1201,9 @@ export class SyncDoc extends EventEmitter {
     return query;
   };
 
-  private setLastSnapshot(last_snapshot?: number) {
+  private setLastSnapshot(last_snapshot?: PatchId) {
     // only set last_snapshot here, so we can keep it in sync with the syncstring table
-    // and also be certain about the data type (being number or undefined).
-    if (last_snapshot !== undefined && typeof last_snapshot != "number") {
-      throw Error("type of last_snapshot must be number or undefined");
-    }
+    // and also be certain about the data type (being PatchId string or undefined).
     this.last_snapshot = last_snapshot;
   }
 
@@ -1529,9 +1531,15 @@ export class SyncDoc extends EventEmitter {
   //    - prev_seq -- the sequence number of previous patch before that, for use in "load more"
   //    - index -- the global index of the entry with the given time.
   private conatSnapshotSeqInfo = (
-    time: number,
+    time: PatchId,
   ): { seq: number; prev_seq?: number } => {
     const dstream = this.dstream();
+    const normalizePatchId = (raw: unknown): PatchId => {
+      if (typeof raw === "string") return raw;
+      if (typeof raw === "number") return legacyPatchId(raw);
+      // fall back to string coercion to avoid crashing on unexpected old rows
+      return legacyPatchId(new Date(String(raw)).valueOf());
+    };
     // seq = actual sequence number of the message with the patch that we're
     // snapshotting at -- i.e., at time
     let seq: number | undefined = undefined;
@@ -1540,19 +1548,21 @@ export class SyncDoc extends EventEmitter {
     let prev_seq: number | undefined;
     let i = 0;
     for (const mesg of dstream.getAll()) {
-      if (mesg.is_snapshot && mesg.time < time) {
+      const mesgTime = normalizePatchId(mesg.time);
+      if (mesg.is_snapshot && comparePatchId(mesgTime, time) < 0) {
         // the seq field of this message has the actual sequence number of the patch
         // that was snapshotted, along with the index of that patch.
         prev_seq = mesg.seq_info.seq;
       }
-      if (seq === undefined && mesg.time == time) {
+      if (seq === undefined && mesgTime === time) {
         seq = dstream.seq(i);
       }
       i += 1;
     }
     if (seq == null) {
+      const timeMs = decodePatchId(time).timeMs;
       throw Error(
-        `unable to find message with time '${time}'=${new Date(time)}`,
+        `unable to find message with time '${time}'=${new Date(timeMs)}`,
       );
     }
     return { seq, prev_seq };
@@ -1569,7 +1579,7 @@ export class SyncDoc extends EventEmitter {
      putting old data into history, this can fail. However, in the usual
      case we should never record a snapshot with this bad property.
   */
-  private snapshot = reuseInFlight(async (time: number): Promise<void> => {
+  private snapshot = reuseInFlight(async (time: PatchId): Promise<void> => {
     let user_id = this.my_user_id ?? 0;
     let snapshot: string | undefined;
     if (!this.patchflowReady() || this.patchflowSession == null) {
@@ -1589,11 +1599,12 @@ export class SyncDoc extends EventEmitter {
       throw Error("unable to compute snapshot");
     }
     const seq_info = this.conatSnapshotSeqInfo(time);
+    const wall = p.wall ?? decodePatchId(time).timeMs;
     const obj = {
       size: snapshot.length,
       string_id: this.string_id,
       time,
-      wall: time,
+      wall,
       is_snapshot: true,
       snapshot,
       user_id,
@@ -1660,15 +1671,29 @@ export class SyncDoc extends EventEmitter {
     patch?: any;
     size?: number;
   }): Patch => {
-    let t = x.get("time");
-    if (typeof t != "number") {
-      // backwards compat
-      t = new Date(t).valueOf();
-    }
-    const time: number = t;
-    const wall = x.get("wall") ?? time;
+    const normalizePatchId = (raw: unknown): PatchId => {
+      if (typeof raw === "string") {
+        // Backward compat: some old patches used ISO timestamps for `time`.
+        if (!raw.includes("_")) {
+          const legacy = new Date(raw).valueOf();
+          if (!Number.isNaN(legacy)) {
+            return legacyPatchId(legacy);
+          }
+        }
+        return raw;
+      }
+      if (typeof raw === "number") {
+        return legacyPatchId(raw);
+      }
+      throw new Error(`invalid patch time: ${raw}`);
+    };
+
+    const time = normalizePatchId(x.get("time"));
+    const wall: number = x.get("wall") ?? decodePatchId(time).timeMs;
     const user_id: number = x.get("user_id");
-    let parents: number[] = x.get("parents")?.toJS() ?? [];
+    let parents: PatchId[] = (x.get("parents")?.toJS() ?? []).map(
+      normalizePatchId,
+    );
     let size: number;
     const is_snapshot = x.get("is_snapshot");
     if (is_snapshot) {
@@ -2241,7 +2266,7 @@ export class SyncDoc extends EventEmitter {
     return this.patchflowSession;
   };
 
-  private patchflowPatch = (time: number): PatchEnvelope | undefined => {
+  private patchflowPatch = (time: PatchId): PatchEnvelope | undefined => {
     if (!this.patchflowReady() || this.patchflowSession == null) return;
     try {
       return this.patchflowSession.getPatch(time);
@@ -2250,7 +2275,7 @@ export class SyncDoc extends EventEmitter {
     }
   };
 
-  private patchflowVersions = (): number[] | undefined => {
+  private patchflowVersions = (): PatchId[] | undefined => {
     if (!this.patchflowReady() || this.patchflowSession == null) return;
     try {
       return this.patchflowSession.versions();
@@ -2271,11 +2296,12 @@ export class SyncDoc extends EventEmitter {
     if (!this.patchflowReady() || this.patchflowSession == null) return;
     const history = this.patchflowSession.history({ includeSnapshots: true });
     let prevSeq: number | undefined;
-    let oldest: number | undefined;
+    let oldestTimeMs: number | undefined;
     for (const p of history) {
       if (p.isSnapshot && p.seqInfo?.prevSeq != null) {
-        if (oldest == null || p.time < oldest) {
-          oldest = p.time;
+        const timeMs = decodePatchId(p.time).timeMs;
+        if (oldestTimeMs == null || timeMs < oldestTimeMs) {
+          oldestTimeMs = timeMs;
           prevSeq = p.seqInfo.prevSeq;
         }
       }
@@ -2286,7 +2312,7 @@ export class SyncDoc extends EventEmitter {
   private patchflowSnapshotCandidate = (
     interval: number,
     max_size: number,
-  ): number | undefined => {
+  ): PatchId | undefined => {
     if (!this.patchflowReady() || this.patchflowSession == null) return;
     const history = this.patchflowSession.history({ includeSnapshots: true });
     if (history.length === 0) return;
@@ -2294,7 +2320,7 @@ export class SyncDoc extends EventEmitter {
     const lastSnapshotTime =
       snapshots.length > 0 ? snapshots[snapshots.length - 1].time : undefined;
     const window = history.filter((p) =>
-      lastSnapshotTime != null ? p.time >= lastSnapshotTime : true,
+      lastSnapshotTime != null ? comparePatchId(p.time, lastSnapshotTime) >= 0 : true,
     );
     if (window.length === 0) return;
     // Rule 1: interval count
