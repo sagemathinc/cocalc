@@ -9,10 +9,10 @@
  */
 import type { Client as ConatClient } from "@cocalc/conat/core/client";
 import {
-  syncdb,
-  type SyncDBOptions,
-  type SyncDB,
-} from "@cocalc/conat/sync-doc/syncdb";
+  immerdb,
+  type ImmerDBOptions,
+  type ImmerDB,
+} from "@cocalc/conat/sync-doc/immer-db";
 import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("chat:server");
@@ -22,7 +22,7 @@ export const CHAT_STRING_COLS = ["input"];
 
 export interface CreateChatSyncDBOptions
   extends Omit<
-    SyncDBOptions,
+    ImmerDBOptions,
     "primary_keys" | "path" | "project_id" | "client"
   > {
   client: ConatClient;
@@ -30,7 +30,7 @@ export interface CreateChatSyncDBOptions
   path: string;
 }
 
-export function createChatSyncDB(opts: CreateChatSyncDBOptions): SyncDB {
+export function createChatSyncDB(opts: CreateChatSyncDBOptions): ImmerDB {
   const {
     client,
     project_id,
@@ -43,7 +43,7 @@ export function createChatSyncDB(opts: CreateChatSyncDBOptions): SyncDB {
     ...rest
   } = opts;
 
-  const options: SyncDBOptions = {
+  const options: ImmerDBOptions = {
     ...rest,
     client,
     project_id,
@@ -56,12 +56,12 @@ export function createChatSyncDB(opts: CreateChatSyncDBOptions): SyncDB {
     persistent: persistent ?? true,
   };
 
-  return syncdb(options);
+  return immerdb(options);
 }
 
 // Ref-counted pool so a given project/path syncdb is opened once at a time.
 type PoolEntry = {
-  db: SyncDB;
+  db: ImmerDB;
   ready: Promise<void>;
   refs: number;
   closingPromise?: Promise<void>;
@@ -99,7 +99,7 @@ async function makeEntry(
 
 export async function acquireChatSyncDB(
   opts: CreateChatSyncDBOptions,
-): Promise<SyncDB> {
+): Promise<ImmerDB> {
   const key = poolKey(opts.project_id, opts.path);
   // Loop to handle the case where an entry was closing; cancel close and reuse.
   for (;;) {

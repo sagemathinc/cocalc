@@ -496,7 +496,8 @@ export class ChatStreamWriter {
       acp_account_id: this.approverAccountId,
     });
     logger.debug("commit updated message", message);
-    this.syncdb!.set(message);
+    logger.debug("commit JSON.stringify(message)", JSON.stringify(message));
+    this.syncdb!.set({ ...message, reply_to2: this.metadata.reply_to });
     this.syncdb!.commit();
     (async () => {
       try {
@@ -505,6 +506,13 @@ export class ChatStreamWriter {
         logger.warn("chat syncdb save failed", err);
       }
     })();
+    // For debugging: fetch the saved record in a way that works with both real
+    // syncdb instances and unit-test fakes (which may not implement `.get()`).
+    const saved = this.syncdb!.get_one({
+      event: "chat",
+      date: this.metadata.message_date,
+    });
+    logger.debug("message we just saved", saved);
   }, COMMIT_INTERVAL);
 
   dispose(forceImmediate: boolean = false): void {
