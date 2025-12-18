@@ -1,3 +1,62 @@
+## Make Codex Chat Rock Solid and Robust
+
+Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-safe by (1) using a single canonical notion of Codex `session_id`, (2) making the backend the authority for creating/persisting that `session_id` when blank, and (3) deriving all ACP log identifiers (store/key/subject) from a single shared helper in `src/packages/chat`.
+
+### 1) Canonicalize ACP log identifiers in a shared helper (no ad-hoc fallbacks)
+- [ ] Create a single helper in `src/packages/chat` that derives all log identifiers from:
+  - `project_id`, `path`, `thread_root_date` (root message), `turn_date` (assistant reply date).
+- [ ] The helper should return:
+  - `acp_log_store` (AKV store name; derived from `project_id+path`)
+  - `acp_log_thread` (thread root identifier; root message date)
+  - `acp_log_turn` (turn identifier; assistant reply date)
+  - `acp_log_key = ${thread}:${turn}`
+  - `acp_log_subject` (pub/sub subject; deterministic from project+thread+turn)
+- [ ] Update both frontend + backend to call the helper rather than:
+  - writing/reading subjects from syncdb ad-hoc, or
+  - attempting multiple fallback sources (`reply_to/date/acp_thread_id`, etc.).
+- [ ] Delete/avoid fallback logic in chat UI that mixes concepts (e.g. `acp_log_thread ?? acp_session_id`).
+
+### 2) Make the backend the sole writer of assistant-reply ACP state (avoid sync races)
+- [ ] Frontend should not write ACP metadata into the assistant reply row beyond “user submitted a turn”.
+  - Frontend can show optimistic UI locally, but should not compete with backend for the same row fields.
+- [ ] Backend should create (or ensure) the assistant reply row exists and own fields like:
+  - `generating`, `acp_log_*`, any “running/init” markers, etc.
+- [ ] Ensure “turn finished” always clears `generating` even if the assistant row didn’t exist yet at start.
+
+### 3) Server-assign Codex `session_id` when blank and persist to the chat thread root message
+- [ ] Define a canonical field on the **root message of a thread** for the Codex session id:
+  - Proposed: `acp_session_id` (string UUID).
+  - This is distinct from all `acp_log_*` fields, which are per-turn log identifiers.
+- [ ] Backend behavior (authoritative):
+  - If the incoming request has `session_id` blank/undefined, backend starts a new Codex session and obtains `session_id` from the summary.
+  - Backend writes `acp_session_id` onto the thread root message (once known) so refresh/other clients reuse it.
+  - Backend should not rely on the frontend to create/update the assistant reply row before it can persist `acp_session_id`.
+- [ ] Frontend behavior:
+  - When a root message already has `acp_session_id`, include it in subsequent ACP requests (`session_id`).
+  - When it is blank, do **not** invent one client-side; let the backend populate it.
+  - The session config dialog should display the current `acp_session_id` once it exists; blank means “will be created by backend on first run”.
+
+### 4) Rename ACP “threadId” → `session_id` everywhere (no compat)
+- [ ] Change the ACP stream payload schema to use `session_id` (snake_case) instead of `threadId`.
+  - Update `AcpStreamPayload.summary` in `src/packages/conat/ai/acp/types.ts`.
+  - Update any other payloads/requests that refer to `threadId` but actually mean “Codex session id”.
+- [ ] Update all producers/consumers to use `session_id` consistently (no `sessionId`, no `threadId`).
+  - Backend: `src/packages/ai/acp/codex.ts` should emit `session_id: session.sessionId` in the summary.
+  - Conat client: `src/packages/conat/ai/acp/client.ts` should return `{ session_id }` instead of `{ threadId }`.
+  - Frontend: all code that reads the summary should use `session_id`.
+- [ ] Update interrupt API naming similarly:
+  - Replace `threadId` with `session_id` in `src/packages/conat/ai/acp/types.ts` for `AcpInterruptRequest` (and downstream call sites).
+  - In `src/packages/lite/hub/acp/index.ts`, rename `interruptCodexSession(threadId)` to `interruptCodexSession(session_id)` and update maps/keys accordingly.
+
+### 5) Validate robustness: multi-turn, refresh mid-run, multi-client
+- [ ] Add (or extend) an integration test that:
+  - starts two turns back-to-back with blank `session_id`
+  - asserts both turns share the same persisted `acp_session_id` on the thread root
+  - asserts logs route to distinct per-turn log keys/subjects (no cross-association)
+- [ ] Manual checks:
+  - refresh browser mid-run: activity log resumes via AKV + pub/sub
+  - two browser tabs: no stuck “generating” and no misassigned output
+
 ## Bring Codex integration to Multiuser Mode
 
 **Goal:** support Codex/ACP in podman (multiuser) mode with a single ACP coordinator per project-host, routing every tool call into the correct project container. Frontend API should remain the same except for picking a project-scoped conat subject.
@@ -262,4 +321,3 @@ Bring Codex agents into CoCalc chat so users can open a thread, point it at a wo
 - Settings UI: `packages/frontend/account/lite-ai-settings.tsx`, `/customize` logic in `packages/lite/hub/settings.ts`.
 
 Keep this summary handy when switching workspaces so the next session can pick up Codex integration without re-reading history.
-

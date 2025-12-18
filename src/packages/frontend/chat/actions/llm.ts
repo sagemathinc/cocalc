@@ -88,10 +88,8 @@ export async function processLLM({
       ctx,
       message,
       reply_to,
-      tag,
       model,
       input,
-      dateLimit,
     });
     return;
   }
@@ -355,18 +353,14 @@ async function handleCodexTurn({
   ctx,
   message,
   reply_to,
-  tag,
   model,
   input,
-  dateLimit,
 }: {
   ctx: LLMContext;
   message: ChatMessage;
   reply_to?: Date;
-  tag?: string;
   model: LanguageModel;
   input: string;
-  dateLimit?: Date;
 }): Promise<void> {
   const { syncdb, store } = ctx;
   if (!syncdb || !store) return;
@@ -391,10 +385,8 @@ async function handleCodexTurn({
   await processAcpLLM({
     message,
     reply_to,
-    tag,
     model,
     input,
-    dateLimit,
     context: {
       syncdb,
       path,
@@ -402,7 +394,6 @@ async function handleCodexTurn({
       chatStreams: ctx.chatStreams,
       sendReply: ctx.sendReply,
       saveHistory: ctx.saveHistory,
-      getLLMHistory: ctx.getLLMHistory,
       getCodexConfig: (reply_to_date?: Date) =>
         ctx.getCodexConfig(reply_to_date ?? reply_to ?? undefined),
       setCodexConfig: ctx.setCodexConfig,

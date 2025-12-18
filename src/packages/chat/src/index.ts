@@ -100,3 +100,4 @@ export function buildChatMessage(
 }
 
 export * from "./acp";
+export * from "./acp-log";

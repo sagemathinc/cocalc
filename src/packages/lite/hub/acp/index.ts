@@ -33,7 +33,11 @@ import {
   resolveWorkspaceRoot,
 } from "./workspace-root";
 import { getBlobstore } from "../blobs/download";
-import { buildChatMessage, type MessageHistory } from "@cocalc/chat";
+import {
+  buildChatMessage,
+  deriveAcpLogRefs,
+  type MessageHistory,
+} from "@cocalc/chat";
 import { acquireChatSyncDB, releaseChatSyncDB } from "@cocalc/chat/server";
 import { appendStreamMessage, extractEventText } from "@cocalc/chat";
 import type { SyncDB } from "@cocalc/conat/sync-doc/syncdb";
@@ -46,7 +50,6 @@ import {
 } from "../sqlite/acp-queue";
 import { throttle } from "lodash";
 import { akv, type AKV } from "@cocalc/conat/sync/akv";
-import { client_db } from "@cocalc/util/db-schema";
 
 // how many ms between saving output during a running turn
 // so that everybody sees it.
@@ -230,14 +233,21 @@ export class ChatStreamWriter {
     if (sessionKey) {
       this.registerThreadKey(sessionKey);
     }
-    this.logThreadId = metadata.reply_to ?? metadata.message_date;
-    // Use the message timestamp as a unique turn identifier so each turn gets
+    const thread_root_date = metadata.reply_to ?? metadata.message_date;
+    // Use the assistant reply date as a unique turn identifier so each turn gets
     // an isolated log key; avoid reusing the session key which can span turns.
-    this.logTurnId = metadata.message_date ?? randomUUID();
-    const hash = client_db.sha1(metadata.project_id, metadata.path);
-    this.logStoreName = `acp-log:${hash}`;
-    this.logKey = `${this.logThreadId}:${this.logTurnId}`;
-    this.logSubject = `project.${metadata.project_id}.acp-log.${this.logThreadId}.${this.logTurnId}`;
+    const turn_date = metadata.message_date ?? randomUUID();
+    const refs = deriveAcpLogRefs({
+      project_id: metadata.project_id,
+      path: metadata.path,
+      thread_root_date,
+      turn_date,
+    });
+    this.logThreadId = refs.thread;
+    this.logTurnId = refs.turn;
+    this.logStoreName = refs.store;
+    this.logKey = refs.key;
+    this.logSubject = refs.subject;
     // ensure initialization rejections are observed immediately
     this.ready = this.initialize();
     this.waitUntilReady();

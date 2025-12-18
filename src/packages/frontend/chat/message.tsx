@@ -34,7 +34,7 @@ import { User } from "@cocalc/frontend/users";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
 import { plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { client_db } from "@cocalc/util/db-schema";
+import { deriveAcpLogRefs } from "@cocalc/chat";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import { codexEventsToMarkdown } from "./codex-activity";
@@ -315,31 +315,30 @@ export default function Message({
     return null;
   }, [message]);
 
-  // Resolve log identifiers for this message/turn:
-  // - thread: stable thread id
-  // - turn:   per-message turn id (defaults to this message date)
-  // - store:  AKV name (acp_log_store or sha1(project_id, path))
-  // - key:    AKV key `${thread}:${turn}`
-  // - subject: conat pub/sub subject for live log streaming
+  // Resolve log identifiers deterministically (shared with backend) so we never
+  // invent subjects/keys in multiple places.
   const fallbackLogRefs = useMemo(() => {
-    const thread =
-      acpLogInfo?.thread ??
-      replyTo(message) ??
-      dateValue(message)?.toString?.();
-    const turn = acpLogInfo?.turn ?? dateValue(message)?.toString?.();
-    const store =
-      acpLogInfo?.store ??
-      (project_id && path
-        ? `acp-log:${client_db.sha1(project_id, path)}`
-        : undefined);
-    const key =
-      acpLogInfo?.key ?? (thread && turn ? `${thread}:${turn}` : undefined);
-    const subject =
-      acpLogInfo?.subject ??
-      (project_id && thread && turn
-        ? `project.${project_id}.acp-log.${thread}.${turn}`
-        : undefined);
-    return { thread, turn, store, key, subject };
+    const msgDate = dateValue(message);
+    const turn_date = msgDate instanceof Date ? msgDate.toISOString() : undefined;
+    const thread_root_date = acpLogInfo?.thread ?? replyTo(message) ?? turn_date;
+
+    const derived =
+      project_id && path && thread_root_date && turn_date
+        ? deriveAcpLogRefs({
+            project_id,
+            path,
+            thread_root_date,
+            turn_date,
+          })
+        : undefined;
+
+    return {
+      thread: acpLogInfo?.thread ?? derived?.thread,
+      turn: acpLogInfo?.turn ?? derived?.turn,
+      store: acpLogInfo?.store ?? derived?.store,
+      key: acpLogInfo?.key ?? derived?.key,
+      subject: acpLogInfo?.subject ?? derived?.subject,
+    };
   }, [acpLogInfo, message, project_id, path]);
 
   const [showCodexDrawer, setShowCodexDrawer] = useState(false);

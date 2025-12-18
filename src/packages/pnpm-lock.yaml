@@ -229,6 +229,9 @@ importers:
       '@cocalc/conat':
         specifier: workspace:*
         version: link:../conat
+      sha1:
+        specifier: ^1.1.1
+        version: 1.1.1
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -236,6 +239,9 @@ importers:
       '@types/node':
         specifier: ^22.10.10
         version: 22.19.1
+      '@types/sha1':
+        specifier: ^1.1.3
+        version: 1.1.5
       ts-jest:
         specifier: ^29.4.5
         version: 29.4.5(@babel/core@7.28.5)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.28.5))(jest-util@30.2.0)(jest@30.2.0(@types/node@22.19.1)(ts-node@10.9.2(@types/node@22.19.1)(typescript@5.9.3)))(typescript@5.9.3)
@@ -5262,6 +5268,9 @@ packages:
 
   '@types/serve-static@1.15.10':
     resolution: {integrity: sha512-tRs1dB+g8Itk72rlSI2ZrW6vZg0YrLI81iQSTkMmOqnqCaNr/8Ek4VwWcN5vZgCYWbg/JJSGBlUaYGAOP73qBw==}
+
+  '@types/sha1@1.1.5':
+    resolution: {integrity: sha512-eE1PzjW7u2VfxI+bTsvjzjBfpwqvxSpgfUmnRNVY+PJU1NBsdGZlaO/qnVnPKHzzpgIl9YyBIxvrgBvt1mzt2A==}
 
   '@types/sizzle@2.3.10':
     resolution: {integrity: sha512-TC0dmN0K8YcWEAEfiPi5gJP14eJe30TTGjkvek3iM/1NdHHsdCA/Td6GvNndMOo/iSnIsZ4HuuhrYPDAmbxzww==}
@@ -16805,6 +16814,10 @@ snapshots:
       '@types/http-errors': 2.0.5
       '@types/node': 22.19.1
       '@types/send': 0.17.6
+
+  '@types/sha1@1.1.5':
+    dependencies:
+      '@types/node': 22.19.1
 
   '@types/sizzle@2.3.10': {}
 

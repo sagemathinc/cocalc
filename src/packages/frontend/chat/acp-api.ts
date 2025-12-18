@@ -83,21 +83,17 @@ interface AcpContext {
 type ProcessAcpRequest = {
   message: ChatMessage;
   reply_to?: Date;
-  tag?: string;
   model: string;
   input: string;
   context: AcpContext;
-  dateLimit?: Date;
 };
 
 export async function processAcpLLM({
   message,
   reply_to,
-  tag,
   model,
   input,
   context,
-  dateLimit,
 }: ProcessAcpRequest): Promise<void> {
   const { syncdb, path, chatStreams, sendReply, saveHistory } = context;
   if (syncdb == null) return;
