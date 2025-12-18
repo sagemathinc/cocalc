@@ -15,15 +15,16 @@ Navigation Buttons to:
 import { Button, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import type { List } from "immutable";
+type VersionValue = string | number;
 
 interface Props {
-  version?: number;
-  setVersion: (number) => void;
-  version0?: number;
-  setVersion0: (number) => void;
-  version1?: number;
-  setVersion1: (number) => void;
-  versions?: List<number>;
+  version?: VersionValue;
+  setVersion: (v: VersionValue) => void;
+  version0?: VersionValue;
+  setVersion0: (v: VersionValue) => void;
+  version1?: VersionValue;
+  setVersion1: (v: VersionValue) => void;
+  versions?: List<VersionValue>;
   changesMode: boolean;
 }
 
@@ -65,13 +66,21 @@ export function NavigationButtons({
         setVersion1(v1);
       };
       if (button == "first") {
-        setVersions(versions.get(0), versions.get(i1 - i0));
+        const a = versions.get(0);
+        const b = versions.get(i1 - i0);
+        if (a != null && b != null) setVersions(a, b);
       } else if (button == "last") {
-        setVersions(versions.get(i0 - i1 - 1), versions.get(-1));
+        const a = versions.get(i0 - i1 - 1);
+        const b = versions.get(-1);
+        if (a != null && b != null) setVersions(a, b);
       } else if (button == "next") {
-        setVersions(versions.get(i0 + 1), versions.get(i1 + 1));
+        const a = versions.get(i0 + 1);
+        const b = versions.get(i1 + 1);
+        if (a != null && b != null) setVersions(a, b);
       } else if (button == "prev") {
-        setVersions(versions.get(i0 - 1), versions.get(i1 - 1));
+        const a = versions.get(i0 - 1);
+        const b = versions.get(i1 - 1);
+        if (a != null && b != null) setVersions(a, b);
       }
     } else {
       let i: number = -1;
@@ -91,7 +100,10 @@ export function NavigationButtons({
       } else if (i >= versions.size) {
         i = versions.size - 1;
       }
-      setVersion(versions.get(i));
+      const newVersion = versions.get(i);
+      if (newVersion != null) {
+        setVersion(newVersion);
+      }
     }
   };
 

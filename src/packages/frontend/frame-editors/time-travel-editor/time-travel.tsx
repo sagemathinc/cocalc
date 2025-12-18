@@ -62,7 +62,9 @@ export function TimeTravel(props: Props) {
   );
   const licenses = useLicenses({ project_id });
   const error = useEditor("error");
-  const versions = (useEditor("versions") as List<any> | undefined) ?? List();
+  const versions =
+    (useEditor("versions") as List<string | number> | undefined) ??
+    List<string | number>();
   const firstVersion = useEditor("first_version") ?? 0;
   const gitVersions =
     (useEditor("git_versions") as List<number> | undefined) ?? List<number>();
@@ -95,12 +97,12 @@ export function TimeTravel(props: Props) {
     props.desc?.get("version1"),
   );
 
-  const versionToNumber = (v: string | number | undefined): number | undefined => {
+  const versionToNumber = (
+    v: string | number | undefined,
+  ): number | undefined => {
     if (v == null) return undefined;
     if (typeof v === "number") return v;
-    const prefix = v.split("_")[0];
-    const n = parseInt(prefix, 36);
-    return Number.isFinite(n) ? n : undefined;
+    return props.actions.patchTime(v) ?? undefined;
   };
 
   // ensure version consistency
@@ -173,9 +175,12 @@ export function TimeTravel(props: Props) {
 
   const wallTime = useMemo(() => {
     return gitMode
-      ? (version) => version
-      : (v) => props.actions.wallTime(v as any);
+      ? (version: number | string) => Number(version)
+      : (v: number | string) => props.actions.wallTime(v as string);
   }, [gitMode, props.actions]);
+
+  const toPatchId = (v?: number | string) =>
+    v == null ? undefined : `${v}` as string;
 
   useEffect(() => {
     saveState(props.actions, {
@@ -190,7 +195,9 @@ export function TimeTravel(props: Props) {
     });
   }, [version, version0, version1, changesMode, gitMode, textMode]);
 
-  const getDoc = async (version?: number | string): Promise<Document | undefined> => {
+  const getDoc = async (
+    version?: number | string,
+  ): Promise<Document | undefined> => {
     if (version == null) {
       return;
     }
@@ -199,7 +206,7 @@ export function TimeTravel(props: Props) {
         typeof version === "number" ? version : Number(`${version}`);
       return await props.actions.gitDoc(v);
     }
-    return props.actions.get_doc(version as any);
+    return props.actions.get_doc(version as string);
   };
 
   useAsyncEffect(async () => {
@@ -256,27 +263,32 @@ export function TimeTravel(props: Props) {
       if (i1 == -1) {
         return null;
       }
+      const id0 = toPatchId(version0);
+      const id1 = toPatchId(version1);
+      if (id0 == null || id1 == null) return null;
       return (
         <VersionRange
-            version0={
-              props.actions.versionNumber(version0 as any) ?? i0 + firstVersion
-            }
-            user0={props.actions.getUser(version0 as any)}
-            version1={
-              props.actions.versionNumber(version1 as any) ?? i1 + firstVersion
-            }
-            user1={props.actions.getUser(version1 as any)}
-          />
-        );
-      } else {
-        if (version == null) {
-          return null;
+          version0={
+            props.actions.versionNumber(id0) ?? i0 + firstVersion
+          }
+          user0={props.actions.getUser(id0)}
+          version1={
+            props.actions.versionNumber(id1) ?? i1 + firstVersion
+          }
+          user1={props.actions.getUser(id1)}
+        />
+      );
+    } else {
+      if (version == null) {
+        return null;
       }
       const i = v.indexOf(version);
       if (i == -1) {
         return null;
       }
-       const t = props.actions.wallTime(version as any);
+      const id = toPatchId(version);
+      if (id == null) return null;
+      const t = props.actions.wallTime(id);
       if (t == null) {
         return null;
       }
@@ -284,9 +296,9 @@ export function TimeTravel(props: Props) {
           <Version
             date={new Date(t)}
             number={
-              props.actions.versionNumber(version as any) ?? i + firstVersion
+              props.actions.versionNumber(id) ?? i + firstVersion
             }
-            user={props.actions.getUser(version as any)}
+            user={props.actions.getUser(id)}
           />
       );
     }
@@ -317,16 +329,16 @@ export function TimeTravel(props: Props) {
       return;
     }
     return (
-      <NavigationButtons
-        changesMode={changesMode}
-        versions={(gitMode ? gitVersions : versions) as any}
-        version={version as any}
-        setVersion={setVersion as any}
-        version0={version0 as any}
-        setVersion0={setVersion0 as any}
-        version1={version1 as any}
-        setVersion1={setVersion1 as any}
-      />
+        <NavigationButtons
+          changesMode={changesMode}
+          versions={gitMode ? gitVersions : versions}
+          version={version}
+          setVersion={setVersion}
+          version0={version0}
+          setVersion0={setVersion0}
+          version1={version1}
+          setVersion1={setVersion1}
+        />
     );
   };
 
@@ -335,10 +347,10 @@ export function TimeTravel(props: Props) {
       return;
     }
     return (
-      <NavigationSlider
-        version={version as any}
-        setVersion={setVersion as any}
-        versions={(gitMode ? gitVersions : versions) as any}
+        <NavigationSlider
+          version={version}
+          setVersion={setVersion}
+          versions={gitMode ? gitVersions : versions}
         marks={marks}
         wallTime={wallTime}
       />
@@ -350,12 +362,12 @@ export function TimeTravel(props: Props) {
       return;
     }
     return (
-      <RangeSlider
-        versions={(gitMode ? gitVersions : versions) as any}
-        version0={version0 as any}
-        setVersion0={setVersion0 as any}
-        version1={version1 as any}
-        setVersion1={setVersion1 as any}
+        <RangeSlider
+          versions={gitMode ? gitVersions : versions}
+          version0={version0}
+          setVersion0={setVersion0}
+          version1={version1}
+          setVersion1={setVersion1}
         marks={marks}
         wallTime={wallTime}
       />
@@ -370,8 +382,8 @@ export function TimeTravel(props: Props) {
       return;
     }
     const opts = changesMode
-      ? { actions: props.actions, version0: version0 as any, version1: version1 as any }
-      : { actions: props.actions, version0: version as any, version1: version as any };
+      ? { actions: props.actions, version0, version1 }
+      : { actions: props.actions, version0: version, version1: version };
     if (gitMode) {
       return (
         <>
@@ -540,7 +552,9 @@ export function TimeTravel(props: Props) {
 
   const renderGitSubject = () => {
     if (version == null) return;
-    const subject = props.actions.gitSubject(version as any);
+    const subject = props.actions.gitSubject(
+      typeof version === "number" ? version : Number(version),
+    );
     if (!subject) return;
     return (
       <div

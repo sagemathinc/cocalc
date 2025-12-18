@@ -32,12 +32,8 @@ export function RevertFile({
         onClick={() => {
           if (version != null) {
             const v =
-              typeof version === "number" || typeof version === "string"
-                ? (version as any)
-                : undefined;
-            if (v != null) {
-              actions.revert({ version: v, doc, gitMode });
-            }
+              typeof version === "string" ? version : `${version ?? ""}`;
+            actions.revert({ version: v, doc, gitMode });
           }
         }}
         disabled={version == null || actions.syncdoc?.is_read_only()}

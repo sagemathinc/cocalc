@@ -14,31 +14,29 @@ import {
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { plural } from "@cocalc/util/misc";
+type PatchId = string;
 
 interface Props {
   actions: TimeTravelActions;
-  version0: number | string | undefined;
-  version1: number | string | undefined;
+  version0: PatchId | number | undefined;
+  version1: PatchId | number | undefined;
 }
 
-function parseVersionToNumber(
-  v: number | string | undefined,
-): number | undefined {
+const parseVersionToNumber = (
+  actions: TimeTravelActions,
+  v: PatchId | number | undefined,
+): number | undefined => {
   if (typeof v === "number") return v;
   if (v == null) return undefined;
-  const s = `${v}`;
-  const idx = s.indexOf("_");
-  const prefix = idx >= 0 ? s.slice(0, idx) : s;
-  const n = parseInt(prefix, 36);
-  return Number.isNaN(n) ? undefined : n;
-}
+  return actions.patchTime?.(v) ?? undefined;
+};
 
 export function GitAuthors({ actions, version0, version1 }: Props) {
   if (version0 == null || version1 == null) {
     return null;
   }
-  const v0 = parseVersionToNumber(version0);
-  const v1 = parseVersionToNumber(version1);
+  const v0 = parseVersionToNumber(actions, version0);
+  const v1 = parseVersionToNumber(actions, version1);
   const names = actions.gitNames(v0, v1);
   const data: { [person: string]: { emails: Set<string>; count: number } } = {};
   const people: string[] = [];
@@ -140,11 +138,13 @@ export function TimeTravelAuthors({ actions, version0, version1 }: Props) {
     if (userMap == null) {
       return <Loading />;
     }
+    if (version0 == null || version1 == null) {
+      return renderUnknown();
+    }
+    const id0 = typeof version0 === "string" ? version0 : `${version0}`;
+    const id1 = typeof version1 === "string" ? version1 : `${version1}`;
     const v: React.JSX.Element[] = [];
-    for (const account_id of actions.get_account_ids(
-      version0 as any,
-      version1 as any,
-    )) {
+    for (const account_id of actions.get_account_ids(id0, id1)) {
       v.push(renderAuthor(account_id));
     }
     if (v.length == 0) return renderUnknown();

@@ -8,12 +8,13 @@ import { TimeAgo } from "../../components";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { type List } from "immutable";
 import { type ReactNode, useMemo } from "react";
+type VersionValue = string | number;
 
 interface Props {
-  versions?: List<number>;
-  version?: number;
-  setVersion: (number) => void;
-  wallTime: (number) => number;
+  versions?: List<VersionValue>;
+  version?: VersionValue;
+  setVersion: (v: VersionValue) => void;
+  wallTime: (v: VersionValue) => number | undefined;
 }
 
 export function NavigationSlider({
@@ -38,8 +39,10 @@ function NavigationSliderNoMarks({
     return null;
   }
 
-  const renderTooltip = (index) => {
-    const date = wallTime(versions.get(index));
+  const renderTooltip = (index: number) => {
+    const id = versions.get(index);
+    if (id == null) return;
+    const date = wallTime(id);
     if (date == null) return; // shouldn't happen
     return <TimeAgo date={date} />;
   };
@@ -51,7 +54,8 @@ function NavigationSliderNoMarks({
       max={versions.size - 1}
       value={versions.indexOf(version)}
       onChange={(value) => {
-        setVersion(versions.get(value));
+        const id = versions.get(value);
+        if (id != null) setVersion(id);
       }}
       tooltip={{ formatter: renderTooltip, placement: "bottom" }}
     />
@@ -69,8 +73,11 @@ function NavigationSliderMarks({
 }: Props) {
   const { isVisible } = useFrameContext();
 
-  const renderTooltip = (version) => {
-    return <TimeAgo date={new Date(wallTime(version))} />;
+  const renderTooltip = (index: number) => {
+    const id = versions?.get(index);
+    if (id == null) return null;
+    const t = wallTime(id);
+    return t == null ? null : <TimeAgo date={new Date(t)} />;
   };
 
   const marks = useMemo(() => {
@@ -78,9 +85,10 @@ function NavigationSliderMarks({
       return {};
     }
     const marks: { [value: number]: ReactNode } = {};
-    for (const v of versions) {
-      marks[v] = <span />;
+    versions.forEach((_, idx) => {
+      marks[idx] = <span />;
     }
+    );
     return marks;
   }, [versions]);
 
@@ -94,10 +102,13 @@ function NavigationSliderMarks({
       included={false}
       step={null}
       style={{ margin: "10px 15px" }}
-      min={versions.get(0)!}
-      max={versions.get(-1)!}
-      value={version}
-      onChange={setVersion}
+      min={0}
+      max={versions.size - 1}
+      value={versions.indexOf(version!)}
+      onChange={(idx) => {
+        const id = versions.get(idx);
+        if (id != null) setVersion(id);
+      }}
       tooltip={{ formatter: renderTooltip, placement: "bottom" }}
     />
   );

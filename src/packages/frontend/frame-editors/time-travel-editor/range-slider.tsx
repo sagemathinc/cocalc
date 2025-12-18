@@ -14,14 +14,15 @@ import { TimeAgo } from "../../components";
 import { Slider } from "antd";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { type ReactNode, useMemo } from "react";
+type VersionValue = string | number;
 
 interface Props {
-  versions?: List<number>;
-  version0?: number;
-  version1?: number;
-  setVersion0: (number) => void;
-  setVersion1: (number) => void;
-  wallTime: (number) => number;
+  versions?: List<VersionValue>;
+  version0?: VersionValue;
+  version1?: VersionValue;
+  setVersion0: (v: VersionValue) => void;
+  setVersion1: (v: VersionValue) => void;
+  wallTime: (v: VersionValue) => number | undefined;
 }
 
 export function RangeSlider({ marks, ...props }: Props & { marks?: boolean }) {
@@ -58,18 +59,21 @@ function RangeSliderNoMarks({
     if (values[0] == null || values[1] == null) {
       throw Error("invalid values");
     }
-    setVersion0(versions.get(values[0]));
-    setVersion1(versions.get(values[1]));
+    const v0 = versions.get(values[0]);
+    const v1 = versions.get(values[1]);
+    if (v0 != null) setVersion0(v0);
+    if (v1 != null) setVersion1(v1);
   };
 
   const renderTooltip = (index) => {
-    const d = wallTime(versions.get(index));
+    const id = versions.get(index);
+    if (id == null) return;
+    const d = wallTime(id);
     if (d == null) {
-      // shouldn't happen
       return;
     }
     const date = new Date(d);
-    if (index == version0) {
+    if (index === versions.indexOf(version0!)) {
       // Workaround fact that the left label is NOT VISIBLE
       // if it is close to the right, which makes this whole
       // thing totally unusable in such cases.
@@ -123,9 +127,9 @@ function RangeSliderMarks({
       return {};
     }
     const marks: { [value: number]: ReactNode } = {};
-    for (const v of versions) {
-      marks[v] = <span />;
-    }
+    versions.forEach((_, idx) => {
+      marks[idx] = <span />;
+    });
     return marks;
   }, [versions]);
 
@@ -145,13 +149,19 @@ function RangeSliderMarks({
     if (values[0] == null || values[1] == null) {
       throw Error("invalid values");
     }
-    setVersion0(values[0]);
-    setVersion1(values[1]);
+    const v0 = versions.get(values[0]);
+    const v1 = versions.get(values[1]);
+    if (v0 != null) setVersion0(v0);
+    if (v1 != null) setVersion1(v1);
   };
 
-  const renderTooltip = (version) => {
-    const date = new Date(wallTime(version));
-    if (version == version0) {
+  const renderTooltip = (index) => {
+    const id = versions.get(index);
+    if (id == null) return;
+    const t = wallTime(id);
+    if (t == null) return;
+    const date = new Date(t);
+    if (index === versions.indexOf(version0!)) {
       // Workaround fact that the left label is NOT VISIBLE
       // if it is close to the right, which makes this whole
       // thing totally unusable in such cases.
@@ -179,9 +189,12 @@ function RangeSliderMarks({
         step={null}
         included={false}
         range
-        min={versions.get(0)}
-        max={versions.get(-1)}
-        value={[version0, version1]}
+        min={0}
+        max={versions.size - 1}
+        value={[
+          versions.indexOf(version0!),
+          versions.indexOf(version1!),
+        ]}
         onChange={handleChange}
         tooltip={{ open: true, formatter: renderTooltip }}
       />
