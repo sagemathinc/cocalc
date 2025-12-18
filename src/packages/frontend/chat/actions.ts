@@ -897,39 +897,12 @@ export class ChatActions extends Actions<ChatState> {
     return model ? model.includes("codex") : false;
   };
 
-  runCodexCompact = async (threadKey?: string): Promise<void> => {
-    if (!threadKey) return;
-    const entry = this.getThreadRootDoc(threadKey);
-    if (entry == null) return;
-    const dateField = dateValue(entry.message);
-    const replyDate =
-      dateField instanceof Date
-        ? dateField
-        : typeof dateField === "string"
-          ? new Date(dateField)
-          : new Date(dateField ?? Date.now());
-    if (!(replyDate instanceof Date) || isNaN(replyDate.valueOf())) {
-      return;
+  runCodexCompact = async (threadKey: string): Promise<void> => {
+    if (!threadKey) {
+      throw Error("runCodexCompact -- threadKey must be defined");
     }
-    const account_id = redux.getStore("account").get_account_id();
-    if (!account_id) return;
-    const now = new Date();
-    const message: ChatMessage = {
-      event: "chat",
-      sender_id: account_id,
-      history: [
-        {
-          author_id: account_id,
-          content: "/compact",
-          date: now.toISOString(),
-        },
-      ],
-      date: now,
-    };
-    await this.processLLM({
-      message,
-      reply_to: replyDate,
-    });
+    const reply_to = new Date(parseFloat(threadKey));
+    this.sendChat({ input: "/compact", reply_to });
   };
 
   private processLLM = async ({

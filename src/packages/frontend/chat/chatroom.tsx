@@ -1179,10 +1179,8 @@ export function ChatPanel({
                   />
                   <Button
                     size="small"
-                    onClick={() =>
-                      actions?.runCodexCompact(selectedThreadKey ?? undefined)
-                    }
-                    disabled={!selectedThreadKey}
+                    onClick={() => actions.runCodexCompact(selectedThreadKey)}
+                    disabled={!selectedThreadKey || actions == null}
                   >
                     Compact
                   </Button>

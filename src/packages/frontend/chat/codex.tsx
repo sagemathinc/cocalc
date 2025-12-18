@@ -196,7 +196,7 @@ export function CodexConfigButton({
     actions?.setCodexConfig?.(threadKey, finalValues);
 
     if (opts?.compact) {
-      actions?.runCodexCompact?.(threadKey);
+      actions?.runCodexCompact(threadKey);
     }
     setTimeout(() => {
       setOpen(false);
