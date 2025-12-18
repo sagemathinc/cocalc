@@ -34,7 +34,6 @@ import { course, labels } from "@cocalc/frontend/i18n";
 import { capitalize, trunc_middle } from "@cocalc/util/misc";
 import { CourseActions } from "../actions";
 import { BigTime, Progress, StudentAssignmentInfoHeader } from "../common";
-import { STEP_NAMES, STEPS_INTL } from "../common/consts";
 import { NbgraderButton } from "../nbgrader/nbgrader-button";
 import type {
   AssignmentRecord,
@@ -570,8 +569,6 @@ export function Assignment({
     step: AssignmentCopyStep,
     opts: {
       type: "primary" | "default" | "dashed";
-      title: ReactNode;
-      tip: ReactNode;
       content: ReactNode;
       onOpen?: () => void;
       onClose?: () => void;
@@ -599,15 +596,13 @@ export function Assignment({
         overlayInnerStyle={{ maxWidth: 545 }}
       >
         <span style={{ display: "inline-block" }}>
-          <Tip placement="bottom" title={opts.title} tip={opts.tip}>
-            <Button
-              type={opts.type}
-              disabled={copy_confirm && !open}
-              size="small"
-              icon={<Icon name="forward" />}
-              onClick={() => handleOpenChange(true)}
-            />
-          </Tip>
+          <Button
+            type={opts.type}
+            disabled={copy_confirm && !open}
+            size="small"
+            icon={<Icon name="forward" />}
+            onClick={() => handleOpenChange(true)}
+          />
         </span>
       </Popover>
     );
@@ -629,28 +624,9 @@ export function Assignment({
       type = "dashed";
     }
 
-    const label = intl.formatMessage(STEPS_INTL, {
-      step: STEP_NAMES.indexOf("Assign"),
-    });
-    const you = intl.formatMessage(labels.you);
-    const students = intl.formatMessage(course.students);
-    const tooltip = intl.formatMessage({
-      id: "course.assignments.assign.tooltip",
-      defaultMessage:
-        "Copy the files for this assignment from this project to all other student projects.",
-      description: "Students in an online course",
-    });
-
     return [
       render_step_popover("assignment", {
         type,
-        title: (
-          <span>
-            {label}: <Icon name="user-secret" /> {you}{" "}
-            <Icon name="arrow-right" /> <Icon name="users" /> {students}{" "}
-          </span>
-        ),
-        tip: tooltip,
         content: render_step_confirm("assignment", status),
         onOpen: () => {
           const assignment_id: string | undefined =
@@ -922,19 +898,6 @@ export function Assignment({
     );
   }
 
-  function render_collect_tip() {
-    return (
-      <span key="normal">
-        <FormattedMessage
-          id="course.assignments.collect.tooltip"
-          defaultMessage={`Collect an assignment from all of your students.
-          (There is currently no way to schedule collection at a specific time;
-          instead, collection happens when you click the button.)`}
-        />
-      </span>
-    );
-  }
-
   function render_step_run_all(state: AssignmentCopyStep, status) {
     switch (state) {
       case "collect":
@@ -969,13 +932,6 @@ export function Assignment({
     return [
       render_step_popover("collect", {
         type,
-        title: (
-          <span>
-            Collect: <Icon name="users" /> {intl.formatMessage(course.students)}{" "}
-            <Icon name="arrow-right" /> <Icon name="user-secret" /> You
-          </span>
-        ),
-        tip: render_collect_tip(),
         content: render_step_confirm("collect", status),
       }),
       <Progress
@@ -986,14 +942,6 @@ export function Assignment({
         skipped={assignment.get("skip_collect")}
       />,
     ];
-  }
-
-  function render_peer_assign_tip() {
-    return (
-      <span key="normal">
-        Send copies of collected homework out to all students for peer grading.
-      </span>
-    );
   }
 
   function render_peer_assignment_button(status) {
@@ -1022,20 +970,9 @@ export function Assignment({
     } else {
       type = "primary";
     }
-    const label = intl.formatMessage(STEPS_INTL, {
-      step: STEP_NAMES.indexOf("Peer Assign"),
-    });
     return [
       render_step_popover("peer_assignment", {
         type,
-        title: (
-          <span>
-            {label}: <Icon name="users" /> {intl.formatMessage(labels.you)}{" "}
-            <Icon name="arrow-right" /> <Icon name="user-secret" />{" "}
-            {intl.formatMessage(course.students)}
-          </span>
-        ),
-        tip: render_peer_assign_tip(),
         content: render_step_confirm("peer_assignment", status),
       }),
       <Progress
@@ -1045,12 +982,6 @@ export function Assignment({
         step="peer assigned"
       />,
     ];
-  }
-
-  function render_peer_collect_tip() {
-    return (
-      <span key="normal">Collect the peer grading that your students did.</span>
-    );
   }
 
   function render_peer_collect_button(status) {
@@ -1079,19 +1010,9 @@ export function Assignment({
       // warning, since we have already collected and this may overwrite
       type = "primary";
     }
-    const label = intl.formatMessage(STEPS_INTL, {
-      step: STEP_NAMES.indexOf("Peer Collect"),
-    });
     return [
       render_step_popover("peer_collect", {
         type,
-        title: (
-          <span>
-            {label}: <Icon name="users" /> {intl.formatMessage(course.students)}{" "}
-            <Icon name="arrow-right" /> <Icon name="user-secret" /> You
-          </span>
-        ),
-        tip: render_peer_collect_tip(),
         content: render_step_confirm("peer_collect", status),
       }),
       <Progress
@@ -1150,19 +1071,9 @@ export function Assignment({
     } else {
       type = "primary";
     }
-    const label = intl.formatMessage(STEPS_INTL, {
-      step: STEP_NAMES.indexOf("Return"),
-    });
     return [
       render_step_popover("return_graded", {
         type,
-        title: (
-          <span>
-            {label}: <Icon name="user-secret" /> You <Icon name="arrow-right" />{" "}
-            <Icon name="users" /> {intl.formatMessage(course.students)}{" "}
-          </span>
-        ),
-        tip: "Copy the graded versions of files for this assignment from this project to all other student projects.",
         content: render_step_confirm("return_graded", status),
       }),
       <Progress

@@ -479,11 +479,7 @@ export function StudentAssignmentInfo({
       <ShowError
         key="error"
         error={error}
-        style={{
-          maxHeight: "140px",
-          overflow: "auto",
-          display: "block",
-        }}
+        style={{ padding: "4px 4px", overflowWrap: "anywhere" }}
       />
     );
   }
