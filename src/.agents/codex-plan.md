@@ -2,7 +2,8 @@
 
 Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-safe by (1) using a single canonical notion of Codex `session_id`, (2) making the backend the authority for creating/persisting that `session_id` when blank, and (3) deriving all ACP log identifiers (store/key/subject) from a single shared helper in `src/packages/chat`.
 
-### 1) Canonicalize ACP log identifiers in a shared helper (no ad-hoc fallbacks)
+### 1\) \(done\) Canonicalize ACP log identifiers in a shared helper \(no ad\-hoc fallbacks\)
+
 - [ ] Create a single helper in `src/packages/chat` that derives all log identifiers from:
   - `project_id`, `path`, `thread_root_date` (root message), `turn_date` (assistant reply date).
 - [ ] The helper should return:
@@ -17,6 +18,7 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
 - [ ] Delete/avoid fallback logic in chat UI that mixes concepts (e.g. `acp_log_thread ?? acp_session_id`).
 
 ### 2) Make the backend the sole writer of assistant-reply ACP state (avoid sync races)
+
 - [ ] Frontend should not write ACP metadata into the assistant reply row beyond “user submitted a turn”.
   - Frontend can show optimistic UI locally, but should not compete with backend for the same row fields.
 - [ ] Backend should create (or ensure) the assistant reply row exists and own fields like:
@@ -24,6 +26,7 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
 - [ ] Ensure “turn finished” always clears `generating` even if the assistant row didn’t exist yet at start.
 
 ### 3) Server-assign Codex `session_id` when blank and persist to the chat thread root message
+
 - [ ] Define a canonical field on the **root message of a thread** for the Codex session id:
   - Proposed: `acp_session_id` (string UUID).
   - This is distinct from all `acp_log_*` fields, which are per-turn log identifiers.
@@ -37,6 +40,7 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
   - The session config dialog should display the current `acp_session_id` once it exists; blank means “will be created by backend on first run”.
 
 ### 4) Rename ACP “threadId” → `session_id` everywhere (no compat)
+
 - [ ] Change the ACP stream payload schema to use `session_id` (snake_case) instead of `threadId`.
   - Update `AcpStreamPayload.summary` in `src/packages/conat/ai/acp/types.ts`.
   - Update any other payloads/requests that refer to `threadId` but actually mean “Codex session id”.
@@ -49,6 +53,7 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
   - In `src/packages/lite/hub/acp/index.ts`, rename `interruptCodexSession(threadId)` to `interruptCodexSession(session_id)` and update maps/keys accordingly.
 
 ### 5) Validate robustness: multi-turn, refresh mid-run, multi-client
+
 - [ ] Add (or extend) an integration test that:
   - starts two turns back-to-back with blank `session_id`
   - asserts both turns share the same persisted `acp_session_id` on the thread root
@@ -63,9 +68,12 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
 
 To not forget:
 
+- [ ] terminal scrolling is annoying \-\- get to the bottom and can't scroll the containing page. VERY annoying when trying to scroll through.  But terminal amount is large so have to scroll. hmmm.
+- [ ] it is impossible to copy/paste from xterm.js terminal in the log
+- [ ] bash \-lc '...' is often explicitly in the log still \- solution: just unwrap it again \-\-![](http://localhost:7000/blobs/paste-0.15869512630654514?uuid=773eca36-f193-43f0-9c46-2fd01c17c7a0)
 - [ ] when making a new codex session, no session id gets assigned at all, so the session is lost whenever we restart.
+- [ ] also just had a problem where the mode on the codex side was "read only" but in the cocalc UI it was "full access".  This was in cocalc\-plus mode, and the message to start the session was:
 
-- [ ] also just had a problem where the mode on the codex side was "read only" but in the cocalc UI it was "full access".  This was in cocalc-plus mode, and the message to start the session was:
 ```
 2025-12-17T15:30:26.602Z (77924):cocalc:debug:lite:hub:acp evaluate: start {
   reqId: '6dff39a7-b4d4-4ab7-8d8d-480e61fb3d89',
@@ -88,6 +96,7 @@ To not forget:
   workspaceRoot: '/home/wstein/build/cocalc-lite'
 }
 ```
+
 but it was totally broken, and using `codex resume` in the terminal showed it had read only mode.
 
 - [ ] submitting a new turn while one is running returns this error "{seq: 0, error: 'Error: ACP agent is already processing a request', type: 'error'}".  Thus turns are not queued up properly; basically make 2\-3 requests and all but the first stays stuck forever.
@@ -114,6 +123,7 @@ but it was totally broken, and using `codex resume` in the terminal showed it ha
         /^(OPENAI_|ANTHROPIC_)/.test(k),
       );"  because these keys will be visible right there in "ps -ax". Better to write to a file in the container somehow...?
       
+
 #### Done
 
 - [x] ensure multiple concurrent sessions can run at once.  I have evidence they don't, and the solution would be spinning up a pool: [http://localhost:7000/projects/00000000\-1000\-4000\-8000\-000000000000/files/build/cocalc\-lite/a.chat\#chat=1765836152408](http://localhost:7000/projects/00000000-1000-4000-8000-000000000000/files/build/cocalc-lite/a.chat#chat=1765836152408)
@@ -123,8 +133,6 @@ but it was totally broken, and using `codex resume` in the terminal showed it ha
   - note the path; maybe this is just a doomed idea and we should give up.
 
   - we did a bunch, but path rewriting for user display is still pretty broken: ![](http://localhost:7000/blobs/paste-0.10530121993630592?uuid=8235dc88-1a6e-44fc-be12-78a784e1931c)
-
-
 
 ### Detailed plan
 
@@ -321,3 +329,4 @@ Bring Codex agents into CoCalc chat so users can open a thread, point it at a wo
 - Settings UI: `packages/frontend/account/lite-ai-settings.tsx`, `/customize` logic in `packages/lite/hub/settings.ts`.
 
 Keep this summary handy when switching workspaces so the next session can pick up Codex integration without re-reading history.
+

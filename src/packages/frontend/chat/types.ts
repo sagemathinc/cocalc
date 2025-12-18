@@ -44,8 +44,6 @@ export interface PlainChatMessage {
   pin?: boolean | string | number;
   schema_version?: number;
   acp_usage?: any;
-  acp_log_store?: any;
-  acp_log_info?: any;
   [key: string]: any;
 }
 

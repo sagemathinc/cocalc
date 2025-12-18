@@ -303,24 +303,21 @@ export default function Message({
     return typeof author_id === "string" && isLanguageModelService(author_id);
   }, [firstHistoryEntry]);
 
-  const acpLogInfo = useMemo(() => {
-    const store = field<string>(message, "acp_log_store") ?? undefined;
-    const key = field<string>(message, "acp_log_key") ?? undefined;
-    const thread = field<string>(message, "acp_log_thread") ?? undefined;
-    const turn = field<string>(message, "acp_log_turn") ?? undefined;
-    const subject = field<string>(message, "acp_log_subject") ?? undefined;
-    if (store && key) {
-      return { store, key, thread, turn, subject };
-    }
-    return null;
-  }, [message]);
+  const threadRootMs = useMemo(() => {
+    const root = getThreadRootDate({ date, messages });
+    const rootMs =
+      root?.valueOf?.() ?? (typeof root === "number" ? root : undefined);
+    if (Number.isFinite(rootMs)) return rootMs as number;
+    return Number.isFinite(date) ? date : undefined;
+  }, [date, messages]);
 
   // Resolve log identifiers deterministically (shared with backend) so we never
   // invent subjects/keys in multiple places.
   const fallbackLogRefs = useMemo(() => {
     const msgDate = dateValue(message);
     const turn_date = msgDate instanceof Date ? msgDate.toISOString() : undefined;
-    const thread_root_date = acpLogInfo?.thread ?? replyTo(message) ?? turn_date;
+    const thread_root_date =
+      threadRootMs != null ? new Date(threadRootMs).toISOString() : undefined;
 
     const derived =
       project_id && path && thread_root_date && turn_date
@@ -333,13 +330,13 @@ export default function Message({
         : undefined;
 
     return {
-      thread: acpLogInfo?.thread ?? derived?.thread,
-      turn: acpLogInfo?.turn ?? derived?.turn,
-      store: acpLogInfo?.store ?? derived?.store,
-      key: acpLogInfo?.key ?? derived?.key,
-      subject: acpLogInfo?.subject ?? derived?.subject,
+      thread: derived?.thread,
+      turn: derived?.turn,
+      store: derived?.store,
+      key: derived?.key,
+      subject: derived?.subject,
     };
-  }, [acpLogInfo, message, project_id, path]);
+  }, [message, project_id, path, threadRootMs]);
 
   const [showCodexDrawer, setShowCodexDrawer] = useState(false);
   const codexLog = useCodexLog({
@@ -353,16 +350,11 @@ export default function Message({
 
   const codexEvents = codexLog.events;
   const showCodexActivity = useMemo(() => {
-    return Boolean(message.acp_log_subject || message.acp_log_key);
+    // Only show for ACP-driven turns (Codex activity). The log identifiers are
+    // derived deterministically, but this marker distinguishes ACP turns from
+    // other kinds of LLM messages.
+    return Boolean(field<string>(message, "acp_account_id"));
   }, [message]);
-
-  const threadRootMs = useMemo(() => {
-    const root = getThreadRootDate({ date, messages });
-    const rootMs =
-      root?.valueOf?.() ?? (typeof root === "number" ? root : undefined);
-    if (Number.isFinite(rootMs)) return rootMs as number;
-    return Number.isFinite(date) ? date : undefined;
-  }, [date, messages]);
 
   const deleteActivityLog = useCallback(async () => {
     if (!actions?.syncdb) return;
@@ -374,15 +366,10 @@ export default function Message({
       date: d.toISOString(),
       acp_events: null,
       codex_events: null,
-      acp_log_store: null,
-      acp_log_key: null,
-      acp_log_thread: null,
-      acp_log_turn: null,
-      acp_log_subject: null,
     });
     actions.syncdb.commit();
     // no local state now
-  }, [actions, message, acpLogInfo, project_id]);
+  }, [actions, message]);
 
   const deleteAllActivityLogs = useCallback(async () => {
     if (!actions?.syncdb) return;
@@ -396,11 +383,14 @@ export default function Message({
         const d = dateValue(msg);
         if (!(d instanceof Date)) return;
         dates.push(d);
-        const store = field<string>(msg, "acp_log_store");
-        const key = field<string>(msg, "acp_log_key");
-        if (store && key) {
-          logRefs.push({ store, key });
-        }
+        if (!project_id || !path) return;
+        const refs = deriveAcpLogRefs({
+          project_id,
+          path,
+          thread_root_date: rootIso,
+          turn_date: d.toISOString(),
+        });
+        logRefs.push({ store: refs.store, key: refs.key });
       });
     } else if (messages?.forEach) {
       messages.forEach((msg) => {
@@ -413,11 +403,14 @@ export default function Message({
         const rootMs = root?.valueOf?.();
         if (rootMs != null && rootMs === threadRootMs) {
           dates.push(d);
-          const store = field<string>(msg, "acp_log_store");
-          const key = field<string>(msg, "acp_log_key");
-          if (store && key) {
-            logRefs.push({ store, key });
-          }
+          if (!project_id || !path || !rootIso) return;
+          const refs = deriveAcpLogRefs({
+            project_id,
+            path,
+            thread_root_date: rootIso,
+            turn_date: d.toISOString(),
+          });
+          logRefs.push({ store: refs.store, key: refs.key });
         }
       });
     }
@@ -447,11 +440,6 @@ export default function Message({
         date: d.toISOString(),
         acp_events: null,
         codex_events: null,
-        acp_log_store: null,
-        acp_log_key: null,
-        acp_log_thread: null,
-        acp_log_turn: null,
-        acp_log_subject: null,
       });
     }
     actions.syncdb.commit();

@@ -171,8 +171,6 @@ export class ChatStreamWriter {
   private logStore?: AKV<AcpStreamMessage[]>;
   private logStoreName: string;
   private logKey: string;
-  private logThreadId: string;
-  private logTurnId: string;
   private logSubject: string;
   private client: ConatClient;
   private persistLogProgress = throttle(
@@ -187,6 +185,15 @@ export class ChatStreamWriter {
     1000,
     { leading: true, trailing: true },
   );
+
+  // Read a field from a syncdb record that may be either an Immutable.js map
+  // (legacy) or a plain JS object (immer). This keeps the ACP hub compatible
+  // with both modes while we migrate fully to immer.
+  private recordField<T = unknown>(record: any, key: string): T | undefined {
+    if (record == null) return undefined;
+    if (typeof record.get === "function") return record.get(key) as T;
+    return (record as any)[key] as T;
+  }
 
   constructor({
     metadata,
@@ -243,8 +250,6 @@ export class ChatStreamWriter {
       thread_root_date,
       turn_date,
     });
-    this.logThreadId = refs.thread;
-    this.logTurnId = refs.turn;
     this.logStoreName = refs.store;
     this.logKey = refs.key;
     this.logSubject = refs.subject;
@@ -305,7 +310,7 @@ export class ChatStreamWriter {
         date: this.metadata.message_date,
       });
     }
-    const history = current?.get("history");
+    const history = this.recordField(current, "history");
     const arr = this.historyToArray(history);
     if (arr.length > 0) {
       this.prevHistory = arr.slice(1);
@@ -456,7 +461,8 @@ export class ChatStreamWriter {
             event: "chat",
             date: this.metadata.message_date,
           });
-          if (current != null && current.get("generating") !== false) {
+          const currentGenerating = this.recordField(current, "generating");
+          if (current != null && currentGenerating !== false) {
             this.syncdb!.set({
               date: this.metadata.message_date,
               generating: false,
@@ -484,11 +490,6 @@ export class ChatStreamWriter {
       content: this.content,
       generating,
       reply_to: this.metadata.reply_to,
-      acp_log_store: this.logStoreName,
-      acp_log_key: this.logKey,
-      acp_log_thread: this.logThreadId,
-      acp_log_turn: this.logTurnId,
-      acp_log_subject: this.logSubject,
       acp_thread_id: this.threadId,
       acp_usage: this.usage,
       acp_account_id: this.approverAccountId,
