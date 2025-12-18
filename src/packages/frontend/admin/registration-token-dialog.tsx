@@ -40,6 +40,7 @@ interface RegistrationTokenDialogProps {
   form: any;
   newRandomToken: () => string;
   saving: boolean;
+  licenseInputKey: number;
 }
 
 export default function RegistrationTokenDialog({
@@ -53,6 +54,7 @@ export default function RegistrationTokenDialog({
   form,
   newRandomToken,
   saving,
+  licenseInputKey,
 }: RegistrationTokenDialogProps) {
   const onFinish = async (values) => {
     await onSave(values);
@@ -216,7 +218,8 @@ export default function RegistrationTokenDialog({
         extra="Optional: Apply a site license to projects created via this token"
       >
         <SiteLicenseInput
-          defaultLicenseId={editingToken?.customize?.license}
+          key={licenseInputKey}
+          defaultLicenseId={form.getFieldValue(["customize", "license"])}
           onChange={(licenseId) =>
             form.setFieldValue(["customize", "license"], licenseId)
           }

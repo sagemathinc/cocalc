@@ -29,15 +29,6 @@ export function formatEphemeralHours(value?: number): string {
   return seconds2hms(seconds, false, false, false);
 }
 
-export function ephemeralSignupUrl(token?: string): string {
-  if (!token) return "";
-  if (typeof window === "undefined") {
-    return `/ephemeral?token=${token}`;
-  }
-  const { protocol, host } = window.location;
-  return `${protocol}//${host}/ephemeral?token=${token}`;
-}
-
 export function getEphemeralMode(ephemeral?: number): string | undefined {
   const presetKey = findPresetKey(ephemeral);
   if (presetKey) return presetKey;
@@ -48,7 +39,6 @@ export function getEphemeralMode(ephemeral?: number): string | undefined {
 export function useRegistrationTokens() {
   const [data, setData] = useState<{ [key: string]: Token }>({});
   const [noOrAllInactive, setNoOrAllInactive] = useState<boolean>(false);
-  const [editing, setEditing] = useState<Token | null>(null);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [editingToken, setEditingToken] = useState<Token | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
@@ -58,6 +48,7 @@ export function useRegistrationTokens() {
   const [error, setError] = useState<string>("");
   const [selRows, setSelRows] = useState<any>([]);
   const [modalError, setModalError] = useState<string>("");
+  const [licenseInputKey, setLicenseInputKey] = useState<number>(0);
 
   // Antd
   const [form] = Form.useForm();
@@ -107,22 +98,11 @@ export function useRegistrationTokens() {
     load();
   }, []);
 
-  useEffect(() => {
-    if (editing != null) {
-      // antd's form want's something called "Store" – which is just this?
-      form.setFieldsValue(editing as any);
-    }
-    if (lastSaved != null) {
-      setLastSaved(null);
-    }
-  }, [editing]);
-
   // saving a specific token value converts dayjs back to pure Date objects
   // we also record the last saved token as a template for the next add operation
   async function save(val): Promise<void> {
     // antd wraps the time in a dayjs object
     const val_orig: Token = { ...val };
-    if (editing != null) setEditing(null);
 
     // data preparation
     if (val.expires != null && dayjs.isDayjs(val.expires)) {
@@ -155,6 +135,7 @@ export function useRegistrationTokens() {
         query: {
           registration_tokens: val,
         },
+        timeout: 15000,
       });
       // we save the original one, with dayjs in it!
       setLastSaved(val_orig);
@@ -164,11 +145,6 @@ export function useRegistrationTokens() {
       // Error path - set error (handle non-Error values)
       const errorMessage = err?.message ?? String(err);
       setError(errorMessage);
-      // For modal: preserve editing token for caller to handle
-      // For checkbox: just show error
-      if (modalVisible) {
-        setEditing(val_orig);
-      }
       throw err; // Re-throw so caller knows it failed
     } finally {
       setSaving(false);
@@ -204,8 +180,8 @@ export function useRegistrationTokens() {
   async function deleteTokens(): Promise<void> {
     setDeleting(true);
     try {
-      // it's not possible to delete several tokens at once
-      await selRows.map(async (token) => await deleteToken(token));
+      // Delete tokens in parallel and wait for all to complete
+      await Promise.all(selRows.map((token) => deleteToken(token)));
       setSelRows([]);
       load();
     } catch (err) {
@@ -224,6 +200,7 @@ export function useRegistrationTokens() {
   // Modal event handlers
   function handleModalOpen(token?: Token): void {
     setModalError("");
+    setLicenseInputKey((k) => k + 1); // Force license picker to remount
     // IMPORTANT: Reset form first to avoid leaking previous values
     form.resetFields();
 
@@ -256,6 +233,7 @@ export function useRegistrationTokens() {
 
   function handleModalReset(): void {
     setModalError("");
+    setLicenseInputKey((k) => k + 1); // Force license picker to remount
     // Mimics old Reset button: regenerate token, keep lastSaved template
     form.resetFields(); // Clear first to avoid stale values
     const newToken = {
@@ -284,7 +262,6 @@ export function useRegistrationTokens() {
       // save() already set the error state, we just need to prevent closing
       const message = err?.message ?? String(err);
       setModalError(message);
-      setEditingToken(val_orig); // Preserve for limit validation
       form.setFieldsValue(val_orig); // Restore form with user's values
     }
   }
@@ -311,6 +288,7 @@ export function useRegistrationTokens() {
     modalVisible,
     editingToken,
     modalError,
+    licenseInputKey,
     handleModalOpen,
     handleModalCancel,
     handleModalReset,

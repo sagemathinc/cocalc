@@ -12,6 +12,7 @@ import {
   Descriptions,
   Popconfirm,
   Progress,
+  Space,
   Switch,
   Table,
 } from "antd";
@@ -44,7 +45,6 @@ import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 
 import RegistrationTokenDialog from "./registration-token-dialog";
 import {
-  ephemeralSignupUrl,
   formatEphemeralHours,
   useRegistrationTokens,
 } from "./registration-token-hook";
@@ -74,6 +74,7 @@ export function RegistrationToken() {
     modalVisible,
     editingToken,
     modalError,
+    licenseInputKey,
     handleModalOpen,
     handleModalCancel,
     handleModalReset,
@@ -83,7 +84,7 @@ export function RegistrationToken() {
   function render_buttons() {
     const any_selected = selRows.length > 0;
     return (
-      <AntdButton.Group style={{ margin: "10px 0" }}>
+      <Space.Compact style={{ margin: "10px 0" }}>
         <AntdButton
           type={!any_selected ? "primary" : "default"}
           disabled={any_selected}
@@ -107,8 +108,17 @@ export function RegistrationToken() {
           <Icon name="refresh" />
           Refresh
         </AntdButton>
-      </AntdButton.Group>
+      </Space.Compact>
     );
+  }
+
+  function ephemeralSignupUrl(token: Token): string {
+    if (!token || token.ephemeral == null) return "";
+    if (typeof window === "undefined") {
+      return `/ephemeral?token=${token.token}`;
+    }
+    const { protocol, host } = window.location;
+    return `${protocol}//${host}/ephemeral?token=${token.token}`;
   }
 
   function render_expanded_row(token: Token): Rendered {
@@ -128,7 +138,7 @@ export function RegistrationToken() {
       token.ephemeral != null
         ? seconds2hms(token.ephemeral / 1000, true)
         : "No";
-    const ephemeralLink = ephemeralSignupUrl(token.token);
+    const ephemeralLink = ephemeralSignupUrl(token);
 
     const items: DescriptionsProps["items"] = [
       {
@@ -185,10 +195,7 @@ export function RegistrationToken() {
 
   function render_view(): Rendered {
     const table_data = sortBy(
-      Object.values(data).map((v) => {
-        v.key = v.token;
-        return v;
-      }),
+      Object.values(data).map((v) => ({ ...v, key: v.token })),
       "token",
     );
     const rowSelection = {
@@ -263,7 +270,7 @@ export function RegistrationToken() {
             dataIndex="ephemeral"
             render={(value, token) => {
               if (value == null) return "-";
-              const url = ephemeralSignupUrl(token.token);
+              const url = ephemeralSignupUrl(token);
               return (
                 <div
                   style={{
@@ -454,6 +461,7 @@ export function RegistrationToken() {
         form={form}
         newRandomToken={newRandomToken}
         saving={saving}
+        licenseInputKey={licenseInputKey}
       />
     );
   }

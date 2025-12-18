@@ -18,6 +18,42 @@ import isAdmin from "@cocalc/server/accounts/is-admin";
 
 const log = getLogger("server:projects:create");
 
+/**
+ * Determine whether to bypass the project pool based on project requirements.
+ * Returns true if the pool should be bypassed (i.e., create a fresh project).
+ */
+function shouldBypassProjectPool({
+  noPool,
+  licenses,
+  account_id,
+  image,
+  customize,
+}: {
+  noPool?: boolean;
+  licenses: string[];
+  account_id?: string | null;
+  image?: string;
+  customize?: CreateProjectOptions["customize"];
+}): boolean {
+  // Bypass pool if explicitly disabled
+  if (noPool) return true;
+
+  // Bypass pool if no account_id (can't use pool without owner)
+  if (account_id == null) return true;
+
+  // Bypass pool if licenses specified (pool projects have no licenses)
+  if (licenses.length > 0) return true;
+
+  // Bypass pool if custom image specified (pool projects use default image)
+  if (image != null) return true;
+
+  // Bypass pool if customize settings present (pool projects have no settings)
+  // e.g. disableInternet is set
+  if (customize != null) return true;
+
+  return false;
+}
+
 export default async function createProject(opts: CreateProjectOptions) {
   if (opts.account_id != null) {
     if (!isValidUUID(opts.account_id)) {
@@ -75,10 +111,17 @@ export default async function createProject(opts: CreateProjectOptions) {
     }
     project_id = opts.project_id;
   } else {
-    // Try to get from pool if no license and no image specified (so the default),
-    // and not "noPool".  NOTE: we may improve the pool to also provide some
-    // basic licensed projects later, and better support for images.  Maybe.
-    if (!noPool && licenses.length === 0 && account_id != null) {
+    // Try to get from pool if all conditions are met
+    if (
+      !shouldBypassProjectPool({
+        noPool,
+        licenses,
+        account_id,
+        image,
+        customize,
+      }) &&
+      account_id != null
+    ) {
       project_id = await getFromPool({
         account_id,
         title,
