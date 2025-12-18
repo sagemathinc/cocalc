@@ -2,7 +2,7 @@
 
 Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-safe by (1) using a single canonical notion of Codex `session_id`, (2) making the backend the authority for creating/persisting that `session_id` when blank, and (3) deriving all ACP log identifiers (store/key/subject) from a single shared helper in `src/packages/chat`.
 
-### 1\) \(done\) Canonicalize ACP log identifiers in a shared helper \(no ad\-hoc fallbacks\)
+### 1) (done) Canonicalize ACP log identifiers in a shared helper (no ad-hoc fallbacks)
 
 - [ ] Create a single helper in `src/packages/chat` that derives all log identifiers from:
   - `project_id`, `path`, `thread_root_date` (root message), `turn_date` (assistant reply date).

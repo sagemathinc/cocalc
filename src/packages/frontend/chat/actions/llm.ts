@@ -384,7 +384,6 @@ async function handleCodexTurn({
 
   await processAcpLLM({
     message,
-    reply_to,
     model,
     input,
     context: {

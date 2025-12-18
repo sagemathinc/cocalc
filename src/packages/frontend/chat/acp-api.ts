@@ -82,7 +82,6 @@ interface AcpContext {
 
 type ProcessAcpRequest = {
   message: ChatMessage;
-  reply_to?: Date;
   model: string;
   input: string;
   context: AcpContext;
@@ -90,12 +89,11 @@ type ProcessAcpRequest = {
 
 export async function processAcpLLM({
   message,
-  reply_to,
   model,
   input,
   context,
 }: ProcessAcpRequest): Promise<void> {
-  const { syncdb, path, chatStreams, sendReply, saveHistory } = context;
+  const { syncdb, path, chatStreams } = context;
   if (syncdb == null) return;
 
   let workingInput = input?.trim();
@@ -103,35 +101,23 @@ export async function processAcpLLM({
     return;
   }
 
-  const threadDate =
-    context.threadKey != null ? new Date(Number(context.threadKey)) : undefined;
-  const configDate =
-    reply_to ??
-    (threadDate && !Number.isNaN(threadDate.valueOf())
-      ? threadDate
-      : undefined);
-  const config = context.getCodexConfig
-    ? context.getCodexConfig(configDate)
-    : undefined;
+  const sender_id = model || "openai-codex-agent";
+
+  // Determine the thread root date from the message itself.
+  // - For replies, `message.reply_to` is the thread root (ISO string).
+  // - For a root message, the thread root is `message.date`.
+  const threadRootDate = message.reply_to
+    ? new Date(message.reply_to)
+    : message.date instanceof Date
+      ? message.date
+      : new Date(message.date);
+  if (Number.isNaN(threadRootDate.valueOf())) {
+    throw new Error("ACP turn missing thread root date");
+  }
+
+  const config = context.getCodexConfig?.(threadRootDate);
   const normalizedModel =
     typeof model === "string" ? normalizeCodexMention(model) : undefined;
-
-  const sender_id = model || "openai-codex-agent";
-  const thinking = ":robot: Thinking...";
-
-  // date is the iso timestamp of the response message, which
-  // will be set to thinking initially.
-  const date = sendReply({
-    message,
-    reply: thinking,
-    from: sender_id,
-    noNotification: true,
-    reply_to,
-  });
-  if (!date) {
-    return;
-  }
-  syncdb.commit();
 
   const id = uuid();
   chatStreams.add(id);
@@ -140,23 +126,23 @@ export async function processAcpLLM({
   // is fine, even if the response is very long.
   setTimeout(() => chatStreams.delete(id), 3 * 60 * 1000);
 
-  let messageDate: Date = new Date(date);
-  if (Number.isNaN(messageDate.valueOf())) {
-    throw new Error("Codex chat message has invalid date");
-  }
+  // Generate a stable assistant-reply key for this turn, but do NOT write any
+  // corresponding chat row here. The backend is the sole writer of the assistant
+  // reply row (avoids frontend/backend sync races on the same row).
+  const messageDate = new Date();
 
   const chatMetadata = buildChatMetadata({
     project_id: context.project_id,
     path,
     sender_id,
     messageDate,
-    reply_to,
+    reply_to: threadRootDate,
   });
   const sessionKey = config?.sessionId ?? context.threadKey;
   const queueKey = makeQueueKey(context);
   const job = async (): Promise<void> => {
     try {
-      console.log("Starting ACP turn for", message);
+      console.log("Starting ACP turn for", { message, chatMetadata });
       const stream = await webapp_client.conat_client.streamAcp({
         project_id: context.project_id,
         prompt: workingInput,
@@ -181,13 +167,26 @@ export async function processAcpLLM({
       console.log("ACP message responses done");
     } catch (err) {
       chatStreams.delete(id);
-      // set to the error message and stop generating
-      let s = `${err}`;
-      if (s.startsWith("Error: Error:")) {
-        s = s.slice("Error: ".length);
+      console.error("ACP turn failed", err);
+      // Backend owns the assistant reply row, but if we fail before the backend
+      // can even start the turn (e.g., immediate stream error), we still want
+      // the user to see *something* in the chat UI.
+      try {
+        const raw = `${err}`;
+        const cleaned = raw.startsWith("Error: Error:")
+          ? raw.slice("Error: ".length)
+          : raw;
+        context.sendReply({
+          message,
+          reply: cleaned,
+          from: sender_id,
+          noNotification: true,
+          reply_to: threadRootDate,
+        });
+        syncdb.commit();
+      } catch (writeErr) {
+        console.error("Failed to write ACP error reply", writeErr);
       }
-      saveHistory({ date }, s, sender_id, false);
-      syncdb.commit();
     }
   };
 
