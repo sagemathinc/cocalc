@@ -26,7 +26,7 @@ export interface Patch {
   // string of the form "<time36>_<client>", where time36 is a fixed-width base36
   // timestamp prefix (lex-sortable) and client is a per-session random suffix to
   // avoid collisions when the same user commits concurrently from multiple clients.
-  time: string;
+  time: PatchId;
   // wall = wallclock time of when patch made; plays no role at all in the algorithm and
   // is purely to **display to the user**.  For backward compat and display, if wall is
   // not defined in then this should fall back to the time field.
@@ -58,7 +58,7 @@ export interface Patch {
   // required by this data structure: instead parents could just be the branches
   // that we are merging.  I.e., we might only add something when
   // the user wants to manually do a merge.  That's for later...
-  parents?: string[];
+  parents?: PatchId[];
 
   version?: number;
 
@@ -188,3 +188,5 @@ export interface DocType {
   patch_format?: number; // 0=string or 1=dbdoc, if given
   opts?: { [key: string]: any };
 }
+// Opaque logical patch identifier (PatchFlow-style "<time36>_<client>" string).
+export type PatchId = string;

@@ -15,11 +15,11 @@ describe("MergeCoordinator", () => {
       },
     });
 
-    coordinator.seedBase("abc", 1);
+    coordinator.seedBase("abc", "1");
     // Local user inserts X before 'c'.
     localBuffer = "abXc";
     // Remote appends Y.
-    coordinator.mergeRemote("abcY", 2);
+    coordinator.mergeRemote("abcY", "2");
 
     expect(applied).toBe("abXcY");
     expect(localBuffer).toBe("abXcY");
@@ -37,14 +37,14 @@ describe("MergeCoordinator", () => {
       },
     });
 
-    coordinator.seedBase("abc", 1);
+    coordinator.seedBase("abc", "1");
     // Local edit: insert X.
     localBuffer = "abXc";
     // First remote: append Y.
-    coordinator.mergeRemote("abcY", 2);
+    coordinator.mergeRemote("abcY", "2");
     expect(applied).toBe("abXcY");
     // Second remote: append Z (doesn't have X).
-    coordinator.mergeRemote("abcYZ", 3);
+    coordinator.mergeRemote("abcYZ", "3");
     expect(applied).toBe("abXcYZ");
     expect(localBuffer).toBe("abXcYZ");
   });
@@ -63,8 +63,8 @@ describe("MergeCoordinator", () => {
         localBuffer = merged;
       },
     });
-    coordinator.seedBase(base, 1);
-    coordinator.mergeRemote(remoteEdits, 2);
+    coordinator.seedBase(base, "1");
+    coordinator.mergeRemote(remoteEdits, "2");
     expect(applied).toBe("aaaeee\n\n---\n\nzzzxxx");
     expect(localBuffer).toBe("aaaeee\n\n---\n\nzzzxxx");
   });

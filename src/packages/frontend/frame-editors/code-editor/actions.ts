@@ -51,7 +51,7 @@ import {
 import { log_opened_time } from "@cocalc/frontend/project/open-file";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
-import { type SyncOpts } from "@cocalc/sync";
+import { type SyncOpts, type PatchId } from "@cocalc/sync";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { apply_patch, make_patch } from "@cocalc/util/patch";
 import type { SyncString } from "@cocalc/sync/editor/string/sync";
@@ -234,7 +234,7 @@ export class Actions<
   }
 
   // Safe wrapper to read the latest syncstring version, if available.
-  private getLatestVersion(): string | undefined {
+  private getLatestVersion(): PatchId | undefined {
     try {
       const versions = this._syncstring.versions();
       return versions[versions.length - 1];
@@ -271,7 +271,7 @@ export class Actions<
     if (isSelfChange) {
       // Our own commit echoed back. Refresh base/version, but never clobber
       // local edits that may have happened after the commit.
-      manager.recordLocalCommit(remoteValue, latest as any);
+      manager.recordLocalCommit(remoteValue, latest);
       if (!cm || localSnapshot === remoteValue) {
         // Keep store in sync without rewriting the buffer.
         this.setState({ value: remoteValue });
@@ -282,9 +282,9 @@ export class Actions<
     if (manager.getBaseValue() == null) {
       // First remote we see — assume current buffer is the local side so we
       // can preserve unsaved edits when merging.
-      manager.seedBase(localSnapshot ?? remoteValue, latest as any);
+      manager.seedBase(localSnapshot ?? remoteValue, latest);
     }
-    manager.mergeRemote(remoteValue, latest as any, localSnapshot);
+    manager.mergeRemote(remoteValue, latest, localSnapshot);
   }
 
   // We store these actions here so that we can remove the actions
@@ -521,11 +521,11 @@ export class Actions<
     try {
       this.getMergeCoordinator().seedBase(
         this._syncstring.to_str(),
-        this.getLatestVersion() as any,
+        this.getLatestVersion(),
       );
-      } catch {
-        // ignore if not available yet
-      }
+    } catch {
+      // ignore if not available yet
+    }
     });
 
     this._syncstring.once("load-time-estimate", (est) => {
@@ -1731,7 +1731,7 @@ export class Actions<
       const value = this._syncstring.to_str();
       this.getMergeCoordinator().recordLocalCommit(
         value,
-        this.getLatestVersion() as any,
+        this.getLatestVersion(),
       );
     } catch (err) {
       // ignore

@@ -4,7 +4,7 @@ Keeps track of the last upstream base/version and performs 3-way merges
 between that base, the current local buffer, and incoming remote value.
 */
 
-import { threeWayMerge } from "@cocalc/sync";
+import { threeWayMerge, type PatchId } from "@cocalc/sync";
 
 export interface MergeCoordinatorOpts {
   getLocal: () => string | undefined;
@@ -13,16 +13,16 @@ export interface MergeCoordinatorOpts {
 
 export class MergeCoordinator {
   private baseValue?: string;
-  private baseVersion?: number;
+  private baseVersion?: PatchId;
 
   constructor(private opts: MergeCoordinatorOpts) {}
 
-  seedBase(value: string, version?: number): void {
+  seedBase(value: string, version?: PatchId): void {
     this.baseValue = value;
     this.baseVersion = version;
   }
 
-  recordLocalCommit(value: string, version?: number): void {
+  recordLocalCommit(value: string, version?: PatchId): void {
     this.baseValue = value;
     if (version !== undefined) {
       this.baseVersion = version;
@@ -31,7 +31,7 @@ export class MergeCoordinator {
 
   mergeRemote(
     remoteValue: string,
-    version?: number,
+    version?: PatchId,
     localOverride?: string,
   ): string {
     const base = this.baseValue ?? remoteValue;
@@ -51,7 +51,7 @@ export class MergeCoordinator {
     return this.baseValue;
   }
 
-  getBaseVersion(): number | undefined {
+  getBaseVersion(): PatchId | undefined {
     return this.baseVersion;
   }
 }
