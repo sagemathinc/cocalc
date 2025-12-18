@@ -4,18 +4,18 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
 
 ### 1) (done) Canonicalize ACP log identifiers in a shared helper (no ad-hoc fallbacks)
 
-- [ ] Create a single helper in `src/packages/chat` that derives all log identifiers from:
+- [x] Create a single helper in `src/packages/chat` that derives all log identifiers from:
   - `project_id`, `path`, `thread_root_date` (root message), `turn_date` (assistant reply date).
-- [ ] The helper should return:
+- [x] The helper should return:
   - `acp_log_store` (AKV store name; derived from `project_id+path`)
   - `acp_log_thread` (thread root identifier; root message date)
   - `acp_log_turn` (turn identifier; assistant reply date)
   - `acp_log_key = ${thread}:${turn}`
   - `acp_log_subject` (pub/sub subject; deterministic from project+thread+turn)
-- [ ] Update both frontend + backend to call the helper rather than:
+- [x] Update both frontend + backend to call the helper rather than:
   - writing/reading subjects from syncdb ad-hoc, or
   - attempting multiple fallback sources (`reply_to/date/acp_thread_id`, etc.).
-- [ ] Delete/avoid fallback logic in chat UI that mixes concepts (e.g. `acp_log_thread ?? acp_session_id`).
+- [x] Delete/avoid fallback logic in chat UI that mixes concepts (e.g. `acp_log_thread ?? acp_session_id`).
 
 ### 2) Make the backend the sole writer of assistant-reply ACP state (avoid sync races)
 
@@ -68,6 +68,7 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
 
 To not forget:
 
+- [ ] Is there a codex or ACP turn heartbeat?   Because sometimes it hangs, I can't kill it, etc. which is quite annoying.
 - [ ] terminal scrolling is annoying \-\- get to the bottom and can't scroll the containing page. VERY annoying when trying to scroll through.  But terminal amount is large so have to scroll. hmmm.
 - [ ] it is impossible to copy/paste from xterm.js terminal in the log
 - [ ] bash \-lc '...' is often explicitly in the log still \- solution: just unwrap it again \-\-![](http://localhost:7000/blobs/paste-0.15869512630654514?uuid=773eca36-f193-43f0-9c46-2fd01c17c7a0)

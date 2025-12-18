@@ -5,7 +5,7 @@ This is how realtime document sync works in CoCalc after the [Patchflow](https:/
 
 High‑level data model
 ---------------------
-The core objects that participate in sync are as follows: what owns the patch DAG, what adapts it to editors, and where state is persisted. 
+What owns the patch DAG, what adapts it to editors, and where state is persisted is as follows:
 
 - **Patchflow session**: per document, holds the DAG of patches (with snapshots), merge logic, history, presence, undo/redo.
 - **SyncDoc**: front/back shared TypeScript class that owns a Patchflow session, adapts it to editor APIs, and persists patches via Conat streams.
@@ -32,11 +32,17 @@ sequenceDiagram
   SyncDoc-->>Editor: emit change (working copy merge if needed)
 ```
 
+Patch IDs, ordering, and streams
+-------------------------------
+- **PatchId format**: In Patchflow ≥0.5.0 every patch uses an opaque `PatchId` string: `<time36>_<client>`, where `time36` is a fixed‑width base36 logical timestamp prefix and `client` is a per‑session random suffix. This removes collisions when the same user commits from multiple clients. Legacy numeric times are auto‑adapted on load.
+- **Deterministic ordering**: Heads are merged by sorting PatchIds lexicographically; the time36 prefix preserves chronological order, and the random client suffix breaks ties deterministically.
+- **Streams as storage**: Patches are appended to a Conat stream (`patches`), not mutated in place. Stream sequence numbers are broker-assigned; PatchIds remain stable across transports, so streams can be replayed or copied between brokers without renumbering patches.
+
 Key behaviors
 -------------
 These are the guarantees and behaviors Patchflow/SyncDoc provide: handling multiple heads, working-copy merges, presence, and undo/redo. They are the contract the rest of the system relies on.
 
-- **Multiple heads**: Patchflow merges DAG heads deterministically (time/version/userId ordering) by replaying patches; snapshots cap history size.
+- **Multiple heads**: Patchflow merges DAG heads deterministically (PatchId ordering) by replaying patches; snapshots cap history size.
 - **Working copy merge**: Editors may diverge locally; SyncDoc can merge remote commits into a live buffer using three-way merge (strings) or structured patch replay.
 - **Presence/cursors**: Patchflow presence adapter tracks cursor positions; SyncDoc exposes them to editors.
 - **Undo/redo**: Patchflow tracks undo pointer; SyncDoc maps editor commands to Patchflow undo/redo and creates commits as needed.
@@ -45,6 +51,7 @@ Filesystem integration
 ----------------------
 Disk changes enter the same patch stream that editors use: a single backend watcher diffs disk against stored snapshots, emits patches with a reserved user, and clients converge via Patchflow. It’s the bridge between the filesystem and the realtime DAG.
 
+- **Streams & seq**: Both the `patches` stream and the metadata synctable are Conat streams; patch envelopes keep their PatchIds, while the stream assigns a monotone `seq` used only for incremental fetch (`start_seq`) and watcher resume.
 - **Deployment note**: the fileserver runs one shared watcher service with a durable SQLite file (e.g., `data/sync-fs.sqlite` via `new SyncFsService(new SyncFsWatchStore(join(data, "sync-fs.sqlite")))`), so heads/lastSeq survive restarts and streams resume with `start_seq` instead of replaying history.
 - **Backend watcher (sync-fs-service)**:
   - One chokidar watcher per directory on the fileserver; heartbeats from clients keep watches alive.
