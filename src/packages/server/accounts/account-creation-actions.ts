@@ -8,6 +8,7 @@ import getOneProject from "@cocalc/server/projects/get-one";
 import { getProject } from "@cocalc/server/projects/control";
 import { getLogger } from "@cocalc/backend/logger";
 import getProjects from "@cocalc/server/projects/get";
+import { type RegistrationTokenCustomize } from "@cocalc/util/types/registration-token";
 
 const log = getLogger("server:accounts:creation-actions");
 
@@ -18,6 +19,7 @@ export default async function accountCreationActions({
   noFirstProject,
   dontStartProject,
   ephemeral,
+  customize,
 }: {
   email_address?: string;
   account_id: string;
@@ -27,6 +29,7 @@ export default async function accountCreationActions({
   // if set, create the first project but do not start it. Only applies if noFirstProject is false.
   dontStartProject?: boolean;
   ephemeral?: number;
+  customize?: RegistrationTokenCustomize;
 }): Promise<void> {
   log.debug({ account_id, email_address, tags });
 
@@ -66,6 +69,7 @@ export default async function accountCreationActions({
               tags,
               dontStartProject,
               ephemeral,
+              customize,
             });
           }
         } catch (err) {

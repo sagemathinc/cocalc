@@ -11,6 +11,7 @@ import {
   ExecuteCodeOptionsAsyncGet,
   ExecuteCodeOutput,
 } from "@cocalc/util/types/execute-code";
+import { type RegistrationTokenCustomize } from "@cocalc/util/types/registration-token";
 import { DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
 
 import { NOTES } from "./crm";
@@ -745,6 +746,8 @@ export interface CreateProjectOptions {
   project_id?: string;
   // if set, project should be treated as expiring after this many milliseconds since creation
   ephemeral?: number;
+  // account customization settings to apply to project (e.g., disableInternet)
+  customize?: RegistrationTokenCustomize;
 }
 
 interface BaseCopyOptions {
