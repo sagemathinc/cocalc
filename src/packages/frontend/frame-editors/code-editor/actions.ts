@@ -234,7 +234,7 @@ export class Actions<
   }
 
   // Safe wrapper to read the latest syncstring version, if available.
-  private getLatestVersion(): number | undefined {
+  private getLatestVersion(): string | undefined {
     try {
       const versions = this._syncstring.versions();
       return versions[versions.length - 1];
@@ -271,7 +271,7 @@ export class Actions<
     if (isSelfChange) {
       // Our own commit echoed back. Refresh base/version, but never clobber
       // local edits that may have happened after the commit.
-      manager.recordLocalCommit(remoteValue, latest);
+      manager.recordLocalCommit(remoteValue, latest as any);
       if (!cm || localSnapshot === remoteValue) {
         // Keep store in sync without rewriting the buffer.
         this.setState({ value: remoteValue });
@@ -282,9 +282,9 @@ export class Actions<
     if (manager.getBaseValue() == null) {
       // First remote we see — assume current buffer is the local side so we
       // can preserve unsaved edits when merging.
-      manager.seedBase(localSnapshot ?? remoteValue, latest);
+      manager.seedBase(localSnapshot ?? remoteValue, latest as any);
     }
-    manager.mergeRemote(remoteValue, latest, localSnapshot);
+    manager.mergeRemote(remoteValue, latest as any, localSnapshot);
   }
 
   // We store these actions here so that we can remove the actions
@@ -358,7 +358,7 @@ export class Actions<
     const latest = this.getLatestVersion();
     try {
       const value = this._syncstring.to_str();
-      this.getMergeCoordinator().seedBase(value, latest);
+      this.getMergeCoordinator().seedBase(value, latest as any);
     } catch {
       // ignore if not ready yet
     }
@@ -518,11 +518,11 @@ export class Actions<
         "cursor_activity",
         this._syncstring_cursor_activity.bind(this),
       );
-      try {
-        this.getMergeCoordinator().seedBase(
-          this._syncstring.to_str(),
-          this.getLatestVersion(),
-        );
+    try {
+      this.getMergeCoordinator().seedBase(
+        this._syncstring.to_str(),
+        this.getLatestVersion() as any,
+      );
       } catch {
         // ignore if not available yet
       }
@@ -1731,7 +1731,7 @@ export class Actions<
       const value = this._syncstring.to_str();
       this.getMergeCoordinator().recordLocalCommit(
         value,
-        this.getLatestVersion(),
+        this.getLatestVersion() as any,
       );
     } catch (err) {
       // ignore

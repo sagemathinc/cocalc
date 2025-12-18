@@ -33,6 +33,14 @@ import type { Document } from "@cocalc/sync/editor/generic/types";
 import LRUCache from "lru-cache";
 import { until } from "@cocalc/util/async-utils";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+type PatchId = string;
+
+const patchIdToTimeMs = (id?: PatchId): number | undefined => {
+  if (id == null) return undefined;
+  const prefix = id.split("_")[0];
+  const n = parseInt(prefix, 36);
+  return Number.isFinite(n) ? n : undefined;
+};
 
 const EXTENSION = ".time-travel";
 
@@ -59,7 +67,7 @@ const gitShowCache = new LRUCache<string, string>({
 }*/
 
 export interface TimeTravelState extends CodeEditorState {
-  versions: List<number>;
+  versions: List<any>;
   git_versions: List<number>;
   loading: boolean;
   has_full_history: boolean;
@@ -203,28 +211,28 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     let versions;
     try {
       // syncdoc_changed -- can get called at any time, so have to be extra careful
-      versions = List<number>(this.syncdoc.versions());
+      versions = List<string>(this.syncdoc.versions());
     } catch (err) {
       this.setState({ versions: List([]) });
       return;
     }
-    const first_version = this.syncdoc.historyFirstVersion();
+    const first_version = patchIdToTimeMs(this.syncdoc.historyFirstVersion()) ?? 0;
     this.setState({ versions, first_version });
     if (this.first_load) {
       this.first_load = false;
     }
   };
 
-  versionNumber = (version: number): number | undefined => {
+  versionNumber = (version: PatchId): number | undefined => {
     return this.syncdoc?.historyVersionNumber(version);
   };
 
-  wallTime = (version: number): number | undefined => {
+  wallTime = (version: PatchId): number | undefined => {
     return this.syncdoc?.wallTime(version);
   };
 
   // Get the given version of the document.
-  get_doc = (version: number): Document | undefined => {
+  get_doc = (version: PatchId): Document | undefined => {
     // log("get_doc", version);
     if (this.syncdoc == null) {
       return;
@@ -238,13 +246,13 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     } catch (_) {
       console.log(
         "TimeTravel: unknown or not loaded version",
-        new Date(version),
+        new Date(patchIdToTimeMs(version) ?? 0),
       );
       return;
     }
   };
 
-  get_account_ids = (version0: number, version1: number): string[] => {
+  get_account_ids = (version0: PatchId, version1: PatchId): string[] => {
     //    log("get_account_ids", version0, version1);
     if (this.syncdoc == null) {
       return [];
@@ -267,7 +275,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     return Array.from(account_ids);
   };
 
-  getUser = (version: number): number | undefined => {
+  getUser = (version: PatchId): number | undefined => {
     if (this.syncdoc == null) {
       return;
     }
@@ -290,7 +298,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     doc,
     gitMode,
   }: {
-    version: number;
+    version: PatchId;
     doc: Document;
     gitMode?: boolean;
   }): Promise<void> => {

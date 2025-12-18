@@ -9,7 +9,7 @@ import { Icon } from "../../components";
 
 interface Props {
   actions: TimeTravelActions;
-  version: number | undefined;
+  version: number | string | undefined;
   doc;
   changesMode?: boolean;
   gitMode?: boolean;
@@ -31,7 +31,13 @@ export function RevertFile({
       <Button
         onClick={() => {
           if (version != null) {
-            actions.revert({ version, doc, gitMode });
+            const v =
+              typeof version === "number" || typeof version === "string"
+                ? (version as any)
+                : undefined;
+            if (v != null) {
+              actions.revert({ version: v, doc, gitMode });
+            }
           }
         }}
         disabled={version == null || actions.syncdoc?.is_read_only()}

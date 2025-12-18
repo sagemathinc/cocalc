@@ -17,15 +17,29 @@ import { plural } from "@cocalc/util/misc";
 
 interface Props {
   actions: TimeTravelActions;
-  version0: number | undefined;
-  version1: number | undefined;
+  version0: number | string | undefined;
+  version1: number | string | undefined;
+}
+
+function parseVersionToNumber(
+  v: number | string | undefined,
+): number | undefined {
+  if (typeof v === "number") return v;
+  if (v == null) return undefined;
+  const s = `${v}`;
+  const idx = s.indexOf("_");
+  const prefix = idx >= 0 ? s.slice(0, idx) : s;
+  const n = parseInt(prefix, 36);
+  return Number.isNaN(n) ? undefined : n;
 }
 
 export function GitAuthors({ actions, version0, version1 }: Props) {
   if (version0 == null || version1 == null) {
     return null;
   }
-  const names = actions.gitNames(version0, version1);
+  const v0 = parseVersionToNumber(version0);
+  const v1 = parseVersionToNumber(version1);
+  const names = actions.gitNames(v0, v1);
   const data: { [person: string]: { emails: Set<string>; count: number } } = {};
   const people: string[] = [];
   for (const name of names) {
@@ -127,7 +141,10 @@ export function TimeTravelAuthors({ actions, version0, version1 }: Props) {
       return <Loading />;
     }
     const v: React.JSX.Element[] = [];
-    for (const account_id of actions.get_account_ids(version0, version1)) {
+    for (const account_id of actions.get_account_ids(
+      version0 as any,
+      version1 as any,
+    )) {
       v.push(renderAuthor(account_id));
     }
     if (v.length == 0) return renderUnknown();
