@@ -1,6 +1,6 @@
 # CLAUDE.md and GEMINI.md
 
-This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI (https://github.com/google-gemini/gemini-cli) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code), Gemini CLI (https://github.com/google-gemini/gemini-cli) and OpenAI Codex when working with code in this repository.
 
 # CoCalc Source Repository
 
@@ -18,6 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - Add suitable types when you write code
 - Follow DRY principles!
 - TypeScript: prefer `var1 ?? var2` for fallbacks. only use `var1 || var2` in explicit or-chains or when necessary.
+- TypeScript: avoid using "foo as any" to get around Typescript issues.
 - Variable name styles are `camelCase` for local and `FOO_BAR` for global variables. React Components and Classes are `FooBar`. If you edit older code not following these guidelines, adjust this rule to fit the file's style.
 - Some older code is JavaScript or CoffeeScript, which will be translated to TypeScript
 - Use ES modules (import/export) syntax, not CommonJS (require)
@@ -36,6 +37,7 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - `python3 ./scripts/check_npm_packages.py` - Check npm package consistency across packages
 - `prettier -w [filename]` to format the style of a file after editing it
 - After creating a file, run `git add [filename]` to start tracking it
+- `pnpm tsc` at top level to build all typescript; in src/packages/[package_name] to build a package.
 
 ### Package-Specific Commands
 
@@ -220,9 +222,7 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 # Important Instruction Reminders
 
 - Do what has been asked; nothing more, nothing less
-- NEVER create files unless they're absolutely necessary for achieving your goal
-- ALWAYS prefer editing an existing file to creating a new one
 - REFUSE to modify files when the git repository is on the `master` or `main` branch
 - NEVER proactively create documentation files (`*.md`) or README files. Only create documentation files if explicitly requested by the User
-- when modifying a file with a copyright banner at the top, make sure to fix/add the current year to indicate the copyright year
+- When modifying a file with a copyright banner at the top, make sure to fix/add the current year to indicate the copyright year
 
