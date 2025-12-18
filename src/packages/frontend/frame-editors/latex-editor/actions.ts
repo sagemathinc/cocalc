@@ -50,6 +50,7 @@ import { once } from "@cocalc/util/async-utils";
 import { ExecOutput } from "@cocalc/util/db-schema/projects";
 import {
   change_filename_extension,
+  is_bad_latex_filename,
   path_split,
   separate_file_extension,
   sha1,
@@ -238,9 +239,10 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   private init_bad_filename(): void {
     // #3230 two or more spaces
+    // Shell injection prevention: single quotes break bash string interpolation
     // note: if there are additional reasons why a filename is bad, add it to the
     // alert msg in run_build.
-    this.bad_filename = /\s\s+/.test(this.path);
+    this.bad_filename = is_bad_latex_filename(this.path);
   }
 
   private init_ext_filename(): void {
@@ -878,7 +880,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     if (this.bad_filename) {
       const err = `ERROR: It is not possible to compile this LaTeX file with the name '${this.path}'.
-        Please modify the filename, such that it does **not** contain two or more consecutive spaces.`;
+        Please modify the filename, such that it does **not** contain two or more consecutive spaces or single quotes (').`;
       this.set_error(err);
       return;
     }

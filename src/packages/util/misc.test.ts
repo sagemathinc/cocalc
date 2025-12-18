@@ -160,6 +160,24 @@ test("EDITOR_PREFIX", () => {
   expect(misc.EDITOR_PREFIX).toBe("editor-");
 });
 
+describe("is_bad_latex_filename", () => {
+  test("allows filenames without double spaces or quotes", () => {
+    expect(misc.is_bad_latex_filename("paper.tex")).toBe(false);
+    expect(misc.is_bad_latex_filename("my paper.tex")).toBe(false);
+    expect(misc.is_bad_latex_filename("folder/subfolder/file.tex")).toBe(false);
+  });
+
+  test("rejects filenames with double spaces", () => {
+    expect(misc.is_bad_latex_filename("my  paper.tex")).toBe(true);
+    expect(misc.is_bad_latex_filename("folder/bad  name/file.tex")).toBe(true);
+  });
+
+  test("rejects filenames with single quotes", () => {
+    expect(misc.is_bad_latex_filename("author's-notes.tex")).toBe(true);
+    expect(misc.is_bad_latex_filename("folder/author's-notes.tex")).toBe(true);
+  });
+});
+
 describe("test code for displaying numbers as currency with 2 or sometimes 3 decimals of precision", () => {
   const { currency } = misc;
   it("displays 1.23", () => {
