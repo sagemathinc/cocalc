@@ -45,9 +45,9 @@ export interface ExternalChange {
 
 export interface FsHead {
   string_id: string;
-  time: number;
+  time: string; // PatchId
   version: number;
-  heads?: number[];
+  heads?: string[];
   lastSeq?: number;
 }
 
@@ -268,7 +268,7 @@ export class SyncFsWatchStore {
       )
       .get(string_id) as FsHead | undefined;
     if (!row) return;
-    let heads: number[] | undefined;
+    let heads: string[] | undefined;
     if (typeof (row as any).heads === "string") {
       try {
         heads = JSON.parse((row as any).heads);

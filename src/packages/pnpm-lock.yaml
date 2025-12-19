@@ -186,6 +186,9 @@ importers:
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
+      patchflow:
+        specifier: ^0.5.0
+        version: 0.5.0
       pkg-dir:
         specifier: ^5.0.0
         version: 5.0.0

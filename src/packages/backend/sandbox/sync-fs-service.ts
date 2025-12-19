@@ -13,6 +13,13 @@ import {
   type DocCodec,
 } from "@cocalc/sync/patchflow";
 import { type SyncDoc } from "@cocalc/sync";
+import {
+  comparePatchId,
+  decodePatchId,
+  encodePatchId,
+  legacyPatchId,
+  type PatchId,
+} from "patchflow";
 
 export interface WatchEvent {
   path: string;
@@ -42,9 +49,9 @@ const DEBOUNCE_MS = 250; // coalesce rapid events
 const SUPPRESS_TTL_MS = 5_000; // suppress self-inflicted fs events briefly
 
 type StreamInfo = {
-  heads: Set<number>;
+  heads: Set<PatchId>;
   maxVersion: number;
-  maxTime: number;
+  maxTimeMs: number;
   lastSeq?: number;
 };
 
@@ -66,10 +73,12 @@ export class SyncFsService extends EventEmitter {
   private streamInfo: Map<string, StreamInfo> = new Map();
   private suppressOnce: Map<string, NodeJS.Timeout> = new Map();
   private conatClient?: any;
+  private readonly clientId: string;
 
   constructor(store?: SyncFsWatchStore) {
     super();
     this.store = store ?? new SyncFsWatchStore();
+    this.clientId = this.makeClientId();
     setInterval(this.pruneStale, HEARTBEAT_TTL);
   }
 
@@ -475,20 +484,24 @@ export class SyncFsService extends EventEmitter {
     }
     const string_id =
       meta.string_id ?? client_db.sha1(meta.project_id, relativePath);
-    const { heads, maxVersion, maxTime } = await this.getStreamHeads({
+    const { heads, maxVersion, maxTimeMs } = await this.getStreamHeads({
       project_id: meta.project_id,
       string_id,
     });
     const parents = heads;
-    const parentMax = parents.length > 0 ? Math.max(...parents) : maxTime;
-    const time = Math.max(Date.now(), parentMax + 1);
+    const parentMaxMs =
+      parents.length > 0
+        ? Math.max(...parents.map((t) => this.timeMs(t)))
+        : maxTimeMs;
+    const timeMs = Math.max(Date.now(), parentMaxMs + 1);
+    const time = encodePatchId(timeMs, this.clientId);
     const version = Math.max(maxVersion, 0) + 1;
     const obj: any = {
       string_id,
       project_id: meta.project_id,
       path: relativePath,
       time,
-      wall: time,
+      wall: timeMs,
       user_id: 0,
       is_snapshot: false,
       parents,
@@ -560,27 +573,55 @@ export class SyncFsService extends EventEmitter {
 
   private updateStreamInfo(string_id: string, patch: any, seq: number): void {
     const persisted = this.store.getFsHead(string_id);
-    const info: StreamInfo = this.streamInfo.get(string_id) ?? {
-      heads: new Set<number>(persisted?.heads ?? []),
-      maxVersion: persisted?.version ?? 0,
-      maxTime: persisted?.time ?? 0,
-      lastSeq: persisted?.lastSeq,
+    let info: StreamInfo =
+      this.streamInfo.get(string_id) ??
+      {
+        heads: new Set<PatchId>(
+          (persisted?.heads ?? [])
+            .map((h) => this.normalizePatchId(h))
+            .filter((h): h is PatchId => !!h),
+        ),
+        maxVersion: persisted?.version ?? 0,
+        maxTimeMs: (() => {
+          const t = this.normalizePatchId((persisted as any)?.time);
+          return t ? this.timeMs(t) : 0;
+        })(),
+        lastSeq: persisted?.lastSeq,
+      };
+    info = {
+      heads: new Set<PatchId>(
+        [...info.heads]
+          .map((h) => this.normalizePatchId(h))
+          .filter((h): h is PatchId => !!h),
+      ),
+      maxVersion: info.maxVersion ?? 0,
+      maxTimeMs:
+        info.maxTimeMs ??
+        this.timeMs(this.normalizePatchId((persisted as any)?.time)),
+      lastSeq: info.lastSeq,
     };
     info.lastSeq = seq;
-    if (Array.isArray(patch.parents)) {
-      for (const t of patch.parents) info.heads.delete(t);
-    }
-    if (typeof patch.time === "number") {
-      info.heads.add(patch.time);
-      info.maxTime = Math.max(info.maxTime, patch.time);
+    const parentIds = Array.isArray(patch.parents)
+      ? patch.parents
+          .map((t: any) => this.normalizePatchId(t))
+          .filter((t): t is PatchId => !!t)
+      : [];
+    for (const t of parentIds) info.heads.delete(t);
+    const tId = this.normalizePatchId(patch.time);
+    if (tId) {
+      info.heads.add(tId);
+      info.maxTimeMs = Math.max(info.maxTimeMs, this.timeMs(tId));
     }
     if (typeof patch.version === "number") {
       info.maxVersion = Math.max(info.maxVersion, patch.version);
     }
+    const latest =
+      [...info.heads].sort(comparePatchId).pop() ??
+      encodePatchId(info.maxTimeMs || Date.now(), this.clientId);
     this.streamInfo.set(string_id, info);
     this.store.setFsHead({
       string_id,
-      time: info.maxTime,
+      time: latest,
       version: info.maxVersion,
       heads: [...info.heads],
       lastSeq: info.lastSeq,
@@ -594,20 +635,81 @@ export class SyncFsService extends EventEmitter {
     return this.conatClient;
   }
 
+  private makeClientId(): string {
+    try {
+      const { randomBytes } = require("node:crypto") as typeof import("node:crypto");
+      const buf = randomBytes(10);
+      return buf.toString("base64url");
+    } catch (err) {
+      if (process.env.SYNC_FS_DEBUG) {
+        console.warn(
+          "sync-fs: crypto random unavailable; using weak randomness for clientId",
+          err,
+        );
+      }
+      return `${Date.now().toString(36)}-${Math.random()
+        .toString(36)
+        .slice(2, 10)}`;
+    }
+  }
+
+  private normalizePatchId(id: any): PatchId | undefined {
+    if (typeof id === "string") return id;
+    if (typeof id === "number" && Number.isFinite(id)) {
+      return legacyPatchId(id);
+    }
+    return undefined;
+  }
+
+  private timeMs(id?: PatchId): number {
+    if (!id) return 0;
+    try {
+      return decodePatchId(id).timeMs;
+    } catch {
+      return 0;
+    }
+  }
+
   private async getStreamHeads({
     project_id,
     string_id,
   }: {
     project_id: string;
     string_id: string;
-  }): Promise<{ heads: number[]; maxVersion: number; maxTime: number }> {
+  }): Promise<{
+    heads: PatchId[];
+    maxVersion: number;
+    maxTimeMs: number;
+  }> {
     const writer = await this.getPatchWriter({ project_id, string_id });
     const persisted = this.store.getFsHead(string_id);
-    const info: StreamInfo = this.streamInfo.get(string_id) ?? {
-      heads: new Set<number>(persisted?.heads ?? []),
-      maxVersion: persisted?.version ?? 0,
-      maxTime: persisted?.time ?? 0,
-      lastSeq: persisted?.lastSeq,
+    let info: StreamInfo =
+      this.streamInfo.get(string_id) ??
+      {
+        heads: new Set<PatchId>(
+          (persisted?.heads ?? [])
+            .map((h) => this.normalizePatchId(h))
+            .filter((h): h is PatchId => !!h),
+        ),
+        maxVersion: persisted?.version ?? 0,
+        maxTimeMs: (() => {
+          const t = this.normalizePatchId((persisted as any)?.time);
+          return t ? this.timeMs(t) : 0;
+        })(),
+        lastSeq: persisted?.lastSeq,
+      };
+    // Normalize legacy entries that may still be in-memory.
+    info = {
+      heads: new Set<PatchId>(
+        [...info.heads]
+          .map((h) => this.normalizePatchId(h))
+          .filter((h): h is PatchId => !!h),
+      ),
+      maxVersion: info.maxVersion ?? 0,
+      maxTimeMs:
+        info.maxTimeMs ??
+        this.timeMs(this.normalizePatchId((persisted as any)?.time)),
+      lastSeq: info.lastSeq,
     };
     // If we don't have any heads persisted yet, rebuild from the beginning so
     // we don't publish an orphaned head with empty parents.
@@ -625,12 +727,16 @@ export class SyncFsService extends EventEmitter {
       })) {
         const p: any = mesg;
         if (typeof seq === "number") info.lastSeq = seq;
-        if (Array.isArray(p.parents)) {
-          for (const t of p.parents) info.heads.delete(t);
-        }
-        if (typeof p.time === "number") {
-          info.heads.add(p.time);
-          info.maxTime = Math.max(info.maxTime, p.time);
+        const parentIds = Array.isArray(p.parents)
+          ? p.parents
+              .map((t: any) => this.normalizePatchId(t))
+              .filter((t): t is PatchId => !!t)
+          : [];
+        for (const t of parentIds) info.heads.delete(t);
+        const tId = this.normalizePatchId(p.time);
+        if (tId) {
+          info.heads.add(tId);
+          info.maxTimeMs = Math.max(info.maxTimeMs, this.timeMs(tId));
         }
         if (typeof p.version === "number") {
           info.maxVersion = Math.max(info.maxVersion, p.version);
@@ -661,9 +767,12 @@ export class SyncFsService extends EventEmitter {
       });
     }
     this.streamInfo.set(string_id, info);
+    const latest =
+      [...info.heads].sort(comparePatchId).pop() ??
+      encodePatchId(info.maxTimeMs || Date.now(), this.clientId);
     this.store.setFsHead({
       string_id,
-      time: info.maxTime,
+      time: latest,
       version: info.maxVersion,
       heads: [...info.heads],
       lastSeq: info.lastSeq,
@@ -671,7 +780,7 @@ export class SyncFsService extends EventEmitter {
     return {
       heads: [...info.heads],
       maxVersion: info.maxVersion,
-      maxTime: info.maxTime,
+      maxTimeMs: info.maxTimeMs,
     };
   }
 }

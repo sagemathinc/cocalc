@@ -6,6 +6,7 @@ import { SyncFsService } from "./sync-fs-service";
 import { tmpNameSync } from "tmp-promise";
 import { SyncFsWatchStore } from "./sync-fs-watch";
 import { DiffMatchPatch, decompressPatch } from "@cocalc/util/dmp";
+import { decodePatchId, legacyPatchId } from "patchflow";
 
 class FakeAStream {
   public messages: { mesg: any; seq: number }[] = [];
@@ -178,7 +179,8 @@ describe("SyncFsService", () => {
     expect(head2?.lastSeq).toBe(3);
     expect(head2?.version).toBe(3);
     expect(head2?.heads?.length).toBe(1);
-    expect((head2?.heads ?? [])[0]).toBeGreaterThan(200);
+    const headId = (head2?.heads ?? [])[0];
+    expect(decodePatchId(headId!).timeMs).toBeGreaterThan(200);
 
     svc2.close();
   }, 10_000);
@@ -188,7 +190,7 @@ describe("SyncFsService", () => {
     const store = new SyncFsWatchStore(dbPath);
     store.setFsHead({
       string_id: "sid2",
-      time: 50,
+      time: legacyPatchId(50),
       version: 1,
       heads: [],
       lastSeq: 5,
@@ -208,7 +210,7 @@ describe("SyncFsService", () => {
     const published = fake.messages[fake.messages.length - 1].mesg;
     expect(Array.isArray(published.parents)).toBe(true);
     expect(published.parents.length).toBe(1);
-    expect(published.parents[0]).toBe(50);
+    expect(decodePatchId(published.parents[0]).timeMs).toBe(50);
 
     const head = store.getFsHead("sid2");
     expect(head?.heads).toEqual([published.time]);

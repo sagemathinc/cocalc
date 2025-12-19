@@ -1,5 +1,6 @@
 import { SyncFsWatchStore } from "./sync-fs-watch";
 import { tmpNameSync } from "tmp-promise";
+import { decodePatchId, legacyPatchId } from "patchflow";
 
 describe("SyncFsWatchStore", () => {
   it("stores content and computes a patch for external changes", async () => {
@@ -29,19 +30,19 @@ describe("SyncFsWatchStore", () => {
     const store1 = new SyncFsWatchStore(dbPath);
     store1.setFsHead({
       string_id: "s1",
-      time: 10,
+      time: legacyPatchId(10),
       version: 3,
-      heads: [8, 10],
+      heads: [legacyPatchId(8), legacyPatchId(10)],
       lastSeq: 42,
     });
     store1.close();
 
     const store2 = new SyncFsWatchStore(dbPath);
     const head = store2.getFsHead("s1");
-    expect(head?.time).toBe(10);
+    expect(decodePatchId(head!.time).timeMs).toBe(10);
     expect(head?.version).toBe(3);
     expect(head?.lastSeq).toBe(42);
-    expect(head?.heads).toEqual([8, 10]);
+    expect(head?.heads?.map((h) => decodePatchId(h).timeMs)).toEqual([8, 10]);
     store2.close();
   });
 });
