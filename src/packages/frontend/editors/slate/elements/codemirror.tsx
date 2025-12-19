@@ -316,7 +316,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         {addonBefore}
         <div
           style={{
-            borderLeft: `10px solid ${
+            borderLeft: `3px solid ${
               isFocused ? CODE_FOCUSED_COLOR : borderColor
             }`,
           }}

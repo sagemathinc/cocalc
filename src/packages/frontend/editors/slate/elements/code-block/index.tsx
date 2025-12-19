@@ -12,7 +12,6 @@ import infoToMode from "./info-to-mode";
 import ActionButtons from "./action-buttons";
 import { useChange } from "../../use-change";
 import { getHistory } from "./history";
-import { DARK_GREY_BORDER } from "../../util";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
@@ -271,8 +270,6 @@ export const StaticElement: React.FC<RenderElementProps> = ({
         style={{
           background: "white",
           padding: "10px 15px 10px 20px",
-          borderLeft: `10px solid ${DARK_GREY_BORDER}`,
-          borderRadius: 0,
         }}
         options={{
           mode: infoToMode(temporaryInfo ?? element.info, {
