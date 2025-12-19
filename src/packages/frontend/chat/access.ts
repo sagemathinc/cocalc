@@ -51,17 +51,10 @@ export function replyTo(msg: ChatMessage | undefined): string | undefined {
 
 // Return list of account IDs currently editing the message.
 export function editingArray(msg: ChatMessage | undefined): string[] {
-  const e = (msg as any)?.editing;
-  if (e == null) return [];
-  if (typeof e === "object") {
-    return Object.keys(e);
-  }
-  return [];
+  return (msg as any)?.editing ?? [];
 }
 
 export function foldingList(msg: ChatMessage | undefined): string[] {
-  const f = (msg as any)?.folding;
-  if (f == null) return [];
-  if (Array.isArray(f)) return f;
-  return [];
+  const folding = (msg as any)?.folding;
+  return Array.isArray(folding) ? folding : [];
 }

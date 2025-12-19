@@ -125,7 +125,6 @@ export function is_editing(
   account_id: string,
 ): boolean {
   const editing = editingArray(message);
-  if (!Array.isArray(editing)) return false;
   return editing.includes(account_id);
 }
 
