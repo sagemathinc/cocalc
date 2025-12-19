@@ -93,7 +93,6 @@ describe("RefcountLeaseManager", () => {
 
     // Wait past delay so disposer starts, but not long enough to finish.
     await new Promise((r) => setTimeout(r, 20));
-    const beforeAcquire = Date.now();
     const rel2 = await mgr.acquire("slow");
     const afterAcquire = Date.now();
 
