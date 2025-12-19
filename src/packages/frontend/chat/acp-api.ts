@@ -116,7 +116,14 @@ export async function processAcpLLM({
   // Generate a stable assistant-reply key for this turn, but do NOT write any
   // corresponding chat row here. The backend is the sole writer of the assistant
   // reply row (avoids frontend/backend sync races on the same row).
-  const newMessageDate = new Date();
+  let newMessageDate = new Date();
+  if (newMessageDate.valueOf() <= messageDate.valueOf()) {
+    // ensure ai response message is after the message we're
+    // responding to.
+    newMessageDate = new Date(
+      messageDate.valueOf() + Math.round(100 * Math.random()),
+    );
+  }
 
   const setState = (state) => {
     store.setState({
