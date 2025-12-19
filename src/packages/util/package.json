@@ -13,7 +13,8 @@
     "./sync/table": "./dist/sync/table/index.js",
     "./sync/editor/db": "./dist/sync/editor/db/index.js",
     "./licenses/purchase/*": "./dist/licenses/purchase/*.js",
-    "./redux/*": "./dist/redux/*.js"
+    "./redux/*": "./dist/redux/*.js",
+    "./refcount/lease": "./dist/refcount/lease.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",

@@ -16,6 +16,7 @@ import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 import { getImage } from "./podman";
 import { extractBaseImage, IMAGE_CACHE, registerProgress } from "./rootfs-base";
 import { bootlog } from "@cocalc/conat/project/runner/bootlog";
+import { RefcountLeaseManager } from "@cocalc/util/refcount/lease";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -53,31 +54,35 @@ export function getPaths({ home, image, project_id }): {
 
 // Track mount reference counts so multiple users (e.g., project container +
 // sandboxExec sidecars) can share the same overlay mount safely.
-const mountRefs: Map<string, number> = new Map();
-// When refcount drops to 0, we delay the actual unmount so bursty users don't
-// churn overlay mounts. mount() cancels any pending unmount.
-const unmountTimers: Map<string, NodeJS.Timeout> = new Map();
-// Serialize mount/unmount per project to avoid races with delayed unmounts.
-const mountLocks: Map<string, Promise<void>> = new Map();
-
-async function withLock<T>(
-  project_id: string,
-  fn: () => Promise<T>,
-): Promise<T> {
-  const prev = mountLocks.get(project_id) ?? Promise.resolve();
-  let release: () => void;
-  const current = new Promise<void>((res) => {
-    release = res;
-  });
-  mountLocks.set(project_id, current);
-  await prev;
-  try {
-    return await fn();
-  } finally {
-    release!();
-    if (mountLocks.get(project_id) === current) {
-      mountLocks.delete(project_id);
+const leases = new RefcountLeaseManager<string>({
+  delayMs: UNMOUNT_DELAY_MS,
+  disposer: async (project_id: string) => {
+    const mountpoint = getMergedPath(project_id);
+    try {
+      await executeCode({
+        verbose: true,
+        err_on_exit: true,
+        command: "sudo",
+        args: ["umount", "-l", mountpoint],
+      });
+    } catch (err) {
+      const e = `${err}`;
+      if (e.includes("not mounted") || e.includes("no mount point")) {
+        return;
+      }
+      logger.warn("unmount failed", { project_id, error: e });
     }
+  },
+});
+// Track release functions for each active lease so unmount can drop one ref.
+const leaseReleases: Map<string, Array<() => Promise<void>>> = new Map();
+
+function addRelease(project_id: string, release: () => Promise<void>) {
+  const arr = leaseReleases.get(project_id);
+  if (arr) {
+    arr.push(release);
+  } else {
+    leaseReleases.set(project_id, [release]);
   }
 }
 
@@ -113,7 +118,9 @@ export async function mount({
   home: string;
   config?: Configuration;
 }) {
-  return await withLock(project_id, async () => {
+  const release = await leases.acquire(project_id);
+  try {
+    // release will be kept for caller to drop later via unmount.
     bootlog({
       project_id,
       type: "mount-rootfs",
@@ -150,16 +157,11 @@ export async function mount({
     });
 
     // If a delayed unmount was pending, cancel it because we're reusing the mount.
-    const pending = unmountTimers.get(project_id);
-    if (pending) {
-      clearTimeout(pending);
-      unmountTimers.delete(project_id);
-    }
+    // (handled by RefcountLeaseManager internally)
 
     if (await isMounted({ project_id })) {
-      // Already mounted; bump ref count (or initialize if this process was restarted).
-      const prev = mountRefs.get(project_id) ?? 0;
-      mountRefs.set(project_id, prev + 1);
+      // Already mounted; keep the lease and return.
+      addRelease(project_id, release);
       return merged;
     }
 
@@ -181,7 +183,6 @@ export async function mount({
       desc: "created directories",
     });
     await mountOverlayFs({ lowerdir, upperdir, workdir, merged });
-    mountRefs.set(project_id, 1);
     bootlog({
       project_id,
       type: "mount-rootfs",
@@ -189,53 +190,24 @@ export async function mount({
       desc: "mounted",
     });
 
+    // Successful mount keeps the lease alive; caller now owns one ref.
+    addRelease(project_id, release);
     return merged;
-  });
+  } catch (err) {
+    // If something failed, drop the lease immediately.
+    await release();
+    throw err;
+  }
 }
 
 export async function unmount(project_id: string) {
-  const mountpoint = getMergedPath(project_id);
-  await withLock(project_id, async () => {
-    const refs = mountRefs.get(project_id) ?? 1;
-    if (refs > 1) {
-      mountRefs.set(project_id, refs - 1);
-      return;
-    }
-
-    // Drop to zero and schedule a delayed unmount. If the mount is reused before
-    // the timeout fires, mount() will clear this timer and bump the refcount.
-    mountRefs.set(project_id, 0);
-    const existing = unmountTimers.get(project_id);
-    if (existing) {
-      clearTimeout(existing);
-    }
-    const timer = setTimeout(() => {
-      void withLock(project_id, async () => {
-        if ((mountRefs.get(project_id) ?? 0) > 0) return;
-        try {
-          await executeCode({
-            verbose: true,
-            err_on_exit: true,
-            command: "sudo",
-            args: ["umount", "-l", mountpoint],
-          });
-          // Only clear ref state if still zero.
-          if ((mountRefs.get(project_id) ?? 0) === 0) {
-            mountRefs.delete(project_id);
-          }
-        } catch (err) {
-          const e = `${err}`;
-          if (e.includes("not mounted") || e.includes("no mount point")) {
-            return;
-          }
-          logger.warn("unmount failed", { project_id, error: e });
-        } finally {
-          unmountTimers.delete(project_id);
-        }
-      });
-    }, UNMOUNT_DELAY_MS);
-    unmountTimers.set(project_id, timer);
-  });
+  const arr = leaseReleases.get(project_id);
+  const release = arr?.pop();
+  if (release == null) return;
+  if (arr.length === 0) {
+    leaseReleases.delete(project_id);
+  }
+  await release();
 }
 
 export function escape(path) {

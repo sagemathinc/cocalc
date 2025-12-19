@@ -113,6 +113,15 @@ function projectContainerName(project_id) {
   return `project-${project_id}`;
 }
 
+async function containerExists(name: string): Promise<boolean> {
+  try {
+    await podman(["container", "exists", name]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 interface ScriptResolution {
   script: string;
   bundleMount?: { source: string; target: string };
@@ -542,8 +551,16 @@ export async function stop({
     });
 
     try {
-      await podman(["rm", "-f", "-t", "0", projectContainerName(project_id)]);
-      await unmountRootFs(project_id);
+      const name = projectContainerName(project_id);
+      if (await containerExists(name)) {
+        await podman(["rm", "-f", "-t", "0", name]);
+        await unmountRootFs(project_id);
+      } else {
+        logger.debug("stop: container not found; skipping rm/unmount", {
+          project_id,
+          name,
+        });
+      }
       bootlog({
         project_id,
         type: "stop-project",

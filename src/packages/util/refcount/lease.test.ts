@@ -75,35 +75,36 @@ describe("RefcountLeaseManager", () => {
     expect(disposed).toBe(1);
   });
 
-  test("reacquire during pending dispose does not lose resource", async () => {
-    let disposeCalls = 0;
+  test("reacquire waits for in-flight dispose to finish", async () => {
+    let disposeStart = 0;
+    let disposeEnd = 0;
     const mgr = new RefcountLeaseManager<string>({
-      delayMs: 30,
+      delayMs: 10,
       disposer: async () => {
-        disposeCalls += 1;
+        disposeStart = Date.now();
         // simulate slow disposer
         await new Promise((r) => setTimeout(r, 50));
+        disposeEnd = Date.now();
       },
     });
 
     const rel1 = await mgr.acquire("slow");
     await rel1(); // schedule dispose
 
-    // Start reacquire while disposer is sleeping.
-    await new Promise((r) => setTimeout(r, 40)); // dispose has started but not finished
+    // Wait past delay so disposer starts, but not long enough to finish.
+    await new Promise((r) => setTimeout(r, 20));
+    const beforeAcquire = Date.now();
     const rel2 = await mgr.acquire("slow");
-    expect(mgr.getCount("slow")).toBe(1);
+    const afterAcquire = Date.now();
 
-    // Give enough time for any stray disposer to finish.
-    await new Promise((r) => setTimeout(r, 80));
-    expect(disposeCalls).toBeGreaterThanOrEqual(0);
-    expect(disposeCalls).toBeLessThanOrEqual(1);
+    // Reacquire should only complete after disposer finished.
+    expect(disposeStart).toBeGreaterThan(0);
+    expect(disposeEnd).toBeGreaterThan(0);
+    expect(afterAcquire).toBeGreaterThanOrEqual(disposeEnd);
     expect(mgr.getCount("slow")).toBe(1);
 
     await rel2();
-    await new Promise((r) => setTimeout(r, 50));
-    expect(disposeCalls).toBeGreaterThanOrEqual(1);
-    expect(disposeCalls).toBeLessThanOrEqual(2);
+    await new Promise((r) => setTimeout(r, 20));
     expect(mgr.getCount("slow")).toBe(0);
   });
 });
