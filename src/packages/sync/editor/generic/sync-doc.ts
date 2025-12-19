@@ -472,8 +472,8 @@ export class SyncDoc extends EventEmitter {
       // edited if there was an actual change record in the
       // patches log, by this user, since last time.
       let user_is_active: boolean = false;
-      for (const tm in this.my_patches) {
-        if (new Date(parseInt(tm)) > this.last_user_change) {
+      for (const patchId in this.my_patches) {
+        if (new Date(this.patchTime(patchId)) > this.last_user_change) {
           user_is_active = true;
           break;
         }
@@ -1957,9 +1957,13 @@ export class SyncDoc extends EventEmitter {
     }
     const v: Patch[] = [];
     m.forEach((x, _) => {
-      const p = this.processPatch({ x });
-      if (p != null) {
-        return v.push(p);
+      try {
+        const p = this.processPatch({ x });
+        if (p != null) {
+          return v.push(p);
+        }
+      } catch (err) {
+        console.warn("Dropping a patch - ", err);
       }
     });
     v.sort(patch_cmp);
@@ -2429,7 +2433,7 @@ export class SyncDoc extends EventEmitter {
     try {
       const env = this.patchflowSession.commit(next as any, { file, meta });
       const myPatches = (this.my_patches = this.my_patches ?? {});
-      myPatches[env.time.valueOf()] = { time: env.time } as any;
+      myPatches[env.time] = { time: env.time } as any;
       this.snapshotIfNecessary();
     } catch (err) {
       console.warn("patchflow commit failed", err?.message ?? err);
