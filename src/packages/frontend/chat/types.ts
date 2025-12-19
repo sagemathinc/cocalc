@@ -37,7 +37,8 @@ export interface PlainChatMessage {
   date: Date;
   reply_to?: string;
   generating?: boolean;
-  editing: Record<string, any>;
+  // editing - account_id of who has open for editing
+  editing?: string[];
   folding?: string[];
   feedback?: Record<string, Feedback>;
   name?: string;

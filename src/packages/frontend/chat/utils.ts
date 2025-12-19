@@ -124,8 +124,7 @@ export function is_editing(
   message: ChatMessageTyped,
   account_id: string,
 ): boolean {
-  const editing = editingArray(message);
-  return editing.includes(account_id);
+  return editingArray(message).includes(account_id);
 }
 
 export const markChatAsReadIfUnseen: (

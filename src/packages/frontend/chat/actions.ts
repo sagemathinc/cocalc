@@ -363,8 +363,14 @@ export class ChatActions extends Actions<ChatState> {
 
     const editingIds = new Set(editingArray(message));
     if (is_editing) {
+      if (editingIds.has(author_id)) {
+        return;
+      }
       editingIds.add(author_id);
     } else {
+      if (!editingIds.has(author_id)) {
+        return;
+      }
       editingIds.delete(author_id);
     }
 

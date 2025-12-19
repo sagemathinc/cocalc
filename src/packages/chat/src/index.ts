@@ -14,7 +14,7 @@ export interface ChatMessage {
   schema_version?: number;
   reply_to?: string;
   generating?: boolean;
-  editing?: Record<string, "FUTURE" | null>;
+  editing?: string[];
   folding?: string[];
   feedback?: Record<string, unknown>;
   acp_events?: any[];
