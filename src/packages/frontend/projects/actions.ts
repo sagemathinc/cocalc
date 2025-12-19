@@ -1132,6 +1132,50 @@ export class ProjectsActions extends Actions<ProjectsState> {
     return true;
   });
 
+  move_project_to_host = reuseInFlight(
+    async (project_id: string, dest_host_id: string): Promise<boolean> => {
+      const current_host = store.getIn(["project_map", project_id, "host_id"]);
+      if (dest_host_id === current_host) return true;
+      const actions = redux.getProjectActions(project_id);
+      const id = uuid();
+      const status = `Moving Project`;
+      actions?.set_activity({ id, status });
+      try {
+        await webapp_client.conat_client.hub.projects.moveProject({
+          project_id,
+          dest_host_id,
+        });
+        // wait until host_id changes or move reports done/failing
+        while (store.getIn(["project_map", project_id, "host_id"]) == current_host) {
+          try {
+            await once(store, "change", 1000);
+          } catch {}
+          const status =
+            await webapp_client.conat_client.hub.projects.getMoveStatus({
+              project_id,
+            });
+          if (status?.state == "done") {
+            break;
+          }
+          if (status?.state == "failing") {
+            throw Error(status.status_reason ?? "failed");
+          }
+        }
+        actions?.set_activity({ id, stop: "", error: "" });
+      } catch (err) {
+        const error = `Error move project -- ${err}`;
+        actions?.setState({ control_error: error });
+        actions?.set_activity({ id, stop: "", error });
+        throw err;
+      }
+      this.project_log(project_id, {
+        event: "project_moved",
+        dest_host_id,
+      });
+      return true;
+    },
+  );
+
   restart_project = reuseInFlight(
     async (project_id: string, options?): Promise<void> => {
       if (!(await allow_project_to_run(project_id))) {

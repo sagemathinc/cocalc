@@ -1,5 +1,27 @@
 ## Implement Compute Servers
 
+### Current focus: project --> project host configuration
+
+Our current focus is the frontend UI for users to manage and select where their projects run and the corresponding backend
+to support this.
+
+- **Step plan (user‑owned project hosts):**
+  1) Surface host moves in UI: add shared host-picker modal (personal + shared/admin hosts) and wire it into Project Settings “Move”, project Servers tab (“Project Hosts”), projects list row menu, and later bulk moves.
+  2) Allow admin visibility: Hosts list RPC returns `shared` + owner when admin; Hosts page shows admin controls (toggle shared, inspect any host); picker filters to owned/collab + shared (admin can see all).
+  3) Back the picker with placement API: ensure `requestMoveToHost` accepts any host_id the user can access; reject others; mark current host in UI.
+  4) Create-on-host flow: from Servers tab or Hosts page, let user spawn a new host (local/dev placeholder), then create a project directly on that host.
+  5) Add light polling/changefeed for host lists so status updates (starting/running/off) are reflected without manual refresh; reuse bootlog stream for detailed start/stop feedback.
+  6) Gate shared pool entries: add metadata (region, caps, cost) to hosts list; group “Your hosts” vs “Shared pool”.
+
+
+### Next focus: automated running of project hosts on cloud VM's
+
+The next focus will be actually starting project hosts on actual VM's using cloud api's.
+
+
+
+### Overall Plan
+
 Dedicated project-hosts replace “compute servers”: users provision a VM (often with one or more GPU's), we boot a project-host on it, and they and their collaborators create/run normal projects on that host while it’s up. The master keeps the host registry and placement map; hosts register with metadata (`type: dedicated`, `owner`, region, URLs, ssh). There’s no legacy migration—schema can change freely. Storage options include local Btrfs, optional shared subvolumes bind-mounted into projects, and user-supplied object storage via gcsfuse (API keys). Frontend must give a “manage my hosts” experience: create/start/stop hosts, view costs/usage, add collaborators, and create/move projects onto a chosen host.
 
 **Compute Servers → Dedicated Project Hosts (Todo)**
@@ -336,4 +358,3 @@ flowchart LR
 - [x] Removed sidecar/reflect-sync path; runner now directly launches single podman container with Btrfs mounts.
 - [x] Vendored file-server bootstrap into project-host with Btrfs/rustic/quotas; added fs.\* conat service and SSH proxy integration.
 - [x] Moved SEA/bundle logic from lite to plus and from runner to project-host; excluded build output from tsc; removed old REST `/projects` endpoints and added catch-all redirect.
-
