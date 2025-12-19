@@ -518,14 +518,14 @@ export class Actions<
         "cursor_activity",
         this._syncstring_cursor_activity.bind(this),
       );
-    try {
-      this.getMergeCoordinator().seedBase(
-        this._syncstring.to_str(),
-        this.getLatestVersion(),
-      );
-    } catch {
-      // ignore if not available yet
-    }
+      try {
+        this.getMergeCoordinator().seedBase(
+          this._syncstring.to_str(),
+          this.getLatestVersion(),
+        );
+      } catch {
+        // ignore if not available yet
+      }
     });
 
     this._syncstring.once("load-time-estimate", (est) => {
@@ -1400,7 +1400,7 @@ export class Actions<
         this.delete_trailing_whitespace();
       }
     }
-    this.set_syncstring_to_codemirror();
+    this.set_syncstring_to_codemirror(undefined, true);
     this.setState({ is_saving: true });
     try {
       await this._syncstring.save_to_disk();
@@ -1862,8 +1862,6 @@ export class Actions<
     const value = this._syncstring.undo().to_str();
     cm.setValueNoJump(value, true);
     cm.focus();
-    this.set_syncstring_to_codemirror(undefined, true);
-    this._syncstring.commit();
   }
 
   // per-session sync-aware redo -- only work when editing text in
@@ -1884,8 +1882,6 @@ export class Actions<
     const value = doc.to_str();
     cm.setValueNoJump(value, true);
     cm.focus();
-    this.set_syncstring_to_codemirror(undefined, true);
-    this._syncstring.commit();
   }
 
   _cm_exec(id: string, command: string): void {
