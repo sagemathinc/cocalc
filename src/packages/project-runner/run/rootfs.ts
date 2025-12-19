@@ -204,7 +204,7 @@ export async function unmount(project_id: string) {
   const arr = leaseReleases.get(project_id);
   const release = arr?.pop();
   if (release == null) return;
-  if (arr.length === 0) {
+  if (arr?.length === 0) {
     leaseReleases.delete(project_id);
   }
   await release();
