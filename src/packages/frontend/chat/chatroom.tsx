@@ -1245,6 +1245,11 @@ export function ChatPanel({
           style={{
             flex: "1",
             padding: "0px 5px 0px 2px",
+            // Critical flexbox quirk: without minWidth: 0, long unbroken input text
+            // forces this flex item to grow instead of shrinking, so the send/toolbar
+            // buttons get pushed off-screen. Allow the item to shrink (and text to wrap)
+            // by setting minWidth: 0. See https://developer.mozilla.org/en-US/docs/Web/CSS/min-width#flex_items
+            minWidth: 0,
           }}
         >
           <ChatInput
