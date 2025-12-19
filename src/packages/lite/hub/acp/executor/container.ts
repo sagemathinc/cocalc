@@ -17,6 +17,12 @@ import type { Client } from "@cocalc/conat/core/client";
 import { projectApiClient, type ProjectApi } from "@cocalc/conat/project/api";
 import getLogger from "@cocalc/backend/logger";
 
+const DEFAULT_TERMINAL_TIMEOUT_MS = Number.isFinite(
+  Number.parseInt(process.env.COCALC_CODEX_TERMINAL_TIMEOUT_MS ?? "", 10),
+)
+  ? Number.parseInt(process.env.COCALC_CODEX_TERMINAL_TIMEOUT_MS!, 10)
+  : 30_000;
+
 // Container executor for multiuser (podman) mode.
 // Wraps project-scoped conat APIs to run commands and read/write files
 // inside a project container. If direct file I/O hooks are registered
@@ -140,6 +146,7 @@ export class ContainerExecutor {
       /^\s*(?:\/(?:usr\/)?bin\/)?(?:ba?sh|sh)\s+-l?c\s+([\s\S]+)/,
     );
     const script = shellMatch ? shellMatch[1] : cmd;
+    const timeoutMs = opts?.timeoutMs ?? DEFAULT_TERMINAL_TIMEOUT_MS;
 
     // The host environment is not meaningful inside the container; skip passing
     // through env vars to avoid leaking/overwriting the project's container env.
@@ -147,9 +154,9 @@ export class ContainerExecutor {
       projectId: this.options.projectId,
       script,
       cwd,
-      timeoutMs: opts?.timeoutMs,
+      timeoutMs,
     });
-    logger.debug("podman exec result", { code, signal, stdout, stderr });
+    logger.debug("podman exec result", { code, signal, stdout, stderr, timeoutMs });
     return { stdout, stderr, exitCode: code, signal };
   }
 

@@ -3,10 +3,17 @@ import { promisify } from "node:util";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
+import getLogger from "@cocalc/backend/logger";
+
 import type { AcpExecutor } from "./index";
 
 const exec = promisify(cpExec);
 const execFile = promisify(cpExecFile);
+const DEFAULT_TERMINAL_TIMEOUT_MS = Number.isFinite(
+  Number.parseInt(process.env.COCALC_CODEX_TERMINAL_TIMEOUT_MS ?? "", 10),
+)
+  ? Number.parseInt(process.env.COCALC_CODEX_TERMINAL_TIMEOUT_MS!, 10)
+  : 30_000;
 
 /**
  * Local executor used in lite/single-process mode.
@@ -14,6 +21,8 @@ const execFile = promisify(cpExecFile);
  * from escaping that root.
  */
 export class LocalExecutor implements AcpExecutor {
+  private readonly logger = getLogger("lite:hub:acp:local-exec");
+
   constructor(private readonly workspaceRoot: string) {}
 
   toString = () => `LocalExecutor(workspaceRoot=${this.workspaceRoot})`;
@@ -47,17 +56,22 @@ export class LocalExecutor implements AcpExecutor {
     exitCode: number | null;
     signal?: string;
   }> {
+    const timeoutMs = opts?.timeoutMs ?? DEFAULT_TERMINAL_TIMEOUT_MS;
     const cwd = opts?.cwd
       ? this.resolvePath(opts.cwd)
       : path.resolve(this.workspaceRoot || process.cwd());
     const shellMatch = cmd.match(
       /^\s*(?:\/(?:usr\/)?bin\/)?(?:ba?sh|sh)\s+-l?c\s+([\s\S]+)/,
     );
+    this.logger.debug("local exec", { cmd, cwd, timeoutMs });
     if (shellMatch) {
       const script = shellMatch[1];
-      return await this.run("/bin/bash", ["-lc", script], cwd, opts);
+      return await this.run("/bin/bash", ["-lc", script], cwd, {
+        ...opts,
+        timeoutMs,
+      });
     }
-    return await this.run(cmd, undefined, cwd, opts);
+    return await this.run(cmd, undefined, cwd, { ...opts, timeoutMs });
   }
 
   private async run(
@@ -76,7 +90,7 @@ export class LocalExecutor implements AcpExecutor {
         const { stdout, stderr } = await execFile(command, args, {
           cwd,
           env: { ...process.env, ...(opts?.env ?? {}) },
-          timeout: opts?.timeoutMs,
+          timeout: opts?.timeoutMs ?? DEFAULT_TERMINAL_TIMEOUT_MS,
           maxBuffer: 10 * 1024 * 1024,
         });
         return {
@@ -88,7 +102,7 @@ export class LocalExecutor implements AcpExecutor {
       const { stdout, stderr } = await exec(command, {
         cwd,
         env: { ...process.env, ...(opts?.env ?? {}) },
-        timeout: opts?.timeoutMs,
+        timeout: opts?.timeoutMs ?? DEFAULT_TERMINAL_TIMEOUT_MS,
         maxBuffer: 10 * 1024 * 1024,
       });
       return {
