@@ -35,7 +35,7 @@
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist",
     "build": "../node_modules/.bin/tsc --build",
-    "test": "TZ=UTC jest --forceExit --runInBand",
+    "test": "TZ=UTC jest --forceExit --detectOpenHandles --runInBand",
     "depcheck": "pnpx depcheck",
     "prepublishOnly": "test"
   },

@@ -69,6 +69,10 @@ export interface LLMProviderConfig {
     mode: "cocalc" | "user",
   ) => Promise<any>;
 
+  // Mode === "cocalc" only: validate provider availability and return an API key (if applicable).
+  // evaluateWithLangChain calls this before createClient for platform models.
+  checkEnabled?: (settings: ServerSettings) => string | void;
+
   // Model processing for platform defined internal namings. Only called when mode === "cocalc".
   canonicalModel?: (model: string) => string;
 
@@ -93,8 +97,22 @@ function isO1Model(model: string) {
 export const PROVIDER_CONFIGS = {
   openai: {
     name: "OpenAI",
+    checkEnabled: (settings) => {
+      const { openai_enabled, openai_api_key } = settings;
+      if (!openai_enabled) {
+        throw new Error("OpenAI is not enabled.");
+      }
+      if (!openai_api_key) {
+        throw new Error("OpenAI API key is not configured.");
+      }
+      return openai_api_key;
+    },
     createClient: async (options, settings, mode) => {
-      const { openai_api_key: apiKey } = settings;
+      const resolvedApiKey =
+        mode === "cocalc" ? settings.openai_api_key : options.apiKey;
+      if (!resolvedApiKey) {
+        throw new Error("OpenAI API key is not configured.");
+      }
       const normalizedModel =
         mode === "user" ? options.model : normalizeOpenAIModel(options.model);
 
@@ -102,18 +120,16 @@ export const PROVIDER_CONFIGS = {
         `OpenAI createClient: original=${options.model}, normalized=${normalizedModel}`,
       );
 
-      // Check if it's O1 model (doesn't support streaming)
-      const isO1 = isO1Model(normalizedModel);
       return new ChatOpenAI({
         model: normalizedModel,
-        apiKey: options.apiKey || apiKey,
+        apiKey: resolvedApiKey,
         maxTokens: options.maxTokens,
         configuration: options.endpoint
           ? { baseURL: options.endpoint }
           : undefined,
-        streaming: options.stream != null && !isO1,
+        streaming: options.stream != null,
         streamUsage: true,
-        ...(options.stream != null && !isO1
+        ...(options.stream != null
           ? { streamOptions: { includeUsage: true } }
           : {}),
       });
@@ -128,9 +144,22 @@ export const PROVIDER_CONFIGS = {
 
   google: {
     name: "Google GenAI",
+    checkEnabled: (settings) => {
+      const { google_vertexai_enabled, google_vertexai_key } = settings;
+      if (!google_vertexai_enabled) {
+        throw new Error("Google GenAI is not enabled.");
+      }
+      if (!google_vertexai_key) {
+        throw new Error("Google GenAI API key is not configured.");
+      }
+      return google_vertexai_key;
+    },
     createClient: async (options, settings, mode) => {
       const apiKey =
         mode === "cocalc" ? settings.google_vertexai_key : options.apiKey;
+      if (!apiKey) {
+        throw new Error("Google GenAI API key is not configured.");
+      }
       const modelName =
         mode === "cocalc"
           ? (GOOGLE_MODEL_TO_ID[options.model as GoogleModel] ?? options.model)
@@ -142,13 +171,13 @@ export const PROVIDER_CONFIGS = {
 
       return new ChatGoogleGenerativeAI({
         model: modelName,
-        apiKey: options.apiKey || apiKey,
+        apiKey,
         maxOutputTokens: options.maxTokens,
         // Only enable thinking tokens for Gemini 2.5 models
         ...(modelName === "gemini-2.5-flash" || modelName === "gemini-2.5-pro"
           ? { maxReasoningTokens: 1024 }
           : {}),
-        streaming: true,
+        streaming: options.stream != null,
       });
     },
     canonicalModel: (model) =>
@@ -161,9 +190,22 @@ export const PROVIDER_CONFIGS = {
 
   anthropic: {
     name: "Anthropic",
+    checkEnabled: (settings) => {
+      const { anthropic_enabled, anthropic_api_key } = settings;
+      if (!anthropic_enabled) {
+        throw new Error("Anthropic is not enabled.");
+      }
+      if (!anthropic_api_key) {
+        throw new Error("Anthropic API key is not configured.");
+      }
+      return anthropic_api_key;
+    },
     createClient: async (options, settings, mode) => {
       const apiKey =
         mode === "cocalc" ? settings.anthropic_api_key : options.apiKey;
+      if (!apiKey) {
+        throw new Error("Anthropic API key is not configured.");
+      }
       const modelName =
         mode === "cocalc"
           ? ANTHROPIC_VERSION[options.model as AnthropicModel]
@@ -200,9 +242,22 @@ export const PROVIDER_CONFIGS = {
 
   mistral: {
     name: "Mistral",
+    checkEnabled: (settings) => {
+      const { mistral_enabled, mistral_api_key } = settings;
+      if (!mistral_enabled) {
+        throw new Error("Mistral is not enabled.");
+      }
+      if (!mistral_api_key) {
+        throw new Error("Mistral API key is not configured.");
+      }
+      return mistral_api_key;
+    },
     createClient: async (options, settings, mode) => {
       const apiKey =
         mode === "cocalc" ? settings.mistral_api_key : options.apiKey;
+      if (!apiKey) {
+        throw new Error("Mistral API key is not configured.");
+      }
 
       log.debug(`Mistral createClient: model=${options.model}`);
 
@@ -219,8 +274,21 @@ export const PROVIDER_CONFIGS = {
 
   xai: {
     name: "xAI",
+    checkEnabled: (settings) => {
+      const { xai_enabled, xai_api_key } = settings;
+      if (!xai_enabled) {
+        throw new Error("xAI is not enabled.");
+      }
+      if (!xai_api_key) {
+        throw new Error("xAI API key is not configured.");
+      }
+      return xai_api_key;
+    },
     createClient: async (options, settings, mode) => {
       const apiKey = mode === "cocalc" ? settings.xai_api_key : options.apiKey;
+      if (!apiKey) {
+        throw new Error("xAI API key is not configured.");
+      }
       const modelName =
         mode === "cocalc" ? toXaiProviderModel(options.model) : options.model;
 
@@ -244,6 +312,11 @@ export const PROVIDER_CONFIGS = {
 
   "custom-openai": {
     name: "Custom OpenAI",
+    checkEnabled: (settings) => {
+      if (!settings.custom_openai_enabled) {
+        throw new Error("Custom OpenAI is not enabled.");
+      }
+    },
     createClient: async (options, _settings, mode) => {
       // user-defined custom OpenAI provides endpoint/apiKey directly; platform uses server config
       switch (mode) {
@@ -373,6 +446,9 @@ export async function evaluateWithLangChain(
 
   // Get server settings
   const settings = await getServerSettings();
+  if (mode === "cocalc") {
+    config.checkEnabled?.(settings);
+  }
 
   // Create LangChain client
   const client = await config.createClient(options, settings, mode);

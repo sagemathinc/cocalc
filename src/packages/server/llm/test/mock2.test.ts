@@ -30,11 +30,17 @@ var MockMessagesPlaceholder: any;
 
 jest.mock("@cocalc/database/settings", () => ({
   getServerSettings: jest.fn(async () => ({
+    openai_enabled: true,
     openai_api_key: "server-openai-key",
+    google_vertexai_enabled: true,
     google_vertexai_key: "server-google-key",
+    mistral_enabled: true,
     mistral_api_key: "server-mistral-key",
+    anthropic_enabled: true,
     anthropic_api_key: "server-anthropic-key",
+    xai_enabled: true,
     xai_api_key: "server-xai-key",
+    custom_openai_enabled: true,
     custom_openai_configuration: {},
     user_defined_llm: true,
   })),

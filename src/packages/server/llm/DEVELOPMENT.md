@@ -95,7 +95,7 @@ The suite is opt-in and skipped unless `COCALC_TEST_LLM=true`.
   ```
 - **Analysis:** 86% of output tokens (128/149) are reasoning!
 - **Reasoning content:** ❌ NOT exposed (internal proprietary reasoning)
-- **Streaming:** Disabled for o1/o3 models
+- **Streaming:** Enabled for OpenAI models when requested (including o1; provider support may vary)
 
 **xAI Grok Fast Reasoning** - ✅ Reasoning tokens available
 

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -148,6 +148,7 @@ export function useProjectContextProvider({
   const haveCustomOpenAI = useTypedRedux("customize", "custom_openai_enabled");
   const haveMistral = useTypedRedux("customize", "mistral_enabled");
   const haveAnthropic = useTypedRedux("customize", "anthropic_enabled");
+  const haveXai = useTypedRedux("customize", "xai_enabled");
   const userDefinedLLM = useTypedRedux("customize", "user_defined_llm");
 
   const enabledLLMs = useMemo(() => {
@@ -160,6 +161,7 @@ export function useProjectContextProvider({
     haveMistral,
     haveOllama,
     haveOpenAI,
+    haveXai,
     userDefinedLLM,
   ]);
 

@@ -848,7 +848,7 @@ function AIGenerateDocument({
               ref={promptRef}
               allowClear
               autoSize={{ minRows: 3, maxRows: 6 }}
-              maxLength={3000}
+              maxLength={10000}
               placeholder={placeholder}
               value={prompt}
               disabled={querying}

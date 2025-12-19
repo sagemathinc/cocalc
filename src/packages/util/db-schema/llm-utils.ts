@@ -1458,7 +1458,6 @@ export function isValidModel(model?: string): boolean {
 export function getMaxTokens(model?: LanguageModel): number {
   // TODO: store max tokens in the model object itself, this is just a fallback
   if (isOllamaLLM(model)) return 8192;
-  if (isMistralModel(model)) return 4096; // TODO: check with MistralAI
   return LLM_COST[model ?? ""]?.max_tokens ?? 4096;
 }
 
@@ -1581,6 +1580,10 @@ export function getSystemPrompt(
     model2vendor(model).name === "anthropic" ||
     model.startsWith(ANTHROPIC_PREFIX)
   ) {
+    return `${math}\n${common}`;
+  }
+
+  if (model2vendor(model).name === "xai" || model.startsWith(XAI_PREFIX)) {
     return `${math}\n${common}`;
   }
 
