@@ -13,6 +13,7 @@ import {
   type ImmerDBOptions,
   type ImmerDB,
 } from "@cocalc/conat/sync-doc/immer-db";
+import { RefcountLeaseManager } from "@cocalc/util/refcount/lease";
 import { getLogger } from "@cocalc/conat/client";
 
 const logger = getLogger("chat:server");
@@ -59,26 +60,60 @@ export function createChatSyncDB(opts: CreateChatSyncDBOptions): ImmerDB {
   return immerdb(options);
 }
 
-// Ref-counted pool so a given project/path syncdb is opened once at a time.
-type PoolEntry = {
-  db: ImmerDB;
-  ready: Promise<void>;
-  refs: number;
-  closingPromise?: Promise<void>;
-  closingTimer?: NodeJS.Timeout;
-};
-
-const pool = new Map<string, PoolEntry>();
+// Ref-counted pool using RefcountLeaseManager so a given project/path syncdb is opened once.
 const CLOSE_DELAY_MS = 30_000;
+const openSyncdbs = new Map<string, ImmerDB>();
+const leases = new RefcountLeaseManager<string>({
+  delayMs: CLOSE_DELAY_MS,
+  disposer: async (key: string) => {
+    const db = openSyncdbs.get(key);
+    if (!db) return;
+    try {
+      await db.close();
+      logger.debug("closed syncdb", { key });
+    } catch (err) {
+      logger.debug("close syncdb failed", { key, err });
+    } finally {
+      openSyncdbs.delete(key);
+    }
+  },
+});
+const leaseReleases: Map<string, Array<() => Promise<void>>> = new Map();
 
 function poolKey(project_id: string, path: string): string {
   return `${project_id}:${path}`;
 }
 
-async function makeEntry(
-  key: string,
+function pushRelease(key: string, release: () => Promise<void>) {
+  const arr = leaseReleases.get(key);
+  if (arr) {
+    arr.push(release);
+  } else {
+    leaseReleases.set(key, [release]);
+  }
+}
+
+function popRelease(key: string): (() => Promise<void>) | undefined {
+  const arr = leaseReleases.get(key);
+  if (!arr) return undefined;
+  const rel = arr.pop();
+  if (arr.length === 0) {
+    leaseReleases.delete(key);
+  }
+  return rel;
+}
+
+export async function acquireChatSyncDB(
   opts: CreateChatSyncDBOptions,
-): Promise<PoolEntry> {
+): Promise<ImmerDB> {
+  const key = poolKey(opts.project_id, opts.path);
+  const release = await leases.acquire(key);
+  const existing = openSyncdbs.get(key);
+  if (existing) {
+    pushRelease(key, release);
+    return existing;
+  }
+  logger.debug("acquireChatSyncDB: create new", { key });
   const db = createChatSyncDB(opts);
   const ready = db.isReady()
     ? Promise.resolve()
@@ -86,45 +121,15 @@ async function makeEntry(
         db.once("ready", res);
         db.once("error", rej);
       });
-  const entry: PoolEntry = { db, ready, refs: 1 };
-  pool.set(key, entry);
   try {
     await ready;
-    return entry;
+    openSyncdbs.set(key, db);
+    pushRelease(key, release);
+    return db;
   } catch (err) {
-    pool.delete(key);
+    // Creation failed; drop the lease.
+    await release();
     throw err;
-  }
-}
-
-export async function acquireChatSyncDB(
-  opts: CreateChatSyncDBOptions,
-): Promise<ImmerDB> {
-  const key = poolKey(opts.project_id, opts.path);
-  // Loop to handle the case where an entry was closing; cancel close and reuse.
-  for (;;) {
-    const entry = pool.get(key);
-    if (entry) {
-      if (entry.closingTimer) {
-        clearTimeout(entry.closingTimer);
-        entry.closingTimer = undefined;
-        entry.closingPromise = undefined;
-        logger.debug("acquireChatSyncDB: canceled pending close", { key });
-      } else if (entry.closingPromise) {
-        // Close already in progress; wait and retry.
-        await entry.closingPromise;
-        continue;
-      }
-      entry.refs += 1;
-      await entry.ready;
-      logger.debug("acquireChatSyncDB: reuse existing", {
-        key,
-        refs: entry.refs,
-      });
-      return entry.db;
-    }
-    logger.debug("acquireChatSyncDB: create new", { key });
-    return (await makeEntry(key, opts)).db;
   }
 }
 
@@ -133,27 +138,7 @@ export async function releaseChatSyncDB(
   path: string,
 ): Promise<void> {
   const key = poolKey(project_id, path);
-  const entry = pool.get(key);
-  if (!entry) return;
-  entry.refs = Math.max(0, entry.refs - 1);
-  logger.debug("releaseChatSyncDB", { key, refs: entry.refs });
-  if (entry.refs > 0) return;
-  if (entry.closingTimer || entry.closingPromise) return;
-
-  entry.closingTimer = setTimeout(() => {
-    entry.closingTimer = undefined;
-    entry.closingPromise = (async () => {
-      if (entry.refs === 0) {
-        try {
-          await entry.db.close();
-          logger.debug("releaseChatSyncDB: closed", { key });
-        } catch (err) {
-          logger.debug("releaseChatSyncDB: close failed", { key, err });
-        } finally {
-          pool.delete(key);
-        }
-      }
-      entry.closingPromise = undefined;
-    })();
-  }, CLOSE_DELAY_MS);
+  const release = popRelease(key);
+  if (!release) return;
+  await release();
 }
