@@ -896,7 +896,7 @@ export function ChatPanel({
                 />
               </>
             )}
-            {!IS_MOBILE && (
+            {false && !IS_MOBILE && (
               <Tooltip title="Hide sidebar">
                 <Button
                   size="small"
@@ -1089,8 +1089,8 @@ export function ChatPanel({
   }
 
   const renderThreadSidebar = () => {
-    const minWidth = 200;
-    const maxWidth = 520;
+    const minWidth = 125;
+    const maxWidth = 600;
     const handleStyles = {
       right: {
         width: "6px",

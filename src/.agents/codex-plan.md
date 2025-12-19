@@ -3,12 +3,6 @@
 Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-safe by (1) using a single canonical notion of Codex `session_id`, (2) making the backend the authority for creating/persisting that `session_id` when blank, and (3) deriving all ACP log identifiers (store/key/subject) from a single shared helper in `src/packages/chat`.
 
 
-- [ ] need frontend ui indicator that a chat was submitted (and also queued to submit), but isn't yet running.
-
-- [ ] turn log bug again -- missing the first few events when open *during* the turn.  Some sort of race.  I tried opening the same running log in another browser and the beginning wasn't missing.  having the beginning missing is very common though right after submitting a turn.
-
-- [ ] the codex button at the top of the screen gets moved down a lot when the sidebar is hidden.
-
 - [ ] mystery hang.  I saw this in the server error log:
 ```
 Error handling request {
@@ -72,6 +66,12 @@ Error handling request {
 
 #### Done
 
+
+- [x] need frontend ui indicator that a chat was submitted (and also queued to submit), but isn't yet running.
+
+- [x] turn log bug again -- missing the first few events when open *during* the turn.  Some sort of race.  I tried opening the same running log in another browser and the beginning wasn't missing.  having the beginning missing is very common though right after submitting a turn.
+
+- [x] the codex button at the top of the screen gets moved down a lot when the sidebar is hidden.
 
 - [x] terminal scrolling is annoying \-\- get to the bottom and can't scroll the containing page. VERY annoying when trying to scroll through.  But terminal amount is large so have to scroll. hmmm.
 - [x] bash \-lc '...' is often explicitly in the log still \- solution: just unwrap it again \-\-![](http://localhost:7000/blobs/paste-0.15869512630654514?uuid=773eca36-f193-43f0-9c46-2fd01c17c7a0)
