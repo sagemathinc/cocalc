@@ -185,6 +185,7 @@ export function ChatPanel({
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
   const activity: undefined | immutable.Map<string, number> =
     useEditor("activity");
+  const acpState: immutable.Map<string, string> = useEditor("acpState");
   const account_id = useTypedRedux("account", "account_id");
   if (IS_MOBILE) {
     variant = "compact";
@@ -1192,6 +1193,7 @@ export function ChatPanel({
             project_id={project_id}
             path={path}
             messages={messages as ChatMessages}
+            acpState={acpState}
             scrollToBottomRef={scrollToBottomRef}
             scrollCacheId={scrollCacheId}
             mode={variant === "compact" ? "sidechat" : "standalone"}

@@ -1,6 +1,5 @@
 /** @jest-environment jsdom */
 
-import type { LLMContext } from "../actions/llm";
 import { processLLM } from "../actions/llm";
 
 const mockQueryStream = jest.fn();
@@ -41,8 +40,8 @@ function createEmitter() {
   };
 }
 
-function makeCtx(): {
-  ctx: LLMContext;
+function makeActions(): {
+  actions: any;
   syncdb: any;
   sendReply: jest.Mock;
   setSpy: jest.Mock;
@@ -58,11 +57,15 @@ function makeCtx(): {
     save: jest.fn(),
   };
   const sendReply = jest.fn(() => "2025-01-01T00:00:00.000Z");
-  const ctx: LLMContext = {
+  const actions = {
     syncdb,
     store: {
       get: (key: string) =>
-        key === "project_id" ? "proj" : key === "path" ? "chat.chat" : undefined,
+        key === "project_id"
+          ? "proj"
+          : key === "path"
+            ? "chat.chat"
+            : undefined,
     },
     chatStreams: new Set<string>(),
     getAllMessages: () => new Map(),
@@ -77,8 +80,8 @@ function makeCtx(): {
     computeThreadKey: jest.fn(() => "1700000000000"),
     project_id: "proj",
     path: "chat.chat",
-  };
-  return { ctx, syncdb, sendReply, setSpy: set };
+  } as any;
+  return { actions, syncdb, sendReply, setSpy: set };
 }
 
 function makeMessage() {
@@ -104,12 +107,12 @@ describe("processLLM streaming updates", () => {
   });
 
   it("streams tokens into the same thinking message using ISO date", async () => {
-    const { ctx, syncdb, sendReply } = makeCtx();
+    const { actions, syncdb, sendReply } = makeActions();
     const message = makeMessage();
     const reply_to = new Date("2025-02-02T01:00:00.000Z");
 
     await processLLM({
-      ctx,
+      actions,
       message,
       reply_to,
       threadModel: "gpt-4",
@@ -129,11 +132,11 @@ describe("processLLM streaming updates", () => {
   });
 
   it("writes an error message and stops generating on stream error", async () => {
-    const { ctx, syncdb } = makeCtx();
+    const { actions, syncdb } = makeActions();
     const message = makeMessage();
 
     await processLLM({
-      ctx,
+      actions,
       message,
       reply_to: new Date("2025-02-02T01:00:00.000Z"),
       threadModel: "gpt-4",
@@ -155,11 +158,11 @@ describe("processLLM guards", () => {
   });
 
   it("throttles when too many streams are active", async () => {
-    const { ctx, syncdb } = makeCtx();
-    for (let i = 0; i < 11; i++) ctx.chatStreams.add(`id-${i}`);
+    const { actions, syncdb } = makeActions();
+    for (let i = 0; i < 11; i++) actions.chatStreams.add(`id-${i}`);
     const message = makeMessage();
     await processLLM({
-      ctx,
+      actions,
       message,
       reply_to: new Date("2025-02-02T01:00:00.000Z"),
       threadModel: "gpt-4",
@@ -173,18 +176,18 @@ describe("processLLM guards", () => {
   });
 
   it("halts streaming when generating is set false mid-stream", async () => {
-    const { ctx, syncdb } = makeCtx();
+    const { actions, syncdb } = makeActions();
     syncdb.get_one.mockImplementation(() => ({ generating: false }));
     const message = makeMessage();
     await processLLM({
-      ctx,
+      actions,
       message,
       reply_to: new Date("2025-02-02T01:00:00.000Z"),
       threadModel: "gpt-4",
     });
     expect(emitter).toBeDefined();
     emitter?.emit("token", "A");
-    expect(ctx.chatStreams.size).toBe(0);
+    expect(actions.chatStreams.size).toBe(0);
   });
 });
 
@@ -195,11 +198,11 @@ describe("processLLM model resolution and Codex dispatch", () => {
   });
 
   it("falls back to thread model when no mention", async () => {
-    const { ctx } = makeCtx();
+    const { actions } = makeActions();
     const message = makeMessage();
     message.history[0].content = "please do something";
     await processLLM({
-      ctx,
+      actions,
       message,
       reply_to: new Date("2025-02-02T01:00:00.000Z"),
       threadModel: "gpt-4",
@@ -210,12 +213,12 @@ describe("processLLM model resolution and Codex dispatch", () => {
   });
 
   it("routes codex models through processAcpLLM", async () => {
-    const { ctx } = makeCtx();
+    const { actions } = makeActions();
     const message = makeMessage();
     message.history[0].content = "@codex do something";
     const { processAcpLLM } = require("../acp-api");
     await processLLM({
-      ctx,
+      actions,
       message,
       reply_to: new Date("2025-02-02T01:00:00.000Z"),
       threadModel: "codex-agent",

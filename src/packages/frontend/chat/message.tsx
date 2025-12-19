@@ -5,7 +5,7 @@
 
 // cSpell:ignore blankcolumn
 
-import { Badge, Button, Col, Drawer, Row, Tooltip } from "antd";
+import { Badge, Button, Col, Divider, Drawer, Row, Tag, Tooltip } from "antd";
 import {
   CSSProperties,
   ReactNode,
@@ -65,6 +65,7 @@ import {
   editingArray,
 } from "./access";
 import type { CodexThreadConfig } from "@cocalc/chat";
+import { SyncOutlined } from "@ant-design/icons";
 
 const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
@@ -148,6 +149,8 @@ interface Props {
   numChildren?: number;
   threadViewMode?: boolean;
   onForceScrollToBottom?: () => void;
+
+  acpState?: string;
 }
 
 export default function Message({
@@ -175,6 +178,7 @@ export default function Message({
   numChildren,
   threadViewMode = false,
   onForceScrollToBottom,
+  acpState,
 }: Props) {
   const intl = useIntl();
 
@@ -1451,6 +1455,15 @@ export default function Message({
     >
       {renderCols()}
       {renderFoldedRow()}
+      {acpState ? (
+        <div style={{ width: "100%" }}>
+          <Divider>
+            <Tag color="blue">
+              {acpState == "running" ? <SyncOutlined spin /> : null} {acpState}
+            </Tag>
+          </Divider>
+        </div>
+      ) : undefined}
     </Row>
   );
 }

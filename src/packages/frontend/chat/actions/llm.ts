@@ -24,37 +24,13 @@ import { addToHistory } from "@cocalc/chat";
 import type { ChatMessage, MessageHistory } from "../types";
 import { getReplyToRoot } from "../utils";
 import type { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
+import { processAcpLLM } from "../acp-api";
+import { type ChatActions } from "../actions";
 
 const MAX_CHAT_STREAM = 10;
 
-export type LLMContext = {
-  syncdb: any;
-  store: any;
-  chatStreams: Set<string>;
-  getAllMessages: () => Map<string, any>;
-  sendReply: (opts: {
-    message: ChatMessage;
-    reply?: string;
-    from?: string;
-    noNotification?: boolean;
-    reply_to?: Date;
-  }) => string;
-  saveHistory: (
-    message: ChatMessage,
-    content: string,
-    author_id: string,
-    regenerate?: boolean,
-  ) => { date: string; prevHistory: MessageHistory[] };
-  getLLMHistory: (reply_to: Date) => LanguageModelHistory;
-  getCodexConfig: (date?: Date) => any;
-  setCodexConfig: (threadKey: string, cfg: any) => void;
-  computeThreadKey: (baseDate?: number) => string | undefined;
-  path?: string;
-  project_id?: string;
-};
-
 export async function processLLM({
-  ctx,
+  actions,
   message,
   reply_to,
   tag,
@@ -62,7 +38,7 @@ export async function processLLM({
   threadModel,
   dateLimit,
 }: {
-  ctx: LLMContext;
+  actions: ChatActions;
   message: ChatMessage;
   reply_to?: Date;
   tag?: string;
@@ -70,7 +46,7 @@ export async function processLLM({
   threadModel?: LanguageModel | false | null;
   dateLimit?: Date;
 }): Promise<void> {
-  const { syncdb, store } = ctx;
+  const { syncdb, store } = actions;
   if (!syncdb || !store) return;
 
   const inputRaw = message.history?.[0]?.content as string | undefined;
@@ -82,10 +58,10 @@ export async function processLLM({
 
   let input = stripMentions(inputRaw);
 
-  // Codex branch
+  // ACP agent branch
   if (typeof model === "string" && model.includes("codex")) {
-    await handleCodexTurn({
-      ctx,
+    await processAcpLLM({
+      actions,
       message,
       reply_to,
       model,
@@ -96,15 +72,15 @@ export async function processLLM({
 
   const sender_id = modelToSender(model);
   const { date, prevHistory } = ensureThinkingMessage({
-    ctx,
+    actions,
     message,
     reply_to,
     tag,
     sender_id,
   });
 
-  if (ctx.chatStreams.size > MAX_CHAT_STREAM) {
-    throttleWarning({ ctx, date, sender_id });
+  if (actions.chatStreams.size > MAX_CHAT_STREAM) {
+    throttleWarning({ actions, date, sender_id });
     return;
   }
 
@@ -122,10 +98,10 @@ export async function processLLM({
   });
 
   const id = uuid();
-  ctx.chatStreams.add(id);
-  setTimeout(() => ctx.chatStreams.delete(id), 3 * 60 * 1000);
+  actions.chatStreams.add(id);
+  setTimeout(() => actions.chatStreams.delete(id), 3 * 60 * 1000);
 
-  let history = reply_to ? ctx.getLLMHistory(reply_to) : undefined;
+  let history = reply_to ? actions.getLLMHistory(reply_to) : undefined;
   const regen = prepareRegenerateInput({ tag, history, dateLimit, reply_to });
   if (regen?.error) return;
   history = regen?.history ?? history;
@@ -133,7 +109,8 @@ export async function processLLM({
 
   let chatStream;
   let content = "";
-  const dateIso = toISOString(date) ?? (typeof date === "string" ? date : undefined);
+  const dateIso =
+    toISOString(date) ?? (typeof date === "string" ? date : undefined);
   try {
     chatStream = webapp_client.openai_client.queryStream({
       input,
@@ -144,10 +121,10 @@ export async function processLLM({
       tag: effectiveTag,
     });
   } catch (err) {
-    ctx.chatStreams.delete(id);
-    if (!ctx.syncdb) return;
+    actions.chatStreams.delete(id);
+    if (!actions.syncdb) return;
     content += `\n\n<span style='color:#b71c1c'>${err}</span>`;
-    ctx.syncdb.set({
+    actions.syncdb.set({
       event: "chat",
       sender_id,
       date: dateIso ?? new Date(date),
@@ -158,7 +135,7 @@ export async function processLLM({
       generating: false,
       reply_to: toISOString(reply_to),
     });
-    ctx.syncdb.commit();
+    actions.syncdb.commit();
     return;
   }
 
@@ -166,7 +143,7 @@ export async function processLLM({
   if (tag === "regenerate" && llm != null && message.sender_id !== sender_id) {
     const cur = syncdb.get_one({ event: "chat", date });
     if (cur) {
-      const messagesMap = ctx.getAllMessages();
+      const messagesMap = actions.getAllMessages();
       const replyRoot = getReplyToRoot({
         message: cur as any as ChatMessage,
         messages: messagesMap,
@@ -185,20 +162,23 @@ export async function processLLM({
   let halted = false;
 
   chatStream.on("token", (token) => {
-    if (halted || !ctx.syncdb) {
+    if (halted || !actions.syncdb) {
       return;
     }
 
-    const cur = ctx.syncdb.get_one({ event: "chat", date: dateIso ?? date });
+    const cur = actions.syncdb.get_one({
+      event: "chat",
+      date: dateIso ?? date,
+    });
     if ((cur as any)?.generating === false) {
       halted = true;
-      ctx.chatStreams.delete(id);
+      actions.chatStreams.delete(id);
       return;
     }
 
     if (token != null) content += token;
 
-    ctx.syncdb.set({
+    actions.syncdb.set({
       event: "chat",
       sender_id,
       date: dateIso ?? new Date(date),
@@ -211,14 +191,14 @@ export async function processLLM({
     });
 
     if (token == null) {
-      ctx.chatStreams.delete(id);
-      ctx.syncdb.commit();
+      actions.chatStreams.delete(id);
+      actions.syncdb.commit();
     }
   });
 
   chatStream.on("error", (err) => {
-    ctx.chatStreams.delete(id);
-    if (!ctx.syncdb || halted) return;
+    actions.chatStreams.delete(id);
+    if (!actions.syncdb || halted) return;
 
     if (!model) {
       throw new Error(
@@ -229,7 +209,7 @@ export async function processLLM({
     const vendor = model2vendor(model);
     const statusCheck = getLLMServiceStatusCheckMD(vendor.name);
     content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\n${statusCheck}`;
-    ctx.syncdb.set({
+    actions.syncdb.set({
       event: "chat",
       sender_id,
       date: dateIso ?? new Date(date),
@@ -240,7 +220,7 @@ export async function processLLM({
       generating: false,
       reply_to: toISOString(reply_to),
     });
-    ctx.syncdb.commit();
+    actions.syncdb.commit();
   });
 }
 
@@ -288,13 +268,13 @@ function modelToSender(model: LanguageModel): string {
 }
 
 function ensureThinkingMessage({
-  ctx,
+  actions,
   message,
   reply_to,
   tag,
   sender_id,
 }: {
-  ctx: LLMContext;
+  actions: ChatActions;
   message: ChatMessage;
   reply_to?: Date;
   tag?: string;
@@ -302,10 +282,10 @@ function ensureThinkingMessage({
 }): { date: string; prevHistory: MessageHistory[] } {
   const thinking = ":robot: Thinking...";
   if (tag === "regenerate") {
-    return ctx.saveHistory(message, thinking, sender_id, true);
+    return actions.saveHistory(message, thinking, sender_id, true);
   }
   return {
-    date: ctx.sendReply({
+    date: actions.sendReply({
       message,
       reply: thinking,
       from: sender_id,
@@ -349,69 +329,17 @@ function prepareRegenerateInput({
   return { history: h, input };
 }
 
-async function handleCodexTurn({
-  ctx,
-  message,
-  reply_to,
-  model,
-  input,
-}: {
-  ctx: LLMContext;
-  message: ChatMessage;
-  reply_to?: Date;
-  model: LanguageModel;
-  input: string;
-}): Promise<void> {
-  const { syncdb, store } = ctx;
-  if (!syncdb || !store) return;
-  const project_id = store.get("project_id");
-  const path = store.get("path");
-  if (!project_id || !path) {
-    throw new Error(
-      "chat actions missing project_id or path; cannot run Codex turn",
-    );
-  }
-
-  const baseDate =
-    reply_to?.valueOf() ??
-    (message.date instanceof Date
-      ? message.date.valueOf()
-      : new Date(message.date ?? Date.now()).valueOf());
-  const threadKey = ctx.computeThreadKey(baseDate);
-
-  // lazy import to avoid circular import issues
-  const { processAcpLLM } = await import("../acp-api");
-
-  await processAcpLLM({
-    message,
-    model,
-    input,
-    context: {
-      syncdb,
-      path,
-      project_id,
-      chatStreams: ctx.chatStreams,
-      sendReply: ctx.sendReply,
-      saveHistory: ctx.saveHistory,
-      getCodexConfig: (reply_to_date?: Date) =>
-        ctx.getCodexConfig(reply_to_date ?? reply_to ?? undefined),
-      setCodexConfig: ctx.setCodexConfig,
-      threadKey,
-    },
-  });
-}
-
 function throttleWarning({
-  ctx,
+  actions,
   date,
   sender_id,
 }: {
-  ctx: LLMContext;
+  actions: ChatActions;
   date: string;
   sender_id: string;
 }) {
-  if (!ctx.syncdb) return;
-  ctx.syncdb.set({
+  if (!actions.syncdb) return;
+  actions.syncdb.set({
     date,
     history: [
       {
@@ -423,7 +351,7 @@ function throttleWarning({
     event: "chat",
     sender_id,
   });
-  ctx.syncdb.commit();
+  actions.syncdb.commit();
 }
 
 function getLLMServiceStatusCheckMD(vendorName: string): string {

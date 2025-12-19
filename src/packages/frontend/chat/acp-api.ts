@@ -6,8 +6,10 @@ import {
   type CodexSessionConfig,
 } from "@cocalc/util/ai/codex";
 import { uuid } from "@cocalc/util/misc";
-import type { ChatMessage, MessageHistory } from "./types";
+import type { ChatMessage } from "./types";
 import type { CodexThreadConfig } from "@cocalc/chat";
+import { dateValue } from "./access";
+import { type ChatActions } from "./actions";
 
 type QueueKey = string;
 type QueueState = { running: boolean; items: Array<() => Promise<void>> };
@@ -22,11 +24,8 @@ function getQueue(key: QueueKey): QueueState {
   return q;
 }
 
-function makeQueueKey(context: AcpContext): QueueKey {
-  const project = context.project_id ?? "";
-  const path = context.path ?? "";
-  const thread = context.threadKey ?? "";
-  return `${project}::${path}::${thread}`;
+function makeQueueKey({ project_id, path, threadKey }): QueueKey {
+  return `${project_id}::${path}::${threadKey}`;
 }
 
 async function runQueue(key: QueueKey): Promise<void> {
@@ -50,58 +49,40 @@ async function runQueue(key: QueueKey): Promise<void> {
   }
 }
 
-interface AcpContext {
-  syncdb?: {
-    set: (opts: any) => void;
-    commit: () => void;
-    get_one: (opts: any) => any;
-  };
-  path?: string;
-  chatStreams: Set<string>;
-  sendReply: (opts: {
-    message: { date: string | Date };
-    reply?: string;
-    from?: string;
-    noNotification?: boolean;
-    reply_to?: Date;
-    submitMentionsRef?: any;
-  }) => string;
-  saveHistory: (
-    message: { date: string | Date; history?: MessageHistory[] },
-    content: string,
-    author_id: string,
-    generating?: boolean,
-  ) => {
-    date: string;
-    prevHistory: MessageHistory[];
-  };
-  getCodexConfig?: (reply_to?: Date) => CodexThreadConfig | undefined;
-  setCodexConfig?: (
-    threadKey: string,
-    config: CodexThreadConfig,
-  ) => void;
-  threadKey?: string;
-  project_id?: string;
-}
-
 type ProcessAcpRequest = {
   message: ChatMessage;
   model: string;
   input: string;
-  context: AcpContext;
+  actions: ChatActions;
+  reply_to?: Date;
 };
 
 export async function processAcpLLM({
   message,
   model,
   input,
-  context,
+  actions,
+  reply_to,
 }: ProcessAcpRequest): Promise<void> {
-  const { syncdb, path, chatStreams } = context;
-  if (syncdb == null) return;
+  const { syncdb, store, chatStreams } = actions;
+  if (syncdb == null || store == null) return;
 
   let workingInput = input?.trim();
   if (!workingInput) {
+    return;
+  }
+
+  let baseDate: number;
+  if (reply_to) {
+    baseDate = reply_to.valueOf();
+  } else {
+    baseDate =
+      message.date instanceof Date
+        ? message.date.valueOf()
+        : new Date(message.date ?? Date.now()).valueOf();
+  }
+  const threadKey: string | undefined = actions.computeThreadKey(baseDate);
+  if (!threadKey) {
     return;
   }
 
@@ -110,16 +91,18 @@ export async function processAcpLLM({
   // Determine the thread root date from the message itself.
   // - For replies, `message.reply_to` is the thread root (ISO string).
   // - For a root message, the thread root is `message.date`.
+  const messageDate = dateValue(message);
+  if (!messageDate) {
+    throw Error("invalid message");
+  }
   const threadRootDate = message.reply_to
     ? new Date(message.reply_to)
-    : message.date instanceof Date
-      ? message.date
-      : new Date(message.date);
-  if (Number.isNaN(threadRootDate.valueOf())) {
+    : messageDate;
+  if (Number.isNaN(threadRootDate?.valueOf())) {
     throw new Error("ACP turn missing thread root date");
   }
 
-  const config = context.getCodexConfig?.(threadRootDate);
+  const config = actions.getCodexConfig?.(threadRootDate);
   const normalizedModel =
     typeof model === "string" ? normalizeCodexMention(model) : undefined;
 
@@ -133,22 +116,32 @@ export async function processAcpLLM({
   // Generate a stable assistant-reply key for this turn, but do NOT write any
   // corresponding chat row here. The backend is the sole writer of the assistant
   // reply row (avoids frontend/backend sync races on the same row).
-  const messageDate = new Date();
+  const newMessageDate = new Date();
+
+  const setState = (state) => {
+    store.setState({
+      acpState: store.get("acpState").set(`${messageDate.valueOf()}`, state),
+    });
+  };
+
+  const project_id = store.get("project_id");
+  const path = store.get("path");
 
   const chatMetadata = buildChatMetadata({
-    project_id: context.project_id,
+    project_id,
     path,
     sender_id,
-    messageDate,
+    messageDate: newMessageDate,
     reply_to: threadRootDate,
   });
-  const sessionKey = config?.sessionId ?? context.threadKey;
-  const queueKey = makeQueueKey(context);
+  const sessionKey = config?.sessionId ?? threadKey;
+  const queueKey = makeQueueKey({ project_id, path, threadKey });
   const job = async (): Promise<void> => {
     try {
+      setState("sending");
       console.log("Starting ACP turn for", { message, chatMetadata });
       const stream = await webapp_client.conat_client.streamAcp({
-        project_id: context.project_id,
+        project_id,
         prompt: workingInput,
         session_id: sessionKey,
         config: buildAcpConfig({
@@ -158,8 +151,10 @@ export async function processAcpLLM({
         }),
         chat: chatMetadata,
       });
+      setState("sent");
       console.log("Sent ACP turn request for", message);
       for await (const response of stream) {
+        setState("running");
         // TODO: this is excess logging for development purposes
         console.log("ACP message response", response);
         // when something goes wrong, the stream may send this sort of message:
@@ -180,7 +175,7 @@ export async function processAcpLLM({
         const cleaned = raw.startsWith("Error: Error:")
           ? raw.slice("Error: ".length)
           : raw;
-        context.sendReply({
+        actions.sendReply({
           message,
           reply: cleaned,
           from: sender_id,
@@ -191,11 +186,14 @@ export async function processAcpLLM({
       } catch (writeErr) {
         console.error("Failed to write ACP error reply", writeErr);
       }
+    } finally {
+      setState("");
     }
   };
 
   const q = getQueue(queueKey);
   q.items.push(job);
+  setState("queue");
   if (!q.running) {
     void runQueue(queueKey);
   }

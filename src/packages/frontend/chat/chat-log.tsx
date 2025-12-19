@@ -71,6 +71,7 @@ interface Props {
   selectedDate?: string;
   costEstimate?;
   scrollCacheId?: string;
+  acpState?;
 }
 
 export function ChatLog({
@@ -92,6 +93,7 @@ export function ChatLog({
   selectedDate,
   costEstimate,
   scrollCacheId,
+  acpState,
 }: Props) {
   const singleThreadView = selectedThread != null;
   const messages = useMemo(() => {
@@ -263,7 +265,7 @@ export function ChatLog({
       manualScrollRef.current = false;
       setManualScroll(false);
       const doScroll = () =>
-      virtuosoRef.current?.scrollToIndex({ index: Number.MAX_SAFE_INTEGER });
+        virtuosoRef.current?.scrollToIndex({ index: Number.MAX_SAFE_INTEGER });
 
       doScroll();
       // sometimes scrolling to bottom is requested before last entry added,
@@ -319,6 +321,7 @@ export function ChatLog({
           singleThreadView,
           scrollCacheId,
           scrollToBottomRef,
+          acpState,
         }}
       />
       <Composing
@@ -570,6 +573,7 @@ export function MessageList({
   singleThreadView,
   scrollCacheId,
   scrollToBottomRef,
+  acpState,
 }: {
   messages: ChatMessages;
   account_id: string;
@@ -591,6 +595,7 @@ export function MessageList({
   singleThreadView?: boolean;
   scrollCacheId?: string;
   scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
+  acpState?;
 }) {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   const [atBottom, setAtBottom] = useState(true);
@@ -701,6 +706,7 @@ export function MessageList({
                 costEstimate={costEstimate}
                 threadViewMode={singleThreadView}
                 onForceScrollToBottom={forceScrollToBottom}
+                acpState={acpState?.get(date)}
               />
             </DivTempHeight>
           </div>

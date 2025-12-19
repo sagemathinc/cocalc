@@ -4,7 +4,7 @@
  */
 
 import { Store } from "@cocalc/frontend/app-framework";
-import type { Map as ImmutableMap } from "immutable";
+import { Map as ImmutableMap } from "immutable";
 
 export interface ChatState {
   project_id?: string;
@@ -23,6 +23,10 @@ export interface ChatState {
   add_collab: boolean;
   // timestamp when syncdb was attached (to trigger rerenders)
   syncdbReady?: number;
+  acpState: ImmutableMap<
+    string, // key = ms since epoch as **string**
+    string // e.g.,    "queue" | "sending" | "sent" | "running"
+  >; // iso strings
 }
 
 export function getInitialState() {
@@ -38,6 +42,7 @@ export function getInitialState() {
     search: "",
     add_collab: false,
     syncdbReady: undefined,
+    acpState: ImmutableMap<string, string>(),
   };
 }
 

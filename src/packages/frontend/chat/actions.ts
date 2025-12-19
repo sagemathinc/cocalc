@@ -66,10 +66,7 @@ import {
   senderId,
 } from "./access";
 import { ChatMessageCache } from "./message-cache";
-import {
-  processLLM as processLLMExternal,
-  type LLMContext,
-} from "./actions/llm";
+import { processLLM as processLLMExternal } from "./actions/llm";
 import { addToHistory } from "@cocalc/chat";
 
 export class ChatActions extends Actions<ChatState> {
@@ -79,7 +76,7 @@ export class ChatActions extends Actions<ChatState> {
   // at a time in a given chatroom.  I saw a bug where hundreds started
   // at once and it really did send them all to openai at once, and
   // this prevents that at least.
-  private chatStreams: Set<string> = new Set([]);
+  public chatStreams: Set<string> = new Set([]);
   public frameId: string = "";
   // this might not be set e.g., for deprecated side chat on sagews:
   public frameTreeActions?: CodeEditorActions;
@@ -97,7 +94,7 @@ export class ChatActions extends Actions<ChatState> {
     this.messageCache = messageCache;
 
     // trigger react subscribers to re-render when syncdb attaches
-    this.setState({ syncdbReady: Date.now() });
+    this.store?.setState({ syncdbReady: Date.now() });
   };
 
   // Read the current chat messages directly from the SyncDoc (Immer).
@@ -692,7 +689,7 @@ export class ChatActions extends Actions<ChatState> {
       // height == 0 means chat room is not rendered
       return;
     }
-    this.setState({ saved_position: position, height, offset });
+    this.store?.setState({ saved_position: position, height, offset });
   };
 
   // scroll to the bottom of the chat log
@@ -935,25 +932,10 @@ export class ChatActions extends Actions<ChatState> {
       return;
     }
 
-    const ctx: LLMContext = {
-      syncdb: this.syncdb,
-      store: this.store,
-      chatStreams: this.chatStreams,
-      getAllMessages: () => this.getAllMessages(),
-      sendReply: this.sendReply,
-      saveHistory: this.saveHistory,
-      getLLMHistory: this.getLLMHistory,
-      getCodexConfig: (d?: Date) => this.getCodexConfig(d),
-      setCodexConfig: this.setCodexConfig,
-      computeThreadKey: (ms?: number) => this.computeThreadKey(ms),
-      project_id: this.store.get("project_id"),
-      path: this.store.get("path"),
-    };
-
     const threadModel = reply_to ? this.isLanguageModelThread(reply_to) : null;
 
     await processLLMExternal({
-      ctx,
+      actions: this,
       message,
       reply_to,
       tag,
@@ -988,16 +970,16 @@ export class ChatActions extends Actions<ChatState> {
     return list as any;
   };
 
-  private async saveSyncdb(): Promise<void> {
+  private saveSyncdb = async (): Promise<void> => {
     if (!this.syncdb) return;
     try {
       await this.syncdb.save();
     } catch (err) {
       console.error("chat: failed to save syncdb", err);
     }
-  }
+  };
 
-  private computeThreadKey(baseDate?: number): string | undefined {
+  computeThreadKey = (baseDate?: number): string | undefined => {
     if (baseDate == null || Number.isNaN(baseDate)) return undefined;
     const messagesMap = this.getAllMessages();
     if (messagesMap && messagesMap.size > 0) {
@@ -1010,12 +992,12 @@ export class ChatActions extends Actions<ChatState> {
       return `${normalized}`;
     }
     return `${baseDate}`;
-  }
+  };
 
   // the input and output for the thread ending in the
   // given message, formatted for querying a language model, and heuristically
   // truncated to not exceed a limit in size.
-  private getLLMHistory = (reply_to: Date): LanguageModelHistory => {
+  getLLMHistory = (reply_to: Date): LanguageModelHistory => {
     const history: LanguageModelHistory = [];
     // Next get all of the messages with this reply_to or that are the root of this reply chain:
     const d = toISOString(reply_to);
