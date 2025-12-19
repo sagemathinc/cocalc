@@ -92,21 +92,21 @@ export function useCodexLog({
         });
         const data = await kv.get(logKey!);
         if (!cancelled) {
-          setFetchedLog(data ?? []);
+          // If the log has not yet been persisted, leave fetchedLog as null so
+          // we will retry (immediately below and on the delayed retry).
+          if (data == null) {
+            return;
+          }
+          setFetchedLog(data);
         }
         // console.log(data);
       } catch (err) {
         console.warn("failed to fetch acp log", err);
       }
     }
-    fetchLog();
-    if (!generating) {
-      return;
-    }
+    void fetchLog();
+    if (!generating) return;
     // Also delay and call again to let the throttled writer persist the first batch.
-    // This is not 100% guaranteed to work in always cases, but is only
-    // for the live log stage. To make this 100% robust we would need
-    // to make the sequence number contiguous and refetch.
     timer = setTimeout(fetchLog, LOG_PERSIST_THROTTLE_MS + 500);
     return () => {
       cancelled = true;
