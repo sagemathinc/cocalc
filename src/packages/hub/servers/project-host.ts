@@ -64,7 +64,7 @@ export async function maybeStartEmbeddedProjectHost() {
   // TODO: we have tomake the host 0.0.0.0 right now, or the podman container can't connnect.
   // Maybe there is another way with better use of podman networking, obviously.
 
-  const host = '0.0.0.0'; //process.env.COCALC_EMBEDDED_PROJECT_HOST_BIND || "127.0.0.1";
+  const host = "0.0.0.0"; //process.env.COCALC_EMBEDDED_PROJECT_HOST_BIND || "127.0.0.1";
   setDefaultEnv("HOST", host);
   setDefaultEnv("PORT", String(basePort));
 
@@ -101,6 +101,7 @@ export async function maybeStartEmbeddedProjectHost() {
     process.env.MASTER_CONAT_SERVER || `http://localhost:${port}`,
   );
   const entry = join(__dirname, "../../../project-host/dist/main.js");
+  logger.debug(`spawning embedded project host -- node ${entry}`);
   const child: ChildProcess = fork(entry, [], {
     env: {
       ...env,

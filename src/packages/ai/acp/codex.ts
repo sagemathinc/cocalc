@@ -87,13 +87,15 @@ export class CodexAcpAgent implements AcpAgent {
     this.child = options.child;
     this.connection = options.connection;
     this.handler = options.handler;
-    this.child.on("exit", (code, signal) => {
-      this.notifyExit(code, signal);
-    });
-    this.child.on("error", (err) => {
-      logger.warn("codex-acp process error", err);
-      this.notifyExit(null, null);
-    });
+    if (typeof this.child.on == "function") { // needed just for unit tests
+      this.child.on("exit", (code, signal) => {
+        this.notifyExit(code, signal);
+      });
+      this.child.on("error", (err) => {
+        logger.warn("codex-acp process error", err);
+        this.notifyExit(null, null);
+      });
+    }
   }
 
   static async create(
