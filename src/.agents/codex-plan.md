@@ -2,39 +2,15 @@
 
 Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-safe by (1) using a single canonical notion of Codex `session_id`, (2) making the backend the authority for creating/persisting that `session_id` when blank, and (3) deriving all ACP log identifiers (store/key/subject) from a single shared helper in `src/packages/chat`.
 
+- [ ] the "const terminalAdapter: TerminalAdapter = {" computes the output using a local or container executor which truncates at 10MB.  It then truncates at whatever was given in options, which is I think often much LESS than 10MB.  Seems silly and wasteful in multiple ways.  Fix.
 
-- [ ] mystery hang.  I saw this in the server error log:
-```
-Error handling request {
-  jsonrpc: '2.0',
-  id: 178,
-  method: 'terminal/create',
-  params: {
-    sessionId: '019acd4a-f239-76a2-8a41-fc48b74b69d9',
-    command: '/bin/bash',
-    args: [ '-lc', 'rg "ChatLLMContext" -n src/packages/frontend/chat' ],
-    env: [
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object],
-      [Object], [Object], [Object], [Object], [Object]
-    ],
-    cwd: '/home/wstein/build/cocalc-lite'
-  }
-} { code: -32603, message: 'Internal error', data: {} }
-```
+- [ ] bug with missing initial messages is still there.  
+    - start turn
+    - wait a few seconds as it proceeds
+    - click to see thinking sidebar drawer
+    - initial events are missing and stay missing
+    - refresh browser fixes it'
+  - We could cleanly fix this once for all by switching to using an ephemeral stream.
 
 - [ ] in lite mode nothing but "full access" works. They might \-\- this is just a test.
   - "sandbox/readonly in lite hangs; prompt.start with no end; likely codex\-acp failure \(no stderr surfaced\)"

@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import getLogger from "@cocalc/backend/logger";
 import { argsJoin } from "@cocalc/util/args";
 import { localPath } from "./filesystem";
-import { getImageNamePath, mount as mountRootFs } from "./rootfs";
+import { getImageNamePath, mount as mountRootFs, unmount } from "./rootfs";
 import { readFile } from "fs/promises";
 import { networkArgument } from "./podman";
 import { mountArg } from "@cocalc/backend/podman";
@@ -81,80 +81,88 @@ export async function sandboxExec({
     }
   };
 
-  if (useEphemeral) {
-    const { home, scratch } = await localPath({
-      project_id,
-    });
-    const image = await getContainerImage(home);
-    const env = await getEnvironment({
-      project_id,
-      HOME,
-      image,
-    });
+  let rootfs: string | undefined;
+  try {
+    if (useEphemeral) {
+      const { home, scratch } = await localPath({
+        project_id,
+      });
+      const image = await getContainerImage(home);
+      const env = await getEnvironment({
+        project_id,
+        HOME,
+        image,
+      });
 
-    // Build a one-off container run.
-    args.push("run", "--rm", "-i");
-    // execFile timeout still applies; podman itself doesn't have a timeout flag.
-    if (!noNetwork) {
-      args.push(networkArgument());
-    }
-    args.push("--workdir", getWorkdir());
+      // Build a one-off container run.
+      args.push("run", "--rm", "-i");
+      // execFile timeout still applies; podman itself doesn't have a timeout flag.
+      if (!noNetwork) {
+        args.push(networkArgument());
+      }
+      args.push("--workdir", getWorkdir());
 
-    for (const key in env) {
-      args.push("-e", `${key}=${env[key]}`);
-    }
+      for (const key in env) {
+        args.push("-e", `${key}=${env[key]}`);
+      }
 
-    args.push(mountArg({ source: home, target: HOME }));
-    if (scratch) {
-      args.push(mountArg({ source: scratch, target: "/scratch" }));
-    }
-    const mounts = getCoCalcMounts();
-    for (const path in mounts) {
+      args.push(mountArg({ source: home, target: HOME }));
+      if (scratch) {
+        args.push(mountArg({ source: scratch, target: "/scratch" }));
+      }
+      const mounts = getCoCalcMounts();
+      for (const path in mounts) {
+        args.push(
+          mountArg({ source: path, target: mounts[path], readOnly: true }),
+        );
+      }
+
+      // Name the container for easier debugging; allow reuse without conflicts.
+      args.push("--name", `sandbox-${project_id}-${Date.now()}`);
+
+      rootfs = await mountRootFs({ project_id, home, config: { image } });
+      args.push("--rootfs", rootfs);
+      args.push("/bin/bash", "-lc", script);
+    } else {
       args.push(
-        mountArg({ source: path, target: mounts[path], readOnly: true }),
+        "exec",
+        "-i",
+        "--workdir",
+        getWorkdir(),
+        `project-${project_id}`,
+        "/bin/bash",
+        "-lc",
+        script,
       );
     }
 
-    // Name the container for easier debugging; allow reuse without conflicts.
-    args.push("--name", `sandbox-${project_id}-${Date.now()}`);
+    logger.debug("podman", argsJoin(args));
 
-    const rootfs = await mountRootFs({ project_id, home, config: { image } });
-    args.push("--rootfs", rootfs);
-
-    args.push("/bin/bash", "-lc", script);
-  } else {
-    args.push(
-      "exec",
-      "-i",
-      "--workdir",
-      getWorkdir(),
-      `project-${project_id}`,
-      "/bin/bash",
-      "-lc",
-      script,
-    );
+    return await new Promise((resolve) => {
+      execFile(
+        "podman",
+        args,
+        { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (error: any, stdout?: string, stderr?: string) => {
+          if (error) {
+            resolve({
+              stdout: stdout ?? "",
+              stderr: stderr ?? error?.message ?? "",
+              code: typeof error?.code === "number" ? error.code : null,
+              signal: error?.signal,
+            });
+          } else {
+            resolve({ stdout: stdout ?? "", stderr: stderr ?? "", code: 0 });
+          }
+        },
+      );
+    });
+  } finally {
+    if (rootfs) {
+      // Decrement overlay mount refcount; actual unmount happens only when
+      // no other users (e.g., the main project container) are using it.
+      await unmount(project_id);
+    }
   }
-
-  logger.debug("podman", argsJoin(args));
-
-  return await new Promise((resolve) => {
-    execFile(
-      "podman",
-      args,
-      { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (error: any, stdout?: string, stderr?: string) => {
-        if (error) {
-          resolve({
-            stdout: stdout ?? "",
-            stderr: stderr ?? error?.message ?? "",
-            code: typeof error?.code === "number" ? error.code : null,
-            signal: error?.signal,
-          });
-        } else {
-          resolve({ stdout: stdout ?? "", stderr: stderr ?? "", code: 0 });
-        }
-      },
-    );
-  });
 }
