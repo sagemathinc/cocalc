@@ -1,6 +1,6 @@
-// NOTE! This gpt-3-tokenizer is LARGE, e.g., 1.6MB, so be
-// sure to async load it by clients of this code.
-import GPT3Tokenizer from "gpt3-tokenizer";
+// NOTE! This tokenizer bundle is large, so be sure to async load it by clients
+// of this code.
+import { decode, encode } from "gpt-tokenizer";
 
 import type { History } from "@cocalc/frontend/client/types";
 import type { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
@@ -17,7 +17,7 @@ export { getMaxTokens };
 // if 6 is about right, 8 should be a good upper bound.
 const APPROX_CHARACTERS_PER_TOKEN = 8;
 
-const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
+// gpt-tokenizer defaults to o200k_base, which is the encoding used by GPT-5.
 
 // WARNING: --  tokenizer.encode is blocking and can be slow, e.g., if you give it
 // content of length 250,000 it'll take 6 seconds and make the browser freeze.
@@ -29,10 +29,8 @@ export function numTokensUpperBound(
   content: string,
   maxTokens: number,
 ): number {
-
   return (
-    tokenizer.encode(content.slice(0, maxTokens * APPROX_CHARACTERS_PER_TOKEN))
-      .text.length +
+    encode(content.slice(0, maxTokens * APPROX_CHARACTERS_PER_TOKEN)).length +
     Math.max(0, content.length - maxTokens * APPROX_CHARACTERS_PER_TOKEN)
   );
 }
@@ -45,12 +43,12 @@ that.  We will never return too much text, only possible too little.
 */
 
 const dots = "\n ...";
-const numDotsTokens = numTokensUpperBound(dots, 1000);
+const numDotsTokens = encode(dots).length;
 export function truncateMessage(content: string, maxTokens: number): string {
   content = content.slice(0, maxTokens * APPROX_CHARACTERS_PER_TOKEN); // see performance remarks above.
-  const { text } = tokenizer.encode(content);
-  if (text.length > maxTokens) {
-    return text.slice(0, maxTokens - numDotsTokens).join("") + dots;
+  const tokens = encode(content);
+  if (tokens.length > maxTokens) {
+    return decode(tokens.slice(0, maxTokens - numDotsTokens)) + dots;
   }
   return content;
 }
@@ -72,7 +70,7 @@ export function truncateHistory(
     history[i].content = history[i].content.slice(0, maxLength);
   }
 
-  const tokens = history.map(({ content }) => tokenizer.encode(content).text);
+  const tokens = history.map(({ content }) => encode(content));
   while (true) {
     let total = 0;
     let largestScore = 0;
@@ -105,7 +103,7 @@ export function truncateHistory(
       // ensure it definitely shrinks.
       tokens[largestIndex] = [];
     }
-    history[largestIndex].content = tokens[largestIndex].join("");
+    history[largestIndex].content = decode(tokens[largestIndex]);
   }
   return history;
 }

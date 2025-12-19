@@ -500,9 +500,9 @@ importers:
       events:
         specifier: 3.3.0
         version: 3.3.0
-      gpt3-tokenizer:
-        specifier: ^1.1.5
-        version: 1.1.5
+      gpt-tokenizer:
+        specifier: ^3.4.0
+        version: 3.4.0
       html-react-parser:
         specifier: ^5.2.5
         version: 5.2.6(@types/react@19.1.10)(react@19.1.1)
@@ -7512,6 +7512,9 @@ packages:
   got@6.7.1:
     resolution: {integrity: sha512-Y/K3EDuiQN9rTZhBvPRWMLXIKdeD1Rj0nzunfoi0Yyn5WBEbzxXKU9Ub2X41oZBagVWOBU3MuDonFMgPWQFnwg==}
     engines: {node: '>=4'}
+
+  gpt-tokenizer@3.4.0:
+    resolution: {integrity: sha512-wxFLnhIXTDjYebd9A9pGl3e31ZpSypbpIJSOswbgop5jLte/AsZVDvjlbEuVFlsqZixVKqbcoNmRlFDf6pz/UQ==}
 
   gpt3-tokenizer@1.1.5:
     resolution: {integrity: sha512-O9iCL8MqGR0Oe9wTh0YftzIbysypNQmS5a5JG3cB3M4LMYjlAVvNnf8LUzVY9MrI7tj+YLY356uHtO2lLX2HpA==}
@@ -19126,6 +19129,8 @@ snapshots:
       timed-out: 4.0.1
       unzip-response: 2.0.1
       url-parse-lax: 1.0.0
+
+  gpt-tokenizer@3.4.0: {}
 
   gpt3-tokenizer@1.1.5:
     dependencies:

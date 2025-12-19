@@ -116,21 +116,17 @@ The suite is opt-in and skipped unless `COCALC_TEST_LLM=true`.
 - **Reasoning content:** ❌ NOT exposed
 - **Streaming:** Enabled, but only text content streamed
 
-**Gemini 2.5** - ⚠️ Complex behavior
+**Gemini 2.5 & 3** - ⚠️ Complex behavior
 
-- **Model:** `gemini-2.5-flash`, `gemini-2.5-pro`
-- **With `maxReasoningTokens: 1024`:**
-  - Returns string content, NO reasoning field in usage_metadata
-  - Test result: `output_tokens: 26` (no breakdown)
-- **Without `maxReasoningTokens`:**
-  - `total_tokens: 1335` > `input_tokens` (12) + `output_tokens` (290) = discrepancy of ~1033
-  - Suggests internal reasoning but NOT exposed via LangChain
-- **Reasoning content:** ❌ NOT exposed via LangChain
-- **Conclusion:** Google includes reasoning in totals but not accessible
+- **Models:** `gemini-2.5-flash/pro`, `gemini-3-flash/pro-preview`
+- **Token discrepancies:** 386-1033 tokens suggest internal reasoning
+- **With `maxReasoningTokens`:** No reasoning field or ContentBlock.Reasoning
+- **Reasoning tokens:** ❌ NOT available in `output_token_details.reasoning`
+- **Conclusion:** Google includes reasoning in totals but not accessible via LangChain
 
 **Anthropic Claude 4.5** - ❌ No reasoning mode
 
-- Extended thinking exists but not exposed as reasoning tokens in LangChain
+- Extended thinking exists but not exposed as reasoning tokens
 
 ### LangChain API Support
 
@@ -400,70 +396,12 @@ console.log("=== Test Complete ===");
 EOF
 ```
 
-**Expected output:**
+**Expected output summary:**
 
-```
-=== Testing Reasoning/Thinking Tokens ===
-
---- Test 1: Gemini 2.5 Flash with maxReasoningTokens=1024 ---
-
-📊 Usage Metadata:
-{
-  "input_tokens": 0,
-  "output_tokens": 26,
-  "total_tokens": 26
-}
-Has reasoning blocks: ❌ NO
-
---- Test 2: OpenAI o3-mini (reasoning model) ---
-📝 Content: 1 + 1 equals 2.
-
-📊 Usage Metadata:
-{
-  "output_tokens": 149,
-  "input_tokens": 13,
-  "total_tokens": 162,
-  "input_token_details": {
-    "audio": 0,
-    "cache_read": 0
-  },
-  "output_token_details": {
-    "audio": 0,
-    "reasoning": 128    ← 86% is reasoning!
-  }
-}
-
---- Test 3: xAI Grok Fast Reasoning ---
-
-📊 Usage Metadata:
-{
-  "input_tokens": 168,
-  "output_tokens": 174,
-  "total_tokens": 550,
-  "input_token_details": {
-    "audio": 0,
-    "cache_read": 151
-  },
-  "output_token_details": {
-    "audio": 0,
-    "reasoning": 208    ← Available!
-  }
-}
-Has reasoning blocks: ❌ NO
-
---- Test 4: Gemini 2.5 WITHOUT maxReasoningTokens ---
-Content type: string
-Content length: 1121 chars
-
-Usage metadata: {
-  "input_tokens": 12,
-  "output_tokens": 290,
-  "total_tokens": 1335
-}
-⚠️  Token discrepancy: 1033 tokens    ← Hidden reasoning?
-
-=== Test Complete ===
-```
+- **Gemini 2.5 with maxReasoningTokens:** No reasoning field, output_tokens: 26
+- **OpenAI o3-mini:** `reasoning: 128` tokens (86% of 149 total output tokens)
+- **xAI Grok:** `reasoning: 208` tokens available
+- **Gemini 2.5 without maxReasoningTokens:** Token discrepancy of 1033 tokens (hidden reasoning)
 
 ### Key Findings Summary
 
