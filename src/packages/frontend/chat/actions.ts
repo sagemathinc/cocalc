@@ -69,6 +69,8 @@ import { ChatMessageCache } from "./message-cache";
 import { processLLM as processLLMExternal } from "./actions/llm";
 import { addToHistory } from "@cocalc/chat";
 
+const AUTOSAVE_INTERVAL = 15_000;
+
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: ImmerDB;
   public store?: ChatStore;
@@ -95,6 +97,9 @@ export class ChatActions extends Actions<ChatState> {
 
     // trigger react subscribers to re-render when syncdb attaches
     this.store?.setState({ syncdbReady: Date.now() });
+
+    // save periodically to disk
+    this.syncdb.on("change", this.autosave);
   };
 
   // Read the current chat messages directly from the SyncDoc (Immer).
@@ -117,7 +122,10 @@ export class ChatActions extends Actions<ChatState> {
 
   // Dispose resources tied to this actions instance.
   dispose(): void {
+    this.messageCache?.dispose();
     this.messageCache = undefined;
+    this.syncdb?.removeListener("change", this.autosave);
+    this.syncdb?.close();
     this.syncdb = undefined;
   }
 
@@ -492,10 +500,18 @@ export class ChatActions extends Actions<ChatState> {
     }
   };
 
-  // Make sure everything saved to DISK.
+  // Make sure everything saved to DISK periodically.
+  // This is not necessary, especially for side chat, but is good
+  // for clear visibility of state to users and for revision control.
   save_to_disk = async (): Promise<void> => {
-    await this.syncdb?.save_to_disk();
+    if (this.syncdb?.isClosed() || this.syncdb == null) return;
+    await this.syncdb.save_to_disk();
   };
+
+  private autosave = debounce(this.save_to_disk, AUTOSAVE_INTERVAL, {
+    leading: true,
+    trailing: true,
+  });
 
   private _llmEstimateCost = async ({
     input,

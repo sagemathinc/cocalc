@@ -26,7 +26,6 @@ export class ChatMessageCache extends EventEmitter {
   private syncdb: ImmerDB;
   private messages: Map<string, PlainChatMessage> = new Map();
   private version = 0;
-  private onChangeBound = this.onChange.bind(this);
 
   constructor(syncdb: ImmerDB) {
     super();
@@ -34,7 +33,7 @@ export class ChatMessageCache extends EventEmitter {
     log("constructor");
     // Clear stale data; populate from the next change event after ready.
     this.messages = new Map();
-    this.syncdb.on("change", this.onChangeBound);
+    this.syncdb.on("change", this.handleChange);
     if (
       this.syncdb.opts.ignoreInitialChanges ||
       this.syncdb.get_state() === "ready"
@@ -58,7 +57,7 @@ export class ChatMessageCache extends EventEmitter {
   }
 
   dispose() {
-    this.syncdb.off("change", this.onChangeBound);
+    this.syncdb.off("change", this.handleChange);
     this.messages.clear();
     this.removeAllListeners();
   }
@@ -127,11 +126,14 @@ export class ChatMessageCache extends EventEmitter {
     this.bumpVersion();
   }
 
-  private onChange(changes: Set<Record<string, unknown>> | undefined) {
+  // assumed is an => function (so bound)
+  private handleChange = (
+    changes: Set<Record<string, unknown>> | undefined,
+  ) => {
     if (changes == null || changes.size === 0) {
       return;
     }
-    log("onChange", changes);
+    log("handleChange", changes);
     if (this.syncdb.get_state() !== "ready") return;
     const m = new Map(this.messages);
     const rows: Record<string, unknown>[] = Array.from(changes);
@@ -178,7 +180,7 @@ export class ChatMessageCache extends EventEmitter {
       this.persist(toPersist);
     }
     this.bumpVersion();
-  }
+  };
 
   // Commit upgrades outside the current call stack to avoid recursive change events.
   private persist(messages: PlainChatMessage[]) {

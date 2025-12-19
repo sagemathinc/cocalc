@@ -124,8 +124,9 @@ export interface SyncOpts0 {
   // which data/changefeed server to use
   data_server?: DataServer;
 
-  // if true, do not implicitly save on commit.  This is very
-  // useful for unit testing to easily simulate offline state.
+  // if true, do not implicitly save to permanent storage on commit.
+  // This is useful for unit testing to easily simulate offline state.
+  // (This is not related to writing a file to disk.)
   noAutosave?: boolean;
 
   // if true, never saves to disk or loads from disk -- this is NOT
