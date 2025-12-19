@@ -122,10 +122,10 @@ export class ChatActions extends Actions<ChatState> {
 
   // Dispose resources tied to this actions instance.
   dispose(): void {
-    this.messageCache?.dispose();
+    // do NOT dispose of messageCache and syncdb here; that's managed
+    // elsewhere.
     this.messageCache = undefined;
     this.syncdb?.removeListener("change", this.autosave);
-    this.syncdb?.close();
     this.syncdb = undefined;
   }
 
