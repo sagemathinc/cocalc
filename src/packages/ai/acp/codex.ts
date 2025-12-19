@@ -219,12 +219,20 @@ export class CodexAcpAgent implements AcpAgent {
       child.once("error", reject);
     });
 
+    if (process.env.COCALC_LOG_CODEX_ACP_OUTPUT) {
+      child.stdout?.on("data", (chunk) => {
+        const text = chunk.toString()?.trim();
+        if (!text) return;
+        logger.debug("acp.child.stdout", text);
+      });
+    }
+
     // Capture stderr from the child so ACP noise doesn't go to the main console.
     child.stderr?.setEncoding("utf8");
     child.stderr?.on("data", (chunk) => {
       const text = chunk.toString();
       if (text.trim().length === 0) return;
-      logger.warn("acp.child.stderr", { text: text.trimEnd() });
+      logger.warn("acp.child.stderr", text);
     });
     child.stderr?.on("error", (err) => {
       logger.warn("acp.child.stderr_error", { err });
@@ -281,10 +289,7 @@ export class CodexAcpAgent implements AcpAgent {
     this.exitHandlers.add(fn);
   }
 
-  private notifyExit(
-    code: number | null,
-    signal: NodeJS.Signals | null,
-  ): void {
+  private notifyExit(code: number | null, signal: NodeJS.Signals | null): void {
     if (this.exitNotified) return;
     this.exitNotified = true;
     logger.warn("codex-acp process exited", { code, signal });
@@ -317,8 +322,9 @@ export class CodexAcpAgent implements AcpAgent {
     this.handler.setStream(stream);
 
     let exitTriggered = false;
-    let exitHandler: ((c: number | null, s: NodeJS.Signals | null) => void) | null =
-      null;
+    let exitHandler:
+      | ((c: number | null, s: NodeJS.Signals | null) => void)
+      | null = null;
     const exitPromise = new Promise<void>((resolve) => {
       exitHandler = async (code, signal) => {
         if (exitTriggered) return;
