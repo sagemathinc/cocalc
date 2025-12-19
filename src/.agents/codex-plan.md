@@ -3,9 +3,14 @@
 Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-safe by (1) using a single canonical notion of Codex `session_id`, (2) making the backend the authority for creating/persisting that `session_id` when blank, and (3) deriving all ACP log identifiers (store/key/subject) from a single shared helper in `src/packages/chat`.
 
 
-- [ ] terminal scrolling is annoying \-\- get to the bottom and can't scroll the containing page. VERY annoying when trying to scroll through.  But terminal amount is large so have to scroll. hmmm.
+- [x] terminal scrolling is annoying \-\- get to the bottom and can't scroll the containing page. VERY annoying when trying to scroll through.  But terminal amount is large so have to scroll. hmmm.
+- [x] bash \-lc '...' is often explicitly in the log still \- solution: just unwrap it again \-\-![](http://localhost:7000/blobs/paste-0.15869512630654514?uuid=773eca36-f193-43f0-9c46-2fd01c17c7a0)
+
 - [ ] it is impossible to copy/paste from xterm.js terminal in the log
-- [ ] bash \-lc '...' is often explicitly in the log still \- solution: just unwrap it again \-\-![](http://localhost:7000/blobs/paste-0.15869512630654514?uuid=773eca36-f193-43f0-9c46-2fd01c17c7a0)
+
+- [ ] turn log -- missing the first few events when open *during* the turn.  Some sort of race...
+
+- [ ] need frontend ui indicator that a chat was submitted (and also queued to submit), but isn't yet running.
 
 - [ ] in lite mode nothing but "full access" works. They might \-\- this is just a test.
   - "sandbox/readonly in lite hangs; prompt.start with no end; likely codex\-acp failure \(no stderr surfaced\)"

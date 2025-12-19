@@ -3,11 +3,12 @@ import {
   Card,
   Popconfirm,
   Space,
+  Switch,
   Tag,
   Typography,
   message,
 } from "antd";
-
+import { Icon } from "@cocalc/frontend/components";
 import type {
   AcpStreamEvent,
   AcpStreamMessage,
@@ -791,6 +792,8 @@ function TerminalRow({
   entry: Extract<ActivityEntry, { kind: "terminal" }>;
   fontSize: number;
 }) {
+  const [hovered, setHovered] = React.useState(false);
+  const [showRaw, setShowRaw] = React.useState(false);
   const commandLine = formatCommand(entry.command, entry.args);
   const status = formatTerminalStatus(entry);
   const hasOutput = Boolean(entry.output && entry.output.length > 0);
@@ -806,14 +809,51 @@ function TerminalRow({
     ? "No output."
     : "Waiting for output…";
 
+  const copyOutput = React.useCallback(() => {
+    const textToCopy = hasOutput ? terminalText : promptLine;
+    if (!textToCopy) return;
+    const doCopy = async () => {
+      try {
+        if (navigator?.clipboard?.writeText) {
+          await navigator.clipboard.writeText(textToCopy);
+          message.success("Copied terminal output");
+          return;
+        }
+      } catch {
+        // fallback below
+      }
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = textToCopy;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        message.success("Copied terminal output");
+      } catch (err) {
+        message.error("Failed to copy");
+        console.warn("copy failed", err);
+      }
+    };
+    void doCopy();
+  }, [hasOutput, terminalText, promptLine]);
+
   return (
-    <div>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ position: "relative" }}
+    >
       <TerminalPreview
         text={terminalText}
         maxHeight={500}
         fontSize={fontSize}
         placeholder={!hasOutput}
         placeholderText={placeholderText}
+        onCopyShortcut={showRaw ? undefined : copyOutput}
+        rawMode={showRaw}
       />
       <Space size={8} wrap align="center" style={{ marginTop: 6 }}>
         {status ? (
@@ -827,6 +867,34 @@ function TerminalRow({
           </Tag>
         ) : null}
       </Space>
+      <div
+        style={{
+          position: "absolute",
+          top: 6,
+          right: 6,
+          display: "flex",
+          gap: 6,
+          alignItems: "center",
+          opacity: hovered ? 1 : 0,
+          transition: "opacity 0.2s ease",
+        }}
+      >
+        <Button
+          size="small"
+          type="text"
+          onClick={copyOutput}
+          disabled={!hasOutput && !promptLine}
+        >
+          <Icon name="copy" />
+        </Button>
+        <Switch
+          size="small"
+          checked={showRaw}
+          onChange={() => setShowRaw((v) => !v)}
+          checkedChildren="Raw"
+          unCheckedChildren="Raw"
+        />
+      </div>
     </div>
   );
 }
@@ -837,12 +905,16 @@ function TerminalPreview({
   fontSize,
   placeholder = false,
   placeholderText,
+  onCopyShortcut,
+  rawMode = false,
 }: {
   text: string;
   maxHeight: number;
   fontSize: number;
   placeholder?: boolean;
   placeholderText?: string;
+  onCopyShortcut?: () => void;
+  rawMode?: boolean;
 }) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const termRef = React.useRef<XTerm | null>(null);
@@ -870,8 +942,30 @@ function TerminalPreview({
   const containerHeight = rows * lineHeight + 8;
 
   React.useEffect(() => {
+    // Tear down when entering raw mode.
+    if (rawMode) {
+      if (termRef.current) {
+        try {
+          termRef.current.dispose();
+        } catch {
+          // ignore
+        } finally {
+          termRef.current = null;
+        }
+      }
+      return;
+    }
     const host = containerRef.current;
     if (!host) return;
+    // Recreate terminal fresh when toggling back from raw.
+    if (termRef.current) {
+      try {
+        termRef.current.dispose();
+      } catch {
+        // ignore
+      }
+      termRef.current = null;
+    }
     const term = new XTerm({
       convertEol: true,
       disableStdin: true,
@@ -901,18 +995,14 @@ function TerminalPreview({
         term.dispose();
       } catch {
         // ignore
+      } finally {
+        termRef.current = null;
       }
     };
-  }, [
-    colorScheme,
-    fontFamily,
-    fontSizePref,
-    rows,
-    normalizedText,
-    placeholder,
-  ]);
+  }, [colorScheme, fontFamily, fontSizePref, rows, rawMode, containerHeight]);
 
   React.useEffect(() => {
+    if (rawMode) return;
     const term = termRef.current;
     if (!term) return;
     let scrollTimer: any;
@@ -953,9 +1043,26 @@ function TerminalPreview({
     return () => {
       if (scrollTimer) clearTimeout(scrollTimer);
     };
-  }, [normalizedText, colorScheme, placeholder]);
+  }, [normalizedText, colorScheme, placeholder, rawMode, containerHeight]);
 
-  return (
+  return rawMode ? (
+    <pre
+      style={{
+        border: `1px solid ${COLORS.GRAY_L}`,
+        borderRadius: 6,
+        background: COLORS.GRAY_LLL,
+        color: COLORS.GRAY_D,
+        padding: "8px",
+        fontFamily: "monospace",
+        fontSize,
+        maxHeight,
+        overflow: "auto",
+        whiteSpace: "pre-wrap",
+      }}
+    >
+      {text || placeholderText || ""}
+    </pre>
+  ) : (
     <div
       style={{
         border: `1px solid ${COLORS.GRAY_L}`,
@@ -967,6 +1074,17 @@ function TerminalPreview({
         fontFamily,
         fontSize: Math.max(11, fontSize - 1),
       }}
+      onKeyDown={(e) => {
+        if (
+          onCopyShortcut &&
+          ((e.ctrlKey && e.key.toLowerCase() === "c") ||
+            (e.metaKey && e.key.toLowerCase() === "c"))
+        ) {
+          e.preventDefault();
+          onCopyShortcut();
+        }
+      }}
+      tabIndex={0}
     >
       <div
         ref={containerRef}
