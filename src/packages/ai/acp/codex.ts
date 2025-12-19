@@ -73,6 +73,10 @@ export class CodexAcpAgent implements AcpAgent {
   private readonly handler: CodexClientHandler;
   private running = false;
   private readonly sessions = new Map<string, SessionState>();
+  private exitNotified = false;
+  private readonly exitHandlers = new Set<
+    (code: number | null, signal: NodeJS.Signals | null) => void
+  >();
   private static readonly DEFAULT_SESSION_KEY = "__default__";
 
   private constructor(options: {
@@ -83,6 +87,13 @@ export class CodexAcpAgent implements AcpAgent {
     this.child = options.child;
     this.connection = options.connection;
     this.handler = options.handler;
+    this.child.on("exit", (code, signal) => {
+      this.notifyExit(code, signal);
+    });
+    this.child.on("error", (err) => {
+      logger.warn("codex-acp process error", err);
+      this.notifyExit(null, null);
+    });
   }
 
   static async create(
@@ -260,6 +271,32 @@ export class CodexAcpAgent implements AcpAgent {
     });
   }
 
+  /**
+   * Register a callback that fires when the underlying codex-acp process exits
+   * (or errors). Useful for supervisors to restart the agent.
+   */
+  onExit(
+    fn: (code: number | null, signal: NodeJS.Signals | null) => void,
+  ): void {
+    this.exitHandlers.add(fn);
+  }
+
+  private notifyExit(
+    code: number | null,
+    signal: NodeJS.Signals | null,
+  ): void {
+    if (this.exitNotified) return;
+    this.exitNotified = true;
+    logger.warn("codex-acp process exited", { code, signal });
+    for (const fn of this.exitHandlers) {
+      try {
+        fn(code, signal);
+      } catch (err) {
+        logger.debug("codex-acp exit handler failed", err);
+      }
+    }
+  }
+
   async evaluate({
     prompt,
     stream,
@@ -278,6 +315,31 @@ export class CodexAcpAgent implements AcpAgent {
     const session = await this.ensureSession(key, config);
     this.handler.setWorkspaceRoot(session.cwdContainer);
     this.handler.setStream(stream);
+
+    let exitTriggered = false;
+    let exitHandler: ((c: number | null, s: NodeJS.Signals | null) => void) | null =
+      null;
+    const exitPromise = new Promise<void>((resolve) => {
+      exitHandler = async (code, signal) => {
+        if (exitTriggered) return;
+        exitTriggered = true;
+        const err = new Error(
+          `codex agent exited${code != null ? ` (code ${code})` : ""}${
+            signal ? ` (signal ${signal})` : ""
+          }`,
+        );
+        try {
+          await stream({
+            type: "error",
+            error: err.message,
+          });
+        } catch (e) {
+          logger.warn("failed to stream exit error", e);
+        }
+        resolve();
+      };
+      this.onExit(exitHandler!);
+    });
 
     try {
       const isSlashCommand = /^\s*\/\w+/.test(prompt);
@@ -300,7 +362,7 @@ export class CodexAcpAgent implements AcpAgent {
         sessionId: session.sessionId,
         bytes: prompt.length,
       });
-      await this.connection.prompt(request);
+      await Promise.race([this.connection.prompt(request), exitPromise]);
       // If we saw live usage updates, include the latest in the summary.
       const usage = this.handler.consumeLatestUsage();
       await stream({
@@ -315,6 +377,9 @@ export class CodexAcpAgent implements AcpAgent {
       });
       this.handler.clearStream();
       this.running = false;
+      if (exitHandler) {
+        this.exitHandlers.delete(exitHandler);
+      }
     }
   }
 

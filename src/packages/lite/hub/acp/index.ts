@@ -795,6 +795,14 @@ async function ensureAgent(
       fileAdapter: bindings.fileAdapter,
       terminalAdapter: bindings.terminalAdapter,
     });
+    created.onExit((code, signal) => {
+      logger.warn("codex-acp agent exited; will recreate on next request", {
+        key,
+        code,
+        signal,
+      });
+      agents.delete(key);
+    });
     logger.info("codex-acp agent ready", { key });
     agents.set(key, created);
     return created;
@@ -925,13 +933,25 @@ export async function evaluate({
   try {
     stream({ type: "status", state: "running" });
     logger.debug("evaluate: running", { reqId });
-    await currentAgent.evaluate({
-      ...request,
-      prompt,
-      config: effectiveConfig,
-      stream: wrappedStream,
-    });
-    logger.debug("evaluate: done", { reqId });
+    try {
+      await currentAgent.evaluate({
+        ...request,
+        prompt,
+        config: effectiveConfig,
+        stream: wrappedStream,
+      });
+      logger.debug("evaluate: done", { reqId });
+    } catch (err) {
+      logger.warn("evaluate: agent failed", { reqId, err });
+      try {
+        await wrappedStream({
+          type: "error",
+          error: `codex agent failed: ${(err as Error)?.message ?? err}`,
+        });
+      } catch (streamErr) {
+        logger.warn("evaluate: failed to stream error", streamErr);
+      }
+    }
   } finally {
     const elapsedMs = Date.now() - startedAt;
     logger.debug("evaluate: end", { reqId, elapsedMs });

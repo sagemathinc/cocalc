@@ -2,6 +2,42 @@
 
 Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-safe by (1) using a single canonical notion of Codex `session_id`, (2) making the backend the authority for creating/persisting that `session_id` when blank, and (3) deriving all ACP log identifiers (store/key/subject) from a single shared helper in `src/packages/chat`.
 
+
+- [ ] terminal scrolling is annoying \-\- get to the bottom and can't scroll the containing page. VERY annoying when trying to scroll through.  But terminal amount is large so have to scroll. hmmm.
+- [ ] it is impossible to copy/paste from xterm.js terminal in the log
+- [ ] bash \-lc '...' is often explicitly in the log still \- solution: just unwrap it again \-\-![](http://localhost:7000/blobs/paste-0.15869512630654514?uuid=773eca36-f193-43f0-9c46-2fd01c17c7a0)
+
+- [ ] in lite mode nothing but "full access" works. They might \-\- this is just a test.
+  - "sandbox/readonly in lite hangs; prompt.start with no end; likely codex\-acp failure \(no stderr surfaced\)"
+
+- [ ] change what sandbox option in container mode means \(as configured in frontend/chat\), i.e., when 'lite' is true, where `import {lite} from @cocalc/frontend/lite`. see other tasks below. The codex internal sandbox mode doesn't make any sense, but having a sandbox mode does.
+
+- [ ] limit agent to only be able to write inside the workspace by mounting only a subset of the project's directory writable and the rest readonly, when doing sandboxExec. This is the key needed for sandbox mode.  Also handle fs calls differently.
+
+- [ ] implemented readonly container mode by mounting the sandboxExec container fs readonly
+
+- [ ] mounts created via src/packages/project\-runner/run/sandbox\-exec.ts do not get freed, which would lead to resource leakage.   The overlayfs mount _is_ shared with the project if it is running, so this is subtle.  We only want to unmount if we actually make the mount and the project or another container didn't similarly start using it.  I.e., we need reference counting for the mount/unmount command.
+
+- [ ] this might not be good from a security point of view "      // Pass through select env vars \(OpenAI/Anthropic\) to the container.
+  const passthroughKeys = Object.keys\(process.env\).filter\(\(k\) =&gt;
+  /^\(OPENAI\_|ANTHROPIC\_\)/.test\(k\),
+  \);"  because these keys will be visible right there in "ps \-ax". Better to write to a file in the container somehow...?
+  
+  
+### Validate robustness: multi-turn, refresh mid-run, multi-client
+
+- [ ] Add (or extend) an integration test that:
+  - starts two turns back-to-back with blank `session_id`
+  - asserts both turns share the same persisted `acp_session_id` on the thread root
+  - asserts logs route to distinct per-turn log keys/subjects (no cross-association)
+- [ ] Manual checks:
+  - refresh browser mid-run: activity log resumes via AKV + pub/sub
+  - two browser tabs: no stuck “generating” and no misassigned output
+
+
+#### Done
+
+
 ### 1) (done) Canonicalize ACP log identifiers in a shared helper (no ad-hoc fallbacks)
 
 - [x] Create a single helper in `src/packages/chat` that derives all log identifiers from:
@@ -17,7 +53,7 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
   - attempting multiple fallback sources (`reply_to/date/acp_thread_id`, etc.).
 - [x] Delete/avoid fallback logic in chat UI that mixes concepts (e.g. `acp_log_thread ?? acp_session_id`).
 
-### 2) Make the backend the sole writer of assistant-reply ACP state (avoid sync races)
+### 2) (done) Make the backend the sole writer of assistant-reply ACP state (avoid sync races)
 
 - [x] Frontend should not write ACP metadata into the assistant reply row beyond “user submitted a turn”.
   - Frontend can show optimistic UI locally, but should not compete with backend for the same row fields.
@@ -25,7 +61,7 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
   - `generating`, `acp_log_*`, any “running/init” markers, etc.
 - [x] Ensure “turn finished” always clears `generating` even if the assistant row didn’t exist yet at start.
 
-### 3) Server-assign Codex `session_id` when blank and persist to the chat thread root message
+### 3) (done) Server-assign Codex `session_id` when blank and persist to the chat thread root message
 
 - [x] Define a canonical field on the **root message of a thread** for the Codex session id:
   - Proposed: `acp_config.sessionId` (string UUID).
@@ -39,7 +75,7 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
   - When it is blank, do **not** invent one client-side; let the backend populate it.
   - The session config dialog should display the current `acp_config.sessionId` once it exists; blank means “will be created by backend on first run”.
 
-### 4) Rename ACP “threadId” → `session_id` everywhere (no compat)
+### 4) (not worth it) Rename ACP “threadId” → `session_id` everywhere (no compat)
 
 - [ ] Change the ACP stream payload schema to use `session_id` (snake_case) instead of `threadId`.
   - Update `AcpStreamPayload.summary` in `src/packages/conat/ai/acp/types.ts`.
@@ -52,80 +88,17 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
   - Replace `threadId` with `session_id` in `src/packages/conat/ai/acp/types.ts` for `AcpInterruptRequest` (and downstream call sites).
   - In `src/packages/lite/hub/acp/index.ts`, rename `interruptCodexSession(threadId)` to `interruptCodexSession(session_id)` and update maps/keys accordingly.
 
-### 5) Validate robustness: multi-turn, refresh mid-run, multi-client
+- [x] Is there a codex or ACP turn heartbeat?  NO.  Because sometimes it hangs, I can't kill it, etc. which is quite annoying.
 
-- [ ] Add (or extend) an integration test that:
-  - starts two turns back-to-back with blank `session_id`
-  - asserts both turns share the same persisted `acp_session_id` on the thread root
-  - asserts logs route to distinct per-turn log keys/subjects (no cross-association)
-- [ ] Manual checks:
-  - refresh browser mid-run: activity log resumes via AKV + pub/sub
-  - two browser tabs: no stuck “generating” and no misassigned output
+- [x] when making a new codex session, no session id gets assigned at all, so the session is lost whenever we restart.
 
-## Bring Codex integration to Multiuser Mode
-
-**Goal:** support Codex/ACP in podman (multiuser) mode with a single ACP coordinator per project-host, routing every tool call into the correct project container. Frontend API should remain the same except for picking a project-scoped conat subject.
-
-To not forget:
-
-- [ ] Is there a codex or ACP turn heartbeat?   Because sometimes it hangs, I can't kill it, etc. which is quite annoying.
-- [ ] terminal scrolling is annoying \-\- get to the bottom and can't scroll the containing page. VERY annoying when trying to scroll through.  But terminal amount is large so have to scroll. hmmm.
-- [ ] it is impossible to copy/paste from xterm.js terminal in the log
-- [ ] bash \-lc '...' is often explicitly in the log still \- solution: just unwrap it again \-\-![](http://localhost:7000/blobs/paste-0.15869512630654514?uuid=773eca36-f193-43f0-9c46-2fd01c17c7a0)
-- [ ] when making a new codex session, no session id gets assigned at all, so the session is lost whenever we restart.
-- [ ] also just had a problem where the mode on the codex side was "read only" but in the cocalc UI it was "full access".  This was in cocalc\-plus mode, and the message to start the session was:
-
-```
-2025-12-17T15:30:26.602Z (77924):cocalc:debug:lite:hub:acp evaluate: start {
-  reqId: '6dff39a7-b4d4-4ab7-8d8d-480e61fb3d89',
-  session_id: '019b1b1a-3c68-7340-ac59-eb38beb294a9',
-  chat: {
-    project_id: '00000000-1000-4000-8000-000000000000',
-    path: 'build/cocalc-lite/a.chat',
-    sender_id: 'codex-agent',
-    message_date: '2025-12-17T15:30:26.578Z',
-    reply_to: '2025-12-14T04:23:53.485Z'
-  },  projectId: '00000000-1000-4000-8000-000000000000',
-  config: {
-    workingDirectory: 'build/cocalc-lite',    model: 'gpt-5.1-codex-max',
-    reasoning: 'medium',
-    sessionMode: 'full-access',
-    allowWrite: true,
-    sessionId: '019b1b1a-3c68-7340-ac59-eb38beb294a9'
-  },
-  sessionMode: 'full-access',
-  workspaceRoot: '/home/wstein/build/cocalc-lite'
-}
-```
-
-but it was totally broken, and using `codex resume` in the terminal showed it had read only mode.
-
-- [ ] submitting a new turn while one is running returns this error "{seq: 0, error: 'Error: ACP agent is already processing a request', type: 'error'}".  Thus turns are not queued up properly; basically make 2\-3 requests and all but the first stays stuck forever.
+- [x] submitting a new turn while one is running returns this error "{seq: 0, error: 'Error: ACP agent is already processing a request', type: 'error'}".  Thus turns are not queued up properly; basically make 2\-3 requests and all but the first stays stuck forever.
   - Frontend is I think doing the right thing.
   - Backend is NOT updating the syncdb document properly at all.
 
-- [ ] if the codex-acp subprocess is killed then everything is broken forever; instead it should get restarted
+- [x] if the codex\-acp subprocess is killed then everything is broken forever; instead it should get restarted
 
 - [x] interrupt often doesn't work: with this error in frontend console.log "failed to interrupt codex turn ConatError: request \-\- no subscribers matching 'acp.account\-d0bdabfd\-850e\-4c8d\-8510\-f6f1ecb9a5eb.interrupt'"
-
-- [ ] in lite mode nothing but "full access" works. They might -- this is just a test.
-   - "sandbox/readonly in lite hangs; prompt.start with no end; likely codex-acp failure (no stderr surfaced)"
-
-- [ ] change what sandbox option in container mode means (as configured in frontend/chat), i.e., when 'lite' is true, where `import {lite} from @cocalc/frontend/lite`. see other tasks below. The codex internal sandbox mode doesn't make any sense, but having a sandbox mode does.
-
-- [ ] limit agent to only be able to write inside the workspace by mounting only a subset of the project's directory writable and the rest readonly, when doing sandboxExec. This is the key needed for sandbox mode.  Also handle fs calls differently.
-
-- [ ] implemented readonly container mode by mounting the sandboxExec container fs readonly
-
-- [ ] mounts created via src/packages/project-runner/run/sandbox-exec.ts do not get freed, which would lead to resource leakage.   The overlayfs mount *is* shared with the project if it is running, so this is subtle.  We only want to unmount if we actually make the mount and the project or another container didn't similarly start using it.  I.e., we need reference counting for the mount/unmount command.
-
-- [ ] this might not be good from a security point of view "      // Pass through select env vars (OpenAI/Anthropic) to the container.
-      const passthroughKeys = Object.keys(process.env).filter((k) =>
-        /^(OPENAI_|ANTHROPIC_)/.test(k),
-      );"  because these keys will be visible right there in "ps -ax". Better to write to a file in the container somehow...?
-      
-
-#### Done
 
 - [x] ensure multiple concurrent sessions can run at once.  I have evidence they don't, and the solution would be spinning up a pool: [http://localhost:7000/projects/00000000\-1000\-4000\-8000\-000000000000/files/build/cocalc\-lite/a.chat\#chat=1765836152408](http://localhost:7000/projects/00000000-1000-4000-8000-000000000000/files/build/cocalc-lite/a.chat#chat=1765836152408)
 
