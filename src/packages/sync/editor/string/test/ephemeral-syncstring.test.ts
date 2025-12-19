@@ -37,4 +37,27 @@ describe("create ephemeral syncstring and test managing undo/redo using it", () 
     expect(syncstring.to_str()).toBe("cocalc and sagemath");
     await syncstring.close();
   });
+
+  const LENGTH = 100;
+  it(`a sequence of ${LENGTH} undo/redos`, async () => {
+    const start = Date.now();
+    const syncstring = await ephemeralSyncstring();
+    for (let i = 0; i < LENGTH; i++) {
+      syncstring.from_str(`${i}`);
+      syncstring.commit();
+    }
+    expect(syncstring.to_str()).toBe(`${LENGTH - 1}`);
+    expect(syncstring.versions().length).toBe(LENGTH);
+    for (let i = LENGTH - 1; i >= 0; i--) {
+      expect(syncstring.to_str()).toBe(`${i}`);
+      syncstring.undo();
+    }
+    expect(syncstring.to_str()).toBe("");
+    for (let i = 0; i < LENGTH; i++) {
+      syncstring.redo();
+      expect(syncstring.to_str()).toBe(`${i}`);
+    }
+    // if should really just be ~100ms.
+    expect(Date.now() - start).toBeLessThan(LENGTH * 10 + 500);
+  });
 });

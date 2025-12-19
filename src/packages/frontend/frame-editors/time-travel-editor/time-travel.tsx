@@ -146,7 +146,11 @@ export function TimeTravel(props: Props) {
         const lastNum = versionToNumber(v.get(-1));
         if (numVersion != null && firstNum != null && numVersion < firstNum) {
           a = v.get(0);
-        } else if (numVersion != null && lastNum != null && numVersion > lastNum) {
+        } else if (
+          numVersion != null &&
+          lastNum != null &&
+          numVersion > lastNum
+        ) {
           a = v.get(-1);
         } else {
           a = v.get(-1);
@@ -180,7 +184,7 @@ export function TimeTravel(props: Props) {
   }, [gitMode, props.actions]);
 
   const toPatchId = (v?: number | string) =>
-    v == null ? undefined : `${v}` as string;
+    v == null ? undefined : (`${v}` as string);
 
   useEffect(() => {
     saveState(props.actions, {
@@ -202,11 +206,14 @@ export function TimeTravel(props: Props) {
       return;
     }
     if (gitMode) {
-      const v =
-        typeof version === "number" ? version : Number(`${version}`);
+      const v = typeof version === "number" ? version : Number(`${version}`);
       return await props.actions.gitDoc(v);
     }
-    return props.actions.get_doc(version as string);
+    if (typeof version == "number") {
+      console.warn("getDoc: invalid version", { version });
+      return;
+    }
+    return props.actions.get_doc(version);
   };
 
   useAsyncEffect(async () => {
@@ -268,13 +275,9 @@ export function TimeTravel(props: Props) {
       if (id0 == null || id1 == null) return null;
       return (
         <VersionRange
-          version0={
-            props.actions.versionNumber(id0) ?? i0 + firstVersion
-          }
+          version0={props.actions.versionNumber(id0) ?? i0 + firstVersion}
           user0={props.actions.getUser(id0)}
-          version1={
-            props.actions.versionNumber(id1) ?? i1 + firstVersion
-          }
+          version1={props.actions.versionNumber(id1) ?? i1 + firstVersion}
           user1={props.actions.getUser(id1)}
         />
       );
@@ -293,13 +296,11 @@ export function TimeTravel(props: Props) {
         return null;
       }
       return (
-          <Version
-            date={new Date(t)}
-            number={
-              props.actions.versionNumber(id) ?? i + firstVersion
-            }
-            user={props.actions.getUser(id)}
-          />
+        <Version
+          date={new Date(t)}
+          number={props.actions.versionNumber(id) ?? i + firstVersion}
+          user={props.actions.getUser(id)}
+        />
       );
     }
   };
@@ -329,16 +330,16 @@ export function TimeTravel(props: Props) {
       return;
     }
     return (
-        <NavigationButtons
-          changesMode={changesMode}
-          versions={gitMode ? gitVersions : versions}
-          version={version}
-          setVersion={setVersion}
-          version0={version0}
-          setVersion0={setVersion0}
-          version1={version1}
-          setVersion1={setVersion1}
-        />
+      <NavigationButtons
+        changesMode={changesMode}
+        versions={gitMode ? gitVersions : versions}
+        version={version}
+        setVersion={setVersion}
+        version0={version0}
+        setVersion0={setVersion0}
+        version1={version1}
+        setVersion1={setVersion1}
+      />
     );
   };
 
@@ -347,10 +348,10 @@ export function TimeTravel(props: Props) {
       return;
     }
     return (
-        <NavigationSlider
-          version={version}
-          setVersion={setVersion}
-          versions={gitMode ? gitVersions : versions}
+      <NavigationSlider
+        version={version}
+        setVersion={setVersion}
+        versions={gitMode ? gitVersions : versions}
         marks={marks}
         wallTime={wallTime}
       />
@@ -362,12 +363,12 @@ export function TimeTravel(props: Props) {
       return;
     }
     return (
-        <RangeSlider
-          versions={gitMode ? gitVersions : versions}
-          version0={version0}
-          setVersion0={setVersion0}
-          version1={version1}
-          setVersion1={setVersion1}
+      <RangeSlider
+        versions={gitMode ? gitVersions : versions}
+        version0={version0}
+        setVersion0={setVersion0}
+        version1={version1}
+        setVersion1={setVersion1}
         marks={marks}
         wallTime={wallTime}
       />
