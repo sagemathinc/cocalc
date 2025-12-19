@@ -887,9 +887,15 @@ function TerminalPreview({
     const viewport = host.querySelector(
       ".xterm-viewport",
     ) as HTMLDivElement | null;
+    const rowsEl = host.querySelector(".xterm-rows") as HTMLDivElement | null;
     if (viewport) {
       viewport.style.overflow = "hidden";
     }
+    if (rowsEl) {
+      rowsEl.style.userSelect = "text";
+    }
+    host.style.height = `${containerHeight}px`;
+    host.style.userSelect = "text";
     return () => {
       try {
         term.dispose();
@@ -921,9 +927,15 @@ function TerminalPreview({
       const viewport = host.querySelector(
         ".xterm-viewport",
       ) as HTMLDivElement | null;
+      const rowsEl = host.querySelector(".xterm-rows") as HTMLDivElement | null;
       if (viewport?.style) {
         viewport.style.overflow = "hidden";
       }
+      if (rowsEl?.style) {
+        rowsEl.style.userSelect = "text";
+      }
+      host.style.height = `${containerHeight}px`;
+      host.style.userSelect = "text";
     }
     const rendered = normalizedText.replace(/\r?\n/g, "\r\n");
     if (rendered.length) {
@@ -950,7 +962,7 @@ function TerminalPreview({
         borderRadius: 6,
         background,
         color: foreground,
-        overflowX: "scroll",
+        overflow: "hidden",
         padding: "4px 6px",
         fontFamily,
         fontSize: Math.max(11, fontSize - 1),
