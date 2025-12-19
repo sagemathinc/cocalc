@@ -1,6 +1,3 @@
-import { Ollama, OllamaInput } from "@langchain/ollama";
-import { ChatOpenAI as ChatOpenAILC } from "@langchain/openai";
-
 import getLogger from "@cocalc/backend/logger";
 import { db } from "@cocalc/database";
 import { getServerSettings } from "@cocalc/database/settings";
@@ -10,20 +7,13 @@ import {
   UserDefinedLLM,
   UserDefinedLLMService,
   isUserDefinedModel,
-  toCustomOpenAIModel,
   toOllamaModel,
   unpackUserDefinedLLMModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { isValidUUID, unreachable } from "@cocalc/util/misc";
 import type { History, Stream } from "@cocalc/util/types/llm";
-import { evaluateCustomOpenAI } from "./custom-openai";
 import { evaluateOllama } from "./ollama";
-// import { evaluateWithLangChain } from "./evaluate-lc";
-import { evaluateAnthropic } from "./anthropic";
-import { evaluateMistral } from "./mistral";
-import { evaluateGoogleGenAILC } from "./google-lc";
-import { evaluateOpenAILC } from "./openai-lc";
-import { evaluateXai } from "./xai";
+import { evaluateWithLangChain } from "./evaluate-lc";
 
 const log = getLogger("llm:userdefined");
 
@@ -63,79 +53,32 @@ export async function evaluateUserDefinedLLM(
     throw new Error(`Unable to retrieve user defined model ${model}`);
   }
 
-  // Below, the general idea is to extract the user defined llm from the accounts table,
-  // and then construct the corresponding client (maybe with a use provided API key)
-  // and call the appropriate evaluation function. For that, it mimics how the llm framework
-  // usually calls an LLM.
-  // NOTE: evaluateWithLangChain "could" work after further refactoring. In particular, its
-  // getProviderConfig must be enhanced with a generalized way to configure based on provider, not model name
+  // Pull the user-defined LLM config from the account settings and evaluate via the unified
+  // LangChain path, passing through user-supplied API keys/endpoints.
   const { service, endpoint, apiKey } = conf;
   switch (service) {
-    case "custom_openai": {
-      // https://js.langchain.com/v0.2/docs/integrations/llms/openai/
-      const oic: ConstructorParameters<typeof ChatOpenAILC>["0"] = {
-        model: conf.model,
-      };
-      if (endpoint) {
-        oic.configuration = { baseURL: endpoint };
-      }
-      // According to the docs, only apiKey should be set, but somehow gpt- models are a special case
-      if (apiKey) {
-        oic.apiKey = apiKey;
-        oic.openAIApiKey = apiKey;
-      }
-      const client = new ChatOpenAILC(oic);
-      return await evaluateCustomOpenAI(
-        { ...opts, model: toCustomOpenAIModel(conf.model) },
-        client,
-      );
-    }
     case "ollama": {
-      const oc: OllamaInput = {
-        model: conf.model,
-        baseUrl: conf.endpoint,
-      };
-      if (conf.apiKey) {
-        oc.headers = new Headers();
-        oc.headers.set("Authorization", `Bearer ${conf.apiKey}`);
-      }
-      const client = new Ollama(oc);
-      return await evaluateOllama(
-        { ...opts, model: toOllamaModel(conf.model) },
-        client,
-      );
+      return await evaluateOllama({
+        ...opts,
+        model: toOllamaModel(conf.model),
+      });
     }
-
-    case "anthropic":
-      return await evaluateAnthropic(
-        { ...opts, model: um.model, apiKey: conf.apiKey },
-        "user",
-      );
-
-    case "mistralai":
-      return await evaluateMistral(
-        { ...opts, model: um.model, apiKey: conf.apiKey },
-        "user",
-      );
-
-    case "google":
-      return await evaluateGoogleGenAILC(
-        { ...opts, model: um.model, apiKey: conf.apiKey },
-        "user",
-      );
-
     case "openai":
-      return await evaluateOpenAILC(
-        { ...opts, model: um.model, apiKey: conf.apiKey },
-        "user",
-      );
-
+    case "google":
+    case "anthropic":
+    case "mistralai":
+    case "custom_openai":
     case "xai":
-      return await evaluateXai(
-        { ...opts, model: um.model, apiKey: conf.apiKey },
+      return await evaluateWithLangChain(
+        {
+          ...opts,
+          model: conf.model,
+          apiKey,
+          endpoint: endpoint || undefined, // don't pass along empty strings!
+          service,
+        },
         "user",
       );
-
     default:
       unreachable(service);
       throw new Error(`Invalid user defined model ${model} /3`);

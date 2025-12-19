@@ -221,9 +221,9 @@ export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string | null } = {
   "claude-3-haiku-8k": "claude-3-haiku-20240307",
   "claude-4-sonnet-8k": "claude-sonnet-4-0",
   "claude-4-opus-8k": "claude-opus-4-0",
-  "claude-4-5-sonnet-8k": "claude-sonnet-4-5-20250929",
-  "claude-4-5-opus-8k": "claude-opus-4-5-20251101",
-  "claude-4-5-haiku-8k": "claude-haiku-4-5-20250929",
+  "claude-4-5-sonnet-8k": "claude-sonnet-4-5",
+  "claude-4-5-opus-8k": "claude-opus-4-5",
+  "claude-4-5-haiku-8k": "claude-haiku-4-5",
   "claude-3-sonnet": null,
   "claude-3-sonnet-4k": null,
   "claude-3-opus": null,
@@ -281,8 +281,12 @@ export function fromXaiService(service: XaiService): XaiModel {
   }
   return service.slice(XAI_PREFIX.length) as XaiModel;
 }
-export function toXaiProviderModel(model: XaiModel): string {
-  return XAI_MODEL_TO_ID[model] ?? model;
+export function toXaiProviderModel(model: string): string {
+  const mapped = XAI_MODEL_TO_ID[model as XaiModel];
+  if (mapped != null) {
+    return mapped;
+  }
+  return model.replace(/-\d+k$/, "");
 }
 
 // the hardcoded list of available language models – there are also dynamic ones, like OllamaLLM objects
@@ -310,21 +314,16 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m === "gpt-5.2-8k" ||
       m === "gpt-5-mini-8k",
   ),
-  google: GOOGLE_MODELS.filter(
-    (m) =>
-      // we only enable 1.5 pro and 1.5 flash with a limited context window.
-      //m === "gemini-1.5-pro-8k" ||
-      //m === "gemini-1.5-flash-8k" ||
-      m === "gemini-2.5-flash-8k" ||
-      m === "gemini-2.5-pro-8k" ||
-      m === "gemini-3-flash-preview-16k" ||
-      m === "gemini-3-pro-preview-8k",
-  ),
+  google: [
+    "gemini-3-flash-preview-16k",
+    "gemini-3-pro-preview-8k",
+    "gemini-2.5-flash-8k",
+    "gemini-2.5-pro-8k",
+  ],
   mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-small-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
     // we show opus and the context restricted models (to avoid high costs)
     return (
-      m === "claude-3-5-haiku-8k" ||
       m === "claude-4-5-sonnet-8k" ||
       m === "claude-4-5-opus-8k" ||
       m === "claude-4-5-haiku-8k"
@@ -683,7 +682,7 @@ export function service2model_core(
 }
 
 // NOTE: do not use this – instead use server_settings.default_llm
-export const DEFAULT_MODEL: LanguageModel = "gemini-2.5-flash-8k";
+export const DEFAULT_MODEL: LanguageModel = "gemini-3-flash-preview-16k";
 
 interface LLMVendor {
   name: LLMServiceName;

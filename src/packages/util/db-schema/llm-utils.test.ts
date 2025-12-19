@@ -143,9 +143,9 @@ describe("llm", () => {
     expect(getModel(DEFAULT_MODEL)).toEqual(DEFAULT_MODEL);
     expect(getModel("magistral-medium-latest")).toEqual(DEFAULT_MODEL);
     expect(getModel("mistral-large-latest")).toEqual("mistral-large-latest");
-    expect(getModel("claude-3-5-haiku-8k")).toEqual("claude-3-5-haiku-8k");
+    expect(getModel("claude-4-5-haiku-8k")).toEqual("claude-4-5-haiku-8k");
     // anthropic service disabled
-    expect(getModel("claude-3-5-haiku-8k", "anthropic")).toEqual(DEFAULT_MODEL);
+    expect(getModel("claude-4-5-haiku-8k", "anthropic")).toEqual(DEFAULT_MODEL);
     // ollama
     expect(getModel("ollama-foo")).toEqual(DEFAULT_MODEL);
     expect(getModel("ollama-phi3")).toEqual("ollama-phi3");

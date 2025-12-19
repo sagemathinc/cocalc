@@ -21,7 +21,9 @@ import {
   isOpenAIModel,
   isXaiModel,
   toXaiProviderModel,
+  UserDefinedLLMService,
 } from "@cocalc/util/db-schema/llm-utils";
+import { unreachable } from "@cocalc/util/misc";
 import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { AIMessageChunk } from "@langchain/core/messages";
@@ -51,6 +53,8 @@ export interface LLMEvaluationOptions {
   stream?: Stream;
   maxTokens?: number;
   apiKey?: string;
+  endpoint?: string;
+  service?: UserDefinedLLMService;
 }
 
 // Provider-specific client configuration
@@ -65,7 +69,7 @@ export interface LLMProviderConfig {
     mode: "cocalc" | "user",
   ) => Promise<any>;
 
-  // Model processing
+  // Model processing for platform defined internal namings. Only called when mode === "cocalc".
   canonicalModel?: (model: string) => string;
 
   // Special handling flags
@@ -81,17 +85,18 @@ export interface LLMProviderConfig {
   ) => Promise<{ prompt_tokens: number; completion_tokens: number }>;
 }
 
-function isO1Model(normalizedModel) {
-  return normalizedModel === "o1" || normalizedModel === "o1-mini";
+function isO1Model(model: string) {
+  return /^o1(-|$)/.test(model);
 }
 
 // Provider configurations
 export const PROVIDER_CONFIGS = {
   openai: {
     name: "OpenAI",
-    createClient: async (options, settings) => {
+    createClient: async (options, settings, mode) => {
       const { openai_api_key: apiKey } = settings;
-      const normalizedModel = normalizeOpenAIModel(options.model);
+      const normalizedModel =
+        mode === "user" ? options.model : normalizeOpenAIModel(options.model);
 
       log.debug(
         `OpenAI createClient: original=${options.model}, normalized=${normalizedModel}`,
@@ -103,6 +108,9 @@ export const PROVIDER_CONFIGS = {
         model: normalizedModel,
         apiKey: options.apiKey || apiKey,
         maxTokens: options.maxTokens,
+        configuration: options.endpoint
+          ? { baseURL: options.endpoint }
+          : undefined,
         streaming: options.stream != null && !isO1,
         streamUsage: true,
         ...(options.stream != null && !isO1
@@ -214,9 +222,7 @@ export const PROVIDER_CONFIGS = {
     createClient: async (options, settings, mode) => {
       const apiKey = mode === "cocalc" ? settings.xai_api_key : options.apiKey;
       const modelName =
-        mode === "cocalc"
-          ? toXaiProviderModel(options.model as any)
-          : options.model;
+        mode === "cocalc" ? toXaiProviderModel(options.model) : options.model;
 
       log.debug(
         `xAI createClient: original=${options.model}, modelName=${modelName}`,
@@ -229,7 +235,7 @@ export const PROVIDER_CONFIGS = {
         streaming: true,
       });
     },
-    canonicalModel: (model) => toXaiProviderModel(model as any),
+    canonicalModel: (model) => toXaiProviderModel(model),
     getTokenCountFallback: async (input, output, historyTokens) => ({
       prompt_tokens: numTokens(input) + historyTokens,
       completion_tokens: numTokens(output),
@@ -238,12 +244,39 @@ export const PROVIDER_CONFIGS = {
 
   "custom-openai": {
     name: "Custom OpenAI",
-    createClient: async (options, _settings) => {
-      const transformedModel = fromCustomOpenAIModel(options.model);
-      log.debug(
-        `Custom OpenAI createClient: original=${options.model}, transformed=${transformedModel}`,
-      );
-      return await getCustomOpenAI(transformedModel);
+    createClient: async (options, _settings, mode) => {
+      // user-defined custom OpenAI provides endpoint/apiKey directly; platform uses server config
+      switch (mode) {
+        case "user": {
+          log.debug("Custom OpenAI createClient (user)", {
+            model: options.model,
+            endpoint: options.endpoint,
+          });
+          return new ChatOpenAI({
+            model: options.model,
+            apiKey: options.apiKey,
+            configuration: options.endpoint
+              ? { baseURL: options.endpoint }
+              : undefined,
+            maxTokens: options.maxTokens,
+            streaming: options.stream != null,
+            streamUsage: true,
+            ...(options.stream != null
+              ? { streamOptions: { includeUsage: true } }
+              : {}),
+          });
+        }
+        case "cocalc": {
+          const transformedModel = fromCustomOpenAIModel(options.model);
+          log.debug(
+            `Custom OpenAI createClient: original=${options.model}, transformed=${transformedModel}`,
+          );
+          return await getCustomOpenAI(transformedModel);
+        }
+        default:
+          unreachable(mode);
+          throw new Error(`Invalid LLM mode: ${mode}`);
+      }
     },
     canonicalModel: (model) => fromCustomOpenAIModel(model),
     getTokenCountFallback: async (input, output, historyTokens) => ({
@@ -254,7 +287,31 @@ export const PROVIDER_CONFIGS = {
 } as const satisfies Record<string, LLMProviderConfig>;
 
 // Get provider config based on model
-export function getProviderConfig(model: string): LLMProviderConfig {
+export function getProviderConfig(
+  model: string,
+  service?: UserDefinedLLMService,
+): LLMProviderConfig {
+  if (service) {
+    switch (service) {
+      case "openai":
+        return PROVIDER_CONFIGS.openai;
+      case "google":
+        return PROVIDER_CONFIGS.google;
+      case "anthropic":
+        return PROVIDER_CONFIGS.anthropic;
+      case "mistralai":
+        return PROVIDER_CONFIGS.mistral;
+      case "xai":
+        return PROVIDER_CONFIGS.xai;
+      case "custom_openai":
+        return PROVIDER_CONFIGS["custom-openai"];
+      case "ollama":
+        throw new Error("Ollama handled separately");
+      default:
+        throw new Error(`Unknown service for provider config: ${service}`);
+    }
+  }
+
   if (isOpenAIModel(model)) {
     return PROVIDER_CONFIGS.openai;
   } else if (isGoogleModel(model)) {
@@ -267,9 +324,9 @@ export function getProviderConfig(model: string): LLMProviderConfig {
     return PROVIDER_CONFIGS.xai;
   } else if (isCustomOpenAI(model)) {
     return PROVIDER_CONFIGS["custom-openai"];
-  } else {
-    throw new Error(`Unknown model provider for: ${model}`);
   }
+
+  throw new Error(`Unknown model provider for: ${model}`);
 }
 
 // Content processing helper
@@ -292,7 +349,15 @@ export async function evaluateWithLangChain(
   options: LLMEvaluationOptions,
   mode: "cocalc" | "user" = "cocalc",
 ): Promise<ChatOutput> {
-  const { input, system, history = [], model, stream, maxTokens } = options;
+  const {
+    input,
+    system,
+    history = [],
+    model,
+    stream,
+    maxTokens,
+    service,
+  } = options;
 
   log.debug("evaluateWithLangChain", {
     input,
@@ -304,7 +369,7 @@ export async function evaluateWithLangChain(
   });
 
   // Get provider configuration
-  const config = getProviderConfig(model);
+  const config = getProviderConfig(model, service);
 
   // Get server settings
   const settings = await getServerSettings();
@@ -313,9 +378,10 @@ export async function evaluateWithLangChain(
   const client = await config.createClient(options, settings, mode);
 
   // Canonical model name
-  const canonicalModel = config.canonicalModel
-    ? config.canonicalModel(model)
-    : model;
+  const canonicalModel =
+    mode === "cocalc" && config.canonicalModel
+      ? config.canonicalModel(model)
+      : model;
 
   // Determine system role (always use "history" for historyKey)
   const systemRole = config.getSystemRole

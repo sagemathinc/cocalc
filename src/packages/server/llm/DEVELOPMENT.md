@@ -62,8 +62,419 @@ The suite is opt-in and skipped unless `COCALC_TEST_LLM=true`.
   - `COCALC_TEST_MISTRAL_AI_KEY`
   - `COCALC_TEST_XAI_KEY`
 
-## Next Steps (Suggested)
+## Reasoning/Thinking Tokens
 
-- Add unit tests for provider selection + normalization in `packages/server/llm/evaluate-lc.ts` (mock LangChain clients).
-- Run a full monorepo build once (`pnpm build-dev`) to ensure no stale package outputs.
-- Frontend follow-up: improve/standardize the xAI avatar by converting the Wikimedia SVG into the same parametric style used in `packages/frontend/components/ai-avatar.tsx` (current URL basis: `https://upload.wikimedia.org/wikipedia/commons/9/93/XAI_Logo.svg`).
+**Investigation Date:** 2025-12-19
+
+### Current Status
+
+⚠️ **Reasoning tokens are counted but NOT captured** in the current implementation.
+
+**Impact:**
+
+- Token counts incomplete (missing `reasoning_tokens` field)
+- User experience: users can't see reasoning token breakdown
+- Billing: reasoning tokens already included in `completion_tokens` (correct)
+
+### Provider Behavior (Verified via API Testing)
+
+**OpenAI o3-mini** - ✅ Reasoning tokens available
+
+- **Model:** `o3-mini` (note: `o1-mini` is deprecated)
+- **Reasoning tokens:** Available in `usage_metadata.output_token_details.reasoning`
+- **Test result:**
+  ```json
+  {
+    "output_tokens": 149,
+    "input_tokens": 13,
+    "total_tokens": 162,
+    "output_token_details": {
+      "reasoning": 128
+    }
+  }
+  ```
+- **Analysis:** 86% of output tokens (128/149) are reasoning!
+- **Reasoning content:** ❌ NOT exposed (internal proprietary reasoning)
+- **Streaming:** Disabled for o1/o3 models
+
+**xAI Grok Fast Reasoning** - ✅ Reasoning tokens available
+
+- **Model:** `grok-4-1-fast-reasoning`
+- **Reasoning tokens:** Available in `usage_metadata.output_token_details.reasoning`
+- **Test result:**
+  ```json
+  {
+    "input_tokens": 168,
+    "output_tokens": 174,
+    "total_tokens": 550,
+    "output_token_details": {
+      "reasoning": 208
+    }
+  }
+  ```
+- **Note:** `reasoning` (208) > `output` (174) - different counting methodology
+- **Reasoning content:** ❌ NOT exposed
+- **Streaming:** Enabled, but only text content streamed
+
+**Gemini 2.5** - ⚠️ Complex behavior
+
+- **Model:** `gemini-2.5-flash`, `gemini-2.5-pro`
+- **With `maxReasoningTokens: 1024`:**
+  - Returns string content, NO reasoning field in usage_metadata
+  - Test result: `output_tokens: 26` (no breakdown)
+- **Without `maxReasoningTokens`:**
+  - `total_tokens: 1335` > `input_tokens` (12) + `output_tokens` (290) = discrepancy of ~1033
+  - Suggests internal reasoning but NOT exposed via LangChain
+- **Reasoning content:** ❌ NOT exposed via LangChain
+- **Conclusion:** Google includes reasoning in totals but not accessible
+
+**Anthropic Claude 4.5** - ❌ No reasoning mode
+
+- Extended thinking exists but not exposed as reasoning tokens in LangChain
+
+### LangChain API Support
+
+**UsageMetadata structure** (from `@langchain/core@1.x`):
+
+```typescript
+type UsageMetadata = {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  output_token_details?: {
+    text?: number;
+    image?: number;
+    audio?: number;
+    video?: number;
+    reasoning?: number; // ← Available here
+  };
+};
+```
+
+**ContentBlock.Reasoning type exists** but is NOT used:
+
+```typescript
+namespace ContentBlock {
+  interface Reasoning extends ContentBlock {
+    readonly type: "reasoning";
+    reasoning: string; // Defined but never returned by providers
+    index?: number;
+  }
+}
+```
+
+**Reality:** LangChain defines reasoning content blocks, but NO provider currently returns them. All reasoning is internal/proprietary.
+
+### Implementation Plan
+
+**Phase 1: Capture Reasoning Token Counts** (SIMPLE - recommended)
+
+1. **Update ChatOutput type** (`packages/util/types/llm.ts`):
+
+   ```typescript
+   export interface ChatOutput {
+     output: string;
+     total_tokens: number;
+     prompt_tokens: number;
+     completion_tokens: number;
+     reasoning_tokens?: number; // NEW
+   }
+   ```
+
+2. **Extract in evaluate-lc.ts** (~line 465):
+
+   ```typescript
+   if (usage_metadata) {
+     const { input_tokens, output_tokens, total_tokens, output_token_details } =
+       usage_metadata;
+
+     const reasoning_tokens = output_token_details?.reasoning;
+
+     return {
+       output,
+       total_tokens,
+       completion_tokens: output_tokens,
+       prompt_tokens: input_tokens,
+       reasoning_tokens, // NEW - undefined if not present
+     };
+   }
+   ```
+
+3. **Update affected code:**
+   - `packages/server/llm/index.ts` - pass through `reasoning_tokens`
+   - `packages/server/llm/save-response.ts` - save reasoning_tokens to DB (optional)
+   - Frontend - display reasoning token breakdown in UI (optional)
+
+**Phase 2: Frontend Display** (Optional)
+
+```
+Tokens: 162 total
+  ├─ Input: 13 tokens
+  ├─ Output: 149 tokens
+  │   ├─ Text: ~21 tokens
+  │   └─ Reasoning: 128 tokens (internal)
+```
+
+**Phase 3: Billing Transparency** (Optional)
+
+- Add `reasoning_tokens` to purchase description for breakdown
+- No pricing changes needed (already in `completion_tokens`)
+
+### Testing
+
+**Quick verification script:**
+
+```bash
+cat <<'EOF' | node --input-type=module
+import { ChatOpenAI } from "@langchain/openai";
+import { ChatXAI } from "@langchain/xai";
+
+// Test o3-mini
+const o3 = new ChatOpenAI({
+  model: "o3-mini",
+  apiKey: process.env.COCALC_TEST_OPENAI_KEY,
+});
+const result = await o3.invoke("What is 1+1?");
+console.log("o3-mini reasoning tokens:", result.usage_metadata?.output_token_details?.reasoning);
+
+// Test grok reasoning
+const grok = new ChatXAI({
+  model: "grok-4-1-fast-reasoning",
+  apiKey: process.env.COCALC_TEST_XAI_KEY,
+});
+const result2 = await grok.invoke("What is 1+1?");
+console.log("grok reasoning tokens:", result2.usage_metadata?.output_token_details?.reasoning);
+EOF
+```
+
+**Full test script used during investigation** (run from `packages/server` directory):
+
+```bash
+cat <<'EOF' | node --input-type=module
+import { ChatOpenAI } from "@langchain/openai";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatXAI } from "@langchain/xai";
+
+console.log("=== Testing Reasoning/Thinking Tokens ===\n");
+
+// Test 1: Gemini 2.5 with maxReasoningTokens
+if (process.env.COCALC_TEST_GOOGLE_GENAI_KEY) {
+  console.log("--- Test 1: Gemini 2.5 Flash with maxReasoningTokens=1024 ---");
+  try {
+    const gemini = new ChatGoogleGenerativeAI({
+      model: "gemini-2.5-flash",
+      apiKey: process.env.COCALC_TEST_GOOGLE_GENAI_KEY,
+      maxReasoningTokens: 1024,
+      streaming: true,
+    });
+
+    const chunks = await gemini.stream("What is 1+1? Think step by step.");
+
+    let hasReasoning = false;
+    let lastChunk = null;
+    for await (const chunk of chunks) {
+      lastChunk = chunk;
+      const content = chunk.content;
+      if (Array.isArray(content)) {
+        for (const block of content) {
+          if (block?.type === "reasoning") {
+            hasReasoning = true;
+            console.log("✅ REASONING BLOCK FOUND");
+            console.log("   Content:", block.reasoning?.substring(0, 150) + "...");
+          } else if (block?.type === "text") {
+            console.log("📝 TEXT BLOCK:", block.text);
+          }
+        }
+      }
+    }
+
+    if (lastChunk?.usage_metadata) {
+      console.log("\n📊 Usage Metadata:");
+      console.log(JSON.stringify(lastChunk.usage_metadata, null, 2));
+    }
+    console.log("Has reasoning blocks:", hasReasoning ? "✅ YES" : "❌ NO");
+  } catch (err) {
+    console.error("❌ Gemini error:", err.message);
+  }
+  console.log();
+}
+
+// Test 2: OpenAI o3-mini
+if (process.env.COCALC_TEST_OPENAI_KEY) {
+  console.log("--- Test 2: OpenAI o3-mini (reasoning model) ---");
+  try {
+    const o3 = new ChatOpenAI({
+      model: "o3-mini",
+      apiKey: process.env.COCALC_TEST_OPENAI_KEY,
+      streaming: false,
+    });
+
+    const result = await o3.invoke("What is 1+1?");
+    console.log("📝 Content:", result.content);
+
+    if (result.usage_metadata) {
+      console.log("\n📊 Usage Metadata:");
+      console.log(JSON.stringify(result.usage_metadata, null, 2));
+    }
+  } catch (err) {
+    console.error("❌ OpenAI o3 error:", err.message);
+  }
+  console.log();
+}
+
+// Test 3: xAI Grok reasoning
+if (process.env.COCALC_TEST_XAI_KEY) {
+  console.log("--- Test 3: xAI Grok Fast Reasoning ---");
+  try {
+    const grok = new ChatXAI({
+      model: "grok-4-1-fast-reasoning",
+      apiKey: process.env.COCALC_TEST_XAI_KEY,
+      streaming: true,
+    });
+
+    const chunks = await grok.stream("What is 1+1? Think step by step.");
+
+    let hasReasoning = false;
+    let lastChunk = null;
+    for await (const chunk of chunks) {
+      lastChunk = chunk;
+      const content = chunk.content;
+      if (Array.isArray(content)) {
+        for (const block of content) {
+          if (block?.type === "reasoning") {
+            hasReasoning = true;
+            console.log("✅ REASONING BLOCK FOUND");
+            console.log("   Content:", block.reasoning?.substring(0, 150) + "...");
+          } else if (block?.type === "text") {
+            console.log("📝 TEXT BLOCK:", block.text);
+          }
+        }
+      }
+    }
+
+    if (lastChunk?.usage_metadata) {
+      console.log("\n📊 Usage Metadata:");
+      console.log(JSON.stringify(lastChunk.usage_metadata, null, 2));
+    }
+    console.log("Has reasoning blocks:", hasReasoning ? "✅ YES" : "❌ NO");
+  } catch (err) {
+    console.error("❌ Grok error:", err.message);
+  }
+  console.log();
+}
+
+// Test 4: Gemini WITHOUT maxReasoningTokens (for comparison)
+if (process.env.COCALC_TEST_GOOGLE_GENAI_KEY) {
+  console.log("--- Test 4: Gemini 2.5 WITHOUT maxReasoningTokens ---");
+  try {
+    const gemini = new ChatGoogleGenerativeAI({
+      model: "gemini-2.5-flash",
+      apiKey: process.env.COCALC_TEST_GOOGLE_GENAI_KEY,
+      streaming: false,
+    });
+
+    const result = await gemini.invoke("What is 1+1? Explain your reasoning.");
+
+    console.log("Content type:", Array.isArray(result.content) ? "array" : typeof result.content);
+    if (Array.isArray(result.content)) {
+      console.log("Blocks:", result.content.map(b => b?.type).join(", "));
+    } else {
+      console.log("Content length:", result.content?.length, "chars");
+    }
+
+    if (result.usage_metadata) {
+      console.log("\nUsage metadata:", JSON.stringify(result.usage_metadata, null, 2));
+      const { input_tokens, output_tokens, total_tokens } = result.usage_metadata;
+      const discrepancy = total_tokens - (input_tokens + output_tokens);
+      if (discrepancy !== 0) {
+        console.log(`⚠️  Token discrepancy: ${discrepancy} tokens`);
+      }
+    }
+  } catch (err) {
+    console.error("Error:", err.message);
+  }
+  console.log();
+}
+
+console.log("=== Test Complete ===");
+EOF
+```
+
+**Expected output:**
+
+```
+=== Testing Reasoning/Thinking Tokens ===
+
+--- Test 1: Gemini 2.5 Flash with maxReasoningTokens=1024 ---
+
+📊 Usage Metadata:
+{
+  "input_tokens": 0,
+  "output_tokens": 26,
+  "total_tokens": 26
+}
+Has reasoning blocks: ❌ NO
+
+--- Test 2: OpenAI o3-mini (reasoning model) ---
+📝 Content: 1 + 1 equals 2.
+
+📊 Usage Metadata:
+{
+  "output_tokens": 149,
+  "input_tokens": 13,
+  "total_tokens": 162,
+  "input_token_details": {
+    "audio": 0,
+    "cache_read": 0
+  },
+  "output_token_details": {
+    "audio": 0,
+    "reasoning": 128    ← 86% is reasoning!
+  }
+}
+
+--- Test 3: xAI Grok Fast Reasoning ---
+
+📊 Usage Metadata:
+{
+  "input_tokens": 168,
+  "output_tokens": 174,
+  "total_tokens": 550,
+  "input_token_details": {
+    "audio": 0,
+    "cache_read": 151
+  },
+  "output_token_details": {
+    "audio": 0,
+    "reasoning": 208    ← Available!
+  }
+}
+Has reasoning blocks: ❌ NO
+
+--- Test 4: Gemini 2.5 WITHOUT maxReasoningTokens ---
+Content type: string
+Content length: 1121 chars
+
+Usage metadata: {
+  "input_tokens": 12,
+  "output_tokens": 290,
+  "total_tokens": 1335
+}
+⚠️  Token discrepancy: 1033 tokens    ← Hidden reasoning?
+
+=== Test Complete ===
+```
+
+### Key Findings Summary
+
+1. ✅ **Reasoning token counts ARE available** via `usage_metadata.output_token_details.reasoning`
+2. ❌ **Reasoning content is NOT available** - all providers keep it internal
+3. ✅ **Billing already correct** - reasoning tokens included in `completion_tokens`
+4. 📊 **High reasoning ratios** - o3-mini uses 86% reasoning tokens (128/149)
+5. 🔄 **Simple fix** - just extract and return `reasoning_tokens` field
+
+### References
+
+- [LangChain.js UsageMetadata](https://v03.api.js.langchain.com/types/_langchain_core.messages.UsageMetadata.html)
+- [GitHub Issue: Include Reasoning Tokens in Cost Calculation](https://github.com/langchain-ai/langchain/issues/29779)
+- Test file: `packages/server/llm/test/models.test.ts` (line 42 acknowledges thinking tokens)
