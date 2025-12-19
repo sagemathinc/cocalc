@@ -18,6 +18,7 @@ import {
   decodePatchId,
   encodePatchId,
   legacyPatchId,
+  makeClientId,
   type PatchId,
 } from "patchflow";
 
@@ -78,7 +79,7 @@ export class SyncFsService extends EventEmitter {
   constructor(store?: SyncFsWatchStore) {
     super();
     this.store = store ?? new SyncFsWatchStore();
-    this.clientId = this.makeClientId();
+    this.clientId = makeClientId();
     setInterval(this.pruneStale, HEARTBEAT_TTL);
   }
 
@@ -633,24 +634,6 @@ export class SyncFsService extends EventEmitter {
       this.conatClient = conat();
     }
     return this.conatClient;
-  }
-
-  private makeClientId(): string {
-    try {
-      const { randomBytes } = require("node:crypto") as typeof import("node:crypto");
-      const buf = randomBytes(10);
-      return buf.toString("base64url");
-    } catch (err) {
-      if (process.env.SYNC_FS_DEBUG) {
-        console.warn(
-          "sync-fs: crypto random unavailable; using weak randomness for clientId",
-          err,
-        );
-      }
-      return `${Date.now().toString(36)}-${Math.random()
-        .toString(36)
-        .slice(2, 10)}`;
-    }
   }
 
   private normalizePatchId(id: any): PatchId | undefined {
