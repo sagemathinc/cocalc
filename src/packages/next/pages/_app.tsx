@@ -8,7 +8,6 @@
 // I think this is the correct fix for https://github.com/sagemathinc/cocalc/issues/6285
 // now that we are using antd v5.
 import "antd/dist/reset.css";
-import "@ant-design/v5-patch-for-react-19";
 
 import { ConfigProvider } from "antd";
 import { Locale } from "locales/misc";
