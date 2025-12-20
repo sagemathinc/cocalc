@@ -27,10 +27,12 @@ export default function MoveProject({
     ?.getIn([project_id, "host"])
     // @ts-ignore
     ?.toJS();
-  const url = host?.public_url ?? host?.internal_url ?? "Not Assigned";
-  const currentHostId = useTypedRedux("projects", "project_map")?.getIn(
-    [project_id, "host_id"],
-  ) as string | undefined;
+  const url = host?.public_url ?? host?.internal_url;
+  const hostName = host?.name ?? url ?? "Not Assigned";
+  const currentHostId = useTypedRedux("projects", "project_map")?.getIn([
+    project_id,
+    "host_id",
+  ]) as string | undefined;
 
   return (
     <>
@@ -49,7 +51,19 @@ export default function MoveProject({
           }
         }}
       >
-        <Icon name="servers" /> Move (current: {url})
+        <Icon name="servers" />{" "}
+        <span
+          style={{
+            maxWidth: "180px",
+            display: "inline-block",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            verticalAlign: "middle",
+          }}
+          title={hostName || url || "Not Assigned"}
+        >
+          Move (current: {hostName})
+        </span>
         {moving && <Spin />}
       </Button>
       <ShowError error={error} setError={setError} />

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Button,
   Divider,
+  Dropdown,
   List,
   Modal,
   Radio,
@@ -37,6 +38,8 @@ export function HostPickerModal({
   const [hosts, setHosts] = useState<Host[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<string | undefined>();
+  const [showUnavailable, setShowUnavailable] = useState(false);
+  const [regionFilter, setRegionFilter] = useState<string | undefined>();
 
   const grouped = useMemo(() => {
     const groups: { label: string; items: Host[] }[] = [];
@@ -44,19 +47,31 @@ export function HostPickerModal({
       if (items.length) groups.push({ label, items });
     };
 
-    const owned = hosts.filter((h) => h.scope === "owned");
-    const collab = hosts.filter((h) => h.scope === "collab");
-    const poolFree = hosts.filter((h) => h.tier === "free" && h.scope === "pool");
-    const poolMember = hosts.filter(
-      (h) => h.tier === "member" && h.scope === "pool",
-    );
-    const poolPro = hosts.filter((h) => h.tier === "pro" && h.scope === "pool");
+    const filtered = hosts.filter((h) => {
+      if (!showUnavailable && h.can_place === false) return false;
+      if (regionFilter && h.region !== regionFilter) return false;
+      return true;
+    });
 
-    addGroup("Your hosts", owned);
-    addGroup("Collaborator hosts", collab);
-    addGroup("Shared pool (free)", poolFree);
-    addGroup("Shared pool (member)", poolMember);
-    addGroup("Shared pool (pro)", poolPro);
+    const current = filtered.filter((h) => h.id === currentHostId);
+    const owned = filtered.filter((h) => h.scope === "owned" && h.id !== currentHostId);
+    const collab = filtered.filter((h) => h.scope === "collab" && h.id !== currentHostId);
+    const poolFree = filtered.filter(
+      (h) => h.tier === "free" && h.scope === "pool" && h.id !== currentHostId,
+    );
+    const poolMember = filtered.filter(
+      (h) => h.tier === "member" && h.scope === "pool" && h.id !== currentHostId,
+    );
+    const poolPro = filtered.filter(
+      (h) => h.tier === "pro" && h.scope === "pool" && h.id !== currentHostId,
+    );
+
+    addGroup("Current host", current);
+    addGroup(`Your hosts (${owned.length})`, owned);
+    addGroup(`Collaborator hosts (${collab.length})`, collab);
+    addGroup(`Shared pool (free) (${poolFree.length})`, poolFree);
+    addGroup(`Shared pool (member) (${poolMember.length})`, poolMember);
+    addGroup(`Shared pool (pro) (${poolPro.length})`, poolPro);
 
     const items: any[] = [];
     for (const g of groups) {
@@ -75,7 +90,7 @@ export function HostPickerModal({
       );
     }
     return items;
-  }, [hosts, currentHostId]);
+  }, [hosts, currentHostId, showUnavailable, regionFilter]);
 
   const load = async () => {
     setLoading(true);
@@ -119,11 +134,36 @@ export function HostPickerModal({
         Pick a project host to move this project to. Files in{" "}
         <code>/scratch</code> (if any) will be discarded.
       </Typography.Paragraph>
-      <div style={{ marginBottom: 8 }}>
+      <Space style={{ marginBottom: 8 }}>
         <Button size="small" onClick={load} loading={loading}>
           Refresh
         </Button>
-      </div>
+        <Button
+          size="small"
+          onClick={() => setShowUnavailable((v) => !v)}
+          type={showUnavailable ? "primary" : "default"}
+        >
+          {showUnavailable ? "Hide unavailable" : "Show unavailable"}
+        </Button>
+        <Dropdown
+          menu={{
+            items: [
+              { key: "all", label: "All regions" },
+              ...Array.from(new Set(hosts.map((h) => h.region))).map((r) => ({
+                key: r,
+                label: r,
+              })),
+            ],
+            onClick: ({ key }) =>
+              setRegionFilter(key === "all" ? undefined : key),
+          }}
+          trigger={["click"]}
+        >
+          <Button size="small">
+            Region: {regionFilter ?? "All"}
+          </Button>
+        </Dropdown>
+      </Space>
       <Radio.Group
         style={{ width: "100%" }}
         value={selected}
@@ -137,7 +177,7 @@ export function HostPickerModal({
           renderItem={(item) => {
             if (item.type === "header") {
               return (
-                <List.Item style={{ background: "#fafafa" }}>
+                <List.Item style={{ background: "#f7f7f7" }}>
                   <Typography.Text strong>{item.label}</Typography.Text>
                 </List.Item>
               );
@@ -147,7 +187,7 @@ export function HostPickerModal({
               host.id === currentHostId || host.can_place === false;
             const muted = !host.can_place;
             return (
-              <List.Item>
+              <List.Item style={muted ? { opacity: 0.6 } : undefined}>
                 <Space
                   direction="vertical"
                   style={{ width: "100%" }}
@@ -157,7 +197,7 @@ export function HostPickerModal({
                     align="center"
                     style={{ width: "100%", justifyContent: "space-between" }}
                   >
-                    <Space>
+                    <Space wrap>
                       <Radio value={host.id} disabled={disabled}>
                         {host.name}
                       </Radio>
@@ -167,6 +207,13 @@ export function HostPickerModal({
                       {host.tier && (
                         <Tag color={host.can_place ? "blue" : "default"}>
                           {host.tier}
+                        </Tag>
+                      )}
+                      {host.can_place !== false ? (
+                        <Tag color="green">Available</Tag>
+                      ) : (
+                        <Tag icon={<Icon name="lock" />} color="default">
+                          Locked
                         </Tag>
                       )}
                     </Space>
