@@ -666,7 +666,14 @@ function buildExecutorAdapters(
   }
 
   const shellHandler = async ({ command, args, cwd, env }: any) => {
-    logger.debug("shellHandler exec", { command, args, cwd, env });
+    logger.debug("shellHandler exec", {
+      command,
+      args,
+      cwd,
+      env,
+      workspaceRoot: normalizedWorkspace,
+      hostRoot: normalizedHostRoot,
+    });
     const joined =
       args && Array.isArray(args) && args.length > 0
         ? `${command} ${args.join(" ")}`
