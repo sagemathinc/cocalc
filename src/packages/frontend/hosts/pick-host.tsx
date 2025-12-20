@@ -1,5 +1,14 @@
-import { useEffect, useState } from "react";
-import { Button, List, Modal, Radio, Space, Tag, Typography } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Button,
+  Divider,
+  List,
+  Modal,
+  Radio,
+  Space,
+  Tag,
+  Typography,
+} from "antd";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -29,6 +38,45 @@ export function HostPickerModal({
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<string | undefined>();
 
+  const grouped = useMemo(() => {
+    const groups: { label: string; items: Host[] }[] = [];
+    const addGroup = (label: string, items: Host[]) => {
+      if (items.length) groups.push({ label, items });
+    };
+
+    const owned = hosts.filter((h) => h.scope === "owned");
+    const collab = hosts.filter((h) => h.scope === "collab");
+    const poolFree = hosts.filter((h) => h.tier === "free" && h.scope === "pool");
+    const poolMember = hosts.filter(
+      (h) => h.tier === "member" && h.scope === "pool",
+    );
+    const poolPro = hosts.filter((h) => h.tier === "pro" && h.scope === "pool");
+
+    addGroup("Your hosts", owned);
+    addGroup("Collaborator hosts", collab);
+    addGroup("Shared pool (free)", poolFree);
+    addGroup("Shared pool (member)", poolMember);
+    addGroup("Shared pool (pro)", poolPro);
+
+    const items: any[] = [];
+    for (const g of groups) {
+      items.push({ type: "header", label: g.label });
+      items.push(
+        ...g.items
+          .sort((a, b) => {
+            // sort by status then name
+            const order = ["running", "starting", "off", "stopping", "deprovisioned"];
+            const ai = order.indexOf(a.status);
+            const bi = order.indexOf(b.status);
+            if (ai !== bi) return ai - bi;
+            return (a.name || "").localeCompare(b.name || "");
+          })
+          .map((h) => ({ type: "host", host: h })),
+      );
+    }
+    return items;
+  }, [hosts, currentHostId]);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -37,7 +85,9 @@ export function HostPickerModal({
       });
       setHosts(list);
       // default select the first placeable non-current host
-      const first = list.find((h) => h.id !== currentHostId && h.can_place !== false);
+      const first = list.find(
+        (h) => h.id !== currentHostId && h.can_place !== false,
+      );
       setSelected((prev) => prev ?? first?.id);
     } catch (err) {
       console.error("failed to load hosts", err);
@@ -81,11 +131,21 @@ export function HostPickerModal({
       >
         <List
           bordered
-          dataSource={hosts}
+          dataSource={grouped}
           loading={loading}
           locale={{ emptyText: "No available hosts" }}
-          renderItem={(host) => {
-            const disabled = host.id === currentHostId || host.can_place === false;
+          renderItem={(item) => {
+            if (item.type === "header") {
+              return (
+                <List.Item style={{ background: "#fafafa" }}>
+                  <Typography.Text strong>{item.label}</Typography.Text>
+                </List.Item>
+              );
+            }
+            const host = item.host as Host;
+            const disabled =
+              host.id === currentHostId || host.can_place === false;
+            const muted = !host.can_place;
             return (
               <List.Item>
                 <Space
@@ -104,7 +164,11 @@ export function HostPickerModal({
                       <Tag color={STATUS_COLOR[host.status] ?? "default"}>
                         {host.status}
                       </Tag>
-                      {host.tier && <Tag>{host.tier}</Tag>}
+                      {host.tier && (
+                        <Tag color={host.can_place ? "blue" : "default"}>
+                          {host.tier}
+                        </Tag>
+                      )}
                     </Space>
                     <Space>
                       <Tag>{host.region}</Tag>
@@ -121,9 +185,12 @@ export function HostPickerModal({
                     </Typography.Text>
                   )}
                   {host.can_place === false && host.reason_unavailable && (
-                    <Typography.Text type="secondary">
+                    <Typography.Text type="secondary" italic>
                       {host.reason_unavailable}
                     </Typography.Text>
+                  )}
+                  {muted && (
+                    <Divider style={{ margin: "4px 0" }} dashed />
                   )}
                 </Space>
               </List.Item>
