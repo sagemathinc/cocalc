@@ -464,15 +464,7 @@ export function NewProjectCreator({
         >
           {render_input_section()}
         </Modal>
-        <HostPickerModal
-          open={hostPickerOpen}
-          currentHostId={selectedHost?.id}
-          onCancel={() => setHostPickerOpen(false)}
-        onSelect={(_, host) => {
-          setHostPickerOpen(false);
-          setSelectedHost(host);
-        }}
-      />
+        {/* Host picker handled inside SelectNewHost */}
       </>
     );
   }
