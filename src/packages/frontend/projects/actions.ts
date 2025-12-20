@@ -1149,7 +1149,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
           dest_host_id,
         });
         // wait until host_id changes or move reports done/failing
-        while (store.getIn(["project_map", project_id, "host_id"]) == current_host) {
+        while (
+          store.getIn(["project_map", project_id, "host_id"]) == current_host
+        ) {
           try {
             await once(store, "change", 1000);
           } catch {}
@@ -1167,6 +1169,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
         actions?.set_activity({ id, stop: "", error: "" });
       } catch (err) {
         const error = `Error move project -- ${err}`;
+        console.log(error);
         actions?.setState({ control_error: error });
         actions?.set_activity({ id, stop: "", error });
         throw err;

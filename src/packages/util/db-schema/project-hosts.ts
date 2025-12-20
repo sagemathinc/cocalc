@@ -56,6 +56,10 @@ Table({
       type: "map",
       desc: "Additional metadata/config for this host.",
     },
+    tier: {
+      type: "string",
+      desc: "Access tier for shared/pool hosts: free/member/pro; empty means only owner/collabs can place projects.",
+    },
     created: {
       type: "timestamp",
       desc: "When this host record was created.",

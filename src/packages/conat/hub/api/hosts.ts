@@ -27,6 +27,11 @@ export interface Host {
   machine?: HostMachine;
   projects?: number;
   last_seen?: string;
+  tier?: "free" | "member" | "pro";
+  scope?: "owned" | "collab" | "shared" | "pool";
+  can_start?: boolean;
+  can_place?: boolean;
+  reason_unavailable?: string;
 }
 
 export const hosts = {
@@ -38,7 +43,11 @@ export const hosts = {
 };
 
 export interface Hosts {
-  listHosts: (opts: { account_id?: string }) => Promise<Host[]>;
+  listHosts: (opts: {
+    account_id?: string;
+    admin_view?: boolean;
+    catalog?: boolean;
+  }) => Promise<Host[]>;
   createHost: (opts: {
     account_id?: string;
     name: string;

@@ -32,10 +32,12 @@ export function HostPickerModal({
   const load = async () => {
     setLoading(true);
     try {
-      const list = await webapp_client.conat_client.hub.hosts.listHosts({});
+      const list = await webapp_client.conat_client.hub.hosts.listHosts({
+        catalog: true,
+      });
       setHosts(list);
-      // default select the first non-current host
-      const first = list.find((h) => h.id !== currentHostId);
+      // default select the first placeable non-current host
+      const first = list.find((h) => h.id !== currentHostId && h.can_place !== false);
       setSelected((prev) => prev ?? first?.id);
     } catch (err) {
       console.error("failed to load hosts", err);
@@ -82,42 +84,51 @@ export function HostPickerModal({
           dataSource={hosts}
           loading={loading}
           locale={{ emptyText: "No available hosts" }}
-          renderItem={(host) => (
-            <List.Item>
-              <Space
-                direction="vertical"
-                style={{ width: "100%" }}
-                size="small"
-              >
+          renderItem={(host) => {
+            const disabled = host.id === currentHostId || host.can_place === false;
+            return (
+              <List.Item>
                 <Space
-                  align="center"
-                  style={{ width: "100%", justifyContent: "space-between" }}
+                  direction="vertical"
+                  style={{ width: "100%" }}
+                  size="small"
                 >
-                  <Space>
-                    <Radio value={host.id} disabled={host.id === currentHostId}>
-                      {host.name}
-                    </Radio>
-                    <Tag color={STATUS_COLOR[host.status] ?? "default"}>
-                      {host.status}
-                    </Tag>
+                  <Space
+                    align="center"
+                    style={{ width: "100%", justifyContent: "space-between" }}
+                  >
+                    <Space>
+                      <Radio value={host.id} disabled={disabled}>
+                        {host.name}
+                      </Radio>
+                      <Tag color={STATUS_COLOR[host.status] ?? "default"}>
+                        {host.status}
+                      </Tag>
+                      {host.tier && <Tag>{host.tier}</Tag>}
+                    </Space>
+                    <Space>
+                      <Tag>{host.region}</Tag>
+                      <Tag>{host.size}</Tag>
+                      {host.gpu && <Tag color="purple">GPU</Tag>}
+                    </Space>
                   </Space>
-                  <Space>
-                    <Tag>{host.region}</Tag>
-                    <Tag>{host.size}</Tag>
-                    {host.gpu && <Tag color="purple">GPU</Tag>}
-                  </Space>
-                </Space>
-                <Typography.Text type="secondary">
-                  Projects: {host.projects ?? 0}
-                </Typography.Text>
-                {host.id === currentHostId && (
                   <Typography.Text type="secondary">
-                    This project is already on this host.
+                    Projects: {host.projects ?? 0}
                   </Typography.Text>
-                )}
-              </Space>
-            </List.Item>
-          )}
+                  {host.id === currentHostId && (
+                    <Typography.Text type="secondary">
+                      This project is already on this host.
+                    </Typography.Text>
+                  )}
+                  {host.can_place === false && host.reason_unavailable && (
+                    <Typography.Text type="secondary">
+                      {host.reason_unavailable}
+                    </Typography.Text>
+                  )}
+                </Space>
+              </List.Item>
+            );
+          }}
         />
       </Radio.Group>
     </Modal>

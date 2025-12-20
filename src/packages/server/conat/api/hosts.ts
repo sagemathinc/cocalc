@@ -1,5 +1,9 @@
 import { randomUUID } from "crypto";
-import type { Host, HostMachine, HostStatus } from "@cocalc/conat/hub/api/hosts";
+import type {
+  Host,
+  HostMachine,
+  HostStatus,
+} from "@cocalc/conat/hub/api/hosts";
 import getPool from "@cocalc/database/pool";
 import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 function pool() {
@@ -13,7 +17,15 @@ function requireAccount(account_id?: string): string {
   return account_id;
 }
 
-function parseRow(row: any): Host {
+function parseRow(
+  row: any,
+  opts: {
+    scope?: Host["scope"];
+    can_start?: boolean;
+    can_place?: boolean;
+    reason_unavailable?: string;
+  } = {},
+): Host {
   const metadata = row.metadata ?? {};
   const machine: HostMachine | undefined = metadata.machine;
   return {
@@ -26,13 +38,23 @@ function parseRow(row: any): Host {
     status: (row.status as HostStatus) ?? "off",
     machine,
     projects: row.capacity?.projects ?? 0,
-    last_seen: row.last_seen ? new Date(row.last_seen).toISOString() : undefined,
+    last_seen: row.last_seen
+      ? new Date(row.last_seen).toISOString()
+      : undefined,
+    tier: row.tier as Host["tier"],
+    scope: opts.scope,
+    can_start: opts.can_start,
+    can_place: opts.can_place,
+    reason_unavailable: opts.reason_unavailable,
   };
 }
 
 async function loadOwnedHost(id: string, account_id?: string): Promise<any> {
   const owner = requireAccount(account_id);
-  const { rows } = await pool().query(`SELECT * FROM project_hosts WHERE id=$1`, [id]);
+  const { rows } = await pool().query(
+    `SELECT * FROM project_hosts WHERE id=$1`,
+    [id],
+  );
   const row = rows[0];
   if (!row) {
     throw new Error("host not found");
@@ -45,15 +67,82 @@ async function loadOwnedHost(id: string, account_id?: string): Promise<any> {
 
 export async function listHosts({
   account_id,
+  admin_view,
+  catalog,
 }: {
   account_id?: string;
+  admin_view?: boolean;
+  catalog?: boolean;
 }): Promise<Host[]> {
   const owner = requireAccount(account_id);
   const { rows } = await pool().query(
-    `SELECT * FROM project_hosts WHERE metadata->>'owner' = $1 ORDER BY updated DESC NULLS LAST, created DESC NULLS LAST`,
-    [owner],
+    admin_view
+      ? `SELECT * FROM project_hosts ORDER BY updated DESC NULLS LAST, created DESC NULLS LAST`
+      : `SELECT * FROM project_hosts WHERE (metadata->>'owner' = $1) OR tier IS NOT NULL ORDER BY updated DESC NULLS LAST, created DESC NULLS LAST`,
+    admin_view ? [] : [owner],
   );
-  return rows.map(parseRow);
+
+  // determine user tier (placeholder: assume non-anon => "member" for now)
+    const userTier: "free" | "member" | "pro" = "member";
+
+  const result: Host[] = [];
+  for (const row of rows) {
+    const metadata = row.metadata ?? {};
+    const rowOwner = metadata.owner ?? "";
+    const isOwner = rowOwner === owner;
+    const collaborators = (metadata.collaborators ?? []) as string[];
+    const isCollab = collaborators.includes(owner);
+    const tier = row.tier as Host["tier"];
+    const shared = tier != null;
+
+    const scope: Host["scope"] = isOwner
+      ? "owned"
+      : isCollab
+        ? "collab"
+        : shared
+          ? "pool"
+          : "shared";
+
+    // Availability logic
+    let can_place = isOwner || isCollab;
+    let reason_unavailable: string | undefined = undefined;
+    if (shared && !can_place) {
+      if (tier === "free") {
+        can_place = true;
+      } else if (
+        tier === "member" &&
+        (userTier === "member" || userTier === "pro")
+      ) {
+        can_place = true;
+      } else if (tier === "pro" && userTier === "pro") {
+        can_place = true;
+      } else {
+        reason_unavailable =
+          tier === "member"
+            ? "Requires member tier"
+            : tier === "pro"
+              ? "Requires pro tier"
+              : "Not available";
+      }
+    }
+
+    const can_start = isOwner || (isCollab && !!metadata.collab_can_start);
+
+    // If catalog=false, filter out what user cannot place
+    if (!catalog && !can_place) {
+      continue;
+    }
+
+    result.push(
+      parseRow(row, {
+        scope,
+        can_place,
+        can_start,
+        reason_unavailable,
+      }),
+    );
+  }
+  return result;
 }
 
 export async function createHost({
@@ -125,7 +214,10 @@ export async function startHost({
     `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
     [id, "running", now],
   );
-  const { rows } = await pool().query(`SELECT * FROM project_hosts WHERE id=$1`, [id]);
+  const { rows } = await pool().query(
+    `SELECT * FROM project_hosts WHERE id=$1`,
+    [id],
+  );
   if (!rows[0]) throw new Error("host not found");
   bootlog({
     host_id: id,
@@ -155,7 +247,10 @@ export async function stopHost({
     `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
     [id, "off", now],
   );
-  const { rows } = await pool().query(`SELECT * FROM project_hosts WHERE id=$1`, [id]);
+  const { rows } = await pool().query(
+    `SELECT * FROM project_hosts WHERE id=$1`,
+    [id],
+  );
   if (!rows[0]) throw new Error("host not found");
   bootlog({
     host_id: id,
