@@ -71,7 +71,8 @@ export class CodexAcpAgent implements AcpAgent {
   private readonly child: ChildProcess;
   private readonly connection: ClientSideConnection;
   private readonly handler: CodexClientHandler;
-  private running = false;
+  // Track in-flight turns per session so different sessions can run in parallel.
+  private readonly runningSessions = new Set<string>();
   private readonly sessions = new Map<string, SessionState>();
   private exitNotified = false;
   private readonly exitHandlers = new Set<
@@ -313,13 +314,17 @@ export class CodexAcpAgent implements AcpAgent {
     logger.debug("acp.prompt.start", {
       session: session_id,
     });
-    if (this.running) {
-      throw new Error("ACP agent is already processing a request");
+    const sessionKeyNormalized = this.normalizeSessionKey(session_id);
+    if (this.runningSessions.has(sessionKeyNormalized)) {
+      throw new Error("ACP agent is already processing this session");
     }
-    this.running = true;
     this.handler.resetUsage();
-    const key = session_id ?? CodexAcpAgent.DEFAULT_SESSION_KEY;
-    const session = await this.ensureSession(key, config);
+    const session = await this.ensureSession(sessionKeyNormalized, config);
+    const runningKey = session.sessionId ?? sessionKeyNormalized;
+    if (this.runningSessions.has(runningKey)) {
+      throw new Error("ACP agent is already processing this session");
+    }
+    this.runningSessions.add(runningKey);
     this.handler.setWorkspaceRoot(session.cwdContainer);
     this.handler.setStream(stream);
 
@@ -384,7 +389,8 @@ export class CodexAcpAgent implements AcpAgent {
         session: session_id ?? session.sessionId,
       });
       this.handler.clearStream();
-      this.running = false;
+      this.runningSessions.delete(runningKey);
+      this.runningSessions.delete(sessionKeyNormalized);
       if (exitHandler) {
         this.exitHandlers.delete(exitHandler);
       }
