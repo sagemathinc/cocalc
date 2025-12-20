@@ -83,7 +83,11 @@ export async function listHosts({
   );
 
   // determine user tier (placeholder: assume non-anon => "member" for now)
-    const userTier: "free" | "member" | "pro" = "member";
+  // use a mutable union type so comparisons against other tiers don't
+  // trigger TS2367 “no overlap” warnings.
+  // TODO: derive real user tier once membership tiers are implemented.
+  type UserTier = "free" | "member" | "pro";
+  const userTier: UserTier = "member";
 
   const result: Host[] = [];
   for (const row of rows) {
@@ -111,10 +115,10 @@ export async function listHosts({
         can_place = true;
       } else if (
         tier === "member" &&
-        (userTier === "member" || userTier === "pro")
+        (userTier === "member" || userTier === ("pro" as UserTier))
       ) {
         can_place = true;
-      } else if (tier === "pro" && userTier === "pro") {
+      } else if (tier === "pro" && userTier === ("pro" as UserTier)) {
         can_place = true;
       } else {
         reason_unavailable =

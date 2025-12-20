@@ -258,6 +258,9 @@ async function handleFinalizing(row: ProjectMoveRow) {
     await savePlacement(row.project_id, {
       host_id: row.dest_host_id,
       host: {
+        name: destHost.name,
+        region: destHost.region,
+        tier: destHost.tier,
         public_url: destHost.public_url,
         internal_url: destHost.internal_url,
         ssh_server: destHost.ssh_server,

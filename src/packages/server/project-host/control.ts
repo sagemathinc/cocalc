@@ -15,6 +15,9 @@ const log = getLogger("server:project-host:control");
 type HostPlacement = {
   host_id: string;
   host: {
+    name?: string;
+    region?: string;
+    tier?: string;
     public_url?: string;
     internal_url?: string;
     ssh_server?: string;
@@ -50,7 +53,7 @@ export async function loadProject(project_id: string): Promise<ProjectMeta> {
 
 export async function loadHostFromRegistry(host_id: string) {
   const { rows } = await pool().query(
-    "SELECT public_url, internal_url, ssh_server FROM project_hosts WHERE id=$1",
+    "SELECT name, region, public_url, internal_url, ssh_server, tier FROM project_hosts WHERE id=$1",
     [host_id],
   );
   return rows[0];
@@ -59,7 +62,7 @@ export async function loadHostFromRegistry(host_id: string) {
 export async function selectActiveHost(exclude_host_id?: string) {
   const { rows } = await pool().query(
     `
-      SELECT id, public_url, internal_url, ssh_server
+      SELECT id, name, region, public_url, internal_url, ssh_server, tier
       FROM project_hosts
       WHERE status='active'
         AND last_seen > NOW() - interval '2 minutes'
@@ -137,9 +140,12 @@ async function ensurePlacement(project_id: string): Promise<HostPlacement> {
   const placement: HostPlacement = {
     host_id: chosen.id,
     host: {
+      name: chosen.name,
+      region: chosen.region,
       public_url: chosen.public_url,
       internal_url: chosen.internal_url,
       ssh_server: chosen.ssh_server,
+      tier: chosen.tier,
     },
   };
 

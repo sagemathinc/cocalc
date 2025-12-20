@@ -62,7 +62,7 @@ export default function MoveProject({
           }}
           title={hostName || url || "Not Assigned"}
         >
-          Move (current: {hostName})
+          {hostName} (Move)
         </span>
         {moving && <Spin />}
       </Button>
