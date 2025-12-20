@@ -141,11 +141,19 @@ export function StudentAssignmentInfoHeader({
     if (key === "grade") { // This step is quite different from others
       return (
         <Space direction="vertical" size="small" style={{ maxWidth: 360 }}>
+          <Text strong>Grade: Scores & Comments</Text>
           <div>{tip}</div>
           <Text strong>Actions</Text>
           <div>
-            <Icon name="forward" /> Run automated grading for all students (if
-            available)
+            <Icon name="forward" /> Run{" "}
+            <a
+              href="https://doc.cocalc.com/teaching-nbgrader.html"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              automated grading
+            </a>{" "}
+            for all students (if available)
           </div>
           {mode === "assignment" ? (
             <div>

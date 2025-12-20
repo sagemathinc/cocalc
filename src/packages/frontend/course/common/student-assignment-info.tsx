@@ -389,6 +389,7 @@ export function StudentAssignmentInfo({
           <div key="what-happens">
             <a
               target="_blank"
+              rel="noopener noreferrer"
               href="https://doc.cocalc.com/teaching-tips_and_tricks.html#how-exactly-are-assignments-copied-to-students"
             >
               {intl.formatMessage({

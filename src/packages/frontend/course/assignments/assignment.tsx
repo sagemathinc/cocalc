@@ -24,17 +24,17 @@ import { AppRedux, useActions } from "@cocalc/frontend/app-framework";
 import {
   DateTimePicker,
   Icon,
-  IconName,
   Loading,
   Tip,
 } from "@cocalc/frontend/components";
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { course, labels } from "@cocalc/frontend/i18n";
-import { capitalize, trunc_middle } from "@cocalc/util/misc";
+import { capitalize, plural, trunc_middle } from "@cocalc/util/misc";
 import { CourseActions } from "../actions";
 import { BigTime, Progress, StudentAssignmentInfoHeader } from "../common";
-import { NbgraderButton } from "../nbgrader/nbgrader-button";
+import { nbgrader_status } from "../nbgrader/util";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type {
   AssignmentRecord,
   CourseStore,
@@ -68,25 +68,6 @@ interface AssignmentProps {
   redux: AppRedux;
   students: object;
   user_map: object;
-}
-
-function useCopyConfirmState() {
-  const [copy_confirm, set_copy_confirm] = useState<{
-    [state in AssignmentCopyStep]: boolean;
-  }>({
-    assignment: false,
-    collect: false,
-    peer_assignment: false,
-    peer_collect: false,
-    return_graded: false,
-  });
-
-  // modify flags, don't replace this entirely
-  function set(state: AssignmentCopyStep, value: boolean): void {
-    set_copy_confirm((prev) => ({ ...prev, [state]: value }));
-  }
-
-  return { copy_confirm, set };
 }
 
 export function Assignment({
@@ -152,12 +133,13 @@ export function Assignment({
     set_copy_assignment_confirm_overwrite_text,
   ] = useState<string>("");
   const [student_search, set_student_search] = useState<string>("");
-  const [copy_confirm, set_copy_confirm] = useState<boolean>(false);
-
-  const { copy_confirm: copy_confirm_state, set: set_copy_confirm_state } =
-    useCopyConfirmState();
-  const { copy_confirm: copy_confirm_all, set: set_copy_confirm_all } =
-    useCopyConfirmState();
+  const [opened_run_all, set_opened_run_all] = useState<
+    AssignmentCopyStep | "grade" | null
+  >(null);
+  const [confirm_all_students, set_confirm_all_students] =
+    useState<boolean>(false);
+  const [confirm_sync_grades, set_confirm_sync_grades] =
+    useState<boolean>(false);
 
   const actions = useActions<CourseActions>({ name });
 
@@ -415,9 +397,9 @@ export function Assignment({
             }
           }
 
-          const nbgraderAction = render_nbgrader_button(status);
-          if (nbgraderAction && status.collect > 0) {
-            add_action("grade", nbgraderAction);
+          const gradeAction = render_grade_run_all(status);
+          if (gradeAction) {
+            add_action("grade", gradeAction);
           }
 
           if (status.collect > 0 && renderedMap.collect) {
@@ -574,38 +556,71 @@ export function Assignment({
       onClose?: () => void;
     },
   ) {
-    const open = copy_confirm_state[step];
+    const open = opened_run_all === step;
     const handleOpenChange = (next: boolean) => {
-      set_copy_confirm_state(step, next);
-      set_copy_confirm(next);
+      set_opened_run_all(next ? step : null);
+      set_confirm_all_students(false);
+      set_confirm_sync_grades(false);
       if (next) {
         opts.onOpen?.();
       } else {
-        set_copy_confirm_all(step, false);
         opts.onClose?.();
       }
     };
+    return render_run_all_popover({
+      key: step,
+      open,
+      onOpenChange: handleOpenChange,
+      type: opts.type,
+      content: opts.content,
+    });
+  }
+
+  function render_run_all_popover(opts: {
+    key: AssignmentCopyStep | "grade";
+    open: boolean;
+    onOpenChange: (next: boolean) => void;
+    type: "primary" | "default" | "dashed";
+    content: ReactNode;
+  }) {
     return (
       <Popover
-        key={step}
+        key={opts.key}
         placement="bottom"
         trigger="click"
-        open={open}
-        onOpenChange={handleOpenChange}
+        open={opts.open}
+        onOpenChange={opts.onOpenChange}
         content={opts.content}
         overlayInnerStyle={{ maxWidth: 545 }}
       >
         <span style={{ display: "inline-block" }}>
           <Button
             type={opts.type}
-            disabled={copy_confirm && !open}
             size="small"
             icon={<Icon name="forward" />}
-            onClick={() => handleOpenChange(true)}
+            onClick={() => opts.onOpenChange(true)}
           />
         </span>
       </Popover>
     );
+  }
+
+  function render_grade_popover(opts: {
+    type: "primary" | "default" | "dashed";
+    content: ReactNode;
+  }) {
+    const handleOpenChange = (next: boolean) => {
+      set_opened_run_all(next ? "grade" : null);
+      set_confirm_all_students(false);
+      set_confirm_sync_grades(false);
+    };
+    return render_run_all_popover({
+      key: "grade",
+      open: opened_run_all === "grade",
+      onOpenChange: handleOpenChange,
+      type: opts.type,
+      content: opts.content,
+    });
   }
 
   function render_assignment_button(status) {
@@ -651,6 +666,136 @@ export function Assignment({
     return render_copy_confirm(step, status);
   }
 
+  function is_nbgrader_running(): boolean {
+    if (nbgrader_run_info == null) return false;
+    const t = nbgrader_run_info.get(assignmentId);
+    // Time starting is set and it's also within the last few minutes.
+    // This "few minutes" is just in case -- we probably shouldn't need
+    // that at all ever, but it could make cocalc state usable in case of
+    // weird issues, I guess). User could also just close and re-open
+    // the course file, which resets this state completely.
+    return webapp_client.server_time() - (t ?? 0) <= 1000 * 60 * 10;
+  }
+
+  function render_nbgrader_run_all() {
+    const assignment_id = assignment.get("assignment_id");
+    if (assignment_id == null) return null;
+    const nbgrader = nbgrader_status(assignment);
+    const total = nbgrader.attempted + nbgrader.not_attempted;
+    const todo = nbgrader.not_attempted + nbgrader.failed;
+    const running = is_nbgrader_running();
+    const show_remaining =
+      todo > 0 && !confirm_all_students && !confirm_sync_grades;
+    const alertType = confirm_all_students || confirm_sync_grades
+      ? "error"
+      : show_remaining
+        ? "warning"
+        : "success";
+    const message = (
+      <Space direction="vertical">
+        <span>Autograde this assignment using nbgrader for</span>
+        {show_remaining && (
+          <Button
+            disabled={running}
+            type="primary"
+            onClick={() => {
+              actions.assignments.run_nbgrader_for_all_students(
+                assignment_id,
+                true,
+              );
+              set_opened_run_all(null);
+            }}
+          >
+            The {todo} student{todo > 1 ? "s" : ""} not already autograded
+          </Button>
+        )}
+        {nbgrader.attempted > 0 && !confirm_sync_grades && (
+          <Button
+            danger
+            disabled={running || confirm_all_students}
+            onClick={() => {
+              set_confirm_all_students(true);
+              set_confirm_sync_grades(false);
+            }}
+          >
+            All {total} students...
+          </Button>
+        )}
+        {confirm_all_students && (
+          <Space direction="vertical">
+            <div>Are you sure you want to autograde ALL {total} students?</div>
+            <Space>
+              <Button
+                danger
+                type="primary"
+                disabled={running}
+                onClick={() => {
+                  actions.assignments.run_nbgrader_for_all_students(
+                    assignment_id,
+                  );
+                  set_opened_run_all(null);
+                  set_confirm_all_students(false);
+                }}
+              >
+                Autograde all {total} students
+              </Button>
+              <Button
+                onClick={() => set_confirm_all_students(false)}
+                disabled={running}
+              >
+                Back
+              </Button>
+            </Space>
+          </Space>
+        )}
+        {!confirm_all_students && (
+          <Button
+            disabled={running || confirm_sync_grades}
+            onClick={() => {
+              set_confirm_sync_grades(true);
+              set_confirm_all_students(false);
+            }}
+          >
+            Sync grades...
+          </Button>
+        )}
+        {confirm_sync_grades && (
+          <Space direction="vertical">
+            <div>
+              Copy the nbgrader grades to be the assigned grades for all
+              students, even if there are ungraded manual problems, errors or
+              other issues? You probably don't need to do this.
+            </div>
+            <Space>
+              <Button
+                danger
+                type="primary"
+                disabled={running}
+                onClick={() => {
+                  actions.assignments.set_nbgrader_scores_for_all_students({
+                    assignment_id,
+                    force: true,
+                    commit: true,
+                  });
+                  set_opened_run_all(null);
+                }}
+              >
+                Sync grades for all students
+              </Button>
+              <Button
+                onClick={() => set_confirm_sync_grades(false)}
+                disabled={running}
+              >
+                Back
+              </Button>
+            </Space>
+          </Space>
+        )}
+      </Space>
+    );
+    return <Alert type={alertType} message={message} />;
+  }
+
   function render_copy_assignment_confirm_overwrite(step) {
     if (!copy_assignment_confirm_overwrite) {
       return;
@@ -661,27 +806,25 @@ export function Assignment({
       set_copy_assignment_confirm_overwrite_text("");
     };
     return (
-      <div style={{ marginTop: "15px" }}>
-        Type in "OVERWRITE" if you are sure you want to overwrite any work they
-        may have.
+      <Space direction="vertical">
+        Type in "OVERWRITE" in the box below if you are sure you want to
+        overwrite any work the students may have done.
         <Input
           autoFocus
           onChange={(e) =>
             set_copy_assignment_confirm_overwrite_text((e.target as any).value)
           }
-          style={{ marginTop: "1ex" }}
         />
-        <Space style={{ textAlign: "center", marginTop: "15px" }}>
-          <Button
-            disabled={copy_assignment_confirm_overwrite_text !== "OVERWRITE"}
-            danger
-            type="primary"
-            onClick={do_it}
-          >
-            <Icon name="exclamation-triangle" /> Confirm replacing files
-          </Button>
-        </Space>
-      </div>
+        <Button
+          disabled={copy_assignment_confirm_overwrite_text !== "OVERWRITE"}
+          icon={<Icon name="exclamation-triangle" />}
+          danger
+          type="primary"
+          onClick={do_it}
+        >
+          Confirm replacing files
+        </Button>
+      </Space>
     );
   }
 
@@ -725,9 +868,8 @@ export function Assignment({
       default:
         console.log(`BUG -- unknown step: ${step}`);
     }
-    set_copy_confirm_state(step, false);
-    set_copy_confirm_all(step, false);
-    set_copy_confirm(false);
+    set_confirm_all_students(false);
+    set_opened_run_all(null);
   }
 
   function render_skip_switch(
@@ -771,6 +913,7 @@ export function Assignment({
             to create any backups and want to <b>delete</b> all other files in
             the assignment folder of student projects.{" "}
             <a
+              rel="noopener noreferrer"
               target="_blank"
               href="https://doc.cocalc.com/teaching-tips_and_tricks.html#how-exactly-are-assignments-copied-to-students"
             >
@@ -790,8 +933,8 @@ export function Assignment({
 
   function render_copy_confirm_overwrite_all(step: AssignmentCopyStep) {
     return (
-      <div key={"copy_confirm_overwrite_all"}>
-        <div>{copy_confirm_all_caution(step)}</div>
+      <Space direction="vertical" key={"copy_confirm_overwrite_all"}>
+        {copy_confirm_all_caution(step)}
         <Space>
           <Button
             key={"all"}
@@ -814,7 +957,7 @@ export function Assignment({
           <Button
             key="back"
             onClick={() => {
-              set_copy_confirm_all(step, false);
+              set_confirm_all_students(false);
               set_copy_assignment_confirm_overwrite(false);
             }}
           >
@@ -822,7 +965,7 @@ export function Assignment({
           </Button>
         </Space>
         {render_copy_assignment_confirm_overwrite(step)}
-      </div>
+      </Space>
     );
   }
 
@@ -830,6 +973,12 @@ export function Assignment({
     const not_done = status[`not_${step}`];
     const possible = not_done + status[step];
     const total = get_store().num_students();
+    const show_new_button = not_done && !confirm_all_students;
+    const alertType = confirm_all_students
+      ? "error"
+      : show_new_button
+        ? "warning"
+        : "success";
     const message = (
       <Space
         direction="vertical"
@@ -844,6 +993,7 @@ export function Assignment({
                 Only the {STUDENT_SUBDIR}/ subdirectory will be copied to the
                 students.{" "}
                 <a
+                  rel="noopener noreferrer"
                   target="_blank"
                   href="https://doc.cocalc.com/teaching-nbgrader.html#student-version"
                 >
@@ -858,7 +1008,7 @@ export function Assignment({
           {capitalize(step_verb(step))} this assignment {step_direction(step)}
         </div>
         {/* The 15 students not already assigned to */}
-        {not_done && !copy_confirm_all[step] ? (
+        {show_new_button ? (
           <Button
             key="new"
             type="primary"
@@ -879,22 +1029,22 @@ export function Assignment({
           <Button
             key="all"
             danger
-            disabled={copy_confirm_all[step]}
+            disabled={confirm_all_students}
             onClick={() => {
-              set_copy_confirm_all(step, true);
+              set_confirm_all_students(true);
             }}
           >
             All {possible} students
             {step_ready(step, possible)}...
           </Button>
         ) : undefined}
-        {copy_confirm_all[step]
+        {confirm_all_students
           ? render_copy_confirm_overwrite_all(step)
           : undefined}
       </Space>
     );
     return (
-      <Alert key={`copy_confirm_${step}`} type="warning" message={message} />
+      <Alert key={`copy_confirm_${step}`} type={alertType} message={message} />
     );
   }
 
@@ -911,6 +1061,30 @@ export function Assignment({
       case "assignment":
         return render_assignment_button(status);
     }
+  }
+
+  function render_grade_run_all(status) {
+    if (!assignment.get("nbgrader") || status.collect === 0) {
+      return;
+    }
+    const nbgrader = nbgrader_status(assignment);
+    if (nbgrader.attempted + nbgrader.not_attempted === 0) {
+      return;
+    }
+    let type: "primary" | "default" | "dashed";
+    if (nbgrader.attempted > 0) {
+      if (nbgrader.not_attempted === 0 && nbgrader.failed === 0) {
+        type = "dashed";
+      } else {
+        type = "default";
+      }
+    } else {
+      type = "primary";
+    }
+    return render_grade_popover({
+      type,
+      content: render_nbgrader_run_all(),
+    });
   }
 
   function render_collect_button(status) {
@@ -1022,25 +1196,6 @@ export function Assignment({
         step="peer collected"
       />,
     ];
-  }
-
-  function render_nbgrader_button(status) {
-    if (
-      status.collect === 0 ||
-      !assignment.get("nbgrader") ||
-      assignment.get("skip_grading")
-    ) {
-      // No button if nothing collected or not nbgrader support or
-      // decided to skip grading
-      return;
-    }
-
-    return (
-      <NbgraderButton
-        assignment_id={assignment.get("assignment_id")}
-        name={name}
-      />
-    );
   }
 
   function render_return_graded_button(status) {
