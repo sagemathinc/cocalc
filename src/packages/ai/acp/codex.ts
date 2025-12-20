@@ -22,10 +22,19 @@ import {
   PROTOCOL_VERSION,
   ndJsonStream,
 } from "@agentclientprotocol/sdk";
-import type { PromptRequest } from "@agentclientprotocol/sdk/dist/schema";
+import type {
+  PromptRequest,
+  ReadTextFileRequest,
+  WriteTextFileRequest,
+  RequestPermissionRequest,
+  CreateTerminalRequest,
+  TerminalOutputRequest,
+  WaitForTerminalExitRequest,
+  KillTerminalCommandRequest,
+  ReleaseTerminalRequest,
+} from "@agentclientprotocol/sdk/dist/schema";
 import { argsJoin } from "@cocalc/util/args";
 import { join } from "node:path";
-
 import getLogger from "@cocalc/backend/logger";
 import {
   resolveCodexSessionMode,
@@ -65,12 +74,66 @@ type SessionState = {
   cwd?: string;
   modelId?: string;
   modeId?: string;
+  handler: CodexClientHandler;
 };
+
+class MultiplexingClient {
+  constructor(
+    private readonly getHandler: (sessionId: string) => CodexClientHandler,
+  ) {}
+
+  private handlerFromParams(params: { sessionId?: string; session_id?: string }) {
+    const sessionId = params.sessionId ?? (params as any).session_id;
+    if (!sessionId) {
+      throw new Error("missing sessionId for ACP request");
+    }
+    return this.getHandler(sessionId);
+  }
+
+  async sessionUpdate(params: any) {
+    // sessionUpdate notifications carry a sessionId; route to the right handler.
+    return await this.handlerFromParams(params).sessionUpdate(params);
+  }
+
+  async writeTextFile(params: WriteTextFileRequest) {
+    return await this.handlerFromParams(params).writeTextFile(params);
+  }
+
+  async readTextFile(params: ReadTextFileRequest) {
+    return await this.handlerFromParams(params).readTextFile(params);
+  }
+
+  async requestPermission(params: RequestPermissionRequest) {
+    return await this.handlerFromParams(params).requestPermission(params);
+  }
+
+  async createTerminal(params: CreateTerminalRequest) {
+    return await this.handlerFromParams(params).createTerminal(params);
+  }
+
+  async terminalOutput(params: TerminalOutputRequest) {
+    return await this.handlerFromParams(params).terminalOutput(params);
+  }
+
+  async waitForTerminalExit(params: WaitForTerminalExitRequest) {
+    return await this.handlerFromParams(params).waitForTerminalExit(params);
+  }
+
+  async killTerminal(params: KillTerminalCommandRequest) {
+    return await this.handlerFromParams(params).killTerminal(params);
+  }
+
+  async releaseTerminal(params: ReleaseTerminalRequest) {
+    return await this.handlerFromParams(params).releaseTerminal(params);
+  }
+}
 
 export class CodexAcpAgent implements AcpAgent {
   private readonly child: ChildProcess;
   private readonly connection: ClientSideConnection;
-  private readonly handler: CodexClientHandler;
+  // Handlers are per session to avoid cross-session stream/tool races.
+  private readonly handlers: Map<string, CodexClientHandler>;
+  private readonly handlerFactory: (sessionId: string) => CodexClientHandler;
   // Track in-flight turns per session so different sessions can run in parallel.
   private readonly runningSessions = new Set<string>();
   private readonly sessions = new Map<string, SessionState>();
@@ -83,11 +146,13 @@ export class CodexAcpAgent implements AcpAgent {
   private constructor(options: {
     child: ChildProcess;
     connection: ClientSideConnection;
-    handler: CodexClientHandler;
+    handlers: Map<string, CodexClientHandler>;
+    handlerFactory: (sessionId: string) => CodexClientHandler;
   }) {
     this.child = options.child;
     this.connection = options.connection;
-    this.handler = options.handler;
+    this.handlers = options.handlers;
+    this.handlerFactory = options.handlerFactory;
     if (typeof this.child.on == "function") { // needed just for unit tests
       this.child.on("exit", (code, signal) => {
         this.notifyExit(code, signal);
@@ -97,6 +162,14 @@ export class CodexAcpAgent implements AcpAgent {
         this.notifyExit(null, null);
       });
     }
+  }
+
+  private attachHandler(session: SessionState): SessionState {
+    const handler = this.handlerFactory(session.sessionId);
+    handler.setWorkspaceRoot(session.cwdContainer);
+    session.handler = handler;
+    this.handlers.set(session.sessionId, handler);
+    return session;
   }
 
   static async create(
@@ -249,17 +322,28 @@ export class CodexAcpAgent implements AcpAgent {
     ) as unknown as ReadableStream<Uint8Array>;
     const stream = ndJsonStream(output, input);
 
-    const handler = new CodexClientHandler({
-      commandHandlers:
-        !useNativeTerminal && options.commandHandlers
-          ? new Map(Object.entries(options.commandHandlers))
-          : undefined,
-      captureToolCalls: useNativeTerminal,
-      workspaceRoot,
-      fileAdapter: adapters.fileAdapter,
-      terminalAdapter: adapters.terminalAdapter,
-    });
-    const connection = new ClientSideConnection(() => handler, stream);
+    const handlers = new Map<string, CodexClientHandler>();
+    const handlerFactory = (sessionId: string): CodexClientHandler => {
+      const existing = handlers.get(sessionId);
+      if (existing) return existing;
+      const created = new CodexClientHandler({
+        commandHandlers:
+          !useNativeTerminal && options.commandHandlers
+            ? new Map(Object.entries(options.commandHandlers))
+            : undefined,
+        captureToolCalls: useNativeTerminal,
+        workspaceRoot,
+        fileAdapter: adapters.fileAdapter,
+        terminalAdapter: adapters.terminalAdapter,
+      });
+      handlers.set(sessionId, created);
+      return created;
+    };
+
+    const muxClient = new MultiplexingClient((sessionId) =>
+      handlerFactory(sessionId),
+    );
+    const connection = new ClientSideConnection(() => muxClient, stream);
 
     const clientCapabilities = {
       fs: {
@@ -278,7 +362,8 @@ export class CodexAcpAgent implements AcpAgent {
     return new CodexAcpAgent({
       child,
       connection,
-      handler,
+      handlers,
+      handlerFactory,
     });
   }
 
@@ -318,15 +403,16 @@ export class CodexAcpAgent implements AcpAgent {
     if (this.runningSessions.has(sessionKeyNormalized)) {
       throw new Error("ACP agent is already processing this session");
     }
-    this.handler.resetUsage();
     const session = await this.ensureSession(sessionKeyNormalized, config);
+    const handler = session.handler;
+    handler.resetUsage();
     const runningKey = session.sessionId ?? sessionKeyNormalized;
     if (this.runningSessions.has(runningKey)) {
       throw new Error("ACP agent is already processing this session");
     }
     this.runningSessions.add(runningKey);
-    this.handler.setWorkspaceRoot(session.cwdContainer);
-    this.handler.setStream(stream);
+    handler.setWorkspaceRoot(session.cwdContainer);
+    handler.setStream(stream);
 
     let exitTriggered = false;
     let exitHandler:
@@ -377,10 +463,10 @@ export class CodexAcpAgent implements AcpAgent {
       });
       await Promise.race([this.connection.prompt(request), exitPromise]);
       // If we saw live usage updates, include the latest in the summary.
-      const usage = this.handler.consumeLatestUsage();
+      const usage = handler.consumeLatestUsage();
       await stream({
         type: "summary",
-        finalResponse: this.handler.getFinalResponse(),
+        finalResponse: handler.getFinalResponse(),
         threadId: session.sessionId,
         usage: usage ?? undefined,
       });
@@ -388,7 +474,7 @@ export class CodexAcpAgent implements AcpAgent {
       logger.debug("acp.prompt.end", {
         session: session_id ?? session.sessionId,
       });
-      this.handler.clearStream();
+      handler.clearStream();
       this.runningSessions.delete(runningKey);
       this.runningSessions.delete(sessionKeyNormalized);
       if (exitHandler) {
@@ -420,8 +506,11 @@ export class CodexAcpAgent implements AcpAgent {
   }
 
   private handlerWorkspaceRoot(): string {
+    const first = this.handlers.values().next().value as
+      | CodexClientHandler
+      | undefined;
     // best-effort; handler tracks its workspace root internally
-    return (this.handler as any)?.["workspaceRoot"] ?? process.cwd();
+    return (first as any)?.["workspaceRoot"] ?? process.cwd();
   }
 
   private async ensureSession(
@@ -454,8 +543,9 @@ export class CodexAcpAgent implements AcpAgent {
     if (!this.sessions.has(session.sessionId)) {
       this.sessions.set(session.sessionId, session);
     }
-    await this.applySessionConfig(session, config);
-    return session;
+    const withHandler = this.attachHandler(session);
+    await this.applySessionConfig(withHandler, config);
+    return withHandler;
   }
 
   private findSessionById(sessionId: string): SessionState | undefined {
@@ -479,6 +569,7 @@ export class CodexAcpAgent implements AcpAgent {
       cwd: cwdHost,
       mcpServers: [],
     });
+    const handler = this.handlerFactory(response.sessionId);
     return {
       sessionId: response.sessionId,
       cwdContainer,
@@ -486,6 +577,7 @@ export class CodexAcpAgent implements AcpAgent {
       cwd: cwdHost,
       modelId: response.models?.currentModelId ?? undefined,
       modeId: response.modes?.currentModeId ?? undefined,
+      handler,
     };
   }
 
@@ -502,6 +594,7 @@ export class CodexAcpAgent implements AcpAgent {
         mcpServers: [],
       });
       logger.info("acp.session.resume", { sessionId: target });
+      const handler = this.handlerFactory(target);
       return {
         sessionId: target,
         cwdContainer: cwdHost,
@@ -509,6 +602,7 @@ export class CodexAcpAgent implements AcpAgent {
         cwd: cwdHost,
         modelId: response.models?.currentModelId ?? undefined,
         modeId: response.modes?.currentModeId ?? undefined,
+        handler,
       };
     } catch (err) {
       logger.warn("acp.session.resume_failed", { sessionId: target, err });
@@ -577,7 +671,12 @@ export class CodexAcpAgent implements AcpAgent {
   }
 
   resolveApproval(decision: ApprovalDecision): boolean {
-    return this.handler.resolveApprovalDecision(decision);
+    for (const handler of this.handlers.values()) {
+      if (handler.resolveApprovalDecision(decision)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   async interrupt(threadId: string): Promise<boolean> {
@@ -586,7 +685,7 @@ export class CodexAcpAgent implements AcpAgent {
       return false;
     }
     try {
-      this.handler.interruptSession(session.sessionId);
+      session.handler.interruptSession(session.sessionId);
       await this.connection.cancel({ sessionId: session.sessionId });
       return true;
     } catch (err) {
