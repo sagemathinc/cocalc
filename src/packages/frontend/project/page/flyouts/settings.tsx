@@ -34,6 +34,7 @@ import { HideDeleteBox } from "@cocalc/frontend/project/settings/hide-delete-box
 import { ProjectCapabilities } from "@cocalc/frontend/project/settings/project-capabilites";
 import { ProjectControl } from "@cocalc/frontend/project/settings/project-control";
 import { RestartProject } from "@cocalc/frontend/project/settings/restart-project";
+import MoveProject from "@cocalc/frontend/project/settings/move-project";
 import { SSHPanel } from "@cocalc/frontend/project/settings/ssh";
 import { StopProject } from "@cocalc/frontend/project/settings/stop-project";
 import { COMPUTE_STATES } from "@cocalc/util/compute-states";
@@ -141,6 +142,7 @@ export function SettingsFlyout(_: Readonly<Props>): React.JSX.Element {
             project_id={project_id}
             disabled={status.get("state") !== "running"}
           />
+          <MoveProject project_id={project_id} />
         </Space.Compact>
         <ProjectControlError style={{ marginTop: "15px" }} />
       </div>

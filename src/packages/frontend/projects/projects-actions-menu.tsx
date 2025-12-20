@@ -35,6 +35,7 @@ import {
   useRecentFiles,
   useServersMenuItems,
 } from "./util";
+import { HostPickerModal } from "@cocalc/frontend/hosts/pick-host";
 
 const FILES_SUBMENU_LIST_STYLE: CSS = {
   maxWidth: "80vw",
@@ -51,10 +52,15 @@ interface Props {
 
 export function ProjectActionsMenu({ record }: Props) {
   const [open, setOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
   const intl = useIntl();
   const actions = useActions("projects");
   const account_id = useTypedRedux("account", "account_id");
   const project_map = useTypedRedux("projects", "project_map");
+  const currentHostId = project_map?.getIn([
+    record.project_id,
+    "host_id",
+  ]) as string | undefined;
   const project_log = useTypedRedux(
     { project_id: record.project_id },
     "project_log",
@@ -138,6 +144,9 @@ export function ProjectActionsMenu({ record }: Props) {
         break;
       case "servers":
         openProjectTab("servers");
+        break;
+      case "move":
+        setMoveOpen(true);
         break;
       case "settings":
         actions.open_project({
@@ -252,6 +261,11 @@ export function ProjectActionsMenu({ record }: Props) {
       icon: <Icon name={FIXED_PROJECT_TABS.settings.icon} />,
     },
     {
+      key: "move",
+      label: "Move to host…",
+      icon: <Icon name="server" />,
+    },
+    {
       type: "divider",
     },
     ...(!isOwner
@@ -285,6 +299,25 @@ export function ProjectActionsMenu({ record }: Props) {
       onClick={(e) => e.stopPropagation()} // Prevent row click when clicking menu
       style={{ cursor: "pointer" }}
     >
+      {moveOpen && (
+        <HostPickerModal
+          open={moveOpen}
+          currentHostId={currentHostId}
+          onCancel={() => setMoveOpen(false)}
+          onSelect={async (dest_host_id) => {
+            setMoveOpen(false);
+            try {
+              await actions.move_project_to_host(record.project_id, dest_host_id);
+            } catch (err) {
+              console.error("move project failed", err);
+              Modal.error({
+                title: "Move failed",
+                content: `${err}`,
+              });
+            }
+          }}
+        />
+      )}
       <style>
         {`
           .cc-starred-files-submenu .ant-dropdown-menu,

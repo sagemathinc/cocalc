@@ -1025,6 +1025,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
     },
   );
 
+  // allow UI elements to open the move modal via project actions
+  open_move_modal?: (project_id: string) => void;
+
   cloneProject = async ({
     project_id,
     title,
