@@ -877,6 +877,7 @@ function TerminalRow({
           alignItems: "center",
           opacity: hovered ? 1 : 0,
           transition: "opacity 0.2s ease",
+          background: "white",
         }}
       >
         <Button

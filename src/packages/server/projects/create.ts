@@ -18,6 +18,10 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { client as filesystemClient } from "@cocalc/conat/files/file-server";
 import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import { conatWithProjectRouting } from "../conat/route-client";
+import {
+  computePlacementPermission,
+  type UserTier,
+} from "@cocalc/server/project-host/placement";
 
 const log = getLogger("server:projects:create");
 
@@ -39,6 +43,7 @@ export default async function createProject(opts: CreateProjectOptions) {
     start,
     src_project_id,
     ephemeral,
+    host_id: requested_host_id,
   } = opts;
 
   let license = opts.license;
@@ -63,8 +68,49 @@ export default async function createProject(opts: CreateProjectOptions) {
   }
 
   const pool = getPool();
-  let host_id: string | undefined;
-  let host: object | undefined;
+  let host_id: string | undefined = requested_host_id;
+  let host: any | undefined;
+
+  async function resolveHostPlacement(host_id: string) {
+    if (!account_id) {
+      throw Error("must be signed in to place a project on a host");
+    }
+    const { rows } = await pool.query(
+      "SELECT * FROM project_hosts WHERE id=$1",
+      [host_id],
+    );
+    const row = rows[0];
+    if (!row) {
+      throw Error(`host ${host_id} not found`);
+    }
+    const metadata = row.metadata ?? {};
+    const owner = metadata.owner;
+    const collaborators: string[] = metadata.collaborators ?? [];
+    const tier = row.tier as "free" | "member" | "pro" | undefined;
+    // TODO: determine real user tier when membership tiers are implemented.
+    const userTier: UserTier = "member";
+    const { can_place } = computePlacementPermission({
+      tier,
+      userTier,
+      isOwner: owner === account_id,
+      isCollab: collaborators.includes(account_id ?? ""),
+    });
+    if (!can_place) {
+      throw Error("not allowed to place a project on that host");
+    }
+    return {
+      host_id,
+      host: {
+        public_url: row.public_url,
+        internal_url: row.internal_url,
+        ssh_server: row.ssh_server,
+        name: row.name,
+        region: row.region,
+        tier: row.tier,
+      },
+    };
+  }
+
   if (src_project_id) {
     if (
       !account_id ||
@@ -72,17 +118,23 @@ export default async function createProject(opts: CreateProjectOptions) {
     ) {
       throw Error("user must be a collaborator on src_project_id");
     }
-    // keep the clone on the same project-host as the source
+    // keep the clone on the same project-host as the source unless explicitly overridden
     const { rows } = await pool.query(
       "SELECT host_id, host FROM projects WHERE project_id=$1",
       [src_project_id],
     );
-    host_id = rows[0]?.host_id;
-    host = rows[0]?.host;
+    if (!host_id && rows[0]?.host_id) {
+      host_id = rows[0].host_id;
+      host = rows[0]?.host;
+    }
     // create filesystem for new project as a clone.
     // Route clone to the host that owns the source project.
     const client = filesystemClient({ project_id: src_project_id });
     await client.clone({ project_id, src_project_id });
+  }
+
+  if (host_id && !host) {
+    ({ host_id, host } = await resolveHostPlacement(host_id));
   }
   const users =
     account_id == null ? null : { [account_id]: { group: "owner" } };

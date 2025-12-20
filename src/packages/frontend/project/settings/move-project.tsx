@@ -51,7 +51,7 @@ export default function MoveProject({
           }
         }}
       >
-        <Icon name="servers" />{" "}
+        <Icon name="servers" />
         <span
           style={{
             maxWidth: "180px",
@@ -62,7 +62,7 @@ export default function MoveProject({
           }}
           title={hostName || url || "Not Assigned"}
         >
-          {hostName} (Move)
+          {hostName}
         </span>
         {moving && <Spin />}
       </Button>

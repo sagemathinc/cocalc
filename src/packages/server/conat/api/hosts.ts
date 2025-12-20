@@ -6,6 +6,10 @@ import type {
 } from "@cocalc/conat/hub/api/hosts";
 import getPool from "@cocalc/database/pool";
 import { bootlog } from "@cocalc/conat/project/runner/bootlog";
+import {
+  computePlacementPermission,
+  type UserTier,
+} from "@cocalc/server/project-host/placement";
 function pool() {
   return getPool();
 }
@@ -86,7 +90,6 @@ export async function listHosts({
   // use a mutable union type so comparisons against other tiers don't
   // trigger TS2367 “no overlap” warnings.
   // TODO: derive real user tier once membership tiers are implemented.
-  type UserTier = "free" | "member" | "pro";
   const userTier: UserTier = "member";
 
   const result: Host[] = [];
@@ -107,28 +110,12 @@ export async function listHosts({
           ? "pool"
           : "shared";
 
-    // Availability logic
-    let can_place = isOwner || isCollab;
-    let reason_unavailable: string | undefined = undefined;
-    if (shared && !can_place) {
-      if (tier === "free") {
-        can_place = true;
-      } else if (
-        tier === "member" &&
-        (userTier === "member" || userTier === ("pro" as UserTier))
-      ) {
-        can_place = true;
-      } else if (tier === "pro" && userTier === ("pro" as UserTier)) {
-        can_place = true;
-      } else {
-        reason_unavailable =
-          tier === "member"
-            ? "Requires member tier"
-            : tier === "pro"
-              ? "Requires pro tier"
-              : "Not available";
-      }
-    }
+    const { can_place, reason_unavailable } = computePlacementPermission({
+      tier,
+      userTier,
+      isOwner,
+      isCollab,
+    });
 
     const can_start = isOwner || (isCollab && !!metadata.collab_can_start);
 

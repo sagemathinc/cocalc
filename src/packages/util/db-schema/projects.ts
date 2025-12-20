@@ -756,6 +756,8 @@ export interface CreateProjectOptions {
   account_id?: string;
   title?: string;
   description?: string;
+  // Optional explicit host placement; if omitted the master will assign.
+  host_id?: string;
   // Resource limits/settings to apply when the project runs (mirrors projects.run_quota in Postgres).
   run_quota?: any;
   // (optional) image ID

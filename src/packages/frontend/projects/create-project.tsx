@@ -39,6 +39,8 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import type { Host } from "@cocalc/conat/hub/api/hosts";
+import { SelectNewHost } from "@cocalc/frontend/hosts/select-new-host";
 
 const TOGGLE_STYLE: CSS = { margin: "10px 0" } as const;
 const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
@@ -86,6 +88,7 @@ export function NewProjectCreator({
     !!useTypedRedux("customize", "require_license_to_create_project");
   const [show_add_license, set_show_add_license] =
     useState<boolean>(requireLicense);
+  const [selectedHost, setSelectedHost] = useState<Host | undefined>();
 
   // onprem and cocalc.com use licenses to adjust quota configs – but only cocalc.com has custom software images
   const show = useMemo(
@@ -138,6 +141,7 @@ export function NewProjectCreator({
     set_show_add_license(requireLicense);
     set_title_manually(false);
     set_license_id("");
+    setSelectedHost(undefined);
   }
 
   function toggle_editing(): void {
@@ -157,6 +161,7 @@ export function NewProjectCreator({
       image: await derive_project_img_name(selected),
       start: true, // used to not start, due to apply_default_upgrades, but upgrades are  deprecated
       license: license_id,
+      host_id: selectedHost?.id,
     };
     try {
       project_id = await actions.create_project(opts);
@@ -410,6 +415,11 @@ export function NewProjectCreator({
           </Col>
           <SoftwareEnvironment onChange={onChangeHandler} />
         </Row>
+        <SelectNewHost
+          disabled={state === "saving"}
+          selectedHost={selectedHost}
+          onChange={setSelectedHost}
+        />
         {render_add_license()}
         {render_license()}
         {render_error()}
@@ -433,26 +443,37 @@ export function NewProjectCreator({
   function render_project_creation(): React.JSX.Element | undefined {
     if (state === "view") return;
     return (
-      <Modal
-        title={intl.formatMessage(labels.create_project)}
-        open={state === "edit" || state === "saving"}
-        okButtonProps={{ disabled: isDisabled() }}
-        okText={renderOKButtonText()}
-        cancelText={intl.formatMessage(labels.cancel)}
-        onCancel={cancel_editing}
-        onOk={create_project}
-        confirmLoading={state === "saving"}
-        width={{
-          xs: "90%",
-          sm: "90%",
-          md: "80%",
-          lg: "75%",
-          xl: "70%",
-          xxl: "60%",
+      <>
+        <Modal
+          title={intl.formatMessage(labels.create_project)}
+          open={state === "edit" || state === "saving"}
+          okButtonProps={{ disabled: isDisabled() }}
+          okText={renderOKButtonText()}
+          cancelText={intl.formatMessage(labels.cancel)}
+          onCancel={cancel_editing}
+          onOk={create_project}
+          confirmLoading={state === "saving"}
+          width={{
+            xs: "90%",
+            sm: "90%",
+            md: "80%",
+            lg: "75%",
+            xl: "70%",
+            xxl: "60%",
+          }}
+        >
+          {render_input_section()}
+        </Modal>
+        <HostPickerModal
+          open={hostPickerOpen}
+          currentHostId={selectedHost?.id}
+          onCancel={() => setHostPickerOpen(false)}
+        onSelect={(_, host) => {
+          setHostPickerOpen(false);
+          setSelectedHost(host);
         }}
-      >
-        {render_input_section()}
-      </Modal>
+      />
+      </>
     );
   }
 

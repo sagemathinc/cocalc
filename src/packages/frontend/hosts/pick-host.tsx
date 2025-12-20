@@ -33,7 +33,7 @@ export function HostPickerModal({
   open: boolean;
   currentHostId?: string;
   onCancel: () => void;
-  onSelect: (host_id: string) => void;
+  onSelect: (host_id: string, host?: Host) => void;
 }) {
   const [hosts, setHosts] = useState<Host[]>([]);
   const [loading, setLoading] = useState(false);
@@ -100,9 +100,9 @@ export function HostPickerModal({
       });
       setHosts(list);
       // default select the first placeable non-current host
-      const first = list.find(
-        (h) => h.id !== currentHostId && h.can_place !== false,
-      );
+      const first =
+        list.find((h) => h.id === currentHostId) ??
+        list.find((h) => h.id !== currentHostId && h.can_place !== false);
       setSelected((prev) => prev ?? first?.id);
     } catch (err) {
       console.error("failed to load hosts", err);
@@ -119,9 +119,14 @@ export function HostPickerModal({
 
   return (
     <Modal
+      width={600}
       open={open}
       onCancel={onCancel}
-      onOk={() => selected && onSelect(selected)}
+      onOk={() => {
+        if (!selected) return;
+        const host = hosts.find((h) => h.id === selected);
+        onSelect(selected, host);
+      }}
       okButtonProps={{ disabled: !selected, loading }}
       title={
         <Space>

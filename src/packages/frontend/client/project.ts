@@ -590,6 +590,7 @@ export class ProjectClient {
     start?: boolean;
     // "license_id1,license_id2,..." -- if given, create project with these licenses applied
     license?: string;
+    host_id?: string;
     // make exact clone of the files from this project:
     src_project_id?: string;
   }): Promise<string> => {
