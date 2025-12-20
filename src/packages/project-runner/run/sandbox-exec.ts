@@ -70,6 +70,7 @@ export async function sandboxExec({
     useEphemeral,
     cwd,
     script,
+    timeoutMs,
   });
   const args: string[] = [];
   const HOME = "/root";
@@ -142,7 +143,11 @@ export async function sandboxExec({
       execFile(
         "podman",
         args,
-        { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 },
+        {
+          timeout: timeoutMs,
+          maxBuffer: 10 * 1024 * 1024,
+          killSignal: "SIGKILL",
+        },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (error: any, stdout?: string, stderr?: string) => {
           if (error) {

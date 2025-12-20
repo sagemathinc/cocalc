@@ -91,6 +91,7 @@ export class LocalExecutor implements AcpExecutor {
           cwd,
           env: { ...process.env, ...(opts?.env ?? {}) },
           timeout: opts?.timeoutMs ?? DEFAULT_TERMINAL_TIMEOUT_MS,
+          killSignal: "SIGKILL",
           maxBuffer: 10 * 1024 * 1024,
         });
         return {
@@ -103,6 +104,7 @@ export class LocalExecutor implements AcpExecutor {
         cwd,
         env: { ...process.env, ...(opts?.env ?? {}) },
         timeout: opts?.timeoutMs ?? DEFAULT_TERMINAL_TIMEOUT_MS,
+        killSignal: "SIGKILL",
         maxBuffer: 10 * 1024 * 1024,
       });
       return {
@@ -113,7 +115,9 @@ export class LocalExecutor implements AcpExecutor {
     } catch (err: any) {
       // Propagate failures for callers that expect rejection on nonzero exit.
       if (typeof err?.code === "number") {
-        throw new Error(err?.stderr?.toString?.() ?? err?.message ?? "exec failed");
+        throw new Error(
+          err?.stderr?.toString?.() ?? err?.message ?? "exec failed",
+        );
       }
       return {
         stdout: err?.stdout ?? "",
