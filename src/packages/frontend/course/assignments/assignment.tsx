@@ -412,6 +412,7 @@ export function Assignment({
           }
 
           if (
+            renderedMap.peer_assignment &&
             status.peer_assignment != null &&
             progress.peer_assignment == null
           ) {
@@ -425,7 +426,11 @@ export function Assignment({
             );
           }
 
-          if (status.peer_collect != null && progress.peer_collect == null) {
+          if (
+            renderedMap.peer_collect &&
+            status.peer_collect != null &&
+            progress.peer_collect == null
+          ) {
             progress["peer_collect"] = (
               <Progress
                 key="progress-peer-collect"
@@ -550,7 +555,7 @@ export function Assignment({
   function render_step_popover(
     step: AssignmentCopyStep,
     opts: {
-      type: "primary" | "default" | "dashed";
+      type: "primary" | "default";
       content: ReactNode;
       onOpen?: () => void;
       onClose?: () => void;
@@ -580,7 +585,7 @@ export function Assignment({
     key: AssignmentCopyStep | "grade";
     open: boolean;
     onOpenChange: (next: boolean) => void;
-    type: "primary" | "default" | "dashed";
+    type: "primary" | "default";
     content: ReactNode;
   }) {
     return (
@@ -606,7 +611,7 @@ export function Assignment({
   }
 
   function render_grade_popover(opts: {
-    type: "primary" | "default" | "dashed";
+    type: "primary" | "default";
     content: ReactNode;
   }) {
     const handleOpenChange = (next: boolean) => {
@@ -624,20 +629,12 @@ export function Assignment({
   }
 
   function render_assignment_button(status) {
-    const last_assignment = assignment.get("last_assignment");
-    // Primary if it hasn't been assigned before or if it hasn't started assigning.
-    let type;
-    if (
-      !last_assignment ||
-      !(last_assignment.get("time") || last_assignment.get("start"))
-    ) {
-      type = "primary";
-    } else {
-      type = "default";
-    }
-    if (status.assignment > 0 && status.not_assignment === 0) {
-      type = "dashed";
-    }
+    const has_new = status.not_assignment > 0;
+    const type = run_all_button_type(
+      "assignment",
+      status,
+      has_new,
+    );
 
     return [
       render_step_popover("assignment", {
@@ -664,6 +661,47 @@ export function Assignment({
 
   function render_step_confirm(step, status) {
     return render_copy_confirm(step, status);
+  }
+
+  function step_complete_or_skipped(
+    step: AssignmentCopyStep,
+    status: AssignmentStatus,
+  ) {
+    if (step === "assignment" && assignment.get("skip_assignment")) {
+      return true;
+    }
+    if (step === "collect" && assignment.get("skip_collect")) {
+      return true;
+    }
+    const not_done = status[`not_${step}`];
+    if (not_done == null) return false;
+    return not_done === 0;
+  }
+
+  function previous_steps_complete(
+    step: AssignmentCopyStep,
+    status: AssignmentStatus,
+  ) {
+    const peer = is_peer_graded();
+    for (const s of STEPS(peer)) {
+      if (s === step) break;
+      if (!step_complete_or_skipped(s, status)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function run_all_button_type(
+    step: AssignmentCopyStep,
+    status: AssignmentStatus,
+    has_new: boolean,
+  ): "primary" | "default" {
+    const prev_complete = previous_steps_complete(step, status);
+    if (has_new && prev_complete) {
+      return "primary";
+    }
+    return "default";
   }
 
   function is_nbgrader_running(): boolean {
@@ -1071,16 +1109,12 @@ export function Assignment({
     if (nbgrader.attempted + nbgrader.not_attempted === 0) {
       return;
     }
-    let type: "primary" | "default" | "dashed";
-    if (nbgrader.attempted > 0) {
-      if (nbgrader.not_attempted === 0 && nbgrader.failed === 0) {
-        type = "dashed";
-      } else {
-        type = "default";
-      }
-    } else {
-      type = "primary";
-    }
+    const has_new = nbgrader.not_attempted + nbgrader.failed > 0;
+    const type = run_all_button_type(
+      "return_graded",
+      status,
+      has_new,
+    );
     return render_grade_popover({
       type,
       content: render_nbgrader_run_all(),
@@ -1092,17 +1126,12 @@ export function Assignment({
       // no button if nothing ever assigned
       return;
     }
-    let type;
-    if (status.collect > 0) {
-      // Have already collected something
-      if (status.not_collect === 0) {
-        type = "dashed";
-      } else {
-        type = "default";
-      }
-    } else {
-      type = "primary";
-    }
+    const has_new = status.not_collect > 0;
+    const type = run_all_button_type(
+      "collect",
+      status,
+      has_new,
+    );
     return [
       render_step_popover("collect", {
         type,
@@ -1133,17 +1162,12 @@ export function Assignment({
       // nothing to peer assign
       return;
     }
-    let type;
-    if (status.peer_assignment > 0) {
-      // haven't peer-assigned anything yet
-      if (status.not_peer_assignment === 0) {
-        type = "dashed";
-      } else {
-        type = "default";
-      }
-    } else {
-      type = "primary";
-    }
+    const has_new = status.not_peer_assignment > 0;
+    const type = run_all_button_type(
+      "peer_assignment",
+      status,
+      has_new,
+    );
     return [
       render_step_popover("peer_assignment", {
         type,
@@ -1172,18 +1196,12 @@ export function Assignment({
       // everybody must have received peer assignment, or collecting isn't allowed
       return;
     }
-    let type;
-    if (status.peer_collect > 0) {
-      // haven't peer-collected anything yet
-      if (status.not_peer_collect === 0) {
-        type = "dashed";
-      } else {
-        type = "default";
-      }
-    } else {
-      // warning, since we have already collected and this may overwrite
-      type = "primary";
-    }
+    const has_new = status.not_peer_collect > 0;
+    const type = run_all_button_type(
+      "peer_collect",
+      status,
+      has_new,
+    );
     return [
       render_step_popover("peer_collect", {
         type,
@@ -1215,17 +1233,12 @@ export function Assignment({
       // Nothing unreturned and ungraded yet and also nothing returned yet
       return;
     }
-    let type;
-    if (status.return_graded > 0) {
-      // Have already returned some
-      if (status.not_return_graded === 0) {
-        type = "dashed";
-      } else {
-        type = "default";
-      }
-    } else {
-      type = "primary";
-    }
+    const has_new = status.not_return_graded > 0;
+    const type = run_all_button_type(
+      "return_graded",
+      status,
+      has_new,
+    );
     return [
       render_step_popover("return_graded", {
         type,
