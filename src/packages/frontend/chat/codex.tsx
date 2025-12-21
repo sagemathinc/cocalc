@@ -58,15 +58,10 @@ const MODE_OPTIONS: ModeOption[] = [
     warning: true,
   },
   {
-    value: "auto",
-    label: "Sandboxed",
-    description:
-      "Codex can run commands and edit files inside this workspace. Approvals may be requested for certain operations.",
-  },
-  {
     value: "read-only",
     label: "Read only",
-    description: "Inspect files safely. Commands and edits require approval.",
+    description:
+      "Inspect files safely. Commands that would modify files will fail.",
   },
 ];
 
@@ -138,7 +133,7 @@ export function CodexConfigButton({
       reasoning: baseReasoning,
       envHome: "",
       envPath: "",
-      sessionMode: "auto" as CodexSessionMode,
+      sessionMode: "full-access" as CodexSessionMode,
     };
     const saved = actions?.getCodexConfig?.(new Date(ms));
     const merged: CodexThreadConfig = { ...defaults, ...saved };
@@ -360,9 +355,8 @@ export function CodexConfigButton({
         return "Codex Read Only";
       case "full-access":
         return "Codex Full Access";
-      case "auto":
       default:
-        return "Codex Sandboxed";
+        return "Codex";
     }
   })();
 
