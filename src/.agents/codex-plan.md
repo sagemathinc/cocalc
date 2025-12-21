@@ -1,25 +1,38 @@
 # Codex Plans
 
 
-## Track upstream
+
+
+## Switch to upstream codex
 
 - We have been using ACP and codex-acp but this adds no value and complicates things a lot, so now we're considering switching to a slightly patched codex-cli.
 
 - We will create a patched binary and docker container image.
 
-- [ ] switch to patch heuristic so can switch to straight upstream codex and no fork at all
-- [ ] I just noticed also that the context is wrong now due to a format change
-- [ ] get multiuser codex to work again
+- [x] switch to patch heuristic so can switch to straight upstream codex and no fork at all
+- [ ] I just noticed also that the context is sometimes wrong now due to a format change (?); often it is right too.
+- [ ] get multiuser to work again (just a path issue? -- need to figure out codex path on host and mount it into terminal)
 - [ ] the terminal shell parsing is all broken due to missing cwd (?)
+
+
+## Make multiuser secure with accounting via a proxy
+
+Goal: keep API keys out of codex containers, enforce per-project usage accounting, and avoid cross-project leakage by proxying all OpenAI traffic through a CoCalc-owned gateway.
+
+- [ ] Add a minimal HTTP proxy that forwards all `/v1/*` requests to the upstream OpenAI API, injects the real API key server-side, and strips any client-provided Authorization headers.
+- [ ] Require project-scoped auth on the proxy (e.g., HMAC token or conat-issued token) and map each request to `{project_id, account_id}` for accounting.
+- [ ] Make codex containers use the proxy via `OPENAI_API_BASE` and **do not mount** any API key or auth file into the container.
+- [ ] Add logging/limits in the proxy (per-project token caps, rate limits, and per-project usage attribution).
+- [ ] Document how `/status` will be project-scoped with per-project containers (or proxy-based attribution if we ever share containers).
+
+
 
 
 ## Make Codex Chat Rock Solid and Robust
 
 Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-safe by (1) using a single canonical notion of Codex `session_id`, (2) making the backend the authority for creating/persisting that `session_id` when blank, and (3) deriving all ACP log identifiers (store/key/subject) from a single shared helper in `src/packages/chat`.
 
-- [ ] the "const terminalAdapter: TerminalAdapter = {" computes the output using a local or container executor which truncates at 10MB.  It then truncates at whatever was given in options, which is I think often much LESS than 10MB.  Seems silly and wasteful in multiple ways.  Fix.
-
-- [ ] bug with missing initial messages is still there.  
+- [ ] (unclear) bug with missing initial messages is still there.  
     - start turn
     - wait a few seconds as it proceeds
     - click to see thinking sidebar drawer
@@ -27,14 +40,11 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
     - refresh browser fixes it'
   - We could cleanly fix this once for all by switching to using an ephemeral stream.
 
-- [ ] in lite mode nothing but "full access" works. They might \-\- this is just a test.
-  - "sandbox/readonly in lite hangs; prompt.start with no end; likely codex\-acp failure \(no stderr surfaced\)"
-
 - [ ] change what sandbox option in container mode means \(as configured in frontend/chat\), i.e., when 'lite' is true, where `import {lite} from @cocalc/frontend/lite`. see other tasks below. The codex internal sandbox mode doesn't make any sense, but having a sandbox mode does.
 
 - [ ] limit agent to only be able to write inside the workspace by mounting only a subset of the project's directory writable and the rest readonly, when doing sandboxExec. This is the key needed for sandbox mode.  Also handle fs calls differently.
 
-- [ ] implemented readonly container mode by mounting the sandboxExec container fs readonly
+- [ ] implement readonly container mode by mounting the sandboxExec container fs readonly
 
 - [ ] mounts created via src/packages/project\-runner/run/sandbox\-exec.ts do not get freed, which would lead to resource leakage.   The overlayfs mount _is_ shared with the project if it is running, so this is subtle.  We only want to unmount if we actually make the mount and the project or another container didn't similarly start using it.  I.e., we need reference counting for the mount/unmount command.
 
@@ -56,6 +66,11 @@ Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-sa
 
 
 #### Done
+- [x] in lite mode nothing but "full access" works. They might \-\- this is just a test.
+  - "sandbox/readonly in lite hangs; prompt.start with no end; likely codex\-acp failure \(no stderr surfaced\)"
+
+
+- [x] (no longer relevant) the "const terminalAdapter: TerminalAdapter = {" computes the output using a local or container executor which truncates at 10MB.  It then truncates at whatever was given in options, which is I think often much LESS than 10MB.  Seems silly and wasteful in multiple ways.  Fix.
 
 
 - [x] need frontend ui indicator that a chat was submitted (and also queued to submit), but isn't yet running.
@@ -334,4 +349,3 @@ Bring Codex agents into CoCalc chat so users can open a thread, point it at a wo
 - Settings UI: `packages/frontend/account/lite-ai-settings.tsx`, `/customize` logic in `packages/lite/hub/settings.ts`.
 
 Keep this summary handy when switching workspaces so the next session can pick up Codex integration without re-reading history.
-

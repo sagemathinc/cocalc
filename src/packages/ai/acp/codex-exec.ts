@@ -422,11 +422,18 @@ export class CodexExecAgent implements AcpAgent {
 
   private extractPathCandidates(text: string): string[] {
     const candidates = new Set<string>();
+    // Capture `-lc '...'` to also scan shell snippets embedded in command strings.
     const inner = text.match(/-lc\s+(['"])([\s\S]*?)\1/);
     const sources = inner ? [text, inner[2]] : [text];
+    // Heuristic path detectors:
+    // - absolute paths (/...)
+    // - relative paths with slashes (foo/bar/baz)
+    // - filenames with extensions (foo.txt)
+    // We run the broader patterns too, so punctuation or brackets don't block matches.
     const patterns = [
       /\/[A-Za-z0-9._~\-/]+/g,
       /(?:^|\s)([A-Za-z0-9._~\-]+\/[A-Za-z0-9._~\-/]+)/g,
+      /([A-Za-z0-9._~\-]+\/[A-Za-z0-9._~\-/]+)/g,
       /(?:^|\s)([A-Za-z0-9._~\-]+\.[A-Za-z0-9._~\-]+)/g,
     ];
     for (const source of sources) {
@@ -435,7 +442,10 @@ export class CodexExecAgent implements AcpAgent {
         while ((match = pattern.exec(source)) != null) {
           const value = match[1] ?? match[0];
           if (!value) continue;
-          candidates.add(value.replace(/[\"'`;,]$/, ""));
+          const cleaned = value
+            .replace(/^[\"'`([{]+/, "")
+            .replace(/[\"'`);,}\]]+$/, "");
+          candidates.add(cleaned);
         }
       }
     }

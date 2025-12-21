@@ -1,0 +1,16 @@
+set -ev
+
+export COCALC_ACP_MODE=codex
+export COCALC_ACP_AGENT_BIN=/home/wstein/bin/codex-acp
+export CODEX_LINUX_SANDBOX_EXE=/home/wstein/bin/codex-linux-sandbox
+export COCALC_ACP_MAX_SESSIONS=20
+
+unset DEBUG_FILE
+export COCALC_DATA=/home/wstein/scratch/cocalc-lite/data-0
+mkdir -p "$COCALC_DATA"
+export COCALC_RUSTIC=/home/wstein/scratch/cocalc-lite/data-0/rustic
+
+rm -f "$COCALC_DATA"/log
+
+pnpm daemon:stop 0 || true
+pnpm daemon:start 0

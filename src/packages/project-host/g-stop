@@ -1,0 +1,5 @@
+set -ev
+export COCALC_DATA=/home/wstein/scratch/cocalc-lite/data-0
+pnpm daemon:stop 0 || true
+export COCALC_DATA=/home/wstein/scratch/cocalc-lite/data-1
+pnpm daemon:stop 1 || true
