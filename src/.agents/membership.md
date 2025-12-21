@@ -98,15 +98,15 @@
 
 ## Concrete Transition Checklist (Minimal Branching)
 
-### Phase 1: Core membership model + billing reuse
+### \(done\) Phase 1: Core membership model \+ billing reuse
 
-[ ] Extend subscription metadata to include `type:"membership"` and membership class in [src/packages/util/db-schema/subscriptions.ts](./src/packages/util/db-schema/subscriptions.ts). (easy)  
-[ ] Add a membership resolver module (e.g., `src/packages/server/membership/resolve.ts`) that returns effective class + entitlements for an account (self-pay subscription, course, org). (medium)  
-[ ] Add central membership tier config in server settings (single JSON) consumed by the resolver in [src/packages/database/settings/server-settings.ts](./src/packages/database/settings/server-settings.ts). (medium)  
-[ ] Update subscription creation to allow membership metadata in [src/packages/server/purchases/create-subscription.ts](./src/packages/server/purchases/create-subscription.ts) without touching `site_licenses`. (easy)  
-[ ] Update renewal/resume logic to branch on `metadata.type` in [src/packages/server/purchases/renew-subscription.ts](./src/packages/server/purchases/renew-subscription.ts) and [src/packages/server/purchases/resume-subscription.ts](./src/packages/server/purchases/resume-subscription.ts); for membership, just extend subscription period and skip license edits. (medium)  
-[ ] Update subscription payment flow to branch on `metadata.type` in [src/packages/server/purchases/stripe/create-subscription-payment.ts](./src/packages/server/purchases/stripe/create-subscription-payment.ts); for membership, compute new period end without touching `site_licenses`. (medium)  
-[ ] Update subscription maintenance messaging to describe memberships in [src/packages/server/purchases/maintain-subscriptions.ts](./src/packages/server/purchases/maintain-subscriptions.ts) and [src/packages/server/purchases/subscription-renewal-emails.ts](./src/packages/server/purchases/subscription-renewal-emails.ts). (easy)  
+[x] Extend subscription metadata to include `type:"membership"` and membership class in [src/packages/util/db\-schema/subscriptions.ts](./src/packages/util/db-schema/subscriptions.ts). \(easy\)  
+[x] Add a membership resolver module \(e.g., `src/packages/server/membership/resolve.ts`\) that returns effective class \+ entitlements for an account \(self\-pay subscription, course, org\). \(medium\)  
+[x] Add central membership tier config in server settings \(single JSON\) consumed by the resolver in [src/packages/database/settings/server\-settings.ts](./src/packages/database/settings/server-settings.ts). \(medium\)  
+[x] Update subscription creation to allow membership metadata in [src/packages/server/purchases/create\-subscription.ts](./src/packages/server/purchases/create-subscription.ts) without touching `site_licenses`. \(easy\)  
+[x] Update renewal/resume logic to branch on `metadata.type` in [src/packages/server/purchases/renew\-subscription.ts](./src/packages/server/purchases/renew-subscription.ts) and [src/packages/server/purchases/resume\-subscription.ts](./src/packages/server/purchases/resume-subscription.ts); for membership, just extend subscription period and skip license edits. \(medium\)  
+[x] Update subscription payment flow to branch on `metadata.type` in [src/packages/server/purchases/stripe/create\-subscription\-payment.ts](./src/packages/server/purchases/stripe/create-subscription-payment.ts); for membership, compute new period end without touching `site_licenses`. \(medium\)  
+[x] Update subscription maintenance messaging to describe memberships in [src/packages/server/purchases/maintain\-subscriptions.ts](./src/packages/server/purchases/maintain-subscriptions.ts) and [src/packages/server/purchases/subscription\-renewal\-emails.ts](./src/packages/server/purchases/subscription-renewal-emails.ts). \(easy\)
 
 Exit criteria: membership subscriptions can be created, billed, renewed, and displayed in backend APIs without touching licenses.  
 Risks/unknowns: metadata branching might miss legacy flows; subscription UI assumes license metadata in multiple places.  
@@ -121,9 +121,11 @@ Risks/unknowns: quota injection could conflict with legacy site_license stacking
 
 ### Phase 3: UI and migration/compatibility
 
-[ ] Add membership-aware UI rendering in [src/packages/frontend/purchases/subscriptions.tsx](./src/packages/frontend/purchases/subscriptions.tsx) and [src/packages/next/components/billing/subscriptions.tsx](./src/packages/next/components/billing/subscriptions.tsx) (show membership class instead of license id). (medium)  
-[ ] Keep legacy license subscriptions visible under an “Advanced” tab or section in [src/packages/next/components/store](./src/packages/next/components/store). (easy)  
-[ ] Add migration/compat mapping: map existing license subscriptions to membership classes and preserve remaining value (advanced/legacy still available). (hard)  
+[x] Add membership\-aware UI rendering in [src/packages/frontend/purchases/subscriptions.tsx](./src/packages/frontend/purchases/subscriptions.tsx) and [src/packages/next/components/billing/subscriptions.tsx](./src/packages/next/components/billing/subscriptions.tsx) \(show membership class instead of license id\). \(medium\)  
+[ ] Keep legacy license subscriptions visible under an “Advanced” tab or section in [src/packages/next/components/store](./src/packages/next/components/store). \(easy\)  
+[ ] Add migration/compat mapping: map existing license subscriptions to membership classes and preserve remaining value \(advanced/legacy still available\). \(hard\)
+
+[ ] Make the Membership Tiers admin configuration user friendly \(custom react component form\), after deciding what the options are.  Right now it's a just a mystery json blob \(medium\)
 
 Exit criteria: users can see membership subscriptions in UI, legacy licenses remain accessible, and existing paid value is preserved.  
 Risks/unknowns: migration mapping could under/over-credit value; “advanced” legacy UX needs careful labeling to avoid confusion.  
@@ -140,3 +142,4 @@ Risks/unknowns: migration mapping could under/over-credit value; “advanced” 
 - Ownership-based entitlements match the “account tier drives project limits” model.
 - Custom project hosts align with “bring-your-own-infra + platform fee” used by modern data/ML platforms.
 - Clear separation of “membership features/limits” vs “infrastructure cost” reduces confusion compared to per-project licensing.
+
