@@ -974,7 +974,7 @@ function TerminalPreview({
       fontSize: fontSizePref,
       scrollback: 5000,
       rows,
-      cols: 256,
+      cols: 100,
     });
     setTheme(term, colorScheme);
     termRef.current = term;
