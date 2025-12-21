@@ -414,7 +414,7 @@ export function CodexConfigButton({
             <div style={gridTwoColStyle}>
               <Form.Item label="Model" name="model" style={formItemStyle}>
                 <Select
-                placeholder="e.g., gpt-5.2-codex"
+                  placeholder="e.g., gpt-5.2-codex"
                   options={models}
                   optionRender={(option) =>
                     renderOptionWithDescription({
@@ -576,8 +576,7 @@ function getCodexUsageSummary(
   if (!rootIso) return undefined;
   const seq = actions.getMessagesInThread(rootIso);
   if (!seq) return undefined;
-  const threadMessages: ChatMessageTyped[] =
-    typeof seq.toArray === "function" ? seq.toArray() : Array.from(seq);
+  const threadMessages: ChatMessageTyped[] = seq;
   // Messages can arrive out of order from the SyncDB; normalize to chronological
   // order so usage totals reflect the most recent turn.
   const sortedMessages = threadMessages.sort((a, b) => {

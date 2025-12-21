@@ -138,7 +138,6 @@ export type ThreadMeta = ThreadListItem & {
   isAI: boolean;
   isPinned: boolean;
   lastActivityAt?: number;
-  contextRemaining?: number;
 };
 
 const ACTIVITY_RECENT_MS = 7_500;
@@ -329,17 +328,6 @@ export function ChatPanel({
 
   const llmCacheRef = useRef<Map<string, boolean>>(new Map());
   const rawThreads = useThreadList(messages);
-  const contextRemainingByThread = useMemo(() => {
-    const result = new Map<string, number>();
-    if (!messages) return result;
-    for (const thread of rawThreads) {
-      const pct = computeThreadContextRemaining(thread.key, actions, messages);
-      if (pct != null) {
-        result.set(thread.key, pct);
-      }
-    }
-    return result;
-  }, [rawThreads, actions, messages]);
   const threads = useMemo<ThreadMeta[]>(() => {
     return rawThreads.map((thread) => {
       const rootMessage = thread.rootMessage;
@@ -387,10 +375,9 @@ export function ChatPanel({
         isAI: !!isAI,
         isPinned,
         lastActivityAt,
-        contextRemaining: contextRemainingByThread.get(thread.key),
       };
     });
-  }, [rawThreads, account_id, actions, activity, contextRemainingByThread]);
+  }, [rawThreads, account_id, actions, activity]);
 
   const threadSections = useMemo<ThreadSectionWithUnread[]>(() => {
     const grouped = groupThreadsByRecency(threads);
@@ -1526,80 +1513,6 @@ function slugifyLabel(label?: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
   return slug;
-}
-
-function computeThreadContextRemaining(
-  threadKey: string,
-  actions?: ChatActions,
-  messages?: ChatMessages,
-): number | null {
-  if (!actions?.getMessagesInThread || !messages) return null;
-  const ms = Number(threadKey);
-  const keyIso = Number.isFinite(ms)
-    ? new Date(ms).toISOString()
-    : (threadKey ?? "");
-  const seq = actions.getMessagesInThread(keyIso);
-  if (!seq) return null;
-  const list =
-    typeof seq.toArray === "function" ? seq.toArray() : Array.from(seq);
-  if (!list?.length) return null;
-  list.sort((a, b) => {
-    const aDate = dateValue(a)?.valueOf?.() ?? 0;
-    const bDate = dateValue(b)?.valueOf?.() ?? 0;
-    return aDate - bDate;
-  });
-  let remaining: number | null = null;
-  for (const entry of list) {
-    const usageRaw: any = field(entry, "acp_usage");
-    if (!usageRaw) continue;
-    const usage =
-      typeof usageRaw?.toJS === "function" ? usageRaw.toJS() : usageRaw;
-    const pct = calcRemainingPercent(usage);
-    if (pct != null) {
-      remaining = pct;
-    }
-  }
-  return remaining;
-}
-
-function calcRemainingPercent(usage: any): number | null {
-  if (!usage || typeof usage !== "object") return null;
-  const contextWindow = usage.model_context_window;
-  const usedTokens =
-    calcUsedTokens(usage) ??
-    (typeof usage.total_tokens === "number" ? usage.total_tokens : undefined);
-  if (
-    typeof contextWindow !== "number" ||
-    !Number.isFinite(contextWindow) ||
-    contextWindow <= 0 ||
-    typeof usedTokens !== "number" ||
-    !Number.isFinite(usedTokens)
-  ) {
-    return null;
-  }
-  const cappedUsed = Math.min(usedTokens, contextWindow);
-  return Math.max(
-    0,
-    Math.round(((contextWindow - cappedUsed) / contextWindow) * 100),
-  );
-}
-
-function calcUsedTokens(usage: any): number | undefined {
-  if (!usage || typeof usage !== "object") return undefined;
-  const keys = [
-    "input_tokens",
-    "cached_input_tokens",
-    "output_tokens",
-    "reasoning_output_tokens",
-  ] as const;
-  let total = 0;
-  for (const key of keys) {
-    const value = usage[key];
-    if (typeof value === "number" && Number.isFinite(value)) {
-      total += value;
-    }
-  }
-  return total > 0 ? total : undefined;
 }
 
 function ChatRoomInner({

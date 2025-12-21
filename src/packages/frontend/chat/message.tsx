@@ -383,13 +383,13 @@ export default function Message({
     const logRefs: { store: string; key: string }[] = [];
     const rootIso =
       threadRootMs != null ? new Date(threadRootMs).toISOString() : undefined;
-    if (rootIso && actions?.getMessagesInThread) {
+    if (rootIso && actions) {
       const seq = actions.getMessagesInThread(rootIso);
-      seq?.forEach((msg) => {
+      for (const msg of seq ?? []) {
         const d = dateValue(msg);
-        if (!(d instanceof Date)) return;
+        if (!(d instanceof Date)) continue;
         dates.push(d);
-        if (!project_id || !path) return;
+        if (!project_id || !path) continue;
         const refs = deriveAcpLogRefs({
           project_id,
           path,
@@ -397,7 +397,7 @@ export default function Message({
           turn_date: d.toISOString(),
         });
         logRefs.push({ store: refs.store, key: refs.key });
-      });
+      }
     } else if (messages?.forEach) {
       messages.forEach((msg) => {
         const d = dateValue(msg);

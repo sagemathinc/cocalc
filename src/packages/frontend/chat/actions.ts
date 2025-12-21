@@ -819,12 +819,7 @@ export class ChatActions extends Actions<ChatState> {
 
     const threadIso = threadKeyToIso(threadKey);
     if (!threadIso) return;
-    const seq = this.getMessagesInThread(threadIso);
-    if (!seq) return;
-    const list =
-      typeof (seq as any).toArray === "function"
-        ? (seq as any).toArray()
-        : Array.from(seq as any);
+    const list = this.getMessagesInThread(threadIso);
     if (!list?.length) return;
 
     const content = list
@@ -971,11 +966,7 @@ export class ChatActions extends Actions<ChatState> {
    * @param dateStr - the ISO date of the message to get the thread for
    * @returns  - the messages in the thread, sorted by date
    */
-  getMessagesInThread = (
-    dateStr: string,
-  ):
-    | (ChatMessageTyped[] & { toArray?: () => ChatMessageTyped[] })
-    | undefined => {
+  getMessagesInThread = (dateStr: string): ChatMessageTyped[] | undefined => {
     const messages = this.getAllMessages();
     if (!messages || messages.size === 0) return undefined;
     const list: ChatMessageTyped[] = [];
@@ -987,9 +978,7 @@ export class ChatActions extends Actions<ChatState> {
     list.sort((a, b) =>
       cmp(dateValue(a)?.valueOf?.(), dateValue(b)?.valueOf?.()),
     );
-    // Preserve legacy API shape where callers sometimes expect a toArray() helper.
-    (list as any).toArray = () => list;
-    return list as any;
+    return list;
   };
 
   private saveSyncdb = async (): Promise<void> => {
