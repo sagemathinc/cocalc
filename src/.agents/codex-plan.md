@@ -3,19 +3,26 @@
 
 
 
-## Switch to upstream codex
+## Fully Switch to upstream codex
 
 - We have been using ACP and codex-acp but this adds no value and complicates things a lot, so now we're considering switching to a slightly patched codex-cli.
 
 - We will create a patched binary and docker container image.
 
+- [ ] get /context and other non-interactive slash commands to work using a pty
+
+- [ ] include codex core rust binary in SEA project-host bundle.  http://localhost:7000/projects/00000000-1000-4000-8000-000000000000/files/build/cocalc-lite/a.chat#chat=1766344150510
+
+
+---
+
+- [x] (unclear) I just noticed also that the context is sometimes wrong now due to a format change (?); often it is right too.
+- [x] get multiuser to work again
 - [x] switch to patch heuristic so can switch to straight upstream codex and no fork at all
-- [ ] I just noticed also that the context is sometimes wrong now due to a format change (?); often it is right too.
-- [ ] get multiuser to work again (just a path issue? -- need to figure out codex path on host and mount it into terminal)
-- [ ] the terminal shell parsing is all broken due to missing cwd (investigate local vs container defaults)
+- [x] the terminal shell parsing is all broken due to missing cwd (investigate local vs container defaults)
 
 
-## Make multiuser secure with accounting via a proxy
+## [ ] Make multiuser secure with accounting via a proxy (#blocker for production)
 
 Goal: keep API keys out of codex containers, enforce per-project usage accounting, and avoid cross-project leakage by proxying all OpenAI traffic through a CoCalc-owned gateway.
 This is a hard security requirement for multiuser deployments; do not ship without it.

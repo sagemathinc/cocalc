@@ -277,6 +277,9 @@ export function CodexConfigButton({
         ? "#b26a00"
         : COLORS.GRAY;
 
+  // @ts-ignore -- not used right now, but we may bring it back when we implement
+  // "slash commands", if we do them with a frontend UI integration.
+  // We might instead just pop up a terminal.
   const contextMeter =
     remainingPercent != null ? (
       <div
@@ -325,16 +328,6 @@ export function CodexConfigButton({
               </Text>
             </Tooltip>
           </Space>
-          {actions?.runCodexCompact ? (
-            <Button
-              size="small"
-              onClick={() => saveConfig({ compact: true })}
-              type={contextSeverity === "ok" ? "default" : "primary"}
-              danger={contextSeverity === "critical"}
-            >
-              Compact
-            </Button>
-          ) : null}
         </div>
         <Progress
           percent={100 - remainingPercent}
@@ -395,7 +388,6 @@ export function CodexConfigButton({
         bodyStyle={{ maxHeight: "75vh", overflowY: "auto" }}
       >
         <Space direction="vertical" style={{ width: "100%" }} size={12}>
-          {contextMeter}
           <Form form={form} layout="vertical">
             <SectionTitle>Session basics</SectionTitle>
             <div style={gridTwoColStyle}>

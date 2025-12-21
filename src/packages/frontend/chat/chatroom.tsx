@@ -1165,14 +1165,14 @@ export function ChatPanel({
                     chatPath={path}
                     actions={actions}
                   />
-                  <Button
+                </Space>
+                {/*     <Button
                     size="small"
                     onClick={() => actions.runCodexCompact(selectedThreadKey)}
                     disabled={!selectedThreadKey || actions == null}
                   >
                     Compact
-                  </Button>
-                </Space>
+                  </Button>*/}
               </div>
             )}
           <ChatLog

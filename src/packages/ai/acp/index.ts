@@ -21,3 +21,9 @@ export type {
 
 export { EchoAgent, echoAgent } from "./echo";
 export { CodexExecAgent } from "./codex-exec";
+export {
+  getCodexProjectSpawner,
+  setCodexProjectSpawner,
+  type CodexProjectSpawner,
+  type CodexProjectSpawnOptions,
+} from "./codex-project";

@@ -15,12 +15,10 @@
     "./server-settings": "./dist/server-settings/index.js",
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js",
-    "./podman": "./dist/podman/index.js"
+    "./podman": "./dist/podman/index.js",
+    "./which": "./dist/which.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules tsconfig.tsbuildinfo",
@@ -39,12 +37,7 @@
     "conat-persist": "DEBUG=cocalc:*  node ./bin/conat-persist.cjs",
     "conat-test-server": "node ./bin/conat-test-server.cjs"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {

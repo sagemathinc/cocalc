@@ -30,6 +30,7 @@ import { startMasterRegistration } from "./master";
 import { startReconciler } from "./reconcile";
 import { init as initAcp } from "@cocalc/lite/hub/acp";
 import { setContainerExec } from "@cocalc/lite/hub/acp/executor/container";
+import { initCodexProjectRunner } from "./codex-project";
 import { setPreferContainerExecutor } from "@cocalc/lite/hub/acp/workspace-root";
 import { sandboxExec } from "@cocalc/project-runner/run/sandbox-exec";
 import {
@@ -116,6 +117,7 @@ export async function main(
       useEphemeral: true,
     }),
   );
+  initCodexProjectRunner();
   await initAcp(conatClient);
 
   // Minimal local persistence so DKV/state works (no external hub needed).

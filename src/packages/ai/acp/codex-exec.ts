@@ -31,6 +31,7 @@ import { argsJoin } from "@cocalc/util/args";
 import LRUCache from "lru-cache";
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
 import type { AcpEvaluateRequest, AcpAgent, AcpStreamHandler } from "./types";
+import { getCodexProjectSpawner } from "./codex-project";
 
 const logger = getLogger("ai:acp:codex-exec");
 const LOG_OUTPUT = Boolean(process.env.COCALC_LOG_CODEX_OUTPUT);
@@ -103,33 +104,48 @@ export class CodexExecAgent implements AcpAgent {
     { proc: ReturnType<typeof spawn>; stop: () => void }
   >();
 
-  async evaluate({
-    prompt,
-    stream,
-    session_id,
-    config,
-  }: AcpEvaluateRequest): Promise<void> {
+  async evaluate(request: AcpEvaluateRequest): Promise<void> {
+    const { prompt, stream, session_id, config } = request;
     const session = this.resolveSession(session_id);
     const cwd = this.opts.cwd ?? process.cwd();
     const preContentCache = this.createPreContentCache();
     void this.capturePreContentsFromText(prompt, cwd, preContentCache);
     const args = this.buildArgs(config);
-    const cmd = this.opts.binaryPath ?? "codex";
-    logger.debug("codex-exec: spawning", {
-      cmd,
-      args: argsJoin(args),
-      cwd,
-      opts: this.opts,
-    });
-    const HOME = process.env.COCALC_ORIGINAL_HOME ?? process.env.HOME;
-    const proc = spawn(cmd, args, {
-      cwd,
-      env: {
-        ...process.env,
-        ...this.opts.env,
-        ...(HOME ? { HOME } : {}),
-      },
-    });
+    let cmd = this.opts.binaryPath ?? "codex";
+    let proc: ReturnType<typeof spawn>;
+    const projectSpawner = getCodexProjectSpawner();
+    const projectId = request.chat?.project_id;
+    if (projectSpawner && projectId) {
+      const spawned = await projectSpawner.spawnCodexExec({
+        projectId,
+        args,
+        cwd,
+        env: this.opts.env,
+      });
+      proc = spawned.proc;
+      cmd = spawned.cmd;
+      logger.debug("codex-exec: spawning via project container", {
+        cmd,
+        args: argsJoin(spawned.args),
+        cwd: spawned.cwd ?? cwd,
+      });
+    } else {
+      logger.debug("codex-exec: spawning", {
+        cmd,
+        args: argsJoin(args),
+        cwd,
+        opts: this.opts,
+      });
+      const HOME = process.env.COCALC_ORIGINAL_HOME ?? process.env.HOME;
+      proc = spawn(cmd, args, {
+        cwd,
+        env: {
+          ...process.env,
+          ...this.opts.env,
+          ...(HOME ? { HOME } : {}),
+        },
+      });
+    }
 
     if (LOG_OUTPUT) {
       proc.stdout?.on("data", (chunk) => {
