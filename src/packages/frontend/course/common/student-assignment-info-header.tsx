@@ -256,6 +256,7 @@ export function StudentAssignmentInfoHeader({
                   type="link"
                   size="small"
                   icon={<Icon name="info-circle" />}
+                  aria-label={`Column info: ${title}`}
                 />
               </Popover>
               <Text strong>{title}</Text>

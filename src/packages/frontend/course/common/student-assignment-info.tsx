@@ -304,6 +304,7 @@ export function StudentAssignmentInfo({
           disabled={running}
           loading={running}
           size={size}
+          aria-label={tipTitle}
           onClick={() => {
             if (
               clicked_nbgrader.current != null &&
@@ -410,6 +411,7 @@ export function StudentAssignmentInfo({
             size={size}
             icon={<Icon name="redo" />}
             onClick={() => set_recopy(step, true)}
+            aria-label={`Redo ${step.toLowerCase()} for this student`}
           />
         </Tip>,
       ];
@@ -423,6 +425,7 @@ export function StudentAssignmentInfo({
           onClick={open}
           size={size}
           icon={<Icon name="folder-open" />}
+          aria-label="Open assignment folder"
         />
       </Tip>
     );
@@ -453,7 +456,12 @@ export function StudentAssignmentInfo({
   ) {
     return (
       <Tip key="copy" title={step} tip={tip} placement={placement}>
-        <Button onClick={copy} size={size} icon={<Icon name="caret-right" />} />
+        <Button
+          onClick={copy}
+          size={size}
+          icon={<Icon name="caret-right" />}
+          aria-label={`${step} this student`}
+        />
       </Tip>
     );
   }

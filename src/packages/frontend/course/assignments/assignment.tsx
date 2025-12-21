@@ -578,6 +578,7 @@ export function Assignment({
       onOpenChange: handleOpenChange,
       type: opts.type,
       content: opts.content,
+      ariaLabel: run_all_button_aria_label(step),
     });
   }
 
@@ -587,6 +588,7 @@ export function Assignment({
     onOpenChange: (next: boolean) => void;
     type: "primary" | "default";
     content: ReactNode;
+    ariaLabel: string;
   }) {
     return (
       <Popover
@@ -603,6 +605,7 @@ export function Assignment({
             type={opts.type}
             size="small"
             icon={<Icon name="forward" />}
+            aria-label={opts.ariaLabel}
             onClick={() => opts.onOpenChange(true)}
           />
         </span>
@@ -625,6 +628,7 @@ export function Assignment({
       onOpenChange: handleOpenChange,
       type: opts.type,
       content: opts.content,
+      ariaLabel: run_all_button_aria_label("grade"),
     });
   }
 
@@ -702,6 +706,27 @@ export function Assignment({
       return "primary";
     }
     return "default";
+  }
+
+  function run_all_button_aria_label(
+    step: AssignmentCopyStep | "grade",
+  ): string {
+    switch (step) {
+      case "assignment":
+        return "Assign to all students options";
+      case "collect":
+        return "Collect from all students options";
+      case "peer_assignment":
+        return "Assign for peer grading options";
+      case "peer_collect":
+        return "Collect peer grading options";
+      case "return_graded":
+        return "Return to all students options";
+      case "grade":
+        return "Autograde options";
+      default:
+        return "Run all options";
+    }
   }
 
   function is_nbgrader_running(): boolean {
