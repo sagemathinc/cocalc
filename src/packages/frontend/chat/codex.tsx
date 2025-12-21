@@ -420,7 +420,7 @@ export function CodexConfigButton({
             <div style={gridTwoColStyle}>
               <Form.Item label="Model" name="model" style={formItemStyle}>
                 <Select
-                  placeholder="e.g., gpt-5.1-codex-max"
+                placeholder="e.g., gpt-5.2-codex"
                   options={models}
                   optionRender={(option) =>
                     renderOptionWithDescription({
@@ -664,10 +664,10 @@ function getModelContextWindow(model?: string): number | undefined {
 
 const DEFAULT_CONTEXT_WINDOW = 272_000;
 const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
+  "gpt-5.2-codex": 272_000,
+  "gpt-5.2": 272_000,
   "gpt-5.1-codex-max": 272_000,
-  "gpt-5.1-codex": 272_000,
   "gpt-5.1-codex-mini": 136_000,
-  "gpt-5.1": 272_000,
 };
 
 function getReasoningForModel({

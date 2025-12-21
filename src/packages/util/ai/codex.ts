@@ -41,8 +41,8 @@ export function resolveCodexSessionMode(
 
 export const DEFAULT_CODEX_MODELS: CodexModelInfo[] = [
   {
-    name: "gpt-5.1-codex-max",
-    description: "Latest Codex-optimized flagship for deep and fast reasoning.",
+    name: "gpt-5.2-codex",
+    description: "Latest frontier agentic coding model.",
     reasoning: [
       {
         id: "low",
@@ -70,8 +70,8 @@ export const DEFAULT_CODEX_MODELS: CodexModelInfo[] = [
     ],
   },
   {
-    name: "gpt-5.1-codex",
-    description: "Optimized for Codex.",
+    name: "gpt-5.1-codex-max",
+    description: "Codex-optimized flagship for deep and fast reasoning.",
     reasoning: [
       {
         id: "low",
@@ -110,8 +110,9 @@ export const DEFAULT_CODEX_MODELS: CodexModelInfo[] = [
     ],
   },
   {
-    name: "gpt-5.1",
-    description: "Broad world knowledge with strong general reasoning.",
+    name: "gpt-5.2",
+    description:
+      "Latest frontier model with improvements across knowledge, reasoning, and coding.",
     reasoning: [
       {
         id: "low",
