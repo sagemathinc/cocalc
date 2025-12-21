@@ -8,7 +8,9 @@
 - We will create a patched binary and docker container image.
 
 - [ ] switch to patch heuristic so can switch to straight upstream codex and no fork at all
+- [ ] I just noticed also that the context is wrong now due to a format change
 - [ ] get multiuser codex to work again
+- [ ] the terminal shell parsing is all broken due to missing cwd (?)
 
 
 ## Make Codex Chat Rock Solid and Robust

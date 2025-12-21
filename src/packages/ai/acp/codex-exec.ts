@@ -6,9 +6,13 @@ turn per subprocess. Each evaluate() call spawns a fresh codex process, feeds
 the prompt on stdin, parses JSONL events, and emits the same ACP-style stream
 payloads our frontend already consumes.
 
-File changes: we rely on the upstream patch that adds `pre_contents` to the
-file_change item. We read the post-content from disk, compute a line diff, and
-emit it (so patchflow/time-travel can record the change).
+File changes: upstream codex does not include pre-change file contents, so we
+maintain a small per-turn cache and heuristics (parse prompt/commands, read
+likely files) to reconstruct diffs for the activity log. We previously built a
+fork that adds `pre_contents` (see https://github.com/sagemathinc/codex-cocalc),
+but chose to avoid forking so deployment and upgrades stay simple: easier
+tracking of upstream, easier use in other environments, and no need for users
+to trust a custom binary.
 
 Sessions: we treat `thread.started.thread_id` as the session_id. If a session_id
 is provided, we pass `codex exec resume <id>`; otherwise the process will emit a
@@ -19,14 +23,20 @@ import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import { Readable } from "node:stream";
 import fs from "node:fs/promises";
+import path from "node:path";
+import { brotliCompressSync, brotliDecompressSync } from "node:zlib";
 import getLogger from "@cocalc/backend/logger";
 import { computeLineDiff } from "@cocalc/util/line-diff";
 import { argsJoin } from "@cocalc/util/args";
+import LRUCache from "lru-cache";
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
 import type { AcpEvaluateRequest, AcpAgent, AcpStreamHandler } from "./types";
 
 const logger = getLogger("ai:acp:codex-exec");
 const LOG_OUTPUT = Boolean(process.env.COCALC_LOG_CODEX_OUTPUT);
+const DEFAULT_PRECONTENT_CACHE_MB = 16;
+const DEFAULT_PRECONTENT_MAX_FILE_MB = 2;
+const COMPRESS_THRESHOLD_BYTES = 64 * 1024;
 const FILE_LINK_GUIDANCE =
   "When referencing workspace files, output markdown links relative to the project root so they stay clickable in CoCalc, e.g., foo.py -> [foo.py](./foo.py) (no backticks around the link). For images use ![](./image.png).";
 
@@ -62,6 +72,12 @@ type ThreadItem = {
   pre_contents?: Record<string, string>;
 };
 
+type PreContentEntry = {
+  data: Buffer | string;
+  compressed: boolean;
+  bytes: number;
+};
+
 type CodexExecOptions = {
   binaryPath?: string; // path to codex binary
   cwd?: string; // workspace root
@@ -94,17 +110,20 @@ export class CodexExecAgent implements AcpAgent {
     config,
   }: AcpEvaluateRequest): Promise<void> {
     const session = this.resolveSession(session_id);
+    const cwd = this.opts.cwd ?? process.cwd();
+    const preContentCache = this.createPreContentCache();
+    void this.capturePreContentsFromText(prompt, cwd, preContentCache);
     const args = this.buildArgs(config);
     const cmd = this.opts.binaryPath ?? "codex";
     logger.debug("codex-exec: spawning", {
       cmd,
       args: argsJoin(args),
-      cwd: this.opts.cwd ?? process.cwd(),
+      cwd,
       opts: this.opts,
     });
     const HOME = process.env.COCALC_ORIGINAL_HOME ?? process.env.HOME;
     const proc = spawn(cmd, args, {
-      cwd: this.opts.cwd ?? process.cwd(),
+      cwd,
       env: {
         ...process.env,
         ...this.opts.env,
@@ -156,9 +175,15 @@ export class CodexExecAgent implements AcpAgent {
         case "item.completed":
         case "item.started":
         case "item.updated":
-          await this.handleItem(evt.item, stream, (resp) => {
+          await this.handleItem(
+            evt.item,
+            stream,
+            cwd,
+            preContentCache,
+            (resp) => {
             finalResponse = resp;
-          });
+            },
+          );
           break;
         case "error":
           errors.push(evt.message);
@@ -276,6 +301,8 @@ export class CodexExecAgent implements AcpAgent {
   private async handleItem(
     item: ThreadItem,
     stream: AcpStreamHandler,
+    cwd: string,
+    preContentCache: LRUCache<string, PreContentEntry>,
     onFinalResponse: (text: string) => void,
   ): Promise<void> {
     switch (item.type) {
@@ -297,6 +324,7 @@ export class CodexExecAgent implements AcpAgent {
         }
         break;
       case "command_execution":
+        void this.capturePreContentsFromText(item.command, cwd, preContentCache);
         await stream({
           type: "event",
           event: {
@@ -310,19 +338,23 @@ export class CodexExecAgent implements AcpAgent {
         });
         break;
       case "file_change":
-        await this.handleFileChange(item, stream);
+        await this.handleFileChange(item, stream, preContentCache);
         break;
       default:
         break;
     }
   }
 
-  private async handleFileChange(item: ThreadItem, stream: AcpStreamHandler) {
+  private async handleFileChange(
+    item: ThreadItem,
+    stream: AcpStreamHandler,
+    preContentCache: LRUCache<string, PreContentEntry>,
+  ) {
     const changes = item.changes ?? [];
     const pre = item.pre_contents ?? {};
     for (const ch of changes) {
       const pathAbs = ch.path;
-      const before = pre[pathAbs];
+      const before = pre[pathAbs] ?? this.getCachedContent(pathAbs, preContentCache);
       let after: string | undefined;
       try {
         after = await fs.readFile(pathAbs, "utf8");
@@ -342,8 +374,134 @@ export class CodexExecAgent implements AcpAgent {
             diff,
           },
         });
+      } else {
+        await stream({
+          type: "event",
+          event: {
+            type: "file",
+            path: pathAbs,
+            operation: "write",
+            bytes: after != null ? Buffer.byteLength(after) : undefined,
+            existed: before != null || ch.kind !== "add",
+          },
+        });
       }
     }
+  }
+
+  private createPreContentCache(): LRUCache<string, PreContentEntry> {
+    const maxMb = parseInt(
+      process.env.COCALC_CODEX_PRECONTENT_CACHE_MB ?? "",
+      10,
+    );
+    const maxSize =
+      (Number.isFinite(maxMb) ? maxMb : DEFAULT_PRECONTENT_CACHE_MB) *
+      1024 *
+      1024;
+    return new LRUCache<string, PreContentEntry>({
+      maxSize,
+      sizeCalculation: (entry) => entry.bytes,
+    });
+  }
+
+  private async capturePreContentsFromText(
+    text: string | undefined,
+    cwd: string,
+    cache: LRUCache<string, PreContentEntry>,
+  ): Promise<void> {
+    if (!text) return;
+    const candidates = this.extractPathCandidates(text);
+    for (const candidate of candidates) {
+      const resolved = path.isAbsolute(candidate)
+        ? path.resolve(candidate)
+        : path.resolve(cwd, candidate);
+      if (!this.isPathUnderRoot(resolved, cwd)) continue;
+      await this.maybeCacheFile(resolved, cache);
+    }
+  }
+
+  private extractPathCandidates(text: string): string[] {
+    const candidates = new Set<string>();
+    const inner = text.match(/-lc\s+(['"])([\s\S]*?)\1/);
+    const sources = inner ? [text, inner[2]] : [text];
+    const patterns = [
+      /\/[A-Za-z0-9._~\-/]+/g,
+      /(?:^|\s)([A-Za-z0-9._~\-]+\/[A-Za-z0-9._~\-/]+)/g,
+      /(?:^|\s)([A-Za-z0-9._~\-]+\.[A-Za-z0-9._~\-]+)/g,
+    ];
+    for (const source of sources) {
+      for (const pattern of patterns) {
+        let match: RegExpExecArray | null;
+        while ((match = pattern.exec(source)) != null) {
+          const value = match[1] ?? match[0];
+          if (!value) continue;
+          candidates.add(value.replace(/[\"'`;,]$/, ""));
+        }
+      }
+    }
+    return [...candidates];
+  }
+
+  private async maybeCacheFile(
+    pathAbs: string,
+    cache: LRUCache<string, PreContentEntry>,
+  ): Promise<void> {
+    if (cache.has(pathAbs)) return;
+    try {
+      const stat = await fs.stat(pathAbs);
+      if (!stat.isFile()) return;
+      const maxFileMb = parseInt(
+        process.env.COCALC_CODEX_PRECONTENT_MAX_FILE_MB ?? "",
+        10,
+      );
+      const maxBytes =
+        (Number.isFinite(maxFileMb) ? maxFileMb : DEFAULT_PRECONTENT_MAX_FILE_MB) *
+        1024 *
+        1024;
+      if (stat.size > maxBytes) return;
+      const text = await fs.readFile(pathAbs, "utf8");
+      const bytes = Buffer.byteLength(text);
+      if (bytes > COMPRESS_THRESHOLD_BYTES) {
+        const compressed = brotliCompressSync(Buffer.from(text, "utf8"));
+        cache.set(pathAbs, {
+          data: compressed,
+          compressed: true,
+          bytes: compressed.length,
+        });
+      } else {
+        cache.set(pathAbs, { data: text, compressed: false, bytes });
+      }
+    } catch (err) {
+      logger.debug("codex-exec: failed to cache pre-content", {
+        path: pathAbs,
+        err,
+      });
+    }
+  }
+
+  private getCachedContent(
+    pathAbs: string,
+    cache: LRUCache<string, PreContentEntry>,
+  ): string | undefined {
+    const entry = cache.get(pathAbs);
+    if (!entry) return undefined;
+    try {
+      if (entry.compressed) {
+        return brotliDecompressSync(entry.data as Buffer).toString("utf8");
+      }
+      return entry.data as string;
+    } catch (err) {
+      logger.debug("codex-exec: failed to decompress cached content", {
+        path: pathAbs,
+        err,
+      });
+      return undefined;
+    }
+  }
+
+  private isPathUnderRoot(pathAbs: string, root: string): boolean {
+    const rel = path.relative(root, pathAbs);
+    return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
   }
 
   private kill(proc: ReturnType<typeof spawn>) {

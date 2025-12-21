@@ -44,7 +44,8 @@
     "@langchain/mistralai": "^1.0.0",
     "@langchain/ollama": "^1.0.1",
     "@langchain/openai": "^1.1.2",
-    "awaiting": "^3.0.0"
+    "awaiting": "^3.0.0",
+    "lru-cache": "^7.18.3"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

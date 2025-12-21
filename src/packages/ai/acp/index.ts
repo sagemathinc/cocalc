@@ -20,5 +20,4 @@ export type {
 } from "./adapters";
 
 export { EchoAgent, echoAgent } from "./echo";
-export { CodexAcpAgent } from "./codex";
 export { CodexExecAgent } from "./codex-exec";
