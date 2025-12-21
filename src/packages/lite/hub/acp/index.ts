@@ -780,9 +780,6 @@ async function ensureAgent(
   if (existing != null) return existing;
   const mode = process.env.COCALC_ACP_MODE;
   logger.debug("ensureAgent", { mode, useNativeTerminal });
-  const sessionsDir =
-    process.env.COCALC_ACP_SESSIONS_DIR ??
-    path.join(process.cwd(), "data/codex-sessions");
   if (mode === "echo") {
     logger.debug("ensureAgent: creating echo agent");
     const echo = new EchoAgent();
@@ -794,7 +791,6 @@ async function ensureAgent(
     const created = await CodexExecAgent.create({
       binaryPath: process.env.COCALC_CODEX_BIN,
       cwd: bindings.workspaceRoot ?? process.cwd(),
-      sessionPersistPath: sessionsDir,
     });
     logger.info("codex-exec agent ready", { key });
     agents.set(key, created);
