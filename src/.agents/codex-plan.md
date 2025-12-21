@@ -1,3 +1,15 @@
+# Codex Plans
+
+
+## Track upstream
+
+- We have been using ACP and codex-acp but this adds no value and complicates things a lot, so now we're considering switching to a slightly patched codex-cli.
+
+- We will create a patched binary and docker container image.
+
+
+
+
 ## Make Codex Chat Rock Solid and Robust
 
 Goal: make Codex/ACP chat turns deterministic, multi-client safe, and refresh-safe by (1) using a single canonical notion of Codex `session_id`, (2) making the backend the authority for creating/persisting that `session_id` when blank, and (3) deriving all ACP log identifiers (store/key/subject) from a single shared helper in `src/packages/chat`.

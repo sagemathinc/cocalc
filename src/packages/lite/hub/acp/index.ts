@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import getLogger from "@cocalc/backend/logger";
 import {
-  CodexAcpAgent,
+  CodexExecAgent,
   EchoAgent,
   type AcpAgent,
   type ApprovalDecision,
@@ -136,10 +136,8 @@ class ApprovalStore {
 const approvalStore = new ApprovalStore();
 function resolveApproval(decision: ApprovalDecision): boolean {
   for (const agent of agents.values()) {
-    if (agent instanceof CodexAcpAgent) {
-      if (agent.resolveApproval(decision)) {
-        return true;
-      }
+    if ("resolveApproval" in agent && typeof (agent as any).resolveApproval === "function") {
+      if ((agent as any).resolveApproval(decision)) return true;
     }
   }
   return false;
@@ -792,32 +790,20 @@ async function ensureAgent(
     return echo;
   }
   try {
-    logger.debug("ensureAgent: creating codex acp agent");
-    const created = await CodexAcpAgent.create({
-      binaryPath: process.env.COCALC_ACP_AGENT_BIN,
+    logger.debug("ensureAgent: creating codex exec agent");
+    const created = await CodexExecAgent.create({
+      binaryPath: process.env.COCALC_CODEX_BIN,
       cwd: bindings.workspaceRoot ?? process.cwd(),
       sessionPersistPath: sessionsDir,
-      useNativeTerminal,
-      commandHandlers: bindings.commandHandlers,
-      fileAdapter: bindings.fileAdapter,
-      terminalAdapter: bindings.terminalAdapter,
     });
-    created.onExit((code, signal) => {
-      logger.warn("codex-acp agent exited; will recreate on next request", {
-        key,
-        code,
-        signal,
-      });
-      agents.delete(key);
-    });
-    logger.info("codex-acp agent ready", { key });
+    logger.info("codex-exec agent ready", { key });
     agents.set(key, created);
     return created;
   } catch (err) {
     // Fail loudly: use an echo agent that emits an explicit error to the user.
-    logger.error("failed to start codex-acp agent; using echo agent", err);
+    logger.error("failed to start codex-exec agent; using echo agent", err);
     const echo = new EchoAgent(
-      `ERROR: codex-acp failed to start (${(err as Error)?.message ?? "unknown error"})`,
+      `ERROR: codex-exec failed to start (${(err as Error)?.message ?? "unknown error"})`,
     );
     agents.set(key, echo);
     return echo;
@@ -1183,9 +1169,9 @@ async function handleInterruptRequest(
 
 async function interruptCodexSession(threadId: string): Promise<boolean> {
   for (const agent of agents.values()) {
-    if (agent instanceof CodexAcpAgent) {
+    if ("interrupt" in agent && typeof (agent as any).interrupt === "function") {
       try {
-        if (await agent.interrupt(threadId)) {
+        if (await (agent as any).interrupt(threadId)) {
           return true;
         }
       } catch (err) {
