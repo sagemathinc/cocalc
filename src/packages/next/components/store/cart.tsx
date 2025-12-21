@@ -54,7 +54,11 @@ export default function ShoppingCart() {
     let numChecked = 0;
     for (const item of cart.result) {
       try {
-        item.cost = computeCost(item.description);
+        if (item.product == "membership") {
+          item.cost = membershipCostFromDescription(item.description);
+        } else {
+          item.cost = computeCost(item.description);
+        }
       } catch (err) {
         // sadly computeCost is buggy, or rather - it crashes because of other bugs.
         // It's much better to
@@ -191,7 +195,7 @@ export default function ShoppingCart() {
           <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} /> Your{" "}
           <SiteName /> Shopping Cart is Empty
         </h3>
-        <A href="/store/site-license">Buy a License</A>
+        <A href="/store/membership">Buy a Membership</A>
       </>
     );
   }
@@ -359,6 +363,24 @@ export function DescriptionColumn(props: DCProps) {
     description.type === "quota"
   ) {
     return <DescriptionColumnSiteLicense {...props} />;
+  } else if (description.type == "membership") {
+    return (
+      <div style={style}>
+        <b style={{ fontSize: "12pt" }}>
+          Membership: {capitalize(description.class)}
+        </b>
+        <div style={DESCRIPTION_STYLE}>
+          {description.interval == "month" ? "Monthly" : "Yearly"} membership
+          subscription.
+        </div>
+        {!readOnly && (
+          <>
+            <SaveForLater {...props} />
+            <DeleteItem {...props} />
+          </>
+        )}
+      </div>
+    );
   } else if (description.type == "cash-voucher") {
     return (
       <div style={style}>
@@ -533,6 +555,7 @@ function DeleteItem({ id, reload, updating, setUpdating, isMounted }) {
 const PRODUCTS = {
   "site-license": { icon: "key", label: "License" },
   "cash-voucher": { icon: "money", label: "Cash Voucher" },
+  membership: { icon: "user", label: "Membership" },
 };
 
 export function ProductColumn({ product }) {
@@ -546,4 +569,29 @@ export function ProductColumn({ product }) {
       <div style={{ fontSize: "10pt" }}>{label}</div>
     </div>
   );
+}
+
+function membershipCostFromDescription(description: ProductDescription): CostInputPeriod {
+  if (description?.type != "membership") {
+    throw Error("invalid membership description");
+  }
+  const price = description.price ?? 0;
+  const monthly = description.interval == "month" ? price : price / 12;
+  const yearly = description.interval == "year" ? price : price * 12;
+  const period = description.interval == "month" ? "monthly" : "yearly";
+  return {
+    cost: price,
+    cost_per_unit: price,
+    cost_per_project_per_month: monthly,
+    cost_sub_month: monthly,
+    cost_sub_year: yearly,
+    cost_sub_first_period: price,
+    quantity: 1,
+    period,
+    input: {
+      type: "cash-voucher",
+      amount: price,
+      subscription: period,
+    },
+  };
 }

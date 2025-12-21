@@ -127,6 +127,8 @@ Risks/unknowns: quota injection could conflict with legacy site_license stacking
 
 [ ] Make the Membership Tiers admin configuration user friendly \(custom react component form\), after deciding what the options are.  Right now it's a just a mystery json blob \(medium\)
 
+[ ] Add buying membership to the store \(hard\)
+
 Exit criteria: users can see membership subscriptions in UI, legacy licenses remain accessible, and existing paid value is preserved.  
 Risks/unknowns: migration mapping could under/over-credit value; “advanced” legacy UX needs careful labeling to avoid confusion.  
 

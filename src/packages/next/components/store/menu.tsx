@@ -63,6 +63,11 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
 
   const items: MenuItem[] = [
     {
+      label: "Membership",
+      key: "membership",
+      icon: <Icon name="user" />,
+    },
+    {
       label: "Licenses",
       key: "site-license",
       icon: <Icon name="key" />,

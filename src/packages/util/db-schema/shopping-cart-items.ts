@@ -14,7 +14,7 @@ import { Table } from "./types";
 import { SCHEMA as schema } from "./index";
 import { SiteLicenseDescriptionDB } from "../upgrades/shopping";
 
-export type ProductType = "site-license" | "cash-voucher";
+export type ProductType = "site-license" | "cash-voucher" | "membership";
 
 export interface CashVoucher {
   type: "cash-voucher";
@@ -29,7 +29,17 @@ export interface CashVoucher {
   expire: Date;
 }
 
-export type ProductDescription = SiteLicenseDescriptionDB | CashVoucher;
+export interface MembershipSubscription {
+  type: "membership";
+  class: "member" | "pro";
+  interval: "month" | "year";
+  price?: number;
+}
+
+export type ProductDescription =
+  | SiteLicenseDescriptionDB
+  | CashVoucher
+  | MembershipSubscription;
 
 export interface Item {
   id: number;
@@ -90,7 +100,7 @@ Table({
     },
     product: {
       type: "string",
-      desc: "General class of product, e.g., 'site-license', 'cash-voucher'.",
+      desc: "General class of product, e.g., 'site-license', 'cash-voucher', 'membership'.",
     },
     description: {
       type: "map",

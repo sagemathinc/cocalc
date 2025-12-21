@@ -254,7 +254,8 @@ export default function Checkout() {
             <br />
             You must have at least one item in{" "}
             <A href="/store/cart">your cart</A> to checkout. Shop for{" "}
-            <A href="/store/site-license">licenses</A> or{" "}
+            <A href="/store/membership">memberships</A>,{" "}
+            <A href="/store/site-license">licenses</A>, or{" "}
             <A href="/store/vouchers">vouchers</A>.
           </div>
         )}
@@ -454,6 +455,13 @@ function Terms() {
 }
 
 export function DescriptionColumn({ cost, description, voucherPeriod }) {
+  if (description?.type == "membership") {
+    return (
+      <div style={{ fontSize: "12pt" }}>
+        Membership: {description.class} ({description.interval})
+      </div>
+    );
+  }
   const { input } = cost;
   return (
     <>

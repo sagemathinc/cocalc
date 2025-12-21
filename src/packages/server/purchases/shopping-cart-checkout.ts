@@ -13,6 +13,7 @@ import getMinBalance from "./get-min-balance";
 import getBalance from "./get-balance";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import { stripeToDecimal } from "@cocalc/util/stripe/calc";
+import { computeMembershipPricing } from "@cocalc/server/membership/tiers";
 
 const logger = getLogger("purchases:shopping-cart-checkout");
 
@@ -137,14 +138,23 @@ export async function getCheckoutCart(
     filter ??
       ((item) =>
         item.checked &&
-        (item.product == "site-license" || item.product == "cash-voucher")),
+        (item.product == "site-license" ||
+          item.product == "cash-voucher" ||
+          item.product == "membership")),
   );
+  const membershipItems = cart.filter((item) => item.product == "membership");
+  if (membershipItems.length > 1) {
+    throw Error("only one membership can be purchased at a time");
+  }
 
   // compute the total cost and also set the costs for each item
   let totalStripe = 0;
   const chargeableCart: CheckoutCartItem[] = [];
   for (const cartItem of cart) {
-    const itemCost = computeCost(cartItem.description as ComputeCostProps);
+    const itemCost =
+      cartItem.product == "membership"
+        ? await membershipCostFromCart(account_id, cartItem)
+        : computeCost(cartItem.description as ComputeCostProps);
     if (itemCost == null) {
       throw Error("bug cost must not be null");
     }
@@ -157,6 +167,37 @@ export async function getCheckoutCart(
     });
   }
   return { total: stripeToDecimal(totalStripe), cart: chargeableCart };
+}
+
+async function membershipCostFromCart(account_id: string, cartItem) {
+  const description = cartItem?.description;
+  if (description?.type != "membership") {
+    throw Error("invalid membership description");
+  }
+  const { price, charge } = await computeMembershipPricing({
+    account_id,
+    targetClass: description.class,
+    interval: description.interval,
+  });
+  const monthly = description.interval == "month" ? price : price / 12;
+  const yearly = description.interval == "year" ? price : price * 12;
+  const period = description.interval == "month" ? "monthly" : "yearly";
+  const cost: CostInputPeriod = {
+    cost: charge,
+    cost_per_unit: price,
+    cost_per_project_per_month: monthly,
+    cost_sub_month: monthly,
+    cost_sub_year: yearly,
+    cost_sub_first_period: charge,
+    quantity: 1,
+    period,
+    input: {
+      type: "cash-voucher",
+      amount: price,
+      subscription: period,
+    },
+  };
+  return cost;
 }
 
 export async function getShoppingCartCheckoutParams(

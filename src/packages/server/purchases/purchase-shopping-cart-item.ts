@@ -73,6 +73,8 @@ import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 import { round2up } from "@cocalc/util/misc";
 import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
 import createVouchers from "@cocalc/server/vouchers/create-vouchers";
+import dayjs from "dayjs";
+import { computeMembershipPricing } from "@cocalc/server/membership/tiers";
 
 const logger = getLogger("purchases:purchase-shopping-cart-item");
 
@@ -90,6 +92,8 @@ export default async function purchaseShoppingCartItem(
     await purchaseLicenseShoppingCartItem(item, client, credit_id);
   } else if (item.product == "cash-voucher") {
     await purchaseVoucherShoppingCartItem(item, client, credit_id);
+  } else if (item.product == "membership") {
+    await purchaseMembershipShoppingCartItem(item, client);
   } else {
     throw Error(`unknown product type '${item.product}'`);
   }
@@ -237,6 +241,85 @@ async function purchaseVoucherShoppingCartItem(
     account_id: item.account_id,
     client,
   });
+
+  await markItemPurchased(item, undefined, client);
+}
+
+/***
+  Memberships
+ ***/
+
+async function purchaseMembershipShoppingCartItem(
+  item,
+  client: PoolClient,
+) {
+  logger.debug("purchaseMembershipShoppingCartItem", item);
+  const { description } = item;
+  if (description?.type != "membership") {
+    throw Error("product type must be 'membership'");
+  }
+
+  const pricing = await computeMembershipPricing({
+    account_id: item.account_id,
+    targetClass: description.class,
+    interval: description.interval,
+    client,
+  });
+
+  if (pricing.existing_subscription_id) {
+    await client.query(
+      "UPDATE subscriptions SET status='canceled', canceled_at=NOW(), canceled_reason=$1 WHERE id=$2",
+      [
+        `Upgraded to ${description.class}`,
+        pricing.existing_subscription_id,
+      ],
+    );
+  }
+
+  const start = dayjs().toDate();
+  const end =
+    description.interval == "month"
+      ? dayjs(start).add(1, "month").toDate()
+      : dayjs(start).add(1, "year").toDate();
+
+  const subscription_id = await createSubscription(
+    {
+      account_id: item.account_id,
+      cost: pricing.price,
+      interval: description.interval,
+      current_period_start: start,
+      current_period_end: end,
+      latest_purchase_id: 0,
+      status: "active",
+      metadata: { type: "membership", class: description.class },
+    },
+    client,
+  );
+
+  const purchase_id = await createPurchase({
+    account_id: item.account_id,
+    cost: pricing.charge,
+    unrounded_cost: pricing.charge,
+    service: "membership",
+    description: {
+      type: "membership",
+      subscription_id,
+      class: description.class,
+      interval: description.interval,
+    },
+    tag: "membership-purchase",
+    period_start: start,
+    period_end: end,
+    client,
+  });
+  await client.query(
+    "UPDATE subscriptions SET latest_purchase_id=$1 WHERE id=$2",
+    [purchase_id, subscription_id],
+  );
+  logger.debug(
+    "purchaseMembershipShoppingCartItem -- created membership subscription",
+    { subscription_id, purchase_id },
+  );
 
   await markItemPurchased(item, undefined, client);
 }

@@ -7,10 +7,6 @@ import type {
 } from "@cocalc/conat/hub/api/purchases";
 
 interface MembershipTierConfig extends MembershipEntitlements {}
-  project_defaults?: Record<string, unknown>;
-  llm_limits?: Record<string, unknown>;
-  features?: Record<string, unknown>;
-}
 
 interface MembershipConfig {
   tiers?: Record<MembershipClass, MembershipTierConfig>;

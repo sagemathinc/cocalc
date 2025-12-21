@@ -47,7 +47,7 @@ export const ShoppingCartAddInputSchema = z
       )
       .nullish(),
     product: z
-      .enum(["site-license", "cash-voucher"])
+      .enum(["site-license", "cash-voucher", "membership"])
       .describe(
         "Product type to purchase. Must be populated if the `id` field is empty.",
       )
@@ -80,6 +80,14 @@ export const ShoppingCartAddInputSchema = z
             expire: z.date(),
           })
           .describe("Used to specify cash voucher."),
+        z
+          .object({
+            type: z.enum(["membership"]),
+            class: z.enum(["member", "pro"]),
+            interval: z.enum(["month", "year"]),
+            price: z.number().min(0).optional(),
+          })
+          .describe("Membership subscription."),
       ])
       .describe(
         `This field is used to specify details appropriate to the product being purchased.

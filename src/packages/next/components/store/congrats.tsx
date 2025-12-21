@@ -179,6 +179,9 @@ export default function Congrats() {
   }
 
   const licenses = purchases.result.filter((x) => x.purchased.license_id);
+  const memberships = purchases.result.filter(
+    (x) => x.product == "membership",
+  );
 
   return (
     <>
@@ -193,6 +196,31 @@ export default function Congrats() {
           />{" "}
           Order Complete!
         </h1>
+        {memberships.length > 0 && (
+          <Card
+            style={{ margin: "15px auto", maxWidth: "700px" }}
+            title={
+              <>
+                <Icon name="user" style={{ marginRight: "15px" }} />
+                Membership activated
+              </>
+            }
+          >
+            <ul>
+              {memberships.map((item) => (
+                <li key={item.id}>
+                  {item.description?.class
+                    ? item.description.class.charAt(0).toUpperCase() +
+                      item.description.class.slice(1)
+                    : "Membership"}{" "}
+                  ({" "}
+                  {item.description?.interval ?? "monthly"} ) purchased{" "}
+                  <TimeAgo datetime={item.purchased.time} />
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
         {licenses.length > 0 && (
           <Card
             style={{ margin: "15px auto", maxWidth: "700px" }}

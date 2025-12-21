@@ -19,6 +19,7 @@ import Cart from "./cart";
 import Checkout from "./checkout";
 import Congrats from "./congrats";
 import Menu from "./menu";
+import Memberships from "./memberships";
 import Overview from "./overview";
 import Processing from "./processing";
 import SiteLicense from "./site-license";
@@ -122,6 +123,8 @@ export default function StoreLayout({ page }: Props) {
     }
 
     switch (main) {
+      case "membership":
+        return requireAccount(Memberships);
       case "site-license":
         return <SiteLicense noAccount={noAccount} source="site-license" />;
       case "course":

@@ -741,7 +741,7 @@ export const EXTRAS: SettingsExtras = {
     name: "Membership Tiers",
     desc: 'JSON config for membership tiers, e.g. {"tiers":{"free":{"project_defaults":{},"llm_limits":{},"features":{}},"student":{},"member":{},"pro":{}},"priority":["org","self_pay","course","promo","free"]}',
     default:
-      '{"tiers":{"free":{"project_defaults":{},"llm_limits":{},"features":{}},"student":{"project_defaults":{},"llm_limits":{},"features":{}},"member":{"project_defaults":{},"llm_limits":{},"features":{}},"pro":{"project_defaults":{},"llm_limits":{},"features":{}}},"priority":["org","self_pay","course","promo","free"]}',
+      '{"tiers":{"free":{"project_defaults":{},"llm_limits":{},"features":{}},"student":{"project_defaults":{},"llm_limits":{},"features":{}},"member":{"price_monthly":20,"price_yearly":180,"project_defaults":{},"llm_limits":{},"features":{}},"pro":{"price_monthly":150,"price_yearly":1350,"project_defaults":{},"llm_limits":{},"features":{}}},"priority":["org","self_pay","course","promo","free"]}',
     show: only_commercial,
     to_val: from_json,
     to_display: displayJson,

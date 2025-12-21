@@ -35,7 +35,8 @@ export default function Overview() {
         Welcome to the <SiteName /> Store!
       </h2>
       <Paragraph style={{ fontSize: "13pt" }}>
-        Shop below for <A href="/store/site-license">licenses</A> and{" "}
+        Shop below for <A href="/store/membership">memberships</A>,{" "}
+        <A href="/store/site-license">licenses</A>, and{" "}
         <A href="/store/vouchers">vouchers</A> or explore{" "}
         <A href="/pricing">all available products and pricing</A>.
       </Paragraph>
@@ -47,8 +48,8 @@ export default function Overview() {
         </Paragraph>
       ) : undefined}
       <OverviewRow>
-        <Product icon="key" title="License" href="/store/site-license">
-          Buy a license to upgrade projects to have more disk space and memory.
+        <Product icon="user" title="Membership" href="/store/membership">
+          Subscribe for a simple membership that upgrades your account.
         </Product>
         <Product icon="graduation-cap" title="Course" href="/store/course">
           Purchase a license for teaching a course.

@@ -19,9 +19,11 @@ import {
 } from "antd";
 import { DisplayCost, describeItem } from "./site-license-cost";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
+import type { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
+import type { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
 import Loading from "components/share/loading";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { search_split, search_match } from "@cocalc/util/misc";
+import { capitalize, search_split, search_match } from "@cocalc/util/misc";
 import { ProductColumn } from "./cart";
 
 type MenuItem = Required<MenuProps>["items"][number];
@@ -109,7 +111,11 @@ function Items({ onChange, cart, tab, search }: ItemsProps) {
         continue;
       }
       try {
-        item.cost = computeCost(item.description);
+        if (item.product == "membership") {
+          item.cost = membershipCostFromDescription(item.description);
+        } else {
+          item.cost = computeCost(item.description);
+        }
       } catch (_err) {
         // deprecated, so do not include
         continue;
@@ -228,6 +234,31 @@ function Items({ onChange, cart, tab, search }: ItemsProps) {
   );
 }
 
+function membershipCostFromDescription(description: ProductDescription): CostInputPeriod {
+  if (description?.type != "membership") {
+    throw Error("invalid membership description");
+  }
+  const price = description.price ?? 0;
+  const monthly = description.interval == "month" ? price : price / 12;
+  const yearly = description.interval == "year" ? price : price * 12;
+  const period = description.interval == "month" ? "monthly" : "yearly";
+  return {
+    cost: price,
+    cost_per_unit: price,
+    cost_per_project_per_month: monthly,
+    cost_sub_month: monthly,
+    cost_sub_year: yearly,
+    cost_sub_first_period: price,
+    quantity: 1,
+    period,
+    input: {
+      type: "cash-voucher",
+      amount: price,
+      subscription: period,
+    },
+  };
+}
+
 function DescriptionColumn({
   id,
   cost,
@@ -240,6 +271,68 @@ function DescriptionColumn({
   tab,
 }) {
   const { input } = cost ?? {};
+  if (description?.type == "membership") {
+    return (
+      <>
+        <div style={{ fontSize: "12pt" }}>
+          <b>Membership: {capitalize(description.class)}</b>
+        </div>
+        <div style={{ marginTop: "5px" }}>
+          {description.interval == "month" ? "Monthly" : "Yearly"} membership
+          subscription.
+        </div>
+        <div style={{ marginTop: "10px" }}>
+          <Button
+            disabled={updating}
+            onClick={async () => {
+              setUpdating(true);
+              try {
+                await apiPost("/shopping/cart/add", {
+                  id,
+                  purchased: tab == "buy-it-again",
+                });
+                if (!isMounted.current) return;
+                onChange();
+                await reload();
+              } finally {
+                if (!isMounted.current) return;
+                setUpdating(false);
+              }
+            }}
+          >
+            <Icon name="shopping-cart" />{" "}
+            {tab == "buy-it-again" ? "Add to Cart" : "Move to Cart"}
+          </Button>
+          {tab == "saved-for-later" && (
+            <Popconfirm
+              title={"Are you sure you want to delete this item?"}
+              onConfirm={async () => {
+                setUpdating(true);
+                try {
+                  await apiPost("/shopping/cart/delete", { id });
+                  if (!isMounted.current) return;
+                  await reload();
+                } finally {
+                  if (!isMounted.current) return;
+                  setUpdating(false);
+                }
+              }}
+              okText={"Yes, delete this item"}
+              cancelText={"Cancel"}
+            >
+              <Button
+                disabled={updating}
+                type="dashed"
+                style={{ margin: "0 5px" }}
+              >
+                <Icon name="trash" /> Delete
+              </Button>
+            </Popconfirm>
+          )}
+        </div>
+      </>
+    );
+  }
   return (
     <>
       <div style={{ fontSize: "12pt" }}>
