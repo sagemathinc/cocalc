@@ -1,5 +1,19 @@
 import { authFirst } from "./util";
-import type { MembershipResolution } from "@cocalc/server/membership/resolve";
+export type MembershipClass = "free" | "student" | "member" | "pro";
+
+export interface MembershipEntitlements {
+  project_defaults?: Record<string, unknown>;
+  llm_limits?: Record<string, unknown>;
+  features?: Record<string, unknown>;
+}
+
+export interface MembershipResolution {
+  class: MembershipClass;
+  source: "subscription" | "free";
+  entitlements: MembershipEntitlements;
+  subscription_id?: number;
+  expires?: Date;
+}
 
 export interface Purchases {
   getBalance: (opts?: { account_id?: string }) => Promise<number>;

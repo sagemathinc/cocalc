@@ -1,22 +1,12 @@
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import type { MembershipClass } from "@cocalc/util/db-schema/subscriptions";
+import type {
+  MembershipClass,
+  MembershipEntitlements,
+  MembershipResolution,
+} from "@cocalc/conat/hub/api/purchases";
 
-export interface MembershipEntitlements {
-  project_defaults?: Record<string, unknown>;
-  llm_limits?: Record<string, unknown>;
-  features?: Record<string, unknown>;
-}
-
-export interface MembershipResolution {
-  class: MembershipClass;
-  source: "subscription" | "free";
-  entitlements: MembershipEntitlements;
-  subscription_id?: number;
-  expires?: Date;
-}
-
-interface MembershipTierConfig {
+interface MembershipTierConfig extends MembershipEntitlements {}
   project_defaults?: Record<string, unknown>;
   llm_limits?: Record<string, unknown>;
   features?: Record<string, unknown>;
