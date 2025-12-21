@@ -507,6 +507,7 @@ export function StudentAssignmentInfo({
         v.push(...render_copying(step, do_stop));
         v.push(render_open(do_open, open_tip, placement));
       } else if (data.time) {
+        v.push(render_open(do_open, open_tip as string, placement));
         v.push(
           ...render_recopy_confirm(
             step,
@@ -515,7 +516,6 @@ export function StudentAssignmentInfo({
             placement,
           ),
         );
-        v.push(render_open(do_open, open_tip as string, placement));
       } else {
         v.push(render_copy(step, do_copy, copy_tip as string, placement));
       }
