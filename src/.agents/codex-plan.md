@@ -7,7 +7,8 @@
 
 - We will create a patched binary and docker container image.
 
-
+- [ ] switch to patch heuristic so can switch to straight upstream codex and no fork at all
+- [ ] get multiuser codex to work again
 
 
 ## Make Codex Chat Rock Solid and Robust

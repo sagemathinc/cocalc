@@ -185,6 +185,10 @@ export class CodexExecAgent implements AcpAgent {
     const exitPromise = new Promise<void>((resolve) => {
       proc.on("exit", (code, signal) => {
         if (code !== 0) {
+          const errMsg =
+            stderrBuf.join("") ||
+            `codex exited with code ${code ?? "?"} signal ${signal ?? "?"}`;
+          errors.push(errMsg);
           logger.warn("codex-exec: process exited with code", {
             code,
             signal,
@@ -202,8 +206,14 @@ export class CodexExecAgent implements AcpAgent {
     await exitPromise;
     await Promise.all(linePromises);
 
-    if (errors.length > 0) {
-      await stream({ type: "error", error: errors.join("; ") });
+    const errorText = errors.join("; ");
+    if (errorText) {
+      await stream({ type: "error", error: errorText });
+      if (!finalResponse) {
+        finalResponse = errorText;
+      } else {
+        finalResponse = `${finalResponse}\n\nErrors: ${errorText}`;
+      }
     }
     // emit summary even if errors to clear UI state
     await stream({
