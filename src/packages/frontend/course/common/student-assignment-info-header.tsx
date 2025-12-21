@@ -255,7 +255,7 @@ export function StudentAssignmentInfoHeader({
                 <Button
                   type="link"
                   size="small"
-                  icon={<Icon name="question-circle" />}
+                  icon={<Icon name="info-circle" />}
                 />
               </Popover>
               <Text strong>{title}</Text>
