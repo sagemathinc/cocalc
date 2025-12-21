@@ -210,8 +210,14 @@ export function CodexConfigButton({
   const contextWindow =
     usageSummary?.contextWindow ?? getModelContextWindow(selectedModelValue);
   const inputTokens = usageSummary?.latest?.input_tokens;
+  // codex exec reports *total* session usage. During compaction or context
+  // recovery, codex may emit a TokenCount event that "fills" totals to the full
+  // context window, so input_tokens can exceed the model window. When that
+  // happens, the percentage is meaningless; show "---" instead of a fake %.
+  // In codex-cli itself, in this case it just shows
+  //   "Context window:   100% left (0 used / 272K)  "
   const remainingPercent =
-    contextWindow != null && inputTokens != null
+    contextWindow != null && inputTokens != null && inputTokens <= contextWindow
       ? Math.max(
           0,
           Math.round(((contextWindow - inputTokens) / contextWindow) * 100),
@@ -219,7 +225,11 @@ export function CodexConfigButton({
       : null;
 
   const contextSummary =
-    remainingPercent != null ? `${remainingPercent}% context left` : null;
+    contextWindow != null && inputTokens != null && inputTokens > contextWindow
+      ? "---"
+      : remainingPercent != null
+        ? `${remainingPercent}% context left`
+        : null;
   const contextSeverity =
     remainingPercent == null
       ? "unknown"
