@@ -202,7 +202,11 @@ describe("create a subscription license and edit it and confirm the subscription
     const subs = await getSubscriptions({ account_id: item.account_id });
     expect(subs.length).toBe(1);
     expect(subs[0].status).toBe("active");
-    const license_id = subs[0].metadata.license_id;
+    const metadata = subs[0].metadata;
+    if (metadata.type != "license") {
+      throw Error("expected license subscription");
+    }
+    const license_id = metadata.license_id;
     await editLicense({
       account_id: item.account_id,
       license_id,

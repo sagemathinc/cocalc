@@ -4,6 +4,7 @@ import createLicense from "@cocalc/server/licenses/purchase/create-license";
 import createSubscription from "./create-subscription";
 import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
 import { uuid } from "@cocalc/util/misc";
+import type { MembershipClass } from "@cocalc/util/db-schema/subscriptions";
 
 // This license is a little unusual because it starts a week from now and ends a
 // month from now.
@@ -63,4 +64,40 @@ export async function createTestSubscription(account_id: string) {
     null,
   );
   return { license_id, subscription_id, cost };
+}
+
+export async function createTestMembershipSubscription(
+  account_id: string,
+  opts?: {
+    class?: MembershipClass;
+    interval?: "month" | "year";
+    start?: Date;
+    end?: Date;
+    cost?: number;
+    status?: "active" | "canceled" | "unpaid" | "past_due";
+  },
+) {
+  const now = dayjs();
+  const interval = opts?.interval ?? "month";
+  const start = opts?.start ?? now.toDate();
+  const end =
+    opts?.end ??
+    (interval == "month" ? now.add(1, "month") : now.add(1, "year")).toDate();
+  const cost = opts?.cost ?? 10;
+  const status = opts?.status ?? "active";
+  const membershipClass = opts?.class ?? "member";
+  const subscription_id = await createSubscription(
+    {
+      account_id,
+      cost,
+      interval,
+      current_period_start: start,
+      current_period_end: end,
+      status,
+      metadata: { type: "membership", class: membershipClass },
+      latest_purchase_id: 0,
+    },
+    null,
+  );
+  return { subscription_id, cost, start, end, membershipClass, interval };
 }

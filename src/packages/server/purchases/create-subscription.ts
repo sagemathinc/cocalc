@@ -1,4 +1,9 @@
-import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
+import type {
+  LicenseMetadata,
+  MembershipMetadata,
+  Metadata,
+  Subscription,
+} from "@cocalc/util/db-schema/subscriptions";
 import { getPoolClient, PoolClient } from "@cocalc/database/pool";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import { is_date as isDate, is_integer } from "@cocalc/util/misc";
@@ -39,8 +44,16 @@ export default async function createSubscription(
       "if specified, latest_purchase_id must be a nonnegative integer"
     );
   }
-  if (typeof opts.metadata != "object" || !opts.metadata.type) {
+  const metadata = opts.metadata as Metadata;
+  const metadataType = (opts.metadata as { type?: string })?.type;
+  if (typeof metadata != "object" || !metadataType) {
     throw Error("metadata must be a nontrivial object with type field");
+  }
+  if (metadataType != "license" && metadataType != "membership") {
+    throw Error(`unsupported subscription metadata type "${metadataType}"`);
+  }
+  if (metadataType == "membership" && !(metadata as MembershipMetadata).class) {
+    throw Error("membership metadata must include class");
   }
 
   const { rows } = await db.query(
@@ -56,10 +69,11 @@ export default async function createSubscription(
     ]
   );
   const { id } = rows[0];
-  if (opts.metadata.type == "license") {
+  if (metadataType == "license") {
+    const licenseMetadata = metadata as LicenseMetadata;
     await db.query("UPDATE site_licenses SET subscription_id=$1 WHERE id=$2", [
       id,
-      opts.metadata.license_id,
+      licenseMetadata.license_id,
     ]);
   }
   if (client == null) {

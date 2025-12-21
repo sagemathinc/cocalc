@@ -14,6 +14,7 @@ too late to change t use amount internally.  That's the only reason.
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import * as computeServers from "./compute-servers";
 import { CREATED_BY, ID } from "./crm";
+import type { MembershipClass } from "./subscriptions";
 import { SCHEMA as schema } from "./index";
 import { LanguageServiceCore } from "./llm-utils";
 import type { CourseInfo } from "./projects";
@@ -62,6 +63,7 @@ export type ComputeService =
   | "compute-server"
   | "compute-server-network-usage"
   | "compute-server-storage"
+  | "membership"
   | "license"
   | "voucher"
   | "edit-license";
@@ -159,6 +161,13 @@ export interface License {
   credit_id?: number;
 }
 
+export interface Membership {
+  type: "membership";
+  subscription_id: number;
+  class: MembershipClass;
+  interval: "month" | "year";
+}
+
 export interface Voucher {
   type: "voucher";
   quantity: number;
@@ -207,6 +216,7 @@ export type Description =
   | Credit
   | Refund
   | License
+  | Membership
   | Voucher
   | EditLicense;
 

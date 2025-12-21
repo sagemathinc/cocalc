@@ -18,6 +18,7 @@ import adminAlert from "@cocalc/server/messages/admin-alert";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { sendCancelNotification } from "../cancel-subscription";
 import getConn from "@cocalc/server/stripe/connection";
+import createPurchase from "@cocalc/server/purchases/create-purchase";
 
 // nothing should ever be this small, but just in case:
 const MIN_SUBSCRIPTION_AMOUNT = 1;
@@ -43,7 +44,7 @@ export default async function createSubscriptionPayment({
   logger.debug("createSubscriptionPayment -- ", { customer });
   const pool = getPool();
   const { rows: subscriptions } = await pool.query(
-    "SELECT payment, cost, metadata, interval FROM subscriptions WHERE account_id=$1 AND id=$2",
+    "SELECT payment, cost, metadata, interval, current_period_end FROM subscriptions WHERE account_id=$1 AND id=$2",
     [account_id, subscription_id],
   );
   if (subscriptions.length == 0) {
@@ -54,6 +55,7 @@ export default async function createSubscriptionPayment({
     cost: amount,
     metadata,
     interval,
+    current_period_end,
   } = subscriptions[0] as Subscription;
   if (payment != null && payment.status == "active") {
     throw Error(
@@ -61,21 +63,26 @@ export default async function createSubscriptionPayment({
     );
   }
 
-  if (metadata?.type != "license" || !isValidUUID(metadata.license_id)) {
-    throw Error("subscription must be for a license");
+  if (metadata?.type != "license" && metadata?.type != "membership") {
+    throw Error("subscription must be for a license or membership");
   }
-  const { license_id } = metadata ?? {};
-  const { rows: licenses } = await pool.query(
-    "SELECT expires FROM site_licenses WHERE id=$1",
-    [license_id],
-  );
-  if (licenses.length == 0) {
-    throw Error(
-      `subscription must be for a valid license, but there isn't one with id ${metadata.license_id}`,
-    );
-  }
-  let start = new Date(licenses[0].expires);
+  let start = new Date(current_period_end);
   const now = new Date();
+  if (metadata.type == "license") {
+    if (!isValidUUID(metadata.license_id)) {
+      throw Error("subscription must be for a valid license");
+    }
+    const { rows: licenses } = await pool.query(
+      "SELECT expires FROM site_licenses WHERE id=$1",
+      [metadata.license_id],
+    );
+    if (licenses.length == 0) {
+      throw Error(
+        `subscription must be for a valid license, but there isn't one with id ${metadata.license_id}`,
+      );
+    }
+    start = new Date(licenses[0].expires);
+  }
   if (start < now) {
     start = now;
   }
@@ -227,14 +234,15 @@ export async function processSubscriptionRenewal({
   }
   const { cost, metadata, interval } = subscriptions[0];
   let { payment } = subscriptions[0];
-  const { license_id } = metadata ?? {};
   logger.debug("processSubscriptionRenewal", {
     payment,
     cost,
     metadata,
     interval,
-    license_id,
   });
+  if (metadata?.type != "license" && metadata?.type != "membership") {
+    throw Error("unsupported subscription metadata");
+  }
   if (!force && amount + ALLOWED_SLACK <= cost) {
     logger.debug("processSubscriptionRenewal: SUSPICIOUS! -- not doing it.");
     throw Error(
@@ -259,19 +267,41 @@ export async function processSubscriptionRenewal({
 
   const end = new Date(payment.new_expires_ms);
 
-  logger.debug(
-    `processSubscriptionRenewal: extend the license to ${payment.new_expires_ms}`,
-  );
-  const { purchase_id } = await editLicense({
-    account_id,
-    license_id,
-    changes: { end },
-    cost,
-    note: "This is a subscription with a fixed cost per period.",
-    isSubscriptionRenewal: true,
-    force: true,
-    client,
-  });
+  let purchase_id: number | undefined;
+  if (metadata.type == "license") {
+    logger.debug(
+      `processSubscriptionRenewal: extend the license to ${payment.new_expires_ms}`,
+    );
+    const result = await editLicense({
+      account_id,
+      license_id: metadata.license_id,
+      changes: { end },
+      cost,
+      note: "This is a subscription with a fixed cost per period.",
+      isSubscriptionRenewal: true,
+      force: true,
+      client,
+    });
+    purchase_id = result.purchase_id;
+  } else {
+    purchase_id = await createPurchase({
+      account_id,
+      service: "membership",
+      description: {
+        type: "membership",
+        subscription_id:
+          typeof subscription_id != "number"
+            ? parseInt(subscription_id)
+            : subscription_id,
+        class: metadata.class,
+        interval,
+      },
+      client,
+      cost,
+      period_start: subtractInterval(end, interval),
+      period_end: end,
+    });
+  }
 
   logger.debug(
     "processSubscriptionRenewal: mark payment done, and update period",

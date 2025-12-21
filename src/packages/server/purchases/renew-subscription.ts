@@ -17,6 +17,7 @@ import dayjs from "dayjs";
 import editLicense from "./edit-license";
 import type { Status } from "@cocalc/util/db-schema/subscriptions";
 import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
+import createPurchase from "./create-purchase";
 
 const logger = getLogger("purchases:renew-subscription");
 
@@ -38,25 +39,43 @@ export default async function renewSubscription({
     throw Error("you must be signed in as the owner of the subscription");
   }
   const { metadata, interval, current_period_end, cost } = subscription;
-  if (metadata?.type != "license" || metadata.license_id == null) {
-    throw Error("only license subscriptions are currently implemented");
+  if (metadata?.type != "license" && metadata?.type != "membership") {
+    throw Error("unsupported subscription metadata");
   }
-  const { license_id } = metadata;
   const end = addInterval(current_period_end, interval);
 
   // Use a transaction so we either edit license and update subscription or do nothing.
   const client = await getTransactionClient();
   try {
-    const { purchase_id } = await editLicense({
-      account_id,
-      license_id,
-      changes: { end },
-      cost,
-      note: "This is a subscription with a fixed cost per period.",
-      isSubscriptionRenewal: true,
-      client,
-      force,
-    });
+    let purchase_id: number | undefined;
+    if (metadata.type == "license") {
+      const { purchase_id: license_purchase_id } = await editLicense({
+        account_id,
+        license_id: metadata.license_id,
+        changes: { end },
+        cost,
+        note: "This is a subscription with a fixed cost per period.",
+        isSubscriptionRenewal: true,
+        client,
+        force,
+      });
+      purchase_id = license_purchase_id;
+    } else {
+      purchase_id = await createPurchase({
+        account_id,
+        service: "membership",
+        description: {
+          type: "membership",
+          subscription_id,
+          class: metadata.class,
+          interval,
+        },
+        client,
+        cost,
+        period_start: subtractInterval(end, interval),
+        period_end: end,
+      });
+    }
 
     await client.query(
       "UPDATE subscriptions SET status='active',current_period_start=$1,current_period_end=$2,latest_purchase_id=$3 WHERE id=$4",

@@ -35,7 +35,7 @@ import {
   Tag,
 } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { useIntl } from "react-intl";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -63,19 +63,28 @@ import ResumeSubscription from "./resume-subscription";
 
 function SubscriptionActions({
   subscription_id,
-  license_id,
+  metadata,
   status,
   refresh,
   interval,
+}: {
+  subscription_id: number;
+  metadata: Subscription["metadata"];
+  status: Subscription["status"];
+  refresh: () => void;
+  interval: Subscription["interval"];
 }) {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [license, setLicense] = useState<License | null>(null);
   const [showResume, setShowResume] = useState<boolean>(false);
+  const license_id = metadata?.type == "license" ? metadata.license_id : null;
+  const isLicense = metadata?.type == "license";
 
   const updateLicense = async () => {
     try {
+      if (!license_id) return;
       setLicense((await getLicense({ license_id })) as License);
     } catch (err) {
       setError(`${err}`);
@@ -129,12 +138,9 @@ function SubscriptionActions({
       title={"Cancel this subscription at period end?"}
       description={
         <div style={{ maxWidth: "450px" }}>
-          <FormattedMessage
-            id="purchases.subscriptions.cancel-end.description"
-            defaultMessage={
-              "The license will still be valid until the subscription period ends. You can always restart the subscription or edit the license to change the subscription price."
-            }
-          />
+          {isLicense
+            ? "The license will still be valid until the subscription period ends. You can always restart the subscription or edit the license to change the subscription price."
+            : "Your subscription will remain active until the current period ends. You can restart the subscription later if needed."}
           <br />
           <Input.TextArea
             rows={4}
@@ -169,7 +175,9 @@ function SubscriptionActions({
           disabled={loading}
           type="default"
           onClick={() => {
-            updateLicense();
+            if (isLicense) {
+              updateLicense();
+            }
             setModalOpen(true);
           }}
         >
@@ -185,17 +193,19 @@ function SubscriptionActions({
         >
           <div style={{ maxWidth: "450px" }}>
             Are you sure you want to cancel this subscription? The corresponding
-            license will not be renewed.
+            {isLicense ? " license " : " membership "} will not be renewed.
             <ul style={{ margin: "15px 0" }}>
-              <li>
-                Instead of cancelling, <b>you can edit your license</b>, which
-                will change the subscription price. Click the license code to
-                the left, then click "Edit License".
-              </li>
+              {isLicense && (
+                <li>
+                  Instead of cancelling, <b>you can edit your license</b>, which
+                  will change the subscription price. Click the license code to
+                  the left, then click "Edit License".
+                </li>
+              )}
               <li>
                 Select "Cancel at Period End" to cancel your subscription. You
-                have already paid for your license, so it will continue to the
-                end of the current period.
+                have already paid for your subscription, so it will continue to
+                the end of the current period.
               </li>
               <li>You can resume a canceled subscription later.</li>
             </ul>
@@ -242,7 +252,23 @@ function SubscriptionActions({
   );
 }
 
-function LicenseDescription({ license_id, refresh }) {
+function SubscriptionDescription({
+  metadata,
+  refresh,
+}: {
+  metadata: Subscription["metadata"];
+  refresh: () => void;
+}) {
+  if (metadata?.type == "membership") {
+    return (
+      <div>
+        Membership: <b>{metadata.class}</b>
+      </div>
+    );
+  }
+  if (metadata?.type != "license" || !metadata.license_id) {
+    return null;
+  }
   return (
     <Collapse
       items={[
@@ -251,13 +277,16 @@ function LicenseDescription({ license_id, refresh }) {
           label: (
             <Flex>
               <Icon name="key" style={{ marginRight: "15px" }} /> License Id:{" "}
-              {license_id}
+              {metadata.license_id}
               <div style={{ flex: 1 }} />
               <div>(expand to edit)</div>
             </Flex>
           ),
           children: (
-            <SiteLicensePublicInfo license_id={license_id} refresh={refresh} />
+            <SiteLicensePublicInfo
+              license_id={metadata.license_id}
+              refresh={refresh}
+            />
           ),
         },
       ]}
@@ -380,6 +409,14 @@ export default function Subscriptions() {
               </Button>
             );
           }
+          if (metadata.type == "membership") {
+            return (
+              <Button onClick={() => setCurrent(subscription)}>
+                <Icon name="user" style={{ marginRight: "15px" }} />
+                Membership: {metadata.class}
+              </Button>
+            );
+          }
           return <>{JSON.stringify(metadata, undefined, 2)}</>;
         },
       },
@@ -423,7 +460,7 @@ export default function Subscriptions() {
           <>
             <SubscriptionActions
               subscription_id={id}
-              license_id={metadata.license_id}
+              metadata={metadata}
               status={status}
               refresh={getSubscriptions}
               interval={interval}
@@ -548,8 +585,8 @@ function SubscriptionModal({ subscription, getSubscriptions, onClose }) {
       onCancel={onClose}
     >
       <Space style={{ width: "100%" }} direction="vertical">
-        <LicenseDescription
-          license_id={subscription.metadata.license_id}
+        <SubscriptionDescription
+          metadata={subscription.metadata}
           refresh={getSubscriptions}
         />
         <div>
@@ -570,7 +607,7 @@ function SubscriptionModal({ subscription, getSubscriptions, onClose }) {
           Manage:{" "}
           <SubscriptionActions
             subscription_id={subscription.id}
-            license_id={subscription.metadata.license_id}
+            metadata={subscription.metadata}
             status={subscription.status}
             refresh={() => {
               onClose();

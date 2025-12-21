@@ -18,9 +18,13 @@ import {
 } from "@cocalc/util/licenses/purchase/compute-cost";
 import dayjs from "dayjs";
 import send, { support, url, name } from "@cocalc/server/messages/send";
-import { RENEW_DAYS_BEFORE_END } from "@cocalc/util/db-schema/subscriptions";
+import {
+  type MembershipClass,
+  RENEW_DAYS_BEFORE_END,
+} from "@cocalc/util/db-schema/subscriptions";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 import getBalance from "./get-balance";
+import createPurchase from "./create-purchase";
 
 interface Options {
   account_id: string;
@@ -31,24 +35,41 @@ export default async function resumeSubscription({
   account_id,
   subscription_id,
 }: Options): Promise<number | null | undefined> {
-  const { license_id, start, end, current_period_end, periodicCost } =
+  const { metadata, start, end, current_period_end, periodicCost, interval } =
     await getSubscriptionRenewalData(subscription_id);
   const client = await getTransactionClient();
   let purchase_id: number | undefined = undefined;
   try {
     if (current_period_end <= new Date()) {
       // make purchase, if needed
-      purchase_id = (
-        await editLicense({
+      if (metadata.type == "license") {
+        purchase_id = (
+          await editLicense({
+            account_id,
+            license_id: metadata.license_id,
+            changes: { end },
+            note: `This is to pay for subscription id=${subscription_id}.  The owner of the subscription manually resumed it.   This purchase pays for the cost of one period of the subscription.`,
+            isSubscriptionRenewal: true,
+            client,
+            cost: periodicCost,
+          })
+        ).purchase_id;
+      } else {
+        purchase_id = await createPurchase({
           account_id,
-          license_id,
-          changes: { end },
-          note: `This is to pay for subscription id=${subscription_id}.  The owner of the subscription manually resumed it.   This purchase pays for the cost of one period of the subscription.`,
-          isSubscriptionRenewal: true,
+          service: "membership",
+          description: {
+            type: "membership",
+            subscription_id,
+            class: metadata.class,
+            interval,
+          },
           client,
           cost: periodicCost,
-        })
-      ).purchase_id;
+          period_start: start,
+          period_end: end,
+        });
+      }
 
       if (purchase_id) {
         await client.query(
@@ -74,9 +95,7 @@ export default async function resumeSubscription({
       to_ids: [account_id],
       subject: `Subscription Id=${subscription_id} Successfully Resumed!`,
       body: `
-You have successfully manually resumed subscription id=${subscription_id} which covers your license
-
-${license_id}
+You have successfully manually resumed subscription id=${subscription_id} which covers your ${metadata.type}
 
 Your subscription will automatically renew ${RENEW_DAYS_BEFORE_END} days before ${end.toDateString()}.
 
@@ -106,7 +125,7 @@ You might want to check in with them.`,
       to_ids: [account_id],
       subject: `Subscription Id=${subscription_id} Failed to Resume`,
       body: `
-An unexpected error happened when manually resuming your subscription with id=${subscription_id} for the license ${license_id}
+An unexpected error happened when manually resuming your subscription with id=${subscription_id} for your ${metadata.type}
 
 - [Your Subscriptions](${await url(`/settings/subscriptions#id=${subscription_id}`)})
 
@@ -132,11 +151,14 @@ error. An admin should check in on this.
 }
 
 async function getSubscriptionRenewalData(subscription_id): Promise<{
-  license_id: string;
+  metadata:
+    | { type: "license"; license_id: string }
+    | { type: "membership"; class: MembershipClass };
   start: Date;
   end: Date;
   periodicCost: number;
   current_period_end: Date;
+  interval: "month" | "year";
 }> {
   const {
     cost: currentCost,
@@ -145,37 +167,41 @@ async function getSubscriptionRenewalData(subscription_id): Promise<{
     status,
     current_period_end,
   } = await getSubscription(subscription_id);
+  if (metadata?.type != "license" && metadata?.type != "membership") {
+    throw Error("unsupported subscription metadata");
+  }
   if (status != "canceled") {
     throw Error(
       `You can only resume a canceled subscription, but this subscription is "${status}"`,
     );
   }
-  const { license_id } = metadata;
-  const pool = getPool();
-  const { rows } = await pool.query(
-    "SELECT info FROM site_licenses where id=$1",
-    [license_id],
-  );
-  const purchaseInfo = rows[0]?.info?.purchased;
   let periodicCost = currentCost;
-  if (purchaseInfo != null) {
-    const computedCost = compute_cost({
-      ...purchaseInfo,
-      start: null,
-      end: null,
-    });
-    const newCost = getPeriodicCost(computedCost);
-    if (newCost != currentCost) {
-      await pool.query(`UPDATE subscriptions SET cost=$1 WHERE id=$2`, [
-        newCost,
-        subscription_id,
-      ]);
-      periodicCost = newCost;
+  if (metadata.type == "license") {
+    const pool = getPool();
+    const { rows } = await pool.query(
+      "SELECT info FROM site_licenses where id=$1",
+      [metadata.license_id],
+    );
+    const purchaseInfo = rows[0]?.info?.purchased;
+    if (purchaseInfo != null) {
+      const computedCost = compute_cost({
+        ...purchaseInfo,
+        start: null,
+        end: null,
+      });
+      const newCost = getPeriodicCost(computedCost);
+      if (newCost != currentCost) {
+        await pool.query(`UPDATE subscriptions SET cost=$1 WHERE id=$2`, [
+          newCost,
+          subscription_id,
+        ]);
+        periodicCost = newCost;
+      }
     }
   }
   const start = dayjs().startOf("day").toDate();
   const end = addInterval(start, interval);
-  return { license_id, start, end, periodicCost, current_period_end };
+  return { metadata, start, end, periodicCost, current_period_end, interval };
 }
 
 export async function costToResumeSubscription(

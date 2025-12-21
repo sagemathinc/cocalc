@@ -88,15 +88,17 @@ async function shiftSubscriptionToEndOnDay(
 
     if (sub.status != "canceled") {
       // change underlying license end date to match (could result in credit or charge)
-      await editLicense({
-        account_id,
-        license_id: sub.metadata.license_id,
-        changes: { end: current_period_end },
-        note: "Edit to this license due to modifying the current period end of the subscription.",
-        isSubscriptionRenewal: true,
-        client,
-        force: true,
-      });
+      if (sub.metadata?.type == "license") {
+        await editLicense({
+          account_id,
+          license_id: sub.metadata.license_id,
+          changes: { end: current_period_end },
+          note: "Edit to this license due to modifying the current period end of the subscription.",
+          isSubscriptionRenewal: true,
+          client,
+          force: true,
+        });
+      }
     }
   }
 }

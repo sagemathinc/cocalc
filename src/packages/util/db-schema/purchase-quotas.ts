@@ -190,6 +190,13 @@ export const QUOTA_SPEC: QuotaSpec = {
     category: "compute",
     description: "Charge due to storage of data on a cloud filesystem.",
   },
+  membership: {
+    display: "Membership",
+    color: "cyan",
+    noSet: true,
+    category: "license",
+    description: "Charge for a membership subscription.",
+  },
   license: {
     display: "License",
     color: "cyan",

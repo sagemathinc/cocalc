@@ -17,6 +17,10 @@ import useAPI from "lib/hooks/api";
 function Description({ hosted_invoice_url, lines, metadata }) {
   const license_id =
     metadata?.license_id ?? lines.data[0]?.metadata?.license_id;
+  const membership_class =
+    metadata?.type == "membership"
+      ? metadata?.class
+      : lines.data[0]?.metadata?.class;
   return (
     <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
       {lines.data[0]?.description}
@@ -33,6 +37,7 @@ function Description({ hosted_invoice_url, lines, metadata }) {
           License: <License license_id={license_id} />
         </div>
       )}
+      {membership_class && <div>Membership: {membership_class}</div>}
     </div>
   );
 }

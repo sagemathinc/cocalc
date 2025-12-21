@@ -5,11 +5,18 @@ import { NOTES } from "./crm";
 
 export type Status = "active" | "canceled" | "unpaid" | "past_due";
 export type Interval = "month" | "year";
+export type MembershipClass = "free" | "student" | "member" | "pro";
 export interface LicenseMetadata {
   type: "license";
   license_id: string;
 }
-export type Metadata = LicenseMetadata;
+export interface MembershipMetadata {
+  type: "membership";
+  class: MembershipClass;
+  source?: "self_pay" | "org" | "course" | "promo";
+  source_id?: string;
+}
+export type Metadata = LicenseMetadata | MembershipMetadata;
 
 export const RENEW_DAYS_BEFORE_END = 5;
 
@@ -106,8 +113,7 @@ Table({
     },
     metadata: {
       title: "Metadata",
-      // the ONLY type of subscriptions we have are for upgrade licenses:
-      desc: "Metadata that describes what the subscription is for, e.g., {type:'license', license_id:'...'}",
+      desc: "Metadata that describes what the subscription is for, e.g., {type:'license', license_id:'...'} or {type:'membership', class:'member'}",
       type: "map",
       pg_type: "jsonb",
     },

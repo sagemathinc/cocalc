@@ -82,7 +82,11 @@ describe("create a subscription license and edit it and confirm the subscription
     const n = dayjs(subs[0].current_period_end).diff(dayjs(), "days");
     expect(Math.abs(n - 30)).toBeLessThan(3);
 
-    const license_id = subs[0].metadata.license_id;
+    const metadata = subs[0].metadata;
+    if (metadata.type != "license") {
+      throw Error("expected license subscription");
+    }
+    const license_id = metadata.license_id;
     const license = await getLicense(license_id);
     expect(license.expires).toBe(subs[0].current_period_end.valueOf());
     // The cost of the license should be close to the monthly subscription,

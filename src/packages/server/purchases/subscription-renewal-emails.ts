@@ -107,7 +107,7 @@ so they are not automatically canceled.   You will receive a reminder email in a
       `<li>${sub.interval == "month" ? "Monthly" : "Yearly"} Subscription (id=${
         sub.id
       }) for ${currency(sub.cost)}/${sub.interval}: ${await describeLicense(
-        sub.metadata?.license_id,
+        sub.metadata,
       )} </li>`,
     );
   }
@@ -151,7 +151,14 @@ to this email to create a support request.
   );
 }
 
-async function describeLicense(license_id: string): Promise<string> {
+async function describeLicense(metadata): Promise<string> {
+  if (!metadata) {
+    return "";
+  }
+  if (metadata.type == "membership") {
+    return `Membership (${metadata.class ?? "unknown"})`;
+  }
+  const license_id = metadata.license_id;
   const pool = getPool();
   const { rows } = await pool.query(
     "select info->'purchased' as purchased from site_licenses where id=$1",

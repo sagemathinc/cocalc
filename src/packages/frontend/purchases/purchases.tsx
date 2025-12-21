@@ -948,6 +948,15 @@ function Description({ description, period_end, service }) {
     const { license_id } = description;
     return <>License: {license_id && <License license_id={license_id} />}</>;
   }
+  if (service === "membership") {
+    const { class: membershipClass, subscription_id } = description;
+    return (
+      <>
+        Membership: {membershipClass ?? "unknown"} (subscription{" "}
+        {subscription_id})
+      </>
+    );
+  }
   if (service === "credit") {
     return (
       <Space>

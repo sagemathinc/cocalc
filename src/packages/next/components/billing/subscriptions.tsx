@@ -36,7 +36,7 @@ function getInvoiceById(invoices, id) {
 
 interface DescriptionProps {
   latest_invoice: string;
-  metadata?: { license_id: string };
+  metadata?: { type?: string; license_id?: string; class?: string };
   invoices: InvoicesData;
 }
 
@@ -64,6 +64,9 @@ function Description(props: DescriptionProps) {
             License: <License license_id={metadata?.license_id} />
           </div>
         )}
+        {metadata?.type == "membership" && metadata?.class && (
+          <div>Membership: {metadata.class}</div>
+        )}
       </div>
     );
   }
@@ -76,6 +79,9 @@ function Description(props: DescriptionProps) {
         License: <License license_id={metadata.license_id} />
       </div>
     );
+  }
+  if (metadata?.type == "membership" && metadata?.class) {
+    return <div style={DESCR_STYLE}>Membership: {metadata.class}</div>;
   }
   return null;
 }
@@ -112,7 +118,7 @@ interface CostProps {
     interval_count: number;
   };
   invoices: InvoicesData;
-  metadata?: { license_id: string };
+  metadata?: { type?: string; license_id?: string; class?: string };
 }
 
 function Cost({ latest_invoice, plan, invoices, metadata }: CostProps) {
@@ -134,6 +140,8 @@ function Cost({ latest_invoice, plan, invoices, metadata }: CostProps) {
         plan={plan}
       />
     );
+  } else if (metadata?.type == "membership" && metadata?.class) {
+    return <>Membership: {metadata.class}</>;
   }
   return <Text type="secondary">no data available</Text>;
 }

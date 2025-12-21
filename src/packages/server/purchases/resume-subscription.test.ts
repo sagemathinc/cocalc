@@ -6,7 +6,11 @@
 // test resuming a canceled subscription
 
 import { uuid } from "@cocalc/util/misc";
-import { createTestAccount, createTestSubscription } from "./test-data";
+import {
+  createTestAccount,
+  createTestMembershipSubscription,
+  createTestSubscription,
+} from "./test-data";
 //import dayjs from "dayjs";
 import resumeSubscription from "./resume-subscription";
 import cancelSubscription from "./cancel-subscription";
@@ -14,6 +18,8 @@ import { getSubscription } from "./renew-subscription";
 import getLicense from "@cocalc/server/licenses/get-license";
 import getBalance from "./get-balance";
 import { before, after } from "@cocalc/server/test";
+import getPool from "@cocalc/database/pool";
+import dayjs from "dayjs";
 
 beforeAll(async () => {
   await before({ noConat: true });
@@ -66,5 +72,43 @@ describe("create a subscription, cancel it, then resume it", () => {
     expect(license.activates).toBe(license2.activates);
     expect(license.expires).toBe(license2.expires);
     expect(license2.expires).toBe(sub.current_period_end.valueOf());
+  });
+});
+
+describe("membership subscription cancel and resume", () => {
+  const account_id = uuid();
+  let subscription_id = -1;
+  let membershipClass = "member";
+  it("creates an account and membership subscription with expired period", async () => {
+    await createTestAccount(account_id);
+    const created = await createTestMembershipSubscription(account_id, {
+      class: "member",
+      start: dayjs().subtract(2, "month").toDate(),
+      end: dayjs().subtract(1, "day").toDate(),
+    });
+    subscription_id = created.subscription_id;
+    membershipClass = created.membershipClass;
+  });
+
+  it("cancels and resumes the membership subscription, creating a membership purchase", async () => {
+    await cancelSubscription({
+      account_id,
+      subscription_id,
+    });
+    expect((await getSubscription(subscription_id)).status).toBe("canceled");
+    const purchase_id = await resumeSubscription({ account_id, subscription_id });
+    if (!purchase_id) {
+      throw Error("expected a membership purchase_id");
+    }
+    expect((await getSubscription(subscription_id)).status).toBe("active");
+    const pool = getPool();
+    const { rows } = await pool.query(
+      "SELECT service, description FROM purchases WHERE id=$1",
+      [purchase_id],
+    );
+    expect(rows.length).toBe(1);
+    expect(rows[0].service).toBe("membership");
+    expect(rows[0].description?.type).toBe("membership");
+    expect(rows[0].description?.class).toBe(membershipClass);
   });
 });

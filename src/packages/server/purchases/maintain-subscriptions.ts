@@ -147,7 +147,7 @@ change your subscription:
 - ${interval == "month" ? "Monthly" : "Yearly"} Subscription (id=${
       id
     }) for ${currency(cost)}/${interval}
-- ${await describeLicense(metadata?.license_id)}
+- ${await describeSubscription(metadata)}
 `;
 
     logger.debug("sendUpcomingRenewalNotifications to ", name);
@@ -160,14 +160,20 @@ change your subscription:
   }
 }
 
-async function describeLicense(license_id?: string): Promise<string> {
-  if (!license_id) {
+async function describeSubscription(metadata): Promise<string> {
+  if (!metadata) {
+    return "";
+  }
+  if (metadata.type == "membership") {
+    return `Membership (${metadata.class ?? "unknown"})`;
+  }
+  if (metadata.type != "license" || !metadata.license_id) {
     return "";
   }
   const pool = getPool();
   const { rows } = await pool.query(
     "select info->'purchased' as purchased from site_licenses where id=$1",
-    [license_id],
+    [metadata.license_id],
   );
   if (rows.length == 0) {
     return "";

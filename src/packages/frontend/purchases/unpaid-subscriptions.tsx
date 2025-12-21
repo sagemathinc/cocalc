@@ -133,10 +133,9 @@ export default function UnpaidSubscriptions({
         }
         description={
           <div style={{ maxWidth: "450px" }}>
-            The corresponding {plural(unpaidSubscriptions?.length, "license")}{" "}
-            will be renewed and your balance will be reduced by {currency(cost)}
-            . You can also cancel or edit any subscriptions in order to change
-            the amount due.
+            Your subscriptions will be renewed and your balance will be reduced
+            by {currency(cost)}. You can also cancel or edit any subscriptions
+            in order to change the amount due.
           </div>
         }
         onConfirm={handleRenewSubscriptions}
