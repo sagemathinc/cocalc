@@ -1371,6 +1371,16 @@ function unwrapShellCommand(
     "/bin/sh",
     "/usr/bin/sh",
   ]);
+  // Some events arrive with a fully composed shell string in `command`, so
+  // peel off `/bin/bash -lc "..."` to show the actual user command.
+  if (!args.length) {
+    const inline = command.match(
+      /^(?:\/usr\/bin\/|\/bin\/)?(?:bash|sh)\s+-l?c\s+([\s\S]+)$/,
+    );
+    if (inline?.[1]) {
+      return { cmd: inline[1], argv: [] };
+    }
+  }
   if (!shells.has(command)) {
     return { cmd: command, argv: args };
   }

@@ -12,12 +12,13 @@
 - [x] switch to patch heuristic so can switch to straight upstream codex and no fork at all
 - [ ] I just noticed also that the context is sometimes wrong now due to a format change (?); often it is right too.
 - [ ] get multiuser to work again (just a path issue? -- need to figure out codex path on host and mount it into terminal)
-- [ ] the terminal shell parsing is all broken due to missing cwd (?)
+- [ ] the terminal shell parsing is all broken due to missing cwd (investigate local vs container defaults)
 
 
 ## Make multiuser secure with accounting via a proxy
 
 Goal: keep API keys out of codex containers, enforce per-project usage accounting, and avoid cross-project leakage by proxying all OpenAI traffic through a CoCalc-owned gateway.
+This is a hard security requirement for multiuser deployments; do not ship without it.
 
 - [ ] Add a minimal HTTP proxy that forwards all `/v1/*` requests to the upstream OpenAI API, injects the real API key server-side, and strips any client-provided Authorization headers.
 - [ ] Require project-scoped auth on the proxy (e.g., HMAC token or conat-issued token) and map each request to `{project_id, account_id}` for accounting.
