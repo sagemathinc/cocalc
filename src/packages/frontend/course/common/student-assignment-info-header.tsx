@@ -209,9 +209,8 @@ export function StudentAssignmentInfoHeader({
           </div>
         ) : null}
         {mode === "assignment" &&
-        (peer_grade
-          ? key === "grade"
-          : key === "assignment" || key === "collect" || key === "grade") ? (
+        !peer_grade &&
+        (key === "assignment" || key === "collect") ? (
           <div>
             <Icon name="toggle-on" /> Allow proceeding without {step_verb(key)}
             ing

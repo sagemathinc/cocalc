@@ -4,11 +4,12 @@
  */
 
 import { Button, Col, Input, Row, Space, Spin } from "antd";
+import type { TooltipPlacement } from "antd/lib/tooltip";
 import { ReactNode, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useActions } from "@cocalc/frontend/app-framework";
-import { Gap, Icon, Markdown, Tip } from "@cocalc/frontend/components";
+import { Icon, Markdown, Tip } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
 import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
 import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
@@ -418,7 +419,7 @@ export function StudentAssignmentInfo({
     }
   }
 
-  function render_open(open, tip: string, placement: string) {
+  function render_open(open, tip: string, placement: TooltipPlacement) {
     return (
       <Tip key="open" title="Open assignment" tip={tip} placement={placement}>
         <Button
@@ -452,7 +453,7 @@ export function StudentAssignmentInfo({
     step: Steps,
     copy: () => void,
     tip: string,
-    placement: string,
+    placement: TooltipPlacement,
   ) {
     return (
       <Tip key="copy" title={step} tip={tip} placement={placement}>
@@ -506,7 +507,7 @@ export function StudentAssignmentInfo({
     const do_copy = () => copy(type, info.assignment_id, info.student_id);
     const do_stop = () => stop(type, info.assignment_id, info.student_id);
     const v: React.JSX.Element[] = [];
-    const placement = step === "Return" ? "left" : "right";
+    const placement: TooltipPlacement = step === "Return" ? "left" : "right";
     if (enable_copy) {
       const now = webapp_client.server_time();
       const in_progress =

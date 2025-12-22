@@ -268,7 +268,7 @@ export function NbgraderScores({
     );
   }
 
-  const { score, points, error, manual_needed } =
+  const { score, points, error = false, manual_needed } =
     get_nbgrader_score(nbgrader_scores);
 
   const hasScores = Object.keys(nbgrader_scores ?? {}).length > 0;

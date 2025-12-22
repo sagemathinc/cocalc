@@ -29,8 +29,8 @@ import {
 } from "@cocalc/frontend/components";
 import MultiMarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { course, labels } from "@cocalc/frontend/i18n";
-import { capitalize, plural, trunc_middle } from "@cocalc/util/misc";
+import { labels } from "@cocalc/frontend/i18n";
+import { capitalize, trunc_middle } from "@cocalc/util/misc";
 import { CourseActions } from "../actions";
 import { BigTime, Progress, StudentAssignmentInfoHeader } from "../common";
 import { nbgrader_status } from "../nbgrader/util";

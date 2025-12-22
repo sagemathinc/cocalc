@@ -86,11 +86,6 @@ export function StudentListForAssignment({
     return redux.getStore(name) as any;
   }
 
-  function is_peer_graded(): boolean {
-    const peer_info = assignment.get("peer_grade");
-    return peer_info ? peer_info.get("enabled") : false;
-  }
-
   function render_student_info(student_id: string) {
     const store = get_store();
     const student = store.get_student(student_id);
