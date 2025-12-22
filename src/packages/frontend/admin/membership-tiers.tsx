@@ -47,6 +47,19 @@ function quotaTemplate(overrides: Record<string, number>) {
   return { ...DEFAULT_QUOTAS, ...overrides };
 }
 
+const minLlmLimit = 100;
+
+function llmLimitsFromYearly(price_yearly: number, monthlyOverride?: number) {
+  const monthlyCost = monthlyOverride ?? price_yearly / 12;
+  const monthlyBudget = monthlyCost * 0.5;
+  const units5h = Math.max(minLlmLimit, Math.round(monthlyBudget * 0.1 * 100));
+  const units7d = Math.max(minLlmLimit, Math.round((monthlyBudget / 2) * 100));
+  return {
+    units_5h: units5h,
+    units_7d: units7d,
+  };
+}
+
 const TIER_TEMPLATES = {
   free: {
     id: "free",
@@ -62,6 +75,7 @@ const TIER_TEMPLATES = {
       memory: 2000,
       cores: 0.75,
     }),
+    llm_limits: llmLimitsFromYearly(0, 3),
   },
   student: {
     id: "student",
@@ -77,14 +91,15 @@ const TIER_TEMPLATES = {
       memory: 4000,
       cores: 1,
     }),
+    llm_limits: llmLimitsFromYearly(9 * 8),
   },
   member: {
     id: "member",
     label: "Member",
     store_visible: true,
     priority: TEMPLATE_PRIORITY.member,
-    price_monthly: 20,
-    price_yearly: 20 * 9,
+    price_monthly: 25,
+    price_yearly: 25 * 9,
     project_defaults: quotaTemplate({
       network: 1,
       member_host: 1,
@@ -93,6 +108,7 @@ const TIER_TEMPLATES = {
       cores: 2,
       mintime: 3600,
     }),
+    llm_limits: llmLimitsFromYearly(25 * 9),
   },
   pro: {
     id: "pro",
@@ -109,8 +125,11 @@ const TIER_TEMPLATES = {
       cores: 3,
       mintime: 8 * 3600,
     }),
+    llm_limits: llmLimitsFromYearly(150 * 9),
   },
 };
+
+console.log(TIER_TEMPLATES);
 
 interface Tier {
   key?: string;

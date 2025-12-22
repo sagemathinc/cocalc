@@ -117,10 +117,10 @@ Risks/unknowns: metadata branching might miss legacy flows; subscription UI assu
 
 ### Phase 2: Entitlements applied to projects + usage
 
-[ ] Implement membership quota injection at the project quota choke point in [src/packages/server/projects/control/base.ts](./src/packages/server/projects/control/base.ts), using a “membership license” object or direct quota input. (hard)  
-[ ] Replace per-call LLM purchase line items with usage counters and limits from membership entitlements in [src/packages/server/purchases/purchase-quotas.ts](./src/packages/server/purchases/purchase-quotas.ts). (hard)  
-[ ] Add a membership entitlements helper (resolve + normalize) that returns project defaults, LLM limits, and feature flags in one shape for downstream use. (medium)  
-[ ] Define LLM usage windows (e.g., 5-hour burst + 7-day rolling) and persist usage counters with clear reset semantics. (hard)  
+[x] Implement membership quota injection at the project quota choke point in [src/packages/server/projects/control/base.ts](./src/packages/server/projects/control/base.ts), using a “membership license” object or direct quota input. (hard)  
+[x] Replace per-call LLM purchase line items with usage counters and limits from membership entitlements in [src/packages/server/purchases/purchase-quotas.ts](./src/packages/server/purchases/purchase-quotas.ts). (hard)  
+[x] Add a membership entitlements helper (resolve + normalize) that returns project defaults, LLM limits, and feature flags in one shape for downstream use. (medium)  
+[x] Define LLM usage windows (e.g., 5-hour burst + 7-day rolling) and persist usage counters with clear reset semantics. (hard)  
 [ ] Surface “why limited” metadata to clients (limit type, remaining, reset time) for transparency. (medium)  
 [ ] Add targeted tests for entitlement resolution and quota application on project start. (medium)  
 
@@ -133,7 +133,7 @@ Risks/unknowns: quota injection could conflict with legacy site_license stacking
 [ ] Keep legacy license subscriptions visible under an “Advanced” tab or section in [src/packages/next/components/store](./src/packages/next/components/store). \(easy\)  
 [ ] Add migration/compat mapping: map existing license subscriptions to membership classes and preserve remaining value \(advanced/legacy still available\). \(hard\)
 
-[ ] Make the Membership Tiers admin configuration user friendly \(custom react component form\), after deciding what the options are.  Right now it's a just a mystery json blob \(medium\)
+[x] Make the Membership Tiers admin configuration user friendly \(custom react component form\). \(medium\)
 
 [x] Add buying membership to the store \(hard\)
 

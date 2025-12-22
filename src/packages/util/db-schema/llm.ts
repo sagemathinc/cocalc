@@ -25,6 +25,7 @@ export interface LLMLogEntry {
   time: Date;
   total_time_s: number; // how long the request took in s
   total_tokens: number;
+  usage_units?: number;
 }
 
 Table({
@@ -75,6 +76,10 @@ Table({
       type: "integer",
       desc: "The total number of tokens involved in this API call.",
     },
+    usage_units: {
+      type: "integer",
+      desc: "Normalized usage units for this API call.",
+    },
     prompt_tokens: {
       type: "integer",
       desc: "The number of tokens in the prompt.",
@@ -117,6 +122,7 @@ Table({
           system: null,
           output: null,
           total_tokens: null,
+          usage_units: null,
           prompt_tokens: null,
           total_time_s: null,
           project_id: null,
@@ -158,6 +164,7 @@ Table({
           system: null,
           output: null,
           total_tokens: null,
+          usage_units: null,
           prompt_tokens: null,
           total_time_s: null,
           project_id: null,

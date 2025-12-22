@@ -28,12 +28,13 @@ export async function saveResponse({
   tag,
   total_time_s,
   total_tokens,
+  usage_units,
 }: SaveResponseProps) {
   const expire: LLMLogEntry["expire"] = await getExpiration(account_id);
   const pool = getPool();
   try {
     await pool.query(
-      "INSERT INTO openai_chatgpt_log(time,input,system,output,history,account_id,analytics_cookie,project_id,path,total_tokens,prompt_tokens,total_time_s,expire,model,tag) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
+      "INSERT INTO openai_chatgpt_log(time,input,system,output,history,account_id,analytics_cookie,project_id,path,total_tokens,prompt_tokens,total_time_s,expire,model,tag,usage_units) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)",
       [
         input,
         system,
@@ -49,6 +50,7 @@ export async function saveResponse({
         expire,
         model,
         tag,
+        usage_units ?? null,
       ],
     );
   } catch (err) {

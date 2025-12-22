@@ -10,32 +10,26 @@ import { throttle } from "lodash";
 import getLogger from "@cocalc/backend/logger";
 import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { evaluateWithLangChain, evaluateOllama } from "@cocalc/ai/llm";
 import {
   DEFAULT_MODEL,
   LLM_USERNAMES,
   LanguageModel,
-  LanguageServiceCore,
-  getLLMCost,
-  isAnthropicModel,
   isCoreLanguageModel,
+  isAnthropicModel,
   isCustomOpenAI,
-  isFreeModel,
   isGoogleModel,
   isMistralModel,
   isOllamaLLM,
   isOpenAIModel,
   isUserDefinedModel,
   isValidModel,
-  model2service,
-  model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
 import { saveResponse } from "./save-response";
 import { evaluateUserDefinedLLM } from "./user-defined";
+import { computeUsageUnits } from "./usage-units";
 
 const THROTTLE_STREAM_MS = envToInt("COCALC_LLM_THROTTLE_STREAM_MS", 500);
 const DEBUG_THROW_LLM_ERROR = process.env.DEBUG_THROW_LLM_ERROR === "true";
@@ -176,41 +170,14 @@ async function evaluateImpl({
   log.debug("response: ", { output, total_tokens, prompt_tokens });
   const total_time_s = (Date.now() - start) / 1000;
 
-  if (account_id) {
-    const is_cocalc_com =
-      (await getServerSettings()).kucalc === KUCALC_COCALC_COM;
-    if (isFreeModel(model, is_cocalc_com) || !isCoreLanguageModel(model)) {
-      // free models or non-core models are not charged
-    } else {
-      const { pay_as_you_go_openai_markup_percentage } =
-        await getServerSettings();
-      const c = getLLMCost(model, pay_as_you_go_openai_markup_percentage);
-      const cost =
-        c.prompt_tokens * prompt_tokens +
-        c.completion_tokens * completion_tokens;
-
-      const service = model2service(model) as LanguageServiceCore;
-      try {
-        await createPurchase({
-          account_id,
-          project_id,
-          cost,
-          service,
-          description: {
-            type: service,
-            prompt_tokens,
-            completion_tokens,
-          },
-          tag: `${model2vendor(model)}:${tag ?? ""}`,
-          client: null,
-        });
-      } catch (err) {
-        log.error(
-          `FAILED to CREATE a purchase; cost=${cost}, account_id=${account_id}`,
-        );
-      }
-    }
-  }
+  const usage_units =
+    account_id && isCoreLanguageModel(model)
+      ? await computeUsageUnits({
+          model,
+          prompt_tokens,
+          completion_tokens,
+        })
+      : 0;
 
   saveResponse({
     input,
@@ -224,6 +191,7 @@ async function evaluateImpl({
     total_tokens,
     prompt_tokens,
     total_time_s,
+    usage_units,
     model,
     tag,
   });
