@@ -44,6 +44,7 @@ import { ChatLog } from "./chat-log";
 import Filter from "./filter";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
+import { LLMUsageStatus } from "@cocalc/frontend/misc/llm-cost-estimation";
 import type { ChatState } from "./store";
 import type { ChatMessageTyped, ChatMessages, SubmitMentionsFn } from "./types";
 import {
@@ -1282,6 +1283,23 @@ export function ChatPanel({
               }}
             />
           )}
+          {!hasInput && isSelectedThreadAI && (
+            <div
+              style={{
+                height: "47.5px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: "5px",
+              }}
+            >
+              <LLMUsageStatus
+                variant="compact"
+                showHelp={false}
+                compactWidth={115}
+              />
+            </div>
+          )}
           {hasInput && (
             <>
               <Tooltip
@@ -1307,11 +1325,19 @@ export function ChatPanel({
               </Tooltip>
               <div style={{ height: "5px" }} />
               {isSelectedThreadAI ? (
-                <Tooltip title="Video chat is not available in AI threads.">
-                  <Button style={{ height: "47.5px" }} disabled>
-                    <Icon name="video-camera" /> Video
-                  </Button>
-                </Tooltip>
+                <div
+                  style={{
+                    height: "47.5px",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <LLMUsageStatus
+                    variant="compact"
+                    showHelp={false}
+                    compactWidth={115}
+                  />
+                </div>
               ) : (
                 <Popconfirm
                   title="Start a video chat in this thread?"

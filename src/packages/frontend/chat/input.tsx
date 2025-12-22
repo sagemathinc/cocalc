@@ -15,7 +15,6 @@ import { useIntl } from "react-intl";
 import { useDebouncedCallback } from "use-debounce";
 import { CSS, redux, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
-import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { ImmerDB } from "@cocalc/sync/editor/immer-db";
@@ -224,6 +223,7 @@ export default function ChatInput({
       },
     );
   }
+  height;
 
   const hasInput = (input ?? "").trim().length > 0;
 
@@ -256,11 +256,6 @@ export default function ChatInput({
       }}
       height={height}
       placeholder={getPlaceholder()}
-      extraHelp={
-        IS_MOBILE
-          ? "Click the date to edit chats."
-          : "Double click to edit chats."
-      }
       fontSize={fontSize}
       hideHelp={hideHelp}
       style={style}

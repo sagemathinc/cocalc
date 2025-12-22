@@ -104,9 +104,13 @@ export function LLMUsageHelpContent() {
 export function LLMUsageStatus({
   variant = "full",
   showHelp = true,
+  compactWidth,
+  compactSingle = false,
 }: {
   variant?: "full" | "compact";
   showHelp?: boolean;
+  compactWidth?: number;
+  compactSingle?: boolean;
 }) {
   const [status, setStatus] = useState<LLMUsageStatusResponse | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -163,16 +167,28 @@ export function LLMUsageStatus({
   );
 
   if (variant === "compact") {
+    const minWidth = compactWidth ?? 180;
     return (
       <Popover content={content} title="LLM Usage" trigger="click">
         <Button
           size="small"
-          style={{ height: "auto", padding: "8px", minWidth: "150px" }}
+          style={{
+            height: "auto",
+            padding: "4px 6px",
+            fontSize: "11px",
+            minWidth: `${minWidth}px`,
+          }}
         >
-          <Space direction="vertical" size={4} style={{ width: "100%" }}>
+          {compactSingle ? (
             <CompactUsageBar label="5h" window={window5h} />
-            <CompactUsageBar label="7d" window={window7d} />
-          </Space>
+          ) : (
+            <Space direction="vertical" size={2} style={{ width: "100%" }}>
+              <div style={{ marginBottom: "-8px" }}>
+                <CompactUsageBar label="5h" window={window5h} />
+              </div>
+              <CompactUsageBar label="7d" window={window7d} />
+            </Space>
+          )}
         </Button>
       </Popover>
     );
@@ -231,8 +247,8 @@ function CompactUsageBar({
   const percent = limit > 0 ? Math.min(100, (100 * used) / limit) : 0;
   const filled = Math.max(0, Math.min(4, Math.round((percent / 100) * 4)));
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-      <Text type="secondary" style={{ width: "24px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+      <Text type="secondary" style={{ width: "22px" }}>
         {label}
       </Text>
       <div style={{ display: "flex", gap: "4px", flex: 1 }}>
@@ -241,7 +257,7 @@ function CompactUsageBar({
             key={`${label}-${idx}`}
             style={{
               flex: 1,
-              height: "8px",
+              height: "5px",
               borderRadius: "4px",
               background: idx < filled ? "#1677ff" : "#f0f0f0",
             }}

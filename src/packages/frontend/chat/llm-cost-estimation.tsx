@@ -12,7 +12,7 @@ export function LLMCostEstimationChat({
   compact: boolean; // only mean is shown
   style?: CSS;
 }) {
-  if (!costEstimate) {
+  if (!costEstimate || _compact) {
     return null;
   }
 
