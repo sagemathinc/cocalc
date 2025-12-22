@@ -9,6 +9,7 @@ import { useState } from "react";
 import { Icon, Title } from "@cocalc/frontend/components";
 import { SiteLicenses } from "../site-licenses/admin/component";
 import { RegistrationToken } from "./registration-token";
+import { MembershipTiers } from "./membership-tiers";
 import SiteSettings from "./site-settings";
 import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
@@ -63,6 +64,15 @@ export function AdminPage() {
         </div>
       ),
       children: <RegistrationToken />,
+    },
+    {
+      key: "membership-tiers",
+      label: (
+        <div style={headerStyle}>
+          <Icon name="user" style={{ marginRight: "8px" }} /> Membership Tiers
+        </div>
+      ),
+      children: <MembershipTiers />,
     },
     {
       key: "system-notifications",

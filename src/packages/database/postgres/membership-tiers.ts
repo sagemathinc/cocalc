@@ -26,6 +26,11 @@ function buildHistoryEntry(row): Record<string, unknown> {
   return entry;
 }
 
+function toJsonParam(value: unknown): string | null {
+  if (value == null) return null;
+  return JSON.stringify(value);
+}
+
 export default async function membershipTiersQuery(
   db: PostgreSQL,
   options: { delete?: boolean }[],
@@ -43,7 +48,26 @@ export default async function membershipTiersQuery(
     const { rows } = await callback2(db._query, {
       query: "SELECT * FROM membership_tiers",
     });
-    return rows;
+    const counts = await callback2(db._query, {
+      query: `SELECT metadata->>'class' AS tier_id,
+                     COUNT(*)::int AS subscription_count,
+                     COUNT(DISTINCT account_id)::int AS account_count
+              FROM subscriptions
+              WHERE metadata->>'type'='membership'
+              GROUP BY tier_id`,
+    });
+    const byTier = (counts.rows ?? []).reduce((acc, row) => {
+      if (!row?.tier_id) return acc;
+      acc[row.tier_id] = {
+        subscription_count: row.subscription_count ?? 0,
+        account_count: row.account_count ?? 0,
+      };
+      return acc;
+    }, {});
+    return rows.map((row) => ({
+      ...row,
+      ...(byTier[row.id] ?? { subscription_count: 0, account_count: 0 }),
+    }));
   } else if (query.id) {
     const {
       id,
@@ -64,7 +88,7 @@ export default async function membershipTiersQuery(
       params: [id],
     });
     const previous = existing.rows?.[0];
-    const history = previous?.history ?? [];
+    const history = Array.isArray(previous?.history) ? previous.history : [];
     const nextHistory =
       previous == null ? history : [...history, buildHistoryEntry(previous)];
 
@@ -85,7 +109,7 @@ export default async function membershipTiersQuery(
                 "created",
                 "updated"
               )
-              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())
+              VALUES ($1,$2,$3,$4,$5,$6,$7::JSONB,$8::JSONB,$9::JSONB,$10,$11,$12::JSONB,NOW(),NOW())
               ON CONFLICT (id)
               DO UPDATE SET
                 "label" = EXCLUDED.label,
@@ -107,12 +131,12 @@ export default async function membershipTiersQuery(
         priority ?? 0,
         price_monthly ?? null,
         price_yearly ?? null,
-        project_defaults ?? null,
-        llm_limits ?? null,
-        features ?? null,
+        toJsonParam(project_defaults),
+        toJsonParam(llm_limits),
+        toJsonParam(features),
         disabled ?? false,
         notes ?? null,
-        nextHistory ?? [],
+        toJsonParam(nextHistory ?? []),
       ],
     });
     return rows;
