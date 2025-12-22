@@ -1,5 +1,5 @@
 import { authFirst } from "./util";
-export type MembershipClass = "free" | "student" | "member" | "pro";
+export type MembershipClass = string;
 
 export interface MembershipEntitlements {
   project_defaults?: Record<string, unknown>;

@@ -1,33 +1,26 @@
 import getPool from "@cocalc/database/pool";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import type {
   MembershipClass,
   MembershipEntitlements,
   MembershipResolution,
 } from "@cocalc/conat/hub/api/purchases";
+import { getMembershipTierMap, MembershipTierRecord } from "./tiers";
 
-interface MembershipTierConfig extends MembershipEntitlements {}
-
-interface MembershipConfig {
-  tiers?: Record<MembershipClass, MembershipTierConfig>;
-  priority?: string[];
-}
-
-function normalizeConfig(raw: unknown): MembershipConfig {
-  if (raw == null || typeof raw !== "object") {
-    return {};
-  }
-  return raw as MembershipConfig;
+function tierToEntitlements(
+  tier?: MembershipTierRecord,
+): MembershipEntitlements {
+  if (!tier) return {};
+  return {
+    project_defaults: tier.project_defaults,
+    llm_limits: tier.llm_limits,
+    features: tier.features,
+  };
 }
 
 export async function resolveMembershipForAccount(
   account_id: string,
 ): Promise<MembershipResolution> {
-  const settings = await getServerSettings();
-  const config = normalizeConfig((settings as any).membership_tiers);
-  const tiers = (config.tiers ?? {}) as Partial<
-    Record<MembershipClass, MembershipTierConfig>
-  >;
+  const tiers = await getMembershipTierMap({ includeDisabled: true });
 
   const pool = getPool("medium");
   const { rows } = await pool.query(
@@ -49,7 +42,7 @@ export async function resolveMembershipForAccount(
     return {
       class: membershipClass,
       source: "subscription",
-      entitlements: tiers[membershipClass] ?? {},
+      entitlements: tierToEntitlements(tiers[membershipClass]),
       subscription_id: sub.id,
       expires: sub.current_period_end,
     };
@@ -58,6 +51,6 @@ export async function resolveMembershipForAccount(
   return {
     class: "free",
     source: "free",
-    entitlements: tiers["free"] ?? {},
+    entitlements: tierToEntitlements(tiers["free"]),
   };
 }

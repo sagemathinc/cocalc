@@ -16,7 +16,6 @@ import useAPI from "lib/hooks/api";
 const { Paragraph, Title, Text } = Typography;
 
 type Interval = "month" | "year";
-type TierClass = "member" | "pro";
 
 interface TierPricing {
   price_monthly?: number;
@@ -24,12 +23,20 @@ interface TierPricing {
 }
 
 interface MembershipTiersResponse {
-  tiers?: Record<string, TierPricing>;
+  tiers?: (TierPricing & {
+    id: string;
+    label?: string;
+    store_visible?: boolean;
+    priority?: number;
+    disabled?: boolean;
+  })[];
 }
 
 interface MembershipStatus {
-  class: "free" | "student" | "member" | "pro";
+  class: string;
 }
+
+type MembershipTier = NonNullable<MembershipTiersResponse["tiers"]>[number];
 
 export default function Memberships() {
   const router = useRouter();
@@ -41,24 +48,42 @@ export default function Memberships() {
   const status = membership.result as MembershipStatus | undefined;
 
   const currentClass = status?.class ?? "free";
+  const tiersList = tierConfig?.tiers ?? [];
+  const tierById = useMemo(
+    () =>
+      tiersList.reduce((acc, tier) => {
+        acc[tier.id] = tier;
+        return acc;
+      }, {} as Record<string, MembershipTier>),
+    [tiersList],
+  );
+  const currentTier = tierById[currentClass];
+  const currentPriority = currentTier?.priority ?? 0;
 
-  const priceFor = (tier: TierClass, ivl: Interval): number | null => {
-    const t = tierConfig?.tiers?.[tier];
-    const price = ivl == "month" ? t?.price_monthly : t?.price_yearly;
+  const visibleTiers = useMemo(
+    () =>
+      tiersList
+        .filter((tier) => tier.store_visible && !tier.disabled)
+        .sort((a, b) => {
+          const ap = a.priority ?? 0;
+          const bp = b.priority ?? 0;
+          if (bp != ap) return bp - ap;
+          const al = a.label ?? a.id;
+          const bl = b.label ?? b.id;
+          return al.localeCompare(bl);
+        }),
+    [tiersList],
+  );
+
+  const priceFor = (tier: MembershipTier, ivl: Interval): number | null => {
+    const price = ivl == "month" ? tier.price_monthly : tier.price_yearly;
     return price ?? null;
   };
 
-  const memberPrice = priceFor("member", interval);
-  const proPrice = priceFor("pro", interval);
-
-  const canBuyMember = currentClass == "free" || currentClass == "student";
-  const canBuyPro = currentClass != "pro";
-  const upgrading = currentClass == "member";
-
-  const addToCart = async (tier: TierClass) => {
+  const addToCart = async (tier: MembershipTier) => {
     const price = priceFor(tier, interval);
     if (price == null) {
-      throw Error(`Price not configured for ${tier} (${interval}).`);
+      throw Error(`Price not configured for ${tier.id} (${interval}).`);
     }
     setError("");
     try {
@@ -66,7 +91,7 @@ export default function Memberships() {
         product: "membership",
         description: {
           type: "membership",
-          class: tier,
+          class: tier.id,
           interval,
           price,
         },
@@ -78,27 +103,25 @@ export default function Memberships() {
     }
   };
 
-  const membershipCards = [
-    {
-      tier: "member" as TierClass,
-      title: "Member",
-      price: memberPrice,
-      disabled: !canBuyMember,
-      actionLabel: currentClass == "member" ? "Current Plan" : "Add to Cart",
-    },
-    {
-      tier: "pro" as TierClass,
-      title: "Pro",
-      price: proPrice,
-      disabled: !canBuyPro,
-      actionLabel:
-        currentClass == "pro"
-          ? "Current Plan"
-          : currentClass == "member"
-            ? "Upgrade to Pro"
-            : "Add to Cart",
-    },
-  ];
+  const membershipCards = visibleTiers.map((tier) => {
+    const tierPriority = tier.priority ?? 0;
+    const isCurrent = tier.id === currentClass;
+    const isUpgrade = tierPriority > currentPriority && currentPriority > 0;
+    const canPurchase =
+      !isCurrent && (tierPriority > currentPriority || currentClass == "free");
+    return {
+      tier,
+      title: tier.label ?? tier.id,
+      price: priceFor(tier, interval),
+      disabled: !canPurchase,
+      upgrading: tierPriority > currentPriority && currentPriority > 0,
+      actionLabel: isCurrent
+        ? "Current Plan"
+        : isUpgrade
+          ? `Upgrade to ${tier.label ?? tier.id}`
+          : "Add to Cart",
+    };
+  });
 
   if (tiers.error) {
     return <Alert type="error" message={tiers.error} />;
@@ -141,9 +164,15 @@ export default function Memberships() {
         </Radio.Group>
       </div>
       <Flex gap="large" wrap="wrap">
+        {membershipCards.length == 0 && (
+          <Alert
+            type="info"
+            message="No membership tiers are currently available in the store."
+          />
+        )}
         {membershipCards.map((card) => (
           <Card
-            key={card.tier}
+            key={card.tier.id}
             style={{ minWidth: "260px", flex: "1 1 320px" }}
             bordered
           >
@@ -157,7 +186,7 @@ export default function Memberships() {
                 <Text type="secondary">Pricing not configured</Text>
               )}
             </Paragraph>
-            {upgrading && card.tier == "pro" ? (
+            {card.upgrading ? (
               <Paragraph type="secondary">
                 Prorated credit applied at checkout.
               </Paragraph>

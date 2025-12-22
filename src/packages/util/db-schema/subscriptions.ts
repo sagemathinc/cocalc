@@ -5,7 +5,7 @@ import { NOTES } from "./crm";
 
 export type Status = "active" | "canceled" | "unpaid" | "past_due";
 export type Interval = "month" | "year";
-export type MembershipClass = "free" | "student" | "member" | "pro";
+export type MembershipClass = string;
 export interface LicenseMetadata {
   type: "license";
   license_id: string;

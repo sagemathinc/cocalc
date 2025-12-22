@@ -1,5 +1,4 @@
 import getPool, { PoolClient } from "@cocalc/database/pool";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import type { MembershipClass } from "@cocalc/conat/hub/api/purchases";
 import { round2up } from "@cocalc/util/misc";
 
@@ -11,9 +10,12 @@ export interface MembershipTierPricing {
   llm_limits?: Record<string, unknown>;
 }
 
-export interface MembershipTiersConfig {
-  tiers?: Record<MembershipClass, MembershipTierPricing>;
-  priority?: string[];
+export interface MembershipTierRecord extends MembershipTierPricing {
+  id: MembershipClass;
+  label?: string;
+  store_visible?: boolean;
+  priority?: number;
+  disabled?: boolean;
 }
 
 export interface MembershipPricingResult {
@@ -26,30 +28,55 @@ export interface MembershipPricingResult {
   current_period_end?: Date;
 }
 
-export async function getMembershipTiersConfig(): Promise<MembershipTiersConfig> {
-  const settings = await getServerSettings();
-  const raw = (settings as any).membership_tiers;
-  if (raw == null || typeof raw !== "object") {
-    return {};
+export async function getMembershipTiers({
+  includeDisabled = true,
+  storeVisibleOnly = false,
+}: {
+  includeDisabled?: boolean;
+  storeVisibleOnly?: boolean;
+} = {}): Promise<MembershipTierRecord[]> {
+  const pool = getPool("medium");
+  const { rows } = await pool.query(
+    `SELECT id, label, store_visible, priority, price_monthly, price_yearly,
+            project_defaults, llm_limits, features, disabled
+     FROM membership_tiers`,
+  );
+  let tiers = rows as MembershipTierRecord[];
+  if (!includeDisabled) {
+    tiers = tiers.filter((tier) => !tier.disabled);
   }
-  return raw as MembershipTiersConfig;
+  if (storeVisibleOnly) {
+    tiers = tiers.filter((tier) => tier.store_visible);
+  }
+  return tiers;
+}
+
+export async function getMembershipTierMap({
+  includeDisabled = true,
+}: {
+  includeDisabled?: boolean;
+} = {}): Promise<Record<string, MembershipTierRecord>> {
+  const tiers = await getMembershipTiers({ includeDisabled });
+  return tiers.reduce(
+    (acc, tier) => {
+      acc[tier.id] = tier;
+      return acc;
+    },
+    {} as Record<string, MembershipTierRecord>,
+  );
 }
 
 export function getMembershipPrice(
-  tiers: MembershipTiersConfig,
-  membershipClass: MembershipClass,
+  tier: MembershipTierRecord | undefined,
   interval: "month" | "year",
 ): number {
-  const tier = tiers.tiers?.[membershipClass];
   if (!tier) {
-    throw Error(`no membership tier "${membershipClass}" configured`);
+    throw Error("membership tier not configured");
   }
   const price =
     interval == "month" ? tier.price_monthly : tier.price_yearly;
   if (price == null || !Number.isFinite(price) || price < 0) {
-    throw Error(
-      `invalid membership price for "${membershipClass}" (${interval})`,
-    );
+    throw Error(`invalid membership price for "${tier.id}" (${interval})`);
   }
   return price;
 }
@@ -97,28 +124,32 @@ export async function computeMembershipPricing({
   interval: "month" | "year";
   client?: PoolClient;
 }): Promise<MembershipPricingResult> {
-  const tiers = await getMembershipTiersConfig();
-  const price = getMembershipPrice(tiers, targetClass, interval);
+  const tierMap = await getMembershipTierMap({ includeDisabled: true });
+  const targetTier = tierMap[targetClass];
+  if (!targetTier || targetTier.disabled) {
+    throw Error(`membership tier "${targetClass}" is not available`);
+  }
+  const price = getMembershipPrice(targetTier, interval);
   const existing = await getActiveMembershipSubscription({
     account_id,
     client,
   });
 
-  if (existing?.metadata?.class) {
-    const existingClass = existing.metadata.class;
+  const existingClass = existing?.metadata?.class;
+  const existingTier = existingClass ? tierMap[existingClass] : undefined;
+  const existingPriority = existingTier?.priority ?? 0;
+  const targetPriority = targetTier?.priority ?? 0;
+  if (existingClass) {
     if (existingClass == targetClass) {
       throw Error(`already subscribed to ${targetClass}`);
     }
-    if (existingClass == "pro") {
-      throw Error("already subscribed to pro");
-    }
-    if (existingClass != "member" || targetClass != "pro") {
+    if (targetPriority <= existingPriority) {
       throw Error("unsupported membership change");
     }
   }
 
   let refund = 0;
-  if (existing?.metadata?.class == "member" && targetClass == "pro") {
+  if (existingClass && targetPriority > existingPriority) {
     const start = new Date(existing.current_period_start).valueOf();
     const end = new Date(existing.current_period_end).valueOf();
     const now = Date.now();

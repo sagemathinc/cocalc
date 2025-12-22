@@ -83,7 +83,7 @@ export const ShoppingCartAddInputSchema = z
         z
           .object({
             type: z.enum(["membership"]),
-            class: z.enum(["member", "pro"]),
+            class: z.string().min(1),
             interval: z.enum(["month", "year"]),
             price: z.number().min(0).optional(),
           })

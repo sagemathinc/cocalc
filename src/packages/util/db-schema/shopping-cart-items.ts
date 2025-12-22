@@ -31,7 +31,7 @@ export interface CashVoucher {
 
 export interface MembershipSubscription {
   type: "membership";
-  class: "member" | "pro";
+  class: string;
   interval: "month" | "year";
   price?: number;
 }
