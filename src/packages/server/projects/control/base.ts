@@ -41,6 +41,10 @@ import {
   startProjectOnHost,
   stopProjectOnHost,
 } from "@cocalc/server/project-host/control";
+import {
+  getMembershipProjectDefaultsFromUsers,
+  mergeProjectSettingsWithMembership,
+} from "@cocalc/server/membership/project-defaults";
 export type { ProjectState, ProjectStatus };
 
 const logger = getLogger("project-control");
@@ -301,8 +305,20 @@ export class BaseProject extends EventEmitter {
         one: true,
       });
 
+      const membershipDefaults = await getMembershipProjectDefaultsFromUsers(
+        users,
+      );
+      const settingsWithMembership = mergeProjectSettingsWithMembership(
+        settings,
+        membershipDefaults,
+      );
       const site_settings = await getQuotaSiteSettings(); // quick, usually cached
-      run_quota = quota(settings, users, site_license, site_settings);
+      run_quota = quota(
+        settingsWithMembership,
+        users,
+        site_license,
+        site_settings,
+      );
     }
 
     await query({

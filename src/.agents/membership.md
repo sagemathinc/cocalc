@@ -98,6 +98,10 @@
 
 ## Concrete Transition Checklist (Minimal Branching)
 
+Details to not forget:
+
+- [ ] in the store, do not allow "buy it again" for memberships.
+
 ### \(done\) Phase 1: Core membership model \+ billing reuse
 
 [x] Extend subscription metadata to include `type:"membership"` and membership class in [src/packages/util/db\-schema/subscriptions.ts](./src/packages/util/db-schema/subscriptions.ts). \(easy\)  
@@ -115,6 +119,10 @@ Risks/unknowns: metadata branching might miss legacy flows; subscription UI assu
 
 [ ] Implement membership quota injection at the project quota choke point in [src/packages/server/projects/control/base.ts](./src/packages/server/projects/control/base.ts), using a “membership license” object or direct quota input. (hard)  
 [ ] Replace per-call LLM purchase line items with usage counters and limits from membership entitlements in [src/packages/server/purchases/purchase-quotas.ts](./src/packages/server/purchases/purchase-quotas.ts). (hard)  
+[ ] Add a membership entitlements helper (resolve + normalize) that returns project defaults, LLM limits, and feature flags in one shape for downstream use. (medium)  
+[ ] Define LLM usage windows (e.g., 5-hour burst + 7-day rolling) and persist usage counters with clear reset semantics. (hard)  
+[ ] Surface “why limited” metadata to clients (limit type, remaining, reset time) for transparency. (medium)  
+[ ] Add targeted tests for entitlement resolution and quota application on project start. (medium)  
 
 Exit criteria: project defaults and LLM usage limits are governed by membership entitlements with no per-call purchase spam.  
 Risks/unknowns: quota injection could conflict with legacy site_license stacking; LLM usage accounting needs a clear reset window and storage model.  
@@ -127,7 +135,15 @@ Risks/unknowns: quota injection could conflict with legacy site_license stacking
 
 [ ] Make the Membership Tiers admin configuration user friendly \(custom react component form\), after deciding what the options are.  Right now it's a just a mystery json blob \(medium\)
 
-[ ] Add buying membership to the store \(hard\)
+[x] Add buying membership to the store \(hard\)
+
+UI todo (store + settings):
+
+[ ] Add “current plan” badges and disable CTA buttons accordingly on membership cards. (easy)  
+[ ] Show a prorated credit line item on checkout when upgrading member → pro. (medium)  
+[ ] Add a membership status panel in settings: class, source, renewal date, and usage summary. (medium)  
+[ ] Add a “why limited?” callout with upgrade links on LLM throttles and project start limits. (medium)  
+[ ] Hide membership “buy it again” and “saved for later” flows. (easy)  
 
 Exit criteria: users can see membership subscriptions in UI, legacy licenses remain accessible, and existing paid value is preserved.  
 Risks/unknowns: migration mapping could under/over-credit value; “advanced” legacy UX needs careful labeling to avoid confusion.  
@@ -144,4 +160,3 @@ Risks/unknowns: migration mapping could under/over-credit value; “advanced” 
 - Ownership-based entitlements match the “account tier drives project limits” model.
 - Custom project hosts align with “bring-your-own-infra + platform fee” used by modern data/ML platforms.
 - Clear separation of “membership features/limits” vs “infrastructure cost” reduces confusion compared to per-project licensing.
-
