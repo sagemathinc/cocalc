@@ -67,7 +67,7 @@ export default function Memberships() {
         .sort((a, b) => {
           const ap = a.priority ?? 0;
           const bp = b.priority ?? 0;
-          if (bp != ap) return bp - ap;
+          if (ap != bp) return ap - bp;
           const al = a.label ?? a.id;
           const bl = b.label ?? b.id;
           return al.localeCompare(bl);
@@ -163,7 +163,7 @@ export default function Memberships() {
           <Radio.Button value="year">Yearly (discounted)</Radio.Button>
         </Radio.Group>
       </div>
-      <Flex gap="large" wrap="wrap">
+      <Flex gap="large" wrap={false} style={{ overflowX: "auto" }}>
         {membershipCards.length == 0 && (
           <Alert
             type="info"
@@ -173,7 +173,7 @@ export default function Memberships() {
         {membershipCards.map((card) => (
           <Card
             key={card.tier.id}
-            style={{ minWidth: "260px", flex: "1 1 320px" }}
+            style={{ minWidth: "260px", flex: "1 1 0" }}
             bordered
           >
             <Title level={3}>{card.title}</Title>
