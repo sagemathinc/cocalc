@@ -1,21 +1,24 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
+
+// cSpell:ignore tokenx
 
 import type { History } from "@cocalc/frontend/client/types";
 import {
   getMaxTokens,
+  numTokensEstimate,
   numTokensUpperBound,
   truncateHistory,
   truncateMessage,
 } from "./llm";
 
 describe("llm tokenizer functions", () => {
-  describe("numTokensUpperBound", () => {
+  describe("numTokensEstimate", () => {
     test("returns reasonable token count for short text", () => {
       const content = "Hello, world!";
-      const result = numTokensUpperBound(content, 1000);
+      const result = numTokensEstimate(content, 1000);
       expect(result).toBeGreaterThan(0);
       expect(result).toBeLessThan(20); // "Hello, world!" should be ~3-5 tokens
     });
@@ -24,44 +27,49 @@ describe("llm tokenizer functions", () => {
       const content =
         "The quick brown fox jumps over the lazy dog. " +
         "This is a test of the tokenizer. ";
-      const result = numTokensUpperBound(content, 1000);
+      const result = numTokensEstimate(content, 1000);
       expect(result).toBeGreaterThan(10);
       expect(result).toBeLessThan(50);
     });
 
-    test("handles very long text by truncating before tokenization", () => {
+    test("handles very long text efficiently", () => {
       // Create a very long string (250k characters)
       const content = "a".repeat(250000);
-      const maxTokens = 4096;
 
       // Should not freeze - should return a result
-      const result = numTokensUpperBound(content, maxTokens);
+      const result = numTokensEstimate(content);
 
-      // Result should be reasonable upper bound (much larger than maxTokens due to unprocessed tail)
-      expect(result).toBeGreaterThan(maxTokens);
-      // Should be less than or equal to the full character count
+      // Result should be a reasonable estimate and not exceed the character count
+      expect(result).toBeGreaterThan(10000);
       expect(result).toBeLessThanOrEqual(content.length);
     });
 
     test("handles empty string", () => {
-      const result = numTokensUpperBound("", 1000);
+      const result = numTokensEstimate("", 1000);
       expect(result).toBe(0);
     });
 
-    test("returns upper bound that is >= actual token count", () => {
-      // The function should always return an upper bound, never less than actual
-      const content = "The quick brown fox jumps over the lazy dog";
+    test("respects maxTokens cap", () => {
+      const content = "The quick brown fox jumps over the lazy dog".repeat(50);
       const maxTokens = 1000;
-      const upperBound = numTokensUpperBound(content, maxTokens);
+      const estimate = numTokensEstimate(content, maxTokens);
+      expect(estimate).toBeLessThanOrEqual(maxTokens);
+    });
+  });
 
-      // Get actual token count for comparison
-      const { encode } = require("gpt-tokenizer");
-      const actualTokenCount = encode(content).length;
+  describe("numTokensUpperBound", () => {
+    test("returns reasonable token count for short text", () => {
+      const content = "Hello, world!";
+      const result = numTokensUpperBound(content, 1000);
+      expect(result).toBeGreaterThan(0);
+      expect(result).toBeLessThanOrEqual(content.length);
+    });
 
-      // Upper bound should be >= actual token count
-      expect(upperBound).toBeGreaterThanOrEqual(actualTokenCount);
-      // Should be reasonably close (not wildly over-estimated)
-      expect(upperBound).toBeLessThan(actualTokenCount * 2);
+    test("is above or equal to numTokensEstimate", () => {
+      const content = "The quick brown fox jumps over the lazy dog";
+      const estimate = numTokensEstimate(content, 1000);
+      const upperBound = numTokensUpperBound(content, 1000);
+      expect(upperBound).toBeGreaterThanOrEqual(estimate);
     });
   });
 
@@ -85,8 +93,7 @@ describe("llm tokenizer functions", () => {
       expect(result.length).toBeLessThan(content.length);
 
       // Check result token count is within limit
-      const { encode } = require("gpt-tokenizer");
-      const resultTokens = encode(result).length;
+      const resultTokens = numTokensEstimate(result);
       expect(resultTokens).toBeLessThanOrEqual(maxTokens + 5); // small buffer for ellipsis
 
       // Should end with ellipsis marker (note: actual marker is "\n ...")
@@ -99,7 +106,7 @@ describe("llm tokenizer functions", () => {
       const result = truncateMessage(content, maxTokens);
 
       // Verify result is within token limit
-      const resultTokens = numTokensUpperBound(result, maxTokens + 10);
+      const resultTokens = numTokensEstimate(result, maxTokens + 10);
       expect(resultTokens).toBeLessThanOrEqual(maxTokens + 5); // small buffer for ellipsis
     });
 
@@ -141,13 +148,23 @@ describe("llm tokenizer functions", () => {
         { role: "assistant", content: longMessage },
       ];
       const maxTokens = 500; // Lower limit to force truncation
+      const beforeTokens = history.map((msg) =>
+        numTokensEstimate(msg.content, maxTokens),
+      );
+      expect(beforeTokens.every((tokens) => tokens === maxTokens)).toBe(true);
+
       const result = truncateHistory(history, maxTokens, model);
+      const afterTokens = result.map((msg) =>
+        numTokensEstimate(msg.content, maxTokens),
+      );
+      expect(afterTokens.some((tokens) => tokens < maxTokens)).toBe(true);
 
       // Calculate total tokens in result
       let totalTokens = 0;
       for (const msg of result) {
-        totalTokens += numTokensUpperBound(msg.content, 1000);
+        totalTokens += numTokensEstimate(msg.content, 1000);
       }
+      expect(totalTokens).toBeLessThan(beforeTokens.length * maxTokens);
       // Should be under the token limit
       expect(totalTokens).toBeLessThanOrEqual(maxTokens + 50); // Small buffer
     });
@@ -178,7 +195,7 @@ describe("llm tokenizer functions", () => {
       // Calculate approximate total tokens
       let totalTokens = 0;
       for (const msg of result) {
-        totalTokens += numTokensUpperBound(msg.content, maxTokens + 100);
+        totalTokens += numTokensEstimate(msg.content, maxTokens + 100);
       }
       // Should be under or close to the limit
       expect(totalTokens).toBeLessThanOrEqual(maxTokens * 1.2); // Allow 20% buffer
@@ -195,6 +212,19 @@ describe("llm tokenizer functions", () => {
       expect(result[0]).toHaveProperty("content");
       expect(result[1]).toHaveProperty("role");
       expect(result[1]).toHaveProperty("content");
+    });
+
+    test("truncates large overages efficiently", () => {
+      const tokenx = require("tokenx");
+      const spy = jest.spyOn(tokenx, "sliceByTokens");
+
+      const longContent = "The quick brown fox ".repeat(20000);
+      const history: History = [{ role: "user", content: longContent }];
+      truncateHistory(history, 500, model);
+
+      expect(spy.mock.calls.length).toBeLessThan(20);
+
+      spy.mockRestore();
     });
   });
 

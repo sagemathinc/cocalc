@@ -1452,6 +1452,7 @@ export function isValidModel(model?: string): boolean {
   if (isCustomOpenAI(model)) return true;
   if (isMistralModel(model)) return true;
   if (isGoogleModel(model)) return true;
+  if (isXaiModel(model)) return true;
   return LLM_COST[model ?? ""] != null;
 }
 
