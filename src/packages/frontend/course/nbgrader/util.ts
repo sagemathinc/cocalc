@@ -3,9 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
+type AssignmentLike = { get: (key: string) => any };
 
-export function nbgrader_status(assignment: Map<string, any>): {
+export function nbgrader_status(assignment: AssignmentLike): {
   succeeded: number;
   failed: number;
   not_attempted: number;

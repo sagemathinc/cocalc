@@ -7,10 +7,10 @@
 Component that shows all the scores for all problems and notebooks in a given assignment.
 */
 
-import { Alert, Card } from "antd";
+import { Alert, Button, Card } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { useActions } from "@cocalc/frontend/app-framework";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import {
   NotebookScores,
   Score,
@@ -27,6 +27,8 @@ interface Props {
   name: string;
   show_all?: boolean;
   set_show_all?: () => void;
+  run_button?: ReactNode;
+  buttonSize?: "small" | "middle" | "large";
 }
 
 interface State {
@@ -42,6 +44,8 @@ export function NbgraderScores({
   name,
   show_all,
   set_show_all,
+  run_button,
+  buttonSize,
 }: Props) {
   const actions = useActions<CourseActions>({ name });
 
@@ -227,40 +231,77 @@ export function NbgraderScores({
     );
   }
 
-  function render_more_toggle(action_required: boolean) {
-    return (
-      <a onClick={() => set_show_all?.()}>
-        {action_required ? (
-          <>
-            <Icon name="exclamation-triangle" />{" "}
-          </>
-        ) : undefined}
-        {show_all ? "" : "Edit..."}
-      </a>
+  function render_more_toggle({
+    hasScores,
+    manual_needed,
+    error,
+    buttonSize,
+  }: {
+    hasScores: boolean;
+    manual_needed: boolean;
+    error: boolean;
+    buttonSize?: "small" | "middle" | "large";
+  }) {
+    if (!hasScores) return undefined;
+    const showManual = manual_needed || error;
+    const editButton = (
+      <Button
+        size={buttonSize}
+        icon={<Icon name="pencil" />}
+        aria-label="Edit nbgrader scores"
+        onClick={() => set_show_all?.()}
+      />
     );
-  }
-
-  function render_title(score, points, error) {
     return (
-      <span>
-        <b>nbgrader:</b> {error ? "error" : `${score}/${points}`}
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+        {showManual ? <span>Manual</span> : null}
+        {editButton}
       </span>
     );
   }
 
-  const { score, points, error, manual_needed } =
+  function render_title(content: string) {
+    return (
+      <span>
+        <b>nbgrader:</b> {content}
+      </span>
+    );
+  }
+
+  const { score, points, error = false, manual_needed } =
     get_nbgrader_score(nbgrader_scores);
 
-  const action_required: boolean = !!(!show_all && (manual_needed || error));
+  const hasScores = Object.keys(nbgrader_scores ?? {}).length > 0;
+  const action_required: boolean = !!(
+    !show_all &&
+    (manual_needed || error || !hasScores)
+  );
 
   const backgroundColor = action_required ? "#fff1f0" : undefined;
+
+  const titleContent = hasScores ? (error ? "error" : `${score}/${points}`) : "--/--";
+
+  const titleWithRun =
+    run_button == null ? (
+      render_title(titleContent)
+    ) : (
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        {run_button}
+        {render_title(titleContent)}
+      </div>
+    );
 
   return (
     <Card
       size="small"
       style={{ marginTop: "5px", backgroundColor }}
-      extra={render_more_toggle(action_required)}
-      title={render_title(score, points, error)}
+      extra={render_more_toggle({
+        hasScores,
+        manual_needed,
+        error,
+        buttonSize,
+      })}
+      title={titleWithRun}
       styles={{ body: show_all ? {} : { padding: 0 } }}
     >
       {render_show_all()}

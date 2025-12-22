@@ -96,7 +96,7 @@ export function MultipleAddSearch({
             width: "500px",
             margin: "10px 0",
             position: "absolute",
-            zIndex: 1,
+            zIndex: 1000,
             boxShadow: "8px 8px 4px #888",
             ...selectorStyle,
           }}

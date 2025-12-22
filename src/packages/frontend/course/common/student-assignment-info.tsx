@@ -3,12 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Col, Row, Space, Spin } from "antd";
+import { Button, Col, Input, Row, Space, Spin } from "antd";
+import type { TooltipPlacement } from "antd/lib/tooltip";
 import { ReactNode, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useActions } from "@cocalc/frontend/app-framework";
-import { Gap, Icon, Markdown, Tip } from "@cocalc/frontend/components";
+import { Icon, Markdown, Tip } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
 import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
 import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
@@ -26,7 +27,13 @@ import {
 } from "../store";
 import { AssignmentCopyType } from "../types";
 import { useButtonSize } from "../util";
-import { STEP_NAMES, Steps, STEPS_INTL, STEPS_INTL_ACTIVE } from "./consts";
+import {
+  GRADE_FLEX,
+  STEP_NAMES,
+  Steps,
+  STEPS_INTL,
+  STEPS_INTL_ACTIVE,
+} from "./consts";
 
 interface StudentAssignmentInfoProps {
   name: string;
@@ -95,7 +102,7 @@ export function StudentAssignmentInfo({
   nbgrader_run_info,
 }: StudentAssignmentInfoProps) {
   const intl = useIntl();
-  const clicked_nbgrader = useRef<Date|undefined>(undefined);
+  const clicked_nbgrader = useRef<Date | undefined>(undefined);
   const actions = useActions<CourseActions>({ name });
   const size = useButtonSize();
   const [recopy, set_recopy] = useRecopy();
@@ -145,43 +152,65 @@ export function StudentAssignmentInfo({
   function render_grade() {
     if (is_editing) {
       return (
-        <MarkdownInput
-          placeholder="Grade..."
-          value={grade || ""}
-          onBlur={(grade) => {
-            actions.assignments.set_grade(
-              assignment.get("assignment_id"),
-              student.get("student_id"),
-              grade,
-            );
-          }}
-          onShiftEnter={() => stop_editing()}
-          height="3em"
-          hideHelp
-          style={{ margin: "5px 0" }}
-          autoFocus
-        />
+        <Space align="start" style={{ margin: "5px 0" }}>
+          <Input
+            placeholder="Grade..."
+            value={grade ?? ""}
+            onChange={(e) =>
+              actions.assignments.set_grade(
+                assignment.get("assignment_id"),
+                student.get("student_id"),
+                e.target.value,
+              )
+            }
+            onPressEnter={() => stop_editing()}
+            size={size}
+            style={{ maxWidth: 180 }}
+            autoFocus
+          />
+          <Button type="primary" size={size} onClick={() => stop_editing()}>
+            Done
+          </Button>
+        </Space>
       );
     } else {
-      const text = intl.formatMessage(
+      const hasGrade = !!(grade ?? "").trim();
+      const gradeText = intl.formatMessage(
         {
           id: "course.student-assignment-info.grade.label",
           defaultMessage: `{show, select, true {Grade: {grade}} other {Enter grade...}}`,
           description: "Grade of an assignment in an online course",
         },
-        { grade, show: !!((grade ?? "").trim() || (comments ?? "").trim()) },
+        { grade, show: hasGrade },
       );
 
-      return (
-        <Button
-          key="edit"
-          onClick={() => set_edited_feedback()}
-          disabled={is_editing}
-          size={size}
-        >
-          {text}
-        </Button>
-      );
+      if (hasGrade) {
+        return (
+          <Space align="center">
+            <span>{gradeText}</span>
+            <Button
+              icon={<Icon name="pencil" />}
+              onClick={() => set_edited_feedback()}
+              disabled={is_editing}
+              size={size}
+              aria-label="Edit grade"
+              title="Edit grade"
+            />
+          </Space>
+        );
+      } else {
+        return (
+          <Button
+            key="edit"
+            icon={<Icon name="pencil" />}
+            onClick={() => set_edited_feedback()}
+            disabled={is_editing}
+            size={size}
+          >
+            {gradeText}
+          </Button>
+        );
+      }
     }
   }
 
@@ -226,24 +255,26 @@ export function StudentAssignmentInfo({
   }
 
   function render_nbgrader_scores() {
-    if (!nbgrader_scores) return;
+    const scores = nbgrader_scores ?? {};
+    const hasScores = Object.keys(scores).length > 0;
     return (
       <div>
         <NbgraderScores
           show_all={is_editing}
           set_show_all={() => set_edited_feedback()}
-          nbgrader_scores={nbgrader_scores}
+          nbgrader_scores={scores}
           nbgrader_score_ids={nbgrader_score_ids}
           name={name}
           student_id={student.get("student_id")}
           assignment_id={assignment.get("assignment_id")}
+          run_button={render_run_nbgrader(hasScores ? "redo" : "first")}
+          buttonSize={size}
         />
-        {render_run_nbgrader("Run nbgrader again")}
       </div>
     );
   }
 
-  function render_run_nbgrader(label: React.JSX.Element | string) {
+  function render_run_nbgrader(mode: "first" | "redo") {
     let running = false;
     if (nbgrader_run_info != null) {
       const t = nbgrader_run_info.get(
@@ -258,21 +289,23 @@ export function StudentAssignmentInfo({
         running = true;
       }
     }
-    label = running ? (
-      <span>
-        {" "}
-        <Spin /> Running nbgrader
-      </span>
-    ) : (
-      <span>{label}</span>
-    );
+
+    const isFirst = mode === "first";
+    const iconName = isFirst ? "caret-right" : "redo";
+    const tipTitle = isFirst ? "Run nbgrader" : "Run nbgrader again";
+    const tipText = isFirst
+      ? "Run nbgrader on this student's collected submission."
+      : "Re-run nbgrader for this student's collected submission.";
 
     return (
-      <div style={{ marginTop: "5px" }}>
+      <Tip title={tipTitle} tip={tipText}>
         <Button
           key="nbgrader"
+          icon={<Icon name={iconName} />}
           disabled={running}
+          loading={running}
           size={size}
+          aria-label={tipTitle}
           onClick={() => {
             if (
               clicked_nbgrader.current != null &&
@@ -280,8 +313,7 @@ export function StudentAssignmentInfo({
                 clicked_nbgrader.current.valueOf() <=
                 3000
             ) {
-              // User *just* clicked, and we want to avoid double click
-              // running nbgrader twice.
+              // avoid firing nbgrader twice on rapid double-clicks
               return;
             }
 
@@ -291,40 +323,26 @@ export function StudentAssignmentInfo({
               student.get("student_id"),
             );
           }}
-        >
-          <Icon name="graduation-cap" /> {label}
-        </Button>
-      </div>
+        />
+      </Tip>
     );
   }
 
   function render_nbgrader() {
-    if (nbgrader_scores) {
-      return render_nbgrader_scores();
-    }
-    if (!assignment.get("nbgrader") || assignment.get("skip_grading")) return;
+    if (!assignment.get("nbgrader")) return;
 
-    return render_run_nbgrader("Run nbgrader");
-  }
-
-  function render_save_button() {
-    if (!is_editing) return;
-    return (
-      <Button key="save" size={size} onClick={() => stop_editing()}>
-        Save
-      </Button>
-    );
+    return render_nbgrader_scores();
   }
 
   function render_last_time(time: string | number | Date) {
     return (
-      <div key="time" style={{ color: "#666" }}>
+      <Space key="time" wrap>
         <BigTime date={time} />
-      </div>
+      </Space>
     );
   }
 
-  function render_open_recopy_confirm(
+  function render_recopy_confirm(
     step: Steps,
     copy: Function,
     copy_tip: string,
@@ -333,45 +351,47 @@ export function StudentAssignmentInfo({
     if (recopy[step]) {
       const v: React.JSX.Element[] = [];
       v.push(
-        <Button
+        <Tip
           key="copy_cancel"
-          size={size}
-          onClick={() => set_recopy(step, false)}
+          title={intl.formatMessage(labels.cancel)}
+          tip={intl.formatMessage(labels.cancel)}
         >
-          {intl.formatMessage(labels.cancel)}
-        </Button>,
+          <Button size={size} onClick={() => set_recopy(step, false)}>
+            {intl.formatMessage(labels.cancel)}
+          </Button>
+        </Tip>,
       );
       v.push(
-        <Button
+        <Tip
           key="recopy_confirm"
-          danger
-          size={size}
-          onClick={() => {
-            set_recopy(step, false);
-            copy();
-          }}
+          title={step}
+          placement={placement}
+          tip={copy_tip}
         >
-          <Icon
-            name="share-square"
-            rotate={step.indexOf("ollect") !== -1 ? "180" : undefined}
-          />{" "}
-          <FormattedMessage
-            id="course.student-assignment-info.recopy_confirm.label"
-            defaultMessage={`Yes, {activity} again`}
-            description={"Confirm an activity, like 'assign', 'collect', ..."}
-            values={{ activity: step_intl(step, false).toLowerCase() }}
-          />
-        </Button>,
+          <Button
+            danger
+            size={size}
+            onClick={() => {
+              set_recopy(step, false);
+              copy();
+            }}
+          >
+            <FormattedMessage
+              id="course.student-assignment-info.recopy_confirm.label"
+              defaultMessage={`Yes, {activity} again`}
+              description={"Confirm an activity, like 'assign', 'collect', ..."}
+              values={{ activity: step_intl(step, false).toLowerCase() }}
+            />
+          </Button>
+        </Tip>,
       );
       if (step.toLowerCase() === "assign") {
         // inline-block because buttons above are float:left
         v.push(
-          <div
-            key="what-happens"
-            style={{ margin: "5px", display: "inline-block" }}
-          >
+          <div key="what-happens">
             <a
               target="_blank"
+              rel="noopener noreferrer"
               href="https://doc.cocalc.com/teaching-tips_and_tricks.html#how-exactly-are-assignments-copied-to-students"
             >
               {intl.formatMessage({
@@ -384,45 +404,31 @@ export function StudentAssignmentInfo({
           </div>,
         );
       }
-      return <Space wrap>{v}</Space>;
+      return v;
     } else {
-      return (
-        <Button
-          key="copy"
-          type="dashed"
-          size={size}
-          onClick={() => set_recopy(step, true)}
-        >
-          <Tip title={step} placement={placement} tip={<span>{copy_tip}</span>}>
-            <Icon
-              name="share-square"
-              rotate={step.indexOf("ollect") !== -1 ? "180" : undefined}
-            />{" "}
-            {step_intl(step, false)}...
-          </Tip>
-        </Button>
-      );
+      return [
+        <Tip key="copy" title={step} placement={placement} tip={copy_tip}>
+          <Button
+            size={size}
+            icon={<Icon name="redo" />}
+            onClick={() => set_recopy(step, true)}
+            aria-label={`Redo ${step.toLowerCase()} for this student`}
+          />
+        </Tip>,
+      ];
     }
   }
 
-  function render_open_recopy(
-    step: Steps,
-    open,
-    copy,
-    copy_tip: string,
-    open_tip: string,
-  ) {
-    const placement = step === "Return" ? "left" : "right";
+  function render_open(open, tip: string, placement: TooltipPlacement) {
     return (
-      <div key="open_recopy">
-        {render_open_recopy_confirm(step, copy, copy_tip, placement)}
-        <Gap />
-        <Button key="open" size={size} onClick={open}>
-          <Tip title="Open assignment" placement={placement} tip={open_tip}>
-            <Icon name="folder-open" /> {intl.formatMessage(labels.open)}
-          </Tip>
-        </Button>
-      </div>
+      <Tip key="open" title="Open assignment" tip={tip} placement={placement}>
+        <Button
+          onClick={open}
+          size={size}
+          icon={<Icon name="folder-open" />}
+          aria-label="Open assignment folder"
+        />
+      </Tip>
     );
   }
 
@@ -432,36 +438,31 @@ export function StudentAssignmentInfo({
     });
   }
 
-  function render_open_copying(step: Steps, open, stop) {
-    return (
-      <Space key="open_copying" wrap>
-        <Button key="copy" disabled={true} size={size}>
-          <Spin /> {step_intl(step, true)}
-        </Button>
-        <Button key="stop" danger onClick={stop} size={size}>
-          {intl.formatMessage(labels.cancel)} <Icon name="times" />
-        </Button>
-        <Button key="open" onClick={open} size={size}>
-          <Icon name="folder-open" /> {intl.formatMessage(labels.open)}
-        </Button>
-      </Space>
-    );
+  function render_copying(step: Steps, stop) {
+    return [
+      <Button key="stop" danger onClick={stop} size={size}>
+        {intl.formatMessage(labels.cancel)}
+      </Button>,
+      <Button key="copy" disabled={true} size={size}>
+        <Spin /> {step_intl(step, true)}
+      </Button>,
+    ];
   }
 
-  function render_copy(step: Steps, copy: () => void, copy_tip: string) {
-    let placement;
-    if (step === "Return") {
-      placement = "left";
-    }
+  function render_copy(
+    step: Steps,
+    copy: () => void,
+    tip: string,
+    placement: TooltipPlacement,
+  ) {
     return (
-      <Tip key="copy" title={step} tip={copy_tip} placement={placement}>
-        <Button onClick={copy} size={size}>
-          <Icon
-            name="share-square"
-            rotate={step.indexOf("ollect") !== -1 ? "180" : undefined}
-          />{" "}
-          {step_intl(step, false)}
-        </Button>
+      <Tip key="copy" title={step} tip={tip} placement={placement}>
+        <Button
+          onClick={copy}
+          size={size}
+          icon={<Icon name="caret-right" />}
+          aria-label={`${step} this student`}
+        />
       </Tip>
     );
   }
@@ -488,12 +489,7 @@ export function StudentAssignmentInfo({
       <ShowError
         key="error"
         error={error}
-        style={{
-          marginTop: "5px",
-          maxHeight: "140px",
-          overflow: "auto",
-          display: "block",
-        }}
+        style={{ padding: "4px 4px", overflowWrap: "anywhere" }}
       />
     );
   }
@@ -511,21 +507,26 @@ export function StudentAssignmentInfo({
     const do_copy = () => copy(type, info.assignment_id, info.student_id);
     const do_stop = () => stop(type, info.assignment_id, info.student_id);
     const v: React.JSX.Element[] = [];
+    const placement: TooltipPlacement = step === "Return" ? "left" : "right";
     if (enable_copy) {
-      if (webapp_client.server_time() - (data.start ?? 0) < COPY_TIMEOUT_MS) {
-        v.push(render_open_copying(step, do_open, do_stop));
+      const now = webapp_client.server_time();
+      const in_progress =
+        data.start != null && now - data.start < COPY_TIMEOUT_MS;
+      if (in_progress) {
+        v.push(...render_copying(step, do_stop));
+        v.push(render_open(do_open, open_tip, placement));
       } else if (data.time) {
+        v.push(render_open(do_open, open_tip as string, placement));
         v.push(
-          render_open_recopy(
+          ...render_recopy_confirm(
             step,
-            do_open,
             do_copy,
             copy_tip as string,
-            open_tip as string,
+            placement,
           ),
         );
       } else {
-        v.push(render_copy(step, do_copy, copy_tip as string));
+        v.push(render_copy(step, do_copy, copy_tip as string, placement));
       }
     }
     if (data.time) {
@@ -534,7 +535,7 @@ export function StudentAssignmentInfo({
     if (data.error && !omit_errors) {
       v.push(render_error(step, data.error));
     }
-    return <>{v}</>;
+    return <Space wrap>{v}</Space>;
   }
 
   let show_grade_col, show_return_graded;
@@ -543,21 +544,19 @@ export function StudentAssignmentInfo({
   const skip_assignment: boolean = !!assignment.get("skip_assignment");
   const skip_collect: boolean = !!assignment.get("skip_collect");
   if (peer_grade) {
-    show_grade_col = !skip_grading && info.last_peer_collect;
+    show_grade_col = info.last_peer_collect;
     show_return_graded = grade || (skip_grading && info.last_peer_collect);
   } else {
-    show_grade_col = (!skip_grading && info.last_collect) || skip_collect;
+    show_grade_col = info.last_collect || skip_collect;
     show_return_graded =
       grade ||
       (skip_grading && info.last_collect) ||
       (skip_grading && skip_collect);
   }
 
-  const width = peer_grade ? 4 : 6;
-
   function render_assignment_col() {
     return (
-      <Col md={width} key="last_assignment">
+      <Col flex="1" key="last_assignment">
         <Status
           step="Assign"
           data={info.last_assignment}
@@ -582,7 +581,7 @@ export function StudentAssignmentInfo({
 
   function render_collect_col() {
     return (
-      <Col md={width} key="last_collect">
+      <Col flex="1" key="last_collect">
         {skip_assignment ||
         !(info.last_assignment != null
           ? info.last_assignment.error
@@ -613,10 +612,11 @@ export function StudentAssignmentInfo({
 
   function render_peer_assign_col() {
     if (!peer_grade) return;
-    if (!info.peer_assignment) return;
-    if (info.last_collect?.error != null) return;
+    if (!info.peer_assignment || info.last_collect?.error != null) {
+      return <Col flex="1" key="peer_assign" />;
+    }
     return (
-      <Col md={4} key="peer_assign">
+      <Col flex="1" key="peer_assign">
         <Status
           step="Peer Assign"
           data={info.last_peer_assignment}
@@ -641,9 +641,9 @@ export function StudentAssignmentInfo({
 
   function render_peer_collect_col() {
     if (!peer_grade) return;
-    if (!info.peer_collect) return;
+    if (!info.peer_collect) return <Col flex="1" key="peer_collect" />;
     return (
-      <Col md={4} key="peer_collect">
+      <Col flex="1" key="peer_collect">
         <Status
           step="Peer Collect"
           data={info.last_peer_collect}
@@ -670,10 +670,9 @@ export function StudentAssignmentInfo({
   function render_grade_col() {
     //      {render_enter_grade()}
     return (
-      <Col md={width} key="grade">
+      <Col flex={GRADE_FLEX} key="grade">
         {show_grade_col && (
           <div>
-            {render_save_button()}
             {render_grade()}
             {render_comments()}
             {render_nbgrader()}
@@ -685,7 +684,7 @@ export function StudentAssignmentInfo({
 
   function render_return_graded_col() {
     return (
-      <Col md={width} key="return_graded">
+      <Col flex="1" key="return_graded">
         {show_return_graded ? (
           <Status
             step="Return"
@@ -722,7 +721,7 @@ export function StudentAssignmentInfo({
           {title}
         </Col>
         <Col md={20} key="rest">
-          <Row>
+          <Row gutter={[8, 0]}>
             {render_assignment_col()}
             {render_collect_col()}
             {render_peer_assign_col()}

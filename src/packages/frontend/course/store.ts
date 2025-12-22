@@ -796,7 +796,7 @@ export class CourseStore extends Store<CourseState> {
           // the case of returning, they have a grade)
           const graded =
             this.has_grade(assignment_id, student_id) || skip_grading;
-          if ((previous && t !== "return_graded") || graded) {
+          if (previous && (t !== "return_graded" || graded)) {
             info[`not_${t}`] += 1;
           }
           previous = false;
