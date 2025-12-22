@@ -84,15 +84,17 @@ export async function checkForAbuse({
   const is_cocalc_com =
     (await getServerSettings()).kucalc === KUCALC_COCALC_COM;
   const limits = await getMembershipLimits(account_id);
-  if (limits.units_5h != null) {
+  {
     const usage5h = await recentUsageUnits({
       cache: "short",
       period: "5 hours",
       account_id,
       analytics_cookie,
     });
-    prom_quota_per_account.observe(100 * (usage5h / limits.units_5h));
-    if (usage5h > limits.units_5h) {
+    if (limits.units_5h > 0) {
+      prom_quota_per_account.observe(100 * (usage5h / limits.units_5h));
+    }
+    if (limits.units_5h <= 0 || usage5h > limits.units_5h) {
       const resetIn = await timeUntilWindowReset({
         account_id,
         analytics_cookie,
@@ -105,14 +107,14 @@ export async function checkForAbuse({
     }
   }
 
-  if (limits.units_7d != null) {
+  {
     const usage7d = await recentUsageUnits({
       cache: "short",
       period: "7 days",
       account_id,
       analytics_cookie,
     });
-    if (usage7d > limits.units_7d) {
+    if (limits.units_7d <= 0 || usage7d > limits.units_7d) {
       const resetIn = await timeUntilWindowReset({
         account_id,
         analytics_cookie,
@@ -275,13 +277,13 @@ async function getMembershipLimits(account_id: string) {
   };
 }
 
-function extractLimit(limits: unknown, keys: string[]): number | undefined {
-  if (limits == null || typeof limits !== "object") return;
+function extractLimit(limits: unknown, keys: string[]): number {
+  if (limits == null || typeof limits !== "object") return 0;
   for (const key of keys) {
     const value = (limits as Record<string, unknown>)[key];
-    if (typeof value == "number" && Number.isFinite(value) && value > 0) {
+    if (typeof value == "number" && Number.isFinite(value) && value >= 0) {
       return value;
     }
   }
-  return;
+  return 0;
 }

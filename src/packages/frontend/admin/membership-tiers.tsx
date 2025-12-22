@@ -47,7 +47,7 @@ function quotaTemplate(overrides: Record<string, number>) {
   return { ...DEFAULT_QUOTAS, ...overrides };
 }
 
-const minLlmLimit = 100;
+const minLlmLimit = 50;
 
 function llmLimitsFromYearly(price_yearly: number, monthlyOverride?: number) {
   const monthlyCost = monthlyOverride ?? price_yearly / 12;
@@ -419,8 +419,8 @@ export function MembershipTiers() {
       form.setFieldsValue({
         ...template,
         project_defaults: toJsonText(template.project_defaults),
-        llm_limits: toJsonText({}),
-        features: toJsonText({}),
+        llm_limits: toJsonText(template.llm_limits ?? {}),
+        features: toJsonText((template as { features?: unknown }).features ?? {}),
         active: true,
       });
     };

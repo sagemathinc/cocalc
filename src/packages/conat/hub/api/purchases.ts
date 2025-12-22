@@ -15,14 +15,30 @@ export interface MembershipResolution {
   expires?: Date;
 }
 
+export interface LLMUsageWindowStatus {
+  window: "5h" | "7d";
+  used: number;
+  limit?: number;
+  remaining?: number;
+  reset_at?: Date;
+  reset_in?: string;
+}
+
+export interface LLMUsageStatus {
+  units_per_dollar: number;
+  windows: LLMUsageWindowStatus[];
+}
+
 export interface Purchases {
   getBalance: (opts?: { account_id?: string }) => Promise<number>;
   getMinBalance: (opts?: { account_id?: string }) => Promise<number>;
   getMembership: (opts?: { account_id?: string }) => Promise<MembershipResolution>;
+  getLLMUsage: (opts?: { account_id?: string }) => Promise<LLMUsageStatus>;
 }
 
 export const purchases = {
   getBalance: authFirst,
   getMinBalance: authFirst,
   getMembership: authFirst,
+  getLLMUsage: authFirst,
 };

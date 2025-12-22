@@ -1,14 +1,16 @@
+import { Progress } from "antd";
 import { BaseType } from "antd/es/typography/Base";
-import { defineMessage, useIntl } from "react-intl";
 
-import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { HelpIcon, Paragraph, Text } from "@cocalc/frontend/components";
-import {
-  LanguageModel,
-  getLLMCost,
-  isFreeModel,
-} from "@cocalc/util/db-schema/llm-utils";
+import { CSS } from "@cocalc/frontend/app-framework";
+import { A, HelpIcon, Paragraph, Text } from "@cocalc/frontend/components";
+import type {
+  LLMUsageStatus as LLMUsageStatusResponse,
+  LLMUsageWindowStatus,
+} from "@cocalc/conat/hub/api/purchases";
+import type { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { round2down, round2up } from "@cocalc/util/misc";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { useEffect, useState } from "react";
 /*
 NOTE: To get a quick idea about the numbers of how many completion tokens are returned, run this:
 
@@ -31,36 +33,11 @@ The maximum (just use the "MAX" function, easier than the median) is at almost t
 That's the basis for the number 100 and 1000 below!
 */
 
-export const ESTIMATION_HELP_TEXT = (
-  <>
-    <Paragraph>
-      The cost of calling a large language model is based on the number of
-      tokens. A token can be thought of as a piece of a word. For example, the
-      word "cat" is one token, while "unbelievable" breaks down into three
-      tokens: "un", "believe", "able".
-    </Paragraph>
-    <Paragraph>
-      The total cost of your interaction depends on the number of tokens in your
-      message and the LLM's reply. Please note that the exact cost is variable
-      for each query. We're unable to predict the precise charge for each
-      interaction, as it depends on the specific number tokens.
-    </Paragraph>
-    <Paragraph>
-      You can see your recent language model charges in Account → Purchases.
-    </Paragraph>
-  </>
-);
-
-export const MODEL_FREE_TO_USE = defineMessage({
-  id: "llm.cost-estimation.model_free_to_use",
-  defaultMessage: "This model is free to use.",
-});
-
 export function LLMCostEstimation({
-  model,
-  tokens, // Note: use the "await imported" numTokensUpperBound function to get the number of tokens
+  model: _model,
+  tokens: _tokens, // Note: use the "await imported" numTokensUpperBound function to get the number of tokens
   type,
-  maxOutputTokens,
+  maxOutputTokens: _maxOutputTokens,
   paragraph = false,
   textAlign,
 }: {
@@ -71,38 +48,9 @@ export function LLMCostEstimation({
   paragraph?: boolean;
   textAlign?: CSS["textAlign"];
 }) {
-  const intl = useIntl();
-  const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
-  const llm_markup = useTypedRedux("customize", "llm_markup");
-
-  if (isFreeModel(model, isCoCalcCom)) {
-    return (
-      <Wrapper type={type} paragraph={paragraph} textAlign={textAlign}>
-        {intl.formatMessage(MODEL_FREE_TO_USE)}
-      </Wrapper>
-    );
-  }
-
-  const { min, max } = calcMinMaxEstimation(
-    tokens,
-    model,
-    llm_markup,
-    maxOutputTokens,
-  );
-
-  const minTxt = round2down(min).toFixed(2);
-  const maxTxt = round2up(max).toFixed(2);
   return (
     <Wrapper type={type} paragraph={paragraph} textAlign={textAlign}>
-      Estimated cost: ${minTxt} to ${maxTxt}{" "}
-      <HelpIcon title="LLM Cost Estimation" placement={"topLeft"}>
-        {ESTIMATION_HELP_TEXT}
-        <Paragraph>
-          The estimated price range is based on an estimate for the number of
-          input tokens and typical amounts of output tokens. In rare situations,
-          the total cost could be slightly higher.
-        </Paragraph>
-      </HelpIcon>
+      <LLMUsageStatus />
     </Wrapper>
   );
 }
@@ -129,18 +77,106 @@ function Wrapper({
 
 export function calcMinMaxEstimation(
   tokens: number,
-  model,
-  llm_markup,
+  _model,
+  _llm_markup,
   maxTokens: number = 1000,
 ): { min: number; max: number } {
-  const { prompt_tokens: tokIn, completion_tokens: tokOut } = getLLMCost(
-    model,
-    llm_markup,
-  );
-  // NOTE: see explanation about for lower/upper number.
-  // It could go up to the model's output token limit (i.e. even 2000)
-  const min = tokens * tokIn + (maxTokens / 10) * tokOut;
-  const max = tokens * tokIn + maxTokens * tokOut;
-
+  const min = round2down(tokens * 0);
+  const max = round2up(maxTokens * 0);
   return { min, max };
+}
+
+export function LLMUsageStatus() {
+  const [status, setStatus] = useState<LLMUsageStatusResponse | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const result =
+          await webapp_client.conat_client.hub.purchases.getLLMUsage();
+        if (!cancelled) {
+          setStatus(result);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err as Error);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+    load().catch(console.error);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (error) {
+    return <Text type="secondary">LLM usage unavailable.</Text>;
+  }
+  if (loading || !status) {
+    return <Text type="secondary">Loading usage…</Text>;
+  }
+
+  const window5h = status.windows.find((w) => w.window === "5h");
+  const window7d = status.windows.find((w) => w.window === "7d");
+
+  return (
+    <>
+      <div style={{ textAlign: "left" }}>
+        <UsageBar label="5-hour limit" window={window5h} />
+        <UsageBar label="7-day limit" window={window7d} />
+      </div>
+      <HelpIcon title="LLM Usage Limits" placement={"topLeft"}>
+        <Paragraph>
+          LLM usage is limited by a short 5-hour window and a longer 7-day
+          window. When you hit a limit, usage resets automatically.
+        </Paragraph>
+        <Paragraph>
+          Upgrade your membership for higher limits.{" "}
+          <A href="/store/membership">View membership tiers</A>.
+        </Paragraph>
+      </HelpIcon>
+    </>
+  );
+}
+
+function UsageBar({
+  label,
+  window,
+}: {
+  label: string;
+  window?: LLMUsageWindowStatus;
+}) {
+  if (!window || window.limit == null) {
+    return (
+      <div style={{ marginBottom: "6px" }}>
+        <Text type="secondary">{label}: no limit</Text>
+      </div>
+    );
+  }
+  const limit = window.limit;
+  const percent =
+    limit > 0 ? Math.min(100, (100 * window.used) / limit) : window.used > 0 ? 100 : 0;
+  const remaining = window.remaining ?? Math.max(0, limit - window.used);
+  return (
+    <div style={{ marginBottom: "6px" }}>
+      <Text type="secondary">
+        {label}: {window.used} / {limit} units{" "}
+        {window.reset_in ? `· resets in ${window.reset_in}` : ""}
+      </Text>
+      <Progress
+        percent={percent}
+        size="small"
+        showInfo={false}
+        status={remaining === 0 ? "exception" : "active"}
+      />
+    </div>
+  );
 }

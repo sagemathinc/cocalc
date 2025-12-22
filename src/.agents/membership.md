@@ -117,12 +117,12 @@ Risks/unknowns: metadata branching might miss legacy flows; subscription UI assu
 
 ### Phase 2: Entitlements applied to projects + usage
 
-[x] Implement membership quota injection at the project quota choke point in [src/packages/server/projects/control/base.ts](./src/packages/server/projects/control/base.ts), using a “membership license” object or direct quota input. (hard)  
-[x] Replace per-call LLM purchase line items with usage counters and limits from membership entitlements in [src/packages/server/purchases/purchase-quotas.ts](./src/packages/server/purchases/purchase-quotas.ts). (hard)  
-[x] Add a membership entitlements helper (resolve + normalize) that returns project defaults, LLM limits, and feature flags in one shape for downstream use. (medium)  
-[x] Define LLM usage windows (e.g., 5-hour burst + 7-day rolling) and persist usage counters with clear reset semantics. (hard)  
-[ ] Surface “why limited” metadata to clients (limit type, remaining, reset time) for transparency. (medium)  
-[ ] Add targeted tests for entitlement resolution and quota application on project start. (medium)  
+[x] Implement membership quota injection at the project quota choke point in [src/packages/server/projects/control/base.ts](./src/packages/server/projects/control/base.ts), using a “membership license” object or direct quota input. \(hard\)  
+[x] Replace per\-call LLM purchase line items with usage counters and limits from membership entitlements in [src/packages/server/purchases/purchase\-quotas.ts](./src/packages/server/purchases/purchase-quotas.ts). \(hard\)  
+[x] Add a membership entitlements helper \(resolve \+ normalize\) that returns project defaults, LLM limits, and feature flags in one shape for downstream use. \(medium\)  
+[x] Define LLM usage windows \(e.g., 5\-hour burst \+ 7\-day rolling\) and persist usage counters with clear reset semantics. \(hard\)  
+[x] Surface “why limited” metadata to clients \(limit type, remaining, reset time\) for transparency. \(medium\)  
+[ ] Add targeted tests for entitlement resolution and quota application on project start. \(medium\)
 
 Exit criteria: project defaults and LLM usage limits are governed by membership entitlements with no per-call purchase spam.  
 Risks/unknowns: quota injection could conflict with legacy site_license stacking; LLM usage accounting needs a clear reset window and storage model.  
@@ -130,7 +130,7 @@ Risks/unknowns: quota injection could conflict with legacy site_license stacking
 ### Phase 3: UI and migration/compatibility
 
 [x] Add membership\-aware UI rendering in [src/packages/frontend/purchases/subscriptions.tsx](./src/packages/frontend/purchases/subscriptions.tsx) and [src/packages/next/components/billing/subscriptions.tsx](./src/packages/next/components/billing/subscriptions.tsx) \(show membership class instead of license id\). \(medium\)  
-[ ] Keep legacy license subscriptions visible under an “Advanced” tab or section in [src/packages/next/components/store](./src/packages/next/components/store). \(easy\)  
+[x] Keep legacy license subscriptions visible under an “Advanced” tab or section in [src/packages/next/components/store](./src/packages/next/components/store). \(easy\)  
 [ ] Add migration/compat mapping: map existing license subscriptions to membership classes and preserve remaining value \(advanced/legacy still available\). \(hard\)
 
 [x] Make the Membership Tiers admin configuration user friendly \(custom react component form\). \(medium\)
