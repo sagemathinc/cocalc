@@ -1003,7 +1003,7 @@ function AIGenerateDocument({
           </Paragraph>
           <Paragraph>
             <Flex vertical={false} gap={"10px"} align="center">
-              <Flex flex={0}>Filename:</Flex>
+              <div>Filename:</div>
               <Flex flex={"1 1 auto"}>
                 <Input
                   style={{ width: "100%" }}

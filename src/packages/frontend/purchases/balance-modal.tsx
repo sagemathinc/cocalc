@@ -7,6 +7,11 @@ import Payments from "@cocalc/frontend/purchases/payments";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import {
+  LLMUsageHelpContent,
+  LLMUsageStatus,
+} from "@cocalc/frontend/misc/llm-cost-estimation";
+import { HelpIcon, Text } from "@cocalc/frontend/components";
 
 export default function BalanceModal({
   onRefresh,
@@ -65,6 +70,24 @@ export default function BalanceModal({
             setTimeout(handleRefresh, 15000);
           }}
         />
+      </div>
+      <div style={{ marginBottom: "10px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px",
+          }}
+        >
+          <Text style={{ fontSize: "11pt" }}>LLM Usage</Text>
+          <HelpIcon title="LLM Usage Limits" placement="topLeft">
+            <LLMUsageHelpContent />
+          </HelpIcon>
+        </div>
+        <div style={{ marginTop: "6px", display: "flex", justifyContent: "center" }}>
+          <LLMUsageStatus variant="compact" showHelp={false} />
+        </div>
       </div>
       <ShowError error={error} setError={setError} />
       <Payments

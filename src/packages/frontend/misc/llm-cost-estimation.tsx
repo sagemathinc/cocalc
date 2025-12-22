@@ -1,4 +1,4 @@
-import { Progress } from "antd";
+import { Button, Popover, Progress, Space } from "antd";
 import { BaseType } from "antd/es/typography/Base";
 
 import { CSS } from "@cocalc/frontend/app-framework";
@@ -86,7 +86,28 @@ export function calcMinMaxEstimation(
   return { min, max };
 }
 
-export function LLMUsageStatus() {
+export function LLMUsageHelpContent() {
+  return (
+    <>
+      <Paragraph>
+        LLM usage is limited by a short 5-hour window and a longer 7-day window.
+        When you hit a limit, usage resets automatically.
+      </Paragraph>
+      <Paragraph>
+        Upgrade your membership for higher limits.{" "}
+        <A href="/store/membership">View membership tiers</A>.
+      </Paragraph>
+    </>
+  );
+}
+
+export function LLMUsageStatus({
+  variant = "full",
+  showHelp = true,
+}: {
+  variant?: "full" | "compact";
+  showHelp?: boolean;
+}) {
   const [status, setStatus] = useState<LLMUsageStatusResponse | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
@@ -127,24 +148,37 @@ export function LLMUsageStatus() {
   const window5h = status.windows.find((w) => w.window === "5h");
   const window7d = status.windows.find((w) => w.window === "7d");
 
-  return (
+  const content = (
     <>
       <div style={{ textAlign: "left" }}>
         <UsageBar label="5-hour limit" window={window5h} />
         <UsageBar label="7-day limit" window={window7d} />
       </div>
-      <HelpIcon title="LLM Usage Limits" placement={"topLeft"}>
-        <Paragraph>
-          LLM usage is limited by a short 5-hour window and a longer 7-day
-          window. When you hit a limit, usage resets automatically.
-        </Paragraph>
-        <Paragraph>
-          Upgrade your membership for higher limits.{" "}
-          <A href="/store/membership">View membership tiers</A>.
-        </Paragraph>
-      </HelpIcon>
+      {showHelp && (
+        <HelpIcon title="LLM Usage Limits" placement={"topLeft"}>
+          <LLMUsageHelpContent />
+        </HelpIcon>
+      )}
     </>
   );
+
+  if (variant === "compact") {
+    return (
+      <Popover content={content} title="LLM Usage" trigger="click">
+        <Button
+          size="small"
+          style={{ height: "auto", padding: "8px", minWidth: "150px" }}
+        >
+          <Space direction="vertical" size={4} style={{ width: "100%" }}>
+            <CompactUsageBar label="5h" window={window5h} />
+            <CompactUsageBar label="7d" window={window7d} />
+          </Space>
+        </Button>
+      </Popover>
+    );
+  }
+
+  return content;
 }
 
 function UsageBar({
@@ -163,7 +197,11 @@ function UsageBar({
   }
   const limit = window.limit;
   const percent =
-    limit > 0 ? Math.min(100, (100 * window.used) / limit) : window.used > 0 ? 100 : 0;
+    limit > 0
+      ? Math.min(100, (100 * window.used) / limit)
+      : window.used > 0
+        ? 100
+        : 0;
   const remaining = window.remaining ?? Math.max(0, limit - window.used);
   return (
     <div style={{ marginBottom: "6px" }}>
@@ -177,6 +215,39 @@ function UsageBar({
         showInfo={false}
         status={remaining === 0 ? "exception" : "active"}
       />
+    </div>
+  );
+}
+
+function CompactUsageBar({
+  label,
+  window,
+}: {
+  label: string;
+  window?: LLMUsageWindowStatus;
+}) {
+  const limit = window?.limit ?? 0;
+  const used = window?.used ?? 0;
+  const percent = limit > 0 ? Math.min(100, (100 * used) / limit) : 0;
+  const filled = Math.max(0, Math.min(4, Math.round((percent / 100) * 4)));
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+      <Text type="secondary" style={{ width: "24px" }}>
+        {label}
+      </Text>
+      <div style={{ display: "flex", gap: "4px", flex: 1 }}>
+        {Array.from({ length: 4 }, (_, idx) => (
+          <div
+            key={`${label}-${idx}`}
+            style={{
+              flex: 1,
+              height: "8px",
+              borderRadius: "4px",
+              background: idx < filled ? "#1677ff" : "#f0f0f0",
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
