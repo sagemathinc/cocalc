@@ -332,4 +332,23 @@ export type RegistrationTokenSetFields =
 
 export type RegistrationTokenGetFields = RegistrationTokenSetFields | "counter";
 
+export type MembershipTierSetFields =
+  | "id"
+  | "label"
+  | "store_visible"
+  | "priority"
+  | "price_monthly"
+  | "price_yearly"
+  | "project_defaults"
+  | "llm_limits"
+  | "features"
+  | "disabled"
+  | "notes";
+
+export type MembershipTierGetFields =
+  | MembershipTierSetFields
+  | "history"
+  | "created"
+  | "updated";
+
 export type AllSiteSettingsKeys = SiteSettingsKeys | SiteSettingsExtrasKeys;

@@ -40,6 +40,7 @@ import "./listings";
 import "./llm";
 import "./lti";
 import "./mentions";
+import "./membership-tiers";
 import "./messages";
 import "./news";
 import "./organizations";

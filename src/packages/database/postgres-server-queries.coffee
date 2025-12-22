@@ -60,6 +60,7 @@ read = require('read')
 {pii_expire} = require("./postgres/pii")
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 registrationTokens = require('./postgres/registration-tokens').default;
+membershipTiers = require('./postgres/membership-tiers').default;
 {updateUnreadMessageCount} = require('./postgres/messages');
 centralLog = require('./postgres/central-log').default;
 
@@ -2513,6 +2514,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async
     registrationTokens: (options, query) =>
         return await registrationTokens(@, options, query)
+
+    membershipTiers: (options, query) =>
+        return await membershipTiers(@, options, query)
 
     updateUnreadMessageCount: (opts) =>
         return await updateUnreadMessageCount(opts)

@@ -153,6 +153,7 @@ Risks/unknowns: migration mapping could under/over-credit value; “advanced” 
 - Final numeric limits per class.
 - How to surface “owner determines project limits” to collaborators.
 - How to handle multiple active sources (stacking vs override).
+- Whether to allow dynamic tier names beyond free/member/pro (and how to keep store UI simple).
 
 ## Competitive Comparison (User Expectations)
 
@@ -160,3 +161,53 @@ Risks/unknowns: migration mapping could under/over-credit value; “advanced” 
 - Ownership-based entitlements match the “account tier drives project limits” model.
 - Custom project hosts align with “bring-your-own-infra + platform fee” used by modern data/ML platforms.
 - Clear separation of “membership features/limits” vs “infrastructure cost” reduces confusion compared to per-project licensing.
+
+## Dynamic Tiers Sketch (Flexible Membership Classes)
+
+### Goals
+
+- Allow arbitrary tier names (e.g., “dept-pro”, “demo”, “org-gold”) configured in admin UI.
+- Keep public store simple (default: only member + pro visible).
+- Preserve “free” as safe fallback when no tier applies.
+
+### Data model change (minimal disruption)
+
+- Replace hard-coded `MembershipClass` union with `string` (or branded string) and move known tiers into config.
+- Extend membership tier config to include:
+  - `name` (id key, required)
+  - `label` (display name)
+  - `store_visible` (boolean)
+  - `priority` (number or priority array)
+  - `pricing` (monthly/yearly)
+  - `project_defaults`, `llm_limits`, `features`
+  - Optional roadmap: `org_id` / `org_tag` mapping
+
+### Resolver changes
+
+- Resolve against configured tiers only; if none match, fall back to `"free"` with empty entitlements.
+- Return `tier_id` and `tier_label` so UI doesn’t assume fixed names.
+
+### Store changes
+
+- Membership store page renders tiers with `store_visible: true` and `pricing` configured.
+- Default store still shows Member/Pro (provided by defaults in config).
+- Upgrade rules: allow upgrade paths based on configured order or explicit upgrade graph.
+
+### Admin UI plan (Tier Editor)
+
+- Keep current JSON blob on settings page for power users.
+- Add “Edit tiers…” button that opens a modal (similar to registration tokens UI).
+- Modal shows a table:
+  - Columns: Tier ID, Label, Visible, Monthly, Yearly, Priority, LLM limits, Project defaults
+  - Row actions: edit, duplicate, delete
+  - Inline validation: unique tier id, pricing nonnegative, etc.
+- Save writes back to the same JSON config to avoid schema changes.
+
+### Implementation steps (high-level)
+
+- Update types and config parsing to accept dynamic tier keys.
+- Update resolver and membership pricing helper to accept tier id string.
+- Update store UI to use config-driven tiers and display labels.
+- Add tier editor modal in admin settings page.
+
+Risks/unknowns: multiple tier sources (org/course/subscription) need consistent conflict resolution; upgrade path rules for non-linear tiers need a simple policy.  
