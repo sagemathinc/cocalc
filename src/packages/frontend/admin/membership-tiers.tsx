@@ -76,6 +76,10 @@ const TIER_TEMPLATES = {
       cores: 0.75,
     }),
     llm_limits: llmLimitsFromYearly(0, 3),
+    features: {
+      create_hosts: false,
+      project_host_tier: 0,
+    },
   },
   student: {
     id: "student",
@@ -92,6 +96,10 @@ const TIER_TEMPLATES = {
       cores: 1,
     }),
     llm_limits: llmLimitsFromYearly(9 * 8),
+    features: {
+      create_hosts: false,
+      project_host_tier: 0,
+    },
   },
   member: {
     id: "member",
@@ -109,6 +117,10 @@ const TIER_TEMPLATES = {
       mintime: 3600,
     }),
     llm_limits: llmLimitsFromYearly(25 * 9),
+    features: {
+      create_hosts: true,
+      project_host_tier: 1,
+    },
   },
   pro: {
     id: "pro",
@@ -126,6 +138,10 @@ const TIER_TEMPLATES = {
       mintime: 8 * 3600,
     }),
     llm_limits: llmLimitsFromYearly(150 * 9),
+    features: {
+      create_hosts: true,
+      project_host_tier: 2,
+    },
   },
 };
 
@@ -357,7 +373,10 @@ function use_membership_tiers() {
       notes: "",
       project_defaults: {},
       llm_limits: {},
-      features: {},
+      features: {
+        create_hosts: false,
+        project_host_tier: 0,
+      },
     });
   }
 

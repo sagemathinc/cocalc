@@ -13,6 +13,7 @@ import {
   Space,
   Tag,
   Typography,
+  Alert,
   message,
 } from "antd";
 import {
@@ -69,11 +70,16 @@ export const HostsPage: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selected, setSelected] = useState<Host | undefined>(undefined);
   const [creating, setCreating] = useState<boolean>(false);
+  const [canCreateHosts, setCanCreateHosts] = useState<boolean>(true);
   const hub = webapp_client.conat_client.hub;
 
   const refresh = async () => {
-    const list = await hub.hosts.listHosts({});
+    const [list, membership] = await Promise.all([
+      hub.hosts.listHosts({}),
+      hub.purchases.getMembership({}),
+    ]);
     setHosts(list);
+    setCanCreateHosts(membership?.entitlements?.features?.create_hosts === true);
     if (selected) {
       const updated = list.find((h) => h.id === selected.id);
       setSelected(updated);
@@ -238,7 +244,19 @@ export const HostsPage: React.FC = () => {
               </span>
             }
           >
-            <Form layout="vertical" onFinish={onCreate}>
+            {!canCreateHosts && (
+              <Alert
+                type="info"
+                showIcon
+                message="Your membership does not allow creating project hosts."
+                style={{ marginBottom: 12 }}
+              />
+            )}
+            <Form
+              layout="vertical"
+              onFinish={onCreate}
+              disabled={!canCreateHosts}
+            >
               <Form.Item name="name" label="Name" initialValue="My host">
                 <Input placeholder="My host" />
               </Form.Item>
@@ -316,6 +334,7 @@ export const HostsPage: React.FC = () => {
                   type="primary"
                   htmlType="submit"
                   loading={creating}
+                  disabled={!canCreateHosts}
                   block
                 >
                   Create host

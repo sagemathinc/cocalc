@@ -20,8 +20,10 @@ import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import { conatWithProjectRouting } from "../conat/route-client";
 import {
   computePlacementPermission,
-  type UserTier,
+  getUserHostTier,
+  normalizeHostTier,
 } from "@cocalc/server/project-host/placement";
+import { resolveMembershipForAccount } from "@cocalc/server/membership/resolve";
 
 const log = getLogger("server:projects:create");
 
@@ -86,9 +88,9 @@ export default async function createProject(opts: CreateProjectOptions) {
     const metadata = row.metadata ?? {};
     const owner = metadata.owner;
     const collaborators: string[] = metadata.collaborators ?? [];
-    const tier = row.tier as "free" | "member" | "pro" | undefined;
-    // TODO: determine real user tier when membership tiers are implemented.
-    const userTier: UserTier = "member";
+    const tier = row.tier as number | undefined;
+    const membership = await resolveMembershipForAccount(account_id);
+    const userTier = getUserHostTier(membership.entitlements);
     const { can_place } = computePlacementPermission({
       tier,
       userTier,
@@ -106,7 +108,7 @@ export default async function createProject(opts: CreateProjectOptions) {
         ssh_server: row.ssh_server,
         name: row.name,
         region: row.region,
-        tier: row.tier,
+        tier: normalizeHostTier(row.tier),
       },
     };
   }

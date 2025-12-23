@@ -15,6 +15,7 @@ import {
   selectActiveHost,
   stopProjectOnHost,
 } from "./control";
+import { normalizeHostTier } from "./placement";
 
 const MAX_PARALLEL_MOVES = 50;
 
@@ -260,7 +261,7 @@ async function handleFinalizing(row: ProjectMoveRow) {
       host: {
         name: destHost.name,
         region: destHost.region,
-        tier: destHost.tier,
+        tier: normalizeHostTier(destHost.tier),
         public_url: destHost.public_url,
         internal_url: destHost.internal_url,
         ssh_server: destHost.ssh_server,

@@ -27,7 +27,7 @@ export interface Host {
   machine?: HostMachine;
   projects?: number;
   last_seen?: string;
-  tier?: "free" | "member" | "pro";
+  tier?: number;
   scope?: "owned" | "collab" | "shared" | "pool";
   can_start?: boolean;
   can_place?: boolean;

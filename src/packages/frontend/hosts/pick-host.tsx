@@ -56,22 +56,24 @@ export function HostPickerModal({
     const current = filtered.filter((h) => h.id === currentHostId);
     const owned = filtered.filter((h) => h.scope === "owned" && h.id !== currentHostId);
     const collab = filtered.filter((h) => h.scope === "collab" && h.id !== currentHostId);
-    const poolFree = filtered.filter(
-      (h) => h.tier === "free" && h.scope === "pool" && h.id !== currentHostId,
+    const pool = filtered.filter(
+      (h) => h.scope === "pool" && h.id !== currentHostId,
     );
-    const poolMember = filtered.filter(
-      (h) => h.tier === "member" && h.scope === "pool" && h.id !== currentHostId,
-    );
-    const poolPro = filtered.filter(
-      (h) => h.tier === "pro" && h.scope === "pool" && h.id !== currentHostId,
-    );
+    const poolByTier = new Map<number, Host[]>();
+    for (const host of pool) {
+      const tier = host.tier ?? 0;
+      const list = poolByTier.get(tier) ?? [];
+      list.push(host);
+      poolByTier.set(tier, list);
+    }
 
     addGroup("Current host", current);
     addGroup(`Your hosts (${owned.length})`, owned);
     addGroup(`Collaborator hosts (${collab.length})`, collab);
-    addGroup(`Shared pool (free) (${poolFree.length})`, poolFree);
-    addGroup(`Shared pool (member) (${poolMember.length})`, poolMember);
-    addGroup(`Shared pool (pro) (${poolPro.length})`, poolPro);
+    for (const tier of Array.from(poolByTier.keys()).sort((a, b) => a - b)) {
+      const items = poolByTier.get(tier) ?? [];
+      addGroup(`Shared pool (tier ${tier}) (${items.length})`, items);
+    }
 
     const items: any[] = [];
     for (const g of groups) {
@@ -209,9 +211,9 @@ export function HostPickerModal({
                       <Tag color={STATUS_COLOR[host.status] ?? "default"}>
                         {host.status}
                       </Tag>
-                      {host.tier && (
+                      {host.tier != null && (
                         <Tag color={host.can_place ? "blue" : "default"}>
-                          {host.tier}
+                          Tier {host.tier}
                         </Tag>
                       )}
                       {host.can_place !== false ? (

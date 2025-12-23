@@ -8,8 +8,9 @@ import getPool from "@cocalc/database/pool";
 import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 import {
   computePlacementPermission,
-  type UserTier,
+  getUserHostTier,
 } from "@cocalc/server/project-host/placement";
+import { resolveMembershipForAccount } from "@cocalc/server/membership/resolve";
 function pool() {
   return getPool();
 }
@@ -45,7 +46,7 @@ function parseRow(
     last_seen: row.last_seen
       ? new Date(row.last_seen).toISOString()
       : undefined,
-    tier: row.tier as Host["tier"],
+    tier: normalizeHostTier(row.tier),
     scope: opts.scope,
     can_start: opts.can_start,
     can_place: opts.can_place,
@@ -69,6 +70,51 @@ async function loadOwnedHost(id: string, account_id?: string): Promise<any> {
   return row;
 }
 
+async function loadHostForStartStop(
+  id: string,
+  account_id?: string,
+): Promise<any> {
+  const owner = requireAccount(account_id);
+  const { rows } = await pool().query(
+    `SELECT * FROM project_hosts WHERE id=$1`,
+    [id],
+  );
+  const row = rows[0];
+  if (!row) {
+    throw new Error("host not found");
+  }
+  const metadata = row.metadata ?? {};
+  const isOwner = metadata.owner === owner;
+  if (isOwner) return row;
+  const collaborators = (metadata.collaborators ?? []) as string[];
+  const isCollab = collaborators.includes(owner);
+  if (isCollab && !!metadata.host_collab_control) {
+    return row;
+  }
+  throw new Error("not authorized");
+}
+
+function normalizeHostTier(value: unknown): number | undefined {
+  if (value == null) return undefined;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+async function loadMembership(account_id: string) {
+  return await resolveMembershipForAccount(account_id);
+}
+
+function requireCreateHosts(entitlements: any) {
+  const canCreate = entitlements?.features?.create_hosts === true;
+  if (!canCreate) {
+    throw new Error("membership does not allow host creation");
+  }
+}
+
 export async function listHosts({
   account_id,
   admin_view,
@@ -86,11 +132,8 @@ export async function listHosts({
     admin_view ? [] : [owner],
   );
 
-  // determine user tier (placeholder: assume non-anon => "member" for now)
-  // use a mutable union type so comparisons against other tiers don't
-  // trigger TS2367 “no overlap” warnings.
-  // TODO: derive real user tier once membership tiers are implemented.
-  const userTier: UserTier = "member";
+  const membership = await loadMembership(owner);
+  const userTier = getUserHostTier(membership.entitlements);
 
   const result: Host[] = [];
   for (const row of rows) {
@@ -99,7 +142,7 @@ export async function listHosts({
     const isOwner = rowOwner === owner;
     const collaborators = (metadata.collaborators ?? []) as string[];
     const isCollab = collaborators.includes(owner);
-    const tier = row.tier as Host["tier"];
+    const tier = normalizeHostTier(row.tier);
     const shared = tier != null;
 
     const scope: Host["scope"] = isOwner
@@ -117,7 +160,7 @@ export async function listHosts({
       isCollab,
     });
 
-    const can_start = isOwner || (isCollab && !!metadata.collab_can_start);
+    const can_start = isOwner || (isCollab && !!metadata.host_collab_control);
 
     // If catalog=false, filter out what user cannot place
     if (!catalog && !can_place) {
@@ -152,6 +195,8 @@ export async function createHost({
   machine?: Host["machine"];
 }): Promise<Host> {
   const owner = requireAccount(account_id);
+  const membership = await loadMembership(owner);
+  requireCreateHosts(membership.entitlements);
   const id = randomUUID();
   const now = new Date();
   await pool().query(
@@ -192,7 +237,7 @@ export async function startHost({
   account_id?: string;
   id: string;
 }): Promise<Host> {
-  await loadOwnedHost(id, account_id);
+  await loadHostForStartStop(id, account_id);
   const now = new Date();
   // emit bootlog for host start
   bootlog({
@@ -226,7 +271,7 @@ export async function stopHost({
   account_id?: string;
   id: string;
 }): Promise<Host> {
-  await loadOwnedHost(id, account_id);
+  await loadHostForStartStop(id, account_id);
   const now = new Date();
   bootlog({
     host_id: id,

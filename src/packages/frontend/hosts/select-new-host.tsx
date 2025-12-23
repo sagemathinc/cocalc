@@ -49,9 +49,9 @@ export function SelectNewHost({
                           {selectedHost.region}
                         </Tag>
                       )}
-                      {selectedHost.tier && (
+                      {selectedHost.tier != null && (
                         <Tag color="purple" style={{ marginRight: 6 }}>
-                          {selectedHost.tier}
+                          Tier {selectedHost.tier}
                         </Tag>
                       )}
                     </>

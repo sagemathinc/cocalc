@@ -9,6 +9,7 @@ import {
   upsertMove,
   updateMove,
 } from "./move-db";
+import { normalizeHostTier } from "./placement";
 
 const log = getLogger("server:project-host:control");
 
@@ -17,7 +18,7 @@ type HostPlacement = {
   host: {
     name?: string;
     region?: string;
-    tier?: string;
+    tier?: number;
     public_url?: string;
     internal_url?: string;
     ssh_server?: string;
@@ -56,6 +57,8 @@ export async function loadHostFromRegistry(host_id: string) {
     "SELECT name, region, public_url, internal_url, ssh_server, tier FROM project_hosts WHERE id=$1",
     [host_id],
   );
+  if (!rows[0]) return undefined;
+  rows[0].tier = normalizeHostTier(rows[0].tier);
   return rows[0];
 }
 
@@ -72,6 +75,8 @@ export async function selectActiveHost(exclude_host_id?: string) {
     `,
     exclude_host_id ? [exclude_host_id] : [],
   );
+  if (!rows[0]) return undefined;
+  rows[0].tier = normalizeHostTier(rows[0].tier);
   return rows[0];
 }
 
@@ -145,7 +150,7 @@ async function ensurePlacement(project_id: string): Promise<HostPlacement> {
       public_url: chosen.public_url,
       internal_url: chosen.internal_url,
       ssh_server: chosen.ssh_server,
-      tier: chosen.tier,
+      tier: normalizeHostTier(chosen.tier),
     },
   };
 

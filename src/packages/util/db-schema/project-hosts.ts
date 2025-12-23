@@ -57,8 +57,8 @@ Table({
       desc: "Additional metadata/config for this host.",
     },
     tier: {
-      type: "string",
-      desc: "Access tier for shared/pool hosts: free/member/pro; empty means only owner/collabs can place projects.",
+      type: "number",
+      desc: "Access tier for shared/pool hosts; empty means only owner/collabs can place projects.",
     },
     created: {
       type: "timestamp",

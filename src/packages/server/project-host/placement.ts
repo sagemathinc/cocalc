@@ -1,6 +1,24 @@
+import type { MembershipEntitlements } from "@cocalc/conat/hub/api/purchases";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 
-export type UserTier = "free" | "member" | "pro";
+export type UserHostTier = number;
+
+export function normalizeHostTier(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+export function getUserHostTier(
+  entitlements?: MembershipEntitlements,
+): UserHostTier {
+  return normalizeHostTier(entitlements?.features?.project_host_tier);
+}
 
 export function computePlacementPermission({
   tier,
@@ -9,7 +27,7 @@ export function computePlacementPermission({
   isCollab,
 }: {
   tier?: Host["tier"];
-  userTier: UserTier;
+  userTier: UserHostTier;
   isOwner: boolean;
   isCollab: boolean;
 }): { can_place: boolean; reason_unavailable?: string } {
@@ -17,20 +35,12 @@ export function computePlacementPermission({
   let can_place = isOwner || isCollab;
   let reason_unavailable: string | undefined;
 
-  if (tier && !can_place) {
-    if (tier === "free") {
-      can_place = true;
-    } else if (tier === "member" && (userTier === "member" || userTier === "pro")) {
-      can_place = true;
-    } else if (tier === "pro" && userTier === "pro") {
+  if (tier != null && !can_place) {
+    const hostTier = normalizeHostTier(tier);
+    if (userTier >= hostTier) {
       can_place = true;
     } else {
-      reason_unavailable =
-        tier === "member"
-          ? "Requires member tier"
-          : tier === "pro"
-            ? "Requires pro tier"
-            : "Not available";
+      reason_unavailable = `Requires project host tier ≥ ${hostTier}`;
     }
   }
 
