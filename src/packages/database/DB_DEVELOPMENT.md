@@ -411,7 +411,56 @@ If the method needs access to instance properties, you have two options:
 - Document which pattern each function uses in the type definitions
 - **Always use `.call(this, opts)` in CoffeeScript wrappers to preserve instance context**
 
-#### 2.3 Method Migration Priority
+#### 2.3 Ops Module Refactor (Example: `postgres/ops`)
+
+When a migrated file grows large, split it into a subdirectory with smaller modules and an `index.ts` barrel. The `postgres/ops` migration used this pattern:
+
+- **Move + split**:
+  - `postgres/ops.ts` → `postgres/ops/backup.ts` and `postgres/ops/restore.ts`
+  - Common types/helpers → `postgres/ops/utils.ts`
+  - `postgres/ops/index.ts` re-exports `backup`, `restore`, and `utils`
+- **Update extender**:
+  - `postgres-ops.ts` should import from `./postgres/ops` (directory barrel), not a single file
+- **Barrel + module resolution**:
+  - Keep `postgres/ops/index.ts` as the public entry so `./postgres/ops` resolves to the directory (Node/TS will prefer `index.ts`)
+  - This preserves existing import paths while allowing internal files to move under `postgres/ops/`
+- **Split tests**:
+  - `postgres/ops.test.ts` → `postgres/ops/backup.test.ts` and `postgres/ops/restore.test.ts`
+  - Keep tests close to their modules for easier review and targeted runs
+
+**Mocking and test patterns used in ops:**
+
+- **Mock `execute_code`** to avoid running shell commands:
+  ```ts
+  jest.mock("@cocalc/backend/misc_node", () => ({
+    execute_code: jest.fn(),
+  }));
+  const executeCode = execute_code as jest.MockedFunction<typeof execute_code>;
+  ```
+- **Mock `fs.readdirSync`** (non-configurable in Jest unless mocked at module level):
+  ```ts
+  jest.mock("fs", () => ({
+    ...jest.requireActual("fs"),
+    readdirSync: jest.fn(),
+  }));
+  const readdirSync = fs.readdirSync as unknown as jest.MockedFunction<
+    (path: fs.PathLike) => string[]
+  >;
+  ```
+- **Callback typing**: when stubbing callback-style APIs, pass `undefined` explicitly:
+  ```ts
+  executeCode.mockImplementation((opts) => {
+    opts.cb?.(undefined);
+  });
+  ```
+
+Suggested test runs for the split ops tests:
+
+```bash
+pnpm test postgres/ops/backup.test.ts postgres/ops/restore.test.ts
+```
+
+#### 2.4 Method Migration Priority
 
 **Order of migration** (from foundational to dependent):
 

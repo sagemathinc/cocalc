@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -109,6 +109,10 @@ export interface UpdateAccountInfoAndPassportOpts {
 
 export interface PostgreSQL extends EventEmitter {
   _dbg(desc: string): Function;
+  _database: string;
+  _host: string;
+  _password: string;
+  _user: string;
 
   _stop_listening(table: string, select: QuerySelect, watch: string[]);
 
@@ -410,7 +414,23 @@ export interface PostgreSQL extends EventEmitter {
   set_project_settings(opts: { project_id: string; settings: object; cb?: CB });
 
   // Database operations (postgres-ops)
+  backup_tables(opts: {
+    tables: string[] | "all" | "critical" | string;
+    path?: string;
+    limit?: number;
+    bup?: boolean;
+    cb: CB;
+  }): void;
+  _backup_table(opts: { table: string; path?: string; cb: CB }): void;
+  _backup_bup(opts: { path?: string; cb: CB }): void;
   _get_backup_tables(tables: string[] | "all" | "critical" | string): string[];
+  restore_tables(opts: {
+    tables?: string[] | "all" | "critical" | string;
+    path?: string;
+    limit?: number;
+    cb: CB;
+  }): void;
+  _restore_table(opts: { table: string; path?: string; cb: CB }): void;
 
   uncaught_exception: (err: any) => void;
 }
