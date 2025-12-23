@@ -101,6 +101,7 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
     return terminal;
   }
 
+  // write data to this terminal
   write = (id: string, data: string) => {
     const t = this.terminals[id];
     if (t == null) {

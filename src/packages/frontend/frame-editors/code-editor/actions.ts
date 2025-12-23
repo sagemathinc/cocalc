@@ -1175,6 +1175,9 @@ export class Actions<
       if (!id) return;
     }
     const before = this._get_leaf_ids();
+    if (!before[id]) {
+      throw Error(`split_frame -- no frame with id ${id}`);
+    }
     this._tree_op("split_leaf", id, direction, type, extra, first);
     const after = this._get_leaf_ids();
     for (const new_id in after) {
@@ -2794,12 +2797,14 @@ export class Actions<
     }
     // Check if there is already a terminal with the given command/args
     // and if so, just focus it.
-    let shell_id: string | undefined = this.getMostRecentShellId(command, args);
+    let shell_id: string | undefined =
+      id ?? this.getMostRecentShellId(command, args);
     if (shell_id == null) {
       // No such terminal already, so we make one and focus it.
       shell_id = this.split_frame("col", id, "terminal", { command, args });
       if (!shell_id) return;
     } else {
+      const before = this._get_frame_node(shell_id);
       // Change command/args.
       this.terminals.set_command(shell_id, command, args);
       // Also change the frame description so that the top of the terminal display
@@ -2809,6 +2814,15 @@ export class Actions<
         command,
         args,
       });
+      if (
+        before &&
+        (before.get("command") != command ||
+          !isEqual(before.get("args")?.toJS(), args))
+      ) {
+        // reset it if there was something before so it doesn't
+        // have the wrong command/args running
+        this.terminals.kill(shell_id);
+      }
     }
     if (no_switch) return;
 
