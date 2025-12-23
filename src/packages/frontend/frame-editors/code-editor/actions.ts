@@ -120,6 +120,7 @@ import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { lite } from "@cocalc/frontend/lite";
+import { isEqual } from "lodash";
 
 interface gutterMarkerParams {
   line: number;
@@ -1626,14 +1627,17 @@ export class Actions<
     );
   }
 
-  // TODO: might also specify args.
-  _get_most_recent_shell_id(command?: string): string | undefined {
+  private getMostRecentShellId = (
+    command?: string,
+    args?: string[],
+  ): string | undefined => {
     return this._get_most_recent_active_frame_id(
       (node) =>
         node.get("type").slice(0, 8) == "terminal" &&
-        node.get("command") == command,
+        node.get("command") == command &&
+        isEqual(node.get("args"), args),
     );
-  }
+  };
 
   public _active_id(): string {
     return this.store.getIn(["local_view_state", "active_id"]) as any;
@@ -1714,7 +1718,7 @@ export class Actions<
 
   syncstring_commit(): void {
     // We also skip if the syncstring hasn't yet been initialized.
-    // This happens in some cases.
+    // This happensgetMostRecentShellId in some cases.
     if (this._state === "closed" || this._syncstring?.get_state() != "ready") {
       return;
     }
@@ -2761,31 +2765,36 @@ export class Actions<
 
   // Overload this in a derived class to have a possibly more complicated spec.
   protected async get_shell_spec(
-    id: string,
+    _id?: string,
   ): Promise<undefined | string | { command: string; args: string[] }> {
-    id = id; // not used.
     return SHELLS[filename_extension(this.path)];
   }
 
-  public async shell(id: string, no_switch: boolean = false): Promise<void> {
-    const x = await this.get_shell_spec(id);
-    let command: string | undefined = undefined;
-    let args: string[] | undefined = undefined;
-    if (x == null) {
-      // generic case - uses bash (the default)
-    } else if (typeof x === "string") {
-      command = x;
-    } else {
-      command = x.command;
-      args = x.args;
-      if (typeof command != "string") {
-        throw Error("SHELLS data structure wrong.");
+  public async shell(
+    id?: string,
+    {
+      command,
+      args,
+      no_switch,
+    }: { no_switch?: boolean; command?: string; args?: string[] } = {},
+  ): Promise<void> {
+    if (command == null && args == null) {
+      const x = await this.get_shell_spec(id);
+      if (x == null) {
+        // generic case - uses bash (the default)
+      } else if (typeof x === "string") {
+        command = x;
+      } else {
+        command = x.command;
+        args = x.args;
+        if (typeof command != "string") {
+          throw Error("SHELLS data structure wrong.");
+        }
       }
     }
-    // Check if there is already a terminal with the given command,
+    // Check if there is already a terminal with the given command/args
     // and if so, just focus it.
-    // (TODO: might also specify args.)
-    let shell_id: string | undefined = this._get_most_recent_shell_id(command);
+    let shell_id: string | undefined = this.getMostRecentShellId(command, args);
     if (shell_id == null) {
       // No such terminal already, so we make one and focus it.
       shell_id = this.split_frame("col", id, "terminal", { command, args });
@@ -2814,10 +2823,8 @@ export class Actions<
   }
 
   public async terminal(id: string, no_switch: boolean = false): Promise<void> {
-    // Check if there is already a terminal with the given command,
-    // and if so, just focus it.
-    // (TODO: might also specify args.)
-    let shell_id: string | undefined = this._get_most_recent_shell_id();
+    // Check if there is already a terminal and if so, just focus it.
+    let shell_id: string | undefined = this.getMostRecentShellId();
     if (shell_id == null) {
       // No such terminal already, so we make one and focus it.
       shell_id = this.split_frame("col", id, "terminal");
@@ -2846,7 +2853,8 @@ export class Actions<
     const type = node.get("type");
     if (type == "terminal") {
       this.clear_terminal_command(id);
-      if (node.get("command") == "jupyter") {
+      const command = node.get("command");
+      if (command == "jupyter") {
         // not resetting jupyter
         return;
       }
@@ -2859,7 +2867,9 @@ export class Actions<
       }
       await t.wait_for_next_render();
       await delay(1); // also wait a little bit
-      t.conn_write("\nreset\n");
+      if (!command || command.endsWith("bash")) {
+        t.conn_write("\n" + "reset" + "\n");
+      }
     } else {
       throw Error(`"clear" for type="${type}" not implemented`);
     }

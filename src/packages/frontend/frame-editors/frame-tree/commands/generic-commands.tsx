@@ -207,7 +207,7 @@ addCommands({
     group: "show-frames",
     title: defineMessage({
       id: "command.generic.shell.tooltip",
-      defaultMessage: "Open a terminal for running code",
+      defaultMessage: "Open a shell for running code",
     }),
     icon: "terminal",
     disable: "disableTerminals",

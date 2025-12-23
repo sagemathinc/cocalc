@@ -199,6 +199,12 @@ Changes needed:
 
 Exit criteria: memberships cover the same real-world cases as licenses; licenses can be removed from cocalc.ai.  
 
+## Bridge Solution (Before Team Plans Land)
+
+- Allow **project default tier** chosen by the owner, with **soft downgrade** when a free user starts a project.  
+- Allow a **sponsor this run** upgrade from any collaborator.  
+- Add a **team trial** (time‑boxed + seat‑limited) so owners can onboard collaborators without immediate payment.  
+
 ## cocalc.ai Launch Strategy
 
 - Keep cocalc.com as-is initially; launch cocalc.ai membership-only.  
@@ -212,3 +218,4 @@ Exit criteria: memberships cover the same real-world cases as licenses; licenses
 3. **Team/Course sources**: build data model + resolver support for seats and courses.  
 4. **Team/Course UI + store**: purchase flows, assignment UI, seat management.  
 5. **License retirement for cocalc.ai**: remove licenses from store/UI; rely on team/course memberships.  
+

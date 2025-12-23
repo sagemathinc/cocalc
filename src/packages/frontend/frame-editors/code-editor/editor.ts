@@ -58,7 +58,7 @@ export const cm: EditorDescription = {
     "format",
     "auto_indent",
     "settings",
-    //"tour"
+    "shell",
   ]),
   customizeCommands: {
     format: {

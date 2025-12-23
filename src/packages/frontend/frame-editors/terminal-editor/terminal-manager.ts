@@ -101,6 +101,14 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
     return terminal;
   }
 
+  write = (id: string, data: string) => {
+    const t = this.terminals[id];
+    if (t == null) {
+      throw Error(`no terminal with id '${id}'`);
+    }
+    t.conn_write(data);
+  };
+
   close_terminal(id: string): void {
     if (this.terminals?.[id] == null) {
       // graceful no-op if no such terminal.

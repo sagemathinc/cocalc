@@ -129,8 +129,6 @@ const TIER_TEMPLATES = {
   },
 };
 
-console.log(TIER_TEMPLATES);
-
 interface Tier {
   key?: string;
   id: string;
