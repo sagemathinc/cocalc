@@ -11,11 +11,15 @@ know exactly what you're doing.
 COPYRIGHT : (c) 2021 SageMath, Inc.
 */
 
+import { extend_PostgreSQL as extendPostgresOps } from "./postgres-ops";
 import { setupRecordConnectErrors } from "./postgres/record-connect-error";
-
 import { PostgreSQL } from "./postgres/types";
 
 const base = require("./postgres-base");
+const postgresServerQueries = require("./postgres-server-queries");
+const postgresBlobs = require("./postgres-blobs");
+const postgresSynctable = require("./postgres-synctable");
+const postgresUserQueries = require("./postgres-user-queries");
 
 export const {
   pg_type,
@@ -37,17 +41,11 @@ export function db(opts = {}): PostgreSQL {
   if (theDB === undefined) {
     let PostgreSQL = base.PostgreSQL;
 
-    for (const module of [
-      "server-queries",
-      "blobs",
-      "synctable",
-      "user-queries",
-      "ops",
-    ]) {
-      PostgreSQL = require(`./postgres-${module}`).extend_PostgreSQL(
-        PostgreSQL,
-      );
-    }
+    PostgreSQL = postgresServerQueries.extend_PostgreSQL(PostgreSQL);
+    PostgreSQL = postgresBlobs.extend_PostgreSQL(PostgreSQL);
+    PostgreSQL = postgresSynctable.extend_PostgreSQL(PostgreSQL);
+    PostgreSQL = postgresUserQueries.extend_PostgreSQL(PostgreSQL);
+    PostgreSQL = extendPostgresOps(PostgreSQL);
     const theDBnew = new PostgreSQL(opts);
     setupRecordConnectErrors(theDBnew);
     theDB = theDBnew;
