@@ -11,6 +11,8 @@ import type { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { round2down, round2up } from "@cocalc/util/misc";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useEffect, useState } from "react";
+import { lite } from "@cocalc/frontend/lite";
+
 /*
 NOTE: To get a quick idea about the numbers of how many completion tokens are returned, run this:
 
@@ -141,6 +143,8 @@ export function LLMUsageStatus({
       cancelled = true;
     };
   }, []);
+
+  if (lite) return null;
 
   if (error) {
     return <Text type="secondary">LLM usage unavailable.</Text>;
