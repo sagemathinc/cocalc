@@ -48,8 +48,10 @@ export interface QueryOptions<T = UntypedQueryResult> {
   cb?: CB<QueryRows<T>>;
 }
 
-export interface AsyncQueryOptions<T = UntypedQueryResult>
-  extends Omit<QueryOptions<T>, "cb"> {}
+export interface AsyncQueryOptions<T = UntypedQueryResult> extends Omit<
+  QueryOptions<T>,
+  "cb"
+> {}
 
 export interface UserQueryOptions {
   client_id?: string; // if given, uses to control number of queries at once by one client.
@@ -406,8 +408,11 @@ export interface PostgreSQL extends EventEmitter {
   webapp_error(opts: object);
 
   set_project_settings(opts: { project_id: string; settings: object; cb?: CB });
-  
-  uncaught_exception: (err:any) => void;
+
+  // Database operations (postgres-ops)
+  _get_backup_tables(tables: string[] | "all" | "critical" | string): string[];
+
+  uncaught_exception: (err: any) => void;
 }
 
 // This is an extension of BaseProject in projects/control/base.ts

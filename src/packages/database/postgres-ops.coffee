@@ -20,6 +20,9 @@ required   = defaults.required
 
 {SCHEMA}   = require('@cocalc/util/schema')
 
+# TypeScript imports for migrated methods
+{getBackupTables} = require('./postgres/ops')
+
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Backups up the indicated tables.
     # WARNING: This is NOT guaranteed to give a point
@@ -96,22 +99,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             err_on_exit : true
             cb      : opts.cb
 
+    # Migrated to TypeScript: postgres/ops.ts
     _get_backup_tables: (tables) =>
-        if misc.is_array(tables)
-            return tables
-        all = (t for t,s of SCHEMA when not s.virtual)
-        if tables == 'all'
-            return all
-        else if tables == 'critical'
-            # TODO: critical for backup or not should probably be in the schema itself, not here.
-            v = []
-            non_critical = ['stats','syncstrings','file_use','eval_outputs','blobs','eval_inputs','patches','cursors']
-            for x in all
-                if x.indexOf('log') == -1 and x not in non_critical
-                    v.push(x)
-            return v
-        else
-            return [tables]
+        return getBackupTables(tables)
 
     # Restore the given tables from the backup in the given directory.
     restore_tables: (opts) =>

@@ -44,6 +44,20 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - `cd packages/[package] && pnpm test` - Run tests for a specific package
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
 
+### Dependency Management
+
+**Package versions must be uniform across all CoCalc packages in the monorepo.**
+
+When updating npm packages:
+
+- **ALWAYS update associated `@types/[name]` packages** when updating an npm package `[name]` if `@types/[name]` is installed
+- **Check all packages in the workspace** that depend on the package being updated
+- **Ensure version consistency** across all packages - the same package must use the same version everywhere
+- Run `pnpm version-check` from the root directory (`cocalc/src/`) to verify version consistency
+- Run `pnpm install` after updating dependencies in any package
+- Use `pnpm list [package]` to verify the installed version across the workspace
+- Example: When updating `pg` from `^8.7.1` to `^8.16.3`, also update `@types/pg` from `^8.6.1` to `^8.16.0` in **all packages** that use them
+
 ### Development
 
 - **IMPORTANT**: Always run `prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling

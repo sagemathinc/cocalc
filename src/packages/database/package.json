@@ -28,7 +28,7 @@
     "immutable": "^4.3.0",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
-    "pg": "^8.7.1",
+    "pg": "^8.16.3",
     "random-key": "^0.3.2",
     "read": "^1.0.7",
     "sql-string-escape": "^1.1.6",
@@ -37,14 +37,16 @@
   "devDependencies": {
     "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14",
-    "@types/pg": "^8.6.1",
-    "coffeescript": "^2.5.1"
+    "@types/pg": "^8.16.0",
+    "coffeescript": "^2.5.1",
+    "decaffeinate": "^8.1.4"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc  --build && coffee -c -o dist/ ./",
     "clean": "rm -rf dist",
     "test": "pnpm exec jest --forceExit --runInBand",
+    "coverage": "pnpm exec jest --coverage --forceExit --runInBand",
     "depcheck": "pnpx depcheck | grep -Ev '\\.coffee|coffee$'",
     "prepublishOnly": "pnpm test"
   },
