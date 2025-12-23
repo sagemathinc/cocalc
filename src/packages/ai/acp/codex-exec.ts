@@ -344,7 +344,7 @@ export class CodexExecAgent implements AcpAgent {
         {
           const readInfo = this.parseReadOnlyCommand(item.command, cwd);
           if (readInfo) {
-            const pathForEvent = this.toWorkspaceRelative(readInfo.path, cwd);
+            const pathForEvent = this.toHomeRelative(readInfo.path, cwd);
             const bytes =
               item.aggregated_output != null
                 ? Buffer.byteLength(item.aggregated_output)
@@ -505,9 +505,16 @@ export class CodexExecAgent implements AcpAgent {
     return path.join(cwd, candidate);
   }
 
-  private toWorkspaceRelative(pathAbs: string, cwd: string): string {
+  private toHomeRelative(pathAbs: string, cwd: string): string {
     if (!pathAbs) return pathAbs;
     if (!pathAbs.startsWith("/")) return pathAbs;
+    const home = process.env.HOME || "";
+    if (home && pathAbs.startsWith(home + path.sep)) {
+      const relHome = path.relative(home, pathAbs);
+      if (relHome && !relHome.startsWith("..") && !path.isAbsolute(relHome)) {
+        return relHome;
+      }
+    }
     const rel = path.relative(cwd, pathAbs);
     if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
       return pathAbs;
@@ -525,7 +532,7 @@ export class CodexExecAgent implements AcpAgent {
     const pre = item.pre_contents ?? {};
     for (const ch of changes) {
       const pathAbs = ch.path;
-      const pathForEvent = this.toWorkspaceRelative(pathAbs, cwd);
+      const pathForEvent = this.toHomeRelative(pathAbs, cwd);
       const before = pre[pathAbs] ?? this.getCachedContent(pathAbs, preContentCache);
       let after: string | undefined;
       try {
