@@ -28,6 +28,7 @@ required = defaults.required
 
 {PROJECT_UPGRADES, SCHEMA, OPERATORS, isToOperand} = require('@cocalc/util/schema')
 {queryIsCmp, userGetQueryFilter} = require("./user-query/user-get-query")
+{cancelUserQueries} = require("./user-query/cancel-user-queries")
 
 {updateRetentionData} = require('./postgres/retention')
 
@@ -38,9 +39,7 @@ required = defaults.required
 exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Cancel all queued up queries by the given client
     cancel_user_queries: (opts) =>
-        opts = defaults opts,
-            client_id  : required
-        @_user_query_queue?.cancel_user_queries(opts)
+        cancelUserQueries(@, opts)
 
     user_query: (opts) =>
         opts = defaults opts,

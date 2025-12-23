@@ -695,7 +695,8 @@ pnpm test --watch
 
 ### Completed Migrations
 
-_None yet_
+- **postgres-ops**: Migrated to TypeScript, split into `postgres/ops/backup.ts`, `postgres/ops/restore.ts`, and `postgres/ops/utils.ts`; tests split accordingly
+- **filesystem-bucket**: Migrated to TypeScript with new tests
 
 ### In Progress
 
@@ -703,15 +704,9 @@ _None yet_
 
 ### Next Up
 
-**Phase 1 is complete!** Ready to begin Phase 2: Incremental Method Migration
+Recommended next target:
 
-Recommended starting point:
-
-1. Identify a simple utility method in `postgres-base.coffee` to migrate first
-2. Use `decaffeinate` to convert it to JavaScript
-3. Transform to TypeScript with proper types
-4. Write comprehensive tests
-5. Verify coverage meets 80% threshold
+- **postgres-user-query-queue.coffee** - Small file, good next step before moving to larger query modules
 
 ## Decision Log
 
