@@ -657,17 +657,7 @@ export class CodexExecAgent implements AcpAgent {
         1024;
       if (stat.size > maxBytes) return;
       const text = await fs.readFile(pathAbs, "utf8");
-      const bytes = Buffer.byteLength(text);
-      if (bytes > COMPRESS_THRESHOLD_BYTES) {
-        const compressed = brotliCompressSync(Buffer.from(text, "utf8"));
-        cache.set(pathAbs, {
-          data: compressed,
-          compressed: true,
-          bytes: compressed.length,
-        });
-      } else {
-        cache.set(pathAbs, { data: text, compressed: false, bytes });
-      }
+      this.updateCachedContent(pathAbs, text, cache);
     } catch (err) {
       logger.debug("codex-exec: failed to cache pre-content", {
         path: pathAbs,
@@ -693,6 +683,24 @@ export class CodexExecAgent implements AcpAgent {
         err,
       });
       return undefined;
+    }
+  }
+
+  private updateCachedContent(
+    pathAbs: string,
+    text: string,
+    cache: LRUCache<string, PreContentEntry>,
+  ): void {
+    const bytes = Buffer.byteLength(text);
+    if (bytes > COMPRESS_THRESHOLD_BYTES) {
+      const compressed = brotliCompressSync(Buffer.from(text, "utf8"));
+      cache.set(pathAbs, {
+        data: compressed,
+        compressed: true,
+        bytes: compressed.length,
+      });
+    } else {
+      cache.set(pathAbs, { data: text, compressed: false, bytes });
     }
   }
 
