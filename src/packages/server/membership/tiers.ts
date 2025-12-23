@@ -31,11 +31,13 @@ export interface MembershipPricingResult {
 export async function getMembershipTiers({
   includeDisabled = true,
   storeVisibleOnly = false,
+  client,
 }: {
   includeDisabled?: boolean;
   storeVisibleOnly?: boolean;
+  client?: PoolClient;
 } = {}): Promise<MembershipTierRecord[]> {
-  const pool = getPool("medium");
+  const pool = client ?? getPool("medium");
   const { rows } = await pool.query(
     `SELECT id, label, store_visible, priority, price_monthly, price_yearly,
             project_defaults, llm_limits, features, disabled
@@ -53,10 +55,12 @@ export async function getMembershipTiers({
 
 export async function getMembershipTierMap({
   includeDisabled = true,
+  client,
 }: {
   includeDisabled?: boolean;
+  client?: PoolClient;
 } = {}): Promise<Record<string, MembershipTierRecord>> {
-  const tiers = await getMembershipTiers({ includeDisabled });
+  const tiers = await getMembershipTiers({ includeDisabled, client });
   return tiers.reduce(
     (acc, tier) => {
       acc[tier.id] = tier;
@@ -124,8 +128,22 @@ export async function computeMembershipPricing({
   interval: "month" | "year";
   client?: PoolClient;
 }): Promise<MembershipPricingResult> {
-  const tierMap = await getMembershipTierMap({ includeDisabled: true });
-  const targetTier = tierMap[targetClass];
+  const tierMap = await getMembershipTierMap({
+    includeDisabled: true,
+    client,
+  });
+  let targetTier: MembershipTierRecord | undefined = tierMap[targetClass];
+  if (!targetTier) {
+    const pool = client ?? getPool();
+    const { rows } = await pool.query(
+      `SELECT id, label, store_visible, priority, price_monthly, price_yearly,
+              project_defaults, llm_limits, features, disabled
+       FROM membership_tiers
+       WHERE id=$1`,
+      [targetClass],
+    );
+    targetTier = rows[0] as MembershipTierRecord | undefined;
+  }
   if (!targetTier || targetTier.disabled) {
     throw Error(`membership tier "${targetClass}" is not available`);
   }

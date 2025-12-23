@@ -17,11 +17,44 @@ import cancelSubscription from "./cancel-subscription";
 import resumeSubscription from "./resume-subscription";
 import createPurchase from "./create-purchase";
 import { before, after, getPool } from "@cocalc/server/test";
+import { createTestMembershipSubscription } from "./test-data";
+import { round2up } from "@cocalc/util/misc";
+
+const MEMBER_TIER = `member-test-${uuid().slice(0, 8)}`;
+const PRO_TIER = `pro-test-${uuid().slice(0, 8)}`;
 
 beforeAll(async () => {
   await before({ noConat: true });
+  const pool = getPool();
+  await pool.query(
+    `
+    INSERT INTO membership_tiers
+      (id, label, store_visible, priority, price_monthly, price_yearly,
+       project_defaults, llm_limits, features, disabled, notes)
+    VALUES
+      ($1, 'Member', true, 10, 100, 0, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, false, ''),
+      ($2, 'Pro', true, 20, 200, 0, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, false, '')
+    ON CONFLICT (id) DO UPDATE
+      SET label=EXCLUDED.label,
+          store_visible=EXCLUDED.store_visible,
+          priority=EXCLUDED.priority,
+          price_monthly=EXCLUDED.price_monthly,
+          price_yearly=EXCLUDED.price_yearly,
+          project_defaults=EXCLUDED.project_defaults,
+          llm_limits=EXCLUDED.llm_limits,
+          features=EXCLUDED.features,
+          disabled=EXCLUDED.disabled,
+          notes=EXCLUDED.notes
+    `,
+    [MEMBER_TIER, PRO_TIER],
+  );
 }, 15000);
-afterAll(after);
+afterAll(async () => {
+  const pool = getPool();
+  await pool.query("DELETE FROM membership_tiers WHERE id = $1", [MEMBER_TIER]);
+  await pool.query("DELETE FROM membership_tiers WHERE id = $1", [PRO_TIER]);
+  await after();
+});
 
 describe("create a subscription license and edit it and confirm the subscription cost changes", () => {
   // this is a shopping cart item, which I basically copied from the database...
@@ -179,5 +212,138 @@ describe("create a subscription license and edit it and confirm the subscription
       account_id: item.account_id,
       subscription_id,
     });
+  });
+});
+
+describe("membership upgrade pricing (member -> pro with prorated credit)", () => {
+  it("applies a prorated credit when upgrading via shopping cart", async () => {
+    const account_id = uuid();
+    await createAccount({
+      email: "",
+      password: "xyz",
+      firstName: "Test",
+      lastName: "User",
+      account_id,
+    });
+
+    const pool = getPool();
+    const start = dayjs().subtract(10, "day").toDate();
+    const end = dayjs().add(20, "day").toDate();
+    const existingCost = 100;
+    const { subscription_id: existingSubId } =
+      await createTestMembershipSubscription(account_id, {
+        class: MEMBER_TIER,
+        interval: "month",
+        start,
+        end,
+        cost: existingCost,
+      });
+
+    const item = {
+      account_id,
+      id: 501,
+      added: new Date(),
+      product: "membership",
+      description: {
+        type: "membership",
+        class: PRO_TIER,
+        interval: "month",
+      },
+      cost: {} as any,
+    };
+
+    const client = await getPoolClient();
+    await purchaseShoppingCartItem(item as any, client);
+    client.release();
+
+    const subs = await getSubscriptions({ account_id });
+    const newSub = subs.find(
+      (sub) =>
+        sub.metadata?.type === "membership" &&
+        sub.metadata?.class === PRO_TIER,
+    );
+    const oldSub = subs.find((sub) => sub.id === existingSubId);
+    if (!newSub || !oldSub) {
+      throw Error("expected both old and new membership subscriptions");
+    }
+    expect(oldSub.status).toBe("canceled");
+    if (newSub.metadata?.type !== "membership") {
+      throw Error("expected membership metadata");
+    }
+    expect(newSub.metadata.class).toBe(PRO_TIER);
+
+    const elapsedFraction = Math.max(
+      0,
+      Math.min(
+        1,
+        (new Date(end).valueOf() - Date.now()) /
+          (new Date(end).valueOf() - new Date(start).valueOf()),
+      ),
+    );
+    const expectedRefund = round2up(existingCost * elapsedFraction);
+    const expectedCharge = Math.max(0, round2up(200 - expectedRefund));
+
+    const { rows } = await pool.query(
+      "SELECT cost, description FROM purchases WHERE account_id=$1 AND service='membership' ORDER BY id DESC LIMIT 1",
+      [account_id],
+    );
+    expect(rows.length).toBe(1);
+    expect(rows[0].cost).toBeCloseTo(expectedCharge, 2);
+    expect(rows[0].description?.type).toBe("membership");
+    expect(rows[0].description?.class).toBe(PRO_TIER);
+  });
+});
+
+describe("membership purchase via shopping cart", () => {
+  it("creates a membership subscription and purchase", async () => {
+    const account_id = uuid();
+    await createAccount({
+      email: "",
+      password: "xyz",
+      firstName: "Test",
+      lastName: "User",
+      account_id,
+    });
+
+    let client: Awaited<ReturnType<typeof getPoolClient>> | undefined;
+    try {
+      client = await getPoolClient();
+      const item = {
+        account_id,
+        id: 601,
+        added: new Date(),
+        product: "membership",
+        description: {
+          type: "membership",
+          class: MEMBER_TIER,
+          interval: "month",
+        },
+        cost: {} as any,
+      };
+
+      await purchaseShoppingCartItem(item as any, client);
+
+      const subs = await getSubscriptions({ account_id });
+      const sub = subs.find(
+        (s) =>
+          s.metadata?.type === "membership" &&
+          s.metadata?.class === MEMBER_TIER,
+      );
+      if (!sub) {
+        throw Error("expected membership subscription");
+      }
+      expect(sub.status).toBe("active");
+
+      const { rows } = await client.query(
+        "SELECT cost, description FROM purchases WHERE account_id=$1 AND service='membership' ORDER BY id DESC LIMIT 1",
+        [account_id],
+      );
+      expect(rows.length).toBe(1);
+      expect(rows[0].cost).toBeCloseTo(100, 2);
+      expect(rows[0].description?.type).toBe("membership");
+      expect(rows[0].description?.class).toBe(MEMBER_TIER);
+    } finally {
+      client?.release();
+    }
   });
 });
