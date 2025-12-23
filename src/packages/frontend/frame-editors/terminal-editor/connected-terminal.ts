@@ -40,6 +40,7 @@ import { path_split } from "@cocalc/util/misc";
 import { join } from "path";
 import { randomId } from "@cocalc/conat/names";
 import { lite } from "@cocalc/frontend/lite";
+//import { argsJoin } from "@cocalc/util/args";
 
 declare const $: any;
 
@@ -468,11 +469,27 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
           env0,
           timeout: SPAWN_TIMEOUT,
         };
+
         const history = await pty.spawn(
           this.command ?? "bash",
           this.args,
           options,
         );
+
+        /*
+        // Approach where just write the command -- but this is
+        // really hard to get right in a multiuser setting and when
+        // frames close
+
+        const history = await pty.spawn("bash", [], options);
+        if (
+          this.command &&
+          this.command != "bash" &&
+          this.command != "/bin/bash"
+        ) {
+          this.conn_write(`${this.command} ${argsJoin(this.args ?? [])}\n`);
+        }
+        */
         this.set_connection_status("connected");
         this.terminal.reset();
         if (history) {

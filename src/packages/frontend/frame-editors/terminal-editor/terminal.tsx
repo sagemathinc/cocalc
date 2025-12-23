@@ -156,7 +156,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
 
   function render_command(): Rendered {
     const command = props.desc.get("command");
-    if (!command) return;
+    if (!command || command.endsWith("bash")) return;
     const args: string[] = props.desc.get("args") ?? [];
     // Quote if args have spaces:
     for (let i = 0; i < args.length; i++) {
@@ -179,7 +179,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
             type="text"
             style={{ float: "right", paddingBottom: "2.5px" }}
             onClick={() => {
-              props.actions.shell(props.id, { command: "" });
+              props.actions.shell(props.id, { command: "bash" });
             }}
           >
             Exit

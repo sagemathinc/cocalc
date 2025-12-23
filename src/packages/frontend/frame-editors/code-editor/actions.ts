@@ -2814,7 +2814,7 @@ export class Actions<
         }
       }
     }
-    
+
     if (id) {
       const node = this._get_frame_node(id);
       if (node?.get("type") == "terminal") {
