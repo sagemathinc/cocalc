@@ -416,6 +416,7 @@ host
 hosting
 hostmaster
 hostname
+hosts
 hovercards
 howto
 hpg

@@ -9,4 +9,5 @@ export const APP_ROUTES = new Set([
   "projects",
   "settings",
   "notifications",
+  "hosts",
 ]);
