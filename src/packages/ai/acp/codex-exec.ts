@@ -341,6 +341,28 @@ export class CodexExecAgent implements AcpAgent {
         break;
       case "command_execution":
         void this.capturePreContentsFromText(item.command, cwd, preContentCache);
+        {
+          const readInfo = this.parseReadOnlyCommand(item.command, cwd);
+          if (readInfo) {
+            const pathForEvent = this.toWorkspaceRelative(readInfo.path, cwd);
+            const bytes =
+              item.aggregated_output != null
+                ? Buffer.byteLength(item.aggregated_output)
+                : undefined;
+            await stream({
+              type: "event",
+              event: {
+                type: "file",
+                path: pathForEvent,
+                operation: "read",
+                line: readInfo.line,
+                limit: readInfo.limit,
+                bytes,
+              },
+            });
+            return;
+          }
+        }
         await stream({
           type: "event",
           event: {
@@ -354,22 +376,156 @@ export class CodexExecAgent implements AcpAgent {
         });
         break;
       case "file_change":
-        await this.handleFileChange(item, stream, preContentCache);
+        await this.handleFileChange(item, stream, preContentCache, cwd);
         break;
       default:
         break;
     }
   }
 
+  // Best-effort detection of read-only terminal commands so we can render a
+  // concise file-read event instead of dumping long terminal output.
+  private parseReadOnlyCommand(
+    command: string | undefined,
+    cwd: string,
+  ): { path: string; line?: number; limit?: number } | null {
+    if (!command) return null;
+    const { cmd, argv } = this.unwrapShellCommand(command);
+    const line = argv.length ? [cmd, ...argv].join(" ") : cmd;
+    const tokens = this.tokenizeCommand(line);
+    if (!tokens.length) return null;
+
+    const head = tokens[0];
+    const tailPath = tokens[tokens.length - 1];
+    if (!tailPath || tailPath.startsWith("-")) return null;
+    const pathAbs = this.resolveCommandPath(cwd, tailPath);
+
+    if (head === "sed") {
+      const idx = tokens.findIndex((t) => t === "-n");
+      if (idx >= 0 && tokens[idx + 1]) {
+        const range = tokens[idx + 1];
+        const match = range.match(/^(\d+)(?:,(\d+))?p$/);
+        if (match) {
+          const start = parseInt(match[1], 10);
+          const end = match[2] ? parseInt(match[2], 10) : start;
+          const limit = end >= start ? end - start + 1 : undefined;
+          return { path: pathAbs, line: start, limit };
+        }
+      }
+    }
+
+    if (head === "head") {
+      const idx = tokens.findIndex((t) => t === "-n");
+      if (idx >= 0 && tokens[idx + 1]) {
+        const limit = parseInt(tokens[idx + 1], 10);
+        if (Number.isFinite(limit)) {
+          return { path: pathAbs, line: 1, limit };
+        }
+      }
+    }
+
+    if (head === "tail") {
+      const idx = tokens.findIndex((t) => t === "-n");
+      if (idx >= 0 && tokens[idx + 1]) {
+        const limit = parseInt(tokens[idx + 1], 10);
+        if (Number.isFinite(limit)) {
+          return { path: pathAbs, limit };
+        }
+      }
+    }
+
+    if (head === "cat") {
+      return { path: pathAbs };
+    }
+
+    if (head === "rg") {
+      // Treat rg -n ... <file> as a read-only scan of the file.
+      if (tokens.includes("-n")) {
+        return { path: pathAbs };
+      }
+    }
+
+    return null;
+  }
+
+  private unwrapShellCommand(command: string): { cmd: string; argv: string[] } {
+    const inline = command.match(
+      /^(?:\/usr\/bin\/|\/bin\/)?(?:bash|sh)\s+-l?c\s+([\s\S]+)$/,
+    );
+    if (inline?.[1]) {
+      const cleaned = this.stripOuterQuotes(inline[1].trim());
+      return { cmd: cleaned, argv: [] };
+    }
+    return { cmd: command, argv: [] };
+  }
+
+  private tokenizeCommand(line: string): string[] {
+    const tokens: string[] = [];
+    let current = "";
+    let quote: "'" | "\"" | null = null;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (quote) {
+        if (ch === quote) {
+          quote = null;
+        } else {
+          current += ch;
+        }
+        continue;
+      }
+      if (ch === "'" || ch === "\"") {
+        quote = ch;
+        continue;
+      }
+      if (/\s/.test(ch)) {
+        if (current) {
+          tokens.push(current);
+          current = "";
+        }
+        continue;
+      }
+      current += ch;
+    }
+    if (current) tokens.push(current);
+    return tokens;
+  }
+
+  private stripOuterQuotes(value: string): string {
+    if (value.length < 2) return value;
+    const first = value[0];
+    const last = value[value.length - 1];
+    if ((first === "\"" && last === "\"") || (first === "'" && last === "'")) {
+      return value.slice(1, -1);
+    }
+    return value;
+  }
+
+  private resolveCommandPath(cwd: string, candidate: string): string {
+    if (candidate.startsWith("/")) return candidate;
+    return path.join(cwd, candidate);
+  }
+
+  private toWorkspaceRelative(pathAbs: string, cwd: string): string {
+    if (!pathAbs) return pathAbs;
+    if (!pathAbs.startsWith("/")) return pathAbs;
+    const rel = path.relative(cwd, pathAbs);
+    if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
+      return pathAbs;
+    }
+    return rel;
+  }
+
   private async handleFileChange(
     item: ThreadItem,
     stream: AcpStreamHandler,
     preContentCache: LRUCache<string, PreContentEntry>,
+    cwd: string,
   ) {
     const changes = item.changes ?? [];
     const pre = item.pre_contents ?? {};
     for (const ch of changes) {
       const pathAbs = ch.path;
+      const pathForEvent = this.toWorkspaceRelative(pathAbs, cwd);
       const before = pre[pathAbs] ?? this.getCachedContent(pathAbs, preContentCache);
       let after: string | undefined;
       try {
@@ -386,7 +542,7 @@ export class CodexExecAgent implements AcpAgent {
           type: "event",
           event: {
             type: "diff",
-            path: pathAbs,
+            path: pathForEvent,
             diff,
           },
         });
@@ -395,7 +551,7 @@ export class CodexExecAgent implements AcpAgent {
           type: "event",
           event: {
             type: "file",
-            path: pathAbs,
+            path: pathForEvent,
             operation: "write",
             bytes: after != null ? Buffer.byteLength(after) : undefined,
             existed: before != null || ch.kind !== "add",
@@ -461,6 +617,13 @@ export class CodexExecAgent implements AcpAgent {
           const cleaned = value
             .replace(/^[\"'`([{]+/, "")
             .replace(/[\"'`);,}\]]+$/, "");
+          // Avoid treating shell binaries as file paths we should cache.
+          if (/^(?:\/)?(?:usr\/)?bin\/(?:bash|sh)$/.test(cleaned)) {
+            continue;
+          }
+          if (cleaned === "bash" || cleaned === "sh") {
+            continue;
+          }
           candidates.add(cleaned);
         }
       }

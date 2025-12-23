@@ -988,7 +988,7 @@ export default function Message({
                 persistKey={`${(project_id ?? "no-project").slice(0, 8)}:${
                   path ?? ""
                 }:${date}`}
-                basePath={path ? path.substring(0, path.lastIndexOf("/")) : ""}
+                basePath={undefined}
                 durationLabel={
                   generating === true
                     ? elapsedLabel
