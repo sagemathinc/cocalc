@@ -122,7 +122,8 @@ Risks/unknowns: metadata branching might miss legacy flows; subscription UI assu
 [x] Add a membership entitlements helper \(resolve \+ normalize\) that returns project defaults, LLM limits, and feature flags in one shape for downstream use. \(medium\)  
 [x] Define LLM usage windows \(e.g., 5\-hour burst \+ 7\-day rolling\) and persist usage counters with clear reset semantics. \(hard\)  
 [x] Surface “why limited” metadata to clients \(limit type, remaining, reset time\) for transparency. \(medium\)  
-[ ] Add targeted tests for entitlement resolution and quota application on project start. \(medium\)
+[ ] Add targeted tests for entitlement resolution and quota application on project start. \(medium\)  
+[x] Add unit tests for membership purchase and upgrade \(prorated credit\). \(medium\)
 
 Exit criteria: project defaults and LLM usage limits are governed by membership entitlements with no per-call purchase spam.  
 Risks/unknowns: quota injection could conflict with legacy site_license stacking; LLM usage accounting needs a clear reset window and storage model.  
@@ -144,6 +145,7 @@ UI todo (store + settings):
 [ ] Add a membership status panel in settings: class, source, renewal date, and usage summary. (medium)  
 [ ] Add a “why limited?” callout with upgrade links on LLM throttles and project start limits. (medium)  
 [ ] Hide membership “buy it again” and “saved for later” flows. (easy)  
+[ ] Add clear “what you get” copy/feature summaries in store + settings. (medium)  
 
 Exit criteria: users can see membership subscriptions in UI, legacy licenses remain accessible, and existing paid value is preserved.  
 Risks/unknowns: migration mapping could under/over-credit value; “advanced” legacy UX needs careful labeling to avoid confusion.  
@@ -162,52 +164,51 @@ Risks/unknowns: migration mapping could under/over-credit value; “advanced” 
 - Custom project hosts align with “bring-your-own-infra + platform fee” used by modern data/ML platforms.
 - Clear separation of “membership features/limits” vs “infrastructure cost” reduces confusion compared to per-project licensing.
 
-## Dynamic Tiers Sketch (Flexible Membership Classes)
+## Dynamic Tiers (Implemented)
 
-### Goals
+### Status
 
-- Allow arbitrary tier names (e.g., “dept-pro”, “demo”, “org-gold”) configured in admin UI.
-- Keep public store simple (default: only member + pro visible).
-- Preserve “free” as safe fallback when no tier applies.
-
-### Data model change (minimal disruption)
-
-- Replace hard-coded `MembershipClass` union with `string` (or branded string) and move known tiers into config.
-- Extend membership tier config to include:
-  - `name` (id key, required)
-  - `label` (display name)
-  - `store_visible` (boolean)
-  - `priority` (number or priority array)
-  - `pricing` (monthly/yearly)
-  - `project_defaults`, `llm_limits`, `features`
-  - Optional roadmap: `org_id` / `org_tag` mapping
-
-### Resolver changes
-
-- Resolve against configured tiers only; if none match, fall back to `"free"` with empty entitlements.
-- Return `tier_id` and `tier_label` so UI doesn’t assume fixed names.
-
-### Store changes
-
-- Membership store page renders tiers with `store_visible: true` and `pricing` configured.
-- Default store still shows Member/Pro (provided by defaults in config).
-- Upgrade rules: allow upgrade paths based on configured order or explicit upgrade graph.
-
-### Admin UI plan (Tier Editor)
-
-- Keep current JSON blob on settings page for power users.
-- Add “Edit tiers…” button that opens a modal (similar to registration tokens UI).
-- Modal shows a table:
-  - Columns: Tier ID, Label, Visible, Monthly, Yearly, Priority, LLM limits, Project defaults
-  - Row actions: edit, duplicate, delete
-  - Inline validation: unique tier id, pricing nonnegative, etc.
-- Save writes back to the same JSON config to avoid schema changes.
-
-### Implementation steps (high-level)
-
-- Update types and config parsing to accept dynamic tier keys.
-- Update resolver and membership pricing helper to accept tier id string.
-- Update store UI to use config-driven tiers and display labels.
-- Add tier editor modal in admin settings page.
+- Membership tiers now live in a dedicated table and are fully dynamic.
+- Store and resolver use table-driven tiers and priority.
+- Admin UI exists but uses raw JSON for complex fields (needs a structured editor).
 
 Risks/unknowns: multiple tier sources (org/course/subscription) need consistent conflict resolution; upgrade path rules for non-linear tiers need a simple policy.  
+
+## Current Status Summary
+
+- Core membership backend is implemented and tested \(purchase + upgrade with proration\).  
+- Membership tiers are stored in a dedicated table and used by resolver + store.  
+- LLM usage is membership-based \(no pay-as-you-go\), with 5-hour + 7-day limits and usage status surfaced in UI.  
+- UI still lacks clear membership benefits messaging and a structured admin editor for tier limits/quotas.  
+
+## Phase 4 (Planned): Team + Course Memberships (replace licenses)
+
+Goal: enable membership-only operation \(for cocalc.ai\) without licenses, by supporting org/team seats and course purchases.
+
+Proposed membership sources:
+
+- **Org/Team plan**: subscription with seats; owner assigns accounts to seats.  
+- **Course plan**: one-time purchase for a class term; instructor assigns students; auto-expire.  
+
+Changes needed:
+
+- Data model: `org_membership_grants` and `course_membership_grants` tables, plus assignment tables.  
+- Resolver: include org/course sources and seat allocation logic.  
+- UI: admin/instructor tools to manage seats and assignments.  
+- Store: team plan purchase flow and course purchase flow \(non-renewing\).  
+
+Exit criteria: memberships cover the same real-world cases as licenses; licenses can be removed from cocalc.ai.  
+
+## cocalc.ai Launch Strategy
+
+- Keep cocalc.com as-is initially; launch cocalc.ai membership-only.  
+- Provide an explicit import flow to migrate projects + subscriptions opt-in.  
+- No automatic conversion of legacy licenses; use import tooling to map to memberships.  
+
+## Forward Plan (Ordering)
+
+1. **UX clarity + admin editing**: explain membership benefits and build structured editors for LLM limits / project defaults.  
+2. **Entitlement tests**: add targeted tests for project quota injection and entitlement resolution.  
+3. **Team/Course sources**: build data model + resolver support for seats and courses.  
+4. **Team/Course UI + store**: purchase flows, assignment UI, seat management.  
+5. **License retirement for cocalc.ai**: remove licenses from store/UI; rely on team/course memberships.  
