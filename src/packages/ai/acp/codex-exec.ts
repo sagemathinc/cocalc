@@ -545,6 +545,7 @@ export class CodexExecAgent implements AcpAgent {
       }
       if (before != null && after != null) {
         const diff = computeLineDiff(before, after);
+        this.updateCachedContent(pathAbs, after, preContentCache);
         await stream({
           type: "event",
           event: {
