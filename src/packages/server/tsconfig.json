@@ -15,6 +15,7 @@
     { "path": "../backend" },
     { "path": "../conat" },
     { "path": "../database" },
+    { "path": "../cloud" },
     { "path": "../file-server" },
     { "path": "../project-runner" },
     { "path": "../project-proxy" },

@@ -13,6 +13,11 @@ export interface HostMachine {
   gpu_type?: string;
   gpu_count?: number;
   disk_gb?: number;
+  disk_type?: "ssd" | "balanced" | "standard";
+  zone?: string;
+  source_image?: string;
+  bootstrap_url?: string;
+  startup_script?: string;
   metadata?: Record<string, any>;
 }
 

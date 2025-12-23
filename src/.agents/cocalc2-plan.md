@@ -17,6 +17,13 @@ to support this.
 
 The next focus will be actually starting project hosts on actual VM's using cloud api's.
 
+- **Step plan \(cloud project-host provisioning\):**
+  1. Add `src/packages/cloud` with a provider‑agnostic interface and a minimal GCP adapter skeleton.
+  2. Implement GCP `createHost/startHost/stopHost/deleteHost/resizeDisk/getStatus` using existing compute server helpers (DNS, credentials, startup scripts) as references, but with simpler VM assumptions.
+  3. Add bootstrap script: install podman + btrfs, format/mount PD, install project‑host bundle, start service.
+  4. Wire `hub.hosts.*` to call the cloud adapter when `metadata.machine.cloud === "gcp"` and update `project_hosts` with runtime metadata.
+  5. Add DNS hookup via Cloudflare helper (reuse compute/dns.ts), optional in dev.
+
 ### Overall Plan
 
 Dedicated project-hosts replace “compute servers”: users provision a VM (often with one or more GPU's), we boot a project-host on it, and they and their collaborators create/run normal projects on that host while it’s up. The master keeps the host registry and placement map; hosts register with metadata (`type: dedicated`, `owner`, region, URLs, ssh). There’s no legacy migration—schema can change freely. Storage options include local Btrfs, optional shared subvolumes bind-mounted into projects, and user-supplied object storage via gcsfuse (API keys). Frontend must give a “manage my hosts” experience: create/start/stop hosts, view costs/usage, add collaborators, and create/move projects onto a chosen host.
@@ -355,4 +362,3 @@ flowchart LR
 - [x] Removed sidecar/reflect-sync path; runner now directly launches single podman container with Btrfs mounts.
 - [x] Vendored file-server bootstrap into project-host with Btrfs/rustic/quotas; added fs.\* conat service and SSH proxy integration.
 - [x] Moved SEA/bundle logic from lite to plus and from runner to project-host; excluded build output from tsc; removed old REST `/projects` endpoints and added catch-all redirect.
-

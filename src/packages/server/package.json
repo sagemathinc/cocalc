@@ -48,6 +48,7 @@
   "dependencies": {
     "@cocalc/ai": "workspace:*",
     "@cocalc/backend": "workspace:*",
+    "@cocalc/cloud": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/database": "workspace:*",
     "@cocalc/gcloud-pricing-calculator": "^1.17.0",

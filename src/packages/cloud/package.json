@@ -1,0 +1,21 @@
+{
+  "name": "@cocalc/cloud",
+  "version": "0.0.1",
+  "description": "Provider-agnostic cloud VM provisioning for project-hosts.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "pnpm exec tsc --build",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "test": "pnpm exec jest"
+  },
+  "dependencies": {
+    "@google-cloud/compute": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.3"
+  }
+}

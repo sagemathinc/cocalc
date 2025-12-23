@@ -126,6 +126,7 @@ def all_packages() -> List[str]:
         'packages/project-runner',
         'packages/project-host',
         'packages/plus',
+        'packages/cloud',
         'packages/server',  # packages/next assumes this is built
         'packages/database',  # packages/next also assumes database is built (or at least the coffeescript in it is)
         'packages/project-proxy',
