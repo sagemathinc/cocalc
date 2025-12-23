@@ -260,4 +260,20 @@ test_llm("user")("User-defined LLMs", () => {
     },
     LLM_TIMEOUT,
   );
+
+  // Test user-defined model with custom max_tokens
+  test_llm_case("google")(
+    "user-defined model with custom max_tokens (requires COCALC_TEST_GOOGLE_GENAI_KEY)",
+    async () => {
+      await testUserDefinedLLM({
+        service: "google",
+        display: "Test Gemini Flash with custom max_tokens",
+        endpoint: "",
+        model: "gemini-2.5-flash",
+        apiKey: process.env.COCALC_TEST_GOOGLE_GENAI_KEY!,
+        max_tokens: 128000, // Custom large context window
+      });
+    },
+    LLM_TIMEOUT,
+  );
 });

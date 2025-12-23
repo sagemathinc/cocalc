@@ -37,6 +37,7 @@ export interface UserDefinedLLM {
   endpoint: string; // URL to the LLM service
   apiKey: string;
   icon?: string; // https://.../...png
+  max_tokens?: number; // optional context window size in tokens
 }
 
 export const USER_LLM_PREFIX = "user-";
@@ -182,7 +183,34 @@ export type GoogleModel = (typeof GOOGLE_MODELS)[number];
 export function isGoogleModel(model: unknown): model is GoogleModel {
   return GOOGLE_MODELS.includes(model as any);
 }
-export const GOOGLE_MODEL_TO_ID: Partial<{ [m in GoogleModel]: string }> = {
+// Canonical Google models (non-thinking)
+const CANONICAL_GOOGLE_MODELS = [
+  "gemini-1.5-pro-latest",
+  "gemini-1.5-flash-latest",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+] as const;
+
+// Canonical Google models that support thinking/reasoning tokens (Gemini 2.5+ and 3+)
+const CANONICAL_GOOGLE_MODELS_THINKING = [
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "gemini-3-flash-preview",
+  "gemini-3-pro-preview",
+] as const;
+
+export type CanonicalGoogleModel = (typeof CANONICAL_GOOGLE_MODELS)[number];
+export type CanonicalGoogleThinkingModel =
+  (typeof CANONICAL_GOOGLE_MODELS_THINKING)[number];
+
+// Union type for all canonical Google model IDs
+type CanonicalGoogleModelId =
+  | CanonicalGoogleModel
+  | CanonicalGoogleThinkingModel;
+
+export const GOOGLE_MODEL_TO_ID: Partial<{
+  [m in GoogleModel]: CanonicalGoogleModelId;
+}> = {
   "gemini-1.5-pro": "gemini-1.5-pro-latest",
   "gemini-1.5-pro-8k": "gemini-1.5-pro-latest",
   "gemini-1.5-flash-8k": "gemini-1.5-flash-latest",
@@ -193,6 +221,17 @@ export const GOOGLE_MODEL_TO_ID: Partial<{ [m in GoogleModel]: string }> = {
   "gemini-3-flash-preview-16k": "gemini-3-flash-preview",
   "gemini-3-pro-preview-8k": "gemini-3-pro-preview",
 } as const;
+
+/**
+ * Check if a Google model supports thinking/reasoning tokens.
+ * These are Gemini 2.5+ and Gemini 3+ models.
+ * @param model - The canonical Google model name (after GOOGLE_MODEL_TO_ID mapping)
+ */
+export function isGoogleThinkingModel(model: string): boolean {
+  return CANONICAL_GOOGLE_MODELS_THINKING.includes(
+    model as CanonicalGoogleThinkingModel,
+  );
+}
 
 // https://docs.anthropic.com/en/docs/about-claude/models/overview -- stable names for the modesl ...
 export const ANTHROPIC_MODELS = [
@@ -211,6 +250,7 @@ export const ANTHROPIC_MODELS = [
   "claude-4-5-opus-8k", // added 2025
   "claude-4-5-haiku-8k", // added 2025
 ] as const;
+
 // https://docs.anthropic.com/en/docs/about-claude/models/overview#model-aliases
 // if it points to null, the model is no longer supported
 export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string | null } = {
@@ -1164,7 +1204,7 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     prompt_tokens: usd1Mtokens(1.1),
     completion_tokens: usd1Mtokens(4.4),
     max_tokens: 8192, // like gpt-4-turbo-8k
-    free: false,
+    free: true,
   },
   // also OpenAI
   "text-embedding-ada-002": {
@@ -1456,11 +1496,39 @@ export function isValidModel(model?: string): boolean {
   return LLM_COST[model ?? ""] != null;
 }
 
-const FALLBACK_MAX_TOKENS = 8192;
+export const FALLBACK_MAX_TOKENS = 8192;
 
-export function getMaxTokens(model?: LanguageModel): number {
-  // TODO: store max tokens in the model object itself, this is just a fallback
-  if (isOllamaLLM(model)) return 8192;
+// Overload 1: Just model string (existing signature)
+export function getMaxTokens(model?: LanguageModel): number;
+
+// Overload 2: Model string + optional config
+export function getMaxTokens(
+  model?: LanguageModel,
+  config?: { max_tokens?: number },
+): number;
+
+// Implementation
+export function getMaxTokens(
+  model?: LanguageModel,
+  config?: { max_tokens?: number },
+): number {
+  // If config.max_tokens is provided, validate and use it
+  if (config?.max_tokens != null) {
+    const maxTokens = config.max_tokens;
+    // Handle legacy string values and invalid numbers
+    const num =
+      typeof maxTokens === "number"
+        ? maxTokens
+        : parseInt(String(maxTokens), 10);
+    if (isNaN(num) || num <= 0) {
+      return FALLBACK_MAX_TOKENS;
+    }
+    // Clamp to safe range
+    return Math.max(1000, Math.min(2000000, num));
+  }
+
+  // Existing logic
+  if (isOllamaLLM(model)) return FALLBACK_MAX_TOKENS;
   return LLM_COST[model ?? ""]?.max_tokens ?? FALLBACK_MAX_TOKENS;
 }
 

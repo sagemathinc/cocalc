@@ -11,12 +11,14 @@ import { ServerSettings } from "@cocalc/database/settings/server-settings";
 import {
   ANTHROPIC_VERSION,
   AnthropicModel,
+  FALLBACK_MAX_TOKENS,
   fromCustomOpenAIModel,
   GOOGLE_MODEL_TO_ID,
   GoogleModel,
   isAnthropicModel,
   isCustomOpenAI,
   isGoogleModel,
+  isGoogleThinkingModel,
   isMistralModel,
   isOpenAIModel,
   isXaiModel,
@@ -173,9 +175,9 @@ export const PROVIDER_CONFIGS = {
         model: modelName,
         apiKey,
         maxOutputTokens: options.maxTokens,
-        // Only enable thinking tokens for Gemini 2.5 models
-        ...(modelName === "gemini-2.5-flash" || modelName === "gemini-2.5-pro"
-          ? { maxReasoningTokens: 1024 }
+        // Enable thinking tokens for Gemini 2.5+ models
+        ...(isGoogleThinkingModel(modelName)
+          ? { maxReasoningTokens: FALLBACK_MAX_TOKENS }
           : {}),
         streaming: options.stream != null,
       });

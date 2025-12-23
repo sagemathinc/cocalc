@@ -4,6 +4,7 @@ import {
   Flex,
   Form,
   Input,
+  InputNumber,
   List,
   Modal,
   Popconfirm,
@@ -33,6 +34,7 @@ import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { OTHER_SETTINGS_USER_DEFINED_LLM as KEY } from "@cocalc/util/db-schema/defaults";
 import {
+  FALLBACK_MAX_TOKENS,
   LLM_PROVIDER,
   SERVICES,
   UserDefinedLLM,
@@ -349,6 +351,26 @@ export function UserDefinedLLMComponent({ style, on_change }: Props) {
             rules={[{ required: needAPIKey }]}
           >
             <Input />
+          </Form.Item>
+          <Form.Item
+            label="Max Tokens"
+            name="max_tokens"
+            help={`Context window size in tokens. Leave empty to use default (${FALLBACK_MAX_TOKENS}). Valid range: 1000-2000000.`}
+            rules={[
+              {
+                type: "number",
+                min: 1000,
+                max: 2000000,
+                message: "Must be between 1000 and 2000000",
+              },
+            ]}
+          >
+            <InputNumber
+              min={1000}
+              max={2000000}
+              placeholder={`${FALLBACK_MAX_TOKENS} (default)`}
+              style={{ width: "100%" }}
+            />
           </Form.Item>
         </Form>
       </Modal>

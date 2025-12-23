@@ -313,6 +313,76 @@ describe("evaluateWithLangChain (LangChain mocked)", () => {
     });
   });
 
+  test("user-defined Ollama with custom max_tokens", async () => {
+    const ollamaConfig = [
+      {
+        id: 1,
+        service: "ollama",
+        model: "llama3",
+        display: "User Llama3",
+        endpoint: "http://localhost:11434",
+        apiKey: "",
+        max_tokens: 32000,
+      },
+    ];
+
+    mockCallback2.mockResolvedValueOnce({
+      other_settings: {
+        [OTHER_SETTINGS_USER_DEFINED_LLM]: JSON.stringify(ollamaConfig),
+      },
+    });
+
+    await evaluateUserDefinedLLM(
+      {
+        input: "hello",
+        model: "user-ollama-llama3",
+      },
+      userAccountId,
+    );
+
+    expect(mockOllama).toHaveBeenCalledWith({
+      baseUrl: "http://localhost:11434",
+      model: "llama3",
+      keepAlive: "24h",
+    });
+  });
+
+  test("user-defined Google with custom max_tokens", async () => {
+    const googleConfig = [
+      {
+        id: 1,
+        service: "google",
+        model: "gemini-2.5-flash",
+        display: "User Gemini Flash",
+        endpoint: "",
+        apiKey: "user-google-key",
+        max_tokens: 128000,
+      },
+    ];
+
+    mockCallback2.mockResolvedValueOnce({
+      other_settings: {
+        [OTHER_SETTINGS_USER_DEFINED_LLM]: JSON.stringify(googleConfig),
+      },
+    });
+
+    await evaluateUserDefinedLLM(
+      {
+        input: "hi",
+        model: "user-google-gemini-2.5-flash",
+      },
+      userAccountId,
+    );
+
+    expect(mockChatGoogle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiKey: "user-google-key",
+        maxOutputTokens: 128000,
+        model: "gemini-2.5-flash",
+      }),
+    );
+  });
+
   test("ollama streams with configured model", async () => {
     streamChunks = ["hi", " there"];
     const stream = jest.fn();

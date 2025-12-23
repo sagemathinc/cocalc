@@ -1,4 +1,4 @@
-import type { Ollama } from "@langchain/ollama";
+import { Ollama } from "@langchain/ollama";
 import {
   ChatPromptTemplate,
   MessagesPlaceholder,
@@ -22,17 +22,18 @@ interface OllamaOpts {
   model: string; // this must be ollama-[model]
   stream?: Stream;
   maxTokens?: number;
+  endpoint?: string; // optional endpoint for user-defined models
 }
 
 export async function evaluateOllama(
   opts: Readonly<OllamaOpts>,
   client?: Ollama,
 ): Promise<ChatOutput> {
-  if (client == null && !isOllamaLLM(opts.model)) {
+  if (client == null && !isOllamaLLM(opts.model) && !opts.endpoint) {
     throw new Error(`model ${opts.model} not supported`);
   }
   const model = fromOllamaModel(opts.model);
-  const { system, history, input, maxTokens, stream } = opts;
+  const { system, history, input, maxTokens, stream, endpoint } = opts;
   log.debug("evaluateOllama", {
     input,
     history,
@@ -40,9 +41,24 @@ export async function evaluateOllama(
     model,
     stream: stream != null,
     maxTokens,
+    endpoint,
   });
 
-  const ollama = client ?? (await getOllama(model));
+  // Create Ollama client: use provided client, or create from endpoint, or get from server settings
+  let ollama: Ollama;
+  if (client != null) {
+    ollama = client;
+  } else if (endpoint != null) {
+    // User-defined Ollama model with custom endpoint
+    ollama = new Ollama({
+      baseUrl: endpoint,
+      model,
+      keepAlive: "24h",
+    });
+  } else {
+    // Platform Ollama model from server settings
+    ollama = await getOllama(model);
+  }
 
   const historyMessagesKey = "history";
 

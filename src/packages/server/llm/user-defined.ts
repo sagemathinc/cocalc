@@ -17,6 +17,14 @@ import { evaluateWithLangChain } from "./evaluate-lc";
 
 const log = getLogger("llm:userdefined");
 
+const REDACTED_VALUE = "[redacted]";
+const SENSITIVE_KEYS = new Set([
+  "apiKey",
+  "openAIApiKey",
+  "azureOpenAIApiKey",
+  "api_key",
+]);
+
 interface UserDefinedOpts {
   input: string; // new input that user types
   system?: string; // extra setup that we add for relevance and context
@@ -30,7 +38,7 @@ export async function evaluateUserDefinedLLM(
   opts: Readonly<UserDefinedOpts>,
   account_id?: string,
 ) {
-  log.debug(`evaluateUserDefinedLLM[${account_id}]`, opts);
+  log.debug(`evaluateUserDefinedLLM[${account_id}]`, redactSensitive(opts));
 
   const { user_defined_llm } = await getServerSettings();
   if (!user_defined_llm) {
@@ -48,7 +56,7 @@ export async function evaluateUserDefinedLLM(
   }
 
   const conf = await getConfig(account_id, um.service, um.model);
-  log.debug("conf", conf);
+  log.debug("conf", redactSensitive(conf));
   if (conf == null) {
     throw new Error(`Unable to retrieve user defined model ${model}`);
   }
@@ -61,6 +69,8 @@ export async function evaluateUserDefinedLLM(
       return await evaluateOllama({
         ...opts,
         model: toOllamaModel(conf.model),
+        endpoint,
+        maxTokens: conf.max_tokens,
       });
     }
     case "openai":
@@ -76,6 +86,7 @@ export async function evaluateUserDefinedLLM(
           apiKey,
           endpoint: endpoint || undefined, // don't pass along empty strings!
           service,
+          maxTokens: conf.max_tokens, // Use max_tokens from config
         },
         "user",
       );
@@ -106,8 +117,58 @@ async function getConfig(
       }
     }
   } catch (err) {
-    log.error("Failed to parse user defined llm", user_llm_json, err);
+    log.error(
+      "Failed to parse user defined llm",
+      redactUserLLMJson(user_llm_json),
+      err,
+    );
     throw err;
   }
   return null;
+}
+
+function redactSensitive(value: any): any {
+  if (value == null) {
+    return value;
+  }
+  if (typeof value === "function") {
+    return value;
+  }
+  if (typeof value !== "object") {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactSensitive(item));
+  }
+  if (value instanceof Date) {
+    return value;
+  }
+  const output: Record<string, any> = {};
+  for (const [key, val] of Object.entries(value)) {
+    output[key] = SENSITIVE_KEYS.has(key)
+      ? REDACTED_VALUE
+      : redactSensitive(val);
+  }
+  return output;
+}
+
+function redactUserLLMJson(value: unknown): unknown {
+  if (typeof value !== "string") {
+    return value;
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return JSON.stringify(redactSensitive(parsed));
+  } catch (_err) {
+    return redactSensitiveString(value);
+  }
+}
+
+function redactSensitiveString(value: string): string {
+  let redacted = value;
+  for (const key of SENSITIVE_KEYS) {
+    const regex = new RegExp(`("${key}"\\s*:\\s*")([^"]*)(")`, "g");
+    redacted = redacted.replace(regex, `$1${REDACTED_VALUE}$3`);
+  }
+  return redacted;
 }

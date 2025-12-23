@@ -9,7 +9,11 @@ import { estimateTokenCount, sliceByTokens } from "tokenx";
 
 import type { History } from "@cocalc/frontend/client/types";
 import type { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
-import { getMaxTokens } from "@cocalc/util/db-schema/llm-utils";
+import {
+  getMaxTokens,
+  isUserDefinedModel,
+} from "@cocalc/util/db-schema/llm-utils";
+import { getUserDefinedLLMByModel } from "@cocalc/frontend/frame-editors/llm/use-userdefined-llm";
 
 import { timed } from "./timing";
 
@@ -95,7 +99,12 @@ const truncateHistoryImpl = (
   if (maxTokens <= 0) {
     return [];
   }
-  const modelMaxTokens = getMaxTokens(model);
+  // Try to get user-defined config if this is a user model
+  const userConfig = isUserDefinedModel(model)
+    ? getUserDefinedLLMByModel(model)
+    : null;
+
+  const modelMaxTokens = getMaxTokens(model, userConfig ?? undefined);
   const maxLength = modelMaxTokens * APPROX_CHARACTERS_PER_TOKEN;
   for (let i = 0; i < history.length; i++) {
     // Performance: ensure all entries in history are reasonably short, so they don't
