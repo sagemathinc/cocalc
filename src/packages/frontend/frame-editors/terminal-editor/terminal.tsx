@@ -5,6 +5,7 @@
 
 // A single terminal frame.
 
+import { Button, Tooltip } from "antd";
 import { Map } from "immutable";
 import { throttle } from "lodash";
 import {
@@ -169,6 +170,21 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
     return (
       <div style={COMMAND_STYLE}>
         {command} {args.join(" ")}
+        <Tooltip
+          title={`Exit ${command} -- back to terminal`}
+          placement="bottom"
+        >
+          <Button
+            size="small"
+            type="text"
+            style={{ float: "right", paddingBottom: "2.5px" }}
+            onClick={() => {
+              props.actions.shell(props.id, { command: "" });
+            }}
+          >
+            Exit
+          </Button>
+        </Tooltip>
       </div>
     );
   }

@@ -209,7 +209,7 @@ addCommands({
       id: "command.generic.shell.tooltip",
       defaultMessage: "Open a shell for running code",
     }),
-    icon: "terminal",
+    icon: "keyboard",
     disable: "disableTerminals",
     label: "Shell",
   },

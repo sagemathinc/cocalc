@@ -1634,12 +1634,22 @@ export class Actions<
     command?: string,
     args?: string[],
   ): string | undefined => {
-    return this._get_most_recent_active_frame_id(
-      (node) =>
-        node.get("type").slice(0, 8) == "terminal" &&
-        node.get("command") == command &&
-        isEqual(node.get("args"), args),
-    );
+    return this._get_most_recent_active_frame_id((node) => {
+      if (node.get("type").slice(0, 8) != "terminal") {
+        return false;
+      }
+      const c = node.get("command") ?? "";
+      const a = node.get("args") ?? [];
+      const c2 = command ?? "";
+      const a2 = args ?? [];
+      if (!c && !a) {
+        return true;
+      }
+      if (c == c2 && isEqual(a, a2)) {
+        return true;
+      }
+      return false;
+    });
   };
 
   public _active_id(): string {
@@ -2773,15 +2783,24 @@ export class Actions<
     return SHELLS[filename_extension(this.path)];
   }
 
-  public async shell(
+  // Create new shell with given command/args, or set the
+  // existing shell with given id to have the given command/args.
+  // Also reset to a bash shell by setting command=''.
+  // If command/args change, session is reset.
+  // If command & args not specified uses a shell designed for the given
+  // file type, e.g., editing a .py file creates a Python3 shell.
+  shell = async (
+    // id could be the frame requesting to make a shell, or the frame to change.
     id?: string,
     {
       command,
       args,
       no_switch,
     }: { no_switch?: boolean; command?: string; args?: string[] } = {},
-  ): Promise<void> {
-    if (command == null && args == null) {
+  ): Promise<void> => {
+    let shell_id: string | undefined;
+
+    if (command == null) {
       const x = await this.get_shell_spec(id);
       if (x == null) {
         // generic case - uses bash (the default)
@@ -2795,10 +2814,21 @@ export class Actions<
         }
       }
     }
-    // Check if there is already a terminal with the given command/args
+    
+    if (id) {
+      const node = this._get_frame_node(id);
+      if (node?.get("type") == "terminal") {
+        // id = a terminal to change/update
+        shell_id = id;
+      } else {
+        // id = the frame requesting the shell
+        shell_id = this.getMostRecentShellId(command, args);
+      }
+    } else {
+      shell_id = this.getMostRecentShellId(command, args);
+    }
+    // Check shell_id is already a terminal with the given command/args
     // and if so, just focus it.
-    let shell_id: string | undefined =
-      id ?? this.getMostRecentShellId(command, args);
     if (shell_id == null) {
       // No such terminal already, so we make one and focus it.
       shell_id = this.split_frame("col", id, "terminal", { command, args });
@@ -2834,7 +2864,7 @@ export class Actions<
     await delay(1);
     if (this.isClosed()) return;
     this.set_active_id(shell_id);
-  }
+  };
 
   public async terminal(id: string, no_switch: boolean = false): Promise<void> {
     // Check if there is already a terminal and if so, just focus it.
