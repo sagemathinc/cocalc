@@ -41,6 +41,7 @@ const GOOGLE_AI_COLOR = "#ff4d4f";
 const ANTHROPIC_COLOR = "#181818";
 const OPENAI_COLOR = "#10a37f";
 const MISTRALAI_COLOR = "#ff7000";
+const XAI_COLOR = "#000000";
 
 const GPT_TURBO_128k: Spec = {
   display: "OpenAI GPT-4 Turbo 128k",
@@ -126,6 +127,17 @@ const GPT_5_8K: Spec = {
 const GPT_5_128k: Spec = {
   ...GPT_5_8K,
   display: "OpenAI GPT-5 128k",
+} as const;
+
+const GPT_5_2_8K: Spec = {
+  display: "OpenAI GPT-5.2",
+  color: OPENAI_COLOR,
+  category: "ai",
+} as const;
+
+const GPT_5_2_128k: Spec = {
+  ...GPT_5_2_8K,
+  display: "OpenAI GPT-5.2 128k",
 } as const;
 
 const GPT_5_MINI_8K: Spec = {
@@ -252,6 +264,8 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-o4-mini": GPT_O4_MINI_128k,
   "openai-gpt-5-8k": GPT_5_8K,
   "openai-gpt-5": GPT_5_128k,
+  "openai-gpt-5.2-8k": GPT_5_2_8K,
+  "openai-gpt-5.2": GPT_5_2_128k,
   "openai-gpt-5-mini-8k": GPT_5_MINI_8K,
   "openai-gpt-5-mini": GPT_5_MINI_128k,
   "google-text-bison-001": {
@@ -322,6 +336,31 @@ export const QUOTA_SPEC: QuotaSpec = {
     color: GOOGLE_AI_COLOR,
     category: "ai",
   },
+  "google-gemini-3-flash-preview-16k": {
+    display: LLM_USERNAMES["gemini-3-flash-preview-16k"],
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
+  },
+  "google-gemini-3-pro-preview-8k": {
+    display: LLM_USERNAMES["gemini-3-pro-preview-8k"],
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
+  },
+  "xai-grok-4-1-fast-non-reasoning-16k": {
+    display: LLM_USERNAMES["grok-4-1-fast-non-reasoning-16k"],
+    color: XAI_COLOR,
+    category: "ai",
+  },
+  "xai-grok-4-1-fast-reasoning-16k": {
+    display: LLM_USERNAMES["grok-4-1-fast-reasoning-16k"],
+    color: XAI_COLOR,
+    category: "ai",
+  },
+  "xai-grok-code-fast-1-16k": {
+    display: LLM_USERNAMES["grok-code-fast-1-16k"],
+    color: XAI_COLOR,
+    category: "ai",
+  },
   "anthropic-claude-3-opus": {
     display: LLM_USERNAMES["claude-3-opus"],
     color: ANTHROPIC_COLOR,
@@ -374,6 +413,21 @@ export const QUOTA_SPEC: QuotaSpec = {
   },
   "anthropic-claude-4-opus-8k": {
     display: LLM_USERNAMES["claude-4-opus-8k"],
+    color: ANTHROPIC_COLOR,
+    category: "ai",
+  },
+  "anthropic-claude-4-5-sonnet-8k": {
+    display: LLM_USERNAMES["claude-4-5-sonnet-8k"],
+    color: ANTHROPIC_COLOR,
+    category: "ai",
+  },
+  "anthropic-claude-4-5-opus-8k": {
+    display: LLM_USERNAMES["claude-4-5-opus-8k"],
+    color: ANTHROPIC_COLOR,
+    category: "ai",
+  },
+  "anthropic-claude-4-5-haiku-8k": {
+    display: LLM_USERNAMES["claude-4-5-haiku-8k"],
     color: ANTHROPIC_COLOR,
     category: "ai",
   },

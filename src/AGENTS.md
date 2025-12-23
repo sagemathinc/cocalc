@@ -275,7 +275,6 @@ For convenience, a `python/cocalc-api/Makefile` exists.
 # important-instruction-reminders
 
 - Do what has been asked; nothing more, nothing less.
-- NEVER create files unless they're absolutely necessary for achieving your goal.
 - ALWAYS prefer editing an existing file to creating a new one.
 - NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.
 - ALWAYS ask questions if something is unclear. Only proceed to the implementation step if you have no questions left.

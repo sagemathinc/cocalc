@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 /*
@@ -625,16 +625,15 @@ function AIGenerateDocument({
         const { input, history, system } = fullPrompt;
 
         // do not import until needed -- it is HUGE!
-        const { getMaxTokens, numTokensUpperBound } = await import(
-          "@cocalc/frontend/misc/llm"
-        );
+        const { getMaxTokens, numTokensEstimate } =
+          await import("@cocalc/frontend/misc/llm");
 
         const all = [
           input,
           history.map(({ content }) => content).join(" "),
           system,
         ].join(" ");
-        const tokens = numTokensUpperBound(all, getMaxTokens(model));
+        const tokens = numTokensEstimate(all, getMaxTokens(model));
 
         setTokens(tokens);
       },
@@ -652,7 +651,7 @@ function AIGenerateDocument({
         case "ipynb":
         case "ipynb-sagemath":
           return spec != null
-            ? JUPYTER[spec.language?.toLowerCase()] ?? []
+            ? (JUPYTER[spec.language?.toLowerCase()] ?? [])
             : [];
         default:
           return DOCUMENT[ext];
@@ -848,7 +847,7 @@ function AIGenerateDocument({
               ref={promptRef}
               allowClear
               autoSize={{ minRows: 3, maxRows: 6 }}
-              maxLength={3000}
+              maxLength={100000}
               placeholder={placeholder}
               value={prompt}
               disabled={querying}

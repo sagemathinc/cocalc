@@ -10,9 +10,7 @@ High level summary:
 * The ChatOutput interface is what they return in any case.
 */
 
-import { delay } from "awaiting";
 import { throttle } from "lodash";
-import OpenAI from "openai";
 
 import getLogger from "@cocalc/backend/logger";
 import { envToInt } from "@cocalc/backend/misc/env-to-number";
@@ -23,7 +21,6 @@ import {
   LLM_USERNAMES,
   LanguageModel,
   LanguageServiceCore,
-  OpenAIMessages,
   OpenAIModel,
   getLLMCost,
   isAnthropicModel,
@@ -36,26 +33,15 @@ import {
   isOpenAIModel,
   isUserDefinedModel,
   isValidModel,
+  isXaiModel,
   model2service,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import type {
-  ChatOptions,
-  ChatOutput,
-  History,
-  Stream,
-} from "@cocalc/util/types/llm";
+import type { ChatOptions } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
-import { evaluateAnthropic } from "./anthropic";
 import { evaluateWithLangChain } from "./evaluate-lc";
-import { callChatGPTAPI } from "./call-llm";
-import { getClient } from "./client";
-import { evaluateCustomOpenAI } from "./custom-openai";
-import { GoogleGenAIClient } from "./google-genai-client";
-import { evaluateMistral } from "./mistral";
 import { evaluateOllama } from "./ollama";
-import { evaluateOpenAILC } from "./openai-lc";
 import { saveResponse } from "./save-response";
 import { evaluateUserDefinedLLM } from "./user-defined";
 
@@ -64,10 +50,6 @@ const THROTTLE_STREAM_MS = envToInt("COCALC_LLM_THROTTLE_STREAM_MS", 500);
 const DEBUG_THROW_LLM_ERROR = process.env.DEBUG_THROW_LLM_ERROR === "true";
 
 const log = getLogger("llm");
-
-// Feature flag to use the new unified LangChain implementation
-export const USE_NEWER_LC_IMPL =
-  (process.env.COCALC_LLM_USE_NEWER_LC_IMPL ?? "true") === "true";
 
 async function getDefaultModel(): Promise<LanguageModel> {
   return ((await getServerSettings()).default_llm ??
@@ -183,52 +165,23 @@ async function evaluateImpl({
 
   const { output, total_tokens, prompt_tokens, completion_tokens } =
     await (async () => {
-      if (USE_NEWER_LC_IMPL) {
-        // Use the new unified LangChain implementation
-        if (isUserDefinedModel(model)) {
-          return await evaluateUserDefinedLLM(params, account_id);
-        } else if (isOllamaLLM(model)) {
-          return await evaluateOllama(params);
-        } else if (
-          isCustomOpenAI(model) ||
-          isMistralModel(model) ||
-          isAnthropicModel(model) ||
-          isGoogleModel(model) ||
-          isOpenAIModel(model)
-        ) {
-          // Use unified implementation for LangChain-based providers
-          return await evaluateWithLangChain(params);
-        } else {
-          throw new Error(`Unable to handel model '${model}'.`);
-        }
+      // Use the unified LangChain implementation
+      if (isUserDefinedModel(model)) {
+        return await evaluateUserDefinedLLM(params, account_id);
+      } else if (isOllamaLLM(model)) {
+        return await evaluateOllama(params);
+      } else if (
+        isCustomOpenAI(model) ||
+        isMistralModel(model) ||
+        isAnthropicModel(model) ||
+        isGoogleModel(model) ||
+        isOpenAIModel(model) ||
+        isXaiModel(model)
+      ) {
+        // Use unified implementation for LangChain-based providers
+        return await evaluateWithLangChain(params);
       } else {
-        // Use the original file-by-file implementation
-        if (isUserDefinedModel(model)) {
-          return await evaluateUserDefinedLLM(params, account_id);
-        } else if (isOllamaLLM(model)) {
-          return await evaluateOllama(params);
-        } else if (isCustomOpenAI(model)) {
-          return await evaluateCustomOpenAI(params);
-        } else if (isMistralModel(model)) {
-          return await evaluateMistral(params);
-        } else if (isAnthropicModel(model)) {
-          return await evaluateAnthropic(params);
-        } else if (isGoogleModel(model)) {
-          const client = await getClient(model);
-          if (!(client instanceof GoogleGenAIClient)) {
-            throw new Error("Wrong client. This should never happen. [GenAI]");
-          }
-          return await evaluateGoogleGenAI({ ...params, client });
-        } else if (isOpenAIModel(model)) {
-          return await evaluateOpenAILC(params);
-        } else {
-          throw new Error(`Unable to handel model '${model}'.`);
-          // const client = await getClient(model);
-          // if (!(client instanceof OpenAI)) {
-          //   throw new Error("Wrong client. This should never happen. [OpenAI]");
-          // }
-          // return await evaluateOpenAI({ ...params, client });
-        }
+        throw new Error(`Unable to handel model '${model}'.`);
       }
     })();
 
@@ -294,115 +247,14 @@ async function evaluateImpl({
   return output;
 }
 
-interface EvalVertexAIProps {
-  client: GoogleGenAIClient;
-  system?: string;
-  history?: History;
-  input: string;
-  // maxTokens?: number;
-  model: LanguageModel; // only "gemini-pro";
-  stream?: Stream;
-  maxTokens?: number; // only gemini-pro
-}
-
-export async function evaluateGoogleGenAI({
-  client,
-  system,
-  history,
-  input,
-  model,
-  maxTokens,
-  stream,
-}: EvalVertexAIProps): Promise<ChatOutput> {
-  if (!isGoogleModel(model)) {
-    throw new Error(`Model "${model}" not a Google model.`);
-  }
-
-  // TODO: for OpenAI, this is at 3. Unless we really know there are similar issues, we keep this at 1.
-  // ATTN: If you increase this, you have to figure out how to reset the already returned stream of tokens.
-  const maxAttempts = 1;
-
-  for (let i = 0; i < maxAttempts; i++) {
-    try {
-      return await client.chat({
-        history: history ?? [],
-        input,
-        system,
-        model,
-        maxTokens,
-        stream,
-      });
-    } catch (err) {
-      const retry = i < maxAttempts - 1;
-      if (DEBUG_THROW_LLM_ERROR) throw err;
-      log.debug(
-        "Google Vertex AI API call failed",
-        err,
-        ` will ${retry ? "" : "NOT"} retry`,
-      );
-      if (!retry) {
-        // due to API key leak bug (which they will fix or probably already did fix)
-        // TODO: get rid of this workaround as soon as we can, since it can very seriously
-        // degrade the user experience not knowing why things break...
-        err.unsafe = true;
-        throw err;
-      }
-      await delay(1000);
-    }
-  }
-  throw Error("Google Gen AI API called failed"); // this should never get reached.
-}
-
-export async function evaluateOpenAI({
-  system,
-  history,
-  input,
-  client,
-  model,
-  maxTokens,
-  stream,
-}: {
-  system?: string;
-  history?: History;
-  input: string;
-  client: OpenAI;
-  model: any;
-  maxTokens?: number;
-  stream?: Stream;
-}): Promise<ChatOutput> {
-  if (!isOpenAIModel(model)) {
-    throw new Error(`Model "${model}" not an OpenAI model.`);
-  }
-
-  model = normalizeOpenAIModel(model);
-
-  const messages: OpenAIMessages = [];
-  if (system) {
-    messages.push({ role: "system", content: system });
-  }
-  if (history) {
-    for (const message of history) {
-      messages.push(message);
-    }
-  }
-  messages.push({ role: "user", content: input });
-  return await callChatGPTAPI({
-    openai: client,
-    model,
-    messages,
-    maxAttempts: 3,
-    maxTokens,
-    stream,
-  });
-}
-
 export function normalizeOpenAIModel(model): OpenAIModel {
   // the *-8k variants are artificial – the input is already limited/truncated to 8k
   // convert *-preview and all *-8k to their base model names
   const modelPrefixes = [
+    "gpt-5.2",
     "gpt-5-mini",
     "gpt-5",
-    "gpt-4o-mini", 
+    "gpt-4o-mini",
     "gpt-4o",
     "gpt-4-turbo",
     "gpt-4.1-mini",

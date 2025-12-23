@@ -10,4 +10,9 @@ module.exports = {
   },
   testMatch: ["**/?(*.)+(spec|test).ts?(x)"],
   setupFilesAfterEnv: ["./test/setup.js"],
+  transformIgnorePatterns: ["node_modules/(?!.*tokenx)"],
+  transform: {
+    "^.+\\.tsx?$": "ts-jest",
+    "^.+\\.jsx?$": "babel-jest", // Use Babel for .js files (like tokenx)
+  },
 };

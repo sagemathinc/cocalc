@@ -27,6 +27,7 @@ import {
   LanguageModel,
   MISTRAL_MODELS,
   MODELS_OPENAI,
+  XAI_MODELS,
   fromCustomOpenAIModel,
   fromOllamaModel,
   getLLMCost,
@@ -202,6 +203,15 @@ export default function LLMSelector({
     );
   }
 
+  function appendXai(ret: NonNullable<SelectProps["options"]>): void {
+    if (!show.xai) return;
+    makeLLMGroup(
+      ret,
+      "xai",
+      XAI_MODELS.map((m) => makeLLMOption(m, LLM_DESCR[m])),
+    );
+  }
+
   function appendOllama(options: NonNullable<SelectProps["options"]>): void {
     if (!show.ollama || !ollama) return;
 
@@ -297,6 +307,7 @@ export default function LLMSelector({
     appendGoogle(ret);
     appendMistral(ret);
     appendAnthropic(ret);
+    appendXai(ret);
     const custom: NonNullable<SelectProps["options"]> = [];
     appendOllama(custom);
     appendCustomOpenAI(custom);

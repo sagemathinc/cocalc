@@ -58,7 +58,7 @@ export const MODEL_FREE_TO_USE = defineMessage({
 
 export function LLMCostEstimation({
   model,
-  tokens, // Note: use the "await imported" numTokensUpperBound function to get the number of tokens
+  tokens, // Note: use the "await imported" numTokensEstimate function to get the number of tokens
   type,
   maxOutputTokens,
   paragraph = false,

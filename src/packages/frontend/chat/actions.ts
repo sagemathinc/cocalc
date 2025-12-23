@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -473,11 +473,11 @@ export class ChatActions extends Actions<ChatState> {
       } else {
         const llm_markup = this.redux.getStore("customize").get("llm_markup");
         // do not import until needed -- it is HUGE!
-        const { truncateMessage, getMaxTokens, numTokensUpperBound } =
+        const { getMaxTokens, numTokensEstimate } =
           await import("@cocalc/frontend/misc/llm");
         const maxTokens = getMaxTokens(model);
-        const tokens = numTokensUpperBound(
-          truncateMessage([input, ...history].join("\n"), maxTokens),
+        const tokens = numTokensEstimate(
+          [input, ...history].join("\n"),
           maxTokens,
         );
         const { min, max } = calcMinMaxEstimation(tokens, model, llm_markup);
@@ -1203,9 +1203,8 @@ export class ChatActions extends Actions<ChatState> {
     ].join("\n\n");
 
     // do not import until needed -- it is HUGE!
-    const { truncateMessage, getMaxTokens, numTokensUpperBound } = await import(
-      "@cocalc/frontend/misc/llm"
-    );
+    const { truncateMessage, getMaxTokens, numTokensEstimate } =
+      await import("@cocalc/frontend/misc/llm");
     const maxTokens = getMaxTokens(model);
     const txt = truncateMessage(txtFull, maxTokens);
     const m = returnInfo ? `@${modelToName(model)}` : modelToMention(model);
@@ -1215,7 +1214,7 @@ export class ChatActions extends Actions<ChatState> {
     const prompt = `${m} ${instruction}:\n\n${txt}`;
 
     if (returnInfo) {
-      const tokens = numTokensUpperBound(prompt, getMaxTokens(model));
+      const tokens = numTokensEstimate(prompt, getMaxTokens(model));
       return { prompt, tokens, truncated: txtFull != txt };
     } else {
       this.sendChat({

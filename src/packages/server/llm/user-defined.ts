@@ -1,30 +1,29 @@
-import { Ollama, OllamaInput } from "@langchain/ollama";
-import { ChatOpenAI as ChatOpenAILC } from "@langchain/openai";
-
 import getLogger from "@cocalc/backend/logger";
 import { db } from "@cocalc/database";
 import { getServerSettings } from "@cocalc/database/settings";
 import { callback2 } from "@cocalc/util/async-utils";
-import { OTHER_SETTINGS_USERDEFINED_LLM } from "@cocalc/util/db-schema/defaults";
+import { OTHER_SETTINGS_USER_DEFINED_LLM } from "@cocalc/util/db-schema/defaults";
 import {
   UserDefinedLLM,
   UserDefinedLLMService,
   isUserDefinedModel,
-  toCustomOpenAIModel,
   toOllamaModel,
   unpackUserDefinedLLMModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { isValidUUID, unreachable } from "@cocalc/util/misc";
 import type { History, Stream } from "@cocalc/util/types/llm";
-import { evaluateCustomOpenAI } from "./custom-openai";
 import { evaluateOllama } from "./ollama";
-// import { evaluateWithLangChain } from "./evaluate-lc";
-import { evaluateAnthropic } from "./anthropic";
-import { evaluateMistral } from "./mistral";
-import { evaluateGoogleGenAILC } from "./google-lc";
-import { evaluateOpenAILC } from "./openai-lc";
+import { evaluateWithLangChain } from "./evaluate-lc";
 
 const log = getLogger("llm:userdefined");
+
+const REDACTED_VALUE = "[redacted]";
+const SENSITIVE_KEYS = new Set([
+  "apiKey",
+  "openAIApiKey",
+  "azureOpenAIApiKey",
+  "api_key",
+]);
 
 interface UserDefinedOpts {
   input: string; // new input that user types
@@ -39,7 +38,7 @@ export async function evaluateUserDefinedLLM(
   opts: Readonly<UserDefinedOpts>,
   account_id?: string,
 ) {
-  log.debug(`evaluateUserDefinedLLM[${account_id}]`, opts);
+  log.debug(`evaluateUserDefinedLLM[${account_id}]`, redactSensitive(opts));
 
   const { user_defined_llm } = await getServerSettings();
   if (!user_defined_llm) {
@@ -57,110 +56,40 @@ export async function evaluateUserDefinedLLM(
   }
 
   const conf = await getConfig(account_id, um.service, um.model);
-  log.debug("conf", conf);
+  log.debug("conf", redactSensitive(conf));
   if (conf == null) {
     throw new Error(`Unable to retrieve user defined model ${model}`);
   }
 
-  // Below, the general idea is to extract the user defined llm from the accounts table,
-  // and then construct the corresponding client (maybe with a use provided API key)
-  // and call the appropriate evaluation function. For that, it mimics how the llm framework
-  // usually calls an LLM.
-  // NOTE: evaluateWithLangChain "could" work after further refactoring. In particular, its
-  // getProviderConfig must be enhanced with a generalized way to configure based on provider, not model name
+  // Pull the user-defined LLM config from the account settings and evaluate via the unified
+  // LangChain path, passing through user-supplied API keys/endpoints.
   const { service, endpoint, apiKey } = conf;
   switch (service) {
-    case "custom_openai": {
-      // https://js.langchain.com/v0.2/docs/integrations/llms/openai/
-      const oic: ConstructorParameters<typeof ChatOpenAILC>["0"] = {
-        model: conf.model,
-      };
-      if (endpoint) {
-        oic.configuration = { baseURL: endpoint };
-      }
-      // According to the docs, only apiKey should be set, but somehow gpt- models are a special case
-      if (apiKey) {
-        oic.apiKey = apiKey;
-        oic.openAIApiKey = apiKey;
-      }
-      const client = new ChatOpenAILC(oic);
-      return await evaluateCustomOpenAI(
-        { ...opts, model: toCustomOpenAIModel(conf.model) },
-        client,
-      );
-    }
     case "ollama": {
-      const oc: OllamaInput = {
-        model: conf.model,
-        baseUrl: conf.endpoint,
-      };
-      if (conf.apiKey) {
-        oc.headers = new Headers();
-        oc.headers.set("Authorization", `Bearer ${conf.apiKey}`);
-      }
-      const client = new Ollama(oc);
-      return await evaluateOllama(
-        { ...opts, model: toOllamaModel(conf.model) },
-        client,
-      );
+      return await evaluateOllama({
+        ...opts,
+        model: toOllamaModel(conf.model),
+        endpoint,
+        maxTokens: conf.max_tokens,
+      });
     }
-
-    case "anthropic":
-      return await evaluateAnthropic(
-        { ...opts, model: um.model, apiKey: conf.apiKey },
-        "user",
-      );
-    // return await evaluateWithLangChain(
-    //   {
-    //     ...opts,
-    //     model: um.model,
-    //     apiKey: conf.apiKey,
-    //   },
-    //   "user",
-    // );
-
-    case "mistralai":
-      return await evaluateMistral(
-        { ...opts, model: um.model, apiKey: conf.apiKey },
-        "user",
-      );
-    // return await evaluateWithLangChain(
-    //   {
-    //     ...opts,
-    //     model: um.model,
-    //     apiKey: conf.apiKey,
-    //   },
-    //   "user",
-    // );
-
-    case "google":
-      return await evaluateGoogleGenAILC(
-        { ...opts, model: um.model, apiKey: conf.apiKey },
-        "user",
-      );
-    // return await evaluateWithLangChain(
-    //   {
-    //     ...opts,
-    //     model: um.model,
-    //     apiKey: conf.apiKey,
-    //   },
-    //   "user",
-    // );
-
     case "openai":
-      return await evaluateOpenAILC(
-        { ...opts, model: um.model, apiKey: conf.apiKey },
+    case "google":
+    case "anthropic":
+    case "mistralai":
+    case "custom_openai":
+    case "xai":
+      return await evaluateWithLangChain(
+        {
+          ...opts,
+          model: conf.model,
+          apiKey,
+          endpoint: endpoint || undefined, // don't pass along empty strings!
+          service,
+          maxTokens: conf.max_tokens, // Use max_tokens from config
+        },
         "user",
       );
-    // return await evaluateWithLangChain(
-    //   {
-    //     ...opts,
-    //     model: um.model,
-    //     apiKey: conf.apiKey,
-    //   },
-    //   "user",
-    // );
-
     default:
       unreachable(service);
       throw new Error(`Invalid user defined model ${model} /3`);
@@ -180,7 +109,7 @@ async function getConfig(
     account_id,
     columns: ["other_settings"],
   });
-  const user_llm_json = row?.other_settings?.[OTHER_SETTINGS_USERDEFINED_LLM];
+  const user_llm_json = row?.other_settings?.[OTHER_SETTINGS_USER_DEFINED_LLM];
   try {
     for (const llm of JSON.parse(user_llm_json) as UserDefinedLLM[]) {
       if (llm.service === service && llm.model === model) {
@@ -188,8 +117,58 @@ async function getConfig(
       }
     }
   } catch (err) {
-    log.error("Failed to parse user defined llm", user_llm_json, err);
+    log.error(
+      "Failed to parse user defined llm",
+      redactUserLLMJson(user_llm_json),
+      err,
+    );
     throw err;
   }
   return null;
+}
+
+function redactSensitive(value: any): any {
+  if (value == null) {
+    return value;
+  }
+  if (typeof value === "function") {
+    return value;
+  }
+  if (typeof value !== "object") {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactSensitive(item));
+  }
+  if (value instanceof Date) {
+    return value;
+  }
+  const output: Record<string, any> = {};
+  for (const [key, val] of Object.entries(value)) {
+    output[key] = SENSITIVE_KEYS.has(key)
+      ? REDACTED_VALUE
+      : redactSensitive(val);
+  }
+  return output;
+}
+
+function redactUserLLMJson(value: unknown): unknown {
+  if (typeof value !== "string") {
+    return value;
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return JSON.stringify(redactSensitive(parsed));
+  } catch (_err) {
+    return redactSensitiveString(value);
+  }
+}
+
+function redactSensitiveString(value: string): string {
+  let redacted = value;
+  for (const key of SENSITIVE_KEYS) {
+    const regex = new RegExp(`("${key}"\\s*:\\s*")([^"]*)(")`, "g");
+    redacted = redacted.replace(regex, `$1${REDACTED_VALUE}$3`);
+  }
+  return redacted;
 }

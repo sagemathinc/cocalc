@@ -680,9 +680,8 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     });
 
     // do not import until needed -- it is HUGE!
-    const { truncateMessage, getMaxTokens, numTokensUpperBound } = await import(
-      "@cocalc/frontend/misc/llm"
-    );
+    const { truncateMessage, getMaxTokens, numTokensEstimate } =
+      await import("@cocalc/frontend/misc/llm");
 
     const chunks: string[] = [];
 
@@ -740,7 +739,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     const message = chunks.join("\n\n");
     return {
       message,
-      tokens: numTokensUpperBound(message, getMaxTokens(model)),
+      tokens: numTokensEstimate(message, getMaxTokens(model)),
       name: trunc(input),
     };
   }

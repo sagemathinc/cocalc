@@ -98,12 +98,11 @@ export default function HelpMeFix({
 
   useAsyncEffect(async () => {
     // compute the number of tokens (this MUST be a lazy import):
-    const { getMaxTokens, numTokensUpperBound } = await import(
-      "@cocalc/frontend/misc/llm"
-    );
+    const { getMaxTokens, numTokensEstimate } =
+      await import("@cocalc/frontend/misc/llm");
 
-    setSolutionTokens(numTokensUpperBound(solutionText, getMaxTokens(model)));
-    setHintTokens(numTokensUpperBound(hintText, getMaxTokens(model)));
+    setSolutionTokens(numTokensEstimate(solutionText, getMaxTokens(model)));
+    setHintTokens(numTokensEstimate(hintText, getMaxTokens(model)));
   }, [model, solutionText, hintText]);
 
   async function onConfirm(mode: "solution" | "hint") {

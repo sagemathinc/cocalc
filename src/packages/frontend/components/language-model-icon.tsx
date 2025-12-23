@@ -19,6 +19,7 @@ import GooglePalmLogo from "./google-palm-avatar";
 import MistralAvatar from "./mistral-avatar";
 import OllamaAvatar from "./ollama-avatar";
 import OpenAIAvatar from "./openai-avatar";
+import XAIAvatar from "./xai-avatar";
 
 export function LanguageModelVendorAvatar(
   props: Readonly<{
@@ -100,6 +101,9 @@ export function LanguageModelVendorAvatar(
 
       case "anthropic":
         return <AnthropicAvatar size={size} style={style} />;
+
+      case "xai":
+        return <XAIAvatar size={size} style={style} />;
 
       case "user":
         // should never happen, because it is unpacked below

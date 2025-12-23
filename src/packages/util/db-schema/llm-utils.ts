@@ -13,6 +13,7 @@ export const SERVICES = [
   "anthropic",
   "ollama",
   "custom_openai",
+  "xai",
 ] as const;
 
 // a "user-*" model is a wrapper for all the model services
@@ -36,6 +37,7 @@ export interface UserDefinedLLM {
   endpoint: string; // URL to the LLM service
   apiKey: string;
   icon?: string; // https://.../...png
+  max_tokens?: number; // optional context window size in tokens
 }
 
 export const USER_LLM_PREFIX = "user-";
@@ -58,6 +60,8 @@ export function toUserLLMModelName(llm: UserDefinedLLM) {
         return `${MISTRAL_PREFIX}${llm.model}`;
       case "openai":
         return `${OPENAI_PREFIX}${llm.model}`;
+      case "xai":
+        return `${XAI_PREFIX}${llm.model}`;
       default:
         unreachable(service);
         throw new Error(
@@ -130,6 +134,8 @@ export const MODELS_OPENAI = [
   "o4-mini",
   "gpt-5-8k", // context limited
   "gpt-5",
+  "gpt-5.2-8k", // context limited
+  "gpt-5.2",
   "gpt-5-mini-8k", // context limited
   "gpt-5-mini",
 ] as const;
@@ -170,12 +176,41 @@ export const GOOGLE_MODELS = [
   "gemini-2.5-pro-8k",
   "gemini-2.0-flash-8k",
   "gemini-2.0-flash-lite-8k",
+  "gemini-3-flash-preview-16k", // Preview model, context limited to 16k
+  "gemini-3-pro-preview-8k", // Preview model, context limited to 8k
 ] as const;
 export type GoogleModel = (typeof GOOGLE_MODELS)[number];
 export function isGoogleModel(model: unknown): model is GoogleModel {
   return GOOGLE_MODELS.includes(model as any);
 }
-export const GOOGLE_MODEL_TO_ID: Partial<{ [m in GoogleModel]: string }> = {
+// Canonical Google models (non-thinking)
+const CANONICAL_GOOGLE_MODELS = [
+  "gemini-1.5-pro-latest",
+  "gemini-1.5-flash-latest",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+] as const;
+
+// Canonical Google models that support thinking/reasoning tokens (Gemini 2.5+ and 3+)
+const CANONICAL_GOOGLE_MODELS_THINKING = [
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "gemini-3-flash-preview",
+  "gemini-3-pro-preview",
+] as const;
+
+export type CanonicalGoogleModel = (typeof CANONICAL_GOOGLE_MODELS)[number];
+export type CanonicalGoogleThinkingModel =
+  (typeof CANONICAL_GOOGLE_MODELS_THINKING)[number];
+
+// Union type for all canonical Google model IDs
+type CanonicalGoogleModelId =
+  | CanonicalGoogleModel
+  | CanonicalGoogleThinkingModel;
+
+export const GOOGLE_MODEL_TO_ID: Partial<{
+  [m in GoogleModel]: CanonicalGoogleModelId;
+}> = {
   "gemini-1.5-pro": "gemini-1.5-pro-latest",
   "gemini-1.5-pro-8k": "gemini-1.5-pro-latest",
   "gemini-1.5-flash-8k": "gemini-1.5-flash-latest",
@@ -183,7 +218,20 @@ export const GOOGLE_MODEL_TO_ID: Partial<{ [m in GoogleModel]: string }> = {
   "gemini-2.0-flash-lite-8k": "gemini-2.0-flash-lite",
   "gemini-2.5-flash-8k": "gemini-2.5-flash",
   "gemini-2.5-pro-8k": "gemini-2.5-pro",
+  "gemini-3-flash-preview-16k": "gemini-3-flash-preview",
+  "gemini-3-pro-preview-8k": "gemini-3-pro-preview",
 } as const;
+
+/**
+ * Check if a Google model supports thinking/reasoning tokens.
+ * These are Gemini 2.5+ and Gemini 3+ models.
+ * @param model - The canonical Google model name (after GOOGLE_MODEL_TO_ID mapping)
+ */
+export function isGoogleThinkingModel(model: string): boolean {
+  return CANONICAL_GOOGLE_MODELS_THINKING.includes(
+    model as CanonicalGoogleThinkingModel,
+  );
+}
 
 // https://docs.anthropic.com/en/docs/about-claude/models/overview -- stable names for the modesl ...
 export const ANTHROPIC_MODELS = [
@@ -198,7 +246,11 @@ export const ANTHROPIC_MODELS = [
   "claude-3-opus-8k", // same issue as the large GPT models, limit the context window to limit spending
   "claude-4-sonnet-8k",
   "claude-4-opus-8k",
+  "claude-4-5-sonnet-8k", // added 2025
+  "claude-4-5-opus-8k", // added 2025
+  "claude-4-5-haiku-8k", // added 2025
 ] as const;
+
 // https://docs.anthropic.com/en/docs/about-claude/models/overview#model-aliases
 // if it points to null, the model is no longer supported
 export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string | null } = {
@@ -209,6 +261,9 @@ export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string | null } = {
   "claude-3-haiku-8k": "claude-3-haiku-20240307",
   "claude-4-sonnet-8k": "claude-sonnet-4-0",
   "claude-4-opus-8k": "claude-opus-4-0",
+  "claude-4-5-sonnet-8k": "claude-sonnet-4-5",
+  "claude-4-5-opus-8k": "claude-opus-4-5",
+  "claude-4-5-haiku-8k": "claude-haiku-4-5",
   "claude-3-sonnet": null,
   "claude-3-sonnet-4k": null,
   "claude-3-opus": null,
@@ -237,12 +292,50 @@ export function fromAnthropicService(
   return service.slice(ANTHROPIC_PREFIX.length) as AnthropicModel;
 }
 
+// xAI (https://x.ai/)
+export const XAI_MODELS = [
+  "grok-4-1-fast-non-reasoning-16k",
+  "grok-4-1-fast-reasoning-16k",
+  "grok-code-fast-1-16k",
+] as const;
+export const XAI_MODEL_TO_ID: Partial<{ [m in XaiModel]: string }> = {
+  "grok-4-1-fast-non-reasoning-16k": "grok-4-1-fast-non-reasoning",
+  "grok-4-1-fast-reasoning-16k": "grok-4-1-fast-reasoning",
+  "grok-code-fast-1-16k": "grok-code-fast-1",
+};
+export const XAI_PREFIX = "xai-";
+export type XaiModel = (typeof XAI_MODELS)[number];
+export type XaiService = `${typeof XAI_PREFIX}${XaiModel}`;
+export function isXaiModel(model: unknown): model is XaiModel {
+  return XAI_MODELS.includes(model as any);
+}
+export function toXaiService(model: XaiModel): XaiService {
+  return `${XAI_PREFIX}${model}`;
+}
+export function isXaiService(service: string): service is XaiService {
+  return service.startsWith(XAI_PREFIX);
+}
+export function fromXaiService(service: XaiService): XaiModel {
+  if (!isXaiService(service)) {
+    throw new Error(`not an xai service: ${service}`);
+  }
+  return service.slice(XAI_PREFIX.length) as XaiModel;
+}
+export function toXaiProviderModel(model: string): string {
+  const mapped = XAI_MODEL_TO_ID[model as XaiModel];
+  if (mapped != null) {
+    return mapped;
+  }
+  return model.replace(/-\d+k$/, "");
+}
+
 // the hardcoded list of available language models – there are also dynamic ones, like OllamaLLM objects
 export const LANGUAGE_MODELS = [
   ...MODELS_OPENAI,
   ...MISTRAL_MODELS,
   ...GOOGLE_MODELS,
   ...ANTHROPIC_MODELS,
+  ...XAI_MODELS,
 ] as const;
 
 export const USER_SELECTABLE_LLMS_BY_VENDOR: {
@@ -258,29 +351,27 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m === "gpt-4.1-mini" ||
       m === "o3-8k" ||
       m === "o4-mini-8k" ||
-      m === "gpt-5-8k" ||
+      m === "gpt-5.2-8k" ||
       m === "gpt-5-mini-8k",
   ),
-  google: GOOGLE_MODELS.filter(
-    (m) =>
-      // we only enable 1.5 pro and 1.5 flash with a limited context window.
-      //m === "gemini-1.5-pro-8k" ||
-      //m === "gemini-1.5-flash-8k" ||
-      m === "gemini-2.0-flash-lite-8k" ||
-      m === "gemini-2.5-flash-8k" ||
-      m === "gemini-2.5-pro-8k",
-  ),
+  google: [
+    "gemini-3-flash-preview-16k",
+    "gemini-3-pro-preview-8k",
+    "gemini-2.5-flash-8k",
+    "gemini-2.5-pro-8k",
+  ],
   mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-small-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
     // we show opus and the context restricted models (to avoid high costs)
     return (
-      m === "claude-3-5-haiku-8k" ||
-      m === "claude-4-sonnet-8k" ||
-      m === "claude-4-opus-8k"
+      m === "claude-4-5-sonnet-8k" ||
+      m === "claude-4-5-opus-8k" ||
+      m === "claude-4-5-haiku-8k"
     );
   }),
   ollama: [], // this is empty, because these models are not hardcoded
   custom_openai: [], // this is empty, because these models are not hardcoded]
+  xai: XAI_MODELS, // all xAI models are user-selectable
   user: [],
 } as const;
 
@@ -292,6 +383,7 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
   ...USER_SELECTABLE_LLMS_BY_VENDOR.google,
   ...USER_SELECTABLE_LLMS_BY_VENDOR.mistralai,
   ...USER_SELECTABLE_LLMS_BY_VENDOR.anthropic,
+  ...USER_SELECTABLE_LLMS_BY_VENDOR.xai,
 ] as const;
 
 export type OllamaLLM = string;
@@ -370,6 +462,12 @@ export const LLM_PROVIDER: { [key in LLMServiceName]: LLMService } = {
     desc: "Calls a custom OpenAI API endoint.",
     url: "https://js.langchain.com/v0.1/docs/integrations/llms/openai/",
   },
+  xai: {
+    name: "xAI",
+    short: "AI company by X Corp",
+    desc: "xAI is an American artificial intelligence company founded by Elon Musk.",
+    url: "https://x.ai/",
+  },
   user: {
     name: "User Defined",
     short: "Account → Language Model",
@@ -394,6 +492,7 @@ const DEFAULT_FILTER: Readonly<LLMServicesAvailable> = {
   mistralai: false,
   anthropic: false,
   custom_openai: false,
+  xai: false,
   user: false,
 } as const;
 
@@ -453,6 +552,7 @@ export const DEFAULT_LLM_PRIORITY: Readonly<UserDefinedLLMService[]> = [
   "openai",
   "anthropic",
   "mistralai",
+  "xai",
   "ollama",
   "custom_openai",
 ] as const;
@@ -524,7 +624,8 @@ export type LanguageServiceCore =
       | "embedding-gecko-001"}`
   | `${typeof GOOGLE_PREFIX}${GoogleModel}`
   | AnthropicService
-  | MistralService;
+  | MistralService
+  | XaiService;
 
 export type LanguageService =
   | LanguageServiceCore
@@ -548,6 +649,9 @@ export function model2service(model: LanguageModel): LanguageService {
     isUserDefinedModel(model)
   ) {
     return model; // already has a useful prefix
+  }
+  if (isXaiModel(model)) {
+    return toXaiService(model);
   }
   if (isMistralModel(model)) {
     return toMistralService(model);
@@ -618,7 +722,7 @@ export function service2model_core(
 }
 
 // NOTE: do not use this – instead use server_settings.default_llm
-export const DEFAULT_MODEL: LanguageModel = "gemini-2.5-flash-8k";
+export const DEFAULT_MODEL: LanguageModel = "gemini-3-flash-preview-16k";
 
 interface LLMVendor {
   name: LLMServiceName;
@@ -643,6 +747,8 @@ export function model2vendor(model): LLMVendor {
     return { name: "google", url: LLM_PROVIDER.google.url };
   } else if (isAnthropicModel(model)) {
     return { name: "anthropic", url: LLM_PROVIDER.anthropic.url };
+  } else if (isXaiModel(model)) {
+    return { name: "xai", url: LLM_PROVIDER.xai.url };
   }
 
   throw new Error(`model2vendor: unknown model: "${model}"`);
@@ -762,6 +868,7 @@ export const LLM_USERNAMES: LLM2String = {
   "gemini-2.0-flash-lite-8k": "Gemini 2.0 Flash Lite",
   "gemini-2.5-flash-8k": "Gemini 2.5 Flash",
   "gemini-2.5-pro-8k": "Gemini 2.5 Pro",
+  "gemini-3-pro-preview-8k": "Gemini 3 Pro",
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
@@ -776,6 +883,9 @@ export const LLM_USERNAMES: LLM2String = {
   "claude-3-5-sonnet-4k": "Claude 3.5 Sonnet",
   "claude-4-sonnet-8k": "Claude 4 Sonnet",
   "claude-4-opus-8k": "Claude 4 Opus",
+  "claude-4-5-sonnet-8k": "Claude 4.5 Sonnet",
+  "claude-4-5-opus-8k": "Claude 4.5 Opus",
+  "claude-4-5-haiku-8k": "Claude 4.5 Haiku",
   "claude-3-opus": "Claude 3 Opus",
   "claude-3-opus-8k": "Claude 3 Opus",
   "o3-8k": "OpenAI o3",
@@ -784,8 +894,14 @@ export const LLM_USERNAMES: LLM2String = {
   "o4-mini": "OpenAI o4-mini 128k",
   "gpt-5-8k": "GPT-5",
   "gpt-5": "GPT-5 128k",
+  "gpt-5.2-8k": "GPT-5.2",
+  "gpt-5.2": "GPT-5.2 128k",
   "gpt-5-mini-8k": "GPT-5 Mini",
   "gpt-5-mini": "GPT-5 Mini 128k",
+  "gemini-3-flash-preview-16k": "Gemini 3 Flash",
+  "grok-4-1-fast-non-reasoning-16k": "Grok 4.1 Fast",
+  "grok-4-1-fast-reasoning-16k": "Grok 4.1 Fast Reasoning",
+  "grok-code-fast-1-16k": "Grok Code Fast",
 } as const;
 
 // similar to the above, we map to short user-visible description texts
@@ -841,6 +957,8 @@ export const LLM_DESCR: LLM2String = {
     "Google's Gemini 2.5 Flash Generative AI model (8k token context)",
   "gemini-2.5-pro-8k":
     "Google's Gemini 2.5 Pro Generative AI model (8k token context)",
+  "gemini-3-pro-preview-8k":
+    "Google's Gemini 3 Pro Generative AI model (8k token context)",
   "mistral-small-latest":
     "Small general purpose tasks, text classification, customer service. (Mistral AI, 4k token context)",
   "mistral-medium-latest":
@@ -867,6 +985,12 @@ export const LLM_DESCR: LLM2String = {
     "Best combination of performance and speed (Anthropic, 8k token context)",
   "claude-4-opus-8k":
     "Excels at writing and complex tasks (Anthropic, 8k token context)",
+  "claude-4-5-sonnet-8k":
+    "Most intelligent model with advanced reasoning (Anthropic, 8k token context)",
+  "claude-4-5-opus-8k":
+    "Flagship model excelling at complex tasks and writing (Anthropic, 8k token context)",
+  "claude-4-5-haiku-8k":
+    "Fastest and most cost-efficient model (Anthropic, 8k token context)",
   "claude-3-sonnet-4k":
     "Best combination of performance and speed (Anthropic, 4k token context)",
   "claude-3-opus":
@@ -884,9 +1008,21 @@ export const LLM_DESCR: LLM2String = {
     "OpenAI's most advanced model with built-in reasoning (8k token context)",
   "gpt-5":
     "OpenAI's most advanced model with built-in reasoning (128k token context)",
+  "gpt-5.2-8k":
+    "OpenAI's most advanced model with built-in reasoning (8k token context)",
+  "gpt-5.2":
+    "OpenAI's most advanced model with built-in reasoning (128k token context)",
   "gpt-5-mini-8k":
     "Fast and cost-efficient version of GPT-5 (8k token context)",
   "gpt-5-mini": "Fast and cost-efficient version of GPT-5 (128k token context)",
+  "gemini-3-flash-preview-16k":
+    "Google's Gemini 3 Flash model (16k token context)",
+  "grok-4-1-fast-non-reasoning-16k":
+    "xAI's Grok 4.1 fast non-reasoning model (16k token context)",
+  "grok-4-1-fast-reasoning-16k":
+    "xAI's Grok 4.1 fast reasoning model (16k token context)",
+  "grok-code-fast-1-16k":
+    "xAI's Grok Code Fast model, specialized for coding tasks (16k token context)",
 } as const;
 
 export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
@@ -933,6 +1069,8 @@ export function getLLMServiceStatusCheckMD(service: LLMServiceName): string {
       return `No status information for Mistral AI available.`;
     case "anthropic":
       return `Anthropic [status](https://status.anthropic.com/).`;
+    case "xai":
+      return `xAI [status](https://status.x.ai/).`;
     case "user":
       return `No status information for user defined model available.`;
     default:
@@ -1066,7 +1204,7 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     prompt_tokens: usd1Mtokens(1.1),
     completion_tokens: usd1Mtokens(4.4),
     max_tokens: 8192, // like gpt-4-turbo-8k
-    free: false,
+    free: true,
   },
   // also OpenAI
   "text-embedding-ada-002": {
@@ -1134,6 +1272,18 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "gemini-2.5-pro-8k": {
     prompt_tokens: usd1Mtokens(1.25),
     completion_tokens: usd1Mtokens(10),
+    max_tokens: 8_000,
+    free: false,
+  },
+  "gemini-3-flash-preview-16k": {
+    prompt_tokens: usd1Mtokens(0.5),
+    completion_tokens: usd1Mtokens(3.0),
+    max_tokens: 16_000,
+    free: true,
+  },
+  "gemini-3-pro-preview-8k": {
+    prompt_tokens: usd1Mtokens(2),
+    completion_tokens: usd1Mtokens(4),
     max_tokens: 8_000,
     free: false,
   },
@@ -1235,6 +1385,24 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     max_tokens: 8_000,
     free: false,
   },
+  "claude-4-5-sonnet-8k": {
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 8_000,
+    free: false,
+  },
+  "claude-4-5-opus-8k": {
+    prompt_tokens: usd1Mtokens(5),
+    completion_tokens: usd1Mtokens(25),
+    max_tokens: 8_000,
+    free: false,
+  },
+  "claude-4-5-haiku-8k": {
+    prompt_tokens: usd1Mtokens(1),
+    completion_tokens: usd1Mtokens(5),
+    max_tokens: 8_000,
+    free: true,
+  },
   "o3-8k": {
     prompt_tokens: usd1Mtokens(2),
     completion_tokens: usd1Mtokens(8),
@@ -1271,6 +1439,18 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     max_tokens: 128000,
     free: false,
   },
+  "gpt-5.2-8k": {
+    prompt_tokens: usd1Mtokens(1.25),
+    completion_tokens: usd1Mtokens(10),
+    max_tokens: 8192,
+    free: false,
+  },
+  "gpt-5.2": {
+    prompt_tokens: usd1Mtokens(1.25),
+    completion_tokens: usd1Mtokens(10),
+    max_tokens: 128000,
+    free: false,
+  },
   "gpt-5-mini-8k": {
     prompt_tokens: usd1Mtokens(0.25),
     completion_tokens: usd1Mtokens(2),
@@ -1283,6 +1463,25 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     max_tokens: 128000,
     free: true,
   },
+  // xAI (https://x.ai/)
+  "grok-4-1-fast-non-reasoning-16k": {
+    prompt_tokens: usd1Mtokens(0.2),
+    completion_tokens: usd1Mtokens(0.5),
+    max_tokens: 16_000,
+    free: true,
+  },
+  "grok-4-1-fast-reasoning-16k": {
+    prompt_tokens: usd1Mtokens(0.2),
+    completion_tokens: usd1Mtokens(0.5),
+    max_tokens: 16_000,
+    free: true,
+  },
+  "grok-code-fast-1-16k": {
+    prompt_tokens: usd1Mtokens(0.2),
+    completion_tokens: usd1Mtokens(1.5),
+    max_tokens: 16_000,
+    free: true,
+  },
 } as const;
 
 // TODO: remove this test – it's only used server side, and that server side check should work for all known LLM models
@@ -1293,14 +1492,44 @@ export function isValidModel(model?: string): boolean {
   if (isCustomOpenAI(model)) return true;
   if (isMistralModel(model)) return true;
   if (isGoogleModel(model)) return true;
+  if (isXaiModel(model)) return true;
   return LLM_COST[model ?? ""] != null;
 }
 
-export function getMaxTokens(model?: LanguageModel): number {
-  // TODO: store max tokens in the model object itself, this is just a fallback
-  if (isOllamaLLM(model)) return 8192;
-  if (isMistralModel(model)) return 4096; // TODO: check with MistralAI
-  return LLM_COST[model ?? ""]?.max_tokens ?? 4096;
+export const FALLBACK_MAX_TOKENS = 8192;
+
+// Overload 1: Just model string (existing signature)
+export function getMaxTokens(model?: LanguageModel): number;
+
+// Overload 2: Model string + optional config
+export function getMaxTokens(
+  model?: LanguageModel,
+  config?: { max_tokens?: number },
+): number;
+
+// Implementation
+export function getMaxTokens(
+  model?: LanguageModel,
+  config?: { max_tokens?: number },
+): number {
+  // If config.max_tokens is provided, validate and use it
+  if (config?.max_tokens != null) {
+    const maxTokens = config.max_tokens;
+    // Handle legacy string values and invalid numbers
+    const num =
+      typeof maxTokens === "number"
+        ? maxTokens
+        : parseInt(String(maxTokens), 10);
+    if (isNaN(num) || num <= 0) {
+      return FALLBACK_MAX_TOKENS;
+    }
+    // Clamp to safe range
+    return Math.max(1000, Math.min(2000000, num));
+  }
+
+  // Existing logic
+  if (isOllamaLLM(model)) return FALLBACK_MAX_TOKENS;
+  return LLM_COST[model ?? ""]?.max_tokens ?? FALLBACK_MAX_TOKENS;
 }
 
 export interface LLMCost {
@@ -1422,6 +1651,10 @@ export function getSystemPrompt(
     model2vendor(model).name === "anthropic" ||
     model.startsWith(ANTHROPIC_PREFIX)
   ) {
+    return `${math}\n${common}`;
+  }
+
+  if (model2vendor(model).name === "xai" || model.startsWith(XAI_PREFIX)) {
     return `${math}\n${common}`;
   }
 

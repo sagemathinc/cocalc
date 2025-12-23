@@ -1,5 +1,5 @@
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { OTHER_SETTINGS_USERDEFINED_LLM } from "@cocalc/util/db-schema/defaults";
+import { OTHER_SETTINGS_USER_DEFINED_LLM } from "@cocalc/util/db-schema/defaults";
 import {
   UserDefinedLLM,
   unpackUserDefinedLLMModel,
@@ -23,7 +23,7 @@ export function getUserDefinedLLM(): UserDefinedLLM[] {
 }
 
 function processUserDefinedLLM(other_settings): UserDefinedLLM[] {
-  const val = other_settings.get(OTHER_SETTINGS_USERDEFINED_LLM) ?? "[]";
+  const val = other_settings.get(OTHER_SETTINGS_USER_DEFINED_LLM) ?? "[]";
   try {
     return JSON.parse(val) as UserDefinedLLM[];
   } catch {

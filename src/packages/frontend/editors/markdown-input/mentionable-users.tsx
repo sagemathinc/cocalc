@@ -14,6 +14,7 @@ import GoogleGeminiLogo from "@cocalc/frontend/components/google-gemini-avatar";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import MistralAvatar from "@cocalc/frontend/components/mistral-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import XAIAvatar from "@cocalc/frontend/components/xai-avatar";
 import { LLMModelPrice } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { useUserDefinedLLM } from "@cocalc/frontend/frame-editors/llm/use-userdefined-llm";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -37,6 +38,7 @@ import {
   toCustomOpenAIModel,
   toOllamaModel,
   toUserLLMModelName,
+  XAI_MODELS,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
@@ -193,6 +195,32 @@ function mentionableUsers({
           label: (
             <LLMTooltip model={m}>
               <GoogleGeminiLogo size={size} /> {LLM_USERNAMES[m]}{" "}
+              <LLMModelPrice model={m} floatRight />
+            </LLMTooltip>
+          ),
+          search: search_term,
+          is_llm: true,
+          show_llm_main_menu,
+        });
+      }
+    }
+  }
+
+  if (enabledLLMs.xai) {
+    for (const m of XAI_MODELS) {
+      if (!selectableLLMs.includes(m)) continue;
+      const show_llm_main_menu = m === model;
+      const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
+      const name = LLM_USERNAMES[m] ?? m;
+      const vendor = model2vendor(m);
+      const search_term =
+        `${vendor.name}${m.replace(/-/g, "")}${name.replace(/ /g, "")}`.toLowerCase();
+      if (!search || search_term.includes(search)) {
+        mentions.push({
+          value: model2service(m),
+          label: (
+            <LLMTooltip model={m}>
+              <XAIAvatar size={size} /> {name}{" "}
               <LLMModelPrice model={m} floatRight />
             </LLMTooltip>
           ),
