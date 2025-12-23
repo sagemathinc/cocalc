@@ -56,7 +56,7 @@
     "@google/generative-ai": "^0.24.1",
     "@isaacs/ttlcache": "^1.4.1",
     "@langchain/anthropic": "^1.0.0",
-    "@langchain/core": "^1.0.1",
+    "@langchain/core": "^0.3.80",
     "@langchain/google-genai": "^1.0.0",
     "@langchain/mistralai": "^1.0.0",
     "@langchain/ollama": "^1.0.0",
