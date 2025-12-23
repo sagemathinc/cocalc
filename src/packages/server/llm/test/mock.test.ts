@@ -1,6 +1,6 @@
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { callback2 } from "@cocalc/util/async-utils";
-import { OTHER_SETTINGS_USERDEFINED_LLM } from "@cocalc/util/db-schema/defaults";
+import { OTHER_SETTINGS_USER_DEFINED_LLM } from "@cocalc/util/db-schema/defaults";
 import {
   LanguageModel,
   USER_SELECTABLE_LLMS_BY_VENDOR,
@@ -118,7 +118,7 @@ describe("LLM evaluation (mocked LangChain)", () => {
   const mockUserConfig = () => {
     mockCallback2.mockResolvedValueOnce({
       other_settings: {
-        [OTHER_SETTINGS_USERDEFINED_LLM]: JSON.stringify(userConfig),
+        [OTHER_SETTINGS_USER_DEFINED_LLM]: JSON.stringify(userConfig),
       },
     });
   };

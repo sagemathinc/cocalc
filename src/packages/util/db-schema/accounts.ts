@@ -12,7 +12,7 @@ import {
   DEFAULT_FONT_SIZE,
   DEFAULT_NEW_FILENAMES,
   NEW_FILENAMES,
-  OTHER_SETTINGS_USERDEFINED_LLM,
+  OTHER_SETTINGS_USER_DEFINED_LLM,
 } from "./defaults";
 
 import { DEFAULT_LOCALE } from "@cocalc/util/consts/locale";
@@ -523,7 +523,7 @@ Table({
             hide_project_popovers: false,
             hide_file_popovers: false,
             hide_button_tooltips: false,
-            [OTHER_SETTINGS_USERDEFINED_LLM]: "[]",
+            [OTHER_SETTINGS_USER_DEFINED_LLM]: "[]",
             i18n: DEFAULT_LOCALE,
             no_email_new_messages: false,
             [USE_BALANCE_TOWARD_SUBSCRIPTIONS]:

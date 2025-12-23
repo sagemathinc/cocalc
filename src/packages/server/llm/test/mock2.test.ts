@@ -1,5 +1,5 @@
 import { callback2 } from "@cocalc/util/async-utils";
-import { OTHER_SETTINGS_USERDEFINED_LLM } from "@cocalc/util/db-schema/defaults";
+import { OTHER_SETTINGS_USER_DEFINED_LLM } from "@cocalc/util/db-schema/defaults";
 
 import { evaluateWithLangChain } from "../evaluate-lc";
 import { evaluateOllama } from "../ollama";
@@ -25,10 +25,10 @@ var mockChatGoogle: jest.Mock;
 var mockChatMistral: jest.Mock;
 var mockChatXai: jest.Mock;
 var mockGetCustomOpenAI: jest.Mock;
-var mockGetOllama: jest.Mock;
+var mockOllama: jest.Mock;
 var MockMessagesPlaceholder: any;
 
-jest.mock("@cocalc/database/settings", () => ({
+jest.mock("@cocalc/database/settings/server-settings", () => ({
   getServerSettings: jest.fn(async () => ({
     openai_enabled: true,
     openai_api_key: "server-openai-key",
@@ -43,6 +43,12 @@ jest.mock("@cocalc/database/settings", () => ({
     custom_openai_enabled: true,
     custom_openai_configuration: {},
     user_defined_llm: true,
+    ollama_configuration: {
+      llama3: {
+        baseUrl: "http://localhost:11434",
+        model: "llama3",
+      },
+    },
   })),
 }));
 
@@ -103,6 +109,10 @@ jest.mock("@langchain/xai", () => ({
   ChatXAI: (mockChatXai = jest.fn()),
 }));
 
+jest.mock("@langchain/ollama", () => ({
+  Ollama: (mockOllama = jest.fn()),
+}));
+
 jest.mock("../chat-history", () => ({
   transformHistoryToMessages: jest.fn(async () => ({
     messageHistory: [],
@@ -110,10 +120,13 @@ jest.mock("../chat-history", () => ({
   })),
 }));
 
-jest.mock("../client", () => ({
-  getCustomOpenAI: (mockGetCustomOpenAI = jest.fn(async () => ({}))),
-  getOllama: (mockGetOllama = jest.fn(async () => ({}))),
-}));
+jest.mock("../client", () => {
+  const actualModule = jest.requireActual("../client");
+  return {
+    ...actualModule,
+    getCustomOpenAI: (mockGetCustomOpenAI = jest.fn(async () => ({}))),
+  };
+});
 
 jest.mock("@cocalc/database", () => ({
   db: jest.fn(() => ({
@@ -281,7 +294,7 @@ describe("evaluateWithLangChain (LangChain mocked)", () => {
   test("user-defined models use raw model and user key", async () => {
     mockCallback2.mockResolvedValueOnce({
       other_settings: {
-        [OTHER_SETTINGS_USERDEFINED_LLM]: JSON.stringify(userConfig),
+        [OTHER_SETTINGS_USER_DEFINED_LLM]: JSON.stringify(userConfig),
       },
     });
 
@@ -310,7 +323,11 @@ describe("evaluateWithLangChain (LangChain mocked)", () => {
       stream,
     });
 
-    expect(mockGetOllama).toHaveBeenCalledWith("llama3");
+    expect(mockOllama).toHaveBeenCalledWith({
+      baseUrl: "http://localhost:11434",
+      model: "llama3",
+      keepAlive: "24h",
+    });
     expect(output.output).toBe("hi there");
     expect(stream).toHaveBeenCalledWith("hi");
     expect(stream).toHaveBeenCalledWith(" there");

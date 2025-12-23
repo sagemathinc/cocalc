@@ -1456,10 +1456,12 @@ export function isValidModel(model?: string): boolean {
   return LLM_COST[model ?? ""] != null;
 }
 
+const FALLBACK_MAX_TOKENS = 8192;
+
 export function getMaxTokens(model?: LanguageModel): number {
   // TODO: store max tokens in the model object itself, this is just a fallback
   if (isOllamaLLM(model)) return 8192;
-  return LLM_COST[model ?? ""]?.max_tokens ?? 4096;
+  return LLM_COST[model ?? ""]?.max_tokens ?? FALLBACK_MAX_TOKENS;
 }
 
 export interface LLMCost {

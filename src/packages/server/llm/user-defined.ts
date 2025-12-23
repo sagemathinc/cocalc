@@ -2,7 +2,7 @@ import getLogger from "@cocalc/backend/logger";
 import { db } from "@cocalc/database";
 import { getServerSettings } from "@cocalc/database/settings";
 import { callback2 } from "@cocalc/util/async-utils";
-import { OTHER_SETTINGS_USERDEFINED_LLM } from "@cocalc/util/db-schema/defaults";
+import { OTHER_SETTINGS_USER_DEFINED_LLM } from "@cocalc/util/db-schema/defaults";
 import {
   UserDefinedLLM,
   UserDefinedLLMService,
@@ -98,7 +98,7 @@ async function getConfig(
     account_id,
     columns: ["other_settings"],
   });
-  const user_llm_json = row?.other_settings?.[OTHER_SETTINGS_USERDEFINED_LLM];
+  const user_llm_json = row?.other_settings?.[OTHER_SETTINGS_USER_DEFINED_LLM];
   try {
     for (const llm of JSON.parse(user_llm_json) as UserDefinedLLM[]) {
       if (llm.service === service && llm.model === model) {

@@ -31,7 +31,7 @@ import {
 } from "@cocalc/frontend/components";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { OTHER_SETTINGS_USERDEFINED_LLM as KEY } from "@cocalc/util/db-schema/defaults";
+import { OTHER_SETTINGS_USER_DEFINED_LLM as KEY } from "@cocalc/util/db-schema/defaults";
 import {
   LLM_PROVIDER,
   SERVICES,

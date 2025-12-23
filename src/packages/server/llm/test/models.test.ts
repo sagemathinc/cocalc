@@ -10,7 +10,7 @@ import {
 import createAccount from "@cocalc/server/accounts/create-account";
 import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
-import { OTHER_SETTINGS_USERDEFINED_LLM } from "@cocalc/util/db-schema/defaults";
+import { OTHER_SETTINGS_USER_DEFINED_LLM } from "@cocalc/util/db-schema/defaults";
 import { uuid } from "@cocalc/util/misc";
 import { evaluateWithLangChain } from "../evaluate-lc";
 import { evaluateUserDefinedLLM } from "../user-defined";
@@ -83,7 +83,7 @@ test_llm("openai")("Custom OpenAI Endpoints", () => {
           openAIApiKey: process.env.COCALC_TEST_OPENAI_KEY!,
           model: "gpt-4o",
           cocalc: {
-            icon: "https://upload.wikimedia.org/wikipedia/commons/3/30/Square%2C_Inc._-_Square_logo.svg",
+            icon: "https://upload.wikimedia.org/wikipedia/commons/8/88/Mini-Robot.png",
             display: "High GPT-4 Omni",
             desc: "GPT 4 Omni with a high temperature",
           },
@@ -144,38 +144,44 @@ test_llm("user")("User-defined LLMs", () => {
     await pool.query(
       `UPDATE accounts SET other_settings = jsonb_set(
         COALESCE(other_settings, '{}'::jsonb),
-        '{${OTHER_SETTINGS_USERDEFINED_LLM}}',
+        '{${OTHER_SETTINGS_USER_DEFINED_LLM}}',
         to_jsonb($1::text)
       ) WHERE account_id = $2`,
       [userDefinedLLMJson, account_id],
     );
   }
 
+  let nextId = 1;
+
+  async function testUserDefinedLLM(
+    config: Omit<UserDefinedLLM, "id">,
+  ): Promise<void> {
+    const fullConfig: UserDefinedLLM = { ...config, id: nextId++ };
+    await createUserDefinedLLMConfig([fullConfig]);
+
+    const userModel = toUserLLMModelName(fullConfig);
+    const answer = await evaluateUserDefinedLLM(
+      {
+        model: userModel,
+        ...QUERY,
+      },
+      account_id,
+    );
+
+    checkAnswer(answer);
+  }
+
   // Test user-defined OpenAI model
   test_llm_case("openai")(
     "user-defined OpenAI model works (requires COCALC_TEST_OPENAI_KEY)",
     async () => {
-      const config: UserDefinedLLM = {
-        id: 1,
+      await testUserDefinedLLM({
         service: "openai",
         display: "Test GPT-4o Mini",
         endpoint: "https://api.openai.com/v1",
         model: "gpt-4o-mini",
         apiKey: process.env.COCALC_TEST_OPENAI_KEY!,
-      };
-
-      await createUserDefinedLLMConfig([config]);
-
-      const userModel = toUserLLMModelName(config);
-      const answer = await evaluateUserDefinedLLM(
-        {
-          model: userModel,
-          ...QUERY,
-        },
-        account_id,
-      );
-
-      checkAnswer(answer);
+      });
     },
     LLM_TIMEOUT,
   );
@@ -184,27 +190,13 @@ test_llm("user")("User-defined LLMs", () => {
   test_llm_case("google")(
     "user-defined Google model works (requires COCALC_TEST_GOOGLE_GENAI_KEY)",
     async () => {
-      const config: UserDefinedLLM = {
-        id: 2,
+      await testUserDefinedLLM({
         service: "google",
         display: "Test Gemini Flash",
         endpoint: "",
         model: "gemini-2.5-flash",
         apiKey: process.env.COCALC_TEST_GOOGLE_GENAI_KEY!,
-      };
-
-      await createUserDefinedLLMConfig([config]);
-
-      const userModel = toUserLLMModelName(config);
-      const answer = await evaluateUserDefinedLLM(
-        {
-          model: userModel,
-          ...QUERY,
-        },
-        account_id,
-      );
-
-      checkAnswer(answer);
+      });
     },
     LLM_TIMEOUT,
   );
@@ -213,27 +205,13 @@ test_llm("user")("User-defined LLMs", () => {
   test_llm_case("anthropic")(
     "user-defined Anthropic model works (requires COCALC_TEST_ANTHROPIC_KEY)",
     async () => {
-      const config: UserDefinedLLM = {
-        id: 3,
+      await testUserDefinedLLM({
         service: "anthropic",
         display: "claude-3-5-haiku-latest",
         endpoint: "",
         model: "claude-3-5-haiku-latest",
         apiKey: process.env.COCALC_TEST_ANTHROPIC_KEY!,
-      };
-
-      await createUserDefinedLLMConfig([config]);
-
-      const userModel = toUserLLMModelName(config);
-      const answer = await evaluateUserDefinedLLM(
-        {
-          model: userModel,
-          ...QUERY,
-        },
-        account_id,
-      );
-
-      checkAnswer(answer);
+      });
     },
     LLM_TIMEOUT,
   );
@@ -242,27 +220,13 @@ test_llm("user")("User-defined LLMs", () => {
   test_llm_case("mistralai")(
     "user-defined Mistral model works (requires COCALC_TEST_MISTRAL_AI_KEY)",
     async () => {
-      const config: UserDefinedLLM = {
-        id: 4,
+      await testUserDefinedLLM({
         service: "mistralai",
         display: "Test Mistral Small",
         endpoint: "",
         model: "mistral-small-latest",
         apiKey: process.env.COCALC_TEST_MISTRAL_AI_KEY!,
-      };
-
-      await createUserDefinedLLMConfig([config]);
-
-      const userModel = toUserLLMModelName(config);
-      const answer = await evaluateUserDefinedLLM(
-        {
-          model: userModel,
-          ...QUERY,
-        },
-        account_id,
-      );
-
-      checkAnswer(answer);
+      });
     },
     LLM_TIMEOUT,
   );
@@ -271,27 +235,13 @@ test_llm("user")("User-defined LLMs", () => {
   test_llm_case("openai")(
     "user-defined custom OpenAI model works (requires COCALC_TEST_OPENAI_KEY)",
     async () => {
-      const config: UserDefinedLLM = {
-        id: 5,
+      await testUserDefinedLLM({
         service: "custom_openai",
         display: "Test Custom GPT-4o",
         endpoint: "https://api.openai.com/v1",
         model: "gpt-4o",
         apiKey: process.env.COCALC_TEST_OPENAI_KEY!,
-      };
-
-      await createUserDefinedLLMConfig([config]);
-
-      const userModel = toUserLLMModelName(config);
-      const answer = await evaluateUserDefinedLLM(
-        {
-          model: userModel,
-          ...QUERY,
-        },
-        account_id,
-      );
-
-      checkAnswer(answer);
+      });
     },
     LLM_TIMEOUT,
   );
@@ -300,27 +250,13 @@ test_llm("user")("User-defined LLMs", () => {
   test_llm_case("xai")(
     "user-defined xAI model works (requires COCALC_TEST_XAI_KEY)",
     async () => {
-      const config: UserDefinedLLM = {
-        id: 6,
+      await testUserDefinedLLM({
         service: "xai",
         display: "Test Grok 4.1 Fast",
         endpoint: "",
         model: "grok-4-1-fast-non-reasoning",
         apiKey: process.env.COCALC_TEST_XAI_KEY!,
-      };
-
-      await createUserDefinedLLMConfig([config]);
-
-      const userModel = toUserLLMModelName(config);
-      const answer = await evaluateUserDefinedLLM(
-        {
-          model: userModel,
-          ...QUERY,
-        },
-        account_id,
-      );
-
-      checkAnswer(answer);
+      });
     },
     LLM_TIMEOUT,
   );
