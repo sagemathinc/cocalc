@@ -13,6 +13,7 @@ import {
 import { resolveMembershipForAccount } from "@cocalc/server/membership/resolve";
 import { GcpProvider, type HostSpec } from "@cocalc/cloud";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { logCloudVmEvent } from "@cocalc/server/cloud";
 function pool() {
   return getPool();
 }
@@ -327,7 +328,16 @@ export async function createHost({
     throw new Error("host not found after create");
   }
   const provisioned = await provisionIfNeeded(row);
-  return parseRow(provisioned ?? row, {
+  const provisionedRow = provisioned ?? row;
+  await logCloudVmEvent({
+    vm_id: id,
+    action: "create",
+    status: "success",
+    provider: provisionedRow.metadata?.machine?.cloud,
+    spec: provisionedRow.metadata?.machine,
+    runtime: provisionedRow.metadata?.runtime,
+  });
+  return parseRow(provisionedRow, {
     scope: "owned",
     can_start: true,
     can_place: true,
@@ -369,6 +379,14 @@ export async function startHost({
     [id],
   );
   if (!rows[0]) throw new Error("host not found");
+  await logCloudVmEvent({
+    vm_id: id,
+    action: "start",
+    status: "success",
+    provider: rows[0]?.metadata?.machine?.cloud,
+    spec: rows[0]?.metadata?.machine,
+    runtime: rows[0]?.metadata?.runtime,
+  });
   bootlog({
     host_id: id,
     type: "running",
@@ -412,6 +430,14 @@ export async function stopHost({
     [id],
   );
   if (!rows[0]) throw new Error("host not found");
+  await logCloudVmEvent({
+    vm_id: id,
+    action: "stop",
+    status: "success",
+    provider: rows[0]?.metadata?.machine?.cloud,
+    spec: rows[0]?.metadata?.machine,
+    runtime: rows[0]?.metadata?.runtime,
+  });
   bootlog({
     host_id: id,
     type: "off",
@@ -439,5 +465,13 @@ export async function deleteHost({
     const { provider, creds } = await ensureGcpProvider();
     await provider.deleteHost(runtime, creds);
   }
+  await logCloudVmEvent({
+    vm_id: id,
+    action: "delete",
+    status: "success",
+    provider: machine.cloud,
+    spec: machine,
+    runtime,
+  });
   await pool().query(`DELETE FROM project_hosts WHERE id=$1`, [id]);
 }

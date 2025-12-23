@@ -1,4 +1,49 @@
-## Implement Compute Servers
+## Implement Project Hosts (replaces compute servers)
+
+### Cloud VM control layer.
+
+Goal: a provider‑agnostic control plane in `@cocalc/cloud` that can provision, start/stop, and meter project‑host VMs via cloud APIs, with concurrency handled in Postgres (no singletons), and costs/usage recorded as immutable log events. The hub owns orchestration and billing, while providers expose clean, testable adapters.
+
+**API surface (provider‑agnostic):**
+- `createHost(spec, creds) -> runtime` (attach boot+data disks, inject bootstrap)
+- `startHost(runtime, creds)`
+- `stopHost(runtime, creds)`
+- `deleteHost(runtime, creds)`
+- `resizeDisk(runtime, newSizeGb, creds)`
+- `getStatus(runtime, creds) -> starting|running|stopped|error`
+- `getPricing(spec|machineType, region) -> pricing` (optional, cached)
+- `estimateCost(spec, duration, storageGb, egressGb) -> estimate` (optional)
+
+**DB model (new tables):**
+- `cloud_vm_log(vm_id, ts, action, status, provider, runtime, spec, pricing_version, error)`
+  - append‑only event log (create/start/stop/delete/resize/status updates)
+- `cloud_pricing_cache(provider, sku, region, unit_price, fetched_at, ttl, pricing_version)`
+  - optional, cached daily; referenced by estimates
+- `cloud_vm_usage(vm_id, ts, cpu_hours, storage_gb_hours, egress_gb, source, confidence)`
+  - optional; supports delayed provider billing reconciliation
+
+**Locking / orchestration pattern (Postgres):**
+- Use `SELECT ... FOR UPDATE SKIP LOCKED` on a work queue (or host row) to ensure only one hub instance executes a provisioning step per VM at a time.
+- Each action appends to `cloud_vm_log` and updates `project_hosts.status`/`metadata.runtime`.
+- Idempotent actions: if a host already exists in provider, `createHost` should return existing runtime.
+
+**Costing strategy:**
+- Prefer provider pricing APIs (GCP billing catalog, Hyperstack API) cached daily.
+- Use estimates for immediate UI; reconcile later if provider cost data arrives.
+- Store `pricing_version` in `cloud_vm_log` for auditability.
+
+**Capabilities / constraints:**
+- Track host capabilities (supports btrfs/overlayfs/snapshots/quotas) via `runtime.metadata.capabilities`.
+- For “container‑only” providers (e.g., runpod), disable snapshots and use full‑rootfs copy.
+
+**Implementation / testing plan:**
+1. Implement tables and lightweight log helpers in `packages/server/cloud` (new module).
+2. Add a `cloud_vm_work` queue table to drive provisioning actions (start/stop/resize) with SKIP LOCKED.
+3. Extend `@cocalc/cloud` interface with optional pricing/estimate methods; stub for GCP.
+4. Wire `hub.hosts.*` to enqueue actions and return immediately; workers update status/logs.
+5. Add LocalProvider tests (already) + mocked GCP tests; add worker tests that assert log writes and locking semantics.
+6. Add a minimal pricing cache test (uses a fake provider).
+
 
 ### Current focus: project --> project host configuration
 
