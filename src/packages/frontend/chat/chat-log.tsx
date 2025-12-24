@@ -565,7 +565,6 @@ export function MessageList({
   project_id,
   path,
   fontSize,
-  selectedHashtags,
   actions,
   costEstimate,
   manualScrollRef,
@@ -588,7 +587,6 @@ export function MessageList({
   project_id?: string;
   path?: string;
   fontSize?: number;
-  selectedHashtags?;
   actions?;
   costEstimate?: CostEstimate;
   manualScrollRef?;
@@ -649,7 +647,6 @@ export function MessageList({
             project_id={project_id}
             path={path}
             font_size={fontSize}
-            selectedHashtags={selectedHashtags}
             actions={actions}
             is_thread={is_thread}
             is_folded={is_folded}

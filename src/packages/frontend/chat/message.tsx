@@ -128,7 +128,6 @@ interface Props {
   is_prev_sender?: boolean;
   show_avatar?: boolean;
   mode: Mode;
-  selectedHashtags?: Set<string>;
 
   scroll_into_view?: () => void; // call to scroll this message into view
 
@@ -167,7 +166,6 @@ export default function Message({
   is_prev_sender,
   show_avatar,
   mode,
-  selectedHashtags,
   scroll_into_view,
   allowReply,
   is_thread,
@@ -1025,16 +1023,6 @@ export default function Message({
           style={MARKDOWN_STYLE}
           value={value}
           className={message_class}
-          selectedHashtags={selectedHashtags}
-          toggleHashtag={
-            selectedHashtags != null && actions != null
-              ? (tag) =>
-                  actions?.setHashtagState(
-                    tag,
-                    selectedHashtags?.has(tag) ? undefined : 1,
-                  )
-              : undefined
-          }
         />
       </>
     );
