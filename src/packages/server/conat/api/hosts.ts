@@ -13,7 +13,8 @@ import {
 import { resolveMembershipForAccount } from "@cocalc/server/membership/resolve";
 import { GcpProvider, type HostSpec } from "@cocalc/cloud";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { logCloudVmEvent } from "@cocalc/server/cloud";
+import { deleteHostDns, ensureHostDns, hasDns, logCloudVmEvent } from "@cocalc/server/cloud";
+import getLogger from "@cocalc/backend/logger";
 function pool() {
   return getPool();
 }
@@ -329,6 +330,28 @@ export async function createHost({
   }
   const provisioned = await provisionIfNeeded(row);
   const provisionedRow = provisioned ?? row;
+  if (provisionedRow.metadata?.runtime?.public_ip && (await hasDns())) {
+    try {
+      const dns = await ensureHostDns({
+        host_id: id,
+        ipAddress: provisionedRow.metadata.runtime.public_ip,
+        record_id: provisionedRow.metadata?.dns?.record_id,
+      });
+      provisionedRow.metadata = {
+        ...provisionedRow.metadata,
+        dns: { ...dns },
+      };
+      await pool().query(
+        `UPDATE project_hosts SET metadata=$2, public_url=$3, internal_url=$3 WHERE id=$1`,
+        [id, provisionedRow.metadata, `https://${dns.name}`],
+      );
+    } catch (err) {
+      getLogger("server:conat:hosts").warn("dns setup failed", {
+        host_id: id,
+        err,
+      });
+    }
+  }
   await logCloudVmEvent({
     vm_id: id,
     action: "create",
@@ -379,6 +402,28 @@ export async function startHost({
     [id],
   );
   if (!rows[0]) throw new Error("host not found");
+  if (rows[0].metadata?.runtime?.public_ip && (await hasDns())) {
+    try {
+      const dns = await ensureHostDns({
+        host_id: id,
+        ipAddress: rows[0].metadata.runtime.public_ip,
+        record_id: rows[0].metadata?.dns?.record_id,
+      });
+      rows[0].metadata = {
+        ...rows[0].metadata,
+        dns: { ...dns },
+      };
+      await pool().query(
+        `UPDATE project_hosts SET metadata=$2, public_url=$3, internal_url=$3 WHERE id=$1`,
+        [id, rows[0].metadata, `https://${dns.name}`],
+      );
+    } catch (err) {
+      getLogger("server:conat:hosts").warn("dns update failed", {
+        host_id: id,
+        err,
+      });
+    }
+  }
   await logCloudVmEvent({
     vm_id: id,
     action: "start",
@@ -464,6 +509,16 @@ export async function deleteHost({
     }
     const { provider, creds } = await ensureGcpProvider();
     await provider.deleteHost(runtime, creds);
+  }
+  if (await hasDns()) {
+    try {
+      await deleteHostDns({ record_id: row.metadata?.dns?.record_id });
+    } catch (err) {
+      getLogger("server:conat:hosts").warn("dns delete failed", {
+        host_id: id,
+        err,
+      });
+    }
   }
   await logCloudVmEvent({
     vm_id: id,
