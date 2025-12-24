@@ -42,6 +42,8 @@ function parseRow(
     gpu: !!metadata.gpu,
     status: (row.status as HostStatus) ?? "off",
     machine,
+    error: metadata.last_error,
+    error_at: metadata.last_error_at,
     projects: row.capacity?.projects ?? 0,
     last_seen: row.last_seen
       ? new Date(row.last_seen).toISOString()

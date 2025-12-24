@@ -157,25 +157,58 @@ async function handleDelete(row: any) {
   });
 }
 
+async function markHostError(row: any, err: unknown) {
+  const message = err ? String(err) : "unknown error";
+  const nextMetadata = {
+    ...(row.metadata ?? {}),
+    last_error: message,
+    last_error_at: new Date().toISOString(),
+  };
+  await updateHostRow(row.id, {
+    metadata: nextMetadata,
+    status: "error",
+  });
+}
+
 export const cloudHostHandlers: CloudVmWorkHandlers = {
   provision: async (row) => {
     const host = await loadHostRow(row.vm_id);
     if (!host) return;
-    await handleProvision(host);
+    try {
+      await handleProvision(host);
+    } catch (err) {
+      await markHostError(host, err);
+      throw err;
+    }
   },
   start: async (row) => {
     const host = await loadHostRow(row.vm_id);
     if (!host) return;
-    await handleStart(host);
+    try {
+      await handleStart(host);
+    } catch (err) {
+      await markHostError(host, err);
+      throw err;
+    }
   },
   stop: async (row) => {
     const host = await loadHostRow(row.vm_id);
     if (!host) return;
-    await handleStop(host);
+    try {
+      await handleStop(host);
+    } catch (err) {
+      await markHostError(host, err);
+      throw err;
+    }
   },
   delete: async (row) => {
     const host = await loadHostRow(row.vm_id);
     if (!host) return;
-    await handleDelete(host);
+    try {
+      await handleDelete(host);
+    } catch (err) {
+      await markHostError(host, err);
+      throw err;
+    }
   },
 };

@@ -3,6 +3,7 @@ import { authFirstRequireAccount } from "./util";
 export type HostStatus =
   | "deprovisioned"
   | "off"
+  | "error"
   | "starting"
   | "running"
   | "stopping";
@@ -30,6 +31,8 @@ export interface Host {
   gpu: boolean;
   status: HostStatus;
   machine?: HostMachine;
+  error?: string;
+  error_at?: string;
   projects?: number;
   last_seen?: string;
   tier?: number;

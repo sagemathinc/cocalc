@@ -246,6 +246,9 @@ export const HostsPage: React.FC = () => {
                 <Typography.Text>
                   Projects: {host.projects ?? 0}
                 </Typography.Text>
+                {host.status === "error" && host.error && (
+                  <Typography.Text type="danger">{host.error}</Typography.Text>
+                )}
               </Space>
             </Card>
           </Col>
@@ -419,6 +422,14 @@ export const HostsPage: React.FC = () => {
             <Typography.Text type="secondary">
               Last seen: {selected.last_seen ?? "n/a"}
             </Typography.Text>
+            {selected.status === "error" && selected.error && (
+                <Alert
+                  type="error"
+                  showIcon
+                  message="Provisioning error"
+                  description={selected.error}
+                />
+              )}
             <Divider />
             <Typography.Title level={5}>Activity</Typography.Title>
             <Bootlog host_id={selected.id} style={{ maxWidth: "100%" }} />
