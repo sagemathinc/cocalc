@@ -5,16 +5,12 @@ import type {
   HostStatus,
 } from "@cocalc/conat/hub/api/hosts";
 import getPool from "@cocalc/database/pool";
-import { bootlog } from "@cocalc/conat/project/runner/bootlog";
 import {
   computePlacementPermission,
   getUserHostTier,
 } from "@cocalc/server/project-host/placement";
 import { resolveMembershipForAccount } from "@cocalc/server/membership/resolve";
-import { GcpProvider, type HostSpec } from "@cocalc/cloud";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { deleteHostDns, ensureHostDns, hasDns, logCloudVmEvent } from "@cocalc/server/cloud";
-import getLogger from "@cocalc/backend/logger";
+import { enqueueCloudVmWork } from "@cocalc/server/cloud";
 function pool() {
   return getPool();
 }
@@ -119,105 +115,6 @@ function requireCreateHosts(entitlements: any) {
   }
 }
 
-function sizeToResources(size?: string): { cpu: number; ram_gb: number } {
-  switch (size) {
-    case "medium":
-      return { cpu: 4, ram_gb: 16 };
-    case "large":
-      return { cpu: 8, ram_gb: 32 };
-    case "gpu":
-      return { cpu: 4, ram_gb: 24 };
-    case "small":
-    default:
-      return { cpu: 2, ram_gb: 8 };
-  }
-}
-
-function buildHostSpec(row: any): HostSpec {
-  const metadata = row.metadata ?? {};
-  const machine: HostMachine = metadata.machine ?? {};
-  const size = metadata.size ?? row.size ?? "small";
-  const { cpu, ram_gb } = sizeToResources(size);
-  const disk_gb = machine.disk_gb ?? 100;
-  const disk_type =
-    machine.disk_type === "ssd"
-      ? "ssd"
-      : machine.disk_type === "standard"
-        ? "standard"
-        : "balanced";
-  const gpu =
-    machine.gpu_type && machine.gpu_type !== "none"
-      ? {
-          type: machine.gpu_type,
-          count: Math.max(1, machine.gpu_count ?? 1),
-        }
-      : metadata.gpu
-        ? { type: machine.gpu_type ?? "nvidia-l4", count: 1 }
-        : undefined;
-  return {
-    name: row.name,
-    region: row.region,
-    zone: machine.zone,
-    cpu,
-    ram_gb,
-    disk_gb,
-    disk_type,
-    gpu,
-    metadata: {
-      ...machine.metadata,
-      machine_type: machine.machine_type,
-      source_image: machine.source_image,
-      bootstrap_url: machine.bootstrap_url,
-      startup_script: machine.startup_script,
-    },
-  };
-}
-
-async function ensureGcpProvider() {
-  const { google_cloud_service_account_json } = await getServerSettings();
-  if (!google_cloud_service_account_json) {
-    throw new Error("google_cloud_service_account_json is not configured");
-  }
-  return {
-    provider: new GcpProvider(),
-    creds: { service_account_json: google_cloud_service_account_json },
-  };
-}
-
-async function provisionIfNeeded(row: any): Promise<any> {
-  const metadata = row.metadata ?? {};
-  const machine: HostMachine = metadata.machine ?? {};
-  if (!machine.cloud) return row;
-  if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
-    throw new Error(`unsupported cloud provider ${machine.cloud}`);
-  }
-  const { provider, creds } = await ensureGcpProvider();
-  const spec = buildHostSpec(row);
-  const runtime = await provider.createHost(spec, creds);
-  const nextMetadata = {
-    ...metadata,
-    runtime,
-  };
-  const publicUrl =
-    row.public_url ??
-    (runtime.public_ip ? `http://${runtime.public_ip}` : undefined);
-  const internalUrl =
-    row.internal_url ??
-    (runtime.public_ip ? `http://${runtime.public_ip}` : undefined);
-  await pool().query(
-    `UPDATE project_hosts
-     SET metadata=$2, status=$3, public_url=$4, internal_url=$5, updated=NOW()
-     WHERE id=$1`,
-    [row.id, JSON.stringify(nextMetadata), "running", publicUrl, internalUrl],
-  );
-  return {
-    ...row,
-    metadata: nextMetadata,
-    status: "running",
-    public_url: publicUrl ?? row.public_url,
-    internal_url: internalUrl ?? row.internal_url,
-  };
-}
 
 export async function listHosts({
   account_id,
@@ -303,6 +200,8 @@ export async function createHost({
   requireCreateHosts(membership.entitlements);
   const id = randomUUID();
   const now = new Date();
+  const machineCloud = machine?.cloud;
+  const initialStatus = machineCloud ? "starting" : "off";
   await pool().query(
     `INSERT INTO project_hosts (id, name, region, status, metadata, created, updated, last_seen)
      VALUES ($1,$2,$3,$4,$5,NOW(),NOW(),$6)`,
@@ -310,7 +209,7 @@ export async function createHost({
       id,
       name,
       region,
-      "off",
+      initialStatus,
       {
         owner,
         size,
@@ -320,47 +219,20 @@ export async function createHost({
       now,
     ],
   );
+  if (machineCloud) {
+    await enqueueCloudVmWork({
+      vm_id: id,
+      action: "provision",
+      payload: { provider: machineCloud },
+    });
+  }
   const { rows } = await pool().query(
     `SELECT * FROM project_hosts WHERE id=$1`,
     [id],
   );
   const row = rows[0];
-  if (!row) {
-    throw new Error("host not found after create");
-  }
-  const provisioned = await provisionIfNeeded(row);
-  const provisionedRow = provisioned ?? row;
-  if (provisionedRow.metadata?.runtime?.public_ip && (await hasDns())) {
-    try {
-      const dns = await ensureHostDns({
-        host_id: id,
-        ipAddress: provisionedRow.metadata.runtime.public_ip,
-        record_id: provisionedRow.metadata?.dns?.record_id,
-      });
-      provisionedRow.metadata = {
-        ...provisionedRow.metadata,
-        dns: { ...dns },
-      };
-      await pool().query(
-        `UPDATE project_hosts SET metadata=$2, public_url=$3, internal_url=$3 WHERE id=$1`,
-        [id, provisionedRow.metadata, `https://${dns.name}`],
-      );
-    } catch (err) {
-      getLogger("server:conat:hosts").warn("dns setup failed", {
-        host_id: id,
-        err,
-      });
-    }
-  }
-  await logCloudVmEvent({
-    vm_id: id,
-    action: "create",
-    status: "success",
-    provider: provisionedRow.metadata?.machine?.cloud,
-    spec: provisionedRow.metadata?.machine,
-    runtime: provisionedRow.metadata?.runtime,
-  });
-  return parseRow(provisionedRow, {
+  if (!row) throw new Error("host not found after create");
+  return parseRow(row, {
     scope: "owned",
     can_start: true,
     can_place: true,
@@ -376,68 +248,28 @@ export async function startHost({
 }): Promise<Host> {
   const row = await loadHostForStartStop(id, account_id);
   const metadata = row.metadata ?? {};
-  const runtime = metadata.runtime;
   const machine: HostMachine = metadata.machine ?? {};
-  if (machine.cloud && runtime?.instance_id) {
-    if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
-      throw new Error(`unsupported cloud provider ${machine.cloud}`);
-    }
-    const { provider, creds } = await ensureGcpProvider();
-    await provider.startHost(runtime, creds);
-  }
-  const now = new Date();
-  // emit bootlog for host start
-  bootlog({
-    host_id: id,
-    type: "starting",
-    desc: "Starting host...",
-    progress: 5,
-  }).catch(() => {});
   await pool().query(
     `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
-    [id, "running", now],
+    [id, "starting", new Date()],
   );
+  if (!machine.cloud) {
+    await pool().query(
+      `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
+      [id, "running", new Date()],
+    );
+  } else {
+    await enqueueCloudVmWork({
+      vm_id: id,
+      action: "start",
+      payload: { provider: machine.cloud },
+    });
+  }
   const { rows } = await pool().query(
     `SELECT * FROM project_hosts WHERE id=$1`,
     [id],
   );
   if (!rows[0]) throw new Error("host not found");
-  if (rows[0].metadata?.runtime?.public_ip && (await hasDns())) {
-    try {
-      const dns = await ensureHostDns({
-        host_id: id,
-        ipAddress: rows[0].metadata.runtime.public_ip,
-        record_id: rows[0].metadata?.dns?.record_id,
-      });
-      rows[0].metadata = {
-        ...rows[0].metadata,
-        dns: { ...dns },
-      };
-      await pool().query(
-        `UPDATE project_hosts SET metadata=$2, public_url=$3, internal_url=$3 WHERE id=$1`,
-        [id, rows[0].metadata, `https://${dns.name}`],
-      );
-    } catch (err) {
-      getLogger("server:conat:hosts").warn("dns update failed", {
-        host_id: id,
-        err,
-      });
-    }
-  }
-  await logCloudVmEvent({
-    vm_id: id,
-    action: "start",
-    status: "success",
-    provider: rows[0]?.metadata?.machine?.cloud,
-    spec: rows[0]?.metadata?.machine,
-    runtime: rows[0]?.metadata?.runtime,
-  });
-  bootlog({
-    host_id: id,
-    type: "running",
-    desc: "Host is running",
-    progress: 100,
-  }).catch(() => {});
   return parseRow(rows[0]);
 }
 
@@ -450,45 +282,28 @@ export async function stopHost({
 }): Promise<Host> {
   const row = await loadHostForStartStop(id, account_id);
   const metadata = row.metadata ?? {};
-  const runtime = metadata.runtime;
   const machine: HostMachine = metadata.machine ?? {};
-  if (machine.cloud && runtime?.instance_id) {
-    if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
-      throw new Error(`unsupported cloud provider ${machine.cloud}`);
-    }
-    const { provider, creds } = await ensureGcpProvider();
-    await provider.stopHost(runtime, creds);
-  }
-  const now = new Date();
-  bootlog({
-    host_id: id,
-    type: "stopping",
-    desc: "Stopping host...",
-    progress: 5,
-  }).catch(() => {});
   await pool().query(
     `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
-    [id, "off", now],
+    [id, "stopping", new Date()],
   );
+  if (!machine.cloud) {
+    await pool().query(
+      `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
+      [id, "off", new Date()],
+    );
+  } else {
+    await enqueueCloudVmWork({
+      vm_id: id,
+      action: "stop",
+      payload: { provider: machine.cloud },
+    });
+  }
   const { rows } = await pool().query(
     `SELECT * FROM project_hosts WHERE id=$1`,
     [id],
   );
   if (!rows[0]) throw new Error("host not found");
-  await logCloudVmEvent({
-    vm_id: id,
-    action: "stop",
-    status: "success",
-    provider: rows[0]?.metadata?.machine?.cloud,
-    spec: rows[0]?.metadata?.machine,
-    runtime: rows[0]?.metadata?.runtime,
-  });
-  bootlog({
-    host_id: id,
-    type: "off",
-    desc: "Host stopped",
-    progress: 100,
-  }).catch(() => {});
   return parseRow(rows[0]);
 }
 
@@ -501,32 +316,18 @@ export async function deleteHost({
 }): Promise<void> {
   const row = await loadOwnedHost(id, account_id);
   const metadata = row.metadata ?? {};
-  const runtime = metadata.runtime;
   const machine: HostMachine = metadata.machine ?? {};
-  if (machine.cloud && runtime?.instance_id) {
-    if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
-      throw new Error(`unsupported cloud provider ${machine.cloud}`);
-    }
-    const { provider, creds } = await ensureGcpProvider();
-    await provider.deleteHost(runtime, creds);
+  if (machine.cloud) {
+    await enqueueCloudVmWork({
+      vm_id: id,
+      action: "delete",
+      payload: { provider: machine.cloud },
+    });
+    await pool().query(
+      `UPDATE project_hosts SET status=$2, updated=NOW() WHERE id=$1`,
+      [id, "stopping"],
+    );
+    return;
   }
-  if (await hasDns()) {
-    try {
-      await deleteHostDns({ record_id: row.metadata?.dns?.record_id });
-    } catch (err) {
-      getLogger("server:conat:hosts").warn("dns delete failed", {
-        host_id: id,
-        err,
-      });
-    }
-  }
-  await logCloudVmEvent({
-    vm_id: id,
-    action: "delete",
-    status: "success",
-    provider: machine.cloud,
-    spec: machine,
-    runtime,
-  });
   await pool().query(`DELETE FROM project_hosts WHERE id=$1`, [id]);
 }

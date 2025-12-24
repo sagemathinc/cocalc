@@ -14,3 +14,4 @@ export {
   type CloudVmWorkHandlers,
 } from "./worker";
 export { ensureHostDns, deleteHostDns, hasDns } from "./dns";
+export { cloudHostHandlers } from "./host-work";

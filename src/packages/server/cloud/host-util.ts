@@ -1,0 +1,101 @@
+import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
+import { GcpProvider, type HostSpec } from "@cocalc/cloud";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
+
+export type HostRow = {
+  id: string;
+  name?: string;
+  region?: string;
+  status?: string;
+  public_url?: string;
+  internal_url?: string;
+  metadata?: Record<string, any>;
+};
+
+function sizeToResources(size?: string): { cpu: number; ram_gb: number } {
+  switch (size) {
+    case "medium":
+      return { cpu: 4, ram_gb: 16 };
+    case "large":
+      return { cpu: 8, ram_gb: 32 };
+    case "gpu":
+      return { cpu: 4, ram_gb: 24 };
+    case "small":
+    default:
+      return { cpu: 2, ram_gb: 8 };
+  }
+}
+
+export function buildHostSpec(row: HostRow): HostSpec {
+  const metadata = row.metadata ?? {};
+  const machine: HostMachine = metadata.machine ?? {};
+  const size = metadata.size ?? (row as any).size ?? "small";
+  const { cpu, ram_gb } = sizeToResources(size);
+  const disk_gb = machine.disk_gb ?? 100;
+  const disk_type =
+    machine.disk_type === "ssd"
+      ? "ssd"
+      : machine.disk_type === "standard"
+        ? "standard"
+        : "balanced";
+  const gpu =
+    machine.gpu_type && machine.gpu_type !== "none"
+      ? {
+          type: machine.gpu_type,
+          count: Math.max(1, machine.gpu_count ?? 1),
+        }
+      : metadata.gpu
+        ? { type: machine.gpu_type ?? "nvidia-l4", count: 1 }
+        : undefined;
+  const spec: HostSpec = {
+    name: row.id,
+    region: row.region ?? "us-west1",
+    zone: machine.zone,
+    cpu,
+    ram_gb,
+    disk_gb,
+    disk_type,
+    gpu,
+    metadata: {
+      ...machine.metadata,
+      machine_type: machine.machine_type,
+      source_image: machine.source_image,
+      bootstrap_url: machine.bootstrap_url,
+      startup_script: machine.startup_script,
+    },
+  };
+  return spec;
+}
+
+export async function ensureGcpProvider() {
+  const { google_cloud_service_account_json } = await getServerSettings();
+  if (!google_cloud_service_account_json) {
+    throw new Error("google_cloud_service_account_json is not configured");
+  }
+  const creds = { service_account_json: google_cloud_service_account_json };
+  return { provider: new GcpProvider(), creds };
+}
+
+export async function provisionIfNeeded(row: HostRow) {
+  const metadata = row.metadata ?? {};
+  const runtime = metadata.runtime;
+  const machine: HostMachine = metadata.machine ?? {};
+  if (!machine.cloud) {
+    return row;
+  }
+  if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
+    throw new Error(`unsupported cloud provider ${machine.cloud}`);
+  }
+  if (runtime?.instance_id) return row;
+  const { provider, creds } = await ensureGcpProvider();
+  const spec = buildHostSpec(row);
+  const runtimeCreated = await provider.createHost(spec, creds);
+  return {
+    ...row,
+    status: "running",
+    metadata: {
+      ...metadata,
+      runtime: runtimeCreated,
+    },
+  };
+}
