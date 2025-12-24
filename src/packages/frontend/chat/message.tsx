@@ -262,6 +262,7 @@ export default function Message({
   const [autoFocusEdit, setAutoFocusEdit] = useState<boolean>(false);
   const [elapsedMs, setElapsedMs] = useState<number>(0);
   const [isHovered, setIsHovered] = useState<boolean>(false);
+  const [showTouchActions, setShowTouchActions] = useState<boolean>(false);
 
   const replyMessageRef = useRef<string>("");
   const replyMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
@@ -766,8 +767,8 @@ export default function Message({
   }
 
   function renderHeaderActions() {
-    const showActions = IS_TOUCH || isActive;
-    if (!showActions) {
+    const showActions = isActive;
+    if (!showActions && !IS_TOUCH) {
       return null;
     }
     const buttons: ReactNode[] = [];
@@ -917,6 +918,45 @@ export default function Message({
       return null;
     }
 
+    if (IS_TOUCH) {
+      const toggle = (
+        <Button
+          size="small"
+          type="text"
+          style={{ color: COLORS.GRAY_M }}
+          onClick={() => setShowTouchActions((prev) => !prev)}
+        >
+          <Icon name="ellipsis" />
+        </Button>
+      );
+      return (
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            justifyContent: "flex-end",
+          }}
+        >
+          {showTouchActions ? (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "flex-end",
+                gap: "6px",
+              }}
+            >
+              {buttons}
+            </div>
+          ) : null}
+          {toggle}
+        </div>
+      );
+    }
+
     return (
       <div
         style={{
@@ -927,9 +967,6 @@ export default function Message({
           gap: "6px",
           flexWrap: "wrap",
           justifyContent: "flex-end",
-          opacity: showActions ? 1 : 0,
-          pointerEvents: showActions ? undefined : "none",
-          transition: "opacity 120ms ease",
         }}
       >
         {buttons}
