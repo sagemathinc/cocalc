@@ -767,6 +767,9 @@ export default function Message({
 
   function renderHeaderActions() {
     const showActions = IS_TOUCH || isActive;
+    if (!showActions) {
+      return null;
+    }
     const buttons: ReactNode[] = [];
 
     const llmFeedbackButton = renderLLMFeedbackButtons();
@@ -917,6 +920,8 @@ export default function Message({
     return (
       <div
         style={{
+          position: "absolute",
+          right: 0,
           display: "flex",
           alignItems: "center",
           gap: "6px",
