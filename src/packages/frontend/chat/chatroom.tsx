@@ -1302,28 +1302,6 @@ export function ChatPanel({
           )}
           {hasInput && (
             <>
-              <Tooltip
-                title={
-                  <FormattedMessage
-                    id="chatroom.chat_input.send_button.tooltip"
-                    defaultMessage={"Send message (shift+enter)"}
-                  />
-                }
-              >
-                <Button
-                  onClick={() => sendMessage()}
-                  disabled={!hasInput}
-                  type="primary"
-                  style={{ height: "47.5px" }}
-                  icon={<Icon name="paper-plane" />}
-                >
-                  <FormattedMessage
-                    id="chatroom.chat_input.send_button.label"
-                    defaultMessage={"Send"}
-                  />
-                </Button>
-              </Tooltip>
-              <div style={{ height: "5px" }} />
               {isSelectedThreadAI ? (
                 <div
                   style={{
@@ -1359,6 +1337,28 @@ export function ChatPanel({
                   </Button>
                 </Popconfirm>
               )}
+              <div style={{ height: "5px" }} />
+              <Tooltip
+                title={
+                  <FormattedMessage
+                    id="chatroom.chat_input.send_button.tooltip"
+                    defaultMessage={"Send message (shift+enter)"}
+                  />
+                }
+              >
+                <Button
+                  onClick={() => sendMessage()}
+                  disabled={!hasInput}
+                  type="primary"
+                  style={{ height: "47.5px" }}
+                  icon={<Icon name="paper-plane" />}
+                >
+                  <FormattedMessage
+                    id="chatroom.chat_input.send_button.label"
+                    defaultMessage={"Send"}
+                  />
+                </Button>
+              </Tooltip>
             </>
           )}
         </div>
