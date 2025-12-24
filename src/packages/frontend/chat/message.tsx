@@ -24,7 +24,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
 import CopyButton from "@cocalc/frontend/components/copy-button";
-import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -1021,7 +1021,7 @@ export default function Message({
             </Drawer>
           </>
         )}
-        <MostlyStaticMarkdown
+        <StaticMarkdown
           style={MARKDOWN_STYLE}
           value={value}
           className={message_class}
