@@ -74,7 +74,9 @@ export function TimeTravel(props: Props) {
   const docext = useEditor("docext");
   const git = !!useEditor("git");
 
-  const [doc, setDoc] = useState<Document | undefined>(undefined);
+  const [doc, setDoc] = useState<(() => Document | undefined) | undefined>(
+    undefined,
+  );
   const [doc0, setDoc0] = useState<string | undefined>(undefined);
   const [doc1, setDoc1] = useState<string | undefined>(undefined);
   const [useJson, setUseJson] = useState<boolean>(false);
@@ -201,19 +203,20 @@ export function TimeTravel(props: Props) {
 
   const getDoc = async (
     version?: number | string,
-  ): Promise<Document | undefined> => {
+  ): Promise<(() => Document | undefined) | undefined> => {
     if (version == null) {
       return;
     }
     if (gitMode) {
       const v = typeof version === "number" ? version : Number(`${version}`);
-      return await props.actions.gitDoc(v);
+      const x = await props.actions.gitDoc(v);
+      return () => x!;
     }
     if (typeof version == "number") {
       console.warn("getDoc: invalid version", { version });
       return;
     }
-    return props.actions.get_doc(version);
+    return () => props.actions.get_doc(version);
   };
 
   useAsyncEffect(async () => {
@@ -222,12 +225,14 @@ export function TimeTravel(props: Props) {
     }
     if (!changesMode) {
       // non-changes mode
-      setDoc(await getDoc(version));
+      const f = await getDoc(version);
+      // use a function since getDoc returns a function
+      setDoc(() => f);
     } else {
       // diff mode
-      const doc0 = await getDoc(version0);
+      const doc0 = (await getDoc(version0))?.();
       if (doc0 == null) return; // something is wrong
-      const doc1 = await getDoc(version1);
+      const doc1 = (await getDoc(version1))?.();
       if (doc1 == null) return; // something is wrong
 
       let v0, v1;

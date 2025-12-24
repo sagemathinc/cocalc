@@ -14,12 +14,16 @@ export default function Viewer({
   doc,
   font_size,
 }: {
-  doc: Document;
+  doc: () => Document | undefined;
   font_size?: number;
 }) {
   const messages = useMemo<ChatMessages>(() => {
     const m = new Map<string, any>();
-    for (const v of doc.get()) {
+    const d = doc();
+    if (d == null) {
+      return m;
+    }
+    for (const v of d.get()) {
       const event = (v as any)?.event ?? (v as any)?.get?.("event");
       if (event !== "chat") continue;
       const rawDate = (v as any)?.date ?? (v as any)?.get?.("date");

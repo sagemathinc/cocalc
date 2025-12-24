@@ -58,7 +58,8 @@ export interface Props {
   read_only: boolean;
   is_current: boolean;
   is_public: boolean;
-  value?: string; // if defined and is_public, use this static value and editor is read-only  (TODO: public was deprecated years ago)
+  // value if defined and is_public, use this static value and editor is read-only  (TODO: public was deprecated years ago)
+  value?: string | (() => string);
   misspelled_words?: Set<string> | string; // **or** show these words as not spelled correctly
   resize: number;
   gutters?: string[];
@@ -125,8 +126,15 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
 
   useEffect(() => {
     if (props.is_public && cmRef.current != null && props.value != null) {
-      // we really know that this will be undefined.
-      cmRef.current.setValueNoJump(props.value);
+      if (typeof props.value == "function") {
+        const value = props.value();
+        if (value != null) {
+          cmRef.current.setValueNoJump(value);
+        }
+      } else {
+        // we really know that this will be undefined.
+        cmRef.current.setValueNoJump(props.value);
+      }
     }
   }, [props.value]);
 
@@ -301,8 +309,15 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
 
     if (props.is_public) {
       if (props.value != null) {
-        // should always be the case if public.
-        cm.setValue(props.value);
+        if (typeof props.value == "function") {
+          const value = props.value();
+          if (value != null) {
+            cm.setValue(value);
+          }
+        } else {
+          // should always be the case if public.
+          cm.setValue(props.value);
+        }
       }
     } else {
       if (!has_doc(props.project_id, props.path)) {

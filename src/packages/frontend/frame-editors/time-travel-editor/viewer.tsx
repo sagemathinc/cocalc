@@ -35,7 +35,7 @@ export function Viewer({
   actions,
 }: {
   ext: string;
-  doc: Document;
+  doc: () => Document | undefined;
   textMode?: boolean;
   id: string;
   path: string;
@@ -47,7 +47,7 @@ export function Viewer({
   const renderText = () => {
     return (
       <TextDocument
-        value={doc.to_str()}
+        value={() => doc()?.to_str() ?? "unknown version"}
         id={id}
         path={isObjectDoc(path) ? "a.js" : path}
         project_id={project_id}
@@ -60,7 +60,18 @@ export function Viewer({
   if (textMode) {
     return renderText();
   }
-  const opts = { doc, project_id, path, font_size, editor_settings };
+  const opts1 = { doc, project_id, path, font_size, editor_settings };
+
+  switch (ext) {
+    case "chat":
+    case "sage-chat":
+      return <ChatViewer {...opts1} />;
+  }
+
+  const opts = { doc: doc(), project_id, path, font_size, editor_settings };
+  if (opts.doc == null) {
+    return null;
+  }
 
   // CRITICAL: the extensions here *must* also be listed in HAS_SPECIAL_VIEWER above!
   switch (ext) {
@@ -73,7 +84,7 @@ export function Viewer({
       return (
         <div style={{ overflow: "auto", padding: "50px 70px" }}>
           <StaticMarkdown
-            value={doc.to_str()}
+            value={doc()?.to_str() ?? "unknown version"}
             style={{ fontSize: `${100 * scale}%` }}
           />
         </div>
@@ -82,9 +93,6 @@ export function Viewer({
       return <Whiteboard {...opts} mainFrameType={"whiteboard"} />;
     case "slides":
       return <Whiteboard {...opts} mainFrameType={"slides"} />;
-    case "chat":
-    case "sage-chat":
-      return <ChatViewer {...opts} />;
     default:
       return renderText();
   }

@@ -6,11 +6,12 @@
 import { Button, Tooltip } from "antd";
 import { TimeTravelActions } from "./actions";
 import { Icon } from "../../components";
+import type { Document } from "@cocalc/sync/editor/generic/types";
 
 interface Props {
   actions: TimeTravelActions;
   version: number | string | undefined;
-  doc;
+  doc: () => Document | undefined;
   changesMode?: boolean;
   gitMode?: boolean;
 }
@@ -33,7 +34,10 @@ export function RevertFile({
           if (version != null) {
             const v =
               typeof version === "string" ? version : `${version ?? ""}`;
-            actions.revert({ version: v, doc, gitMode });
+            const d = doc();
+            if (d != null) {
+              actions.revert({ version: v, doc: d, gitMode });
+            }
           }
         }}
         disabled={version == null || actions.syncdoc?.is_read_only()}
