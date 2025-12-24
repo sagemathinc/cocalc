@@ -10,7 +10,6 @@ Uses https://github.com/tajo/react-range
 */
 
 import { List } from "immutable";
-import { TimeAgo } from "../../components";
 import { Slider } from "antd";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { type ReactNode, useMemo } from "react";
@@ -22,7 +21,6 @@ interface Props {
   version1?: VersionValue;
   setVersion0: (v: VersionValue) => void;
   setVersion1: (v: VersionValue) => void;
-  wallTime: (v: VersionValue) => number | undefined;
 }
 
 export function RangeSlider({ marks, ...props }: Props & { marks?: boolean }) {
@@ -39,7 +37,6 @@ function RangeSliderNoMarks({
   version1,
   setVersion0,
   setVersion1,
-  wallTime,
 }: Props) {
   const { isVisible } = useFrameContext();
 
@@ -65,27 +62,6 @@ function RangeSliderNoMarks({
     if (v1 != null) setVersion1(v1);
   };
 
-  const renderTooltip = (index) => {
-    const id = versions.get(index);
-    if (id == null) return;
-    const d = wallTime(id);
-    if (d == null) {
-      return;
-    }
-    const date = new Date(d);
-    if (index === versions.indexOf(version0!)) {
-      // Workaround fact that the left label is NOT VISIBLE
-      // if it is close to the right, which makes this whole
-      // thing totally unusable in such cases.
-      return (
-        <div style={{ marginBottom: "28px" }}>
-          <TimeAgo date={date} />
-        </div>
-      );
-    }
-    return <TimeAgo date={date} />;
-  };
-
   return (
     <div
       style={{
@@ -97,12 +73,12 @@ function RangeSliderNoMarks({
       }}
     >
       <Slider
+        tooltip={{ open: false }}
         range
         min={0}
         max={versions.size - 1}
         value={[versions.indexOf(version0), versions.indexOf(version1)]}
         onChange={handleChange}
-        tooltip={{ open: true, formatter: renderTooltip }}
       />
     </div>
   );
@@ -118,7 +94,6 @@ function RangeSliderMarks({
   version1,
   setVersion0,
   setVersion1,
-  wallTime,
 }: Props) {
   const { isVisible } = useFrameContext();
 
@@ -155,25 +130,6 @@ function RangeSliderMarks({
     if (v1 != null) setVersion1(v1);
   };
 
-  const renderTooltip = (index) => {
-    const id = versions.get(index);
-    if (id == null) return;
-    const t = wallTime(id);
-    if (t == null) return;
-    const date = new Date(t);
-    if (index === versions.indexOf(version0!)) {
-      // Workaround fact that the left label is NOT VISIBLE
-      // if it is close to the right, which makes this whole
-      // thing totally unusable in such cases.
-      return (
-        <div style={{ marginBottom: "28px" }}>
-          <TimeAgo date={date} />
-        </div>
-      );
-    }
-    return <TimeAgo date={date} />;
-  };
-
   return (
     <div
       style={{
@@ -185,6 +141,7 @@ function RangeSliderMarks({
       }}
     >
       <Slider
+        tooltip={{ open: false }}
         marks={marks}
         step={null}
         included={false}
@@ -196,7 +153,6 @@ function RangeSliderMarks({
           versions.indexOf(version1!),
         ]}
         onChange={handleChange}
-        tooltip={{ open: true, formatter: renderTooltip }}
       />
     </div>
   );

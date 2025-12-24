@@ -370,7 +370,6 @@ export function TimeTravel(props: Props) {
         version1={version1}
         setVersion1={setVersion1}
         marks={marks}
-        wallTime={wallTime}
       />
     );
   };

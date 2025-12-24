@@ -4,7 +4,6 @@
  */
 
 import { Slider } from "antd";
-import { TimeAgo } from "../../components";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { type List } from "immutable";
 import { type ReactNode, useMemo } from "react";
@@ -32,23 +31,15 @@ function NavigationSliderNoMarks({
   version,
   versions,
   setVersion,
-  wallTime,
 }: Props) {
   const { isVisible } = useFrameContext();
   if (versions == null || version == null || !isVisible) {
     return null;
   }
 
-  const renderTooltip = (index: number) => {
-    const id = versions.get(index);
-    if (id == null) return;
-    const date = wallTime(id);
-    if (date == null) return; // shouldn't happen
-    return <TimeAgo date={date} />;
-  };
-
   return (
     <Slider
+      tooltip={{ open: false }}
       style={{ margin: "10px 15px" }}
       min={0}
       max={versions.size - 1}
@@ -57,7 +48,6 @@ function NavigationSliderNoMarks({
         const id = versions.get(value);
         if (id != null) setVersion(id);
       }}
-      tooltip={{ formatter: renderTooltip, placement: "bottom" }}
     />
   );
 }
@@ -69,16 +59,8 @@ function NavigationSliderMarks({
   version,
   versions,
   setVersion,
-  wallTime,
 }: Props) {
   const { isVisible } = useFrameContext();
-
-  const renderTooltip = (index: number) => {
-    const id = versions?.get(index);
-    if (id == null) return null;
-    const t = wallTime(id);
-    return t == null ? null : <TimeAgo date={new Date(t)} />;
-  };
 
   const marks = useMemo(() => {
     if (versions == null) {
@@ -87,8 +69,7 @@ function NavigationSliderMarks({
     const marks: { [value: number]: ReactNode } = {};
     versions.forEach((_, idx) => {
       marks[idx] = <span />;
-    }
-    );
+    });
     return marks;
   }, [versions]);
 
@@ -98,6 +79,7 @@ function NavigationSliderMarks({
 
   return (
     <Slider
+      tooltip={{ open: false }}
       marks={marks}
       included={false}
       step={null}
@@ -109,7 +91,6 @@ function NavigationSliderMarks({
         const id = versions.get(idx);
         if (id != null) setVersion(id);
       }}
-      tooltip={{ formatter: renderTooltip, placement: "bottom" }}
     />
   );
 }
