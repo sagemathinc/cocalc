@@ -135,7 +135,9 @@ export class ChatMessageCache extends EventEmitter {
     }
     log("handleChange", changes);
     if (this.syncdb.get_state() !== "ready") return;
-    const m = new Map(this.messages);
+    // Mutate the existing Map in place to avoid per-change allocations.
+    // Copying a large Map on every draft/typing change causes heavy churn.
+    const m = this.messages;
     const rows: Record<string, unknown>[] = Array.from(changes);
     const toPersist: PlainChatMessage[] = [];
     for (const row0 of rows) {
@@ -175,7 +177,6 @@ export class ChatMessageCache extends EventEmitter {
         m.delete(key);
       }
     }
-    this.messages = m;
     if (toPersist.length > 0) {
       this.persist(toPersist);
     }
