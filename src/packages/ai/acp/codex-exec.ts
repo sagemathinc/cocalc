@@ -101,7 +101,7 @@ export class CodexExecAgent implements AcpAgent {
   private sessions = new Map<string, SessionStoreEntry>();
   private running = new Map<
     string,
-    { proc: ReturnType<typeof spawn>; stop: () => void }
+    { proc: ReturnType<typeof spawn>; stop: () => void; interrupted: boolean }
   >();
 
   async evaluate(request: AcpEvaluateRequest): Promise<void> {
@@ -156,7 +156,11 @@ export class CodexExecAgent implements AcpAgent {
       });
     }
 
-    this.running.set(session.sessionId, { proc, stop: () => this.kill(proc) });
+    this.running.set(session.sessionId, {
+      proc,
+      stop: () => this.kill(proc),
+      interrupted: false,
+    });
 
     // send prompt
     proc.stdin?.write(this.decoratePrompt(prompt));
@@ -225,7 +229,8 @@ export class CodexExecAgent implements AcpAgent {
 
     const exitPromise = new Promise<void>((resolve) => {
       proc.on("exit", (code, signal) => {
-        if (code !== 0) {
+        const interrupted = this.running.get(session.sessionId)?.interrupted;
+        if (code !== 0 && !interrupted) {
           const errMsg =
             stderrBuf.join("") ||
             `codex exited with code ${code ?? "?"} signal ${signal ?? "?"}`;
@@ -234,6 +239,11 @@ export class CodexExecAgent implements AcpAgent {
             code,
             signal,
             stderr: stderrBuf.join(""),
+          });
+        } else if (interrupted) {
+          logger.debug("codex-exec: process exited after interrupt", {
+            code,
+            signal,
           });
         }
         resolve();
@@ -277,8 +287,8 @@ export class CodexExecAgent implements AcpAgent {
   async interrupt(threadId: string): Promise<boolean> {
     const running = this.running.get(threadId);
     if (!running) return false;
+    running.interrupted = true;
     running.stop();
-    this.running.delete(threadId);
     return true;
   }
 
