@@ -51,6 +51,10 @@ import {
 } from "./utils";
 import { dateValue, field, replyTo, foldingList } from "./access";
 
+// you can use this to quickly disabled virtuoso, but rendering large chatrooms will
+// become basically impossible.
+const USE_VIRTUOSO = true;
+
 interface Props {
   project_id: string; // used to render links more effectively
   path: string;
@@ -601,6 +605,7 @@ export function MessageList({
   const [atBottom, setAtBottom] = useState(true);
   const cacheId = scrollCacheId ?? `${project_id}${path}`;
   const initialIndex = Math.max(sortedDates.length - 1, 0); // start at newest
+  const endRef = useRef<HTMLDivElement | null>(null);
 
   const forceScrollToBottom = useCallback(() => {
     if (manualScrollRef) {
@@ -610,6 +615,91 @@ export function MessageList({
     scrollToBottomRef?.current?.(true);
   }, [manualScrollRef, scrollToBottomRef, setManualScroll]);
 
+  const renderMessage = (index: number) => {
+    const date = sortedDates[index];
+    const message: ChatMessageTyped | undefined = messages.get(date);
+    if (message == null) {
+      console.warn("empty message", { date, index, sortedDates });
+      return <div style={{ height: "30px" }} />;
+    }
+
+    const is_thread = numChildren != null && isThread(message, numChildren);
+    const is_folded =
+      !singleThreadView && is_thread && isFolded(messages, message, account_id);
+    const is_thread_body = is_thread && replyTo(message) != null;
+    const h = virtuosoHeightsRef.current?.[index];
+
+    return (
+      <div
+        style={{
+          overflow: "hidden",
+          paddingTop: index == 0 ? "20px" : undefined,
+        }}
+      >
+        <DivTempHeight height={h ? `${h}px` : undefined}>
+          <Message
+            messages={messages}
+            numChildren={numChildren?.[dateValue(message)?.valueOf() ?? NaN]}
+            key={date}
+            index={index}
+            account_id={account_id}
+            user_map={user_map}
+            message={message}
+            selected={date == selectedDate}
+            project_id={project_id}
+            path={path}
+            font_size={fontSize}
+            selectedHashtags={selectedHashtags}
+            actions={actions}
+            is_thread={is_thread}
+            is_folded={is_folded}
+            is_thread_body={is_thread_body}
+            is_prev_sender={isPrevMessageSender(index, sortedDates, messages)}
+            show_avatar={!isNextMessageSender(index, sortedDates, messages)}
+            mode={mode}
+            get_user_name={(account_id: string | undefined) =>
+              typeof account_id === "string"
+                ? getUserName(user_map, account_id)
+                : "Unknown name"
+            }
+            scroll_into_view={
+              virtuosoRef
+                ? () => virtuosoRef.current?.scrollIntoView({ index })
+                : undefined
+            }
+            allowReply={
+              !singleThreadView &&
+              (() => {
+                const next = messages.get(sortedDates[index + 1]);
+                return next == null ? true : replyTo(next) == null;
+              })()
+            }
+            costEstimate={costEstimate}
+            threadViewMode={singleThreadView}
+            onForceScrollToBottom={forceScrollToBottom}
+            acpState={acpState?.get(date)}
+          />
+        </DivTempHeight>
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    if (!scrollToBottomRef || USE_VIRTUOSO) return;
+    scrollToBottomRef.current = () => {
+      endRef.current?.scrollIntoView({ block: "end" });
+    };
+  }, [scrollToBottomRef]);
+
+  if (!USE_VIRTUOSO) {
+    return (
+      <div>
+        {sortedDates.map((_, index) => renderMessage(index))}
+        <div ref={endRef} style={{ height: "25vh" }} />
+      </div>
+    );
+  }
+
   return (
     <StatefulVirtuoso
       ref={virtuosoRef}
@@ -617,7 +707,6 @@ export function MessageList({
       cacheId={cacheId}
       initialTopMostItemIndex={initialIndex}
       itemSize={(el) => {
-        // see comment in jupyter/cell-list.tsx
         const h = el.getBoundingClientRect().height;
         const data = el.getAttribute("data-item-index");
         if (data != null) {
@@ -630,93 +719,11 @@ export function MessageList({
         if (sortedDates.length == index) {
           return <div style={{ height: "25vh" }} />;
         }
-        const date = sortedDates[index];
-        const message: ChatMessageTyped | undefined = messages.get(date);
-        if (message == null) {
-          // shouldn't happen, but make code robust to such a possibility.
-          // if it happens, fix it.
-          console.warn("empty message", { date, index, sortedDates });
-          return <div style={{ height: "30px" }} />;
-        }
-
-        // only do threading if numChildren is defined.  It's not defined,
-        // e.g., when viewing past versions via TimeTravel.
-        const is_thread = numChildren != null && isThread(message, numChildren);
-        // optimization: only threads can be folded, so don't waste time
-        // checking on folding state if it isn't a thread.
-        const is_folded =
-          !singleThreadView &&
-          is_thread &&
-          isFolded(messages, message, account_id);
-        const is_thread_body = is_thread && replyTo(message) != null;
-        const h = virtuosoHeightsRef.current?.[index];
-
-        return (
-          <div
-            style={{
-              overflow: "hidden",
-              paddingTop: index == 0 ? "20px" : undefined,
-            }}
-          >
-            <DivTempHeight height={h ? `${h}px` : undefined}>
-              <Message
-                messages={messages}
-                numChildren={
-                  numChildren?.[dateValue(message)?.valueOf() ?? NaN]
-                }
-                key={date}
-                index={index}
-                account_id={account_id}
-                user_map={user_map}
-                message={message}
-                selected={date == selectedDate}
-                project_id={project_id}
-                path={path}
-                font_size={fontSize}
-                selectedHashtags={selectedHashtags}
-                actions={actions}
-                is_thread={is_thread}
-                is_folded={is_folded}
-                is_thread_body={is_thread_body}
-                is_prev_sender={isPrevMessageSender(
-                  index,
-                  sortedDates,
-                  messages,
-                )}
-                show_avatar={!isNextMessageSender(index, sortedDates, messages)}
-                mode={mode}
-                get_user_name={(account_id: string | undefined) =>
-                  // ATTN: this also works for LLM chat bot IDs, not just account UUIDs
-                  typeof account_id === "string"
-                    ? getUserName(user_map, account_id)
-                    : "Unknown name"
-                }
-                scroll_into_view={
-                  virtuosoRef
-                    ? () => virtuosoRef.current?.scrollIntoView({ index })
-                    : undefined
-                }
-                allowReply={
-                  !singleThreadView &&
-                  (() => {
-                    const next = messages.get(sortedDates[index + 1]);
-                    return next == null ? true : replyTo(next) == null;
-                  })()
-                }
-                costEstimate={costEstimate}
-                threadViewMode={singleThreadView}
-                onForceScrollToBottom={forceScrollToBottom}
-                acpState={acpState?.get(date)}
-              />
-            </DivTempHeight>
-          </div>
-        );
+        return renderMessage(index);
       }}
       rangeChanged={
         manualScrollRef
           ? ({ endIndex }) => {
-              // Treat any move away from the bottom as manual scroll; keep that
-              // latched until explicitly reset (e.g. on a new turn).
               if (endIndex < sortedDates.length - 1) {
                 manualScrollRef.current = true;
                 setManualScroll?.(true);
