@@ -142,6 +142,19 @@ async function handleDelete(row: any) {
     spec: machine,
     runtime,
   });
+  // set the project host to a deprovisioned state, which means all
+  // the data stored there is definitely gone and no dns is setup.
+  const nextMetadata = {
+    ...(row.metadata ?? {}),
+  };
+  delete nextMetadata.runtime;
+  delete nextMetadata.dns;
+  await updateHostRow(row.id, {
+    metadata: nextMetadata,
+    status: "deprovisioned",
+    public_url: null,
+    internal_url: null,
+  });
 }
 
 export const cloudHostHandlers: CloudVmWorkHandlers = {
