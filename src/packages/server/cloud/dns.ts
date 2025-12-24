@@ -27,7 +27,7 @@ export async function hasDns(): Promise<boolean> {
 let zoneId = "";
 async function getZoneId(cf: Client, dns: string) {
   if (zoneId) return zoneId;
-  const response = await cf.zones.browse();
+  const response = (await cf.zones.browse()) as { result: { name: string; id: string }[] };
   for (const { name, id } of response.result) {
     if (name === dns) {
       zoneId = id;
@@ -77,7 +77,9 @@ export async function ensureHostDns(opts: {
     ttl: TTL,
     proxied: true,
   } as const;
-  const response = await cf.dnsRecords.add(cf.zoneId, record);
+  const response = (await cf.dnsRecords.add(cf.zoneId, record)) as {
+    result?: { id?: string };
+  };
   const record_id = response.result?.id;
   if (!record_id) {
     throw new Error("cloudflare did not return record id");
