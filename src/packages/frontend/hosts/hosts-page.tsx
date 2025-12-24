@@ -65,6 +65,17 @@ const GPU_TYPES = [
   { value: "a10g", label: "NVIDIA A10G" },
 ];
 
+const PROVIDERS = [
+  { value: "none", label: "Local (manual setup)" },
+  { value: "gcp", label: "Google Cloud" },
+];
+
+const DISK_TYPES = [
+  { value: "balanced", label: "Balanced SSD" },
+  { value: "ssd", label: "SSD" },
+  { value: "standard", label: "Standard (HDD)" },
+];
+
 export const HostsPage: React.FC = () => {
   const [hosts, setHosts] = useState<Host[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -93,6 +104,13 @@ export const HostsPage: React.FC = () => {
     });
   }, []);
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      refresh().catch((err) => console.error("host refresh failed", err));
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
   const onCreate = async (vals: any) => {
     if (creating) return;
     setCreating(true);
@@ -103,11 +121,14 @@ export const HostsPage: React.FC = () => {
         size: vals.size ?? SIZES[0].value,
         gpu: vals.gpu && vals.gpu !== "none",
         machine: {
+          cloud: vals.provider !== "none" ? vals.provider : undefined,
           gpu_type: vals.gpu,
           disk_gb: vals.disk,
+          disk_type: vals.disk_type,
           metadata: {
             shared: vals.shared,
             bucket: vals.bucket,
+            boot_disk_gb: vals.boot_disk_gb,
           },
         },
       });
@@ -275,6 +296,15 @@ export const HostsPage: React.FC = () => {
                   <Row gutter={[12, 12]}>
                     <Col span={24}>
                       <Form.Item
+                        name="provider"
+                        label="Provider"
+                        initialValue={PROVIDERS[0].value}
+                      >
+                        <Select options={PROVIDERS} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={24}>
+                      <Form.Item
                         name="gpu"
                         label="GPU"
                         initialValue="none"
@@ -291,6 +321,24 @@ export const HostsPage: React.FC = () => {
                         tooltip="Root disk for projects on this host."
                       >
                         <Slider min={50} max={1000} step={50} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={24}>
+                      <Form.Item
+                        name="disk_type"
+                        label="Disk type"
+                        initialValue={DISK_TYPES[0].value}
+                      >
+                        <Select options={DISK_TYPES} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={24}>
+                      <Form.Item
+                        name="boot_disk_gb"
+                        label="Boot disk size (GB)"
+                        initialValue={20}
+                      >
+                        <Slider min={10} max={200} step={5} />
                       </Form.Item>
                     </Col>
                     <Col span={24}>

@@ -11,6 +11,7 @@ import {
   markCloudVmWorkFailed,
   type CloudVmWorkRow,
 } from "./db";
+import { logCloudVmEvent } from "./db";
 
 const logger = getLogger("server:cloud:worker");
 
@@ -48,6 +49,21 @@ export async function processCloudVmWorkOnce(opts: {
     } catch (err) {
       logger.warn("cloud work failed", { id: row.id, action: row.action, err });
       await markCloudVmWorkFailed(row.id, `${err}`);
+      try {
+        await logCloudVmEvent({
+          vm_id: row.vm_id,
+          action: row.action,
+          status: "failure",
+          provider: row.payload?.provider as string | undefined,
+          error: `${err}`,
+        });
+      } catch (logErr) {
+        logger.warn("cloud work failed: logging failure event failed", {
+          id: row.id,
+          action: row.action,
+          err: logErr,
+        });
+      }
     }
   };
 
