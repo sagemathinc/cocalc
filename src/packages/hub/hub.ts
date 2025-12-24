@@ -36,6 +36,7 @@ import initEphemeralMaintenance from "@cocalc/server/ephemeral-maintenance";
 import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
 import { startProjectMoveWorker } from "@cocalc/server/project-host/move-worker";
+import { cloudHostHandlers, startCloudVmWorker } from "@cocalc/server/cloud";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { set_agent_endpoint } from "./health-checks";
 import { getLogger } from "./logger";
@@ -207,6 +208,14 @@ async function startServer(): Promise<void> {
 
   if (program.conatServer) {
     await initConatHostRegistry();
+  }
+
+  if (program.conatApi || program.conatServer) {
+    logger.info("starting cloud VM work queue worker...");
+    startCloudVmWorker({
+      worker_id: `hub-${process.pid}`,
+      handlers: cloudHostHandlers,
+    });
   }
 
   await maybeStartEmbeddedProjectHost();
