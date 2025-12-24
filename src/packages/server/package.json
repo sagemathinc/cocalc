@@ -11,6 +11,7 @@
     "./bookmarks/*": "./dist/bookmarks/*.js",
     "./compute/*": "./dist/compute/*.js",
     "./compute/maintenance": "./dist/compute/maintenance/index.js",
+    "./cloud": "./dist/cloud/index.js",
     "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",
     "./conat": "./dist/conat/index.js",
