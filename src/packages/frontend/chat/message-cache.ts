@@ -62,7 +62,7 @@ export class ChatMessageCache extends EventEmitter {
 
   dispose() {
     this.syncdb.off("change", this.handleChange);
-    this.messages.clear();
+    this.messages = new Map();
     this.removeAllListeners();
   }
 

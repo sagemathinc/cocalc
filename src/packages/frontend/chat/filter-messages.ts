@@ -27,7 +27,7 @@ export function filterMessages({
   filter = filter?.trim();
 
   if (!(filter || (typeof filterRecentH === "number" && filterRecentH > 0))) {
-    // no filters -- typical special case; waste now time.
+    // no filters -- typical special case; waste no time.
     return messages;
   }
   const searchData = getSearchData({ messages, threads: true });
