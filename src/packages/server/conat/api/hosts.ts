@@ -11,7 +11,8 @@ import {
   getUserHostTier,
 } from "@cocalc/server/project-host/placement";
 import { resolveMembershipForAccount } from "@cocalc/server/membership/resolve";
-import { enqueueCloudVmWork } from "@cocalc/server/cloud";
+import { enqueueCloudVmWork, refreshCloudCatalogNow } from "@cocalc/server/cloud";
+import isAdmin from "@cocalc/server/accounts/is-admin";
 function pool() {
   return getPool();
 }
@@ -205,6 +206,7 @@ export async function getCatalog({
     zones: [],
     machine_types_by_zone: {},
     gpu_types_by_zone: {},
+    images: [],
   };
 
   for (const row of rows) {
@@ -218,10 +220,26 @@ export async function getCatalog({
     } else if (row.kind === "gpu_types" && row.scope?.startsWith("zone/")) {
       const zone = row.scope.slice("zone/".length);
       catalog.gpu_types_by_zone[zone] = row.payload ?? [];
+    } else if (row.kind === "images" && row.scope === "global") {
+      catalog.images = row.payload ?? [];
     }
   }
 
   return catalog;
+}
+
+export async function updateCloudCatalog({
+  account_id,
+  provider,
+}: {
+  account_id?: string;
+  provider?: string;
+}): Promise<void> {
+  const owner = requireAccount(account_id);
+  if (!(await isAdmin(owner))) {
+    throw new Error("not authorized");
+  }
+  await refreshCloudCatalogNow({ provider });
 }
 
 export async function createHost({

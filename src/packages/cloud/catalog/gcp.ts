@@ -4,6 +4,7 @@ import logger from "../logger";
 import type {
   GcpCatalog,
   GcpGpuType,
+  GcpImage,
   GcpMachineType,
   GcpRegion,
   GcpZone,
@@ -40,6 +41,7 @@ export function normalizeGcpCatalog(opts: {
   zones: GcpZoneRaw[];
   machine_types_by_zone: Record<string, GcpMachineType[]>;
   gpu_types_by_zone: Record<string, GcpGpuType[]>;
+  images?: GcpImage[];
 }): GcpCatalog {
   const regions: GcpRegion[] = opts.regions.map((region) => ({
     name: region.name ?? "",
@@ -62,7 +64,50 @@ export function normalizeGcpCatalog(opts: {
     zones,
     machine_types_by_zone: opts.machine_types_by_zone,
     gpu_types_by_zone: opts.gpu_types_by_zone,
+    images: opts.images ?? [],
   };
+}
+
+function safeDiskGb(value: unknown): string | null {
+  const num = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(num)) return null;
+  if (num < 0 || num > 10000) {
+    logger.warn("GCP image diskSizeGb out of expected range", { value: num });
+    return null;
+  }
+  return String(Math.trunc(num));
+}
+
+function ubuntuVersionCode(name?: string | null): number | undefined {
+  if (!name) return undefined;
+  const match = name.match(/ubuntu-.*?(\d{2})(\d{2})/i);
+  if (!match) return undefined;
+  return Number(`${match[1]}${match[2]}`);
+}
+
+function latestImagesByFamily(images: GcpImage[]): GcpImage[] {
+  const byFamily = new Map<string, GcpImage>();
+  for (const img of images) {
+    const family = img.family ?? img.name ?? "";
+    if (!family) continue;
+    const current = byFamily.get(family);
+    if (!current) {
+      byFamily.set(family, img);
+      continue;
+    }
+    const currentTs = Date.parse(current.creationTimestamp ?? "");
+    const nextTs = Date.parse(img.creationTimestamp ?? "");
+    if (!Number.isFinite(currentTs) || !Number.isFinite(nextTs)) {
+      if ((img.name ?? "") > (current.name ?? "")) {
+        byFamily.set(family, img);
+      }
+      continue;
+    }
+    if (nextTs > currentTs) {
+      byFamily.set(family, img);
+    }
+  }
+  return Array.from(byFamily.values());
 }
 
 async function listRegions(opts: GcpCatalogOptions): Promise<GcpRegionRaw[]> {
@@ -142,6 +187,35 @@ async function listGpuTypes(
   return gpus;
 }
 
+async function listImages(
+  opts: GcpCatalogOptions,
+  project: string,
+  gpuReady: boolean,
+): Promise<GcpImage[]> {
+  const client = new compute.ImagesClient({
+    projectId: opts.projectId,
+    credentials: opts.credentials,
+  });
+  const images: GcpImage[] = [];
+  for await (const img of client.listAsync({ project })) {
+    images.push({
+      project,
+      name: img.name,
+      family: img.family,
+      selfLink: img.selfLink,
+      architecture: img.architecture,
+      status: img.status,
+      deprecated: img.deprecated,
+      diskSizeGb:
+        img.diskSizeGb == null ? null : safeDiskGb(img.diskSizeGb),
+      creationTimestamp: img.creationTimestamp,
+      gpuReady,
+    });
+  }
+  await client.close();
+  return images;
+}
+
 export async function fetchGcpCatalog(opts: GcpCatalogOptions): Promise<GcpCatalog> {
   logger.info("fetchGcpCatalog start", { projectId: opts.projectId });
   const regions = await listRegions(opts);
@@ -169,11 +243,23 @@ export async function fetchGcpCatalog(opts: GcpCatalogOptions): Promise<GcpCatal
     },
   );
 
+  const images = [
+    ...(await listImages(opts, "ubuntu-os-cloud", false)),
+    ...(await listImages(opts, "ubuntu-os-accelerator-images", true)),
+  ];
+  const filteredImages = latestImagesByFamily(images)
+    .filter((img) => !img.deprecated?.state)
+    .filter((img) => {
+      const version = ubuntuVersionCode(img.family ?? img.name ?? "");
+      return version != null && version >= 2204;
+    });
+
   const catalog = normalizeGcpCatalog({
     regions,
     zones,
     machine_types_by_zone,
     gpu_types_by_zone,
+    images: filteredImages,
   });
   logger.info("fetchGcpCatalog done", {
     regions: catalog.regions.length,

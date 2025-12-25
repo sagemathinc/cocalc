@@ -128,6 +128,17 @@ export async function refreshGcpCatalog() {
       ttl_seconds: GCP_TTLS.gpu_types,
     });
   }
+
+  if (catalog.images?.length) {
+    await upsertCatalog({
+      id: catalogId("gcp", "images", "global"),
+      provider: "gcp",
+      kind: "images",
+      scope: "global",
+      payload: catalog.images,
+      ttl_seconds: GCP_TTLS.machine_types,
+    });
+  }
 }
 
 export async function refreshCloudCatalog() {
@@ -177,6 +188,15 @@ async function withCatalogLock<T>(
   } finally {
     await pool().query("SELECT pg_advisory_unlock(hashtext($1))", [lockKey]);
   }
+}
+
+export async function refreshCloudCatalogNow(opts: {
+  provider?: string;
+} = {}) {
+  const provider = opts.provider ?? "gcp";
+  return await withCatalogLock(provider, async () => {
+    await refreshCloudCatalog();
+  });
 }
 
 export function startCloudCatalogWorker(opts: { interval_ms?: number } = {}) {

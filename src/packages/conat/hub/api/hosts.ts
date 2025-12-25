@@ -57,6 +57,18 @@ export interface HostCatalog {
   zones: HostCatalogZone[];
   machine_types_by_zone: Record<string, HostCatalogMachineType[]>;
   gpu_types_by_zone: Record<string, HostCatalogGpuType[]>;
+  images?: {
+    project: string;
+    name?: string | null;
+    family?: string | null;
+    selfLink?: string | null;
+    architecture?: string | null;
+    status?: string | null;
+    deprecated?: any;
+    diskSizeGb?: string | null;
+    creationTimestamp?: string | null;
+    gpuReady?: boolean;
+  }[];
 }
 
 export interface Host {
@@ -82,6 +94,7 @@ export interface Host {
 export const hosts = {
   listHosts: authFirstRequireAccount,
   getCatalog: authFirstRequireAccount,
+  updateCloudCatalog: authFirstRequireAccount,
   createHost: authFirstRequireAccount,
   startHost: authFirstRequireAccount,
   stopHost: authFirstRequireAccount,
@@ -98,6 +111,10 @@ export interface Hosts {
     account_id?: string;
     provider?: string;
   }) => Promise<HostCatalog>;
+  updateCloudCatalog: (opts: {
+    account_id?: string;
+    provider?: string;
+  }) => Promise<void>;
   createHost: (opts: {
     account_id?: string;
     name: string;

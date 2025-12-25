@@ -22,11 +22,13 @@ import {
   useEffect,
   useMemo,
   useState,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import Bootlog from "@cocalc/frontend/project/bootlog";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
+import { getMachineTypeArchitecture } from "@cocalc/util/db-schema/compute-servers";
 
 const WRAP_STYLE: CSS = {
   padding: "24px",
@@ -76,6 +78,12 @@ const DISK_TYPES = [
   { value: "standard", label: "Standard (HDD)" },
 ];
 
+function imageVersionCode(name: string): number | undefined {
+  const match = name.match(/ubuntu-.*?(\d{2})(\d{2})/i);
+  if (!match) return undefined;
+  return Number(`${match[1]}${match[2]}`);
+}
+
 export const HostsPage: React.FC = () => {
   const [hosts, setHosts] = useState<Host[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -86,8 +94,10 @@ export const HostsPage: React.FC = () => {
   const [catalogError, setCatalogError] = useState<string | undefined>(
     undefined,
   );
+  const [catalogRefreshing, setCatalogRefreshing] = useState<boolean>(false);
   const hub = webapp_client.conat_client.hub;
   const [form] = Form.useForm();
+  const isAdmin = useTypedRedux("account", "is_admin");
 
   const refresh = async () => {
     const [list, membership] = await Promise.all([
@@ -136,10 +146,21 @@ export const HostsPage: React.FC = () => {
   const selectedProvider = Form.useWatch("provider", form);
   const selectedRegion = Form.useWatch("region", form);
   const selectedZone = Form.useWatch("zone", form);
+  const selectedMachineType = Form.useWatch("machine_type", form);
+  const selectedGpuType = Form.useWatch("gpu_type", form);
+  const selectedSourceImage = Form.useWatch("source_image", form);
 
   const regionOptions =
     selectedProvider === "gcp" && catalog?.regions?.length
-      ? catalog.regions.map((r) => ({ value: r.name, label: r.name }))
+      ? catalog.regions.map((r) => {
+          const zoneWithMeta = catalog.zones?.find(
+            (z) => z.region === r.name && (z.location || z.lowC02),
+          );
+          const location = zoneWithMeta?.location;
+          const lowC02 = zoneWithMeta?.lowC02 ? " (low CO₂)" : "";
+          const suffix = location ? ` — ${location}${lowC02}` : "";
+          return { value: r.name, label: `${r.name}${suffix}` };
+        })
       : REGIONS;
 
   const zoneOptions =
@@ -170,6 +191,52 @@ export const HostsPage: React.FC = () => {
         }))
       : [];
 
+  const imageOptions =
+    selectedProvider === "gcp" && catalog?.images?.length
+      ? [...catalog.images]
+          .filter((img) => {
+            if (!selectedMachineType) return true;
+            const arch = getMachineTypeArchitecture(selectedMachineType);
+            const imgArch = (img.architecture ?? "").toUpperCase();
+            if (!imgArch) return true;
+            return arch === "arm64" ? imgArch === "ARM64" : imgArch === "X86_64";
+          })
+          .filter((img) => {
+            const wantsGpu = selectedGpuType && selectedGpuType !== "none";
+            if (!wantsGpu) return !img.gpuReady;
+            return !!img.gpuReady;
+          })
+          .sort((a, b) => {
+            const va = imageVersionCode(a.family ?? a.name ?? "");
+            const vb = imageVersionCode(b.family ?? b.name ?? "");
+            if (va != null && vb != null && va !== vb) {
+              return vb - va;
+            }
+            const ta = Date.parse(a.creationTimestamp ?? "");
+            const tb = Date.parse(b.creationTimestamp ?? "");
+            if (!Number.isFinite(ta) && !Number.isFinite(tb)) return 0;
+            if (!Number.isFinite(ta)) return 1;
+            if (!Number.isFinite(tb)) return -1;
+            return tb - ta;
+          })
+          .map((img) => {
+            const label = img.family
+              ? `${img.family}${img.gpuReady ? " (GPU-ready)" : ""}`
+              : img.name ?? "unknown";
+            return {
+              value: img.selfLink ?? img.name ?? "",
+              label,
+            };
+          })
+      : [];
+
+  useEffect(() => {
+    if (selectedProvider !== "gcp") return;
+    if (selectedSourceImage) return;
+    if (!imageOptions.length) return;
+    form.setFieldsValue({ source_image: imageOptions[0].value });
+  }, [selectedProvider, selectedSourceImage, imageOptions, form]);
+
   useEffect(() => {
     if (selectedProvider !== "gcp") return;
     if (!zoneOptions.length) return;
@@ -199,6 +266,7 @@ export const HostsPage: React.FC = () => {
           zone: vals.zone ?? undefined,
           disk_gb: vals.disk,
           disk_type: vals.disk_type,
+          source_image: vals.source_image || undefined,
           metadata: {
             shared: vals.shared,
             bucket: vals.bucket,
@@ -244,6 +312,23 @@ export const HostsPage: React.FC = () => {
     } catch (err) {
       console.error(err);
       message.error("Failed to delete host");
+    }
+  };
+
+  const refreshCatalog = async () => {
+    if (catalogRefreshing) return;
+    setCatalogRefreshing(true);
+    try {
+      await hub.hosts.updateCloudCatalog({ provider: "gcp" });
+      const data = await hub.hosts.getCatalog({ provider: "gcp" });
+      setCatalog(data);
+      setCatalogError(undefined);
+      message.success("Cloud catalog updated");
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to update cloud catalog");
+    } finally {
+      setCatalogRefreshing(false);
     }
   };
 
@@ -323,6 +408,35 @@ export const HostsPage: React.FC = () => {
                 {host.status === "error" && host.error && (
                   <Typography.Text type="danger">{host.error}</Typography.Text>
                 )}
+                <Collapse ghost>
+                  <Collapse.Panel header="Details" key="details">
+                    <Space direction="vertical" size="small">
+                      {host.machine?.zone && (
+                        <Typography.Text>
+                          Zone: {host.machine.zone}
+                        </Typography.Text>
+                      )}
+                      {host.machine?.machine_type && (
+                        <Typography.Text>
+                          Machine type: {host.machine.machine_type}
+                        </Typography.Text>
+                      )}
+                      {host.machine?.gpu_type && (
+                        <Typography.Text>
+                          GPU type: {host.machine.gpu_type}
+                        </Typography.Text>
+                      )}
+                      {(host.machine?.source_image ||
+                        host.machine?.metadata?.source_image) && (
+                        <Typography.Text>
+                          Image:{" "}
+                          {host.machine?.source_image ??
+                            host.machine?.metadata?.source_image}
+                        </Typography.Text>
+                      )}
+                    </Space>
+                  </Collapse.Panel>
+                </Collapse>
               </Space>
             </Card>
           </Col>
@@ -340,6 +454,17 @@ export const HostsPage: React.FC = () => {
               <span>
                 <Icon name="plus" /> Create host
               </span>
+            }
+            extra={
+              isAdmin ? (
+                <Button
+                  size="small"
+                  onClick={refreshCatalog}
+                  loading={catalogRefreshing}
+                >
+                  Refresh catalog
+                </Button>
+              ) : undefined
             }
           >
             {!canCreateHosts && (
@@ -411,6 +536,23 @@ export const HostsPage: React.FC = () => {
                             initialValue={machineTypeOptions[0]?.value}
                           >
                             <Select options={machineTypeOptions} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={24}>
+                          <Form.Item
+                            name="source_image"
+                            label="Base image"
+                            tooltip="Optional override; leave blank for the default Ubuntu image."
+                          >
+                            <Select
+                              options={[
+                                { value: "", label: "Default (Ubuntu LTS)" },
+                                ...imageOptions,
+                              ]}
+                              showSearch
+                              optionFilterProp="label"
+                              allowClear
+                            />
                           </Form.Item>
                         </Col>
                         <Col span={24}>

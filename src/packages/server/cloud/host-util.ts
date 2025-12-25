@@ -26,7 +26,7 @@ function sizeToResources(size?: string): { cpu: number; ram_gb: number } {
   }
 }
 
-export function buildHostSpec(row: HostRow): HostSpec {
+export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
   const metadata = row.metadata ?? {};
   const machine: HostMachine = metadata.machine ?? {};
   const size = metadata.size ?? (row as any).size ?? "small";
@@ -47,8 +47,15 @@ export function buildHostSpec(row: HostRow): HostSpec {
       : metadata.gpu
         ? { type: machine.gpu_type ?? "nvidia-l4", count: 1 }
         : undefined;
+  const { google_cloud_compute_servers_prefix = "cocalc-host" } =
+    await getServerSettings();
+  const baseName = row.id.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+  const providerName =
+    machine.cloud === "gcp" || machine.cloud === "google-cloud"
+      ? `${google_cloud_compute_servers_prefix}-${baseName}`
+      : baseName;
   const spec: HostSpec = {
-    name: row.id,
+    name: providerName,
     region: row.region ?? "us-west1",
     zone: machine.zone,
     cpu,
@@ -88,7 +95,7 @@ export async function provisionIfNeeded(row: HostRow) {
   }
   if (runtime?.instance_id) return row;
   const { provider, creds } = await ensureGcpProvider();
-  const spec = buildHostSpec(row);
+  const spec = await buildHostSpec(row);
   const runtimeCreated = await provider.createHost(spec, creds);
   return {
     ...row,

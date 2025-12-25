@@ -32,4 +32,18 @@ export type GcpCatalog = {
   zones: GcpZone[];
   machine_types_by_zone: Record<string, GcpMachineType[]>;
   gpu_types_by_zone: Record<string, GcpGpuType[]>;
+  images?: GcpImage[];
+};
+
+export type GcpImage = {
+  project: string;
+  name?: string | null;
+  family?: string | null;
+  selfLink?: string | null;
+  architecture?: string | null;
+  status?: string | null;
+  deprecated?: any;
+  diskSizeGb?: string | null;
+  creationTimestamp?: string | null;
+  gpuReady?: boolean;
 };
