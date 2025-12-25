@@ -1,4 +1,6 @@
 import { v1 as compute } from "@google-cloud/compute";
+import { map } from "awaiting";
+import logger from "../logger";
 import type {
   GcpCatalog,
   GcpGpuType,
@@ -22,7 +24,6 @@ export function shortName(url?: string | null): string | undefined {
 type GcpRegionRaw = {
   name?: string | null;
   status?: string | null;
-  description?: string | null;
   zones?: string[] | null;
 };
 
@@ -30,6 +31,8 @@ type GcpZoneRaw = {
   name?: string | null;
   status?: string | null;
   region?: string | null;
+  location?: string | null;
+  lowC02?: boolean | null;
 };
 
 export function normalizeGcpCatalog(opts: {
@@ -41,7 +44,6 @@ export function normalizeGcpCatalog(opts: {
   const regions: GcpRegion[] = opts.regions.map((region) => ({
     name: region.name ?? "",
     status: region.status,
-    description: region.description,
     zones: (region.zones ?? [])
       .map((z) => shortName(z) ?? "")
       .filter(Boolean),
@@ -51,6 +53,8 @@ export function normalizeGcpCatalog(opts: {
     name: zone.name ?? "",
     status: zone.status,
     region: shortName(zone.region),
+    location: zone.location ?? undefined,
+    lowC02: zone.lowC02 ?? undefined,
   }));
 
   return {
@@ -71,7 +75,6 @@ async function listRegions(opts: GcpCatalogOptions): Promise<GcpRegionRaw[]> {
     regions.push({
       name: region.name ?? "",
       status: region.status,
-      description: region.description,
       zones: region.zones ?? [],
     });
   }
@@ -140,22 +143,41 @@ async function listGpuTypes(
 }
 
 export async function fetchGcpCatalog(opts: GcpCatalogOptions): Promise<GcpCatalog> {
+  logger.info("fetchGcpCatalog start", { projectId: opts.projectId });
   const regions = await listRegions(opts);
+  logger.debug("fetchGcpCatalog regions", { count: regions.length });
   const zones = await listZones(opts);
+  logger.debug("fetchGcpCatalog zones", { count: zones.length });
   const zoneNames = zones.map((z) => z.name ?? "").filter(Boolean);
 
   const machine_types_by_zone: Record<string, GcpMachineType[]> = {};
   const gpu_types_by_zone: Record<string, GcpGpuType[]> = {};
 
-  for (const zone of zoneNames) {
-    machine_types_by_zone[zone] = await listMachineTypes(opts, zone);
-    gpu_types_by_zone[zone] = await listGpuTypes(opts, zone);
-  }
+  const MAX_PARALLEL = 15;
 
-  return normalizeGcpCatalog({
+  await map(
+    zoneNames,
+    MAX_PARALLEL,
+    async (zone) => {
+      logger.debug("fetchGcpCatalog zone details", { zone });
+      const [machineTypes, gpus] = await Promise.all([
+        listMachineTypes(opts, zone),
+        listGpuTypes(opts, zone),
+      ]);
+      machine_types_by_zone[zone] = machineTypes;
+      gpu_types_by_zone[zone] = gpus;
+    },
+  );
+
+  const catalog = normalizeGcpCatalog({
     regions,
     zones,
     machine_types_by_zone,
     gpu_types_by_zone,
   });
+  logger.info("fetchGcpCatalog done", {
+    regions: catalog.regions.length,
+    zones: catalog.zones.length,
+  });
+  return catalog;
 }

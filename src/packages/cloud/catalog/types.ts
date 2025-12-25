@@ -1,7 +1,6 @@
 export type GcpRegion = {
   name: string;
   status?: string | null;
-  description?: string | null;
   zones: string[];
 };
 
@@ -9,6 +8,8 @@ export type GcpZone = {
   name: string;
   status?: string | null;
   region?: string | null;
+  location?: string | null;
+  lowC02?: boolean | null;
 };
 
 export type GcpMachineType = {

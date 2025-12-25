@@ -2,6 +2,7 @@ import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { fetchGcpCatalog } from "@cocalc/cloud";
+import { getData as getGcpPricingData } from "@cocalc/gcloud-pricing-calculator";
 
 const logger = getLogger("server:cloud:catalog");
 const pool = () => getPool();
@@ -58,7 +59,9 @@ type GcpAuth = { projectId: string; credentials: any };
 async function getGcpAuth(): Promise<GcpAuth> {
   const { google_cloud_service_account_json } = await getServerSettings();
   if (!google_cloud_service_account_json) {
-    logger.warn("GCP catalog refresh skipped: missing google_cloud_service_account_json");
+    logger.warn(
+      "GCP catalog refresh skipped: missing google_cloud_service_account_json",
+    );
     throw new Error("google_cloud_service_account_json is not configured");
   }
   const parsed = JSON.parse(google_cloud_service_account_json);
@@ -72,6 +75,17 @@ export async function refreshGcpCatalog() {
   const { projectId: project, credentials } = await getGcpAuth();
   logger.info("refreshing GCP catalog", { project });
   const catalog = await fetchGcpCatalog({ projectId: project, credentials });
+  const pricing = await getGcpPricingData();
+  const zonesMeta = pricing?.zones ?? {};
+
+  if (Array.isArray(catalog.zones)) {
+    for (const zone of catalog.zones) {
+      const meta = zonesMeta[zone.name ?? ""];
+      if (!meta) continue;
+      zone.location = meta.location;
+      zone.lowC02 = meta.lowC02;
+    }
+  }
   const regions = catalog.regions;
   await upsertCatalog({
     id: catalogId("gcp", "regions", "global"),
@@ -171,6 +185,7 @@ export function startCloudCatalogWorker(opts: { interval_ms?: number } = {}) {
   const tick = async () => {
     try {
       const needsRefresh = await shouldRefreshGcpCatalog();
+      logger.info("startCloudCatalogWorker.tick", { needsRefresh });
       if (!needsRefresh) return;
       await withCatalogLock("gcp", refreshCloudCatalog);
     } catch (err) {

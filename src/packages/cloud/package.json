@@ -10,6 +10,8 @@
     "test": "pnpm exec jest"
   },
   "dependencies": {
+    "@cocalc/backend": "workspace:*",
+    "awaiting": "^3.0.0",
     "@google-cloud/compute": "^4.7.0"
   }
 }

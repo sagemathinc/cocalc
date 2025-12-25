@@ -25,7 +25,6 @@ export interface HostMachine {
 export interface HostCatalogRegion {
   name: string;
   status?: string | null;
-  description?: string | null;
   zones: string[];
 }
 
@@ -33,6 +32,8 @@ export interface HostCatalogZone {
   name: string;
   status?: string | null;
   region?: string | null;
+  location?: string | null;
+  lowC02?: boolean | null;
 }
 
 export interface HostCatalogMachineType {

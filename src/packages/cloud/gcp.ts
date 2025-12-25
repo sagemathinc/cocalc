@@ -1,4 +1,5 @@
 import { InstancesClient, ZoneOperationsClient } from "@google-cloud/compute";
+import logger from "./logger";
 import type { CloudProvider, HostRuntime, HostSpec } from "./types";
 
 type GcpCredentials = {
@@ -93,6 +94,13 @@ async function waitUntilOperationComplete({
 
 export class GcpProvider implements CloudProvider {
   async createHost(spec: HostSpec, creds: any): Promise<HostRuntime> {
+    logger.info("gcp.createHost", {
+      name: spec.name,
+      region: spec.region,
+      zone: spec.zone,
+      disk_gb: spec.disk_gb,
+      gpu: spec.gpu?.type ?? "none",
+    });
     const credentials = parseCredentials(creds ?? {});
     const client = new InstancesClient(credentials) as InstancesClient & {
       googleProjectId: string;
@@ -173,6 +181,11 @@ export class GcpProvider implements CloudProvider {
       zone,
       instanceResource,
     });
+    logger.debug("gcp.createHost insert submitted", {
+      project: credentials.projectId,
+      zone,
+      name: spec.name,
+    });
     await waitUntilOperationComplete({
       response,
       zone,
@@ -203,6 +216,10 @@ export class GcpProvider implements CloudProvider {
   }
 
   async startHost(runtime: HostRuntime, creds: any): Promise<void> {
+    logger.info("gcp.startHost", {
+      instance_id: runtime.instance_id,
+      zone: runtime.zone,
+    });
     const credentials = parseCredentials(creds ?? {});
     const client = new InstancesClient(credentials);
     await client.start({
@@ -213,6 +230,10 @@ export class GcpProvider implements CloudProvider {
   }
 
   async stopHost(runtime: HostRuntime, creds: any): Promise<void> {
+    logger.info("gcp.stopHost", {
+      instance_id: runtime.instance_id,
+      zone: runtime.zone,
+    });
     const credentials = parseCredentials(creds ?? {});
     const client = new InstancesClient(credentials);
     await client.stop({

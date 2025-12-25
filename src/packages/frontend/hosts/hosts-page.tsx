@@ -145,7 +145,12 @@ export const HostsPage: React.FC = () => {
   const zoneOptions =
     selectedProvider === "gcp" && catalog?.regions?.length
       ? (catalog.regions.find((r) => r.name === selectedRegion)?.zones ?? []).map(
-          (z) => ({ value: z, label: z }),
+          (z) => {
+            const meta = catalog.zones?.find((zone) => zone.name === z);
+            const suffix = meta?.location ? ` — ${meta.location}` : "";
+            const lowC02 = meta?.lowC02 ? " (low CO₂)" : "";
+            return { value: z, label: `${z}${suffix}${lowC02}` };
+          },
         )
       : [];
 

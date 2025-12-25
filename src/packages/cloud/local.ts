@@ -1,4 +1,5 @@
 import type { CloudProvider, HostRuntime, HostSpec } from "./types";
+import logger from "./logger";
 
 // Local provider for dev/tests. This does not create real VMs; it just
 // tracks a small in-memory lifecycle state so higher-level code can be tested.
@@ -6,6 +7,7 @@ export class LocalProvider implements CloudProvider {
   private readonly states = new Map<string, "running" | "stopped">();
 
   async createHost(spec: HostSpec, _creds: any): Promise<HostRuntime> {
+    logger.info("local.createHost", { name: spec.name });
     if (this.states.has(spec.name)) {
       throw Error(`${spec.name} already exists`);
     }
@@ -22,14 +24,17 @@ export class LocalProvider implements CloudProvider {
   }
 
   async startHost(runtime: HostRuntime, _creds: any): Promise<void> {
+    logger.info("local.startHost", { instance_id: runtime.instance_id });
     this.states.set(runtime.instance_id, "running");
   }
 
   async stopHost(runtime: HostRuntime, _creds: any): Promise<void> {
+    logger.info("local.stopHost", { instance_id: runtime.instance_id });
     this.states.set(runtime.instance_id, "stopped");
   }
 
   async deleteHost(runtime: HostRuntime, _creds: any): Promise<void> {
+    logger.info("local.deleteHost", { instance_id: runtime.instance_id });
     this.states.delete(runtime.instance_id);
   }
 
