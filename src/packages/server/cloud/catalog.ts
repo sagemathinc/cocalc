@@ -29,11 +29,12 @@ function catalogId(provider: string, kind: string, scope: string) {
 }
 
 async function upsertCatalog(entry: CatalogEntry) {
+  const payloadJson = JSON.stringify(entry.payload);
   await pool().query(
     `
       INSERT INTO cloud_catalog_cache
         (id, provider, kind, scope, payload, fetched_at, ttl_seconds, etag)
-      VALUES ($1,$2,$3,$4,$5,NOW(),$6,$7)
+      VALUES ($1,$2,$3,$4,$5::jsonb,NOW(),$6,$7)
       ON CONFLICT (id) DO UPDATE
         SET payload=EXCLUDED.payload,
             fetched_at=EXCLUDED.fetched_at,
@@ -45,27 +46,30 @@ async function upsertCatalog(entry: CatalogEntry) {
       entry.provider,
       entry.kind,
       entry.scope,
-      entry.payload,
+      payloadJson,
       entry.ttl_seconds,
       entry.etag ?? null,
     ],
   );
 }
 
-async function getGcpProjectId(): Promise<string> {
+type GcpAuth = { projectId: string; credentials: any };
+
+async function getGcpAuth(): Promise<GcpAuth> {
   const { google_cloud_service_account_json } = await getServerSettings();
   if (!google_cloud_service_account_json) {
+    logger.warn("GCP catalog refresh skipped: missing google_cloud_service_account_json");
     throw new Error("google_cloud_service_account_json is not configured");
   }
   const parsed = JSON.parse(google_cloud_service_account_json);
   if (!parsed.project_id) {
     throw new Error("GCP service account json missing project_id");
   }
-  return parsed.project_id;
+  return { projectId: parsed.project_id, credentials: parsed };
 }
 
-async function listGcpRegions(project: string) {
-  const client = new compute.RegionsClient();
+async function listGcpRegions(project: string, creds: any) {
+  const client = new compute.RegionsClient(creds);
   const regions: {
     name?: string | null;
     status?: string | null;
@@ -82,8 +86,8 @@ async function listGcpRegions(project: string) {
   return regions;
 }
 
-async function listGcpZones(project: string) {
-  const client = new compute.ZonesClient();
+async function listGcpZones(project: string, creds: any) {
+  const client = new compute.ZonesClient(creds);
   const zones: {
     name?: string | null;
     status?: string | null;
@@ -100,8 +104,8 @@ async function listGcpZones(project: string) {
   return zones;
 }
 
-async function listGcpMachineTypes(project: string, zone: string) {
-  const client = new compute.MachineTypesClient();
+async function listGcpMachineTypes(project: string, zone: string, creds: any) {
+  const client = new compute.MachineTypesClient(creds);
   const types: {
     name?: string | null;
     guestCpus?: number | null;
@@ -122,8 +126,8 @@ async function listGcpMachineTypes(project: string, zone: string) {
   return types;
 }
 
-async function listGcpGpuTypes(project: string, zone: string) {
-  const client = new compute.AcceleratorTypesClient();
+async function listGcpGpuTypes(project: string, zone: string, creds: any) {
+  const client = new compute.AcceleratorTypesClient(creds);
   const gpus: {
     name?: string | null;
     maximumCardsPerInstance?: number | null;
@@ -143,10 +147,11 @@ async function listGcpGpuTypes(project: string, zone: string) {
 }
 
 export async function refreshGcpCatalog() {
-  const project = await getGcpProjectId();
+  const { projectId: project, credentials } = await getGcpAuth();
+  const creds = { credentials, projectId: project };
   logger.info("refreshing GCP catalog", { project });
 
-  const regions = await listGcpRegions(project);
+  const regions = await listGcpRegions(project, creds);
   await upsertCatalog({
     id: catalogId("gcp", "regions", "global"),
     provider: "gcp",
@@ -156,7 +161,7 @@ export async function refreshGcpCatalog() {
     ttl_seconds: GCP_TTLS.regions,
   });
 
-  const zones = await listGcpZones(project);
+  const zones = await listGcpZones(project, creds);
   await upsertCatalog({
     id: catalogId("gcp", "zones", "global"),
     provider: "gcp",
@@ -168,7 +173,7 @@ export async function refreshGcpCatalog() {
 
   for (const zone of zones) {
     if (!zone?.name) continue;
-    const machineTypes = await listGcpMachineTypes(project, zone.name);
+    const machineTypes = await listGcpMachineTypes(project, zone.name, creds);
     await upsertCatalog({
       id: catalogId("gcp", "machine_types", `zone/${zone.name}`),
       provider: "gcp",
@@ -178,7 +183,7 @@ export async function refreshGcpCatalog() {
       ttl_seconds: GCP_TTLS.machine_types,
     });
 
-    const gpus = await listGcpGpuTypes(project, zone.name);
+    const gpus = await listGcpGpuTypes(project, zone.name, creds);
     await upsertCatalog({
       id: catalogId("gcp", "gpu_types", `zone/${zone.name}`),
       provider: "gcp",
@@ -195,6 +200,7 @@ export async function refreshCloudCatalog() {
 }
 
 export function startCloudCatalogWorker(opts: { interval_ms?: number } = {}) {
+  logger.info("startCloudCatalogWorker", opts);
   const interval_ms = opts.interval_ms ?? 1000 * 60 * 60 * 24;
   const tick = async () => {
     try {
