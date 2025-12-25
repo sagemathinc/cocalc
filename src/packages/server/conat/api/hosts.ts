@@ -3,6 +3,7 @@ import type {
   Host,
   HostMachine,
   HostStatus,
+  HostCatalog,
 } from "@cocalc/conat/hub/api/hosts";
 import getPool from "@cocalc/database/pool";
 import {
@@ -180,6 +181,47 @@ export async function listHosts({
     );
   }
   return result;
+}
+
+export async function getCatalog({
+  account_id,
+  provider,
+}: {
+  account_id?: string;
+  provider?: string;
+}): Promise<HostCatalog> {
+  requireAccount(account_id);
+  const cloud = provider ?? "gcp";
+  const { rows } = await pool().query(
+    `SELECT kind, scope, payload
+       FROM cloud_catalog_cache
+      WHERE provider=$1`,
+    [cloud],
+  );
+
+  const catalog: HostCatalog = {
+    provider: cloud,
+    regions: [],
+    zones: [],
+    machine_types_by_zone: {},
+    gpu_types_by_zone: {},
+  };
+
+  for (const row of rows) {
+    if (row.kind === "regions" && row.scope === "global") {
+      catalog.regions = row.payload ?? [];
+    } else if (row.kind === "zones" && row.scope === "global") {
+      catalog.zones = row.payload ?? [];
+    } else if (row.kind === "machine_types" && row.scope?.startsWith("zone/")) {
+      const zone = row.scope.slice("zone/".length);
+      catalog.machine_types_by_zone[zone] = row.payload ?? [];
+    } else if (row.kind === "gpu_types" && row.scope?.startsWith("zone/")) {
+      const zone = row.scope.slice("zone/".length);
+      catalog.gpu_types_by_zone[zone] = row.payload ?? [];
+    }
+  }
+
+  return catalog;
 }
 
 export async function createHost({

@@ -1,7 +1,7 @@
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { v1 as compute } from "@google-cloud/compute";
+import { fetchGcpCatalog } from "@cocalc/cloud";
 
 const logger = getLogger("server:cloud:catalog");
 const pool = () => getPool();
@@ -68,90 +68,11 @@ async function getGcpAuth(): Promise<GcpAuth> {
   return { projectId: parsed.project_id, credentials: parsed };
 }
 
-async function listGcpRegions(project: string, creds: any) {
-  const client = new compute.RegionsClient(creds);
-  const regions: {
-    name?: string | null;
-    status?: string | null;
-    zones?: string[] | null;
-  }[] = [];
-  for await (const region of client.listAsync({ project })) {
-    regions.push({
-      name: region.name,
-      status: region.status,
-      zones: region.zones,
-    });
-  }
-  await client.close();
-  return regions;
-}
-
-async function listGcpZones(project: string, creds: any) {
-  const client = new compute.ZonesClient(creds);
-  const zones: {
-    name?: string | null;
-    status?: string | null;
-    region?: string | null;
-  }[] = [];
-  for await (const zone of client.listAsync({ project })) {
-    zones.push({
-      name: zone.name,
-      status: zone.status,
-      region: zone.region,
-    });
-  }
-  await client.close();
-  return zones;
-}
-
-async function listGcpMachineTypes(project: string, zone: string, creds: any) {
-  const client = new compute.MachineTypesClient(creds);
-  const types: {
-    name?: string | null;
-    guestCpus?: number | null;
-    memoryMb?: number | null;
-    isSharedCpu?: boolean | null;
-    deprecated?: any;
-  }[] = [];
-  for await (const mt of client.listAsync({ project, zone })) {
-    types.push({
-      name: mt.name,
-      guestCpus: mt.guestCpus,
-      memoryMb: mt.memoryMb,
-      isSharedCpu: mt.isSharedCpu,
-      deprecated: mt.deprecated,
-    });
-  }
-  await client.close();
-  return types;
-}
-
-async function listGcpGpuTypes(project: string, zone: string, creds: any) {
-  const client = new compute.AcceleratorTypesClient(creds);
-  const gpus: {
-    name?: string | null;
-    maximumCardsPerInstance?: number | null;
-    description?: string | null;
-    deprecated?: any;
-  }[] = [];
-  for await (const gpu of client.listAsync({ project, zone })) {
-    gpus.push({
-      name: gpu.name,
-      maximumCardsPerInstance: gpu.maximumCardsPerInstance,
-      description: gpu.description,
-      deprecated: gpu.deprecated,
-    });
-  }
-  await client.close();
-  return gpus;
-}
-
 export async function refreshGcpCatalog() {
   const { projectId: project, credentials } = await getGcpAuth();
-  const creds = { credentials, projectId: project };
   logger.info("refreshing GCP catalog", { project });
-
-  const regions = await listGcpRegions(project, creds);
+  const catalog = await fetchGcpCatalog({ projectId: project, credentials });
+  const regions = catalog.regions;
   await upsertCatalog({
     id: catalogId("gcp", "regions", "global"),
     provider: "gcp",
@@ -161,7 +82,7 @@ export async function refreshGcpCatalog() {
     ttl_seconds: GCP_TTLS.regions,
   });
 
-  const zones = await listGcpZones(project, creds);
+  const zones = catalog.zones;
   await upsertCatalog({
     id: catalogId("gcp", "zones", "global"),
     provider: "gcp",
@@ -173,7 +94,7 @@ export async function refreshGcpCatalog() {
 
   for (const zone of zones) {
     if (!zone?.name) continue;
-    const machineTypes = await listGcpMachineTypes(project, zone.name, creds);
+    const machineTypes = catalog.machine_types_by_zone[zone.name] ?? [];
     await upsertCatalog({
       id: catalogId("gcp", "machine_types", `zone/${zone.name}`),
       provider: "gcp",
@@ -183,7 +104,7 @@ export async function refreshGcpCatalog() {
       ttl_seconds: GCP_TTLS.machine_types,
     });
 
-    const gpus = await listGcpGpuTypes(project, zone.name, creds);
+    const gpus = catalog.gpu_types_by_zone[zone.name] ?? [];
     await upsertCatalog({
       id: catalogId("gcp", "gpu_types", `zone/${zone.name}`),
       provider: "gcp",
