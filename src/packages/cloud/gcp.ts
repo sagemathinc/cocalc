@@ -100,6 +100,7 @@ export class GcpProvider implements CloudProvider {
       zone: spec.zone,
       disk_gb: spec.disk_gb,
       gpu: spec.gpu?.type ?? "none",
+      metadata: spec.metadata,
     });
     const credentials = parseCredentials(creds ?? {});
     const client = new InstancesClient(credentials) as InstancesClient & {

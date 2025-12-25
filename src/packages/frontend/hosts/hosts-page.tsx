@@ -195,7 +195,10 @@ export const HostsPage: React.FC = () => {
     selectedProvider === "gcp" && catalog?.images?.length
       ? [...catalog.images]
           .filter((img) => {
-            if (!selectedMachineType) return true;
+            if (!selectedMachineType) {
+              const imgArch = (img.architecture ?? "").toUpperCase();
+              return imgArch ? imgArch === "X86_64" : true;
+            }
             const arch = getMachineTypeArchitecture(selectedMachineType);
             const imgArch = (img.architecture ?? "").toUpperCase();
             if (!imgArch) return true;
@@ -223,17 +226,22 @@ export const HostsPage: React.FC = () => {
             const label = img.family
               ? `${img.family}${img.gpuReady ? " (GPU-ready)" : ""}`
               : img.name ?? "unknown";
+            const archSuffix = img.architecture
+              ? ` [${img.architecture.toUpperCase()}]`
+              : "";
             return {
               value: img.selfLink ?? img.name ?? "",
-              label,
+              label: `${label}${archSuffix}`,
             };
           })
       : [];
 
   useEffect(() => {
     if (selectedProvider !== "gcp") return;
-    if (selectedSourceImage) return;
     if (!imageOptions.length) return;
+    const values = new Set(imageOptions.map((img) => img.value));
+    if (selectedSourceImage && values.has(selectedSourceImage)) return;
+    // Reset to a compatible default if the current selection is missing or invalid.
     form.setFieldsValue({ source_image: imageOptions[0].value });
   }, [selectedProvider, selectedSourceImage, imageOptions, form]);
 
@@ -245,6 +253,18 @@ export const HostsPage: React.FC = () => {
     }
     form.setFieldsValue({ zone: zoneOptions[0].value });
   }, [selectedProvider, selectedRegion, zoneOptions, selectedZone, form]);
+
+  useEffect(() => {
+    if (selectedProvider !== "gcp") return;
+    if (!machineTypeOptions.length) return;
+    if (
+      selectedMachineType &&
+      machineTypeOptions.some((mt) => mt.value === selectedMachineType)
+    ) {
+      return;
+    }
+    form.setFieldsValue({ machine_type: machineTypeOptions[0].value });
+  }, [selectedProvider, selectedZone, machineTypeOptions, selectedMachineType, form]);
 
   const onCreate = async (vals: any) => {
     if (creating) return;
@@ -408,35 +428,6 @@ export const HostsPage: React.FC = () => {
                 {host.status === "error" && host.error && (
                   <Typography.Text type="danger">{host.error}</Typography.Text>
                 )}
-                <Collapse ghost>
-                  <Collapse.Panel header="Details" key="details">
-                    <Space direction="vertical" size="small">
-                      {host.machine?.zone && (
-                        <Typography.Text>
-                          Zone: {host.machine.zone}
-                        </Typography.Text>
-                      )}
-                      {host.machine?.machine_type && (
-                        <Typography.Text>
-                          Machine type: {host.machine.machine_type}
-                        </Typography.Text>
-                      )}
-                      {host.machine?.gpu_type && (
-                        <Typography.Text>
-                          GPU type: {host.machine.gpu_type}
-                        </Typography.Text>
-                      )}
-                      {(host.machine?.source_image ||
-                        host.machine?.metadata?.source_image) && (
-                        <Typography.Text>
-                          Image:{" "}
-                          {host.machine?.source_image ??
-                            host.machine?.metadata?.source_image}
-                        </Typography.Text>
-                      )}
-                    </Space>
-                  </Collapse.Panel>
-                </Collapse>
               </Space>
             </Card>
           </Col>
@@ -681,6 +672,29 @@ export const HostsPage: React.FC = () => {
               <Tag>{selected.region}</Tag>
               <Tag>{selected.size}</Tag>
               {selected.gpu && <Tag color="purple">GPU</Tag>}
+            </Space>
+            <Space direction="vertical" size="small">
+              {selected.machine?.zone && (
+                <Typography.Text>Zone: {selected.machine.zone}</Typography.Text>
+              )}
+              {selected.machine?.machine_type && (
+                <Typography.Text>
+                  Machine type: {selected.machine.machine_type}
+                </Typography.Text>
+              )}
+              {selected.machine?.gpu_type && (
+                <Typography.Text>
+                  GPU type: {selected.machine.gpu_type}
+                </Typography.Text>
+              )}
+              {(selected.machine?.source_image ||
+                selected.machine?.metadata?.source_image) && (
+                <Typography.Text>
+                  Image:{" "}
+                  {selected.machine?.source_image ??
+                    selected.machine?.metadata?.source_image}
+                </Typography.Text>
+              )}
             </Space>
             <Typography.Text>Projects: {selected.projects ?? 0}</Typography.Text>
             <Typography.Text type="secondary">

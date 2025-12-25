@@ -1,7 +1,9 @@
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
 import { GcpProvider, type HostSpec } from "@cocalc/cloud";
+import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
+const logger = getLogger("server:cloud:host-util");
 export type HostRow = {
   id: string;
   name?: string;
@@ -52,8 +54,16 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
   const baseName = row.id.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
   const providerName =
     machine.cloud === "gcp" || machine.cloud === "google-cloud"
-      ? `${google_cloud_compute_servers_prefix}-${baseName}`
+      ? gcpSafeName(google_cloud_compute_servers_prefix, baseName)
       : baseName;
+  const sourceImage = machine.source_image ?? machine.metadata?.source_image;
+  logger.debug("buildHostSpec source_image", {
+    host_id: row.id,
+    machine_source_image: machine.source_image,
+    metadata_source_image: machine.metadata?.source_image,
+    selected: sourceImage,
+  });
+
   const spec: HostSpec = {
     name: providerName,
     region: row.region ?? "us-west1",
@@ -66,12 +76,35 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
     metadata: {
       ...machine.metadata,
       machine_type: machine.machine_type,
-      source_image: machine.source_image,
+      source_image: sourceImage,
       bootstrap_url: machine.bootstrap_url,
       startup_script: machine.startup_script,
     },
   };
   return spec;
+}
+
+export function gcpSafeName(prefix: string, base: string): string {
+  const normalize = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  let safePrefix = normalize(prefix);
+  if (!safePrefix || !/^[a-z]/.test(safePrefix)) {
+    safePrefix = `cocalc-${safePrefix || "host"}`.replace(/^-+/, "");
+  }
+  let safeBase = normalize(base);
+  const maxLen = 63;
+  const room = maxLen - safePrefix.length - 1;
+  if (room > 0) {
+    if (safeBase.length > room) {
+      safeBase = safeBase.slice(0, room);
+    }
+    return `${safePrefix}-${safeBase}`.replace(/-+$/g, "");
+  }
+  return safePrefix.slice(0, maxLen);
 }
 
 export async function ensureGcpProvider() {
