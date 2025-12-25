@@ -197,5 +197,8 @@
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
+  },
+  "dependencies": {
+    "immer": "^11.1.0"
   }
 }

@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import { enableMapSet, produce } from "immer";
 import type { ImmerDB } from "@cocalc/sync/editor/immer-db";
 import { normalizeChatMessage } from "./normalize";
 import type { PlainChatMessage } from "./types";
@@ -19,6 +20,9 @@ import { once } from "@cocalc/util/async-utils";
  * on every call and keeps O(1) updates relative to syncdb changes.
  */
 
+// Enable Map mutation in immer drafts for efficient, immutable Map updates.
+enableMapSet();
+
 //const log = (...args) => console.log("message-cache", ...args);
 const log = (..._args) => {};
 
@@ -31,8 +35,8 @@ export class ChatMessageCache extends EventEmitter {
     super();
     this.syncdb = syncdb;
     log("constructor");
-    // Clear stale data; populate from the next change event after ready.
-    this.messages = new Map();
+    // Normalize the initial Map through produce so it is frozen consistently.
+    this.messages = produce(this.messages, () => {});
     this.syncdb.on("change", this.handleChange);
     if (
       this.syncdb.opts.ignoreInitialChanges ||
@@ -119,7 +123,8 @@ export class ChatMessageCache extends EventEmitter {
         }
       }
     }
-    this.messages = map;
+    // Freeze the rebuilt Map for consistency with produce() updates.
+    this.messages = produce(map, () => {});
     if (toPersist.length > 0) {
       this.persist(toPersist);
     }
@@ -135,48 +140,48 @@ export class ChatMessageCache extends EventEmitter {
     }
     log("handleChange", changes);
     if (this.syncdb.get_state() !== "ready") return;
-    // Mutate the existing Map in place to avoid per-change allocations.
-    // Copying a large Map on every draft/typing change causes heavy churn.
-    const m = this.messages;
     const rows: Record<string, unknown>[] = Array.from(changes);
     const toPersist: PlainChatMessage[] = [];
-    for (const row0 of rows) {
-      const row = this.validateDate(row0);
-      if (row == null) continue;
-      // SyncDoc.get_one requires only primary key fields so we make an object
-      // where that ONLY has those fields and no others.
-      const where: Record<string, unknown> = {};
-      if (row?.event != null) where.event = row.event;
-      if (row?.sender_id != null) where.sender_id = row.sender_id;
-      if (row?.date != null) where.date = row.date;
-      const rec = this.syncdb.get_one(where);
-      if (!rec) {
+    const next = produce(this.messages, (draft) => {
+      for (const row0 of rows) {
+        const row = this.validateDate(row0);
+        if (row == null) continue;
+        // SyncDoc.get_one requires only primary key fields so we make an object
+        // where that ONLY has those fields and no others.
+        const where: Record<string, unknown> = {};
+        if (row?.event != null) where.event = row.event;
+        if (row?.sender_id != null) where.sender_id = row.sender_id;
+        if (row?.date != null) where.date = row.date;
+        const rec = this.syncdb.get_one(where);
+        if (!rec) {
+          const key =
+            row?.date != null
+              ? `${new Date(row.date as string | number | Date).valueOf()}`
+              : undefined;
+          if (key != null) {
+            draft.delete(key);
+          }
+          continue;
+        }
+        const { message, upgraded } = normalizeChatMessage(rec);
         const key =
-          row?.date != null
-            ? `${new Date(row.date as string | number | Date).valueOf()}`
-            : undefined;
-        if (key != null) {
-          m.delete(key);
+          message?.date != null
+            ? `${message.date.valueOf()}`
+            : row?.date
+              ? `${new Date(row.date as string).valueOf()}`
+              : undefined;
+        if (key == null) continue;
+        if (message) {
+          draft.set(key, message);
+          if (upgraded) {
+            toPersist.push(message);
+          }
+        } else {
+          draft.delete(key);
         }
-        continue;
       }
-      const { message, upgraded } = normalizeChatMessage(rec);
-      const key =
-        message?.date != null
-          ? `${message.date.valueOf()}`
-          : row?.date
-            ? `${new Date(row.date as string).valueOf()}`
-            : undefined;
-      if (key == null) continue;
-      if (message) {
-        m.set(key, message);
-        if (upgraded) {
-          toPersist.push(message);
-        }
-      } else {
-        m.delete(key);
-      }
-    }
+    });
+    this.messages = next;
     if (toPersist.length > 0) {
       this.persist(toPersist);
     }

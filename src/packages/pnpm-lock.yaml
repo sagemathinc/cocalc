@@ -437,6 +437,10 @@ importers:
         version: 22.19.1
 
   frontend:
+    dependencies:
+      immer:
+        specifier: ^11.1.0
+        version: 11.1.0
     devDependencies:
       '@ant-design/colors':
         specifier: ^6.0.0
@@ -8329,6 +8333,9 @@ packages:
 
   immer@10.2.0:
     resolution: {integrity: sha512-d/+XTN3zfODyjr89gM3mPq1WNX2B8pYsu7eORitdwyA2sBubnTl3laYlBk4sXY5FUa5qTZGBDPJICVbvqzjlbw==}
+
+  immer@11.1.0:
+    resolution: {integrity: sha512-dlzb07f5LDY+tzs+iLCSXV2yuhaYfezqyZQc+n6baLECWkOMEWxkECAOnXL0ba7lsA25fM9b2jtzpu/uxo1a7g==}
 
   immutable@4.3.7:
     resolution: {integrity: sha512-1hqclzwYwjRDFLjcFxOM5AYkkG0rpFPpr1RLPMEuGczoS7YA8gLhy8SWXYRAA/XwfEHpfo3cw5JGioS32fnMRw==}
@@ -20551,6 +20558,8 @@ snapshots:
     optional: true
 
   immer@10.2.0: {}
+
+  immer@11.1.0: {}
 
   immutable@4.3.7: {}
 
