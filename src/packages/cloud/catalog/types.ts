@@ -1,6 +1,7 @@
 export type GcpRegion = {
   name: string;
   status?: string | null;
+  description?: string | null;
   zones: string[];
 };
 

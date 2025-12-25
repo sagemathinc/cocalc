@@ -22,6 +22,7 @@ export function shortName(url?: string | null): string | undefined {
 type GcpRegionRaw = {
   name?: string | null;
   status?: string | null;
+  description?: string | null;
   zones?: string[] | null;
 };
 
@@ -40,6 +41,7 @@ export function normalizeGcpCatalog(opts: {
   const regions: GcpRegion[] = opts.regions.map((region) => ({
     name: region.name ?? "",
     status: region.status,
+    description: region.description,
     zones: (region.zones ?? [])
       .map((z) => shortName(z) ?? "")
       .filter(Boolean),
@@ -69,6 +71,7 @@ async function listRegions(opts: GcpCatalogOptions): Promise<GcpRegionRaw[]> {
     regions.push({
       name: region.name ?? "",
       status: region.status,
+      description: region.description,
       zones: region.zones ?? [],
     });
   }

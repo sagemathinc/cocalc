@@ -120,12 +120,59 @@ export async function refreshCloudCatalog() {
   await refreshGcpCatalog();
 }
 
+async function shouldRefreshGcpCatalog(): Promise<boolean> {
+  const { rows } = await pool().query(
+    `SELECT kind, fetched_at, ttl_seconds
+       FROM cloud_catalog_cache
+      WHERE provider = $1`,
+    ["gcp"],
+  );
+
+  if (rows.length === 0) return true;
+
+  let hasRegions = false;
+  let hasZones = false;
+  const now = Date.now();
+  for (const row of rows) {
+    if (row.kind === "regions") hasRegions = true;
+    if (row.kind === "zones") hasZones = true;
+    if (!row.fetched_at) return true;
+    const ttlSeconds = Number(row.ttl_seconds ?? 0);
+    if (ttlSeconds > 0) {
+      const ageMs = now - new Date(row.fetched_at).getTime();
+      if (ageMs > ttlSeconds * 1000) return true;
+    }
+  }
+
+  if (!hasRegions || !hasZones) return true;
+  return false;
+}
+
+async function withCatalogLock<T>(
+  provider: string,
+  fn: () => Promise<T>,
+): Promise<T | undefined> {
+  const lockKey = `cloud_catalog_refresh:${provider}`;
+  const { rows } = await pool().query(
+    "SELECT pg_try_advisory_lock(hashtext($1)) AS locked",
+    [lockKey],
+  );
+  if (!rows[0]?.locked) return undefined;
+  try {
+    return await fn();
+  } finally {
+    await pool().query("SELECT pg_advisory_unlock(hashtext($1))", [lockKey]);
+  }
+}
+
 export function startCloudCatalogWorker(opts: { interval_ms?: number } = {}) {
   logger.info("startCloudCatalogWorker", opts);
   const interval_ms = opts.interval_ms ?? 1000 * 60 * 60 * 24;
   const tick = async () => {
     try {
-      await refreshCloudCatalog();
+      const needsRefresh = await shouldRefreshGcpCatalog();
+      if (!needsRefresh) return;
+      await withCatalogLock("gcp", refreshCloudCatalog);
     } catch (err) {
       logger.warn("cloud catalog refresh failed", { err });
     }

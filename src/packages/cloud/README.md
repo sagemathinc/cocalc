@@ -19,6 +19,8 @@ their own VM offerings.
 - A minimal GCP adapter stub with basic instance creation/start/stop/delete
   logic that uses vendor images and a bootstrap script (via metadata).
 - A Local provider that keeps an in-memory lifecycle state for dev/tests.
+- Catalog discovery helpers (e.g., GCP regions/zones/machine types/GPUs) for
+  building UI selectors and validating host specs.
 
 ## Planned additions
 

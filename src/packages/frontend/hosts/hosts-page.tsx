@@ -26,7 +26,7 @@ import {
 import { Icon } from "@cocalc/frontend/components/icon";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import Bootlog from "@cocalc/frontend/project/bootlog";
-import type { Host } from "@cocalc/conat/hub/api/hosts";
+import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
 
 const WRAP_STYLE: CSS = {
   padding: "24px",
@@ -82,7 +82,12 @@ export const HostsPage: React.FC = () => {
   const [selected, setSelected] = useState<Host | undefined>(undefined);
   const [creating, setCreating] = useState<boolean>(false);
   const [canCreateHosts, setCanCreateHosts] = useState<boolean>(true);
+  const [catalog, setCatalog] = useState<HostCatalog | undefined>(undefined);
+  const [catalogError, setCatalogError] = useState<string | undefined>(
+    undefined,
+  );
   const hub = webapp_client.conat_client.hub;
+  const [form] = Form.useForm();
 
   const refresh = async () => {
     const [list, membership] = await Promise.all([
@@ -105,24 +110,88 @@ export const HostsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const loadCatalog = async () => {
+      try {
+        const data = await hub.hosts.getCatalog({ provider: "gcp" });
+        setCatalog(data);
+        setCatalogError(undefined);
+      } catch (err: any) {
+        console.error("failed to load cloud catalog", err);
+        setCatalog(undefined);
+        setCatalogError(
+          err?.message ?? "Unable to load cloud catalog (regions/zones).",
+        );
+      }
+    };
+    loadCatalog().catch((err) => console.error("catalog refresh failed", err));
+  }, []);
+
+  useEffect(() => {
     const timer = setInterval(() => {
       refresh().catch((err) => console.error("host refresh failed", err));
     }, 5000);
     return () => clearInterval(timer);
   }, []);
 
+  const selectedProvider = Form.useWatch("provider", form);
+  const selectedRegion = Form.useWatch("region", form);
+  const selectedZone = Form.useWatch("zone", form);
+
+  const regionOptions =
+    selectedProvider === "gcp" && catalog?.regions?.length
+      ? catalog.regions.map((r) => ({ value: r.name, label: r.name }))
+      : REGIONS;
+
+  const zoneOptions =
+    selectedProvider === "gcp" && catalog?.regions?.length
+      ? (catalog.regions.find((r) => r.name === selectedRegion)?.zones ?? []).map(
+          (z) => ({ value: z, label: z }),
+        )
+      : [];
+
+  const machineTypeOptions =
+    selectedProvider === "gcp" && selectedZone && catalog?.machine_types_by_zone
+      ? (catalog.machine_types_by_zone[selectedZone] ?? []).map((mt) => ({
+          value: mt.name ?? "",
+          label: mt.name ?? "unknown",
+        }))
+      : [];
+
+  const gpuTypeOptions =
+    selectedProvider === "gcp" && selectedZone && catalog?.gpu_types_by_zone
+      ? (catalog.gpu_types_by_zone[selectedZone] ?? []).map((gt) => ({
+          value: gt.name ?? "",
+          label: gt.name ?? "unknown",
+        }))
+      : [];
+
+  useEffect(() => {
+    if (selectedProvider !== "gcp") return;
+    if (!zoneOptions.length) return;
+    if (selectedZone && zoneOptions.some((z) => z.value === selectedZone)) {
+      return;
+    }
+    form.setFieldsValue({ zone: zoneOptions[0].value });
+  }, [selectedProvider, selectedRegion, zoneOptions, selectedZone, form]);
+
   const onCreate = async (vals: any) => {
     if (creating) return;
     setCreating(true);
     try {
+      const machine_type = vals.machine_type || undefined;
+      const gpu_type =
+        vals.gpu_type && vals.gpu_type !== "none" ? vals.gpu_type : undefined;
       await hub.hosts.createHost({
         name: vals.name ?? "My Host",
         region: vals.region ?? REGIONS[0].value,
-        size: vals.size ?? SIZES[0].value,
-        gpu: vals.gpu && vals.gpu !== "none",
+        size: machine_type ?? vals.size ?? SIZES[0].value,
+        gpu: !!gpu_type,
         machine: {
           cloud: vals.provider !== "none" ? vals.provider : undefined,
-          gpu_type: vals.gpu,
+          machine_type,
+          gpu_type,
+          gpu_count: gpu_type ? 1 : undefined,
+          zone: vals.zone ?? undefined,
           disk_gb: vals.disk,
           disk_type: vals.disk_type,
           metadata: {
@@ -280,6 +349,7 @@ export const HostsPage: React.FC = () => {
               layout="vertical"
               onFinish={onCreate}
               disabled={!canCreateHosts}
+              form={form}
             >
               <Form.Item name="name" label="Name" initialValue="My host">
                 <Input placeholder="My host" />
@@ -289,11 +359,22 @@ export const HostsPage: React.FC = () => {
                 label="Region"
                 initialValue={REGIONS[0].value}
               >
-                <Select options={REGIONS} />
+                <Select options={regionOptions} />
               </Form.Item>
-              <Form.Item name="size" label="Size" initialValue={SIZES[0].value}>
-                <Select options={SIZES} />
-              </Form.Item>
+              {selectedProvider !== "gcp" && (
+                <Form.Item name="size" label="Size" initialValue={SIZES[0].value}>
+                  <Select options={SIZES} />
+                </Form.Item>
+              )}
+              {catalogError && selectedProvider === "gcp" && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  style={{ marginBottom: 12 }}
+                  message="Cloud catalog unavailable"
+                  description={catalogError}
+                />
+              )}
               <Collapse ghost style={{ marginBottom: 8 }}>
                 <Collapse.Panel header="Advanced options" key="adv">
                   <Row gutter={[12, 12]}>
@@ -306,6 +387,39 @@ export const HostsPage: React.FC = () => {
                         <Select options={PROVIDERS} />
                       </Form.Item>
                     </Col>
+                    {selectedProvider === "gcp" && (
+                      <>
+                        <Col span={24}>
+                          <Form.Item
+                            name="zone"
+                            label="Zone"
+                            initialValue={zoneOptions[0]?.value}
+                            tooltip="Zones are derived from the selected region."
+                          >
+                            <Select options={zoneOptions} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={24}>
+                          <Form.Item
+                            name="machine_type"
+                            label="Machine type"
+                            initialValue={machineTypeOptions[0]?.value}
+                          >
+                            <Select options={machineTypeOptions} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={24}>
+                          <Form.Item name="gpu_type" label="GPU" initialValue="none">
+                            <Select
+                              options={[
+                                { value: "none", label: "No GPU" },
+                                ...gpuTypeOptions,
+                              ]}
+                            />
+                          </Form.Item>
+                        </Col>
+                      </>
+                    )}
                     <Col span={24}>
                       <Form.Item
                         name="gpu"
@@ -313,7 +427,10 @@ export const HostsPage: React.FC = () => {
                         initialValue="none"
                         tooltip="Only needed for GPU workloads."
                       >
-                        <Select options={GPU_TYPES} />
+                        <Select
+                          options={GPU_TYPES}
+                          disabled={selectedProvider === "gcp"}
+                        />
                       </Form.Item>
                     </Col>
                     <Col span={24}>

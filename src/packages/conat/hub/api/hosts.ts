@@ -22,6 +22,42 @@ export interface HostMachine {
   metadata?: Record<string, any>;
 }
 
+export interface HostCatalogRegion {
+  name: string;
+  status?: string | null;
+  description?: string | null;
+  zones: string[];
+}
+
+export interface HostCatalogZone {
+  name: string;
+  status?: string | null;
+  region?: string | null;
+}
+
+export interface HostCatalogMachineType {
+  name?: string | null;
+  guestCpus?: number | null;
+  memoryMb?: number | null;
+  isSharedCpu?: boolean | null;
+  deprecated?: any;
+}
+
+export interface HostCatalogGpuType {
+  name?: string | null;
+  maximumCardsPerInstance?: number | null;
+  description?: string | null;
+  deprecated?: any;
+}
+
+export interface HostCatalog {
+  provider: string;
+  regions: HostCatalogRegion[];
+  zones: HostCatalogZone[];
+  machine_types_by_zone: Record<string, HostCatalogMachineType[]>;
+  gpu_types_by_zone: Record<string, HostCatalogGpuType[]>;
+}
+
 export interface Host {
   id: string;
   name: string;
@@ -44,6 +80,7 @@ export interface Host {
 
 export const hosts = {
   listHosts: authFirstRequireAccount,
+  getCatalog: authFirstRequireAccount,
   createHost: authFirstRequireAccount,
   startHost: authFirstRequireAccount,
   stopHost: authFirstRequireAccount,
@@ -56,6 +93,10 @@ export interface Hosts {
     admin_view?: boolean;
     catalog?: boolean;
   }) => Promise<Host[]>;
+  getCatalog: (opts: {
+    account_id?: string;
+    provider?: string;
+  }) => Promise<HostCatalog>;
   createHost: (opts: {
     account_id?: string;
     name: string;
