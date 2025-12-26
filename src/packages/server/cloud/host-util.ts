@@ -1,5 +1,10 @@
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
-import { GcpProvider, type HostSpec } from "@cocalc/cloud";
+import {
+  GcpProvider,
+  HyperstackProvider,
+  type HostSpec,
+  type HyperstackCreds,
+} from "@cocalc/cloud";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
@@ -116,6 +121,24 @@ export async function ensureGcpProvider() {
   return { provider: new GcpProvider(), creds };
 }
 
+export async function ensureHyperstackProvider(): Promise<{
+  provider: HyperstackProvider;
+  creds: HyperstackCreds;
+}> {
+  const { hyperstack_api_key, hyperstack_ssh_public_key } =
+    await getServerSettings();
+  if (!hyperstack_api_key) {
+    throw new Error("hyperstack_api_key is not configured");
+  }
+  if (!hyperstack_ssh_public_key) {
+    throw new Error("hyperstack_ssh_public_key is not configured");
+  }
+  return {
+    provider: new HyperstackProvider(),
+    creds: { apiKey: hyperstack_api_key, sshPublicKey: hyperstack_ssh_public_key },
+  };
+}
+
 export async function provisionIfNeeded(row: HostRow) {
   const metadata = row.metadata ?? {};
   const runtime = metadata.runtime;
@@ -123,12 +146,24 @@ export async function provisionIfNeeded(row: HostRow) {
   if (!machine.cloud) {
     return row;
   }
+  if (runtime?.instance_id) return row;
+  const spec = await buildHostSpec(row);
+  if (machine.cloud === "hyperstack") {
+    const { provider, creds } = await ensureHyperstackProvider();
+    const runtimeCreated = await provider.createHost(spec, creds);
+    return {
+      ...row,
+      status: "running",
+      metadata: {
+        ...metadata,
+        runtime: runtimeCreated,
+      },
+    };
+  }
   if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
     throw new Error(`unsupported cloud provider ${machine.cloud}`);
   }
-  if (runtime?.instance_id) return row;
   const { provider, creds } = await ensureGcpProvider();
-  const spec = await buildHostSpec(row);
   const runtimeCreated = await provider.createHost(spec, creds);
   return {
     ...row,

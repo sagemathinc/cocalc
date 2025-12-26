@@ -2,7 +2,11 @@ import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { deleteHostDns, ensureHostDns, hasDns } from "./dns";
 import { logCloudVmEvent } from "./db";
-import { ensureGcpProvider, provisionIfNeeded } from "./host-util";
+import {
+  ensureGcpProvider,
+  ensureHyperstackProvider,
+  provisionIfNeeded,
+} from "./host-util";
 import type { CloudVmWorkHandlers } from "./worker";
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
 
@@ -84,11 +88,16 @@ async function handleStart(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
   if (machine.cloud && runtime?.instance_id) {
-    if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
-      throw new Error(`unsupported cloud provider ${machine.cloud}`);
+    if (machine.cloud === "hyperstack") {
+      const { provider, creds } = await ensureHyperstackProvider();
+      await provider.startHost(runtime, creds);
+    } else {
+      if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
+        throw new Error(`unsupported cloud provider ${machine.cloud}`);
+      }
+      const { provider, creds } = await ensureGcpProvider();
+      await provider.startHost(runtime, creds);
     }
-    const { provider, creds } = await ensureGcpProvider();
-    await provider.startHost(runtime, creds);
   }
   await updateHostRow(row.id, { status: "running", last_seen: new Date() });
   await ensureDnsForHost(row);
@@ -106,11 +115,16 @@ async function handleStop(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
   if (machine.cloud && runtime?.instance_id) {
-    if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
-      throw new Error(`unsupported cloud provider ${machine.cloud}`);
+    if (machine.cloud === "hyperstack") {
+      const { provider, creds } = await ensureHyperstackProvider();
+      await provider.stopHost(runtime, creds);
+    } else {
+      if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
+        throw new Error(`unsupported cloud provider ${machine.cloud}`);
+      }
+      const { provider, creds } = await ensureGcpProvider();
+      await provider.stopHost(runtime, creds);
     }
-    const { provider, creds } = await ensureGcpProvider();
-    await provider.stopHost(runtime, creds);
   }
   await updateHostRow(row.id, { status: "off", last_seen: new Date() });
   await logCloudVmEvent({
@@ -127,11 +141,16 @@ async function handleDelete(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
   if (machine.cloud && runtime?.instance_id) {
-    if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
-      throw new Error(`unsupported cloud provider ${machine.cloud}`);
+    if (machine.cloud === "hyperstack") {
+      const { provider, creds } = await ensureHyperstackProvider();
+      await provider.deleteHost(runtime, creds);
+    } else {
+      if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
+        throw new Error(`unsupported cloud provider ${machine.cloud}`);
+      }
+      const { provider, creds } = await ensureGcpProvider();
+      await provider.deleteHost(runtime, creds);
     }
-    const { provider, creds } = await ensureGcpProvider();
-    await provider.deleteHost(runtime, creds);
   }
   if (await hasDns()) {
     await deleteHostDns({ record_id: row.metadata?.dns?.record_id });
