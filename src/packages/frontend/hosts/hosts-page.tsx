@@ -71,6 +71,7 @@ const GPU_TYPES = [
 const PROVIDERS = [
   { value: "none", label: "Local (manual setup)" },
   { value: "gcp", label: "Google Cloud" },
+  { value: "hyperstack", label: "Hyperstack" },
 ];
 
 const DISK_TYPES = [
@@ -112,6 +113,49 @@ export const HostsPage: React.FC = () => {
   const hub = webapp_client.conat_client.hub;
   const [form] = Form.useForm();
   const isAdmin = useTypedRedux("account", "is_admin");
+  const gcpEnabled = useTypedRedux(
+    "customize",
+    "compute_servers_google-cloud_enabled",
+  );
+  const hyperstackEnabled = useTypedRedux(
+    "customize",
+    "compute_servers_hyperstack_enabled",
+  );
+
+  const providerOptions = useMemo(() => {
+    return PROVIDERS.filter((opt) => {
+      if (opt.value === "gcp") return !!gcpEnabled;
+      if (opt.value === "hyperstack") return !!hyperstackEnabled;
+      return true;
+    });
+  }, [gcpEnabled, hyperstackEnabled]);
+
+  const refreshProviders = useMemo(() => {
+    const opts: Array<{ value: CloudProvider; label: string }> = [];
+    if (gcpEnabled) opts.push({ value: "gcp", label: "GCP" });
+    if (hyperstackEnabled)
+      opts.push({ value: "hyperstack", label: "Hyperstack" });
+    return opts;
+  }, [gcpEnabled, hyperstackEnabled]);
+
+  useEffect(() => {
+    const current = form.getFieldValue("provider") as CloudProvider | undefined;
+    if (current === "gcp" && !gcpEnabled) {
+      form.setFieldsValue({ provider: "none" });
+    } else if (current === "hyperstack" && !hyperstackEnabled) {
+      form.setFieldsValue({ provider: "none" });
+    } else if (!current) {
+      form.setFieldsValue({ provider: providerOptions[0]?.value ?? "none" });
+    }
+  }, [gcpEnabled, hyperstackEnabled, providerOptions, form]);
+
+  useEffect(() => {
+    if (refreshProvider === "gcp" && !gcpEnabled) {
+      setRefreshProvider(hyperstackEnabled ? "hyperstack" : "gcp");
+    } else if (refreshProvider === "hyperstack" && !hyperstackEnabled) {
+      setRefreshProvider(gcpEnabled ? "gcp" : "hyperstack");
+    }
+  }, [refreshProvider, gcpEnabled, hyperstackEnabled]);
 
   const refresh = async () => {
     const [list, membership] = await Promise.all([
@@ -160,9 +204,26 @@ export const HostsPage: React.FC = () => {
   }, [selected?.id, drawerOpen, hub.hosts]);
 
   useEffect(() => {
+    const providerForCatalog: CloudProvider | undefined =
+      selectedProvider === "gcp"
+        ? "gcp"
+        : selectedProvider === "hyperstack"
+          ? "hyperstack"
+          : gcpEnabled
+            ? "gcp"
+            : hyperstackEnabled
+              ? "hyperstack"
+              : undefined;
+    if (!providerForCatalog) {
+      setCatalog(undefined);
+      setCatalogError(undefined);
+      return;
+    }
     const loadCatalog = async () => {
       try {
-        const data = await hub.hosts.getCatalog({ provider: "gcp" });
+        const data = await hub.hosts.getCatalog({
+          provider: providerForCatalog,
+        });
         setCatalog(data);
         setCatalogError(undefined);
       } catch (err: any) {
@@ -174,7 +235,7 @@ export const HostsPage: React.FC = () => {
       }
     };
     loadCatalog().catch((err) => console.error("catalog refresh failed", err));
-  }, []);
+  }, [selectedProvider, gcpEnabled, hyperstackEnabled, hub.hosts]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -508,16 +569,14 @@ export const HostsPage: React.FC = () => {
                     size="small"
                     value={refreshProvider}
                     onChange={(value) => setRefreshProvider(value)}
-                    options={[
-                      { value: "gcp", label: "GCP" },
-                      { value: "hyperstack", label: "Hyperstack" },
-                    ]}
+                    options={refreshProviders}
                     style={{ width: 140 }}
                   />
                   <Button
                     size="small"
                     onClick={refreshCatalog}
                     loading={catalogRefreshing}
+                    disabled={!refreshProviders.length}
                   >
                     Refresh catalog
                   </Button>
@@ -570,9 +629,9 @@ export const HostsPage: React.FC = () => {
                       <Form.Item
                         name="provider"
                         label="Provider"
-                        initialValue={PROVIDERS[0].value}
+                        initialValue={providerOptions[0]?.value ?? "none"}
                       >
-                        <Select options={PROVIDERS} />
+                        <Select options={providerOptions} />
                       </Form.Item>
                     </Col>
                     {selectedProvider === "gcp" && (
