@@ -107,6 +107,8 @@ export const HostsPage: React.FC = () => {
     undefined,
   );
   const [catalogRefreshing, setCatalogRefreshing] = useState<boolean>(false);
+  const [refreshProvider, setRefreshProvider] =
+    useState<CloudProvider>("gcp");
   const hub = webapp_client.conat_client.hub;
   const [form] = Form.useForm();
   const isAdmin = useTypedRedux("account", "is_admin");
@@ -377,10 +379,14 @@ export const HostsPage: React.FC = () => {
     if (catalogRefreshing) return;
     setCatalogRefreshing(true);
     try {
-      await hub.hosts.updateCloudCatalog({ provider: "gcp" });
-      const data = await hub.hosts.getCatalog({ provider: "gcp" });
-      setCatalog(data);
-      setCatalogError(undefined);
+      await hub.hosts.updateCloudCatalog({ provider: refreshProvider });
+      if (refreshProvider === selectedProvider) {
+        const data = await hub.hosts.getCatalog({
+          provider: refreshProvider,
+        });
+        setCatalog(data);
+        setCatalogError(undefined);
+      }
       message.success("Cloud catalog updated");
     } catch (err) {
       console.error(err);
@@ -497,13 +503,25 @@ export const HostsPage: React.FC = () => {
             }
             extra={
               isAdmin ? (
-                <Button
-                  size="small"
-                  onClick={refreshCatalog}
-                  loading={catalogRefreshing}
-                >
-                  Refresh catalog
-                </Button>
+                <Space size="small">
+                  <Select
+                    size="small"
+                    value={refreshProvider}
+                    onChange={(value) => setRefreshProvider(value)}
+                    options={[
+                      { value: "gcp", label: "GCP" },
+                      { value: "hyperstack", label: "Hyperstack" },
+                    ]}
+                    style={{ width: 140 }}
+                  />
+                  <Button
+                    size="small"
+                    onClick={refreshCatalog}
+                    loading={catalogRefreshing}
+                  >
+                    Refresh catalog
+                  </Button>
+                </Space>
               ) : undefined
             }
           >
