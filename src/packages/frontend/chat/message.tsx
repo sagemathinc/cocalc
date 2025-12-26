@@ -5,7 +5,7 @@
 
 // cSpell:ignore blankcolumn
 
-import { Badge, Button, Col, Divider, Drawer, Row, Tag, Tooltip } from "antd";
+import { Badge, Button, Col, Divider, Row, Tag, Tooltip } from "antd";
 import {
   CSSProperties,
   ReactNode,
@@ -37,7 +37,6 @@ import { ChatActions } from "./actions";
 import type { ActivityLogContext } from "./actions/activity-logs";
 import { getUserName } from "./chat-log";
 import { codexEventsToMarkdown } from "./codex-activity";
-import CodexLogPanel from "./codex-log-panel";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
@@ -63,6 +62,7 @@ import {
 } from "./access";
 import type { CodexThreadConfig } from "@cocalc/chat";
 import { SyncOutlined } from "@ant-design/icons";
+import { AgentMessageStatus } from "./agent-message-status";
 
 const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
@@ -340,7 +340,6 @@ export default function Message({
     };
   }, [message, project_id, path, threadRootMs]);
 
-  const [showCodexDrawer, setShowCodexDrawer] = useState(false);
   const showCodexActivity = useMemo(() => {
     // Only show for ACP-driven turns (Codex activity). The log identifiers are
     // derived deterministically, but this marker distinguishes ACP turns from
@@ -392,16 +391,12 @@ export default function Message({
     }
   }, [replying]);
 
-  // todo: localstorage?
-  const [activitySize, setActivitySize0] = useState<number>(
-    parseInt(localStorage?.acpActivitySize ?? "600"),
-  );
-  const setActivitySize = (size: number) => {
-    setActivitySize0(size);
-    try {
-      localStorage.acpActivitySize = size;
-    } catch {}
-  };
+  const durationLabel = generating
+    ? elapsedLabel
+    : formatTurnDuration({
+        startMs: date,
+        history: historyEntries,
+      });
 
   function render_editing_status(is_editing: boolean) {
     let text;
@@ -888,91 +883,21 @@ export default function Message({
 
     return (
       <>
-        {showCodexActivity && (
-          <>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 8,
-                flexWrap: "wrap",
-              }}
-            >
-              <Badge status={generating ? "processing" : "default"} />
-
-              <Button
-                size="small"
-                onClick={() => setShowCodexDrawer(true)}
-                title="View Codex activity log"
-              >
-                {generating
-                  ? "Working"
-                  : `Worked for
-                ${formatTurnDuration({
-                  startMs: date,
-                  history: historyEntries,
-                })}`}
-              </Button>
-              {generating ? (
-                <span style={{ color: COLORS.GRAY_D }}>Live</span>
-              ) : null}
-            </div>
-
-            <Drawer
-              title="Codex activity"
-              placement="right"
-              open={showCodexDrawer}
-              onClose={() => setShowCodexDrawer(false)}
-              destroyOnClose
-              size={activitySize}
-              resizable={{
-                onResize: setActivitySize,
-              }}
-            >
-              <CodexLogPanel
-                generating={generating === true}
-                fontSize={font_size}
-                persistKey={`${(project_id ?? "no-project").slice(0, 8)}:${
-                  path ?? ""
-                }:${date}`}
-                basePath={undefined}
-                logStore={fallbackLogRefs.store}
-                logKey={fallbackLogRefs.key}
-                logSubject={fallbackLogRefs.subject}
-                logProjectId={project_id}
-                logEnabled={showCodexDrawer}
-                activityContext={activityContext}
-                durationLabel={
-                  generating === true
-                    ? elapsedLabel
-                    : formatTurnDuration({
-                        startMs: date,
-                        history: historyEntries,
-                      })
-                }
-                canResolveApproval={
-                  field<string>(message, "acp_account_id") === account_id ||
-                  isLanguageModelService(
-                    field<string>(message, "sender_id") ?? "",
-                  ) ||
-                  is_viewers_message
-                }
-                projectId={project_id}
-                onResolveApproval={
-                  actions && typeof actions.resolveAcpApproval === "function"
-                    ? ({ approvalId, optionId }) =>
-                        actions.resolveAcpApproval({
-                          date: dateValue(message) ?? new Date(date),
-                          approvalId,
-                          optionId,
-                        })
-                    : undefined
-                }
-              />
-            </Drawer>
-          </>
-        )}
+        <AgentMessageStatus
+          show={showCodexActivity}
+          generating={generating === true}
+          durationLabel={durationLabel}
+          fontSize={font_size}
+          project_id={project_id}
+          path={path}
+          date={date}
+          fallbackLogRefs={fallbackLogRefs}
+          activityContext={activityContext}
+          message={message}
+          account_id={account_id}
+          is_viewers_message={is_viewers_message}
+          actions={actions}
+        />
         <StaticMarkdown
           style={MARKDOWN_STYLE}
           value={value}
