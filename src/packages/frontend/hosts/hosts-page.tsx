@@ -133,8 +133,8 @@ export const HostsPage: React.FC = () => {
 
   useEffect(() => {
     let mounted = true;
-    if (!selected?.id) {
-      setHostLog([]);
+    if (!selected?.id || !drawerOpen) {
+      if (!drawerOpen) setHostLog([]);
       return;
     }
     setLoadingLog(true);
@@ -155,7 +155,7 @@ export const HostsPage: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, [selected?.id, hub.hosts]);
+  }, [selected?.id, drawerOpen, hub.hosts]);
 
   useEffect(() => {
     const loadCatalog = async () => {

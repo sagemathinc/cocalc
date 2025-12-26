@@ -290,10 +290,8 @@ export async function getHostLog({
     error?: string | null;
   }[]
 > {
-  const row = await loadHostForView(id, account_id);
-  const vm_id = row?.metadata?.runtime?.instance_id;
-  if (!vm_id) return [];
-  const entries = await listCloudVmLog({ vm_id, limit });
+  await loadHostForView(id, account_id);
+  const entries = await listCloudVmLog({ vm_id: id, limit });
   return entries.map((entry) => ({
     id: entry.id,
     vm_id: entry.vm_id,

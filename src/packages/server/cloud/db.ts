@@ -68,7 +68,7 @@ export async function logCloudVmEvent(event: CloudVmLogEvent): Promise<void> {
           ),
           '{last_action_status}', to_jsonb($3::text)
         ),
-        '{last_action_error}', to_jsonb($4::text)
+        '{last_action_error}', COALESCE(to_jsonb($4::text), 'null'::jsonb)
       )
       WHERE id=$1
     `,
