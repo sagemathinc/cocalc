@@ -107,10 +107,10 @@ export class CodexExecAgent implements AcpAgent {
   async evaluate(request: AcpEvaluateRequest): Promise<void> {
     const { prompt, stream, session_id, config } = request;
     const session = this.resolveSession(session_id);
-    const cwd = this.opts.cwd ?? process.cwd();
+    const cwd = this.resolveCwd(config);
     const preContentCache = this.createPreContentCache();
     void this.capturePreContentsFromText(prompt, cwd, preContentCache);
-    const args = this.buildArgs(config);
+    const args = this.buildArgs(config, cwd);
     let cmd = this.opts.binaryPath ?? "codex";
     let proc: ReturnType<typeof spawn>;
     const projectSpawner = getCodexProjectSpawner();
@@ -303,12 +303,15 @@ export class CodexExecAgent implements AcpAgent {
     return { sessionId: newId, cwd: this.opts.cwd ?? process.cwd() };
   }
 
-  private buildArgs(config?: CodexSessionConfig): string[] {
+  private buildArgs(config: CodexSessionConfig | undefined, cwd: string): string[] {
     const args: string[] = [
       "exec",
       "--experimental-json",
       "--skip-git-repo-check",
     ];
+    if (cwd) {
+      args.push("--cd", cwd);
+    }
     const model = config?.model ?? this.opts.model;
     if (model) {
       args.push("--model", model);
@@ -317,6 +320,14 @@ export class CodexExecAgent implements AcpAgent {
       args.push("resume", config.sessionId);
     }
     return args;
+  }
+
+  private resolveCwd(config?: CodexSessionConfig): string {
+    const base = this.opts.cwd ?? process.cwd();
+    const requested = config?.workingDirectory;
+    if (!requested) return base;
+    if (path.isAbsolute(requested)) return requested;
+    return path.resolve(base, requested);
   }
 
   private decoratePrompt(prompt: string): string {

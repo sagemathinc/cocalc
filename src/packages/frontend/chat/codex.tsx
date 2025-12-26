@@ -397,8 +397,8 @@ export function CodexConfigButton({
                 style={formItemStyle}
               >
                 <Input
-                  placeholder="Defaults to the directory containing this chat"
-                  allowClear
+                  placeholder="Derived from the directory containing this chat"
+                  disabled
                 />
               </Form.Item>
               <Form.Item
