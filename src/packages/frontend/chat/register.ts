@@ -35,6 +35,7 @@ export function initChat(project_id: string, path: string): ChatActions {
     // used only for drafts, since store lots of versions as user types:
     string_cols: ["input"],
     ignoreInitialChanges: true,
+    change_throttle: 3000,
   });
   const cache = new ChatMessageCache(syncdb);
   syncdb.once("close", () => {
