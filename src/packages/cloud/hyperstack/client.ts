@@ -40,19 +40,19 @@ import { getHyperstackConfig } from "./config";
 
 const log = getLogger("hyperstack:client");
 
-const clientCache: { [key: string]: AxiosInstance } = {};
+const clientCache: Record<string, AxiosInstance> = {};
 
 // see https://infrahub-doc.nexgencloud.com/docs/api-reference/
 const apiBaseUrl = "https://infrahub-api.nexgencloud.com/v1";
 
 export default async function getClient(): Promise<any> {
   const { apiKey } = getHyperstackConfig();
-  if (clientCache[apiKey]) {
-    return clientCache[apiKey];
-  }
   if (!apiKey) {
     log.warn("requested Hyperstack api key, but it's not configured");
     throw Error("Hyperstack not configured");
+  }
+  if (clientCache[apiKey]) {
+    return clientCache[apiKey];
   }
 
   log.debug("creating Hyperstack client...");

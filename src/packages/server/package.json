@@ -76,7 +76,7 @@
     "@zxcvbn-ts/language-en": "^3.0.2",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
-    "axios": "^1.12.0",
+    "axios": "^1.13.2",
     "base62": "^2.0.1",
     "base64-js": "^1.5.1",
     "cloudflare": "^2.9.1",
