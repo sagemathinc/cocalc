@@ -11,7 +11,11 @@ import {
   getUserHostTier,
 } from "@cocalc/server/project-host/placement";
 import { resolveMembershipForAccount } from "@cocalc/server/membership/resolve";
-import { enqueueCloudVmWork, refreshCloudCatalogNow } from "@cocalc/server/cloud";
+import {
+  enqueueCloudVmWork,
+  listCloudVmLog,
+  refreshCloudCatalogNow,
+} from "@cocalc/server/cloud";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 function pool() {
   return getPool();
@@ -55,6 +59,10 @@ function parseRow(
     can_start: opts.can_start,
     can_place: opts.can_place,
     reason_unavailable: opts.reason_unavailable,
+    last_action: metadata.last_action,
+    last_action_at: metadata.last_action_at,
+    last_action_status: metadata.last_action_status,
+    last_action_error: metadata.last_action_error,
   };
 }
 
@@ -95,6 +103,27 @@ async function loadHostForStartStop(
   if (isCollab && !!metadata.host_collab_control) {
     return row;
   }
+  throw new Error("not authorized");
+}
+
+async function loadHostForView(
+  id: string,
+  account_id?: string,
+): Promise<any> {
+  const owner = requireAccount(account_id);
+  const { rows } = await pool().query(
+    `SELECT * FROM project_hosts WHERE id=$1`,
+    [id],
+  );
+  const row = rows[0];
+  if (!row) {
+    throw new Error("host not found");
+  }
+  const metadata = row.metadata ?? {};
+  const isOwner = metadata.owner === owner;
+  const collaborators = (metadata.collaborators ?? []) as string[];
+  const isCollab = collaborators.includes(owner);
+  if (isOwner || isCollab) return row;
   throw new Error("not authorized");
 }
 
@@ -240,6 +269,40 @@ export async function updateCloudCatalog({
     throw new Error("not authorized");
   }
   await refreshCloudCatalogNow({ provider });
+}
+
+export async function getHostLog({
+  account_id,
+  id,
+  limit,
+}: {
+  account_id?: string;
+  id: string;
+  limit?: number;
+}): Promise<
+  {
+    id: string;
+    vm_id: string;
+    ts?: string | null;
+    action: string;
+    status: string;
+    provider?: string | null;
+    error?: string | null;
+  }[]
+> {
+  const row = await loadHostForView(id, account_id);
+  const vm_id = row?.metadata?.runtime?.instance_id;
+  if (!vm_id) return [];
+  const entries = await listCloudVmLog({ vm_id, limit });
+  return entries.map((entry) => ({
+    id: entry.id,
+    vm_id: entry.vm_id,
+    ts: entry.ts ? entry.ts.toISOString() : null,
+    action: entry.action,
+    status: entry.status,
+    provider: entry.provider ?? null,
+    error: entry.error ?? null,
+  }));
 }
 
 export async function createHost({

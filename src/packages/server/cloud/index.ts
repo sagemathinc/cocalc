@@ -1,10 +1,12 @@
 export {
   logCloudVmEvent,
+  listCloudVmLog,
   enqueueCloudVmWork,
   claimCloudVmWork,
   markCloudVmWorkDone,
   markCloudVmWorkFailed,
   type CloudVmLogEvent,
+  type CloudVmLogEntry,
   type CloudVmWorkRow,
 } from "./db";
 export {

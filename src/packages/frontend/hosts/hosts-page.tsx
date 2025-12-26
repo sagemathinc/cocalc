@@ -7,6 +7,7 @@ import {
   Drawer,
   Form,
   Input,
+  List,
   Row,
   Select,
   Slider,
@@ -88,6 +89,17 @@ export const HostsPage: React.FC = () => {
   const [hosts, setHosts] = useState<Host[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selected, setSelected] = useState<Host | undefined>(undefined);
+  const [hostLog, setHostLog] = useState<
+    {
+      id: string;
+      ts?: string | null;
+      action: string;
+      status: string;
+      provider?: string | null;
+      error?: string | null;
+    }[]
+  >([]);
+  const [loadingLog, setLoadingLog] = useState(false);
   const [creating, setCreating] = useState<boolean>(false);
   const [canCreateHosts, setCanCreateHosts] = useState<boolean>(true);
   const [catalog, setCatalog] = useState<HostCatalog | undefined>(undefined);
@@ -118,6 +130,32 @@ export const HostsPage: React.FC = () => {
       message.error("Unable to load hosts");
     });
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!selected?.id) {
+      setHostLog([]);
+      return;
+    }
+    setLoadingLog(true);
+    (async () => {
+      try {
+        const entries = await hub.hosts.getHostLog({
+          id: selected.id,
+          limit: 50,
+        });
+        if (mounted) setHostLog(entries);
+      } catch (err) {
+        if (mounted) setHostLog([]);
+        console.warn("getHostLog failed", err);
+      } finally {
+        if (mounted) setLoadingLog(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [selected?.id, hub.hosts]);
 
   useEffect(() => {
     const loadCatalog = async () => {
@@ -425,6 +463,17 @@ export const HostsPage: React.FC = () => {
                 <Typography.Text>
                   Projects: {host.projects ?? 0}
                 </Typography.Text>
+                {host.last_action && (
+                  <Typography.Text type="secondary">
+                    Last action: {host.last_action}
+                    {host.last_action_status
+                      ? ` (${host.last_action_status})`
+                      : ""}
+                    {host.last_action_at
+                      ? ` · ${new Date(host.last_action_at).toLocaleString()}`
+                      : ""}
+                  </Typography.Text>
+                )}
                 {host.status === "error" && host.error && (
                   <Typography.Text type="danger">{host.error}</Typography.Text>
                 )}
@@ -708,6 +757,33 @@ export const HostsPage: React.FC = () => {
                   description={selected.error}
                 />
               )}
+            <Divider />
+            <Typography.Title level={5}>Recent actions</Typography.Title>
+            <List
+              size="small"
+              loading={loadingLog}
+              locale={{ emptyText: "No actions yet." }}
+              dataSource={hostLog}
+              renderItem={(entry) => (
+                <List.Item>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <div style={{ fontWeight: 600 }}>
+                      {entry.action} — {entry.status}
+                    </div>
+                    <div style={{ color: "#888", fontSize: 12 }}>
+                      {entry.ts
+                        ? new Date(entry.ts).toLocaleString()
+                        : "unknown time"}
+                    </div>
+                    {entry.error && (
+                      <div style={{ color: "#c00", fontSize: 12 }}>
+                        {entry.error}
+                      </div>
+                    )}
+                  </div>
+                </List.Item>
+              )}
+            />
             <Divider />
             <Typography.Title level={5}>Activity</Typography.Title>
             <Bootlog host_id={selected.id} style={{ maxWidth: "100%" }} />

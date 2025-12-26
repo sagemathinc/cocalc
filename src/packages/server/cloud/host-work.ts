@@ -18,7 +18,9 @@ async function loadHostRow(id: string) {
 }
 
 async function updateHostRow(id: string, updates: Record<string, any>) {
-  const keys = Object.keys(updates);
+  const keys = Object.keys(updates).filter(
+    (key) => updates[key] !== undefined,
+  );
   if (!keys.length) return;
   const sets = keys.map((key, idx) => `${key}=$${idx + 2}`);
   await pool().query(

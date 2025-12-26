@@ -51,7 +51,7 @@ Table({
   },
   rules: {
     primary_key: "id",
-    pg_indexes: ["vm_id", "ts", "provider"],
+    pg_indexes: ["vm_id", "ts", "provider", "((ts IS NOT NULL))"],
     durability: "soft",
   },
 });

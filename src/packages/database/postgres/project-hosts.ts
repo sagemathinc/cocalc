@@ -57,7 +57,7 @@ export async function upsertProjectHost({
       status = EXCLUDED.status,
       version = EXCLUDED.version,
       capacity = EXCLUDED.capacity,
-      metadata = EXCLUDED.metadata,
+      metadata = COALESCE(project_hosts.metadata, '{}'::jsonb) || COALESCE(EXCLUDED.metadata, '{}'::jsonb),
       last_seen = EXCLUDED.last_seen,
       updated = NOW();
   `,
@@ -71,7 +71,7 @@ export async function upsertProjectHost({
       status ?? null,
       version ?? null,
       capacity ?? null,
-      mergedMetadata ?? null,
+      mergedMetadata,
       now,
     ],
   );

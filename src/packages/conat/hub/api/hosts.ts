@@ -89,12 +89,27 @@ export interface Host {
   can_start?: boolean;
   can_place?: boolean;
   reason_unavailable?: string;
+  last_action?: string;
+  last_action_at?: string;
+  last_action_status?: string;
+  last_action_error?: string;
+}
+
+export interface HostLogEntry {
+  id: string;
+  vm_id: string;
+  ts?: string | null;
+  action: string;
+  status: string;
+  provider?: string | null;
+  error?: string | null;
 }
 
 export const hosts = {
   listHosts: authFirstRequireAccount,
   getCatalog: authFirstRequireAccount,
   updateCloudCatalog: authFirstRequireAccount,
+  getHostLog: authFirstRequireAccount,
   createHost: authFirstRequireAccount,
   startHost: authFirstRequireAccount,
   stopHost: authFirstRequireAccount,
@@ -115,6 +130,11 @@ export interface Hosts {
     account_id?: string;
     provider?: string;
   }) => Promise<void>;
+  getHostLog: (opts: {
+    account_id?: string;
+    id: string;
+    limit?: number;
+  }) => Promise<HostLogEntry[]>;
   createHost: (opts: {
     account_id?: string;
     name: string;

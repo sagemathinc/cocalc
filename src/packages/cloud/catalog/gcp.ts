@@ -59,12 +59,21 @@ export function normalizeGcpCatalog(opts: {
     lowC02: zone.lowC02 ?? undefined,
   }));
 
+  const images = opts.images?.length
+    ? latestImagesByFamily(opts.images)
+        .filter((img) => !img.deprecated?.state)
+        .filter((img) => {
+          const version = ubuntuVersionCode(img.family ?? img.name ?? "");
+          return version != null && version >= 2204;
+        })
+    : [];
+
   return {
     regions,
     zones,
     machine_types_by_zone: opts.machine_types_by_zone,
     gpu_types_by_zone: opts.gpu_types_by_zone,
-    images: opts.images ?? [],
+    images,
   };
 }
 

@@ -14,6 +14,11 @@ export type CloudVmLogEvent = {
   error?: string;
 };
 
+export type CloudVmLogEntry = CloudVmLogEvent & {
+  id: string;
+  ts: Date | null;
+};
+
 export type CloudVmWorkRow = {
   id: string;
   vm_id: string;
@@ -33,8 +38,8 @@ export async function logCloudVmEvent(event: CloudVmLogEvent): Promise<void> {
   await pool().query(
     `
       INSERT INTO cloud_vm_log
-        (id, vm_id, action, status, provider, spec, runtime, pricing_version, error)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        (id, vm_id, ts, action, status, provider, spec, runtime, pricing_version, error)
+      VALUES ($1,$2,NOW(),$3,$4,$5,$6,$7,$8,$9)
     `,
     [
       id,
@@ -48,6 +53,49 @@ export async function logCloudVmEvent(event: CloudVmLogEvent): Promise<void> {
       event.error ?? null,
     ],
   );
+
+  await pool().query(
+    `
+      UPDATE project_hosts
+      SET metadata = jsonb_set(
+        jsonb_set(
+          jsonb_set(
+            jsonb_set(
+              COALESCE(metadata, '{}'::jsonb),
+              '{last_action}', to_jsonb($2::text)
+            ),
+            '{last_action_at}', to_jsonb(NOW())
+          ),
+          '{last_action_status}', to_jsonb($3::text)
+        ),
+        '{last_action_error}', to_jsonb($4::text)
+      )
+      WHERE id=$1
+    `,
+    [
+      event.vm_id,
+      event.action,
+      event.status,
+      event.error ?? null,
+    ],
+  );
+}
+
+export async function listCloudVmLog(opts: {
+  vm_id: string;
+  limit?: number;
+}): Promise<CloudVmLogEntry[]> {
+  const { rows } = await pool().query<CloudVmLogEntry>(
+    `
+      SELECT id, vm_id, ts, action, status, provider, spec, runtime, pricing_version, error
+      FROM cloud_vm_log
+      WHERE vm_id=$1
+      ORDER BY ts DESC NULLS LAST
+      LIMIT $2
+    `,
+    [opts.vm_id, opts.limit ?? 50],
+  );
+  return rows;
 }
 
 export async function enqueueCloudVmWork(row: {
