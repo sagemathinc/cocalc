@@ -200,14 +200,10 @@ export function ChatPanel({
   const fragmentId = getDescValue(desc, "data-fragmentId") ?? null;
   const costEstimate = getDescValue(desc, "data-costEstimate");
   const storedSidebarWidth = getDescValue(desc, "data-sidebarWidth");
-  const storedSidebarCollapsed = getDescValue(desc, "data-sidebarCollapsed");
   const [sidebarWidth, setSidebarWidth] = useState<number>(
     typeof storedSidebarWidth === "number" && storedSidebarWidth > 50
       ? storedSidebarWidth
       : DEFAULT_SIDEBAR_WIDTH,
-  );
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
-    !!storedSidebarCollapsed,
   );
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
@@ -258,26 +254,12 @@ export function ChatPanel({
   }, [project_id, path, selectedThreadKey]);
 
   useEffect(() => {
-    if (IS_MOBILE && sidebarWidth !== DEFAULT_SIDEBAR_WIDTH) {
-      setSidebarWidth(DEFAULT_SIDEBAR_WIDTH);
-    }
-  }, [sidebarWidth]);
-
-  useEffect(() => {
     if (!actions?.frameTreeActions?.set_frame_data || !actions?.frameId) return;
     actions.frameTreeActions.set_frame_data({
       id: actions.frameId,
       sidebarWidth,
     });
   }, [sidebarWidth, actions?.frameTreeActions, actions?.frameId]);
-
-  useEffect(() => {
-    if (!actions?.frameTreeActions?.set_frame_data || !actions?.frameId) return;
-    actions.frameTreeActions.set_frame_data({
-      id: actions.frameId,
-      sidebarCollapsed,
-    });
-  }, [sidebarCollapsed, actions?.frameTreeActions, actions?.frameId]);
 
   useEffect(() => {
     if (!exportThread) return;
@@ -890,7 +872,6 @@ export function ChatPanel({
                   size="small"
                   type="text"
                   icon={<Icon name="chevron-left" />}
-                  onClick={() => setSidebarCollapsed(true)}
                 />
               </Tooltip>
             )}
@@ -1121,7 +1102,7 @@ export function ChatPanel({
         </div>
       </Layout.Sider>
     );
-    if (IS_MOBILE || sidebarCollapsed) {
+    if (IS_MOBILE) {
       return sider;
     }
     return (
@@ -1378,7 +1359,7 @@ export function ChatPanel({
         flexDirection: "row",
       }}
     >
-      {!sidebarCollapsed && renderThreadSidebar()}
+      {renderThreadSidebar()}
       <Layout.Content
         className="smc-vfill"
         style={{
@@ -1389,17 +1370,6 @@ export function ChatPanel({
           height: "100%",
         }}
       >
-        {sidebarCollapsed && !IS_MOBILE && (
-          <div style={{ padding: "10px" }}>
-            <Button
-              size="small"
-              icon={<Icon name="bars" />}
-              onClick={() => setSidebarCollapsed(false)}
-            >
-              Show chats
-            </Button>
-          </div>
-        )}
         {renderChatContent()}
       </Layout.Content>
     </Layout>
