@@ -316,10 +316,31 @@ export class CodexExecAgent implements AcpAgent {
     if (model) {
       args.push("--model", model);
     }
+    const reasoning = this.resolveReasoningEffort(config);
+    if (reasoning) {
+      args.push("--config", `model_reasoning_effort="${reasoning}"`);
+    }
     if (config?.sessionId) {
       args.push("resume", config.sessionId);
     }
     return args;
+  }
+
+  private resolveReasoningEffort(
+    config?: CodexSessionConfig,
+  ): string | undefined {
+    const effort = config?.reasoning;
+    if (!effort) return undefined;
+    switch (effort) {
+      case "extra_high":
+        return "xhigh";
+      case "low":
+      case "medium":
+      case "high":
+        return effort;
+      default:
+        return undefined;
+    }
   }
 
   private resolveCwd(config?: CodexSessionConfig): string {
