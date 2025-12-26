@@ -1,0 +1,168 @@
+import type { HostSpec, HostRuntime, CloudProvider } from "../types";
+import getLogger from "@cocalc/backend/logger";
+import {
+  createVirtualMachines,
+  deleteVirtualMachine,
+  getEnvironments,
+  getFlavors,
+  getImages,
+  getKeyPairs,
+  startVirtualMachine,
+  stopVirtualMachine,
+  importKeyPair,
+  createEnvironment,
+} from "./client";
+import { setHyperstackConfig } from "./config";
+import type { Region } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+
+const logger = getLogger("cloud:hyperstack:provider");
+
+export type HyperstackCreds = {
+  apiKey: string;
+  sshPublicKey: string;
+};
+
+function ensureHyperstackConfig(creds: HyperstackCreds) {
+  setHyperstackConfig({ apiKey: creds.apiKey });
+}
+
+function envName(region: string): string {
+  return `cocalc-${region.toLowerCase().replace(/[^a-z0-9-]/g, "-")}`;
+}
+
+function keyName(region: string): string {
+  return `cocalc-host-${region.toLowerCase().replace(/[^a-z0-9-]/g, "-")}`;
+}
+
+async function ensureEnvironment(region: string): Promise<string> {
+  const name = envName(region);
+  const envs = await getEnvironments();
+  if (envs.find((e) => e.name === name)) return name;
+  await createEnvironment({ name, region: region as Region });
+  return name;
+}
+
+async function ensureKeyPair(region: string, publicKey: string): Promise<string> {
+  const name = keyName(region);
+  const keys = await getKeyPairs();
+  if (keys.find((k) => k.name === name)) return name;
+  await importKeyPair({
+    name,
+    environment_name: envName(region),
+    public_key: publicKey,
+  });
+  return name;
+}
+
+async function selectFlavor(region: string, spec: HostSpec): Promise<string> {
+  const flavors = await getFlavors();
+  const regionFlavors =
+    flavors.find((entry) => entry.region_name === region)?.flavors ?? [];
+
+  const wantsGpu = !!spec.gpu;
+  const gpuType = spec.gpu?.type?.toLowerCase();
+  const candidates = regionFlavors.filter((flavor) => {
+    if (wantsGpu) {
+      if (!flavor.gpu || flavor.gpu_count <= 0) return false;
+      if (gpuType && !flavor.gpu.toLowerCase().includes(gpuType)) return false;
+      if (spec.gpu?.count && flavor.gpu_count < spec.gpu.count) return false;
+    } else if (flavor.gpu_count > 0) {
+      return false;
+    }
+    return flavor.cpu >= spec.cpu && flavor.ram >= spec.ram_gb;
+  });
+
+  const sorted = candidates.sort((a, b) => {
+    if (a.cpu !== b.cpu) return a.cpu - b.cpu;
+    return a.ram - b.ram;
+  });
+  if (!sorted.length) {
+    throw new Error(`no matching Hyperstack flavor for ${region}`);
+  }
+  return sorted[0].name;
+}
+
+async function selectImage(region: string, spec: HostSpec): Promise<string> {
+  if (spec.metadata?.source_image) return spec.metadata.source_image;
+  const images = await getImages(true, { region: region as Region });
+  const ubuntu = images.find((i) => i.type === "Ubuntu" && i.region_name === region);
+  const list = ubuntu?.images ?? [];
+  const wantsGpu = !!spec.gpu;
+  const preferred = list
+    .filter((img) => (wantsGpu ? img.version.includes("CUDA") : true))
+    .filter((img) => img.version.includes("22.04") || img.version.includes("24.04"));
+  if (preferred.length) return preferred[0].name;
+  if (list.length) return list[0].name;
+  throw new Error(`no Hyperstack Ubuntu images for ${region}`);
+}
+
+function parseInstanceId(value: string): number {
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    throw new Error(`invalid Hyperstack instance id ${value}`);
+  }
+  return num;
+}
+
+export class HyperstackProvider implements CloudProvider {
+  async createHost(spec: HostSpec, creds: HyperstackCreds): Promise<HostRuntime> {
+    ensureHyperstackConfig(creds);
+    const region = spec.region;
+    const environment_name = await ensureEnvironment(region);
+    const key_name = await ensureKeyPair(region, creds.sshPublicKey);
+    const flavor_name = await selectFlavor(region, spec);
+    const image_name = await selectImage(region, spec);
+    const user_data =
+      typeof spec.metadata?.startup_script === "string"
+        ? spec.metadata.startup_script
+        : undefined;
+
+    const instances = await createVirtualMachines({
+      name: spec.name,
+      environment_name,
+      flavor_name,
+      key_name,
+      image_name,
+      assign_floating_ip: true,
+      create_bootable_volume: true,
+      user_data,
+    });
+    const instance = instances[0];
+    if (!instance) {
+      throw new Error("Hyperstack did not return a VM instance");
+    }
+    const runtime: HostRuntime = {
+      provider: "hyperstack",
+      instance_id: String(instance.id),
+      public_ip: instance.floating_ip ?? undefined,
+      ssh_user: "ubuntu",
+      zone: region,
+      metadata: { environment_name, flavor_name, image_name },
+    };
+    logger.info("Hyperstack createHost", { region, flavor_name, image_name });
+    return runtime;
+  }
+
+  async startHost(runtime: HostRuntime, creds: HyperstackCreds): Promise<void> {
+    ensureHyperstackConfig(creds);
+    await startVirtualMachine(parseInstanceId(runtime.instance_id));
+  }
+
+  async stopHost(runtime: HostRuntime, creds: HyperstackCreds): Promise<void> {
+    ensureHyperstackConfig(creds);
+    await stopVirtualMachine(parseInstanceId(runtime.instance_id));
+  }
+
+  async deleteHost(runtime: HostRuntime, creds: HyperstackCreds): Promise<void> {
+    ensureHyperstackConfig(creds);
+    await deleteVirtualMachine(parseInstanceId(runtime.instance_id));
+  }
+
+  async resizeDisk(): Promise<void> {
+    throw new Error("Hyperstack disk resize not implemented");
+  }
+
+  async getStatus(): Promise<"starting" | "running" | "stopped" | "error"> {
+    throw new Error("Hyperstack getStatus not implemented");
+  }
+}
