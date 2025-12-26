@@ -321,11 +321,13 @@ export const HostsPage: React.FC = () => {
       ? catalog.hyperstack_flavors
           .filter((flavor) => flavor.region_name === selectedRegion)
           .map((flavor) => {
+            const cpuLabel = flavor.cpu != null ? String(flavor.cpu) : "?";
+            const ramLabel = flavor.ram != null ? String(flavor.ram) : "?";
             const gpuLabel =
               flavor.gpu_count && flavor.gpu && flavor.gpu !== "none"
                 ? ` · ${flavor.gpu_count}x ${flavor.gpu}`
                 : "";
-            const label = `${flavor.name} (${flavor.cpu} vCPU / ${flavor.ram} GB${gpuLabel})`;
+            const label = `${flavor.name} (${cpuLabel} vCPU / ${ramLabel} GB${gpuLabel})`;
             return { value: flavor.name, label, flavor };
           })
       : [];
@@ -337,6 +339,11 @@ export const HostsPage: React.FC = () => {
           label: gt.name ?? "unknown",
         }))
       : [];
+
+  const wantsGpu =
+    selectedProvider === "gcp" &&
+    !!selectedGpuType &&
+    selectedGpuType !== "none";
 
   const imageOptions =
     selectedProvider === "gcp" && catalog?.images?.length
@@ -351,11 +358,9 @@ export const HostsPage: React.FC = () => {
             if (!imgArch) return true;
             return arch === "arm64" ? imgArch === "ARM64" : imgArch === "X86_64";
           })
-          .filter((img) => {
-            const wantsGpu = selectedGpuType && selectedGpuType !== "none";
-            if (!wantsGpu) return !img.gpuReady;
-            return !!img.gpuReady;
-          })
+          .filter((img) =>
+            wantsGpu ? img.gpuReady === true : img.gpuReady !== true,
+          )
           .sort((a, b) => {
             const va = imageVersionCode(a.family ?? a.name ?? "");
             const vb = imageVersionCode(b.family ?? b.name ?? "");
