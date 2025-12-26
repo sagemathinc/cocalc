@@ -39,7 +39,6 @@ import { getUserName } from "./chat-log";
 import { codexEventsToMarkdown } from "./codex-activity";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
-import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { FeedbackLLM } from "./llm-msg-feedback";
 import { RegenerateLLM } from "./llm-msg-regenerate";
 import { SummarizeThread } from "./llm-msg-summarize";
@@ -136,7 +135,6 @@ interface Props {
   is_folded?: boolean; // if true, only show the reply_to root message
   is_thread_body: boolean;
 
-  costEstimate;
 
   selected?: boolean;
 
@@ -168,7 +166,6 @@ export default function Message({
   is_thread,
   is_folded,
   is_thread_body,
-  costEstimate,
   selected,
   numChildren,
   threadViewMode = false,
@@ -1168,13 +1165,6 @@ export default function Message({
           date={replyDate}
           onChange={(value) => {
             replyMessageRef.current = value;
-            // replyMentionsRef does not submit mentions, only gives us the value
-            const input = replyMentionsRef.current?.(undefined, true) ?? value;
-            actions?.llmEstimateCost({
-              date: replyDate,
-              input,
-              message,
-            });
           }}
           placeholder={"Reply to the above message..."}
         />
@@ -1198,13 +1188,6 @@ export default function Message({
               <Icon name="reply" /> Reply
             </Button>
           </Tooltip>
-          {costEstimate?.get("date") == replyDate && (
-            <LLMCostEstimationChat
-              costEstimate={costEstimate?.toJS()}
-              compact={false}
-              style={{ display: "inline-block", marginLeft: "10px" }}
-            />
-          )}
         </div>
       </div>
     );

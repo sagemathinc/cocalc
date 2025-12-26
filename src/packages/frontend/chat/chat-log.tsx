@@ -39,7 +39,6 @@ import Message from "./message";
 import type {
   ChatMessageTyped,
   ChatMessages,
-  CostEstimate,
   Mode,
   NumChildren,
 } from "./types";
@@ -73,7 +72,6 @@ interface Props {
   // scrollToDate = string ms from epoch
   scrollToDate?: null | undefined | string;
   selectedDate?: string;
-  costEstimate?;
   scrollCacheId?: string;
   acpState?;
 }
@@ -95,7 +93,6 @@ export function ChatLog({
   scrollToIndex,
   scrollToDate,
   selectedDate,
-  costEstimate,
   scrollCacheId,
   acpState,
 }: Props) {
@@ -315,7 +312,6 @@ export function ChatLog({
           fontSize,
           selectedHashtags,
           actions,
-          costEstimate,
           manualScrollRef,
           manualScroll,
           setManualScroll,
@@ -566,7 +562,6 @@ export function MessageList({
   path,
   fontSize,
   actions,
-  costEstimate,
   manualScrollRef,
   manualScroll = false,
   setManualScroll,
@@ -588,7 +583,6 @@ export function MessageList({
   path?: string;
   fontSize?: number;
   actions?;
-  costEstimate?: CostEstimate;
   manualScrollRef?;
   manualScroll?: boolean;
   setManualScroll?: (value: boolean) => void;
@@ -671,7 +665,6 @@ export function MessageList({
                 return next == null ? true : replyTo(next) == null;
               })()
             }
-            costEstimate={costEstimate}
             threadViewMode={singleThreadView}
             onForceScrollToBottom={forceScrollToBottom}
             acpState={acpState?.get(date)}

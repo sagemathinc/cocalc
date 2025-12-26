@@ -80,5 +80,3 @@ export type SubmitMentionsFn = (
 export type SubmitMentionsRef = MutableRefObject<SubmitMentionsFn | undefined>;
 
 export type NumChildren = { [date: number]: number };
-
-export type CostEstimate = { min: number; max: number } | null;

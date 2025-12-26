@@ -19,7 +19,6 @@ import {
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
-import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ImmerDB } from "@cocalc/sync/editor/immer-db";
@@ -28,7 +27,6 @@ import {
   LANGUAGE_MODEL_PREFIXES,
   OLLAMA_PREFIX,
   USER_LLM_PREFIX,
-  isFreeModel,
   isLanguageModel,
   isLanguageModelService,
   model2service,
@@ -38,7 +36,6 @@ import {
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, history_path, isValidUUID } from "@cocalc/util/misc";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
@@ -54,7 +51,7 @@ import type {
   MessageHistory,
 } from "./types";
 import type { CodexThreadConfig } from "@cocalc/chat";
-import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
+import { getThreadRootDate, toMsString } from "./utils";
 import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
 import {
   field,
@@ -518,80 +515,6 @@ export class ChatActions extends Actions<ChatState> {
     leading: true,
     trailing: true,
   });
-
-  private _llmEstimateCost = async ({
-    input,
-    date,
-    message,
-  }: {
-    input: string;
-    // date is as in chat/input.tsx -- so 0 for main input and -ms for reply
-    date: number;
-    // in case of reply/edit, so we can get the entire thread
-    message?: ChatMessage;
-  }): Promise<void> => {
-    if (!this.store) {
-      return;
-    }
-
-    const is_cocalc_com = this.redux.getStore("customize").get("is_cocalc_com");
-    if (!is_cocalc_com) {
-      return;
-    }
-    // this is either a new message or in a reply, but mentions an LLM
-    let model: LanguageModel | null | false = getLanguageModel(input);
-    input = stripMentions(input);
-    let history: string[] = [];
-    const messages = this.getAllMessages();
-    // message != null means this is a reply or edit and we have to get the whole chat thread
-    if (!model && message != null && messages != null) {
-      const root = getReplyToRoot({ message, messages });
-      model = this.isLanguageModelThread(root);
-      if (!isFreeModel(model, is_cocalc_com) && root != null) {
-        for (const msg of this.getLLMHistory(root)) {
-          history.push(msg.content);
-        }
-      }
-    }
-    if (model) {
-      if (isFreeModel(model, is_cocalc_com)) {
-        this.setCostEstimate({ date, min: 0, max: 0 });
-      } else {
-        const llm_markup = this.redux.getStore("customize").get("llm_markup");
-        // do not import until needed -- it is HUGE!
-        const { truncateMessage, getMaxTokens, numTokensUpperBound } =
-          await import("@cocalc/frontend/misc/llm");
-        const maxTokens = getMaxTokens(model);
-        const tokens = numTokensUpperBound(
-          truncateMessage([input, ...history].join("\n"), maxTokens),
-          maxTokens,
-        );
-        const { min, max } = calcMinMaxEstimation(tokens, model, llm_markup);
-        this.setCostEstimate({ date, min, max });
-      }
-    } else {
-      this.setCostEstimate();
-    }
-  };
-
-  llmEstimateCost: typeof this._llmEstimateCost = debounce(
-    reuseInFlight(this._llmEstimateCost),
-    1000,
-    { leading: true, trailing: true },
-  );
-
-  private setCostEstimate = (
-    costEstimate: {
-      date: number;
-      min: number;
-      max: number;
-    } | null = null,
-  ) => {
-    this.frameTreeActions?.set_frame_data({
-      id: this.frameId,
-      costEstimate,
-    });
-  };
 
   // returns number of deleted messages
   // threadKey = iso timestamp root of thread.

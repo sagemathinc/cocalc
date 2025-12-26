@@ -191,7 +191,6 @@ export function ChatPanel({
   const scrollToIndex = getDescValue(desc, "data-scrollToIndex") ?? null;
   const scrollToDate = getDescValue(desc, "data-scrollToDate") ?? null;
   const fragmentId = getDescValue(desc, "data-fragmentId") ?? null;
-  const costEstimate = getDescValue(desc, "data-costEstimate");
   const storedSidebarWidth = getDescValue(desc, "data-sidebarWidth");
   const [sidebarWidth, setSidebarWidth] = useState<number>(
     typeof storedSidebarWidth === "number" && storedSidebarWidth > 50
@@ -1169,7 +1168,6 @@ export function ChatPanel({
             scrollToIndex={scrollToIndex}
             scrollToDate={scrollToDate}
             selectedDate={fragmentId}
-            costEstimate={costEstimate}
           />
         </div>
       ) : (
@@ -1212,7 +1210,6 @@ export function ChatPanel({
         setInput={setInput}
         on_send={on_send}
         submitMentionsRef={submitMentionsRef}
-        costEstimate={costEstimate}
         hasInput={hasInput}
         isSelectedThreadAI={isSelectedThreadAI}
         sendMessage={sendMessage}

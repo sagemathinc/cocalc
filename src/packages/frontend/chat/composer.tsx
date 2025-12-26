@@ -6,12 +6,9 @@
 import type { MutableRefObject } from "react";
 import { Button, Popconfirm, Tooltip } from "antd";
 import { FormattedMessage } from "react-intl";
-import * as immutable from "immutable";
 import { Icon } from "@cocalc/frontend/components";
 import { LLMUsageStatus } from "@cocalc/frontend/misc/llm-cost-estimation";
 import ChatInput from "./input";
-import { LLMCostEstimationChat } from "./llm-cost-estimation";
-import type { CostEstimate } from "./types";
 import type { ChatActions } from "./actions";
 import type { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT } from "./utils";
@@ -26,7 +23,6 @@ export interface ChatRoomComposerProps {
   setInput: (value: string) => void;
   on_send: () => void;
   submitMentionsRef: MutableRefObject<SubmitMentionsFn | undefined>;
-  costEstimate?: immutable.Map<string, any>;
   hasInput: boolean;
   isSelectedThreadAI: boolean;
   sendMessage: (replyToOverride?: Date | null, extraInput?: string) => void;
@@ -42,7 +38,6 @@ export function ChatRoomComposer({
   setInput,
   on_send,
   submitMentionsRef,
-  costEstimate,
   hasInput,
   isSelectedThreadAI,
   sendMessage,
@@ -69,12 +64,6 @@ export function ChatRoomComposer({
           height={INPUT_HEIGHT}
           onChange={(value) => {
             setInput(value);
-            const inputText =
-              submitMentionsRef.current?.(undefined, true) ?? value;
-            actions?.llmEstimateCost({
-              date: composerDraftKey,
-              input: inputText,
-            });
           }}
           submitMentionsRef={submitMentionsRef}
           syncdb={actions.syncdb}
@@ -91,18 +80,6 @@ export function ChatRoomComposer({
         }}
       >
         <div style={{ flex: 1 }} />
-        {costEstimate?.get("date") == 0 && (
-          <LLMCostEstimationChat
-            costEstimate={costEstimate?.toJS() as CostEstimate | undefined}
-            compact
-            style={{
-              flex: 0,
-              fontSize: "85%",
-              textAlign: "center",
-              margin: "0 0 5px 0",
-            }}
-          />
-        )}
         {!hasInput && isSelectedThreadAI && (
           <div
             style={{
