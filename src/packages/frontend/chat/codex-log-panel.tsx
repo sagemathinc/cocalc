@@ -1,7 +1,14 @@
+import { useMemo } from "react";
+import type { AcpStreamMessage } from "@cocalc/conat/ai/acp/types";
 import CodexActivity from "./codex-activity";
+import {
+  deleteActivityLog,
+  deleteAllActivityLogs,
+  type ActivityLogContext,
+} from "./actions/activity-logs";
+import { useCodexLog } from "./use-codex-log";
 
 interface Props {
-  events?: any[];
   generating?: boolean;
   fontSize?: number;
   persistKey: string;
@@ -10,12 +17,17 @@ interface Props {
   canResolveApproval?: boolean;
   onResolveApproval?: (args: { approvalId: string; optionId?: string }) => any;
   projectId?: string;
+  logStore?: string;
+  logKey?: string;
+  logSubject?: string;
+  logProjectId?: string;
+  logEnabled?: boolean;
+  activityContext?: ActivityLogContext;
   onDeleteEvents?: () => void;
   onDeleteAllEvents?: () => void;
 }
 
 export function CodexLogPanel({
-  events,
   generating,
   fontSize,
   persistKey,
@@ -24,12 +36,27 @@ export function CodexLogPanel({
   canResolveApproval,
   onResolveApproval,
   projectId,
+  logStore,
+  logKey,
+  logSubject,
+  logProjectId,
+  logEnabled,
+  activityContext,
   onDeleteEvents,
   onDeleteAllEvents,
 }: Props) {
-  const activityEvents =
-    events && events.length > 0
-      ? events
+  const codexLog = useCodexLog({
+    projectId: logProjectId,
+    logStore,
+    logKey,
+    logSubject,
+    generating: generating === true,
+    enabled: logEnabled,
+  });
+
+  const activityEvents: AcpStreamMessage[] =
+    (codexLog.events ?? []).length > 0
+      ? codexLog.events!
       : generating
         ? [
             {
@@ -39,6 +66,26 @@ export function CodexLogPanel({
             },
           ]
         : [];
+
+  const handleDeleteEvents = useMemo(() => {
+    if (onDeleteEvents) return onDeleteEvents;
+    if (!activityContext) return undefined;
+    return async () => {
+      await deleteActivityLog({
+        actions: activityContext.actions,
+        message: activityContext.message,
+        deleteLog: codexLog.deleteLog,
+      });
+    };
+  }, [onDeleteEvents, activityContext, codexLog.deleteLog]);
+
+  const handleDeleteAllEvents = useMemo(() => {
+    if (onDeleteAllEvents) return onDeleteAllEvents;
+    if (!activityContext) return undefined;
+    return async () => {
+      await deleteAllActivityLogs(activityContext);
+    };
+  }, [onDeleteAllEvents, activityContext]);
 
   return (
     <CodexActivity
@@ -52,8 +99,8 @@ export function CodexLogPanel({
       canResolveApproval={canResolveApproval}
       onResolveApproval={onResolveApproval}
       projectId={projectId}
-      onDeleteEvents={onDeleteEvents}
-      onDeleteAllEvents={onDeleteAllEvents}
+      onDeleteEvents={handleDeleteEvents}
+      onDeleteAllEvents={handleDeleteAllEvents}
     />
   );
 }

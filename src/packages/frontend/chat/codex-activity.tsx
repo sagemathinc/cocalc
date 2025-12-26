@@ -134,7 +134,7 @@ export interface CodexActivityProps {
 // Persist log visibility per chat message so Virtuoso remounts don’t reset it.
 const expandedState = new Map<string, boolean>();
 
-export function CodexActivity({
+export const CodexActivity: React.FC<CodexActivityProps> = ({
   events,
   generating,
   fontSize,
@@ -147,7 +147,7 @@ export function CodexActivity({
   onDeleteEvents,
   onDeleteAllEvents,
   expanded: initExpanded,
-}: CodexActivityProps): React.ReactElement | null {
+}): React.ReactElement | null => {
   const entries = useMemo(() => normalizeEvents(events ?? []), [events]);
   const hasPendingApproval = useMemo(
     () => entries.some((e) => e.kind === "approval" && e.status === "pending"),
@@ -188,6 +188,8 @@ export function CodexActivity({
       : `${entries.length} ${plural(entries.length, "step")}`;
   const toggleLabel = expanded ? "Hide log" : `${durationSummary} (show)`;
 
+  const showCloseButton = IS_TOUCH || hovered;
+
   if (!expanded) {
     return (
       <div style={{ marginTop: 8, marginLeft: -8, marginBottom: 8 }}>
@@ -197,8 +199,6 @@ export function CodexActivity({
       </div>
     );
   }
-
-  const showCloseButton = IS_TOUCH || hovered;
 
   const renderCloseButton = (style?: React.CSSProperties) => (
     <Button
@@ -319,7 +319,7 @@ export function CodexActivity({
       </Space>
     </Card>
   );
-}
+};
 
 function ActivityRow({
   entry,

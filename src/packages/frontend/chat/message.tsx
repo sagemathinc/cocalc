@@ -9,7 +9,6 @@ import { Badge, Button, Col, Divider, Drawer, Row, Tag, Tooltip } from "antd";
 import {
   CSSProperties,
   ReactNode,
-  useCallback,
   useEffect,
   useLayoutEffect,
 } from "react";
@@ -27,7 +26,6 @@ import CopyButton from "@cocalc/frontend/components/copy-button";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { User } from "@cocalc/frontend/users";
@@ -36,10 +34,10 @@ import { plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { deriveAcpLogRefs } from "@cocalc/chat";
 import { ChatActions } from "./actions";
+import type { ActivityLogContext } from "./actions/activity-logs";
 import { getUserName } from "./chat-log";
 import { codexEventsToMarkdown } from "./codex-activity";
 import CodexLogPanel from "./codex-log-panel";
-import { useCodexLog } from "./use-codex-log";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
@@ -56,7 +54,6 @@ import {
   newest_content,
   sender_is_viewer,
 } from "./utils";
-import { delay } from "awaiting";
 import {
   dateValue,
   field,
@@ -344,111 +341,23 @@ export default function Message({
   }, [message, project_id, path, threadRootMs]);
 
   const [showCodexDrawer, setShowCodexDrawer] = useState(false);
-  const codexLog = useCodexLog({
-    projectId: project_id,
-    logStore: fallbackLogRefs.store,
-    logKey: fallbackLogRefs.key,
-    logSubject: fallbackLogRefs.subject,
-    generating: generating === true,
-    enabled: showCodexDrawer,
-  });
-
-  const codexEvents = codexLog.events;
   const showCodexActivity = useMemo(() => {
     // Only show for ACP-driven turns (Codex activity). The log identifiers are
     // derived deterministically, but this marker distinguishes ACP turns from
     // other kinds of LLM messages.
     return Boolean(field<string>(message, "acp_account_id"));
   }, [message]);
-
-  const deleteActivityLog = useCallback(async () => {
-    if (!actions?.syncdb) return;
-    const d = dateValue(message);
-    if (!(d instanceof Date)) return;
-    await codexLog.deleteLog();
-    actions.syncdb.set({
-      event: "chat",
-      date: d.toISOString(),
-      acp_events: null,
-      codex_events: null,
-    });
-    actions.syncdb.commit();
-    // no local state now
-  }, [actions, message]);
-
-  const deleteAllActivityLogs = useCallback(async () => {
-    if (!actions?.syncdb) return;
-    const dates: Date[] = [];
-    const logRefs: { store: string; key: string }[] = [];
-    const rootIso =
-      threadRootMs != null ? new Date(threadRootMs).toISOString() : undefined;
-    if (rootIso && actions) {
-      const seq = actions.getMessagesInThread(rootIso);
-      for (const msg of seq ?? []) {
-        const d = dateValue(msg);
-        if (!(d instanceof Date)) continue;
-        dates.push(d);
-        if (!project_id || !path) continue;
-        const refs = deriveAcpLogRefs({
-          project_id,
-          path,
-          thread_root_date: rootIso,
-          turn_date: d.toISOString(),
-        });
-        logRefs.push({ store: refs.store, key: refs.key });
-      }
-    } else if (messages?.forEach) {
-      messages.forEach((msg) => {
-        const d = dateValue(msg);
-        if (!(d instanceof Date)) return;
-        const root = getThreadRootDate({
-          date: d.valueOf(),
-          messages,
-        });
-        const rootMs = root?.valueOf?.();
-        if (rootMs != null && rootMs === threadRootMs) {
-          dates.push(d);
-          if (!project_id || !path || !rootIso) return;
-          const refs = deriveAcpLogRefs({
-            project_id,
-            path,
-            thread_root_date: rootIso,
-            turn_date: d.toISOString(),
-          });
-          logRefs.push({ store: refs.store, key: refs.key });
-        }
-      });
-    }
-    if (!dates.length) {
-      const d = dateValue(message);
-      if (d instanceof Date) dates.push(d);
-    }
-    if (project_id) {
-      for (const ref of logRefs) {
-        try {
-          const cn = webapp_client.conat_client.conat();
-          const kv = cn.sync.akv({ project_id, name: ref.store });
-          await kv.delete(ref.key);
-        } catch (err) {
-          console.warn("failed to delete acp log", err);
-        }
-      }
-    }
-    let i = 0;
-    for (const d of dates) {
-      i += 1;
-      if (i % 20 == 0) {
-        await delay(200);
-      }
-      actions.syncdb.set({
-        event: "chat",
-        date: d.toISOString(),
-        acp_events: null,
-        codex_events: null,
-      });
-    }
-    actions.syncdb.commit();
-  }, [actions, messages, threadRootMs, message, project_id]);
+  const activityContext: ActivityLogContext = useMemo(
+    () => ({
+      actions,
+      message,
+      messages,
+      threadRootMs,
+      project_id,
+      path,
+    }),
+    [actions, message, messages, threadRootMs, project_id, path],
+  );
 
   const threadKeyForSession = useMemo(
     () => (threadRootMs != null ? `${threadRootMs}` : undefined),
@@ -1022,13 +931,18 @@ export default function Message({
               }}
             >
               <CodexLogPanel
-                events={codexEvents ?? []}
                 generating={generating === true}
                 fontSize={font_size}
                 persistKey={`${(project_id ?? "no-project").slice(0, 8)}:${
                   path ?? ""
                 }:${date}`}
                 basePath={undefined}
+                logStore={fallbackLogRefs.store}
+                logKey={fallbackLogRefs.key}
+                logSubject={fallbackLogRefs.subject}
+                logProjectId={project_id}
+                logEnabled={showCodexDrawer}
+                activityContext={activityContext}
                 durationLabel={
                   generating === true
                     ? elapsedLabel
@@ -1055,8 +969,6 @@ export default function Message({
                         })
                     : undefined
                 }
-                onDeleteEvents={deleteActivityLog}
-                onDeleteAllEvents={deleteAllActivityLogs}
               />
             </Drawer>
           </>
