@@ -69,6 +69,30 @@ export interface HostCatalog {
     creationTimestamp?: string | null;
     gpuReady?: boolean;
   }[];
+  hyperstack_regions?: {
+    name: string;
+    description?: string | null;
+  }[];
+  hyperstack_flavors?: {
+    name: string;
+    region_name: string;
+    cpu: number;
+    ram: number;
+    gpu: string;
+    gpu_count: number;
+  }[];
+  hyperstack_images?: {
+    name: string;
+    region_name: string;
+    typ: string;
+    version: string;
+    size: number;
+  }[];
+  hyperstack_stocks?: {
+    region: string;
+    model: string;
+    available: string;
+  }[];
 }
 
 export interface Host {

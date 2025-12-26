@@ -68,10 +68,12 @@ const GPU_TYPES = [
   { value: "a10g", label: "NVIDIA A10G" },
 ];
 
-const PROVIDERS = [
-  { value: "none", label: "Local (manual setup)" },
+type HostProvider = "gcp" | "hyperstack" | "none";
+
+const PROVIDERS: Array<{ value: HostProvider; label: string }> = [
   { value: "gcp", label: "Google Cloud" },
   { value: "hyperstack", label: "Hyperstack" },
+  { value: "none", label: "Local (manual setup)" },
 ];
 
 const DISK_TYPES = [
@@ -109,7 +111,7 @@ export const HostsPage: React.FC = () => {
   );
   const [catalogRefreshing, setCatalogRefreshing] = useState<boolean>(false);
   const [refreshProvider, setRefreshProvider] =
-    useState<CloudProvider>("gcp");
+    useState<HostProvider>("gcp");
   const hub = webapp_client.conat_client.hub;
   const [form] = Form.useForm();
   const isAdmin = useTypedRedux("account", "is_admin");
@@ -121,17 +123,20 @@ export const HostsPage: React.FC = () => {
     "customize",
     "compute_servers_hyperstack_enabled",
   );
+  const showLocal =
+    typeof window !== "undefined" && window.location.hostname === "localhost";
 
   const providerOptions = useMemo(() => {
     return PROVIDERS.filter((opt) => {
       if (opt.value === "gcp") return !!gcpEnabled;
       if (opt.value === "hyperstack") return !!hyperstackEnabled;
-      return true;
+      if (opt.value === "none") return showLocal;
+      return false;
     });
-  }, [gcpEnabled, hyperstackEnabled]);
+  }, [gcpEnabled, hyperstackEnabled, showLocal]);
 
   const refreshProviders = useMemo(() => {
-    const opts: Array<{ value: CloudProvider; label: string }> = [];
+    const opts: Array<{ value: HostProvider; label: string }> = [];
     if (gcpEnabled) opts.push({ value: "gcp", label: "GCP" });
     if (hyperstackEnabled)
       opts.push({ value: "hyperstack", label: "Hyperstack" });
@@ -139,7 +144,7 @@ export const HostsPage: React.FC = () => {
   }, [gcpEnabled, hyperstackEnabled]);
 
   useEffect(() => {
-    const current = form.getFieldValue("provider") as CloudProvider | undefined;
+    const current = form.getFieldValue("provider") as HostProvider | undefined;
     if (current === "gcp" && !gcpEnabled) {
       form.setFieldsValue({ provider: "none" });
     } else if (current === "hyperstack" && !hyperstackEnabled) {
@@ -148,6 +153,14 @@ export const HostsPage: React.FC = () => {
       form.setFieldsValue({ provider: providerOptions[0]?.value ?? "none" });
     }
   }, [gcpEnabled, hyperstackEnabled, providerOptions, form]);
+
+  const selectedProvider = Form.useWatch("provider", form);
+  const selectedRegion = Form.useWatch("region", form);
+  const selectedZone = Form.useWatch("zone", form);
+  const selectedMachineType = Form.useWatch("machine_type", form);
+  const selectedGpuType = Form.useWatch("gpu_type", form);
+  const selectedSourceImage = Form.useWatch("source_image", form);
+  const selectedSize = Form.useWatch("size", form);
 
   useEffect(() => {
     if (refreshProvider === "gcp" && !gcpEnabled) {
@@ -204,7 +217,7 @@ export const HostsPage: React.FC = () => {
   }, [selected?.id, drawerOpen, hub.hosts]);
 
   useEffect(() => {
-    const providerForCatalog: CloudProvider | undefined =
+    const providerForCatalog: HostProvider | undefined =
       selectedProvider === "gcp"
         ? "gcp"
         : selectedProvider === "hyperstack"
@@ -244,25 +257,44 @@ export const HostsPage: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const selectedProvider = Form.useWatch("provider", form);
-  const selectedRegion = Form.useWatch("region", form);
-  const selectedZone = Form.useWatch("zone", form);
-  const selectedMachineType = Form.useWatch("machine_type", form);
-  const selectedGpuType = Form.useWatch("gpu_type", form);
-  const selectedSourceImage = Form.useWatch("source_image", form);
+  const hyperstackRegionOptions =
+    catalog?.hyperstack_regions?.length
+      ? catalog.hyperstack_regions.map((r) => ({
+          value: r.name,
+          label: r.description ? `${r.name} — ${r.description}` : r.name,
+        }))
+      : [];
+
+  const hyperstackStockByRegion = useMemo(() => {
+    const map: Record<string, string> = {};
+    if (!catalog?.hyperstack_stocks) return map;
+    for (const entry of catalog.hyperstack_stocks) {
+      if (!entry?.region || !entry?.model) continue;
+      if (map[entry.region]) continue;
+      const available = entry.available ?? "";
+      map[entry.region] = available ? `${entry.model} (${available} avail)` : entry.model;
+    }
+    return map;
+  }, [catalog]);
 
   const regionOptions =
-    selectedProvider === "gcp" && catalog?.regions?.length
-      ? catalog.regions.map((r) => {
-          const zoneWithMeta = catalog.zones?.find(
-            (z) => z.region === r.name && (z.location || z.lowC02),
-          );
-          const location = zoneWithMeta?.location;
-          const lowC02 = zoneWithMeta?.lowC02 ? " (low CO₂)" : "";
-          const suffix = location ? ` — ${location}${lowC02}` : "";
-          return { value: r.name, label: `${r.name}${suffix}` };
+    selectedProvider === "hyperstack" && hyperstackRegionOptions.length
+      ? hyperstackRegionOptions.map((opt) => {
+          const stock = hyperstackStockByRegion[opt.value];
+          const suffix = stock ? ` · ${stock}` : "";
+          return { value: opt.value, label: `${opt.label}${suffix}` };
         })
-      : REGIONS;
+      : selectedProvider === "gcp" && catalog?.regions?.length
+        ? catalog.regions.map((r) => {
+            const zoneWithMeta = catalog.zones?.find(
+              (z) => z.region === r.name && (z.location || z.lowC02),
+            );
+            const location = zoneWithMeta?.location;
+            const lowC02 = zoneWithMeta?.lowC02 ? " (low CO₂)" : "";
+            const suffix = location ? ` — ${location}${lowC02}` : "";
+            return { value: r.name, label: `${r.name}${suffix}` };
+          })
+        : REGIONS;
 
   const zoneOptions =
     selectedProvider === "gcp" && catalog?.regions?.length
@@ -282,6 +314,20 @@ export const HostsPage: React.FC = () => {
           value: mt.name ?? "",
           label: mt.name ?? "unknown",
         }))
+      : [];
+
+  const hyperstackFlavorOptions =
+    selectedProvider === "hyperstack" && catalog?.hyperstack_flavors?.length
+      ? catalog.hyperstack_flavors
+          .filter((flavor) => flavor.region_name === selectedRegion)
+          .map((flavor) => {
+            const gpuLabel =
+              flavor.gpu_count && flavor.gpu && flavor.gpu !== "none"
+                ? ` · ${flavor.gpu_count}x ${flavor.gpu}`
+                : "";
+            const label = `${flavor.name} (${flavor.cpu} vCPU / ${flavor.ram} GB${gpuLabel})`;
+            return { value: flavor.name, label, flavor };
+          })
       : [];
 
   const gpuTypeOptions =
@@ -356,6 +402,18 @@ export const HostsPage: React.FC = () => {
   }, [selectedProvider, selectedRegion, zoneOptions, selectedZone, form]);
 
   useEffect(() => {
+    if (selectedProvider !== "hyperstack") return;
+    if (!hyperstackRegionOptions.length) return;
+    if (
+      selectedRegion &&
+      hyperstackRegionOptions.some((r) => r.value === selectedRegion)
+    ) {
+      return;
+    }
+    form.setFieldsValue({ region: hyperstackRegionOptions[0].value });
+  }, [selectedProvider, hyperstackRegionOptions, selectedRegion, form]);
+
+  useEffect(() => {
     if (selectedProvider !== "gcp") return;
     if (!machineTypeOptions.length) return;
     if (
@@ -367,6 +425,14 @@ export const HostsPage: React.FC = () => {
     form.setFieldsValue({ machine_type: machineTypeOptions[0].value });
   }, [selectedProvider, selectedZone, machineTypeOptions, selectedMachineType, form]);
 
+  useEffect(() => {
+    if (selectedProvider !== "hyperstack") return;
+    if (!hyperstackFlavorOptions.length) return;
+    const values = new Set(hyperstackFlavorOptions.map((opt) => opt.value));
+    if (selectedSize && values.has(selectedSize)) return;
+    form.setFieldsValue({ size: hyperstackFlavorOptions[0].value });
+  }, [selectedProvider, hyperstackFlavorOptions, selectedSize, form]);
+
   const onCreate = async (vals: any) => {
     if (creating) return;
     setCreating(true);
@@ -374,17 +440,38 @@ export const HostsPage: React.FC = () => {
       const machine_type = vals.machine_type || undefined;
       const gpu_type =
         vals.gpu_type && vals.gpu_type !== "none" ? vals.gpu_type : undefined;
+      const hyperstackFlavor = hyperstackFlavorOptions.find(
+        (opt) => opt.value === vals.size,
+      )?.flavor;
+      const hyperstackGpuType =
+        hyperstackFlavor && hyperstackFlavor.gpu !== "none"
+          ? hyperstackFlavor.gpu
+          : undefined;
+      const hyperstackGpuCount = hyperstackFlavor?.gpu_count || 0;
+      const defaultRegion =
+        vals.provider === "hyperstack"
+          ? hyperstackRegionOptions[0]?.value
+          : "us-east1";
       await hub.hosts.createHost({
         name: vals.name ?? "My Host",
-        region: vals.region ?? REGIONS[0].value,
+        region: vals.region ?? defaultRegion,
         size: machine_type ?? vals.size ?? SIZES[0].value,
-        gpu: !!gpu_type,
+        gpu: vals.provider === "hyperstack" ? hyperstackGpuCount > 0 : !!gpu_type,
         machine: {
           cloud: vals.provider !== "none" ? vals.provider : undefined,
-          machine_type,
-          gpu_type,
-          gpu_count: gpu_type ? 1 : undefined,
-          zone: vals.zone ?? undefined,
+          machine_type:
+            vals.provider === "hyperstack"
+              ? hyperstackFlavor?.name
+              : machine_type,
+          gpu_type:
+            vals.provider === "hyperstack" ? hyperstackGpuType : gpu_type,
+          gpu_count:
+            vals.provider === "hyperstack"
+              ? hyperstackGpuCount || undefined
+              : gpu_type
+                ? 1
+                : undefined,
+          zone: vals.provider === "gcp" ? vals.zone ?? undefined : undefined,
           disk_gb: vals.disk,
           disk_type: vals.disk_type,
           source_image: vals.source_image || undefined,
@@ -602,15 +689,34 @@ export const HostsPage: React.FC = () => {
                 <Input placeholder="My host" />
               </Form.Item>
               <Form.Item
+                name="provider"
+                label="Provider"
+                initialValue={providerOptions[0]?.value ?? "gcp"}
+              >
+                <Select options={providerOptions} />
+              </Form.Item>
+              <Form.Item
                 name="region"
                 label="Region"
-                initialValue={REGIONS[0].value}
+                initialValue="us-east1"
               >
-                <Select options={regionOptions} />
+                <Select
+                  options={regionOptions}
+                  disabled={selectedProvider === "none"}
+                />
               </Form.Item>
-              {selectedProvider !== "gcp" && (
+              {selectedProvider !== "gcp" && selectedProvider !== "hyperstack" && (
                 <Form.Item name="size" label="Size" initialValue={SIZES[0].value}>
                   <Select options={SIZES} />
+                </Form.Item>
+              )}
+              {selectedProvider === "hyperstack" && (
+                <Form.Item
+                  name="size"
+                  label="Size"
+                  initialValue={hyperstackFlavorOptions[0]?.value}
+                >
+                  <Select options={hyperstackFlavorOptions} />
                 </Form.Item>
               )}
               {catalogError && selectedProvider === "gcp" && (
@@ -625,15 +731,6 @@ export const HostsPage: React.FC = () => {
               <Collapse ghost style={{ marginBottom: 8 }}>
                 <Collapse.Panel header="Advanced options" key="adv">
                   <Row gutter={[12, 12]}>
-                    <Col span={24}>
-                      <Form.Item
-                        name="provider"
-                        label="Provider"
-                        initialValue={providerOptions[0]?.value ?? "none"}
-                      >
-                        <Select options={providerOptions} />
-                      </Form.Item>
-                    </Col>
                     {selectedProvider === "gcp" && (
                       <>
                         <Col span={24}>
@@ -684,19 +781,18 @@ export const HostsPage: React.FC = () => {
                         </Col>
                       </>
                     )}
-                    <Col span={24}>
-                      <Form.Item
-                        name="gpu"
-                        label="GPU"
-                        initialValue="none"
-                        tooltip="Only needed for GPU workloads."
-                      >
-                        <Select
-                          options={GPU_TYPES}
-                          disabled={selectedProvider === "gcp"}
-                        />
-                      </Form.Item>
-                    </Col>
+                    {selectedProvider !== "gcp" && (
+                      <Col span={24}>
+                        <Form.Item
+                          name="gpu"
+                          label="GPU"
+                          initialValue="none"
+                          tooltip="Only needed for GPU workloads."
+                        >
+                          <Select options={GPU_TYPES} />
+                        </Form.Item>
+                      </Col>
+                    )}
                     <Col span={24}>
                       <Form.Item
                         name="disk"
