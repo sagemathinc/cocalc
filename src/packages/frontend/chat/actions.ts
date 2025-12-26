@@ -693,9 +693,7 @@ export class ChatActions extends Actions<ChatState> {
   ): { doc: any; message: ChatMessageTyped } | null => {
     // threadKey must be the stringified millisecond timestamp of the thread root.
     if (!/^\d+$/.test(threadKey)) {
-      throw new Error(
-        `getThreadRootDoc expected threadKey as ms string, got '${threadKey}'`,
-      );
+      return null;
     }
     const messages = this.getAllMessages();
     const message = messages.get(threadKey);
