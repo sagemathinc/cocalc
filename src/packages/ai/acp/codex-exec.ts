@@ -7,12 +7,12 @@ the prompt on stdin, parses JSONL events, and emits the same ACP-style stream
 payloads our frontend already consumes.
 
 File changes: upstream codex does not include pre-change file contents, so we
-maintain a small per-turn cache and heuristics (parse prompt/commands, read
-likely files) to reconstruct diffs for the activity log. We previously built a
-fork that adds `pre_contents` (see https://github.com/sagemathinc/codex-cocalc),
-but chose to avoid forking so deployment and upgrades stay simple: easier
-tracking of upstream, easier use in other environments, and no need for users
-to trust a custom binary.
+maintain a small per-turn cache and heuristics (parse prompts/commands, read
+likely files) to reconstruct diffs for the activity log. This adds extra code
+here, but we intentionally avoid forking codex: easier deployment, easier
+tracking of upstream, easier use in other environments, and no requirement for
+users to trust a custom binary. (A forked alternative that adds pre_contents
+exists at https://github.com/sagemathinc/codex-cocalc.)
 
 Sessions: we treat `thread.started.thread_id` as the session_id. If a session_id
 is provided, we pass `codex exec resume <id>`; otherwise the process will emit a
@@ -612,12 +612,12 @@ export class CodexExecAgent implements AcpAgent {
 
   private extractPathCandidates(text: string): string[] {
     const candidates = new Set<string>();
-    // Capture `-lc '...'` to also scan shell snippets embedded in command strings.
+    // Capture `-lc '...'` so we also scan shell snippets embedded in a command.
     const inner = text.match(/-lc\s+(['"])([\s\S]*?)\1/);
     const sources = inner ? [text, inner[2]] : [text];
     // Heuristic path detectors:
     // - absolute paths (/...)
-    // - relative paths with slashes (foo/bar/baz)
+    // - relative paths with slashes (src/packages/..., foo/bar/baz)
     // - filenames with extensions (foo.txt)
     // We run the broader patterns too, so punctuation or brackets don't block matches.
     const patterns = [
