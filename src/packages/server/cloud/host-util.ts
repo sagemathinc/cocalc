@@ -125,8 +125,11 @@ export async function ensureHyperstackProvider(): Promise<{
   provider: HyperstackProvider;
   creds: HyperstackCreds;
 }> {
-  const { hyperstack_api_key, hyperstack_ssh_public_key } =
-    await getServerSettings();
+  const {
+    hyperstack_api_key,
+    hyperstack_ssh_public_key,
+    hyperstack_compute_servers_prefix = "cocalc",
+  } = await getServerSettings();
   if (!hyperstack_api_key) {
     throw new Error("hyperstack_api_key is not configured");
   }
@@ -135,7 +138,11 @@ export async function ensureHyperstackProvider(): Promise<{
   }
   return {
     provider: new HyperstackProvider(),
-    creds: { apiKey: hyperstack_api_key, sshPublicKey: hyperstack_ssh_public_key },
+    creds: {
+      apiKey: hyperstack_api_key,
+      sshPublicKey: hyperstack_ssh_public_key,
+      prefix: hyperstack_compute_servers_prefix,
+    },
   };
 }
 

@@ -12,7 +12,7 @@ import {
   importKeyPair,
   createEnvironment,
 } from "./client";
-import { setHyperstackConfig } from "./config";
+import { getHyperstackConfig, setHyperstackConfig } from "./config";
 import type { Region } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 
 const logger = getLogger("cloud:hyperstack:provider");
@@ -20,24 +20,38 @@ const logger = getLogger("cloud:hyperstack:provider");
 export type HyperstackCreds = {
   apiKey: string;
   sshPublicKey: string;
+  prefix?: string;
 };
 
 function ensureHyperstackConfig(creds: HyperstackCreds) {
-  setHyperstackConfig({ apiKey: creds.apiKey });
+  setHyperstackConfig({ apiKey: creds.apiKey, prefix: creds.prefix });
+}
+
+function normalizePrefix(prefix?: string): string {
+  const value = (prefix ?? "cocalc").toLowerCase().replace(/[^a-z0-9-]/g, "-");
+  return value.replace(/-+/g, "-").replace(/^-+|-+$/g, "") || "cocalc";
 }
 
 function envName(region: string): string {
-  return `cocalc-${region.toLowerCase().replace(/[^a-z0-9-]/g, "-")}`;
+  const { prefix } = getHyperstackConfig();
+  return `${normalizePrefix(prefix)}-${region
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")}`;
 }
 
 function keyName(region: string): string {
-  return `cocalc-host-${region.toLowerCase().replace(/[^a-z0-9-]/g, "-")}`;
+  const { prefix } = getHyperstackConfig();
+  return `${normalizePrefix(prefix)}-host-${region
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")}`;
 }
 
 async function ensureEnvironment(region: string): Promise<string> {
   const name = envName(region);
   const envs = await getEnvironments();
-  if (envs.find((e) => e.name === name)) return name;
+  if (envs.find((e) => (e.name ?? "").toLowerCase() === name.toLowerCase())) {
+    return name;
+  }
   await createEnvironment({ name, region: region as Region });
   return name;
 }

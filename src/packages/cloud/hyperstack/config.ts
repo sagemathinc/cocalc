@@ -3,6 +3,7 @@ import type { Cache } from "./cache";
 type HyperstackConfig = {
   apiKey?: string;
   cache?: Cache;
+  prefix?: string;
 };
 
 let config: HyperstackConfig = {};
