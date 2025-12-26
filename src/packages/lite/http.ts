@@ -115,6 +115,16 @@ export async function initApp({ app, conatClient, AUTH_TOKEN, isHttps }) {
   if (!fs.existsSync(join(pathToStaticAssets, "app.html"))) {
     throw Error("unable to find static assets");
   }
+
+  // Ensure we are in a secure, cross-origin isolated context (COOP/COEP).
+  // This will break Any cross-origin <script>, <img>, <iframe>, WASM, etc.
+  // that is not served properly.
+  app.use((_req, res, next) => {
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+    next();
+  });
+
   app.use("/static", express.static(pathToStaticAssets));
 
   app.use(
