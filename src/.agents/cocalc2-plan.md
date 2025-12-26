@@ -4,6 +4,23 @@
 
 Goal: a provider‑agnostic control plane in `@cocalc/cloud` that can provision, start/stop, and meter project‑host VMs via cloud APIs, with concurrency handled in Postgres (no singletons), and costs/usage recorded as immutable log events. The hub owns orchestration and billing, while providers expose clean, testable adapters.
 
+**Minimal provider interface + simple mode (v1):**
+- Provider API: `catalog`, `createHost`, `startHost`, `stopHost`, `deleteHost`, optional `status`.
+- Simple mode maps `{region, cpu, ram, gpu?}` to the smallest compatible instance; advanced settings are hidden behind a toggle.
+- Do not block on pricing/egress; keep usage tracking as log events for now.
+
+**Multi‑cloud plan (Day‑1 providers):**
+1. **GCP**: already wired; use catalog for regions/zones/machine/gpu/images; boot+data disks; DNS via Cloudflare.
+2. **Hyperstack**: port the existing client from `server/compute/cloud/hyperstack` into `@cocalc/cloud` (no `@cocalc/server` deps), then adapt create/start/stop/delete to the minimal interface.
+3. **Lambda Cloud**: implement minimal REST client + catalog; keep only simple mode; no spot/resize/custom images initially.
+
+**Implementation/testing plan (cloud):**
+1. Add normalized catalog to `@cocalc/cloud` with tests.
+2. Add provider adapters for GCP/Hyperstack/Lambda.
+3. Keep advanced knobs behind UI toggle; default to simple mode.
+4. Add work‑queue worker + tests for cloud actions.
+5. Add admin “refresh catalog” RPC + UI (already started for GCP).
+
 **API surface (provider‑agnostic):**
 - `createHost(spec, creds) -> runtime` (attach boot+data disks, inject bootstrap)
 - `startHost(runtime, creds)`
