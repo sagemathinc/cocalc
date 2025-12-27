@@ -7,7 +7,7 @@
 
 ## Overview
 
-This document tracks the migration of all CoffeeScript code in the `@cocalc/database` package to TypeScript. The goal is to eliminate the 7,262 lines of CoffeeScript code across 8 files while maintaining backward compatibility and ensuring comprehensive test coverage.
+This document tracks the migration of all CoffeeScript code in the `@cocalc/database` package to TypeScript. The goal is to eliminate the 6,827 lines of CoffeeScript code across 5 files while maintaining backward compatibility and ensuring comprehensive test coverage.
 
 **WARNING**: This is the single scariest chunk of CoffeeScript left in CoCalc!
 
@@ -15,17 +15,14 @@ This document tracks the migration of all CoffeeScript code in the `@cocalc/data
 
 ### CoffeeScript Files (by size)
 
-| File                               | Lines     | Description                                     | Priority     |
-| ---------------------------------- | --------- | ----------------------------------------------- | ------------ |
-| `postgres-server-queries.coffee`   | 2,518     | Server-side database queries                    | High         |
-| `postgres-user-queries.coffee`     | 1,790     | User-facing query handling                      | High         |
-| `postgres-base.coffee`             | 1,156     | Core PostgreSQL class and connection management | **Critical** |
-| `postgres-blobs.coffee`            | 760       | Blob storage operations                         | Medium       |
-| `postgres-synctable.coffee`        | 604       | Real-time table synchronization                 | Medium       |
-| `postgres-user-query-queue.coffee` | 218       | Queue management for user queries               | Low          |
-| `postgres-ops.coffee`              | 168       | Database operations                             | Low          |
-| `filesystem-bucket.coffee`         | 48        | Filesystem bucket utilities                     | Low          |
-| **Total**                          | **7,262** |                                                 |              |
+| File                             | Lines     | Description                                     | Priority     |
+| -------------------------------- | --------- | ----------------------------------------------- | ------------ |
+| `postgres-server-queries.coffee` | 2,518     | Server-side database queries                    | High         |
+| `postgres-user-queries.coffee`   | 1,789     | User-facing query handling                      | High         |
+| `postgres-base.coffee`           | 1,156     | Core PostgreSQL class and connection management | **Critical** |
+| `postgres-blobs.coffee`          | 760       | Blob storage operations                         | Medium       |
+| `postgres-synctable.coffee`      | 604       | Real-time table synchronization                 | Medium       |
+| **Total**                        | **6,827** |                                                 |              |
 
 ### Existing TypeScript Structure
 
@@ -52,21 +49,23 @@ The package currently compiles both TypeScript and CoffeeScript during the build
 The `index.ts` file is the main entry point that orchestrates the database package:
 
 ```typescript
+import { extend_PostgreSQL as extendPostgresOps } from "./postgres-ops";
+
+const base = require("./postgres-base");
+
 export function db(opts = {}): PostgreSQL {
   if (theDB === undefined) {
     let PostgreSQL = base.PostgreSQL;
 
-    for (const module of [
-      "server-queries",
-      "blobs",
-      "synctable",
-      "user-queries",
-      "ops",
-    ]) {
-      PostgreSQL = require(`./postgres-${module}`).extend_PostgreSQL(
-        PostgreSQL,
-      );
-    }
+    PostgreSQL = require("./postgres-server-queries").extend_PostgreSQL(
+      PostgreSQL,
+    );
+    PostgreSQL = require("./postgres-blobs").extend_PostgreSQL(PostgreSQL);
+    PostgreSQL = require("./postgres-synctable").extend_PostgreSQL(PostgreSQL);
+    PostgreSQL = require("./postgres-user-queries").extend_PostgreSQL(
+      PostgreSQL,
+    );
+    PostgreSQL = extendPostgresOps(PostgreSQL);
     const theDBnew = new PostgreSQL(opts);
     setupRecordConnectErrors(theDBnew);
     theDB = theDBnew;
@@ -81,6 +80,7 @@ export function db(opts = {}): PostgreSQL {
 2. **Class Extension Pattern**: Each CoffeeScript module exports `extend_PostgreSQL(ext)` that creates a new class extending the previous one
 3. **Composition Order Matters**: `server-queries` → `blobs` → `synctable` → `user-queries` → `ops`
 4. **Each module adds methods** to the class through CoffeeScript's class extension syntax
+5. **Mixed implementation**: `postgres-ops.ts` is TypeScript, while other `postgres-*.coffee` modules still use CoffeeScript wrappers
 
 ### Two Database Access Patterns
 
@@ -166,7 +166,7 @@ coverageThreshold: {
 
 #### 1.3 Decaffeinate Tool Testing ✅
 
-Tested `decaffeinate` with sample code from `postgres-ops.coffee`:
+Tested `decaffeinate` with sample code from the former `postgres-ops.coffee`:
 
 ```bash
 cat << 'EOF' | npx decaffeinate --use-js-modules
@@ -189,6 +189,38 @@ EOF
 - ⚠️ Adds suggestions for unnecessary returns (DS102) and top-level this (DS208)
 
 **Conclusion**: `decaffeinate` is a good starting point but requires manual cleanup and TypeScript transformation. The output is readable and provides a solid foundation for conversion.
+
+#### 1.4 Recommended Decaffeinate Parameters ✅
+
+Based on the `postgres-user-query-queue` migration, the following parameters produce optimal output:
+
+```bash
+npx decaffeinate \
+  --use-js-modules \
+  --loose \
+  --optional-chaining \
+  --logical-assignment \
+  <filename>.coffee
+```
+
+**Parameter explanations:**
+
+- `--use-js-modules`: Converts `require`/`module.exports` to ES6 `import`/`export` (cleaner, modern)
+- `--loose`: Enables all loose transformations for simpler output
+- `--optional-chaining`: Uses `?.` operator for safer property access
+- `--logical-assignment`: Uses ES2021 `&&=`, `||=`, `??=` operators
+
+**What still needs manual fixing after decaffeinate:**
+
+1. **Import cleanup**: Consolidate messy require patterns into clean ES6 imports
+2. **Add TypeScript types**: Add interfaces, type annotations, and proper typing
+3. **Remove unnecessary code**: Delete decaffeinate suggestions, unnecessary IIFEs, and redundant returns
+4. **Fix method bindings**: Remove constructor binding boilerplate (lines 73-82 in generated output)
+5. **Fix `delete` operators**: Add type assertions `(obj as any).prop` for delete operations
+6. **Export cleanup**: Change `export { _ClassName as ClassName }` to `export class ClassName`
+7. **Metrics imports**: Fix missing default exports (e.g., `import * as metrics` instead of `import metrics`)
+
+**Time savings**: Using decaffeinate reduces migration time by ~50% compared to manual rewriting, while still producing clean, idiomatic TypeScript after manual fixes.
 
 ### Phase 2: Incremental Method Migration
 
@@ -352,16 +384,19 @@ export function backupTableCB(opts: {
 }
 ```
 
-**In the CoffeeScript wrapper:**
+**In the wrapper module (CoffeeScript or TypeScript):**
 
 ```coffeescript
-# In postgres-ops.coffee
-{ backupTableCB } = require('./postgres/backup')
+# In postgres-ops.ts
+import { backupTableCB } from "./postgres/ops";
 
-exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
-  _backup_table: (opts) =>
-    # IMPORTANT: Use .call(this, opts) to preserve instance context
-    backupTableCB.call(this, opts)
+export function extend_PostgreSQL(ext: PostgreSQLConstructor) {
+  return class PostgreSQL extends ext {
+    _backup_table(opts: BackupTableOptions & { cb: CB }): void {
+      backupTableCB(this, opts);
+    }
+  };
+}
 ```
 
 **For methods that need instance properties (this.\_host, this.\_client, etc.):**
@@ -469,20 +504,15 @@ pnpm test postgres/ops/backup.test.ts postgres/ops/restore.test.ts
    - Then connection management
    - Finally complex query building
 
-2. **postgres-ops.coffee** - Database operations
-   - Standalone operations first
+2. **postgres-user-query-queue.coffee** - Queue management
 
-3. **filesystem-bucket.coffee** - Smallest file, good for validation
+3. **postgres-blobs.coffee** - Blob operations (already has `postgres/blobs.ts` partial implementation)
 
-4. **postgres-user-query-queue.coffee** - Queue management
+4. **postgres-synctable.coffee** - Real-time synchronization
 
-5. **postgres-blobs.coffee** - Blob operations (already has `postgres/blobs.ts` partial implementation)
+5. **postgres-user-queries.coffee** - User query handling
 
-6. **postgres-synctable.coffee** - Real-time synchronization
-
-7. **postgres-user-queries.coffee** - User query handling
-
-8. **postgres-server-queries.coffee** - Largest, most complex
+6. **postgres-server-queries.coffee** - Largest, most complex
 
 ### Phase 3: Class Consolidation
 
@@ -527,7 +557,7 @@ export class PostgreSQL extends EventEmitter {
   // Methods from postgres-user-queries.coffee
   async userQuery(opts) { ... }
 
-  // Methods from postgres-ops.coffee
+  // Methods from postgres-ops (TypeScript)
   async backupTables(opts) { ... }
 }
 ```
@@ -594,7 +624,6 @@ export function db(opts = {}): PostgreSQL {
 - Remove `coffeescript` from devDependencies
 - **Remove `decaffeinate` from devDependencies** (no longer needed)
 - Update exports in `package.json` if needed
-- Remove `filesystem-bucket.coffee` (migrate to TypeScript first)
 
 **Updated build script:**
 
@@ -697,16 +726,61 @@ pnpm test --watch
 
 - **postgres-ops**: Migrated to TypeScript, split into `postgres/ops/backup.ts`, `postgres/ops/restore.ts`, and `postgres/ops/utils.ts`; tests split accordingly
 - **filesystem-bucket**: Migrated to TypeScript with new tests
+- **postgres-user-query-queue**: Migrated to TypeScript as `user-query/queue.ts` with 17 comprehensive tests; all tests pass (17/17 ✅)
 
 ### In Progress
 
-_None yet_
+#### postgres-user-queries.coffee → user-query/queries.ts
+
+**Status**: ✅ TypeScript port complete with full test coverage; CoffeeScript wrapper still present for runtime
+**File size**: 1,791 lines (CoffeeScript) → 2,461 lines (TypeScript)
+**Complexity**: Very High - 44+ methods including complex authorization, changefeed, and query logic
+**Location**: `packages/database/user-query/queries.ts`
+**Test file**: `packages/database/user-query/queries.test.ts`
+
+**Test Suite Summary**:
+
+- **150 comprehensive tests** covering all 44+ methods
+- **100% pass rate** validated against CoffeeScript baseline
+- **Test execution time**: 0.981 seconds
+- **Coverage areas**: Public API (19 tests), Query Routing (28 tests), Authorization (12 tests), Set Queries (26 tests), Get Queries (23 tests), Changefeeds (14 tests), Hooks (20 tests), Syncstring Permissions (8 tests)
+
+**Key Test Patterns Discovered**:
+
+- All methods use `opts.cb` pattern, not separate callback parameter
+- PostgreSQL COUNT returns numbers, not strings
+- Tracker objects require full EventEmitter interface (on, once, removeListener)
+- Methods using `await callback2 @_query` work with synchronous mocks
+
+**Migration Progress**:
+
+- [x] Create comprehensive test suite (150 tests)
+- [x] Validate 100% tests passing against CoffeeScript baseline
+- [x] Run decaffeinate to generate TypeScript
+- [x] Clean up generated code and add types
+- [x] Re-route tests to TypeScript implementation
+- [x] Verify all 150 tests still pass
+- [x] Build and typecheck
+- [ ] Update postgres-user-queries.coffee to call the TypeScript implementation
+- [ ] Update database/index.ts
+- [ ] Remove old .coffee file
+
+**TypeScript typing notes (queries.ts)**:
+
+- Use `UserQueryOptions`/`UserSetQueryOptions`/`UserGetQueryOptions` with `options?: QueryOption[]` and always normalize with `opts.options ??= []` before iteration.
+- Model `changes` explicitly (`UserQueryChanges`) and guard `changes.cb`/`locals.changes_cb` since callbacks are optional in changefeed paths.
+- Treat query payloads as `AnyRecord` (rows/patches) while keeping explicit typed option objects for control flow; avoid `any` for the database instance.
+- Narrow schema access via `const schema = SCHEMA as Record<string, LegacyTableSchema>` so `schema[table].fields`, `user_query`, `project_query`, `admin_query`, and `changefeed_keys` are typed and optional.
+- For changefeed locals, use a dedicated `ChangefeedLocals` type (`result`, `changes_queue`, `changes_cb`) to avoid implicit `any` and unsafe queue shapes.
+- For project control hooks, use `ProjectActionRequest` and `ProjectActionOptions`; allow optional `time`, `started`, `finished`, and `err` to match stored DB entries.
+- When validating dates, use `Number.isNaN(date.getTime())` instead of `isNaN(date)` to avoid `Date`-object type errors.
+- Prefer `RetentionOptions = Parameters<typeof updateRetentionData>[0]` so the retention call stays in sync with future signature changes.
 
 ### Next Up
 
-Recommended next target:
+After postgres-user-queries:
 
-- **postgres-user-query-queue.coffee** - Small file, good next step before moving to larger query modules
+- **postgres-synctable.coffee** - 604 lines, real-time table synchronization
 
 ## Decision Log
 

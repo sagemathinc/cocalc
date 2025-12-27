@@ -19,7 +19,8 @@ const base = require("./postgres-base");
 const postgresServerQueries = require("./postgres-server-queries");
 const postgresBlobs = require("./postgres-blobs");
 const postgresSynctable = require("./postgres-synctable");
-const postgresUserQueries = require("./postgres-user-queries");
+// Migrated to TypeScript: user-query/queries.ts
+import { extend_PostgreSQL as extendPostgresUserQueries } from "./user-query/queries";
 
 export const {
   pg_type,
@@ -44,7 +45,7 @@ export function db(opts = {}): PostgreSQL {
     PostgreSQL = postgresServerQueries.extend_PostgreSQL(PostgreSQL);
     PostgreSQL = postgresBlobs.extend_PostgreSQL(PostgreSQL);
     PostgreSQL = postgresSynctable.extend_PostgreSQL(PostgreSQL);
-    PostgreSQL = postgresUserQueries.extend_PostgreSQL(PostgreSQL);
+    PostgreSQL = extendPostgresUserQueries(PostgreSQL);
     PostgreSQL = extendPostgresOps(PostgreSQL);
     const theDBnew = new PostgreSQL(opts);
     setupRecordConnectErrors(theDBnew);

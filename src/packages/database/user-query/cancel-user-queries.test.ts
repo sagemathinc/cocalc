@@ -12,6 +12,10 @@ describe("cancel_user_queries", () => {
     database = db({ connect: false, ensure_exists: false });
   });
 
+  afterAll(() => {
+    database._close_test_query?.();
+  });
+
   it("forwards to the query queue when present", () => {
     const cancel = jest.fn();
     database._user_query_queue = { cancel_user_queries: cancel };

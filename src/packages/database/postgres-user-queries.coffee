@@ -21,7 +21,8 @@ lodash       = require('lodash')
 
 {one_result, all_results, count_result, pg_type, quote_field} = require('./postgres-base')
 
-{UserQueryQueue} = require('./postgres-user-query-queue')
+# Migrated to TypeScript: user-query/queue.ts
+{UserQueryQueue} = require('./user-query/queue')
 
 {defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required

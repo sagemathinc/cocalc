@@ -29,6 +29,7 @@ beforeAll(async () => {
 }, 15000);
 
 afterAll(async () => {
+  (db() as any)._close_test_query?.();
   await getPool().end();
 });
 
