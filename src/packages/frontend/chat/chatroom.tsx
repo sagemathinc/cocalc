@@ -33,10 +33,10 @@ import { COLORS } from "@cocalc/util/theme";
 import type { NodeDesc } from "../frame-editors/frame-tree/types";
 import { EditorComponentProps } from "../frame-editors/frame-tree/types";
 import type { ChatActions } from "./actions";
-import { ChatLog } from "./chat-log";
 import { ChatRoomComposer } from "./composer";
 import { ChatRoomLayout } from "./chatroom-layout";
 import { ChatRoomHeader } from "./chatroom-header";
+import { ChatRoomThreadPanel } from "./chatroom-thread-panel";
 import type { ChatState } from "./store";
 import type { ChatMessageTyped, ChatMessages, SubmitMentionsFn } from "./types";
 import { getThreadRootDate, markChatAsReadIfUnseen } from "./utils";
@@ -47,7 +47,6 @@ import {
   useThreadList,
 } from "./threads";
 import type { ThreadListItem, ThreadSection } from "./threads";
-import CodexConfigButton from "./codex";
 import { ChatDocProvider, useChatDoc } from "./doc-context";
 import * as immutable from "immutable";
 
@@ -58,14 +57,6 @@ const GRID_STYLE: React.CSSProperties = {
   margin: "auto",
   minHeight: 0,
   flex: 1,
-} as const;
-
-const CHAT_LOG_STYLE: React.CSSProperties = {
-  padding: "0",
-  background: "white",
-  flex: "1 1 0",
-  minHeight: 0,
-  position: "relative",
 } as const;
 
 const DEFAULT_SIDEBAR_WIDTH = 260;
@@ -917,85 +908,30 @@ export function ChatPanel({
         filterRecentOpen={filterRecentOpen}
         setFilterRecentOpen={setFilterRecentOpen}
       />
-      {selectedThreadKey ? (
-        <div
-          className="smc-vfill"
-          style={{ ...CHAT_LOG_STYLE, position: "relative" }}
-        >
-          {selectedThread?.rootMessage &&
-            actions?.isCodexThread(
-              new Date(parseInt(selectedThread.key, 10)),
-            ) && (
-              <div
-                style={{ position: "absolute", top: 8, left: 8, zIndex: 10 }}
-              >
-                <Space size={6}>
-                  <CodexConfigButton
-                    threadKey={selectedThreadKey}
-                    chatPath={path}
-                    actions={actions}
-                  />
-                </Space>
-                {/*     <Button
-                    size="small"
-                    onClick={() => actions.runCodexCompact(selectedThreadKey)}
-                    disabled={!selectedThreadKey || actions == null}
-                  >
-                    Compact
-                  </Button>*/}
-              </div>
-            )}
-          <ChatLog
-            actions={actions}
-            project_id={project_id}
-            path={path}
-            messages={messages as ChatMessages}
-            acpState={acpState}
-            scrollToBottomRef={scrollToBottomRef}
-            scrollCacheId={scrollCacheId}
-            mode={variant === "compact" ? "sidechat" : "standalone"}
-            fontSize={fontSize}
-            search={search}
-            filterRecentH={filterRecentH}
-            selectedHashtags={selectedHashtags}
-            selectedThread={
-              singleThreadView ? (selectedThreadKey ?? undefined) : undefined
-            }
-            scrollToIndex={scrollToIndex}
-            scrollToDate={scrollToDate}
-            selectedDate={fragmentId}
-          />
-        </div>
-      ) : (
-        <div
-          className="smc-vfill"
-          style={{
-            ...CHAT_LOG_STYLE,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#888",
-            fontSize: "14px",
-          }}
-        >
-          <div style={{ textAlign: "center" }}>
-            {threads.length === 0
-              ? "No chats yet. Start a new conversation."
-              : "Select a chat or start a new conversation."}
-            <Button
-              size="small"
-              type="primary"
-              style={{ marginLeft: "8px" }}
-              onClick={() => {
-                setAllowAutoSelectThread(false);
-                setSelectedThreadKey(null);
-              }}
-            >
-              New Chat
-            </Button>
-          </div>
-        </div>
-      )}
+      <ChatRoomThreadPanel
+        actions={actions}
+        project_id={project_id}
+        path={path}
+        messages={messages as ChatMessages}
+        acpState={acpState}
+        scrollToBottomRef={scrollToBottomRef}
+        scrollCacheId={scrollCacheId}
+        fontSize={fontSize}
+        search={search}
+        filterRecentH={filterRecentH}
+        selectedHashtags={selectedHashtags}
+        selectedThreadKey={selectedThreadKey}
+        selectedThread={selectedThread}
+        variant={variant}
+        scrollToIndex={scrollToIndex}
+        scrollToDate={scrollToDate}
+        fragmentId={fragmentId}
+        threadsCount={threads.length}
+        onNewChat={() => {
+          setAllowAutoSelectThread(false);
+          setSelectedThreadKey(null);
+        }}
+      />
       <ChatRoomComposer
         actions={actions}
         project_id={project_id}

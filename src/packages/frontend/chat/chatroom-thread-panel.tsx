@@ -1,0 +1,141 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+import { Button } from "antd";
+import { React } from "@cocalc/frontend/app-framework";
+import { Space } from "antd";
+import { ChatLog } from "./chat-log";
+import CodexConfigButton from "./codex";
+import type { ChatActions } from "./actions";
+import type { ChatMessages } from "./types";
+import type * as immutable from "immutable";
+import { ALL_THREADS_KEY } from "./threads";
+
+const CHAT_LOG_STYLE: React.CSSProperties = {
+  padding: "0",
+  background: "white",
+  flex: "1 1 0",
+  minHeight: 0,
+  position: "relative",
+} as const;
+
+interface ChatRoomThreadPanelProps {
+  actions: ChatActions;
+  project_id?: string;
+  path?: string;
+  messages: ChatMessages;
+  acpState: immutable.Map<string, string>;
+  scrollToBottomRef: React.MutableRefObject<any>;
+  scrollCacheId: string;
+  fontSize?: number;
+  search: string;
+  filterRecentH: number;
+  selectedHashtags?: Set<string>;
+  selectedThreadKey: string | null;
+  selectedThread?: { rootMessage?: unknown; key: string };
+  variant: "compact" | "default";
+  scrollToIndex: number | null;
+  scrollToDate: string | null;
+  fragmentId: string | null;
+  threadsCount: number;
+  onNewChat: () => void;
+}
+
+export function ChatRoomThreadPanel({
+  actions,
+  project_id,
+  path,
+  messages,
+  acpState,
+  scrollToBottomRef,
+  scrollCacheId,
+  fontSize,
+  search,
+  filterRecentH,
+  selectedHashtags,
+  selectedThreadKey,
+  selectedThread,
+  variant,
+  scrollToIndex,
+  scrollToDate,
+  fragmentId,
+  threadsCount,
+  onNewChat,
+}: ChatRoomThreadPanelProps) {
+  if (!selectedThreadKey) {
+    return (
+      <div
+        className="smc-vfill"
+        style={{
+          ...CHAT_LOG_STYLE,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#888",
+          fontSize: "14px",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          {threadsCount === 0
+            ? "No chats yet. Start a new conversation."
+            : "Select a chat or start a new conversation."}
+          <Button
+            size="small"
+            type="primary"
+            style={{ marginLeft: "8px" }}
+            onClick={onNewChat}
+          >
+            New Chat
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const shouldShowCodexConfig =
+    selectedThread != null &&
+    Boolean(selectedThread.rootMessage) &&
+    Boolean(actions?.isCodexThread?.(new Date(parseInt(selectedThread.key, 10))));
+  const selectedThreadForLog =
+    selectedThreadKey &&
+    selectedThreadKey !== ALL_THREADS_KEY &&
+    variant !== "compact"
+      ? selectedThreadKey
+      : undefined;
+
+  return (
+    <div className="smc-vfill" style={{ ...CHAT_LOG_STYLE, position: "relative" }}>
+      {shouldShowCodexConfig && (
+          <div style={{ position: "absolute", top: 8, left: 8, zIndex: 10 }}>
+            <Space size={6}>
+              <CodexConfigButton
+                threadKey={selectedThreadKey}
+                chatPath={path ?? ""}
+                actions={actions}
+              />
+            </Space>
+          </div>
+        )}
+      <ChatLog
+        actions={actions}
+        project_id={project_id ?? ""}
+        path={path ?? ""}
+        messages={messages}
+        acpState={acpState}
+        scrollToBottomRef={scrollToBottomRef}
+        scrollCacheId={scrollCacheId}
+        mode={variant === "compact" ? "sidechat" : "standalone"}
+        fontSize={fontSize}
+        search={search}
+        filterRecentH={filterRecentH}
+        selectedHashtags={selectedHashtags}
+        selectedThread={selectedThreadForLog}
+        scrollToIndex={scrollToIndex}
+        scrollToDate={scrollToDate}
+        selectedDate={fragmentId ?? undefined}
+      />
+    </div>
+  );
+}
