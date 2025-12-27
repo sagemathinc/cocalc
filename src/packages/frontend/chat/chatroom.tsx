@@ -3,13 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import {
-  Input,
-  Modal,
-  Checkbox,
-  Space,
-  message as antdMessage,
-} from "antd";
+import { Modal, message as antdMessage } from "antd";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import {
   React,
@@ -21,7 +15,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 import type { NodeDesc } from "../frame-editors/frame-tree/types";
 import { EditorComponentProps } from "../frame-editors/frame-tree/types";
 import type { ChatActions } from "./actions";
@@ -33,6 +26,8 @@ import {
   type ThreadMeta,
   type ThreadSectionWithUnread,
 } from "./chatroom-sidebar";
+import type { ChatRoomModalHandlers } from "./chatroom-modals";
+import { ChatRoomModals } from "./chatroom-modals";
 import { ChatRoomThreadPanel } from "./chatroom-thread-panel";
 import type { ChatState } from "./store";
 import type { ChatMessageTyped, ChatMessages, SubmitMentionsFn } from "./types";
@@ -129,15 +124,8 @@ export function ChatPanel({
     actions.setSelectedThread?.(x);
   };
   const [lastThreadKey, setLastThreadKey] = useState<string | null>(null);
-  const [renamingThread, setRenamingThread] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState<string>("");
-  const [exportThread, setExportThread] = useState<{
-    key: string;
-    label: string;
-    isAI: boolean;
-  } | null>(null);
-  const [exportFilename, setExportFilename] = useState<string>("");
-  const [exportIncludeLogs, setExportIncludeLogs] = useState<boolean>(false);
+  const [modalHandlers, setModalHandlers] =
+    useState<ChatRoomModalHandlers | null>(null);
   const [allowAutoSelectThread, setAllowAutoSelectThread] =
     useState<boolean>(true);
   const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
@@ -160,17 +148,6 @@ export function ChatPanel({
       sidebarWidth,
     });
   }, [sidebarWidth, actions?.frameTreeActions, actions?.frameId]);
-
-  useEffect(() => {
-    if (!exportThread) return;
-    const defaultPath = buildThreadExportPath(
-      path,
-      exportThread.key,
-      exportThread.label,
-    );
-    setExportFilename(defaultPath);
-    setExportIncludeLogs(false);
-  }, [exportThread, path]);
 
   const selectedThreadDate = useMemo(() => {
     if (!selectedThreadKey || selectedThreadKey === ALL_THREADS_KEY) {
@@ -427,70 +404,6 @@ export function ChatPanel({
     });
   };
 
-  const openRenameModal = (
-    threadKey: string,
-    currentLabel: string,
-    useCurrentLabel: boolean,
-  ) => {
-    setRenamingThread(threadKey);
-    setRenameValue(useCurrentLabel ? currentLabel : "");
-  };
-
-  const closeRenameModal = () => {
-    setRenamingThread(null);
-    setRenameValue("");
-  };
-
-  const handleRenameSave = () => {
-    if (!renamingThread) return;
-    if (actions?.renameThread == null) {
-      antdMessage.error("Renaming chats is not available.");
-      return;
-    }
-    const success = actions.renameThread(renamingThread, renameValue.trim());
-    if (!success) {
-      antdMessage.error("Unable to rename chat.");
-      return;
-    }
-    antdMessage.success(
-      renameValue.trim() ? "Chat renamed." : "Chat name reset to default.",
-    );
-    closeRenameModal();
-  };
-
-  const openExportModal = (threadKey: string, label: string, isAI: boolean) => {
-    setExportThread({ key: threadKey, label, isAI });
-  };
-
-  const closeExportModal = () => {
-    setExportThread(null);
-  };
-
-  const handleExportThread = async () => {
-    if (!exportThread) return;
-    if (!actions?.exportThreadToMarkdown) {
-      antdMessage.error("Export is not available.");
-      return;
-    }
-    const outputPath = exportFilename.trim();
-    if (!outputPath) {
-      antdMessage.error("Please enter a filename.");
-      return;
-    }
-    try {
-      await actions.exportThreadToMarkdown({
-        threadKey: exportThread.key,
-        path: outputPath,
-        includeLogs: exportIncludeLogs,
-      });
-      antdMessage.success("Chat exported.");
-      closeExportModal();
-    } catch (err) {
-      console.error("failed to export chat", err);
-      antdMessage.error("Failed to export chat.");
-    }
-  };
-
   const totalUnread = useMemo(
     () => threadSections.reduce((sum, section) => sum + section.unreadCount, 0),
     [threadSections],
@@ -616,8 +529,12 @@ export function ChatPanel({
               setAllowAutoSelectThread={setAllowAutoSelectThread}
               setSidebarVisible={setSidebarVisible}
               threadSections={threadSections}
-              openRenameModal={openRenameModal}
-              openExportModal={openExportModal}
+              openRenameModal={
+                modalHandlers?.openRenameModal ?? (() => undefined)
+              }
+              openExportModal={
+                modalHandlers?.openExportModal ?? (() => undefined)
+              }
               confirmDeleteThread={confirmDeleteThread}
               handleToggleAllChats={handleToggleAllChats}
             />
@@ -630,76 +547,13 @@ export function ChatPanel({
         }}
         newChatSelected={!selectedThreadKey}
       />
-      <Modal
-        title={
-          exportThread?.label?.trim()
-            ? `Export "${exportThread.label.trim()}"`
-            : "Export chat"
-        }
-        open={exportThread != null}
-        onCancel={closeExportModal}
-        onOk={handleExportThread}
-        okText="Export"
-        destroyOnClose
-      >
-        <Space direction="vertical" size={10} style={{ width: "100%" }}>
-          <div>
-            <div style={{ marginBottom: 4, color: COLORS.GRAY_D }}>
-              Filename
-            </div>
-            <Input
-              value={exportFilename}
-              onChange={(e) => setExportFilename(e.target.value)}
-              onPressEnter={handleExportThread}
-            />
-          </div>
-          <Checkbox
-            checked={exportIncludeLogs}
-            onChange={(e) => setExportIncludeLogs(e.target.checked)}
-            disabled={!exportThread?.isAI}
-          >
-            Include hidden AI thinking logs
-          </Checkbox>
-        </Space>
-      </Modal>
-      <Modal
-        title="Rename chat"
-        open={renamingThread != null}
-        onCancel={closeRenameModal}
-        onOk={handleRenameSave}
-        okText="Save"
-        destroyOnClose
-      >
-        <Input
-          placeholder="Chat name"
-          value={renameValue}
-          onChange={(e) => setRenameValue(e.target.value)}
-          onPressEnter={handleRenameSave}
-        />
-      </Modal>
+      <ChatRoomModals
+        actions={actions}
+        path={path}
+        onHandlers={setModalHandlers}
+      />
     </div>
   );
-}
-
-function buildThreadExportPath(
-  chatPath: string | undefined,
-  threadKey: string,
-  label?: string,
-): string {
-  const base = (chatPath || "chat").replace(/\/+$/, "");
-  const slug = slugifyLabel(label);
-  const suffix = slug || threadKey || "thread";
-  return `${base}.${suffix}.md`;
-}
-
-function slugifyLabel(label?: string): string {
-  if (!label) return "";
-  const slug = label
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/gi, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 48);
-  return slug;
 }
 
 function ChatRoomInner({
