@@ -2144,18 +2144,6 @@ export class SyncDoc extends EventEmitter {
         await this.set_syncstring_table({ users: this.users });
       }
       this.my_user_id = Math.max(1, idx);
-      if (this.my_user_id >= 1024) {
-        // if somehow we hit over 1024 users of a single file, we
-        // have to make the id at most 1024, so we do this horrible
-        // hack.  This is bad, but better than completely breaking
-        // the document.
-        this.my_user_id %= 1024;
-        if (this.my_user_id == FILESYSTEM_USER_ID) {
-          this.my_user_id++;
-        }
-        this.users[this.my_user_id] = client_id;
-        await this.set_syncstring_table({ users: this.users });
-      }
     }
     this.emit("metadata-change");
   };
