@@ -1,18 +1,17 @@
 import { EventEmitter } from "events";
 import { enableMapSet, produce } from "immer";
 import type { ImmerDB } from "@cocalc/sync/editor/immer-db";
-import { normalizeChatMessage } from "./normalize";
 import type { PlainChatMessage } from "./types";
 import { once } from "@cocalc/util/async-utils";
 
 /**
  * ChatMessageCache
  *
- * - Maintains a single normalized Map of chat messages keyed by ms timestamp (as string).
+ * - Maintains a Map of chat messages keyed by ms timestamp (as string).
  * - Listens to syncdb "change" events to update incrementally; one cache per syncdoc.
  * - Emits a monotonically increasing version so React and Actions can subscribe
  *   without recomputing the whole document.
- * - Stored records are the same plain/frozen objects that ImmerDB holds internally,
+ * - Stored records are the same frozen objects that ImmerDB holds internally,
  *   so unchanged rows are structurally shared (no duplicate deep copies).
  *
  * This is the single source of truth for processed messages across both the
@@ -71,29 +70,13 @@ export class ChatMessageCache extends EventEmitter {
     this.emit("version", this.version);
   }
 
-  // After calling this, if it returns true, then
-  // the date field will be a valid ISO string
-  private validateDate(row?: { date?: any }): any {
-    // completely ignore any row whose date is not a valid -- there's nothing
-    // to be done with such records.
-    const date = row?.date;
-    if (!date) {
-      return;
-    }
-    if (typeof date != "string") {
-      return;
-    }
-    try {
-      const d = new Date(date);
-      if (!isFinite(d.valueOf())) {
-        return;
-      }
-      return { ...row, date: d.toISOString() };
-    } catch (err) {
-      // should not happen, hence log it
-      console.log(err);
-      return;
-    }
+  private getDateKey(row?: { date?: unknown }): string | undefined {
+    if (!row?.date) return;
+    const raw = row.date;
+    const date =
+      raw instanceof Date ? raw : new Date(raw as string | number | Date);
+    if (!Number.isFinite(date.valueOf())) return;
+    return `${date.valueOf()}`;
   }
 
   private async rebuildFromDoc() {
@@ -109,25 +92,16 @@ export class ChatMessageCache extends EventEmitter {
     }
     const map = new Map<string, PlainChatMessage>();
     const rows = this.syncdb.get() ?? [];
-    const toPersist: PlainChatMessage[] = [];
     log("rebuildFromDoc: got rows", rows);
 
     for (const row0 of rows ?? []) {
-      const row = this.validateDate(row0);
-      if (row == null) continue;
-      const { message, upgraded } = normalizeChatMessage(row);
-      if (message) {
-        map.set(`${message.date.valueOf()}`, message);
-        if (upgraded) {
-          toPersist.push(message);
-        }
-      }
+      if (row0?.event !== "chat") continue;
+      const key = this.getDateKey(row0);
+      if (!key) continue;
+      map.set(key, row0 as PlainChatMessage);
     }
     // Freeze the rebuilt Map for consistency with produce() updates.
     this.messages = produce(map, () => {});
-    if (toPersist.length > 0) {
-      this.persist(toPersist);
-    }
     this.bumpVersion();
   }
 
@@ -141,83 +115,26 @@ export class ChatMessageCache extends EventEmitter {
     log("handleChange", changes);
     if (this.syncdb.get_state() !== "ready") return;
     const rows: Record<string, unknown>[] = Array.from(changes);
-    const toPersist: PlainChatMessage[] = [];
     const next = produce(this.messages, (draft) => {
       for (const row0 of rows) {
-        const row = this.validateDate(row0);
-        if (row == null) continue;
+        if (!row0?.date) continue;
         // SyncDoc.get_one requires only primary key fields so we make an object
         // where that ONLY has those fields and no others.
         const where: Record<string, unknown> = {};
-        if (row?.event != null) where.event = row.event;
-        if (row?.sender_id != null) where.sender_id = row.sender_id;
-        if (row?.date != null) where.date = row.date;
+        if (row0?.event != null) where.event = row0.event;
+        if (row0?.sender_id != null) where.sender_id = row0.sender_id;
+        if (row0?.date != null) where.date = row0.date;
         const rec = this.syncdb.get_one(where);
-        if (!rec) {
-          const key =
-            row?.date != null
-              ? `${new Date(row.date as string | number | Date).valueOf()}`
-              : undefined;
-          if (key != null) {
-            draft.delete(key);
-          }
+        const key = this.getDateKey(rec ?? row0);
+        if (!key) continue;
+        if (!rec || rec?.event !== "chat") {
+          draft.delete(key);
           continue;
         }
-        const { message, upgraded } = normalizeChatMessage(rec);
-        const key =
-          message?.date != null
-            ? `${message.date.valueOf()}`
-            : row?.date
-              ? `${new Date(row.date as string).valueOf()}`
-              : undefined;
-        if (key == null) continue;
-        if (message) {
-          draft.set(key, message);
-          if (upgraded) {
-            toPersist.push(message);
-          }
-        } else {
-          draft.delete(key);
-        }
+        draft.set(key, rec as PlainChatMessage);
       }
     });
     this.messages = next;
-    if (toPersist.length > 0) {
-      this.persist(toPersist);
-    }
     this.bumpVersion();
   };
-
-  // Commit upgrades outside the current call stack to avoid recursive change events.
-  private persist(messages: PlainChatMessage[]) {
-    if (this.syncdb.get_state() !== "ready") return;
-    log("persist", messages.length);
-    Promise.resolve().then(() => {
-      if (this.syncdb && this.syncdb.get_state?.() === "ready") {
-        let changed = false;
-        for (const message of messages) {
-          if (this.persistUpgrade(message)) {
-            changed = true;
-          }
-        }
-        if (changed) {
-          this.syncdb.commit();
-        }
-      }
-    });
-  }
-
-  // Persist upgraded schema/version back into syncdb so legacy rows are fixed on disk.
-  private persistUpgrade(message: PlainChatMessage): boolean {
-    if (this.syncdb.get_state() !== "ready") return false;
-    // normalizeChatMessage guarantees a Date; skip if somehow not.
-    const dateIso = message.date.toISOString();
-    const toSave: any = {
-      ...message,
-      date: dateIso,
-    };
-    this.syncdb.set(toSave);
-    log("set ", toSave);
-    return true;
-  }
 }

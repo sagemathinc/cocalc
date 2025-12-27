@@ -34,7 +34,7 @@ export interface PlainChatMessage {
   sender_id: string;
   event: "chat";
   history: MessageHistory[];
-  date: Date;
+  date: Date | string;
   reply_to?: string;
   generating?: boolean;
   // editing - account_id of who has open for editing
