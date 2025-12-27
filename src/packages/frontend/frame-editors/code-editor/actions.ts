@@ -363,14 +363,16 @@ export class Actions<
     } catch {
       // ignore if not ready yet
     }
-    this.syncAdapter?.dispose();
-    this.syncAdapter = new SyncAdapter({
-      sync: this._syncstring,
-      onRemoteChange: () => {
-        if (!this._syncstring) return;
-        this.handleRemoteSyncstringChange(this._syncstring.to_str());
-      },
-    });
+    if (this.doctype == "syncstring") {
+      this.syncAdapter?.dispose();
+      this.syncAdapter = new SyncAdapter({
+        sync: this._syncstring,
+        onRemoteChange: () => {
+          if (!this._syncstring) return;
+          this.handleRemoteSyncstringChange(this._syncstring.to_str());
+        },
+      });
+    }
   }
 
   // Init spellchecking whenever syncstring saves -- only used in derived classes, where
