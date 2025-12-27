@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Modal, message as antdMessage } from "antd";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import {
   React,
@@ -28,6 +27,8 @@ import {
 } from "./chatroom-sidebar";
 import type { ChatRoomModalHandlers } from "./chatroom-modals";
 import { ChatRoomModals } from "./chatroom-modals";
+import type { ChatRoomThreadActionHandlers } from "./chatroom-thread-actions";
+import { ChatRoomThreadActions } from "./chatroom-thread-actions";
 import { ChatRoomThreadPanel } from "./chatroom-thread-panel";
 import type { ChatState } from "./store";
 import type { ChatMessageTyped, ChatMessages, SubmitMentionsFn } from "./types";
@@ -126,6 +127,8 @@ export function ChatPanel({
   const [lastThreadKey, setLastThreadKey] = useState<string | null>(null);
   const [modalHandlers, setModalHandlers] =
     useState<ChatRoomModalHandlers | null>(null);
+  const [threadActionHandlers, setThreadActionHandlers] =
+    useState<ChatRoomThreadActionHandlers | null>(null);
   const [allowAutoSelectThread, setAllowAutoSelectThread] =
     useState<boolean>(true);
   const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
@@ -369,41 +372,6 @@ export function ChatPanel({
     }
   };
 
-  const performDeleteThread = (threadKey: string) => {
-    if (actions?.deleteThread == null) {
-      antdMessage.error("Deleting chats is not available.");
-      return;
-    }
-    const deleted = actions.deleteThread(threadKey);
-    if (deleted === 0) {
-      antdMessage.info("This chat has no messages to delete.");
-      return;
-    }
-    if (selectedThreadKey === threadKey) {
-      setSelectedThreadKey(null);
-    }
-    antdMessage.success("Chat deleted.");
-  };
-
-  const confirmDeleteThread = (threadKey: string, label?: string) => {
-    const trimmedLabel = (label ?? "").trim();
-    const displayLabel =
-      trimmedLabel.length > 0
-        ? trimmedLabel.length > 120
-          ? `${trimmedLabel.slice(0, 117)}...`
-          : trimmedLabel
-        : null;
-    Modal.confirm({
-      title: displayLabel ? `Delete chat "${displayLabel}"?` : "Delete chat?",
-      content:
-        "This removes all messages in this chat for everyone. This can only be undone using 'Edit --> Undo', or by browsing TimeTravel.",
-      okText: "Delete",
-      okType: "danger",
-      cancelText: "Cancel",
-      onOk: () => performDeleteThread(threadKey),
-    });
-  };
-
   const totalUnread = useMemo(
     () => threadSections.reduce((sum, section) => sum + section.unreadCount, 0),
     [threadSections],
@@ -535,7 +503,9 @@ export function ChatPanel({
               openExportModal={
                 modalHandlers?.openExportModal ?? (() => undefined)
               }
-              confirmDeleteThread={confirmDeleteThread}
+              confirmDeleteThread={
+                threadActionHandlers?.confirmDeleteThread ?? (() => undefined)
+              }
               handleToggleAllChats={handleToggleAllChats}
             />
           )
@@ -551,6 +521,12 @@ export function ChatPanel({
         actions={actions}
         path={path}
         onHandlers={setModalHandlers}
+      />
+      <ChatRoomThreadActions
+        actions={actions}
+        selectedThreadKey={selectedThreadKey}
+        setSelectedThreadKey={setSelectedThreadKey}
+        onHandlers={setThreadActionHandlers}
       />
     </div>
   );
