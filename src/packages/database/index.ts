@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -18,9 +18,10 @@ import { PostgreSQL } from "./postgres/types";
 const base = require("./postgres-base");
 const postgresServerQueries = require("./postgres-server-queries");
 const postgresBlobs = require("./postgres-blobs");
-const postgresSynctable = require("./postgres-synctable");
 // Migrated to TypeScript: user-query/queries.ts
 import { extend_PostgreSQL as extendPostgresUserQueries } from "./user-query/queries";
+// Migrated to TypeScript: synctable/methods.ts
+import { extend_PostgreSQL as extendPostgresSynctable } from "./synctable/methods";
 
 export const {
   pg_type,
@@ -44,7 +45,7 @@ export function db(opts = {}): PostgreSQL {
 
     PostgreSQL = postgresServerQueries.extend_PostgreSQL(PostgreSQL);
     PostgreSQL = postgresBlobs.extend_PostgreSQL(PostgreSQL);
-    PostgreSQL = postgresSynctable.extend_PostgreSQL(PostgreSQL);
+    PostgreSQL = extendPostgresSynctable(PostgreSQL);
     PostgreSQL = extendPostgresUserQueries(PostgreSQL);
     PostgreSQL = extendPostgresOps(PostgreSQL);
     const theDBnew = new PostgreSQL(opts);

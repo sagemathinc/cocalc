@@ -52,7 +52,6 @@ const base = (() => {
     return require("../postgres-base");
   }
 })();
-const uuid = require("uuid");
 const { one_result, all_results, count_result, pg_type, quote_field } = base;
 
 const { defaults } = misc;
@@ -342,7 +341,9 @@ export function extend_PostgreSQL(ext) {
           dbg("FATAL options");
           if (typeof opts.cb === "function") {
             opts.cb(
-              `FATAL: options (=${misc.to_json(opts.options)}) must be an array`,
+              `FATAL: options (=${misc.to_json(
+                opts.options,
+              )}) must be an array`,
             );
           }
           return;
@@ -790,7 +791,7 @@ export function extend_PostgreSQL(ext) {
               query[field] = r.project_id;
               break;
             case "time_id":
-              query[field] = uuid.v1();
+              query[field] = misc.uuid();
               break;
             case "project_write":
               if (query[field] == null) {
@@ -1485,7 +1486,9 @@ export function extend_PostgreSQL(ext) {
         return;
       }
       const dbg = this._dbg(
-        `project_action(project_id='${opts.project_id}',action_request=${misc.to_json(opts.action_request)})`,
+        `project_action(project_id='${
+          opts.project_id
+        }',action_request=${misc.to_json(opts.action_request)})`,
       );
       dbg();
       let project: ProjectControl | undefined;
@@ -1650,7 +1653,9 @@ export function extend_PostgreSQL(ext) {
           ]) as ProjectActionRequest,
           cb: (err) => {
             dbg(
-              `action_request ${misc.to_json(new_val.action_request)} completed -- ${err}`,
+              `action_request ${misc.to_json(
+                new_val.action_request,
+              )} completed -- ${err}`,
             );
             // true means -- do nothing further.  We don't want to the user to
             // set this same thing since we already dealt with it properly.
@@ -1713,7 +1718,9 @@ export function extend_PostgreSQL(ext) {
       cb: CB,
     ) {
       const dbg = this._dbg(
-        `_user_set_query_project_change_after ${account_id}, ${misc.to_json(old_val)} --> ${misc.to_json(new_val)}`,
+        `_user_set_query_project_change_after ${account_id}, ${misc.to_json(
+          old_val,
+        )} --> ${misc.to_json(new_val)}`,
       );
       dbg();
       const old_upgrades = __guard__(
@@ -1726,7 +1733,9 @@ export function extend_PostgreSQL(ext) {
       );
       if (new_upgrades != null && !lodash.isEqual(old_upgrades, new_upgrades)) {
         dbg(
-          `upgrades changed for ${account_id} from ${misc.to_json(old_upgrades)} to ${misc.to_json(new_upgrades)}`,
+          `upgrades changed for ${account_id} from ${misc.to_json(
+            old_upgrades,
+          )} to ${misc.to_json(new_upgrades)}`,
         );
         let project: ProjectControl | undefined;
         return async.series(
@@ -2324,8 +2333,8 @@ export function extend_PostgreSQL(ext) {
               ? schema[orig_table].changefeed_keys
               : undefined
             : schema[table] != null
-              ? schema[table].changefeed_keys
-              : undefined) != null
+            ? schema[table].changefeed_keys
+            : undefined) != null
           ? left
           : [];
       for (var field in user_query) {
@@ -2677,7 +2686,13 @@ export function extend_PostgreSQL(ext) {
         */
       const dbg: (..._args: any[]) => void = () => {};
       dbg(
-        `account_id='${opts.account_id}', project_id='${opts.project_id}', query=${misc.to_json(opts.query)}, multi=${opts.multi}, options=${misc.to_json(opts.options)}, changes=${misc.to_json(opts.changes)}`,
+        `account_id='${opts.account_id}', project_id='${
+          opts.project_id
+        }', query=${misc.to_json(opts.query)}, multi=${
+          opts.multi
+        }, options=${misc.to_json(opts.options)}, changes=${misc.to_json(
+          opts.changes,
+        )}`,
       );
       const {
         err,
@@ -2895,8 +2910,8 @@ export function extend_PostgreSQL(ext) {
             ? old_val.project_id
             : undefined
           : new_val != null
-            ? new_val.project_id
-            : undefined;
+          ? new_val.project_id
+          : undefined;
       if (
         project_id != null &&
         (__guard__(
@@ -3041,7 +3056,9 @@ export function extend_PostgreSQL(ext) {
         !misc.is_valid_uuid_string(obj != null ? obj.project_id : undefined)
       ) {
         cb(
-          `FATAL: project_id (='${obj != null ? obj.project_id : undefined}') must be a valid uuid`,
+          `FATAL: project_id (='${
+            obj != null ? obj.project_id : undefined
+          }') must be a valid uuid`,
         );
         return;
       }
