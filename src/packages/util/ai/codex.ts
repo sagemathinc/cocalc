@@ -13,7 +13,11 @@ export interface CodexModelInfo {
 
 export type CodexReasoningId = CodexReasoningLevel["id"];
 
-export type CodexSessionMode = "auto" | "read-only" | "full-access";
+export type CodexSessionMode =
+  | "auto"
+  | "read-only"
+  | "workspace-write"
+  | "full-access";
 
 export interface CodexSessionConfig {
   workingDirectory?: string;
@@ -30,7 +34,12 @@ export function resolveCodexSessionMode(
   config?: CodexSessionConfig,
 ): CodexSessionMode {
   const mode = config?.sessionMode;
-  if (mode === "auto" || mode === "read-only" || mode === "full-access") {
+  if (
+    mode === "auto" ||
+    mode === "read-only" ||
+    mode === "workspace-write" ||
+    mode === "full-access"
+  ) {
     return mode;
   }
   if (typeof config?.allowWrite === "boolean") {

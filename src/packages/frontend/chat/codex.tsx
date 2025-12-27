@@ -51,17 +51,23 @@ type ModeOption = {
 
 const MODE_OPTIONS: ModeOption[] = [
   {
+    value: "read-only",
+    label: "Read only",
+    description:
+      "Inspect files safely. Commands that would modify files will fail.",
+  },
+  {
+    value: "workspace-write",
+    label: "Workspace write",
+    description:
+      "Allow edits inside this workspace only (network access is allowed). System-wide changes are blocked.",
+  },
+  {
     value: "full-access",
     label: "Full access",
     description:
       "Run commands with network access and edit files outside this workspace. Extremely powerful—use with caution.",
     warning: true,
-  },
-  {
-    value: "read-only",
-    label: "Read only",
-    description:
-      "Inspect files safely. Commands that would modify files will fail.",
   },
 ];
 
@@ -133,7 +139,7 @@ export function CodexConfigButton({
       reasoning: baseReasoning,
       envHome: "",
       envPath: "",
-      sessionMode: "full-access" as CodexSessionMode,
+      sessionMode: "workspace-write" as CodexSessionMode,
     };
     const saved = actions?.getCodexConfig?.(new Date(ms));
     const merged: CodexThreadConfig = { ...defaults, ...saved };
