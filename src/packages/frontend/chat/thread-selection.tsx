@@ -5,11 +5,10 @@
 
 import { useEffect, useMemo, useState } from "@cocalc/frontend/app-framework";
 import type { ChatActions } from "./actions";
-import { ALL_THREADS_KEY } from "./threads";
+import { ALL_THREADS_KEY, type ThreadMeta } from "./threads";
 import type { ChatMessages } from "./types";
 import { dateValue } from "./access";
 import { getThreadRootDate } from "./utils";
-import type { ThreadMeta } from "./chatroom-sidebar";
 
 interface ThreadSelectionOptions {
   actions: ChatActions;

@@ -22,7 +22,7 @@ import { Resizable } from "re-resizable";
 import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import type { ChatActions } from "./actions";
-import type { ThreadListItem, ThreadSection } from "./threads";
+import type { ThreadMeta, ThreadSectionWithUnread } from "./threads";
 
 const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
   padding: "0 20px 15px",
@@ -47,20 +47,6 @@ const THREAD_SECTION_HEADER_STYLE: React.CSSProperties = {
 } as const;
 
 const ACTIVITY_RECENT_MS = 7_500;
-
-export type ThreadMeta = ThreadListItem & {
-  displayLabel: string;
-  hasCustomName: boolean;
-  readCount: number;
-  unreadCount: number;
-  isAI: boolean;
-  isPinned: boolean;
-  lastActivityAt?: number;
-};
-
-export interface ThreadSectionWithUnread extends ThreadSection<ThreadMeta> {
-  unreadCount: number;
-}
 
 function stripHtml(value: string): string {
   if (!value) return "";

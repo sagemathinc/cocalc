@@ -20,11 +20,7 @@ import type { ChatActions } from "./actions";
 import { ChatRoomComposer } from "./composer";
 import { ChatRoomLayout } from "./chatroom-layout";
 import { ChatRoomHeader } from "./chatroom-header";
-import {
-  ChatRoomSidebarContent,
-  type ThreadMeta,
-  type ThreadSectionWithUnread,
-} from "./chatroom-sidebar";
+import { ChatRoomSidebarContent } from "./chatroom-sidebar";
 import type { ChatRoomModalHandlers } from "./chatroom-modals";
 import { ChatRoomModals } from "./chatroom-modals";
 import type { ChatRoomThreadActionHandlers } from "./chatroom-thread-actions";
@@ -33,8 +29,7 @@ import { ChatRoomThreadPanel } from "./chatroom-thread-panel";
 import type { ChatState } from "./store";
 import type { ChatMessages, SubmitMentionsFn } from "./types";
 import { markChatAsReadIfUnseen } from "./utils";
-import { field } from "./access";
-import { groupThreadsByRecency, useThreadList } from "./threads";
+import { useThreadSections } from "./threads";
 import { ChatDocProvider, useChatDoc } from "./doc-context";
 import * as immutable from "immutable";
 import { useChatThreadSelection } from "./thread-selection";
@@ -130,69 +125,12 @@ export function ChatPanel({
     });
   }, [sidebarWidth, actions?.frameTreeActions, actions?.frameId]);
 
-  const llmCacheRef = useRef<Map<string, boolean>>(new Map());
-  const rawThreads = useThreadList(messages);
-  const threads = useMemo<ThreadMeta[]>(() => {
-    return rawThreads.map((thread) => {
-      const rootMessage = thread.rootMessage;
-      const storedName = field<string>(rootMessage, "name")?.trim();
-      const hasCustomName = !!storedName;
-      const displayLabel = storedName || thread.label;
-      const pinValue = field<any>(rootMessage, "pin");
-      const isPinned =
-        pinValue === true ||
-        pinValue === "true" ||
-        pinValue === 1 ||
-        pinValue === "1";
-      const readField =
-        account_id && rootMessage
-          ? field<any>(rootMessage, `read-${account_id}`)
-          : null;
-      const readValue =
-        typeof readField === "number"
-          ? readField
-          : typeof readField === "string"
-            ? parseInt(readField, 10)
-            : 0;
-      const readCount =
-        Number.isFinite(readValue) && readValue > 0 ? readValue : 0;
-      const unreadCount = Math.max(thread.messageCount - readCount, 0);
-      let isAI = llmCacheRef.current.get(thread.key);
-      if (isAI == null) {
-        if (actions?.isLanguageModelThread) {
-          const result = actions.isLanguageModelThread(
-            new Date(parseInt(thread.key, 10)),
-          );
-          isAI = result !== false;
-        } else {
-          isAI = false;
-        }
-        llmCacheRef.current.set(thread.key, isAI);
-      }
-      const lastActivityAt = activity?.get(thread.key);
-      return {
-        ...thread,
-        displayLabel,
-        hasCustomName,
-        readCount,
-        unreadCount,
-        isAI: !!isAI,
-        isPinned,
-        lastActivityAt,
-      };
-    });
-  }, [rawThreads, account_id, actions, activity]);
-
-  const threadSections = useMemo<ThreadSectionWithUnread[]>(() => {
-    const grouped = groupThreadsByRecency(threads);
-    return grouped.map((section) => ({
-      ...section,
-      unreadCount: section.threads.reduce(
-        (sum, thread) => sum + thread.unreadCount,
-        0,
-      ),
-    }));
-  }, [threads]);
+  const { threads, threadSections } = useThreadSections({
+    messages,
+    activity,
+    accountId: account_id,
+    actions,
+  });
 
   const {
     selectedThreadKey,
