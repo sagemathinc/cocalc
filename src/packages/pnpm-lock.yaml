@@ -190,8 +190,8 @@ importers:
         specifier: ^1.2.2
         version: 1.2.2
       patchflow:
-        specifier: ^0.5.5
-        version: 0.5.5
+        specifier: ^0.5.6
+        version: 0.5.6
       pkg-dir:
         specifier: ^5.0.0
         version: 5.0.0
@@ -1956,8 +1956,8 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
       patchflow:
-        specifier: ^0.5.5
-        version: 0.5.5
+        specifier: ^0.5.6
+        version: 0.5.6
     devDependencies:
       '@types/lodash':
         specifier: ^4.17.20
@@ -10296,8 +10296,8 @@ packages:
     engines: {node: '>= 0.4.0'}
     hasBin: true
 
-  patchflow@0.5.5:
-    resolution: {integrity: sha512-voXSBZMXFVjOu2LoLDjGRoM1BSYbyAbf1onwLy6QISBnbUwh23Po7+o0dv20X185IGuNt7Ykpc2Vra2Ij2BA8Q==}
+  patchflow@0.5.6:
+    resolution: {integrity: sha512-B+SVT0CoPmc0D0pyjdXCvavWu3pETyx+FPg5uj9MnhbtQXnh0UDU6SiJrHCEACW9p7NzzwxqOtbnaeOxNyMkRA==}
 
   path-browserify@1.0.1:
     resolution: {integrity: sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==}
@@ -23157,11 +23157,12 @@ snapshots:
 
   password-hash@1.2.2: {}
 
-  patchflow@0.5.5:
+  patchflow@0.5.6:
     dependencies:
       '@cocalc/diff-match-patch': 1.0.1
       events: 3.3.0
       fast-deep-equal: 3.1.3
+      fast-json-stable-stringify: 2.1.0
       immer: 10.2.0
       immutable: 4.3.7
       lru-cache: 11.2.4
