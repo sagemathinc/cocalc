@@ -185,7 +185,7 @@ describe("ImmerDBDocument patch variants", () => {
 
     const doc2 = doc.set({ key: "cocalc", value: { two: "two" } });
     expect(doc2.to_str()).toBe(
-      '{"key":"cocalc","value":{"five":5,"one":1,"two":"two"}}',
+      '{"key":"cocalc","value":{"one":1,"two":"two","five":5}}',
     );
 
     const patch2 = doc.make_patch(doc2);
@@ -245,7 +245,7 @@ describe("ImmerDBDocument conversions", () => {
 
     const s = doc.to_str();
     expect(s).toBe(
-      '{"boolean":true,"key":"cocalc","list":["milk","cookies",{"a":true}],"map":{"lat":5,"long":7},"number":389,"string":"cocalc"}\n{"key":[1,{"a":5}],"number":37}',
+      '{"key":"cocalc","string":"cocalc","number":389,"map":{"lat":5,"long":7},"list":["milk","cookies",{"a":true}],"boolean":true}\n{"key":[1,{"a":5}],"number":37}',
     );
 
     const doc2 = from_str(s, ["key"], []);

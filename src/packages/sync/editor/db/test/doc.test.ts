@@ -20,7 +20,7 @@ describe("create a DBDocument with one primary key, and call methods on it", () 
 
   it("convert to string", () => {
     expect(doc.to_str()).toBe(
-      '{"key":"cloud","value":"collaboration"}\n{"key":"cocalc","value":"sagemath"}'
+      '{"key":"cloud","value":"collaboration"}\n{"key":"cocalc","value":"sagemath"}',
     );
   });
 
@@ -33,10 +33,10 @@ describe("create a DBDocument with one primary key, and call methods on it", () 
     expect(doc.is_equal(undefined)).toBe(false);
     expect(doc.is_equal(doc)).toBe(true);
     expect(
-      doc.is_equal(new DBDocument(new Set(["key"]), new Set([]), records))
+      doc.is_equal(new DBDocument(new Set(["key"]), new Set([]), records)),
     ).toBe(true);
     expect(doc.is_equal(new DBDocument(new Set(["key"]), new Set([])))).toBe(
-      false
+      false,
     );
   });
 
@@ -83,7 +83,7 @@ describe("create a DBDocument with one primary key, and call methods on it", () 
 
     // can only search on primary keys
     expect(() => doc.get_one({ value: "collaboration" })).toThrow(
-      "must be a primary key"
+      "must be a primary key",
     );
 
     x = doc.get_one({});
@@ -102,7 +102,7 @@ describe("create a DBDocument with one primary key, and call methods on it", () 
 
     // can only search on primary keys
     expect(() => doc.get({ value: "collaboration" })).toThrow(
-      "must be a primary key"
+      "must be a primary key",
     );
   });
 
@@ -131,10 +131,10 @@ describe("test various types of patches", () => {
     const doc = new DBDocument(
       new Set(["key"]),
       new Set([]),
-      fromJS([{ key: "cocalc", value: "a string" }])
+      fromJS([{ key: "cocalc", value: "a string" }]),
     );
     const patch = doc.make_patch(
-      doc.set({ key: "cocalc", value: "a different string" })
+      doc.set({ key: "cocalc", value: "a different string" }),
     );
     expect(patch).toEqual([
       1,
@@ -152,10 +152,10 @@ describe("test various types of patches", () => {
     const doc = new DBDocument(
       new Set(["key"]),
       new Set(["value"]) /* so uses diffs */,
-      fromJS([{ key: "cocalc", value: "a string" }])
+      fromJS([{ key: "cocalc", value: "a string" }]),
     );
     const patch = doc.make_patch(
-      doc.set({ key: "cocalc", value: "a different string" })
+      doc.set({ key: "cocalc", value: "a different string" }),
     );
     expect(patch).toEqual([
       1,
@@ -184,17 +184,17 @@ describe("test various types of patches", () => {
     expect(patch2).toEqual([1, [{ key: "cocalc", value: null }]]);
   });
 
-  it("map patch -- our efficient about diffs (NOT atomic)", () => {
+  it("map patch -- efficient about diffs (NOT atomic)", () => {
     const doc = new DBDocument(
       new Set(["key"]),
       new Set([]),
-      fromJS([{ key: "cocalc", value: { one: 1, two: 2, five: 5 } }])
+      fromJS([{ key: "cocalc", value: { one: 1, two: 2, five: 5 } }]),
     );
 
     // This really sets just the two part:
     const doc2 = doc.set({ key: "cocalc", value: { two: "two" } });
     expect(doc2.to_str()).toBe(
-      '{"key":"cocalc","value":{"five":5,"one":1,"two":"two"}}'
+      '{"key":"cocalc","value":{"one":1,"two":"two","five":5}}',
     );
 
     // That's why this patch can be compact:
@@ -222,7 +222,7 @@ describe("test various types of patches", () => {
     const doc = new DBDocument(
       new Set(["key"]),
       new Set([]),
-      fromJS([{ key: "cocalc", value: [1, 2, 5] }])
+      fromJS([{ key: "cocalc", value: [1, 2, 5] }]),
     );
 
     // This really sets just the two part:
@@ -241,7 +241,7 @@ describe("test various types of patches", () => {
     const doc = new DBDocument(
       new Set(["key"]),
       new Set(["value"]) /* so must always be a string */,
-      fromJS([{ key: "cocalc", value: "a string" }])
+      fromJS([{ key: "cocalc", value: "a string" }]),
     );
 
     const doc2 = doc.set({ value: "foo" });
@@ -267,12 +267,12 @@ describe("test conversion to and *from* strings", () => {
           boolean: true,
         },
         { key: [1, { a: 5 }], number: 37 },
-      ])
+      ]),
     );
 
     const s = doc.to_str();
     expect(s).toBe(
-      '{"boolean":true,"key":"cocalc","list":["milk","cookies",{"a":true}],"map":{"lat":5,"long":7},"number":389,"string":"cocalc"}\n{"key":[1,{"a":5}],"number":37}'
+      '{"key":"cocalc","string":"cocalc","number":389,"map":{"lat":5,"long":7},"list":["milk","cookies",{"a":true}],"boolean":true}\n{"key":[1,{"a":5}],"number":37}',
     );
 
     const doc2 = from_str(s, ["key"], []);
@@ -304,7 +304,7 @@ describe("test using a compound primary key", () => {
         name: "CoCalc User",
       },
       { table: "projects", id: 123, title: "Test project" },
-    ])
+    ]),
   );
 
   it("tests searches", () => {
