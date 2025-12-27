@@ -31,16 +31,13 @@ import type { ChatRoomThreadActionHandlers } from "./chatroom-thread-actions";
 import { ChatRoomThreadActions } from "./chatroom-thread-actions";
 import { ChatRoomThreadPanel } from "./chatroom-thread-panel";
 import type { ChatState } from "./store";
-import type { ChatMessageTyped, ChatMessages, SubmitMentionsFn } from "./types";
-import { getThreadRootDate, markChatAsReadIfUnseen } from "./utils";
-import { field, dateValue } from "./access";
-import {
-  ALL_THREADS_KEY,
-  groupThreadsByRecency,
-  useThreadList,
-} from "./threads";
+import type { ChatMessages, SubmitMentionsFn } from "./types";
+import { markChatAsReadIfUnseen } from "./utils";
+import { field } from "./access";
+import { groupThreadsByRecency, useThreadList } from "./threads";
 import { ChatDocProvider, useChatDoc } from "./doc-context";
 import * as immutable from "immutable";
+import { useChatThreadSelection } from "./thread-selection";
 
 const GRID_STYLE: React.CSSProperties = {
   display: "flex",
@@ -113,24 +110,10 @@ export function ChatPanel({
   const disableFilters = disableFiltersProp ?? isCompact;
   const storedThreadFromDesc =
     getDescValue(desc, "data-selectedThreadKey") ?? null;
-  const [selectedThreadKey, setSelectedThreadKey0] = useState<string | null>(
-    storedThreadFromDesc,
-  );
-  const setSelectedThreadKey = (x: string | null) => {
-    if (x != null && x != ALL_THREADS_KEY) {
-      actions.clearAllFilters();
-      actions.setFragment();
-    }
-    setSelectedThreadKey0(x);
-    actions.setSelectedThread?.(x);
-  };
-  const [lastThreadKey, setLastThreadKey] = useState<string | null>(null);
   const [modalHandlers, setModalHandlers] =
     useState<ChatRoomModalHandlers | null>(null);
   const [threadActionHandlers, setThreadActionHandlers] =
     useState<ChatRoomThreadActionHandlers | null>(null);
-  const [allowAutoSelectThread, setAllowAutoSelectThread] =
-    useState<boolean>(true);
   const submitMentionsRef = useRef<SubmitMentionsFn | undefined>(undefined);
   const scrollToBottomRef = useRef<any>(null);
   const lastScrollRequestRef = useRef<{
@@ -139,11 +122,6 @@ export function ChatPanel({
   } | null>(null);
   const visitedThreadsRef = useRef<Set<string>>(new Set());
   const unreadSeenRef = useRef<Map<string, number>>(new Map());
-  const scrollCacheId = useMemo(() => {
-    const base = `${project_id ?? ""}${path ?? ""}`;
-    return `${base}-${selectedThreadKey ?? "all"}`;
-  }, [project_id, path, selectedThreadKey]);
-
   useEffect(() => {
     if (!actions?.frameTreeActions?.set_frame_data || !actions?.frameId) return;
     actions.frameTreeActions.set_frame_data({
@@ -151,43 +129,6 @@ export function ChatPanel({
       sidebarWidth,
     });
   }, [sidebarWidth, actions?.frameTreeActions, actions?.frameId]);
-
-  const selectedThreadDate = useMemo(() => {
-    if (!selectedThreadKey || selectedThreadKey === ALL_THREADS_KEY) {
-      return undefined;
-    }
-    const millis = parseInt(selectedThreadKey, 10);
-    if (!isFinite(millis)) return undefined;
-    return new Date(millis);
-  }, [selectedThreadKey]);
-
-  const isAllThreadsSelected = selectedThreadKey === ALL_THREADS_KEY;
-  const singleThreadView = selectedThreadKey != null && !isAllThreadsSelected;
-  const composerDraftKey = useMemo(() => {
-    if (
-      singleThreadView &&
-      selectedThreadDate instanceof Date &&
-      !isNaN(selectedThreadDate.valueOf())
-    ) {
-      return -selectedThreadDate.valueOf();
-    }
-    return 0;
-  }, [singleThreadView, selectedThreadDate]);
-  const showThreadFilters = !isCompact && isAllThreadsSelected;
-
-  useEffect(() => {
-    if (!actions?.syncdb || !account_id) return;
-    const fetchDraft = (date: number) =>
-      actions.syncdb
-        ?.get_one({
-          event: "draft",
-          sender_id: account_id,
-          date,
-        })
-        ?.get?.("input") ?? "";
-    let nextInput = fetchDraft(composerDraftKey);
-    setInput(nextInput);
-  }, [actions?.syncdb, account_id, composerDraftKey]);
 
   const llmCacheRef = useRef<Map<string, boolean>>(new Map());
   const rawThreads = useThreadList(messages);
@@ -253,69 +194,55 @@ export function ChatPanel({
     }));
   }, [threads]);
 
-  const selectedThread = React.useMemo(
-    () => threads.find((t) => t.key === selectedThreadKey),
-    [threads, selectedThreadKey],
-  );
+  const {
+    selectedThreadKey,
+    setSelectedThreadKey,
+    setAllowAutoSelectThread,
+    selectedThreadDate,
+    isAllThreadsSelected,
+    singleThreadView,
+    selectedThread,
+    handleToggleAllChats,
+  } = useChatThreadSelection({
+    actions,
+    threads,
+    messages,
+    fragmentId,
+    storedThreadFromDesc,
+  });
+
+  const composerDraftKey = useMemo(() => {
+    if (
+      singleThreadView &&
+      selectedThreadDate instanceof Date &&
+      !isNaN(selectedThreadDate.valueOf())
+    ) {
+      return -selectedThreadDate.valueOf();
+    }
+    return 0;
+  }, [singleThreadView, selectedThreadDate]);
+
+  const showThreadFilters = !isCompact && isAllThreadsSelected;
   const isSelectedThreadAI = selectedThread?.isAI ?? false;
 
-  useEffect(() => {
-    if (
-      storedThreadFromDesc != null &&
-      storedThreadFromDesc !== selectedThreadKey
-    ) {
-      setSelectedThreadKey(storedThreadFromDesc);
-      setAllowAutoSelectThread(false);
-    }
-  }, [storedThreadFromDesc]);
+  const scrollCacheId = useMemo(() => {
+    const base = `${project_id ?? ""}${path ?? ""}`;
+    return `${base}-${selectedThreadKey ?? "all"}`;
+  }, [project_id, path, selectedThreadKey]);
 
   useEffect(() => {
-    if (threads.length === 0) {
-      if (selectedThreadKey !== null) {
-        setSelectedThreadKey(null);
-      }
-      setAllowAutoSelectThread(true);
-      return;
-    }
-    const exists = threads.some((thread) => thread.key === selectedThreadKey);
-    if (!exists && allowAutoSelectThread) {
-      setSelectedThreadKey(threads[0].key);
-    }
-  }, [threads, selectedThreadKey, allowAutoSelectThread]);
-
-  useEffect(() => {
-    if (selectedThreadKey != null && selectedThreadKey !== ALL_THREADS_KEY) {
-      setLastThreadKey(selectedThreadKey);
-    }
-  }, [selectedThreadKey]);
-
-  useEffect(() => {
-    if (!fragmentId || isAllThreadsSelected || messages == null) {
-      return;
-    }
-    const parsed = parseFloat(fragmentId);
-    if (!isFinite(parsed)) {
-      return;
-    }
-    const keyStr = `${parsed}`;
-    let message = messages.get(keyStr) as ChatMessageTyped | undefined;
-    if (message == null) {
-      for (const [, msg] of messages) {
-        const dateField = dateValue(msg);
-        if (dateField?.valueOf?.() === parsed) {
-          message = msg;
-          break;
-        }
-      }
-    }
-    if (message == null) return;
-    const root = getThreadRootDate({ date: parsed, messages }) || parsed;
-    const threadKey = `${root}`;
-    if (threadKey !== selectedThreadKey) {
-      setAllowAutoSelectThread(false);
-      setSelectedThreadKey(threadKey);
-    }
-  }, [fragmentId, isAllThreadsSelected, messages, selectedThreadKey]);
+    if (!actions?.syncdb || !account_id) return;
+    const fetchDraft = (date: number) =>
+      actions.syncdb
+        ?.get_one({
+          event: "draft",
+          sender_id: account_id,
+          date,
+        })
+        ?.get?.("input") ?? "";
+    let nextInput = fetchDraft(composerDraftKey);
+    setInput(nextInput);
+  }, [actions?.syncdb, account_id, composerDraftKey]);
 
   const mark_as_read = () => markChatAsReadIfUnseen(project_id, path);
 
@@ -355,22 +282,6 @@ export function ChatPanel({
     // Already visited and no new unread: preserve existing scroll (cached per thread via virtuoso cacheId).
     unreadSeenRef.current.set(thread.key, unread);
   }, [singleThreadView, selectedThreadKey, threads, actions]);
-
-  const handleToggleAllChats = (checked: boolean) => {
-    if (checked) {
-      setAllowAutoSelectThread(false);
-      setSelectedThreadKey(ALL_THREADS_KEY);
-    } else {
-      setAllowAutoSelectThread(true);
-      if (lastThreadKey != null) {
-        setSelectedThreadKey(lastThreadKey);
-      } else if (threads[0]?.key) {
-        setSelectedThreadKey(threads[0].key);
-      } else {
-        setSelectedThreadKey(null);
-      }
-    }
-  };
 
   const totalUnread = useMemo(
     () => threadSections.reduce((sum, section) => sum + section.unreadCount, 0),
