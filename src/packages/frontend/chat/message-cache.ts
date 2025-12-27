@@ -2,6 +2,7 @@ import { EventEmitter } from "events";
 import { enableMapSet, produce } from "immer";
 import type { ImmerDB } from "@cocalc/sync/editor/immer-db";
 import type { PlainChatMessage } from "./types";
+import { dateValue, replyTo } from "./access";
 import { once } from "@cocalc/util/async-utils";
 
 /**
@@ -28,6 +29,7 @@ const log = (..._args) => {};
 export class ChatMessageCache extends EventEmitter {
   private syncdb: ImmerDB;
   private messages: Map<string, PlainChatMessage> = new Map();
+  private threadIndex: Map<string, ThreadIndexEntry> = new Map();
   private version = 0;
 
   constructor(syncdb: ImmerDB) {
@@ -55,6 +57,10 @@ export class ChatMessageCache extends EventEmitter {
     return this.messages;
   }
 
+  getThreadIndex(): Map<string, ThreadIndexEntry> {
+    return this.threadIndex;
+  }
+
   getVersion(): number {
     return this.version;
   }
@@ -79,6 +85,78 @@ export class ChatMessageCache extends EventEmitter {
     return `${date.valueOf()}`;
   }
 
+  private getThreadKey(message: PlainChatMessage): string | undefined {
+    const root = replyTo(message);
+    if (root) {
+      const d = new Date(root);
+      return Number.isFinite(d.valueOf()) ? `${d.valueOf()}` : undefined;
+    }
+    const d = dateValue(message);
+    return d ? `${d.valueOf()}` : undefined;
+  }
+
+  private addToThreadIndex(
+    draft: Map<string, ThreadIndexEntry>,
+    message: PlainChatMessage,
+    messageKey: string,
+  ) {
+    const threadKey = this.getThreadKey(message);
+    if (!threadKey) return;
+    let thread = draft.get(threadKey);
+    if (!thread) {
+      thread = {
+        key: threadKey,
+        newestTime: 0,
+        messageCount: 0,
+        messageKeys: new Set(),
+        rootMessage: undefined,
+      };
+      draft.set(threadKey, thread);
+    }
+    thread.messageKeys.add(messageKey);
+    thread.messageCount = thread.messageKeys.size;
+    const d = dateValue(message);
+    if (d && d.valueOf() > thread.newestTime) {
+      thread.newestTime = d.valueOf();
+    }
+    if (!replyTo(message)) {
+      thread.rootMessage = message;
+    }
+  }
+
+  private removeFromThreadIndex(
+    draft: Map<string, ThreadIndexEntry>,
+    message: PlainChatMessage,
+    messageKey: string,
+    messageMap: Map<string, PlainChatMessage>,
+  ) {
+    const threadKey = this.getThreadKey(message);
+    if (!threadKey) return;
+    const thread = draft.get(threadKey);
+    if (!thread) return;
+    thread.messageKeys.delete(messageKey);
+    thread.messageCount = thread.messageKeys.size;
+    if (!replyTo(message) && thread.rootMessage?.date === message.date) {
+      thread.rootMessage = undefined;
+    }
+    if (thread.messageCount === 0) {
+      draft.delete(threadKey);
+      return;
+    }
+    const msgDate = dateValue(message);
+    if (msgDate && msgDate.valueOf() === thread.newestTime) {
+      let newest = 0;
+      for (const key of thread.messageKeys) {
+        const candidate = messageMap.get(key);
+        const candDate = candidate ? dateValue(candidate) : undefined;
+        if (candDate && candDate.valueOf() > newest) {
+          newest = candDate.valueOf();
+        }
+      }
+      thread.newestTime = newest;
+    }
+  }
+
   private async rebuildFromDoc() {
     log("rebuildFromDoc");
     if (this.syncdb.get_state() !== "ready") {
@@ -91,6 +169,7 @@ export class ChatMessageCache extends EventEmitter {
       }
     }
     const map = new Map<string, PlainChatMessage>();
+    const threadIndex = new Map<string, ThreadIndexEntry>();
     const rows = this.syncdb.get() ?? [];
     log("rebuildFromDoc: got rows", rows);
 
@@ -98,10 +177,13 @@ export class ChatMessageCache extends EventEmitter {
       if (row0?.event !== "chat") continue;
       const key = this.getDateKey(row0);
       if (!key) continue;
-      map.set(key, row0 as PlainChatMessage);
+      const message = row0 as PlainChatMessage;
+      map.set(key, message);
+      this.addToThreadIndex(threadIndex, message, key);
     }
     // Freeze the rebuilt Map for consistency with produce() updates.
     this.messages = produce(map, () => {});
+    this.threadIndex = produce(threadIndex, () => {});
     this.bumpVersion();
   }
 
@@ -116,25 +198,44 @@ export class ChatMessageCache extends EventEmitter {
     if (this.syncdb.get_state() !== "ready") return;
     const rows: Record<string, unknown>[] = Array.from(changes);
     const next = produce(this.messages, (draft) => {
-      for (const row0 of rows) {
-        if (!row0?.date) continue;
-        // SyncDoc.get_one requires only primary key fields so we make an object
-        // where that ONLY has those fields and no others.
-        const where: Record<string, unknown> = {};
-        if (row0?.event != null) where.event = row0.event;
-        if (row0?.sender_id != null) where.sender_id = row0.sender_id;
-        if (row0?.date != null) where.date = row0.date;
-        const rec = this.syncdb.get_one(where);
-        const key = this.getDateKey(rec ?? row0);
-        if (!key) continue;
-        if (!rec || rec?.event !== "chat") {
-          draft.delete(key);
-          continue;
+      this.threadIndex = produce(this.threadIndex, (threadDraft) => {
+        for (const row0 of rows) {
+          if (!row0?.date) continue;
+          // SyncDoc.get_one requires only primary key fields so we make an object
+          // where that ONLY has those fields and no others.
+          const where: Record<string, unknown> = {};
+          if (row0?.event != null) where.event = row0.event;
+          if (row0?.sender_id != null) where.sender_id = row0.sender_id;
+          if (row0?.date != null) where.date = row0.date;
+          const rec = this.syncdb.get_one(where);
+          const key = this.getDateKey(rec ?? row0);
+          if (!key) continue;
+
+          const prev = draft.get(key);
+          if (prev) {
+            this.removeFromThreadIndex(threadDraft, prev, key, draft);
+          }
+
+          if (!rec || rec?.event !== "chat") {
+            draft.delete(key);
+            continue;
+          }
+
+          const nextMessage = rec as PlainChatMessage;
+          draft.set(key, nextMessage);
+          this.addToThreadIndex(threadDraft, nextMessage, key);
         }
-        draft.set(key, rec as PlainChatMessage);
-      }
+      });
     });
     this.messages = next;
     this.bumpVersion();
   };
+}
+
+export interface ThreadIndexEntry {
+  key: string;
+  newestTime: number;
+  messageCount: number;
+  messageKeys: Set<string>;
+  rootMessage?: PlainChatMessage;
 }

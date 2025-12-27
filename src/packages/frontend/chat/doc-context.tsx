@@ -17,11 +17,12 @@ import React, {
   useState,
 } from "react";
 import type { PlainChatMessage } from "./types";
-import { ChatMessageCache } from "./message-cache";
+import { ChatMessageCache, type ThreadIndexEntry } from "./message-cache";
 
 type DocCtx = {
   version: number;
   messages?: Map<string, PlainChatMessage>;
+  threadIndex?: Map<string, ThreadIndexEntry>;
 };
 
 const ChatDocContext = createContext<DocCtx>({
@@ -56,6 +57,7 @@ export function ChatDocProvider({
     return {
       version,
       messages: cacheRef.current?.getMessages(),
+      threadIndex: cacheRef.current?.getThreadIndex(),
     };
   }, [version]);
 

@@ -28,6 +28,7 @@ import { ChatRoomThreadActions } from "./chatroom-thread-actions";
 import { ChatRoomThreadPanel } from "./chatroom-thread-panel";
 import type { ChatState } from "./store";
 import type { ChatMessages, SubmitMentionsFn } from "./types";
+import type { ThreadIndexEntry } from "./message-cache";
 import { markChatAsReadIfUnseen } from "./utils";
 import { useThreadSections } from "./threads";
 import { ChatDocProvider, useChatDoc } from "./doc-context";
@@ -51,6 +52,7 @@ export interface ChatPanelProps {
   project_id: string;
   path: string;
   messages?: ChatMessages;
+  threadIndex?: Map<string, ThreadIndexEntry>;
   fontSize?: number;
   desc?: NodeDesc;
   variant?: "default" | "compact";
@@ -71,6 +73,7 @@ export function ChatPanel({
   project_id,
   path,
   messages,
+  threadIndex,
   fontSize = 13,
   desc,
   variant = "default",
@@ -127,6 +130,7 @@ export function ChatPanel({
 
   const { threads, threadSections } = useThreadSections({
     messages,
+    threadIndex,
     activity,
     accountId: account_id,
     actions,
@@ -388,7 +392,7 @@ function ChatRoomInner({
   font_size,
   desc,
 }: EditorComponentProps) {
-  const { messages } = useChatDoc();
+  const { messages, threadIndex } = useChatDoc();
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
   // subscribe to syncdbReady to force re-render when sync attaches
   useEditor("syncdbReady");
@@ -398,6 +402,7 @@ function ChatRoomInner({
       project_id={project_id}
       path={path}
       messages={messages}
+      threadIndex={threadIndex}
       fontSize={font_size}
       desc={desc}
       variant="default"

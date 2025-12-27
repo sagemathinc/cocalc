@@ -6,8 +6,9 @@ import { React } from "@cocalc/frontend/app-framework";
 import type { Map as ImmutableMap } from "immutable";
 
 import type { ChatMessageTyped, ChatMessages } from "./types";
+import type { ThreadIndexEntry } from "./message-cache";
 import { newest_content } from "./utils";
-import { replyTo, dateValue, field } from "./access";
+import { field } from "./access";
 import type { ChatActions } from "./actions";
 
 export const ALL_THREADS_KEY = "__ALL_THREADS__";
@@ -47,68 +48,33 @@ export interface ThreadSectionWithUnread extends ThreadSection<ThreadMeta> {
   unreadCount: number;
 }
 
-export function useThreadList(messages?: ChatMessages): ThreadListItem[] {
+export function useThreadList(
+  messages?: ChatMessages,
+  threadIndex?: Map<string, ThreadIndexEntry>,
+): ThreadListItem[] {
   return React.useMemo(() => {
-    if (messages == null) {
+    if (threadIndex == null) {
       return [];
     }
 
-    const threads = new Map<
-      string,
-      {
-        key: string;
-        newestTime: number;
-        messageCount: number;
-        rootMessage?: ChatMessageTyped;
-      }
-    >();
-
-    // ALERT: note iterating over ALL MESSAGES every time any message changes.
-    for (const [timeRaw, message] of messages) {
-      if (message == null) continue;
-      const timeString =
-        typeof timeRaw === "string" ? timeRaw : `${timeRaw ?? ""}`;
-      const rep = replyTo(message);
-      const rootKey = rep ? `${new Date(rep).valueOf()}` : timeString;
-      let thread = threads.get(rootKey);
-      if (thread == null) {
-        thread = {
-          key: rootKey,
-          newestTime: 0,
-          messageCount: 0,
-        };
-        threads.set(rootKey, thread);
-      }
-      thread.messageCount += 1;
-      const d = dateValue(message)?.valueOf?.();
-      if (d != null && d > thread.newestTime) {
-        thread.newestTime = d;
-      }
-      if (!rep) {
-        thread.rootMessage = message;
-      }
-    }
-
     const items: ThreadListItem[] = [];
-    for (const entry of threads.values()) {
-      if (entry.rootMessage == null) {
-        const maybeRoot = messages.get(entry.key);
-        if (maybeRoot) {
-          entry.rootMessage = maybeRoot;
-        }
+    for (const entry of threadIndex.values()) {
+      let rootMessage = entry.rootMessage;
+      if (!rootMessage && messages) {
+        rootMessage = messages.get(entry.key);
       }
       items.push({
         key: entry.key,
-        label: deriveThreadLabel(entry.rootMessage, entry.key),
+        label: deriveThreadLabel(rootMessage, entry.key),
         newestTime: entry.newestTime,
         messageCount: entry.messageCount,
-        rootMessage: entry.rootMessage,
+        rootMessage,
       });
     }
 
     items.sort((a, b) => b.newestTime - a.newestTime);
     return items;
-  }, [messages]);
+  }, [threadIndex, messages]);
 }
 
 export function deriveThreadLabel(
@@ -199,6 +165,7 @@ export function groupThreadsByRecency<
 
 interface ThreadDerivationOptions {
   messages?: ChatMessages;
+  threadIndex?: Map<string, ThreadIndexEntry>;
   activity?: ImmutableMap<string, number>;
   accountId?: string;
   actions?: ChatActions;
@@ -206,6 +173,7 @@ interface ThreadDerivationOptions {
 
 export function useThreadSections({
   messages,
+  threadIndex,
   activity,
   accountId,
   actions,
@@ -213,7 +181,7 @@ export function useThreadSections({
   threads: ThreadMeta[];
   threadSections: ThreadSectionWithUnread[];
 } {
-  const rawThreads = useThreadList(messages);
+  const rawThreads = useThreadList(messages, threadIndex);
   const llmCacheRef = React.useRef<Map<string, boolean>>(new Map());
 
   const threads = React.useMemo<ThreadMeta[]>(() => {
