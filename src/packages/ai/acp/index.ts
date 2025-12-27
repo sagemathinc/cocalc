@@ -22,6 +22,13 @@ export type {
 export { EchoAgent, echoAgent } from "./echo";
 export { CodexExecAgent } from "./codex-exec";
 export {
+  findSessionFile,
+  forkSession,
+  getSessionsRoot,
+  readSessionMeta,
+  rewriteSessionMeta,
+} from "./codex-session-store";
+export {
   getCodexProjectSpawner,
   setCodexProjectSpawner,
   type CodexProjectSpawner,

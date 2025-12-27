@@ -34,6 +34,13 @@ export type AcpInterruptRequest = {
   note?: string;
 };
 
+export type AcpForkSessionRequest = {
+  project_id: string;
+  account_id: string;
+  sessionId: string;
+  newSessionId?: string;
+};
+
 export type AcpStreamUsage = {
   input_tokens?: number;
   output_tokens?: number;

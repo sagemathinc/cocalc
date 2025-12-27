@@ -4,6 +4,7 @@ import { getLogger } from "@cocalc/conat/client";
 import { isValidUUID } from "@cocalc/util/misc";
 import type {
   AcpApprovalDecisionRequest,
+  AcpForkSessionRequest,
   AcpInterruptRequest,
   AcpRequest,
   AcpStreamPayload,
@@ -55,6 +56,13 @@ export function acpInterruptSubject(opts: {
   return `${buildSubjectPrefix(opts)}.interrupt`;
 }
 
+export function acpForkSubject(opts: {
+  account_id?: string;
+  project_id?: string;
+}): string {
+  return `${buildSubjectPrefix(opts)}.fork`;
+}
+
 function getProjectId(subject: string): string | undefined {
   if (subject.startsWith(`${SUBJECT}.project-`)) {
     const id = subject.slice(
@@ -71,6 +79,7 @@ function getProjectId(subject: string): string | undefined {
 let apiSub: Subscription | null = null;
 let approvalSub: Subscription | null = null;
 let interruptSub: Subscription | null = null;
+let forkSub: Subscription | null = null;
 const MAX_CONCURRENCY = Number(process.env.COCALC_ACP_MAX_CONCURRENCY ?? 64);
 const limiter = pLimit(MAX_CONCURRENCY);
 
@@ -95,12 +104,16 @@ type EvaluateHandler = (
 
 type ApprovalHandler = (options: AcpApprovalDecisionRequest) => Promise<void>;
 type InterruptHandler = (options: AcpInterruptRequest) => Promise<void>;
+type ForkHandler = (
+  options: AcpForkSessionRequest,
+) => Promise<{ sessionId: string }>;
 
 export async function init(
   handlers: {
     evaluate: EvaluateHandler;
     approval?: ApprovalHandler;
     interrupt?: InterruptHandler;
+    forkSession?: ForkHandler;
   },
   client,
 ): Promise<void> {
@@ -119,6 +132,12 @@ export async function init(
     });
     listenInterrupts(handlers.interrupt);
   }
+  if (handlers.forkSession) {
+    forkSub = await client.subscribe(`${SUBJECT}.*.fork`, {
+      queue: "acp-fork-q",
+    });
+    listenForks(handlers.forkSession);
+  }
 }
 
 export async function close(): Promise<void> {
@@ -133,6 +152,10 @@ export async function close(): Promise<void> {
   if (interruptSub != null) {
     interruptSub.close();
     interruptSub = null;
+  }
+  if (forkSub != null) {
+    forkSub.close();
+    forkSub = null;
   }
 }
 
@@ -170,6 +193,17 @@ function listenInterrupts(interruptHandler: InterruptHandler): void {
     }
   })().catch((err) => {
     logger.warn("acp interrupt listener stopped", err);
+  });
+}
+
+function listenForks(forkHandler: ForkHandler): void {
+  if (forkSub == null) return;
+  (async () => {
+    for await (const mesg of forkSub!) {
+      void runLimited("fork", () => handleForkMessage(mesg, forkHandler));
+    }
+  })().catch((err) => {
+    logger.warn("acp fork listener stopped", err);
   });
 }
 
@@ -301,6 +335,28 @@ async function handleInterruptMessage(
     validateOptions(options, mesg.subject);
     await interrupt(options);
     await respond();
+  } catch (err) {
+    await respond(undefined, `${err}`);
+  }
+}
+
+async function handleForkMessage(
+  mesg,
+  forkSession: ForkHandler,
+): Promise<void> {
+  const options = mesg.data ?? {};
+  const respond = async (payload?: any, error?: string) => {
+    const data: any = payload ?? {};
+    if (error) {
+      data.error = error;
+    }
+    await mesg.respond(data, { noThrow: true });
+  };
+
+  try {
+    validateOptions(options, mesg.subject);
+    const result = await forkSession(options);
+    await respond(result);
   } catch (err) {
     await respond(undefined, `${err}`);
   }

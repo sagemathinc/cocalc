@@ -30,8 +30,14 @@ import { computeLineDiff } from "@cocalc/util/line-diff";
 import { argsJoin } from "@cocalc/util/args";
 import LRUCache from "lru-cache";
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
+import { resolveCodexSessionMode } from "@cocalc/util/ai/codex";
 import type { AcpEvaluateRequest, AcpAgent, AcpStreamHandler } from "./types";
 import { getCodexProjectSpawner } from "./codex-project";
+import {
+  findSessionFile,
+  getSessionsRoot,
+  rewriteSessionMeta,
+} from "./codex-session-store";
 
 const logger = getLogger("ai:acp:codex-exec");
 const LOG_OUTPUT = Boolean(process.env.COCALC_LOG_CODEX_OUTPUT);
@@ -108,6 +114,10 @@ export class CodexExecAgent implements AcpAgent {
     const { prompt, stream, session_id, config } = request;
     const session = this.resolveSession(session_id);
     const cwd = this.resolveCwd(config);
+    const resumeId = config?.sessionId ?? session_id;
+    if (resumeId) {
+      await this.ensureSessionConfig(resumeId, cwd, config);
+    }
     const preContentCache = this.createPreContentCache();
     void this.capturePreContentsFromText(prompt, cwd, preContentCache);
     const args = this.buildArgs(config, cwd);
@@ -180,6 +190,9 @@ export class CodexExecAgent implements AcpAgent {
             sessionId: evt.thread_id,
             cwd: session.cwd,
           });
+          if (config) {
+            await this.ensureSessionConfig(evt.thread_id, cwd, config);
+          }
           await stream({ type: "status", state: "init" });
           break;
         }
@@ -312,6 +325,14 @@ export class CodexExecAgent implements AcpAgent {
     if (cwd) {
       args.push("--cd", cwd);
     }
+    const mode = resolveCodexSessionMode(config);
+    if (mode === "read-only") {
+      args.push("--sandbox", "read-only");
+    } else if (mode === "full-access") {
+      args.push("--dangerously-bypass-approvals-and-sandbox");
+    } else {
+      args.push("--full-auto");
+    }
     const model = config?.model ?? this.opts.model;
     if (model) {
       args.push("--model", model);
@@ -349,6 +370,36 @@ export class CodexExecAgent implements AcpAgent {
     if (!requested) return base;
     if (path.isAbsolute(requested)) return requested;
     return path.resolve(base, requested);
+  }
+
+  private async ensureSessionConfig(
+    sessionId: string,
+    cwd: string,
+    config?: CodexSessionConfig,
+  ): Promise<void> {
+    const sessionsRoot = getSessionsRoot();
+    if (!sessionsRoot) return;
+    const filePath = await findSessionFile(sessionId, sessionsRoot);
+    if (!filePath) return;
+    const mode = resolveCodexSessionMode(config);
+    const sandboxPolicy =
+      mode === "read-only"
+        ? { type: "read-only" }
+        : mode === "full-access"
+          ? { type: "danger-full-access" }
+          : {
+              type: "workspace-write",
+              network_access: true,
+              exclude_tmpdir_env_var: false,
+              exclude_slash_tmp: false,
+            };
+
+    await rewriteSessionMeta(filePath, (payload) => ({
+      ...payload,
+      cwd,
+      approval_policy: "never",
+      sandbox_policy: sandboxPolicy,
+    }));
   }
 
   private decoratePrompt(prompt: string): string {

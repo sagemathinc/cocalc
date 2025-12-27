@@ -9,6 +9,8 @@ import {
   EchoAgent,
   type AcpAgent,
   type ApprovalDecision,
+  forkSession,
+  getSessionsRoot,
 } from "@cocalc/ai/acp";
 import { init as initConatAcp } from "@cocalc/conat/ai/acp/server";
 import type {
@@ -18,9 +20,11 @@ import type {
   AcpStreamEvent,
   AcpChatContext,
   AcpApprovalDecisionRequest,
+  AcpForkSessionRequest,
   AcpInterruptRequest,
 } from "@cocalc/conat/ai/acp/types";
 import { resolveCodexSessionMode } from "@cocalc/util/ai/codex";
+import { isValidUUID } from "@cocalc/util/misc";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
 import type {
   FileAdapter,
@@ -974,6 +978,7 @@ export async function init(client: ConatClient): Promise<void> {
       evaluate,
       approval: handleApprovalDecisionRequest,
       interrupt: handleInterruptRequest,
+      forkSession: handleForkSessionRequest,
     },
     client,
   );
@@ -1161,6 +1166,24 @@ async function handleInterruptRequest(
     throw Error("unable to interrupt codex session");
   }
   writer?.notifyInterrupted(INTERRUPT_STATUS_TEXT);
+}
+
+async function handleForkSessionRequest(
+  request: AcpForkSessionRequest,
+): Promise<{ sessionId: string }> {
+  if (!isValidUUID(request.sessionId)) {
+    throw Error("sessionId must be a valid uuid");
+  }
+  const sessionsRoot = getSessionsRoot();
+  if (!sessionsRoot) {
+    throw Error("codex sessions directory not configured");
+  }
+  const newSessionId = request.newSessionId ?? randomUUID();
+  if (!isValidUUID(newSessionId)) {
+    throw Error("newSessionId must be a valid uuid");
+  }
+  await forkSession(request.sessionId, newSessionId, sessionsRoot);
+  return { sessionId: newSessionId };
 }
 
 async function interruptCodexSession(threadId: string): Promise<boolean> {

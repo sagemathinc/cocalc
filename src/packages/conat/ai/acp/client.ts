@@ -3,11 +3,17 @@ import type { Client } from "@cocalc/conat/core/client";
 import { isValidUUID } from "@cocalc/util/misc";
 import type {
   AcpApprovalDecisionRequest,
+  AcpForkSessionRequest,
   AcpInterruptRequest,
   AcpRequest,
   AcpStreamMessage,
 } from "./types";
-import { acpApprovalSubject, acpInterruptSubject, acpSubject } from "./server";
+import {
+  acpApprovalSubject,
+  acpForkSubject,
+  acpInterruptSubject,
+  acpSubject,
+} from "./server";
 
 interface StreamOptions {
   timeout?: number;
@@ -101,4 +107,34 @@ export async function interruptAcp(
   if (error) {
     throw Error(error);
   }
+}
+
+export async function forkAcpSession(
+  request: AcpForkSessionRequest,
+  client?: Client,
+): Promise<{ sessionId: string }> {
+  if (!isValidUUID(request.project_id)) {
+    throw Error("project_id must be a valid uuid");
+  }
+  if (!isValidUUID(request.account_id)) {
+    throw Error("account_id must be a valid uuid");
+  }
+  if (!isValidUUID(request.sessionId)) {
+    throw Error("sessionId must be a valid uuid");
+  }
+  if (request.newSessionId && !isValidUUID(request.newSessionId)) {
+    throw Error("newSessionId must be a valid uuid");
+  }
+  const subject = acpForkSubject({ project_id: request.project_id });
+  const cn = client ?? (await conat());
+  const resp = await cn.request(subject, request, { timeout: 30 * 1000 });
+  const error = resp?.data?.error;
+  if (error) {
+    throw Error(error);
+  }
+  const sessionId = resp?.data?.sessionId;
+  if (!sessionId || !isValidUUID(sessionId)) {
+    throw Error("invalid sessionId returned from fork");
+  }
+  return { sessionId };
 }
