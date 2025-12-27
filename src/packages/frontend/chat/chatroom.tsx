@@ -7,7 +7,6 @@ import type { MenuProps } from "antd";
 import {
   Badge,
   Button,
-  Divider,
   Drawer,
   Dropdown,
   Input,
@@ -16,13 +15,11 @@ import {
   Modal,
   Popconfirm,
   Checkbox,
-  Select,
   Space,
   Switch,
   Tooltip,
   message as antdMessage,
 } from "antd";
-import { debounce } from "lodash";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import {
   React,
@@ -34,14 +31,13 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
-import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { NodeDesc } from "../frame-editors/frame-tree/types";
 import { EditorComponentProps } from "../frame-editors/frame-tree/types";
 import type { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
-import Filter from "./filter";
 import { ChatRoomComposer } from "./composer";
+import { ChatRoomHeader } from "./chatroom-header";
 import type { ChatState } from "./store";
 import type { ChatMessageTyped, ChatMessages, SubmitMentionsFn } from "./types";
 import { getThreadRootDate, markChatAsReadIfUnseen } from "./utils";
@@ -56,15 +52,6 @@ import CodexConfigButton from "./codex";
 import { Resizable } from "re-resizable";
 import { ChatDocProvider, useChatDoc } from "./doc-context";
 import * as immutable from "immutable";
-
-const FILTER_RECENT_NONE = {
-  value: 0,
-  label: (
-    <>
-      <Icon name="clock" />
-    </>
-  ),
-} as const;
 
 const GRID_STYLE: React.CSSProperties = {
   display: "flex",
@@ -903,120 +890,6 @@ export function ChatPanel({
     </>
   );
 
-  function isValidFilterRecentCustom(): boolean {
-    const v = parseFloat(filterRecentHCustom);
-    return isFinite(v) && v >= 0;
-  }
-
-  function renderFilterRecent() {
-    if (messages == null || messages.size <= 5) {
-      return null;
-    }
-    if (disableFilters) {
-      return null;
-    }
-    return (
-      <Tooltip title="Only show recent threads.">
-        <Select
-          open={filterRecentOpen}
-          onDropdownVisibleChange={(v) => setFilterRecentOpen(v)}
-          value={filterRecentH}
-          status={filterRecentH > 0 ? "warning" : undefined}
-          allowClear
-          onClear={() => {
-            actions.setFilterRecentH(0);
-            setFilterRecentHCustom("");
-          }}
-          popupMatchSelectWidth={false}
-          onSelect={(val: number) => actions.setFilterRecentH(val)}
-          options={[
-            FILTER_RECENT_NONE,
-            ...[1, 6, 12, 24, 48, 24 * 7, 14 * 24, 28 * 24].map((value) => {
-              const label = hoursToTimeIntervalHuman(value);
-              return { value, label };
-            }),
-          ]}
-          labelRender={({ label, value }) => {
-            if (!label) {
-              if (isValidFilterRecentCustom()) {
-                value = parseFloat(filterRecentHCustom);
-                label = hoursToTimeIntervalHuman(value);
-              } else {
-                ({ label, value } = FILTER_RECENT_NONE);
-              }
-            }
-            return (
-              <Tooltip
-                title={
-                  value === 0
-                    ? undefined
-                    : `Only threads with messages sent in the past ${label}.`
-                }
-              >
-                {label}
-              </Tooltip>
-            );
-          }}
-          dropdownRender={(menu) => (
-            <>
-              {menu}
-              <Divider style={{ margin: "8px 0" }} />
-              <Input
-                placeholder="Number of hours"
-                allowClear
-                value={filterRecentHCustom}
-                status={
-                  filterRecentHCustom == "" || isValidFilterRecentCustom()
-                    ? undefined
-                    : "error"
-                }
-                onChange={debounce(
-                  (e: React.ChangeEvent<HTMLInputElement>) => {
-                    const v = e.target.value;
-                    setFilterRecentHCustom(v);
-                    const val = parseFloat(v);
-                    if (isFinite(val) && val >= 0) {
-                      actions.setFilterRecentH(val);
-                    } else if (v == "") {
-                      actions.setFilterRecentH(FILTER_RECENT_NONE.value);
-                    }
-                  },
-                  150,
-                  { leading: true, trailing: true },
-                )}
-                onKeyDown={(e) => e.stopPropagation()}
-                onPressEnter={() => setFilterRecentOpen(false)}
-                addonAfter={<span style={{ paddingLeft: "5px" }}>hours</span>}
-              />
-            </>
-          )}
-        />
-      </Tooltip>
-    );
-  }
-
-  function render_button_row() {
-    if (!showThreadFilters || disableFilters) {
-      return null;
-    }
-    if (messages == null || messages.size <= 5) {
-      return null;
-    }
-    return (
-      <Space style={{ marginTop: "5px", marginLeft: "15px" }} wrap>
-        <Filter
-          actions={actions}
-          search={search}
-          style={{
-            margin: 0,
-            width: "100%",
-          }}
-        />
-        {renderFilterRecent()}
-      </Space>
-    );
-  }
-
   function sendMessage(
     replyToOverride?: Date | null,
     extraInput?: string,
@@ -1120,7 +993,18 @@ export function ChatPanel({
 
   const renderChatContent = () => (
     <div className="smc-vfill" style={GRID_STYLE}>
-      {render_button_row()}
+      <ChatRoomHeader
+        actions={actions}
+        messagesSize={messages?.size ?? 0}
+        search={search}
+        showThreadFilters={showThreadFilters}
+        disableFilters={disableFilters}
+        filterRecentH={filterRecentH}
+        filterRecentHCustom={filterRecentHCustom}
+        setFilterRecentHCustom={setFilterRecentHCustom}
+        filterRecentOpen={filterRecentOpen}
+        setFilterRecentOpen={setFilterRecentOpen}
+      />
       {selectedThreadKey ? (
         <div
           className="smc-vfill"
