@@ -28,9 +28,9 @@ import {
 } from "../../project_configuration";
 const WID_HISTORY_LENGTH = 40;
 import {
-  Actions as BaseActions,
+  BaseEditorActions as BaseActions,
   CodeEditorState,
-} from "../code-editor/actions";
+} from "../base-editor/actions-base";
 import { ConnectionStatus, FrameTree } from "../frame-tree/types";
 import { XpraClient } from "./xpra-client";
 import { Store } from "../../app-framework";

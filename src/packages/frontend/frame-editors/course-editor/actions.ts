@@ -8,7 +8,10 @@ Course Frame Editor Actions
 */
 
 import { FrameTree } from "../frame-tree/types";
-import { Actions, CodeEditorState } from "../code-editor/actions";
+import {
+  BaseEditorActions as Actions,
+  CodeEditorState,
+} from "../base-editor/actions-base";
 import { open_new_tab } from "@cocalc/frontend/misc";
 
 export interface CourseEditorState extends CodeEditorState {

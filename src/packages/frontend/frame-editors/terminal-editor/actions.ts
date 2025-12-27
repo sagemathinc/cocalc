@@ -7,7 +7,7 @@
 Terminal Editor Actions
 */
 import { delay } from "awaiting";
-import { Actions } from "../code-editor/actions";
+import { BaseEditorActions as Actions } from "../base-editor/actions-base";
 import { FrameTree } from "../frame-tree/types";
 import { open_new_tab } from "../../misc";
 import getTour from "./tour";

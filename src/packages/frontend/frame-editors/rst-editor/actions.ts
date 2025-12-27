@@ -8,7 +8,7 @@ Rst Editor Actions
 */
 
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { Actions as CodeEditorActions } from "../code-editor/actions";
+import { TextEditorActions as CodeEditorActions } from "../base-editor/actions-text";
 import { print_html } from "../frame-tree/print";
 import { convert } from "./rst2html";
 import { raw_url } from "../frame-tree/util";

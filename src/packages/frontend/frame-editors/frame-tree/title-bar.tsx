@@ -54,7 +54,7 @@ import {
   trunc_middle,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Actions } from "../code-editor/actions";
+import { BaseEditorActions as Actions } from "../base-editor/actions-base";
 import { is_safari } from "../generic/browser";
 import LanguageModelTitleBarButton from "../llm/llm-assistant-button";
 import {

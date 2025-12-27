@@ -15,9 +15,9 @@ import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import {
-  Actions as BaseActions,
+  BaseEditorActions as BaseActions,
   CodeEditorState,
-} from "../code-editor/actions";
+} from "../base-editor/actions-base";
 import { FrameTree } from "../frame-tree/types";
 import { NotebookFrameActions } from "./cell-notebook/actions";
 import {

@@ -31,7 +31,7 @@ import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import {
   Actions as CodeEditorActions,
   CodeEditorState,
-} from "../code-editor/actions";
+} from "../base-editor/actions-text";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
 

@@ -6,7 +6,10 @@
 /*
 Sage Worksheet Editor Actions
 */
-import { Actions, CodeEditorState } from "../code-editor/actions";
+import {
+  TextEditorActions as Actions,
+  CodeEditorState,
+} from "../base-editor/actions-text";
 import { FrameTree } from "../frame-tree/types";
 import { Store } from "../../app-framework";
 import sagewsToIpynb, { sagewsToMarkdown } from "./sagews-to-ipynb";

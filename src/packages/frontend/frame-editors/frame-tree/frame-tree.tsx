@@ -42,7 +42,7 @@ import {
 import { Loading } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { copy, hidden_meta_file, is_different } from "@cocalc/util/misc";
-import { Actions } from "../code-editor/actions";
+import { BaseEditorActions as Actions } from "../base-editor/actions-base";
 import { cm as cm_spec } from "../code-editor/editor";
 import { TimeTravelActions } from "../time-travel-editor/actions";
 import { FrameContext } from "./frame-context";

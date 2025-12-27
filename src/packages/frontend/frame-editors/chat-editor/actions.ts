@@ -8,9 +8,9 @@ Chat Editor Actions
 */
 
 import {
-  Actions as CodeEditorActions,
+  StructuredEditorActions as CodeEditorActions,
   CodeEditorState,
-} from "../code-editor/actions";
+} from "../base-editor/actions-structured";
 import { FrameTree } from "../frame-tree/types";
 import { ChatActions } from "@cocalc/frontend/chat/actions";
 import {

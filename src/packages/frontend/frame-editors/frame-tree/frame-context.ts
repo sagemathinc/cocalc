@@ -15,7 +15,7 @@ import { Map } from "immutable";
 import { createContext, useContext } from "react";
 import { useRedux } from "@cocalc/frontend/app-framework/redux-hooks";
 import { DEFAULT_FONT_SIZE } from "@cocalc/util/db-schema/defaults";
-import { Actions } from "../code-editor/actions";
+import { BaseEditorActions as Actions } from "../base-editor/actions-base";
 
 export interface IFrameContext<T = Actions> {
   id: string;

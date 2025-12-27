@@ -10,7 +10,10 @@ Manage a collection of code editors of various files in frame trees...
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 import { close, filename_extension } from "@cocalc/util/misc";
-import { Actions, CodeEditorState } from "../code-editor/actions";
+import {
+  BaseEditorActions as Actions,
+  CodeEditorState,
+} from "../base-editor/actions-base";
 import { get_file_editor } from "../frame-tree/register";
 import { redux } from "../../app-framework";
 

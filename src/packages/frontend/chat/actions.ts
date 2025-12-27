@@ -12,7 +12,7 @@ import type {
   HashtagState,
   SelectedHashtags,
 } from "@cocalc/frontend/editors/task-editor/types";
-import type { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
+import type { BaseEditorActions as CodeEditorActions } from "@cocalc/frontend/frame-editors/base-editor/actions-base";
 import {
   modelToMention,
   modelToName,

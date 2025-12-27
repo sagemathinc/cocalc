@@ -13,7 +13,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
   Actions as BaseActions,
   CodeEditorState,
-} from "../code-editor/actions";
+} from "../base-editor/actions-text";
 import { FrameTree } from "../frame-tree/types";
 import { exec, ExecOutput } from "../generic/client";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";

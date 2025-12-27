@@ -11,9 +11,9 @@ import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { Map as ImmutableMap, fromJS } from "immutable";
 import type { FrameTree } from "../frame-tree/types";
 import {
-  Actions as BaseActions,
+  StructuredEditorActions as BaseActions,
   CodeEditorState,
-} from "../code-editor/actions";
+} from "../base-editor/actions-structured";
 import { setDefaultSize, Tool } from "./tools/desc";
 import {
   Data,

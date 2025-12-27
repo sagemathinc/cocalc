@@ -8,9 +8,9 @@ CRM Editor Actions
 */
 
 import {
-  Actions as CodeEditorActions,
+  StructuredEditorActions as CodeEditorActions,
   CodeEditorState,
-} from "../code-editor/actions";
+} from "../base-editor/actions-structured";
 import { FrameTree } from "../frame-tree/types";
 import { fromJS, Map as iMap, Set as iSet } from "immutable";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";

@@ -7,7 +7,10 @@
 Manage a collection of terminals in the frame tree.
 */
 
-import { Actions, CodeEditorState } from "../code-editor/actions";
+import {
+  BaseEditorActions as Actions,
+  CodeEditorState,
+} from "../base-editor/actions-base";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { close, len } from "@cocalc/util/misc";
 import { Terminal } from "./connected-terminal";

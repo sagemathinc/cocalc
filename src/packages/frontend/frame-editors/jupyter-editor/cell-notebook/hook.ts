@@ -12,8 +12,7 @@ export default function useNotebookFrameActions() {
   const frameContext = useFrameContext();
   const ref = useRef<NotebookFrameActions | undefined>(undefined);
   // In some cases, e.g., a Jupyter notebook + timetravel
-  ref.current = (
-    frameContext.actions as JupyterEditorActions
-  ).get_frame_actions?.(frameContext.id);
+  ref.current = (frameContext.actions as unknown as JupyterEditorActions)
+    .get_frame_actions?.(frameContext.id);
   return ref;
 }

@@ -15,7 +15,7 @@ import {
 import { ErrorDisplay, Loading } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { AccountState } from "@cocalc/frontend/account/types";
-import { Actions } from "../code-editor/actions";
+import { BaseEditorActions as Actions } from "../base-editor/actions-base";
 import {
   EditorComponentProps,
   EditorDescription,

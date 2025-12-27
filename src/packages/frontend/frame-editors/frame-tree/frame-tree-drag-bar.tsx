@@ -17,7 +17,7 @@ import {
   drag_stop_iframe_enable,
 } from "@cocalc/frontend/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Actions } from "../code-editor/actions";
+import { BaseEditorActions as Actions } from "../base-editor/actions-base";
 
 import Draggable from "react-draggable";
 const DRAG_OFFSET = feature.IS_TOUCH ? 5 : 3; // 3 is consistent with width/height of 6 in several other places in cocalc.

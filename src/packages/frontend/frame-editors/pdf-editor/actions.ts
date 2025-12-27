@@ -8,9 +8,9 @@ PDF Editor Actions
 */
 
 import {
-  Actions as BaseActions,
+  BaseEditorActions as BaseActions,
   CodeEditorState,
-} from "../code-editor/actions";
+} from "../base-editor/actions-base";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
 import { raw_url } from "../frame-tree/util";

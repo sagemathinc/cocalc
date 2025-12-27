@@ -502,7 +502,7 @@ function AIGenerateDocument({
               break;
             case "ipynb":
             case "ipynb-sagemath":
-              const jea = ea as JupyterEditorActions;
+              const jea = ea as unknown as JupyterEditorActions;
               const ja: JupyterActions = jea.jupyter_actions;
               // and after we're done, cleanup and run all cells
               ja.delete_all_blank_code_cells();

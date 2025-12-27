@@ -24,9 +24,9 @@ import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { ViewDocument } from "./view-document";
 import {
-  Actions as CodeEditorActions,
+  BaseEditorActions as CodeEditorActions,
   CodeEditorState,
-} from "../code-editor/actions";
+} from "../base-editor/actions-base";
 import { FrameTree } from "../frame-tree/types";
 import { export_to_json } from "./export-to-json";
 import type { Document } from "@cocalc/sync/editor/generic/types";

@@ -53,7 +53,7 @@ import { LanguageModel, getMaxTokens } from "@cocalc/util/db-schema/llm-utils";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { isChatPath } from "@cocalc/frontend/chat/paths";
-import { Actions } from "../code-editor/actions";
+import { BaseEditorActions as Actions } from "../base-editor/actions-base";
 import { AI_ASSIST_TAG } from "./consts";
 import Context from "./context";
 import { Options, createChatMessage } from "./create-chat";

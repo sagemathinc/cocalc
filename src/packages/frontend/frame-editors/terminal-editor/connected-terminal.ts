@@ -25,7 +25,10 @@ import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 import { close, filename_extension, replace_all } from "@cocalc/util/misc";
-import { Actions, CodeEditorState } from "../code-editor/actions";
+import {
+  BaseEditorActions as Actions,
+  CodeEditorState,
+} from "../base-editor/actions-base";
 import { ConnectionStatus } from "../frame-tree/types";
 import { touch, touch_project } from "../generic/client";
 import { ConnectedTerminalInterface } from "./connected-terminal-interface";

@@ -7,7 +7,7 @@
 CSV Editor Actions
 */
 
-import { Actions as CodeEditorActions } from "../code-editor/actions";
+import { TextEditorActions as CodeEditorActions } from "../base-editor/actions-text";
 
 export class Actions extends CodeEditorActions {
   _raw_default_frame_tree() {

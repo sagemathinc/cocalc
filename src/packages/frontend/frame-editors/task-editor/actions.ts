@@ -8,9 +8,9 @@ Task Editor Actions
 */
 
 import {
-  Actions as CodeEditorActions,
+  StructuredEditorActions as CodeEditorActions,
   CodeEditorState,
-} from "../code-editor/actions";
+} from "../base-editor/actions-structured";
 import { FrameTree } from "../frame-tree/types";
 import { TaskActions } from "@cocalc/frontend/editors/task-editor/actions";
 import { redux_name } from "@cocalc/frontend/app-framework";

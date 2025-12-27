@@ -36,7 +36,7 @@ import {
 import {
   Actions as BaseActions,
   CodeEditorState,
-} from "@cocalc/frontend/frame-editors/code-editor/actions";
+} from "@cocalc/frontend/frame-editors/base-editor/actions-text";
 import { print_html } from "@cocalc/frontend/frame-editors/frame-tree/print";
 import { FrameTree } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
