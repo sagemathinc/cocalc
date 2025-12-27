@@ -9,6 +9,25 @@ global.TextDecoder = TextDecoder;
 // In production builds DEBUG is injected by the bundler. For tests, default to false.
 global.DEBUG = false;
 
+// Minimal jQuery stub for bootstrap-fixes and related side effects in tests.
+global.$ = function () {
+  return {
+    on: () => {},
+    off: () => {},
+    remove: () => {},
+    addClass: () => {},
+    removeClass: () => {},
+    append: () => {},
+    attr: () => {},
+    css: () => {},
+    text: () => {},
+    html: () => {},
+    val: () => {},
+    length: 0,
+  };
+};
+global.jQuery = global.$;
+
 // Provide a lightweight mock for the lite runtime flags used across the frontend.
 jest.mock(
   "@cocalc/frontend/lite",
