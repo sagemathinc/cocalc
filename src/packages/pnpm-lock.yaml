@@ -190,8 +190,8 @@ importers:
         specifier: ^1.2.2
         version: 1.2.2
       patchflow:
-        specifier: ^0.5.4
-        version: 0.5.4
+        specifier: ^0.5.5
+        version: 0.5.5
       pkg-dir:
         specifier: ^5.0.0
         version: 5.0.0
@@ -1956,8 +1956,8 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
       patchflow:
-        specifier: ^0.5.4
-        version: 0.5.4
+        specifier: ^0.5.5
+        version: 0.5.5
     devDependencies:
       '@types/lodash':
         specifier: ^4.17.20
@@ -10296,8 +10296,8 @@ packages:
     engines: {node: '>= 0.4.0'}
     hasBin: true
 
-  patchflow@0.5.4:
-    resolution: {integrity: sha512-MAmxRwH6dFzC5bd/7/PeCqBb5PR6xD3w8bn1U7ANGt/z4DIdQTWJUrxZP9nTMrKcmwx2Q0uJ62ahiffTeNST1Q==}
+  patchflow@0.5.5:
+    resolution: {integrity: sha512-voXSBZMXFVjOu2LoLDjGRoM1BSYbyAbf1onwLy6QISBnbUwh23Po7+o0dv20X185IGuNt7Ykpc2Vra2Ij2BA8Q==}
 
   path-browserify@1.0.1:
     resolution: {integrity: sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==}
@@ -23157,15 +23157,15 @@ snapshots:
 
   password-hash@1.2.2: {}
 
-  patchflow@0.5.4:
+  patchflow@0.5.5:
     dependencies:
       '@cocalc/diff-match-patch': 1.0.1
       events: 3.3.0
+      fast-deep-equal: 3.1.3
       immer: 10.2.0
       immutable: 4.3.7
       lru-cache: 11.2.4
       save-dev: 0.0.1-security
-      util: 0.12.5
 
   path-browserify@1.0.1: {}
 
