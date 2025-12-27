@@ -356,6 +356,7 @@ export function ChatPanel({
               openExportModal={
                 modalHandlers?.openExportModal ?? (() => undefined)
               }
+              openForkModal={modalHandlers?.openForkModal ?? (() => undefined)}
               confirmDeleteThread={
                 threadActionHandlers?.confirmDeleteThread ?? (() => undefined)
               }

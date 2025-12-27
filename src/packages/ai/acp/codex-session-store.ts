@@ -17,6 +17,9 @@ type SessionMetaLine = {
 
 function defaultCodexHome(): string | undefined {
   if (process.env.COCALC_CODEX_HOME) return process.env.COCALC_CODEX_HOME;
+  if (process.env.COCALC_ORIGINAL_HOME) {
+    return path.join(process.env.COCALC_ORIGINAL_HOME, ".codex");
+  }
   if (process.env.HOME) return path.join(process.env.HOME, ".codex");
   return undefined;
 }

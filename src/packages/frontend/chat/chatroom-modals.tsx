@@ -15,6 +15,7 @@ export interface ChatRoomModalHandlers {
     useCurrentLabel: boolean,
   ) => void;
   openExportModal: (threadKey: string, label: string, isAI: boolean) => void;
+  openForkModal: (threadKey: string, label: string, isAI: boolean) => void;
 }
 
 interface ChatRoomModalsProps {
@@ -32,6 +33,12 @@ export function ChatRoomModals({ actions, path, onHandlers }: ChatRoomModalsProp
     isAI: boolean;
   } | null>(null);
   const [exportFilename, setExportFilename] = useState<string>("");
+  const [forkThread, setForkThread] = useState<{
+    key: string;
+    label: string;
+    isAI: boolean;
+  } | null>(null);
+  const [forkName, setForkName] = useState<string>("");
 
   const openRenameModal = (
     threadKey: string,
@@ -96,8 +103,40 @@ export function ChatRoomModals({ actions, path, onHandlers }: ChatRoomModalsProp
     }
   };
 
+  const openForkModal = (threadKey: string, label: string, isAI: boolean) => {
+    setForkThread({ key: threadKey, label, isAI });
+  };
+
+  const closeForkModal = () => {
+    setForkThread(null);
+    setForkName("");
+  };
+
+  const handleForkThread = async () => {
+    if (!forkThread) return;
+    if (!actions?.forkThread) {
+      antdMessage.error("Forking chats is not available.");
+      return;
+    }
+    const title =
+      forkName.trim() || `Fork of ${forkThread.label || "chat"}`.trim();
+    try {
+      await actions.forkThread({
+        threadKey: forkThread.key,
+        title,
+        sourceTitle: forkThread.label,
+        isAI: forkThread.isAI,
+      });
+      antdMessage.success("Chat forked.");
+      closeForkModal();
+    } catch (err) {
+      console.error("failed to fork chat", err);
+      antdMessage.error("Failed to fork chat.");
+    }
+  };
+
   const handlers = useMemo(
-    () => ({ openRenameModal, openExportModal }),
+    () => ({ openRenameModal, openExportModal, openForkModal }),
     [],
   );
 
@@ -114,6 +153,14 @@ export function ChatRoomModals({ actions, path, onHandlers }: ChatRoomModalsProp
     );
     setExportFilename(defaultPath);
   }, [exportThread, path]);
+
+  useEffect(() => {
+    if (!forkThread) return;
+    const name = forkThread.label?.trim()
+      ? `Fork of ${forkThread.label.trim()}`
+      : "Fork of chat";
+    setForkName(name);
+  }, [forkThread]);
 
   return (
     <>
@@ -156,6 +203,32 @@ export function ChatRoomModals({ actions, path, onHandlers }: ChatRoomModalsProp
           onChange={(e) => setRenameValue(e.target.value)}
           onPressEnter={handleRenameSave}
         />
+      </Modal>
+      <Modal
+        title="Fork chat"
+        open={forkThread != null}
+        onCancel={closeForkModal}
+        onOk={handleForkThread}
+        okText="Fork"
+        destroyOnClose
+      >
+        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+          <div>
+            <div style={{ marginBottom: 4, color: COLORS.GRAY_D }}>
+              New chat name
+            </div>
+            <Input
+              value={forkName}
+              onChange={(e) => setForkName(e.target.value)}
+              onPressEnter={handleForkThread}
+            />
+          </div>
+          <div style={{ color: COLORS.GRAY_D, fontSize: 12 }}>
+            This creates a new thread and links it to the current one. For
+            Codex threads, the agent session will be forked with the same
+            context.
+          </div>
+        </Space>
       </Modal>
     </>
   );

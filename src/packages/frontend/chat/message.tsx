@@ -51,6 +51,7 @@ import {
   message_colors,
   newest_content,
   sender_is_viewer,
+  toMsString,
 } from "./utils";
 import {
   dateValue,
@@ -880,6 +881,7 @@ export default function Message({
 
     return (
       <>
+        {renderForkNotice()}
         <AgentMessageStatus
           show={showCodexActivity}
           generating={generating === true}
@@ -964,6 +966,47 @@ export default function Message({
             <Icon name="clock" /> {elapsedLabel}
           </span>
         ) : null}
+      </div>
+    );
+  }
+
+  function renderForkNotice() {
+    if (replyTo(message) != null) return null;
+    const forkedFromRoot = field<string>(message, "forked_from_root_date");
+    if (!forkedFromRoot) return null;
+    const forkedTitle = field<string>(message, "forked_from_title")?.trim();
+    const forkedLatest = field<string>(
+      message,
+      "forked_from_latest_message_date",
+    );
+    const rootDate = new Date(forkedFromRoot);
+    if (Number.isNaN(rootDate.valueOf())) return null;
+    const rootKey = toMsString(rootDate);
+    const latestDate = forkedLatest ? new Date(forkedLatest) : undefined;
+    const latestKey =
+      latestDate && !Number.isNaN(latestDate.valueOf())
+        ? latestDate
+        : rootDate;
+    const latestFragment = toMsString(latestKey);
+    return (
+      <div style={{ marginBottom: 6 }}>
+        <Button
+          type="link"
+          size="small"
+          style={{ padding: 0 }}
+          onClick={(event) => {
+            event.stopPropagation();
+            if (rootKey) {
+              actions?.setSelectedThread?.(rootKey);
+            }
+            if (latestFragment) {
+              // Defer so thread selection doesn't immediately clear the fragment.
+              setTimeout(() => actions?.setFragment?.(latestFragment), 0);
+            }
+          }}
+        >
+          Forked from {forkedTitle || "another chat"} →
+        </Button>
       </div>
     );
   }

@@ -159,6 +159,7 @@ interface ChatRoomSidebarContentProps {
     hasCustomName: boolean,
   ) => void;
   openExportModal: (threadKey: string, label: string, isAI: boolean) => void;
+  openForkModal: (threadKey: string, label: string, isAI: boolean) => void;
   confirmDeleteThread: (threadKey: string, label: string) => void;
   handleToggleAllChats: (value: boolean) => void;
 }
@@ -174,6 +175,7 @@ export function ChatRoomSidebarContent({
   threadSections,
   openRenameModal,
   openExportModal,
+  openForkModal,
   confirmDeleteThread,
   handleToggleAllChats,
 }: ChatRoomSidebarContentProps) {
@@ -207,6 +209,10 @@ export function ChatRoomSidebarContent({
         label: "Export to Markdown",
       },
       {
+        key: "fork",
+        label: "Fork chat…",
+      },
+      {
         type: "divider",
       },
       {
@@ -231,6 +237,8 @@ export function ChatRoomSidebarContent({
         antdMessage.success(pinned ? "Chat pinned." : "Chat unpinned.");
       } else if (key === "export") {
         openExportModal(threadKey, plainLabel, isAI);
+      } else if (key === "fork") {
+        openForkModal(threadKey, plainLabel, isAI);
       } else if (key === "delete") {
         confirmDeleteThread(threadKey, plainLabel);
       }

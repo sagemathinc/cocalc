@@ -51,7 +51,7 @@ import type {
   MessageHistory,
 } from "./types";
 import type { CodexThreadConfig } from "@cocalc/chat";
-import { getThreadRootDate, toMsString } from "./utils";
+import { getThreadRootDate, toMsString, newest_content } from "./utils";
 import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
 import {
   field,
@@ -801,6 +801,11 @@ export class ChatActions extends Actions<ChatState> {
       return false;
     }
 
+    const cfg = field<CodexThreadConfig>(rootMessage, "acp_config");
+    if (cfg?.model && cfg.model.includes("codex")) {
+      return cfg.model;
+    }
+
     const thread = this.getMessagesInThread(
       toISOString(dateValue(rootMessage)) ?? `${rootMs}`,
     );
@@ -983,6 +988,100 @@ export class ChatActions extends Actions<ChatState> {
     });
     this.syncdb.commit();
     void this.saveSyncdb();
+  };
+
+  forkThread = async ({
+    threadKey,
+    title,
+    sourceTitle,
+    isAI,
+  }: {
+    threadKey: string;
+    title: string;
+    sourceTitle: string;
+    isAI: boolean;
+  }): Promise<string> => {
+    if (!this.syncdb || !this.store) {
+      throw new Error("Chat actions are not initialized");
+    }
+    const entry = this.getThreadRootDoc(threadKey);
+    if (!entry) {
+      throw new Error("Unable to locate thread root");
+    }
+    const rootMessage = entry.message;
+    const rootDate = dateValue(rootMessage);
+    const rootIso = toISOString(rootDate);
+    if (!rootIso) {
+      throw new Error("Invalid thread root date");
+    }
+    const threadMessages = this.getMessagesInThread(rootIso) ?? [];
+    const latestMessage =
+      threadMessages.length > 0
+        ? threadMessages[threadMessages.length - 1]
+        : null;
+    const latestDate = latestMessage ? dateValue(latestMessage) : null;
+    const latestIso = latestDate ? toISOString(latestDate) : undefined;
+
+    let nextConfig: CodexThreadConfig | undefined = undefined;
+    if (isAI) {
+      const config = field<CodexThreadConfig>(rootMessage, "acp_config");
+      if (config?.sessionId && this.store) {
+        const project_id = this.store.get("project_id");
+        if (!project_id) {
+          throw new Error("Missing project id for ACP fork");
+        }
+        const { sessionId } = await webapp_client.conat_client.forkAcpSession({
+          project_id,
+          sessionId: config.sessionId,
+        });
+        nextConfig = { ...config, sessionId };
+      } else if (config) {
+        nextConfig = { ...config };
+      }
+    }
+    if (nextConfig && !nextConfig.model) {
+      nextConfig.model = "gpt-5.2-codex";
+    }
+
+    const now = webapp_client.server_time();
+    const newRootIso = now.toISOString();
+    const sender_id = this.redux.getStore("account").get_account_id();
+    const newMessage: ChatMessage = {
+      sender_id,
+      event: "chat",
+      schema_version: CURRENT_CHAT_MESSAGE_VERSION,
+      history: [
+        {
+          author_id: sender_id,
+          content: "",
+          date: newRootIso,
+        },
+      ],
+      date: newRootIso,
+      reply_to: undefined,
+      editing: [],
+    };
+    (newMessage as any).name = title;
+    (newMessage as any).forked_from_root_date = rootIso;
+    (newMessage as any).forked_from_title =
+      sourceTitle?.trim() ||
+      field<string>(rootMessage, "name") ||
+      newest_content(rootMessage).trim() ||
+      "Untitled thread";
+    if (latestIso) {
+      (newMessage as any).forked_from_latest_message_date = latestIso;
+    }
+    if (nextConfig) {
+      (newMessage as any).acp_config = nextConfig;
+    }
+
+    this.setSyncdb(newMessage);
+    this.syncdb.commit();
+    void this.saveSyncdb();
+
+    const newKey = `${now.valueOf()}`;
+    this.setSelectedThread(newKey);
+    return newKey;
   };
 
   languageModelStopGenerating = (
