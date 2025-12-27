@@ -7,10 +7,8 @@ import type { MenuProps } from "antd";
 import {
   Badge,
   Button,
-  Drawer,
   Dropdown,
   Input,
-  Layout,
   Menu,
   Modal,
   Popconfirm,
@@ -37,6 +35,7 @@ import { EditorComponentProps } from "../frame-editors/frame-tree/types";
 import type { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import { ChatRoomComposer } from "./composer";
+import { ChatRoomLayout } from "./chatroom-layout";
 import { ChatRoomHeader } from "./chatroom-header";
 import type { ChatState } from "./store";
 import type { ChatMessageTyped, ChatMessages, SubmitMentionsFn } from "./types";
@@ -49,7 +48,6 @@ import {
 } from "./threads";
 import type { ThreadListItem, ThreadSection } from "./threads";
 import CodexConfigButton from "./codex";
-import { Resizable } from "re-resizable";
 import { ChatDocProvider, useChatDoc } from "./doc-context";
 import * as immutable from "immutable";
 
@@ -62,11 +60,6 @@ const GRID_STYLE: React.CSSProperties = {
   flex: 1,
 } as const;
 
-const CHAT_LAYOUT_STYLE: React.CSSProperties = {
-  height: "100%",
-  background: "white",
-} as const;
-
 const CHAT_LOG_STYLE: React.CSSProperties = {
   padding: "0",
   background: "white",
@@ -76,18 +69,6 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
 } as const;
 
 const DEFAULT_SIDEBAR_WIDTH = 260;
-
-const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
-  background: "#fafafa",
-  borderRight: "1px solid #eee",
-  padding: "15px 0",
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-  height: "100%",
-  minHeight: 0,
-  transition: "none",
-} as const;
 
 const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
   padding: "0 20px 15px",
@@ -922,75 +903,6 @@ export function ChatPanel({
     sendMessage();
   }
 
-  const renderThreadSidebar = () => {
-    const minWidth = 125;
-    const maxWidth = 600;
-    const handleStyles = {
-      right: {
-        width: "6px",
-        right: "-3px",
-        cursor: "col-resize",
-        background: "transparent",
-      },
-    } as const;
-    const handleComponent = {
-      right: (
-        <div
-          aria-label="Resize sidebar"
-          style={{
-            width: "100%",
-            height: "100%",
-            background:
-              "linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.0))",
-          }}
-        />
-      ),
-    };
-    const sider = (
-      <Layout.Sider
-        width={sidebarWidth}
-        style={THREAD_SIDEBAR_STYLE}
-        collapsible={false}
-        trigger={null}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            height: "100%",
-            minHeight: 0,
-            overflow: "auto",
-            transition: "none",
-          }}
-        >
-          {renderSidebarContent()}
-        </div>
-      </Layout.Sider>
-    );
-    if (IS_MOBILE) {
-      return sider;
-    }
-    return (
-      <Resizable
-        size={{ width: sidebarWidth, height: "100%" }}
-        enable={{ right: true }}
-        minWidth={minWidth}
-        maxWidth={maxWidth}
-        handleStyles={handleStyles}
-        handleComponent={handleComponent}
-        onResizeStop={(_, __, ___, delta) => {
-          const next = Math.min(
-            maxWidth,
-            Math.max(minWidth, sidebarWidth + delta.width),
-          );
-          setSidebarWidth(next);
-        }}
-      >
-        {sider}
-      </Resizable>
-    );
-  };
-
   const renderChatContent = () => (
     <div className="smc-vfill" style={GRID_STYLE}>
       <ChatRoomHeader
@@ -1101,82 +1013,6 @@ export function ChatPanel({
     </div>
   );
 
-  const renderDefaultLayout = () => (
-    <Layout
-      hasSider
-      style={{
-        ...CHAT_LAYOUT_STYLE,
-        position: "relative",
-        minHeight: 0,
-        height: "100%",
-        display: "flex",
-        flexDirection: "row",
-      }}
-    >
-      {renderThreadSidebar()}
-      <Layout.Content
-        className="smc-vfill"
-        style={{
-          background: "white",
-          display: "flex",
-          flexDirection: "column",
-          minHeight: 0,
-          height: "100%",
-        }}
-      >
-        {renderChatContent()}
-      </Layout.Content>
-    </Layout>
-  );
-
-  const renderCompactLayout = () => (
-    <div className="smc-vfill" style={{ background: "white" }}>
-      <Drawer
-        open={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        placement="right"
-        title="Chats"
-        destroyOnClose
-        resizable
-      >
-        {renderSidebarContent()}
-      </Drawer>
-      <div
-        style={{
-          padding: "10px",
-          display: "flex",
-          gap: "8px",
-          justifyContent: "flex-end",
-        }}
-      >
-        <Button
-          icon={<Icon name="bars" />}
-          onClick={() => setSidebarVisible(true)}
-        >
-          Chats
-          <Badge
-            count={totalUnread}
-            overflowCount={99}
-            style={{
-              backgroundColor: COLORS.GRAY_L0,
-              color: COLORS.GRAY_D,
-            }}
-          />
-        </Button>
-        <Button
-          type={!selectedThreadKey ? "primary" : "default"}
-          onClick={() => {
-            setAllowAutoSelectThread(false);
-            setSelectedThreadKey(null);
-          }}
-        >
-          New Chat
-        </Button>
-      </div>
-      {renderChatContent()}
-    </div>
-  );
-
   if (messages == null) {
     return <Loading theme={"medium"} />;
   }
@@ -1192,7 +1028,21 @@ export function ChatPanel({
         minHeight: 0,
       }}
     >
-      {variant === "compact" ? renderCompactLayout() : renderDefaultLayout()}
+      <ChatRoomLayout
+        variant={variant === "compact" ? "compact" : "default"}
+        sidebarWidth={sidebarWidth}
+        setSidebarWidth={setSidebarWidth}
+        sidebarVisible={sidebarVisible}
+        setSidebarVisible={setSidebarVisible}
+        totalUnread={totalUnread}
+        sidebarContent={renderSidebarContent()}
+        chatContent={renderChatContent()}
+        onNewChat={() => {
+          setAllowAutoSelectThread(false);
+          setSelectedThreadKey(null);
+        }}
+        newChatSelected={!selectedThreadKey}
+      />
       <Modal
         title={
           exportThread?.label?.trim()
