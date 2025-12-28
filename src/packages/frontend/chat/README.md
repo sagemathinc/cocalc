@@ -4,7 +4,7 @@
 
 - Chat data now lives in a single source of truth: the SyncDoc backed by Patchflow/Immer. `message-cache.ts` listens to SyncDoc change events and exposes a plain `Map<string, ChatMessage>` (keyed by the thread root date in milliseconds as a string). Messages are stored as the raw frozen syncdb objects to avoid extra copies.
 - Normalization upgrades legacy rows (adds `schema_version`, coerces dates, flattens history/payload) and writes the upgraded record back once so disk stays consistent.
-- The Redux store still uses immutable.js for unrelated UI state (e.g., hashtag filters), but chat messages themselves are plain JS objects served from the cache/context.
+- The Redux store still uses immutable.js for unrelated UI state, but chat messages themselves are plain JS objects served from the cache/context.
 
 ## Timestamps
 

@@ -3,15 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Map as immutableMap, fromJS } from "immutable";
+import { fromJS } from "immutable";
 import { debounce } from "lodash";
 import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
-import type {
-  HashtagState,
-  SelectedHashtags,
-} from "@cocalc/frontend/editors/task-editor/types";
 import type { BaseEditorActions as CodeEditorActions } from "@cocalc/frontend/frame-editors/base-editor/actions-base";
 import {
   modelToMention,
@@ -686,10 +682,6 @@ export class ChatActions extends Actions<ChatState> {
     }, 1);
   };
 
-  // Scan through all messages and figure out what hashtags are used.
-  // Of course, at some point we should try to use efficient algorithms
-  // to make this faster incrementally.
-  update_hashtags = (): void => {};
 
   // Exports the currently visible chats to a markdown file and opens it.
   export_to_markdown = async (): Promise<void> => {
@@ -757,18 +749,6 @@ export class ChatActions extends Actions<ChatState> {
       .open_file({ path: outputPath, foreground: true });
   };
 
-  setHashtagState = (tag: string, state?: HashtagState): void => {
-    if (!this.store || this.frameTreeActions == null) return;
-    // similar code in task list.
-    let selectedHashtags: SelectedHashtags =
-      this.frameTreeActions._get_frame_data(this.frameId, "selectedHashtags") ??
-      immutableMap<string, HashtagState>();
-    selectedHashtags =
-      state == null
-        ? selectedHashtags.delete(tag)
-        : selectedHashtags.set(tag, state);
-    this.setSelectedHashtags(selectedHashtags);
-  };
 
   help = () => {
     open_new_tab("https://doc.cocalc.com/chat.html");
@@ -1283,20 +1263,12 @@ export class ChatActions extends Actions<ChatState> {
       return;
     }
     this.setSearch("");
-    this.setSelectedHashtags({});
   };
 
   setSearch = (search) => {
     this.frameTreeActions?.set_frame_data({ id: this.frameId, search });
   };
 
-
-  setSelectedHashtags = (selectedHashtags) => {
-    this.frameTreeActions?.set_frame_data({
-      id: this.frameId,
-      selectedHashtags,
-    });
-  };
 
   setFragment = (date?) => {
     let fragmentId;

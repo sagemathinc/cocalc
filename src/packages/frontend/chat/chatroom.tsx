@@ -133,7 +133,6 @@ export function ChatPanel({
   const [input, setInput] = useState("");
   const hasInput = input.trim().length > 0;
   const search = getDescValue(desc, "data-search") ?? "";
-  const selectedHashtags = getDescValue(desc, "data-selectedHashtags");
   const scrollToIndex = getDescValue(desc, "data-scrollToIndex") ?? null;
   const scrollToDate = getDescValue(desc, "data-scrollToDate") ?? null;
   const fragmentId = getDescValue(desc, "data-fragmentId") ?? null;
@@ -341,7 +340,6 @@ export function ChatPanel({
         scrollCacheId={scrollCacheId}
         fontSize={fontSize}
         search={search}
-        selectedHashtags={selectedHashtags}
         selectedThreadKey={selectedThreadKey}
         selectedThread={selectedThread}
         variant={variant}

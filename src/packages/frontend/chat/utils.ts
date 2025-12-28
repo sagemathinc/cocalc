@@ -143,25 +143,6 @@ export const markChatAsReadIfUnseen: (
   }
 }, 3000);
 
-export function getSelectedHashtagsSearch(hashtags): {
-  selectedHashtags: Set<string>;
-  selectedHashtagsSearch: string;
-} {
-  const X = new Set<string>([]);
-  if (hashtags == null)
-    return { selectedHashtags: X, selectedHashtagsSearch: "" };
-  for (const [key] of hashtags) {
-    if (hashtags.get(key) == 1) {
-      // only care about visible hashtags
-      X.add(key);
-    }
-  }
-  return {
-    selectedHashtags: X,
-    selectedHashtagsSearch: X.size > 0 ? " #" + Array.from(X).join(" #") : "",
-  };
-}
-
 export function getRootMessage({
   message,
   messages,

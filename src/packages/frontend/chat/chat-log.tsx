@@ -9,7 +9,6 @@ Render all the messages in the chat.
 
 // cSpell:ignore: timespan
 
-import { Set as immutableSet } from "immutable";
 import {
   MutableRefObject,
   useCallback,
@@ -22,9 +21,8 @@ import { VirtuosoHandle } from "react-virtuoso";
 import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
-import { cmp, parse_hashtags } from "@cocalc/util/misc";
+import { cmp } from "@cocalc/util/misc";
 import type { ChatActions } from "./actions";
 import Composing from "./composing";
 import { filterMessages } from "./filter-messages";
@@ -38,7 +36,6 @@ import type {
 import type { ThreadIndexEntry } from "./message-cache";
 import {
   getRootMessage,
-  getSelectedHashtagsSearch,
   getThreadRootDate,
   newest_content,
 } from "./utils";
@@ -65,8 +62,6 @@ interface Props {
   fontSize?: number;
   actions: ChatActions;
   search;
-  selectedHashtags;
-  disableFilters?: boolean;
   selectedThread?: string;
   scrollToIndex?: null | number | undefined;
   // scrollToDate = string ms from epoch
@@ -87,8 +82,6 @@ export function ChatLog({
   fontSize,
   actions,
   search: search0,
-  selectedHashtags: selectedHashtags0,
-  disableFilters,
   selectedThread,
   scrollToIndex,
   scrollToDate,
@@ -107,11 +100,7 @@ export function ChatLog({
     if (!showThreadHeaders || !threadIndex) return undefined;
     return threadIndex.get(COMBINED_FEED_KEY)?.orderedKeys;
   }, [showThreadHeaders, threadIndex]);
-  // see similar code in task list:
-  const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
-    return getSelectedHashtagsSearch(selectedHashtags0);
-  }, [selectedHashtags0]);
-  const search = (search0 + " " + selectedHashtagsSearch).trim();
+  const search = search0.trim();
 
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
@@ -225,23 +214,6 @@ export function ChatLog({
     actions.clearScrollRequest();
   }, [scrollToDate]);
 
-  const visibleHashtags = useMemo(() => {
-    let X = immutableSet<string>([]);
-    if (disableFilters) {
-      return X;
-    }
-    for (const date of sortedDates) {
-      const message = messages.get(date);
-      if (!message) continue;
-      const value = newest_content(message);
-      for (const x of parse_hashtags(value)) {
-        const tag = value.slice(x[0] + 1, x[1]).toLowerCase();
-        X = X.add(tag);
-      }
-    }
-    return X;
-  }, [messages, sortedDates]);
-
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const manualScrollRef = useRef<boolean>(false);
   const [manualScroll, setManualScroll] = useState(false);
@@ -285,18 +257,6 @@ export function ChatLog({
 
   return (
     <>
-      {!singleThreadView && visibleHashtags.size > 0 && (
-        <HashtagBar
-          style={{ margin: "5px 15px 15px 15px" }}
-          actions={{
-            set_hashtag_state: (tag, state) => {
-              actions.setHashtagState(tag, state);
-            },
-          }}
-          selected_hashtags={selectedHashtags0}
-          hashtags={visibleHashtags}
-        />
-      )}
       <MessageList
         {...{
           virtuosoRef,
@@ -308,7 +268,6 @@ export function ChatLog({
           project_id,
           path,
           fontSize,
-          selectedHashtags,
           actions,
           manualScrollRef,
           manualScroll,
