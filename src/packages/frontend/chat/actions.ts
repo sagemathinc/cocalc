@@ -224,6 +224,7 @@ export class ChatActions extends Actions<ChatState> {
     submitMentionsRef,
     extraInput,
     name,
+    preserveSelectedThread,
   }: {
     input?: string;
     sender_id?: string;
@@ -234,6 +235,8 @@ export class ChatActions extends Actions<ChatState> {
     extraInput?: string;
     // if name is given, rename thread to have that name
     name?: string;
+    // if true, don't switch selected thread (e.g., combined feed)
+    preserveSelectedThread?: boolean;
   }): string => {
     if (this.syncdb == null || this.store == null) {
       console.warn("attempt to sendChat before chat actions initialized");
@@ -277,7 +280,9 @@ export class ChatActions extends Actions<ChatState> {
     let selectedThreadKey: string;
     if (!reply_to) {
       this.deleteDraft(0);
-      this.clearAllFilters();
+      if (!preserveSelectedThread) {
+        this.clearAllFilters();
+      }
       selectedThreadKey = `${time_stamp.valueOf()}`;
     } else {
       // when replying we make sure that the thread is expanded, since otherwise
@@ -299,7 +304,7 @@ export class ChatActions extends Actions<ChatState> {
         }) ?? reply_to.valueOf();
       selectedThreadKey = `${root}`;
     }
-    if (selectedThreadKey != "0") {
+    if (selectedThreadKey != "0" && !preserveSelectedThread) {
       this.setSelectedThread(selectedThreadKey);
     }
     if (trimmedName && reply_to) {

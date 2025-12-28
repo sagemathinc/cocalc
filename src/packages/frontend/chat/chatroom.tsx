@@ -187,6 +187,7 @@ export function ChatPanel({
   });
 
   const [composerTargetKey, setComposerTargetKey] = useState<string | null>(null);
+  const [composerFocused, setComposerFocused] = useState(false);
 
   const composerDraftKey = useMemo(() => {
     if (
@@ -327,14 +328,17 @@ export function ChatPanel({
     }
     if (!reply_to) {
       setAllowAutoSelectThread(true);
+    } else if (isCombinedFeedSelected) {
+      setAllowAutoSelectThread(false);
     }
     const timeStamp = actions.sendChat({
       submitMentionsRef,
       reply_to,
       extraInput,
+      preserveSelectedThread: isCombinedFeedSelected,
     });
     const threadKey = timeStamp ? toMsString(timeStamp) ?? timeStamp : null;
-    if (!reply_to && threadKey) {
+    if (!reply_to && threadKey && !isCombinedFeedSelected) {
       setSelectedThreadKey(threadKey);
       setTimeout(() => {
         setSelectedThreadKey(threadKey);
@@ -374,6 +378,7 @@ export function ChatPanel({
           setSelectedThreadKey(null);
         }}
         composerTargetKey={composerTargetKey}
+        composerFocused={composerFocused}
       />
       <ChatRoomComposer
         actions={actions}
@@ -392,6 +397,7 @@ export function ChatPanel({
         composerTargetKey={composerTargetKey}
         threads={threads}
         onComposerTargetChange={setComposerTargetKey}
+        onComposerFocusChange={setComposerFocused}
       />
     </div>
   );

@@ -41,6 +41,7 @@ interface ChatRoomThreadPanelProps {
   threadsCount: number;
   onNewChat: () => void;
   composerTargetKey?: string | null;
+  composerFocused?: boolean;
 }
 
 export function ChatRoomThreadPanel({
@@ -62,6 +63,7 @@ export function ChatRoomThreadPanel({
   threadsCount,
   onNewChat,
   composerTargetKey,
+  composerFocused,
 }: ChatRoomThreadPanelProps) {
   if (!selectedThreadKey) {
     return (
@@ -157,6 +159,7 @@ export function ChatRoomThreadPanel({
         scrollToDate={scrollToDate}
         selectedDate={fragmentId ?? undefined}
         composerTargetKey={composerTargetKey}
+        composerFocused={composerFocused}
       />
     </div>
   );

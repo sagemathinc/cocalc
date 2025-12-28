@@ -69,6 +69,7 @@ interface Props {
   scrollCacheId?: string;
   acpState?;
   composerTargetKey?: string | null;
+  composerFocused?: boolean;
 }
 
 export function ChatLog({
@@ -88,6 +89,7 @@ export function ChatLog({
   scrollCacheId,
   acpState,
   composerTargetKey,
+  composerFocused,
 }: Props) {
   const singleThreadView = selectedThread != null;
   const messages = messagesProp ?? new Map();
@@ -271,6 +273,7 @@ export function ChatLog({
           showThreadHeaders,
           onSelectThread: showThreadHeaders ? handleSelectThread : undefined,
           composerTargetKey,
+          composerFocused,
         }}
       />
       <Composing
@@ -447,6 +450,7 @@ export function MessageList({
   messages,
   account_id,
   composerTargetKey,
+  composerFocused,
   virtuosoRef,
   sortedDates,
   user_map,
@@ -470,6 +474,7 @@ export function MessageList({
   messages: ChatMessages;
   account_id: string;
   composerTargetKey?: string | null;
+  composerFocused?: boolean;
   user_map;
   mode;
   sortedDates;
@@ -568,6 +573,7 @@ export function MessageList({
     const h = virtuosoHeightsRef.current?.[index];
     const shouldDim =
       showThreadHeaders &&
+      composerFocused === true &&
       composerTargetKey != null &&
       currentThreadKey != null &&
       currentThreadKey !== composerTargetKey;
@@ -575,7 +581,7 @@ export function MessageList({
     const wrapperStyle: CSSProperties = {
       overflow: "hidden",
       paddingTop: index == 0 ? "20px" : undefined,
-      opacity: shouldDim ? 0.45 : 1,
+      opacity: shouldDim ? 0.7 : 1,
     };
 
     return (

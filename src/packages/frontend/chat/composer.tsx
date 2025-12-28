@@ -31,6 +31,7 @@ export interface ChatRoomComposerProps {
   composerTargetKey: string | null;
   threads: ThreadMeta[];
   onComposerTargetChange: (key: string | null) => void;
+  onComposerFocusChange: (focused: boolean) => void;
 }
 
 export function ChatRoomComposer({
@@ -50,6 +51,7 @@ export function ChatRoomComposer({
   composerTargetKey,
   threads,
   onComposerTargetChange,
+  onComposerFocusChange,
 }: ChatRoomComposerProps) {
   const stripHtml = (value: string): string =>
     value.replace(/<[^>]*>/g, "").trim();
@@ -101,6 +103,8 @@ export function ChatRoomComposer({
           onChange={(value) => {
             setInput(value);
           }}
+          onFocus={() => onComposerFocusChange(true)}
+          onBlur={() => onComposerFocusChange(false)}
           submitMentionsRef={submitMentionsRef}
           syncdb={actions.syncdb}
           date={composerDraftKey}
