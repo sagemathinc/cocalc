@@ -30,10 +30,11 @@ import type { ChatState } from "./store";
 import type { ChatMessages, SubmitMentionsFn } from "./types";
 import type { ThreadIndexEntry } from "./message-cache";
 import { markChatAsReadIfUnseen } from "./utils";
-import { useThreadSections } from "./threads";
+import { COMBINED_FEED_KEY, useThreadSections } from "./threads";
 import { ChatDocProvider, useChatDoc } from "./doc-context";
 import * as immutable from "immutable";
 import { useChatThreadSelection } from "./thread-selection";
+import { dateValue } from "./access";
 
 const GRID_STYLE: React.CSSProperties = {
   display: "flex",
@@ -45,6 +46,51 @@ const GRID_STYLE: React.CSSProperties = {
 } as const;
 
 const DEFAULT_SIDEBAR_WIDTH = 260;
+const COMBINED_FEED_MAX_PER_THREAD = 5;
+
+type MessageKeyWithTime = { key: string; time: number };
+
+function pickNewestMessageKeys(
+  entry: ThreadIndexEntry,
+  messages: ChatMessages | undefined,
+  limit: number,
+): MessageKeyWithTime[] {
+  if (!messages || limit <= 0) return [];
+  const newest: MessageKeyWithTime[] = [];
+  for (const key of entry.messageKeys) {
+    const message = messages.get(key);
+    if (!message) continue;
+    const d = dateValue(message);
+    if (!d) continue;
+    const time = d.valueOf();
+    if (!Number.isFinite(time)) continue;
+    if (newest.length < limit) {
+      newest.push({ key, time });
+      newest.sort((a, b) => a.time - b.time);
+      continue;
+    }
+    if (time <= newest[0].time) continue;
+    newest[0] = { key, time };
+    newest.sort((a, b) => a.time - b.time);
+  }
+  return newest;
+}
+
+function buildCombinedFeedKeys(
+  threadIndex: Map<string, ThreadIndexEntry>,
+  messages: ChatMessages | undefined,
+  limitPerThread: number,
+): string[] {
+  const collected: MessageKeyWithTime[] = [];
+  for (const entry of threadIndex.values()) {
+    if (!entry.messageCount) continue;
+    collected.push(
+      ...pickNewestMessageKeys(entry, messages, limitPerThread),
+    );
+  }
+  collected.sort((a, b) => a.time - b.time);
+  return collected.map((item) => item.key);
+}
 
 
 export interface ChatPanelProps {
@@ -128,7 +174,7 @@ export function ChatPanel({
     });
   }, [sidebarWidth, actions?.frameTreeActions, actions?.frameId]);
 
-  const { threads, threadSections } = useThreadSections({
+  const { threads, combinedThread, threadSections } = useThreadSections({
     messages,
     threadIndex,
     activity,
@@ -141,10 +187,9 @@ export function ChatPanel({
     setSelectedThreadKey,
     setAllowAutoSelectThread,
     selectedThreadDate,
-    isAllThreadsSelected,
+    isCombinedFeedSelected,
     singleThreadView,
     selectedThread,
-    handleToggleAllChats,
   } = useChatThreadSelection({
     actions,
     threads,
@@ -164,12 +209,31 @@ export function ChatPanel({
     return 0;
   }, [singleThreadView, selectedThreadDate]);
 
-  const showThreadFilters = !isCompact && isAllThreadsSelected;
+  const showThreadFilters = !isCompact && isCombinedFeedSelected;
   const isSelectedThreadAI = selectedThread?.isAI ?? false;
+
+  const combinedFeedIndex = useMemo(() => {
+    if (!threadIndex || !combinedThread) return undefined;
+    const combinedKeys = buildCombinedFeedKeys(
+      threadIndex,
+      messages,
+      COMBINED_FEED_MAX_PER_THREAD,
+    );
+    const entry: ThreadIndexEntry = {
+      key: COMBINED_FEED_KEY,
+      newestTime: combinedThread.newestTime,
+      messageCount: combinedKeys.length,
+      messageKeys: new Set(combinedKeys),
+      rootMessage: undefined,
+    };
+    const next = new Map(threadIndex);
+    next.set(COMBINED_FEED_KEY, entry);
+    return next;
+  }, [threadIndex, messages, combinedThread]);
 
   const scrollCacheId = useMemo(() => {
     const base = `${project_id ?? ""}${path ?? ""}`;
-    return `${base}-${selectedThreadKey ?? "all"}`;
+    return `${base}-${selectedThreadKey ?? COMBINED_FEED_KEY}`;
   }, [project_id, path, selectedThreadKey]);
 
   useEffect(() => {
@@ -281,7 +345,7 @@ export function ChatPanel({
         project_id={project_id}
         path={path}
         messages={messages as ChatMessages}
-        threadIndex={threadIndex}
+        threadIndex={combinedFeedIndex ?? threadIndex}
         acpState={acpState}
         scrollToBottomRef={scrollToBottomRef}
         scrollCacheId={scrollCacheId}
@@ -345,12 +409,12 @@ export function ChatPanel({
             <ChatRoomSidebarContent
               actions={actions}
               isCompact={isCompact}
-              isAllThreadsSelected={isAllThreadsSelected}
               selectedThreadKey={selectedThreadKey}
               setSelectedThreadKey={setSelectedThreadKey}
               setAllowAutoSelectThread={setAllowAutoSelectThread}
               setSidebarVisible={setSidebarVisible}
               threadSections={threadSections}
+              combinedThread={combinedThread}
               openRenameModal={
                 modalHandlers?.openRenameModal ?? (() => undefined)
               }
@@ -361,7 +425,6 @@ export function ChatPanel({
               confirmDeleteThread={
                 threadActionHandlers?.confirmDeleteThread ?? (() => undefined)
               }
-              handleToggleAllChats={handleToggleAllChats}
             />
           )
         }

@@ -129,7 +129,7 @@ export function ChatLog({
       );
     }, 1);
     return { dates, numChildren };
-  }, [messages, search, project_id, path, filterRecentH, singleThreadView]);
+  }, [messages, search, project_id, path, filterRecentH, singleThreadView, visibleKeys]);
 
   useEffect(() => {
     scrollToBottomRef?.current?.(true);

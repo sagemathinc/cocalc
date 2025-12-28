@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useState } from "@cocalc/frontend/app-framework";
 import type { ChatActions } from "./actions";
-import { ALL_THREADS_KEY, type ThreadMeta } from "./threads";
+import { COMBINED_FEED_KEY, type ThreadMeta } from "./threads";
 import type { ChatMessages } from "./types";
 import { dateValue } from "./access";
 import { getThreadRootDate } from "./utils";
@@ -26,14 +26,13 @@ export function useChatThreadSelection({
   storedThreadFromDesc,
 }: ThreadSelectionOptions) {
   const [selectedThreadKey, setSelectedThreadKey0] = useState<string | null>(
-    storedThreadFromDesc ?? null,
+    storedThreadFromDesc ?? COMBINED_FEED_KEY,
   );
-  const [lastThreadKey, setLastThreadKey] = useState<string | null>(null);
   const [allowAutoSelectThread, setAllowAutoSelectThread] =
     useState<boolean>(true);
 
   const setSelectedThreadKey = (x: string | null) => {
-    if (x != null && x != ALL_THREADS_KEY) {
+    if (x != null && x != COMBINED_FEED_KEY) {
       actions.clearAllFilters();
       actions.setFragment();
     }
@@ -42,7 +41,7 @@ export function useChatThreadSelection({
   };
 
   const selectedThreadDate = useMemo(() => {
-    if (!selectedThreadKey || selectedThreadKey === ALL_THREADS_KEY) {
+    if (!selectedThreadKey || selectedThreadKey === COMBINED_FEED_KEY) {
       return undefined;
     }
     const millis = parseInt(selectedThreadKey, 10);
@@ -50,8 +49,8 @@ export function useChatThreadSelection({
     return new Date(millis);
   }, [selectedThreadKey]);
 
-  const isAllThreadsSelected = selectedThreadKey === ALL_THREADS_KEY;
-  const singleThreadView = selectedThreadKey != null && !isAllThreadsSelected;
+  const isCombinedFeedSelected = selectedThreadKey === COMBINED_FEED_KEY;
+  const singleThreadView = selectedThreadKey != null && !isCombinedFeedSelected;
 
   useEffect(() => {
     if (
@@ -73,18 +72,12 @@ export function useChatThreadSelection({
     }
     const exists = threads.some((thread) => thread.key === selectedThreadKey);
     if (!exists && allowAutoSelectThread) {
-      setSelectedThreadKey(threads[0].key);
+      setSelectedThreadKey(COMBINED_FEED_KEY);
     }
   }, [threads, selectedThreadKey, allowAutoSelectThread]);
 
   useEffect(() => {
-    if (selectedThreadKey != null && selectedThreadKey !== ALL_THREADS_KEY) {
-      setLastThreadKey(selectedThreadKey);
-    }
-  }, [selectedThreadKey]);
-
-  useEffect(() => {
-    if (!fragmentId || isAllThreadsSelected || messages == null) {
+    if (!fragmentId || messages == null) {
       return;
     }
     const parsed = parseFloat(fragmentId);
@@ -109,23 +102,7 @@ export function useChatThreadSelection({
       setAllowAutoSelectThread(false);
       setSelectedThreadKey(threadKey);
     }
-  }, [fragmentId, isAllThreadsSelected, messages, selectedThreadKey]);
-
-  const handleToggleAllChats = (checked: boolean) => {
-    if (checked) {
-      setAllowAutoSelectThread(false);
-      setSelectedThreadKey(ALL_THREADS_KEY);
-    } else {
-      setAllowAutoSelectThread(true);
-      if (lastThreadKey != null) {
-        setSelectedThreadKey(lastThreadKey);
-      } else if (threads[0]?.key) {
-        setSelectedThreadKey(threads[0].key);
-      } else {
-        setSelectedThreadKey(null);
-      }
-    }
-  };
+  }, [fragmentId, messages, selectedThreadKey]);
 
   const selectedThread = useMemo(
     () => threads.find((t) => t.key === selectedThreadKey),
@@ -137,9 +114,8 @@ export function useChatThreadSelection({
     setSelectedThreadKey,
     setAllowAutoSelectThread,
     selectedThreadDate,
-    isAllThreadsSelected,
+    isCombinedFeedSelected,
     singleThreadView,
     selectedThread,
-    handleToggleAllChats,
   };
 }

@@ -11,7 +11,6 @@ import CodexConfigButton from "./codex";
 import type { ChatActions } from "./actions";
 import type { ChatMessages } from "./types";
 import type * as immutable from "immutable";
-import { ALL_THREADS_KEY } from "./threads";
 import type { ThreadIndexEntry } from "./message-cache";
 
 const CHAT_LOG_STYLE: React.CSSProperties = {
@@ -102,11 +101,7 @@ export function ChatRoomThreadPanel({
     Boolean(selectedThread.rootMessage) &&
     Boolean(actions?.isCodexThread?.(new Date(parseInt(selectedThread.key, 10))));
   const selectedThreadForLog =
-    selectedThreadKey &&
-    selectedThreadKey !== ALL_THREADS_KEY &&
-    variant !== "compact"
-      ? selectedThreadKey
-      : undefined;
+    selectedThreadKey && variant !== "compact" ? selectedThreadKey : undefined;
 
   return (
     <div className="smc-vfill" style={{ ...CHAT_LOG_STYLE, position: "relative" }}>

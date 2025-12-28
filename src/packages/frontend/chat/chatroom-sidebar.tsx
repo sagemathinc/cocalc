@@ -12,7 +12,6 @@ import {
   Menu,
   Popconfirm,
   Space,
-  Switch,
   Tooltip,
   message as antdMessage,
 } from "antd";
@@ -147,12 +146,12 @@ export function ChatRoomSidebar({
 interface ChatRoomSidebarContentProps {
   actions: ChatActions;
   isCompact: boolean;
-  isAllThreadsSelected: boolean;
   selectedThreadKey: string | null;
   setSelectedThreadKey: (key: string | null) => void;
   setAllowAutoSelectThread: (value: boolean) => void;
   setSidebarVisible: (value: boolean) => void;
   threadSections: ThreadSectionWithUnread[];
+  combinedThread?: ThreadMeta;
   openRenameModal: (
     threadKey: string,
     plainLabel: string,
@@ -161,23 +160,21 @@ interface ChatRoomSidebarContentProps {
   openExportModal: (threadKey: string, label: string, isAI: boolean) => void;
   openForkModal: (threadKey: string, label: string, isAI: boolean) => void;
   confirmDeleteThread: (threadKey: string, label: string) => void;
-  handleToggleAllChats: (value: boolean) => void;
 }
 
 export function ChatRoomSidebarContent({
   actions,
   isCompact,
-  isAllThreadsSelected,
   selectedThreadKey,
   setSelectedThreadKey,
   setAllowAutoSelectThread,
   setSidebarVisible,
   threadSections,
+  combinedThread,
   openRenameModal,
   openExportModal,
   openForkModal,
   confirmDeleteThread,
-  handleToggleAllChats,
 }: ChatRoomSidebarContentProps) {
   const [hoveredThread, setHoveredThread] = React.useState<string | null>(null);
   const [openThreadMenuKey, setOpenThreadMenuKey] = React.useState<string | null>(
@@ -265,7 +262,9 @@ export function ChatRoomSidebarContent({
     const plainLabel = stripHtml(displayLabel);
     const isHovered = hoveredThread === key;
     const isMenuOpen = openThreadMenuKey === key;
-    const showMenu = isHovered || selectedThreadKey === key || isMenuOpen;
+    const allowMenu = key !== combinedThread?.key;
+    const showMenu =
+      allowMenu && (isHovered || selectedThreadKey === key || isMenuOpen);
     const isRecentlyActive =
       thread.lastActivityAt != null &&
       activityNow - thread.lastActivityAt < ACTIVITY_RECENT_MS;
@@ -445,18 +444,7 @@ export function ChatRoomSidebarContent({
           >
             Chats
           </span>
-          <Space size="small">
-            {!isCompact && (
-              <>
-                <span style={{ fontSize: "12px" }}>All</span>
-                <Switch
-                  size="small"
-                  checked={isAllThreadsSelected}
-                  onChange={handleToggleAllChats}
-                />
-              </>
-            )}
-          </Space>
+          <Space size="small" />
         </div>
         {!isCompact && (
           <>
@@ -482,6 +470,27 @@ export function ChatRoomSidebarContent({
           </>
         )}
       </div>
+      {combinedThread ? (
+        <div style={{ marginBottom: "18px" }}>
+          <Menu
+            mode="inline"
+            selectedKeys={selectedThreadKey ? [selectedThreadKey] : []}
+            onClick={({ key: menuKey }) => {
+              setAllowAutoSelectThread(true);
+              setSelectedThreadKey(String(menuKey));
+              if (isCompact) {
+                setSidebarVisible(false);
+              }
+            }}
+            items={[renderThreadRow(combinedThread)]}
+            style={{
+              border: "none",
+              background: "transparent",
+              padding: "0 10px",
+            }}
+          />
+        </div>
+      ) : null}
       {threadSections.length === 0 ? (
         <div style={{ color: "#999", fontSize: "12px", padding: "0 20px" }}>
           No chats yet.
