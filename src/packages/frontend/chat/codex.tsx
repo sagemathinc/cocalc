@@ -7,10 +7,8 @@ import {
   Typography,
   Select,
   Radio,
-  Progress,
   Collapse,
   Divider,
-  Tooltip,
 } from "antd";
 import {
   React,
@@ -236,126 +234,6 @@ export function CodexConfigButton({
       : remainingPercent != null
         ? `${remainingPercent}% context left`
         : null;
-  const contextSeverity =
-    remainingPercent == null
-      ? "unknown"
-      : remainingPercent <= CONTEXT_CRITICAL_PCT
-        ? "critical"
-        : remainingPercent <= CONTEXT_WARN_PCT
-          ? "warning"
-          : "ok";
-  const contextColors = {
-    ok: {
-      text: COLORS.GRAY_M,
-      accent: COLORS.BLUE,
-      bg: "transparent",
-      border: COLORS.GRAY_L,
-    },
-    warning: {
-      text: "#b26a00",
-      accent: "#f5a623",
-      bg: "rgba(245, 166, 35, 0.12)",
-      border: "rgba(245, 166, 35, 0.4)",
-    },
-    critical: {
-      text: COLORS.FG_RED,
-      accent: "#d32f2f",
-      bg: "rgba(211, 47, 47, 0.12)",
-      border: "rgba(211, 47, 47, 0.4)",
-    },
-    unknown: {
-      text: COLORS.GRAY_M,
-      accent: COLORS.GRAY_M,
-      bg: "transparent",
-      border: COLORS.GRAY_L,
-    },
-  }[contextSeverity];
-  const contextLabel =
-    contextSeverity === "critical"
-      ? "Context very low — compact now"
-      : contextSeverity === "warning"
-        ? "Context low — compact soon"
-        : (contextSummary ?? "Context");
-  const contextSubtitleColor =
-    contextSeverity === "critical"
-      ? COLORS.FG_RED
-      : contextSeverity === "warning"
-        ? "#b26a00"
-        : COLORS.GRAY;
-
-  // @ts-ignore -- not used right now, but we may bring it back when we implement
-  // "slash commands", if we do them with a frontend UI integration.
-  // We might instead just pop up a terminal.
-  const contextMeter =
-    remainingPercent != null ? (
-      <div
-        style={{
-          border: `1px solid ${contextColors.border}`,
-          borderRadius: 6,
-          padding: 10,
-          background: contextColors.bg,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Space size={8} align="center">
-            <span
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: "50%",
-                background: contextColors.accent,
-                boxShadow:
-                  contextSeverity === "ok"
-                    ? undefined
-                    : `0 0 0 6px ${contextColors.bg}`,
-                flexShrink: 0,
-              }}
-            />
-            <Tooltip title="Context tracks how much of the model window remains before quality drops. Compact to reclaim space.">
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: contextColors.text,
-                  fontWeight:
-                    contextSeverity === "ok" || contextSeverity === "unknown"
-                      ? 500
-                      : 600,
-                }}
-              >
-                {contextLabel}
-                {contextSummary ? ` (${contextSummary})` : ""}
-              </Text>
-            </Tooltip>
-          </Space>
-        </div>
-        <Progress
-          percent={100 - remainingPercent}
-          status={
-            contextSeverity === "critical"
-              ? "exception"
-              : contextSeverity === "warning"
-                ? "active"
-                : "normal"
-          }
-          strokeColor={
-            contextSeverity === "critical"
-              ? contextColors.accent
-              : contextSeverity === "warning"
-                ? contextColors.accent
-                : undefined
-          }
-          showInfo={false}
-          size="small"
-        />
-      </div>
-    ) : null;
 
   const modeLabel = (() => {
     const mode = resolveCodexSessionMode({ sessionMode: currentSessionMode });
@@ -376,7 +254,6 @@ export function CodexConfigButton({
         <div
           style={{
             fontSize: 11,
-            color: contextSubtitleColor,
           }}
         >
           {selectedModelLabel}
