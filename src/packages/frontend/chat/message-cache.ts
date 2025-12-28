@@ -237,5 +237,6 @@ export interface ThreadIndexEntry {
   newestTime: number;
   messageCount: number;
   messageKeys: Set<string>;
+  orderedKeys?: string[];
   rootMessage?: PlainChatMessage;
 }

@@ -43,10 +43,16 @@ import {
   newest_content,
 } from "./utils";
 import { dateValue, field, replyTo, foldingList } from "./access";
+import { COMBINED_FEED_KEY } from "./threads";
 
 // you can use this to quickly disabled virtuoso, but rendering large chatrooms will
 // become basically impossible.
 const USE_VIRTUOSO = true;
+
+function stripHtml(value: string): string {
+  if (!value) return "";
+  return value.replace(/<[^>]*>/g, "");
+}
 
 interface Props {
   project_id: string; // used to render links more effectively
@@ -94,10 +100,15 @@ export function ChatLog({
 }: Props) {
   const singleThreadView = selectedThread != null;
   const messages = messagesProp ?? new Map();
+  const showThreadHeaders = selectedThread === COMBINED_FEED_KEY;
   const visibleKeys = useMemo<Set<string> | undefined>(() => {
     if (!selectedThread || !threadIndex) return undefined;
     return threadIndex.get(selectedThread)?.messageKeys;
   }, [selectedThread, threadIndex]);
+  const combinedKeys = useMemo<string[] | undefined>(() => {
+    if (!showThreadHeaders || !threadIndex) return undefined;
+    return threadIndex.get(COMBINED_FEED_KEY)?.orderedKeys;
+  }, [showThreadHeaders, threadIndex]);
   // see similar code in task list:
   const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
     return getSelectedHashtagsSearch(selectedHashtags0);
@@ -106,10 +117,27 @@ export function ChatLog({
 
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
+  const handleSelectThread = useCallback(
+    (threadKey: string) => {
+      actions.clearAllFilters?.();
+      actions.setSelectedThread?.(threadKey);
+    },
+    [actions],
+  );
   const { dates: sortedDates, numChildren } = useMemo<{
     dates: string[];
     numChildren: NumChildren;
   }>(() => {
+    if (combinedKeys) {
+      setTimeout(() => {
+        setLastVisible?.(
+          combinedKeys.length === 0
+            ? null
+            : new Date(parseFloat(combinedKeys[combinedKeys.length - 1])),
+        );
+      }, 1);
+      return { dates: combinedKeys, numChildren: {} };
+    }
     const { dates, numChildren } = getSortedDates(
       messages,
       search,
@@ -129,7 +157,15 @@ export function ChatLog({
       );
     }, 1);
     return { dates, numChildren };
-  }, [messages, search, project_id, path, filterRecentH, singleThreadView, visibleKeys]);
+  }, [
+    messages,
+    search,
+    account_id,
+    filterRecentH,
+    singleThreadView,
+    visibleKeys,
+    combinedKeys,
+  ]);
 
   useEffect(() => {
     scrollToBottomRef?.current?.(true);
@@ -288,6 +324,8 @@ export function ChatLog({
           scrollCacheId,
           scrollToBottomRef,
           acpState,
+          showThreadHeaders,
+          onSelectThread: showThreadHeaders ? handleSelectThread : undefined,
         }}
       />
       <Composing
@@ -487,6 +525,8 @@ export function MessageList({
   scrollCacheId,
   scrollToBottomRef,
   acpState,
+  showThreadHeaders,
+  onSelectThread,
 }: {
   messages: ChatMessages;
   account_id: string;
@@ -507,6 +547,8 @@ export function MessageList({
   scrollCacheId?: string;
   scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
   acpState?;
+  showThreadHeaders?: boolean;
+  onSelectThread?: (threadKey: string) => void;
 }) {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   const [atBottom, setAtBottom] = useState(true);
@@ -522,6 +564,42 @@ export function MessageList({
     scrollToBottomRef?.current?.(true);
   }, [manualScrollRef, scrollToBottomRef, setManualScroll]);
 
+  const renderThreadHeader = (
+    message: ChatMessageTyped,
+    currentThreadKey?: string,
+    prevThreadKey?: string,
+  ) => {
+    if (!showThreadHeaders || !currentThreadKey || currentThreadKey === prevThreadKey) {
+      return null;
+    }
+    const root = getRootMessage({ message, messages });
+    const rootDate = dateValue(root)?.valueOf();
+    const threadKey = rootDate != null ? `${rootDate}` : currentThreadKey;
+    const rawTitle =
+      (root ? field(root, "name") : undefined)?.trim() ||
+      (root ? newest_content(root) : undefined) ||
+      "Thread";
+    const threadTitle = stripHtml(rawTitle);
+    return (
+      <div
+        style={{
+          padding: "6px 8px",
+          margin: 8,
+          borderRadius: 6,
+          background: "#dadada",
+          cursor: onSelectThread ? "pointer" : "default",
+          fontSize: "90%",
+          color: "#333",
+        }}
+        onClick={
+          onSelectThread ? () => onSelectThread(threadKey) : undefined
+        }
+      >
+        {threadTitle}
+      </div>
+    );
+  };
+
   const renderMessage = (index: number) => {
     const date = sortedDates[index];
     const message: ChatMessageTyped | undefined = messages.get(date);
@@ -529,6 +607,19 @@ export function MessageList({
       console.warn("empty message", { date, index, sortedDates });
       return <div style={{ height: "30px" }} />;
     }
+    const currentThreadKey = showThreadHeaders
+      ? `${getThreadRootDate({
+          date: dateValue(message)?.valueOf() ?? 0,
+          messages,
+        })}`
+      : undefined;
+    const prevThreadKey =
+      showThreadHeaders && index > 0
+        ? `${getThreadRootDate({
+            date: dateValue(messages.get(sortedDates[index - 1]))?.valueOf() ?? 0,
+            messages,
+          })}`
+        : undefined;
 
     const is_thread = numChildren != null && isThread(message, numChildren);
     const is_folded =
@@ -543,6 +634,7 @@ export function MessageList({
           paddingTop: index == 0 ? "20px" : undefined,
         }}
       >
+        {renderThreadHeader(message, currentThreadKey, prevThreadKey)}
         <DivTempHeight height={h ? `${h}px` : undefined}>
           <Message
             messages={messages}

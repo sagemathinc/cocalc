@@ -84,14 +84,11 @@ function buildCombinedFeedKeys(
   const collected: MessageKeyWithTime[] = [];
   for (const entry of threadIndex.values()) {
     if (!entry.messageCount) continue;
-    collected.push(
-      ...pickNewestMessageKeys(entry, messages, limitPerThread),
-    );
+    collected.push(...pickNewestMessageKeys(entry, messages, limitPerThread));
   }
   collected.sort((a, b) => a.time - b.time);
   return collected.map((item) => item.key);
 }
-
 
 export interface ChatPanelProps {
   actions: ChatActions;
@@ -224,6 +221,7 @@ export function ChatPanel({
       newestTime: combinedThread.newestTime,
       messageCount: combinedKeys.length,
       messageKeys: new Set(combinedKeys),
+      orderedKeys: combinedKeys,
       rootMessage: undefined,
     };
     const next = new Map(threadIndex);
