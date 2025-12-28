@@ -154,6 +154,15 @@ export function initCodexProjectRunner(): void {
         throw err;
       }
 
+      const hasSandboxFlag =
+        args.includes("--full-auto") ||
+        args.includes("--dangerously-bypass-approvals-and-sandbox") ||
+        args.includes("--sandbox");
+      if (!hasSandboxFlag) {
+        logger.warn(
+          "codex project: missing sandbox flag; defaulting to --full-auto",
+        );
+      }
       const execArgs: string[] = [
         "exec",
         "-i",
@@ -163,7 +172,7 @@ export function initCodexProjectRunner(): void {
         "HOME=/root",
         info.name,
         info.codexPath,
-        ...args,
+        ...(hasSandboxFlag ? args : ["--full-auto", ...args]),
       ];
       logger.debug("codex project: podman exec", argsJoin(execArgs));
       const proc = spawn("podman", execArgs, {
