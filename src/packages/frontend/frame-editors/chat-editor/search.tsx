@@ -1,6 +1,6 @@
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
-import { Card, Input, Select } from "antd";
+import { Card, Input, Select, Switch } from "antd";
 import { path_split, separate_file_extension, set } from "@cocalc/util/misc";
 import { useEffect, useMemo, useState } from "react";
 import { throttle } from "lodash";
@@ -17,6 +17,8 @@ import { newest_content } from "@cocalc/frontend/chat/utils";
 const COMBINED_FEED_LABEL = "Combined feed";
 const ALL_MESSAGES_LABEL = "All messages";
 const ALL_MESSAGES_KEY = "__all_messages__";
+const RECENT_SIZE = 50;
+const RECENT_DAYS = 7;
 
 interface MatchHit {
   id: string;
@@ -55,6 +57,10 @@ function ChatSearch({ font_size: fontSize, desc }: Props) {
     undefined,
   );
   const [result, setResult] = useState<MatchHit[]>([]);
+  const [recentOnly, setRecentOnly] = useState<boolean | undefined>(undefined);
+  const [recentDaysOnly, setRecentDaysOnly] = useState<boolean | undefined>(
+    undefined,
+  );
   const saveSearch = useMemo(
     () =>
       throttle((value) => {
@@ -95,6 +101,70 @@ function ChatSearch({ font_size: fontSize, desc }: Props) {
 
   const searchScope = selectedThreadKey ?? threadOptions[0]?.key;
 
+  useEffect(() => {
+    setRecentOnly(undefined);
+    setRecentDaysOnly(undefined);
+  }, [searchScope]);
+
+  const recentThreshold = useMemo(
+    () => Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000,
+    [],
+  );
+
+  const scopeCount = useMemo(() => {
+    if (!messages) return 0;
+    if (
+      searchScope &&
+      searchScope !== COMBINED_FEED_KEY &&
+      searchScope !== ALL_MESSAGES_KEY &&
+      threadIndex
+    ) {
+      return threadIndex.get(searchScope)?.messageKeys.size ?? 0;
+    }
+    return messages.size ?? 0;
+  }, [messages, threadIndex, searchScope]);
+
+  const scopeHasOlderMessages = useMemo(() => {
+    if (!messages) return false;
+    const keys =
+      searchScope &&
+      searchScope !== COMBINED_FEED_KEY &&
+      searchScope !== ALL_MESSAGES_KEY &&
+      threadIndex
+        ? threadIndex.get(searchScope)?.messageKeys
+        : Array.from(messages.keys());
+    const keyList = keys ? Array.from(keys) : [];
+    if (keyList.length === 0) return false;
+    let oldestMs = Number.POSITIVE_INFINITY;
+    for (const key of keyList) {
+      const ms = Number.parseFloat(key);
+      if (Number.isFinite(ms) && ms < oldestMs) {
+        oldestMs = ms;
+      }
+    }
+    return Number.isFinite(oldestMs) && oldestMs < recentThreshold;
+  }, [messages, threadIndex, searchScope, recentThreshold]);
+
+  useEffect(() => {
+    if (scopeCount > RECENT_SIZE) {
+      if (recentOnly === undefined) {
+        setRecentOnly(true);
+      }
+    } else if (recentOnly !== false) {
+      setRecentOnly(false);
+    }
+  }, [scopeCount, recentOnly]);
+
+  useEffect(() => {
+    if (scopeHasOlderMessages) {
+      if (recentDaysOnly === undefined) {
+        setRecentDaysOnly(true);
+      }
+    } else if (recentDaysOnly !== false) {
+      setRecentDaysOnly(false);
+    }
+  }, [scopeHasOlderMessages, recentDaysOnly]);
+
   const matches = useMemo(() => {
     if (!search.trim() || !messages) {
       return [];
@@ -108,8 +178,18 @@ function ChatSearch({ font_size: fontSize, desc }: Props) {
       threadIndex
         ? threadIndex.get(searchScope)?.messageKeys
         : undefined;
-    const iterator = messageKeys ? messageKeys.values() : messages.keys();
-    for (const key of iterator) {
+    const allKeys = messageKeys ? Array.from(messageKeys) : Array.from(messages.keys());
+    const byDate = recentDaysOnly
+      ? allKeys.filter((key) => {
+          const ms = Number.parseFloat(key);
+          return Number.isFinite(ms) ? ms >= recentThreshold : true;
+        })
+      : allKeys;
+    const keysToScan =
+      recentOnly && byDate.length > RECENT_SIZE
+        ? byDate.slice(-RECENT_SIZE)
+        : byDate;
+    for (const key of keysToScan) {
       const message = messages.get(key);
       if (!message) continue;
       const content = newest_content(message);
@@ -165,6 +245,28 @@ function ChatSearch({ font_size: fontSize, desc }: Props) {
               })),
             ]}
           />
+          {scopeCount > RECENT_SIZE ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Switch
+                checked={recentOnly ?? false}
+                onChange={(value) => setRecentOnly(value)}
+              />
+              <span style={{ color: "#666" }}>
+                Search recent {RECENT_SIZE} only
+              </span>
+            </div>
+          ) : null}
+          {scopeHasOlderMessages ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Switch
+                checked={recentDaysOnly ?? false}
+                onChange={(value) => setRecentDaysOnly(value)}
+              />
+              <span style={{ color: "#666" }}>
+                Search recent {RECENT_DAYS} days only
+              </span>
+            </div>
+          ) : null}
           <Input.Search
             style={{ fontSize, width: "100%" }}
             allowClear

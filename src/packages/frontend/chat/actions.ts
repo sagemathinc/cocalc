@@ -58,7 +58,7 @@ import {
   replyTo,
   senderId,
 } from "./access";
-import { ChatMessageCache } from "./message-cache";
+import { ChatMessageCache, type ThreadIndexEntry } from "./message-cache";
 import { processLLM as processLLMExternal } from "./actions/llm";
 import { addToHistory } from "@cocalc/chat";
 
@@ -105,7 +105,7 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   // Thread index metadata for the current chatroom.
-  getThreadIndex = () => {
+  getThreadIndex = (): Map<string, ThreadIndexEntry> => {
     if (this.messageCache) {
       return this.messageCache.getThreadIndex();
     }
