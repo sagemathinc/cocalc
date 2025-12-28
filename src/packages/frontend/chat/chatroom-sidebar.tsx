@@ -180,7 +180,11 @@ export function ChatRoomSidebarContent({
   const [openThreadMenuKey, setOpenThreadMenuKey] = React.useState<string | null>(
     null,
   );
-  const [activityNow] = React.useState<number>(Date.now());
+  const [activityNow, setActivityNow] = React.useState<number>(Date.now());
+  React.useEffect(() => {
+    const id = setInterval(() => setActivityNow(Date.now()), 30 * 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const threadMenuProps = (
     threadKey: string,
@@ -283,6 +287,7 @@ export function ChatRoomSidebarContent({
             alignItems: "center",
             gap: "8px",
             width: "100%",
+            position: "relative",
           }}
           onMouseEnter={() => setHoveredThread(key)}
           onMouseLeave={() =>
@@ -302,7 +307,10 @@ export function ChatRoomSidebarContent({
                   height: 8,
                   borderRadius: "50%",
                   background: dotColor,
-                  flexShrink: 0,
+                  position: "absolute",
+                  right: 28,
+                  top: "50%",
+                  transform: "translateY(-50%)",
                 }}
               />
             </Tooltip>
