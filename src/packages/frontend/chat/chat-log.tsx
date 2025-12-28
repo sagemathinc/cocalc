@@ -16,6 +16,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
 } from "react";
 import { VirtuosoHandle } from "react-virtuoso";
 import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
@@ -67,6 +68,7 @@ interface Props {
   selectedDate?: string;
   scrollCacheId?: string;
   acpState?;
+  composerTargetKey?: string | null;
 }
 
 export function ChatLog({
@@ -85,6 +87,7 @@ export function ChatLog({
   selectedDate,
   scrollCacheId,
   acpState,
+  composerTargetKey,
 }: Props) {
   const singleThreadView = selectedThread != null;
   const messages = messagesProp ?? new Map();
@@ -267,6 +270,7 @@ export function ChatLog({
           acpState,
           showThreadHeaders,
           onSelectThread: showThreadHeaders ? handleSelectThread : undefined,
+          composerTargetKey,
         }}
       />
       <Composing
@@ -442,6 +446,7 @@ export function getUserName(userMap, accountId: string): string {
 export function MessageList({
   messages,
   account_id,
+  composerTargetKey,
   virtuosoRef,
   sortedDates,
   user_map,
@@ -464,6 +469,7 @@ export function MessageList({
 }: {
   messages: ChatMessages;
   account_id: string;
+  composerTargetKey?: string | null;
   user_map;
   mode;
   sortedDates;
@@ -560,14 +566,20 @@ export function MessageList({
       !singleThreadView && is_thread && isFolded(messages, message, account_id);
     const is_thread_body = is_thread && replyTo(message) != null;
     const h = virtuosoHeightsRef.current?.[index];
+    const shouldDim =
+      showThreadHeaders &&
+      composerTargetKey != null &&
+      currentThreadKey != null &&
+      currentThreadKey !== composerTargetKey;
+
+    const wrapperStyle: CSSProperties = {
+      overflow: "hidden",
+      paddingTop: index == 0 ? "20px" : undefined,
+      opacity: shouldDim ? 0.45 : 1,
+    };
 
     return (
-      <div
-        style={{
-          overflow: "hidden",
-          paddingTop: index == 0 ? "20px" : undefined,
-        }}
-      >
+      <div style={wrapperStyle}>
         {renderThreadHeader(message, currentThreadKey, prevThreadKey)}
         <DivTempHeight height={h ? `${h}px` : undefined}>
           <Message
@@ -609,6 +621,7 @@ export function MessageList({
             threadViewMode={singleThreadView}
             onForceScrollToBottom={forceScrollToBottom}
             acpState={acpState?.get(date)}
+            dim={shouldDim}
           />
         </DivTempHeight>
       </div>

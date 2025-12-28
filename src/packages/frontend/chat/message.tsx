@@ -146,6 +146,7 @@ interface Props {
   onForceScrollToBottom?: () => void;
 
   acpState?: string;
+  dim?: boolean;
 }
 
 export default function Message({
@@ -172,6 +173,7 @@ export default function Message({
   threadViewMode = false,
   onForceScrollToBottom,
   acpState,
+  dim,
 }: Props) {
   const intl = useIntl();
 
@@ -1260,13 +1262,17 @@ export default function Message({
   function getStyle(): CSS {
     switch (mode) {
       case "standalone":
-        return getStyleBase();
+        return {
+          ...getStyleBase(),
+          opacity: dim ? 0.45 : 1,
+        };
       case "sidechat":
         return {
           ...getStyleBase(),
           marginLeft: "5px",
           marginRight: "5px",
           paddingLeft: "0",
+          opacity: dim ? 0.45 : 1,
         };
       default:
         unreachable(mode);

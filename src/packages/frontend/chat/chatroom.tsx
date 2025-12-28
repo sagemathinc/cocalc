@@ -175,6 +175,7 @@ export function ChatPanel({
     setSelectedThreadKey,
     setAllowAutoSelectThread,
     selectedThreadDate,
+    isCombinedFeedSelected,
     singleThreadView,
     selectedThread,
   } = useChatThreadSelection({
@@ -184,6 +185,8 @@ export function ChatPanel({
     fragmentId,
     storedThreadFromDesc,
   });
+
+  const [composerTargetKey, setComposerTargetKey] = useState<string | null>(null);
 
   const composerDraftKey = useMemo(() => {
     if (
@@ -222,6 +225,29 @@ export function ChatPanel({
     const base = `${project_id ?? ""}${path ?? ""}`;
     return `${base}-${selectedThreadKey ?? COMBINED_FEED_KEY}`;
   }, [project_id, path, selectedThreadKey]);
+
+  useEffect(() => {
+    if (!isCombinedFeedSelected) {
+      if (composerTargetKey != null) {
+        setComposerTargetKey(null);
+      }
+      return;
+    }
+    if (threads.length === 0) {
+      if (composerTargetKey != null) {
+        setComposerTargetKey(null);
+      }
+      return;
+    }
+    if (composerTargetKey == null) {
+      setComposerTargetKey(threads[0].key);
+      return;
+    }
+    const exists = threads.some((thread) => thread.key === composerTargetKey);
+    if (!exists) {
+      setComposerTargetKey(threads[0].key);
+    }
+  }, [isCombinedFeedSelected, threads, composerTargetKey]);
 
   useEffect(() => {
     if (!actions?.syncdb || !account_id) return;
@@ -285,10 +311,20 @@ export function ChatPanel({
     replyToOverride?: Date | null,
     extraInput?: string,
   ): void {
-    const reply_to =
-      replyToOverride === undefined
-        ? selectedThreadDate
-        : (replyToOverride ?? undefined);
+    let reply_to: Date | undefined;
+    if (replyToOverride !== undefined) {
+      reply_to = replyToOverride ?? undefined;
+    } else if (isCombinedFeedSelected) {
+      const key = composerTargetKey ?? threads[0]?.key;
+      if (key) {
+        const millis = parseInt(key, 10);
+        if (isFinite(millis)) {
+          reply_to = new Date(millis);
+        }
+      }
+    } else {
+      reply_to = selectedThreadDate;
+    }
     if (!reply_to) {
       setAllowAutoSelectThread(true);
     }
@@ -337,6 +373,7 @@ export function ChatPanel({
           setAllowAutoSelectThread(false);
           setSelectedThreadKey(null);
         }}
+        composerTargetKey={composerTargetKey}
       />
       <ChatRoomComposer
         actions={actions}
@@ -351,6 +388,10 @@ export function ChatPanel({
         hasInput={hasInput}
         isSelectedThreadAI={isSelectedThreadAI}
         sendMessage={sendMessage}
+        combinedFeedSelected={isCombinedFeedSelected}
+        composerTargetKey={composerTargetKey}
+        threads={threads}
+        onComposerTargetChange={setComposerTargetKey}
       />
     </div>
   );

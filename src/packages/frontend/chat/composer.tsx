@@ -4,7 +4,7 @@
  */
 
 import type { MutableRefObject } from "react";
-import { Button, Popconfirm, Tooltip } from "antd";
+import { Button, Popconfirm, Select, Tooltip } from "antd";
 import { FormattedMessage } from "react-intl";
 import { Icon } from "@cocalc/frontend/components";
 import { LLMUsageStatus } from "@cocalc/frontend/misc/llm-cost-estimation";
@@ -12,6 +12,7 @@ import ChatInput from "./input";
 import type { ChatActions } from "./actions";
 import type { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT } from "./utils";
+import type { ThreadMeta } from "./threads";
 
 export interface ChatRoomComposerProps {
   actions: ChatActions;
@@ -26,6 +27,10 @@ export interface ChatRoomComposerProps {
   hasInput: boolean;
   isSelectedThreadAI: boolean;
   sendMessage: (replyToOverride?: Date | null, extraInput?: string) => void;
+  combinedFeedSelected: boolean;
+  composerTargetKey: string | null;
+  threads: ThreadMeta[];
+  onComposerTargetChange: (key: string | null) => void;
 }
 
 export function ChatRoomComposer({
@@ -41,7 +46,23 @@ export function ChatRoomComposer({
   hasInput,
   isSelectedThreadAI,
   sendMessage,
+  combinedFeedSelected,
+  composerTargetKey,
+  threads,
+  onComposerTargetChange,
 }: ChatRoomComposerProps) {
+  const stripHtml = (value: string): string =>
+    value.replace(/<[^>]*>/g, "").trim();
+
+  const targetOptions = threads.map((thread) => ({
+    value: thread.key,
+    label: stripHtml(thread.displayLabel ?? thread.label),
+  }));
+  const targetValue =
+    composerTargetKey && targetOptions.some((opt) => opt.value === composerTargetKey)
+      ? composerTargetKey
+      : undefined;
+
   return (
     <div style={{ display: "flex", marginBottom: "5px", overflow: "auto" }}>
       <div
@@ -55,6 +76,21 @@ export function ChatRoomComposer({
           minWidth: 0,
         }}
       >
+        {combinedFeedSelected && targetOptions.length > 0 && (
+          <div style={{ marginBottom: 6 }}>
+            <span style={{ marginRight: 8, color: "#666" }}>Replying to:</span>
+            <Select
+              size="small"
+              style={{ minWidth: 220, maxWidth: 420 }}
+              options={targetOptions}
+              value={targetValue}
+              onChange={(value) => onComposerTargetChange(value ?? null)}
+              placeholder="Choose a thread"
+              showSearch
+              optionFilterProp="label"
+            />
+          </div>
+        )}
         <ChatInput
           fontSize={fontSize}
           autoFocus
