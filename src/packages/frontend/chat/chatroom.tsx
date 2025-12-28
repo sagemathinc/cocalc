@@ -28,7 +28,7 @@ import { ChatRoomThreadPanel } from "./chatroom-thread-panel";
 import type { ChatState } from "./store";
 import type { ChatMessages, SubmitMentionsFn } from "./types";
 import type { ThreadIndexEntry } from "./message-cache";
-import { markChatAsReadIfUnseen } from "./utils";
+import { markChatAsReadIfUnseen, toMsString } from "./utils";
 import { COMBINED_FEED_KEY, useThreadSections } from "./threads";
 import { ChatDocProvider, useChatDoc } from "./doc-context";
 import * as immutable from "immutable";
@@ -297,10 +297,11 @@ export function ChatPanel({
       reply_to,
       extraInput,
     });
-    if (!reply_to && timeStamp) {
-      setSelectedThreadKey(timeStamp);
+    const threadKey = timeStamp ? toMsString(timeStamp) ?? timeStamp : null;
+    if (!reply_to && threadKey) {
+      setSelectedThreadKey(threadKey);
       setTimeout(() => {
-        setSelectedThreadKey(timeStamp);
+        setSelectedThreadKey(threadKey);
       }, 100);
     }
     setTimeout(() => {
