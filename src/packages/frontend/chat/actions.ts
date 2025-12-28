@@ -104,6 +104,14 @@ export class ChatActions extends Actions<ChatState> {
     return new Map<string, ChatMessageTyped>();
   };
 
+  // Thread index metadata for the current chatroom.
+  getThreadIndex = () => {
+    if (this.messageCache) {
+      return this.messageCache.getThreadIndex();
+    }
+    return new Map();
+  };
+
   private toImmutableRecord(record: any): any {
     if (record == null) return null;
     return typeof record?.get === "function" ? record : fromJS(record);
