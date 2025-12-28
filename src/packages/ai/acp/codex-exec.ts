@@ -37,6 +37,7 @@ import {
   findSessionFile,
   getSessionsRoot,
   rewriteSessionMeta,
+  truncateSessionHistory,
 } from "./codex-session-store";
 
 const logger = getLogger("ai:acp:codex-exec");
@@ -400,6 +401,17 @@ export class CodexExecAgent implements AcpAgent {
       approval_policy: "never",
       sandbox_policy: sandboxPolicy,
     }));
+
+    const maxBytesEnv = process.env.COCALC_CODEX_SESSION_TRUNCATE_BYTES;
+    const parsedMaxBytes = maxBytesEnv ? Number(maxBytesEnv) : undefined;
+    const maxBytes =
+      parsedMaxBytes && Number.isFinite(parsedMaxBytes)
+        ? parsedMaxBytes
+        : undefined;
+    await truncateSessionHistory(filePath, {
+      maxBytes,
+      keepCompactions: 2,
+    });
   }
 
   private decoratePrompt(prompt: string): string {

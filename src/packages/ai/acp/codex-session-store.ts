@@ -5,10 +5,14 @@
 // adds a supported API, we can delete this and call that instead.
 
 import fs from "node:fs/promises";
+import { createReadStream, createWriteStream } from "node:fs";
 import path from "node:path";
+import readline from "node:readline";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("ai:acp:codex-session-store");
+const DEFAULT_TRUNCATE_BYTES = 100 * 1024 * 1024;
+const DEFAULT_KEEP_COMPACTIONS = 2;
 
 type SessionMetaLine = {
   type: "session_meta";
@@ -55,8 +59,7 @@ export async function findSessionFile(
 export async function readSessionMeta(
   filePath: string,
 ): Promise<SessionMetaLine> {
-  const data = await fs.readFile(filePath, "utf8");
-  const firstLine = data.split(/\r?\n/, 1)[0];
+  const firstLine = await readFirstLine(filePath);
   const parsed = JSON.parse(firstLine) as SessionMetaLine;
   if (!parsed || parsed.type !== "session_meta") {
     throw new Error(`invalid session meta in ${filePath}`);
@@ -64,15 +67,34 @@ export async function readSessionMeta(
   return parsed;
 }
 
+async function readFirstLine(filePath: string): Promise<string> {
+  const stream = createReadStream(filePath, { encoding: "utf8" });
+  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+  return await new Promise<string>((resolve, reject) => {
+    let done = false;
+    rl.on("line", (line) => {
+      if (done) return;
+      done = true;
+      rl.close();
+      stream.destroy();
+      resolve(line);
+    });
+    rl.on("close", () => {
+      if (!done) {
+        reject(new Error(`empty session file ${filePath}`));
+      }
+    });
+    rl.on("error", (err) => reject(err));
+    stream.on("error", (err) => reject(err));
+  });
+}
+
 export async function rewriteSessionMeta(
   filePath: string,
   updater: (payload: Record<string, unknown>) => Record<string, unknown>,
 ): Promise<boolean> {
-  const data = await fs.readFile(filePath, "utf8");
-  const lines = data.split(/\r?\n/);
-  if (lines.length === 0) return false;
-  const first = lines[0];
-  const parsed = JSON.parse(first) as SessionMetaLine;
+  const firstLine = await readFirstLine(filePath);
+  const parsed = JSON.parse(firstLine) as SessionMetaLine;
   if (!parsed || parsed.type !== "session_meta") {
     throw new Error(`invalid session meta in ${filePath}`);
   }
@@ -85,11 +107,131 @@ export async function rewriteSessionMeta(
     payload: nextPayload,
     timestamp: parsed["timestamp"] ?? new Date().toISOString(),
   });
-  lines[0] = nextLine;
   const dir = path.dirname(filePath);
   const tmp = path.join(dir, `.tmp-${path.basename(filePath)}-${Date.now()}`);
-  await fs.writeFile(tmp, lines.join("\n"), "utf8");
+  await new Promise<void>((resolve, reject) => {
+    const input = createReadStream(filePath, { encoding: "utf8" });
+    const output = createWriteStream(tmp, { encoding: "utf8" });
+    const rl = readline.createInterface({ input, crlfDelay: Infinity });
+    let wroteFirst = false;
+    rl.on("line", (line) => {
+      if (!wroteFirst) {
+        output.write(`${nextLine}\n`);
+        wroteFirst = true;
+        return;
+      }
+      output.write(`${line}\n`);
+    });
+    rl.on("close", () => {
+      output.end();
+    });
+    rl.on("error", (err) => {
+      input.destroy();
+      output.destroy();
+      reject(err);
+    });
+    input.on("error", (err) => {
+      output.destroy();
+      reject(err);
+    });
+    output.on("error", (err) => {
+      input.destroy();
+      reject(err);
+    });
+    output.on("close", () => resolve());
+  });
   await fs.rename(tmp, filePath);
+  return true;
+}
+
+// Codex can accumulate huge JSONL session files (multi-GB) because it never
+// trims prior compactions. We don't need that full history for CoCalc since the
+// authoritative chat log lives in our frontend; we only need recent compaction
+// state for context. This keeps session files bounded and prevents OOM/slow
+// behavior when resuming old sessions, e.g., "codex resume" will easily use
+// 5GB+ loading a massive jsonl history, just to ignore most of it.
+// If codex will change to not store all these old pointless compaction
+// in the jsonl history and then we can remove this.
+export async function truncateSessionHistory(
+  filePath: string,
+  opts?: { maxBytes?: number; keepCompactions?: number },
+): Promise<boolean> {
+  const maxBytes = opts?.maxBytes ?? DEFAULT_TRUNCATE_BYTES;
+  const keepCompactions = opts?.keepCompactions ?? DEFAULT_KEEP_COMPACTIONS;
+  if (keepCompactions <= 0) return false;
+  const stats = await fs.stat(filePath);
+  if (stats.size < maxBytes) return false;
+
+  const compactionLines: number[] = [];
+  let totalLines = 0;
+  const input = createReadStream(filePath, { encoding: "utf8" });
+  const rl = readline.createInterface({ input, crlfDelay: Infinity });
+  try {
+    for await (const line of rl) {
+      if (line.includes('"type":"compacted"')) {
+        compactionLines.push(totalLines);
+        if (compactionLines.length > keepCompactions) {
+          compactionLines.shift();
+        }
+      }
+      totalLines += 1;
+    }
+  } finally {
+    rl.close();
+    input.destroy();
+  }
+
+  if (compactionLines.length === 0) return false;
+  const startIndex = compactionLines[0];
+  if (startIndex <= 1) return false;
+
+  const firstLine = await readFirstLine(filePath);
+  const dir = path.dirname(filePath);
+  const tmp = path.join(dir, `.tmp-${path.basename(filePath)}-${Date.now()}`);
+
+  await new Promise<void>((resolve, reject) => {
+    const read = createReadStream(filePath, { encoding: "utf8" });
+    const write = createWriteStream(tmp, { encoding: "utf8" });
+    const rlCopy = readline.createInterface({ input: read, crlfDelay: Infinity });
+    let lineNum = 0;
+    let wroteHeader = false;
+
+    rlCopy.on("line", (line) => {
+      if (!wroteHeader) {
+        write.write(`${firstLine}\n`);
+        wroteHeader = true;
+      }
+      if (lineNum >= startIndex) {
+        write.write(`${line}\n`);
+      }
+      lineNum += 1;
+    });
+    rlCopy.on("close", () => {
+      write.end();
+    });
+    rlCopy.on("error", (err) => {
+      read.destroy();
+      write.destroy();
+      reject(err);
+    });
+    read.on("error", (err) => {
+      write.destroy();
+      reject(err);
+    });
+    write.on("error", (err) => {
+      read.destroy();
+      reject(err);
+    });
+    write.on("close", () => resolve());
+  });
+
+  await fs.rename(tmp, filePath);
+  logger.debug("truncated session history", {
+    filePath,
+    startIndex,
+    totalLines,
+    size: stats.size,
+  });
   return true;
 }
 
@@ -107,12 +249,8 @@ export async function forkSession(
   if (!source) {
     throw new Error(`session file not found for ${sessionId}`);
   }
-  const data = await fs.readFile(source, "utf8");
-  const lines = data.split(/\r?\n/);
-  if (lines.length === 0) {
-    throw new Error(`empty session file ${source}`);
-  }
-  const parsed = JSON.parse(lines[0]) as SessionMetaLine;
+  const firstLine = await readFirstLine(source);
+  const parsed = JSON.parse(firstLine) as SessionMetaLine;
   if (!parsed || parsed.type !== "session_meta") {
     throw new Error(`invalid session meta in ${source}`);
   }
@@ -123,14 +261,44 @@ export async function forkSession(
     timestamp: now.toISOString(),
     forked_from: sessionId,
   };
-  lines[0] = JSON.stringify({
+  const nextLine = JSON.stringify({
     type: "session_meta",
     payload,
     timestamp: now.toISOString(),
   });
   const dir = path.dirname(source);
   const target = path.join(dir, formatRolloutFilename(now, newSessionId));
-  await fs.writeFile(target, lines.join("\n"), "utf8");
+  await new Promise<void>((resolve, reject) => {
+    const input = createReadStream(source, { encoding: "utf8" });
+    const output = createWriteStream(target, { encoding: "utf8" });
+    const rl = readline.createInterface({ input, crlfDelay: Infinity });
+    let wroteFirst = false;
+    rl.on("line", (line) => {
+      if (!wroteFirst) {
+        output.write(`${nextLine}\n`);
+        wroteFirst = true;
+        return;
+      }
+      output.write(`${line}\n`);
+    });
+    rl.on("close", () => {
+      output.end();
+    });
+    rl.on("error", (err) => {
+      input.destroy();
+      output.destroy();
+      reject(err);
+    });
+    input.on("error", (err) => {
+      output.destroy();
+      reject(err);
+    });
+    output.on("error", (err) => {
+      input.destroy();
+      reject(err);
+    });
+    output.on("close", () => resolve());
+  });
   logger.debug("forked session", { source, target });
   return target;
 }
