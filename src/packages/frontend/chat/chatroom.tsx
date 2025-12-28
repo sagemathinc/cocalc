@@ -133,7 +133,6 @@ export function ChatPanel({
   const [input, setInput] = useState("");
   const hasInput = input.trim().length > 0;
   const search = getDescValue(desc, "data-search") ?? "";
-  const filterRecentH: number = getDescValue(desc, "data-filterRecentH") ?? 0;
   const selectedHashtags = getDescValue(desc, "data-selectedHashtags");
   const scrollToIndex = getDescValue(desc, "data-scrollToIndex") ?? null;
   const scrollToDate = getDescValue(desc, "data-scrollToDate") ?? null;
@@ -144,8 +143,6 @@ export function ChatPanel({
       ? storedSidebarWidth
       : DEFAULT_SIDEBAR_WIDTH,
   );
-  const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
-  const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
   const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
   const isCompact = variant === "compact";
   const disableFilters = disableFiltersProp ?? isCompact;
@@ -332,11 +329,6 @@ export function ChatPanel({
         search={search}
         showThreadFilters={showThreadFilters}
         disableFilters={disableFilters}
-        filterRecentH={filterRecentH}
-        filterRecentHCustom={filterRecentHCustom}
-        setFilterRecentHCustom={setFilterRecentHCustom}
-        filterRecentOpen={filterRecentOpen}
-        setFilterRecentOpen={setFilterRecentOpen}
       />
       <ChatRoomThreadPanel
         actions={actions}
@@ -349,7 +341,6 @@ export function ChatPanel({
         scrollCacheId={scrollCacheId}
         fontSize={fontSize}
         search={search}
-        filterRecentH={filterRecentH}
         selectedHashtags={selectedHashtags}
         selectedThreadKey={selectedThreadKey}
         selectedThread={selectedThread}

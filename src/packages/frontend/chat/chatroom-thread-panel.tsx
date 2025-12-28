@@ -32,7 +32,6 @@ interface ChatRoomThreadPanelProps {
   scrollCacheId: string;
   fontSize?: number;
   search: string;
-  filterRecentH: number;
   selectedHashtags?: Set<string>;
   selectedThreadKey: string | null;
   selectedThread?: { rootMessage?: unknown; key: string };
@@ -55,7 +54,6 @@ export function ChatRoomThreadPanel({
   scrollCacheId,
   fontSize,
   search,
-  filterRecentH,
   selectedHashtags,
   selectedThreadKey,
   selectedThread,
@@ -128,7 +126,6 @@ export function ChatRoomThreadPanel({
         mode={variant === "compact" ? "sidechat" : "standalone"}
         fontSize={fontSize}
         search={search}
-        filterRecentH={filterRecentH}
         selectedHashtags={selectedHashtags}
         selectedThread={selectedThreadForLog}
         scrollToIndex={scrollToIndex}

@@ -9,7 +9,6 @@ which is the may source of weirdness in the code below...  Beware.
 import LRU from "lru-cache";
 
 import { redux } from "@cocalc/frontend/app-framework";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { search_match, search_split } from "@cocalc/util/misc";
 import type { ChatMessages, ChatMessageTyped, MessageHistory } from "./types";
 import { firstHistory, replyTo } from "./access";
@@ -17,16 +16,14 @@ import { firstHistory, replyTo } from "./access";
 export function filterMessages({
   messages,
   filter,
-  filterRecentH,
 }: {
   // the messages to filter down
   messages: ChatMessages;
   filter?: string;
-  filterRecentH?: number;
 }) {
   filter = filter?.trim();
 
-  if (!(filter || (typeof filterRecentH === "number" && filterRecentH > 0))) {
+  if (!filter) {
     // no filters -- typical special case; waste no time.
     return messages;
   }
@@ -44,20 +41,6 @@ export function filterMessages({
   } else {
     matchingRootTimes = new Set(Object.keys(searchData));
   }
-  if (typeof filterRecentH === "number" && filterRecentH > 0) {
-    // remove anything from matchingRootTimes that doesn't match
-    const now = webapp_client.server_time().getTime();
-    const cutoff = now - filterRecentH * 1000 * 60 * 60;
-    const x = new Set<string>();
-    for (const rootTime of matchingRootTimes) {
-      const { newestTime } = searchData[rootTime];
-      if (newestTime >= cutoff) {
-        x.add(rootTime);
-      }
-    }
-    matchingRootTimes = x;
-  }
-
   // Finally take all messages in all threads that have root in matchingRootTimes.
   // Return all messages in these threads
   const matchingThreads: ChatMessages = new Map();

@@ -65,7 +65,6 @@ interface Props {
   fontSize?: number;
   actions: ChatActions;
   search;
-  filterRecentH?;
   selectedHashtags;
   disableFilters?: boolean;
   selectedThread?: string;
@@ -88,7 +87,6 @@ export function ChatLog({
   fontSize,
   actions,
   search: search0,
-  filterRecentH,
   selectedHashtags: selectedHashtags0,
   disableFilters,
   selectedThread,
@@ -142,7 +140,6 @@ export function ChatLog({
       messages,
       search,
       account_id!,
-      filterRecentH,
       singleThreadView,
       visibleKeys,
     );
@@ -161,7 +158,6 @@ export function ChatLog({
     messages,
     search,
     account_id,
-    filterRecentH,
     singleThreadView,
     visibleKeys,
     combinedKeys,
@@ -208,7 +204,7 @@ export function ChatLog({
         actions.toggleFoldThread(date);
         tryAgain = true;
       }
-      if (messages.size > sortedDates.length && (search || filterRecentH)) {
+      if (messages.size > sortedDates.length && search) {
         // there was a search, so clear it just to be sure -- it could still hide
         // the folded threaded
         actions.clearAllFilters();
@@ -406,7 +402,6 @@ export function getSortedDates(
   messages: ChatMessages,
   search: string | undefined,
   account_id: string,
-  filterRecentH?: number,
   disableFolding?: boolean,
   visibleKeys?: Set<string>,
 ): {
@@ -426,7 +421,7 @@ export function getSortedDates(
 
   // we assume filterMessages contains complete threads.  It does
   // right now, but that's an assumption in this function.
-  m = filterMessages({ messages: m, filter: search, filterRecentH });
+  m = filterMessages({ messages: m, filter: search });
 
   // Do a linear pass through all messages to divide into threads, so that
   // getSortedDates is O(n) instead of O(n^2) !

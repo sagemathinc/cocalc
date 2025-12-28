@@ -1283,7 +1283,6 @@ export class ChatActions extends Actions<ChatState> {
       return;
     }
     this.setSearch("");
-    this.setFilterRecentH(0);
     this.setSelectedHashtags({});
   };
 
@@ -1291,9 +1290,6 @@ export class ChatActions extends Actions<ChatState> {
     this.frameTreeActions?.set_frame_data({ id: this.frameId, search });
   };
 
-  setFilterRecentH = (filterRecentH) => {
-    this.frameTreeActions?.set_frame_data({ id: this.frameId, filterRecentH });
-  };
 
   setSelectedHashtags = (selectedHashtags) => {
     this.frameTreeActions?.set_frame_data({
