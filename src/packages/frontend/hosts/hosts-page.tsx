@@ -7,7 +7,6 @@ import {
   Drawer,
   Form,
   Input,
-  List,
   Row,
   Select,
   Slider,
@@ -131,6 +130,43 @@ function extractJsonPayload(reply: string): any | undefined {
     }
   }
   return undefined;
+}
+
+function normalizeRecommendation(input: any): HostRecommendation | null {
+  if (!input || typeof input !== "object") return null;
+  const normalizeString = (value: any): string | undefined => {
+    if (typeof value === "string") return value;
+    if (typeof value === "number") return String(value);
+    if (value && typeof value === "object") {
+      if (typeof value.name === "string") return value.name;
+      if (typeof value.id === "string") return value.id;
+    }
+    return undefined;
+  };
+  const provider = normalizeString(input.provider) as HostProvider | undefined;
+  if (!provider || (provider !== "gcp" && provider !== "hyperstack")) {
+    return null;
+  }
+  return {
+    title: normalizeString(input.title ?? input.name ?? input.label),
+    provider,
+    region: normalizeString(input.region),
+    zone: normalizeString(input.zone),
+    machine_type: normalizeString(input.machine_type),
+    flavor: normalizeString(input.flavor),
+    gpu_type: normalizeString(input.gpu_type),
+    gpu_count:
+      typeof input.gpu_count === "number" ? input.gpu_count : undefined,
+    disk_gb: typeof input.disk_gb === "number" ? input.disk_gb : undefined,
+    source_image: normalizeString(input.source_image),
+    rationale: normalizeString(
+      input.rationale ?? input.reason ?? input.explanation ?? input.summary,
+    ),
+    est_cost_per_hour:
+      typeof input.est_cost_per_hour === "number"
+        ? input.est_cost_per_hour
+        : undefined,
+  };
 }
 
 function imageVersionCode(name: string): number | undefined {
@@ -452,7 +488,8 @@ export const HostsPage: React.FC = () => {
     const zonesByName = new Map(
       catalog.zones?.map((z) => [z.name, z]) ?? [],
     );
-    const gcpRegions = limit(catalog.regions ?? [], 5).map((r) => {
+    const regionGroups: Record<string, string[]> = {};
+    const gcpRegions = (catalog.regions ?? []).map((r) => {
       const zone = r.zones?.[0];
       const zoneDetails = zone ? zonesByName.get(zone) : undefined;
       const machineTypes = limit(
@@ -480,6 +517,18 @@ export const HostsPage: React.FC = () => {
         sampleGpuTypes: gpuTypes,
       };
     });
+    for (const r of gcpRegions) {
+      const name = r.name || "";
+      let group = "any";
+      if (name.startsWith("us-west")) group = "us-west";
+      else if (name.startsWith("us-east")) group = "us-east";
+      else if (name.startsWith("europe")) group = "eu-west";
+      else if (name.startsWith("asia")) group = "asia";
+      else if (name.startsWith("australia")) group = "australia";
+      else if (name.startsWith("southamerica")) group = "southamerica";
+      regionGroups[group] ??= [];
+      regionGroups[group].push(name);
+    }
     const gcpImages = limit(catalog.images ?? [], 6).map((img) => ({
       name: img.name,
       family: img.family,
@@ -487,7 +536,7 @@ export const HostsPage: React.FC = () => {
       architecture: img.architecture,
       gpuReady: img.gpuReady,
     }));
-    const hyperstackRegions = limit(catalog.hyperstack_regions ?? [], 5);
+    const hyperstackRegions = catalog.hyperstack_regions ?? [];
     const hyperstackFlavors = limit(catalog.hyperstack_flavors ?? [], 10).map(
       (f) => ({
         name: f.name,
@@ -501,6 +550,7 @@ export const HostsPage: React.FC = () => {
     return {
       gcp: {
         regions: gcpRegions,
+        region_groups: regionGroups,
         images: gcpImages,
       },
       hyperstack: {
@@ -586,12 +636,20 @@ export const HostsPage: React.FC = () => {
     setAiLoading(true);
     try {
       const system =
-        "You recommend cloud host configs. Return only valid JSON.";
+        "You recommend cloud host configs. Return only valid JSON. " +
+        "Always respond with an object that has a single key named options " +
+        "whose value is an array of recommendation objects. " +
+        "Each option must choose provider/region/machine/flavor/image from the provided catalog. " +
+        "Use the region_group preference to select a region from catalog.gcp.region_groups when possible. " +
+        "If the requested group has no regions, choose the closest available region and explain why. " +
+        "Do not claim a region is missing; always pick the best available from the catalog. " +
+        "If both gcp and hyperstack are available, include at least one option for each unless the user explicitly requests a single provider.";
       const input = JSON.stringify({
         request: aiPrompt.trim(),
         budget_usd_per_hour: aiBudget ?? null,
         region_group: aiRegionGroup,
         catalog: catalogSummary,
+        providers_available: Object.keys(catalogSummary ?? {}),
         output_format: {
           options: [
             {
@@ -618,11 +676,14 @@ export const HostsPage: React.FC = () => {
         tag: "host_recommendation",
       });
       const parsed = extractJsonPayload(reply);
-      const options: HostRecommendation[] = Array.isArray(parsed?.options)
+      const rawOptions: any[] = Array.isArray(parsed?.options)
         ? parsed.options
         : Array.isArray(parsed)
           ? parsed
           : [];
+      const options = rawOptions
+        .map((opt) => normalizeRecommendation(opt))
+        .filter((opt): opt is HostRecommendation => !!opt);
       if (!options.length) {
         console.warn("recommendation empty response", reply);
         throw new Error("No recommendations returned");
@@ -933,47 +994,59 @@ export const HostsPage: React.FC = () => {
                 </Button>
                 {aiError && <Alert type="error" message={aiError} />}
                 {aiResults.length > 0 && (
-                  <List
-                    dataSource={aiResults}
-                    renderItem={(rec, idx) => (
-                      <List.Item
-                        actions={[
-                          <Button
-                            key="apply"
-                            type="link"
-                            onClick={() => applyRecommendation(rec)}
-                          >
-                            Apply
-                          </Button>,
-                        ]}
+                  <Space direction="vertical" style={{ width: "100%" }} size="small">
+                    {aiResults.map((rec, idx) => (
+                      <Card
+                        key={`${rec.provider}-${rec.region}-${idx}`}
+                        size="small"
+                        bodyStyle={{ padding: "10px 12px" }}
                       >
-                        <List.Item.Meta
-                          title={rec.title ?? `Option ${idx + 1}`}
-                          description={rec.rationale}
-                        />
-                        <Space direction="vertical" size={0}>
-                          <Typography.Text type="secondary">
-                            {rec.provider} · {rec.region ?? "any"}
-                          </Typography.Text>
-                          {rec.machine_type && (
+                        <Space
+                          direction="vertical"
+                          style={{ width: "100%" }}
+                          size={2}
+                        >
+                          <Space align="start" style={{ justifyContent: "space-between" }}>
+                            <div>
+                              <Typography.Text strong>
+                                {rec.title ?? `Option ${idx + 1}`}
+                              </Typography.Text>
+                              {rec.rationale && (
+                                <div style={{ color: "#888" }}>{rec.rationale}</div>
+                              )}
+                            </div>
+                            <Button
+                              type="link"
+                              size="small"
+                              onClick={() => applyRecommendation(rec)}
+                            >
+                              Apply
+                            </Button>
+                          </Space>
+                          <Space direction="vertical" size={0}>
                             <Typography.Text type="secondary">
-                              {rec.machine_type}
+                              {rec.provider} · {rec.region ?? "any"}
                             </Typography.Text>
-                          )}
-                          {rec.flavor && (
-                            <Typography.Text type="secondary">
-                              {rec.flavor}
-                            </Typography.Text>
-                          )}
-                          {rec.est_cost_per_hour != null && (
-                            <Typography.Text type="secondary">
-                              ~${rec.est_cost_per_hour}/hr
-                            </Typography.Text>
-                          )}
+                            {rec.machine_type && (
+                              <Typography.Text type="secondary">
+                                {rec.machine_type}
+                              </Typography.Text>
+                            )}
+                            {rec.flavor && (
+                              <Typography.Text type="secondary">
+                                {rec.flavor}
+                              </Typography.Text>
+                            )}
+                            {rec.est_cost_per_hour != null && (
+                              <Typography.Text type="secondary">
+                                ~${rec.est_cost_per_hour}/hr
+                              </Typography.Text>
+                            )}
+                          </Space>
                         </Space>
-                      </List.Item>
-                    )}
-                  />
+                      </Card>
+                    ))}
+                  </Space>
                 )}
               </Space>
             </Card>
@@ -1230,31 +1303,37 @@ export const HostsPage: React.FC = () => {
               )}
             <Divider />
             <Typography.Title level={5}>Recent actions</Typography.Title>
-            <List
-              size="small"
-              loading={loadingLog}
-              locale={{ emptyText: "No actions yet." }}
-              dataSource={hostLog}
-              renderItem={(entry) => (
-                <List.Item>
-                  <div style={{ display: "flex", flexDirection: "column" }}>
-                    <div style={{ fontWeight: 600 }}>
-                      {entry.action} — {entry.status}
-                    </div>
-                    <div style={{ color: "#888", fontSize: 12 }}>
-                      {entry.ts
-                        ? new Date(entry.ts).toLocaleString()
-                        : "unknown time"}
-                    </div>
-                    {entry.error && (
-                      <div style={{ color: "#c00", fontSize: 12 }}>
-                        {entry.error}
+            {loadingLog ? (
+              <Typography.Text type="secondary">Loading…</Typography.Text>
+            ) : hostLog.length === 0 ? (
+              <Typography.Text type="secondary">No actions yet.</Typography.Text>
+            ) : (
+              <Space direction="vertical" style={{ width: "100%" }} size="small">
+                {hostLog.map((entry) => (
+                  <Card
+                    key={entry.id}
+                    size="small"
+                    bodyStyle={{ padding: "10px 12px" }}
+                  >
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <div style={{ fontWeight: 600 }}>
+                        {entry.action} — {entry.status}
                       </div>
-                    )}
-                  </div>
-                </List.Item>
-              )}
-            />
+                      <div style={{ color: "#888", fontSize: 12 }}>
+                        {entry.ts
+                          ? new Date(entry.ts).toLocaleString()
+                          : "unknown time"}
+                      </div>
+                      {entry.error && (
+                        <div style={{ color: "#c00", fontSize: 12 }}>
+                          {entry.error}
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                ))}
+              </Space>
+            )}
             <Divider />
             <Typography.Title level={5}>Activity</Typography.Title>
             <Bootlog host_id={selected.id} style={{ maxWidth: "100%" }} />
