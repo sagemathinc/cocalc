@@ -190,6 +190,11 @@ export type SiteSettingsExtrasKeys =
   | "stripe_publishable_key"
   | "stripe_secret_key"
   | "stripe_webhook_secret"
+  | "r2_heading"
+  | "r2_account_id"
+  | "r2_access_key_id"
+  | "r2_secret_access_key"
+  | "r2_bucket_prefix"
   | "re_captcha_v3_heading"
   | "re_captcha_v3_publishable_key"
   | "re_captcha_v3_secret_key"
@@ -437,6 +442,38 @@ export const EXTRAS: SettingsExtras = {
     show: only_commercial,
     password: true,
     tags: ["Stripe"],
+  },
+  r2_heading: {
+    name: "Cloudflare R2 Backups",
+    desc: "Credentials used to configure rustic backups in Cloudflare R2.",
+    default: "",
+    type: "header",
+    tags: ["Backups", "R2"],
+  },
+  r2_account_id: {
+    name: "R2 Account ID",
+    desc: "Cloudflare account ID used to build the R2 endpoint URL.",
+    default: "",
+    tags: ["Backups", "R2"],
+  },
+  r2_access_key_id: {
+    name: "R2 Access Key ID",
+    desc: "Access key for the R2 S3-compatible API.",
+    default: "",
+    tags: ["Backups", "R2"],
+  },
+  r2_secret_access_key: {
+    name: "R2 Secret Access Key",
+    desc: "Secret key for the R2 S3-compatible API.",
+    default: "",
+    password: true,
+    tags: ["Backups", "R2"],
+  },
+  r2_bucket_prefix: {
+    name: "R2 Bucket Prefix",
+    desc: "Prefix for per-region backup buckets (e.g., cocalc).",
+    default: "",
+    tags: ["Backups", "R2"],
   },
   re_captcha_v3_heading: {
     // this is cosmetic, otherwise it looks weird.

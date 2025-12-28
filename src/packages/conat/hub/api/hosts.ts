@@ -1,4 +1,4 @@
-import { authFirstRequireAccount } from "./util";
+import { authFirstRequireAccount, noAuth } from "./util";
 
 export type HostStatus =
   | "deprovisioned"
@@ -138,6 +138,7 @@ export const hosts = {
   startHost: authFirstRequireAccount,
   stopHost: authFirstRequireAccount,
   deleteHost: authFirstRequireAccount,
+  getBackupConfig: noAuth,
 };
 
 export interface Hosts {
@@ -159,6 +160,10 @@ export interface Hosts {
     id: string;
     limit?: number;
   }) => Promise<HostLogEntry[]>;
+  getBackupConfig: (opts: {
+    account_id?: string;
+    host_id: string;
+  }) => Promise<{ toml: string; ttl_seconds: number }>;
   createHost: (opts: {
     account_id?: string;
     name: string;

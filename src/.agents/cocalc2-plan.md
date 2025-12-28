@@ -1,5 +1,10 @@
 ## Implement Project Hosts (replaces compute servers)
 
+### Misc to not forget:
+
+- [ ] when implementing starting remote project host, be sure to do set all secrets via safe 0600 files and not env variables. e.g., cloudflare r2.
+
+
 ### Cloud VM control layer.
 
 Goal: a provider‑agnostic control plane in `@cocalc/cloud` that can provision, start/stop, and meter project‑host VMs via cloud APIs, with concurrency handled in Postgres (no singletons), and costs/usage recorded as immutable log events. The hub owns orchestration and billing, while providers expose clean, testable adapters.
@@ -74,6 +79,14 @@ to support this.
   4. \(done\) Create\-on\-host flow: from Servers tab or Hosts page, let user spawn a new host \(local/dev placeholder\), then create a project directly on that host.
   5. Add light polling/changefeed for host lists so status updates \(starting/running/off\) are reflected without manual refresh; reuse bootlog stream for detailed start/stop feedback.
   6. Gate shared pool entries: add metadata \(region, caps, cost\) to hosts list; group “Your hosts” vs “Shared pool”.
+
+- **Backup config distribution (hub‑mediated):**
+  - [ ] Add `hub.hosts.getBackupConfig({ host_id }) -> { toml, ttl_seconds }` (no account auth; allow hub connection only).
+  - [ ] Implement server handler to build provider‑agnostic rustic TOML from site settings (R2/S3/GCS/etc.); return empty TOML if not configured.
+  - [ ] Project‑host: fetch backup config on startup, write `secrets/rustic.toml` with `0600`, and use that path for rustic.
+  - [ ] Add TTL cache + refresh on expiry and on auth errors (401/403); keep env‑based fallback only for dev.
+  - [ ] (Later) Add a conat invalidate signal so hub can force refresh after key rotation.
+  - [ ] Document in `docs/project-backups.md`.
 
 ### Next focus: automated running of project hosts on cloud VM's
 

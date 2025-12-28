@@ -13,12 +13,16 @@ import {
   type Sync,
 } from "@cocalc/conat/files/file-server";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
+import { conat as hubConat } from "@cocalc/backend/conat";
+import { createServiceClient } from "@cocalc/conat/service/typed";
+import type { Hosts } from "@cocalc/conat/hub/api/hosts";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
 import {
   data,
   fileServerMountpoint,
   secrets,
+  account_id,
   rusticRepo,
 } from "@cocalc/backend/data";
 import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
@@ -107,6 +111,86 @@ function getFileSync() {
 
 function projectMountpoint(project_id: string): string {
   return join(getMountPoint(), `project-${project_id}`);
+}
+
+let backupConfigCache:
+  | { toml: string; expiresAt: number }
+  | null = null;
+let backupConfigClient: Hosts | null = null;
+let backupConfigClientConn: ConatClient | null = null;
+let backupConfigInvalidationSub: any = null;
+
+async function getBackupConfigClient(): Promise<Hosts | null> {
+  if (backupConfigClient) return backupConfigClient;
+  const masterAddress =
+    process.env.MASTER_CONAT_SERVER ?? process.env.COCALC_MASTER_CONAT_SERVER;
+  if (!masterAddress) return null;
+  backupConfigClientConn = hubConat({ address: masterAddress });
+  const account = account_id || "host";
+  backupConfigClient = createServiceClient<Hosts>({
+    service: "hub",
+    subject: `hub.account.${account}.api`,
+    client: backupConfigClientConn,
+    timeout: 30000,
+  });
+  void startBackupConfigInvalidation(backupConfigClientConn);
+  return backupConfigClient;
+}
+
+async function startBackupConfigInvalidation(client: ConatClient) {
+  if (backupConfigInvalidationSub) return;
+  const hostId = getLocalHostId();
+  if (!hostId) return;
+  const subject = `project-host.${hostId}.backup.invalidate`;
+  backupConfigInvalidationSub = await client.subscribe(subject);
+  (async () => {
+    for await (const _msg of backupConfigInvalidationSub) {
+      backupConfigCache = null;
+      try {
+        await ensureBackupConfig();
+      } catch (err) {
+        logger.warn("backup config refresh failed", err);
+      }
+    }
+  })().catch((err) =>
+    logger.error("backup config invalidation loop failed", err),
+  );
+}
+
+async function fetchBackupConfig(): Promise<
+  { toml: string; ttl_seconds: number } | null
+> {
+  const client = await getBackupConfigClient();
+  if (!client) return null;
+  const hostId = getLocalHostId();
+  if (!hostId) return null;
+  return await client.getBackupConfig({ host_id: hostId });
+}
+
+async function ensureBackupConfig(): Promise<string | null> {
+  const profilePath = join(secrets, "rustic.toml");
+  const now = Date.now();
+  if (backupConfigCache && now < backupConfigCache.expiresAt) {
+    return profilePath;
+  }
+  const remoteConfig = await fetchBackupConfig();
+  const toml = remoteConfig?.toml;
+  if (!toml) return null;
+  const ttlSeconds = remoteConfig?.ttl_seconds ?? 0;
+  backupConfigCache = {
+    toml,
+    expiresAt: ttlSeconds > 0 ? now + ttlSeconds * 1000 : now + 3600 * 1000,
+  };
+  await mkdir(secrets, { recursive: true });
+  await writeFile(profilePath, toml, "utf8");
+  await chmod(profilePath, 0o600);
+  return profilePath;
+}
+
+async function resolveRusticRepo(): Promise<string> {
+  const profilePath = await ensureBackupConfig();
+  if (profilePath) return profilePath;
+  return rusticRepo;
 }
 
 // Map a container path (relative to /root) to an absolute host path inside the
@@ -412,9 +496,10 @@ export async function initFileServer({
         fileServerMountpoint,
         rusticRepo,
       });
+      const resolvedRusticRepo = await resolveRusticRepo();
       fs = await filesystem({
         mount: fileServerMountpoint,
-        rustic: rusticRepo,
+        rustic: resolvedRusticRepo,
       });
     } else {
       const imageDir = join(data, "btrfs", "image");
@@ -423,6 +508,7 @@ export async function initFileServer({
         mountPoint,
         rusticRepo,
       });
+      const resolvedRusticRepo = await resolveRusticRepo();
       if (!(await exists(imageDir))) {
         await mkdir(imageDir, { recursive: true });
       }
@@ -433,7 +519,7 @@ export async function initFileServer({
         image: join(imageDir, "btrfs.img"),
         size: "25G",
         mount: mountPoint,
-        rustic: rusticRepo,
+        rustic: resolvedRusticRepo,
       });
     }
   }

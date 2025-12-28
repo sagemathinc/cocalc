@@ -39,6 +39,8 @@ export const TAGS = [
   "Compute Servers",
   "Google Cloud",
   "Hyperstack",
+  "Backups",
+  "R2",
   "AI LLM",
   "Theme",
   "On-Prem",

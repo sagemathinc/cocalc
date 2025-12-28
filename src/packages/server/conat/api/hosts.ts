@@ -17,6 +17,7 @@ import {
   refreshCloudCatalogNow,
 } from "@cocalc/server/cloud";
 import isAdmin from "@cocalc/server/accounts/is-admin";
+import { isValidUUID } from "@cocalc/util/misc";
 function pool() {
   return getPool();
 }
@@ -147,6 +148,21 @@ function requireCreateHosts(entitlements: any) {
     throw new Error("membership does not allow host creation");
   }
 }
+
+async function getSiteSetting(name: string): Promise<string | undefined> {
+  const { rows } = await pool().query<{ value: string | null }>(
+    "SELECT value FROM site_settings WHERE name=$1",
+    [name],
+  );
+  const value = rows[0]?.value ?? undefined;
+  if (value == null || value === "") {
+    return undefined;
+  }
+  return value;
+}
+
+const DEFAULT_BACKUP_TTL_SECONDS = 60 * 60 * 12; // 12 hours
+const DEFAULT_BACKUP_ROOT = "rustic";
 
 
 export async function listHosts({
@@ -347,6 +363,56 @@ export async function getHostLog({
     provider: entry.provider ?? null,
     error: entry.error ?? null,
   }));
+}
+
+export async function getBackupConfig({
+  account_id,
+  host_id,
+}: {
+  account_id?: string;
+  host_id: string;
+}): Promise<{ toml: string; ttl_seconds: number }> {
+  if (account_id) {
+    throw new Error("not authorized");
+  }
+  if (!isValidUUID(host_id)) {
+    throw new Error("invalid host_id");
+  }
+  const { rows } = await pool().query<{
+    region: string | null;
+  }>("SELECT region FROM project_hosts WHERE id=$1", [host_id]);
+  if (!rows[0]) {
+    throw new Error("host not found");
+  }
+
+  const accountId = await getSiteSetting("r2_account_id");
+  const accessKey = await getSiteSetting("r2_access_key_id");
+  const secretKey = await getSiteSetting("r2_secret_access_key");
+  const bucketPrefix = await getSiteSetting("r2_bucket_prefix");
+  if (!accountId || !accessKey || !secretKey || !bucketPrefix) {
+    return { toml: "", ttl_seconds: 0 };
+  }
+
+  const region = rows[0]?.region || "global";
+  const bucket = `${bucketPrefix}-${region}`;
+  const root = `${DEFAULT_BACKUP_ROOT}/host-${host_id}`;
+
+  const toml = [
+    "[repository]",
+    "repository = \"opendal:s3\"",
+    "password = \"\"",
+    "",
+    "[repository.options]",
+    `endpoint = \"https://${accountId}.r2.cloudflarestorage.com\"`,
+    "region = \"auto\"",
+    `bucket = \"${bucket}\"`,
+    `root = \"${root}\"`,
+    `access_key_id = \"${accessKey}\"`,
+    `secret_access_key = \"${secretKey}\"`,
+    "",
+  ].join("\n");
+
+  return { toml, ttl_seconds: DEFAULT_BACKUP_TTL_SECONDS };
 }
 
 export async function createHost({
