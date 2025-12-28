@@ -707,7 +707,6 @@ function PathLink({
         path: resolvedPath,
         line,
         foreground: true,
-        chat: true,
         explicit: true,
       });
     },
