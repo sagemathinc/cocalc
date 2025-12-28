@@ -30,6 +30,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import Bootlog from "@cocalc/frontend/project/bootlog";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import { getMachineTypeArchitecture } from "@cocalc/util/db-schema/compute-servers";
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 
 const WRAP_STYLE: CSS = {
   padding: "24px",
@@ -82,6 +83,56 @@ const DISK_TYPES = [
   { value: "standard", label: "Standard (HDD)" },
 ];
 
+type HostRecommendation = {
+  title?: string;
+  provider: HostProvider;
+  region?: string;
+  zone?: string;
+  machine_type?: string;
+  flavor?: string;
+  gpu_type?: string;
+  gpu_count?: number;
+  disk_gb?: number;
+  source_image?: string;
+  rationale?: string;
+  est_cost_per_hour?: number;
+};
+
+function extractJsonPayload(reply: string): any | undefined {
+  const trimmed = reply.trim();
+  if (!trimmed) return undefined;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    // fall through
+  }
+  const fenceMatch = trimmed.match(/```json\s*([\s\S]*?)```/i);
+  if (fenceMatch?.[1]) {
+    try {
+      return JSON.parse(fenceMatch[1].trim());
+    } catch {
+      // fall through
+    }
+  }
+  const arrayMatch = trimmed.match(/\[[\s\S]*\]/);
+  if (arrayMatch?.[0]) {
+    try {
+      return JSON.parse(arrayMatch[0]);
+    } catch {
+      // fall through
+    }
+  }
+  const objectMatch = trimmed.match(/\{[\s\S]*\}/);
+  if (objectMatch?.[0]) {
+    try {
+      return JSON.parse(objectMatch[0]);
+    } catch {
+      // fall through
+    }
+  }
+  return undefined;
+}
+
 function imageVersionCode(name: string): number | undefined {
   const match = name.match(/ubuntu-.*?(\d{2})(\d{2})/i);
   if (!match) return undefined;
@@ -110,6 +161,13 @@ export const HostsPage: React.FC = () => {
     undefined,
   );
   const [catalogRefreshing, setCatalogRefreshing] = useState<boolean>(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiBudget, setAiBudget] = useState<number | undefined>(undefined);
+  const [aiRegionGroup, setAiRegionGroup] = useState<string>("any");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | undefined>(undefined);
+  const [aiResults, setAiResults] = useState<HostRecommendation[]>([]);
+  const [llmModel] = useLanguageModelSetting();
   const [refreshProvider, setRefreshProvider] =
     useState<HostProvider>("gcp");
   const hub = webapp_client.conat_client.hub;
@@ -388,6 +446,70 @@ export const HostsPage: React.FC = () => {
           })
       : [];
 
+  const catalogSummary = useMemo(() => {
+    if (!catalog) return undefined;
+    const limit = <T,>(items: T[], n = 5) => items.slice(0, n);
+    const zonesByName = new Map(
+      catalog.zones?.map((z) => [z.name, z]) ?? [],
+    );
+    const gcpRegions = limit(catalog.regions ?? [], 5).map((r) => {
+      const zone = r.zones?.[0];
+      const zoneDetails = zone ? zonesByName.get(zone) : undefined;
+      const machineTypes = limit(
+        catalog.machine_types_by_zone?.[zone ?? ""] ?? [],
+        5,
+      ).map((m) => ({
+        name: m.name,
+        guestCpus: m.guestCpus,
+        memoryMb: m.memoryMb,
+      }));
+      const gpuTypes = limit(
+        catalog.gpu_types_by_zone?.[zone ?? ""] ?? [],
+        5,
+      ).map((g) => ({
+        name: g.name,
+        description: g.description,
+        maximumCardsPerInstance: g.maximumCardsPerInstance,
+      }));
+      return {
+        name: r.name,
+        location: zoneDetails?.location,
+        lowC02: zoneDetails?.lowC02,
+        zones: limit(r.zones ?? [], 3),
+        sampleMachineTypes: machineTypes,
+        sampleGpuTypes: gpuTypes,
+      };
+    });
+    const gcpImages = limit(catalog.images ?? [], 6).map((img) => ({
+      name: img.name,
+      family: img.family,
+      selfLink: img.selfLink,
+      architecture: img.architecture,
+      gpuReady: img.gpuReady,
+    }));
+    const hyperstackRegions = limit(catalog.hyperstack_regions ?? [], 5);
+    const hyperstackFlavors = limit(catalog.hyperstack_flavors ?? [], 10).map(
+      (f) => ({
+        name: f.name,
+        region: f.region_name,
+        cpu: f.cpu,
+        ram: f.ram,
+        gpu: f.gpu,
+        gpu_count: f.gpu_count,
+      }),
+    );
+    return {
+      gcp: {
+        regions: gcpRegions,
+        images: gcpImages,
+      },
+      hyperstack: {
+        regions: hyperstackRegions,
+        flavors: hyperstackFlavors,
+      },
+    };
+  }, [catalog]);
+
   useEffect(() => {
     if (selectedProvider !== "gcp") return;
     if (!imageOptions.length) return;
@@ -437,6 +559,82 @@ export const HostsPage: React.FC = () => {
     if (selectedSize && values.has(selectedSize)) return;
     form.setFieldsValue({ size: hyperstackFlavorOptions[0].value });
   }, [selectedProvider, hyperstackFlavorOptions, selectedSize, form]);
+
+  const applyRecommendation = (rec: HostRecommendation) => {
+    if (!rec.provider) return;
+    const next: Record<string, any> = { provider: rec.provider };
+    if (rec.provider === "gcp") {
+      if (rec.region) next.region = rec.region;
+      if (rec.zone) next.zone = rec.zone;
+      if (rec.machine_type) next.machine_type = rec.machine_type;
+      if (rec.gpu_type) next.gpu_type = rec.gpu_type;
+      if (rec.source_image) next.source_image = rec.source_image;
+    } else if (rec.provider === "hyperstack") {
+      if (rec.region) next.region = rec.region;
+      if (rec.flavor) next.size = rec.flavor;
+    }
+    if (rec.disk_gb) next.disk = rec.disk_gb;
+    form.setFieldsValue(next);
+  };
+
+  const runAiRecommendation = async () => {
+    if (!aiPrompt.trim()) {
+      setAiError("Tell us what you want to run.");
+      return;
+    }
+    setAiError(undefined);
+    setAiLoading(true);
+    try {
+      const system =
+        "You recommend cloud host configs. Return only valid JSON.";
+      const input = JSON.stringify({
+        request: aiPrompt.trim(),
+        budget_usd_per_hour: aiBudget ?? null,
+        region_group: aiRegionGroup,
+        catalog: catalogSummary,
+        output_format: {
+          options: [
+            {
+              title: "string",
+              provider: "gcp|hyperstack",
+              region: "string",
+              zone: "string?",
+              machine_type: "string?",
+              flavor: "string?",
+              gpu_type: "string?",
+              gpu_count: "number?",
+              disk_gb: "number?",
+              source_image: "string?",
+              rationale: "string",
+              est_cost_per_hour: "number?",
+            },
+          ],
+        },
+      });
+      const reply = await webapp_client.openai_client.query({
+        input,
+        system,
+        model: llmModel,
+        tag: "host_recommendation",
+      });
+      const parsed = extractJsonPayload(reply);
+      const options: HostRecommendation[] = Array.isArray(parsed?.options)
+        ? parsed.options
+        : Array.isArray(parsed)
+          ? parsed
+          : [];
+      if (!options.length) {
+        console.warn("recommendation empty response", reply);
+        throw new Error("No recommendations returned");
+      }
+      setAiResults(options.slice(0, 3));
+    } catch (err) {
+      console.error("recommendation failed", err);
+      setAiError("Unable to generate recommendations right now.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const onCreate = async (vals: any) => {
     if (creating) return;
@@ -684,6 +882,101 @@ export const HostsPage: React.FC = () => {
                 style={{ marginBottom: 12 }}
               />
             )}
+            <Card
+              size="small"
+              style={{ marginBottom: 12 }}
+              title={
+                <Space size="small">
+                  <Icon name="magic" /> Ask for a recommendation
+                </Space>
+              }
+            >
+              <Space direction="vertical" style={{ width: "100%" }}>
+                <Input.TextArea
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  placeholder="Describe what you want to run and why (e.g., small GPU box for fine-tuning)."
+                  autoSize={{ minRows: 2, maxRows: 4 }}
+                />
+                <Row gutter={8}>
+                  <Col span={12}>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.1}
+                      value={aiBudget}
+                      onChange={(e) =>
+                        setAiBudget(
+                          e.target.value ? Number(e.target.value) : undefined,
+                        )
+                      }
+                      placeholder="Max $/hour (optional)"
+                    />
+                  </Col>
+                  <Col span={12}>
+                    <Select
+                      value={aiRegionGroup}
+                      onChange={setAiRegionGroup}
+                      options={[
+                        { value: "any", label: "Any region" },
+                        ...REGIONS,
+                      ]}
+                    />
+                  </Col>
+                </Row>
+                <Button
+                  onClick={runAiRecommendation}
+                  loading={aiLoading}
+                  disabled={!catalogSummary}
+                >
+                  Get recommendations
+                </Button>
+                {aiError && <Alert type="error" message={aiError} />}
+                {aiResults.length > 0 && (
+                  <List
+                    dataSource={aiResults}
+                    renderItem={(rec, idx) => (
+                      <List.Item
+                        actions={[
+                          <Button
+                            key="apply"
+                            type="link"
+                            onClick={() => applyRecommendation(rec)}
+                          >
+                            Apply
+                          </Button>,
+                        ]}
+                      >
+                        <List.Item.Meta
+                          title={rec.title ?? `Option ${idx + 1}`}
+                          description={rec.rationale}
+                        />
+                        <Space direction="vertical" size={0}>
+                          <Typography.Text type="secondary">
+                            {rec.provider} · {rec.region ?? "any"}
+                          </Typography.Text>
+                          {rec.machine_type && (
+                            <Typography.Text type="secondary">
+                              {rec.machine_type}
+                            </Typography.Text>
+                          )}
+                          {rec.flavor && (
+                            <Typography.Text type="secondary">
+                              {rec.flavor}
+                            </Typography.Text>
+                          )}
+                          {rec.est_cost_per_hour != null && (
+                            <Typography.Text type="secondary">
+                              ~${rec.est_cost_per_hour}/hr
+                            </Typography.Text>
+                          )}
+                        </Space>
+                      </List.Item>
+                    )}
+                  />
+                )}
+              </Space>
+            </Card>
             <Form
               layout="vertical"
               onFinish={onCreate}
