@@ -107,29 +107,13 @@ export const SPEC = {
   },
   rustic: {
     // See https://github.com/rustic-rs/rustic/releases
-    VERSION: "v0.10.2-1-g189b17c",
+    VERSION: "v0.10.3",
     getVersion: "rustic --version",
     BASE: "https://github.com/rustic-rs/rustic/releases/download",
     binary: "rustic",
     path: join(binPath, "rustic"),
     stripComponents: 0,
     pathInArchive: () => "rustic",
-    url: () => {
-      // the URL is a mess for current version!
-      if (platform() == "linux") {
-        if (arch() == "x64") {
-          return "https://github.com/rustic-rs/rustic/releases/download/v0.10.2/rustic-v0.10.2-1-g189b17c-x86_64-unknown-linux-musl.tar.gz";
-        } else {
-          return "https://github.com/rustic-rs/rustic/releases/download/v0.10.2/rustic-v0.10.2-1-aarch64-unknown-linux-musl.tar.gz";
-        }
-      } else if (platform() == "darwin") {
-        if (arch() == "x64") {
-          return "https://github.com/rustic-rs/rustic/releases/download/v0.10.2/rustic-v0.10.2-1-g189b17c-x86_64-apple-darwin.tar.gz";
-        } else {
-          return "https://github.com/rustic-rs/rustic/releases/download/v0.10.2/rustic-v0.10.2-1-aarch64-apple-darwin.tar.gz";
-        }
-      }
-    },
   },
   // sshpiper -- used by the core
   // See https://github.com/sagemathinc/sshpiper-binaries/releases
