@@ -12,6 +12,7 @@ import type { ChatActions } from "./actions";
 import type { ChatMessages } from "./types";
 import type * as immutable from "immutable";
 import { ALL_THREADS_KEY } from "./threads";
+import type { ThreadIndexEntry } from "./message-cache";
 
 const CHAT_LOG_STYLE: React.CSSProperties = {
   padding: "0",
@@ -26,6 +27,7 @@ interface ChatRoomThreadPanelProps {
   project_id?: string;
   path?: string;
   messages: ChatMessages;
+  threadIndex?: Map<string, ThreadIndexEntry>;
   acpState: immutable.Map<string, string>;
   scrollToBottomRef: React.MutableRefObject<any>;
   scrollCacheId: string;
@@ -48,6 +50,7 @@ export function ChatRoomThreadPanel({
   project_id,
   path,
   messages,
+  threadIndex,
   acpState,
   scrollToBottomRef,
   scrollCacheId,
@@ -123,6 +126,7 @@ export function ChatRoomThreadPanel({
         project_id={project_id ?? ""}
         path={path ?? ""}
         messages={messages}
+        threadIndex={threadIndex}
         acpState={acpState}
         scrollToBottomRef={scrollToBottomRef}
         scrollCacheId={scrollCacheId}

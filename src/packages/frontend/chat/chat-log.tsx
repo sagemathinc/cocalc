@@ -9,7 +9,6 @@ Render all the messages in the chat.
 
 // cSpell:ignore: timespan
 
-import { Alert, Button } from "antd";
 import { Set as immutableSet } from "immutable";
 import {
   MutableRefObject,
@@ -23,15 +22,9 @@ import { VirtuosoHandle } from "react-virtuoso";
 import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
-import {
-  cmp,
-  hoursToTimeIntervalHuman,
-  parse_hashtags,
-  plural,
-} from "@cocalc/util/misc";
+import { cmp, parse_hashtags } from "@cocalc/util/misc";
 import type { ChatActions } from "./actions";
 import Composing from "./composing";
 import { filterMessages } from "./filter-messages";
@@ -42,6 +35,7 @@ import type {
   Mode,
   NumChildren,
 } from "./types";
+import type { ThreadIndexEntry } from "./message-cache";
 import {
   getRootMessage,
   getSelectedHashtagsSearch,
@@ -58,6 +52,7 @@ interface Props {
   project_id: string; // used to render links more effectively
   path: string;
   messages?: ChatMessages;
+  threadIndex?: Map<string, ThreadIndexEntry>;
   mode: Mode;
   scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
   setLastVisible?: (x: Date | null) => void;
@@ -80,6 +75,7 @@ export function ChatLog({
   project_id,
   path,
   messages: messagesProp,
+  threadIndex,
   scrollToBottomRef,
   mode,
   setLastVisible,
@@ -97,28 +93,11 @@ export function ChatLog({
   acpState,
 }: Props) {
   const singleThreadView = selectedThread != null;
-  const messages = useMemo(() => {
-    const base = messagesProp ?? new Map();
-    if (!selectedThread) {
-      return base;
-    }
-    const filtered = new Map<string, ChatMessageTyped>();
-    for (const [key, message] of base) {
-      if (message == null) continue;
-      const replyToVal = replyTo(message);
-      if (replyToVal != null) {
-        if (`${new Date(replyToVal!).valueOf()}` === selectedThread) {
-          filtered.set(key, message);
-        }
-        continue;
-      }
-      const d = dateValue(message)?.valueOf();
-      if (d != null && `${d}` === selectedThread) {
-        filtered.set(key, message);
-      }
-    }
-    return filtered as ChatMessages;
-  }, [messagesProp, selectedThread]);
+  const messages = messagesProp ?? new Map();
+  const visibleKeys = useMemo<Set<string> | undefined>(() => {
+    if (!selectedThread || !threadIndex) return undefined;
+    return threadIndex.get(selectedThread)?.messageKeys;
+  }, [selectedThread, threadIndex]);
   // see similar code in task list:
   const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
     return getSelectedHashtagsSearch(selectedHashtags0);
@@ -127,21 +106,17 @@ export function ChatLog({
 
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
-  const {
-    dates: sortedDates,
-    numFolded,
-    numChildren,
-  } = useMemo<{
+  const { dates: sortedDates, numChildren } = useMemo<{
     dates: string[];
-    numFolded: number;
     numChildren: NumChildren;
   }>(() => {
-    const { dates, numFolded, numChildren } = getSortedDates(
+    const { dates, numChildren } = getSortedDates(
       messages,
       search,
       account_id!,
       filterRecentH,
       singleThreadView,
+      visibleKeys,
     );
     // TODO: This is an ugly hack because I'm tired and need to finish this.
     // The right solution would be to move this filtering to the store.
@@ -153,7 +128,7 @@ export function ChatLog({
           : new Date(parseFloat(dates[dates.length - 1])),
       );
     }, 1);
-    return { dates, numFolded, numChildren };
+    return { dates, numChildren };
   }, [messages, search, project_id, path, filterRecentH, singleThreadView]);
 
   useEffect(() => {
@@ -290,15 +265,6 @@ export function ChatLog({
           hashtags={visibleHashtags}
         />
       )}
-      {messages != null && (
-        <NotShowing
-          num={messages.size - numFolded - sortedDates.length}
-          showing={sortedDates.length}
-          search={search}
-          filterRecentH={filterRecentH}
-          actions={actions}
-        />
-      )}
       <MessageList
         {...{
           virtuosoRef,
@@ -404,6 +370,7 @@ export function getSortedDates(
   account_id: string,
   filterRecentH?: number,
   disableFolding?: boolean,
+  visibleKeys?: Set<string>,
 ): {
   dates: string[];
   numFolded: number;
@@ -426,7 +393,8 @@ export function getSortedDates(
   // Do a linear pass through all messages to divide into threads, so that
   // getSortedDates is O(n) instead of O(n^2) !
   const numChildren: NumChildren = {};
-  for (const [_, message] of m) {
+  for (const [key, message] of m) {
+    if (visibleKeys && !visibleKeys.has(`${key}`)) continue;
     const parent = replyTo(message);
     if (parent != null) {
       const d = new Date(parent).valueOf();
@@ -436,6 +404,7 @@ export function getSortedDates(
 
   const v: [date: number, reply_to: number | undefined][] = [];
   for (const [date, message] of m) {
+    if (visibleKeys && !visibleKeys.has(`${date}`)) continue;
     if (message == null) continue;
 
     // If we search for a message, we treat all threads as unfolded
@@ -496,60 +465,6 @@ export function getUserName(userMap, accountId: string): string {
   const account = userMap.get(accountId);
   if (account == null) return "Unknown";
   return account.get("first_name", "") + " " + account.get("last_name", "");
-}
-
-interface NotShowingProps {
-  num: number;
-  search: string;
-  filterRecentH: number;
-  actions;
-  showing;
-}
-
-function NotShowing({
-  num,
-  search,
-  filterRecentH,
-  actions,
-  showing,
-}: NotShowingProps) {
-  if (num <= 0) return null;
-
-  const timespan =
-    filterRecentH > 0 ? hoursToTimeIntervalHuman(filterRecentH) : null;
-
-  return (
-    <Alert
-      style={{ margin: "5px" }}
-      showIcon
-      type="warning"
-      message={
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <b style={{ flex: 1 }}>
-            WARNING: Hiding {num} {plural(num, "message")} in threads
-            {search.trim()
-              ? ` that ${
-                  num != 1 ? "do" : "does"
-                } not match search for '${search.trim()}'`
-              : ""}
-            {timespan
-              ? ` ${
-                  search.trim() ? "and" : "that"
-                } were not sent in the past ${timespan}`
-              : ""}
-            . Showing {showing} {plural(showing, "message")}.
-          </b>
-          <Button
-            onClick={() => {
-              actions.clearAllFilters();
-            }}
-          >
-            <Icon name="close-circle-filled" style={{ color: "#888" }} /> Clear
-          </Button>
-        </div>
-      }
-    />
-  );
 }
 
 export function MessageList({
