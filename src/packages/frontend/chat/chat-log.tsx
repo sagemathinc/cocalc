@@ -25,7 +25,6 @@ import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
 import { cmp } from "@cocalc/util/misc";
 import type { ChatActions } from "./actions";
 import Composing from "./composing";
-import { filterMessages } from "./filter-messages";
 import Message from "./message";
 import type {
   ChatMessageTyped,
@@ -61,7 +60,6 @@ interface Props {
   setLastVisible?: (x: Date | null) => void;
   fontSize?: number;
   actions: ChatActions;
-  search;
   selectedThread?: string;
   scrollToIndex?: null | number | undefined;
   // scrollToDate = string ms from epoch
@@ -81,7 +79,6 @@ export function ChatLog({
   setLastVisible,
   fontSize,
   actions,
-  search: search0,
   selectedThread,
   scrollToIndex,
   scrollToDate,
@@ -100,8 +97,6 @@ export function ChatLog({
     if (!showThreadHeaders || !threadIndex) return undefined;
     return threadIndex.get(COMBINED_FEED_KEY)?.orderedKeys;
   }, [showThreadHeaders, threadIndex]);
-  const search = search0.trim();
-
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
   const handleSelectThread = useCallback(
@@ -127,7 +122,6 @@ export function ChatLog({
     }
     const { dates, numChildren } = getSortedDates(
       messages,
-      search,
       account_id!,
       singleThreadView,
       visibleKeys,
@@ -145,7 +139,6 @@ export function ChatLog({
     return { dates, numChildren };
   }, [
     messages,
-    search,
     account_id,
     singleThreadView,
     visibleKeys,
@@ -154,7 +147,7 @@ export function ChatLog({
 
   useEffect(() => {
     scrollToBottomRef?.current?.(true);
-  }, [search]);
+  }, []);
 
   useEffect(() => {
     if (scrollToIndex == null) {
@@ -191,12 +184,6 @@ export function ChatLog({
           getThreadRootDate({ date: parseFloat(scrollToDate), messages }),
         );
         actions.toggleFoldThread(date);
-        tryAgain = true;
-      }
-      if (messages.size > sortedDates.length && search) {
-        // there was a search, so clear it just to be sure -- it could still hide
-        // the folded threaded
-        actions.clearAllFilters();
         tryAgain = true;
       }
       if (tryAgain) {
@@ -262,7 +249,6 @@ export function ChatLog({
           virtuosoRef,
           sortedDates,
           messages,
-          search,
           account_id,
           user_map,
           project_id,
@@ -359,7 +345,6 @@ function isFolded(
 // It was very easy to sort these before reply_to, which complicates things.
 export function getSortedDates(
   messages: ChatMessages,
-  search: string | undefined,
   account_id: string,
   disableFolding?: boolean,
   visibleKeys?: Set<string>,
@@ -378,10 +363,6 @@ export function getSortedDates(
     };
   }
 
-  // we assume filterMessages contains complete threads.  It does
-  // right now, but that's an assumption in this function.
-  m = filterMessages({ messages: m, filter: search });
-
   // Do a linear pass through all messages to divide into threads, so that
   // getSortedDates is O(n) instead of O(n^2) !
   const numChildren: NumChildren = {};
@@ -399,8 +380,7 @@ export function getSortedDates(
     if (visibleKeys && !visibleKeys.has(`${date}`)) continue;
     if (message == null) continue;
 
-    // If we search for a message, we treat all threads as unfolded
-    if (!disableFolding && !search) {
+    if (!disableFolding) {
       const is_thread = isThread(message, numChildren);
       const is_folded = is_thread && isFolded(messages, message, account_id);
       const is_thread_body = is_thread && replyTo(message) != null;

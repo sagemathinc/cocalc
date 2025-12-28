@@ -19,7 +19,6 @@ import { EditorComponentProps } from "../frame-editors/frame-tree/types";
 import type { ChatActions } from "./actions";
 import { ChatRoomComposer } from "./composer";
 import { ChatRoomLayout } from "./chatroom-layout";
-import { ChatRoomHeader } from "./chatroom-header";
 import { ChatRoomSidebarContent } from "./chatroom-sidebar";
 import type { ChatRoomModalHandlers } from "./chatroom-modals";
 import { ChatRoomModals } from "./chatroom-modals";
@@ -99,7 +98,6 @@ export interface ChatPanelProps {
   fontSize?: number;
   desc?: NodeDesc;
   variant?: "default" | "compact";
-  disableFilters?: boolean;
 }
 
 function getDescValue(desc: NodeDesc | undefined, key: string) {
@@ -120,7 +118,6 @@ export function ChatPanel({
   fontSize = 13,
   desc,
   variant = "default",
-  disableFilters: disableFiltersProp,
 }: ChatPanelProps) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
   const activity: undefined | immutable.Map<string, number> =
@@ -132,7 +129,6 @@ export function ChatPanel({
   }
   const [input, setInput] = useState("");
   const hasInput = input.trim().length > 0;
-  const search = getDescValue(desc, "data-search") ?? "";
   const scrollToIndex = getDescValue(desc, "data-scrollToIndex") ?? null;
   const scrollToDate = getDescValue(desc, "data-scrollToDate") ?? null;
   const fragmentId = getDescValue(desc, "data-fragmentId") ?? null;
@@ -144,7 +140,6 @@ export function ChatPanel({
   );
   const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
   const isCompact = variant === "compact";
-  const disableFilters = disableFiltersProp ?? isCompact;
   const storedThreadFromDesc =
     getDescValue(desc, "data-selectedThreadKey") ?? null;
   const [modalHandlers, setModalHandlers] =
@@ -180,7 +175,6 @@ export function ChatPanel({
     setSelectedThreadKey,
     setAllowAutoSelectThread,
     selectedThreadDate,
-    isCombinedFeedSelected,
     singleThreadView,
     selectedThread,
   } = useChatThreadSelection({
@@ -202,7 +196,6 @@ export function ChatPanel({
     return 0;
   }, [singleThreadView, selectedThreadDate]);
 
-  const showThreadFilters = !isCompact && isCombinedFeedSelected;
   const isSelectedThreadAI = selectedThread?.isAI ?? false;
 
   const combinedFeedIndex = useMemo(() => {
@@ -322,13 +315,6 @@ export function ChatPanel({
 
   const renderChatContent = () => (
     <div className="smc-vfill" style={GRID_STYLE}>
-      <ChatRoomHeader
-        actions={actions}
-        messagesSize={messages?.size ?? 0}
-        search={search}
-        showThreadFilters={showThreadFilters}
-        disableFilters={disableFilters}
-      />
       <ChatRoomThreadPanel
         actions={actions}
         project_id={project_id}
@@ -339,7 +325,6 @@ export function ChatPanel({
         scrollToBottomRef={scrollToBottomRef}
         scrollCacheId={scrollCacheId}
         fontSize={fontSize}
-        search={search}
         selectedThreadKey={selectedThreadKey}
         selectedThread={selectedThread}
         variant={variant}

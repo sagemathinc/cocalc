@@ -31,7 +31,6 @@ interface ChatRoomThreadPanelProps {
   scrollToBottomRef: React.MutableRefObject<any>;
   scrollCacheId: string;
   fontSize?: number;
-  search: string;
   selectedThreadKey: string | null;
   selectedThread?: { rootMessage?: unknown; key: string };
   variant: "compact" | "default";
@@ -52,7 +51,6 @@ export function ChatRoomThreadPanel({
   scrollToBottomRef,
   scrollCacheId,
   fontSize,
-  search,
   selectedThreadKey,
   selectedThread,
   variant,
@@ -123,7 +121,6 @@ export function ChatRoomThreadPanel({
         scrollCacheId={scrollCacheId}
         mode={variant === "compact" ? "sidechat" : "standalone"}
         fontSize={fontSize}
-        search={search}
         selectedThread={selectedThreadForLog}
         scrollToIndex={scrollToIndex}
         scrollToDate={scrollToDate}

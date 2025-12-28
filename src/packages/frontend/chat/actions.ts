@@ -277,11 +277,6 @@ export class ChatActions extends Actions<ChatState> {
     let selectedThreadKey: string;
     if (!reply_to) {
       this.deleteDraft(0);
-      // NOTE: we also clear search, since it's confusing to send a message and not
-      // even see it (if it doesn't match search).  We do NOT clear the hashtags though,
-      // since by default the message you are sending has those tags.
-      // Also, only do this clearing when not replying.
-      // For replies search find full threads not individual messages.
       this.clearAllFilters();
       selectedThreadKey = `${time_stamp.valueOf()}`;
     } else {
@@ -691,11 +686,7 @@ export class ChatActions extends Actions<ChatState> {
     const project_id = this.store.get("project_id");
     if (project_id == null) return;
     const account_id = this.redux.getStore("account").get_account_id();
-    const { dates } = getSortedDates(
-      messages,
-      this.store.get("search"),
-      account_id,
-    );
+    const { dates } = getSortedDates(messages, account_id);
     const v: string[] = [];
     for (const date of dates) {
       const message = messages.get(date);
@@ -1258,15 +1249,7 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   clearAllFilters = () => {
-    if (this.frameTreeActions == null) {
-      // crappy code just for sage worksheets -- will go away.
-      return;
-    }
-    this.setSearch("");
-  };
-
-  setSearch = (search) => {
-    this.frameTreeActions?.set_frame_data({ id: this.frameId, search });
+    // Filtering is no longer supported; keep this for older call sites.
   };
 
 

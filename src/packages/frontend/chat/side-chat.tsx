@@ -63,7 +63,6 @@ function SideChatInner(props: Props & { actions: ChatActions }) {
       fontSize={props.fontSize}
       desc={props.desc}
       variant="compact"
-      disableFilters
     />
   );
 }

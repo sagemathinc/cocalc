@@ -19,7 +19,6 @@ export interface ChatState {
   offset?: number; // information about where on screen the chat editor is located
   position?: number; // more info about where chat editor is located
   saved_position?: number;
-  search: string;
   add_collab: boolean;
   // timestamp when syncdb was attached (to trigger rerenders)
   syncdbReady?: number;
@@ -39,7 +38,6 @@ export function getInitialState() {
     offset: undefined,
     position: undefined,
     saved_position: undefined,
-    search: "",
     add_collab: false,
     syncdbReady: undefined,
     acpState: ImmutableMap<string, string>(),

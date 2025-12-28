@@ -23,7 +23,8 @@ import { redux_name } from "@cocalc/frontend/app-framework";
 import { aux_file } from "@cocalc/util/misc";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { delay } from "awaiting";
-import { getSearchData } from "@cocalc/frontend/chat/filter-messages";
+import { newest_content } from "@cocalc/frontend/chat/utils";
+import type { ChatMessageTyped } from "@cocalc/frontend/chat/types";
 import { ChatMessageCache } from "@cocalc/frontend/chat/message-cache";
 
 const FRAME_TYPE = "chatroom";
@@ -182,14 +183,16 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
   }
 
   getSearchIndexData = () => {
-    const messages = this.store?.get("messages");
+    const messages = this.store?.get("messages") as
+      | Map<string, ChatMessageTyped>
+      | undefined;
     if (messages == null) {
       return {};
     }
     const data: { [id: string]: string } = {};
-    const data0 = getSearchData({ messages, threads: false });
-    for (const id in data0) {
-      data[id] = data0[id]?.content;
+    for (const [id, message] of messages) {
+      if (message == null) continue;
+      data[id] = newest_content(message);
     }
     return { data, fragmentKey: "chat" };
   };

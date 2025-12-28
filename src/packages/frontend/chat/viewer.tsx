@@ -42,7 +42,7 @@ export default function Viewer({
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
   const { dates: sortedDates, numChildren } = useMemo(() => {
-    return getSortedDates(messages, "", account_id, undefined);
+    return getSortedDates(messages, account_id, undefined);
   }, [messages, account_id]);
 
   return (
