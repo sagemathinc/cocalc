@@ -475,7 +475,42 @@ function normalizeEvents(events: AcpStreamMessage[]): ActivityEntry[] {
       }
     }
   }
-  return rows.sort((a, b) => a.seq - b.seq);
+  const sorted = rows.sort((a, b) => a.seq - b.seq);
+  return coalesceFileReads(sorted);
+}
+
+function coalesceFileReads(entries: ActivityEntry[]): ActivityEntry[] {
+  const merged: ActivityEntry[] = [];
+  for (const entry of entries) {
+    if (
+      entry.kind === "file" &&
+      entry.operation === "read" &&
+      merged.length > 0
+    ) {
+      const last = merged[merged.length - 1];
+      if (
+        last.kind === "file" &&
+        last.operation === "read" &&
+        last.path === entry.path
+      ) {
+        const bytes =
+          typeof last.bytes === "number" || typeof entry.bytes === "number"
+            ? (last.bytes ?? 0) + (entry.bytes ?? 0)
+            : undefined;
+        merged[merged.length - 1] = {
+          ...last,
+          bytes,
+          truncated: last.truncated || entry.truncated,
+          // Multiple read slices: clear scope so we don't mislead with a line range.
+          line: undefined,
+          limit: undefined,
+        };
+        continue;
+      }
+    }
+    merged.push(entry);
+  }
+  return merged;
 }
 
 function createEventEntry({
