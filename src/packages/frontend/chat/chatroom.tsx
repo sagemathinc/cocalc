@@ -377,28 +377,22 @@ export function ChatPanel({
         setSidebarVisible={setSidebarVisible}
         totalUnread={totalUnread}
         sidebarContent={
-          isCompact ? undefined : (
-            <ChatRoomSidebarContent
-              actions={actions}
-              isCompact={isCompact}
-              selectedThreadKey={selectedThreadKey}
-              setSelectedThreadKey={setSelectedThreadKey}
-              setAllowAutoSelectThread={setAllowAutoSelectThread}
-              setSidebarVisible={setSidebarVisible}
-              threadSections={threadSections}
-              combinedThread={combinedThread}
-              openRenameModal={
-                modalHandlers?.openRenameModal ?? (() => undefined)
-              }
-              openExportModal={
-                modalHandlers?.openExportModal ?? (() => undefined)
-              }
-              openForkModal={modalHandlers?.openForkModal ?? (() => undefined)}
-              confirmDeleteThread={
-                threadActionHandlers?.confirmDeleteThread ?? (() => undefined)
-              }
-            />
-          )
+          <ChatRoomSidebarContent
+            actions={actions}
+            isCompact={isCompact}
+            selectedThreadKey={selectedThreadKey}
+            setSelectedThreadKey={setSelectedThreadKey}
+            setAllowAutoSelectThread={setAllowAutoSelectThread}
+            setSidebarVisible={setSidebarVisible}
+            threadSections={threadSections}
+            combinedThread={combinedThread}
+            openRenameModal={modalHandlers?.openRenameModal ?? (() => undefined)}
+            openExportModal={modalHandlers?.openExportModal ?? (() => undefined)}
+            openForkModal={modalHandlers?.openForkModal ?? (() => undefined)}
+            confirmDeleteThread={
+              threadActionHandlers?.confirmDeleteThread ?? (() => undefined)
+            }
+          />
         }
         chatContent={renderChatContent()}
         onNewChat={() => {

@@ -12,6 +12,7 @@ import type { ChatActions } from "./actions";
 import type { ChatMessages } from "./types";
 import type * as immutable from "immutable";
 import type { ThreadIndexEntry } from "./message-cache";
+import type { ThreadListItem, ThreadMeta } from "./threads";
 
 const CHAT_LOG_STYLE: React.CSSProperties = {
   padding: "0",
@@ -32,7 +33,7 @@ interface ChatRoomThreadPanelProps {
   scrollCacheId: string;
   fontSize?: number;
   selectedThreadKey: string | null;
-  selectedThread?: { rootMessage?: unknown; key: string };
+  selectedThread?: ThreadMeta | ThreadListItem;
   variant: "compact" | "default";
   scrollToIndex: number | null;
   scrollToDate: string | null;
@@ -94,11 +95,23 @@ export function ChatRoomThreadPanel({
     selectedThread != null &&
     Boolean(selectedThread.rootMessage) &&
     Boolean(actions?.isCodexThread?.(new Date(parseInt(selectedThread.key, 10))));
-  const selectedThreadForLog =
-    selectedThreadKey && variant !== "compact" ? selectedThreadKey : undefined;
+  const selectedThreadForLog = selectedThreadKey ?? undefined;
+  const compactThreadLabel = selectedThread
+    ? "displayLabel" in selectedThread
+      ? selectedThread.displayLabel
+      : selectedThread.label
+    : undefined;
 
   return (
-    <div className="smc-vfill" style={{ ...CHAT_LOG_STYLE, position: "relative" }}>
+    <div
+      className="smc-vfill"
+      style={{
+        ...CHAT_LOG_STYLE,
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {shouldShowCodexConfig && (
           <div style={{ position: "absolute", top: 8, left: 8, zIndex: 10 }}>
             <Space size={6}>
@@ -110,6 +123,22 @@ export function ChatRoomThreadPanel({
             </Space>
           </div>
         )}
+      {variant === "compact" && compactThreadLabel && (
+        <div
+          style={{
+            padding: "8px 12px",
+            borderBottom: "1px solid #e5e5e5",
+            background: "#f7f7f7",
+            color: "#555",
+            fontWeight: 600,
+            fontSize: "12px",
+            letterSpacing: "0.02em",
+            textTransform: "uppercase",
+          }}
+        >
+          {compactThreadLabel}
+        </div>
+      )}
       <ChatLog
         actions={actions}
         project_id={project_id ?? ""}
