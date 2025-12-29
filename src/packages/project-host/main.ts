@@ -123,14 +123,6 @@ export async function main(
   // Minimal local persistence so DKV/state works (no external hub needed).
   const persistServer = createPersistServer({ client: conatClient });
 
-  logger.info("File-server (local btrfs + optional ssh proxy if enabled)");
-  try {
-    await initFileServer({ client: conatClient });
-  } catch (err) {
-    logger.error("FATAL: Failed to init file server", err);
-    process.exit(1);
-  }
-
   logger.info("Proxy HTTP/WS traffic to running project containers.");
   attachProjectProxy({
     httpServer,
@@ -176,6 +168,16 @@ export async function main(
     port,
   });
   const stopReconciler = startReconciler();
+
+  // file server must be started AFTER master registration, since it connects
+  // to master to get rustic backup config.
+  logger.info("File-server (local btrfs + optional ssh proxy if enabled)");
+  try {
+    await initFileServer({ client: conatClient });
+  } catch (err) {
+    logger.error("FATAL: Failed to init file server", err);
+    process.exit(1);
+  }
 
   logger.info("project-host ready");
 

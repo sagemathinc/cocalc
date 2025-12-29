@@ -13,9 +13,6 @@ import {
   type Sync,
 } from "@cocalc/conat/files/file-server";
 import { type Client as ConatClient } from "@cocalc/conat/core/client";
-import { conat as hubConat } from "@cocalc/backend/conat";
-import { createServiceClient } from "@cocalc/conat/service/typed";
-import type { Hosts } from "@cocalc/conat/hub/api/hosts";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
 import {
@@ -50,6 +47,8 @@ import {
 } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import path from "node:path";
+import { getMasterConatClient } from "./master-status";
+import callHub from "@cocalc/conat/hub/call-hub";
 
 type SshTarget =
   | { type: "project"; project_id: string }
@@ -113,29 +112,8 @@ function projectMountpoint(project_id: string): string {
   return join(getMountPoint(), `project-${project_id}`);
 }
 
-let backupConfigCache:
-  | { toml: string; expiresAt: number }
-  | null = null;
-let backupConfigClient: Hosts | null = null;
-let backupConfigClientConn: ConatClient | null = null;
+let backupConfigCache: { toml: string; expiresAt: number } | null = null;
 let backupConfigInvalidationSub: any = null;
-
-async function getBackupConfigClient(): Promise<Hosts | null> {
-  if (backupConfigClient) return backupConfigClient;
-  const masterAddress =
-    process.env.MASTER_CONAT_SERVER ?? process.env.COCALC_MASTER_CONAT_SERVER;
-  if (!masterAddress) return null;
-  backupConfigClientConn = hubConat({ address: masterAddress });
-  const account = account_id || "host";
-  backupConfigClient = createServiceClient<Hosts>({
-    service: "hub",
-    subject: `hub.account.${account}.api`,
-    client: backupConfigClientConn,
-    timeout: 30000,
-  });
-  void startBackupConfigInvalidation(backupConfigClientConn);
-  return backupConfigClient;
-}
 
 async function startBackupConfigInvalidation(client: ConatClient) {
   if (backupConfigInvalidationSub) return;
@@ -157,17 +135,33 @@ async function startBackupConfigInvalidation(client: ConatClient) {
   );
 }
 
-async function fetchBackupConfig(): Promise<
-  { toml: string; ttl_seconds: number } | null
-> {
-  const client = await getBackupConfigClient();
+async function fetchBackupConfig(): Promise<{
+  toml: string;
+  ttl_seconds: number;
+} | null> {
+  logger.debug("fetchBackupConfig");
+  const client = getMasterConatClient();
+  if (!client) {
+    logger.debug("ERROR: master");
+    throw Error(
+      "master conat client must be configured before calling fetchBackupConfig",
+    );
+  }
+  void startBackupConfigInvalidation(client);
   if (!client) return null;
   const hostId = getLocalHostId();
   if (!hostId) return null;
-  return await client.getBackupConfig({ host_id: hostId });
+  return await callHub({
+    client,
+    account_id,
+    name: "hosts.getBackupConfig",
+    args: [{ host_id: hostId }],
+    timeout: 30000,
+  });
 }
 
 async function ensureBackupConfig(): Promise<string | null> {
+  logger.debug("ensureBackupConfig");
   const profilePath = join(secrets, "rustic.toml");
   const now = Date.now();
   if (backupConfigCache && now < backupConfigCache.expiresAt) {
@@ -460,6 +454,7 @@ export async function initFsServer({
   client: ConatClient;
   service?: string;
 }) {
+  logger.debug("initFsServer");
   return await fsServer({
     service,
     client,

@@ -151,7 +151,7 @@ function requireCreateHosts(entitlements: any) {
 
 async function getSiteSetting(name: string): Promise<string | undefined> {
   const { rows } = await pool().query<{ value: string | null }>(
-    "SELECT value FROM site_settings WHERE name=$1",
+    "SELECT value FROM server_settings WHERE name=$1",
     [name],
   );
   const value = rows[0]?.value ?? undefined;
