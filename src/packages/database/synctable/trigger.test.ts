@@ -6,13 +6,19 @@
 // Test suite for PostgreSQL trigger code generation functions
 // Tests the CoffeeScript implementation first to establish baseline
 
+import type { ChangefeedSelect } from "../postgres/types";
+
 describe("Trigger Code Generation", () => {
-  let trigger_name: (table: string, select: any, watch: any) => string;
+  let trigger_name: (
+    table: string,
+    select: ChangefeedSelect,
+    watch: string[],
+  ) => string;
   let triggerType: (type: string) => string;
   let trigger_code: (
     table: string,
-    select: any,
-    watch: any,
+    select: ChangefeedSelect,
+    watch: string[],
   ) => { function: string; trigger: string };
 
   beforeAll(() => {
@@ -123,7 +129,8 @@ describe("Trigger Code Generation", () => {
     });
 
     it("should throw error if select is not an object", () => {
-      expect(() => trigger_name("projects", "invalid", [])).toThrow();
+      const invalidSelect = "invalid" as unknown as ChangefeedSelect;
+      expect(() => trigger_name("projects", invalidSelect, [])).toThrow();
     });
   });
 
@@ -332,7 +339,10 @@ describe("Trigger Code Generation", () => {
     });
 
     it("should default missing types to text", () => {
-      const select = { id: undefined, name: "text" };
+      const select = {
+        id: undefined,
+        name: "text",
+      } as unknown as ChangefeedSelect;
       const watch: string[] = [];
 
       const code = trigger_code("projects", select, watch);

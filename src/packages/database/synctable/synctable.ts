@@ -14,6 +14,16 @@ import * as misc from "@cocalc/util/misc";
 import { SCHEMA } from "@cocalc/util/schema";
 import type { CB } from "@cocalc/util/types/callback";
 
+import type {
+  PostgreSQL,
+  QueryOptions,
+  QueryWhere,
+  SyncTableKey,
+  SyncTableNotification,
+  SyncTableRow,
+  SyncTableWhereFunction,
+} from "../postgres/types";
+
 // Import from postgres-base (still CoffeeScript)
 const base = (() => {
   try {
@@ -24,12 +34,13 @@ const base = (() => {
 })();
 const { pg_type, quote_field } = base;
 
-type SyncTableValue = immutable.Map<string, immutable.Map<string, any>>;
+type SyncTableRowValue = immutable.Map<string, unknown>;
+type SyncTableValue = immutable.Map<SyncTableKey, SyncTableRowValue>;
 
-interface WaitOptions {
-  until: (table: SyncTable) => any;
+interface WaitOptions<T = unknown> {
+  until: (table: SyncTable) => T;
   timeout?: number; // in seconds, 0 to disable
-  cb: CB;
+  cb: CB<T>;
 }
 
 /**
@@ -37,11 +48,11 @@ interface WaitOptions {
  * Automatically tracks changes to a table and maintains an in-memory cache
  */
 export class SyncTable extends EventEmitter {
-  private _db: any;
+  private _db: PostgreSQL;
   private _table: string;
   private _columns?: string[];
-  private _where: any;
-  private _where_function?: (key: any) => boolean;
+  private _where?: QueryWhere;
+  private _where_function?: SyncTableWhereFunction;
   private _limit?: number;
   private _order_by?: string;
   private _primary_key!: string;
@@ -51,18 +62,18 @@ export class SyncTable extends EventEmitter {
   private _select_query!: string;
   private _state: "init" | "ready" | "error" | "closed" = "init";
   private _value?: SyncTableValue;
-  private _changed: Record<string, boolean> = {};
+  private _changed: Record<SyncTableKey, boolean> = {};
   private _tgname?: string;
 
   constructor(
-    _db: any,
+    _db: PostgreSQL,
     _table: string,
     _columns: string[] | undefined,
-    _where: any,
-    _where_function: ((key: any) => boolean) | undefined,
+    _where: QueryWhere | undefined,
+    _where_function: SyncTableWhereFunction | undefined,
     _limit: number | undefined,
     _order_by: string | undefined,
-    cb?: CB,
+    cb?: CB<SyncTable>,
   ) {
     super();
 
@@ -123,8 +134,8 @@ export class SyncTable extends EventEmitter {
     return this._db._dbg(`SyncTable(table='${this._table}').${f}`);
   }
 
-  _query_opts() {
-    const opts: any = {};
+  _query_opts(): QueryOptions<SyncTableRow> {
+    const opts: QueryOptions<SyncTableRow> = {};
     opts.query = this._select_query;
     opts.where = this._where;
     opts.limit = this._limit;
@@ -152,16 +163,16 @@ export class SyncTable extends EventEmitter {
     opts?.cb?.(); // NO-OP -- only needed for backward compatibility
   }
 
-  _notification(obj: any) {
+  _notification(obj: SyncTableNotification) {
     const [action, new_val, old_val] = obj;
     if (action === "DELETE" || new_val == null) {
-      const k = old_val[this._primary_key];
+      const k = (old_val as SyncTableRow)[this._primary_key] as SyncTableKey;
       if (this._value?.has(k)) {
         this._value = this._value.delete(k);
         process.nextTick(() => this.emit("change", k));
       }
     } else {
-      const k = new_val[this._primary_key];
+      const k = new_val[this._primary_key] as SyncTableKey;
       if (this._where_function != null && !this._where_function(k)) {
         // doesn't match -- nothing to do -- ignore
         return;
@@ -183,7 +194,7 @@ export class SyncTable extends EventEmitter {
 
   _do_init(cb: CB) {
     this._state = "init"; // 'init' -> ['error', 'ready'] -> 'closed'
-    this._value = immutable.Map();
+    this._value = immutable.Map<SyncTableKey, SyncTableRowValue>();
     this._changed = {};
     async.series(
       [
@@ -194,9 +205,17 @@ export class SyncTable extends EventEmitter {
             this._listen_columns,
             this._watch_columns,
             (err, tgname) => {
+              if (err) {
+                cb(err);
+                return;
+              }
+              if (!tgname) {
+                cb("missing trigger name");
+                return;
+              }
               this._tgname = tgname;
               this._db.on(this._tgname, this._notification);
-              cb(err);
+              cb();
             },
           );
         },
@@ -206,6 +225,10 @@ export class SyncTable extends EventEmitter {
             if (err) {
               cb(err);
             } else {
+              if (!result) {
+                cb("missing query result");
+                return;
+              }
               this._process_results(result.rows);
               this._db.once("connect", this._reconnect);
               cb();
@@ -276,7 +299,7 @@ export class SyncTable extends EventEmitter {
     });
   }
 
-  _process_results(rows: any[]) {
+  _process_results(rows: SyncTableRow[]) {
     if (this._state === "closed" || this._value == null) {
       // See https://github.com/sagemathinc/cocalc/issues/4440
       // for why the this._value check.  Remove this when this is
@@ -284,8 +307,10 @@ export class SyncTable extends EventEmitter {
       return;
     }
     for (const x of rows) {
-      const k = x[this._primary_key];
-      const v = immutable.fromJS(misc.map_without_undefined_and_null(x)) as immutable.Map<string, any>;
+      const k = x[this._primary_key] as SyncTableKey;
+      const v = immutable.fromJS(
+        misc.map_without_undefined_and_null(x),
+      ) as SyncTableRowValue;
       const existing = this._value.get(k);
       if (!existing || !v.equals(existing)) {
         this._value = this._value.set(k, v);
@@ -298,10 +323,13 @@ export class SyncTable extends EventEmitter {
   }
 
   // Remove from synctable anything that no longer matches the where criterion.
-  _process_deleted(rows: any[], changed: Record<string, boolean>) {
-    const kept: Record<string, boolean> = {};
+  _process_deleted(
+    rows: SyncTableRow[],
+    changed: Record<SyncTableKey, boolean>,
+  ) {
+    const kept: Record<SyncTableKey, boolean> = {};
     for (const x of rows) {
-      kept[x[this._primary_key]] = true;
+      kept[x[this._primary_key] as SyncTableKey] = true;
     }
     for (const k in changed) {
       if (!kept[k] && this._value?.has(k)) {
@@ -334,12 +362,16 @@ export class SyncTable extends EventEmitter {
     }
 
     // Have to query to get actual changed data.
+    const where: QueryWhere =
+      this._where == null
+        ? { [`${this._primary_key} = ANY($)`]: misc.keys(changed) }
+        : [
+            { [`${this._primary_key} = ANY($)`]: misc.keys(changed) },
+            this._where,
+          ];
     this._db._query({
       query: this._select_query,
-      where: [
-        { [`${this._primary_key} = ANY($)`]: misc.keys(changed) },
-        this._where,
-      ],
+      where,
       cb: (err, result) => {
         if (err) {
           this._dbg("update")(`error ${err}`);
@@ -347,6 +379,11 @@ export class SyncTable extends EventEmitter {
             this._changed[k] = true; // will try again later
           }
         } else {
+          if (!result) {
+            this._dbg("update")("missing query result");
+            cb?.();
+            return;
+          }
           this._process_results(result.rows);
           this._process_deleted(result.rows, changed);
         }
@@ -355,14 +392,16 @@ export class SyncTable extends EventEmitter {
     });
   }
 
-  get(key?: string | string[]): any {
+  get(
+    key?: SyncTableKey | SyncTableKey[],
+  ): SyncTableValue | SyncTableRowValue | undefined {
     // key = single key or array of keys
     if (key == null || this._value == null) {
       return this._value;
     }
     if (misc.is_array(key)) {
       // for consistency with @cocalc/sync/synctable
-      let r = immutable.Map();
+      let r: SyncTableValue = immutable.Map<SyncTableKey, SyncTableRowValue>();
       for (const k of key) {
         const v = this._value.get(k);
         if (v != null) {
@@ -375,11 +414,11 @@ export class SyncTable extends EventEmitter {
     }
   }
 
-  getIn(x: any[]) {
-    return this._value?.getIn(x);
+  getIn(path: Array<string | number>): unknown {
+    return this._value?.getIn(path);
   }
 
-  has(key: string) {
+  has(key: SyncTableKey): boolean | undefined {
     return this._value?.has(key);
   }
 

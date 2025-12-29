@@ -9,6 +9,8 @@
 import * as misc from "@cocalc/util/misc";
 import { sha1 } from "@cocalc/backend/misc_node";
 
+import type { ChangefeedSelect } from "../postgres/types";
+
 // Import quote_field from postgres-base (still CoffeeScript)
 const base = (() => {
   try {
@@ -28,7 +30,7 @@ const { quote_field } = base;
  */
 export function trigger_name(
   table: string,
-  select: Record<string, string>,
+  select: ChangefeedSelect,
   watch: string[],
 ): string {
   if (!misc.is_object(select)) {
@@ -67,7 +69,7 @@ export function triggerType(type: string): string {
  */
 export function trigger_code(
   table: string,
-  select: Record<string, string>,
+  select: ChangefeedSelect,
   watch: string[],
 ): { function: string; trigger: string } {
   const tgname = trigger_name(table, select, watch);

@@ -2,7 +2,6 @@
  * decaffeinate suggestions:
  * DS002: Fix invalid constructor
  * DS102: Remove unnecessary code created because of implicit returns
- * DS103: Rewrite code to no longer use __guard__, or convert again using --optional-chaining
  * DS104: Avoid inline assignments
  * DS202: Simplify dynamic range loops
  * DS205: Consider reworking code to avoid use of IIFEs
@@ -36,6 +35,7 @@ import { PROJECT_UPGRADES, SCHEMA } from "@cocalc/util/schema";
 import type { CB } from "@cocalc/util/types/callback";
 
 import { updateRetentionData } from "../postgres/retention";
+import { awakenProject } from "./awaken-project";
 import {
   cancelUserQueries,
   type CancelUserQueriesOptions,
@@ -743,12 +743,7 @@ export function extend_PostgreSQL(ext) {
         r.client_query = s != null ? s.project_query : undefined;
       }
 
-      if (
-        __guard__(
-          r.client_query != null ? r.client_query.set : undefined,
-          (x1) => x1.fields,
-        ) == null
-      ) {
+      if (r.client_query?.set?.fields == null) {
         return {
           err: `FATAL: user set queries not allowed for table '${opts.table}'`,
         };
@@ -822,26 +817,10 @@ export function extend_PostgreSQL(ext) {
         if (primary_keys.includes(k)) {
           continue;
         }
-        if (
-          __guard__(
-            __guard__(
-              client_query != null ? client_query.set : undefined,
-              (x3) => x3.fields,
-            ),
-            (x2) => x2[k],
-          ) !== undefined
-        ) {
+        if (client_query?.set?.fields?.[k] !== undefined) {
           continue;
         }
-        if (
-          __guard__(
-            __guard__(
-              s.admin_query != null ? s.admin_query.set : undefined,
-              (x5) => x5.fields,
-            ),
-            (x4) => x4[k],
-          ) !== undefined
-        ) {
+        if (s.admin_query?.set?.fields?.[k] !== undefined) {
           r.require_admin = true;
           continue;
         }
@@ -995,17 +974,8 @@ export function extend_PostgreSQL(ext) {
       const s = schema[r.db_table as string];
       for (var key in query) {
         var value = query[key];
-        var type = pg_type(
-          __guard__(s != null ? s.fields : undefined, (x1) => x1[key]),
-        );
-        if (
-          value != null &&
-          type != null &&
-          !__guard__(
-            __guard__(s != null ? s.fields : undefined, (x3) => x3[key]),
-            (x2) => x2.noCoerce,
-          )
-        ) {
+        var type = pg_type(s?.fields?.[key]);
+        if (value != null && type != null && !s?.fields?.[key]?.noCoerce) {
           if (type === "TIMESTAMP" && !misc.is_date(value)) {
             // (as above) Javascript is better at parsing its own dates than PostgreSQL
             var x = new Date(value);
@@ -1333,16 +1303,7 @@ export function extend_PostgreSQL(ext) {
         return;
       }
       const objects = (misc.is_array(obj) ? obj : [obj]) as AnyRecord[];
-      const s =
-        __guard__(
-          client_query != null ? client_query.get : undefined,
-          (x1) => x1.fields,
-        ) != null
-          ? __guard__(
-              client_query != null ? client_query.get : undefined,
-              (x1) => x1.fields,
-            )
-          : {};
+      const s = client_query?.get?.fields ?? {};
       return (() => {
         const result: any[] = [];
         for (var k of fields) {
@@ -1626,12 +1587,7 @@ export function extend_PostgreSQL(ext) {
       if (
         (new_val != null ? new_val.action_request : undefined) != null &&
         JSON.stringify(new_val.action_request.time) !==
-          JSON.stringify(
-            __guard__(
-              old_val != null ? old_val.action_request : undefined,
-              (x) => x.time,
-            ),
-          )
+          JSON.stringify(old_val?.action_request?.time)
       ) {
         // Requesting an action, e.g., save, restart, etc.
         dbg(`action_request -- ${misc.to_json(new_val.action_request)}`);
@@ -1686,16 +1642,7 @@ export function extend_PostgreSQL(ext) {
         if (account_id !== id) {
           // make sure user doesn't change anybody else's allocation
           if (
-            !lodash.isEqual(
-              __guard__(
-                old_val != null ? old_val[id] : undefined,
-                (x1) => x1.upgrades,
-              ),
-              __guard__(
-                new_val != null ? new_val[id] : undefined,
-                (x2) => x2.upgrades,
-              ),
-            )
+            !lodash.isEqual(old_val?.[id]?.upgrades, new_val?.[id]?.upgrades)
           ) {
             err = `FATAL: user '${account_id}' tried to change user '${id}' allocation toward a project`;
             dbg(err);
@@ -1723,14 +1670,8 @@ export function extend_PostgreSQL(ext) {
         )} --> ${misc.to_json(new_val)}`,
       );
       dbg();
-      const old_upgrades = __guard__(
-        old_val.users != null ? old_val.users[account_id] : undefined,
-        (x) => x.upgrades,
-      );
-      const new_upgrades = __guard__(
-        new_val.users != null ? new_val.users[account_id] : undefined,
-        (x1) => x1.upgrades,
-      );
+      const old_upgrades = old_val.users?.[account_id]?.upgrades;
+      const new_upgrades = new_val.users?.[account_id]?.upgrades;
       if (new_upgrades != null && !lodash.isEqual(old_upgrades, new_upgrades)) {
         dbg(
           `upgrades changed for ${account_id} from ${misc.to_json(
@@ -2333,18 +2274,13 @@ export function extend_PostgreSQL(ext) {
               ? schema[orig_table].changefeed_keys
               : undefined
             : schema[table] != null
-            ? schema[table].changefeed_keys
-            : undefined) != null
+              ? schema[table].changefeed_keys
+              : undefined) != null
           ? left
           : [];
       for (var field in user_query) {
         var val = user_query[field];
-        var type = pg_type(
-          __guard__(
-            schema[table] != null ? schema[table].fields : undefined,
-            (x) => x[field],
-          ),
-        );
+        var type = pg_type(schema[table]?.fields?.[field]);
         if (type === "TIMESTAMP") {
           possible_time_fields[field] = "all";
         }
@@ -2419,10 +2355,7 @@ export function extend_PostgreSQL(ext) {
           (cb: CB) => {
             // check for alternative where test for changefeed.
             let tracker_add, tracker_error, tracker_remove;
-            let pg_changefeed = __guard__(
-              client_query != null ? client_query.get : undefined,
-              (x1) => x1.pg_changefeed,
-            );
+            let pg_changefeed = client_query?.get?.pg_changefeed;
             if (pg_changefeed == null) {
               cb();
               return;
@@ -2910,20 +2843,17 @@ export function extend_PostgreSQL(ext) {
             ? old_val.project_id
             : undefined
           : new_val != null
-          ? new_val.project_id
-          : undefined;
+            ? new_val.project_id
+            : undefined;
       if (
         project_id != null &&
-        (__guard__(
-          new_val != null ? new_val.save : undefined,
-          (x) => x.state,
-        ) === "requested" ||
+        (new_val?.save?.state === "requested" ||
           ((new_val != null ? new_val.last_active : undefined) != null &&
             (new_val != null ? new_val.last_active : undefined) !==
               (old_val != null ? old_val.last_active : undefined)))
       ) {
         dbg(`awakening project ${project_id}`);
-        return awaken_project(this, project_id);
+        return awakenProject(this as any, project_id);
       }
     }
 
@@ -3093,54 +3023,6 @@ export function extend_PostgreSQL(ext) {
   };
 }
 
-const _last_awaken_time: Record<string, Date> = {};
-var awaken_project = function (db: any, project_id: string, cb?: CB) {
-  // throttle so that this gets called *for a given project* at most once every 30s.
-  const now = new Date();
-  if (
-    _last_awaken_time[project_id] != null &&
-    now.getTime() - _last_awaken_time[project_id].getTime() < 30000
-  ) {
-    return;
-  }
-  _last_awaken_time[project_id] = now;
-  const dbg = db._dbg(`_awaken_project(project_id=${project_id})`);
-  if (db.projectControl == null) {
-    dbg("skipping since no projectControl defined");
-    return;
-  }
-  dbg("doing it...");
-  return async.series(
-    [
-      async function (cb: CB) {
-        try {
-          const project: ProjectControl = await db.projectControl(project_id);
-          await project.start();
-          return cb();
-        } catch (err) {
-          return cb(`error starting project = ${err}`);
-        }
-      },
-      function (cb: CB) {
-        if (db.ensure_connection_to_project == null) {
-          cb();
-          return;
-        }
-        dbg("also make sure there is a connection from hub to project");
-        // This is so the project can find out that the user wants to save a file (etc.)
-        return db.ensure_connection_to_project(project_id, cb);
-      },
-    ],
-    function (err) {
-      if (err) {
-        dbg(`awaken project error -- ${err}`);
-      } else {
-        dbg("success awakening project");
-      }
-      return typeof cb === "function" ? cb(err) : undefined;
-    },
-  );
-};
 /*
 Note about opts.changes.cb:
 
@@ -3153,9 +3035,3 @@ However, the project definitely does NOT do so well, and it can get messed up.  
 
 My fix is to queue up those changes on the server, then only start sending them to the client **after** the (b) query is done.  I tested this by using setTimeout to manually delay (b) for a few seconds, and fully seeing the "file won't save problem".   The other approach would make it so clients are more robust against getting changes first.  However, it would take a long time for all clients to update (restart all projects), and it's an annoying assumption to make in general -- we may have entirely new clients later and they could make the same bad assumptions about order...
 */
-
-function __guard__(value, transform) {
-  return typeof value !== "undefined" && value !== null
-    ? transform(value)
-    : undefined;
-}

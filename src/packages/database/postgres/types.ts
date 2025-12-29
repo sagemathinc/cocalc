@@ -15,7 +15,10 @@ import {
   QueryRows,
   UntypedQueryResult,
 } from "@cocalc/util/types/database";
-import { Changes } from "./changefeed";
+
+import type { SyncTable } from "../synctable/synctable";
+import type { Changes } from "./changefeed";
+import type { ProjectAndUserTracker } from "./project-and-user-tracker";
 
 export type { QueryResult };
 
@@ -26,6 +29,21 @@ export type QueryWhere =
   | { [field: string]: any }[]
   | string
   | string[];
+
+export type ChangefeedSelect = Record<string, string>;
+export type ChangefeedWhere =
+  | QueryWhere
+  | ((row: Record<string, unknown>) => boolean);
+
+export type SyncTableKey = string;
+export type SyncTableRow = Record<string, unknown>;
+export type SyncTableWhereFunction = (key: SyncTableKey) => boolean;
+export type SyncTableNotificationAction = "DELETE" | "INSERT" | "UPDATE";
+export type SyncTableNotification = [
+  action: SyncTableNotificationAction | string,
+  new_val?: SyncTableRow | null,
+  old_val?: SyncTableRow | null,
+];
 
 // There are many more options still -- add them as needed.
 export interface QueryOptions<T = UntypedQueryResult> {
@@ -66,12 +84,27 @@ export interface UserQueryOptions {
 
 export interface ChangefeedOptions {
   table: string; // Name of the table
-  select: { [field: string]: any }; // Map from field names to postgres data types. These must
+  select: ChangefeedSelect; // Map from field names to postgres data types. These must
   // determine entries of table (e.g., primary key).
-  where: QueryWhere; // Condition involving only the fields in select; or function taking
+  where: ChangefeedWhere; // Condition involving only the fields in select; or function taking
   // obj with select and returning true or false
   watch: string[]; // Array of field names we watch for changes
-  cb: CB;
+  cb: CB<Changes>;
+}
+
+export interface SyncTableOptions {
+  table: string;
+  columns?: string[];
+  where?: QueryWhere;
+  limit?: number;
+  order_by?: string;
+  where_function?: SyncTableWhereFunction;
+  idle_timeout_s?: number;
+  cb?: CB<SyncTable>;
+}
+
+export interface ProjectAndUserTrackerOptions {
+  cb: CB<ProjectAndUserTracker>;
 }
 
 export interface DeletePassportOpts {
@@ -114,7 +147,15 @@ export interface PostgreSQL extends EventEmitter {
   _password: string;
   _user: string;
 
-  _stop_listening(table: string, select: QuerySelect, watch: string[]);
+  _primary_key(table: string): string;
+  _primary_keys(table: string): string[];
+
+  _stop_listening(
+    table: string,
+    select: QuerySelect,
+    watch: string[],
+    cb?: CB,
+  ): void;
 
   _query(opts: QueryOptions): void;
 
@@ -131,9 +172,14 @@ export interface PostgreSQL extends EventEmitter {
     opts: AsyncQueryOptions,
   ): Promise<QueryRows<T>>;
 
-  _listen(table: string, select: QuerySelect, watch: string[], cb: CB): void;
+  _listen(
+    table: string,
+    select: QuerySelect,
+    watch: string[],
+    cb?: CB<string>,
+  ): void;
 
-  changefeed(opts: ChangefeedOptions): Changes;
+  changefeed(opts: ChangefeedOptions): Changes | undefined;
 
   account_ids_to_usernames(opts: { account_ids: string[]; cb: CB }): void;
 
@@ -305,16 +351,9 @@ export interface PostgreSQL extends EventEmitter {
     cb: CB;
   }): void;
 
-  synctable(opts: {
-    table: string;
-    columns?: string[];
-    where?: { [key: string]: string | string[] } | string;
-    limit?: number;
-    order_by?: any;
-    where_function?: Function;
-    idle_timeout_s?: number;
-    cb?: CB;
-  });
+  synctable(opts: SyncTableOptions): SyncTable | undefined;
+
+  project_and_user_tracker(opts: ProjectAndUserTrackerOptions): Promise<void>;
 
   projects_that_need_to_be_started(): Promise<string[]>;
 
@@ -436,4 +475,12 @@ export interface PostgreSQL extends EventEmitter {
 }
 
 // This is an extension of BaseProject in projects/control/base.ts
-type Project = EventEmitter & {};
+// We define the methods we actually use to avoid circular dependencies
+type Project = EventEmitter & {
+  start: () => Promise<void>;
+  stop: () => Promise<void>;
+  restart: () => Promise<void>;
+  setAllQuotas?: () => Promise<void>;
+};
+
+export type PostgreSQLConstructor = new (...args: any[]) => PostgreSQL;

@@ -6,6 +6,15 @@
 // Test suite for PostgreSQL synctable extension methods
 // Tests the CoffeeScript implementation first to establish baseline
 
+import type { CB } from "@cocalc/util/types/callback";
+
+import type {
+  ChangefeedSelect,
+  PostgreSQL,
+  PostgreSQLConstructor,
+} from "../postgres/types";
+import type { ProjectAndUserTracker } from "../postgres/project-and-user-tracker";
+
 let projectTrackerInit: jest.Mock;
 let projectTrackerOnce: jest.Mock;
 
@@ -21,13 +30,30 @@ jest.mock("../postgres/project-and-user-tracker", () => ({
 }));
 
 describe("PostgreSQL Synctable Methods", () => {
-  let PostgreSQL: any;
-  let extend_PostgreSQL: any;
-  let db: any;
+  type SynctablePostgreSQL = PostgreSQL & {
+    _listening?: Record<string, number>;
+    _close_test_query?: () => void;
+    _ensure_trigger_exists: (
+      table: string,
+      select: ChangefeedSelect,
+      watch: string[],
+      cb: CB,
+    ) => void;
+    _notification: (mesg: { channel: string; payload: string }) => void;
+    _clear_listening_state: () => void;
+    _project_and_user_tracker?: ProjectAndUserTracker;
+    _project_and_user_tracker_cbs?: Array<CB<ProjectAndUserTracker>>;
+  };
+
+  let PostgreSQL: PostgreSQLConstructor;
+  let extend_PostgreSQL: typeof import("./methods").extend_PostgreSQL;
+  let db: SynctablePostgreSQL;
 
   beforeAll(() => {
     // Load base PostgreSQL class
-    const base = require("../dist/postgres-base");
+    const base = require("../dist/postgres-base") as {
+      PostgreSQL: PostgreSQLConstructor;
+    };
     // Load synctable extension from TypeScript
     const synctable = require("./methods");
     extend_PostgreSQL = synctable.extend_PostgreSQL;
@@ -39,14 +65,13 @@ describe("PostgreSQL Synctable Methods", () => {
   beforeEach(() => {
     // Create a PostgreSQL instance for testing
     // We won't actually connect to a database, just test method existence
-    db = new PostgreSQL({ database: "test" });
+    db = new PostgreSQL({ database: "test" }) as SynctablePostgreSQL;
     projectTrackerInit = jest.fn().mockResolvedValue(undefined);
     projectTrackerOnce = jest.fn();
   });
 
   afterEach(() => {
     db?._close_test_query?.();
-    db = null;
   });
 
   describe("extension methods exist", () => {
@@ -113,7 +138,7 @@ describe("PostgreSQL Synctable Methods", () => {
 
     it("should skip trigger creation when trigger already exists", (done) => {
       db._query = jest.fn().mockImplementationOnce((opts) => {
-        opts.cb(undefined, { rows: [{ count: "1" }] });
+        opts.cb?.(undefined, { rows: [{ count: "1" }] });
       });
 
       db._ensure_trigger_exists(
@@ -131,10 +156,10 @@ describe("PostgreSQL Synctable Methods", () => {
     it("should create trigger when missing", (done) => {
       db._query = jest.fn().mockImplementation((opts) => {
         if (opts.query.includes("SELECT count(*) FROM pg_trigger")) {
-          opts.cb(undefined, { rows: [{ count: "0" }] });
+          opts.cb?.(undefined, { rows: [{ count: "0" }] });
           return;
         }
-        opts.cb(undefined);
+        opts.cb?.(undefined);
       });
 
       db._ensure_trigger_exists(
@@ -160,7 +185,7 @@ describe("PostgreSQL Synctable Methods", () => {
 
     it("should propagate query errors", (done) => {
       db._query = jest.fn().mockImplementationOnce((opts) => {
-        opts.cb("db-error");
+        opts.cb?.("db-error");
       });
 
       db._ensure_trigger_exists(
@@ -177,14 +202,14 @@ describe("PostgreSQL Synctable Methods", () => {
     it("should propagate function creation errors", (done) => {
       db._query = jest.fn().mockImplementation((opts) => {
         if (opts.query.includes("SELECT count(*) FROM pg_trigger")) {
-          opts.cb(undefined, { rows: [{ count: "0" }] });
+          opts.cb?.(undefined, { rows: [{ count: "0" }] });
           return;
         }
         if (opts.query.includes("CREATE OR REPLACE FUNCTION")) {
-          opts.cb("create-function-error");
+          opts.cb?.("create-function-error");
           return;
         }
-        opts.cb(undefined);
+        opts.cb?.(undefined);
       });
 
       db._ensure_trigger_exists(
@@ -202,14 +227,14 @@ describe("PostgreSQL Synctable Methods", () => {
     it("should propagate trigger creation errors", (done) => {
       db._query = jest.fn().mockImplementation((opts) => {
         if (opts.query.includes("SELECT count(*) FROM pg_trigger")) {
-          opts.cb(undefined, { rows: [{ count: "0" }] });
+          opts.cb?.(undefined, { rows: [{ count: "0" }] });
           return;
         }
         if (opts.query.includes("CREATE TRIGGER")) {
-          opts.cb("create-trigger-error");
+          opts.cb?.("create-trigger-error");
           return;
         }
-        opts.cb(undefined);
+        opts.cb?.(undefined);
       });
 
       db._ensure_trigger_exists(
@@ -226,13 +251,16 @@ describe("PostgreSQL Synctable Methods", () => {
 
   describe("_listen", () => {
     it("should validate select and watch arguments", (done) => {
-      db._listen("projects", "invalid", [], (err) => {
+      const invalidSelect = "invalid" as unknown as ChangefeedSelect;
+      const invalidWatch = "bad" as unknown as string[];
+
+      db._listen("projects", invalidSelect, [], (err) => {
         expect(err).toBe("select must be an object");
 
         db._listen("projects", {}, [], (err2) => {
           expect(err2).toBe("there must be at least one column");
 
-          db._listen("projects", { id: "uuid" }, "bad", (err3) => {
+          db._listen("projects", { id: "uuid" }, invalidWatch, (err3) => {
             expect(err3).toBe("watch must be an array");
             done();
           });
@@ -247,13 +275,13 @@ describe("PostgreSQL Synctable Methods", () => {
       db._ensure_trigger_exists = jest.fn((_t, _s, _w, cb) => cb());
       db._query = jest.fn((opts) => {
         expect(opts.query).toBe(`LISTEN ${tgname}`);
-        opts.cb(undefined);
+        opts.cb?.(undefined);
       });
 
       db._listen("projects", { id: "uuid" }, [], (err, name) => {
         expect(err).toBeUndefined();
         expect(name).toBe(tgname);
-        expect(db._listening[tgname]).toBe(1);
+        expect(db._listening?.[tgname]).toBe(1);
         done();
       });
     });
@@ -268,7 +296,7 @@ describe("PostgreSQL Synctable Methods", () => {
       db._listen("projects", { id: "uuid" }, [], (err, name) => {
         expect(err).toBeUndefined();
         expect(name).toBe(tgname);
-        expect(db._listening[tgname]).toBe(2);
+        expect(db._listening?.[tgname]).toBe(2);
         expect(db._ensure_trigger_exists).not.toHaveBeenCalled();
         expect(db._query).not.toHaveBeenCalled();
         done();
@@ -286,7 +314,7 @@ describe("PostgreSQL Synctable Methods", () => {
       db._listen("projects", { id: "uuid" }, [], (err) => {
         expect(err).toBe("trigger-error");
         expect(db._query).not.toHaveBeenCalled();
-        expect(db._listening[tgname]).toBeUndefined();
+        expect(db._listening?.[tgname]).toBeUndefined();
         done();
       });
     });
@@ -297,12 +325,12 @@ describe("PostgreSQL Synctable Methods", () => {
       db._ensure_trigger_exists = jest.fn((_t, _s, _w, cb) => cb());
       db._query = jest.fn((opts) => {
         expect(opts.query).toBe(`LISTEN ${tgname}`);
-        opts.cb("listen-error");
+        opts.cb?.("listen-error");
       });
 
       db._listen("projects", { id: "uuid" }, [], (err) => {
         expect(err).toBe("listen-error");
-        expect(db._listening[tgname]).toBeUndefined();
+        expect(db._listening?.[tgname]).toBeUndefined();
         done();
       });
     });
@@ -332,10 +360,10 @@ describe("PostgreSQL Synctable Methods", () => {
     it("should return a SyncTable instance when allowed", (done) => {
       db.is_standby = false;
       db._listen = jest.fn((_table, _select, _watch, cb) => {
-        cb(undefined, "test_trigger");
+        cb?.(undefined, "test_trigger");
       });
       db._query = jest.fn((opts) => {
-        opts.cb(undefined, { rows: [] });
+        opts.cb?.(undefined, { rows: [] });
       });
 
       const st = db.synctable({
@@ -468,7 +496,7 @@ describe("PostgreSQL Synctable Methods", () => {
 
       db._stop_listening("projects", { id: "uuid" }, []);
 
-      expect(db._listening[tgname]).toBe(2);
+      expect(db._listening?.[tgname]).toBe(2);
     });
 
     it("should not call UNLISTEN if count still > 0", () => {
@@ -481,7 +509,7 @@ describe("PostgreSQL Synctable Methods", () => {
       db._stop_listening("projects", { id: "uuid" }, []);
 
       expect(db._query).not.toHaveBeenCalled();
-      expect(db._listening[tgname]).toBe(1);
+      expect(db._listening?.[tgname]).toBe(1);
     });
 
     it("should UNLISTEN when count reaches zero", (done) => {
@@ -495,7 +523,7 @@ describe("PostgreSQL Synctable Methods", () => {
       });
 
       db._stop_listening("projects", { id: "uuid" }, [], () => {
-        expect(db._listening[tgname]).toBe(0);
+        expect(db._listening?.[tgname]).toBe(0);
         done();
       });
     });
@@ -514,7 +542,7 @@ describe("PostgreSQL Synctable Methods", () => {
     });
 
     it("should reuse cached tracker", (done) => {
-      const cached = { cached: true };
+      const cached = { cached: true } as unknown as ProjectAndUserTracker;
       db._project_and_user_tracker = cached;
 
       db.project_and_user_tracker({

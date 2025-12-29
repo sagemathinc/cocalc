@@ -11,49 +11,43 @@ import async from "async";
 import * as misc from "@cocalc/util/misc";
 import type { CB } from "@cocalc/util/types/callback";
 
-import { trigger_name, trigger_code } from "./trigger";
+import type {
+  ChangefeedOptions,
+  ChangefeedSelect,
+  PostgreSQLConstructor,
+  ProjectAndUserTrackerOptions,
+  SyncTableOptions,
+} from "../postgres/types";
+import type { Changes } from "../postgres/changefeed";
+import type { ProjectAndUserTracker } from "../postgres/project-and-user-tracker";
+
+import { trigger_code, trigger_name } from "./trigger";
 import { SyncTable } from "./synctable";
 
+type ChangesConstructor = typeof import("../postgres/changefeed").Changes;
+type ProjectAndUserTrackerConstructor =
+  typeof import("../postgres/project-and-user-tracker").ProjectAndUserTracker;
+
 // Lazy-load Changes and ProjectAndUserTracker to allow Jest mocks to work
-function getChanges() {
-  return require("../postgres/changefeed").Changes;
+function getChanges(): ChangesConstructor {
+  return require("../postgres/changefeed").Changes as ChangesConstructor;
 }
 
-function getProjectAndUserTracker() {
-  return require("../postgres/project-and-user-tracker").ProjectAndUserTracker;
-}
-
-interface SyncTableOptions {
-  table: string;
-  columns?: string[];
-  where?: any;
-  limit?: number;
-  order_by?: string;
-  where_function?: (key: any) => boolean;
-  idle_timeout_s?: number; // TODO: currently ignored
-  cb?: CB;
-}
-
-interface ChangefeedOptions {
-  table: string;
-  select: Record<string, string>; // Map from field names to postgres data types
-  watch: string[]; // Array of field names we watch for changes
-  where: any; // Condition or function
-  cb: CB;
-}
-
-interface ProjectAndUserTrackerOptions {
-  cb: CB;
+function getProjectAndUserTracker(): ProjectAndUserTrackerConstructor {
+  return require("../postgres/project-and-user-tracker")
+    .ProjectAndUserTracker as ProjectAndUserTrackerConstructor;
 }
 
 /**
  * Extend PostgreSQL class with synctable functionality
  */
-export function extend_PostgreSQL(base: any): any {
+export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
+  base: TBase,
+): TBase {
   return class PostgreSQL extends base {
     private _listening?: Record<string, number>;
-    private _project_and_user_tracker?: any;
-    private _project_and_user_tracker_cbs?: CB[];
+    private _project_and_user_tracker?: ProjectAndUserTracker;
+    private _project_and_user_tracker_cbs?: Array<CB<ProjectAndUserTracker>>;
 
     constructor(...args: any[]) {
       super(...args);
@@ -63,7 +57,7 @@ export function extend_PostgreSQL(base: any): any {
 
     _ensure_trigger_exists(
       table: string,
-      select: Record<string, string>,
+      select: ChangefeedSelect,
       watch: string[],
       cb: CB,
     ) {
@@ -85,6 +79,10 @@ export function extend_PostgreSQL(base: any): any {
                 if (err) {
                   cb(err);
                 } else {
+                  if (!result) {
+                    cb("missing trigger check result");
+                    return;
+                  }
                   trigger_exists = parseInt(result.rows[0].count) > 0;
                   cb();
                 }
@@ -124,9 +122,9 @@ export function extend_PostgreSQL(base: any): any {
 
     _listen(
       table: string,
-      select: Record<string, string>,
+      select: ChangefeedSelect,
       watch: string[],
-      cb?: CB,
+      cb?: CB<string>,
     ) {
       const dbg = this._dbg(`_listen(${table})`);
       dbg(`select = ${misc.to_json(select)}`);
@@ -246,7 +244,7 @@ export function extend_PostgreSQL(base: any): any {
       );
     }
 
-    changefeed(opts: ChangefeedOptions) {
+    changefeed(opts: ChangefeedOptions): Changes | undefined {
       const options = misc.defaults(opts, {
         table: misc.required,
         select: misc.required,
@@ -259,7 +257,7 @@ export function extend_PostgreSQL(base: any): any {
         return;
       }
       const Changes = getChanges();
-      new Changes(
+      return new Changes(
         this,
         options.table,
         options.select,
@@ -274,7 +272,9 @@ export function extend_PostgreSQL(base: any): any {
      * If it emits 'error' -- which it can and will do sometimes -- then
      * any client of this tracker must give up on using it!
      */
-    async project_and_user_tracker(opts: ProjectAndUserTrackerOptions) {
+    async project_and_user_tracker(
+      opts: ProjectAndUserTrackerOptions,
+    ): Promise<void> {
       const options = misc.defaults(opts, { cb: misc.required });
       if (this._project_and_user_tracker != null) {
         options.cb(undefined, this._project_and_user_tracker);
