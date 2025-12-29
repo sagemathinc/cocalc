@@ -495,11 +495,11 @@ export async function initFileServer({
 
   if (fs == null) {
     if (fileServerMountpoint) {
+      const resolvedRusticRepo = await resolveRusticRepo();
       logger.debug("initFileServer: initializing fs mountpoint", {
         fileServerMountpoint,
-        rusticRepo,
+        resolvedRusticRepo,
       });
-      const resolvedRusticRepo = await resolveRusticRepo();
       fs = await filesystem({
         mount: fileServerMountpoint,
         rustic: resolvedRusticRepo,
@@ -507,11 +507,11 @@ export async function initFileServer({
     } else {
       const imageDir = join(data, "btrfs", "image");
       const mountPoint = join(data, "btrfs", "mnt");
+      const resolvedRusticRepo = await resolveRusticRepo();
       logger.debug("initFileServer: initializing fs mountpoint", {
         mountPoint,
-        rusticRepo,
+        resolvedRusticRepo,
       });
-      const resolvedRusticRepo = await resolveRusticRepo();
       if (!(await exists(imageDir))) {
         await mkdir(imageDir, { recursive: true });
       }

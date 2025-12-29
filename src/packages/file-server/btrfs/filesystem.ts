@@ -16,7 +16,7 @@ import { mkdirp, btrfs, sudo, ensureMoreLoopbackDevices } from "./util";
 import { Subvolumes } from "./subvolumes";
 import { mkdir } from "node:fs/promises";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import rustic from "@cocalc/backend/sandbox/rustic";
+import { ensureInitialized } from "@cocalc/backend/sandbox/rustic";
 import { until } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { FileSync } from "./sync";
@@ -230,14 +230,20 @@ export class Filesystem {
   };
 
   private initRustic = async () => {
-    if (!this.opts.rustic || (await exists(this.opts.rustic))) {
+    if (!this.opts.rustic) {
       return;
     }
     if (this.opts.rustic.endsWith(".toml")) {
-      throw Error(`file not found: ${this.opts.rustic}`);
+      if (!(await exists(this.opts.rustic))) {
+        throw Error(`file not found: ${this.opts.rustic}`);
+      }
+      await ensureInitialized(this.opts.rustic);
+      return;
     }
-    await mkdir(this.opts.rustic);
-    await rustic(["init"], { repo: this.opts.rustic });
+    if (!(await exists(this.opts.rustic))) {
+      await mkdir(this.opts.rustic);
+    }
+    await ensureInitialized(this.opts.rustic);
   };
 }
 

@@ -54,6 +54,7 @@ Delete snapshots:
 
 import exec, {
   type ExecOutput,
+  parseOutput,
   parseAndValidateOptions,
   validate,
 } from "./exec";
@@ -62,6 +63,9 @@ import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { join } from "path";
 import { rusticRepo } from "@cocalc/backend/data";
 import LRU from "lru-cache";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("sandbox:rustic");
 
 export interface RusticOptions {
   repo?: string;
@@ -84,13 +88,7 @@ export default async function rustic(
     host = "host",
   } = options;
 
-  let common;
-  if (repo.endsWith(".toml")) {
-    common = ["-P", repo.slice(0, -".toml".length)];
-  } else {
-    common = ["--password", "", "-r", repo];
-  }
-
+  const common = getCommonArgs(repo);
   await ensureInitialized(repo);
   const cwd = await safeAbsPath?.(options.cwd ?? "");
 
@@ -310,17 +308,59 @@ const whitelist = {
   },
 } as const;
 
-async function ensureInitialized(repo: string) {
+function getCommonArgs(repo: string) {
   if (repo.endsWith(".toml")) {
-    // nothing to do
-    return;
+    // in case of toml, the password should be in the toml file
+    return ["-P", repo.slice(0, -5)];
+  }
+  // not using a config file is insecure and only for dev purposes, since
+  // seeing ps gives away password, so we don't have any way to set it.
+  return ["--password", "", "-r", repo];
+}
+
+export async function ensureInitialized(repo: string) {
+  const common = getCommonArgs(repo);
+  await ensureInitializedWithCommon(repo, common);
+}
+
+async function ensureInitializedWithCommon(repo: string, common: string[]) {
+  if (repo.endsWith(".toml")) {
+    try {
+      parseOutput(
+        await exec({
+          cmd: rusticPath,
+          safety: [...common, "repoinfo"],
+          timeout: 30_000,
+        }),
+      );
+      logger.debug("ensureInitializedWithCommon - repo is initialized");
+      return;
+    } catch {
+      logger.debug("ensureInitializedWithCommon - initializing");
+      parseOutput(
+        await exec({
+          cmd: rusticPath,
+          safety: ["--no-progress", ...common, "init"],
+          timeout: 30_000,
+        }),
+      );
+      logger.debug("ensureInitializedWithCommon - initialiszing");
+      return;
+    }
   }
   const config = join(repo, "config");
   if (!(await exists(config))) {
-    await exec({
-      cmd: rusticPath,
-      safety: ["--no-progress", "--password", "", "-r", repo, "init"],
-    });
+    logger.debug("ensureInitializedWithCommon - initializing locally");
+    parseOutput(
+      await exec({
+        cmd: rusticPath,
+        safety: ["--no-progress", ...common, "init"],
+        timeout: 30_000,
+      }),
+    );
+    logger.debug(
+      "ensureInitializedWithCommon - successfully initialized locally",
+    );
   }
 }
 
@@ -374,9 +414,10 @@ export async function getSnapshot({
   id: string;
   repo?: string;
 }) {
+  const common = getCommonArgs(repo);
   const { stdout } = await exec({
     cmd: rusticPath,
-    safety: ["--password", "", "-r", repo, "snapshots", "--json", id],
+    safety: [...common, "snapshots", "--json", id],
   });
   if (!stdout) {
     throw Error(`no snapshot with id ${id}`);
