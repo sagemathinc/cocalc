@@ -476,7 +476,6 @@ export type Cloud =
   | "lambda"
   | "google-cloud"
   | "aws"
-  | "fluid-stack"
   | "test";
 
 export function getMinDiskSizeGb({
@@ -716,12 +715,6 @@ interface CoreWeaveConfiguration extends BaseConfiguration {
   };
 }
 
-interface FluidStackConfiguration extends BaseConfiguration {
-  cloud: "fluid-stack";
-  plan: string;
-  region: string;
-  os: string;
-}
 export type GoogleCloudAcceleratorType =
   | "nvidia-h200-141gb"
   | "nvidia-h100-80gb"
@@ -810,7 +803,6 @@ export type Configuration =
   | LambdaConfiguration
   | HyperstackConfiguration
   | CoreWeaveConfiguration
-  | FluidStackConfiguration
   | GoogleCloudConfiguration
   | OnPremCloudConfiguration;
 
@@ -1024,7 +1016,7 @@ Table({
     cloud: {
       type: "string",
       pg_type: "varchar(30)",
-      desc: "The cloud where this compute server runs: 'user', 'coreweave', 'lambda', 'google-cloud', 'aws', 'fluidstack'.",
+      desc: "The cloud where this compute server runs: 'user', 'coreweave', 'lambda', 'google-cloud', 'aws'.",
     },
     configuration: {
       type: "map",

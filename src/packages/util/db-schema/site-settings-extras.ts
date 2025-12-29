@@ -263,11 +263,8 @@ export type SiteSettingsExtrasKeys =
   | "compute_servers_cloudflare_api_key"
   | "compute_servers_images_spec_url"
   //   | "coreweave_kubeconfig"
-  //   | "fluidstack_api_key"
-  //   | "fluidstack_api_token"
   //   | "amazon_web_services_access_key"
   //   | "amazon_web_services_secret_access_key"
-  //   | "fluidstack_api_token"
   | "subscription_maintenance";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
@@ -941,21 +938,6 @@ export const EXTRAS: SettingsExtras = {
     show: compute_servers_enabled,
     tags: ["Compute Servers"],
   },
-  //   fluidstack_api_key: {
-  //     name: "Compute Servers: FluidStack - API Key (not implemented)",
-  //     desc: "Your [FluidStack](https://www.fluidstack.io/) API Key from https://console2.fluidstack.io/.  Be sure to also enter your API token below. This supports managing compute servers on FluidStack Cloud.",
-  //     default: "",
-  //     show: compute_servers_enabled,
-  //     tags: ["Compute Servers"],
-  //   },
-  //   fluidstack_api_token: {
-  //     name: "Compute Servers: FluidStack - API Token (not implemented)",
-  //     desc: "Your [FluidStack](https://www.fluidstack.io/) API Token from https://console2.fluidstack.io/, to support creating compute servers.",
-  //     default: "",
-  //     password: true,
-  //     show: compute_servers_enabled,
-  //     tags: ["Compute Servers"],
-  //   },
   //   amazon_web_services_access_key: {
   //     name: "Compute Servers: Amazon Web Services - IAM Access Key (not implemented)",
   //     desc: "Your AWS API Key from the AWS console.  Be sure to also enter your secret access key below. This supports managing compute servers on Amazon Web Services EC2 Cloud.",
@@ -966,7 +948,7 @@ export const EXTRAS: SettingsExtras = {
   //   },
   //   amazon_web_services_secret_access_key: {
   //     name: "Compute Servers: Amazon Web Services - IAM Secret Access Key",
-  //     desc: "Your [FluidStack](https://www.fluidstack.io/) API Token from https://console2.fluidstack.io/, to support creating compute servers.",
+  //     desc: "Your AWS secret access key from the AWS console.",
   //     default: "",
   //     password: true,
   //     show: compute_servers_enabled,

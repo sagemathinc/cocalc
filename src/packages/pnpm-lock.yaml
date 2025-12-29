@@ -1609,9 +1609,6 @@ importers:
       jwt-decode:
         specifier: ^3.1.2
         version: 3.1.2
-      lambda-cloud-node-api:
-        specifier: ^1.0.1
-        version: 1.0.1
       libsodium-wrappers:
         specifier: ^0.7.13
         version: 0.7.15
@@ -5205,9 +5202,6 @@ packages:
 
   '@types/node@22.19.1':
     resolution: {integrity: sha512-LCCV0HdSZZZb34qifBsyWlUmok6W7ouER+oQIGBScS8EsZsQbrtFTUrDX4hOl+CS6p7cnNC4td+qrSVGSCTUfQ==}
-
-  '@types/node@25.0.3':
-    resolution: {integrity: sha512-W609buLVRVmeW693xKfzHeIV6nJGGz98uCPfeXI1ELMLXVeKYZ9m15fAMSaUPBHYLGFsVRcMmSCksQOrZV9BYA==}
 
   '@types/nodemailer@6.4.21':
     resolution: {integrity: sha512-Eix+sb/Nj28MNnWvO2X1OLrk5vuD4C9SMnb2Vf4itWnxphYeSceqkFX7IdmxTzn+dvmnNz7paMbg4Uc60wSfJg==}
@@ -9255,10 +9249,6 @@ packages:
   kuler@2.0.0:
     resolution: {integrity: sha512-Xq9nH7KlWZmXAtodXDDRE7vs6DU1gTU8zYDHDiWLSip45Egwq3plLHzPn27NgvzL2r1LMPC1vdqh98sQxtqj4A==}
 
-  lambda-cloud-node-api@1.0.1:
-    resolution: {integrity: sha512-EJnr2MHCl5jsE53GtzpNdJ9WTf5g2y+6YKZiQ38txxQkgp1Ewjbg7mDiPUIhfSlDgLUbg3s3qtPpct04JA9yYg==}
-    engines: {node: '>=18.0.0'}
-
   langium@3.3.1:
     resolution: {integrity: sha512-QJv/h939gDpvT+9SiLVlY7tZC3xB2qK57v0J04Sh9wpMb6MP1q8gB21L3WIo8T5P1MSMg3Ep14L7KkDCFG3y4w==}
     engines: {node: '>=16.0.0'}
@@ -12041,9 +12031,6 @@ packages:
 
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
-
-  undici-types@7.16.0:
-    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
 
   unicorn-magic@0.3.0:
     resolution: {integrity: sha512-+QBBXBCvifc56fsbuxZQ6Sic3wqqc3WWaqxs58gvJrcOuN83HGTCwz3oS5phzU9LthRNE9VrJCFCLUgHeeFnfA==}
@@ -16728,10 +16715,6 @@ snapshots:
   '@types/node@22.19.1':
     dependencies:
       undici-types: 6.21.0
-
-  '@types/node@25.0.3':
-    dependencies:
-      undici-types: 7.16.0
 
   '@types/nodemailer@6.4.21':
     dependencies:
@@ -21664,7 +21647,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 25.0.3
+      '@types/node': 22.19.1
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -21961,8 +21944,6 @@ snapshots:
       colornames: 1.1.1
 
   kuler@2.0.0: {}
-
-  lambda-cloud-node-api@1.0.1: {}
 
   langium@3.3.1:
     dependencies:
@@ -25247,8 +25228,6 @@ snapshots:
   underscore@1.13.7: {}
 
   undici-types@6.21.0: {}
-
-  undici-types@7.16.0: {}
 
   unicorn-magic@0.3.0: {}
 

@@ -19,9 +19,7 @@ await a.start({account_id:'fd9d855b-9245-473d-91a0-cdd1e69410e4', id:8})
 import { getServer, getServerNoCheck } from "./get-servers";
 import { clearData, setState, setError } from "./util";
 import * as testCloud from "./cloud/testcloud";
-import * as fluidStack from "./cloud/fluid-stack";
 import * as coreWeave from "./cloud/core-weave";
-import * as lambdaCloud from "./cloud/lambda-cloud";
 import * as googleCloud from "./cloud/google-cloud";
 import * as hyperstackCloud from "./cloud/hyperstack";
 import type {
@@ -137,14 +135,10 @@ async function doStart(server: ComputeServer) {
       return await testCloud.start(server);
     case "core-weave":
       return await coreWeave.start(server);
-    case "fluid-stack":
-      return await fluidStack.start(server);
     case "google-cloud":
       return await googleCloud.start(server);
     case "hyperstack":
       return await hyperstackCloud.start(server);
-    case "lambda":
-      return await lambdaCloud.start(server);
     case "onprem":
       // no-op: user pastes a script provided on the frontend for on-prem.
       return;
@@ -197,14 +191,10 @@ async function doStop(server: ComputeServer) {
       return await testCloud.stop(server);
     case "core-weave":
       return await coreWeave.stop(server);
-    case "fluid-stack":
-      return await fluidStack.stop(server);
     case "google-cloud":
       return await googleCloud.stop(server);
     case "hyperstack":
       return await hyperstackCloud.stop(server);
-    case "lambda":
-      return await lambdaCloud.stop(server);
     case "onprem":
       // no-op: user pastes a script provided on the frontend for on-prem.
       return;
@@ -373,12 +363,8 @@ async function doState(server: ComputeServer): Promise<State> {
       return await testCloud.state(server);
     case "core-weave":
       return await coreWeave.state(server);
-    case "fluid-stack":
-      return await fluidStack.state(server);
     case "google-cloud":
       return await googleCloud.state(server);
-    case "lambda":
-      return await lambdaCloud.state(server);
     case "hyperstack":
       return await hyperstackCloud.state(server);
     case "onprem":
@@ -499,14 +485,10 @@ export async function computeCost({
       return await testCloud.cost(server, state);
     case "core-weave":
       return await coreWeave.cost(server, state);
-    case "fluid-stack":
-      return await fluidStack.cost(server, state);
     case "google-cloud":
       return await googleCloud.cost(server, state);
     case "hyperstack":
       return await hyperstackCloud.cost(server, state);
-    case "lambda":
-      return await lambdaCloud.cost(server, state);
     case "onprem":
       // no-op: user pastes a script provided on the frontend for on-prem.
       return 0;
@@ -803,8 +785,7 @@ export async function getNetworkUsage(opts: {
     case "google-cloud":
       return await googleCloud.getNetworkUsage(opts);
     case "hyperstack":
-    case "lambda":
-      // hyperstack and lambda do not charge for or meter
+      // hyperstack does not charge for or meter
       // network usage at all.
       return { amount: 0, cost: 0 };
     case "onprem":

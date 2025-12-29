@@ -77,7 +77,7 @@ export async function setData({
   data,
 }: {
   id: number;
-  cloud: "lambda" | "google-cloud" | "hyperstack";
+  cloud: "google-cloud" | "hyperstack";
   data: Partial<Data> | { [key: string]: null };
 }) {
   const pool = getPool();
