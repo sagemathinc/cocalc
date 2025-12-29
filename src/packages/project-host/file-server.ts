@@ -167,18 +167,26 @@ async function ensureBackupConfig(): Promise<string | null> {
   if (backupConfigCache && now < backupConfigCache.expiresAt) {
     return profilePath;
   }
-  const remoteConfig = await fetchBackupConfig();
-  const toml = remoteConfig?.toml;
-  if (!toml) return null;
-  const ttlSeconds = remoteConfig?.ttl_seconds ?? 0;
-  backupConfigCache = {
-    toml,
-    expiresAt: ttlSeconds > 0 ? now + ttlSeconds * 1000 : now + 3600 * 1000,
-  };
-  await mkdir(secrets, { recursive: true });
-  await writeFile(profilePath, toml, "utf8");
-  await chmod(profilePath, 0o600);
-  return profilePath;
+  const retryDelayMs = 5000;
+  while (true) {
+    try {
+      const remoteConfig = await fetchBackupConfig();
+      const toml = remoteConfig?.toml;
+      if (!toml) return null;
+      const ttlSeconds = remoteConfig?.ttl_seconds ?? 0;
+      backupConfigCache = {
+        toml,
+        expiresAt: ttlSeconds > 0 ? now + ttlSeconds * 1000 : now + 3600 * 1000,
+      };
+      await mkdir(secrets, { recursive: true });
+      await writeFile(profilePath, toml, "utf8");
+      await chmod(profilePath, 0o600);
+      return profilePath;
+    } catch (err) {
+      logger.warn("backup config fetch failed; retrying", err);
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+    }
+  }
 }
 
 async function resolveRusticRepo(): Promise<string> {
