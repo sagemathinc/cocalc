@@ -1,10 +1,10 @@
 import getLogger from "@cocalc/backend/logger";
-import type { PostgreSQL } from "./types";
+import type { PostgreSQL } from "../types";
 import getPool from "@cocalc/database/pool";
 import { callback2 } from "@cocalc/util/async-utils";
 import { minutes_ago } from "@cocalc/util/misc";
 import { uuidsha1 } from "@cocalc/backend/misc_node";
-import { delete_patches } from "./delete-patches";
+import { delete_patches } from "../delete-patches";
 
 const logger = getLogger("database:blobs");
 

@@ -17,7 +17,8 @@ import { PostgreSQL } from "./postgres/types";
 
 const base = require("./postgres-base");
 const postgresServerQueries = require("./postgres-server-queries");
-const postgresBlobs = require("./postgres-blobs");
+// Migrated to TypeScript: postgres/blobs/methods.ts
+import { extend_PostgreSQL as extendPostgresBlobs } from "./postgres/blobs";
 // Migrated to TypeScript: user-query/queries.ts
 import { extend_PostgreSQL as extendPostgresUserQueries } from "./user-query/queries";
 // Migrated to TypeScript: synctable/methods.ts
@@ -44,7 +45,7 @@ export function db(opts = {}): PostgreSQL {
     let PostgreSQL = base.PostgreSQL;
 
     PostgreSQL = postgresServerQueries.extend_PostgreSQL(PostgreSQL);
-    PostgreSQL = postgresBlobs.extend_PostgreSQL(PostgreSQL);
+    PostgreSQL = extendPostgresBlobs(PostgreSQL);
     PostgreSQL = extendPostgresSynctable(PostgreSQL);
     PostgreSQL = extendPostgresUserQueries(PostgreSQL);
     PostgreSQL = extendPostgresOps(PostgreSQL);

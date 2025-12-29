@@ -10,12 +10,21 @@
  */
 
 import * as async from "async";
+import LRU from "lru-cache";
 
 import type { CB } from "@cocalc/util/types/callback";
 import type { PostgreSQL } from "../postgres/types";
 
-// Throttle tracking: maps project_id → last awaken time
-const lastAwakenTime: Record<string, Date> = {};
+// Throttle configuration
+const AWAKEN_THROTTLE_INTERVAL_MS = 30 * 1000; // 30 seconds between awaken requests
+const AWAKEN_CACHE_TTL_MS = 2 * AWAKEN_THROTTLE_INTERVAL_MS; // 60 seconds
+const AWAKEN_CACHE_MAX_PROJECTS = 10000; // Maximum projects to track
+
+// Throttle tracking: LRU cache stores project_id → timestamp of last awaken request
+const lastAwakenTime = new LRU<string, number>({
+  max: AWAKEN_CACHE_MAX_PROJECTS,
+  ttl: AWAKEN_CACHE_TTL_MS,
+});
 
 /**
  * Awaken (start) a project if it hasn't been awakened recently
@@ -33,14 +42,12 @@ export function awakenProject(
   cb?: CB,
 ): void {
   // Throttle so that this gets called *for a given project* at most once every 30s
-  const now = new Date();
-  if (
-    lastAwakenTime[project_id] != null &&
-    now.getTime() - lastAwakenTime[project_id].getTime() < 30000
-  ) {
+  const now = Date.now();
+  const last = lastAwakenTime.get(project_id);
+  if (last != null && now - last < AWAKEN_THROTTLE_INTERVAL_MS) {
     return;
   }
-  lastAwakenTime[project_id] = now;
+  lastAwakenTime.set(project_id, now);
 
   const dbg = db._dbg(`awakenProject(project_id=${project_id})`);
   if (db.projectControl == null) {

@@ -7,7 +7,7 @@
 
 ## Current Status
 
-**Migration Progress: 35% Complete (2,393 of 6,827 lines)**
+**Migration Progress: 46% Complete (3,154 of 6,827 lines)**
 
 ### Remaining CoffeeScript Files
 
@@ -15,18 +15,18 @@
 | -------------------------------- | ----- | ----------------------------------------------- | ------------ |
 | `postgres-server-queries.coffee` | 2,518 | Server-side database queries                    | High         |
 | `postgres-base.coffee`           | 1,156 | Core PostgreSQL class and connection management | **Critical** |
-| `postgres-blobs.coffee`          | 760   | Blob storage operations                         | Medium       |
-| **Total Remaining**              | 4,434 |                                                 |              |
+| **Total Remaining**              | 3,674 |                                                 |              |
 
 ### Completed Migrations ✅
 
-| File                           | Lines | Migrated To                | Tests | Status     |
-| ------------------------------ | ----- | -------------------------- | ----- | ---------- |
-| `postgres-user-queries.coffee` | 1,790 | `user-query/queries.ts`    | 150   | ✅ Removed |
-| `postgres-synctable.coffee`    | 604   | `synctable/*.ts` (3 files) | 109   | ✅ Removed |
-| **Total Migrated**             | 2,394 | **35% of original code**   | 259   |            |
+| File                           | Lines | Migrated To                     | Tests | Status     |
+| ------------------------------ | ----- | ------------------------------- | ----- | ---------- |
+| `postgres-user-queries.coffee` | 1,790 | `user-query/queries.ts`         | 150   | ✅ Removed |
+| `postgres-synctable.coffee`    | 604   | `synctable/*.ts` (3 files)      | 109   | ✅ Removed |
+| `postgres-blobs.coffee`        | 760   | `postgres/blobs/*.ts` (3 files) | 42    | ✅ Removed |
+| **Total Migrated**             | 3,154 | **46% of original code**        | 301   |            |
 
-**All database tests passing: 328/328 ✅**
+**All database tests passing: 374/374 ✅**
 
 ## Architecture Overview
 
@@ -40,7 +40,7 @@ export function db(opts = {}): PostgreSQL {
     let PostgreSQL = base.PostgreSQL;
 
     PostgreSQL = postgresServerQueries.extend_PostgreSQL(PostgreSQL);
-    PostgreSQL = postgresBlobs.extend_PostgreSQL(PostgreSQL);
+    PostgreSQL = extendPostgresBlobs(PostgreSQL); // ✅ TypeScript
     PostgreSQL = extendPostgresSynctable(PostgreSQL); // ✅ TypeScript
     PostgreSQL = extendPostgresUserQueries(PostgreSQL); // ✅ TypeScript
     PostgreSQL = extendPostgresOps(PostgreSQL); // ✅ TypeScript
@@ -203,6 +203,221 @@ Key features:
 - Immutable.js for efficient state management
 - Reference-counted trigger registration
 - Reconnection handling with state preservation
+
+### ✅ postgres-blobs.coffee → postgres/blobs/ (3 files)
+
+**Migrated**: December 2024
+**Complexity**: Medium - Blob storage with compression and external storage integration
+**Tests**: 42 comprehensive tests (100% pass rate)
+**Result**: Split into 3 TypeScript modules, CoffeeScript file removed
+
+**File structure:**
+
+- `postgres/blobs/methods.ts` - Main blob storage methods (1,070 lines, 14 methods)
+- `postgres/blobs/archive.ts` - Patch archiving functions (`archivePatches`, `exportPatches`)
+- `postgres/blobs/index.ts` - Extension module export
+
+Key methods migrated:
+
+- **Blob Operations**: `save_blob`, `get_blob`, `delete_blob`, `touch_blob`, `remove_blob_ttls`
+- **External Storage**: `copy_blob_to_gcloud`, `copy_all_blobs_to_gcloud`, `blob_store`, `close_blob`
+- **Maintenance**: `backup_blobs_to_tarball`, `blob_maintenance`, `syncstring_maintenance`
+- **Patch Management**: `archivePatches`, `export_patches`, `import_patches`
+
+Key features:
+
+- Compression support (gzip, zlib) with configurable levels
+- TTL (time-to-live) management with automatic expiration
+- External storage integration (Google Cloud Storage via filesystem buckets)
+- Blob verification with SHA1 UUID checking
+- Batch operations with throttling and retry logic
+- Incremental backup to tarballs
+
+**Migration notes:**
+
+- Fixed spread operator issue in `archivePatches` using `Object.assign` for decaffeinate compatibility
+- Used `bind_methods(this)` utility instead of 17 individual method bindings
+- Added proper TypeScript type annotations for all variables and parameters
+- All async operations properly handled with async/await pattern
+- Tests cover compression, TTL, metadata, external storage, and maintenance operations
+
+## Remaining CoffeeScript Files - Detailed Analysis
+
+### Already Extracted to TypeScript
+
+The migration has made significant progress beyond the completed files. **49+ TypeScript modules** have been extracted from the remaining CoffeeScript files:
+
+#### Core modules (`postgres/` - 29 files)
+
+- `account-queries.ts` - Account management and payment status
+- `always-running.ts` - Always-running project detection
+- `central-log.ts` - Central logging system
+- `changefeed.ts`, `changefeed-query.ts` - Real-time changefeeds
+- `delete-patches.ts`, `delete-projects.ts` - Cleanup operations
+- `passport.ts`, `passport-store.ts` - SSO authentication
+- `project-queries.ts` - Project datastore operations
+- `public-paths.ts` - Public path management
+- `remember-me.ts` - Session management
+- `registration-tokens.ts` - User registration tokens
+- `stats.ts` - Analytics and statistics
+- `user-tracking.ts` - User activity tracking
+- `query.ts`, `util.ts`, `types.ts` - Query helpers and types
+- `record-connect-error.ts` - Connection error tracking
+- `server-settings.ts` - Server configuration
+- `set-pg-params.ts` - PostgreSQL parameter configuration
+- `messages.ts`, `news.ts`, `personal.ts`, `pii.ts` - Various features
+
+#### Specialized subdirectories (20+ files)
+
+- **`postgres/blobs/`** (3 files) - ✅ Blob storage with compression and external storage (fully migrated!)
+- **`postgres/schema/`** (8 files) - Schema management, pg-type conversion, table sync, indexes
+- **`postgres/ops/`** (4 files) - ✅ Backup/restore operations (fully TypeScript!)
+- **`postgres/site-license/`** (8 files) - License analytics, usage logs, public info, manager, search
+- **`postgres/stripe/`** (3 files) - Payment processing, customer sync
+- **`synctable/`** (3 files) - ✅ Real-time table synchronization (fully migrated!)
+- **`user-query/`** (3+ files) - ✅ User query system (fully migrated!)
+
+### 1. postgres-base.coffee (1,156 lines) - **CRITICAL PRIORITY**
+
+**Status**: Foundation class - contains core functionality that cannot be easily extracted
+
+**~38 methods** including:
+
+**Connection Management:**
+
+- `connect`, `disconnect`, `_connect` - Connection pooling with retry logic
+- `is_connected` - Connection status check
+- Multi-host DNS resolution and failover
+- Connection health monitoring with automatic reconnection
+
+**Query Engine:**
+
+- `_query`, `_do_query` - Core query execution with timeout handling
+- `_client` - Get PostgreSQL client from pool
+- Query result caching (LRU cache)
+- Concurrent query tracking and load management
+
+**LISTEN/NOTIFY Infrastructure:**
+
+- `_listen`, `_stop_listening` - PostgreSQL NOTIFY subscription
+- `_notification` - Notification handler
+- `_listening`, `_clear_listening_state` - State management
+
+**Schema Helpers:**
+
+- `_primary_key`, `_primary_keys` - Primary key lookup from schema
+- Database existence checking (`_ensure_database_exists`)
+
+**Other:**
+
+- `_dbg` - Debug logging helper
+- `concurrent` - Query concurrency tracking
+- `_init_metrics`, metrics tracking
+- `close`, `clear_cache`, `engine`
+
+**Complexity**: Very High - This is the foundation that all other modules depend on
+
+**Migration Strategy**: Requires comprehensive test coverage before migration. Consider incremental approach:
+
+1. Write extensive tests for all core functionality
+2. Extract query caching logic first
+3. Extract connection health monitoring
+4. Extract LISTEN/NOTIFY infrastructure
+5. Finally migrate core PostgreSQL class constructor and connection pool
+
+### 2. postgres-server-queries.coffee (2,518 lines) - **HIGH PRIORITY**
+
+**Status**: Orchestrator file - **Most methods already delegate to TypeScript modules**
+
+**~128 methods**, with extensive imports from TypeScript modules:
+
+```coffeescript
+# Already using TypeScript modules:
+{get_remember_me} = require('./postgres/remember-me')
+{is_paying_customer} = require('./postgres/account-queries')
+{getStripeCustomerId, syncCustomer} = require('./postgres/stripe')
+{site_license_usage_stats, ...} = require('./postgres/site-license/analytics')
+{permanently_unlink_all_deleted_projects_of_user} = require('./postgres/delete-projects')
+{get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
+{get_personal_user} = require('./postgres/personal')
+{passport functions} = require('./postgres/passport')
+{projects_that_need_to_be_started} = require('./postgres/always-running')
+{calc_stats} = require('./postgres/stats')
+{pii_expire} = require('./postgres/pii')
+{updateUnreadMessageCount} = require('./postgres/messages')
+centralLog = require('./postgres/central-log')
+# ...and more
+```
+
+**Method Categories:**
+
+- **Central Logging**: `log`, `get_log`, `uncaught_exception` - use `central-log.ts`
+- **Account Management**: Uses `account-queries.ts` for payment status, user info
+- **Stripe Integration**: Uses `postgres/stripe/*.ts` for payment processing
+- **Site Licenses**: Uses `postgres/site-license/*.ts` (8 TypeScript modules)
+- **Project Operations**: Uses `project-queries.ts`, `delete-projects.ts`, `always-running.ts`
+- **Authentication**: Uses `passport.ts`, `registration-tokens.ts`, `remember-me.ts`
+- **User Tracking**: Uses `user-tracking.ts`, `messages.ts`, `personal.ts`
+- **Server Settings**: Configuration and passport caching
+- **Statistics**: Uses `stats.ts`
+
+**Complexity**: Medium - Mostly orchestration and wrapping existing TypeScript functions
+
+**Migration Strategy**: This file is a good candidate for next migration:
+
+1. Identify remaining methods that haven't been extracted
+2. Convert wrapper methods to TypeScript extend pattern
+3. Create `postgres/server-queries/` directory for remaining implementations
+4. Most functionality already tested through extracted modules
+
+## Migration Recommendations
+
+### Recommended Migration Order
+
+Based on complexity, dependencies, and risk:
+
+**Phase 2A: ✅ postgres-blobs.coffee → postgres/blobs/ (COMPLETED)**
+
+- **Status**: ✅ Migrated December 2024
+- **Result**: 3 TypeScript files, 42 tests, CoffeeScript file removed
+- **Lessons learned**: Spread operator required Object.assign workaround for decaffeinate
+
+**Phase 2B: postgres-server-queries.coffee → postgres/server-queries/ (RECOMMENDED NEXT)**
+
+- **Effort**: Medium-High (2,518 lines, 128 methods)
+- **Risk**: Medium - Many methods but most delegate to TypeScript modules
+- **Already extracted**: Most functionality in 20+ TypeScript modules
+- **Remaining work**: Convert orchestration/wrapper methods, identify non-extracted methods
+- **Strategy**: Incremental migration - group related methods and migrate in batches
+
+**Phase 2C: postgres-base.coffee → postgres/base.ts**
+
+- **Effort**: High (1,156 lines, 38 methods)
+- **Risk**: **CRITICAL** - Foundation class for all database operations
+- **Dependencies**: Everything depends on this
+- **Remaining work**: Connection pooling, query engine, LISTEN/NOTIFY, schema helpers
+- **Prerequisites**: Comprehensive test coverage required before starting
+- **Strategy**: Extract incrementally - start with query caching, then connection health, then LISTEN/NOTIFY
+
+### Next Steps
+
+1. **Immediate**: Analyze `postgres-server-queries.coffee` in detail
+   - Identify which methods still need extraction (vs. already delegating)
+   - Create migration plan for remaining methods
+   - Group related methods for incremental migration
+   - Target: Migrate in 3-4 batches to reduce risk
+
+2. **Short-term**: Begin `postgres-server-queries.coffee` migration
+   - Start with highest-value or most isolated method groups
+   - Write tests for any untested methods
+   - Migrate batch by batch, verifying tests after each batch
+   - Update documentation after each batch
+
+3. **Medium-term**: Plan `postgres-base.coffee` migration
+   - Write extensive integration tests for core functionality
+   - Consider incremental extraction approach
+   - This is the most critical migration and requires careful planning
+   - May require coordination with CoCalc deployment team
 
 ## Resources
 

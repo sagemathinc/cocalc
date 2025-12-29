@@ -45,6 +45,150 @@ export type SyncTableNotification = [
   old_val?: SyncTableRow | null,
 ];
 
+export type BlobCompression = "gzip" | "zlib";
+
+export interface SyncstringPatch {
+  string_id: string;
+  time: Date;
+  patch: string;
+  is_snapshot: boolean;
+  user_id?: number;
+  snapshot?: string;
+  sent?: Date;
+  prev?: Date;
+  wall?: Date;
+  seq_info?: Record<string, unknown>;
+  format?: number | null;
+  parents?: number[];
+  version?: number;
+}
+
+export interface SyncstringPatchInput extends Omit<
+  SyncstringPatch,
+  "is_snapshot"
+> {
+  is_snapshot?: boolean;
+}
+
+export interface LegacySyncstringPatch {
+  id: [string, string];
+  user: number;
+  patch: string;
+  snapshot?: string;
+  sent?: Date;
+  prev?: Date;
+}
+
+export type ImportPatch = SyncstringPatchInput | LegacySyncstringPatch;
+
+export interface SaveBlobOpts {
+  uuid?: string;
+  blob: Buffer | string;
+  ttl?: number;
+  project_id?: string;
+  account_id?: string;
+  check?: boolean;
+  compress?: BlobCompression;
+  level?: number;
+  cb: CB<number | undefined>;
+}
+
+export interface GetBlobOpts {
+  uuid: string;
+  save_in_db?: boolean;
+  touch?: boolean;
+  cb: CB<Buffer | undefined>;
+}
+
+export interface TouchBlobOpts {
+  uuid: string;
+  cb?: CB;
+}
+
+export interface CopyBlobToGcloudOpts {
+  uuid: string;
+  bucket?: string;
+  force?: boolean;
+  remove?: boolean;
+  cb?: CB;
+}
+
+export interface BackupBlobsToTarballOpts {
+  limit?: number;
+  path: string;
+  throttle?: number;
+  repeat_until_done?: number;
+  map_limit?: number;
+  cb?: CB<string>;
+}
+
+export type BlobCopyError = string | Error;
+export type BlobCopyErrors = Record<string, BlobCopyError>;
+
+export interface CopyAllBlobsToGcloudOpts {
+  bucket?: string;
+  limit?: number;
+  map_limit?: number;
+  throttle?: number;
+  repeat_until_done_s?: number;
+  errors?: BlobCopyErrors;
+  remove?: boolean;
+  cutoff?: string;
+  cb: CB<void, BlobCopyError | BlobCopyErrors>;
+}
+
+export interface BlobMaintenanceOpts {
+  path?: string;
+  map_limit?: number;
+  blobs_per_tarball?: number;
+  throttle?: number;
+  cb?: CB;
+}
+
+export interface CloseBlobOpts {
+  uuid: string;
+  bucket?: string;
+  cb?: CB;
+}
+
+export interface RemoveBlobTtlsOpts {
+  uuids: string[];
+  cb: CB;
+}
+
+export interface SyncstringMaintenanceOpts {
+  age_days?: number;
+  map_limit?: number;
+  limit?: number;
+  repeat_until_done?: boolean;
+  delay?: number;
+  cb?: CB;
+}
+
+export interface ExportPatchesOpts {
+  string_id: string;
+  cb?: CB<SyncstringPatch[]>;
+}
+
+export interface ImportPatchesOpts {
+  patches: ImportPatch[];
+  string_id?: string;
+  cb?: CB;
+}
+
+export interface DeleteBlobOpts {
+  uuid: string;
+  cb?: CB;
+}
+
+export interface ArchivePatchesOpts {
+  string_id: string;
+  compress?: BlobCompression;
+  level?: number;
+  cutoff?: Date;
+  cb?: CB;
+}
+
 // There are many more options still -- add them as needed.
 export interface QueryOptions<T = UntypedQueryResult> {
   select?: string | string[];
@@ -369,13 +513,7 @@ export interface PostgreSQL extends EventEmitter {
 
   user_query_cancel_changefeed(opts: { id: any; cb?: CB }): void;
 
-  save_blob(opts: {
-    uuid: string;
-    blob?: Buffer;
-    ttl?: number;
-    project_id?: string;
-    cb: CB;
-  }): void;
+  save_blob(opts: SaveBlobOpts): void;
 
   set_project_state(opts: {
     project_id: string;
@@ -402,28 +540,33 @@ export interface PostgreSQL extends EventEmitter {
 
   ensure_connection_to_project?: (project_id: string, cb?: CB) => Promise<void>;
 
-  get_blob(opts: {
-    uuid: string;
-    save_in_db?: boolean;
-    touch?: boolean;
-    cb: CB;
-  }): void;
+  get_blob(opts: GetBlobOpts): void;
 
-  import_patches(opts: { patches: string[]; string_id?: string; cb?: CB });
-  delete_blob(opts: { uuid: string; cb?: CB });
+  copy_blob_to_gcloud(opts: CopyBlobToGcloudOpts): void;
+
+  backup_blobs_to_tarball(opts: BackupBlobsToTarballOpts): void;
+
+  copy_all_blobs_to_gcloud(opts: CopyAllBlobsToGcloudOpts): void;
+
+  blob_maintenance(opts: BlobMaintenanceOpts): void;
+
+  close_blob(opts: CloseBlobOpts): void;
+
+  syncstring_maintenance(opts: SyncstringMaintenanceOpts): void;
+
+  export_patches(opts: ExportPatchesOpts): Promise<SyncstringPatch[]>;
+
+  import_patches(opts: ImportPatchesOpts);
+  delete_blob(opts: DeleteBlobOpts);
+  touch_blob(opts: TouchBlobOpts): void;
+  remove_blob_ttls(opts: RemoveBlobTtlsOpts): void;
 
   adminAlert?: (opts: {
     subject: string;
     body?: string;
   }) => Promise<number | undefined>;
 
-  archivePatches(opts: {
-    string_id: string;
-    compress?: string;
-    level?: number;
-    cutoff?: Date;
-    cb?: CB;
-  });
+  archivePatches(opts: ArchivePatchesOpts);
 
   when_sent_project_invite(opts: { project_id: string; to: string; cb?: CB });
 
