@@ -8,7 +8,7 @@ import { LambdaCloudAPI } from "lambda-cloud-node-api";
 import { setData } from "../util";
 import getLogger from "@cocalc/backend/logger";
 
-const logger = getLogger("server:compute:lambda-cloud");
+const logger = getLogger("server:compute:lambda");
 
 let client: null | LambdaCloudAPI = null;
 async function getClient(): Promise<LambdaCloudAPI> {
@@ -42,8 +42,8 @@ function getServerName(server: ComputeServer) {
 
 export async function start(server: ComputeServer) {
   logger.debug("start", server);
-  if (server.configuration?.cloud != "lambda-cloud") {
-    throw Error("must have a lambda-cloud configuration");
+  if (server.configuration?.cloud != "lambda") {
+    throw Error("must have a lambda configuration");
   }
   // TODO:
   const ssh_key_names: [string] = ["cocalc-gpu"];
@@ -65,7 +65,7 @@ export async function start(server: ComputeServer) {
   await setData({
     id: server.id,
     data: { instance_id: instance_ids[0] },
-    cloud: "lambda-cloud",
+    cloud: "lambda",
   });
 }
 
@@ -92,7 +92,7 @@ export async function state(server: ComputeServer): Promise<State> {
   await setData({
     id: server.id,
     data: { instance_id: instance.id },
-    cloud: "lambda-cloud",
+    cloud: "lambda",
   });
 
   if (instance.status == "booting") {

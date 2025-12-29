@@ -88,7 +88,7 @@ const compute_servers_enabled = (conf: SiteSettings) =>
 const compute_servers_google_enabled = (conf: SiteSettings) =>
   to_bool(conf["compute_servers_google-cloud_enabled"]);
 //const compute_servers_lambda_enabled = (conf: SiteSettings) =>
-//  to_bool(conf["compute_servers_lambda-cloud_enabled"]);
+//  to_bool(conf["compute_servers_lambda_enabled"]);
 const compute_servers_hyperstack_enabled = (conf: SiteSettings) =>
   to_bool(conf["compute_servers_hyperstack_enabled"]);
 

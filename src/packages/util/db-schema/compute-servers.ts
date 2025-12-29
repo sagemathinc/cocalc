@@ -473,7 +473,7 @@ export type Cloud =
   | "onprem"
   | "core-weave"
   | "hyperstack"
-  | "lambda-cloud"
+  | "lambda"
   | "google-cloud"
   | "aws"
   | "fluid-stack"
@@ -631,7 +631,7 @@ export const AUTOMATIC_SHUTDOWN_FIELDS = [
 ];
 
 interface LambdaConfiguration extends BaseConfiguration {
-  cloud: "lambda-cloud";
+  cloud: "lambda";
   instance_type_name: string;
   region_name: string;
 }
@@ -821,7 +821,7 @@ interface BaseData {
 }
 
 export interface LambdaCloudData extends BaseData {
-  cloud: "lambda-cloud";
+  cloud: "lambda";
   instance_id: string;
 }
 

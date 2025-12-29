@@ -178,7 +178,7 @@ export async function provisionIfNeeded(row: HostRow) {
   }
   if (runtime?.instance_id) return row;
   const spec = await buildHostSpec(row);
-  if (machine.cloud === "lambda" || machine.cloud === "lambda-cloud") {
+  if (machine.cloud === "lambda") {
     const { provider, creds } = await ensureLambdaProvider();
     const runtimeCreated = await provider.createHost(spec, creds);
     return {

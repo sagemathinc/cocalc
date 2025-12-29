@@ -112,11 +112,11 @@ const CLOUDS: {
     defaultConfiguration: GOOGLE_CLOUD_DEFAULTS.cpu,
   },
   lambda: {
-    name: "lambda-cloud",
+    name: "lambda",
     label: "Lambda Cloud",
     image: "https://cloud.lambdalabs.com/static/images/lambda-logo.svg",
     defaultConfiguration: {
-      cloud: "lambda-cloud",
+      cloud: "lambda",
       image: "python",
       instance_type_name: "gpu_1x_a10",
       region_name: "us-west-1",

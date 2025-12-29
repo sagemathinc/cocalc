@@ -92,7 +92,7 @@ async function handleStart(row: any) {
     if (machine.cloud === "hyperstack") {
       const { provider, creds } = await ensureHyperstackProvider();
       await provider.startHost(runtime, creds);
-    } else if (machine.cloud === "lambda" || machine.cloud === "lambda-cloud") {
+    } else if (machine.cloud === "lambda") {
       const { provider, creds } = await ensureLambdaProvider();
       await provider.startHost(runtime, creds);
     } else {
@@ -122,7 +122,7 @@ async function handleStop(row: any) {
     if (machine.cloud === "hyperstack") {
       const { provider, creds } = await ensureHyperstackProvider();
       await provider.stopHost(runtime, creds);
-    } else if (machine.cloud === "lambda" || machine.cloud === "lambda-cloud") {
+    } else if (machine.cloud === "lambda") {
       const { provider, creds } = await ensureLambdaProvider();
       await provider.stopHost(runtime, creds);
     } else {
@@ -151,7 +151,7 @@ async function handleDelete(row: any) {
     if (machine.cloud === "hyperstack") {
       const { provider, creds } = await ensureHyperstackProvider();
       await provider.deleteHost(runtime, creds);
-    } else if (machine.cloud === "lambda" || machine.cloud === "lambda-cloud") {
+    } else if (machine.cloud === "lambda") {
       const { provider, creds } = await ensureLambdaProvider();
       await provider.deleteHost(runtime, creds);
     } else {

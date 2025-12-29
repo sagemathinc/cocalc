@@ -143,7 +143,7 @@ async function doStart(server: ComputeServer) {
       return await googleCloud.start(server);
     case "hyperstack":
       return await hyperstackCloud.start(server);
-    case "lambda-cloud":
+    case "lambda":
       return await lambdaCloud.start(server);
     case "onprem":
       // no-op: user pastes a script provided on the frontend for on-prem.
@@ -203,7 +203,7 @@ async function doStop(server: ComputeServer) {
       return await googleCloud.stop(server);
     case "hyperstack":
       return await hyperstackCloud.stop(server);
-    case "lambda-cloud":
+    case "lambda":
       return await lambdaCloud.stop(server);
     case "onprem":
       // no-op: user pastes a script provided on the frontend for on-prem.
@@ -377,7 +377,7 @@ async function doState(server: ComputeServer): Promise<State> {
       return await fluidStack.state(server);
     case "google-cloud":
       return await googleCloud.state(server);
-    case "lambda-cloud":
+    case "lambda":
       return await lambdaCloud.state(server);
     case "hyperstack":
       return await hyperstackCloud.state(server);
@@ -505,7 +505,7 @@ export async function computeCost({
       return await googleCloud.cost(server, state);
     case "hyperstack":
       return await hyperstackCloud.cost(server, state);
-    case "lambda-cloud":
+    case "lambda":
       return await lambdaCloud.cost(server, state);
     case "onprem":
       // no-op: user pastes a script provided on the frontend for on-prem.
@@ -803,7 +803,7 @@ export async function getNetworkUsage(opts: {
     case "google-cloud":
       return await googleCloud.getNetworkUsage(opts);
     case "hyperstack":
-    case "lambda-cloud":
+    case "lambda":
       // hyperstack and lambda do not charge for or meter
       // network usage at all.
       return { amount: 0, cost: 0 };
