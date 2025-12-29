@@ -32,8 +32,17 @@ export class StringDocument extends PFStringDocument implements Document {
     return this.wrap(super.applyPatch(patch));
   }
 
+  // Apply a batch of patches in order.
+  public applyPatchBatch(patches: CompressedPatch[]): StringDocument {
+    return this.wrap(super.applyPatchBatch(patches ?? []));
+  }
+
   public apply_patch(patch: any): StringDocument {
     return this.applyPatch(patch);
+  }
+
+  public apply_patch_batch(patches: any[]): StringDocument {
+    return this.applyPatchBatch(patches);
   }
 
   public override makePatch(other: PFStringDocument): CompressedPatch {

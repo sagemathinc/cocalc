@@ -38,6 +38,10 @@ export class ViewDocument implements Document {
     throw Error("not implemented");
   }
 
+  apply_patch_batch(_patches: any[]): any {
+    throw Error("not implemented");
+  }
+
   make_patch(_doc): any {
     throw Error("not implemented");
   }
@@ -103,6 +107,10 @@ export class ViewDocument implements Document {
 
   applyPatch(patch: any): Document {
     return this.apply_patch(patch);
+  }
+
+  applyPatchBatch(patches: any[]): Document {
+    return this.apply_patch_batch(patches);
   }
 
   makePatch(doc: any): any {

@@ -1803,6 +1803,21 @@ export class SyncDoc extends EventEmitter {
         // console.log("applyPatch", patch);
         return ((doc as any).apply_patch ?? doc.applyPatch).call(doc, patch);
       },
+      applyPatchBatch: (doc: Document, patches: unknown[]) => {
+        const applyBatch =
+          (doc as any).apply_patch_batch ?? (doc as any).applyPatchBatch;
+        if (typeof applyBatch === "function") {
+          return applyBatch.call(doc, patches);
+        }
+        return (patches as unknown[]).reduce<Document>(
+          (current, patch) =>
+            ((current as any).apply_patch ?? current.applyPatch).call(
+              current,
+              patch,
+            ),
+          doc,
+        );
+      },
       makePatch: (a: Document, b: Document) =>
         ((a as any).make_patch ?? a.makePatch).call(a, b),
     };

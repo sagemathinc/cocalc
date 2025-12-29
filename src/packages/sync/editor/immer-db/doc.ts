@@ -51,6 +51,16 @@ export class ImmerDBDocument extends PFDbDocument implements Document {
     return this.applyPatch(patch);
   }
 
+  public override applyPatchBatch(patches: unknown[]): ImmerDBDocument {
+    return this.wrap(
+      super.applyPatchBatch(patches as DbPatch[]) as PFDbDocument,
+    );
+  }
+
+  public apply_patch_batch(patches: any[]): ImmerDBDocument {
+    return this.applyPatchBatch(patches);
+  }
+
   public override get(where?: unknown): any {
     return super.get(where);
   }

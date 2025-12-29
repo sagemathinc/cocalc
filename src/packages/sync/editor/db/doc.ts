@@ -47,8 +47,19 @@ export class DBDocument extends PFDbDocument implements Document {
     return this.wrap(super.applyPatch(patch as DbPatch) as PFDbDocument);
   }
 
+  // Apply a batch of patches in order.
+  public applyPatchBatch(patches: unknown[]): DBDocument {
+    return this.wrap(
+      super.applyPatchBatch(patches as DbPatch[]) as PFDbDocument,
+    );
+  }
+
   public apply_patch(patch: any): DBDocument {
     return this.applyPatch(patch);
+  }
+
+  public apply_patch_batch(patches: any[]): DBDocument {
+    return this.applyPatchBatch(patches);
   }
 
   public override get(where?: unknown): any {

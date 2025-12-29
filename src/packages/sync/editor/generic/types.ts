@@ -72,6 +72,7 @@ export interface Patch {
 
 export interface Document extends PFDocument {
   applyPatch(patch: any): Document;
+  applyPatchBatch(patches: any[]): Document;
   makePatch(doc: any): any;
   isEqual(doc?: any): boolean;
   set(value: any): Document;
@@ -80,6 +81,7 @@ export interface Document extends PFDocument {
   changes?(prev?: any): any;
   count(): number;
   apply_patch(patch: any): Document;
+  apply_patch_batch(patches: any[]): Document;
   make_patch(doc: any): any;
   is_equal(doc?: any): boolean;
   to_str(): string;
