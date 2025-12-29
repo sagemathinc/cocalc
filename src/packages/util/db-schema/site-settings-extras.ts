@@ -87,8 +87,8 @@ const compute_servers_enabled = (conf: SiteSettings) =>
   to_bool(conf.compute_servers_enabled);
 const compute_servers_google_enabled = (conf: SiteSettings) =>
   to_bool(conf["compute_servers_google-cloud_enabled"]);
-// const compute_servers_lambda_enabled = (conf: SiteSettings) =>
-//   to_bool(conf["compute_servers_lambda-cloud_enabled"]);
+//const compute_servers_lambda_enabled = (conf: SiteSettings) =>
+//  to_bool(conf["compute_servers_lambda-cloud_enabled"]);
 const compute_servers_hyperstack_enabled = (conf: SiteSettings) =>
   to_bool(conf["compute_servers_hyperstack_enabled"]);
 
@@ -247,7 +247,7 @@ export type SiteSettingsExtrasKeys =
   | "pay_as_you_go_price_project_upgrades"
   | "compute_servers_section"
   | "compute_servers_markup_percentage"
-  //  | "lambda_cloud_api_key"
+  | "lambda_cloud_api_key"
   | "hyperstack_api_key"
   | "hyperstack_compute_servers_prefix"
   | "hyperstack_compute_servers_markup_percentage"
@@ -857,13 +857,12 @@ export const EXTRAS: SettingsExtras = {
     tags: ["Compute Servers", "Hyperstack"],
   },
 
-  //   lambda_cloud_api_key: {
-  //     name: "Compute Servers: Lambda Cloud - API Key (not implemented)",
-  //     desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambdalabs.com/api-keys.  This supports managing compute servers on Lambda Cloud.  WARNING: Lambda Cloud integration is not yet useful for anything.",
-  //     default: "",
-  //     password: true,
-  //     show: compute_servers_lambda_enabled,
-  //   },
+  lambda_cloud_api_key: {
+    name: "Project Hosts: Lambda Cloud API Key",
+    desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambda.ai/api-keys/cloud-api.  This supports managing project hosts on Lambda Cloud.",
+    default: "",
+    password: true,
+  },
   //   coreweave_kubeconfig: {
   //     name: "Compute Servers: CoreWeave - Kubeconfig File (not implemented)",
   //     desc: "Your [CoreWeave](https://cloud.coreweave.com/) KubeConfig from https://cloud.coreweave.com/tokens/api-access.  This supports managing compute servers on CoreWeave Cloud.",
