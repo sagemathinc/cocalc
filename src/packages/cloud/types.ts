@@ -12,7 +12,7 @@ export type HostSpec = {
 };
 
 export type HostRuntime = {
-  provider: "gcp" | "hyperstack" | "local";
+  provider: "gcp" | "hyperstack" | "lambda" | "local";
   instance_id: string;
   public_ip?: string;
   ssh_user: string;

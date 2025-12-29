@@ -9,6 +9,16 @@
 
 Goal: a provider‑agnostic control plane in `@cocalc/cloud` that can provision, start/stop, and meter project‑host VMs via cloud APIs, with concurrency handled in Postgres (no singletons), and costs/usage recorded as immutable log events. The hub owns orchestration and billing, while providers expose clean, testable adapters.
 
+**Remote project-host bring-up checklist (current code):**
+- [ ] **GCP end‑to‑end boot**: VM provisions with boot+data PD, injects SSH key, runs startup script to install podman+btrfs, mounts PD at `/btrfs`, copies SEA, starts project‑host, registers with hub, and DNS is created.
+- [ ] **Hyperstack end‑to‑end boot**: create environment (idempotent), create VM from catalog, inject SSH key, run bootstrap, register with hub, DNS set.
+- [ ] **Lambda provider**: adapter + catalog + create/start/stop/delete wired into work queue.
+- [ ] **Bootstrap inputs**: define minimal config files for hub URL, conat secret, host_id, and backup config (no env secrets); install via SCP/metadata.
+- [ ] **SSH connectivity**: ensure cloud provider injects host SSH public key and we can `ssh` in as the service user.
+- [ ] **Runtime reconciliation**: periodic status check to reconcile provider state → `project_hosts.status` (avoid “running” UI on failed boot).
+- [ ] **Error surfacing**: show last action + error from `cloud_vm_log` in host card + drawer; confirm failure states update.
+- [ ] **DNS**: ensure Cloudflare record is created (or fallback proxy), and public_url uses DNS name not raw IP.
+
 **Minimal provider interface + simple mode (v1):**
 - Provider API: `catalog`, `createHost`, `startHost`, `stopHost`, `deleteHost`, optional `status`.
 - Simple mode maps `{region, cpu, ram, gpu?}` to the smallest compatible instance; advanced settings are hidden behind a toggle.

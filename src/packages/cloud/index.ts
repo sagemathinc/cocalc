@@ -7,4 +7,6 @@ export {
   HyperstackProvider,
   type HyperstackCreds,
 } from "./hyperstack";
+export * as Lambda from "./lambda";
+export { LambdaProvider, type LambdaCreds } from "./lambda";
 export * from "./catalog";
