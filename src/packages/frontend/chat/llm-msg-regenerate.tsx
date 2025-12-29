@@ -195,7 +195,6 @@ export function RegenerateLLM({
         >
           <Space>
             <Icon name="refresh" />
-            Regenerate
             <Icon name="chevron-down" />
           </Space>
         </Button>
