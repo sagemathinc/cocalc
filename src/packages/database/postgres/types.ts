@@ -45,6 +45,14 @@ export type SyncTableNotification = [
   old_val?: SyncTableRow | null,
 ];
 
+export interface PublicPathListingEntry extends Record<string, unknown> {
+  name?: string;
+}
+
+export interface PublicPathListing extends Record<string, unknown> {
+  files?: PublicPathListingEntry[];
+}
+
 export type BlobCompression = "gzip" | "zlib";
 
 export interface SyncstringPatch {
@@ -303,6 +311,8 @@ export interface PostgreSQL extends EventEmitter {
 
   _query(opts: QueryOptions): void;
 
+  _close_test_query?(): void;
+
   user_query(opts: UserQueryOptions): void;
 
   _client(): Client | undefined;
@@ -327,7 +337,36 @@ export interface PostgreSQL extends EventEmitter {
 
   account_ids_to_usernames(opts: { account_ids: string[]; cb: CB }): void;
 
-  get_project(opts: { project_id: string; columns?: string[]; cb: CB }): void;
+  get_project(opts: {
+    project_id: string;
+    columns?: string[];
+    cb: CB<Record<string, unknown> | undefined>;
+  }): void;
+  get_public_paths(opts: { project_id: string; cb: CB<string[]> }): void;
+  has_public_path(opts: { project_id: string; cb: CB<boolean> }): void;
+  path_is_public(opts: {
+    project_id: string;
+    path: string;
+    cb: CB<boolean>;
+  }): void;
+  filter_public_paths(opts: {
+    project_id: string;
+    path: string;
+    listing: PublicPathListing;
+    cb: CB<PublicPathListing>;
+  }): void;
+  recently_modified_projects(opts: {
+    max_age_s: number;
+    cb: CB<string[]>;
+  }): void;
+  get_open_unused_projects(opts: {
+    min_age_days?: number;
+    max_age_days?: number;
+    host: string;
+    cb: CB<string[]>;
+  }): void;
+  get_collaborator_ids(opts: { account_id: string; cb: CB<string[]> }): void;
+  get_collaborators(opts: { project_id: string; cb: CB<string[]> }): void;
 
   get_account(opts: {
     account_id?: string;
@@ -350,22 +389,31 @@ export interface PostgreSQL extends EventEmitter {
   }): void;
 
   user_is_in_project_group(opts: {
-    account_id: string;
+    account_id?: string;
     project_id: string;
-    group?: string[];
+    groups?: string[];
     cache?: boolean;
-    cb: CB;
+    cb: CB<boolean>;
   }): void;
 
   user_is_collaborator(opts: {
     account_id: string;
     project_id: string;
-    cb: CB;
+    cache?: boolean;
+    cb: CB<boolean>;
   });
 
-  get_user_column(column: string, account_id: string, cb: CB);
+  get_user_column(
+    column: string,
+    account_id: string,
+    cb: CB<unknown | undefined>,
+  );
 
-  _get_project_column(column: string, project_id: string, cb: CB);
+  _get_project_column(
+    column: string,
+    project_id: string,
+    cb: CB<unknown | undefined>,
+  );
 
   do_account_creation_actions(opts: {
     email_address: string;
@@ -423,13 +471,28 @@ export interface PostgreSQL extends EventEmitter {
 
   sha1(...args): string;
 
+  _throttle(name: string, time_s: number, ...key: any[]): boolean;
+  _clear_throttles(): void;
+
+  clear_cache(): void;
+
   get_project_ids_with_user(opts: {
     account_id: string;
     is_owner?: boolean;
-    cb: CBDB;
+    cb: CB<string[]>;
+  }): void;
+  get_account_ids_using_project(opts: {
+    project_id: string;
+    cb: CB<string[]>;
   }): void;
 
-  get_remember_me(opts: { hash: string; cb: CB });
+  get_remember_me(opts: { hash: string; cache?: boolean; cb: CB }): void;
+  invalidate_all_remember_me(opts: {
+    account_id?: string;
+    email_address?: string;
+    cb?: CB;
+  }): void;
+  delete_remember_me(opts: { hash: string; cb?: CB }): void;
 
   passport_exists(opts: PassportExistsOpts): Promise<string | undefined>;
 
@@ -459,6 +522,32 @@ export interface PostgreSQL extends EventEmitter {
     invalidate_remember_me?: boolean;
     cb: CB;
   });
+  reset_password(opts: {
+    email_address?: string;
+    account_id?: string;
+    password?: string;
+    random?: boolean;
+    cb?: CB;
+  }): void;
+  set_password_reset(opts: {
+    email_address: string;
+    ttl: number;
+    cb: CB<string>;
+  }): void;
+  get_password_reset(opts: { id: string; cb: CB<string | undefined> }): void;
+  delete_password_reset(opts: { id: string; cb: CB }): void;
+  record_password_reset_attempt(opts: {
+    email_address: string;
+    ip_address: string;
+    ttl: number;
+    cb: CB;
+  }): void;
+  count_password_reset_attempts(opts: {
+    email_address?: string;
+    ip_address?: string;
+    age_s: number;
+    cb: CB<number>;
+  }): void;
   change_email_address(opts: {
     account_id: string;
     email_address: string;
@@ -495,6 +584,43 @@ export interface PostgreSQL extends EventEmitter {
     cb: CB;
   }): void;
 
+  get_hub_servers(opts: { cb: CB }): void;
+
+  get_stats_interval(opts: { start: Date; end: Date; cb: CB }): void;
+
+  get_active_student_stats(opts: { cb: CB }): void;
+
+  is_admin(opts: { account_id: string; cb: CB }): void;
+
+  user_is_in_group(opts: { account_id: string; group: string; cb: CB }): void;
+
+  account_exists(opts: { email_address: string; cb: CB }): void;
+
+  get_account(opts: {
+    account_id?: string;
+    email_address?: string;
+    lti_id?: string[];
+    columns?: string[];
+    cb: CB;
+  }): void;
+
+  is_banned_user(opts: {
+    account_id?: string;
+    email_address?: string;
+    cb: CB;
+  }): void;
+
+  _account_where(opts: {
+    account_id?: string;
+    email_address?: string;
+    lti_id?: string[];
+  }): {
+    [key: string]: string | string[];
+  };
+
+  _touch_account(account_id: string, cb: CB): void;
+  _touch_project(project_id: string, account_id: string, cb: CB): void;
+
   synctable(opts: SyncTableOptions): SyncTable | undefined;
 
   project_and_user_tracker(opts: ProjectAndUserTrackerOptions): Promise<void>;
@@ -526,13 +652,16 @@ export interface PostgreSQL extends EventEmitter {
 
   set_project_status(opts: { project_id: string; status: ProjectStatus }): void;
 
+  touch_project(opts: { project_id: string; cb?: CB }): void;
+
   touch(opts: {
     project_id?: string;
     account_id: string;
     action?: string;
     path?: string;
-    cb: CB;
-  });
+    ttl_s?: number;
+    cb?: CB;
+  }): void;
 
   get_project_extra_env(opts: { project_id: string; cb: CB }): void;
 

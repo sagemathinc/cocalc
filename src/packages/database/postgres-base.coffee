@@ -109,7 +109,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @connect()  # start trying to connect
 
     clear_cache: =>
-        @_query_cache?.reset()
+        @_query_cache?.clear()
 
     close: =>
         if @_state == 'closed'
@@ -985,12 +985,28 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     _throttle: (name, time_s, key...) =>
         key = misc.to_json(key)
         x = "_throttle_#{name}"
+        timers = "_throttle_timers_#{name}"
         @[x] ?= {}
+        @[timers] ?= {}
         if @[x][key]
             return true
         @[x][key] = true
-        setTimeout((()=>delete @[x]?[key]), time_s*1000)
+        # Store timer ID so it can be cancelled during cleanup
+        @[timers][key] = setTimeout((()=>
+            delete @[x]?[key]
+            delete @[timers]?[key]
+        ), time_s*1000)
         return false
+
+    # Clear all throttle state and cancel pending timers (useful for test cleanup)
+    _clear_throttles: () =>
+        for key of @
+            if key.startsWith('_throttle_timers_')
+                # Cancel all pending timers
+                for timerKey, timerId of @[key]
+                    clearTimeout(timerId)
+            if key.startsWith('_throttle_')
+                delete @[key]
 
     # Ensure that the actual schema in the database matches the one defined in SCHEMA.
     # This creates the initial schema, adds new columns, and in a VERY LIMITED

@@ -89,14 +89,19 @@ npx decaffeinate \
 
 ### Phase 2: Incremental Method Migration
 
-**Test-Driven Workflow:**
+**Test-Driven Workflow (temporary `USE_TYPESCRIPT` toggle allowed; must be removed):**
 
-1. **Write/verify tests FIRST** - ensure comprehensive coverage
-2. **Baseline** - verify tests pass with CoffeeScript implementation
-3. **Decaffeinate and convert** - transform to TypeScript with proper types
-4. **Verify tests pass** - ensure TypeScript implementation works identically
-5. **Build and typecheck** - ensure no compilation errors
-6. **Remove CoffeeScript file** - after verification
+1. **Write tests FIRST** - ensure comprehensive coverage (CRITICAL: Do NOT skip this step!). These tests must target the legacy CoffeeScript class via `db()` and `callback_opts` (or equivalent) so they validate existing behavior.
+2. **Add a temporary toggle (tests only)** - introduce a local `const USE_TYPESCRIPT = false;` in the new test file for the batch. Use this toggle to choose between:
+   - **CoffeeScript path**: call methods on `db()` (legacy class)
+   - **TypeScript path**: call the new TS functions directly
+     Do NOT use env flags; keep it a local constant inside the test file.
+3. **Baseline the legacy behavior** - run the tests with `USE_TYPESCRIPT = false` and confirm they pass against the CoffeeScript implementation.
+4. **Implement TypeScript** - write the new TS functions with proper typing and behavior parity.
+5. **Flip the toggle** - set `USE_TYPESCRIPT = true` and re-run the same tests against the new TS implementation. Fix the TS implementation until tests pass.
+6. **Re-route CoffeeScript to TS** - update the CoffeeScript class to wrap/forward to the new TS functions (wrapper pattern). Delete the old CoffeeScript logic for those methods so the legacy class now uses the TS implementation.
+7. **Switch back and remove the toggle** - set `USE_TYPESCRIPT = false`, confirm tests still pass through the CoffeeScript class (now wired to TS), then remove the toggle and the TS branch in the test file entirely. The tests should permanently target the CoffeeScript class.
+8. **Finalize** - run `pnpm tsc --noEmit`, then `pnpm build`, then re-run the relevant tests to confirm the code compiles and behavior is preserved.
 
 **Async/Await Pattern:**
 
@@ -149,9 +154,40 @@ After migration is stable:
 - **Integration Tests**: Test interaction with database
 - **Regression Tests**: Ensure existing behavior preserved
 
+### Database Initialization in Tests
+
+**REQUIRED**: All test files that interact with the database must use ephemeral database initialization:
+
+```typescript
+import { db } from "@cocalc/database";
+import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+
+describe("your test suite", () => {
+  beforeAll(async () => {
+    await initEphemeralDatabase({});
+  }, 15000);
+
+  afterAll(async () => {
+    db()._close_test_query?.();
+    await getPool().end();
+  });
+
+  // Your tests here...
+});
+```
+
+**Benefits:**
+
+- Ensures clean database state before tests run
+- Prevents test pollution between test runs
+- Proper cleanup prevents Jest open handle warnings
+- Consistent test environment across all migrations
+
 ### Type Safety
 
 **CRITICAL**: Never use `any` type for database instances - always use `PostgreSQL` type from `postgres/types.ts`
+
+**Best Practice**: When migrating methods that use internal PostgreSQL methods (like `_throttle`, `sha1`, etc.), add proper type signatures to the `PostgreSQL` interface in `postgres/types.ts` rather than using type assertions like `(db as any)._throttle(...)`. This ensures type safety across the entire codebase.
 
 ### Coverage Goals
 
@@ -363,12 +399,331 @@ centralLog = require('./postgres/central-log')
 
 **Complexity**: Medium - Mostly orchestration and wrapping existing TypeScript functions
 
-**Migration Strategy**: This file is a good candidate for next migration:
+**Migration Strategy**: Incremental method-by-method migration using wrapper pattern:
 
-1. Identify remaining methods that haven't been extracted
-2. Convert wrapper methods to TypeScript extend pattern
-3. Create `postgres/server-queries/` directory for remaining implementations
-4. Most functionality already tested through extracted modules
+Many methods are already simple wrappers that delegate to TypeScript modules:
+
+```coffeescript
+update_account_and_passport: (opts) =>
+    return await update_account_and_passport(@, opts)
+```
+
+**Per-Method Migration Workflow (tests always hit CoffeeScript class):**
+
+1. **Write Test**: Create test in `postgres/` directory with suitable filename (e.g., `postgres/foo.test.ts`)
+   - Test must call the CoffeeScript method via `db()` (never import the TypeScript directly in tests).
+   - Use `callback_opts` if the CoffeeScript method is callback-based.
+   - Ensure the test passes before proceeding.
+
+2. **Convert to TypeScript**: Create TypeScript implementation next to the test
+   - File: `postgres/foo.ts` (matches `postgres/foo.test.ts`)
+   - Export function that takes `db: PostgreSQL` as first parameter
+   - Example: `export async function fooMethod(db: PostgreSQL, opts: FooOpts): Promise<void>`
+
+3. **Wrap in CoffeeScript**: Update `postgres-server-queries.coffee` to route the CoffeeScript method to the new TypeScript function
+
+   ```coffeescript
+   {fooMethod} = require('./postgres/foo')
+
+   # ... in class:
+   fooMethod: (opts) =>
+       return await fooMethod(@, opts)
+   ```
+
+4. **Verify**: Re-run the same test file. It must pass without changes to the test.
+
+5. **Delete old logic**: Remove the old CoffeeScript implementation, keeping only the wrapper.
+
+6. **Iterate**: Repeat for the next method.
+
+**Bundling Guidelines:**
+
+- Bundle related methods in same file when they share:
+  - Similar functionality (e.g., account management methods)
+  - Common helper functions
+  - Related database tables
+- Keep files focused - prefer multiple small files over one large file
+- Example: `postgres/account-settings.ts` could contain `get_account_settings`, `set_account_settings`, `update_account_settings`
+
+**Method Prioritization:**
+
+1. **Start with simple wrappers** - Methods already delegating to TypeScript modules
+2. **Then isolated methods** - Methods with minimal dependencies on other CoffeeScript code
+3. **Finally complex methods** - Methods with intricate logic or many dependencies
+
+**Example Migration Sequence:**
+
+```typescript
+// 1. postgres/account-settings.ts
+export async function getAccountSettings(db: PostgreSQL, opts: { account_id: string }): Promise<Settings> {
+  // implementation
+}
+
+export async function setAccountSettings(db: PostgreSQL, opts: { account_id: string; settings: Settings }): Promise<void> {
+  // implementation
+}
+
+// 2. postgres/account-settings.test.ts
+describe("Account Settings", () => {
+  it("gets account settings", async () => { ... });
+  it("sets account settings", async () => { ... });
+});
+
+// 3. Update postgres-server-queries.coffee
+{getAccountSettings, setAccountSettings} = require('./postgres/account-settings')
+
+getAccountSettings: (opts) => await getAccountSettings(@, opts)
+setAccountSettings: (opts) => await setAccountSettings(@, opts)
+```
+
+**Benefits of This Approach:**
+
+- Low risk - one method at a time
+- Immediate value - each method can be tested and verified independently
+- Flexible - can pause/resume migration at any point
+- Incremental - builds up TypeScript codebase steadily
+- Testable - ensures behavior preservation through automated tests
+
+**Final Step - Converting the Scaffolding:**
+
+Once all ~128 methods have been migrated to wrappers, convert the remaining class structure:
+
+1. **Create Extension Module**: `postgres/server-queries/methods.ts`
+   - Convert the class extension pattern from CoffeeScript to TypeScript
+   - Import all the individual method modules
+   - Use `extend_PostgreSQL` pattern like other modules
+
+2. **Create Index**: `postgres/server-queries/index.ts`
+
+   ```typescript
+   export { extend_PostgreSQL } from "./methods";
+   ```
+
+3. **Update Central Index**: Modify `database/index.ts`
+
+   ```typescript
+   // Change from:
+   const postgresServerQueries = require("./postgres-server-queries");
+
+   // To:
+   import { extend_PostgreSQL as extendPostgresServerQueries } from "./postgres/server-queries";
+
+   // In db() function:
+   PostgreSQL = extendPostgresServerQueries(PostgreSQL); // ✅ TypeScript
+   ```
+
+4. **Remove CoffeeScript**: Delete `postgres-server-queries.coffee` and compiled output
+
+5. **Verify**: Run all tests to ensure nothing broke during final conversion
+
+**Method Migration Progress Tracking:**
+
+_This list will be updated as methods are migrated. Each checkbox indicates completion._
+
+**Logging & Error Tracking (7 methods):**
+
+- [x] `get_log` → `postgres/log-query.ts`
+- [x] `get_user_log` → `postgres/log-query.ts`
+- [x] `uncaught_exception` → `postgres/log-query.ts`
+- [x] `log_client_error` → `postgres/log-query.ts`
+- [x] `webapp_error` → `postgres/log-query.ts`
+- [x] `get_client_error_log` → `postgres/log-query.ts`
+- [ ] `log` (wrapper for centralLog, needs migration)
+
+**Server Settings (6 methods):**
+
+- [x] `set_server_setting` → `postgres/server-settings.ts`
+- [x] `get_server_setting` → `postgres/server-settings.ts`
+- [x] `get_server_settings_cached` → `postgres/server-settings.ts`
+- [x] `get_site_settings` → `postgres/server-settings.ts`
+- [x] `server_settings_synctable` → `postgres/server-settings.ts`
+- [x] `reset_server_settings_cache` → `postgres/server-settings.ts`
+
+**Passport/SSO (8 methods already wrapped):**
+
+- [x] `set_passport_settings` (already wrapper → `postgres/passport.ts`)
+- [x] `get_passport_settings` (already wrapper → `postgres/passport.ts`)
+- [x] `get_all_passport_settings` (already wrapper → `postgres/passport.ts`)
+- [x] `get_all_passport_settings_cached` (already wrapper → `postgres/passport.ts`)
+- [x] `create_passport` (already wrapper → `postgres/passport.ts`)
+- [x] `passport_exists` (already wrapper → `postgres/passport.ts`)
+- [x] `update_account_and_passport` (already wrapper → `postgres/passport.ts`)
+- [ ] `create_sso_account` (complex, needs migration)
+
+**Account Management (26 methods):**
+
+- [x] `is_admin` → `postgres/account-basic.ts`
+- [x] `user_is_in_group` → `postgres/account-basic.ts`
+- [x] `make_user_admin` → `postgres/account-management.ts`
+- [x] `count_accounts_created_by` → `postgres/account-management.ts`
+- [ ] `delete_account`
+- [ ] `mark_account_deleted`
+- [x] `account_exists` → `postgres/account-basic.ts`
+- [ ] `account_creation_actions`
+- [ ] `account_creation_actions_success`
+- [ ] `do_account_creation_actions`
+- [ ] `verify_email_create_token`
+- [ ] `verify_email_check_token`
+- [ ] `verify_email_get`
+- [ ] `is_verified_email`
+- [ ] `get_coupon_history`
+- [ ] `update_coupon_history`
+- [ ] `account_ids_to_usernames`
+- [x] `_account_where` → `postgres/account-core.ts`
+- [x] `get_account` → `postgres/account-core.ts`
+- [x] `is_banned_user` → `postgres/account-core.ts`
+- [x] `_touch_account` → `postgres/account-management.ts`
+- [x] `touch` → `postgres/activity.ts`
+- [ ] `get_remember_me` (uses TypeScript function)
+- [x] `get_personal_user` (already wrapper → `postgres/personal.ts`)
+- [ ] `change_email_address`
+- [x] `change_password`
+- [x] `reset_password`
+- [x] `set_password_reset`
+- [x] `get_password_reset`
+- [x] `delete_password_reset`
+- [x] `record_password_reset_attempt`
+- [x] `count_password_reset_attempts`
+- [ ] `invalidate_all_remember_me`
+- [ ] `delete_remember_me`
+- [ ] `accountIsInOrganization`
+- [ ] `nameToAccountOrOrganization`
+
+**File Access & Usage (4 methods):**
+
+- [x] `log_file_access` → `postgres/file-access.ts`
+- [x] `get_file_access` → `postgres/file-access.ts`
+- [x] `record_file_use` → `postgres/file-access.ts`
+- [x] `get_file_use` → `postgres/file-access.ts`
+
+**Project Management (35 methods):**
+
+- [ ] `_validate_opts`
+- [x] `get_project`
+- [x] `_get_project_column`
+- [x] `get_user_column`
+- [ ] `add_user_to_project`
+- [ ] `set_project_status`
+- [ ] `remove_collaborator_from_project`
+- [ ] `remove_user_from_project`
+- [x] `get_collaborator_ids`
+- [x] `get_collaborators`
+- [ ] `get_public_paths`
+- [ ] `has_public_path`
+- [ ] `path_is_public`
+- [ ] `filter_public_paths`
+- [x] `_touch_project` → `postgres/activity.ts`
+- [x] `touch_project` → `postgres/activity.ts`
+- [x] `recently_modified_projects`
+- [x] `get_open_unused_projects`
+- [x] `user_is_in_project_group`
+- [x] `user_is_collaborator`
+- [x] `get_project_ids_with_user`
+- [x] `get_account_ids_using_project`
+- [ ] `when_sent_project_invite`
+- [ ] `sent_project_invite`
+- [ ] `set_project_host`
+- [ ] `unset_project_host`
+- [ ] `get_project_host`
+- [ ] `set_project_storage`
+- [ ] `get_project_storage`
+- [ ] `update_project_storage_save`
+- [ ] `set_project_storage_request`
+- [ ] `get_project_storage_request`
+- [ ] `set_project_state`
+- [ ] `get_project_state`
+- [ ] `get_project_quotas`
+- [ ] `get_user_project_upgrades`
+- [ ] `ensure_user_project_upgrades_are_valid`
+- [ ] `ensure_all_user_project_upgrades_are_valid`
+- [ ] `get_project_upgrades`
+- [ ] `remove_all_user_project_upgrades`
+- [ ] `get_project_settings`
+- [ ] `set_project_settings`
+- [ ] `get_project_extra_env`
+- [ ] `recent_projects`
+- [ ] `set_run_quota`
+- [x] `project_datastore_set` (already wrapper → `postgres/project-queries.ts`)
+- [x] `project_datastore_get` (already wrapper → `postgres/project-queries.ts`)
+- [x] `project_datastore_del` (already wrapper → `postgres/project-queries.ts`)
+- [x] `permanently_unlink_all_deleted_projects_of_user` (already wrapper → `postgres/delete-projects.ts`)
+- [x] `unlink_old_deleted_projects` (already wrapper → `postgres/delete-projects.ts`)
+- [x] `projects_that_need_to_be_started` (already wrapper → `postgres/always-running.ts`)
+
+**Public Paths (2 methods already wrapped):**
+
+- [x] `unlist_all_public_paths` (already wrapper → `postgres/public-paths.ts`)
+- [x] `get_all_public_paths` (already wrapper → `postgres/public-paths.ts`)
+
+**Statistics & Analytics (4 methods):**
+
+- [x] `get_stats_interval` → `postgres/statistics.ts`
+- [x] `get_stats` (already wrapper → `postgres/stats.ts`)
+- [x] `get_active_student_stats` → `postgres/statistics.ts`
+- [x] `calc_stats` (already wrapper → `postgres/stats.ts` - needs verification)
+
+**Hub Management (2 methods):**
+
+- [x] `register_hub` → `postgres/hub-management.ts`
+- [x] `get_hub_servers` → `postgres/hub-management.ts`
+
+**Site Licenses (8 methods already wrapped):**
+
+- [x] `site_license_usage_stats` (already wrapper → `postgres/site-license/analytics.ts`)
+- [x] `projects_using_site_license` (already wrapper → `postgres/site-license/analytics.ts`)
+- [x] `number_of_projects_using_site_license` (already wrapper → `postgres/site-license/analytics.ts`)
+- [x] `site_license_public_info` (already wrapper → `postgres/site-license/public.ts`)
+- [x] `site_license_manager_set` (already wrapper → `postgres/site-license/manager.ts`)
+- [x] `update_site_license_usage_log` (already wrapper → `postgres/site-license/usage-log.ts`)
+- [x] `matching_site_licenses` (already wrapper → `postgres/site-license/search.ts`)
+- [x] `manager_site_licenses` (already wrapper → `postgres/site-license/search.ts`)
+
+**Stripe/Payment (2 methods):**
+
+- [x] `is_paying_customer` (already wrapper → `postgres/account-queries.ts`)
+- [ ] (Stripe methods handled elsewhere)
+
+**Other (3 methods):**
+
+- [ ] `insert_random_compute_images`
+- [ ] `delete_syncstring`
+- [x] `registrationTokens` (already wrapper → `postgres/registration-tokens.ts`)
+- [x] `updateUnreadMessageCount` (already wrapper → `postgres/messages.ts`)
+
+**Progress Summary:**
+
+- **Total methods**: 130
+- **Already wrappers (TypeScript)**: 28 ✅
+- **Migrated in this session**: 39 ✅
+  - Batch 1: `get_log`, `get_user_log`, `uncaught_exception`
+  - Batch 2: `log_client_error`, `webapp_error`, `get_client_error_log`
+  - Batch 3: `set_server_setting`, `get_server_setting`, `get_server_settings_cached`, `get_site_settings`, `server_settings_synctable`, `reset_server_settings_cache`
+  - Batch 4: `log_file_access`, `get_file_access`, `record_file_use`, `get_file_use`
+  - Batch 5: `register_hub`, `get_hub_servers`
+  - Batch 6: `get_stats_interval`, `get_active_student_stats`
+  - Batch 7: `is_admin`, `user_is_in_group`, `account_exists`
+  - Batch 8: `_account_where`, `get_account`, `is_banned_user`
+  - Batch 9: `make_user_admin`, `count_accounts_created_by`, `_touch_account`
+  - Batch 10: `_touch_project`, `touch_project`, `touch`
+  - Batch 11: `change_password`, `reset_password`, `set_password_reset`, `get_password_reset`, `delete_password_reset`, `record_password_reset_attempt`, `count_password_reset_attempts`
+- **Remaining to migrate**: 63
+- **Current completion**: 52% (67/130)
+
+**Recent Migration Notes:**
+
+- _Dec 2024_:
+  - Migrated 6 logging/error methods to `postgres/log-query.ts` with comprehensive tests (14 tests, all passing)
+  - Migrated 6 server settings methods to `postgres/server-settings.ts` with comprehensive tests (9 tests, all passing)
+  - Migrated 4 file access methods to `postgres/file-access.ts` with comprehensive tests (16 tests, all passing)
+  - Migrated 2 hub management methods to `postgres/hub-management.ts` with comprehensive tests (10 tests, all passing)
+  - Migrated 2 statistics methods to `postgres/statistics.ts` with comprehensive tests (12 tests, all passing)
+  - Migrated 3 account basic methods to `postgres/account-basic.ts` with comprehensive tests (15 tests, all passing)
+  - Migrated 3 account core methods to `postgres/account-core.ts` with comprehensive tests (14 tests, all passing)
+  - Migrated 3 account management methods to `postgres/account-management.ts` with comprehensive tests (10 tests passing, 1 skipped due to throttle state)
+  - Migrated 3 activity tracking methods to `postgres/activity.ts` with comprehensive tests (10 tests, all passing)
+  - **Type System Improvements**: Added `_throttle`, `_close_test_query`, `clear_cache`, `get_hub_servers`, `get_stats_interval`, `get_active_student_stats`, `is_admin`, `user_is_in_group`, `account_exists`, `get_account`, `is_banned_user`, `_account_where`, `_touch_account`, `_touch_project`, and `touch_project` method signatures to `PostgreSQL` interface in `postgres/types.ts`
+  - **CRITICAL WORKFLOW**: Always write tests FIRST and verify they pass with the CoffeeScript implementation. A local `USE_TYPESCRIPT` toggle in the test file is allowed temporarily during the batch, but must be removed once wrappers are in place.
+  - **CODE QUALITY NOTE**: During conversion and later on, replace all `await callback2(db._query.bind(db)` with the shorter and more readable `await db.async_query`. The `async_query` method is the preferred TypeScript-native approach.
 
 ## Migration Recommendations
 
@@ -401,21 +756,35 @@ Based on complexity, dependencies, and risk:
 
 ### Next Steps
 
-1. **Immediate**: Analyze `postgres-server-queries.coffee` in detail
-   - Identify which methods still need extraction (vs. already delegating)
-   - Create migration plan for remaining methods
-   - Group related methods for incremental migration
-   - Target: Migrate in 3-4 batches to reduce risk
+1. **Immediate**: Begin `postgres-server-queries.coffee` method-by-method migration
+   - Identify first method to migrate (simple wrapper or isolated method)
+   - Follow per-method workflow:
+     1. Write test in `postgres/[name].test.ts`
+     2. Verify test passes with CoffeeScript
+     3. Implement in `postgres/[name].ts`
+     4. Replace CoffeeScript with wrapper
+     5. Verify test still passes
+   - Document each migrated method in this file
+   - Track progress: X of ~128 methods migrated
 
-2. **Short-term**: Begin `postgres-server-queries.coffee` migration
-   - Start with highest-value or most isolated method groups
-   - Write tests for any untested methods
-   - Migrate batch by batch, verifying tests after each batch
-   - Update documentation after each batch
+2. **Ongoing**: Continue incremental migration
+   - Migrate methods one at a time or in small related groups
+   - Prioritize: simple wrappers → isolated methods → complex methods
+   - Update wrapper count and progress metrics regularly
+   - Can pause/resume at any point without breaking functionality
 
-3. **Medium-term**: Plan `postgres-base.coffee` migration
+3. **Medium-term**: Complete `postgres-server-queries.coffee` migration
+   - When all ~128 methods have wrappers, convert remaining scaffolding:
+     - Create `postgres/server-queries/methods.ts` with extension pattern
+     - Import all individual method modules
+     - Create `postgres/server-queries/index.ts`
+   - Update `database/index.ts` to use TypeScript module
+   - Delete `postgres-server-queries.coffee` and compiled output
+   - Verify all 374+ tests still pass
+
+4. **Long-term**: Plan `postgres-base.coffee` migration
    - Write extensive integration tests for core functionality
-   - Consider incremental extraction approach
+   - Use same incremental method-by-method approach
    - This is the most critical migration and requires careful planning
    - May require coordination with CoCalc deployment team
 
