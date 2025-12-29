@@ -5,6 +5,7 @@ import { logCloudVmEvent } from "./db";
 import {
   ensureGcpProvider,
   ensureHyperstackProvider,
+  ensureLambdaProvider,
   provisionIfNeeded,
 } from "./host-util";
 import type { CloudVmWorkHandlers } from "./worker";
@@ -91,6 +92,9 @@ async function handleStart(row: any) {
     if (machine.cloud === "hyperstack") {
       const { provider, creds } = await ensureHyperstackProvider();
       await provider.startHost(runtime, creds);
+    } else if (machine.cloud === "lambda" || machine.cloud === "lambda-cloud") {
+      const { provider, creds } = await ensureLambdaProvider();
+      await provider.startHost(runtime, creds);
     } else {
       if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
         throw new Error(`unsupported cloud provider ${machine.cloud}`);
@@ -118,6 +122,9 @@ async function handleStop(row: any) {
     if (machine.cloud === "hyperstack") {
       const { provider, creds } = await ensureHyperstackProvider();
       await provider.stopHost(runtime, creds);
+    } else if (machine.cloud === "lambda" || machine.cloud === "lambda-cloud") {
+      const { provider, creds } = await ensureLambdaProvider();
+      await provider.stopHost(runtime, creds);
     } else {
       if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
         throw new Error(`unsupported cloud provider ${machine.cloud}`);
@@ -143,6 +150,9 @@ async function handleDelete(row: any) {
   if (machine.cloud && runtime?.instance_id) {
     if (machine.cloud === "hyperstack") {
       const { provider, creds } = await ensureHyperstackProvider();
+      await provider.deleteHost(runtime, creds);
+    } else if (machine.cloud === "lambda" || machine.cloud === "lambda-cloud") {
+      const { provider, creds } = await ensureLambdaProvider();
       await provider.deleteHost(runtime, creds);
     } else {
       if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {

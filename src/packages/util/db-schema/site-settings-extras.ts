@@ -248,6 +248,7 @@ export type SiteSettingsExtrasKeys =
   | "compute_servers_section"
   | "compute_servers_markup_percentage"
   | "lambda_cloud_api_key"
+  | "lambda_cloud_ssh_public_key"
   | "hyperstack_api_key"
   | "hyperstack_compute_servers_prefix"
   | "hyperstack_compute_servers_markup_percentage"
@@ -861,6 +862,14 @@ export const EXTRAS: SettingsExtras = {
     name: "Project Hosts: Lambda Cloud API Key",
     desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambda.ai/api-keys/cloud-api.  This supports managing project hosts on Lambda Cloud.",
     default: "",
+    show: () => true,
+    password: true,
+  },
+  lambda_cloud_ssh_public_key: {
+    name: "Project Hosts: Lambda Cloud - Public SSH Key",
+    desc: "Public SSH key that grants admin access to Lambda Cloud project hosts. REQUIRED or Lambda Cloud will not work.",
+    default: "",
+    show: () => true,
     password: true,
   },
   //   coreweave_kubeconfig: {

@@ -2,8 +2,10 @@ import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
 import {
   GcpProvider,
   HyperstackProvider,
+  LambdaProvider,
   type HostSpec,
   type HyperstackCreds,
+  type LambdaCreds,
 } from "@cocalc/cloud";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -146,6 +148,27 @@ export async function ensureHyperstackProvider(): Promise<{
   };
 }
 
+export async function ensureLambdaProvider(): Promise<{
+  provider: LambdaProvider;
+  creds: LambdaCreds;
+}> {
+  const { lambda_cloud_api_key, lambda_cloud_ssh_public_key } =
+    await getServerSettings();
+  if (!lambda_cloud_api_key) {
+    throw new Error("lambda_cloud_api_key is not configured");
+  }
+  if (!lambda_cloud_ssh_public_key) {
+    throw new Error("lambda_cloud_ssh_public_key is not configured");
+  }
+  return {
+    provider: new LambdaProvider(),
+    creds: {
+      apiKey: lambda_cloud_api_key,
+      sshPublicKey: lambda_cloud_ssh_public_key,
+    },
+  };
+}
+
 export async function provisionIfNeeded(row: HostRow) {
   const metadata = row.metadata ?? {};
   const runtime = metadata.runtime;
@@ -155,6 +178,18 @@ export async function provisionIfNeeded(row: HostRow) {
   }
   if (runtime?.instance_id) return row;
   const spec = await buildHostSpec(row);
+  if (machine.cloud === "lambda" || machine.cloud === "lambda-cloud") {
+    const { provider, creds } = await ensureLambdaProvider();
+    const runtimeCreated = await provider.createHost(spec, creds);
+    return {
+      ...row,
+      status: "running",
+      metadata: {
+        ...metadata,
+        runtime: runtimeCreated,
+      },
+    };
+  }
   if (machine.cloud === "hyperstack") {
     const { provider, creds } = await ensureHyperstackProvider();
     const runtimeCreated = await provider.createHost(spec, creds);
