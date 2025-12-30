@@ -209,8 +209,18 @@ export class LambdaProvider implements CloudProvider {
       instance_type_name = selectInstanceType(entries, spec.region, spec);
     }
 
-    const images = (await client.listImages()) as ImageEntry[];
-    const image = selectImage(images, spec);
+    // Lambda defaults to Ubuntu 22.04 when no image is specified, so only set
+    // an explicit image if the user chose one via metadata.
+    let image: { id?: string; family?: string } | undefined;
+    if (
+      spec.metadata?.source_image_id ||
+      spec.metadata?.source_image ||
+      spec.metadata?.image_family ||
+      spec.metadata?.source_image_family
+    ) {
+      const images = (await client.listImages()) as ImageEntry[];
+      image = selectImage(images, spec);
+    }
 
     const sshName = await ensureSshKey(
       client,
@@ -234,7 +244,7 @@ export class LambdaProvider implements CloudProvider {
       region_name: spec.region,
       instance_type_name,
       ssh_key_names: [sshName],
-      image,
+      ...(image ? { image } : {}),
       hostname,
       name: spec.name,
       user_data,
