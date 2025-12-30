@@ -1,7 +1,7 @@
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { deleteHostDns, ensureHostDns, hasDns } from "./dns";
-import { logCloudVmEvent } from "./db";
+import { enqueueCloudVmWork, logCloudVmEvent } from "./db";
 import {
   ensureGcpProvider,
   ensureHyperstackProvider,
@@ -10,6 +10,10 @@ import {
 } from "./host-util";
 import type { CloudVmWorkHandlers } from "./worker";
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
+import { LambdaClient } from "@cocalc/cloud/lambda/client";
+import { getVirtualMachine } from "@cocalc/cloud/hyperstack/client";
+import { setHyperstackConfig } from "@cocalc/cloud/hyperstack/config";
+import { InstancesClient } from "@google-cloud/compute";
 
 const logger = getLogger("server:cloud:host-work");
 const pool = () => getPool();
@@ -54,14 +58,120 @@ async function ensureDnsForHost(row: any) {
   }
 }
 
+async function refreshRuntimePublicIp(row: any) {
+  const machine: HostMachine = row.metadata?.machine ?? {};
+  const runtime = row.metadata?.runtime;
+  if (!machine.cloud || !runtime?.instance_id) return undefined;
+  logger.debug("refreshRuntimePublicIp: fetching", {
+    host_id: row.id,
+    provider: machine.cloud,
+    instance_id: runtime.instance_id,
+  });
+  if (machine.cloud === "lambda") {
+    const { creds } = await ensureLambdaProvider();
+    const client = new LambdaClient({ apiKey: creds.apiKey });
+    const instance = await client.getInstance(runtime.instance_id);
+    const ip = instance?.ip;
+    logger.debug("refreshRuntimePublicIp: lambda", {
+      host_id: row.id,
+      instance_id: runtime.instance_id,
+      ip,
+    });
+    return ip;
+  }
+  if (machine.cloud === "hyperstack") {
+    const { creds } = await ensureHyperstackProvider();
+    setHyperstackConfig({ apiKey: creds.apiKey, prefix: creds.prefix });
+    const instance = await getVirtualMachine(
+      Number.parseInt(runtime.instance_id, 10),
+    );
+    const ip = instance?.floating_ip ?? undefined;
+    logger.debug("refreshRuntimePublicIp: hyperstack", {
+      host_id: row.id,
+      instance_id: runtime.instance_id,
+      ip,
+    });
+    return ip;
+  }
+  if (machine.cloud === "gcp" || machine.cloud === "google-cloud") {
+    const { creds } = await ensureGcpProvider();
+    if (!creds.service_account_json) return undefined;
+    const parsed = JSON.parse(creds.service_account_json);
+    const client = new InstancesClient({
+      projectId: parsed.project_id,
+      credentials: {
+        client_email: parsed.client_email,
+        private_key: parsed.private_key,
+      },
+    });
+    const [instance] = await client.get({
+      project: parsed.project_id,
+      zone: runtime.zone,
+      instance: runtime.instance_id,
+    });
+    const ip =
+      instance?.networkInterfaces?.[0]?.accessConfigs?.[0]?.natIP ?? undefined
+    logger.debug("refreshRuntimePublicIp: gcp", {
+      host_id: row.id,
+      instance_id: runtime.instance_id,
+      ip,
+    });
+    return ip;
+  }
+  return undefined;
+}
+
+async function scheduleRuntimeRefresh(row: any) {
+  const runtime = row.metadata?.runtime;
+  if (!runtime?.instance_id) {
+    logger.debug("scheduleRuntimeRefresh: skip (no instance_id)", {
+      host_id: row.id,
+      provider: row.metadata?.machine?.cloud,
+    });
+    return;
+  }
+  if (runtime.public_ip) {
+    logger.debug("scheduleRuntimeRefresh: skip (already has public_ip)", {
+      host_id: row.id,
+      provider: row.metadata?.machine?.cloud,
+      public_ip: runtime.public_ip,
+    });
+    return;
+  }
+  logger.debug("scheduleRuntimeRefresh", {
+    host_id: row.id,
+    provider: row.metadata?.machine?.cloud,
+    instance_id: runtime.instance_id,
+  });
+  logger.info("scheduleRuntimeRefresh: enqueue", {
+    host_id: row.id,
+    provider: row.metadata?.machine?.cloud,
+    instance_id: runtime.instance_id,
+  });
+  await enqueueCloudVmWork({
+    vm_id: row.id,
+    action: "refresh_runtime",
+    payload: { provider: row.metadata?.machine?.cloud, attempt: 0 },
+  });
+}
+
 async function handleProvision(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   if (!machine.cloud) {
     await updateHostRow(row.id, { status: "running" });
     return;
   }
+  logger.debug("handleProvision: begin", {
+    host_id: row.id,
+    provider: machine.cloud,
+  });
   const provisioned = await provisionIfNeeded(row);
   const runtime = provisioned.metadata?.runtime;
+  logger.debug("handleProvision: runtime", {
+    host_id: row.id,
+    provider: machine.cloud,
+    runtime,
+  });
   const publicUrl =
     provisioned.public_url ??
     (runtime?.public_ip ? `http://${runtime.public_ip}` : undefined);
@@ -75,6 +185,7 @@ async function handleProvision(row: any) {
     internal_url: internalUrl,
   });
   await ensureDnsForHost({ ...provisioned, public_url: publicUrl, internal_url: internalUrl });
+  await scheduleRuntimeRefresh(provisioned);
   await logCloudVmEvent({
     vm_id: row.id,
     action: "create",
@@ -88,6 +199,11 @@ async function handleProvision(row: any) {
 async function handleStart(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
+  logger.debug("handleStart: begin", {
+    host_id: row.id,
+    provider: machine.cloud,
+    runtime,
+  });
   if (machine.cloud && runtime?.instance_id) {
     if (machine.cloud === "hyperstack") {
       const { provider, creds } = await ensureHyperstackProvider();
@@ -105,6 +221,7 @@ async function handleStart(row: any) {
   }
   await updateHostRow(row.id, { status: "running", last_seen: new Date() });
   await ensureDnsForHost(row);
+  await scheduleRuntimeRefresh(row);
   await logCloudVmEvent({
     vm_id: row.id,
     action: "start",
@@ -188,6 +305,73 @@ async function handleDelete(row: any) {
   });
 }
 
+async function handleRefreshRuntime(row: any) {
+  const host = row;
+  const runtime = host.metadata?.runtime;
+  if (!runtime?.instance_id) return;
+  if (runtime.public_ip) return;
+  logger.debug("handleRefreshRuntime", {
+    host_id: host.id,
+    provider: host.metadata?.machine?.cloud,
+    instance_id: runtime.instance_id,
+    attempt: row.payload?.attempt ?? 0,
+  });
+  logger.info("handleRefreshRuntime: attempt", {
+    host_id: host.id,
+    provider: host.metadata?.machine?.cloud,
+    instance_id: runtime.instance_id,
+    attempt: row.payload?.attempt ?? 0,
+  });
+  const public_ip = await refreshRuntimePublicIp(host);
+  if (!public_ip) {
+    const attempt = Number(row.payload?.attempt ?? 0);
+    logger.debug("handleRefreshRuntime: still missing", {
+      host_id: host.id,
+      provider: host.metadata?.machine?.cloud,
+      instance_id: runtime.instance_id,
+      attempt,
+    });
+    if (attempt < 12) {
+      setTimeout(() => {
+        enqueueCloudVmWork({
+          vm_id: host.id,
+          action: "refresh_runtime",
+          payload: {
+            provider: host.metadata?.machine?.cloud,
+            attempt: attempt + 1,
+          },
+        }).catch((err) => {
+          logger.warn("refresh_runtime enqueue failed", { err });
+        });
+      }, 10000);
+    }
+    return;
+  }
+  logger.info("handleRefreshRuntime: obtained", {
+    host_id: host.id,
+    provider: host.metadata?.machine?.cloud,
+    instance_id: runtime.instance_id,
+    public_ip,
+  });
+  const nextMetadata = {
+    ...(host.metadata ?? {}),
+    runtime: { ...runtime, public_ip },
+  };
+  const publicUrl = host.public_url ?? `http://${public_ip}`;
+  const internalUrl = host.internal_url ?? `http://${public_ip}`;
+  await updateHostRow(host.id, {
+    metadata: nextMetadata,
+    public_url: publicUrl,
+    internal_url: internalUrl,
+  });
+  await ensureDnsForHost({
+    ...host,
+    metadata: nextMetadata,
+    public_url: publicUrl,
+    internal_url: internalUrl,
+  });
+}
+
 async function markHostError(row: any, err: unknown) {
   const message = err ? String(err) : "unknown error";
   const nextMetadata = {
@@ -237,6 +421,16 @@ export const cloudHostHandlers: CloudVmWorkHandlers = {
     if (!host) return;
     try {
       await handleDelete(host);
+    } catch (err) {
+      await markHostError(host, err);
+      throw err;
+    }
+  },
+  refresh_runtime: async (row) => {
+    const host = await loadHostRow(row.vm_id);
+    if (!host) return;
+    try {
+      await handleRefreshRuntime(host);
     } catch (err) {
       await markHostError(host, err);
       throw err;

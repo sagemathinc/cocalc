@@ -1471,6 +1471,9 @@ export const HostsPage: React.FC = () => {
               <Tag>{selected.size}</Tag>
               {selected.gpu && <Tag color="purple">GPU</Tag>}
             </Space>
+            <Typography.Text copyable={{ text: selected.id }}>
+              Host ID: {selected.id}
+            </Typography.Text>
             <Space direction="vertical" size="small">
               {selected.machine?.zone && (
                 <Typography.Text>Zone: {selected.machine.zone}</Typography.Text>
