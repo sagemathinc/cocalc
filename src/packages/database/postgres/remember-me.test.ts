@@ -5,6 +5,7 @@
 
 import { db } from "@cocalc/database";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
 import { callback_opts } from "@cocalc/util/async-utils";
 import { uuid } from "@cocalc/util/misc";
 import type { PostgreSQL } from "./types";
@@ -44,8 +45,7 @@ describe("remember me methods", () => {
   }, 15000);
 
   afterAll(async () => {
-    db()._close_test_query?.();
-    await getPool().end();
+    await testCleanup(db());
   });
 
   describe("get_remember_me", () => {

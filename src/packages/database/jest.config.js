@@ -3,6 +3,9 @@ module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
   setupFiles: ["./test/setup.js"], // Path to your setup file
+  moduleNameMapper: {
+    "^@cocalc/database/test-utils$": "<rootDir>/test-utils.ts",
+  },
   testMatch: ["**/?(*.)+(spec|test).ts?(x)"],
   collectCoverage: false, // Enable with --coverage flag or set to true
   collectCoverageFrom: [

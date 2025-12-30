@@ -5,7 +5,8 @@
 
 import { execute_code } from "@cocalc/backend/misc_node";
 import { db } from "@cocalc/database";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
 import { SCHEMA } from "@cocalc/util/schema";
 
 import { NON_CRITICAL_TABLES } from "./utils";
@@ -22,8 +23,7 @@ beforeAll(async () => {
 }, 15000);
 
 afterAll(async () => {
-  db()._close_test_query?.();
-  await getPool().end();
+  await testCleanup(db());
 });
 
 describe("_get_backup_tables", () => {

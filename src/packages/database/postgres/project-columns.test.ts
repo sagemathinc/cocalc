@@ -5,6 +5,7 @@
 
 import { db } from "@cocalc/database";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
 import { callback_opts } from "@cocalc/util/async-utils";
 import { uuid } from "@cocalc/util/misc";
 
@@ -97,8 +98,7 @@ describe("project column queries", () => {
   });
 
   afterAll(async () => {
-    database._close_test_query?.();
-    await getPool().end();
+    await testCleanup(database);
   });
 
   it("get_project returns only requested columns and strips null values", async () => {

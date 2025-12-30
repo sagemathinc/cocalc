@@ -4,15 +4,17 @@
  */
 
 import { db } from "@cocalc/database";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
+import { uuid } from "@cocalc/util/misc";
+
 import {
-  log_file_access,
   get_file_access,
-  record_file_use,
   get_file_use,
+  log_file_access,
+  record_file_use,
 } from "./file-access";
 import type { PostgreSQL } from "./types";
-import { uuid } from "@cocalc/util/misc";
 
 describe("file access methods", () => {
   const database: PostgreSQL = db();
@@ -22,9 +24,7 @@ describe("file access methods", () => {
   }, 15000);
 
   afterAll(async () => {
-    database._clear_throttles();
-    db()._close_test_query?.();
-    await getPool().end();
+    await testCleanup(database);
   });
 
   describe("log_file_access and get_file_access", () => {

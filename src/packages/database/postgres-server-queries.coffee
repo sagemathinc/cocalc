@@ -30,6 +30,8 @@ required = defaults.required
 # fails with: remember-me.ts(15,31): error TS2307: Cannot find module 'async-await-utils/hof' or its corresponding type declarations.
 {get_remember_me_message, invalidate_all_remember_me, delete_remember_me} = require('./postgres/remember-me')
 {change_password, reset_password, set_password_reset, get_password_reset, delete_password_reset, record_password_reset_attempt, count_password_reset_attempts} = require('./postgres/password')
+{getCouponHistory, updateCouponHistory, accountIdsToUsernames} = require('./postgres/coupon-and-username')
+{setProjectStorageRequest, getProjectStorageRequest, setProjectState, getProjectState} = require('./postgres/project-state')
 
 {SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('@cocalc/util/schema')
 
@@ -702,23 +704,22 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             account_id : required
             cb         : undefined
-        @_dbg("Getting coupon history")
-        @_query
-            query : "SELECT coupon_history FROM accounts"
-            where : 'account_id = $::UUID' : opts.account_id
-            cb    : one_result("coupon_history", opts.cb)
+        try
+            result = await getCouponHistory(@, opts)
+            opts.cb?(undefined, result)
+        catch err
+            opts.cb?(err)
 
     update_coupon_history: (opts) =>
         opts = defaults opts,
             account_id     : required
             coupon_history : required
             cb             : undefined
-        @_dbg("Setting to #{opts.coupon_history}")
-        @_query
-            query : 'UPDATE accounts'
-            set   : 'coupon_history::JSONB' : opts.coupon_history
-            where : 'account_id = $::UUID'  : opts.account_id
-            cb    : opts.cb
+        try
+            await updateCouponHistory(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err)
 
     ###
     Querying for searchable information about accounts.
@@ -728,22 +729,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             account_ids : required
             cb          : required # (err, mapping {account_id:{first_name:?, last_name:?}})
         if not @_validate_opts(opts) then return
-        if opts.account_ids.length == 0 # easy special case -- don't waste time on a db query
-            opts.cb(undefined, [])
-            return
-        @_query
-            query : 'SELECT account_id, first_name, last_name FROM accounts'
-            where : 'account_id = ANY($::UUID[])' : opts.account_ids
-            cb    : (err, result) =>
-                if err
-                    opts.cb(err)
-                else
-                    v = misc.dict(([r.account_id, {first_name:r.first_name, last_name:r.last_name}] for r in result.rows))
-                    # fill in unknown users (should never be hit...)
-                    for id in opts.account_ids
-                        if not v[id]?
-                            v[id] = {first_name:undefined, last_name:undefined}
-                    opts.cb(err, v)
+        try
+            result = await accountIdsToUsernames(@, opts)
+            opts.cb(undefined, result)
+        catch err
+            opts.cb(err)
 
     _account_where: (opts) =>
         return accountWhere(opts)
@@ -1467,23 +1457,21 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             action     : required    # 'save', 'close', 'open', 'move'
             target     : undefined   # needed for 'open' and 'move'
             cb         : required
-        x =
-            action    : opts.action
-            requested : new Date()
-        if opts.target?
-            x.target = opts.target
-        @_query
-            query     : "UPDATE projects"
-            set       :
-                "storage_request::JSONB" : x
-            where     : 'project_id :: UUID = $' : opts.project_id
-            cb        : opts.cb
+        try
+            await setProjectStorageRequest(@, opts)
+            opts.cb()
+        catch err
+            opts.cb(err)
 
     get_project_storage_request: (opts) =>
         opts = defaults opts,
             project_id : required
             cb         : required
-        @_get_project_column('storage_request', opts.project_id, opts.cb)
+        try
+            result = await getProjectStorageRequest(@, opts)
+            opts.cb(undefined, result)
+        catch err
+            opts.cb(err)
 
     set_project_state: (opts) =>
         opts = defaults opts,
@@ -1493,30 +1481,21 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             error      : undefined
             ip         : undefined   # optional ip address
             cb         : required
-        if typeof(opts.state) != 'string'
-            opts.cb("invalid state type")
-            return
-        if not COMPUTE_STATES[opts.state]?
-            opts.cb("state = '#{opts.state}' it not a valid state")
-            return
-        state =
-            state : opts.state
-            time  : opts.time
-        if opts.error
-            state.error = opts.error
-        if opts.ip
-            state.ip = opts.ip
-        @_query
-            query     : "UPDATE projects"
-            set       : "state::JSONB" : state
-            where     : 'project_id :: UUID = $' : opts.project_id
-            cb        : opts.cb
+        try
+            await setProjectState(@, opts)
+            opts.cb()
+        catch err
+            opts.cb(err)
 
     get_project_state: (opts) =>
         opts = defaults opts,
             project_id : required
             cb         : required
-        @_get_project_column('state', opts.project_id, opts.cb)
+        try
+            result = await getProjectState(@, opts)
+            opts.cb(undefined, result)
+        catch err
+            opts.cb(err)
 
     ###
     Project quotas and upgrades

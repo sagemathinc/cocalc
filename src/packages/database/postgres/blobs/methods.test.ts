@@ -10,6 +10,7 @@ import { join } from "node:path";
 import * as miscNode from "@cocalc/backend/misc_node";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import { testCleanup } from "@cocalc/database/test-utils";
 import { callback2 } from "@cocalc/util/async-utils";
 import { uuid as randomUuid } from "@cocalc/util/misc";
 
@@ -32,8 +33,7 @@ beforeAll(async () => {
 }, 15000);
 
 afterAll(async () => {
-  db()._close_test_query?.();
-  await getPool().end();
+  await testCleanup(db());
   if (blobStoreDir) {
     await rm(blobStoreDir, { recursive: true, force: true });
   }

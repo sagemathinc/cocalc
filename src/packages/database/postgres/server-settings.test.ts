@@ -4,7 +4,8 @@
  */
 
 import { db } from "@cocalc/database";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
 import {
   set_server_setting,
   get_server_setting,
@@ -22,8 +23,7 @@ describe("server settings methods", () => {
   }, 15000);
 
   afterAll(async () => {
-    db()._close_test_query?.();
-    await getPool().end();
+    await testCleanup(db());
   });
 
   describe("set_server_setting and get_server_setting", () => {

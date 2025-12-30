@@ -8,6 +8,7 @@
 import { sha1 } from "@cocalc/backend/misc_node";
 import { db, pg_type } from "@cocalc/database";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
 import { uuid } from "@cocalc/util/misc";
 import { SCHEMA } from "@cocalc/util/schema";
 
@@ -136,8 +137,7 @@ describe("SyncTable (integration)", () => {
   }, 15000);
 
   afterAll(async () => {
-    db()._close_test_query?.();
-    await getPool().end();
+    await testCleanup(db());
   });
 
   test("loads existing rows into the cache", async () => {

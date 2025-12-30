@@ -1,15 +1,15 @@
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
-import { uuid } from "@cocalc/util/misc";
 import { sha1 } from "@cocalc/backend/misc_node";
 import { db } from "@cocalc/database";
+import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
+import { uuid } from "@cocalc/util/misc";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
 }, 15000);
 
 afterAll(async () => {
-  db()._close_test_query?.();
-  await getPool().end();
+  await testCleanup(db());
 });
 
 describe("test archiving and unarchiving syncstrings with no edit history", () => {

@@ -5,6 +5,7 @@
 
 import { db } from "@cocalc/database";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
 import { callback_opts } from "@cocalc/util/async-utils";
 import { uuid } from "@cocalc/util/misc";
 import type { PostgreSQL } from "./types";
@@ -44,9 +45,7 @@ describe("account management queries", () => {
   }, 15000);
 
   afterAll(async () => {
-    database._clear_throttles();
-    database._close_test_query?.();
-    await getPool().end();
+    await testCleanup(database);
   });
 
   describe("make_user_admin", () => {

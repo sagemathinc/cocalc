@@ -1,11 +1,11 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 /**
 
-pnpm test hook.test.ts 
+pnpm test hook.test.ts
 
  * This tests the core of ./hook.ts
  * It's not using it directly, though, because of the complex dependency of the database.
@@ -22,7 +22,9 @@ process.env.PGDATABASE = "smc_ephemeral_testing_database";
 
 import { isEqual } from "lodash";
 
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { db } from "@cocalc/database";
+import { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
 import { quota_with_reasons, SiteLicenses } from "@cocalc/util/upgrades/quota";
 
 beforeAll(async () => {
@@ -30,7 +32,7 @@ beforeAll(async () => {
 }, 15000);
 
 afterAll(async () => {
-  await getPool().end();
+  await testCleanup(db());
 });
 
 test("allow for much larger max_upgrades", () => {

@@ -174,7 +174,8 @@ After migration is stable:
 
 ```typescript
 import { db } from "@cocalc/database";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
 
 describe("your test suite", () => {
   beforeAll(async () => {
@@ -182,19 +183,21 @@ describe("your test suite", () => {
   }, 15000);
 
   afterAll(async () => {
-    db()._close_test_query?.();
-    await getPool().end();
+    await testCleanup(db());
   });
 
   // Your tests here...
 });
 ```
 
+**Note**: `testCleanup` clears throttles, closes the test query if available, and ends the pool to avoid leaked handles.
+
 **Benefits:**
 
 - Ensures clean database state before tests run
 - Prevents test pollution between test runs
 - Proper cleanup prevents Jest open handle warnings
+- Clearing throttles avoids cross-test rate-limit interference
 - Consistent test environment across all migrations
 
 ### Type Safety
@@ -580,15 +583,15 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 - [ ] `verify_email_check_token`
 - [ ] `verify_email_get`
 - [ ] `is_verified_email`
-- [ ] `get_coupon_history`
-- [ ] `update_coupon_history`
-- [ ] `account_ids_to_usernames`
+- [x] `get_coupon_history` → `postgres/coupon-and-username.ts`
+- [x] `update_coupon_history` → `postgres/coupon-and-username.ts`
+- [x] `account_ids_to_usernames` → `postgres/coupon-and-username.ts`
 - [x] `_account_where` → `postgres/account-core.ts`
 - [x] `get_account` → `postgres/account-core.ts`
 - [x] `is_banned_user` → `postgres/account-core.ts`
 - [x] `_touch_account` → `postgres/account-management.ts`
 - [x] `touch` → `postgres/activity.ts`
-- [ ] `get_remember_me` (uses TypeScript function)
+- [x] `get_remember_me` (already wrapper → `postgres/remember-me.ts`)
 - [x] `get_personal_user` (already wrapper → `postgres/personal.ts`)
 - [ ] `change_email_address`
 - [x] `change_password`
@@ -598,8 +601,8 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 - [x] `delete_password_reset`
 - [x] `record_password_reset_attempt`
 - [x] `count_password_reset_attempts`
-- [ ] `invalidate_all_remember_me`
-- [ ] `delete_remember_me`
+- [x] `invalidate_all_remember_me` (already wrapper → `postgres/remember-me.ts`)
+- [x] `delete_remember_me` (already wrapper → `postgres/remember-me.ts`)
 - [ ] `accountIsInOrganization`
 - [ ] `nameToAccountOrOrganization`
 
@@ -642,10 +645,10 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 - [ ] `set_project_storage`
 - [ ] `get_project_storage`
 - [ ] `update_project_storage_save`
-- [ ] `set_project_storage_request`
-- [ ] `get_project_storage_request`
-- [ ] `set_project_state`
-- [ ] `get_project_state`
+- [x] `set_project_storage_request` → `postgres/project-state.ts`
+- [x] `get_project_storage_request` → `postgres/project-state.ts`
+- [x] `set_project_state` → `postgres/project-state.ts`
+- [x] `get_project_state` → `postgres/project-state.ts`
 - [ ] `get_project_quotas`
 - [ ] `get_user_project_upgrades`
 - [ ] `ensure_user_project_upgrades_are_valid`
@@ -707,8 +710,8 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 **Progress Summary:**
 
 - **Total methods**: 130
-- **Already wrappers (TypeScript)**: 28 ✅
-- **Migrated in this session**: 39 ✅
+- **Already wrappers (TypeScript)**: 31 ✅
+- **Migrated in this session**: 46 ✅
   - Batch 1: `get_log`, `get_user_log`, `uncaught_exception`
   - Batch 2: `log_client_error`, `webapp_error`, `get_client_error_log`
   - Batch 3: `set_server_setting`, `get_server_setting`, `get_server_settings_cached`, `get_site_settings`, `server_settings_synctable`, `reset_server_settings_cache`
@@ -720,8 +723,10 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
   - Batch 9: `make_user_admin`, `count_accounts_created_by`, `_touch_account`
   - Batch 10: `_touch_project`, `touch_project`, `touch`
   - Batch 11: `change_password`, `reset_password`, `set_password_reset`, `get_password_reset`, `delete_password_reset`, `record_password_reset_attempt`, `count_password_reset_attempts`
-- **Remaining to migrate**: 63
-- **Current completion**: 52% (67/130)
+  - Batch 12: `get_coupon_history`, `update_coupon_history`, `account_ids_to_usernames`
+  - Batch 13: `set_project_storage_request`, `get_project_storage_request`, `set_project_state`, `get_project_state`
+- **Remaining to migrate**: 53
+- **Current completion**: 59% (77/130)
 
 **Recent Migration Notes:**
 

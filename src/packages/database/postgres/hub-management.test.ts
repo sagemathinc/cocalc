@@ -5,6 +5,7 @@
 
 import { db } from "@cocalc/database";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
 import { callback_opts } from "@cocalc/util/async-utils";
 import type { PostgreSQL } from "./types";
 
@@ -30,8 +31,7 @@ describe("hub management methods", () => {
   }, 15000);
 
   afterAll(async () => {
-    db()._close_test_query?.();
-    await getPool().end();
+    await testCleanup(database);
   });
 
   describe("register_hub and get_hub_servers", () => {

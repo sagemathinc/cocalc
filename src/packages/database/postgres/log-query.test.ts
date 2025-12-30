@@ -4,18 +4,20 @@
  */
 
 import { db } from "@cocalc/database";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
+import { uuid } from "@cocalc/util/misc";
+
 import centralLog from "./central-log";
 import {
+  get_client_error_log,
   get_log,
   get_user_log,
-  uncaught_exception,
   log_client_error,
+  uncaught_exception,
   webapp_error,
-  get_client_error_log,
 } from "./log-query";
 import type { PostgreSQL } from "./types";
-import { uuid } from "@cocalc/util/misc";
 
 describe("log query methods", () => {
   const database: PostgreSQL = db();
@@ -25,8 +27,7 @@ describe("log query methods", () => {
   }, 15000);
 
   afterAll(async () => {
-    db()._close_test_query?.();
-    await getPool().end();
+    await testCleanup(database);
   });
 
   describe("get_log", () => {

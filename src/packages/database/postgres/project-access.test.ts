@@ -5,6 +5,7 @@
 
 import { db } from "@cocalc/database";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
 import { callback_opts } from "@cocalc/util/async-utils";
 import { uuid } from "@cocalc/util/misc";
 
@@ -86,8 +87,7 @@ describe("project access methods", () => {
   });
 
   afterAll(async () => {
-    database._close_test_query?.();
-    await getPool().end();
+    await testCleanup(database);
   });
 
   it("user_is_in_project_group returns false when account_id is missing", async () => {

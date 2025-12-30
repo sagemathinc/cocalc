@@ -368,6 +368,24 @@ export interface PostgreSQL extends EventEmitter {
     host: string;
     cb: CB<string[]>;
   }): void;
+
+  set_project_storage_request(opts: {
+    project_id: string;
+    action: string;
+    target?: string;
+    cb: CB;
+  }): void;
+  get_project_storage_request(opts: { project_id: string; cb: CB }): void;
+
+  set_project_state(opts: {
+    project_id: string;
+    state: string;
+    time?: Date;
+    error?: string;
+    ip?: string;
+    cb: CB;
+  }): void;
+  get_project_state(opts: { project_id: string; cb: CB }): void;
   get_collaborator_ids(opts: { account_id: string; cb: CB<string[]> }): void;
   get_collaborators(opts: { project_id: string; cb: CB<string[]> }): void;
 
