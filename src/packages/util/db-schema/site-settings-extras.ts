@@ -248,11 +248,9 @@ export type SiteSettingsExtrasKeys =
   | "compute_servers_section"
   | "compute_servers_markup_percentage"
   | "lambda_cloud_api_key"
-  | "lambda_cloud_ssh_public_key"
   | "hyperstack_api_key"
   | "hyperstack_compute_servers_prefix"
   | "hyperstack_compute_servers_markup_percentage"
-  | "hyperstack_ssh_public_key"
   | "hyperstack_balance_alert_thresh"
   | "hyperstack_balance_alert_emails"
   | "control_plane_ssh_private_key_path"
@@ -833,14 +831,6 @@ export const EXTRAS: SettingsExtras = {
     valid: () => true,
     tags: ["Compute Servers", "Hyperstack"],
   },
-  hyperstack_ssh_public_key: {
-    name: "Compute Servers: Hyperstack - Public SSH Key",
-    desc: "A public SSH key that grants access to all Hyperstack VM's for admin and debugging purposes.  REQUIRED or Hyperstack will not work.",
-    default: "",
-    password: true,
-    show: compute_servers_hyperstack_enabled,
-    tags: ["Compute Servers", "Hyperstack"],
-  },
   control_plane_ssh_private_key_path: {
     name: "Control Plane: SSH Private Key Path",
     desc: "Filesystem path to the control-plane SSH private key. When set, this overrides the database key. All hub processes must be able to read this file.",
@@ -877,13 +867,6 @@ export const EXTRAS: SettingsExtras = {
   lambda_cloud_api_key: {
     name: "Project Hosts: Lambda Cloud API Key",
     desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambda.ai/api-keys/cloud-api.  This supports managing project hosts on Lambda Cloud.",
-    default: "",
-    show: () => true,
-    password: true,
-  },
-  lambda_cloud_ssh_public_key: {
-    name: "Project Hosts: Lambda Cloud - Public SSH Key",
-    desc: "Public SSH key that grants admin access to Lambda Cloud project hosts. REQUIRED or Lambda Cloud will not work.",
     default: "",
     show: () => true,
     password: true,

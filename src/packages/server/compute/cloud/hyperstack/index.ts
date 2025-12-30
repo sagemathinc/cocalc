@@ -27,7 +27,7 @@ import {
   getImages,
 } from "./client";
 import { setData as setData0 } from "@cocalc/server/compute/util";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { getControlPlaneSshKeypair } from "../../../cloud/ssh-key";
 import { delay } from "awaiting";
 export * from "./make-configuration-change";
 import { initDatabaseCache } from "./client-cache";
@@ -101,11 +101,6 @@ function getHyperstackData(server: ComputeServer): HyperstackData {
   return data;
 }
 
-export async function getPublicSSHKey() {
-  const { hyperstack_ssh_public_key = "" } = await getServerSettings();
-  return hyperstack_ssh_public_key;
-}
-
 export async function ensureKeyPair(
   region_name: Region,
   environment_name: string,
@@ -120,7 +115,7 @@ export async function ensureKeyPair(
   await importKeyPair({
     name,
     environment_name,
-    public_key: await getPublicSSHKey(),
+    public_key: (await getControlPlaneSshKeypair()).publicKey,
   });
   return name;
 }

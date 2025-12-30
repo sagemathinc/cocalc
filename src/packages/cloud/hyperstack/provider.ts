@@ -14,6 +14,7 @@ import {
 } from "./client";
 import { getHyperstackConfig, setHyperstackConfig } from "./config";
 import type { Region } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import { delay } from "awaiting";
 
 const logger = getLogger("cloud:hyperstack:provider");
 
@@ -48,24 +49,58 @@ function keyName(region: string): string {
 
 async function ensureEnvironment(region: string): Promise<string> {
   const name = envName(region);
+  logger.debug("ensureEnvironment", { region, name });
   const envs = await getEnvironments();
   if (envs.find((e) => (e.name ?? "").toLowerCase() === name.toLowerCase())) {
+    logger.debug("ensureEnvironment: exists", { name });
     return name;
   }
-  await createEnvironment({ name, region: region as Region });
-  return name;
+  try {
+    logger.info("ensureEnvironment: creating", { name, region });
+    await createEnvironment({ name, region: region as Region });
+  } catch (err) {
+    if (!isAlreadyExists(err)) {
+      throw err;
+    }
+    logger.info("ensureEnvironment: already exists", { name });
+  }
+
+  const deadline = Date.now() + 2 * 60 * 1000;
+  let wait = 500;
+  while (Date.now() < deadline) {
+    const next = await getEnvironments();
+    if (
+      next.find((e) => (e.name ?? "").toLowerCase() === name.toLowerCase())
+    ) {
+      logger.debug("ensureEnvironment: ready", { name });
+      return name;
+    }
+    await delay(wait);
+    wait = Math.min(wait * 1.5, 5000);
+  }
+  throw new Error(`Hyperstack environment "${name}" not ready in time`);
 }
 
 async function ensureKeyPair(region: string, publicKey: string): Promise<string> {
   const name = keyName(region);
+  logger.debug("ensureKeyPair", { region, name });
   const keys = await getKeyPairs();
   if (keys.find((k) => k.name === name)) return name;
+  logger.info("ensureKeyPair: importing", { name });
   await importKeyPair({
     name,
     environment_name: envName(region),
     public_key: publicKey,
   });
   return name;
+}
+
+function isAlreadyExists(err: unknown): boolean {
+  const msg = String((err as any)?.message ?? err);
+  return (
+    msg.toLowerCase().includes("already exists") ||
+    (err as any)?.error_reason === "already_exist"
+  );
 }
 
 async function selectFlavor(region: string, spec: HostSpec): Promise<string> {
