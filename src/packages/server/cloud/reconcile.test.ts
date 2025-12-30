@@ -82,4 +82,57 @@ describe("cloud reconcile state gating", () => {
       client.release();
     }
   });
+
+  it("records last_error when reconcile fails", async () => {
+    const now = new Date("2025-01-01T00:00:00Z");
+    const reconcile = jest.fn(async () => {
+      throw new Error("boom");
+    });
+    const intervals = { running_ms: 10, idle_ms: 20, empty_ms: 30 };
+
+    await expect(
+      runReconcileOnce(provider, {
+        now: () => now,
+        intervals,
+        reconcile,
+      }),
+    ).rejects.toThrow("boom");
+
+    const { rows } = await getPool().query(
+      `SELECT last_error, next_run_at FROM cloud_reconcile_state WHERE provider=$1`,
+      [provider],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].last_error).toContain("boom");
+    expect(rows[0].next_run_at).not.toBeNull();
+  });
+
+  it("records last_error when count fails after reconcile", async () => {
+    const now = new Date("2025-01-01T00:00:00Z");
+    const reconcile = jest.fn(async () => {});
+    const count = jest.fn(async () => {
+      throw new Error("count boom");
+    });
+    const intervals = { running_ms: 10, idle_ms: 20, empty_ms: 30 };
+
+    await expect(
+      runReconcileOnce(provider, {
+        now: () => now,
+        intervals,
+        reconcile,
+        count,
+      }),
+    ).rejects.toThrow("count boom");
+
+    const { rows } = await getPool().query(
+      `SELECT last_error, last_run_at, next_run_at FROM cloud_reconcile_state WHERE provider=$1`,
+      [provider],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].last_error).toContain("count boom");
+    expect(new Date(rows[0].last_run_at).getTime()).toBe(now.getTime());
+    expect(new Date(rows[0].next_run_at).getTime()).toBe(
+      now.getTime() + intervals.idle_ms,
+    );
+  });
 });

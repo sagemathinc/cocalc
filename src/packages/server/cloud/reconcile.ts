@@ -384,15 +384,27 @@ export async function runReconcileOnce(
       return { ran: false, skipped: "not_due", next_at: state.next_run_at };
     }
     logger.debug("cloud reconcile tick", { provider });
-    await reconcile(provider);
-    const counts = await count(provider);
-    const next_at = new Date(current.getTime() + nextInterval(counts, intervals));
-    await setReconcileState(provider, {
-      last_run_at: current,
-      next_run_at: next_at,
-      last_error: null,
-    });
-    return { ran: true, next_at };
+    try {
+      await reconcile(provider);
+      const counts = await count(provider);
+      const next_at = new Date(
+        current.getTime() + nextInterval(counts, intervals),
+      );
+      await setReconcileState(provider, {
+        last_run_at: current,
+        next_run_at: next_at,
+        last_error: null,
+      });
+      return { ran: true, next_at };
+    } catch (err) {
+      const next_at = new Date(current.getTime() + intervals.idle_ms);
+      await setReconcileState(provider, {
+        last_run_at: current,
+        next_run_at: next_at,
+        last_error: String(err),
+      });
+      throw err;
+    }
   });
 }
 
