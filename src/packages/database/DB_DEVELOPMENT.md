@@ -127,6 +127,20 @@ export function backupTableCB(opts: {
 }
 ```
 
+### Modernizing Callback Methods to Async/TypeScript
+
+**📖 For the complete modernization guide, see [dev/MODERNIZE_CODE.md](../../dev/MODERNIZE_CODE.md)**
+
+When modernizing legacy callback-based database methods (using `async.series`, `defaults()`, etc.), follow the comprehensive step-by-step guide. The process ensures:
+
+- Backwards compatibility with existing callback-based code
+- Clean async/await patterns for new code
+- Proper error handling with try/catch
+- TypeScript destructuring instead of `defaults()`
+- Direct async/await usage by updating all callers
+
+The guide includes a complete example of `blob_maintenance` transformation (60 lines → 36 lines, 40% reduction) with detailed before/after code samples.
+
 ### Phase 3: Class Consolidation (Future)
 
 Once all methods migrated:

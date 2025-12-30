@@ -150,6 +150,9 @@ export interface BlobMaintenanceOpts {
   map_limit?: number;
   blobs_per_tarball?: number;
   throttle?: number;
+  syncstring_delay?: number; // delay between syncstring operations (default: 1000ms)
+  backup_repeat?: number; // repeat count for backup_blobs_to_tarball (default: 5)
+  copy_repeat_s?: number; // repeat duration in seconds for copy_all_blobs_to_gcloud (default: 5)
   cb?: CB;
 }
 
@@ -677,7 +680,7 @@ export interface PostgreSQL extends EventEmitter {
 
   copy_all_blobs_to_gcloud(opts: CopyAllBlobsToGcloudOpts): void;
 
-  blob_maintenance(opts: BlobMaintenanceOpts): void;
+  blob_maintenance(opts: BlobMaintenanceOpts): Promise<void>;
 
   close_blob(opts: CloseBlobOpts): void;
 

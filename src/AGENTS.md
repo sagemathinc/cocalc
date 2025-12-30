@@ -75,6 +75,20 @@ After making changes to files in `packages/frontend`:
 
 - After TypeScript changes, run `pnpm build` in the relevant package directory
 
+#### Modernizing Legacy Callback Code
+
+When working with legacy callback-based code (using `async.series`, `defaults()`, nested callbacks), follow the comprehensive modernization guide:
+
+**📖 See [dev/MODERNIZE_CODE.md](./dev/MODERNIZE_CODE.md)** for the complete step-by-step process to convert callback-based code to modern async/await TypeScript.
+
+This guide covers:
+
+- Converting `async.series`/`async.parallel` to native async/await
+- Replacing `defaults()` with TypeScript destructuring
+- Proper error handling with try/catch
+- Maintaining backwards compatibility
+- Updating callers to use direct async/await
+
 ## Architecture Overview
 
 ### Package Structure

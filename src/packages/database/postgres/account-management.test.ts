@@ -44,6 +44,7 @@ describe("account management queries", () => {
   }, 15000);
 
   afterAll(async () => {
+    database._clear_throttles();
     database._close_test_query?.();
     await getPool().end();
   });

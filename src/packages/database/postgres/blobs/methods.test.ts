@@ -940,6 +940,9 @@ describe("blob_maintenance", () => {
       map_limit: 1,
       blobs_per_tarball: 1000,
       throttle: 0,
+      syncstring_delay: 0,
+      backup_repeat: 0,
+      copy_repeat_s: 0,
     });
 
     const { rows } = await pool.query(
@@ -952,7 +955,7 @@ describe("blob_maintenance", () => {
 
     const stored = await readFile(join(blobStoreDir, uuid));
     expect(stored.toString()).toBe(content);
-  }, 15000);
+  });
 });
 
 describe("syncstring_maintenance", () => {

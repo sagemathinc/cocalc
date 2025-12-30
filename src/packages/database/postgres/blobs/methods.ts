@@ -25,6 +25,7 @@ import * as fs from "fs";
 import * as zlib from "zlib";
 
 import * as misc_node from "@cocalc/backend/misc_node";
+import { callback_opts } from "@cocalc/util/async-utils";
 import { bind_methods, defaults } from "@cocalc/util/misc";
 import * as misc from "@cocalc/util/misc";
 import type { CB } from "@cocalc/util/types/callback";
@@ -826,65 +827,65 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
       });
     }
 
-    blob_maintenance(opts: BlobMaintenanceOpts) {
-      const optsWithDefaults = defaults(opts, {
-        path: "/backup/blobs",
-        map_limit: 1,
-        blobs_per_tarball: 10000,
-        throttle: 0,
-        cb: undefined,
-      }) as BlobMaintenanceOpts;
+    async blob_maintenance(opts: BlobMaintenanceOpts): Promise<void> {
+      const {
+        path = "/backup/blobs",
+        map_limit = 1,
+        blobs_per_tarball = 10000,
+        throttle = 0,
+        syncstring_delay = 1000,
+        backup_repeat = 5,
+        copy_repeat_s = 5,
+        cb = undefined,
+      } = opts;
+
       const dbg = this._dbg("blob_maintenance()") as (
         ...args: unknown[]
       ) => void;
       dbg();
-      const path = optsWithDefaults.path ?? "/backup/blobs";
-      return async.series(
-        [
-          (cb) => {
-            dbg("maintain the patches and syncstrings");
-            return this.syncstring_maintenance({
-              repeat_until_done: true,
-              limit: 500,
-              map_limit: optsWithDefaults.map_limit,
-              delay: 1000, // 1s, since syncstring_maintence heavily loads db
-              cb,
-            });
-          },
-          (cb) => {
-            dbg("backup_blobs_to_tarball");
-            return this.backup_blobs_to_tarball({
-              throttle: optsWithDefaults.throttle,
-              limit: optsWithDefaults.blobs_per_tarball,
-              path,
-              map_limit: optsWithDefaults.map_limit,
-              repeat_until_done: 5,
-              cb,
-            });
-          },
-          (cb) => {
-            dbg("copy_all_blobs_to_gcloud");
-            const errors: BlobCopyErrors = {};
-            return this.copy_all_blobs_to_gcloud({
-              limit: 1000,
-              repeat_until_done_s: 5,
-              errors,
-              remove: true,
-              map_limit: optsWithDefaults.map_limit,
-              throttle: optsWithDefaults.throttle,
-              cb: (err) => {
-                if (misc.len(errors) > 0) {
-                  dbg(`errors! ${misc.to_json(errors)}`);
-                }
-                return cb(err);
-              },
-            });
-          },
-        ],
-        (err) => {
-          return optsWithDefaults.cb?.(err);
-        },
-      );
+
+      try {
+        // Step 1: Maintain the patches and syncstrings
+        dbg("maintain the patches and syncstrings");
+        await callback_opts(this.syncstring_maintenance.bind(this))({
+          repeat_until_done: true,
+          limit: 500,
+          map_limit,
+          delay: syncstring_delay, // 1s by default, since syncstring_maintence heavily loads db
+        });
+
+        // Step 2: Backup blobs to tarball
+        dbg("backup_blobs_to_tarball");
+        await callback_opts(this.backup_blobs_to_tarball.bind(this))({
+          throttle,
+          limit: blobs_per_tarball,
+          path,
+          map_limit,
+          repeat_until_done: backup_repeat,
+        });
+
+        // Step 3: Copy all blobs to gcloud
+        dbg("copy_all_blobs_to_gcloud");
+        const errors: BlobCopyErrors = {};
+        await callback_opts(this.copy_all_blobs_to_gcloud.bind(this))({
+          limit: 1000,
+          repeat_until_done_s: copy_repeat_s,
+          errors,
+          remove: true,
+          map_limit,
+          throttle,
+        });
+
+        if (misc.len(errors) > 0) {
+          dbg(`errors! ${misc.to_json(errors)}`);
+        }
+
+        // Success - call callback without error
+        cb?.();
+      } catch (err) {
+        // Error occurred - call callback with error
+        cb?.(err);
+      }
     }
 
     remove_blob_ttls(opts: RemoveBlobTtlsOpts) {

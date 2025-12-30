@@ -478,7 +478,7 @@ async function main(): Promise<void> {
       });
       process.exit();
     } else if (program.blobMaintenance) {
-      await callback2(database.blob_maintenance);
+      await database.blob_maintenance({});
       process.exit();
     } else if (program.updateStats) {
       await callback2(database.get_stats);
