@@ -242,8 +242,7 @@ export const HostsPage: React.FC = () => {
   const [aiError, setAiError] = useState<string | undefined>(undefined);
   const [aiResults, setAiResults] = useState<HostRecommendation[]>([]);
   const [llmModel] = useLanguageModelSetting();
-  const [refreshProvider, setRefreshProvider] =
-    useState<HostProvider>("gcp");
+  const [refreshProvider, setRefreshProvider] = useState<HostProvider>("gcp");
   const hub = webapp_client.conat_client.hub;
   const [form] = Form.useForm();
   const isAdmin = useTypedRedux("account", "is_admin");
@@ -307,10 +306,8 @@ export const HostsPage: React.FC = () => {
     return catalog.provider_capabilities[selectedProvider];
   }, [catalog, selectedProvider]);
   const supportsPersistentStorage =
-    providerCaps?.persistentStorage?.supported ??
-    (selectedProvider !== "lambda");
-  const persistentGrowable =
-    providerCaps?.persistentStorage?.growable ?? true;
+    providerCaps?.persistentStorage?.supported ?? selectedProvider !== "lambda";
+  const persistentGrowable = providerCaps?.persistentStorage?.growable ?? true;
   const storageModeOptions = supportsPersistentStorage
     ? [
         { value: "ephemeral", label: "Ephemeral (local)" },
@@ -355,7 +352,9 @@ export const HostsPage: React.FC = () => {
       hub.purchases.getMembership({}),
     ]);
     setHosts(list);
-    setCanCreateHosts(membership?.entitlements?.features?.create_hosts === true);
+    setCanCreateHosts(
+      membership?.entitlements?.features?.create_hosts === true,
+    );
     if (selected) {
       const updated = list.find((h) => h.id === selected.id);
       setSelected(updated);
@@ -440,13 +439,12 @@ export const HostsPage: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const hyperstackRegionOptions =
-    catalog?.hyperstack_regions?.length
-      ? catalog.hyperstack_regions.map((r) => ({
-          value: r.name,
-          label: r.description ? `${r.name} — ${r.description}` : r.name,
-        }))
-      : [];
+  const hyperstackRegionOptions = catalog?.hyperstack_regions?.length
+    ? catalog.hyperstack_regions.map((r) => ({
+        value: r.name,
+        label: r.description ? `${r.name} — ${r.description}` : r.name,
+      }))
+    : [];
 
   const lambdaInstanceTypeOptions =
     selectedProvider === "lambda" && catalog?.lambda_instance_types?.length
@@ -459,7 +457,9 @@ export const HostsPage: React.FC = () => {
             const gpuLabel =
               entry.gpus && entry.gpus > 0 ? ` · ${entry.gpus}x GPU` : "";
             const regionsCount = entry.regions?.length ?? 0;
-            const regionsLabel = regionsCount ? ` · ${regionsCount} regions` : "";
+            const regionsLabel = regionsCount
+              ? ` · ${regionsCount} regions`
+              : "";
             const hasRegions = regionsCount > 0;
             return {
               value: entry.name,
@@ -489,7 +489,9 @@ export const HostsPage: React.FC = () => {
     : catalog?.lambda_instance_types?.length
       ? Array.from(
           new Set(
-            catalog.lambda_instance_types.flatMap((entry) => entry.regions ?? []),
+            catalog.lambda_instance_types.flatMap(
+              (entry) => entry.regions ?? [],
+            ),
           ),
         )
       : [];
@@ -523,14 +525,14 @@ export const HostsPage: React.FC = () => {
 
   const zoneOptions =
     selectedProvider === "gcp" && catalog?.regions?.length
-      ? (catalog.regions.find((r) => r.name === selectedRegion)?.zones ?? []).map(
-          (z) => {
-            const meta = catalog.zones?.find((zone) => zone.name === z);
-            const suffix = meta?.location ? ` — ${meta.location}` : "";
-            const lowC02 = meta?.lowC02 ? " (low CO₂)" : "";
-            return { value: z, label: `${z}${suffix}${lowC02}` };
-          },
-        )
+      ? (
+          catalog.regions.find((r) => r.name === selectedRegion)?.zones ?? []
+        ).map((z) => {
+          const meta = catalog.zones?.find((zone) => zone.name === z);
+          const suffix = meta?.location ? ` — ${meta.location}` : "";
+          const lowC02 = meta?.lowC02 ? " (low CO₂)" : "";
+          return { value: z, label: `${z}${suffix}${lowC02}` };
+        })
       : [];
 
   const machineTypeOptions =
@@ -581,7 +583,9 @@ export const HostsPage: React.FC = () => {
             const arch = getMachineTypeArchitecture(selectedMachineType);
             const imgArch = (img.architecture ?? "").toUpperCase();
             if (!imgArch) return true;
-            return arch === "arm64" ? imgArch === "ARM64" : imgArch === "X86_64";
+            return arch === "arm64"
+              ? imgArch === "ARM64"
+              : imgArch === "X86_64";
           })
           .filter((img) =>
             wantsGpu ? img.gpuReady === true : img.gpuReady !== true,
@@ -602,7 +606,7 @@ export const HostsPage: React.FC = () => {
           .map((img) => {
             const label = img.family
               ? `${img.family}${img.gpuReady ? " (GPU-ready)" : ""}`
-              : img.name ?? "unknown";
+              : (img.name ?? "unknown");
             const archSuffix = img.architecture
               ? ` [${img.architecture.toUpperCase()}]`
               : "";
@@ -616,9 +620,7 @@ export const HostsPage: React.FC = () => {
   const catalogSummary = useMemo(() => {
     if (!catalog) return undefined;
     const limit = <T,>(items: T[], n = 5) => items.slice(0, n);
-    const zonesByName = new Map(
-      catalog.zones?.map((z) => [z.name, z]) ?? [],
-    );
+    const zonesByName = new Map(catalog.zones?.map((z) => [z.name, z]) ?? []);
     const regionGroups: Record<string, string[]> = {};
     const gcpRegions = (catalog.regions ?? []).map((r) => {
       const zone = r.zones?.[0];
@@ -678,12 +680,11 @@ export const HostsPage: React.FC = () => {
         gpu_count: f.gpu_count,
       }),
     );
-    const lambdaRegions =
-      catalog.lambda_regions?.length
-        ? catalog.lambda_regions
-        : lambdaRegionsFromCatalog.length
-          ? lambdaRegionsFromCatalog.map((name) => ({ name }))
-          : LAMBDA_REGIONS.map((r) => ({ name: r.value }));
+    const lambdaRegions = catalog.lambda_regions?.length
+      ? catalog.lambda_regions
+      : lambdaRegionsFromCatalog.length
+        ? lambdaRegionsFromCatalog.map((name) => ({ name }))
+        : LAMBDA_REGIONS.map((r) => ({ name: r.value }));
     const lambdaInstanceTypes = limit(
       catalog.lambda_instance_types ?? [],
       25,
@@ -789,7 +790,13 @@ export const HostsPage: React.FC = () => {
       return;
     }
     form.setFieldsValue({ machine_type: machineTypeOptions[0].value });
-  }, [selectedProvider, selectedZone, machineTypeOptions, selectedMachineType, form]);
+  }, [
+    selectedProvider,
+    selectedZone,
+    machineTypeOptions,
+    selectedMachineType,
+    form,
+  ]);
 
   useEffect(() => {
     if (selectedProvider !== "hyperstack") return;
@@ -926,8 +933,8 @@ export const HostsPage: React.FC = () => {
         vals.provider === "hyperstack"
           ? hyperstackRegionOptions[0]?.value
           : vals.provider === "lambda"
-            ? lambdaRegionOptions[0]?.value ?? LAMBDA_REGIONS[0]?.value
-          : "us-east1";
+            ? (lambdaRegionOptions[0]?.value ?? LAMBDA_REGIONS[0]?.value)
+            : "us-east1";
       await hub.hosts.createHost({
         name: vals.name ?? "My Host",
         region: vals.region ?? defaultRegion,
@@ -959,7 +966,7 @@ export const HostsPage: React.FC = () => {
                   : genericGpuType
                     ? 1
                     : undefined,
-          zone: vals.provider === "gcp" ? vals.zone ?? undefined : undefined,
+          zone: vals.provider === "gcp" ? (vals.zone ?? undefined) : undefined,
           storage_mode,
           disk_gb: vals.disk,
           disk_type: vals.disk_type,
@@ -1050,9 +1057,9 @@ export const HostsPage: React.FC = () => {
           }
         >
           <Typography.Paragraph>
-            Dedicated project hosts let you run and share normal CoCalc
-            projects on your own VMs (e.g. GPU or large-memory machines).
-            Create one below to get started.
+            Dedicated project hosts let you run and share normal CoCalc projects
+            on your own VMs (e.g. GPU or large-memory machines). Create one
+            below to get started.
           </Typography.Paragraph>
         </Card>
       );
@@ -1064,9 +1071,7 @@ export const HostsPage: React.FC = () => {
           <Col xs={24} md={12} lg={8} key={host.id}>
             <Card
               title={host.name}
-              extra={
-                <Tag color={STATUS_COLOR[host.status]}>{host.status}</Tag>
-              }
+              extra={<Tag color={STATUS_COLOR[host.status]}>{host.status}</Tag>}
               actions={[
                 <Button
                   key="start"
@@ -1107,7 +1112,9 @@ export const HostsPage: React.FC = () => {
               <Space direction="vertical" size="small">
                 <Typography.Text>Region: {host.region}</Typography.Text>
                 <Typography.Text>Size: {host.size}</Typography.Text>
-                <Typography.Text>GPU: {host.gpu ? "Yes" : "No"}</Typography.Text>
+                <Typography.Text>
+                  GPU: {host.gpu ? "Yes" : "No"}
+                </Typography.Text>
                 <Typography.Text>
                   Projects: {host.projects ?? 0}
                 </Typography.Text>
@@ -1233,7 +1240,11 @@ export const HostsPage: React.FC = () => {
                 </Button>
                 {aiError && <Alert type="error" message={aiError} />}
                 {aiResults.length > 0 && (
-                  <Space direction="vertical" style={{ width: "100%" }} size="small">
+                  <Space
+                    direction="vertical"
+                    style={{ width: "100%" }}
+                    size="small"
+                  >
                     {aiResults.map((rec, idx) => (
                       <Card
                         key={`${rec.provider}-${rec.region}-${idx}`}
@@ -1245,13 +1256,18 @@ export const HostsPage: React.FC = () => {
                           style={{ width: "100%" }}
                           size={2}
                         >
-                          <Space align="start" style={{ justifyContent: "space-between" }}>
+                          <Space
+                            align="start"
+                            style={{ justifyContent: "space-between" }}
+                          >
                             <div>
                               <Typography.Text strong>
                                 {rec.title ?? `Option ${idx + 1}`}
                               </Typography.Text>
                               {rec.rationale && (
-                                <div style={{ color: "#888" }}>{rec.rationale}</div>
+                                <div style={{ color: "#888" }}>
+                                  {rec.rationale}
+                                </div>
                               )}
                             </div>
                             <Button
@@ -1307,7 +1323,11 @@ export const HostsPage: React.FC = () => {
               </Form.Item>
               {selectedProvider === "lambda" ? null : regionField}
               {selectedProvider === "none" && (
-                <Form.Item name="size" label="Size" initialValue={SIZES[0].value}>
+                <Form.Item
+                  name="size"
+                  label="Size"
+                  initialValue={SIZES[0].value}
+                >
                   <Select options={SIZES} />
                 </Form.Item>
               )}
@@ -1383,7 +1403,11 @@ export const HostsPage: React.FC = () => {
                           </Form.Item>
                         </Col>
                         <Col span={24}>
-                          <Form.Item name="gpu_type" label="GPU" initialValue="none">
+                          <Form.Item
+                            name="gpu_type"
+                            label="GPU"
+                            initialValue="none"
+                          >
                             <Select
                               options={[
                                 { value: "none", label: "No GPU" },
@@ -1394,18 +1418,19 @@ export const HostsPage: React.FC = () => {
                         </Col>
                       </>
                     )}
-                    {selectedProvider !== "gcp" && selectedProvider !== "lambda" && (
-                      <Col span={24}>
-                        <Form.Item
-                          name="gpu"
-                          label="GPU"
-                          initialValue="none"
-                          tooltip="Only needed for GPU workloads."
-                        >
-                          <Select options={GPU_TYPES} />
-                        </Form.Item>
-                      </Col>
-                    )}
+                    {selectedProvider !== "gcp" &&
+                      selectedProvider !== "lambda" && (
+                        <Col span={24}>
+                          <Form.Item
+                            name="gpu"
+                            label="GPU"
+                            initialValue="none"
+                            tooltip="Only needed for GPU workloads."
+                          >
+                            <Select options={GPU_TYPES} />
+                          </Form.Item>
+                        </Col>
+                      )}
                     {selectedProvider !== "none" && (
                       <Col span={24}>
                         <Form.Item
@@ -1434,7 +1459,7 @@ export const HostsPage: React.FC = () => {
                             name="disk"
                             label="Disk size (GB)"
                             initialValue={100}
-                            tooltip="Root disk for projects on this host."
+                            tooltip={`Disk for storing all projects on this host.  Files are compressed and deduplicated. ${persistentGrowable ? "You can enlarge this disk at any time later." : "This disk CANNOT be enlarged later."}`}
                           >
                             <Slider min={50} max={1000} step={50} />
                           </Form.Item>
@@ -1564,26 +1589,34 @@ export const HostsPage: React.FC = () => {
                 </Typography.Text>
               )}
             </Space>
-            <Typography.Text>Projects: {selected.projects ?? 0}</Typography.Text>
+            <Typography.Text>
+              Projects: {selected.projects ?? 0}
+            </Typography.Text>
             <Typography.Text type="secondary">
               Last seen: {selected.last_seen ?? "n/a"}
             </Typography.Text>
             {selected.status === "error" && selected.error && (
-                <Alert
-                  type="error"
-                  showIcon
-                  message="Provisioning error"
-                  description={selected.error}
-                />
-              )}
+              <Alert
+                type="error"
+                showIcon
+                message="Provisioning error"
+                description={selected.error}
+              />
+            )}
             <Divider />
             <Typography.Title level={5}>Recent actions</Typography.Title>
             {loadingLog ? (
               <Typography.Text type="secondary">Loading…</Typography.Text>
             ) : hostLog.length === 0 ? (
-              <Typography.Text type="secondary">No actions yet.</Typography.Text>
+              <Typography.Text type="secondary">
+                No actions yet.
+              </Typography.Text>
             ) : (
-              <Space direction="vertical" style={{ width: "100%" }} size="small">
+              <Space
+                direction="vertical"
+                style={{ width: "100%" }}
+                size="small"
+              >
                 {hostLog.map((entry) => (
                   <Card
                     key={entry.id}
