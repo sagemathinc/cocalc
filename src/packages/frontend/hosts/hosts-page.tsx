@@ -959,10 +959,15 @@ export const HostsPage: React.FC = () => {
       } else {
         await hub.hosts.stopHost({ id });
       }
-      await refresh();
     } catch (err) {
       console.error(err);
       message.error(`Failed to ${action} host`);
+      return;
+    }
+    try {
+      await refresh();
+    } catch (err) {
+      console.error("host refresh failed", err);
     }
   };
 

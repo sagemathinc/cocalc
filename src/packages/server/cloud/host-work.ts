@@ -204,7 +204,19 @@ async function handleStart(row: any) {
     provider: machine.cloud,
     runtime,
   });
-  if (machine.cloud && runtime?.instance_id) {
+  if (machine.cloud) {
+    if (!runtime?.instance_id) {
+      // If the VM was deprovisioned, treat "start" as "create" and provision now.
+      await handleProvision(row);
+      await logCloudVmEvent({
+        vm_id: row.id,
+        action: "start",
+        status: "success",
+        provider: machine.cloud,
+        spec: machine,
+      });
+      return;
+    }
     if (machine.cloud === "hyperstack") {
       const { provider, creds } = await ensureHyperstackProvider();
       await provider.startHost(runtime, creds);
@@ -250,7 +262,23 @@ async function handleStop(row: any) {
       await provider.stopHost(runtime, creds);
     }
   }
-  await updateHostRow(row.id, { status: "off", last_seen: new Date() });
+  if (machine.cloud === "lambda") {
+    // Lambda has no "stopped" state; terminate means deprovisioned.
+    const nextMetadata = {
+      ...(row.metadata ?? {}),
+    };
+    delete nextMetadata.runtime;
+    delete nextMetadata.dns;
+    await updateHostRow(row.id, {
+      metadata: nextMetadata,
+      status: "deprovisioned",
+      public_url: null,
+      internal_url: null,
+      last_seen: new Date(),
+    });
+  } else {
+    await updateHostRow(row.id, { status: "off", last_seen: new Date() });
+  }
   await logCloudVmEvent({
     vm_id: row.id,
     action: "stop",
