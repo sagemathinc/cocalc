@@ -4,48 +4,6 @@
 
 - [ ] when implementing starting remote project host, be sure to do set all secrets via safe 0600 files and not env variables. e.g., cloudflare r2.
 
-### Make “add a new cloud” mostly one‑place changes
-
-Right now the provider logic is split across host‑work, reconcile, catalog, and UI. We can centralize with a registry pattern:
-
-1. **Provider registry** \(in @cocalc/cloud\)  
-   Define a `CloudProvider` interface and a `providers` map keyed by provider id.  
-   Example interface:
-
-- `fetchCatalog(): Promise<NormalizedCatalog>`
-- `createHost(spec, creds): Promise<Runtime>`
-- `startHost(runtime, creds)`
-- `stopHost(runtime, creds)` \(or throws if unsupported\)
-- `deleteHost(runtime, creds)`
-- `getInstance(runtime|instanceId, creds): Promise<Runtime|null>`
-- `listInstances(prefix, creds): Promise<Runtime[]>`
-
-Then server code calls into `providers[id]` instead of `if/else` chains.
-
-2. **Capabilities descriptor**  
-   Add a provider capabilities map \(e.g., `supportsStop`, `supportsDiskType`, `supportsDiskResize`, `supportsCustomImage`, etc.\).  
-   Use it in:
-
-- host‑work \(stop → delete if unsupported\)
-- UI \(hide fields that don’t make sense per provider\)
-
-3. **Catalog integration**  
-   `server/cloud/catalog.ts` should call `providers[id].fetchCatalog()` and write to `cloud_catalog_cache` in one place. That means adding a new provider mostly requires adding its fetchCatalog in @cocalc/cloud.
-
-4. **Reconcile integration**  
-   `server/cloud/reconcile.ts` should iterate through `providers` and call `listInstances` or `getInstance` via the registry.  
-   That eliminates per‑provider switch logic in reconcile and avoids missing “new cloud” cases.
-
-5. **UI integration**  
-   UI should be driven by:
-
-- `providers` list \(what’s enabled\)
-- provider capabilities \(fields shown\)
-- catalog \(regions/zones/flavors/images\)  
-  So “adding a new cloud” is: implement provider \+ fetch catalog; the UI should “just show it.”
-
-That way, Nebius is “add provider \+ catalog,” not touch 10 files.
-
 ### Cloud VM control layer.
 
 Goal: a provider‑agnostic control plane in `@cocalc/cloud` that can provision, start/stop, and meter project‑host VMs via cloud APIs, with concurrency handled in Postgres (no singletons), and costs/usage recorded as immutable log events. The hub owns orchestration and billing, while providers expose clean, testable adapters.
