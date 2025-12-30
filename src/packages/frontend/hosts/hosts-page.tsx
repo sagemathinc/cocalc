@@ -523,6 +523,15 @@ export const HostsPage: React.FC = () => {
             })
           : REGIONS;
 
+  useEffect(() => {
+    if (!selectedProvider || selectedProvider === "none") return;
+    if (selectedProvider === "local") return;
+    if (!regionOptions.length) return;
+    const values = new Set(regionOptions.map((r) => r.value));
+    if (selectedRegion && values.has(selectedRegion)) return;
+    form.setFieldsValue({ region: regionOptions[0].value });
+  }, [selectedProvider, regionOptions, selectedRegion, form]);
+
   const zoneOptions =
     selectedProvider === "gcp" && catalog?.regions?.length
       ? (
@@ -741,26 +750,6 @@ export const HostsPage: React.FC = () => {
     }
     form.setFieldsValue({ zone: zoneOptions[0].value });
   }, [selectedProvider, selectedRegion, zoneOptions, selectedZone, form]);
-
-  useEffect(() => {
-    if (selectedProvider !== "hyperstack") return;
-    if (!hyperstackRegionOptions.length) return;
-    if (
-      selectedRegion &&
-      hyperstackRegionOptions.some((r) => r.value === selectedRegion)
-    ) {
-      return;
-    }
-    form.setFieldsValue({ region: hyperstackRegionOptions[0].value });
-  }, [selectedProvider, hyperstackRegionOptions, selectedRegion, form]);
-
-  useEffect(() => {
-    if (selectedProvider !== "lambda") return;
-    if (!lambdaRegionOptions.length) return;
-    const values = new Set(lambdaRegionOptions.map((r) => r.value));
-    if (selectedRegion && values.has(selectedRegion)) return;
-    form.setFieldsValue({ region: lambdaRegionOptions[0].value });
-  }, [selectedProvider, selectedRegion, lambdaRegionOptions, form]);
 
   useEffect(() => {
     if (selectedProvider !== "lambda") return;
