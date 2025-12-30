@@ -187,6 +187,15 @@ export interface ImportPatchesOpts {
   cb?: CB;
 }
 
+export interface DeleteSyncstringOpts {
+  string_id: string;
+  cb?: CB;
+}
+
+export interface InsertRandomComputeImagesOpts {
+  cb?: CB;
+}
+
 export interface DeleteBlobOpts {
   uuid: string;
   cb?: CB;
@@ -268,6 +277,8 @@ export interface DeletePassportOpts {
   id: string;
 }
 
+export type PassportProfile = Record<string, unknown>;
+
 export interface PassportExistsOpts {
   strategy: string;
   id: string;
@@ -278,7 +289,7 @@ export interface CreatePassportOpts {
   account_id: string;
   strategy: string; // our name of the strategy
   id: string;
-  profile: any; // complex object
+  profile?: PassportProfile; // complex object
   email_address?: string;
   first_name?: string;
   last_name?: string;
@@ -291,8 +302,21 @@ export interface UpdateAccountInfoAndPassportOpts {
   last_name?: string;
   strategy: string; // our name of the strategy
   id: string;
-  profile: any;
-  passport_profile: any;
+  profile: PassportProfile;
+  passport_profile: PassportProfile;
+}
+
+export interface CreateSsoAccountOpts {
+  first_name?: string;
+  last_name?: string;
+  created_by?: string;
+  email_address?: string;
+  password_hash?: string;
+  lti_id?: string[];
+  passport_strategy?: string;
+  passport_id?: string;
+  passport_profile?: PassportProfile;
+  usage_intent?: string;
 }
 
 export interface PostgreSQL extends EventEmitter {
@@ -322,6 +346,8 @@ export interface PostgreSQL extends EventEmitter {
   _clients: Client[] | undefined;
 
   is_standby: boolean;
+
+  _create_account_passport_keys?: Record<string, Date>;
 
   get_site_settings(opts: { cb: CB }): void;
 
@@ -585,18 +611,7 @@ export interface PostgreSQL extends EventEmitter {
   set_server_setting(opts: { name: string; value: string; cb: CB }): void;
   server_settings_synctable(): any; // returns a table
 
-  create_sso_account(opts: {
-    first_name?: string; // invalid name will throw Error
-    last_name?: string; // invalid name will throw Error
-    created_by?: string;
-    email_address?: string;
-    password_hash?: string;
-    passport_strategy: any;
-    passport_id: string;
-    passport_profile: any;
-    usage_intent?: string;
-    cb: CB;
-  }): void;
+  create_sso_account(opts: CreateSsoAccountOpts & { cb: CB<string> }): void;
 
   make_user_admin(opts: {
     account_id?: string;
@@ -840,6 +855,8 @@ export interface PostgreSQL extends EventEmitter {
   export_patches(opts: ExportPatchesOpts): Promise<SyncstringPatch[]>;
 
   import_patches(opts: ImportPatchesOpts);
+  delete_syncstring(opts: DeleteSyncstringOpts);
+  insert_random_compute_images(opts: InsertRandomComputeImagesOpts);
   delete_blob(opts: DeleteBlobOpts);
   touch_blob(opts: TouchBlobOpts): void;
   remove_blob_ttls(opts: RemoveBlobTtlsOpts): void;

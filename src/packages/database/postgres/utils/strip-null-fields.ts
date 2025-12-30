@@ -6,8 +6,8 @@
 import lodash from "lodash";
 
 // removes the field:null to reduce bandwidth usage
-export function stripNullFields(
-  rows: Array<Record<string, unknown>>,
-): Array<Record<string, unknown>> {
-  return rows.map((row) => lodash.omitBy(row, lodash.isNull));
+export function stripNullFields<T extends Record<string, unknown>>(
+  rows: T[],
+): T[] {
+  return rows.map((row) => lodash.omitBy(row, lodash.isNull) as T);
 }

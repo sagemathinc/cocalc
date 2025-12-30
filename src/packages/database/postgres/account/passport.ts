@@ -8,25 +8,26 @@
 import { PassportStrategyDB } from "@cocalc/database/settings/auth-sso-types";
 import {
   getPassportsCached,
-  setPassportsCached
+  setPassportsCached,
 } from "@cocalc/database/settings/server-settings";
 import { to_json } from "@cocalc/util/misc";
 import { CB } from "@cocalc/util/types/database";
 import {
   set_account_info_if_different,
   set_account_info_if_not_set,
-  set_email_address_verified
+  set_email_address_verified,
 } from "./queries";
 import {
   CreatePassportOpts,
   PassportExistsOpts,
   PostgreSQL,
-  UpdateAccountInfoAndPassportOpts
+  UpdateAccountInfoAndPassportOpts,
 } from "../types";
+import { _passport_key } from "./passport-key";
 
 export async function set_passport_settings(
   db: PostgreSQL,
-  opts: PassportStrategyDB & { cb?: CB }
+  opts: PassportStrategyDB & { cb?: CB },
 ): Promise<void> {
   const { strategy, conf, info } = opts;
   let err = null;
@@ -50,7 +51,7 @@ export async function set_passport_settings(
 
 export async function get_passport_settings(
   db: PostgreSQL,
-  opts: { strategy: string; cb?: (data: object) => void }
+  opts: { strategy: string; cb?: (data: object) => void },
 ): Promise<any> {
   const { rows } = await db.async_query({
     query: "SELECT conf, info FROM passport_settings",
@@ -63,7 +64,7 @@ export async function get_passport_settings(
 }
 
 export async function get_all_passport_settings(
-  db: PostgreSQL
+  db: PostgreSQL,
 ): Promise<PassportStrategyDB[]> {
   return (
     await db.async_query<PassportStrategyDB>({
@@ -73,7 +74,7 @@ export async function get_all_passport_settings(
 }
 
 export async function get_all_passport_settings_cached(
-  db: PostgreSQL
+  db: PostgreSQL,
 ): Promise<PassportStrategyDB[]> {
   const passports = getPassportsCached();
   if (passports != null) {
@@ -84,26 +85,9 @@ export async function get_all_passport_settings_cached(
   return res;
 }
 
-// Passports -- accounts linked to Google/Dropbox/Facebook/Github, etc.
-// The Schema is slightly redundant, but indexed properly:
-//    {passports:['google-id', 'facebook-id'],  passport_profiles:{'google-id':'...', 'facebook-id':'...'}}
-
-export function _passport_key(opts) {
-  const { strategy, id } = opts;
-  // note: strategy is *our* name of the strategy in the DB, not it's type string!
-  if (typeof strategy !== "string") {
-    throw new Error("_passport_key: strategy must be defined");
-  }
-  if (typeof id !== "string") {
-    throw new Error("_passport_key: id must be defined");
-  }
-
-  return `${strategy}-${id}`;
-}
-
 export async function create_passport(
   db: PostgreSQL,
-  opts: CreatePassportOpts
+  opts: CreatePassportOpts,
 ): Promise<void> {
   const dbg = db._dbg("create_passport");
   dbg({ id: opts.id, strategy: opts.strategy, profile: to_json(opts.profile) });
@@ -121,7 +105,7 @@ export async function create_passport(
     });
 
     dbg(
-      `setting other account info ${opts.account_id}: ${opts.email_address}, ${opts.first_name}, ${opts.last_name}`
+      `setting other account info ${opts.account_id}: ${opts.email_address}, ${opts.first_name}, ${opts.last_name}`,
     );
     await set_account_info_if_not_set({
       db: db,
@@ -150,7 +134,7 @@ export async function create_passport(
 
 export async function passport_exists(
   db: PostgreSQL,
-  opts: PassportExistsOpts
+  opts: PassportExistsOpts,
 ): Promise<string | undefined> {
   try {
     const result = await db.async_query({
@@ -178,7 +162,7 @@ export async function passport_exists(
 
 export async function update_account_and_passport(
   db: PostgreSQL,
-  opts: UpdateAccountInfoAndPassportOpts
+  opts: UpdateAccountInfoAndPassportOpts,
 ) {
   // we deliberately do not update the email address, because if the SSO
   // strategy sends a different one, this would break the "link".
@@ -189,7 +173,7 @@ export async function update_account_and_passport(
     `updating account info ${to_json({
       first_name: opts.first_name,
       last_name: opts.last_name,
-    })}`
+    })}`,
   );
   await set_account_info_if_different({
     db: db,

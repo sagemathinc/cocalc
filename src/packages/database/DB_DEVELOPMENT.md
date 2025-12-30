@@ -101,7 +101,8 @@ npx decaffeinate \
 5. **Flip the toggle** - set `USE_TYPESCRIPT = true` and re-run the same tests against the new TS implementation. Fix the TS implementation until tests pass.
 6. **Re-route CoffeeScript to TS** - update the CoffeeScript class to wrap/forward to the new TS functions (wrapper pattern). Delete the old CoffeeScript logic for those methods so the legacy class now uses the TS implementation.
 7. **Switch back and remove the toggle** - set `USE_TYPESCRIPT = false`, confirm tests still pass through the CoffeeScript class (now wired to TS), then remove the toggle and the TS branch in the test file entirely. The tests should permanently target the CoffeeScript class.
-8. **Finalize** - run `pnpm clean` and `pnpm tsc --noEmit`, then `pnpm build`, then re-run the relevant tests to confirm the code compiles and behavior is preserved.
+8. **Finalize** - run `pnpm clean` and `pnpm build`, then re-run the relevant tests or just all via `pnpm test` to confirm the code compiles and behavior is preserved.
+9. **Update this file** - the checklist at the bottom to track progress
 
 **Naming note:**
 
@@ -571,7 +572,7 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 - [x] `log_client_error` → `postgres/log-query.ts`
 - [x] `webapp_error` → `postgres/log-query.ts`
 - [x] `get_client_error_log` → `postgres/log-query.ts`
-- [ ] `log` (wrapper for centralLog, needs migration)
+- [x] `log` (wrapper for centralLog)
 
 **Server Settings (6 methods):**
 
@@ -591,7 +592,7 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 - [x] `create_passport` (already wrapper → `postgres/passport.ts`)
 - [x] `passport_exists` (already wrapper → `postgres/passport.ts`)
 - [x] `update_account_and_passport` (already wrapper → `postgres/passport.ts`)
-- [ ] `create_sso_account` (complex, needs migration)
+- [x] `create_sso_account` → `postgres/account/create-sso-account.ts`
 
 **Account Management (26 methods):**
 
@@ -732,8 +733,8 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 
 **Other (3 methods):**
 
-- [ ] `insert_random_compute_images`
-- [ ] `delete_syncstring`
+- [x] `insert_random_compute_images`
+- [x] `delete_syncstring`
 - [x] `registrationTokens` (already wrapper → `postgres/registration-tokens.ts`)
 - [x] `updateUnreadMessageCount` (already wrapper → `postgres/messages.ts`)
 

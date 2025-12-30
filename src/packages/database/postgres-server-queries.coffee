@@ -46,6 +46,7 @@ required = defaults.required
 {deleteAccount, markAccountDeleted} = require('./postgres/account/deletion')
 {accountIsInOrganization} = require('./postgres/account/account-is-in-organization')
 {nameToAccountOrOrganization} = require('./postgres/account/name-to-account-or-organization')
+{createSsoAccount} = require('./postgres/account/create-sso-account')
 {setRunQuota} = require('./postgres/project/set-run-quota')
 {getProjectQuotas, getUserProjectUpgrades, ensureUserProjectUpgradesAreValid, ensureAllUserProjectUpgradesAreValid, getProjectUpgrades, removeAllUserProjectUpgrades} = require('./postgres/project/upgrades')
 
@@ -70,7 +71,7 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/project/delete-projects')
 {get_all_public_paths, unlist_all_public_paths, get_public_paths, has_public_path, path_is_public, filter_public_paths} = require('./postgres/paths/public-paths')
 {get_personal_user} = require('./postgres/account/personal')
-{set_passport_settings, get_passport_settings, get_all_passport_settings, get_all_passport_settings_cached, create_passport, passport_exists, update_account_and_passport, _passport_key} = require('./postgres/account/passport')
+{set_passport_settings, get_passport_settings, get_all_passport_settings, get_all_passport_settings_cached, create_passport, passport_exists, update_account_and_passport} = require('./postgres/account/passport')
 {projects_that_need_to_be_started} = require('./postgres/project/always-running');
 {calc_stats} = require('./postgres/stats/stats')
 {getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/database/settings/server-settings');
@@ -88,6 +89,8 @@ centralLog = require('./postgres/central-log').default;
 {make_user_admin, count_accounts_created_by, touchAccount} = require('./postgres/account/management');
 {touchProjectInternal, touchProject, touch} = require('./postgres/stats/activity');
 {changeEmailAddress} = require('./postgres/account/change-email-address');
+{delete_syncstring} = require('./postgres/syncstring/delete');
+{insert_random_compute_images} = require('./postgres/misc/insert-random-compute-images');
 
 stripe_name = require('@cocalc/util/stripe/name').default;
 
@@ -286,89 +289,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             passport_profile  : undefined
             usage_intent      : undefined
             cb                : required       # cb(err, account_id)
-
-        dbg = @_dbg("create_sso_account(#{opts.first_name}, #{opts.last_name}, #{opts.lti_id}, #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
-        dbg()
-
-        for name in ['first_name', 'last_name']
-            if opts[name]
-                test = misc2_node.is_valid_username(opts[name])
-                if test?
-                    opts.cb("#{name} not valid: #{test}")
-                    return
-
-        if opts.email_address # canonicalize the email address, if given
-            opts.email_address = misc.lower_email_address(opts.email_address)
-
-        account_id = misc.uuid()
-
-        passport_key = undefined
-        if opts.passport_strategy?
-            # This is to make it impossible to accidentally create two accounts with the same passport
-            # due to calling create_account twice at once.   See TODO below about changing schema.
-            # This should be enough for now since a given user only makes their account through a single
-            # server via the persistent websocket...
-            @_create_account_passport_keys ?= {}
-            passport_key = _passport_key(strategy:opts.passport_strategy, id:opts.passport_id)
-            last = @_create_account_passport_keys[passport_key]
-            if last? and new Date() - last <= 60*1000
-                opts.cb("recent attempt to make account with this passport strategy")
-                return
-            @_create_account_passport_keys[passport_key] = new Date()
-
-        async.series([
-            (cb) =>
-                if not opts.passport_strategy?
-                    cb(); return
-                dbg("verify that no account with passport (strategy='#{opts.passport_strategy}', id='#{opts.passport_id}') already exists")
-                # **TODO:** need to make it so insertion into the table still would yield an error due to
-                # unique constraint; this will require probably moving the passports
-                # object to a separate table.  This is important, since this is exactly the place where
-                # a race condition might cause trouble!
-                @passport_exists
-                    strategy : opts.passport_strategy
-                    id       : opts.passport_id
-                    cb       : (err, account_id) ->
-                        if err
-                            cb(err)
-                        else if account_id
-                            cb("account with email passport strategy '#{opts.passport_strategy}' and id '#{opts.passport_id}' already exists")
-                        else
-                            cb()
-            (cb) =>
-                dbg("create the actual account")
-                @_query
-                    query  : "INSERT INTO accounts"
-                    values :
-                        'account_id     :: UUID'      : account_id
-                        'first_name     :: TEXT'      : opts.first_name
-                        'last_name      :: TEXT'      : opts.last_name
-                        'lti_id         :: TEXT[]'    : opts.lti_id
-                        'created        :: TIMESTAMP' : new Date()
-                        'created_by     :: INET'      : opts.created_by
-                        'password_hash  :: CHAR(173)' : opts.password_hash
-                        'email_address  :: TEXT'      : opts.email_address
-                        'sign_up_usage_intent :: TEXT': opts.usage_intent
-                    cb : cb
-            (cb) =>
-                if opts.passport_strategy?
-                    dbg("add passport authentication strategy")
-                    @create_passport
-                        account_id : account_id
-                        strategy   : opts.passport_strategy
-                        id         : opts.passport_id
-                        profile    : opts.passport_profile
-                        cb         : cb
-                else
-                    cb()
-        ], (err) =>
-            if err
-                dbg("error creating account -- #{err}")
-                opts.cb(err)
-            else
-                dbg("successfully created account")
-                opts.cb(undefined, account_id)
-        )
+        try
+            account_id = await createSsoAccount(@, opts)
+            opts.cb(undefined, account_id)
+        catch err
+            opts.cb(err)
 
     is_admin: (opts) =>
         opts = defaults opts,
@@ -1440,112 +1365,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     insert_random_compute_images: (opts) =>
         opts = defaults opts,
             cb     : required
-
-        dbg = @_dbg("database::insert_random_compute_images")
-        dbg()
-
-        capitalize = require('@cocalc/util/misc').capitalize
-
-        words = [
-                    'wizard', 'jupyter', 'carrot', 'python', 'science', 'gold', 'eagle',
-                    'advanced', 'course', 'yellow', 'bioinformatics', 'R', 'electric', 'sheep',
-                    'theory', 'math', 'physics', 'calculate', 'primer', 'DNA', 'tech', 'space'
-                ]
-
-        # deterministically sample distinct words (such that this is stable after a restart)
-        sample = (idx=0, n=1) ->
-            N = words.length
-            K = (idx * 997) %% N
-            ret = []
-            for i in [0..n]
-                for j in [0..N]
-                    w = words[(K + 97 * i + j) %% N]
-                    if ret.includes(w)
-                        continue
-                    else
-                        ret.push(w)
-                        break
-            return ret
-
-        rseed = 123
-        random = ->
-            x = Math.sin(rseed++)
-            r = x - Math.floor(x)
-            return r
-
-        create = (idx, cb) =>
-            rnd  = sample(idx, 3)
-            id   = rnd[...2].join('-') + "-#{idx}"
-            provider = ['github.com', 'gitlab.com', 'bitbucket.org'][idx % 3]
-            src = "https://#{provider}/#{rnd[2]}/#{id}.git"
-
-            # not all of them have a display-title, url, desc, ...
-            if random() > .25
-                if random() > .5
-                    extra = "(#{sample(idx + 2)})"
-                else
-                    extra = sample(idx+5, 2)
-                disp = (capitalize(_) for _ in rnd[...2].concat(extra)).join(' ')
-            else
-                if random() > .5
-                    disp = undefined
-                else
-                    disp = ''
-
-            if random() > .5
-                url = "https://www.google.com/search?q=#{rnd.join('%20')}"
-            else
-                url = undefined
-
-            if random() > .5
-                if random() > .5
-                    verylong = Array(100).fill('very long *text* for **testing**, ').join(" ")
-                if url?
-                    other_page = ", or point to [yet another page](#{url})"
-                else
-                    other_page = ""
-                desc = """
-                       This is some text describing what **#{disp or id}** is.
-                       Here could also be an [external link](https://doc.cocalc.com).
-                       It might also mention `#{id}`#{other_page}.
-
-                       #{verylong ? ''}
-                       """
-            else
-                desc = undefined
-
-            path = if random() > .5 then "index.ipynb" else "subdir/"
-            tag = if random() > .25 then "master" else null
-
-
-            @_query
-                query  : "INSERT INTO compute_images"
-                values :
-                    "id      :: TEXT     " : id
-                    "src     :: TEXT     " : src
-                    "type    :: TEXT     " : 'custom'
-                    "desc    :: TEXT     " : desc
-                    "display :: TEXT     " : disp
-                    "path    :: TEXT     " : path
-                    "url     :: TEXT     " : url
-                    "disabled:: BOOLEAN  " : idx == 1
-                cb     : cb
-
-        # first we wipe the table's content, then we generate some random stuff
-        async.series([
-            (cb) =>
-                @_query
-                    query  : 'DELETE FROM compute_images'
-                    where  : '1 = 1'
-                    cb     : cb
-
-            (cb) =>
-                async.mapSeries([0..20], create, cb)
-
-        ], (err) =>
-            dbg("all done")
-            opts.cb()
-        )
+        try
+            await insert_random_compute_images(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err)
 
 
 
@@ -1556,55 +1380,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             string_id : required
             cb        : required
-        if not opts.string_id or misc.len(opts.string_id) != 40
-            # be extra careful!
-            opts.cb("invalid string_id")
-            return
-
-        locals =
-            syncstring : undefined
-            where : {"string_id = $::CHAR(40)" : opts.string_id}
-
-        async.series([
-            (cb) =>
-                @_query
-                    query : "SELECT * FROM syncstrings"
-                    where : locals.where
-                    cb    : (err, results) =>
-                        if err
-                            cb(err)
-                            return
-                        locals.syncstring = results.rows[0]
-                        cb()
-            (cb) =>
-                if not locals.syncstring?
-                    # no syncstring with this id.
-                    cb(); return
-                # delete the syncstring record (we do this first before deleting what if references,
-                # since having a syncstring record referencing missing data would be a disaster, meaning
-                # the user could never open their file -- with this sequence it just means some wasted
-                # disks pace).
-                @_query
-                    query : "DELETE FROM syncstrings"
-                    where : locals.where
-                    cb    : cb
-            (cb) =>
-                if not locals.syncstring?
-                    # no syncstring with this id.
-                    cb(); return
-                if locals.syncstring.archived
-                    # is archived, so delete the blob
-                    @delete_blob
-                        uuid : locals.syncstring.archived
-                        cb   : cb
-                else
-                    # is not archived, so delete the patches
-                    @_query
-                        query : "DELETE FROM patches"
-                        where : locals.where
-                        timeout_s: 300
-                        cb    : cb
-        ], opts.cb)
+        try
+            await delete_syncstring(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err)
 
     # async function
     site_license_usage_stats: () =>
