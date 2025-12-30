@@ -35,6 +35,7 @@ import { init as initRemote } from "./remote";
 import { getAuthToken } from "./auth-token";
 import getLogger from "@cocalc/backend/logger";
 import compression from "compression";
+import { enableMemoryUseLogger } from "@cocalc/backend/memory";
 
 const logger = getLogger("lite:main");
 
@@ -50,6 +51,7 @@ function conat(opts?): Client {
 
 export async function main(): Promise<number> {
   logger.debug("main");
+  enableMemoryUseLogger();
   process.chdir(process.env.HOME ?? "");
   initBugCounter();
 
