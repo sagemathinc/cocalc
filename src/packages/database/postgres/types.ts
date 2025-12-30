@@ -71,10 +71,8 @@ export interface SyncstringPatch {
   version?: number;
 }
 
-export interface SyncstringPatchInput extends Omit<
-  SyncstringPatch,
-  "is_snapshot"
-> {
+export interface SyncstringPatchInput
+  extends Omit<SyncstringPatch, "is_snapshot"> {
   is_snapshot?: boolean;
 }
 
@@ -230,10 +228,8 @@ export interface QueryOptions<T = UntypedQueryResult> {
   cb?: CB<QueryRows<T>>;
 }
 
-export interface AsyncQueryOptions<T = UntypedQueryResult> extends Omit<
-  QueryOptions<T>,
-  "cb"
-> {}
+export interface AsyncQueryOptions<T = UntypedQueryResult>
+  extends Omit<QueryOptions<T>, "cb"> {}
 
 export interface UserQueryOptions {
   client_id?: string; // if given, uses to control number of queries at once by one client.
@@ -650,7 +646,7 @@ export interface PostgreSQL extends EventEmitter {
 
   passport_exists(opts: PassportExistsOpts): Promise<string | undefined>;
 
-  create_passport(opts: CreatePassportOpts): Promise<string>;
+  create_passport(opts: CreatePassportOpts): Promise<void>;
 
   delete_passport(opts: DeletePassportOpts): Promise<void>;
 
@@ -914,7 +910,7 @@ export interface PostgreSQL extends EventEmitter {
   }): void;
   _restore_table(opts: { table: string; path?: string; cb: CB }): void;
 
-  uncaught_exception: (err: any) => void;
+  uncaught_exception(err: any): Promise<void>;
 }
 
 // This is an extension of BaseProject in projects/control/base.ts

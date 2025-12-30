@@ -560,212 +560,29 @@ Once all ~128 methods have been migrated to wrappers, convert the remaining clas
 
 5. **Verify**: Run all tests to ensure nothing broke during final conversion
 
-**Method Migration Progress Tracking:**
+**Status:**
 
-_This list will be updated as methods are migrated. Each checkbox indicates completion._
+- All legacy server-query methods are now wrapped or migrated to TypeScript.
+- The detailed migration checklist has been removed since the work is complete.
 
-**Logging & Error Tracking (7 methods):**
+**Next step:**
 
-- [x] `get_log` → `postgres/log-query.ts`
-- [x] `get_user_log` → `postgres/log-query.ts`
-- [x] `uncaught_exception` → `postgres/log-query.ts`
-- [x] `log_client_error` → `postgres/log-query.ts`
-- [x] `webapp_error` → `postgres/log-query.ts`
-- [x] `get_client_error_log` → `postgres/log-query.ts`
-- [x] `log` (wrapper for centralLog)
+Generate a TypeScript version of `postgres-server-queries.coffee` and begin the direct modernization work:
 
-**Server Settings (6 methods):**
+1. Run `npx decaffeinate` with the parameters listed in this file to create `postgres-server-queries.ts` **next to** the `.coffee` file (do not replace it yet).
+2. Follow the workflow in `dev/MODERNIZE_CODE.md` to refactor the generated TypeScript:
+   - Move runtime `defaults()` validation into TypeScript with typed `opts` and default values in destructured parameters.
+   - Align method signatures with `packages/database/postgres/types.ts`.
+   - Keep backward-compatible behavior while converting callback-style code to async/await where appropriate.
 
-- [x] `set_server_setting` → `postgres/server-settings.ts`
-- [x] `get_server_setting` → `postgres/server-settings.ts`
-- [x] `get_server_settings_cached` → `postgres/server-settings.ts`
-- [x] `get_site_settings` → `postgres/server-settings.ts`
-- [x] `server_settings_synctable` → `postgres/server-settings.ts`
-- [x] `reset_server_settings_cache` → `postgres/server-settings.ts`
-
-**Passport/SSO (8 methods already wrapped):**
-
-- [x] `set_passport_settings` (already wrapper → `postgres/passport.ts`)
-- [x] `get_passport_settings` (already wrapper → `postgres/passport.ts`)
-- [x] `get_all_passport_settings` (already wrapper → `postgres/passport.ts`)
-- [x] `get_all_passport_settings_cached` (already wrapper → `postgres/passport.ts`)
-- [x] `create_passport` (already wrapper → `postgres/passport.ts`)
-- [x] `passport_exists` (already wrapper → `postgres/passport.ts`)
-- [x] `update_account_and_passport` (already wrapper → `postgres/passport.ts`)
-- [x] `create_sso_account` → `postgres/account/create-sso-account.ts`
-
-**Account Management (26 methods):**
-
-- [x] `is_admin` → `postgres/account-basic.ts`
-- [x] `user_is_in_group` → `postgres/account-basic.ts`
-- [x] `make_user_admin` → `postgres/account-management.ts`
-- [x] `count_accounts_created_by` → `postgres/account-management.ts`
-- [x] `delete_account` → `postgres/account/deletion.ts`
-- [x] `mark_account_deleted` → `postgres/account/deletion.ts`
-- [x] `account_exists` → `postgres/account-basic.ts`
-- [x] `account_creation_actions` → `postgres/account/creation.ts`
-- [x] `account_creation_actions_success` → `postgres/account/creation.ts`
-- [x] `do_account_creation_actions` → `postgres/account/creation.ts`
-- [x] `verify_email_create_token` → `postgres/account/verify-email.ts`
-- [x] `verify_email_check_token` → `postgres/account/verify-email.ts`
-- [x] `verify_email_get` → `postgres/account/verify-email.ts`
-- [x] `is_verified_email` → `postgres/account/verify-email.ts`
-- [x] `get_coupon_history` → `postgres/coupon-and-username.ts`
-- [x] `update_coupon_history` → `postgres/coupon-and-username.ts`
-- [x] `account_ids_to_usernames` → `postgres/coupon-and-username.ts`
-- [x] `_account_where` → `postgres/account-core.ts`
-- [x] `get_account` → `postgres/account-core.ts`
-- [x] `is_banned_user` → `postgres/account-core.ts`
-- [x] `_touch_account` → `postgres/account-management.ts`
-- [x] `touch` → `postgres/activity.ts`
-- [x] `get_remember_me` (already wrapper → `postgres/remember-me.ts`)
-- [x] `get_personal_user` (already wrapper → `postgres/personal.ts`)
-- [x] `change_email_address` → `postgres/account/change-email-address.ts`
-- [x] `change_password`
-- [x] `reset_password`
-- [x] `set_password_reset`
-- [x] `get_password_reset`
-- [x] `delete_password_reset`
-- [x] `record_password_reset_attempt`
-- [x] `count_password_reset_attempts`
-- [x] `invalidate_all_remember_me` (already wrapper → `postgres/remember-me.ts`)
-- [x] `delete_remember_me` (already wrapper → `postgres/remember-me.ts`)
-- [x] `accountIsInOrganization` → `postgres/account/account-is-in-organization.ts`
-- [x] `nameToAccountOrOrganization` → `postgres/account/name-to-account-or-organization.ts`
-
-**File Access & Usage (4 methods):**
-
-- [x] `log_file_access` → `postgres/file-access.ts`
-- [x] `get_file_access` → `postgres/file-access.ts`
-- [x] `record_file_use` → `postgres/file-access.ts`
-- [x] `get_file_use` → `postgres/file-access.ts`
-
-**Project Management (35 methods):**
-
-- [x] `_validate_opts` → `postgres/account-utils.ts`
-- [x] `get_project`
-- [x] `_get_project_column`
-- [x] `get_user_column`
-- [x] `add_user_to_project` → `postgres/account-collaborators.ts`
-- [x] `set_project_status` → `postgres/project-status.ts`
-- [x] `remove_collaborator_from_project` → `postgres/account-collaborators.ts`
-- [x] `remove_user_from_project` → `postgres/account-collaborators.ts`
-- [x] `get_collaborator_ids` (already wrapper → `postgres/project-queries.ts`)
-- [x] `get_collaborators` (already wrapper → `postgres/project-queries.ts`)
-- [x] `get_public_paths` (already wrapper → `postgres/public-paths.ts`)
-- [x] `has_public_path` (already wrapper → `postgres/public-paths.ts`)
-- [x] `path_is_public` (already wrapper → `postgres/public-paths.ts`)
-- [x] `filter_public_paths` (already wrapper → `postgres/public-paths.ts`)
-- [x] `_touch_project` → `postgres/activity.ts`
-- [x] `touch_project` → `postgres/activity.ts`
-- [x] `recently_modified_projects`
-- [x] `get_open_unused_projects`
-- [x] `user_is_in_project_group`
-- [x] `user_is_collaborator`
-- [x] `get_project_ids_with_user`
-- [x] `get_account_ids_using_project`
-- [x] `when_sent_project_invite` → `postgres/project/invites.ts`
-- [x] `sent_project_invite` → `postgres/project/invites.ts`
-- [x] `set_project_host` → `postgres/project-host.ts`
-- [x] `unset_project_host` → `postgres/project-host.ts`
-- [x] `get_project_host` → `postgres/project-host.ts`
-- [x] `set_project_storage` → `postgres/project-storage.ts`
-- [x] `get_project_storage` → `postgres/project-storage.ts`
-- [x] `update_project_storage_save` → `postgres/project-storage.ts`
-- [x] `set_project_storage_request` → `postgres/project-state.ts`
-- [x] `get_project_storage_request` → `postgres/project-state.ts`
-- [x] `set_project_state` → `postgres/project-state.ts`
-- [x] `get_project_state` → `postgres/project-state.ts`
-- [x] `get_project_quotas` → `postgres/project/upgrades.ts` (TODO: split into separate file; original in `postgres-server-queries.coffee` line ~1243)
-- [x] `get_user_project_upgrades` → `postgres/project/upgrades.ts` (TODO: split into separate file; original in `postgres-server-queries.coffee` line ~1284)
-- [x] `ensure_user_project_upgrades_are_valid` → `postgres/project/upgrades.ts` (TODO: split into separate file; original in `postgres-server-queries.coffee` line ~1307)
-- [x] `ensure_all_user_project_upgrades_are_valid` → `postgres/project/upgrades.ts` (TODO: split into separate file; original in `postgres-server-queries.coffee` line ~1372)
-- [x] `get_project_upgrades` → `postgres/project/upgrades.ts` (TODO: split into separate file)
-- [x] `remove_all_user_project_upgrades` → `postgres/project/upgrades.ts` (TODO: split into separate file)
-- [x] `get_project_settings` → `postgres/project-settings.ts`
-- [x] `set_project_settings` → `postgres/project-settings.ts`
-- [x] `get_project_extra_env` → `postgres/project-extra-env.ts`
-- [x] `recent_projects` → `postgres/project-recent.ts`
-- [x] `set_run_quota` → `postgres/project/set-run-quota.ts`
-- [x] `project_datastore_set` (already wrapper → `postgres/project-queries.ts`)
-- [x] `project_datastore_get` (already wrapper → `postgres/project-queries.ts`)
-- [x] `project_datastore_del` (already wrapper → `postgres/project-queries.ts`)
-- [x] `permanently_unlink_all_deleted_projects_of_user` (already wrapper → `postgres/delete-projects.ts`)
-- [x] `unlink_old_deleted_projects` (already wrapper → `postgres/delete-projects.ts`)
-- [x] `projects_that_need_to_be_started` (already wrapper → `postgres/always-running.ts`)
-
-**Public Paths (6 methods already wrapped):**
-
-- [x] `unlist_all_public_paths` (already wrapper → `postgres/public-paths.ts`)
-- [x] `get_all_public_paths` (already wrapper → `postgres/public-paths.ts`)
-- [x] `get_public_paths` (already wrapper → `postgres/public-paths.ts`)
-- [x] `has_public_path` (already wrapper → `postgres/public-paths.ts`)
-- [x] `path_is_public` (already wrapper → `postgres/public-paths.ts`)
-- [x] `filter_public_paths` (already wrapper → `postgres/public-paths.ts`)
-
-**Statistics & Analytics (4 methods):**
-
-- [x] `get_stats_interval` → `postgres/statistics.ts`
-- [x] `get_stats` (already wrapper → `postgres/stats.ts`)
-- [x] `get_active_student_stats` → `postgres/statistics.ts`
-- [x] `calc_stats` (already wrapper → `postgres/stats.ts` - needs verification)
-
-**Hub Management (2 methods):**
-
-- [x] `register_hub` → `postgres/hub/management.ts`
-- [x] `get_hub_servers` → `postgres/hub/management.ts`
-
-**Site Licenses (8 methods already wrapped):**
-
-- [x] `site_license_usage_stats` (already wrapper → `postgres/site-license/analytics.ts`)
-- [x] `projects_using_site_license` (already wrapper → `postgres/site-license/analytics.ts`)
-- [x] `number_of_projects_using_site_license` (already wrapper → `postgres/site-license/analytics.ts`)
-- [x] `site_license_public_info` (already wrapper → `postgres/site-license/public.ts`)
-- [x] `site_license_manager_set` (already wrapper → `postgres/site-license/manager.ts`)
-- [x] `update_site_license_usage_log` (already wrapper → `postgres/site-license/usage-log.ts`)
-- [x] `matching_site_licenses` (already wrapper → `postgres/site-license/search.ts`)
-- [x] `manager_site_licenses` (already wrapper → `postgres/site-license/search.ts`)
-
-**Stripe/Payment (2 methods):**
-
-- [x] `is_paying_customer` (already wrapper → `postgres/account-queries.ts`)
-- [ ] (Stripe methods handled elsewhere)
-
-**Other (3 methods):**
-
-- [x] `insert_random_compute_images`
-- [x] `delete_syncstring`
-- [x] `registrationTokens` (already wrapper → `postgres/registration-tokens.ts`)
-- [x] `updateUnreadMessageCount` (already wrapper → `postgres/messages.ts`)
-
-**Progress Summary:**
-
-- **Total methods**: 130
-- **Already wrappers (TypeScript)**: 35 ✅
-- **Migrated in this session**: 61 ✅
-  - Batch 1: `get_log`, `get_user_log`, `uncaught_exception`
-  - Batch 2: `log_client_error`, `webapp_error`, `get_client_error_log`
-  - Batch 3: `set_server_setting`, `get_server_setting`, `get_server_settings_cached`, `get_site_settings`, `server_settings_synctable`, `reset_server_settings_cache`
-  - Batch 4: `log_file_access`, `get_file_access`, `record_file_use`, `get_file_use`
-  - Batch 5: `register_hub`, `get_hub_servers`
-  - Batch 6: `get_stats_interval`, `get_active_student_stats`
-  - Batch 7: `is_admin`, `user_is_in_group`, `account_exists`
-  - Batch 8: `_account_where`, `get_account`, `is_banned_user`
-  - Batch 9: `make_user_admin`, `count_accounts_created_by`, `_touch_account`
-  - Batch 10: `_touch_project`, `touch_project`, `touch`
-  - Batch 11: `change_password`, `reset_password`, `set_password_reset`, `get_password_reset`, `delete_password_reset`, `record_password_reset_attempt`, `count_password_reset_attempts`
-  - Batch 12: `get_coupon_history`, `update_coupon_history`, `account_ids_to_usernames`
-  - Batch 13: `set_project_storage_request`, `get_project_storage_request`, `set_project_state`, `get_project_state`
-  - Batch 14: `set_project_host`, `unset_project_host`, `get_project_host`
-  - Batch 15: `set_project_storage`, `get_project_storage`, `update_project_storage_save`
-  - Batch 16: `get_project_settings`, `set_project_settings`, `get_project_extra_env`, `recent_projects`
-  - Batch 17: `_validate_opts`, `add_user_to_project`, `set_project_status`, `remove_collaborator_from_project`, `remove_user_from_project`
-  - Batch 18: `verify_email_create_token`, `verify_email_check_token`, `verify_email_get`, `is_verified_email`
-  - Batch 19: `account_creation_actions`, `account_creation_actions_success`, `do_account_creation_actions`
-  - Batch 20: `when_sent_project_invite`, `sent_project_invite`
-  - Batch 21: `delete_account`, `mark_account_deleted`
-  - Found already migrated: `get_public_paths`, `has_public_path`, `path_is_public`, `filter_public_paths`
-  - Reorganized files into subdirectories: `postgres/account/` and `postgres/project/`
+- Batch 16: `get_project_settings`, `set_project_settings`, `get_project_extra_env`, `recent_projects`
+- Batch 17: `_validate_opts`, `add_user_to_project`, `set_project_status`, `remove_collaborator_from_project`, `remove_user_from_project`
+- Batch 18: `verify_email_create_token`, `verify_email_check_token`, `verify_email_get`, `is_verified_email`
+- Batch 19: `account_creation_actions`, `account_creation_actions_success`, `do_account_creation_actions`
+- Batch 20: `when_sent_project_invite`, `sent_project_invite`
+- Batch 21: `delete_account`, `mark_account_deleted`
+- Found already migrated: `get_public_paths`, `has_public_path`, `path_is_public`, `filter_public_paths`
+- Reorganized files into subdirectories: `postgres/account/` and `postgres/project/`
 - **Remaining to migrate**: 23
 - **Current completion**: 82% (107/130)
 

@@ -33,6 +33,7 @@
       "Bash(pnpm benchmark:*)",
       "Bash(pnpm build-dev:*)",
       "Bash(pnpm build:*)",
+      "Bash(pnpm clean:*)",
       "Bash(pnpm exec tsc:*)",
       "Bash(pnpm i18n:*)",
       "Bash(pnpm i18n:*:*)",

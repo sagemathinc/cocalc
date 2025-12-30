@@ -13,15 +13,17 @@ COPYRIGHT : (c) 2021 SageMath, Inc.
 
 import { extend_PostgreSQL as extendPostgresOps } from "./postgres-ops";
 import { setupRecordConnectErrors } from "./postgres/record-connect-error";
+import { extend_PostgreSQL as extendPostgresServerQueries } from "./postgres-server-queries";
 import { PostgreSQL } from "./postgres/types";
+import {
+  PROJECT_COLUMNS,
+  PUBLIC_PROJECT_COLUMNS,
+} from "./postgres/project/columns";
 
 const base = require("./postgres-base");
-const postgresServerQueries = require("./postgres-server-queries");
-// Migrated to TypeScript: postgres/blobs/methods.ts
+
 import { extend_PostgreSQL as extendPostgresBlobs } from "./postgres/blobs";
-// Migrated to TypeScript: user-query/queries.ts
 import { extend_PostgreSQL as extendPostgresUserQueries } from "./user-query/queries";
-// Migrated to TypeScript: synctable/methods.ts
 import { extend_PostgreSQL as extendPostgresSynctable } from "./synctable/methods";
 
 export const {
@@ -31,9 +33,10 @@ export const {
   one_result,
   all_results,
   count_result,
-  PROJECT_COLUMNS,
-  PUBLIC_PROJECT_COLUMNS,
 } = base;
+
+// Re-export project columns from their new TypeScript location
+export { PROJECT_COLUMNS, PUBLIC_PROJECT_COLUMNS };
 
 // Add further functionality to PostgreSQL class -- must be at the bottom of this file.
 // Each of the following calls composes the PostgreSQL class with further important functionality.
@@ -45,7 +48,7 @@ export function db(opts = {}): PostgreSQL {
   if (theDB === undefined) {
     let PostgreSQL = base.PostgreSQL;
 
-    PostgreSQL = postgresServerQueries.extend_PostgreSQL(PostgreSQL);
+    PostgreSQL = extendPostgresServerQueries(PostgreSQL);
     PostgreSQL = extendPostgresBlobs(PostgreSQL);
     PostgreSQL = extendPostgresSynctable(PostgreSQL);
     PostgreSQL = extendPostgresUserQueries(PostgreSQL);
