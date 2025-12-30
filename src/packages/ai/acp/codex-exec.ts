@@ -683,6 +683,7 @@ export class CodexExecAgent implements AcpAgent {
       (Number.isFinite(maxMb) ? maxMb : DEFAULT_PRECONTENT_CACHE_MB) *
       1024 *
       1024;
+    this.logCache("init", { maxSize });
     return new LRUCache<string, PreContentEntry>({
       maxSize,
       sizeCalculation: (entry) => entry.bytes,
@@ -748,10 +749,16 @@ export class CodexExecAgent implements AcpAgent {
     pathAbs: string,
     cache: LRUCache<string, PreContentEntry>,
   ): Promise<void> {
-    if (cache.has(pathAbs)) return;
+    if (cache.has(pathAbs)) {
+      this.logCache("hit", { path: pathAbs });
+      return;
+    }
     try {
       const stat = await fs.stat(pathAbs);
-      if (!stat.isFile()) return;
+      if (!stat.isFile()) {
+        this.logCache("skip-non-file", { path: pathAbs });
+        return;
+      }
       const maxFileMb = parseInt(
         process.env.COCALC_CODEX_PRECONTENT_MAX_FILE_MB ?? "",
         10,
@@ -760,7 +767,10 @@ export class CodexExecAgent implements AcpAgent {
         (Number.isFinite(maxFileMb) ? maxFileMb : DEFAULT_PRECONTENT_MAX_FILE_MB) *
         1024 *
         1024;
-      if (stat.size > maxBytes) return;
+      if (stat.size > maxBytes) {
+        this.logCache("skip-too-large", { path: pathAbs, bytes: stat.size });
+        return;
+      }
       const text = await fs.readFile(pathAbs, "utf8");
       this.updateCachedContent(pathAbs, text, cache);
     } catch (err) {
@@ -776,7 +786,11 @@ export class CodexExecAgent implements AcpAgent {
     cache: LRUCache<string, PreContentEntry>,
   ): string | undefined {
     const entry = cache.get(pathAbs);
-    if (!entry) return undefined;
+    if (!entry) {
+      this.logCache("miss", { path: pathAbs });
+      return undefined;
+    }
+    this.logCache("hit", { path: pathAbs });
     try {
       if (entry.compressed) {
         return brotliDecompressSync(entry.data as Buffer).toString("utf8");
@@ -804,9 +818,26 @@ export class CodexExecAgent implements AcpAgent {
         compressed: true,
         bytes: compressed.length,
       });
+      this.logCache("set", {
+        path: pathAbs,
+        bytes,
+        storedBytes: compressed.length,
+        compressed: true,
+      });
     } else {
       cache.set(pathAbs, { data: text, compressed: false, bytes });
+      this.logCache("set", {
+        path: pathAbs,
+        bytes,
+        storedBytes: bytes,
+        compressed: false,
+      });
     }
+  }
+
+  private logCache(event: string, data: Record<string, unknown>): void {
+    if (!process.env.COCALC_LOG_CODEX_CACHE) return;
+    logger.debug("codex-exec: cache", { event, ...data });
   }
 
   private isPathUnderRoot(pathAbs: string, root: string): boolean {
