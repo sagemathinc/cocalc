@@ -65,7 +65,10 @@ describe("PostgreSQL Synctable Methods", () => {
   beforeEach(() => {
     // Create a PostgreSQL instance for testing
     // We won't actually connect to a database, just test method existence
-    db = new PostgreSQL({ database: "test" }) as SynctablePostgreSQL;
+    db = new PostgreSQL({
+      connect: false,
+      database: process.env.PGDATABASE ?? "smc_ephemeral_testing_database",
+    }) as SynctablePostgreSQL;
     projectTrackerInit = jest.fn().mockResolvedValue(undefined);
     projectTrackerOnce = jest.fn();
   });
