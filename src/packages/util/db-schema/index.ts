@@ -27,6 +27,7 @@ import "./client-error-log";
 import "./cloud-filesystems";
 import "./cloud-catalog-cache";
 import "./cloud-pricing-cache";
+import "./cloud-reconcile-state";
 import "./cloud-vm-log";
 import "./cloud-vm-usage";
 import "./cloud-vm-work";

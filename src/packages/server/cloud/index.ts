@@ -22,4 +22,9 @@ export {
   refreshCloudCatalogNow,
   startCloudCatalogWorker,
 } from "./catalog";
-export { startCloudVmReconciler } from "./reconcile";
+export {
+  runReconcileOnce,
+  startCloudVmReconciler,
+  DEFAULT_INTERVALS,
+  type ReconcileRunResult,
+} from "./reconcile";

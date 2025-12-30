@@ -5,8 +5,7 @@
 // for an unbounded amount of time.
 //
 // This runs in parallel with the work queue worker and uses Postgres
-// advisory locks so multiple hubs can run safely without duplicating work
-// at the EXACT SAME TIME.  TODO: fix properly.
+// advisory locks so multiple hubs can run safely without duplicating work.
 
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
@@ -26,11 +25,21 @@ import { scheduleBootstrap } from "./bootstrap-host";
 const logger = getLogger("server:cloud:reconcile");
 const pool = () => getPool();
 
-const RUNNING_INTERVAL_MS = 5 * 60 * 1000;
-const IDLE_INTERVAL_MS = 30 * 60 * 1000;
-const EMPTY_INTERVAL_MS = 3 * 60 * 60 * 1000;
+export const DEFAULT_INTERVALS = {
+  running_ms: 5 * 60 * 1000,
+  idle_ms: 30 * 60 * 1000,
+  empty_ms: 3 * 60 * 60 * 1000,
+};
+
+type Intervals = typeof DEFAULT_INTERVALS;
 
 type Provider = "gcp" | "hyperstack" | "lambda";
+
+type ReconcileState = {
+  last_run_at?: Date | null;
+  next_run_at?: Date | null;
+  last_error?: string | null;
+};
 
 type HostRow = {
   id: string;
@@ -77,10 +86,54 @@ async function countHosts(provider: Provider): Promise<{
   return rows[0] ?? { total: 0, running: 0 };
 }
 
-function nextInterval({ total, running }: { total: number; running: number }) {
-  if (total === 0) return EMPTY_INTERVAL_MS;
-  if (running > 0) return RUNNING_INTERVAL_MS;
-  return IDLE_INTERVAL_MS;
+function nextInterval(
+  { total, running }: { total: number; running: number },
+  intervals: Intervals = DEFAULT_INTERVALS,
+) {
+  if (total === 0) return intervals.empty_ms;
+  if (running > 0) return intervals.running_ms;
+  return intervals.idle_ms;
+}
+
+async function getReconcileState(provider: Provider): Promise<ReconcileState> {
+  const { rows } = await pool().query(
+    `
+      SELECT last_run_at, next_run_at, last_error
+      FROM cloud_reconcile_state
+      WHERE provider=$1
+    `,
+    [provider],
+  );
+  return rows[0] ?? {};
+}
+
+async function setReconcileState(
+  provider: Provider,
+  opts: {
+    last_run_at?: Date | null;
+    next_run_at?: Date | null;
+    last_error?: string | null;
+  },
+) {
+  await pool().query(
+    `
+      INSERT INTO cloud_reconcile_state
+        (provider, last_run_at, next_run_at, last_error, updated_at)
+      VALUES ($1,$2,$3,$4, NOW())
+      ON CONFLICT (provider)
+      DO UPDATE SET
+        last_run_at = EXCLUDED.last_run_at,
+        next_run_at = EXCLUDED.next_run_at,
+        last_error = EXCLUDED.last_error,
+        updated_at = NOW()
+    `,
+    [
+      provider,
+      opts.last_run_at ?? null,
+      opts.next_run_at ?? null,
+      opts.last_error ?? null,
+    ],
+  );
 }
 
 async function withReconcileLock<T>(
@@ -304,31 +357,90 @@ async function reconcileProvider(provider: Provider) {
   }
 }
 
-export function startCloudVmReconciler() {
-  const providers: Provider[] = ["gcp", "hyperstack", "lambda"];
+export type ReconcileRunResult = {
+  ran: boolean;
+  skipped?: "locked" | "not_due";
+  next_at?: Date;
+};
+
+export async function runReconcileOnce(
+  provider: Provider,
+  opts: {
+    now?: () => Date;
+    intervals?: Intervals;
+    reconcile?: (provider: Provider) => Promise<void>;
+    count?: (provider: Provider) => Promise<{ total: number; running: number }>;
+  } = {},
+): Promise<ReconcileRunResult | undefined> {
+  const now = opts.now ?? (() => new Date());
+  const intervals = opts.intervals ?? DEFAULT_INTERVALS;
+  const reconcile = opts.reconcile ?? reconcileProvider;
+  const count = opts.count ?? countHosts;
+
+  return await withReconcileLock(provider, async () => {
+    const state = await getReconcileState(provider);
+    const current = now();
+    if (state.next_run_at && state.next_run_at > current) {
+      return { ran: false, skipped: "not_due", next_at: state.next_run_at };
+    }
+    logger.debug("cloud reconcile tick", { provider });
+    await reconcile(provider);
+    const counts = await count(provider);
+    const next_at = new Date(current.getTime() + nextInterval(counts, intervals));
+    await setReconcileState(provider, {
+      last_run_at: current,
+      next_run_at: next_at,
+      last_error: null,
+    });
+    return { ran: true, next_at };
+  });
+}
+
+export function startCloudVmReconciler(opts: {
+  providers?: Provider[];
+  intervals?: Intervals;
+} = {}) {
+  const providers: Provider[] = opts.providers ?? ["gcp", "hyperstack", "lambda"];
+  const intervals = opts.intervals ?? DEFAULT_INTERVALS;
   const timers = new Map<Provider, NodeJS.Timeout>();
   let stopped = false;
 
-  const schedule = async (provider: Provider) => {
+  const schedule = async (provider: Provider, nextAt?: Date) => {
     if (stopped) return;
-    const counts = await countHosts(provider);
-    const delay = nextInterval(counts);
+    let delay = intervals.idle_ms;
+    if (nextAt) {
+      delay = Math.max(1000, nextAt.getTime() - Date.now());
+    } else {
+      const counts = await countHosts(provider);
+      delay = nextInterval(counts, intervals);
+    }
     const timer = setTimeout(() => tick(provider), delay);
     timers.set(provider, timer);
   };
 
   const tick = async (provider: Provider) => {
     if (stopped) return;
+    let nextAt: Date | undefined;
     try {
-      await withReconcileLock(provider, async () => {
-        logger.debug("cloud reconcile tick", { provider });
-        await reconcileProvider(provider);
-      });
+      const result = await runReconcileOnce(provider, { intervals });
+      if (result?.next_at) {
+        nextAt = result.next_at;
+      } else if (result === undefined) {
+        // Lock not acquired; schedule based on state if available.
+        const state = await getReconcileState(provider);
+        if (state.next_run_at) {
+          nextAt = state.next_run_at;
+        }
+      }
     } catch (err) {
       logger.warn("cloud reconcile failed", { provider, err });
-    } finally {
-      await schedule(provider);
+      nextAt = new Date(Date.now() + intervals.idle_ms);
+      await setReconcileState(provider, {
+        last_error: String(err),
+        next_run_at: nextAt,
+      });
     }
+    await schedule(provider, nextAt);
   };
 
   for (const provider of providers) {
