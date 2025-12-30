@@ -18,7 +18,6 @@ export {
 export { ensureHostDns, deleteHostDns, hasDns } from "./dns";
 export { cloudHostHandlers } from "./host-work";
 export {
-  refreshCloudCatalog,
   refreshCloudCatalogNow,
   startCloudCatalogWorker,
 } from "./catalog";

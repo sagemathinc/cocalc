@@ -18,7 +18,7 @@ import {
 } from "@cocalc/server/cloud";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import { isValidUUID } from "@cocalc/util/misc";
-import { normalizeProviderId } from "@cocalc/cloud";
+import { normalizeProviderId, type ProviderId } from "@cocalc/cloud";
 function pool() {
   return getPool();
 }
@@ -341,7 +341,9 @@ export async function updateCloudCatalog({
   if (!(await isAdmin(owner))) {
     throw new Error("not authorized");
   }
-  await refreshCloudCatalogNow({ provider });
+  await refreshCloudCatalogNow({
+    provider: provider as ProviderId | undefined,
+  });
 }
 
 export async function getHostLog({

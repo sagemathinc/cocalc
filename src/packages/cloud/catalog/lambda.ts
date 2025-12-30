@@ -1,5 +1,6 @@
 import logger from "../logger";
 import { LambdaClient } from "../lambda/client";
+import type { CatalogEntry } from "./types";
 
 export type LambdaInstanceType = {
   name: string;
@@ -90,4 +91,24 @@ export async function fetchLambdaCatalog(opts: {
   ).sort();
 
   return { regions, instance_types, images };
+}
+
+export function lambdaCatalogEntries(catalog: LambdaCatalog): CatalogEntry[] {
+  return [
+    {
+      kind: "regions",
+      scope: "global",
+      payload: catalog.regions.map((name) => ({ name })),
+    },
+    {
+      kind: "instance_types",
+      scope: "global",
+      payload: catalog.instance_types,
+    },
+    {
+      kind: "images",
+      scope: "global",
+      payload: catalog.images,
+    },
+  ];
 }

@@ -47,3 +47,9 @@ export type GcpImage = {
   creationTimestamp?: string | null;
   gpuReady?: boolean;
 };
+
+export type CatalogEntry = {
+  kind: string;
+  scope: string;
+  payload: any;
+};

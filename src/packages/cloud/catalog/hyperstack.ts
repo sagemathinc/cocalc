@@ -6,6 +6,7 @@ import type {
 } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import { getFlavors, getImages, getRegions, getStocks } from "../hyperstack";
 import { setHyperstackConfig } from "../hyperstack/config";
+import type { CatalogEntry } from "./types";
 
 export type HyperstackCatalog = {
   regions: RegionInfo[];
@@ -28,4 +29,31 @@ export async function fetchHyperstackCatalog(opts?: {
     getStocks(),
   ]);
   return { regions, flavors, images, stocks };
+}
+
+export function hyperstackCatalogEntries(
+  catalog: HyperstackCatalog,
+): CatalogEntry[] {
+  return [
+    {
+      kind: "regions",
+      scope: "global",
+      payload: catalog.regions,
+    },
+    {
+      kind: "flavors",
+      scope: "global",
+      payload: catalog.flavors,
+    },
+    {
+      kind: "images",
+      scope: "global",
+      payload: catalog.images,
+    },
+    {
+      kind: "stocks",
+      scope: "global",
+      payload: catalog.stocks,
+    },
+  ];
 }

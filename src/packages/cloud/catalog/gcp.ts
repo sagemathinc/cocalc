@@ -8,6 +8,7 @@ import type {
   GcpMachineType,
   GcpRegion,
   GcpZone,
+  CatalogEntry,
 } from "./types";
 
 export type GcpCatalogOptions = {
@@ -75,6 +76,43 @@ export function normalizeGcpCatalog(opts: {
     gpu_types_by_zone: opts.gpu_types_by_zone,
     images,
   };
+}
+
+export function gcpCatalogEntries(catalog: GcpCatalog): CatalogEntry[] {
+  const entries: CatalogEntry[] = [
+    {
+      kind: "regions",
+      scope: "global",
+      payload: catalog.regions,
+    },
+    {
+      kind: "zones",
+      scope: "global",
+      payload: catalog.zones,
+    },
+  ];
+
+  for (const zone of catalog.zones) {
+    if (!zone?.name) continue;
+    entries.push({
+      kind: "machine_types",
+      scope: `zone/${zone.name}`,
+      payload: catalog.machine_types_by_zone[zone.name] ?? [],
+    });
+    entries.push({
+      kind: "gpu_types",
+      scope: `zone/${zone.name}`,
+      payload: catalog.gpu_types_by_zone[zone.name] ?? [],
+    });
+  }
+
+  entries.push({
+    kind: "images",
+    scope: "global",
+    payload: catalog.images ?? [],
+  });
+
+  return entries;
 }
 
 function safeDiskGb(value: unknown): string | null {

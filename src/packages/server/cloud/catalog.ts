@@ -1,12 +1,13 @@
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import type { ProviderId } from "@cocalc/cloud";
 import {
-  fetchGcpCatalog,
-  fetchHyperstackCatalog,
-  fetchLambdaCatalog,
+  getProviderEntry,
+  listProviderEntries,
+  type CatalogEntry as CloudCatalogEntry,
+  type ProviderEntry,
 } from "@cocalc/cloud";
-import { setHyperstackConfig } from "@cocalc/cloud";
 import { getData as getGcpPricingData } from "@cocalc/gcloud-pricing-calculator";
 
 const logger = getLogger("server:cloud:catalog");
@@ -21,24 +22,6 @@ type CatalogEntry = {
   ttl_seconds: number;
   fetched_at?: Date;
   etag?: string;
-};
-
-const GCP_TTLS: Record<string, number> = {
-  regions: 60 * 60 * 24 * 30,
-  zones: 60 * 60 * 24 * 30,
-  machine_types: 60 * 60 * 24 * 7,
-  gpu_types: 60 * 60 * 24 * 7,
-};
-const HYPERSTACK_TTLS: Record<string, number> = {
-  regions: 60 * 60 * 24 * 7,
-  flavors: 60 * 60 * 24 * 7,
-  images: 60 * 60 * 24 * 7,
-  stocks: 60 * 60 * 24 * 7,
-};
-const LAMBDA_TTLS: Record<string, number> = {
-  regions: 60 * 60 * 24 * 7,
-  instance_types: 60 * 60 * 24,
-  images: 60 * 60 * 24 * 7,
 };
 
 function catalogId(provider: string, kind: string, scope: string) {
@@ -87,76 +70,6 @@ async function getGcpAuth(): Promise<GcpAuth> {
   return { projectId: parsed.project_id, credentials: parsed };
 }
 
-export async function refreshGcpCatalog() {
-  const { projectId: project, credentials } = await getGcpAuth();
-  logger.info("refreshing GCP catalog", { project });
-  const catalog = await fetchGcpCatalog({ projectId: project, credentials });
-  const pricing = await getGcpPricingData();
-  const zonesMeta = pricing?.zones ?? {};
-
-  if (Array.isArray(catalog.zones)) {
-    for (const zone of catalog.zones) {
-      const meta = zonesMeta[zone.name ?? ""];
-      if (!meta) continue;
-      zone.location = meta.location;
-      zone.lowC02 = meta.lowC02;
-    }
-  }
-  const regions = catalog.regions;
-  await upsertCatalog({
-    id: catalogId("gcp", "regions", "global"),
-    provider: "gcp",
-    kind: "regions",
-    scope: "global",
-    payload: regions,
-    ttl_seconds: GCP_TTLS.regions,
-  });
-
-  const zones = catalog.zones;
-  await upsertCatalog({
-    id: catalogId("gcp", "zones", "global"),
-    provider: "gcp",
-    kind: "zones",
-    scope: "global",
-    payload: zones,
-    ttl_seconds: GCP_TTLS.zones,
-  });
-
-  for (const zone of zones) {
-    if (!zone?.name) continue;
-    const machineTypes = catalog.machine_types_by_zone[zone.name] ?? [];
-    await upsertCatalog({
-      id: catalogId("gcp", "machine_types", `zone/${zone.name}`),
-      provider: "gcp",
-      kind: "machine_types",
-      scope: `zone/${zone.name}`,
-      payload: machineTypes,
-      ttl_seconds: GCP_TTLS.machine_types,
-    });
-
-    const gpus = catalog.gpu_types_by_zone[zone.name] ?? [];
-    await upsertCatalog({
-      id: catalogId("gcp", "gpu_types", `zone/${zone.name}`),
-      provider: "gcp",
-      kind: "gpu_types",
-      scope: `zone/${zone.name}`,
-      payload: gpus,
-      ttl_seconds: GCP_TTLS.gpu_types,
-    });
-  }
-
-  if (catalog.images?.length) {
-    await upsertCatalog({
-      id: catalogId("gcp", "images", "global"),
-      provider: "gcp",
-      kind: "images",
-      scope: "global",
-      payload: catalog.images,
-      ttl_seconds: GCP_TTLS.machine_types,
-    });
-  }
-}
-
 async function getHyperstackApiKey(): Promise<string> {
   const { hyperstack_api_key } = await getServerSettings();
   if (!hyperstack_api_key) {
@@ -164,32 +77,6 @@ async function getHyperstackApiKey(): Promise<string> {
     throw new Error("hyperstack_api_key is not configured");
   }
   return hyperstack_api_key;
-}
-
-export async function refreshHyperstackCatalog() {
-  const apiKey = await getHyperstackApiKey();
-  setHyperstackConfig({ apiKey });
-  logger.info("refreshing Hyperstack catalog");
-  const catalog = await fetchHyperstackCatalog();
-  const entries: Array<{
-    kind: keyof typeof HYPERSTACK_TTLS;
-    payload: any;
-  }> = [
-    { kind: "regions", payload: catalog.regions },
-    { kind: "flavors", payload: catalog.flavors },
-    { kind: "images", payload: catalog.images },
-    { kind: "stocks", payload: catalog.stocks },
-  ];
-  for (const entry of entries) {
-    await upsertCatalog({
-      id: catalogId("hyperstack", entry.kind, "global"),
-      provider: "hyperstack",
-      kind: entry.kind,
-      scope: "global",
-      payload: entry.payload,
-      ttl_seconds: HYPERSTACK_TTLS[entry.kind],
-    });
-  }
 }
 
 async function getLambdaApiKey(): Promise<string> {
@@ -201,60 +88,94 @@ async function getLambdaApiKey(): Promise<string> {
   return lambda_cloud_api_key;
 }
 
-export async function refreshLambdaCatalog() {
-  const apiKey = await getLambdaApiKey();
-  logger.info("refreshing Lambda catalog");
-  const catalog = await fetchLambdaCatalog({ apiKey });
-  await upsertCatalog({
-    id: catalogId("lambda", "regions", "global"),
-    provider: "lambda",
-    kind: "regions",
-    scope: "global",
-    payload: catalog.regions.map((name) => ({ name })),
-    ttl_seconds: LAMBDA_TTLS.regions,
+async function getCatalogFetchOptions(providerId: string): Promise<any> {
+  if (providerId === "gcp") {
+    return await getGcpAuth();
+  }
+  if (providerId === "hyperstack") {
+    const apiKey = await getHyperstackApiKey();
+    const { project_hosts_hyperstack_prefix } = await getServerSettings();
+    return { apiKey, prefix: project_hosts_hyperstack_prefix };
+  }
+  if (providerId === "lambda") {
+    const apiKey = await getLambdaApiKey();
+    return { apiKey };
+  }
+  return {};
+}
+
+function applyCatalogTtl(
+  entry: ProviderEntry,
+  entries: CloudCatalogEntry[],
+): CatalogEntry[] {
+  const ttlSeconds = entry.catalog?.ttlSeconds ?? {};
+  return entries.map((catalogEntry) => {
+    const ttl = ttlSeconds[catalogEntry.kind];
+    if (ttl == null) {
+      logger.warn("missing catalog ttl", {
+        provider: entry.id,
+        kind: catalogEntry.kind,
+      });
+    }
+    return {
+      id: catalogId(entry.id, catalogEntry.kind, catalogEntry.scope),
+      provider: entry.id,
+      kind: catalogEntry.kind,
+      scope: catalogEntry.scope,
+      payload: catalogEntry.payload,
+      ttl_seconds: ttl ?? 0,
+    };
   });
-  await upsertCatalog({
-    id: catalogId("lambda", "instance_types", "global"),
-    provider: "lambda",
-    kind: "instance_types",
-    scope: "global",
-    payload: catalog.instance_types,
-    ttl_seconds: LAMBDA_TTLS.instance_types,
-  });
-  if (catalog.images.length) {
-    await upsertCatalog({
-      id: catalogId("lambda", "images", "global"),
-      provider: "lambda",
-      kind: "images",
-      scope: "global",
-      payload: catalog.images,
-      ttl_seconds: LAMBDA_TTLS.images,
-    });
+}
+
+function requiredCatalogKinds(entry: ProviderEntry): string[] {
+  return Object.keys(entry.catalog?.ttlSeconds ?? {});
+}
+
+async function refreshCatalogForProvider(entry: ProviderEntry): Promise<void> {
+  if (!entry.fetchCatalog || !entry.catalog) return;
+  const providerId = entry.id;
+  logger.info("refreshing cloud catalog", { provider: providerId });
+  const fetchOpts = await getCatalogFetchOptions(providerId);
+  const catalog = await entry.fetchCatalog(fetchOpts);
+
+  if (providerId === "gcp" && Array.isArray(catalog?.zones)) {
+    const pricing = await getGcpPricingData();
+    const zonesMeta = pricing?.zones ?? {};
+    for (const zone of catalog.zones) {
+      const meta = zonesMeta[zone.name ?? ""];
+      if (!meta) continue;
+      zone.location = meta.location;
+      zone.lowC02 = meta.lowC02;
+    }
+  }
+
+  const entries = applyCatalogTtl(entry, entry.catalog.toEntries(catalog));
+  for (const catalogEntry of entries) {
+    await upsertCatalog(catalogEntry);
   }
 }
 
-export async function refreshCloudCatalog() {
-  await refreshGcpCatalog();
-  await refreshHyperstackCatalog();
-  await refreshLambdaCatalog();
-}
-
-async function shouldRefreshGcpCatalog(): Promise<boolean> {
+async function shouldRefreshCatalog(entry: ProviderEntry): Promise<boolean> {
+  if (!entry.catalog) return false;
   const { rows } = await pool().query(
-    `SELECT kind, fetched_at, ttl_seconds
+    `SELECT kind,
+            MAX(fetched_at) AS fetched_at,
+            MAX(ttl_seconds) AS ttl_seconds,
+            COUNT(*) AS count
        FROM cloud_catalog_cache
-      WHERE provider = $1`,
-    ["gcp"],
+      WHERE provider = $1
+      GROUP BY kind`,
+    [entry.id],
   );
 
   if (rows.length === 0) return true;
 
-  let hasRegions = false;
-  let hasZones = false;
+  const requiredKinds = requiredCatalogKinds(entry);
   const now = Date.now();
-  for (const row of rows) {
-    if (row.kind === "regions") hasRegions = true;
-    if (row.kind === "zones") hasZones = true;
+  for (const kind of requiredKinds) {
+    const row = rows.find((r) => r.kind === kind);
+    if (!row || Number(row.count ?? 0) === 0) return true;
     if (!row.fetched_at) return true;
     const ttlSeconds = Number(row.ttl_seconds ?? 0);
     if (ttlSeconds > 0) {
@@ -262,67 +183,6 @@ async function shouldRefreshGcpCatalog(): Promise<boolean> {
       if (ageMs > ttlSeconds * 1000) return true;
     }
   }
-
-  if (!hasRegions || !hasZones) return true;
-  return false;
-}
-
-async function shouldRefreshHyperstackCatalog(): Promise<boolean> {
-  const { rows } = await pool().query(
-    `SELECT kind, fetched_at, ttl_seconds
-       FROM cloud_catalog_cache
-      WHERE provider = $1`,
-    ["hyperstack"],
-  );
-  if (rows.length === 0) return true;
-
-  let hasRegions = false;
-  let hasFlavors = false;
-  let hasImages = false;
-  let hasStocks = false;
-  const now = Date.now();
-  for (const row of rows) {
-    if (row.kind === "regions") hasRegions = true;
-    if (row.kind === "flavors") hasFlavors = true;
-    if (row.kind === "images") hasImages = true;
-    if (row.kind === "stocks") hasStocks = true;
-    if (!row.fetched_at) return true;
-    const ttlSeconds = Number(row.ttl_seconds ?? 0);
-    if (ttlSeconds > 0) {
-      const ageMs = now - new Date(row.fetched_at).getTime();
-      if (ageMs > ttlSeconds * 1000) return true;
-    }
-  }
-
-  if (!hasRegions || !hasFlavors || !hasImages || !hasStocks) return true;
-  return false;
-}
-
-async function shouldRefreshLambdaCatalog(): Promise<boolean> {
-  const { rows } = await pool().query(
-    `SELECT kind, fetched_at, ttl_seconds
-       FROM cloud_catalog_cache
-      WHERE provider = $1`,
-    ["lambda"],
-  );
-
-  if (rows.length === 0) return true;
-
-  let hasRegions = false;
-  let hasTypes = false;
-  const now = Date.now();
-  for (const row of rows) {
-    if (row.kind === "regions") hasRegions = true;
-    if (row.kind === "instance_types") hasTypes = true;
-    if (!row.fetched_at) return true;
-    const ttlSeconds = Number(row.ttl_seconds ?? 0);
-    if (ttlSeconds > 0) {
-      const ageMs = now - new Date(row.fetched_at).getTime();
-      if (ageMs > ttlSeconds * 1000) return true;
-    }
-  }
-
-  if (!hasRegions || !hasTypes) return true;
   return false;
 }
 
@@ -344,20 +204,20 @@ async function withCatalogLock<T>(
 }
 
 export async function refreshCloudCatalogNow(opts: {
-  provider?: string;
+  provider?: ProviderId;
 } = {}) {
-  const provider = opts.provider ?? "gcp";
-  return await withCatalogLock(provider, async () => {
-    if (provider === "gcp") {
-      await refreshGcpCatalog();
-    } else if (provider === "hyperstack") {
-      await refreshHyperstackCatalog();
-    } else if (provider === "lambda") {
-      await refreshLambdaCatalog();
-    } else {
-      throw new Error(`unknown catalog provider ${provider}`);
-    }
-  });
+  const providers = opts.provider
+    ? [getProviderEntry(opts.provider)].filter(
+        (entry): entry is ProviderEntry => !!entry,
+      )
+    : listProviderEntries();
+
+  for (const entry of providers) {
+    if (!entry.fetchCatalog || !entry.catalog) continue;
+    await withCatalogLock(entry.id, async () => {
+      await refreshCatalogForProvider(entry);
+    });
+  }
 }
 
 export function startCloudCatalogWorker(opts: { interval_ms?: number } = {}) {
@@ -365,24 +225,26 @@ export function startCloudCatalogWorker(opts: { interval_ms?: number } = {}) {
   const interval_ms = opts.interval_ms ?? 1000 * 60 * 60 * 24;
   const tick = async () => {
     try {
-      const [gcpNeeds, hyperstackNeeds, lambdaNeeds] = await Promise.all([
-        shouldRefreshGcpCatalog(),
-        shouldRefreshHyperstackCatalog(),
-        shouldRefreshLambdaCatalog(),
-      ]);
+      const entries = listProviderEntries().filter(
+        (entry) => entry.fetchCatalog && entry.catalog,
+      );
+      const needs = await Promise.all(
+        entries.map(async (entry) => ({
+          entry,
+          needs: await shouldRefreshCatalog(entry),
+        })),
+      );
       logger.info("startCloudCatalogWorker.tick", {
-        gcpNeeds,
-        hyperstackNeeds,
-        lambdaNeeds,
+        needs: needs.reduce<Record<string, boolean>>((acc, row) => {
+          acc[row.entry.id] = row.needs;
+          return acc;
+        }, {}),
       });
-      if (gcpNeeds) {
-        await withCatalogLock("gcp", refreshGcpCatalog);
-      }
-      if (hyperstackNeeds) {
-        await withCatalogLock("hyperstack", refreshHyperstackCatalog);
-      }
-      if (lambdaNeeds) {
-        await withCatalogLock("lambda", refreshLambdaCatalog);
+      for (const row of needs) {
+        if (!row.needs) continue;
+        await withCatalogLock(row.entry.id, async () => {
+          await refreshCatalogForProvider(row.entry);
+        });
       }
     } catch (err) {
       logger.warn("cloud catalog refresh failed", { err });
