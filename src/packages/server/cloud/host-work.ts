@@ -15,7 +15,8 @@ import { getVirtualMachine } from "@cocalc/cloud/hyperstack/client";
 import { setHyperstackConfig } from "@cocalc/cloud/hyperstack/config";
 import { InstancesClient } from "@google-cloud/compute";
 import { handleBootstrap, scheduleBootstrap } from "./bootstrap-host";
-import { asProvider, bumpReconcile, DEFAULT_INTERVALS } from "./reconcile";
+import { bumpReconcile, DEFAULT_INTERVALS } from "./reconcile";
+import { normalizeProviderId } from "@cocalc/cloud";
 
 const logger = getLogger("server:cloud:host-work");
 const pool = () => getPool();
@@ -63,13 +64,14 @@ async function ensureDnsForHost(row: any) {
 async function refreshRuntimePublicIp(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
-  if (!machine.cloud || !runtime?.instance_id) return undefined;
+  const providerId = normalizeProviderId(machine.cloud);
+  if (!providerId || !runtime?.instance_id) return undefined;
   logger.debug("refreshRuntimePublicIp: fetching", {
     host_id: row.id,
-    provider: machine.cloud,
+    provider: providerId,
     instance_id: runtime.instance_id,
   });
-  if (machine.cloud === "lambda") {
+  if (providerId === "lambda") {
     const { creds } = await ensureLambdaProvider();
     const client = new LambdaClient({ apiKey: creds.apiKey });
     const instance = await client.getInstance(runtime.instance_id);
@@ -81,7 +83,7 @@ async function refreshRuntimePublicIp(row: any) {
     });
     return ip;
   }
-  if (machine.cloud === "hyperstack") {
+  if (providerId === "hyperstack") {
     const { creds } = await ensureHyperstackProvider();
     setHyperstackConfig({ apiKey: creds.apiKey, prefix: creds.prefix });
     const instance = await getVirtualMachine(
@@ -95,7 +97,7 @@ async function refreshRuntimePublicIp(row: any) {
     });
     return ip;
   }
-  if (machine.cloud === "gcp" || machine.cloud === "google-cloud") {
+  if (providerId === "gcp") {
     const { creds } = await ensureGcpProvider();
     if (!creds.service_account_json) return undefined;
     const parsed = JSON.parse(creds.service_account_json);
@@ -125,53 +127,55 @@ async function refreshRuntimePublicIp(row: any) {
 
 async function scheduleRuntimeRefresh(row: any) {
   const runtime = row.metadata?.runtime;
+  const providerId = normalizeProviderId(row.metadata?.machine?.cloud);
   if (!runtime?.instance_id) {
     logger.debug("scheduleRuntimeRefresh: skip (no instance_id)", {
       host_id: row.id,
-      provider: row.metadata?.machine?.cloud,
+      provider: providerId ?? row.metadata?.machine?.cloud,
     });
     return;
   }
   if (runtime.public_ip) {
     logger.debug("scheduleRuntimeRefresh: skip (already has public_ip)", {
       host_id: row.id,
-      provider: row.metadata?.machine?.cloud,
+      provider: providerId ?? row.metadata?.machine?.cloud,
       public_ip: runtime.public_ip,
     });
     return;
   }
   logger.debug("scheduleRuntimeRefresh", {
     host_id: row.id,
-    provider: row.metadata?.machine?.cloud,
+    provider: providerId ?? row.metadata?.machine?.cloud,
     instance_id: runtime.instance_id,
   });
   logger.info("scheduleRuntimeRefresh: enqueue", {
     host_id: row.id,
-    provider: row.metadata?.machine?.cloud,
+    provider: providerId ?? row.metadata?.machine?.cloud,
     instance_id: runtime.instance_id,
   });
   await enqueueCloudVmWork({
     vm_id: row.id,
     action: "refresh_runtime",
-    payload: { provider: row.metadata?.machine?.cloud, attempt: 0 },
+    payload: { provider: providerId ?? row.metadata?.machine?.cloud, attempt: 0 },
   });
 }
 
 async function handleProvision(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
-  if (!machine.cloud) {
+  const providerId = normalizeProviderId(machine.cloud);
+  if (!providerId) {
     await updateHostRow(row.id, { status: "running" });
     return;
   }
   logger.debug("handleProvision: begin", {
     host_id: row.id,
-    provider: machine.cloud,
+    provider: providerId,
   });
   const provisioned = await provisionIfNeeded(row);
   const runtime = provisioned.metadata?.runtime;
   logger.debug("handleProvision: runtime", {
     host_id: row.id,
-    provider: machine.cloud,
+    provider: providerId,
     runtime,
   });
   const publicUrl =
@@ -189,15 +193,12 @@ async function handleProvision(row: any) {
   await ensureDnsForHost({ ...provisioned, public_url: publicUrl, internal_url: internalUrl });
   await scheduleRuntimeRefresh(provisioned);
   await scheduleBootstrap(provisioned);
-  const provider = asProvider(machine.cloud);
-  if (provider) {
-    await bumpReconcile(provider, DEFAULT_INTERVALS.running_ms);
-  }
+  await bumpReconcile(providerId, DEFAULT_INTERVALS.running_ms);
   await logCloudVmEvent({
     vm_id: row.id,
     action: "create",
     status: "success",
-    provider: machine.cloud,
+    provider: providerId,
     spec: machine,
     runtime: runtime ?? undefined,
   });
@@ -206,12 +207,13 @@ async function handleProvision(row: any) {
 async function handleStart(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
+  const providerId = normalizeProviderId(machine.cloud);
   logger.debug("handleStart: begin", {
     host_id: row.id,
-    provider: machine.cloud,
+    provider: providerId ?? machine.cloud,
     runtime,
   });
-  if (machine.cloud) {
+  if (providerId) {
     if (!runtime?.instance_id) {
       // If the VM was deprovisioned, treat "start" as "create" and provision now.
       await handleProvision(row);
@@ -219,19 +221,19 @@ async function handleStart(row: any) {
         vm_id: row.id,
         action: "start",
         status: "success",
-        provider: machine.cloud,
+        provider: providerId,
         spec: machine,
       });
       return;
     }
-    if (machine.cloud === "hyperstack") {
+    if (providerId === "hyperstack") {
       const { provider, creds } = await ensureHyperstackProvider();
       await provider.startHost(runtime, creds);
-    } else if (machine.cloud === "lambda") {
+    } else if (providerId === "lambda") {
       const { provider, creds } = await ensureLambdaProvider();
       await provider.startHost(runtime, creds);
     } else {
-      if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
+      if (providerId !== "gcp") {
         throw new Error(`unsupported cloud provider ${machine.cloud}`);
       }
       const { provider, creds } = await ensureGcpProvider();
@@ -242,15 +244,14 @@ async function handleStart(row: any) {
   await ensureDnsForHost(row);
   await scheduleRuntimeRefresh(row);
   await scheduleBootstrap(row);
-  const provider = asProvider(machine.cloud);
-  if (provider) {
-    await bumpReconcile(provider, DEFAULT_INTERVALS.running_ms);
+  if (providerId) {
+    await bumpReconcile(providerId, DEFAULT_INTERVALS.running_ms);
   }
   await logCloudVmEvent({
     vm_id: row.id,
     action: "start",
     status: "success",
-    provider: machine.cloud,
+    provider: providerId ?? machine.cloud,
     spec: machine,
     runtime,
   });
@@ -259,22 +260,23 @@ async function handleStart(row: any) {
 async function handleStop(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
-  if (machine.cloud && runtime?.instance_id) {
-    if (machine.cloud === "hyperstack") {
+  const providerId = normalizeProviderId(machine.cloud);
+  if (providerId && runtime?.instance_id) {
+    if (providerId === "hyperstack") {
       const { provider, creds } = await ensureHyperstackProvider();
       await provider.stopHost(runtime, creds);
-    } else if (machine.cloud === "lambda") {
+    } else if (providerId === "lambda") {
       const { provider, creds } = await ensureLambdaProvider();
       await provider.stopHost(runtime, creds);
     } else {
-      if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
+      if (providerId !== "gcp") {
         throw new Error(`unsupported cloud provider ${machine.cloud}`);
       }
       const { provider, creds } = await ensureGcpProvider();
       await provider.stopHost(runtime, creds);
     }
   }
-  if (machine.cloud === "lambda") {
+  if (providerId === "lambda") {
     // Lambda has no "stopped" state; terminate means deprovisioned.
     const nextMetadata = {
       ...(row.metadata ?? {}),
@@ -295,7 +297,7 @@ async function handleStop(row: any) {
     vm_id: row.id,
     action: "stop",
     status: "success",
-    provider: machine.cloud,
+    provider: providerId ?? machine.cloud,
     spec: machine,
     runtime,
   });
@@ -304,15 +306,16 @@ async function handleStop(row: any) {
 async function handleDelete(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
-  if (machine.cloud && runtime?.instance_id) {
-    if (machine.cloud === "hyperstack") {
+  const providerId = normalizeProviderId(machine.cloud);
+  if (providerId && runtime?.instance_id) {
+    if (providerId === "hyperstack") {
       const { provider, creds } = await ensureHyperstackProvider();
       await provider.deleteHost(runtime, creds);
-    } else if (machine.cloud === "lambda") {
+    } else if (providerId === "lambda") {
       const { provider, creds } = await ensureLambdaProvider();
       await provider.deleteHost(runtime, creds);
     } else {
-      if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
+      if (providerId !== "gcp") {
         throw new Error(`unsupported cloud provider ${machine.cloud}`);
       }
       const { provider, creds } = await ensureGcpProvider();
@@ -326,7 +329,7 @@ async function handleDelete(row: any) {
     vm_id: row.id,
     action: "delete",
     status: "success",
-    provider: machine.cloud,
+    provider: providerId ?? machine.cloud,
     spec: machine,
     runtime,
   });
@@ -350,15 +353,16 @@ async function handleRefreshRuntime(row: any) {
   const runtime = host.metadata?.runtime;
   if (!runtime?.instance_id) return;
   if (runtime.public_ip) return;
+  const providerId = normalizeProviderId(host.metadata?.machine?.cloud);
   logger.debug("handleRefreshRuntime", {
     host_id: host.id,
-    provider: host.metadata?.machine?.cloud,
+    provider: providerId ?? host.metadata?.machine?.cloud,
     instance_id: runtime.instance_id,
     attempt: row.payload?.attempt ?? 0,
   });
   logger.info("handleRefreshRuntime: attempt", {
     host_id: host.id,
-    provider: host.metadata?.machine?.cloud,
+    provider: providerId ?? host.metadata?.machine?.cloud,
     instance_id: runtime.instance_id,
     attempt: row.payload?.attempt ?? 0,
   });
@@ -367,7 +371,7 @@ async function handleRefreshRuntime(row: any) {
     const attempt = Number(row.payload?.attempt ?? 0);
     logger.debug("handleRefreshRuntime: still missing", {
       host_id: host.id,
-      provider: host.metadata?.machine?.cloud,
+      provider: providerId ?? host.metadata?.machine?.cloud,
       instance_id: runtime.instance_id,
       attempt,
     });
@@ -377,7 +381,7 @@ async function handleRefreshRuntime(row: any) {
           vm_id: host.id,
           action: "refresh_runtime",
           payload: {
-            provider: host.metadata?.machine?.cloud,
+            provider: providerId ?? host.metadata?.machine?.cloud,
             attempt: attempt + 1,
           },
         }).catch((err) => {

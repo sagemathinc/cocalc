@@ -1,3 +1,26 @@
+export const PROVIDER_IDS = [
+  "gcp",
+  "hyperstack",
+  "lambda",
+  "local",
+  "nebius",
+] as const;
+
+export type ProviderId = (typeof PROVIDER_IDS)[number];
+
+export function normalizeProviderId(
+  value?: string | null,
+): ProviderId | undefined {
+  if (!value) return undefined;
+  const normalized = value.toLowerCase();
+  if (normalized === "google-cloud") return "gcp";
+  if (normalized === "lambda-cloud") return "lambda";
+  if (PROVIDER_IDS.includes(normalized as ProviderId)) {
+    return normalized as ProviderId;
+  }
+  return undefined;
+}
+
 export type HostSpec = {
   name: string;
   region: string;
@@ -12,7 +35,7 @@ export type HostSpec = {
 };
 
 export type HostRuntime = {
-  provider: "gcp" | "hyperstack" | "lambda" | "local";
+  provider: ProviderId;
   instance_id: string;
   public_ip?: string;
   ssh_user: string;

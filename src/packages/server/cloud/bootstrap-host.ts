@@ -7,6 +7,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import getPool from "@cocalc/database/pool";
 import { buildHostSpec } from "./host-util";
+import { normalizeProviderId } from "@cocalc/cloud";
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
 import type { HostRuntime } from "@cocalc/cloud/types";
 import { getControlPlaneSshKeypair } from "./ssh-key";
@@ -174,10 +175,11 @@ export async function scheduleBootstrap(row: ProjectHostRow) {
   if (!runtime?.public_ip) return;
   const bootstrapStatus = row.metadata?.bootstrap?.status;
   if (bootstrapStatus === "done" || bootstrapStatus === "running") return;
+  const providerId = normalizeProviderId(row.metadata?.machine?.cloud);
   await enqueueCloudVmWork({
     vm_id: row.id,
     action: "bootstrap",
-    payload: { provider: row.metadata?.machine?.cloud },
+    payload: { provider: providerId ?? row.metadata?.machine?.cloud },
   });
 }
 
@@ -212,8 +214,9 @@ export async function handleBootstrap(row: ProjectHostRow) {
   }
 
   const spec = await buildHostSpec(row);
+  const providerId = normalizeProviderId(machine.cloud);
   const dataDiskDevice =
-    machine.cloud === "gcp" || machine.cloud === "google-cloud"
+    providerId === "gcp"
       ? `/dev/disk/by-id/google-${spec.name}-data`
       : "";
   const imageSizeGb = Math.max(20, Number(spec.disk_gb ?? 100));
@@ -367,7 +370,7 @@ sudo systemctl enable --now cocalc-project-host
     vm_id: row.id,
     action: "bootstrap",
     status: "success",
-    provider: machine.cloud,
+    provider: providerId ?? machine.cloud,
     spec: machine,
     runtime,
   });

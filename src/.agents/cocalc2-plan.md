@@ -4,12 +4,54 @@
 
 - [ ] when implementing starting remote project host, be sure to do set all secrets via safe 0600 files and not env variables. e.g., cloudflare r2.
 
+### Make “add a new cloud” mostly one‑place changes
+
+Right now the provider logic is split across host‑work, reconcile, catalog, and UI. We can centralize with a registry pattern:
+
+1. **Provider registry** \(in @cocalc/cloud\)  
+   Define a `CloudProvider` interface and a `providers` map keyed by provider id.  
+   Example interface:
+
+- `fetchCatalog(): Promise<NormalizedCatalog>`
+- `createHost(spec, creds): Promise<Runtime>`
+- `startHost(runtime, creds)`
+- `stopHost(runtime, creds)` \(or throws if unsupported\)
+- `deleteHost(runtime, creds)`
+- `getInstance(runtime|instanceId, creds): Promise<Runtime|null>`
+- `listInstances(prefix, creds): Promise<Runtime[]>`
+
+Then server code calls into `providers[id]` instead of `if/else` chains.
+
+2. **Capabilities descriptor**  
+   Add a provider capabilities map \(e.g., `supportsStop`, `supportsDiskType`, `supportsDiskResize`, `supportsCustomImage`, etc.\).  
+   Use it in:
+
+- host‑work \(stop → delete if unsupported\)
+- UI \(hide fields that don’t make sense per provider\)
+
+3. **Catalog integration**  
+   `server/cloud/catalog.ts` should call `providers[id].fetchCatalog()` and write to `cloud_catalog_cache` in one place. That means adding a new provider mostly requires adding its fetchCatalog in @cocalc/cloud.
+
+4. **Reconcile integration**  
+   `server/cloud/reconcile.ts` should iterate through `providers` and call `listInstances` or `getInstance` via the registry.  
+   That eliminates per‑provider switch logic in reconcile and avoids missing “new cloud” cases.
+
+5. **UI integration**  
+   UI should be driven by:
+
+- `providers` list \(what’s enabled\)
+- provider capabilities \(fields shown\)
+- catalog \(regions/zones/flavors/images\)  
+  So “adding a new cloud” is: implement provider \+ fetch catalog; the UI should “just show it.”
+
+That way, Nebius is “add provider \+ catalog,” not touch 10 files.
 
 ### Cloud VM control layer.
 
 Goal: a provider‑agnostic control plane in `@cocalc/cloud` that can provision, start/stop, and meter project‑host VMs via cloud APIs, with concurrency handled in Postgres (no singletons), and costs/usage recorded as immutable log events. The hub owns orchestration and billing, while providers expose clean, testable adapters.
 
 **Remote project-host bring-up checklist (current code):**
+
 - [ ] **GCP end‑to‑end boot**: VM provisions with boot+data PD, injects SSH key, runs startup script to install podman+btrfs, mounts PD at `/btrfs`, copies SEA, starts project‑host, registers with hub, and DNS is created.
 - [ ] **Hyperstack end‑to‑end boot**: create environment (idempotent), create VM from catalog, inject SSH key, run bootstrap, register with hub, DNS set.
 - [ ] **Lambda provider**: adapter + catalog + create/start/stop/delete wired into work queue.
@@ -20,16 +62,19 @@ Goal: a provider‑agnostic control plane in `@cocalc/cloud` that can provision,
 - [ ] **DNS**: ensure Cloudflare record is created (or fallback proxy), and public_url uses DNS name not raw IP.
 
 **Minimal provider interface + simple mode (v1):**
+
 - Provider API: `catalog`, `createHost`, `startHost`, `stopHost`, `deleteHost`, optional `status`.
 - Simple mode maps `{region, cpu, ram, gpu?}` to the smallest compatible instance; advanced settings are hidden behind a toggle.
 - Do not block on pricing/egress; keep usage tracking as log events for now.
 
 **Multi‑cloud plan (Day‑1 providers):**
+
 1. **GCP**: already wired; use catalog for regions/zones/machine/gpu/images; boot+data disks; DNS via Cloudflare.
 2. **Hyperstack**: port the existing client from `server/compute/cloud/hyperstack` into `@cocalc/cloud` (no `@cocalc/server` deps), then adapt create/start/stop/delete to the minimal interface.
 3. **Lambda Cloud**: implement minimal REST client + catalog; keep only simple mode; no spot/resize/custom images initially.
 
 **Implementation/testing plan (cloud):**
+
 1. Add normalized catalog to `@cocalc/cloud` with tests.
 2. Add provider adapters for GCP/Hyperstack/Lambda.
 3. Keep advanced knobs behind UI toggle; default to simple mode.
@@ -37,6 +82,7 @@ Goal: a provider‑agnostic control plane in `@cocalc/cloud` that can provision,
 5. Add admin “refresh catalog” RPC + UI (already started for GCP).
 
 **API surface (provider‑agnostic):**
+
 - `createHost(spec, creds) -> runtime` (attach boot+data disks, inject bootstrap)
 - `startHost(runtime, creds)`
 - `stopHost(runtime, creds)`
@@ -47,6 +93,7 @@ Goal: a provider‑agnostic control plane in `@cocalc/cloud` that can provision,
 - `estimateCost(spec, duration, storageGb, egressGb) -> estimate` (optional)
 
 **DB model (new tables):**
+
 - `cloud_vm_log(vm_id, ts, action, status, provider, runtime, spec, pricing_version, error)`
   - append‑only event log (create/start/stop/delete/resize/status updates)
 - `cloud_pricing_cache(provider, sku, region, unit_price, fetched_at, ttl, pricing_version)`
@@ -55,27 +102,30 @@ Goal: a provider‑agnostic control plane in `@cocalc/cloud` that can provision,
   - optional; supports delayed provider billing reconciliation
 
 **Locking / orchestration pattern (Postgres):**
+
 - Use `SELECT ... FOR UPDATE SKIP LOCKED` on a work queue (or host row) to ensure only one hub instance executes a provisioning step per VM at a time.
 - Each action appends to `cloud_vm_log` and updates `project_hosts.status`/`metadata.runtime`.
 - Idempotent actions: if a host already exists in provider, `createHost` should return existing runtime.
 
 **Costing strategy:**
+
 - Prefer provider pricing APIs (GCP billing catalog, Hyperstack API) cached daily.
 - Use estimates for immediate UI; reconcile later if provider cost data arrives.
 - Store `pricing_version` in `cloud_vm_log` for auditability.
 
 **Capabilities / constraints:**
+
 - Track host capabilities (supports btrfs/overlayfs/snapshots/quotas) via `runtime.metadata.capabilities`.
 - For “container‑only” providers (e.g., runpod), disable snapshots and use full‑rootfs copy.
 
 **Implementation / testing plan:**
+
 1. Implement tables and lightweight log helpers in `packages/server/cloud` (new module).
 2. Add a `cloud_vm_work` queue table to drive provisioning actions (start/stop/resize) with SKIP LOCKED.
 3. Extend `@cocalc/cloud` interface with optional pricing/estimate methods; stub for GCP.
 4. Wire `hub.hosts.*` to enqueue actions and return immediately; workers update status/logs.
 5. Add LocalProvider tests (already) + mocked GCP tests; add worker tests that assert log writes and locking semantics.
 6. Add a minimal pricing cache test (uses a fake provider).
-
 
 ### Current focus: project --> project host configuration
 
@@ -447,3 +497,4 @@ flowchart LR
 - [x] Removed sidecar/reflect-sync path; runner now directly launches single podman container with Btrfs mounts.
 - [x] Vendored file-server bootstrap into project-host with Btrfs/rustic/quotas; added fs.\* conat service and SSH proxy integration.
 - [x] Moved SEA/bundle logic from lite to plus and from runner to project-host; excluded build output from tsc; removed old REST `/projects` endpoints and added catch-all redirect.
+

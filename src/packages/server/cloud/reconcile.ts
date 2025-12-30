@@ -11,6 +11,7 @@ import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { InstancesClient } from "@google-cloud/compute";
+import { type ProviderId } from "@cocalc/cloud";
 import {
   ensureGcpProvider,
   ensureHyperstackProvider,
@@ -33,17 +34,9 @@ export const DEFAULT_INTERVALS = {
 
 type Intervals = typeof DEFAULT_INTERVALS;
 
-export const PROVIDERS = ["gcp", "hyperstack", "lambda"] as const;
-type Provider = (typeof PROVIDERS)[number];
+export const PROVIDERS: ProviderId[] = ["gcp", "hyperstack", "lambda"];
 
-export function asProvider(cloud?: string): Provider | undefined {
-  if (!cloud) return undefined;
-  if (cloud === "google-cloud") return "gcp";
-  if ((PROVIDERS as readonly string[]).includes(cloud)) {
-    return cloud as Provider;
-  }
-  return undefined;
-}
+type Provider = ProviderId;
 
 type ReconcileState = {
   last_run_at?: Date | null;
@@ -68,14 +61,20 @@ type RemoteInstance = {
   public_ip?: string;
 };
 
+function providerAliases(provider: Provider): string[] {
+  if (provider === "gcp") return ["gcp", "google-cloud"];
+  if (provider === "lambda") return ["lambda", "lambda-cloud"];
+  return [provider];
+}
+
 async function loadHosts(provider: Provider): Promise<HostRow[]> {
   const { rows } = await pool().query(
     `
       SELECT id, name, status, metadata, public_url, internal_url
       FROM project_hosts
-      WHERE metadata->'machine'->>'cloud' = $1
+      WHERE metadata->'machine'->>'cloud' = ANY($1)
     `,
-    [provider],
+    [providerAliases(provider)],
   );
   return rows;
 }
@@ -89,9 +88,9 @@ async function countHosts(provider: Provider): Promise<{
       SELECT COUNT(*)::int AS total,
              COUNT(*) FILTER (WHERE status='running')::int AS running
       FROM project_hosts
-      WHERE metadata->'machine'->>'cloud' = $1
+      WHERE metadata->'machine'->>'cloud' = ANY($1)
     `,
-    [provider],
+    [providerAliases(provider)],
   );
   return rows[0] ?? { total: 0, running: 0 };
 }

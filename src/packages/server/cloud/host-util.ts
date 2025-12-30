@@ -6,6 +6,7 @@ import {
   type HostSpec,
   type HyperstackCreds,
   type LambdaCreds,
+  normalizeProviderId,
 } from "@cocalc/cloud";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -93,12 +94,13 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
     project_hosts_lambda_prefix = "cocalc-host",
   } = await getServerSettings();
   const baseName = row.id.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+  const providerId = normalizeProviderId(machine.cloud);
   const providerName =
-    machine.cloud === "gcp" || machine.cloud === "google-cloud"
+    providerId === "gcp"
       ? gcpSafeName(project_hosts_google_prefix, baseName)
-      : machine.cloud === "hyperstack"
+      : providerId === "hyperstack"
         ? gcpSafeName(project_hosts_hyperstack_prefix, baseName)
-        : machine.cloud === "lambda"
+        : providerId === "lambda"
           ? gcpSafeName(project_hosts_lambda_prefix, baseName)
           : baseName;
   const sourceImage = machine.source_image ?? machine.metadata?.source_image;
@@ -211,12 +213,13 @@ export async function provisionIfNeeded(row: HostRow) {
   const metadata = row.metadata ?? {};
   const runtime = metadata.runtime;
   const machine: HostMachine = metadata.machine ?? {};
-  if (!machine.cloud) {
+  const providerId = normalizeProviderId(machine.cloud);
+  if (!providerId) {
     return row;
   }
   if (runtime?.instance_id) return row;
   const spec = await buildHostSpec(row);
-  if (machine.cloud === "lambda") {
+  if (providerId === "lambda") {
     const { provider, creds } = await ensureLambdaProvider();
     const runtimeCreated = await provider.createHost(spec, creds);
     return {
@@ -228,7 +231,7 @@ export async function provisionIfNeeded(row: HostRow) {
       },
     };
   }
-  if (machine.cloud === "hyperstack") {
+  if (providerId === "hyperstack") {
     const { provider, creds } = await ensureHyperstackProvider();
     const runtimeCreated = await provider.createHost(spec, creds);
     return {
@@ -240,8 +243,8 @@ export async function provisionIfNeeded(row: HostRow) {
       },
     };
   }
-  if (machine.cloud !== "google-cloud" && machine.cloud !== "gcp") {
-    throw new Error(`unsupported cloud provider ${machine.cloud}`);
+  if (providerId !== "gcp") {
+    throw new Error(`unsupported cloud provider ${machine.cloud ?? "unknown"}`);
   }
   const { provider, creds } = await ensureGcpProvider();
   const runtimeCreated = await provider.createHost(spec, creds);

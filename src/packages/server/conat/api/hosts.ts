@@ -18,6 +18,7 @@ import {
 } from "@cocalc/server/cloud";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import { isValidUUID } from "@cocalc/util/misc";
+import { normalizeProviderId } from "@cocalc/cloud";
 function pool() {
   return getPool();
 }
@@ -445,7 +446,7 @@ export async function createHost({
   requireCreateHosts(membership.entitlements);
   const id = randomUUID();
   const now = new Date();
-  const machineCloud = machine?.cloud;
+  const machineCloud = normalizeProviderId(machine?.cloud);
   const initialStatus = machineCloud ? "starting" : "off";
   await pool().query(
     `INSERT INTO project_hosts (id, name, region, status, metadata, created, updated, last_seen)
@@ -459,7 +460,10 @@ export async function createHost({
         owner,
         size,
         gpu,
-        machine: machine ?? {},
+        machine: {
+          ...(machine ?? {}),
+          ...(machineCloud ? { cloud: machineCloud } : {}),
+        },
       },
       now,
     ],
@@ -494,11 +498,12 @@ export async function startHost({
   const row = await loadHostForStartStop(id, account_id);
   const metadata = row.metadata ?? {};
   const machine: HostMachine = metadata.machine ?? {};
+  const machineCloud = normalizeProviderId(machine.cloud);
   await pool().query(
     `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
     [id, "starting", new Date()],
   );
-  if (!machine.cloud) {
+  if (!machineCloud) {
     await pool().query(
       `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
       [id, "running", new Date()],
@@ -507,7 +512,7 @@ export async function startHost({
     await enqueueCloudVmWork({
       vm_id: id,
       action: "start",
-      payload: { provider: machine.cloud },
+      payload: { provider: machineCloud },
     });
   }
   const { rows } = await pool().query(
@@ -528,11 +533,12 @@ export async function stopHost({
   const row = await loadHostForStartStop(id, account_id);
   const metadata = row.metadata ?? {};
   const machine: HostMachine = metadata.machine ?? {};
+  const machineCloud = normalizeProviderId(machine.cloud);
   await pool().query(
     `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
     [id, "stopping", new Date()],
   );
-  if (!machine.cloud) {
+  if (!machineCloud) {
     await pool().query(
       `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
       [id, "off", new Date()],
@@ -541,7 +547,7 @@ export async function stopHost({
     await enqueueCloudVmWork({
       vm_id: id,
       action: "stop",
-      payload: { provider: machine.cloud },
+      payload: { provider: machineCloud },
     });
   }
   const { rows } = await pool().query(
@@ -562,11 +568,12 @@ export async function deleteHost({
   const row = await loadOwnedHost(id, account_id);
   const metadata = row.metadata ?? {};
   const machine: HostMachine = metadata.machine ?? {};
-  if (machine.cloud) {
+  const machineCloud = normalizeProviderId(machine.cloud);
+  if (machineCloud) {
     await enqueueCloudVmWork({
       vm_id: id,
       action: "delete",
-      payload: { provider: machine.cloud },
+      payload: { provider: machineCloud },
     });
     await pool().query(
       `UPDATE project_hosts SET status=$2, updated=NOW() WHERE id=$1`,
