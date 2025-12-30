@@ -12,8 +12,11 @@ import {
   type CloudVmWorkRow,
 } from "./db";
 import { logCloudVmEvent } from "./db";
+import getPool from "@cocalc/database/pool";
+import { enqueueCloudVmWork } from "./db";
 
 const logger = getLogger("server:cloud:worker");
+const pool = () => getPool();
 
 const DEFAULT_MAX_CONCURRENCY = 10;
 const DEFAULT_PER_PROVIDER = 10;
@@ -127,6 +130,30 @@ export async function processCloudVmWorkOnce(opts: {
   return processed;
 }
 
+export async function enqueueMissingRuntimeRefresh(opts: { limit?: number }) {
+  const limit = opts.limit ?? 50;
+  const { rows } = await pool().query(
+    `
+      SELECT id, metadata
+      FROM project_hosts
+      WHERE metadata->'runtime'->>'instance_id' IS NOT NULL
+        AND (metadata->'runtime'->>'public_ip' IS NULL OR metadata->'runtime'->>'public_ip' = '')
+      LIMIT $1
+    `,
+    [limit],
+  );
+  if (!rows.length) return 0;
+  for (const row of rows) {
+    const cloud = row.metadata?.machine?.cloud;
+    await enqueueCloudVmWork({
+      vm_id: row.id,
+      action: "refresh_runtime",
+      payload: { provider: cloud, attempt: 0 },
+    });
+  }
+  return rows.length;
+}
+
 export function startCloudVmWorker(opts: {
   worker_id: string;
   handlers: CloudVmWorkHandlers;
@@ -148,6 +175,10 @@ export function startCloudVmWorker(opts: {
         max_concurrency: opts.max_concurrency ?? DEFAULT_MAX_CONCURRENCY,
         max_per_provider: opts.max_per_provider ?? DEFAULT_PER_PROVIDER,
       });
+      const refreshed = await enqueueMissingRuntimeRefresh({ limit: 50 });
+      if (refreshed) {
+        logger.debug("refresh_runtime enqueue scan", { refreshed });
+      }
     } catch (err) {
       logger.warn("cloud worker tick failed", { err });
     }

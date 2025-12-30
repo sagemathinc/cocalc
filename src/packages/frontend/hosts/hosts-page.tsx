@@ -1475,6 +1475,11 @@ export const HostsPage: React.FC = () => {
               Host ID: {selected.id}
             </Typography.Text>
             <Space direction="vertical" size="small">
+              {selected.machine?.cloud && selected.public_ip && (
+                <Typography.Text copyable={{ text: selected.public_ip }}>
+                  Public IP: {selected.public_ip}
+                </Typography.Text>
+              )}
               {selected.machine?.zone && (
                 <Typography.Text>Zone: {selected.machine.zone}</Typography.Text>
               )}

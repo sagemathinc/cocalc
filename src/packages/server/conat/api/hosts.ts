@@ -49,6 +49,7 @@ function parseRow(
     gpu: !!metadata.gpu,
     status: (row.status as HostStatus) ?? "off",
     machine,
+    public_ip: metadata.runtime?.public_ip,
     error: metadata.last_error,
     error_at: metadata.last_error_at,
     projects: row.capacity?.projects ?? 0,

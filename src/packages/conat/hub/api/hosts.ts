@@ -121,6 +121,7 @@ export interface Host {
   gpu: boolean;
   status: HostStatus;
   machine?: HostMachine;
+  public_ip?: string;
   error?: string;
   error_at?: string;
   projects?: number;
