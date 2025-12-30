@@ -55,6 +55,40 @@ const REGIONS = [
   { value: "eu-west", label: "EU West" },
 ];
 
+const LAMBDA_REGIONS = [
+  "us-west-1",
+  "us-west-2",
+  "us-west-3",
+  "us-east-1",
+  "us-east-2",
+  "us-east-3",
+  "us-south-1",
+  "us-south-2",
+  "us-south-3",
+  "us-midwest-1",
+  "us-midwest-2",
+  "europe-central-1",
+  "europe-central-2",
+  "europe-central-3",
+  "europe-west-1",
+  "europe-west-2",
+  "europe-west-3",
+  "europe-north-1",
+  "europe-south-1",
+  "asia-south-1",
+  "asia-south-2",
+  "asia-south-3",
+  "asia-northeast-1",
+  "asia-northeast-2",
+  "asia-northeast-3",
+  "asia-east-1",
+  "asia-east-2",
+  "asia-east-3",
+  "asia-southeast-1",
+  "asia-southeast-2",
+  "me-west-1",
+].map((name) => ({ value: name, label: name }));
+
 const SIZES = [
   { value: "small", label: "Small (2 vCPU / 8 GB)" },
   { value: "medium", label: "Medium (4 vCPU / 16 GB)" },
@@ -68,11 +102,12 @@ const GPU_TYPES = [
   { value: "a10g", label: "NVIDIA A10G" },
 ];
 
-type HostProvider = "gcp" | "hyperstack" | "none";
+type HostProvider = "gcp" | "hyperstack" | "lambda" | "none";
 
 const PROVIDERS: Array<{ value: HostProvider; label: string }> = [
   { value: "gcp", label: "Google Cloud" },
   { value: "hyperstack", label: "Hyperstack" },
+  { value: "lambda", label: "Lambda Cloud" },
   { value: "none", label: "Local (manual setup)" },
 ];
 
@@ -144,7 +179,10 @@ function normalizeRecommendation(input: any): HostRecommendation | null {
     return undefined;
   };
   const provider = normalizeString(input.provider) as HostProvider | undefined;
-  if (!provider || (provider !== "gcp" && provider !== "hyperstack")) {
+  if (
+    !provider ||
+    (provider !== "gcp" && provider !== "hyperstack" && provider !== "lambda")
+  ) {
     return null;
   }
   return {
@@ -152,7 +190,7 @@ function normalizeRecommendation(input: any): HostRecommendation | null {
     provider,
     region: normalizeString(input.region),
     zone: normalizeString(input.zone),
-    machine_type: normalizeString(input.machine_type),
+    machine_type: normalizeString(input.machine_type ?? input.instance_type),
     flavor: normalizeString(input.flavor),
     gpu_type: normalizeString(input.gpu_type),
     gpu_count:
@@ -217,6 +255,10 @@ export const HostsPage: React.FC = () => {
     "customize",
     "compute_servers_hyperstack_enabled",
   );
+  const lambdaEnabled = useTypedRedux(
+    "customize",
+    "compute_servers_lambda_enabled",
+  );
   const showLocal =
     typeof window !== "undefined" && window.location.hostname === "localhost";
 
@@ -224,18 +266,20 @@ export const HostsPage: React.FC = () => {
     return PROVIDERS.filter((opt) => {
       if (opt.value === "gcp") return !!gcpEnabled;
       if (opt.value === "hyperstack") return !!hyperstackEnabled;
+      if (opt.value === "lambda") return !!lambdaEnabled;
       if (opt.value === "none") return showLocal;
       return false;
     });
-  }, [gcpEnabled, hyperstackEnabled, showLocal]);
+  }, [gcpEnabled, hyperstackEnabled, lambdaEnabled, showLocal]);
 
   const refreshProviders = useMemo(() => {
     const opts: Array<{ value: HostProvider; label: string }> = [];
     if (gcpEnabled) opts.push({ value: "gcp", label: "GCP" });
     if (hyperstackEnabled)
       opts.push({ value: "hyperstack", label: "Hyperstack" });
+    if (lambdaEnabled) opts.push({ value: "lambda", label: "Lambda Cloud" });
     return opts;
-  }, [gcpEnabled, hyperstackEnabled]);
+  }, [gcpEnabled, hyperstackEnabled, lambdaEnabled]);
 
   useEffect(() => {
     const current = form.getFieldValue("provider") as HostProvider | undefined;
@@ -243,10 +287,12 @@ export const HostsPage: React.FC = () => {
       form.setFieldsValue({ provider: "none" });
     } else if (current === "hyperstack" && !hyperstackEnabled) {
       form.setFieldsValue({ provider: "none" });
+    } else if (current === "lambda" && !lambdaEnabled) {
+      form.setFieldsValue({ provider: "none" });
     } else if (!current) {
       form.setFieldsValue({ provider: providerOptions[0]?.value ?? "none" });
     }
-  }, [gcpEnabled, hyperstackEnabled, providerOptions, form]);
+  }, [gcpEnabled, hyperstackEnabled, lambdaEnabled, providerOptions, form]);
 
   const selectedProvider = Form.useWatch("provider", form);
   const selectedRegion = Form.useWatch("region", form);
@@ -258,11 +304,19 @@ export const HostsPage: React.FC = () => {
 
   useEffect(() => {
     if (refreshProvider === "gcp" && !gcpEnabled) {
-      setRefreshProvider(hyperstackEnabled ? "hyperstack" : "gcp");
+      setRefreshProvider(
+        hyperstackEnabled ? "hyperstack" : lambdaEnabled ? "lambda" : "gcp",
+      );
     } else if (refreshProvider === "hyperstack" && !hyperstackEnabled) {
-      setRefreshProvider(gcpEnabled ? "gcp" : "hyperstack");
+      setRefreshProvider(
+        gcpEnabled ? "gcp" : lambdaEnabled ? "lambda" : "hyperstack",
+      );
+    } else if (refreshProvider === "lambda" && !lambdaEnabled) {
+      setRefreshProvider(
+        gcpEnabled ? "gcp" : hyperstackEnabled ? "hyperstack" : "lambda",
+      );
     }
-  }, [refreshProvider, gcpEnabled, hyperstackEnabled]);
+  }, [refreshProvider, gcpEnabled, hyperstackEnabled, lambdaEnabled]);
 
   const refresh = async () => {
     const [list, membership] = await Promise.all([
@@ -316,11 +370,15 @@ export const HostsPage: React.FC = () => {
         ? "gcp"
         : selectedProvider === "hyperstack"
           ? "hyperstack"
-          : gcpEnabled
-            ? "gcp"
-            : hyperstackEnabled
-              ? "hyperstack"
-              : undefined;
+          : selectedProvider === "lambda"
+            ? "lambda"
+            : gcpEnabled
+              ? "gcp"
+              : hyperstackEnabled
+                ? "hyperstack"
+                : lambdaEnabled
+                  ? "lambda"
+                  : undefined;
     if (!providerForCatalog) {
       setCatalog(undefined);
       setCatalogError(undefined);
@@ -359,32 +417,70 @@ export const HostsPage: React.FC = () => {
         }))
       : [];
 
-  const hyperstackStockByRegion = useMemo(() => {
-    const map: Record<string, string> = {};
-    if (!catalog?.hyperstack_stocks) return map;
-    for (const entry of catalog.hyperstack_stocks) {
-      if (!entry?.region || !entry?.model) continue;
-      if (map[entry.region]) continue;
-      const available = entry.available ?? "";
-      map[entry.region] = available ? `${entry.model} (${available} avail)` : entry.model;
-    }
-    return map;
-  }, [catalog]);
+  const lambdaInstanceTypeOptions =
+    selectedProvider === "lambda" && catalog?.lambda_instance_types?.length
+      ? catalog.lambda_instance_types
+          .filter((entry) => !!entry?.name)
+          .map((entry) => {
+            const cpuLabel = entry.vcpus != null ? String(entry.vcpus) : "?";
+            const ramLabel =
+              entry.memory_gib != null ? String(entry.memory_gib) : "?";
+            const gpuLabel =
+              entry.gpus && entry.gpus > 0 ? ` · ${entry.gpus}x GPU` : "";
+            const regionsLabel = entry.regions?.length
+              ? ` · ${entry.regions.length} regions`
+              : "";
+            return {
+              value: entry.name,
+              label: `${entry.name} (${cpuLabel} vCPU / ${ramLabel} GB${gpuLabel}${regionsLabel})`,
+              entry,
+            };
+          })
+      : [];
+
+  const selectedLambdaInstanceType =
+    selectedProvider === "lambda"
+      ? lambdaInstanceTypeOptions.find(
+          (opt) => opt.value === selectedMachineType,
+        )?.entry
+      : undefined;
+
+  const lambdaRegionsFromCatalog = catalog?.lambda_regions?.length
+    ? catalog.lambda_regions.map((r) => r.name).filter(Boolean)
+    : catalog?.lambda_instance_types?.length
+      ? Array.from(
+          new Set(
+            catalog.lambda_instance_types.flatMap((entry) => entry.regions ?? []),
+          ),
+        )
+      : [];
+
+  const lambdaRegionOptions =
+    selectedProvider === "lambda"
+      ? (selectedLambdaInstanceType?.regions?.length
+          ? selectedLambdaInstanceType.regions
+          : lambdaRegionsFromCatalog.length
+            ? lambdaRegionsFromCatalog
+            : LAMBDA_REGIONS.map((r) => r.value)
+        ).map((name) => ({ value: name, label: name }))
+      : [];
 
   const regionOptions =
     selectedProvider === "hyperstack" && hyperstackRegionOptions.length
       ? hyperstackRegionOptions
-      : selectedProvider === "gcp" && catalog?.regions?.length
-        ? catalog.regions.map((r) => {
-            const zoneWithMeta = catalog.zones?.find(
-              (z) => z.region === r.name && (z.location || z.lowC02),
-            );
-            const location = zoneWithMeta?.location;
-            const lowC02 = zoneWithMeta?.lowC02 ? " (low CO₂)" : "";
-            const suffix = location ? ` — ${location}${lowC02}` : "";
-            return { value: r.name, label: `${r.name}${suffix}` };
-          })
-        : REGIONS;
+      : selectedProvider === "lambda"
+        ? lambdaRegionOptions
+        : selectedProvider === "gcp" && catalog?.regions?.length
+          ? catalog.regions.map((r) => {
+              const zoneWithMeta = catalog.zones?.find(
+                (z) => z.region === r.name && (z.location || z.lowC02),
+              );
+              const location = zoneWithMeta?.location;
+              const lowC02 = zoneWithMeta?.lowC02 ? " (low CO₂)" : "";
+              const suffix = location ? ` — ${location}${lowC02}` : "";
+              return { value: r.name, label: `${r.name}${suffix}` };
+            })
+          : REGIONS;
 
   const zoneOptions =
     selectedProvider === "gcp" && catalog?.regions?.length
@@ -543,6 +639,29 @@ export const HostsPage: React.FC = () => {
         gpu_count: f.gpu_count,
       }),
     );
+    const lambdaRegions =
+      catalog.lambda_regions?.length
+        ? catalog.lambda_regions
+        : lambdaRegionsFromCatalog.length
+          ? lambdaRegionsFromCatalog.map((name) => ({ name }))
+          : LAMBDA_REGIONS.map((r) => ({ name: r.value }));
+    const lambdaInstanceTypes = limit(
+      catalog.lambda_instance_types ?? [],
+      25,
+    ).map((entry) => ({
+      name: entry.name,
+      vcpus: entry.vcpus,
+      memory_gib: entry.memory_gib,
+      gpus: entry.gpus,
+      regions: entry.regions,
+    }));
+    const lambdaImages = limit(catalog.lambda_images ?? [], 10).map((img) => ({
+      id: img.id,
+      name: img.name,
+      family: img.family,
+      architecture: img.architecture,
+      region: img.region,
+    }));
     return {
       gcp: {
         regions: gcpRegions,
@@ -553,8 +672,17 @@ export const HostsPage: React.FC = () => {
         regions: hyperstackRegions,
         flavors: hyperstackFlavors,
       },
+      ...(lambdaEnabled
+        ? {
+            lambda: {
+              regions: lambdaRegions,
+              instance_types: lambdaInstanceTypes,
+              images: lambdaImages,
+            },
+          }
+        : {}),
     };
-  }, [catalog]);
+  }, [catalog, lambdaEnabled]);
 
   useEffect(() => {
     if (selectedProvider !== "gcp") return;
@@ -585,6 +713,22 @@ export const HostsPage: React.FC = () => {
     }
     form.setFieldsValue({ region: hyperstackRegionOptions[0].value });
   }, [selectedProvider, hyperstackRegionOptions, selectedRegion, form]);
+
+  useEffect(() => {
+    if (selectedProvider !== "lambda") return;
+    if (!lambdaRegionOptions.length) return;
+    const values = new Set(lambdaRegionOptions.map((r) => r.value));
+    if (selectedRegion && values.has(selectedRegion)) return;
+    form.setFieldsValue({ region: lambdaRegionOptions[0].value });
+  }, [selectedProvider, selectedRegion, lambdaRegionOptions, form]);
+
+  useEffect(() => {
+    if (selectedProvider !== "lambda") return;
+    if (!lambdaInstanceTypeOptions.length) return;
+    const values = new Set(lambdaInstanceTypeOptions.map((opt) => opt.value));
+    if (selectedMachineType && values.has(selectedMachineType)) return;
+    form.setFieldsValue({ machine_type: lambdaInstanceTypeOptions[0].value });
+  }, [selectedProvider, lambdaInstanceTypeOptions, selectedMachineType, form]);
 
   useEffect(() => {
     if (selectedProvider !== "gcp") return;
@@ -618,6 +762,9 @@ export const HostsPage: React.FC = () => {
     } else if (rec.provider === "hyperstack") {
       if (rec.region) next.region = rec.region;
       if (rec.flavor) next.size = rec.flavor;
+    } else if (rec.provider === "lambda") {
+      if (rec.region) next.region = rec.region;
+      if (rec.machine_type) next.machine_type = rec.machine_type;
     }
     if (rec.disk_gb) next.disk = rec.disk_gb;
     form.setFieldsValue(next);
@@ -639,7 +786,7 @@ export const HostsPage: React.FC = () => {
         "Use the region_group preference to select a region from catalog.gcp.region_groups when possible. " +
         "If the requested group has no regions, choose the closest available region and explain why. " +
         "Do not claim a region is missing; always pick the best available from the catalog. " +
-        "If both gcp and hyperstack are available, include at least one option for each unless the user explicitly requests a single provider.";
+        "If multiple providers are available, include options for more than one unless the user explicitly requests a single provider.";
       const input = JSON.stringify({
         request: aiPrompt.trim(),
         budget_usd_per_hour: aiBudget ?? null,
@@ -650,7 +797,7 @@ export const HostsPage: React.FC = () => {
           options: [
             {
               title: "string",
-              provider: "gcp|hyperstack",
+              provider: "gcp|hyperstack|lambda",
               region: "string",
               zone: "string?",
               machine_type: "string?",
@@ -708,15 +855,31 @@ export const HostsPage: React.FC = () => {
           ? hyperstackFlavor.gpu
           : undefined;
       const hyperstackGpuCount = hyperstackFlavor?.gpu_count || 0;
+      const lambdaInstanceType = lambdaInstanceTypeOptions.find(
+        (opt) => opt.value === vals.machine_type,
+      )?.entry;
+      const lambdaGpuCount = lambdaInstanceType?.gpus ?? 0;
+      const genericGpuType =
+        vals.gpu && vals.gpu !== "none" ? vals.gpu : undefined;
+      const wantsGpu =
+        vals.provider === "hyperstack"
+          ? hyperstackGpuCount > 0
+          : vals.provider === "gcp"
+            ? !!gpu_type
+            : vals.provider === "lambda"
+              ? lambdaGpuCount > 0
+              : !!genericGpuType;
       const defaultRegion =
         vals.provider === "hyperstack"
           ? hyperstackRegionOptions[0]?.value
+          : vals.provider === "lambda"
+            ? lambdaRegionOptions[0]?.value ?? LAMBDA_REGIONS[0]?.value
           : "us-east1";
       await hub.hosts.createHost({
         name: vals.name ?? "My Host",
         region: vals.region ?? defaultRegion,
         size: machine_type ?? vals.size ?? SIZES[0].value,
-        gpu: vals.provider === "hyperstack" ? hyperstackGpuCount > 0 : !!gpu_type,
+        gpu: wantsGpu,
         machine: {
           cloud: vals.provider !== "none" ? vals.provider : undefined,
           machine_type:
@@ -724,13 +887,25 @@ export const HostsPage: React.FC = () => {
               ? hyperstackFlavor?.name
               : machine_type,
           gpu_type:
-            vals.provider === "hyperstack" ? hyperstackGpuType : gpu_type,
+            vals.provider === "hyperstack"
+              ? hyperstackGpuType
+              : vals.provider === "gcp"
+                ? gpu_type
+                : vals.provider === "lambda"
+                  ? undefined
+                  : genericGpuType,
           gpu_count:
             vals.provider === "hyperstack"
               ? hyperstackGpuCount || undefined
-              : gpu_type
-                ? 1
-                : undefined,
+              : vals.provider === "gcp"
+                ? gpu_type
+                  ? 1
+                  : undefined
+                : vals.provider === "lambda"
+                  ? lambdaGpuCount || undefined
+                  : genericGpuType
+                    ? 1
+                    : undefined,
           zone: vals.provider === "gcp" ? vals.zone ?? undefined : undefined,
           disk_gb: vals.disk,
           disk_type: vals.disk_type,
@@ -1072,7 +1247,7 @@ export const HostsPage: React.FC = () => {
                   disabled={selectedProvider === "none"}
                 />
               </Form.Item>
-              {selectedProvider !== "gcp" && selectedProvider !== "hyperstack" && (
+              {selectedProvider === "none" && (
                 <Form.Item name="size" label="Size" initialValue={SIZES[0].value}>
                   <Select options={SIZES} />
                 </Form.Item>
@@ -1084,6 +1259,15 @@ export const HostsPage: React.FC = () => {
                   initialValue={hyperstackFlavorOptions[0]?.value}
                 >
                   <Select options={hyperstackFlavorOptions} />
+                </Form.Item>
+              )}
+              {selectedProvider === "lambda" && (
+                <Form.Item
+                  name="machine_type"
+                  label="Instance type"
+                  initialValue={lambdaInstanceTypeOptions[0]?.value}
+                >
+                  <Select options={lambdaInstanceTypeOptions} />
                 </Form.Item>
               )}
               {catalogError && selectedProvider === "gcp" && (
@@ -1148,7 +1332,7 @@ export const HostsPage: React.FC = () => {
                         </Col>
                       </>
                     )}
-                    {selectedProvider !== "gcp" && (
+                    {selectedProvider !== "gcp" && selectedProvider !== "lambda" && (
                       <Col span={24}>
                         <Form.Item
                           name="gpu"
@@ -1160,34 +1344,38 @@ export const HostsPage: React.FC = () => {
                         </Form.Item>
                       </Col>
                     )}
-                    <Col span={24}>
-                      <Form.Item
-                        name="disk"
-                        label="Disk size (GB)"
-                        initialValue={100}
-                        tooltip="Root disk for projects on this host."
-                      >
-                        <Slider min={50} max={1000} step={50} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={24}>
-                      <Form.Item
-                        name="disk_type"
-                        label="Disk type"
-                        initialValue={DISK_TYPES[0].value}
-                      >
-                        <Select options={DISK_TYPES} />
-                      </Form.Item>
-                    </Col>
-                    <Col span={24}>
-                      <Form.Item
-                        name="boot_disk_gb"
-                        label="Boot disk size (GB)"
-                        initialValue={20}
-                      >
-                        <Slider min={10} max={200} step={5} />
-                      </Form.Item>
-                    </Col>
+                    {selectedProvider !== "lambda" && (
+                      <>
+                        <Col span={24}>
+                          <Form.Item
+                            name="disk"
+                            label="Disk size (GB)"
+                            initialValue={100}
+                            tooltip="Root disk for projects on this host."
+                          >
+                            <Slider min={50} max={1000} step={50} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={24}>
+                          <Form.Item
+                            name="disk_type"
+                            label="Disk type"
+                            initialValue={DISK_TYPES[0].value}
+                          >
+                            <Select options={DISK_TYPES} />
+                          </Form.Item>
+                        </Col>
+                        <Col span={24}>
+                          <Form.Item
+                            name="boot_disk_gb"
+                            label="Boot disk size (GB)"
+                            initialValue={20}
+                          >
+                            <Slider min={10} max={200} step={5} />
+                          </Form.Item>
+                        </Col>
+                      </>
+                    )}
                     <Col span={24}>
                       <Form.Item
                         name="shared"

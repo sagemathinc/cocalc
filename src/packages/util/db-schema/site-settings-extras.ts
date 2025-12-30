@@ -87,8 +87,8 @@ const compute_servers_enabled = (conf: SiteSettings) =>
   to_bool(conf.compute_servers_enabled);
 const compute_servers_google_enabled = (conf: SiteSettings) =>
   to_bool(conf["compute_servers_google-cloud_enabled"]);
-//const compute_servers_lambda_enabled = (conf: SiteSettings) =>
-//  to_bool(conf["compute_servers_lambda_enabled"]);
+const compute_servers_lambda_enabled = (conf: SiteSettings) =>
+  to_bool(conf["compute_servers_lambda_enabled"]);
 const compute_servers_hyperstack_enabled = (conf: SiteSettings) =>
   to_bool(conf["compute_servers_hyperstack_enabled"]);
 
@@ -869,7 +869,7 @@ export const EXTRAS: SettingsExtras = {
     name: "Project Hosts: Lambda Cloud API Key",
     desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambda.ai/api-keys/cloud-api.  This supports managing project hosts on Lambda Cloud.",
     default: "",
-    show: () => true,
+    show: compute_servers_lambda_enabled,
     password: true,
     tags: ["Project Hosts"],
   },
@@ -878,7 +878,7 @@ export const EXTRAS: SettingsExtras = {
     desc: "Prepend this string to all Lambda Cloud resources that are created, e.g., instance names. Keep this short. If the prefix is 'cocalc', then a project host with id 17 will be called 'cocalc-17'.",
     default: "cocalc-host",
     to_val: to_trimmed_str,
-    show: () => true,
+    show: compute_servers_lambda_enabled,
     tags: ["Project Hosts"],
     valid: () => true,
   },

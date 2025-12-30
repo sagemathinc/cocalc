@@ -182,7 +182,32 @@ export class LambdaProvider implements CloudProvider {
 
     const types = await client.listInstanceTypes();
     const entries = Object.values(types) as InstanceTypeEntry[];
-    const instance_type_name = selectInstanceType(entries, spec.region, spec);
+    const explicitInstanceType =
+      (spec.metadata?.machine_type as string | undefined) ??
+      (spec.metadata?.instance_type_name as string | undefined);
+    let instance_type_name: string;
+    if (explicitInstanceType) {
+      const match = entries.find(
+        (entry) => entry.instance_type?.name === explicitInstanceType,
+      );
+      if (!match) {
+        throw new Error(
+          `unknown Lambda instance type ${explicitInstanceType}`,
+        );
+      }
+      const regions =
+        (match.regions_with_capacity_available ?? [])
+          .map((r) => r.name)
+          .filter((r): r is string => !!r) ?? [];
+      if (regions.length && !regions.includes(spec.region)) {
+        throw new Error(
+          `Lambda instance type ${explicitInstanceType} has no capacity in ${spec.region}`,
+        );
+      }
+      instance_type_name = explicitInstanceType;
+    } else {
+      instance_type_name = selectInstanceType(entries, spec.region, spec);
+    }
 
     const images = (await client.listImages()) as ImageEntry[];
     const image = selectImage(images, spec);

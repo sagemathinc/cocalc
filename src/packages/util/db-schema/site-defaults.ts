@@ -125,12 +125,12 @@ export type SiteSettingsKeys =
   | "compute_servers_dns_enabled"
   | "compute_servers_dns"
   | "compute_servers_hyperstack_enabled"
+  | "compute_servers_lambda_enabled"
   | "cloud_filesystems_enabled"
   | "insecure_test_mode"
   | "samesite_remember_me"
   | "user_tracking";
 
-//| "compute_servers_lambda_enabled"
 
 type Mapping = { [key: string]: string | number | boolean };
 
@@ -964,14 +964,14 @@ export const site_settings_conf: SiteSettings = {
     to_val: to_bool,
     tags: ["Compute Servers"],
   },
-  //   "compute_servers_lambda_enabled": {
-  //     name: "Enable Compute Servers - Lambda Cloud",
-  //     desc: "Whether or not to include Lambda cloud compute servers.  You must also configure an API key below.  **WARNING:** As of October 2023, there is no legal way to use Lambda cloud  without a reseller agreement with Lambda cloud, if you're selling use of a CoCalc server.  Such agreements don't exist yet.",
-  //     default: "no",
-  //     valid: only_booleans,
-  //     to_val: to_bool,
-  //     tags: ["Compute Servers"],
-  //   },
+  compute_servers_lambda_enabled: {
+    name: "Enable Compute Servers - Lambda Cloud",
+    desc: "Whether or not to include Lambda cloud compute servers. You must also configure an API key below.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["Compute Servers"],
+  },
   compute_servers_dns_enabled: {
     name: "Enable Compute Servers - Cloudflare DNS",
     desc: "Whether or not to include user interface elements related to Cloudflare DNS for compute servers, for automatic configuration of sites like https://foo.cocalc.io.  Set to 'yes' to include these elements.  You will also need to configure 'Compute Servers -- Domain Name, and Cloudflare API token' below.",

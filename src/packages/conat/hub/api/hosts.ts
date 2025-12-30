@@ -93,6 +93,23 @@ export interface HostCatalog {
     model: string;
     available: string;
   }[];
+  lambda_regions?: {
+    name: string;
+  }[];
+  lambda_instance_types?: {
+    name: string;
+    vcpus?: number | null;
+    memory_gib?: number | null;
+    gpus?: number | null;
+    regions?: string[];
+  }[];
+  lambda_images?: {
+    id: string;
+    name?: string | null;
+    family?: string | null;
+    architecture?: string | null;
+    region?: string | null;
+  }[];
 }
 
 export interface Host {

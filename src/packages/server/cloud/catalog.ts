@@ -1,7 +1,11 @@
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { fetchGcpCatalog, fetchHyperstackCatalog } from "@cocalc/cloud";
+import {
+  fetchGcpCatalog,
+  fetchHyperstackCatalog,
+  fetchLambdaCatalog,
+} from "@cocalc/cloud";
 import { setHyperstackConfig } from "@cocalc/cloud";
 import { getData as getGcpPricingData } from "@cocalc/gcloud-pricing-calculator";
 
@@ -30,6 +34,11 @@ const HYPERSTACK_TTLS: Record<string, number> = {
   flavors: 60 * 60 * 24 * 7,
   images: 60 * 60 * 24 * 7,
   stocks: 60 * 60 * 24 * 7,
+};
+const LAMBDA_TTLS: Record<string, number> = {
+  regions: 60 * 60 * 24 * 7,
+  instance_types: 60 * 60 * 24,
+  images: 60 * 60 * 24 * 7,
 };
 
 function catalogId(provider: string, kind: string, scope: string) {
@@ -183,9 +192,51 @@ export async function refreshHyperstackCatalog() {
   }
 }
 
+async function getLambdaApiKey(): Promise<string> {
+  const { lambda_cloud_api_key } = await getServerSettings();
+  if (!lambda_cloud_api_key) {
+    logger.warn("Lambda catalog refresh skipped: missing lambda_cloud_api_key");
+    throw new Error("lambda_cloud_api_key is not configured");
+  }
+  return lambda_cloud_api_key;
+}
+
+export async function refreshLambdaCatalog() {
+  const apiKey = await getLambdaApiKey();
+  logger.info("refreshing Lambda catalog");
+  const catalog = await fetchLambdaCatalog({ apiKey });
+  await upsertCatalog({
+    id: catalogId("lambda", "regions", "global"),
+    provider: "lambda",
+    kind: "regions",
+    scope: "global",
+    payload: catalog.regions.map((name) => ({ name })),
+    ttl_seconds: LAMBDA_TTLS.regions,
+  });
+  await upsertCatalog({
+    id: catalogId("lambda", "instance_types", "global"),
+    provider: "lambda",
+    kind: "instance_types",
+    scope: "global",
+    payload: catalog.instance_types,
+    ttl_seconds: LAMBDA_TTLS.instance_types,
+  });
+  if (catalog.images.length) {
+    await upsertCatalog({
+      id: catalogId("lambda", "images", "global"),
+      provider: "lambda",
+      kind: "images",
+      scope: "global",
+      payload: catalog.images,
+      ttl_seconds: LAMBDA_TTLS.images,
+    });
+  }
+}
+
 export async function refreshCloudCatalog() {
   await refreshGcpCatalog();
   await refreshHyperstackCatalog();
+  await refreshLambdaCatalog();
 }
 
 async function shouldRefreshGcpCatalog(): Promise<boolean> {
@@ -247,6 +298,34 @@ async function shouldRefreshHyperstackCatalog(): Promise<boolean> {
   return false;
 }
 
+async function shouldRefreshLambdaCatalog(): Promise<boolean> {
+  const { rows } = await pool().query(
+    `SELECT kind, fetched_at, ttl_seconds
+       FROM cloud_catalog_cache
+      WHERE provider = $1`,
+    ["lambda"],
+  );
+
+  if (rows.length === 0) return true;
+
+  let hasRegions = false;
+  let hasTypes = false;
+  const now = Date.now();
+  for (const row of rows) {
+    if (row.kind === "regions") hasRegions = true;
+    if (row.kind === "instance_types") hasTypes = true;
+    if (!row.fetched_at) return true;
+    const ttlSeconds = Number(row.ttl_seconds ?? 0);
+    if (ttlSeconds > 0) {
+      const ageMs = now - new Date(row.fetched_at).getTime();
+      if (ageMs > ttlSeconds * 1000) return true;
+    }
+  }
+
+  if (!hasRegions || !hasTypes) return true;
+  return false;
+}
+
 async function withCatalogLock<T>(
   provider: string,
   fn: () => Promise<T>,
@@ -273,6 +352,8 @@ export async function refreshCloudCatalogNow(opts: {
       await refreshGcpCatalog();
     } else if (provider === "hyperstack") {
       await refreshHyperstackCatalog();
+    } else if (provider === "lambda") {
+      await refreshLambdaCatalog();
     } else {
       throw new Error(`unknown catalog provider ${provider}`);
     }
@@ -284,19 +365,24 @@ export function startCloudCatalogWorker(opts: { interval_ms?: number } = {}) {
   const interval_ms = opts.interval_ms ?? 1000 * 60 * 60 * 24;
   const tick = async () => {
     try {
-      const [gcpNeeds, hyperstackNeeds] = await Promise.all([
+      const [gcpNeeds, hyperstackNeeds, lambdaNeeds] = await Promise.all([
         shouldRefreshGcpCatalog(),
         shouldRefreshHyperstackCatalog(),
+        shouldRefreshLambdaCatalog(),
       ]);
       logger.info("startCloudCatalogWorker.tick", {
         gcpNeeds,
         hyperstackNeeds,
+        lambdaNeeds,
       });
       if (gcpNeeds) {
         await withCatalogLock("gcp", refreshGcpCatalog);
       }
       if (hyperstackNeeds) {
         await withCatalogLock("hyperstack", refreshHyperstackCatalog);
+      }
+      if (lambdaNeeds) {
+        await withCatalogLock("lambda", refreshLambdaCatalog);
       }
     } catch (err) {
       logger.warn("cloud catalog refresh failed", { err });
