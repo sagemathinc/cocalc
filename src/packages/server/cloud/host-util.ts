@@ -10,6 +10,11 @@ import {
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { getControlPlaneSshKeypair } from "./ssh-key";
+import { pool } from "@cocalc/database/pool";
+import type {
+  FlavorRegionData,
+  Image as HyperstackImage,
+} from "@cocalc/util/compute/cloud/hyperstack/api-types";
 
 const logger = getLogger("server:cloud:host-util");
 export type HostRow = {
@@ -21,6 +26,28 @@ export type HostRow = {
   internal_url?: string;
   metadata?: Record<string, any>;
 };
+
+async function loadHyperstackCatalog(): Promise<{
+  flavors: FlavorRegionData[];
+  images: HyperstackImage[];
+}> {
+  const { rows } = await pool().query(
+    `SELECT kind, payload
+       FROM cloud_catalog_cache
+      WHERE provider=$1 AND kind IN ('flavors', 'images')`,
+    ["hyperstack"],
+  );
+  let flavors: FlavorRegionData[] = [];
+  let images: HyperstackImage[] = [];
+  for (const row of rows) {
+    if (row.kind === "flavors") {
+      flavors = Array.isArray(row.payload) ? row.payload : [];
+    } else if (row.kind === "images") {
+      images = Array.isArray(row.payload) ? row.payload : [];
+    }
+  }
+  return { flavors, images };
+}
 
 function sizeToResources(size?: string): { cpu: number; ram_gb: number } {
   switch (size) {
@@ -142,12 +169,14 @@ export async function ensureHyperstackProvider(): Promise<{
   }
   const { publicKey: controlPlanePublicKey } =
     await getControlPlaneSshKeypair();
+  const catalog = await loadHyperstackCatalog();
   return {
     provider: new HyperstackProvider(),
     creds: {
       apiKey: hyperstack_api_key,
       sshPublicKey: controlPlanePublicKey,
       prefix: hyperstack_compute_servers_prefix,
+      catalog,
     },
   };
 }

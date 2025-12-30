@@ -13,7 +13,11 @@ import {
   createEnvironment,
 } from "./client";
 import { getHyperstackConfig, setHyperstackConfig } from "./config";
-import type { Region } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import type {
+  Region,
+  FlavorRegionData,
+  Image,
+} from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import { delay } from "awaiting";
 
 const logger = getLogger("cloud:hyperstack:provider");
@@ -22,6 +26,10 @@ export type HyperstackCreds = {
   apiKey: string;
   sshPublicKey: string;
   prefix?: string;
+  catalog?: {
+    flavors?: FlavorRegionData[];
+    images?: Image[];
+  };
 };
 
 function ensureHyperstackConfig(creds: HyperstackCreds) {
@@ -69,9 +77,7 @@ async function ensureEnvironment(region: string): Promise<string> {
   let wait = 500;
   while (Date.now() < deadline) {
     const next = await getEnvironments();
-    if (
-      next.find((e) => (e.name ?? "").toLowerCase() === name.toLowerCase())
-    ) {
+    if (next.find((e) => (e.name ?? "").toLowerCase() === name.toLowerCase())) {
       logger.debug("ensureEnvironment: ready", { name });
       return name;
     }
@@ -81,7 +87,10 @@ async function ensureEnvironment(region: string): Promise<string> {
   throw new Error(`Hyperstack environment "${name}" not ready in time`);
 }
 
-async function ensureKeyPair(region: string, publicKey: string): Promise<string> {
+async function ensureKeyPair(
+  region: string,
+  publicKey: string,
+): Promise<string> {
   const name = keyName(region);
   logger.debug("ensureKeyPair", { region, name });
   const keys = await getKeyPairs();
@@ -103,17 +112,34 @@ function isAlreadyExists(err: unknown): boolean {
   );
 }
 
-async function selectFlavor(region: string, spec: HostSpec): Promise<string> {
-  const flavors = await getFlavors();
-  const regionFlavors =
-    flavors.find((entry) => entry.region_name === region)?.flavors ?? [];
+async function selectFlavor(
+  region: string,
+  spec: HostSpec,
+  catalogFlavors?: FlavorRegionData[],
+): Promise<string> {
+  const flavors = catalogFlavors ?? (await getFlavors());
+  const regionFlavors = flavors
+    .filter((entry) => entry.region_name === region)
+    .flatMap((entry) => entry.flavors ?? []);
+
+  const selectedFlavor = spec.metadata?.machine_type;
+  if (selectedFlavor) {
+    const exact = regionFlavors.find((flavor) => flavor.name === selectedFlavor);
+    if (exact) return exact.name;
+    logger.warn("selectFlavor: requested flavor not found in region", {
+      region,
+      flavor: selectedFlavor,
+      available: regionFlavors.map((f) => f.name),
+    });
+  }
 
   const wantsGpu = !!spec.gpu;
-  const gpuType = spec.gpu?.type?.toLowerCase();
+  const gpuType = spec.gpu?.type;
+  logger.debug("selectFlavor", { wantsGpu, gpuType, spec });
   const candidates = regionFlavors.filter((flavor) => {
     if (wantsGpu) {
       if (!flavor.gpu || flavor.gpu_count <= 0) return false;
-      if (gpuType && !flavor.gpu.toLowerCase().includes(gpuType)) return false;
+      if (gpuType && flavor.gpu != gpuType) return false;
       if (spec.gpu?.count && flavor.gpu_count < spec.gpu.count) return false;
     } else if (flavor.gpu_count > 0) {
       return false;
@@ -126,20 +152,31 @@ async function selectFlavor(region: string, spec: HostSpec): Promise<string> {
     return a.ram - b.ram;
   });
   if (!sorted.length) {
-    throw new Error(`no matching Hyperstack flavor for ${region}`);
+    throw new Error(
+      `no matching Hyperstack flavor for ${region} -- spec=${JSON.stringify({ cpu: spec.cpu, gpu: spec.gpu, ram_gb: spec.ram_gb })}`,
+    );
   }
   return sorted[0].name;
 }
 
-async function selectImage(region: string, spec: HostSpec): Promise<string> {
+async function selectImage(
+  region: string,
+  spec: HostSpec,
+  catalogImages?: Image[],
+): Promise<string> {
   if (spec.metadata?.source_image) return spec.metadata.source_image;
-  const images = await getImages(true, { region: region as Region });
-  const ubuntu = images.find((i) => i.type === "Ubuntu" && i.region_name === region);
+  const images =
+    catalogImages ?? (await getImages(true, { region: region as Region }));
+  const ubuntu = images.find(
+    (i) => i.type === "Ubuntu" && i.region_name === region,
+  );
   const list = ubuntu?.images ?? [];
   const wantsGpu = !!spec.gpu;
   const preferred = list
     .filter((img) => (wantsGpu ? img.version.includes("CUDA") : true))
-    .filter((img) => img.version.includes("22.04") || img.version.includes("24.04"));
+    .filter(
+      (img) => img.version.includes("22.04") || img.version.includes("24.04"),
+    );
   if (preferred.length) return preferred[0].name;
   if (list.length) return list[0].name;
   throw new Error(`no Hyperstack Ubuntu images for ${region}`);
@@ -154,13 +191,21 @@ function parseInstanceId(value: string): number {
 }
 
 export class HyperstackProvider implements CloudProvider {
-  async createHost(spec: HostSpec, creds: HyperstackCreds): Promise<HostRuntime> {
+  async createHost(
+    spec: HostSpec,
+    creds: HyperstackCreds,
+  ): Promise<HostRuntime> {
+    logger.debug("HyperstackProvider: createHost", spec);
     ensureHyperstackConfig(creds);
     const region = spec.region;
     const environment_name = await ensureEnvironment(region);
     const key_name = await ensureKeyPair(region, creds.sshPublicKey);
-    const flavor_name = await selectFlavor(region, spec);
-    const image_name = await selectImage(region, spec);
+    const flavor_name = await selectFlavor(
+      region,
+      spec,
+      creds.catalog?.flavors,
+    );
+    const image_name = await selectImage(region, spec, creds.catalog?.images);
     const user_data =
       typeof spec.metadata?.startup_script === "string"
         ? spec.metadata.startup_script
@@ -193,16 +238,22 @@ export class HyperstackProvider implements CloudProvider {
   }
 
   async startHost(runtime: HostRuntime, creds: HyperstackCreds): Promise<void> {
+    logger.debug("HyperstackProvider: startHost", runtime);
     ensureHyperstackConfig(creds);
     await startVirtualMachine(parseInstanceId(runtime.instance_id));
   }
 
   async stopHost(runtime: HostRuntime, creds: HyperstackCreds): Promise<void> {
+    logger.debug("HyperstackProvider: stopHost", runtime);
     ensureHyperstackConfig(creds);
     await stopVirtualMachine(parseInstanceId(runtime.instance_id));
   }
 
-  async deleteHost(runtime: HostRuntime, creds: HyperstackCreds): Promise<void> {
+  async deleteHost(
+    runtime: HostRuntime,
+    creds: HyperstackCreds,
+  ): Promise<void> {
+    logger.debug("HyperstackProvider: deleteHost", runtime);
     ensureHyperstackConfig(creds);
     await deleteVirtualMachine(parseInstanceId(runtime.instance_id));
   }
