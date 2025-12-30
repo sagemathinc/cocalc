@@ -4,7 +4,7 @@ the user with the given account is *allowed* to get.
 */
 
 import getPool from "@cocalc/database/pool";
-import { toEpoch } from "@cocalc/database/postgres/util";
+import { toEpoch } from "@cocalc/database/postgres/utils/to-epoch";
 import { numberRunningQuery } from "@cocalc/database/postgres/site-license/analytics";
 import { isValidUUID } from "@cocalc/util/misc";
 import type { LicenseFromApi } from "@cocalc/util/db-schema/site-licenses";

@@ -10,7 +10,7 @@ Returns array of such projects, with the following fields:
 */
 
 import getPool from "@cocalc/database/pool";
-import { toEpoch } from "@cocalc/database/postgres/util";
+import { toEpoch } from "@cocalc/database/postgres/utils/to-epoch";
 import { isValidUUID } from "@cocalc/util/misc";
 import { State } from "@cocalc/util/compute-states";
 
@@ -24,7 +24,7 @@ export interface Project {
 }
 
 export default async function getProjects(
-  account_id: string
+  account_id: string,
 ): Promise<Project[]> {
   if (!isValidUUID(account_id)) {
     throw Error("invalid account_id -- must be a uuid");
@@ -41,7 +41,7 @@ export default async function getProjects(
     FROM projects
     WHERE users ? '${account_id}' AND site_license != '{}'
     ORDER BY last_edited DESC`,
-    []
+    [],
   );
   toEpoch(rows, ["last_edited"]);
   return rows;

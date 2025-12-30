@@ -40,6 +40,12 @@ winston      = require('@cocalc/backend/logger').getLogger('postgres')
 { pgType } = require('./postgres/schema/pg-type')
 { quoteField } = require('./postgres/schema/util')
 { primaryKey, primaryKeys } = require('./postgres/schema/table')
+{ pg_type } = require('./postgres/utils/pg-type')
+{ quote_field } = require('./postgres/utils/quote-field')
+{ expire_time } = require('./postgres/utils/expire-time')
+{ one_result } = require('./postgres/utils/one-result')
+{ all_results } = require('./postgres/utils/all-results')
+{ count_result } = require('./postgres/utils/count-result')
 
 misc_node = require('@cocalc/backend/misc_node')
 { sslConfigToPsqlEnv, pghost, pgdatabase, pguser, pgssl } = require("@cocalc/backend/data")
@@ -1084,89 +1090,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
 Other misc functions
 ###
 
-exports.pg_type = pg_type = (info) ->
-    return pgType(info)
-
-exports.quote_field = quote_field = (field) ->
-    return quoteField(field)
-
-# Timestamp the given number of seconds **in the future**.
-exports.expire_time = expire_time = (ttl) ->
-    if ttl then new Date((new Date() - 0) + ttl*1000)
-
-# Returns a function that takes as input the output of doing a SQL query.
-# If there are no results, returns undefined.
-# If there is exactly one result, what is returned depends on pattern:
-#     'a_field' --> returns the value of this field in the result
-# If more than one result, an error
-exports.one_result = one_result = (pattern, cb) ->
-    if not cb? and typeof(pattern) == 'function'
-        cb = pattern
-        pattern = undefined
-    if not cb?
-        return ->  # do nothing -- return function that ignores result
-    return (err, result) ->
-        if err
-            cb(err)
-            return
-        if not result?.rows?
-            cb()
-            return
-        switch result.rows.length
-            when 0
-                cb()
-            when 1
-                obj = misc.map_without_undefined_and_null(result.rows[0])
-                if not pattern?
-                    cb(undefined, obj)
-                    return
-                switch typeof(pattern)
-                    when 'string'
-                        x = obj[pattern]
-                        if not x?  # null or undefined -- SQL returns null, but we want undefined
-                            cb()
-                        else
-                            if obj.expire? and new Date() >= obj.expire
-                                cb()
-                            else
-                                cb(undefined, x)
-                    when 'object'
-                        x = {}
-                        for p in pattern
-                            if obj[p]?
-                                x[p] = obj[p]
-                        cb(undefined, x)
-                    else
-                        cb("BUG: unknown pattern -- #{pattern}")
-            else
-                cb("more than one result")
-
-exports.all_results = all_results = (pattern, cb) ->
-    if not cb? and typeof(pattern) == 'function'
-        cb = pattern
-        pattern = undefined
-    if not cb?
-        return ->  # do nothing -- return function that ignores result
-    return (err, result) ->
-        if err
-            cb(err)
-        else
-            rows = result.rows
-            if not pattern?
-                # TODO: we use stupid (?) misc.copy to unwrap from pg driver type -- investigate better!
-                # Maybe this is fine.  I don't know.
-                cb(undefined, (misc.copy(x) for x in rows))
-            else if typeof(pattern) == 'string'
-                cb(undefined, ((x[pattern] ? undefined) for x in rows))
-            else
-                cb("unsupported pattern type '#{typeof(pattern)}'")
-
-
-exports.count_result = count_result = (cb) ->
-    if not cb?
-        return ->  # do nothing -- return function that ignores result
-    return (err, result) ->
-        if err
-            cb(err)
-        else
-            cb(undefined, parseInt(result?.rows?[0]?.count))
+exports.pg_type = pg_type
+exports.quote_field = quote_field
+exports.expire_time = expire_time
+exports.one_result = one_result
+exports.all_results = all_results
+exports.count_result = count_result

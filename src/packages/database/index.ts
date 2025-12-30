@@ -26,6 +26,7 @@ import { extend_PostgreSQL as extendPostgresSynctable } from "./synctable/method
 
 export const {
   pg_type,
+  quote_field,
   expire_time,
   one_result,
   all_results,
@@ -61,5 +62,5 @@ export function db(opts = {}): PostgreSQL {
 }
 
 import getPool from "./pool";
-export { stripNullFields } from "./postgres/util";
+export { stripNullFields } from "./postgres/utils/strip-null-fields";
 export { getPool };

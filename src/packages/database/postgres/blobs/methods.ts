@@ -60,6 +60,7 @@ const { expire_time, one_result, all_results } = require("../../postgres-base");
 import * as blobs from "./archive";
 
 const COCALC_BLOB_STORE_FALLBACK = "/blobs";
+// see comment https://github.com/sagemathinc/cocalc/pull/8110
 let COCALC_BLOB_STORE = String(
   process.env.COCALC_BLOB_STORE ?? COCALC_BLOB_STORE_FALLBACK,
 );
