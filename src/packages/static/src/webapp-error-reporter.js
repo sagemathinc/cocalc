@@ -68,6 +68,7 @@ const WHITELIST = [
   "cdn.bokeh.org",
   // xtermjs
   "renderRows",
+  "Viewport.syncScrollArea",
 ];
 const isWhitelisted = function (opts) {
   const s = JSON.stringify(opts);

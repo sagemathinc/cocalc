@@ -148,6 +148,7 @@ function isWhitelisted({ error }): boolean {
       return true;
     }
     if (
+      stack.includes("Viewport.syncScrollArea") ||
       stack.includes("xterm") ||
       stack.includes("xterm-addon-webgl") ||
       stack.includes("reading 'loadCell'") ||
