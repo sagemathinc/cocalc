@@ -255,6 +255,8 @@ export type SiteSettingsExtrasKeys =
   | "hyperstack_ssh_public_key"
   | "hyperstack_balance_alert_thresh"
   | "hyperstack_balance_alert_emails"
+  | "control_plane_ssh_private_key_path"
+  | "control_plane_ssh_private_key"
   | "google_cloud_service_account_json"
   | "google_cloud_bigquery_billing_service_account_json"
   | "google_cloud_bigquery_detailed_billing_table"
@@ -838,6 +840,23 @@ export const EXTRAS: SettingsExtras = {
     password: true,
     show: compute_servers_hyperstack_enabled,
     tags: ["Compute Servers", "Hyperstack"],
+  },
+  control_plane_ssh_private_key_path: {
+    name: "Control Plane: SSH Private Key Path",
+    desc: "Filesystem path to the control-plane SSH private key. When set, this overrides the database key. All hub processes must be able to read this file.",
+    default: "",
+    to_val: to_trimmed_str,
+    tags: ["Compute Servers", "Security"],
+    valid: () => true,
+  },
+  control_plane_ssh_private_key: {
+    name: "Control Plane: SSH Private Key (DB fallback)",
+    desc: "Control-plane SSH private key stored in the database. This is used if no filesystem path is configured.",
+    default: "",
+    password: true,
+    to_val: to_trimmed_str,
+    tags: ["Compute Servers", "Security"],
+    valid: () => true,
   },
   hyperstack_balance_alert_thresh: {
     name: "Compute Servers: Hyperstack - Balance Alert Threshold",

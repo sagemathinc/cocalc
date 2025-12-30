@@ -72,6 +72,10 @@ function startupScriptFor(spec: HostSpec): string | undefined {
   return `#!/bin/bash\nset -e\ncurl -fsSL ${url} | bash`;
 }
 
+function sshUserFor(spec: HostSpec): string {
+  return spec.metadata?.ssh_user ?? "ubuntu";
+}
+
 async function waitUntilOperationComplete({
   response,
   zone,
@@ -157,6 +161,14 @@ export class GcpProvider implements CloudProvider {
     if (startupScript) {
       metadataItems.push({ key: "startup-script", value: startupScript });
     }
+    const sshPublicKey = spec.metadata?.ssh_public_key;
+    if (sshPublicKey) {
+      const sshUser = sshUserFor(spec);
+      metadataItems.push({
+        key: "ssh-keys",
+        value: `${sshUser}:${sshPublicKey}`,
+      });
+    }
 
     const guestAccelerators = spec.gpu
       ? [
@@ -212,6 +224,8 @@ export class GcpProvider implements CloudProvider {
         disk_type: diskType,
         boot_disk_gb: bootDiskGb,
         data_disk_gb: spec.disk_gb,
+        ssh_public_key: spec.metadata?.ssh_public_key,
+        ssh_user: sshUserFor(spec),
       },
     };
   }
@@ -223,6 +237,7 @@ export class GcpProvider implements CloudProvider {
     });
     const credentials = parseCredentials(creds ?? {});
     const client = new InstancesClient(credentials);
+    await ensureSshMetadata(runtime, credentials, client);
     await client.start({
       project: credentials.projectId,
       zone: runtime.zone,
@@ -280,4 +295,39 @@ export class GcpProvider implements CloudProvider {
     if (status === "STOPPING") return "stopped";
     return "error";
   }
+}
+
+async function ensureSshMetadata(
+  runtime: HostRuntime,
+  credentials: { projectId: string; credentials: any },
+  client: InstancesClient,
+): Promise<void> {
+  const sshPublicKey = runtime.metadata?.ssh_public_key;
+  if (!sshPublicKey) return;
+  const sshUser = runtime.metadata?.ssh_user ?? "ubuntu";
+  const [instance] = await client.get({
+    project: credentials.projectId,
+    zone: runtime.zone,
+    instance: runtime.instance_id,
+  });
+  const fingerprint = instance?.metadata?.fingerprint;
+  if (!fingerprint) return;
+  const items = instance?.metadata?.items ?? [];
+  const entry = `${sshUser}:${sshPublicKey}`;
+  const current = items.find((item) => item.key === "ssh-keys");
+  if (current?.value?.includes(entry)) return;
+  const nextValue = current?.value
+    ? `${current.value}\n${entry}`
+    : entry;
+  const nextItems = items.filter((item) => item.key !== "ssh-keys");
+  nextItems.push({ key: "ssh-keys", value: nextValue });
+  await client.setMetadata({
+    project: credentials.projectId,
+    zone: runtime.zone,
+    instance: runtime.instance_id,
+    metadataResource: {
+      fingerprint,
+      items: nextItems,
+    },
+  });
 }

@@ -9,6 +9,7 @@ import {
 } from "@cocalc/cloud";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { getControlPlaneSshKeypair } from "./ssh-key";
 
 const logger = getLogger("server:cloud:host-util");
 export type HostRow = {
@@ -56,6 +57,9 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
       : metadata.gpu
         ? { type: machine.gpu_type ?? "nvidia-l4", count: 1 }
         : undefined;
+  const { publicKey: controlPlanePublicKey } =
+    await getControlPlaneSshKeypair();
+  const ssh_user = machine.metadata?.ssh_user ?? "ubuntu";
   const { google_cloud_compute_servers_prefix = "cocalc-host" } =
     await getServerSettings();
   const baseName = row.id.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
@@ -86,6 +90,8 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
       source_image: sourceImage,
       bootstrap_url: machine.bootstrap_url,
       startup_script: machine.startup_script,
+      ssh_public_key: controlPlanePublicKey,
+      ssh_user,
     },
   };
   return spec;
@@ -129,20 +135,18 @@ export async function ensureHyperstackProvider(): Promise<{
 }> {
   const {
     hyperstack_api_key,
-    hyperstack_ssh_public_key,
     hyperstack_compute_servers_prefix = "cocalc",
   } = await getServerSettings();
   if (!hyperstack_api_key) {
     throw new Error("hyperstack_api_key is not configured");
   }
-  if (!hyperstack_ssh_public_key) {
-    throw new Error("hyperstack_ssh_public_key is not configured");
-  }
+  const { publicKey: controlPlanePublicKey } =
+    await getControlPlaneSshKeypair();
   return {
     provider: new HyperstackProvider(),
     creds: {
       apiKey: hyperstack_api_key,
-      sshPublicKey: hyperstack_ssh_public_key,
+      sshPublicKey: controlPlanePublicKey,
       prefix: hyperstack_compute_servers_prefix,
     },
   };
@@ -152,19 +156,17 @@ export async function ensureLambdaProvider(): Promise<{
   provider: LambdaProvider;
   creds: LambdaCreds;
 }> {
-  const { lambda_cloud_api_key, lambda_cloud_ssh_public_key } =
-    await getServerSettings();
+  const { lambda_cloud_api_key } = await getServerSettings();
   if (!lambda_cloud_api_key) {
     throw new Error("lambda_cloud_api_key is not configured");
   }
-  if (!lambda_cloud_ssh_public_key) {
-    throw new Error("lambda_cloud_ssh_public_key is not configured");
-  }
+  const { publicKey: controlPlanePublicKey } =
+    await getControlPlaneSshKeypair();
   return {
     provider: new LambdaProvider(),
     creds: {
       apiKey: lambda_cloud_api_key,
-      sshPublicKey: lambda_cloud_ssh_public_key,
+      sshPublicKey: controlPlanePublicKey,
     },
   };
 }
