@@ -260,6 +260,8 @@ export type SiteSettingsExtrasKeys =
   | "google_cloud_bigquery_billing_service_account_json"
   | "google_cloud_bigquery_detailed_billing_table"
   | "project_hosts_google_prefix"
+  | "project_hosts_sea_path"
+  | "project_hosts_sea_url"
   | "google_cloud_compute_servers_image_prefix"
   | "compute_servers_cloudflare_api_key"
   | "compute_servers_images_spec_url"
@@ -924,6 +926,22 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_trimmed_str,
     show: compute_servers_google_enabled,
     tags: ["Project Hosts", "Google Cloud"],
+    valid: () => true,
+  },
+  project_hosts_sea_path: {
+    name: "Project Hosts: SEA Path",
+    desc: "Local filesystem path to the project-host SEA tarball (e.g., cocalc-project-host-<version>-<arch>-<os>.tar.xz). Used by the hub to SCP the binary to remote hosts.",
+    default: "",
+    to_val: to_trimmed_str,
+    tags: ["Project Hosts", "Cloud"],
+    valid: () => true,
+  },
+  project_hosts_sea_url: {
+    name: "Project Hosts: SEA URL",
+    desc: "URL to a project-host SEA tarball. If set, remote hosts will fetch it via curl instead of SCP. Overrides the local SEA path if present.",
+    default: "",
+    to_val: to_trimmed_str,
+    tags: ["Project Hosts", "Cloud"],
     valid: () => true,
   },
   google_cloud_compute_servers_image_prefix: {

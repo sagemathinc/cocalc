@@ -38,6 +38,7 @@ export const TAGS = [
   "Pay as you Go",
   "Compute Servers",
   "Google Cloud",
+  "Cloud",
   "Project Hosts",
   "Hyperstack",
   "Backups",
@@ -47,6 +48,7 @@ export const TAGS = [
   "On-Prem",
   "I18N",
   "Security",
+  "SSH",
   "Support",
 ] as const;
 
