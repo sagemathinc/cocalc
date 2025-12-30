@@ -14,6 +14,7 @@ import { LambdaClient } from "@cocalc/cloud/lambda/client";
 import { getVirtualMachine } from "@cocalc/cloud/hyperstack/client";
 import { setHyperstackConfig } from "@cocalc/cloud/hyperstack/config";
 import { InstancesClient } from "@google-cloud/compute";
+import { handleBootstrap, scheduleBootstrap } from "./bootstrap-host";
 
 const logger = getLogger("server:cloud:host-work");
 const pool = () => getPool();
@@ -186,6 +187,7 @@ async function handleProvision(row: any) {
   });
   await ensureDnsForHost({ ...provisioned, public_url: publicUrl, internal_url: internalUrl });
   await scheduleRuntimeRefresh(provisioned);
+  await scheduleBootstrap(provisioned);
   await logCloudVmEvent({
     vm_id: row.id,
     action: "create",
@@ -234,6 +236,7 @@ async function handleStart(row: any) {
   await updateHostRow(row.id, { status: "running", last_seen: new Date() });
   await ensureDnsForHost(row);
   await scheduleRuntimeRefresh(row);
+  await scheduleBootstrap(row);
   await logCloudVmEvent({
     vm_id: row.id,
     action: "start",
@@ -398,6 +401,12 @@ async function handleRefreshRuntime(row: any) {
     public_url: publicUrl,
     internal_url: internalUrl,
   });
+  await scheduleBootstrap({
+    ...host,
+    metadata: nextMetadata,
+    public_url: publicUrl,
+    internal_url: internalUrl,
+  });
 }
 
 async function markHostError(row: any, err: unknown) {
@@ -460,6 +469,27 @@ export const cloudHostHandlers: CloudVmWorkHandlers = {
     try {
       await handleRefreshRuntime(host);
     } catch (err) {
+      await markHostError(host, err);
+      throw err;
+    }
+  },
+  bootstrap: async (row) => {
+    const host = await loadHostRow(row.vm_id);
+    if (!host) return;
+    try {
+      await handleBootstrap(host);
+    } catch (err) {
+      const metadata = host.metadata ?? {};
+      await updateHostRow(host.id, {
+        metadata: {
+          ...metadata,
+          bootstrap: {
+            status: "error",
+            error: String(err),
+            failed_at: new Date().toISOString(),
+          },
+        },
+      });
       await markHostError(host, err);
       throw err;
     }
