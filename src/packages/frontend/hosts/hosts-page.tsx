@@ -373,11 +373,7 @@ export const HostsPage: React.FC = () => {
 
   const regionOptions =
     selectedProvider === "hyperstack" && hyperstackRegionOptions.length
-      ? hyperstackRegionOptions.map((opt) => {
-          const stock = hyperstackStockByRegion[opt.value];
-          const suffix = stock ? ` · ${stock}` : "";
-          return { value: opt.value, label: `${opt.label}${suffix}` };
-        })
+      ? hyperstackRegionOptions
       : selectedProvider === "gcp" && catalog?.regions?.length
         ? catalog.regions.map((r) => {
             const zoneWithMeta = catalog.zones?.find(
