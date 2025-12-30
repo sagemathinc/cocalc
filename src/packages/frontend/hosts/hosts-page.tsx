@@ -301,6 +301,29 @@ export const HostsPage: React.FC = () => {
   const selectedGpuType = Form.useWatch("gpu_type", form);
   const selectedSourceImage = Form.useWatch("source_image", form);
   const selectedSize = Form.useWatch("size", form);
+  const selectedStorageMode = Form.useWatch("storage_mode", form);
+  const providerCaps = useMemo(() => {
+    if (!selectedProvider || !catalog?.provider_capabilities) return undefined;
+    return catalog.provider_capabilities[selectedProvider];
+  }, [catalog, selectedProvider]);
+  const supportsPersistentStorage =
+    providerCaps?.persistentStorage?.supported ??
+    (selectedProvider !== "lambda");
+  const persistentGrowable =
+    providerCaps?.persistentStorage?.growable ?? true;
+  const storageModeOptions = supportsPersistentStorage
+    ? [
+        { value: "ephemeral", label: "Ephemeral (local)" },
+        {
+          value: "persistent",
+          label: persistentGrowable
+            ? "Persistent (growable disk)"
+            : "Persistent (fixed size)",
+        },
+      ]
+    : [{ value: "ephemeral", label: "Ephemeral (local)" }];
+  const showDiskFields =
+    supportsPersistentStorage && selectedStorageMode !== "ephemeral";
 
   useEffect(() => {
     if (refreshProvider === "gcp" && !gcpEnabled) {
@@ -317,6 +340,14 @@ export const HostsPage: React.FC = () => {
       );
     }
   }, [refreshProvider, gcpEnabled, hyperstackEnabled, lambdaEnabled]);
+
+  useEffect(() => {
+    if (!supportsPersistentStorage) {
+      form.setFieldsValue({ storage_mode: "ephemeral" });
+    } else if (!form.getFieldValue("storage_mode")) {
+      form.setFieldsValue({ storage_mode: "persistent" });
+    }
+  }, [supportsPersistentStorage, form]);
 
   const refresh = async () => {
     const [list, membership] = await Promise.all([
@@ -887,6 +918,10 @@ export const HostsPage: React.FC = () => {
             : vals.provider === "lambda"
               ? lambdaGpuCount > 0
               : !!genericGpuType;
+      const storage_mode =
+        vals.provider === "lambda"
+          ? "ephemeral"
+          : vals.storage_mode || "persistent";
       const defaultRegion =
         vals.provider === "hyperstack"
           ? hyperstackRegionOptions[0]?.value
@@ -925,6 +960,7 @@ export const HostsPage: React.FC = () => {
                     ? 1
                     : undefined,
           zone: vals.provider === "gcp" ? vals.zone ?? undefined : undefined,
+          storage_mode,
           disk_gb: vals.disk,
           disk_type: vals.disk_type,
           source_image: vals.source_image || undefined,
@@ -1370,7 +1406,28 @@ export const HostsPage: React.FC = () => {
                         </Form.Item>
                       </Col>
                     )}
-                    {selectedProvider !== "lambda" && (
+                    {selectedProvider !== "none" && (
+                      <Col span={24}>
+                        <Form.Item
+                          name="storage_mode"
+                          label="Storage mode"
+                          initialValue="persistent"
+                          tooltip={
+                            supportsPersistentStorage
+                              ? persistentGrowable
+                                ? "Ephemeral uses fast local disks; persistent uses a separate growable disk."
+                                : "Ephemeral uses fast local disks; persistent uses a separate fixed-size disk."
+                              : "Only ephemeral storage is available for this provider."
+                          }
+                        >
+                          <Select
+                            options={storageModeOptions}
+                            disabled={!supportsPersistentStorage}
+                          />
+                        </Form.Item>
+                      </Col>
+                    )}
+                    {showDiskFields && (
                       <>
                         <Col span={24}>
                           <Form.Item

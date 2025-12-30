@@ -135,7 +135,20 @@ export class GcpProvider implements CloudProvider {
       "projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts";
     const bootDiskGb = spec.metadata?.boot_disk_gb ?? 20;
 
-    const disks = [
+    const storageMode = spec.metadata?.storage_mode;
+    type Disk = {
+      autoDelete: boolean;
+      boot: boolean;
+      type?: string;
+      interface?: string;
+      deviceName?: string;
+      initializeParams: {
+        diskType: string;
+        diskSizeGb?: string;
+        sourceImage?: any;
+      };
+    };
+    const disks: Disk[] = [
       {
         autoDelete: true,
         boot: true,
@@ -145,7 +158,20 @@ export class GcpProvider implements CloudProvider {
           sourceImage,
         },
       },
-      {
+    ];
+    if (storageMode === "ephemeral") {
+      // Attach one local SSD for fast ephemeral storage.
+      disks.push({
+        autoDelete: true,
+        boot: false,
+        type: "SCRATCH",
+        interface: "NVME",
+        initializeParams: {
+          diskType: `projects/${credentials.projectId}/zones/${zone}/diskTypes/local-ssd`,
+        },
+      });
+    } else {
+      disks.push({
         autoDelete: true,
         boot: false,
         deviceName: `${spec.name}-data`,
@@ -153,8 +179,8 @@ export class GcpProvider implements CloudProvider {
           diskSizeGb: `${spec.disk_gb}`,
           diskType,
         },
-      },
-    ];
+      });
+    }
 
     const networkInterfaces = [
       {

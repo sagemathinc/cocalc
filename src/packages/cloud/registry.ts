@@ -20,6 +20,10 @@ export type ProviderCapabilities = {
   supportsCustomImage: boolean;
   supportsGpu: boolean;
   supportsZones: boolean;
+  persistentStorage: {
+    supported: boolean;
+    growable: boolean;
+  };
 };
 
 export type ProviderEntry = {
@@ -72,6 +76,7 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsCustomImage: true,
       supportsGpu: true,
       supportsZones: true,
+      persistentStorage: { supported: true, growable: true },
     },
     fetchCatalog: fetchGcpCatalog,
     catalog: {
@@ -89,6 +94,7 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsCustomImage: true,
       supportsGpu: true,
       supportsZones: false,
+      persistentStorage: { supported: true, growable: false },
     },
     fetchCatalog: fetchHyperstackCatalog,
     catalog: {
@@ -106,6 +112,7 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsCustomImage: true,
       supportsGpu: true,
       supportsZones: false,
+      persistentStorage: { supported: false, growable: false },
     },
     fetchCatalog: fetchLambdaCatalog,
     catalog: {
@@ -123,6 +130,7 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsCustomImage: true,
       supportsGpu: false,
       supportsZones: false,
+      persistentStorage: { supported: true, growable: false },
     },
   },
   nebius: undefined,

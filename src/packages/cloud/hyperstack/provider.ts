@@ -222,6 +222,7 @@ export class HyperstackProvider implements CloudProvider {
         ? spec.metadata.startup_script
         : undefined;
 
+    const storageMode = spec.metadata?.storage_mode;
     const instances = await createVirtualMachines({
       name: spec.name,
       environment_name,
@@ -229,7 +230,7 @@ export class HyperstackProvider implements CloudProvider {
       key_name,
       image_name,
       assign_floating_ip: true,
-      create_bootable_volume: true,
+      create_bootable_volume: storageMode !== "ephemeral",
       user_data,
     });
     const instance = instances[0];

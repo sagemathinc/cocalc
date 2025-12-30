@@ -215,9 +215,12 @@ export async function handleBootstrap(row: ProjectHostRow) {
 
   const spec = await buildHostSpec(row);
   const providerId = normalizeProviderId(machine.cloud);
-  const dataDiskDevice =
+  const storageMode = machine.storage_mode ?? machine.metadata?.storage_mode;
+  const dataDiskDevices =
     providerId === "gcp"
-      ? `/dev/disk/by-id/google-${spec.name}-data`
+      ? storageMode === "ephemeral"
+        ? "/dev/disk/by-id/google-local-nvme-ssd-0 /dev/disk/by-id/google-local-ssd-0"
+        : `/dev/disk/by-id/google-${spec.name}-data`
       : "";
   const imageSizeGb = Math.max(20, Number(spec.disk_gb ?? 100));
   const port = 9002;
@@ -263,12 +266,21 @@ sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 ${sshUser} 
 sudo mkdir -p /opt/cocalc /var/lib/cocalc /etc/cocalc
 sudo chown -R ${sshUser}:${sshUser} /opt/cocalc /var/lib/cocalc
 sudo mkdir -p /btrfs
-if [ -n "${dataDiskDevice}" ] && [ -b "${dataDiskDevice}" ]; then
-  if ! sudo blkid "${dataDiskDevice}" | grep -q btrfs; then
-    sudo mkfs.btrfs -f "${dataDiskDevice}"
+DATA_DISK_DEV=""
+if [ -n "${dataDiskDevices}" ]; then
+  for dev in ${dataDiskDevices}; do
+    if [ -b "$dev" ]; then
+      DATA_DISK_DEV="$dev"
+      break
+    fi
+  done
+fi
+if [ -n "$DATA_DISK_DEV" ]; then
+  if ! sudo blkid "$DATA_DISK_DEV" | grep -q btrfs; then
+    sudo mkfs.btrfs -f "$DATA_DISK_DEV"
   fi
   if ! mountpoint -q /btrfs; then
-    sudo mount "${dataDiskDevice}" /btrfs
+    sudo mount "$DATA_DISK_DEV" /btrfs
   fi
 else
   sudo mkdir -p /var/lib/cocalc

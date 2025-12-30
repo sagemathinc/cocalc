@@ -41,6 +41,7 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
       : machine.disk_type === "standard"
         ? "standard"
         : "balanced";
+  const storage_mode = machine.storage_mode;
   const gpu =
     machine.gpu_type && machine.gpu_type !== "none"
       ? {
@@ -80,6 +81,7 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
       source_image: sourceImage,
       bootstrap_url: machine.bootstrap_url,
       startup_script: machine.startup_script,
+      storage_mode,
       ssh_public_key: controlPlanePublicKey,
       ssh_user,
     },

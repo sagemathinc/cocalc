@@ -13,6 +13,7 @@ export interface HostMachine {
   machine_type?: string; // e.g., n2-standard-4, custom specs
   gpu_type?: string;
   gpu_count?: number;
+  storage_mode?: "ephemeral" | "persistent";
   disk_gb?: number;
   disk_type?: "ssd" | "balanced" | "standard";
   zone?: string;
@@ -51,12 +52,26 @@ export interface HostCatalogGpuType {
   deprecated?: any;
 }
 
+export interface HostProviderCapabilities {
+  supportsStop: boolean;
+  supportsDiskType: boolean;
+  supportsDiskResize: boolean;
+  supportsCustomImage: boolean;
+  supportsGpu: boolean;
+  supportsZones: boolean;
+  persistentStorage: {
+    supported: boolean;
+    growable: boolean;
+  };
+}
+
 export interface HostCatalog {
   provider: string;
   regions: HostCatalogRegion[];
   zones: HostCatalogZone[];
   machine_types_by_zone: Record<string, HostCatalogMachineType[]>;
   gpu_types_by_zone: Record<string, HostCatalogGpuType[]>;
+  provider_capabilities?: Record<string, HostProviderCapabilities>;
   images?: {
     project: string;
     name?: string | null;

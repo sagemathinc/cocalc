@@ -18,7 +18,11 @@ import {
 } from "@cocalc/server/cloud";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import { isValidUUID } from "@cocalc/util/misc";
-import { normalizeProviderId, type ProviderId } from "@cocalc/cloud";
+import {
+  listProviderEntries,
+  normalizeProviderId,
+  type ProviderId,
+} from "@cocalc/cloud";
 function pool() {
   return getPool();
 }
@@ -261,6 +265,12 @@ export async function getCatalog({
     lambda_regions: [],
     lambda_instance_types: [],
     lambda_images: [],
+    provider_capabilities: Object.fromEntries(
+      listProviderEntries().map((entry) => [
+        entry.id,
+        entry.capabilities,
+      ]),
+    ),
   };
 
   for (const row of rows) {
