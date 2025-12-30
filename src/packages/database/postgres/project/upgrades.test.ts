@@ -10,89 +10,55 @@ import { callback_opts } from "@cocalc/util/async-utils";
 import { uuid } from "@cocalc/util/misc";
 import type { PostgreSQL } from "../types";
 
-// Toggle to switch between CoffeeScript and TypeScript implementations
-const USE_TYPESCRIPT = true;
-
 describe("Project upgrades methods", () => {
   const database: PostgreSQL = db();
   let pool: any;
 
-  // Wrapper functions that will call either CoffeeScript or TypeScript
+  // Wrapper functions that call the CoffeeScript db() methods.
   async function get_project_quotas_wrapper(opts: {
     project_id: string;
   }): Promise<any> {
-    if (USE_TYPESCRIPT) {
-      const { getProjectQuotas } = await import("./upgrades");
-      return getProjectQuotas(database, opts);
-    } else {
-      return callback_opts(database.get_project_quotas.bind(database))(opts);
-    }
+    return callback_opts(database.get_project_quotas.bind(database))(opts);
   }
 
   async function get_user_project_upgrades_wrapper(opts: {
     account_id: string;
   }): Promise<Record<string, any>> {
-    if (USE_TYPESCRIPT) {
-      const { getUserProjectUpgrades } = await import("./upgrades");
-      return getUserProjectUpgrades(database, opts);
-    } else {
-      return callback_opts(database.get_user_project_upgrades.bind(database))(
-        opts,
-      );
-    }
+    return callback_opts(database.get_user_project_upgrades.bind(database))(
+      opts,
+    );
   }
 
   async function ensure_user_project_upgrades_are_valid_wrapper(opts: {
     account_id: string;
     fix?: boolean;
   }): Promise<Record<string, any>> {
-    if (USE_TYPESCRIPT) {
-      const { ensureUserProjectUpgradesAreValid } = await import("./upgrades");
-      return ensureUserProjectUpgradesAreValid(database, opts);
-    } else {
-      return callback_opts(
-        database.ensure_user_project_upgrades_are_valid.bind(database),
-      )(opts);
-    }
+    return callback_opts(
+      database.ensure_user_project_upgrades_are_valid.bind(database),
+    )(opts);
   }
 
   async function ensure_all_user_project_upgrades_are_valid_wrapper(opts: {
     limit?: number;
   }): Promise<void> {
-    if (USE_TYPESCRIPT) {
-      const { ensureAllUserProjectUpgradesAreValid } =
-        await import("./upgrades");
-      return ensureAllUserProjectUpgradesAreValid(database, opts);
-    } else {
-      return callback_opts(
-        database.ensure_all_user_project_upgrades_are_valid.bind(database),
-      )(opts);
-    }
+    return callback_opts(
+      database.ensure_all_user_project_upgrades_are_valid.bind(database),
+    )(opts);
   }
 
   async function get_project_upgrades_wrapper(opts: {
     project_id: string;
   }): Promise<any> {
-    if (USE_TYPESCRIPT) {
-      const { getProjectUpgrades } = await import("./upgrades");
-      return getProjectUpgrades(database, opts);
-    } else {
-      return callback_opts(database.get_project_upgrades.bind(database))(opts);
-    }
+    return callback_opts(database.get_project_upgrades.bind(database))(opts);
   }
 
   async function remove_all_user_project_upgrades_wrapper(opts: {
     account_id: string;
     projects?: string[];
   }): Promise<void> {
-    if (USE_TYPESCRIPT) {
-      const { removeAllUserProjectUpgrades } = await import("./upgrades");
-      return removeAllUserProjectUpgrades(database, opts);
-    } else {
-      return callback_opts(
-        database.remove_all_user_project_upgrades.bind(database),
-      )(opts);
-    }
+    return callback_opts(
+      database.remove_all_user_project_upgrades.bind(database),
+    )(opts);
   }
 
   beforeAll(async () => {

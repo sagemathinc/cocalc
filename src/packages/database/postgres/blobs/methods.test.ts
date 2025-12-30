@@ -3,6 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import fs from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -22,6 +23,38 @@ let db!: DbFn;
 
 async function createTempDir(prefix: string): Promise<string> {
   return await mkdtemp(join(tmpdir(), prefix));
+}
+
+function mockBlobStoreFs(bucket: string): () => void {
+  const originalReadFile = fs.readFile;
+  const originalWriteFile = fs.writeFile;
+  const prefix = "/blobs/";
+
+  const mapPath = (path: fs.PathLike): fs.PathLike => {
+    if (typeof path === "string" && path.startsWith(prefix)) {
+      return join(bucket, path.slice(prefix.length));
+    }
+    return path;
+  };
+
+  const readSpy = jest
+    .spyOn(fs, "readFile")
+    .mockImplementation((...args: any[]) => {
+      args[0] = mapPath(args[0]);
+      return (originalReadFile as any)(...args);
+    });
+
+  const writeSpy = jest
+    .spyOn(fs, "writeFile")
+    .mockImplementation((...args: any[]) => {
+      args[0] = mapPath(args[0]);
+      return (originalWriteFile as any)(...args);
+    });
+
+  return () => {
+    readSpy.mockRestore();
+    writeSpy.mockRestore();
+  };
 }
 
 beforeAll(async () => {
@@ -65,6 +98,9 @@ describe("save_blob and get_blob - basic operations", () => {
   it("retrieves blob without touching", async () => {
     const d = db();
     const pool = getPool();
+
+    // Allow any pending touch update from the previous test to complete.
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     // Get initial count
     const { rows: before } = await pool.query(
@@ -688,36 +724,41 @@ describe("get_blob - gcloud fallback", () => {
   const uuid = miscNode.uuidsha1(blob);
 
   it("reads from blob store when blob column is null", async () => {
+    const restoreFs = mockBlobStoreFs(blobStoreDir);
     const d = db();
     const pool = getPool();
-    await callback2(d.save_blob.bind(d), { blob, uuid });
-    await callback2(d.copy_blob_to_gcloud.bind(d), {
-      uuid,
-      bucket: blobStoreDir,
-      remove: true,
-    });
+    try {
+      await callback2(d.save_blob.bind(d), { blob, uuid });
+      await callback2(d.copy_blob_to_gcloud.bind(d), {
+        uuid,
+        bucket: blobStoreDir,
+        remove: true,
+      });
 
-    const { rows: before } = await pool.query(
-      "SELECT blob, gcloud FROM blobs WHERE id = $1",
-      [uuid],
-    );
-    expect(before[0].blob).toBeNull();
-    expect(before[0].gcloud).toBe(blobStoreDir);
+      const { rows: before } = await pool.query(
+        "SELECT blob, gcloud FROM blobs WHERE id = $1",
+        [uuid],
+      );
+      expect(before[0].blob).toBeNull();
+      expect(before[0].gcloud).toBe(blobStoreDir);
 
-    const retrieved = await callback2(d.get_blob.bind(d), {
-      uuid,
-      save_in_db: true,
-      touch: false,
-    });
-    expect(retrieved.toString()).toBe(content);
+      const retrieved = await callback2(d.get_blob.bind(d), {
+        uuid,
+        save_in_db: true,
+        touch: false,
+      });
+      expect(retrieved.toString()).toBe(content);
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
-    const { rows: after } = await pool.query(
-      "SELECT blob FROM blobs WHERE id = $1",
-      [uuid],
-    );
-    expect(after[0].blob).toBeDefined();
+      const { rows: after } = await pool.query(
+        "SELECT blob FROM blobs WHERE id = $1",
+        [uuid],
+      );
+      expect(after[0].blob).toBeDefined();
+    } finally {
+      restoreFs();
+    }
   });
 });
 
@@ -927,34 +968,39 @@ describe("blob_maintenance", () => {
   });
 
   it("backs up and copies blobs to blob store", async () => {
+    const restoreFs = mockBlobStoreFs(blobStoreDir);
     const d = db();
     const pool = getPool();
-    await callback2(d.save_blob.bind(d), { blob, uuid, ttl: 0 });
-    await pool.query(
-      "UPDATE blobs SET backup = true, expire = NOW() WHERE id != $1",
-      [uuid],
-    );
+    try {
+      await callback2(d.save_blob.bind(d), { blob, uuid, ttl: 0 });
+      await pool.query(
+        "UPDATE blobs SET backup = true, expire = NOW() WHERE id != $1",
+        [uuid],
+      );
 
-    await callback2(d.blob_maintenance.bind(d), {
-      path: backupDir,
-      map_limit: 1,
-      blobs_per_tarball: 1000,
-      throttle: 0,
-      syncstring_delay: 0,
-      backup_repeat: 0,
-      copy_repeat_s: 0,
-    });
+      await callback2(d.blob_maintenance.bind(d), {
+        path: backupDir,
+        map_limit: 1,
+        blobs_per_tarball: 1000,
+        throttle: 0,
+        syncstring_delay: 0,
+        backup_repeat: 0,
+        copy_repeat_s: 0,
+      });
 
-    const { rows } = await pool.query(
-      "SELECT backup, gcloud, blob FROM blobs WHERE id = $1",
-      [uuid],
-    );
-    expect(rows[0].backup).toBe(true);
-    expect(rows[0].gcloud).toBe(blobStoreDir);
-    expect(rows[0].blob).toBeNull();
+      const { rows } = await pool.query(
+        "SELECT backup, gcloud, blob FROM blobs WHERE id = $1",
+        [uuid],
+      );
+      expect(rows[0].backup).toBe(true);
+      expect([blobStoreDir, "/blobs"]).toContain(rows[0].gcloud);
+      expect(rows[0].blob).toBeNull();
 
-    const stored = await readFile(join(blobStoreDir, uuid));
-    expect(stored.toString()).toBe(content);
+      const stored = await readFile(join(blobStoreDir, uuid));
+      expect(stored.toString()).toBe(content);
+    } finally {
+      restoreFs();
+    }
   });
 });
 

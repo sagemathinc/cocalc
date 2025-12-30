@@ -101,7 +101,7 @@ npx decaffeinate \
 5. **Flip the toggle** - set `USE_TYPESCRIPT = true` and re-run the same tests against the new TS implementation. Fix the TS implementation until tests pass.
 6. **Re-route CoffeeScript to TS** - update the CoffeeScript class to wrap/forward to the new TS functions (wrapper pattern). Delete the old CoffeeScript logic for those methods so the legacy class now uses the TS implementation.
 7. **Switch back and remove the toggle** - set `USE_TYPESCRIPT = false`, confirm tests still pass through the CoffeeScript class (now wired to TS), then remove the toggle and the TS branch in the test file entirely. The tests should permanently target the CoffeeScript class.
-8. **Finalize** - run `pnpm tsc --noEmit`, then `pnpm build`, then re-run the relevant tests to confirm the code compiles and behavior is preserved.
+8. **Finalize** - run `pnpm clean` and `pnpm tsc --noEmit`, then `pnpm build`, then re-run the relevant tests to confirm the code compiles and behavior is preserved.
 
 **Naming note:**
 
@@ -619,7 +619,7 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 - [x] `touch` → `postgres/activity.ts`
 - [x] `get_remember_me` (already wrapper → `postgres/remember-me.ts`)
 - [x] `get_personal_user` (already wrapper → `postgres/personal.ts`)
-- [ ] `change_email_address`
+- [x] `change_email_address` → `postgres/account/change-email-address.ts`
 - [x] `change_password`
 - [x] `reset_password`
 - [x] `set_password_reset`
@@ -675,12 +675,12 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 - [x] `get_project_storage_request` → `postgres/project-state.ts`
 - [x] `set_project_state` → `postgres/project-state.ts`
 - [x] `get_project_state` → `postgres/project-state.ts`
-- [ ] `get_project_quotas`
-- [ ] `get_user_project_upgrades`
-- [ ] `ensure_user_project_upgrades_are_valid`
-- [ ] `ensure_all_user_project_upgrades_are_valid`
-- [ ] `get_project_upgrades`
-- [ ] `remove_all_user_project_upgrades`
+- [x] `get_project_quotas` → `postgres/project/upgrades.ts` (TODO: split into separate file; original in `postgres-server-queries.coffee` line ~1243)
+- [x] `get_user_project_upgrades` → `postgres/project/upgrades.ts` (TODO: split into separate file; original in `postgres-server-queries.coffee` line ~1284)
+- [x] `ensure_user_project_upgrades_are_valid` → `postgres/project/upgrades.ts` (TODO: split into separate file; original in `postgres-server-queries.coffee` line ~1307)
+- [x] `ensure_all_user_project_upgrades_are_valid` → `postgres/project/upgrades.ts` (TODO: split into separate file; original in `postgres-server-queries.coffee` line ~1372)
+- [x] `get_project_upgrades` → `postgres/project/upgrades.ts` (TODO: split into separate file)
+- [x] `remove_all_user_project_upgrades` → `postgres/project/upgrades.ts` (TODO: split into separate file)
 - [x] `get_project_settings` → `postgres/project-settings.ts`
 - [x] `set_project_settings` → `postgres/project-settings.ts`
 - [x] `get_project_extra_env` → `postgres/project-extra-env.ts`

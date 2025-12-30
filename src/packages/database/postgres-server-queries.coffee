@@ -47,6 +47,7 @@ required = defaults.required
 {accountIsInOrganization} = require('./postgres/account/account-is-in-organization')
 {nameToAccountOrOrganization} = require('./postgres/account/name-to-account-or-organization')
 {setRunQuota} = require('./postgres/project/set-run-quota')
+{getProjectQuotas, getUserProjectUpgrades, ensureUserProjectUpgradesAreValid, ensureAllUserProjectUpgradesAreValid, getProjectUpgrades, removeAllUserProjectUpgrades} = require('./postgres/project/upgrades')
 
 {SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('@cocalc/util/schema')
 
@@ -1254,29 +1255,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             project_id : required
             cb         : required
-        settings = users = site_license = server_settings = undefined
-        async.parallel([
-            (cb) =>
-                @_query
-                    query : 'SELECT settings, users, site_license FROM projects'
-                    where : 'project_id = $::UUID' : opts.project_id
-                    cb    : one_result (err, x) =>
-                        settings = x.settings
-                        site_license = x.site_license
-                        users = x.users
-                        cb(err)
-            (cb) =>
-                @get_server_settings_cached
-                    cb : (err, x) =>
-                        server_settings = x
-                        cb(err)
-        ], (err) =>
-            if err
-                opts.cb(err)
-            else
-                upgrades = quota(settings, users, site_license, server_settings)
-                opts.cb(undefined, upgrades)
-        )
+        try
+            result = await getProjectQuotas(@, opts)
+            opts.cb(undefined, result)
+        catch err
+            opts.cb(err)
 
     # Return mapping from project_id to map listing the upgrades this particular user
     # applied to the given project.  This only includes project_id's of projects that
@@ -1285,20 +1268,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             account_id : required
             cb         : required
-        @_query
-            query : "SELECT project_id, users#>'{#{opts.account_id},upgrades}' AS upgrades FROM projects"
-            where : [
-                'users ? $::TEXT' : opts.account_id,    # this is a user of the project
-                "users#>'{#{opts.account_id},upgrades}' IS NOT NULL"     # upgrades are defined
-            ]
-            cb : (err, result) =>
-                if err
-                    opts.cb(err)
-                else
-                    x = {}
-                    for p in result.rows
-                        x[p.project_id] = p.upgrades
-                    opts.cb(undefined, x)
+        try
+            result = await getUserProjectUpgrades(@, opts)
+            opts.cb(undefined, result)
+        catch err
+            opts.cb(err)
 
     # Ensure that all upgrades applied by the given user to projects are consistent,
     # truncating any that exceed their allotment.  NOTE: Unless there is a bug,
@@ -1309,59 +1283,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             account_id : required
             fix        : true       # if true, will fix projects in database whose quotas exceed the allotted amount; it is the caller's responsibility to actually change them.
             cb         : required   # cb(err, excess)
-        dbg = @_dbg("ensure_user_project_upgrades_are_valid(account_id='#{opts.account_id}')")
-        dbg()
-        excess = stripe_data = project_upgrades = undefined
-        async.series([
-            (cb) =>
-                async.parallel([
-                    (cb) =>
-                        @_query
-                            query : 'SELECT stripe_customer FROM accounts'
-                            where : 'account_id = $::UUID' : opts.account_id
-                            cb    : one_result 'stripe_customer', (err, stripe_customer) =>
-                                stripe_data = stripe_customer?.subscriptions?.data
-                                cb(err)
-                    (cb) =>
-                        @get_user_project_upgrades
-                            account_id : opts.account_id
-                            cb         : (err, x) =>
-                                project_upgrades = x
-                                cb(err)
-                ], cb)
-            (cb) =>
-                excess = require('@cocalc/util/upgrades').available_upgrades(stripe_data, project_upgrades).excess
-                if opts.fix
-                    fix = (project_id, cb) =>
-                        dbg("fixing project_id='#{project_id}' with excess #{JSON.stringify(excess[project_id])}")
-                        upgrades = undefined
-                        async.series([
-                            (cb) =>
-                                @_query
-                                    query : "SELECT users#>'{#{opts.account_id},upgrades}' AS upgrades FROM projects"
-                                    where : 'project_id = $::UUID' : project_id
-                                    cb    : one_result 'upgrades', (err, x) =>
-                                        upgrades = x; cb(err)
-                            (cb) =>
-                                if not upgrades?
-                                    cb(); return
-                                # WORRY: this is dangerous since if something else changed about a user
-                                # between the read/write here, then we would have trouble.  (This is milliseconds of time though...)
-                                for k, v of excess[project_id]
-                                    upgrades[k] -= v
-                                @_query
-                                    query       : "UPDATE projects"
-                                    where       : 'project_id = $::UUID' : project_id
-                                    jsonb_merge :
-                                        users : {"#{opts.account_id}": {upgrades: upgrades}}
-                                    cb          : cb
-                        ], cb)
-                    async.map(misc.keys(excess), fix, cb)
-                else
-                    cb()
-        ], (err) =>
-            opts.cb(err, excess)
-        )
+        try
+            result = await ensureUserProjectUpgradesAreValid(@, opts)
+            opts.cb(undefined, result)
+        catch err
+            opts.cb(err)
 
     # Loop through every user of cocalc that is connected with stripe (so may have a subscription),
     # and ensure that any upgrades that have applied to projects are valid.  It is important to
@@ -1373,46 +1299,22 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             limit : 1          # We only default to 1 at a time, since there is no hurry.
             cb    : required
-        dbg = @_dbg("ensure_all_user_project_upgrades_are_valid")
-        locals = {}
-        async.series([
-            (cb) =>
-                @_query
-                    query : "SELECT account_id FROM accounts"
-                    where : "stripe_customer_id IS NOT NULL"
-                    timeout_s: 300
-                    cb    : all_results 'account_id', (err, account_ids) =>
-                        locals.account_ids = account_ids
-                        cb(err)
-            (cb) =>
-                m = 0
-                n = locals.account_ids.length
-                dbg("got #{n} accounts with stripe")
-                f = (account_id, cb) =>
-                    m += 1
-                    dbg("#{m}/#{n}")
-                    @ensure_user_project_upgrades_are_valid
-                        account_id : account_id
-                        cb         : cb
-                async.mapLimit(locals.account_ids, opts.limit, f, cb)
-        ], opts.cb)
+        try
+            await ensureAllUserProjectUpgradesAreValid(@, opts)
+            opts.cb()
+        catch err
+            opts.cb(err)
 
     # Return the sum total of all user upgrades to a particular project
     get_project_upgrades: (opts) =>
         opts = defaults opts,
             project_id : required
             cb         : required
-        @_query
-            query : 'SELECT users FROM projects'
-            where : 'project_id = $::UUID' : opts.project_id
-            cb    : one_result 'users', (err, users) =>
-                if err
-                    opts.cb(err); return
-                upgrades = undefined
-                if users?
-                    for account_id, info of users
-                        upgrades = misc.map_sum(upgrades, info.upgrades)
-                opts.cb(undefined, upgrades)
+        try
+            result = await getProjectUpgrades(@, opts)
+            opts.cb(undefined, result)
+        catch err
+            opts.cb(err)
 
     # Remove all upgrades to all projects applied by this particular user.
     remove_all_user_project_upgrades: (opts) =>
@@ -1420,35 +1322,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             account_id : required
             projects   : undefined  # if given, only remove from projects with id in this array.
             cb         : required
-        if not misc.is_valid_uuid_string(opts.account_id)
-            opts.cb("invalid account_id")
-            return
-        query =  "UPDATE projects SET users=jsonb_set(users, '{#{opts.account_id}}', jsonb(users#>'{#{opts.account_id}}') - 'upgrades')"
-        where = [
-                'users ? $::TEXT' : opts.account_id,                     # this is a user of the project
-                "users#>'{#{opts.account_id},upgrades}' IS NOT NULL"     # upgrades are defined
-            ]
-        if opts.projects
-            if not misc.is_array(opts.projects)
-                opts.cb("projects must be an array")
-                return
-            w = []
-            for project_id in opts.projects
-                if not misc.is_valid_uuid_string(project_id)
-                    opts.cb('each entry in projects must be a valid uuid')
-                    return
-                w.push("'#{project_id}'")
-            where.push("project_id in (#{w.join(',')})")
-
-        @_query
-            query : query
-            where : where
-            cb: opts.cb
-        # TODO: any impacted project that is currently running should also (optionally?) get restarted.
-        # I'm not going to bother for now, but this DOES need to get implemented, since otherwise users
-        # can cheat too easily.  Alternatively, have a periodic control loop on all running projects that
-        # confirms that everything is legit (and remove the verification code for user_query) --
-        # that's probably better.  This could be a service called manage-upgrades.
+        try
+            await removeAllUserProjectUpgrades(@, opts)
+            opts.cb()
+        catch err
+            opts.cb(err)
 
     ###
     Project settings

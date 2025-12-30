@@ -5,9 +5,6 @@
 
 /**
  * Tests for change_email_address method
- *
- * TDD Process: Testing against CoffeeScript FIRST (USE_TYPESCRIPT = false)
- * After 100% pass, implement TypeScript, flip toggle, verify parity
  */
 
 import { initEphemeralDatabase } from "@cocalc/database/pool";
