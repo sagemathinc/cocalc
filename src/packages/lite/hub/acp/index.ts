@@ -73,6 +73,15 @@ const INTERRUPT_STATUS_TEXT =
 const chatWritersByChatKey = new Map<string, ChatStreamWriter>();
 const chatWritersByThreadId = new Map<string, ChatStreamWriter>();
 
+function logWriterCounts(reason: string, extra?: Record<string, unknown>): void {
+  logger.debug("chat writers map size", {
+    reason,
+    byChatKey: chatWritersByChatKey.size,
+    byThreadId: chatWritersByThreadId.size,
+    ...extra,
+  });
+}
+
 function chatKey(metadata: AcpChatContext): string {
   return `${metadata.project_id}:${metadata.path}:${metadata.message_date}`;
 }
@@ -238,6 +247,7 @@ export class ChatStreamWriter {
       this.closed = true;
     });
     chatWritersByChatKey.set(this.chatKey, this);
+    logWriterCounts("create", { chatKey: this.chatKey });
     this.sessionKey = sessionKey;
     if (sessionKey) {
       this.registerThreadKey(sessionKey);
@@ -498,10 +508,12 @@ export class ChatStreamWriter {
     this.commit.flush();
     this.closed = true;
     chatWritersByChatKey.delete(this.chatKey);
+    logWriterCounts("dispose", { chatKey: this.chatKey });
     for (const key of this.threadKeys) {
       const writer = chatWritersByThreadId.get(key);
       if (writer === this) {
         chatWritersByThreadId.delete(key);
+        logWriterCounts("dispose-thread", { threadId: key });
       }
     }
     this.threadKeys.clear();
@@ -569,6 +581,7 @@ export class ChatStreamWriter {
     if (!key) return;
     this.threadKeys.add(key);
     chatWritersByThreadId.set(key, this);
+    logWriterCounts("register-thread", { threadId: key });
     void this.persistSessionId(key);
   }
 
