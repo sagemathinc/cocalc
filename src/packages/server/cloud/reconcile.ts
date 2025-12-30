@@ -33,7 +33,17 @@ export const DEFAULT_INTERVALS = {
 
 type Intervals = typeof DEFAULT_INTERVALS;
 
-type Provider = "gcp" | "hyperstack" | "lambda";
+export const PROVIDERS = ["gcp", "hyperstack", "lambda"] as const;
+type Provider = (typeof PROVIDERS)[number];
+
+export function asProvider(cloud?: string): Provider | undefined {
+  if (!cloud) return undefined;
+  if (cloud === "google-cloud") return "gcp";
+  if ((PROVIDERS as readonly string[]).includes(cloud)) {
+    return cloud as Provider;
+  }
+  return undefined;
+}
 
 type ReconcileState = {
   last_run_at?: Date | null;
@@ -136,6 +146,26 @@ async function setReconcileState(
   );
 }
 
+export async function bumpReconcile(provider: Provider, interval_ms = DEFAULT_INTERVALS.running_ms) {
+  const nextAt = new Date(Date.now() + interval_ms);
+  await pool().query(
+    `
+      INSERT INTO cloud_reconcile_state
+        (provider, next_run_at, updated_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (provider)
+      DO UPDATE SET
+        next_run_at = LEAST(
+          COALESCE(cloud_reconcile_state.next_run_at, EXCLUDED.next_run_at),
+          EXCLUDED.next_run_at
+        ),
+        last_error = NULL,
+        updated_at = NOW()
+    `,
+    [provider, nextAt],
+  );
+}
+
 async function withReconcileLock<T>(
   provider: Provider,
   fn: () => Promise<T>,
@@ -187,7 +217,9 @@ async function listGcpInstances(prefix: string): Promise<RemoteInstance[]> {
   return instances;
 }
 
-async function listHyperstackInstances(prefix: string): Promise<RemoteInstance[]> {
+async function listHyperstackInstances(
+  prefix: string,
+): Promise<RemoteInstance[]> {
   const { creds } = await ensureHyperstackProvider();
   setHyperstackConfig({ apiKey: creds.apiKey, prefix: creds.prefix });
   const list = await getVirtualMachines();
@@ -283,7 +315,8 @@ async function updateHost(
 }
 
 async function reconcileProvider(provider: Provider) {
-  const { project_hosts_google_prefix = "cocalc-host",
+  const {
+    project_hosts_google_prefix = "cocalc-host",
     project_hosts_hyperstack_prefix = "cocalc-host",
     project_hosts_lambda_prefix = "cocalc-host",
   } = await getServerSettings();
@@ -336,7 +369,8 @@ async function reconcileProvider(provider: Provider) {
       zone: remote.zone ?? runtime.zone,
     };
     const publicUrl =
-      row.public_url ?? (nextRuntime.public_ip ? `http://${nextRuntime.public_ip}` : undefined);
+      row.public_url ??
+      (nextRuntime.public_ip ? `http://${nextRuntime.public_ip}` : undefined);
     const internalUrl =
       row.internal_url ??
       (nextRuntime.public_ip ? `http://${nextRuntime.public_ip}` : undefined);
@@ -408,12 +442,15 @@ export async function runReconcileOnce(
   });
 }
 
-export function startCloudVmReconciler(opts: {
-  providers?: Provider[];
-  intervals?: Intervals;
-} = {}) {
-  const providers: Provider[] = opts.providers ?? ["gcp", "hyperstack", "lambda"];
+export function startCloudVmReconciler(
+  opts: {
+    providers?: Provider[];
+    intervals?: Intervals;
+  } = {},
+) {
+  const providers: Provider[] = opts.providers ?? [...PROVIDERS];
   const intervals = opts.intervals ?? DEFAULT_INTERVALS;
+  logger.info("startCloudVmReconciler", { providers, intervals });
   const timers = new Map<Provider, NodeJS.Timeout>();
   let stopped = false;
 

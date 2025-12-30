@@ -27,4 +27,5 @@ export {
   startCloudVmReconciler,
   DEFAULT_INTERVALS,
   type ReconcileRunResult,
+  bumpReconcile,
 } from "./reconcile";

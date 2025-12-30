@@ -15,6 +15,7 @@ import { getVirtualMachine } from "@cocalc/cloud/hyperstack/client";
 import { setHyperstackConfig } from "@cocalc/cloud/hyperstack/config";
 import { InstancesClient } from "@google-cloud/compute";
 import { handleBootstrap, scheduleBootstrap } from "./bootstrap-host";
+import { asProvider, bumpReconcile, DEFAULT_INTERVALS } from "./reconcile";
 
 const logger = getLogger("server:cloud:host-work");
 const pool = () => getPool();
@@ -188,6 +189,10 @@ async function handleProvision(row: any) {
   await ensureDnsForHost({ ...provisioned, public_url: publicUrl, internal_url: internalUrl });
   await scheduleRuntimeRefresh(provisioned);
   await scheduleBootstrap(provisioned);
+  const provider = asProvider(machine.cloud);
+  if (provider) {
+    await bumpReconcile(provider, DEFAULT_INTERVALS.running_ms);
+  }
   await logCloudVmEvent({
     vm_id: row.id,
     action: "create",
@@ -237,6 +242,10 @@ async function handleStart(row: any) {
   await ensureDnsForHost(row);
   await scheduleRuntimeRefresh(row);
   await scheduleBootstrap(row);
+  const provider = asProvider(machine.cloud);
+  if (provider) {
+    await bumpReconcile(provider, DEFAULT_INTERVALS.running_ms);
+  }
   await logCloudVmEvent({
     vm_id: row.id,
     action: "start",
