@@ -2,21 +2,13 @@ import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { deleteHostDns, ensureHostDns, hasDns } from "./dns";
 import { enqueueCloudVmWork, logCloudVmEvent } from "./db";
-import {
-  ensureGcpProvider,
-  ensureHyperstackProvider,
-  ensureLambdaProvider,
-  provisionIfNeeded,
-} from "./host-util";
+import { provisionIfNeeded } from "./host-util";
 import type { CloudVmWorkHandlers } from "./worker";
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
-import { LambdaClient } from "@cocalc/cloud/lambda/client";
-import { getVirtualMachine } from "@cocalc/cloud/hyperstack/client";
-import { setHyperstackConfig } from "@cocalc/cloud/hyperstack/config";
-import { InstancesClient } from "@google-cloud/compute";
 import { handleBootstrap, scheduleBootstrap } from "./bootstrap-host";
 import { bumpReconcile, DEFAULT_INTERVALS } from "./reconcile";
 import { normalizeProviderId } from "@cocalc/cloud";
+import { getProviderContext } from "./provider-context";
 
 const logger = getLogger("server:cloud:host-work");
 const pool = () => getPool();
@@ -71,58 +63,17 @@ async function refreshRuntimePublicIp(row: any) {
     provider: providerId,
     instance_id: runtime.instance_id,
   });
-  if (providerId === "lambda") {
-    const { creds } = await ensureLambdaProvider();
-    const client = new LambdaClient({ apiKey: creds.apiKey });
-    const instance = await client.getInstance(runtime.instance_id);
-    const ip = instance?.ip;
-    logger.debug("refreshRuntimePublicIp: lambda", {
-      host_id: row.id,
-      instance_id: runtime.instance_id,
-      ip,
-    });
-    return ip;
-  }
-  if (providerId === "hyperstack") {
-    const { creds } = await ensureHyperstackProvider();
-    setHyperstackConfig({ apiKey: creds.apiKey, prefix: creds.prefix });
-    const instance = await getVirtualMachine(
-      Number.parseInt(runtime.instance_id, 10),
-    );
-    const ip = instance?.floating_ip ?? undefined;
-    logger.debug("refreshRuntimePublicIp: hyperstack", {
-      host_id: row.id,
-      instance_id: runtime.instance_id,
-      ip,
-    });
-    return ip;
-  }
-  if (providerId === "gcp") {
-    const { creds } = await ensureGcpProvider();
-    if (!creds.service_account_json) return undefined;
-    const parsed = JSON.parse(creds.service_account_json);
-    const client = new InstancesClient({
-      projectId: parsed.project_id,
-      credentials: {
-        client_email: parsed.client_email,
-        private_key: parsed.private_key,
-      },
-    });
-    const [instance] = await client.get({
-      project: parsed.project_id,
-      zone: runtime.zone,
-      instance: runtime.instance_id,
-    });
-    const ip =
-      instance?.networkInterfaces?.[0]?.accessConfigs?.[0]?.natIP ?? undefined
-    logger.debug("refreshRuntimePublicIp: gcp", {
-      host_id: row.id,
-      instance_id: runtime.instance_id,
-      ip,
-    });
-    return ip;
-  }
-  return undefined;
+  const { entry, creds } = await getProviderContext(providerId);
+  if (!entry.provider.getInstance) return undefined;
+  const instance = await entry.provider.getInstance(runtime, creds);
+  const ip = instance?.public_ip ?? undefined;
+  logger.debug("refreshRuntimePublicIp: result", {
+    host_id: row.id,
+    provider: providerId,
+    instance_id: runtime.instance_id,
+    ip,
+  });
+  return ip;
 }
 
 async function scheduleRuntimeRefresh(row: any) {
@@ -226,19 +177,8 @@ async function handleStart(row: any) {
       });
       return;
     }
-    if (providerId === "hyperstack") {
-      const { provider, creds } = await ensureHyperstackProvider();
-      await provider.startHost(runtime, creds);
-    } else if (providerId === "lambda") {
-      const { provider, creds } = await ensureLambdaProvider();
-      await provider.startHost(runtime, creds);
-    } else {
-      if (providerId !== "gcp") {
-        throw new Error(`unsupported cloud provider ${machine.cloud}`);
-      }
-      const { provider, creds } = await ensureGcpProvider();
-      await provider.startHost(runtime, creds);
-    }
+    const { entry, creds } = await getProviderContext(providerId);
+    await entry.provider.startHost(runtime, creds);
   }
   await updateHostRow(row.id, { status: "running", last_seen: new Date() });
   await ensureDnsForHost(row);
@@ -261,23 +201,15 @@ async function handleStop(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
   const providerId = normalizeProviderId(machine.cloud);
+  let supportsStop = true;
   if (providerId && runtime?.instance_id) {
-    if (providerId === "hyperstack") {
-      const { provider, creds } = await ensureHyperstackProvider();
-      await provider.stopHost(runtime, creds);
-    } else if (providerId === "lambda") {
-      const { provider, creds } = await ensureLambdaProvider();
-      await provider.stopHost(runtime, creds);
-    } else {
-      if (providerId !== "gcp") {
-        throw new Error(`unsupported cloud provider ${machine.cloud}`);
-      }
-      const { provider, creds } = await ensureGcpProvider();
-      await provider.stopHost(runtime, creds);
-    }
+    const { entry, creds } = await getProviderContext(providerId);
+    supportsStop = entry.capabilities.supportsStop;
+    await entry.provider.stopHost(runtime, creds);
   }
-  if (providerId === "lambda") {
-    // Lambda has no "stopped" state; terminate means deprovisioned.
+  if (providerId && !supportsStop) {
+    // Providers without a stop state (e.g., Lambda) should be treated as
+    // deprovisioned when "stop" is requested.
     const nextMetadata = {
       ...(row.metadata ?? {}),
     };
@@ -308,19 +240,8 @@ async function handleDelete(row: any) {
   const runtime = row.metadata?.runtime;
   const providerId = normalizeProviderId(machine.cloud);
   if (providerId && runtime?.instance_id) {
-    if (providerId === "hyperstack") {
-      const { provider, creds } = await ensureHyperstackProvider();
-      await provider.deleteHost(runtime, creds);
-    } else if (providerId === "lambda") {
-      const { provider, creds } = await ensureLambdaProvider();
-      await provider.deleteHost(runtime, creds);
-    } else {
-      if (providerId !== "gcp") {
-        throw new Error(`unsupported cloud provider ${machine.cloud}`);
-      }
-      const { provider, creds } = await ensureGcpProvider();
-      await provider.deleteHost(runtime, creds);
-    }
+    const { entry, creds } = await getProviderContext(providerId);
+    await entry.provider.deleteHost(runtime, creds);
   }
   if (await hasDns()) {
     await deleteHostDns({ record_id: row.metadata?.dns?.record_id });

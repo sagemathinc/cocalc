@@ -1,4 +1,4 @@
-import type { HostSpec, HostRuntime, CloudProvider } from "../types";
+import type { HostSpec, HostRuntime, CloudProvider, RemoteInstance } from "../types";
 import getLogger from "@cocalc/backend/logger";
 import {
   createVirtualMachines,
@@ -7,6 +7,8 @@ import {
   getFlavors,
   getImages,
   getKeyPairs,
+  getVirtualMachine,
+  getVirtualMachines,
   startVirtualMachine,
   stopVirtualMachine,
   importKeyPair,
@@ -191,6 +193,15 @@ function parseInstanceId(value: string): number {
 }
 
 export class HyperstackProvider implements CloudProvider {
+  mapStatus(status?: string): string | undefined {
+    if (!status) return undefined;
+    const normalized = status.toLowerCase();
+    if (normalized === "active" || normalized === "running") return "running";
+    if (normalized === "shutoff" || normalized === "stopped") return "off";
+    if (normalized === "error") return "error";
+    return "starting";
+  }
+
   async createHost(
     spec: HostSpec,
     creds: HyperstackCreds,
@@ -264,5 +275,40 @@ export class HyperstackProvider implements CloudProvider {
 
   async getStatus(): Promise<"starting" | "running" | "stopped" | "error"> {
     throw new Error("Hyperstack getStatus not implemented");
+  }
+
+  async listInstances(
+    creds: HyperstackCreds,
+    opts?: { namePrefix?: string },
+  ): Promise<RemoteInstance[]> {
+    ensureHyperstackConfig(creds);
+    const list = await getVirtualMachines();
+    return list
+      .filter((vm) =>
+        opts?.namePrefix ? vm.name?.startsWith(opts.namePrefix) : true,
+      )
+      .map((vm) => ({
+        instance_id: String(vm.id),
+        name: vm.name,
+        status: vm.status,
+        zone: vm.environment?.name,
+        public_ip: vm.floating_ip ?? undefined,
+      }));
+  }
+
+  async getInstance(
+    runtime: HostRuntime,
+    creds: HyperstackCreds,
+  ): Promise<RemoteInstance | undefined> {
+    ensureHyperstackConfig(creds);
+    const instance = await getVirtualMachine(parseInstanceId(runtime.instance_id));
+    if (!instance) return undefined;
+    return {
+      instance_id: runtime.instance_id,
+      name: instance.name,
+      status: instance.status,
+      zone: instance.environment?.name,
+      public_ip: instance.floating_ip ?? undefined,
+    };
   }
 }

@@ -10,3 +10,4 @@ export {
 export * as Lambda from "./lambda";
 export { LambdaProvider, type LambdaCreds } from "./lambda";
 export * from "./catalog";
+export * from "./registry";

@@ -1,6 +1,6 @@
 import { InstancesClient, ZoneOperationsClient } from "@google-cloud/compute";
 import logger from "./logger";
-import type { CloudProvider, HostRuntime, HostSpec } from "./types";
+import type { CloudProvider, HostRuntime, HostSpec, RemoteInstance } from "./types";
 
 type GcpCredentials = {
   service_account_json?: string;
@@ -97,6 +97,19 @@ async function waitUntilOperationComplete({
 }
 
 export class GcpProvider implements CloudProvider {
+  mapStatus(status?: string): string | undefined {
+    if (!status) return undefined;
+    const normalized = status.toLowerCase();
+    if (normalized === "running") return "running";
+    if (
+      normalized === "terminated" ||
+      normalized === "stopped" ||
+      normalized === "stopping"
+    )
+      return "off";
+    return "starting";
+  }
+
   async createHost(spec: HostSpec, creds: any): Promise<HostRuntime> {
     logger.info("gcp.createHost", {
       name: spec.name,
@@ -294,6 +307,59 @@ export class GcpProvider implements CloudProvider {
     if (status === "PROVISIONING" || status === "STAGING") return "starting";
     if (status === "STOPPING") return "stopped";
     return "error";
+  }
+
+  async listInstances(
+    creds: any,
+    opts?: { namePrefix?: string },
+  ): Promise<RemoteInstance[]> {
+    const credentials = parseCredentials(creds ?? {});
+    const client = new InstancesClient(credentials);
+    const instances: RemoteInstance[] = [];
+    for await (const [zoneName, scopedList] of client.aggregatedListAsync({
+      project: credentials.projectId,
+    })) {
+      const zone = (zoneName ?? "").split("/").pop();
+      const entries = scopedList?.instances ?? [];
+      for (const inst of entries) {
+        const name = inst.name ?? "";
+        if (opts?.namePrefix && !name.startsWith(opts.namePrefix)) continue;
+        const public_ip =
+          inst?.networkInterfaces?.[0]?.accessConfigs?.[0]?.natIP ?? undefined;
+        instances.push({
+          instance_id: name,
+          name,
+          status: inst.status ?? undefined,
+          zone,
+          public_ip,
+        });
+      }
+    }
+    return instances;
+  }
+
+  async getInstance(
+    runtime: HostRuntime,
+    creds: any,
+  ): Promise<RemoteInstance | undefined> {
+    const credentials = parseCredentials(creds ?? {});
+    if (!runtime.zone) return undefined;
+    const client = new InstancesClient(credentials);
+    const [instance] = await client.get({
+      project: credentials.projectId,
+      zone: runtime.zone,
+      instance: runtime.instance_id,
+    });
+    if (!instance) return undefined;
+    const public_ip =
+      instance?.networkInterfaces?.[0]?.accessConfigs?.[0]?.natIP ?? undefined;
+    return {
+      instance_id: runtime.instance_id,
+      name: instance.name ?? runtime.instance_id,
+      status: instance.status ?? undefined,
+      zone: runtime.zone,
+      public_ip,
+    };
   }
 }
 

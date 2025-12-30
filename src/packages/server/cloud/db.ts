@@ -187,3 +187,6 @@ export async function markCloudVmWorkFailed(
     [id, error],
   );
 }
+
+// No legacy metadata normalization: new installs should only use canonical
+// provider ids (e.g., "gcp", "hyperstack", "lambda").

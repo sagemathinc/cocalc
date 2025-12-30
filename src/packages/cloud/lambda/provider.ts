@@ -1,4 +1,9 @@
-import type { CloudProvider, HostRuntime, HostSpec } from "../types";
+import type {
+  CloudProvider,
+  HostRuntime,
+  HostSpec,
+  RemoteInstance,
+} from "../types";
 import getLogger from "@cocalc/backend/logger";
 import { LambdaClient } from "./client";
 
@@ -174,6 +179,20 @@ function buildUserData(spec: HostSpec): string | undefined {
 }
 
 export class LambdaProvider implements CloudProvider {
+  mapStatus(status?: string): string | undefined {
+    if (!status) return undefined;
+    const normalized = status.toLowerCase();
+    if (normalized === "active") return "running";
+    if (
+      normalized === "terminated" ||
+      normalized === "terminating" ||
+      normalized === "preempted"
+    )
+      return "deprovisioned";
+    if (normalized === "booting") return "starting";
+    return "off";
+  }
+
   async createHost(spec: HostSpec, creds: LambdaCreds): Promise<HostRuntime> {
     const client = new LambdaClient({ apiKey: creds.apiKey });
     const prefix = normalizePrefix(creds.prefix);
@@ -316,5 +335,40 @@ export class LambdaProvider implements CloudProvider {
       default:
         return "error";
     }
+  }
+
+  async listInstances(
+    creds: LambdaCreds,
+    opts?: { namePrefix?: string },
+  ): Promise<RemoteInstance[]> {
+    const client = new LambdaClient({ apiKey: creds.apiKey });
+    const list = await client.listInstances();
+    return (Array.isArray(list) ? list : [])
+      .filter((vm: any) =>
+        opts?.namePrefix ? (vm?.name ?? "").startsWith(opts.namePrefix) : true,
+      )
+      .map((vm: any) => ({
+        instance_id: vm.id,
+        name: vm.name,
+        status: vm.status,
+        zone: vm.region?.name ?? vm.region,
+        public_ip: vm.ip ?? undefined,
+      }));
+  }
+
+  async getInstance(
+    runtime: HostRuntime,
+    creds: LambdaCreds,
+  ): Promise<RemoteInstance | undefined> {
+    const client = new LambdaClient({ apiKey: creds.apiKey });
+    const instance = await client.getInstance(runtime.instance_id);
+    if (!instance) return undefined;
+    return {
+      instance_id: runtime.instance_id,
+      name: instance.name,
+      status: instance.status,
+      zone: instance.region?.name ?? instance.region,
+      public_ip: instance.ip ?? undefined,
+    };
   }
 }

@@ -1,10 +1,23 @@
-import type { CloudProvider, HostRuntime, HostSpec } from "./types";
+import type {
+  CloudProvider,
+  HostRuntime,
+  HostSpec,
+  RemoteInstance,
+} from "./types";
 import logger from "./logger";
 
 // Local provider for dev/tests. This does not create real VMs; it just
 // tracks a small in-memory lifecycle state so higher-level code can be tested.
 export class LocalProvider implements CloudProvider {
   private readonly states = new Map<string, "running" | "stopped">();
+
+  mapStatus(status?: string): string | undefined {
+    if (!status) return undefined;
+    const normalized = status.toLowerCase();
+    if (normalized === "running") return "running";
+    if (normalized === "off" || normalized === "stopped") return "off";
+    return "starting";
+  }
 
   async createHost(spec: HostSpec, _creds: any): Promise<HostRuntime> {
     logger.info("local.createHost", { name: spec.name });
@@ -54,5 +67,36 @@ export class LocalProvider implements CloudProvider {
     if (state === "stopped") return "stopped";
     if (state === "running") return "running";
     return "error";
+  }
+
+  async listInstances(
+    _creds: any,
+    opts?: { namePrefix?: string },
+  ): Promise<RemoteInstance[]> {
+    const instances: RemoteInstance[] = [];
+    for (const [instance_id, status] of this.states.entries()) {
+      if (opts?.namePrefix && !instance_id.startsWith(opts.namePrefix)) continue;
+      instances.push({
+        instance_id,
+        name: instance_id,
+        status,
+        public_ip: "127.0.0.1",
+      });
+    }
+    return instances;
+  }
+
+  async getInstance(
+    runtime: HostRuntime,
+    _creds: any,
+  ): Promise<RemoteInstance | undefined> {
+    const status = this.states.get(runtime.instance_id);
+    if (!status) return undefined;
+    return {
+      instance_id: runtime.instance_id,
+      name: runtime.instance_id,
+      status,
+      public_ip: "127.0.0.1",
+    };
   }
 }

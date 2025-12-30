@@ -9,19 +9,9 @@
 
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { InstancesClient } from "@google-cloud/compute";
-import { type ProviderId } from "@cocalc/cloud";
-import {
-  ensureGcpProvider,
-  ensureHyperstackProvider,
-  ensureLambdaProvider,
-} from "./host-util";
-import { getVirtualMachines } from "@cocalc/cloud/hyperstack/client";
-import { setHyperstackConfig } from "@cocalc/cloud/hyperstack/config";
-import type { VirtualMachine } from "@cocalc/util/compute/cloud/hyperstack/api-types";
-import { LambdaClient } from "@cocalc/cloud/lambda/client";
+import { listProviderEntries, type ProviderId } from "@cocalc/cloud";
 import { scheduleBootstrap } from "./bootstrap-host";
+import { getProviderContext } from "./provider-context";
 
 const logger = getLogger("server:cloud:reconcile");
 const pool = () => getPool();
@@ -34,7 +24,9 @@ export const DEFAULT_INTERVALS = {
 
 type Intervals = typeof DEFAULT_INTERVALS;
 
-export const PROVIDERS: ProviderId[] = ["gcp", "hyperstack", "lambda"];
+export const PROVIDERS: ProviderId[] = listProviderEntries()
+  .map((entry) => entry.id)
+  .filter((id) => id !== "local");
 
 type Provider = ProviderId;
 
@@ -61,20 +53,14 @@ type RemoteInstance = {
   public_ip?: string;
 };
 
-function providerAliases(provider: Provider): string[] {
-  if (provider === "gcp") return ["gcp", "google-cloud"];
-  if (provider === "lambda") return ["lambda", "lambda-cloud"];
-  return [provider];
-}
-
 async function loadHosts(provider: Provider): Promise<HostRow[]> {
   const { rows } = await pool().query(
     `
       SELECT id, name, status, metadata, public_url, internal_url
       FROM project_hosts
-      WHERE metadata->'machine'->>'cloud' = ANY($1)
+      WHERE metadata->'machine'->>'cloud' = $1
     `,
-    [providerAliases(provider)],
+    [provider],
   );
   return rows;
 }
@@ -88,9 +74,9 @@ async function countHosts(provider: Provider): Promise<{
       SELECT COUNT(*)::int AS total,
              COUNT(*) FILTER (WHERE status='running')::int AS running
       FROM project_hosts
-      WHERE metadata->'machine'->>'cloud' = ANY($1)
+      WHERE metadata->'machine'->>'cloud' = $1
     `,
-    [providerAliases(provider)],
+    [provider],
   );
   return rows[0] ?? { total: 0, running: 0 };
 }
@@ -182,97 +168,16 @@ async function withReconcileLock<T>(
   }
 }
 
-async function listGcpInstances(prefix: string): Promise<RemoteInstance[]> {
-  const { creds } = await ensureGcpProvider();
-  if (!creds.service_account_json) return [];
-  const parsed = JSON.parse(creds.service_account_json);
-  const client = new InstancesClient({
-    projectId: parsed.project_id,
-    credentials: {
-      client_email: parsed.client_email,
-      private_key: parsed.private_key,
-    },
-  });
-  const instances: RemoteInstance[] = [];
-  for await (const [zoneName, scopedList] of client.aggregatedListAsync({
-    project: parsed.project_id,
-  })) {
-    const zone = (zoneName ?? "").split("/").pop();
-    const entries = scopedList?.instances ?? [];
-    for (const inst of entries) {
-      const name = inst.name ?? "";
-      if (!name.startsWith(prefix)) continue;
-      const public_ip =
-        inst?.networkInterfaces?.[0]?.accessConfigs?.[0]?.natIP ?? undefined;
-      instances.push({
-        instance_id: name,
-        name,
-        status: inst.status ?? undefined,
-        zone,
-        public_ip,
-      });
-    }
-  }
-  return instances;
-}
-
-async function listHyperstackInstances(
-  prefix: string,
+async function listProviderInstances(
+  provider: Provider,
+  prefix: string | undefined,
 ): Promise<RemoteInstance[]> {
-  const { creds } = await ensureHyperstackProvider();
-  setHyperstackConfig({ apiKey: creds.apiKey, prefix: creds.prefix });
-  const list = await getVirtualMachines();
-  return list
-    .filter((vm: VirtualMachine) => vm.name?.startsWith(prefix))
-    .map((vm: VirtualMachine) => ({
-      instance_id: String(vm.id),
-      name: vm.name,
-      status: vm.status,
-      zone: vm.environment?.name,
-      public_ip: vm.floating_ip || undefined,
-    }));
-}
-
-async function listLambdaInstances(prefix: string): Promise<RemoteInstance[]> {
-  const { creds } = await ensureLambdaProvider();
-  const client = new LambdaClient({ apiKey: creds.apiKey });
-  const list = await client.listInstances();
-  return (Array.isArray(list) ? list : [])
-    .filter((vm: any) => (vm?.name ?? "").startsWith(prefix))
-    .map((vm: any) => ({
-      instance_id: vm.id,
-      name: vm.name,
-      status: vm.status,
-      zone: vm.region?.name ?? vm.region,
-      public_ip: vm.ip ?? undefined,
-    }));
-}
-
-function mapStatus(provider: Provider, status?: string): string | undefined {
-  if (!status) return undefined;
-  const normalized = status.toLowerCase();
-  if (provider === "gcp") {
-    if (normalized === "running") return "running";
-    if (normalized === "terminated") return "off";
-    return "starting";
-  }
-  if (provider === "hyperstack") {
-    if (normalized === "active" || normalized === "running") return "running";
-    if (normalized === "shutoff" || normalized === "stopped") return "off";
-    return "starting";
-  }
-  if (provider === "lambda") {
-    if (normalized === "active") return "running";
-    if (
-      normalized === "terminated" ||
-      normalized === "terminating" ||
-      normalized === "preempted"
-    )
-      return "deprovisioned";
-    if (normalized === "booting") return "starting";
-    return "off";
-  }
-  return undefined;
+  const { entry, creds } = await getProviderContext(provider);
+  if (!entry.provider.listInstances) return [];
+  return await entry.provider.listInstances(
+    creds,
+    prefix ? { namePrefix: prefix } : undefined,
+  );
 }
 
 async function updateHost(
@@ -314,17 +219,7 @@ async function updateHost(
 }
 
 async function reconcileProvider(provider: Provider) {
-  const {
-    project_hosts_google_prefix = "cocalc-host",
-    project_hosts_hyperstack_prefix = "cocalc-host",
-    project_hosts_lambda_prefix = "cocalc-host",
-  } = await getServerSettings();
-  const prefix =
-    provider === "gcp"
-      ? project_hosts_google_prefix
-      : provider === "hyperstack"
-        ? project_hosts_hyperstack_prefix
-        : project_hosts_lambda_prefix;
+  const { prefix, entry } = await getProviderContext(provider);
   const hosts = await loadHosts(provider);
   const hostByInstanceId = new Map<string, HostRow>();
   for (const row of hosts) {
@@ -332,14 +227,7 @@ async function reconcileProvider(provider: Provider) {
     if (instance_id) hostByInstanceId.set(instance_id, row);
   }
 
-  let instances: RemoteInstance[] = [];
-  if (provider === "gcp") {
-    instances = await listGcpInstances(prefix);
-  } else if (provider === "hyperstack") {
-    instances = await listHyperstackInstances(prefix);
-  } else if (provider === "lambda") {
-    instances = await listLambdaInstances(prefix);
-  }
+  const instances = await listProviderInstances(provider, prefix);
 
   const remoteById = new Map<string, RemoteInstance>();
   for (const inst of instances) {
@@ -361,7 +249,8 @@ async function reconcileProvider(provider: Provider) {
       });
       continue;
     }
-    const desiredStatus = mapStatus(provider, remote.status) ?? row.status;
+    const desiredStatus =
+      entry.provider.mapStatus?.(remote.status) ?? row.status;
     const nextRuntime = {
       ...runtime,
       public_ip: remote.public_ip ?? runtime.public_ip,

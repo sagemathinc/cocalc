@@ -13,8 +13,6 @@ export function normalizeProviderId(
 ): ProviderId | undefined {
   if (!value) return undefined;
   const normalized = value.toLowerCase();
-  if (normalized === "google-cloud") return "gcp";
-  if (normalized === "lambda-cloud") return "lambda";
   if (PROVIDER_IDS.includes(normalized as ProviderId)) {
     return normalized as ProviderId;
   }
@@ -44,6 +42,14 @@ export type HostRuntime = {
   metadata?: Record<string, any>;
 };
 
+export type RemoteInstance = {
+  instance_id: string;
+  name?: string;
+  status?: string;
+  zone?: string;
+  public_ip?: string;
+};
+
 export interface CloudProvider {
   createHost(spec: HostSpec, creds: any): Promise<HostRuntime>;
   startHost(runtime: HostRuntime, creds: any): Promise<void>;
@@ -54,4 +60,13 @@ export interface CloudProvider {
     runtime: HostRuntime,
     creds: any,
   ): Promise<"starting" | "running" | "stopped" | "error">;
+  mapStatus?(status?: string): string | undefined;
+  getInstance?(
+    runtime: HostRuntime,
+    creds: any,
+  ): Promise<RemoteInstance | undefined>;
+  listInstances?(
+    creds: any,
+    opts?: { namePrefix?: string },
+  ): Promise<RemoteInstance[]>;
 }
