@@ -32,9 +32,9 @@ export * from "./make-configuration-change";
 const logger = getLogger("server:compute:google-cloud");
 
 export async function getGoogleCloudPrefix() {
-  const { google_cloud_compute_servers_prefix = "cocalc-compute-server" } =
+  const { project_hosts_google_prefix = "cocalc-host" } =
     await getServerSettings();
-  return google_cloud_compute_servers_prefix;
+  return project_hosts_google_prefix;
 }
 
 export async function getGoogleCloudImagePrefix() {

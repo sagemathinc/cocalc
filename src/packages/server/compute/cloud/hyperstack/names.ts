@@ -11,9 +11,9 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import type { Region } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 
 export async function getPrefix() {
-  const { hyperstack_compute_servers_prefix = "cocalc" } =
+  const { project_hosts_hyperstack_prefix = "cocalc-host" } =
     await getServerSettings();
-  return hyperstack_compute_servers_prefix;
+  return project_hosts_hyperstack_prefix;
 }
 
 export async function getServerName(server: { id: number }) {

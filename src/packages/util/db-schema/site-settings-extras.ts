@@ -248,8 +248,9 @@ export type SiteSettingsExtrasKeys =
   | "compute_servers_section"
   | "compute_servers_markup_percentage"
   | "lambda_cloud_api_key"
+  | "project_hosts_lambda_prefix"
   | "hyperstack_api_key"
-  | "hyperstack_compute_servers_prefix"
+  | "project_hosts_hyperstack_prefix"
   | "hyperstack_compute_servers_markup_percentage"
   | "hyperstack_balance_alert_thresh"
   | "hyperstack_balance_alert_emails"
@@ -258,7 +259,7 @@ export type SiteSettingsExtrasKeys =
   | "google_cloud_service_account_json"
   | "google_cloud_bigquery_billing_service_account_json"
   | "google_cloud_bigquery_detailed_billing_table"
-  | "google_cloud_compute_servers_prefix"
+  | "project_hosts_google_prefix"
   | "google_cloud_compute_servers_image_prefix"
   | "compute_servers_cloudflare_api_key"
   | "compute_servers_images_spec_url"
@@ -814,9 +815,9 @@ export const EXTRAS: SettingsExtras = {
     show: compute_servers_hyperstack_enabled,
     tags: ["Compute Servers", "Hyperstack"],
   },
-  hyperstack_compute_servers_prefix: {
-    name: "Compute Servers: Hyperstack - Resource Prefix",
-    desc: "Prepend this string to all Hyperstack resources that are created, e.g., VM names, disks, etc.  If the prefix is 'cocalc', then the compute server with id 17 will be called 'cocalc-17'.  REQUIRED or Hyperstack will not work.",
+  project_hosts_hyperstack_prefix: {
+    name: "Project Hosts: Hyperstack - Resource Prefix",
+    desc: "Prepend this string to all Hyperstack resources that are created, e.g., VM names, disks, etc. If the prefix is 'cocalc', then the project host with id 17 will be called 'cocalc-17'. REQUIRED or Hyperstack will not work.",
     default: "cocalc",
     to_val: to_trimmed_str,
     show: compute_servers_hyperstack_enabled,
@@ -870,6 +871,16 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     show: () => true,
     password: true,
+    tags: ["Project Hosts"],
+  },
+  project_hosts_lambda_prefix: {
+    name: "Project Hosts: Lambda Cloud - Resource Prefix",
+    desc: "Prepend this string to all Lambda Cloud resources that are created, e.g., instance names. Keep this short. If the prefix is 'cocalc', then a project host with id 17 will be called 'cocalc-17'.",
+    default: "cocalc-host",
+    to_val: to_trimmed_str,
+    show: () => true,
+    tags: ["Project Hosts"],
+    valid: () => true,
   },
   //   coreweave_kubeconfig: {
   //     name: "Compute Servers: CoreWeave - Kubeconfig File (not implemented)",
@@ -906,13 +917,13 @@ export const EXTRAS: SettingsExtras = {
     valid: (x) => !x || x.includes(".detailed_billing."),
     tags: ["Compute Servers", "Google Cloud"],
   },
-  google_cloud_compute_servers_prefix: {
-    name: "Compute Servers: Google Cloud - Resource Prefix",
-    desc: "Prepend this string to all Google cloud resources that are created, e.g., VM names, etc. This is useful if you are using a single Google cloud project for more than just this one cocalc server.  KEEP THIS SHORT!  If the prefix is 'comput', then the compute server with id 17 will be called 'compute-17'.  You very likely want to change this, especially if you have several servers in the same Google cloud project; it must be different between different servers.",
-    default: "compute",
+  project_hosts_google_prefix: {
+    name: "Project Hosts: Google Cloud - Resource Prefix",
+    desc: "Prepend this string to all Google Cloud resources that are created, e.g., VM names, disks, etc. Keep this short. If the prefix is 'cocalc', then a project host with id 17 will be called 'cocalc-17'. You should change this if you manage multiple CoCalc installations in the same Google Cloud project.",
+    default: "cocalc-host",
     to_val: to_trimmed_str,
     show: compute_servers_google_enabled,
-    tags: ["Compute Servers", "Google Cloud"],
+    tags: ["Project Hosts", "Google Cloud"],
     valid: () => true,
   },
   google_cloud_compute_servers_image_prefix: {

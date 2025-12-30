@@ -10,7 +10,7 @@ import {
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { getControlPlaneSshKeypair } from "./ssh-key";
-import { pool } from "@cocalc/database/pool";
+import getPool from "@cocalc/database/pool";
 import type {
   FlavorRegionData,
   Image as HyperstackImage,
@@ -31,7 +31,7 @@ async function loadHyperstackCatalog(): Promise<{
   flavors: FlavorRegionData[];
   images: HyperstackImage[];
 }> {
-  const { rows } = await pool().query(
+  const { rows } = await getPool("medium").query(
     `SELECT kind, payload
        FROM cloud_catalog_cache
       WHERE provider=$1 AND kind IN ('flavors', 'images')`,
@@ -87,13 +87,20 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
   const { publicKey: controlPlanePublicKey } =
     await getControlPlaneSshKeypair();
   const ssh_user = machine.metadata?.ssh_user ?? "ubuntu";
-  const { google_cloud_compute_servers_prefix = "cocalc-host" } =
-    await getServerSettings();
+  const {
+    project_hosts_google_prefix = "cocalc-host",
+    project_hosts_hyperstack_prefix = "cocalc-host",
+    project_hosts_lambda_prefix = "cocalc-host",
+  } = await getServerSettings();
   const baseName = row.id.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
   const providerName =
     machine.cloud === "gcp" || machine.cloud === "google-cloud"
-      ? gcpSafeName(google_cloud_compute_servers_prefix, baseName)
-      : baseName;
+      ? gcpSafeName(project_hosts_google_prefix, baseName)
+      : machine.cloud === "hyperstack"
+        ? gcpSafeName(project_hosts_hyperstack_prefix, baseName)
+        : machine.cloud === "lambda"
+          ? gcpSafeName(project_hosts_lambda_prefix, baseName)
+          : baseName;
   const sourceImage = machine.source_image ?? machine.metadata?.source_image;
   logger.debug("buildHostSpec source_image", {
     host_id: row.id,
@@ -162,7 +169,7 @@ export async function ensureHyperstackProvider(): Promise<{
 }> {
   const {
     hyperstack_api_key,
-    hyperstack_compute_servers_prefix = "cocalc",
+    project_hosts_hyperstack_prefix = "cocalc-host",
   } = await getServerSettings();
   if (!hyperstack_api_key) {
     throw new Error("hyperstack_api_key is not configured");
@@ -175,7 +182,7 @@ export async function ensureHyperstackProvider(): Promise<{
     creds: {
       apiKey: hyperstack_api_key,
       sshPublicKey: controlPlanePublicKey,
-      prefix: hyperstack_compute_servers_prefix,
+      prefix: project_hosts_hyperstack_prefix,
       catalog,
     },
   };
