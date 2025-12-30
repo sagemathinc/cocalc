@@ -1,5 +1,6 @@
 // Bootstrap remote project-host VMs over SSH: install deps, setup btrfs,
 // transfer the SEA bundle, and register a systemd service to run the host.
+
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -7,6 +8,7 @@ import { spawn } from "node:child_process";
 import getPool from "@cocalc/database/pool";
 import { buildHostSpec } from "./host-util";
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
+import type { HostRuntime } from "@cocalc/cloud/types";
 import { getControlPlaneSshKeypair } from "./ssh-key";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { enqueueCloudVmWork, logCloudVmEvent } from "./db";
@@ -14,6 +16,29 @@ import { argsJoin } from "@cocalc/util/args";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("server:cloud:bootstrap-host");
+
+type HostBootstrapState = {
+  status?: "running" | "done";
+  started_at?: string;
+  finished_at?: string;
+};
+
+type HostMetadata = {
+  machine?: HostMachine;
+  runtime?: HostRuntime;
+  bootstrap?: HostBootstrapState;
+  [key: string]: any;
+};
+
+type ProjectHostRow = {
+  id: string;
+  name?: string;
+  region?: string;
+  public_url?: string;
+  internal_url?: string;
+  ssh_server?: string;
+  metadata?: HostMetadata;
+};
 
 async function updateHostRow(id: string, updates: Record<string, any>) {
   const keys = Object.keys(updates).filter((key) => updates[key] !== undefined);
@@ -144,7 +169,7 @@ async function scpFile(opts: {
   ]);
 }
 
-export async function scheduleBootstrap(row: any) {
+export async function scheduleBootstrap(row: ProjectHostRow) {
   const runtime = row.metadata?.runtime;
   if (!runtime?.public_ip) return;
   const bootstrapStatus = row.metadata?.bootstrap?.status;
@@ -156,8 +181,8 @@ export async function scheduleBootstrap(row: any) {
   });
 }
 
-export async function handleBootstrap(row: any) {
-  logger.debug("handleBootstrap", row);
+export async function handleBootstrap(row: ProjectHostRow) {
+  logger.debug("handleBootstrap", { host_id: row.id });
   const runtime = row.metadata?.runtime;
   if (!runtime?.public_ip) {
     throw new Error("bootstrap requires public_ip");
