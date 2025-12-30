@@ -427,14 +427,22 @@ export const HostsPage: React.FC = () => {
               entry.memory_gib != null ? String(entry.memory_gib) : "?";
             const gpuLabel =
               entry.gpus && entry.gpus > 0 ? ` · ${entry.gpus}x GPU` : "";
-            const regionsLabel = entry.regions?.length
-              ? ` · ${entry.regions.length} regions`
-              : "";
+            const regionsCount = entry.regions?.length ?? 0;
+            const regionsLabel = regionsCount ? ` · ${regionsCount} regions` : "";
+            const hasRegions = regionsCount > 0;
             return {
               value: entry.name,
               label: `${entry.name} (${cpuLabel} vCPU / ${ramLabel} GB${gpuLabel}${regionsLabel})`,
               entry,
+              hasRegions,
+              disabled: !hasRegions,
             };
+          })
+          .sort((a, b) => {
+            if (a.hasRegions !== b.hasRegions) {
+              return a.hasRegions ? -1 : 1;
+            }
+            return a.value.localeCompare(b.value);
           })
       : [];
 
@@ -726,8 +734,18 @@ export const HostsPage: React.FC = () => {
     if (selectedProvider !== "lambda") return;
     if (!lambdaInstanceTypeOptions.length) return;
     const values = new Set(lambdaInstanceTypeOptions.map((opt) => opt.value));
-    if (selectedMachineType && values.has(selectedMachineType)) return;
-    form.setFieldsValue({ machine_type: lambdaInstanceTypeOptions[0].value });
+    if (selectedMachineType && values.has(selectedMachineType)) {
+      const selectedOption = lambdaInstanceTypeOptions.find(
+        (opt) => opt.value === selectedMachineType,
+      );
+      if (!selectedOption?.disabled) return;
+    }
+    const preferred =
+      lambdaInstanceTypeOptions.find((opt) => !opt.disabled) ??
+      lambdaInstanceTypeOptions[0];
+    if (preferred) {
+      form.setFieldsValue({ machine_type: preferred.value });
+    }
   }, [selectedProvider, lambdaInstanceTypeOptions, selectedMachineType, form]);
 
   useEffect(() => {
@@ -1074,6 +1092,15 @@ export const HostsPage: React.FC = () => {
     );
   }, [hosts]);
 
+  const regionField = (
+    <Form.Item name="region" label="Region" initialValue="us-east1">
+      <Select
+        options={regionOptions}
+        disabled={selectedProvider === "none" || selectedProvider === "local"}
+      />
+    </Form.Item>
+  );
+
   return (
     <div className="smc-vfill" style={WRAP_STYLE}>
       <Row gutter={[16, 16]}>
@@ -1237,16 +1264,7 @@ export const HostsPage: React.FC = () => {
               >
                 <Select options={providerOptions} />
               </Form.Item>
-              <Form.Item
-                name="region"
-                label="Region"
-                initialValue="us-east1"
-              >
-                <Select
-                  options={regionOptions}
-                  disabled={selectedProvider === "none"}
-                />
-              </Form.Item>
+              {selectedProvider === "lambda" ? null : regionField}
               {selectedProvider === "none" && (
                 <Form.Item name="size" label="Size" initialValue={SIZES[0].value}>
                   <Select options={SIZES} />
@@ -1262,13 +1280,16 @@ export const HostsPage: React.FC = () => {
                 </Form.Item>
               )}
               {selectedProvider === "lambda" && (
-                <Form.Item
-                  name="machine_type"
-                  label="Instance type"
-                  initialValue={lambdaInstanceTypeOptions[0]?.value}
-                >
-                  <Select options={lambdaInstanceTypeOptions} />
-                </Form.Item>
+                <>
+                  <Form.Item
+                    name="machine_type"
+                    label="Instance type"
+                    initialValue={lambdaInstanceTypeOptions[0]?.value}
+                  >
+                    <Select options={lambdaInstanceTypeOptions} />
+                  </Form.Item>
+                  {regionField}
+                </>
               )}
               {catalogError && selectedProvider === "gcp" && (
                 <Alert

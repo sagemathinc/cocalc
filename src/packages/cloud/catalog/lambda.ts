@@ -1,3 +1,4 @@
+import logger from "../logger";
 import { LambdaClient } from "../lambda/client";
 
 export type LambdaInstanceType = {
@@ -47,7 +48,17 @@ export async function fetchLambdaCatalog(opts: {
     client.listImages(),
   ]);
 
-  const instance_types: LambdaInstanceType[] = (typesRaw as InstanceTypeEntry[])
+  const typesList: InstanceTypeEntry[] = Array.isArray(typesRaw)
+    ? (typesRaw as InstanceTypeEntry[])
+    : (Object.values((typesRaw as Record<string, InstanceTypeEntry>) ?? {}) ??
+      []);
+  if (!Array.isArray(typesRaw) && (typesRaw == null || typeof typesRaw !== "object")) {
+    logger.warn("fetchLambdaCatalog unexpected instance-types shape", {
+      type: typeof typesRaw,
+    });
+  }
+
+  const instance_types: LambdaInstanceType[] = typesList
     .map((entry): LambdaInstanceType | null => {
       const name = entry.instance_type?.name;
       if (!name) return null;
