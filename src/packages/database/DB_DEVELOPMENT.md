@@ -103,6 +103,10 @@ npx decaffeinate \
 7. **Switch back and remove the toggle** - set `USE_TYPESCRIPT = false`, confirm tests still pass through the CoffeeScript class (now wired to TS), then remove the toggle and the TS branch in the test file entirely. The tests should permanently target the CoffeeScript class.
 8. **Finalize** - run `pnpm tsc --noEmit`, then `pnpm build`, then re-run the relevant tests to confirm the code compiles and behavior is preserved.
 
+**Naming note:**
+
+- It is fine to use `project_id`, `account_id`, etc., for compatibility with existing APIs and DB columns. This keeps object literal shorthand and parameter passing concise (e.g., `{ project_id }`).
+
 **Async/Await Pattern:**
 
 ```typescript
@@ -173,7 +177,6 @@ After migration is stable:
 **REQUIRED**: All test files that interact with the database must use ephemeral database initialization:
 
 ```typescript
-import { db } from "@cocalc/database";
 import { initEphemeralDatabase } from "@cocalc/database/pool";
 import { testCleanup } from "@cocalc/database/test-utils";
 
@@ -183,21 +186,44 @@ describe("your test suite", () => {
   }, 15000);
 
   afterAll(async () => {
-    await testCleanup(db());
+    await testCleanup();
   });
 
   // Your tests here...
 });
 ```
 
-**Note**: `testCleanup` clears throttles, closes the test query if available, and ends the pool to avoid leaked handles.
+**CRITICAL - afterAll Cleanup**:
+
+**ALWAYS** use `await testCleanup()` in `afterAll` blocks. This is **required** for proper test cleanup.
+
+```typescript
+afterAll(async () => {
+  await testCleanup();
+});
+```
+
+If you have a non-singleton database instance, you can pass it explicitly:
+
+```typescript
+afterAll(async () => {
+  await testCleanup(customDatabaseInstance);
+});
+```
+
+**What `testCleanup` does:**
+
+- Gets the database instance (uses passed parameter or falls back to `db()` singleton)
+- Clears throttles to avoid cross-test rate-limit interference
+- Closes the test query connection if available
+- Ends the database pool to prevent Jest open handle warnings
 
 **Benefits:**
 
 - Ensures clean database state before tests run
 - Prevents test pollution between test runs
 - Proper cleanup prevents Jest open handle warnings
-- Clearing throttles avoids cross-test rate-limit interference
+- Clearing throttles (when database passed) avoids cross-test rate-limit interference
 - Consistent test environment across all migrations
 
 ### Type Safety
@@ -573,16 +599,16 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 - [x] `user_is_in_group` → `postgres/account-basic.ts`
 - [x] `make_user_admin` → `postgres/account-management.ts`
 - [x] `count_accounts_created_by` → `postgres/account-management.ts`
-- [ ] `delete_account`
-- [ ] `mark_account_deleted`
+- [x] `delete_account` → `postgres/account/deletion.ts`
+- [x] `mark_account_deleted` → `postgres/account/deletion.ts`
 - [x] `account_exists` → `postgres/account-basic.ts`
-- [ ] `account_creation_actions`
-- [ ] `account_creation_actions_success`
-- [ ] `do_account_creation_actions`
-- [ ] `verify_email_create_token`
-- [ ] `verify_email_check_token`
-- [ ] `verify_email_get`
-- [ ] `is_verified_email`
+- [x] `account_creation_actions` → `postgres/account/creation.ts`
+- [x] `account_creation_actions_success` → `postgres/account/creation.ts`
+- [x] `do_account_creation_actions` → `postgres/account/creation.ts`
+- [x] `verify_email_create_token` → `postgres/account/verify-email.ts`
+- [x] `verify_email_check_token` → `postgres/account/verify-email.ts`
+- [x] `verify_email_get` → `postgres/account/verify-email.ts`
+- [x] `is_verified_email` → `postgres/account/verify-email.ts`
 - [x] `get_coupon_history` → `postgres/coupon-and-username.ts`
 - [x] `update_coupon_history` → `postgres/coupon-and-username.ts`
 - [x] `account_ids_to_usernames` → `postgres/coupon-and-username.ts`
@@ -603,8 +629,8 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 - [x] `count_password_reset_attempts`
 - [x] `invalidate_all_remember_me` (already wrapper → `postgres/remember-me.ts`)
 - [x] `delete_remember_me` (already wrapper → `postgres/remember-me.ts`)
-- [ ] `accountIsInOrganization`
-- [ ] `nameToAccountOrOrganization`
+- [x] `accountIsInOrganization` → `postgres/account/account-is-in-organization.ts`
+- [x] `nameToAccountOrOrganization` → `postgres/account/name-to-account-or-organization.ts`
 
 **File Access & Usage (4 methods):**
 
@@ -615,20 +641,20 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 
 **Project Management (35 methods):**
 
-- [ ] `_validate_opts`
+- [x] `_validate_opts` → `postgres/account-utils.ts`
 - [x] `get_project`
 - [x] `_get_project_column`
 - [x] `get_user_column`
-- [ ] `add_user_to_project`
-- [ ] `set_project_status`
-- [ ] `remove_collaborator_from_project`
-- [ ] `remove_user_from_project`
-- [x] `get_collaborator_ids`
-- [x] `get_collaborators`
-- [ ] `get_public_paths`
-- [ ] `has_public_path`
-- [ ] `path_is_public`
-- [ ] `filter_public_paths`
+- [x] `add_user_to_project` → `postgres/account-collaborators.ts`
+- [x] `set_project_status` → `postgres/project-status.ts`
+- [x] `remove_collaborator_from_project` → `postgres/account-collaborators.ts`
+- [x] `remove_user_from_project` → `postgres/account-collaborators.ts`
+- [x] `get_collaborator_ids` (already wrapper → `postgres/project-queries.ts`)
+- [x] `get_collaborators` (already wrapper → `postgres/project-queries.ts`)
+- [x] `get_public_paths` (already wrapper → `postgres/public-paths.ts`)
+- [x] `has_public_path` (already wrapper → `postgres/public-paths.ts`)
+- [x] `path_is_public` (already wrapper → `postgres/public-paths.ts`)
+- [x] `filter_public_paths` (already wrapper → `postgres/public-paths.ts`)
 - [x] `_touch_project` → `postgres/activity.ts`
 - [x] `touch_project` → `postgres/activity.ts`
 - [x] `recently_modified_projects`
@@ -637,14 +663,14 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 - [x] `user_is_collaborator`
 - [x] `get_project_ids_with_user`
 - [x] `get_account_ids_using_project`
-- [ ] `when_sent_project_invite`
-- [ ] `sent_project_invite`
-- [ ] `set_project_host`
-- [ ] `unset_project_host`
-- [ ] `get_project_host`
-- [ ] `set_project_storage`
-- [ ] `get_project_storage`
-- [ ] `update_project_storage_save`
+- [x] `when_sent_project_invite` → `postgres/project/invites.ts`
+- [x] `sent_project_invite` → `postgres/project/invites.ts`
+- [x] `set_project_host` → `postgres/project-host.ts`
+- [x] `unset_project_host` → `postgres/project-host.ts`
+- [x] `get_project_host` → `postgres/project-host.ts`
+- [x] `set_project_storage` → `postgres/project-storage.ts`
+- [x] `get_project_storage` → `postgres/project-storage.ts`
+- [x] `update_project_storage_save` → `postgres/project-storage.ts`
 - [x] `set_project_storage_request` → `postgres/project-state.ts`
 - [x] `get_project_storage_request` → `postgres/project-state.ts`
 - [x] `set_project_state` → `postgres/project-state.ts`
@@ -655,11 +681,11 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 - [ ] `ensure_all_user_project_upgrades_are_valid`
 - [ ] `get_project_upgrades`
 - [ ] `remove_all_user_project_upgrades`
-- [ ] `get_project_settings`
-- [ ] `set_project_settings`
-- [ ] `get_project_extra_env`
-- [ ] `recent_projects`
-- [ ] `set_run_quota`
+- [x] `get_project_settings` → `postgres/project-settings.ts`
+- [x] `set_project_settings` → `postgres/project-settings.ts`
+- [x] `get_project_extra_env` → `postgres/project-extra-env.ts`
+- [x] `recent_projects` → `postgres/project-recent.ts`
+- [x] `set_run_quota` → `postgres/project/set-run-quota.ts`
 - [x] `project_datastore_set` (already wrapper → `postgres/project-queries.ts`)
 - [x] `project_datastore_get` (already wrapper → `postgres/project-queries.ts`)
 - [x] `project_datastore_del` (already wrapper → `postgres/project-queries.ts`)
@@ -667,10 +693,14 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 - [x] `unlink_old_deleted_projects` (already wrapper → `postgres/delete-projects.ts`)
 - [x] `projects_that_need_to_be_started` (already wrapper → `postgres/always-running.ts`)
 
-**Public Paths (2 methods already wrapped):**
+**Public Paths (6 methods already wrapped):**
 
 - [x] `unlist_all_public_paths` (already wrapper → `postgres/public-paths.ts`)
 - [x] `get_all_public_paths` (already wrapper → `postgres/public-paths.ts`)
+- [x] `get_public_paths` (already wrapper → `postgres/public-paths.ts`)
+- [x] `has_public_path` (already wrapper → `postgres/public-paths.ts`)
+- [x] `path_is_public` (already wrapper → `postgres/public-paths.ts`)
+- [x] `filter_public_paths` (already wrapper → `postgres/public-paths.ts`)
 
 **Statistics & Analytics (4 methods):**
 
@@ -681,8 +711,8 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 
 **Hub Management (2 methods):**
 
-- [x] `register_hub` → `postgres/hub-management.ts`
-- [x] `get_hub_servers` → `postgres/hub-management.ts`
+- [x] `register_hub` → `postgres/hub/management.ts`
+- [x] `get_hub_servers` → `postgres/hub/management.ts`
 
 **Site Licenses (8 methods already wrapped):**
 
@@ -710,8 +740,8 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
 **Progress Summary:**
 
 - **Total methods**: 130
-- **Already wrappers (TypeScript)**: 31 ✅
-- **Migrated in this session**: 46 ✅
+- **Already wrappers (TypeScript)**: 35 ✅
+- **Migrated in this session**: 61 ✅
   - Batch 1: `get_log`, `get_user_log`, `uncaught_exception`
   - Batch 2: `log_client_error`, `webapp_error`, `get_client_error_log`
   - Batch 3: `set_server_setting`, `get_server_setting`, `get_server_settings_cached`, `get_site_settings`, `server_settings_synctable`, `reset_server_settings_cache`
@@ -725,8 +755,18 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
   - Batch 11: `change_password`, `reset_password`, `set_password_reset`, `get_password_reset`, `delete_password_reset`, `record_password_reset_attempt`, `count_password_reset_attempts`
   - Batch 12: `get_coupon_history`, `update_coupon_history`, `account_ids_to_usernames`
   - Batch 13: `set_project_storage_request`, `get_project_storage_request`, `set_project_state`, `get_project_state`
-- **Remaining to migrate**: 53
-- **Current completion**: 59% (77/130)
+  - Batch 14: `set_project_host`, `unset_project_host`, `get_project_host`
+  - Batch 15: `set_project_storage`, `get_project_storage`, `update_project_storage_save`
+  - Batch 16: `get_project_settings`, `set_project_settings`, `get_project_extra_env`, `recent_projects`
+  - Batch 17: `_validate_opts`, `add_user_to_project`, `set_project_status`, `remove_collaborator_from_project`, `remove_user_from_project`
+  - Batch 18: `verify_email_create_token`, `verify_email_check_token`, `verify_email_get`, `is_verified_email`
+  - Batch 19: `account_creation_actions`, `account_creation_actions_success`, `do_account_creation_actions`
+  - Batch 20: `when_sent_project_invite`, `sent_project_invite`
+  - Batch 21: `delete_account`, `mark_account_deleted`
+  - Found already migrated: `get_public_paths`, `has_public_path`, `path_is_public`, `filter_public_paths`
+  - Reorganized files into subdirectories: `postgres/account/` and `postgres/project/`
+- **Remaining to migrate**: 23
+- **Current completion**: 82% (107/130)
 
 **Recent Migration Notes:**
 
@@ -734,12 +774,13 @@ _This list will be updated as methods are migrated. Each checkbox indicates comp
   - Migrated 6 logging/error methods to `postgres/log-query.ts` with comprehensive tests (14 tests, all passing)
   - Migrated 6 server settings methods to `postgres/server-settings.ts` with comprehensive tests (9 tests, all passing)
   - Migrated 4 file access methods to `postgres/file-access.ts` with comprehensive tests (16 tests, all passing)
-  - Migrated 2 hub management methods to `postgres/hub-management.ts` with comprehensive tests (10 tests, all passing)
+  - Migrated 2 hub management methods to `postgres/hub/management.ts` with comprehensive tests (10 tests, all passing)
   - Migrated 2 statistics methods to `postgres/statistics.ts` with comprehensive tests (12 tests, all passing)
   - Migrated 3 account basic methods to `postgres/account-basic.ts` with comprehensive tests (15 tests, all passing)
   - Migrated 3 account core methods to `postgres/account-core.ts` with comprehensive tests (14 tests, all passing)
   - Migrated 3 account management methods to `postgres/account-management.ts` with comprehensive tests (10 tests passing, 1 skipped due to throttle state)
   - Migrated 3 activity tracking methods to `postgres/activity.ts` with comprehensive tests (10 tests, all passing)
+  - Migrated 3 account creation methods to `postgres/account/creation.ts` with comprehensive tests (11 tests, all passing)
   - **Type System Improvements**: Added `_throttle`, `_close_test_query`, `clear_cache`, `get_hub_servers`, `get_stats_interval`, `get_active_student_stats`, `is_admin`, `user_is_in_group`, `account_exists`, `get_account`, `is_banned_user`, `_account_where`, `_touch_account`, `_touch_project`, and `touch_project` method signatures to `PostgreSQL` interface in `postgres/types.ts`
   - **CRITICAL WORKFLOW**: Always write tests FIRST and verify they pass with the CoffeeScript implementation. A local `USE_TYPESCRIPT` toggle in the test file is allowed temporarily during the batch, but must be removed once wrappers are in place.
   - **CODE QUALITY NOTE**: During conversion and later on, replace all `await callback2(db._query.bind(db)` with the shorter and more readable `await db.async_query`. The `async_query` method is the preferred TypeScript-native approach.

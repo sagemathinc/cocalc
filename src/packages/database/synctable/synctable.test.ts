@@ -13,7 +13,7 @@ import { uuid } from "@cocalc/util/misc";
 import { SCHEMA } from "@cocalc/util/schema";
 
 import type { SyncTable } from "./synctable";
-import type { ChangeEvent, Changes } from "../postgres/changefeed";
+import type { ChangeEvent, Changes } from "../postgres/changefeed/changefeed";
 
 const INSERT_SYNCSTRING =
   "INSERT INTO syncstrings(string_id,project_id,path) VALUES($1,$2,$3)";
@@ -137,7 +137,7 @@ describe("SyncTable (integration)", () => {
   }, 15000);
 
   afterAll(async () => {
-    await testCleanup(db());
+    await testCleanup();
   });
 
   test("loads existing rows into the cache", async () => {

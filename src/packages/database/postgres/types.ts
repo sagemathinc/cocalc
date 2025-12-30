@@ -17,8 +17,8 @@ import {
 } from "@cocalc/util/types/database";
 
 import type { SyncTable } from "../synctable/synctable";
-import type { Changes } from "./changefeed";
-import type { ProjectAndUserTracker } from "./project-and-user-tracker";
+import type { Changes } from "./changefeed/changefeed";
+import type { ProjectAndUserTracker } from "./project/project-and-user-tracker";
 
 export type { QueryResult };
 
@@ -386,6 +386,47 @@ export interface PostgreSQL extends EventEmitter {
     cb: CB;
   }): void;
   get_project_state(opts: { project_id: string; cb: CB }): void;
+
+  set_project_host(opts: {
+    project_id: string;
+    host: string;
+    cb: CB<Date>;
+  }): void;
+  unset_project_host(opts: { project_id: string; cb: CB }): void;
+  get_project_host(opts: {
+    project_id: string;
+    cb: CB<string | undefined>;
+  }): void;
+
+  set_project_storage(opts: {
+    project_id: string;
+    host: string;
+    cb: CB<Date>;
+  }): void;
+  get_project_storage(opts: { project_id: string; cb: CB<any> }): void;
+  update_project_storage_save(opts: { project_id: string; cb: CB }): void;
+
+  get_project_settings(opts: { project_id: string; cb: CB<any> }): void;
+  set_project_settings(opts: {
+    project_id: string;
+    settings: any;
+    cb: CB;
+  }): void;
+
+  get_project_extra_env(opts: { project_id: string; cb: CB<any> }): void;
+
+  recent_projects(opts: {
+    age_m: number;
+    min_age_m?: number;
+    pluck?: string[];
+    cb: CB<any>;
+  }): void;
+
+  set_run_quota(
+    project_id: string,
+    run_quota: Record<string, unknown>,
+  ): Promise<void>;
+
   get_collaborator_ids(opts: { account_id: string; cb: CB<string[]> }): void;
   get_collaborators(opts: { project_id: string; cb: CB<string[]> }): void;
 
@@ -396,10 +437,20 @@ export interface PostgreSQL extends EventEmitter {
     cb: CBDB;
   }): void;
 
+  _validate_opts(opts: any): boolean;
+
+  sanitize(value: string): string;
+
   add_user_to_project(opts: {
     account_id: string;
     project_id: string;
     group?: string;
+    cb: CB;
+  }): void;
+
+  remove_collaborator_from_project(opts: {
+    account_id: string;
+    project_id: string;
     cb: CB;
   }): void;
 
@@ -408,6 +459,52 @@ export interface PostgreSQL extends EventEmitter {
     project_id: string;
     cb: CB;
   }): void;
+
+  verify_email_create_token(opts: {
+    account_id: string;
+    cb?: (
+      err,
+      result?: { email_address: string; token: string; old_challenge?: any },
+    ) => void;
+  }): void;
+
+  verify_email_check_token(opts: {
+    email_address: string;
+    token: string;
+    cb?: CB;
+  }): void;
+
+  verify_email_get(opts: {
+    account_id: string;
+    cb?: (err, result?: any) => void;
+  }): void;
+
+  is_verified_email(opts: {
+    email_address: string;
+    cb: (err, verified?: boolean) => void;
+  }): void;
+
+  account_creation_actions(opts: {
+    email_address: string;
+    action?: any;
+    ttl?: number;
+    cb: (err, actions?: any[]) => void;
+  }): void;
+
+  account_creation_actions_success(opts: { account_id: string; cb: CB }): void;
+
+  do_account_creation_actions(opts: {
+    email_address: string;
+    account_id: string;
+    cb: CB;
+  }): void;
+
+  accountIsInOrganization(opts: {
+    organization_id: string;
+    account_id: string;
+  }): Promise<boolean>;
+
+  nameToAccountOrOrganization(name: string): Promise<string | undefined>;
 
   user_is_in_project_group(opts: {
     account_id?: string;
@@ -423,6 +520,19 @@ export interface PostgreSQL extends EventEmitter {
     cache?: boolean;
     cb: CB<boolean>;
   });
+
+  when_sent_project_invite(opts: {
+    project_id: string;
+    to: string;
+    cb: (err, result?: Date | number) => void;
+  }): void;
+
+  sent_project_invite(opts: {
+    project_id: string;
+    to: string;
+    error?: string;
+    cb?: CB;
+  }): void;
 
   get_user_column(
     column: string,
@@ -455,6 +565,14 @@ export interface PostgreSQL extends EventEmitter {
   }): void;
 
   account_exists(opts: { email_address: string; cb: CB }): void;
+
+  delete_account(opts: { account_id: string; cb: CB }): void;
+
+  mark_account_deleted(opts: {
+    account_id?: string;
+    email_address?: string;
+    cb: CB;
+  }): void;
 
   is_banned_user(opts: {
     email_address?: string;
@@ -585,11 +703,26 @@ export interface PostgreSQL extends EventEmitter {
 
   get_coupon_history(opts: { account_id: string; cb: CB }): void;
 
+  get_project_quotas(opts: { project_id: string; cb: CB }): void;
+
   get_user_project_upgrades(opts: { account_id: string; cb: CB }): void;
+
+  ensure_user_project_upgrades_are_valid(opts: {
+    account_id: string;
+    fix?: boolean;
+    cb: CB;
+  }): void;
+
+  ensure_all_user_project_upgrades_are_valid(opts: {
+    limit?: number;
+    cb: CB;
+  }): void;
+
+  get_project_upgrades(opts: { project_id: string; cb: CB }): void;
 
   remove_all_user_project_upgrades(opts: {
     account_id: string;
-    projects: string[];
+    projects?: string[];
     cb: CB;
   }): void;
 

@@ -18,23 +18,23 @@ import type {
   ProjectAndUserTrackerOptions,
   SyncTableOptions,
 } from "../postgres/types";
-import type { Changes } from "../postgres/changefeed";
-import type { ProjectAndUserTracker } from "../postgres/project-and-user-tracker";
+import type { Changes } from "../postgres/changefeed/changefeed";
+import type { ProjectAndUserTracker } from "../postgres/project/project-and-user-tracker";
 
 import { trigger_code, trigger_name } from "./trigger";
 import { SyncTable } from "./synctable";
 
-type ChangesConstructor = typeof import("../postgres/changefeed").Changes;
+type ChangesConstructor = typeof import("../postgres/changefeed/changefeed").Changes;
 type ProjectAndUserTrackerConstructor =
-  typeof import("../postgres/project-and-user-tracker").ProjectAndUserTracker;
+  typeof import("../postgres/project/project-and-user-tracker").ProjectAndUserTracker;
 
 // Lazy-load Changes and ProjectAndUserTracker to allow Jest mocks to work
 function getChanges(): ChangesConstructor {
-  return require("../postgres/changefeed").Changes as ChangesConstructor;
+  return require("../postgres/changefeed/changefeed").Changes as ChangesConstructor;
 }
 
 function getProjectAndUserTracker(): ProjectAndUserTrackerConstructor {
-  return require("../postgres/project-and-user-tracker")
+  return require("../postgres/project/project-and-user-tracker")
     .ProjectAndUserTracker as ProjectAndUserTrackerConstructor;
 }
 

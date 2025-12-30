@@ -1,6 +1,6 @@
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
-import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
+import { pii_retention_to_future } from "@cocalc/database/postgres/account/pii";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { LLMLogEntry } from "@cocalc/util/db-schema/llm";
 

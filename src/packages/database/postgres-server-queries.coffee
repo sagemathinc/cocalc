@@ -28,10 +28,25 @@ required = defaults.required
 
 # IDK why, but if that import line is down below, where the other "./postgres/*" imports are, building manage
 # fails with: remember-me.ts(15,31): error TS2307: Cannot find module 'async-await-utils/hof' or its corresponding type declarations.
-{get_remember_me_message, invalidate_all_remember_me, delete_remember_me} = require('./postgres/remember-me')
-{change_password, reset_password, set_password_reset, get_password_reset, delete_password_reset, record_password_reset_attempt, count_password_reset_attempts} = require('./postgres/password')
-{getCouponHistory, updateCouponHistory, accountIdsToUsernames} = require('./postgres/coupon-and-username')
-{setProjectStorageRequest, getProjectStorageRequest, setProjectState, getProjectState} = require('./postgres/project-state')
+{get_remember_me_message, invalidate_all_remember_me, delete_remember_me} = require('./postgres/account/remember-me')
+{change_password, reset_password, set_password_reset, get_password_reset, delete_password_reset, record_password_reset_attempt, count_password_reset_attempts} = require('./postgres/account/password')
+{getCouponHistory, updateCouponHistory, accountIdsToUsernames} = require('./postgres/account/coupon-and-username')
+{setProjectStorageRequest, getProjectStorageRequest, setProjectState, getProjectState} = require('./postgres/project/state')
+{setProjectHost, unsetProjectHost, getProjectHost} = require('./postgres/project/host')
+{setProjectStorage, getProjectStorage, updateProjectStorageSave} = require('./postgres/project/storage')
+{getProjectSettings, setProjectSettings} = require('./postgres/project/settings')
+{getProjectExtraEnv} = require('./postgres/project/extra-env')
+{recentProjects} = require('./postgres/project/recent')
+{validateOpts} = require('./postgres/account/utils')
+{addUserToProject, removeCollaboratorFromProject, removeUserFromProject} = require('./postgres/account/collaborators')
+{verifyEmailCreateToken, verifyEmailCheckToken, verifyEmailGet, isVerifiedEmail} = require('./postgres/account/verify-email')
+{setProjectStatus} = require('./postgres/project/status')
+{accountCreationActions, accountCreationActionsSuccess, doAccountCreationActions} = require('./postgres/account/creation')
+{whenSentProjectInvite, sentProjectInvite} = require('./postgres/project/invites')
+{deleteAccount, markAccountDeleted} = require('./postgres/account/deletion')
+{accountIsInOrganization} = require('./postgres/account/account-is-in-organization')
+{nameToAccountOrOrganization} = require('./postgres/account/name-to-account-or-organization')
+{setRunQuota} = require('./postgres/project/set-run-quota')
 
 {SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, RECENT_TIMES, RECENT_TIMES_KEY, site_settings_conf} = require('@cocalc/util/schema')
 
@@ -42,7 +57,7 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 {PROJECT_COLUMNS, one_result, all_results, count_result, expire_time} = require('./postgres-base')
 
 # TODO is set_account_info_if_possible used here?!
-{is_paying_customer, set_account_info_if_possible} = require('./postgres/account-queries')
+{is_paying_customer, set_account_info_if_possible} = require('./postgres/account/queries')
 {getStripeCustomerId, syncCustomer} = require('./postgres/stripe')
 
 {site_license_usage_stats, projects_using_site_license, number_of_projects_using_site_license} = require('./postgres/site-license/analytics')
@@ -50,27 +65,28 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 {site_license_public_info} = require('./postgres/site-license/public')
 {site_license_manager_set} = require('./postgres/site-license/manager')
 {matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
-{project_datastore_set, project_datastore_get, project_datastore_del, get_collaborator_ids, get_collaborators, get_project_ids_with_user, get_account_ids_using_project, user_is_in_project_group, user_is_collaborator, recently_modified_projects, get_open_unused_projects, get_project, _get_project_column, get_user_column} = require('./postgres/project-queries')
-{permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
-{get_all_public_paths, unlist_all_public_paths, get_public_paths, has_public_path, path_is_public, filter_public_paths} = require('./postgres/public-paths')
-{get_personal_user} = require('./postgres/personal')
-{set_passport_settings, get_passport_settings, get_all_passport_settings, get_all_passport_settings_cached, create_passport, passport_exists, update_account_and_passport, _passport_key} = require('./postgres/passport')
-{projects_that_need_to_be_started} = require('./postgres/always-running');
-{calc_stats} = require('./postgres/stats')
+{project_datastore_set, project_datastore_get, project_datastore_del, get_collaborator_ids, get_collaborators, get_project_ids_with_user, get_account_ids_using_project, user_is_in_project_group, user_is_collaborator, recently_modified_projects, get_open_unused_projects, get_project, _get_project_column, get_user_column} = require('./postgres/project/queries')
+{permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/project/delete-projects')
+{get_all_public_paths, unlist_all_public_paths, get_public_paths, has_public_path, path_is_public, filter_public_paths} = require('./postgres/paths/public-paths')
+{get_personal_user} = require('./postgres/account/personal')
+{set_passport_settings, get_passport_settings, get_all_passport_settings, get_all_passport_settings_cached, create_passport, passport_exists, update_account_and_passport, _passport_key} = require('./postgres/account/passport')
+{projects_that_need_to_be_started} = require('./postgres/project/always-running');
+{calc_stats} = require('./postgres/stats/stats')
 {getServerSettings, resetServerSettingsCache, getPassportsCached, setPassportsCached} = require('@cocalc/database/settings/server-settings');
-{pii_expire} = require("./postgres/pii")
-registrationTokens = require('./postgres/registration-tokens').default;
-{updateUnreadMessageCount} = require('./postgres/messages');
+{pii_expire} = require("./postgres/account/pii")
+registrationTokens = require('./postgres/account/registration-tokens').default;
+{updateUnreadMessageCount} = require('./postgres/changefeed/messages');
 centralLog = require('./postgres/central-log').default;
 {get_log, get_user_log, uncaught_exception, log_client_error, webapp_error, get_client_error_log} = require('./postgres/log-query');
-{set_server_setting, get_server_setting, get_server_settings_cached, get_site_settings, server_settings_synctable, reset_server_settings_cache} = require('./postgres/server-settings');
-{log_file_access, get_file_access, record_file_use, get_file_use} = require('./postgres/file-access');
-{register_hub, get_hub_servers} = require('./postgres/hub-management');
-{get_stats_interval, get_active_student_stats} = require('./postgres/statistics');
-{is_admin, user_is_in_group, account_exists} = require('./postgres/account-basic');
-{get_account, is_banned_user, accountWhere} = require('./postgres/account-core');
-{make_user_admin, count_accounts_created_by, touchAccount} = require('./postgres/account-management');
-{touchProjectInternal, touchProject, touch} = require('./postgres/activity');
+{set_server_setting, get_server_setting, get_server_settings_cached, get_site_settings, server_settings_synctable, reset_server_settings_cache} = require('./postgres/settings/server-settings');
+{log_file_access, get_file_access, record_file_use, get_file_use} = require('./postgres/paths/file-access');
+{register_hub, get_hub_servers} = require('./postgres/hub/management');
+{get_stats_interval, get_active_student_stats} = require('./postgres/stats/statistics');
+{is_admin, user_is_in_group, account_exists} = require('./postgres/account/basic');
+{get_account, is_banned_user, accountWhere} = require('./postgres/account/core');
+{make_user_admin, count_accounts_created_by, touchAccount} = require('./postgres/account/management');
+{touchProjectInternal, touchProject, touch} = require('./postgres/stats/activity');
+{changeEmailAddress} = require('./postgres/account/change-email-address');
 
 stripe_name = require('@cocalc/util/stripe/name').default;
 
@@ -252,9 +268,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
 
     ###
     Creating an account using SSO only.
-    This needs to be rewritten in @cocalc/server like
-    all the other account creation.  This is horrible
-    because
     ###
     create_sso_account: (opts={}) =>
         opts = defaults opts,
@@ -408,11 +421,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             account_id : required
             cb         : required
-        if not @_validate_opts(opts) then return
-        @_query
-            query : "DELETE FROM accounts"
-            where : "account_id = $::UUID" : opts.account_id
-            cb    : opts.cb
+        try
+            await deleteAccount(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err.message ? err)
 
     # Mark the account as deleted, thus freeing up the email
     # address for use by another account, etc.  The actual
@@ -426,44 +439,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             account_id    : undefined
             email_address : undefined
             cb            : required
-        if not opts.account_id? and not opts.email_address?
-            opts.cb("one of email address or account_id must be specified -- make sure you are signed in")
-            return
-
-        query = undefined
-        email_address = undefined
-        async.series([
-            (cb) =>
-                if opts.account_id?
-                    cb()
-                else
-                    @account_exists
-                        email_address : opts.email_address
-                        cb            : (err, account_id) =>
-                            if err
-                                cb(err)
-                            else if not account_id
-                                cb("no such email address known")
-                            else
-                                opts.account_id = account_id
-                                cb()
-            (cb) =>
-                @_query
-                    query : "SELECT email_address FROM accounts"
-                    where : "account_id = $::UUID" : opts.account_id
-                    cb    : one_result 'email_address', (err, x) =>
-                        email_address = x; cb(err)
-            (cb) =>
-                @_query
-                    query  : "UPDATE accounts"
-                    set    :
-                        "deleted::BOOLEAN"                  : true
-                        "email_address_before_delete::TEXT" : email_address
-                        "email_address"                     : null
-                        "passports"                         : null
-                    where  : "account_id = $::UUID"             : opts.account_id
-                    cb     : cb
-        ], opts.cb)
+        try
+            await markAccountDeleted(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err.message ? err)
 
     account_exists: (opts) =>
         opts = defaults opts,
@@ -482,36 +462,21 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             action        : undefined   # if given, adds this action; if not, returns all non-expired actions
             ttl           : 60*60*24*14 # add action with this ttl in seconds (default: 2 weeks)
             cb            : required    # if ttl not given cb(err, [array of actions])
-        if opts.action?
-            # add action
-            @_query
-                query  : 'INSERT INTO account_creation_actions'
-                values :
-                    'id            :: UUID'      : misc.uuid()
-                    'email_address :: TEXT'      : opts.email_address
-                    'action        :: JSONB'     : opts.action
-                    'expire        :: TIMESTAMP' : expire_time(opts.ttl)
-                cb : opts.cb
-        else
-            # query for actions
-            @_query
-                query : 'SELECT action FROM account_creation_actions'
-                where :
-                    'email_address  = $::TEXT'       : opts.email_address
-                    'expire        >= $::TIMESTAMP'  : new Date()
-                cb    : all_results('action', opts.cb)
+        try
+            result = await accountCreationActions(@, opts)
+            opts.cb?(undefined, result)
+        catch err
+            opts.cb?(err.message ? err)
 
     account_creation_actions_success: (opts) =>
         opts = defaults opts,
             account_id : required
             cb         : required
-        @_query
-            query : 'UPDATE accounts'
-            set   :
-                'creation_actions_done::BOOLEAN' : true
-            where :
-                'account_id = $::UUID' : opts.account_id
-            cb     : opts.cb
+        try
+            await accountCreationActionsSuccess(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err.message ? err)
 
     # DEPRECATED: use import accountCreationActions from "@cocalc/server/accounts/account-creation-actions"; instead!!!!
     do_account_creation_actions: (opts) =>
@@ -519,183 +484,53 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             email_address : required
             account_id    : required
             cb            : required
-        dbg = @_dbg("do_account_creation_actions(email_address='#{opts.email_address}')")
-        dbg("**DEPRECATED!**  This will miss doing important things, e.g., creating initial project.")
-        @account_creation_actions
-            email_address : opts.email_address
-            cb            : (err, actions) =>
-                if err
-                    opts.cb(err); return
-                f = (action, cb) =>
-                    dbg("account_creation_actions: action = #{misc.to_json(action)}")
-                    if action.action == 'add_to_project'
-                        @add_user_to_project
-                            project_id : action.project_id
-                            account_id : opts.account_id
-                            group      : action.group
-                            cb         : (err) =>
-                                if err
-                                    dbg("Error adding user to project: #{err}")
-                                cb(err)
-                    else
-                        dbg("ERROR: skipping unknown action -- #{action.action}")
-                        # also store in database so we can look into this later.
-                        @log
-                            event : 'unknown_action'
-                            value :
-                                error      : "unknown_action"
-                                action     : action
-                                account_id : opts.account_id
-                                host       : require('os').hostname()
-                        cb()
-                async.map actions, f, (err) =>
-                    if not err
-                        @account_creation_actions_success
-                            account_id : opts.account_id
-                            cb         : opts.cb
-                    else
-                        opts.cb(err)
+        try
+            await doAccountCreationActions(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err.message ? err)
 
-    verify_email_create_token: (opts) =>  # has been rewritten in backend/email/verify.ts
+    verify_email_create_token: (opts) =>
         opts = defaults opts,
             account_id    : required
             cb            : undefined
-
-        locals =
-            email_address : undefined
-            token         : undefined
-            old_challenge : undefined
-
-        async.series([
-            (cb) =>
-                @_query
-                    query : "SELECT email_address, email_address_challenge FROM accounts"
-                    where : "account_id = $::UUID" : opts.account_id
-                    cb    : one_result (err, x) =>
-                        locals.email_address = x?.email_address
-                        locals.old_challenge = x?.email_address_challenge
-                        cb(err)
-            (cb) =>
-                # TODO maybe expire tokens after some time
-                if locals.old_challenge?
-                    old = locals.old_challenge
-                    # return the same token if there is one for the same email
-                    if old.token? and old.email == locals.email_address
-                        locals.token = locals.old_challenge.token
-                        cb()
-                        return
-
-                {generate} = require("random-key")
-                locals.token = generate(16).toLowerCase()
-                data =
-                    email : locals.email_address
-                    token : locals.token
-                    time  : new Date()
-
-                @_query
-                    query  : "UPDATE accounts"
-                    set    :
-                        'email_address_challenge::JSONB' : data
-                    where  :
-                        "account_id = $::UUID"       : opts.account_id
-                    cb     : cb
-        ], (err) ->
-            opts.cb?(err, locals)
-        )
+        try
+            result = await verifyEmailCreateToken(@, opts)
+            opts.cb?(undefined, result)
+        catch err
+            opts.cb?(err.message ? err)
 
 
-    verify_email_check_token: (opts) =>   # rewritten in server/auth/redeem-verify-email.ts
+    verify_email_check_token: (opts) =>
         opts = defaults opts,
             email_address : required
             token         : required
             cb            : undefined
+        try
+            await verifyEmailCheckToken(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err.message ? err)
 
-        locals =
-            account_id          : undefined
-            email_address_challenge : undefined
-
-        async.series([
-            (cb) =>
-                @get_account
-                    email_address : opts.email_address
-                    columns       : ['account_id', 'email_address_challenge']
-                    cb            : (err, x) =>
-                        if err
-                            cb(err)
-                        else if not x?
-                            cb("no such email address")
-                        else
-                            locals.account_id          = x.account_id
-                            locals.email_address_challenge = x.email_address_challenge
-                            cb()
-            (cb) =>
-                if not locals.email_address_challenge?
-                    @is_verified_email
-                        email_address : opts.email_address
-                        cb            : (err, verified) ->
-                            if not err and verified
-                                cb("This email address is already verified.")
-                            else
-                                cb("For this email address no account verification is setup.")
-
-                else if locals.email_address_challenge.email != opts.email_address
-                    cb("The account's email address does not match the token's email address.")
-
-                else if locals.email_address_challenge.time < misc.hours_ago(24)
-                    cb("The account verification token is no longer valid. Get a new one!")
-
-                else
-                    if locals.email_address_challenge.token == opts.token
-                        cb()
-                    else
-                        cb("Provided token does not match.")
-            (cb) =>
-                # we're good, save it
-                @_query
-                    query  : "UPDATE accounts"
-                    jsonb_set :
-                        email_address_verified:
-                            "#{opts.email_address}" : new Date()
-                    where  : "account_id = $::UUID" : locals.account_id
-                    cb     : cb
-            (cb) =>
-                # now delete the token
-                @_query
-                    query  : 'UPDATE accounts'
-                    set    :
-                        'email_address_challenge::JSONB' : null
-                    where  :
-                        "account_id = $::UUID" : locals.account_id
-                    cb     : cb
-        ], opts.cb)
-
-    # returns the email address and whether or not it is verified
     verify_email_get: (opts) =>
         opts = defaults opts,
             account_id    : required
             cb            : undefined
-        @_query
-            query : "SELECT email_address, email_address_verified FROM accounts"
-            where : "account_id = $::UUID" : opts.account_id
-            cb    : one_result (err, x) ->
-                opts.cb?(err, x)
+        try
+            result = await verifyEmailGet(@, opts)
+            opts.cb?(undefined, result)
+        catch err
+            opts.cb?(err.message ? err)
 
-    # answers the question as cb(null, [true or false])
-    is_verified_email: (opts) =>  # rewritten in server/auth/redeem-verify-email.ts
+    is_verified_email: (opts) =>
         opts = defaults opts,
             email_address : required
             cb            : required
-        @get_account
-            email_address : opts.email_address
-            columns       : ['email_address_verified']
-            cb            : (err, x) =>
-                if err
-                    opts.cb(err)
-                else if not x?
-                    opts.cb("no such email address")
-                else
-                    verified = !!x.email_address_verified?[opts.email_address]
-                    opts.cb(undefined, verified)
+        try
+            verified = await isVerifiedEmail(@, opts)
+            opts.cb(undefined, verified)
+        catch err
+            opts.cb(err.message ? err)
 
     ###
     Auxiliary billing related queries
@@ -886,47 +721,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             email_address : required
             stripe        : required
             cb            : required
-        if not @_validate_opts(opts) then return
-        async.series([
-            (cb) =>
-                @account_exists
-                    email_address : opts.email_address
-                    cb            : (err, exists) =>
-                        if err
-                            cb(err)
-                            return
-                        if exists
-                            cb("email_already_taken")
-                            return
-                        cb()
-            (cb) =>
-                @_query
-                    query : 'UPDATE accounts'
-                    set   : {email_address: opts.email_address}
-                    where : @_account_where(opts)
-                    cb    : cb
-            (cb) =>
-                @_query
-                    query : "SELECT stripe_customer_id FROM accounts"
-                    where : "account_id = $::UUID" : opts.account_id
-                    cb    : one_result (err, x) =>
-                        if err
-                            cb(err)
-                            return
-                        if x.stripe_customer_id
-                            try
-                                await syncCustomer
-                                    account_id  : opts.account_id
-                                    stripe      : opts.stripe
-                                    customer_id : x.stripe_customer_id
-                                cb()
-                            catch err
-                                cb(err)
-                        else
-                            cb()
-        ], (err) =>
-            opts.cb(err)
-        )
+        try
+            await changeEmailAddress(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err)
 
     ###
     Password reset
@@ -1060,32 +859,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             opts.cb(err)
 
     _validate_opts: (opts) =>
-        for k, v of opts
-            if k == 'lti_id'
-                if not (Array.isArray(v) and v.length > 0)
-                    opts.cb?("invalid #{k} -- can't be an empty array")
-                    return false
-                for x in v
-                    if not (typeof x == 'string' and x.length > 0)
-                        opts.cb?("invalid #{k} -- #{v}")
-                        return false
-            else if k.slice(k.length-2) == 'id'
-                if v? and not misc.is_valid_uuid_string(v)
-                    opts.cb?("invalid #{k} -- #{v}")
-                    return false
-            if k.slice(k.length-3) == 'ids'
-                for w in v
-                    if not misc.is_valid_uuid_string(w)
-                        opts.cb?("invalid uuid #{w} in #{k} -- #{misc.to_json(v)}")
-                        return false
-            if k == 'group' and v not in misc.PROJECT_GROUPS
-                opts.cb?("unknown project group '#{v}'"); return false
-            if k == 'groups'
-                for w in v
-                    if w not in misc.PROJECT_GROUPS
-                        opts.cb?("unknown project group '#{w}' in groups"); return false
-
-        return true
+        try
+            return validateOpts(opts)
+        catch err
+            opts.cb?(err.message)
+            return false
 
     get_project: (opts) =>
         opts = defaults opts,
@@ -1118,31 +896,23 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             project_id   : required
             account_id   : required
             group        : 'collaborator'  # see misc.PROJECT_GROUPS above
-            cb           : required  # cb(err)
-
-        if not @_validate_opts(opts) then return
-
-        @_query
-            query       : 'UPDATE projects'
-            jsonb_merge :
-                users   :
-                    "#{opts.account_id}":
-                        group: opts.group
-            where       :
-                "project_id = $::UUID": opts.project_id
-            cb          : opts.cb
+            cb           : undefined
+        try
+            await addUserToProject(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err.message ? err)
 
     set_project_status: (opts) =>
         opts = defaults opts,
             project_id : required
             status     : required
             cb         : undefined
-        @_query
-            query : "UPDATE projects"
-            set   : {"status::JSONB"   : opts.status}
-            where : {"project_id = $::UUID": opts.project_id}
-            cb    : opts.cb
-
+        try
+            await setProjectStatus(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err)
 
     # Remove the given collaborator from the project.
     # Attempts to remove an *owner* via this function will silently fail (change their group first),
@@ -1151,28 +921,24 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             project_id : required
             account_id : required
-            cb         : required  # cb(err)
-        if not @_validate_opts(opts) then return
-        @_query
-            query     : 'UPDATE projects'
-            jsonb_set : {users : {"#{opts.account_id}": null}}
-            where     :
-                'project_id :: UUID = $'                          : opts.project_id
-                "users#>>'{#{opts.account_id},group}' != $::TEXT" : 'owner'
-            cb        : opts.cb
+            cb         : undefined
+        try
+            await removeCollaboratorFromProject(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err.message ? err)
 
     # remove any user, even an owner.
     remove_user_from_project: (opts) =>
         opts = defaults opts,
             project_id : required
             account_id : required
-            cb         : required  # cb(err)
-        if not @_validate_opts(opts) then return
-        @_query
-            query     : 'UPDATE projects'
-            jsonb_set : {users : {"#{opts.account_id}": null}}
-            where     : {'project_id :: UUID = $' : opts.project_id}
-            cb        : opts.cb
+            cb         : undefined
+        try
+            await removeUserFromProject(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err.message ? err)
 
     # Return a list of the account_id's of all collaborators of the given users.
     get_collaborator_ids: (opts) =>
@@ -1348,15 +1114,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             project_id : required
             to         : required  # an email address
             cb         : required
-        if not @_validate_opts(opts) then return
-        # in particular, emails like bla'foo@bar.com → bla''foo@bar.com
-        sani_to = @sanitize("{\"#{opts.to}\"}")
-        query_select = "SELECT invite#>#{sani_to} AS to FROM projects"
-        @_query
-            query : query_select
-            where : 'project_id :: UUID = $' : opts.project_id
-            cb    : one_result 'to', (err, y) =>
-                opts.cb(err, if not y? or y.error or not y.time then 0 else new Date(y.time))
+        try
+            result = await whenSentProjectInvite(@, opts)
+            opts.cb?(undefined, result)
+        catch err
+            opts.cb?(err.message ? err)
 
     # call this to record that we have sent an email invite to the given email address
     sent_project_invite: (opts) =>
@@ -1365,15 +1127,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             to         : required   # an email address
             error      : undefined  # if there was an error set it to this; leave undefined to mean that sending succeeded
             cb         : undefined
-        x = {time: new Date()}
-        if opts.error?
-            x.error = opts.error
-        @_query
-            query : "UPDATE projects"
-            jsonb_merge :
-                {invite : "#{opts.to}" : {time: new Date(), error:opts.error}}
-            where : 'project_id :: UUID = $' : opts.project_id
-            cb : opts.cb
+        try
+            await sentProjectInvite(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err.message ? err)
 
     ###
     Project host, storage location, and state.
@@ -1382,74 +1140,63 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             project_id : required
             host       : required
-            cb         : required
-        assigned = new Date()
-        @_query
-            query : "UPDATE projects"
-            jsonb_set :
-                host : {host:opts.host, assigned:assigned}
-            where : 'project_id :: UUID = $' : opts.project_id
-            cb    : (err) => opts.cb(err, assigned)
+            cb         : undefined
+        try
+            result = await setProjectHost(@, opts)
+            opts.cb?(undefined, result)
+        catch err
+            opts.cb?(err)
 
     unset_project_host: (opts) =>
         opts = defaults opts,
             project_id : required
-            cb         : required
-        @_query
-            query : "UPDATE projects"
-            set   :
-                host : null
-            where : 'project_id :: UUID = $' : opts.project_id
-            cb    : opts.cb
+            cb         : undefined
+        try
+            await unsetProjectHost(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err)
 
     get_project_host: (opts) =>
         opts = defaults opts,
             project_id : required
-            cb         : required
-        @_query
-            query : "SELECT host#>>'{host}' AS host FROM projects"
-            where : 'project_id :: UUID = $' : opts.project_id
-            cb    : one_result('host', opts.cb)
+            cb         : undefined
+        try
+            result = await getProjectHost(@, opts)
+            opts.cb?(undefined, result)
+        catch err
+            opts.cb?(err)
 
     set_project_storage: (opts) =>
         opts = defaults opts,
             project_id : required
             host       : required
-            cb         : required
-        @get_project_storage
-            project_id : opts.project_id
-            cb         : (err, current) =>
-                if err
-                    opts.cb(err)
-                    return
-                if current?.host? and current.host != opts.host
-                    opts.cb("change storage not implemented yet -- need to implement saving previous host")
-                else
-                    # easy case -- assigning for the first time
-                    assigned = new Date()
-                    @_query
-                        query : "UPDATE projects"
-                        jsonb_set :
-                            storage : {host:opts.host, assigned:assigned}
-                        where : 'project_id :: UUID = $' : opts.project_id
-                        cb    : (err) => opts.cb(err, assigned)
+            cb         : undefined
+        try
+            result = await setProjectStorage(@, opts)
+            opts.cb?(undefined, result)
+        catch err
+            opts.cb?(err)
 
     get_project_storage: (opts) =>
         opts = defaults opts,
             project_id : required
-            cb         : required
-        @_get_project_column('storage', opts.project_id, opts.cb)
+            cb         : undefined
+        try
+            result = await getProjectStorage(@, opts)
+            opts.cb?(undefined, result)
+        catch err
+            opts.cb?(err)
 
     update_project_storage_save: (opts) =>
         opts = defaults opts,
             project_id : required
-            cb         : required
-        @_query
-            query : "UPDATE projects"
-            jsonb_merge :
-                storage : {saved:new Date()}
-            where : 'project_id :: UUID = $' : opts.project_id
-            cb    : opts.cb
+            cb         : undefined
+        try
+            await updateProjectStorageSave(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err)
 
     set_project_storage_request: (opts) =>
         opts = defaults opts,
@@ -1709,66 +1456,45 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     get_project_settings: (opts) =>
         opts = defaults opts,
             project_id : required
-            cb         : required
-        @_query
-            query : "SELECT settings FROM projects"
-            where : 'project_id = $::UUID' : opts.project_id
-            cb    : one_result 'settings', (err, settings) =>
-                if err
-                    opts.cb(err)
-                else if not settings?
-                    opts.cb(undefined, misc.copy(DEFAULT_QUOTAS))
-                else
-                    settings = misc.coerce_codomain_to_numbers(settings)
-                    quotas = {}
-                    for k, v of DEFAULT_QUOTAS
-                        quotas[k] = if not settings[k]? then v else settings[k]
-                    opts.cb(undefined, quotas)
+            cb         : undefined
+        try
+            result = await getProjectSettings(@, opts)
+            opts.cb?(undefined, result)
+        catch err
+            opts.cb?(err)
 
     set_project_settings: (opts) =>
         opts = defaults opts,
             project_id : required
             settings   : required   # can be any subset of the map
-            cb         : required
-        @_query
-            query       : "UPDATE projects"
-            where       : 'project_id = $::UUID' : opts.project_id
-            jsonb_merge : {settings: opts.settings}
-            cb          : opts.cb
+            cb         : undefined
+        try
+            await setProjectSettings(@, opts)
+            opts.cb?()
+        catch err
+            opts.cb?(err)
 
     get_project_extra_env: (opts) =>
         opts = defaults opts,
             project_id : required
-            cb         : required
-        @_query
-            query : "SELECT env FROM projects"
-            where : 'project_id = $::UUID' : opts.project_id
-            cb    : one_result 'env', (err, env) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, env ? {})
-
+            cb         : undefined
+        try
+            result = await getProjectExtraEnv(@, opts)
+            opts.cb?(undefined, result)
+        catch err
+            opts.cb?(err)
 
     recent_projects: (opts) =>
         opts = defaults opts,
             age_m     : required   # return results at most this old
             min_age_m : 0          # only returns results at least this old
             pluck     : undefined  # if not given, returns list of project_id's; if given (as an array), returns objects with these fields
-            cb        : required   # cb(err, list of strings or objects)
-
-        if opts.pluck?
-            columns = opts.pluck.join(',')
-            cb = all_results(opts.cb)
-        else
-            columns = 'project_id'
-            cb = all_results('project_id', opts.cb)
-        @_query
-            query : "SELECT #{columns} FROM projects"
-            where :
-                "last_edited >= $::TIMESTAMP" : misc.minutes_ago(opts.age_m)
-                "last_edited <= $::TIMESTAMP" : misc.minutes_ago(opts.min_age_m)
-            cb    : cb
+            cb        : undefined   # cb(err, list of strings or objects)
+        try
+            result = await recentProjects(@, opts)
+            opts.cb?(undefined, result)
+        catch err
+            opts.cb?(err)
 
     get_stats_interval: (opts) =>
         opts = defaults opts,
@@ -2065,10 +1791,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async
     # this *merges* in the run_quota; it doesn't replace it.
     set_run_quota: (project_id, run_quota) =>
-        return await @async_query
-            query       : "UPDATE projects"
-            jsonb_merge : {run_quota:run_quota}
-            where       : {project_id:project_id}
+        return await setRunQuota(@, project_id, run_quota)
 
     # async -- true if they are a manager on a license or have
     # any subscriptions.
@@ -2083,33 +1806,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Return true if the given account is a member or
     # owner of the given organization.
     accountIsInOrganization: (opts) =>
-        result = await @async_query
-            query : 'SELECT COUNT(*) FROM organizations'
-            cache : true
-            where : ['organization_id :: UUID = $1', "users ? $2"]
-            params: [opts.organization_id, opts.account_id]
-        return parseInt(result?.rows?[0]?.count) > 0
+        return await accountIsInOrganization(@, opts)
 
     # given a name, returns undefined if it is not in use,
     # and the account_id or organization_id that is using it
     # if it is in use.
     nameToAccountOrOrganization: (name) =>
-        name = name.toLowerCase()
-        result = await @async_query
-            query : 'SELECT account_id FROM accounts'
-            cache : false
-            where : ['LOWER(name) = $1']
-            params: [name]
-        if result.rows.length > 0
-            return result.rows[0].account_id
-        result = await @async_query
-            query : 'SELECT organization_id FROM organizations'
-            cache : false
-            where : ['LOWER(name) = $1']
-            params: [name]
-        if result.rows.length > 0
-            return result.rows[0].organization_id
-        return undefined
+        return await nameToAccountOrOrganization(@, name)
 
     # async
     registrationTokens: (options, query) =>

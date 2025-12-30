@@ -19,7 +19,7 @@ import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { is_valid_email_address } from "@cocalc/util/misc";
 import { query } from "@cocalc/database/postgres/query";
-import registrationTokenQuery from "@cocalc/database/postgres/registration-tokens";
+import registrationTokenQuery from "@cocalc/database/postgres/account/registration-tokens";
 import getLogger from "@cocalc/backend/logger";
 import createAccount from "@cocalc/server/accounts/create-account";
 import { v4 } from "uuid";

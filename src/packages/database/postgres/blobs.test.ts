@@ -9,7 +9,7 @@ beforeAll(async () => {
 }, 15000);
 
 afterAll(async () => {
-  await testCleanup(db());
+  await testCleanup();
 });
 
 describe("test archiving and unarchiving syncstrings with no edit history", () => {

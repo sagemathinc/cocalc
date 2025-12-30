@@ -6,7 +6,7 @@ import { delay } from "awaiting";
 
 import { getLogger } from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
-import { pii_expire } from "@cocalc/database/postgres/pii";
+import { pii_expire } from "@cocalc/database/postgres/account/pii";
 import { expire_time } from "@cocalc/util/misc";
 import { isValidUUID } from "@cocalc/util/misc";
 import notify from "./notify";

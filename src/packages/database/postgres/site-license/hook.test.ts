@@ -22,7 +22,6 @@ process.env.PGDATABASE = "smc_ephemeral_testing_database";
 
 import { isEqual } from "lodash";
 
-import { db } from "@cocalc/database";
 import { initEphemeralDatabase } from "@cocalc/database/pool";
 import { testCleanup } from "@cocalc/database/test-utils";
 import { quota_with_reasons, SiteLicenses } from "@cocalc/util/upgrades/quota";
@@ -32,7 +31,7 @@ beforeAll(async () => {
 }, 15000);
 
 afterAll(async () => {
-  await testCleanup(db());
+  await testCleanup();
 });
 
 test("allow for much larger max_upgrades", () => {

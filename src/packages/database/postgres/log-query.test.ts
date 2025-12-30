@@ -27,7 +27,7 @@ describe("log query methods", () => {
   }, 15000);
 
   afterAll(async () => {
-    await testCleanup(database);
+    await testCleanup();
   });
 
   describe("get_log", () => {

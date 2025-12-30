@@ -13,16 +13,16 @@ import type {
   PostgreSQL,
   PostgreSQLConstructor,
 } from "../postgres/types";
-import type { ProjectAndUserTracker } from "../postgres/project-and-user-tracker";
+import type { ProjectAndUserTracker } from "../postgres/project/project-and-user-tracker";
 
 let projectTrackerInit: jest.Mock;
 let projectTrackerOnce: jest.Mock;
 
-jest.mock("../postgres/changefeed", () => ({
+jest.mock("../postgres/changefeed/changefeed", () => ({
   Changes: jest.fn(),
 }));
 
-jest.mock("../postgres/project-and-user-tracker", () => ({
+jest.mock("../postgres/project/project-and-user-tracker", () => ({
   ProjectAndUserTracker: jest.fn().mockImplementation(() => ({
     init: projectTrackerInit,
     once: projectTrackerOnce,
@@ -400,7 +400,7 @@ describe("PostgreSQL Synctable Methods", () => {
     });
 
     it("should create a Changes instance when allowed", () => {
-      const { Changes } = require("../postgres/changefeed");
+      const { Changes } = require("../postgres/changefeed/changefeed");
       db.is_standby = false;
 
       db.changefeed({

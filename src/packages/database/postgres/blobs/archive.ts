@@ -4,7 +4,7 @@ import getPool from "@cocalc/database/pool";
 import { callback2 } from "@cocalc/util/async-utils";
 import { minutes_ago } from "@cocalc/util/misc";
 import { uuidsha1 } from "@cocalc/backend/misc_node";
-import { delete_patches } from "../delete-patches";
+import { delete_patches } from "../changefeed/delete-patches";
 
 const logger = getLogger("database:blobs");
 

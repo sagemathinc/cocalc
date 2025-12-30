@@ -5,7 +5,7 @@ Send an internal message via cocalc's internal messaging system.
 import { join } from "path";
 import { getLogger } from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
-import { updateUnreadMessageCount } from "@cocalc/database/postgres/messages";
+import { updateUnreadMessageCount } from "@cocalc/database/postgres/changefeed/messages";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";

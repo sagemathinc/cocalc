@@ -33,7 +33,7 @@ beforeAll(async () => {
 }, 15000);
 
 afterAll(async () => {
-  await testCleanup(db());
+  await testCleanup();
   if (blobStoreDir) {
     await rm(blobStoreDir, { recursive: true, force: true });
   }
