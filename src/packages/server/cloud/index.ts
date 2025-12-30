@@ -22,3 +22,4 @@ export {
   refreshCloudCatalogNow,
   startCloudCatalogWorker,
 } from "./catalog";
+export { startCloudVmReconciler } from "./reconcile";

@@ -39,6 +39,7 @@ import { startProjectMoveWorker } from "@cocalc/server/project-host/move-worker"
 import {
   cloudHostHandlers,
   startCloudCatalogWorker,
+  startCloudVmReconciler,
   startCloudVmWorker,
 } from "@cocalc/server/cloud";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
@@ -222,6 +223,8 @@ async function startServer(): Promise<void> {
     });
     logger.info("starting cloud catalog worker...");
     startCloudCatalogWorker();
+    logger.info("starting cloud VM reconcile loop...");
+    startCloudVmReconciler();
   }
 
   await maybeStartEmbeddedProjectHost();
