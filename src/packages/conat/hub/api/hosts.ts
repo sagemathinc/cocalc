@@ -63,6 +63,16 @@ export interface HostProviderCapabilities {
     supported: boolean;
     growable: boolean;
   };
+  hasRegions?: boolean;
+  hasZones?: boolean;
+  hasImages?: boolean;
+  hasGpus?: boolean;
+  supportsPersistentStorage?: boolean;
+  supportsEphemeral?: boolean;
+  supportsLocalDisk?: boolean;
+  supportsGpuImages?: boolean;
+  requiresRegion?: boolean;
+  requiresZone?: boolean;
 }
 
 export interface HostCatalog {

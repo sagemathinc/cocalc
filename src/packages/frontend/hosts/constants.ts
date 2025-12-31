@@ -1,5 +1,4 @@
 import type { CSS } from "@cocalc/frontend/app-framework";
-import type { HostProvider } from "./types";
 
 export const WRAP_STYLE: CSS = {
   padding: "24px",
@@ -70,14 +69,6 @@ export const GPU_TYPES = [
   { value: "none", label: "No GPU" },
   { value: "l4", label: "NVIDIA L4" },
   { value: "a10g", label: "NVIDIA A10G" },
-];
-
-export const PROVIDERS: Array<{ value: HostProvider; label: string }> = [
-  { value: "gcp", label: "Google Cloud" },
-  { value: "hyperstack", label: "Hyperstack Cloud" },
-  { value: "lambda", label: "Lambda Cloud" },
-  { value: "nebius", label: "Nebius AI Cloud" },
-  { value: "none", label: "Local (manual setup)" },
 ];
 
 export const DISK_TYPES = [

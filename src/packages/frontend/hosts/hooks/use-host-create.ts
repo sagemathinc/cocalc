@@ -1,6 +1,9 @@
 import { useState } from "@cocalc/frontend/app-framework";
 import { message } from "antd";
-import { buildCreateHostPayload } from "../utils/create-host";
+import {
+  buildCreateHostPayload,
+  type FieldOptionsMap,
+} from "../providers/registry";
 
 type HubClient = {
   hosts: {
@@ -11,23 +14,13 @@ type HubClient = {
 type UseHostCreateOptions = {
   hub: HubClient;
   refresh: () => Promise<unknown>;
-  hyperstackFlavorOptions: Array<{ value: string; flavor: any }>;
-  hyperstackRegionOptions: Array<{ value: string }>;
-  lambdaInstanceTypeOptions: Array<{ value: string; entry: any }>;
-  lambdaRegionOptions: Array<{ value: string }>;
-  nebiusInstanceTypeOptions: Array<{ value: string; entry: any }>;
-  nebiusRegionOptions: Array<{ value: string }>;
+  fieldOptions: FieldOptionsMap;
 };
 
 export const useHostCreate = ({
   hub,
   refresh,
-  hyperstackFlavorOptions,
-  hyperstackRegionOptions,
-  lambdaInstanceTypeOptions,
-  lambdaRegionOptions,
-  nebiusInstanceTypeOptions,
-  nebiusRegionOptions,
+  fieldOptions,
 }: UseHostCreateOptions) => {
   const [creating, setCreating] = useState(false);
 
@@ -35,14 +28,7 @@ export const useHostCreate = ({
     if (creating) return;
     setCreating(true);
     try {
-      const payload = buildCreateHostPayload(vals, {
-        hyperstackFlavorOptions,
-        hyperstackRegionOptions,
-        lambdaInstanceTypeOptions,
-        lambdaRegionOptions,
-        nebiusInstanceTypeOptions,
-        nebiusRegionOptions,
-      });
+      const payload = buildCreateHostPayload(vals, { fieldOptions });
       await hub.hosts.createHost(payload);
       await refresh();
       message.success("Host created");

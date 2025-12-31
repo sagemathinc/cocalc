@@ -1,6 +1,12 @@
 import { useMemo } from "@cocalc/frontend/app-framework";
 import type { FormInstance } from "antd/es/form";
 import type { HostProvider, HostRecommendation } from "../types";
+import type {
+  FieldOptionsMap,
+  HostFieldLabels,
+  HostFieldTooltips,
+  ProviderFieldSchema,
+} from "../providers/registry";
 
 export type HostCreateViewModel = {
   permissions: {
@@ -15,22 +21,18 @@ export type HostCreateViewModel = {
   provider: {
     providerOptions: Array<{ value: HostProvider; label: string }>;
     selectedProvider: HostProvider;
-    regionOptions: Array<{ value: string; label: string }>;
-    hyperstackFlavorOptions: Array<{ value: string; label: string }>;
-    lambdaInstanceTypeOptions: Array<{
-      value: string;
-      label: string;
-      disabled?: boolean;
-    }>;
-    nebiusInstanceTypeOptions: Array<{ value: string; label: string }>;
-    zoneOptions: Array<{ value: string; label: string }>;
-    machineTypeOptions: Array<{ value: string; label: string }>;
-    imageOptions: Array<{ value: string; label: string }>;
-    gpuTypeOptions: Array<{ value: string; label: string }>;
-    storageModeOptions: Array<{ value: string; label: string }>;
-    supportsPersistentStorage: boolean;
-    persistentGrowable: boolean;
-    showDiskFields: boolean;
+    fields: {
+      schema: ProviderFieldSchema;
+      options: FieldOptionsMap;
+      labels: HostFieldLabels;
+      tooltips: HostFieldTooltips;
+    };
+    storage: {
+      storageModeOptions: Array<{ value: string; label: string }>;
+      supportsPersistentStorage: boolean;
+      persistentGrowable: boolean;
+      showDiskFields: boolean;
+    };
     catalogError?: string;
   };
   catalogRefresh: {

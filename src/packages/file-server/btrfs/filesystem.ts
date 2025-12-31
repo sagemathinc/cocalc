@@ -72,7 +72,7 @@ export class Filesystem {
     try {
       await this.fileSync.init();
     } catch (err) {
-      // [ ] TODO: expected right now if mutagen not installed.
+      // [ ] TODO: this error is expected right now if mutagen not installed.
       // We will rewrite this to use reflect-sync, integrated with cocalc.
       logger.debug(
         "Error starting file sync service -- sync not available",

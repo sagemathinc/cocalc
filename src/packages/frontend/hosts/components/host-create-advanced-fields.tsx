@@ -1,7 +1,8 @@
 import { Col, Form, Input, Row, Select, Slider } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
-import { DISK_TYPES, GPU_TYPES } from "../constants";
+import { DISK_TYPES } from "../constants";
+import type { HostFieldId } from "../providers/registry";
 
 type HostCreateAdvancedFieldsProps = {
   provider: HostCreateViewModel["provider"];
@@ -12,83 +13,50 @@ export const HostCreateAdvancedFields: React.FC<HostCreateAdvancedFieldsProps> =
 }) => {
   const {
     selectedProvider,
-    zoneOptions,
-    machineTypeOptions,
-    imageOptions,
-    gpuTypeOptions,
+    fields,
+    storage,
+  } = provider;
+  const { schema, options, labels, tooltips } = fields;
+  const {
     storageModeOptions,
     supportsPersistentStorage,
     persistentGrowable,
     showDiskFields,
-  } = provider;
+  } = storage;
+
+  const renderField = (field: HostFieldId) => {
+    const fieldOptions = options[field] ?? [];
+    const label =
+      labels[field] ??
+      field
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+    const tooltip = tooltips[field];
+    const isSourceImage = field === "source_image";
+    return (
+      <Col span={24} key={field}>
+        <Form.Item
+          name={field}
+          label={label}
+          tooltip={tooltip}
+          initialValue={fieldOptions[0]?.value}
+        >
+          <Select
+            options={fieldOptions}
+            disabled={!fieldOptions.length}
+            showSearch={isSourceImage}
+            optionFilterProp="label"
+            allowClear={isSourceImage}
+          />
+        </Form.Item>
+      </Col>
+    );
+  };
 
   return (
     <Row gutter={[12, 12]}>
-      {selectedProvider === "gcp" && (
-        <>
-          <Col span={24}>
-            <Form.Item
-              name="zone"
-              label="Zone"
-              initialValue={zoneOptions[0]?.value}
-              tooltip="Zones are derived from the selected region."
-            >
-              <Select options={zoneOptions} />
-            </Form.Item>
-          </Col>
-          <Col span={24}>
-            <Form.Item
-              name="machine_type"
-              label="Machine type"
-              initialValue={machineTypeOptions[0]?.value}
-            >
-              <Select options={machineTypeOptions} />
-            </Form.Item>
-          </Col>
-          <Col span={24}>
-            <Form.Item
-              name="source_image"
-              label="Base image"
-              tooltip="Optional override; leave blank for the default Ubuntu image."
-            >
-              <Select
-                options={[
-                  { value: "", label: "Default (Ubuntu LTS)" },
-                  ...imageOptions,
-                ]}
-                showSearch
-                optionFilterProp="label"
-                allowClear
-              />
-            </Form.Item>
-          </Col>
-          <Col span={24}>
-            <Form.Item name="gpu_type" label="GPU" initialValue="none">
-              <Select
-                options={[
-                  { value: "none", label: "No GPU" },
-                  ...gpuTypeOptions,
-                ]}
-              />
-            </Form.Item>
-          </Col>
-        </>
-      )}
-      {selectedProvider !== "gcp" &&
-        selectedProvider !== "lambda" &&
-        selectedProvider !== "hyperstack" &&
-        selectedProvider !== "nebius" && (
-          <Col span={24}>
-            <Form.Item
-              name="gpu"
-              label="GPU"
-              initialValue="none"
-              tooltip="Only needed for GPU workloads."
-            >
-              <Select options={GPU_TYPES} />
-            </Form.Item>
-          </Col>
-        )}
+      {schema.advanced.map(renderField)}
       {selectedProvider !== "none" && (
         <Col span={24}>
           <Form.Item

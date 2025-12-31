@@ -3,23 +3,19 @@ import type { FormInstance } from "antd";
 import type { HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import type { HostProvider, HostRecommendation } from "../types";
 import { buildCatalogSummary } from "../utils/normalize-catalog";
-import { buildRecommendationUpdate } from "../utils/recommendations";
 import {
-  getGcpGpuTypeOptions,
-  getGcpImageOptions,
-  getGcpMachineTypeOptions,
-  getGcpRegionOptions,
-  getGcpZoneOptions,
-  getHyperstackFlavorOptions,
-  getHyperstackRegionOptions,
-  getLambdaInstanceTypeOptions,
-  getLambdaRegionOptions,
+  HOST_FIELDS,
+  buildRecommendationUpdate,
+  getProviderDescriptor,
+  getProviderOptions,
   getLambdaRegionsFromCatalog,
-  getNebiusInstanceTypeOptions,
-  getNebiusRegionOptions,
+  type HostFieldId,
+  type ProviderSelection,
+  type FieldOptionsMap,
+  type ProviderFieldSchema,
 } from "../providers/registry";
 
-type SelectOption = { value: string };
+type SelectOption = { value: string; disabled?: boolean };
 
 type UseHostFormArgs = {
   form: FormInstance;
@@ -31,14 +27,26 @@ type UseHostFormArgs = {
   selectedGpuType?: string;
   selectedSourceImage?: string;
   selectedSize?: string;
+  selectedGpu?: string;
   selectedStorageMode?: string;
   lambdaEnabled: boolean;
+};
+
+const FIELD_LABELS: Record<HostFieldId, string> = {
+  region: "Region",
+  zone: "Zone",
+  machine_type: "Machine type",
+  gpu_type: "GPU",
+  source_image: "Base image",
+  size: "Size",
+  gpu: "GPU",
 };
 
 const inOptions = (value: string | undefined, options?: SelectOption[]) =>
   !!value && !!options?.some((opt) => opt.value === value);
 
-const firstValue = (options?: SelectOption[]) => options?.[0]?.value;
+const firstValue = (options?: SelectOption[]) =>
+  options?.find((opt) => !opt.disabled)?.value ?? options?.[0]?.value;
 
 export const useHostForm = ({
   form,
@@ -50,17 +58,58 @@ export const useHostForm = ({
   selectedGpuType,
   selectedSourceImage,
   selectedSize,
+  selectedGpu,
   selectedStorageMode,
   lambdaEnabled,
 }: UseHostFormArgs) => {
   const prevProviderRef = useRef<HostProvider | undefined>(undefined);
+  const provider = selectedProvider ?? "none";
   const providerCaps = useMemo(() => {
-    if (!selectedProvider || !catalog?.provider_capabilities) return undefined;
-    return catalog.provider_capabilities[selectedProvider];
-  }, [catalog, selectedProvider]);
+    if (!catalog?.provider_capabilities) return undefined;
+    return catalog.provider_capabilities[provider];
+  }, [catalog, provider]);
+  const fieldSchema: ProviderFieldSchema = useMemo(
+    () => getProviderDescriptor(provider).fields,
+    [provider],
+  );
+  const selection: ProviderSelection = useMemo(
+    () => ({
+      region: selectedRegion,
+      zone: selectedZone,
+      machine_type: selectedMachineType,
+      gpu_type: selectedGpuType,
+      source_image: selectedSourceImage,
+      size: selectedSize,
+      gpu: selectedGpu,
+    }),
+    [
+      selectedRegion,
+      selectedZone,
+      selectedMachineType,
+      selectedGpuType,
+      selectedSourceImage,
+      selectedSize,
+      selectedGpu,
+    ],
+  );
+  const fieldOptions: FieldOptionsMap = useMemo(
+    () => getProviderOptions(provider, catalog, selection),
+    [provider, catalog, selection],
+  );
+  const fieldLabels = useMemo(
+    () => ({
+      ...FIELD_LABELS,
+      ...(fieldSchema.labels ?? {}),
+    }),
+    [fieldSchema],
+  );
+  const fieldTooltips = useMemo(
+    () => fieldSchema.tooltips ?? {},
+    [fieldSchema],
+  );
 
   const supportsPersistentStorage =
-    providerCaps?.persistentStorage?.supported ?? selectedProvider !== "lambda";
+    providerCaps?.persistentStorage?.supported ?? provider !== "lambda";
   const persistentGrowable = providerCaps?.persistentStorage?.growable ?? true;
   const storageModeOptions = supportsPersistentStorage
     ? [
@@ -76,97 +125,9 @@ export const useHostForm = ({
   const showDiskFields =
     supportsPersistentStorage && selectedStorageMode !== "ephemeral";
 
-  const hyperstackRegionOptions = useMemo(
-    () => getHyperstackRegionOptions(catalog),
-    [catalog],
-  );
-
-  const lambdaInstanceTypeOptions = useMemo(
-    () => (selectedProvider === "lambda" ? getLambdaInstanceTypeOptions(catalog) : []),
-    [catalog, selectedProvider],
-  );
-
-  const nebiusInstanceTypeOptions = useMemo(
-    () => (selectedProvider === "nebius" ? getNebiusInstanceTypeOptions(catalog) : []),
-    [catalog, selectedProvider],
-  );
-
-  const selectedLambdaInstanceType = useMemo(() => {
-    if (selectedProvider !== "lambda") return undefined;
-    return lambdaInstanceTypeOptions.find(
-      (opt) => opt.value === selectedMachineType,
-    )?.entry;
-  }, [lambdaInstanceTypeOptions, selectedMachineType, selectedProvider]);
-
   const lambdaRegionsFromCatalog = useMemo(
     () => getLambdaRegionsFromCatalog(catalog),
     [catalog],
-  );
-
-  const lambdaRegionOptions = useMemo(
-    () =>
-      selectedProvider === "lambda"
-        ? getLambdaRegionOptions(catalog, selectedLambdaInstanceType)
-        : [],
-    [catalog, selectedLambdaInstanceType, selectedProvider],
-  );
-
-  const nebiusRegionOptions = useMemo(
-    () => getNebiusRegionOptions(catalog),
-    [catalog],
-  );
-
-  const regionOptions = useMemo(() => {
-    if (selectedProvider === "hyperstack") return hyperstackRegionOptions;
-    if (selectedProvider === "lambda") return lambdaRegionOptions;
-    if (selectedProvider === "nebius") return nebiusRegionOptions;
-    return getGcpRegionOptions(catalog);
-  }, [
-    catalog,
-    hyperstackRegionOptions,
-    lambdaRegionOptions,
-    nebiusRegionOptions,
-    selectedProvider,
-  ]);
-
-  const zoneOptions = useMemo(
-    () =>
-      selectedProvider === "gcp"
-        ? getGcpZoneOptions(catalog, selectedRegion)
-        : [],
-    [catalog, selectedProvider, selectedRegion],
-  );
-
-  const machineTypeOptions = useMemo(
-    () =>
-      selectedProvider === "gcp"
-        ? getGcpMachineTypeOptions(catalog, selectedZone)
-        : [],
-    [catalog, selectedProvider, selectedZone],
-  );
-
-  const hyperstackFlavorOptions = useMemo(
-    () =>
-      selectedProvider === "hyperstack"
-        ? getHyperstackFlavorOptions(catalog, selectedRegion)
-        : [],
-    [catalog, selectedProvider, selectedRegion],
-  );
-
-  const gpuTypeOptions = useMemo(
-    () =>
-      selectedProvider === "gcp"
-        ? getGcpGpuTypeOptions(catalog, selectedZone)
-        : [],
-    [catalog, selectedProvider, selectedZone],
-  );
-
-  const imageOptions = useMemo(
-    () =>
-      selectedProvider === "gcp"
-        ? getGcpImageOptions(catalog, selectedMachineType, selectedGpuType)
-        : [],
-    [catalog, selectedProvider, selectedMachineType, selectedGpuType],
   );
 
   const catalogSummary = useMemo(
@@ -190,22 +151,20 @@ export const useHostForm = ({
   useEffect(() => {
     if (!selectedProvider || selectedProvider === "none") return;
     const updates: Record<string, any> = {};
-    const providerChanged = selectedProvider !== prevProviderRef.current;
+    const providerChanged = provider !== prevProviderRef.current;
     if (providerChanged) {
-      prevProviderRef.current = selectedProvider;
+      prevProviderRef.current = provider;
     }
 
     if (providerChanged) {
-      if (selectedProvider !== "gcp") {
-        updates.zone = undefined;
-        updates.gpu_type = undefined;
-        updates.source_image = undefined;
-      }
-      if (selectedProvider !== "hyperstack") {
-        updates.size = undefined;
-      }
-      if (selectedProvider !== "lambda" && selectedProvider !== "nebius") {
-        updates.machine_type = updates.machine_type ?? undefined;
+      const activeFields = new Set<HostFieldId>([
+        ...fieldSchema.primary,
+        ...fieldSchema.advanced,
+      ]);
+      for (const field of HOST_FIELDS) {
+        if (!activeFields.has(field)) {
+          updates[field] = undefined;
+        }
       }
     }
 
@@ -220,33 +179,22 @@ export const useHostForm = ({
       updates[field] = fallback ?? firstValue(options);
     };
 
-    if (selectedProvider === "gcp") {
-      ensureValue("region", selectedRegion, regionOptions);
-      ensureValue("zone", selectedZone, zoneOptions);
-      ensureValue("machine_type", selectedMachineType, machineTypeOptions);
-      ensureValue("source_image", selectedSourceImage, imageOptions);
-      if (gpuTypeOptions.length) {
-        if (!inOptions(selectedGpuType, gpuTypeOptions)) {
-          updates.gpu_type = "none";
-        }
-      }
-    } else if (selectedProvider === "hyperstack") {
-      ensureValue("region", selectedRegion, hyperstackRegionOptions);
-      ensureValue("size", selectedSize, hyperstackFlavorOptions);
-    } else if (selectedProvider === "lambda") {
-      const preferredLambda =
-        lambdaInstanceTypeOptions.find((opt) => !opt.disabled)?.value ??
-        firstValue(lambdaInstanceTypeOptions);
+    const currentValues: Record<HostFieldId, string | undefined> = {
+      region: selectedRegion,
+      zone: selectedZone,
+      machine_type: selectedMachineType,
+      gpu_type: selectedGpuType,
+      source_image: selectedSourceImage,
+      size: selectedSize,
+      gpu: selectedGpu,
+    };
+
+    for (const field of [...fieldSchema.primary, ...fieldSchema.advanced]) {
       ensureValue(
-        "machine_type",
-        selectedMachineType,
-        lambdaInstanceTypeOptions,
-        preferredLambda,
+        field,
+        currentValues[field],
+        fieldOptions[field],
       );
-      ensureValue("region", selectedRegion, lambdaRegionOptions);
-    } else if (selectedProvider === "nebius") {
-      ensureValue("machine_type", selectedMachineType, nebiusInstanceTypeOptions);
-      ensureValue("region", selectedRegion, nebiusRegionOptions);
     }
 
     if (Object.keys(updates).length > 0) {
@@ -254,24 +202,16 @@ export const useHostForm = ({
     }
   }, [
     form,
-    selectedProvider,
+    provider,
     selectedRegion,
     selectedZone,
     selectedMachineType,
     selectedGpuType,
     selectedSourceImage,
     selectedSize,
-    regionOptions,
-    zoneOptions,
-    machineTypeOptions,
-    gpuTypeOptions,
-    imageOptions,
-    hyperstackRegionOptions,
-    hyperstackFlavorOptions,
-    lambdaInstanceTypeOptions,
-    lambdaRegionOptions,
-    nebiusInstanceTypeOptions,
-    nebiusRegionOptions,
+    selectedGpu,
+    fieldSchema,
+    fieldOptions,
   ]);
 
   const applyRecommendation = (rec: HostRecommendation) => {
@@ -282,22 +222,14 @@ export const useHostForm = ({
 
   return {
     providerCaps,
+    fieldSchema,
+    fieldOptions,
+    fieldLabels,
+    fieldTooltips,
     supportsPersistentStorage,
     persistentGrowable,
     storageModeOptions,
     showDiskFields,
-    hyperstackRegionOptions,
-    lambdaInstanceTypeOptions,
-    nebiusInstanceTypeOptions,
-    lambdaRegionOptions,
-    nebiusRegionOptions,
-    regionOptions,
-    zoneOptions,
-    machineTypeOptions,
-    hyperstackFlavorOptions,
-    gpuTypeOptions,
-    imageOptions,
-    selectedLambdaInstanceType,
     catalogSummary,
     applyRecommendation,
   };

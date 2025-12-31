@@ -1,81 +1,54 @@
-# Refactor Frontend Hosts UI code
+# Provider Registry + Catalog‑Driven Capabilities (Refactor Plan)
 
-Below is a concrete, step‑by‑step refactor plan that keeps behavior stable while making [src/packages/frontend/hosts/hosts\-page.tsx](./src/packages/frontend/hosts/hosts-page.tsx) smaller, clearer, and easier to extend.
+Goal: one provider list + one registry map; move provider‑specific logic behind descriptors and catalog‑driven capabilities. This makes adding/removing clouds mostly one‑place, and removes scattered `if (provider === ...)` checks.
 
-**Phase 0 — Map responsibilities \(no code changes yet\)**
+**Phase 0 — Catalog shape & capabilities (server/cloud)**
 
-- Identify the current logical blocks in the file: data fetching/refresh, catalog normalization, form state/defaults, provider‑specific UI, create/start/stop actions, drawer rendering, LLM assist, and list rendering.
+- Extend normalized catalog to include `provider_capabilities[provider]`:
+  - `hasZones`, `hasImages`, `hasGpus`
+  - `supportsPersistentStorage`, `persistentGrowable`, `supportsEphemeral`
+  - `supportsLocalDisk`, `supportsGpuImages`
+  - `requiresRegion`, `requiresZone`
+- Add these fields during catalog normalization in `@cocalc/cloud`.
+- Ensure conat types include the new `provider_capabilities`.
 
-**Phase 1 — Extract pure helpers \(safe, no behavior change\)**
+**Phase 1 — Single provider registry (frontend)**
 
-- Create [src/packages/frontend/hosts/utils/](./src/packages/frontend/hosts/utils/) for formatting and small pure helpers:
-  - `formatHostLabel`, `formatCpuRam`, `formatGpu`, `formatRegionLabel`, `formatImageLabel`
-  - `sortByAvailability`, `sortByNewest`, `dedupeBy`
-- Move catalog shaping logic into a pure function file:
-  - [src/packages/frontend/hosts/utils/normalize\-catalog.ts](./src/packages/frontend/hosts/utils/normalize-catalog.ts)
-- Keep the original calls in [hosts\-page.tsx](./src/packages/frontend/hosts/hosts-page.tsx) but route through these helpers.
+- Create a single registry: `Record<ProviderId, ProviderDescriptor>`.
+- Each descriptor declares:
+  - `label`, `catalogKinds`
+  - `fields` (region/zone/machine/gpu/image/storage)
+  - `defaults(form, catalog)`, `validate(form, catalog)`
+  - `getOptions(catalog, formValues)`
+  - `buildCreatePayload(formValues, catalog)`
+  - `capabilitiesSelector` (reads `catalog.provider_capabilities[provider]`)
+- Provider list is `Object.values(PROVIDER_REGISTRY)`.
 
-**Phase 2 — Introduce a provider UI registry**
+**Phase 2 — Replace branching with registry usage**
 
-- Add a provider registry that centralizes UI behavior:
-  - [src/packages/frontend/hosts/providers/registry.ts](./src/packages/frontend/hosts/providers/registry.ts)
-- Each provider entry exposes:
-  - `defaults`, `fields`, `filters`, `labeling`, `supports` \(ephemeral/persistent\), `catalogKinds`
-- Replace scattered `if (provider === ...)` conditionals with registry lookups.
+- `useHostProviders`: build options from registry + enabled flags.
+- `useHostForm`: use descriptor `getOptions` + `defaults`; remove `if provider === ...`.
+- `useHostCreate`: call descriptor `buildCreatePayload`.
+- `HostCreateForm`: render fields from descriptor `fields` and capabilities.
 
-**Phase 3 — Split into focused components \(still in same folder\)**
+**Phase 3 — UI driven by catalog**
 
-- Create [src/packages/frontend/hosts/components/](./src/packages/frontend/hosts/components/):
-  - `HostList.tsx` \(list rendering \+ selection\)
-  - `HostCard.tsx` \(card summary\)
-  - `HostDrawer.tsx` \(details \+ action log \+ copyable fields\)
-  - `HostCreateForm.tsx` \(provider selection \+ form body\)
-  - `HostAiAssist.tsx` \(LLM panel\)
-  - `HostPicker.tsx` \(move modal\)
-- [hosts\-page.tsx](./src/packages/frontend/hosts/hosts-page.tsx) becomes a composition shell.
+- Hide or disable fields based on `provider_capabilities`.
+- GPU image filters based on `supportsGpuImages` and GPU selection.
+- Zone/machine lists only when `requiresZone`/`hasZones` is true.
 
-**Phase 4 — Create hooks for data & actions**
+**Phase 4 — Add new provider with minimal changes**
 
-- [src/packages/frontend/hosts/hooks/use\-hosts.ts](./src/packages/frontend/hosts/hooks/use-hosts.ts)
-  - fetch list, polling, refresh
-- [src/packages/frontend/hosts/hooks/use\-host\-actions.ts](./src/packages/frontend/hosts/hooks/use-host-actions.ts)
-  - start/stop/deprovision/create \+ error/last action
-- [src/packages/frontend/hosts/hooks/use\-host\-catalog.ts](./src/packages/frontend/hosts/hooks/use-host-catalog.ts)
-  - pull catalog \+ normalize once
-- [src/packages/frontend/hosts/hooks/use\-host\-form.ts](./src/packages/frontend/hosts/hooks/use-host-form.ts)
-  - provider change resets, defaults, validation, compatibility filtering
+- Implement provider in `@cocalc/cloud`.
+- Add catalog normalization + capabilities.
+- Add a single registry entry in frontend.
+- No other frontend changes.
 
-**Phase 5 — Reduce state churn & cross‑effects**
+**Phase 5 — Tests**
 
-- Ensure provider change calls a single `resetFormForProvider()` from the registry defaults.
-- Memoize all computed options to avoid recompute/re\-render loops:
-  - `useMemo` on `regionOptions`, `instanceTypeOptions`, `imageOptions`.
-- Centralize “error \+ busy” UI states in `useHostActions`.
-
-**Phase 6 — Simplify hosts\-page.tsx**
-
-- After extraction, [hosts\-page.tsx](./src/packages/frontend/hosts/hosts-page.tsx) should:
-  - assemble hooks
-  - render components
-  - pass props only \(no logic\)
-
-**Phase 7 — Tests and guardrails**
-
-- Add lightweight unit tests for:
-  - catalog normalization \(per provider\)
-  - provider registry defaults
-  - form reset behavior
-- If we skip tests, at least add a quick “smoke checklist” \(create → start → stop → deprovision\).
-
-**Incremental refactor order \(lowest risk\)**
-
-1. Phase 1 helpers
-2. Phase 2 registry
-3. Phase 4 hooks \(data/actions\)
-4. Phase 3 components
-5. Phase 6 cleanup
-
-If you want, I can propose concrete file names and the exact props signature for each component and hook next.
+- Unit tests for catalog normalization + provider capabilities.
+- Registry defaults + form reset behavior tests.
+- Smoke checklist: create → start → stop → deprovision.
 
 ---
 
@@ -540,4 +513,3 @@ flowchart LR
 - [x] Removed sidecar/reflect-sync path; runner now directly launches single podman container with Btrfs mounts.
 - [x] Vendored file-server bootstrap into project-host with Btrfs/rustic/quotas; added fs.\* conat service and SSH proxy integration.
 - [x] Moved SEA/bundle logic from lite to plus and from runner to project-host; excluded build output from tsc; removed old REST `/projects` endpoints and added catch-all redirect.
-

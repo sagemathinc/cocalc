@@ -62,6 +62,7 @@ export const useHostsPageViewModel = () => {
     selectedZone,
     selectedMachineType,
     selectedGpuType,
+    selectedGpu,
     selectedSourceImage,
     selectedSize,
     selectedStorageMode,
@@ -75,21 +76,14 @@ export const useHostsPageViewModel = () => {
     });
 
   const {
+    fieldSchema,
+    fieldOptions,
+    fieldLabels,
+    fieldTooltips,
     supportsPersistentStorage,
     persistentGrowable,
     storageModeOptions,
     showDiskFields,
-    hyperstackRegionOptions,
-    lambdaInstanceTypeOptions,
-    nebiusInstanceTypeOptions,
-    lambdaRegionOptions,
-    nebiusRegionOptions,
-    regionOptions,
-    zoneOptions,
-    machineTypeOptions,
-    hyperstackFlavorOptions,
-    gpuTypeOptions,
-    imageOptions,
     catalogSummary,
     applyRecommendation,
   } = useHostForm({
@@ -100,6 +94,7 @@ export const useHostsPageViewModel = () => {
     selectedZone,
     selectedMachineType,
     selectedGpuType,
+    selectedGpu,
     selectedSourceImage,
     selectedSize,
     selectedStorageMode,
@@ -122,12 +117,7 @@ export const useHostsPageViewModel = () => {
   const { creating, onCreate } = useHostCreate({
     hub,
     refresh,
-    hyperstackFlavorOptions,
-    hyperstackRegionOptions,
-    lambdaInstanceTypeOptions,
-    lambdaRegionOptions,
-    nebiusInstanceTypeOptions,
-    nebiusRegionOptions,
+    fieldOptions,
   });
 
   const createVm = useHostCreateViewModel({
@@ -136,18 +126,18 @@ export const useHostsPageViewModel = () => {
     provider: {
       providerOptions,
       selectedProvider: selectedProvider ?? providerOptions[0]?.value ?? "none",
-      regionOptions,
-      hyperstackFlavorOptions,
-      lambdaInstanceTypeOptions,
-      nebiusInstanceTypeOptions,
-      zoneOptions,
-      machineTypeOptions,
-      imageOptions,
-      gpuTypeOptions,
-      storageModeOptions,
-      supportsPersistentStorage,
-      persistentGrowable,
-      showDiskFields,
+      fields: {
+        schema: fieldSchema,
+        options: fieldOptions,
+        labels: fieldLabels,
+        tooltips: fieldTooltips,
+      },
+      storage: {
+        storageModeOptions,
+        supportsPersistentStorage,
+        persistentGrowable,
+        showDiskFields,
+      },
       catalogError,
     },
     catalogRefresh: {

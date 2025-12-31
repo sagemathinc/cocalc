@@ -27,6 +27,16 @@ export type ProviderCapabilities = {
     supported: boolean;
     growable: boolean;
   };
+  hasRegions: boolean;
+  hasZones: boolean;
+  hasImages: boolean;
+  hasGpus: boolean;
+  supportsPersistentStorage: boolean;
+  supportsEphemeral: boolean;
+  supportsLocalDisk: boolean;
+  supportsGpuImages: boolean;
+  requiresRegion: boolean;
+  requiresZone: boolean;
 };
 
 export type ProviderEntry = {
@@ -87,6 +97,16 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsGpu: true,
       supportsZones: true,
       persistentStorage: { supported: true, growable: true },
+      hasRegions: true,
+      hasZones: true,
+      hasImages: true,
+      hasGpus: true,
+      supportsPersistentStorage: true,
+      supportsEphemeral: true,
+      supportsLocalDisk: true,
+      supportsGpuImages: true,
+      requiresRegion: true,
+      requiresZone: true,
     },
     fetchCatalog: fetchGcpCatalog,
     catalog: {
@@ -105,6 +125,16 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsGpu: true,
       supportsZones: false,
       persistentStorage: { supported: true, growable: false },
+      hasRegions: true,
+      hasZones: false,
+      hasImages: true,
+      hasGpus: true,
+      supportsPersistentStorage: true,
+      supportsEphemeral: true,
+      supportsLocalDisk: true,
+      supportsGpuImages: false,
+      requiresRegion: true,
+      requiresZone: false,
     },
     fetchCatalog: fetchHyperstackCatalog,
     catalog: {
@@ -123,6 +153,16 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsGpu: true,
       supportsZones: false,
       persistentStorage: { supported: false, growable: false },
+      hasRegions: true,
+      hasZones: false,
+      hasImages: true,
+      hasGpus: true,
+      supportsPersistentStorage: false,
+      supportsEphemeral: true,
+      supportsLocalDisk: true,
+      supportsGpuImages: false,
+      requiresRegion: true,
+      requiresZone: false,
     },
     fetchCatalog: fetchLambdaCatalog,
     catalog: {
@@ -141,6 +181,16 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsGpu: false,
       supportsZones: false,
       persistentStorage: { supported: true, growable: false },
+      hasRegions: false,
+      hasZones: false,
+      hasImages: false,
+      hasGpus: false,
+      supportsPersistentStorage: true,
+      supportsEphemeral: true,
+      supportsLocalDisk: true,
+      supportsGpuImages: false,
+      requiresRegion: false,
+      requiresZone: false,
     },
   },
   nebius: {
@@ -154,6 +204,16 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsGpu: true,
       supportsZones: false,
       persistentStorage: { supported: true, growable: true },
+      hasRegions: true,
+      hasZones: false,
+      hasImages: true,
+      hasGpus: true,
+      supportsPersistentStorage: true,
+      supportsEphemeral: true,
+      supportsLocalDisk: true,
+      supportsGpuImages: false,
+      requiresRegion: true,
+      requiresZone: false,
     },
     fetchCatalog: fetchNebiusCatalog,
     catalog: {
