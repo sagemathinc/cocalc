@@ -23,6 +23,7 @@ import { DatabaseSync as Database } from "node:sqlite";
 import { DiffMatchPatch, compressPatch } from "@cocalc/util/dmp";
 import { tmpNameSync } from "tmp-promise";
 import type { DocCodec } from "@cocalc/sync/patchflow";
+import { ensureContainingDirectoryExistsSync } from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("sync-fs-watch");
@@ -72,6 +73,7 @@ export class SyncFsWatchStore {
     this.dbPath = dbPath ?? tmpNameSync({ prefix: "sync-fs-", postfix: ".db" });
     logger.debug("new SyncFsWatchStore", this.dbPath);
     this.cleanupDb = dbPath == null;
+    ensureContainingDirectoryExistsSync(this.dbPath);
     this.db = new Database(this.dbPath);
     this.init();
   }
