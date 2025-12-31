@@ -95,21 +95,18 @@ export type ProviderStorageSupport = {
 export type ProviderCatalogSummary = Record<string, any>;
 
 export type HostProviderFlags = {
-  gcpEnabled: boolean;
-  hyperstackEnabled: boolean;
-  lambdaEnabled: boolean;
-  nebiusEnabled: boolean;
-  showLocal: boolean;
+  enabled: Record<HostProvider, boolean>;
 };
 
 export type HostProviderDescriptor = {
   id: HostProvider;
   label: string;
+  featureFlagKey?: string;
+  localOnly?: boolean;
   supports: ProviderSupports;
   storage?: ProviderStorageSupport;
   fields: ProviderFieldSchema;
   summarizeCatalog?: (catalog: HostCatalog) => ProviderCatalogSummary | undefined;
-  enabled: (flags: HostProviderFlags) => boolean;
   getOptions: (
     catalog: HostCatalog | undefined,
     selection: ProviderSelection,
@@ -554,6 +551,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
   gcp: {
     id: "gcp",
     label: "Google Cloud",
+    featureFlagKey: "compute_servers_google-cloud_enabled",
     summarizeCatalog: summarizeGcpCatalog,
     supports: {
       region: true,
@@ -579,7 +577,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
         source_image: "Optional override; leave blank for the default Ubuntu image.",
       },
     },
-    enabled: (flags) => flags.gcpEnabled,
     storage: { supported: true, growable: true },
     getOptions: (catalog, selection) => ({
       ...emptyOptions(),
@@ -629,6 +626,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
   hyperstack: {
     id: "hyperstack",
     label: "Hyperstack Cloud",
+    featureFlagKey: "compute_servers_hyperstack_enabled",
     summarizeCatalog: summarizeHyperstackCatalog,
     supports: {
       region: true,
@@ -648,7 +646,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
         size: "Size",
       },
     },
-    enabled: (flags) => flags.hyperstackEnabled,
     storage: { supported: true, growable: false },
     getOptions: (catalog, selection) => ({
       ...emptyOptions(),
@@ -686,6 +683,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
   lambda: {
     id: "lambda",
     label: "Lambda Cloud",
+    featureFlagKey: "compute_servers_lambda_enabled",
     summarizeCatalog: summarizeLambdaCatalog,
     supports: {
       region: true,
@@ -705,7 +703,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
         machine_type: "Instance type",
       },
     },
-    enabled: (flags) => flags.lambdaEnabled,
     storage: { supported: false },
     getOptions: (catalog, selection) => {
       const instanceTypes = getLambdaInstanceTypeOptions(catalog);
@@ -752,6 +749,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
   nebius: {
     id: "nebius",
     label: "Nebius AI Cloud",
+    featureFlagKey: "project_hosts_nebius_enabled",
     summarizeCatalog: summarizeNebiusCatalog,
     supports: {
       region: true,
@@ -771,7 +769,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
         machine_type: "Instance type",
       },
     },
-    enabled: (flags) => flags.nebiusEnabled,
     storage: { supported: true, growable: true },
     getOptions: (catalog) => ({
       ...emptyOptions(),
@@ -812,6 +809,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
   none: {
     id: "none",
     label: "Local (manual setup)",
+    localOnly: true,
     supports: {
       region: false,
       zone: false,
@@ -834,7 +832,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
         gpu: "Only needed for GPU workloads.",
       },
     },
-    enabled: (flags) => flags.showLocal,
     storage: { supported: true, growable: true },
     getOptions: () => ({
       ...emptyOptions(),
@@ -863,6 +860,31 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
     },
   },
 };
+
+export const getProviderEnablement = (opts: {
+  customize?: { get?: (key: string) => unknown };
+  showLocal: boolean;
+}): HostProviderFlags => {
+  const enabled = {} as Record<HostProvider, boolean>;
+  for (const entry of Object.values(PROVIDER_REGISTRY)) {
+    if (entry.localOnly) {
+      enabled[entry.id] = opts.showLocal;
+    } else if (entry.featureFlagKey) {
+      const flag = opts.customize?.get?.(entry.featureFlagKey);
+      // Default to enabled when the customize store isn't ready or key is unset,
+      // so the UI doesn't end up with an empty provider list during load/dev.
+      enabled[entry.id] = flag === undefined ? true : !!flag;
+    } else {
+      enabled[entry.id] = true;
+    }
+  }
+  return { enabled };
+};
+
+export const isProviderEnabled = (
+  provider: HostProvider,
+  flags: HostProviderFlags,
+) => !!flags.enabled[provider];
 
 export const getProviderDescriptor = (provider: HostProvider) =>
   PROVIDER_REGISTRY[provider];
@@ -918,12 +940,14 @@ export const getProviderOptionsList = (
   flags: HostProviderFlags,
 ): Array<{ value: HostProvider; label: string }> =>
   (Object.values(PROVIDER_REGISTRY) as HostProviderDescriptor[])
-    .filter((entry) => entry.enabled(flags))
+    .filter((entry) => isProviderEnabled(entry.id, flags))
     .map((entry) => ({ value: entry.id, label: entry.label }));
 
 export const getRefreshProviders = (
   flags: HostProviderFlags,
 ): Array<{ value: HostProvider; label: string }> =>
   (Object.values(PROVIDER_REGISTRY) as HostProviderDescriptor[])
-    .filter((entry) => entry.id !== "none" && entry.enabled(flags))
+    .filter(
+      (entry) => entry.id !== "none" && isProviderEnabled(entry.id, flags),
+    )
     .map((entry) => ({ value: entry.id, label: entry.label }));

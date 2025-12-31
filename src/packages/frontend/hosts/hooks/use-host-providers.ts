@@ -2,34 +2,21 @@ import { useEffect, useMemo, useState } from "@cocalc/frontend/app-framework";
 import { Form, type FormInstance } from "antd";
 import type { HostProvider } from "../types";
 import {
-  getProviderDescriptor,
   getProviderOptionsList,
   getRefreshProviders,
+  isProviderEnabled,
   type HostProviderFlags,
 } from "../providers/registry";
 
-type UseHostProvidersArgs = HostProviderFlags & {
+type UseHostProvidersArgs = {
+  flags: HostProviderFlags;
   form: FormInstance;
 };
 
-const isProviderEnabled = (provider: HostProvider, flags: HostProviderFlags) =>
-  getProviderDescriptor(provider).enabled(flags);
-
 export const useHostProviders = ({
   form,
-  gcpEnabled,
-  hyperstackEnabled,
-  lambdaEnabled,
-  nebiusEnabled,
-  showLocal,
+  flags,
 }: UseHostProvidersArgs) => {
-  const flags: HostProviderFlags = {
-    gcpEnabled,
-    hyperstackEnabled,
-    lambdaEnabled,
-    nebiusEnabled,
-    showLocal,
-  };
   const [refreshProvider, setRefreshProvider] = useState<HostProvider>("none");
   const selectedProvider = Form.useWatch("provider", form) as
     | HostProvider

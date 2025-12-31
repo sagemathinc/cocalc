@@ -20,13 +20,7 @@ export const useHostsPageViewModel = () => {
   const hub = webapp_client.conat_client.hub;
   const [form] = Form.useForm();
   const isAdmin = useTypedRedux("account", "is_admin");
-  const {
-    gcpEnabled,
-    hyperstackEnabled,
-    lambdaEnabled,
-    nebiusEnabled,
-    showLocal,
-  } = useHostFeatureFlags();
+  const flags = useHostFeatureFlags();
 
   const { hosts, setHosts, refresh, canCreateHosts } = useHosts(hub, {
     onError: () => message.error("Unable to load hosts"),
@@ -51,11 +45,7 @@ export const useHostsPageViewModel = () => {
     setRefreshProvider,
   } = useHostProviders({
     form,
-    gcpEnabled: !!gcpEnabled,
-    hyperstackEnabled: !!hyperstackEnabled,
-    lambdaEnabled: !!lambdaEnabled,
-    nebiusEnabled: !!nebiusEnabled,
-    showLocal,
+    flags,
   });
   const enabledProviders = providerOptions.map((option) => option.value);
   const {
