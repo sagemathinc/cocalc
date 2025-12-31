@@ -22,6 +22,8 @@ import { delay } from "awaiting";
 import { FileSync } from "./sync";
 import bees from "./bees";
 import { type ChildProcess } from "node:child_process";
+import { install } from "@cocalc/backend/sandbox/install";
+
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("file-server:btrfs:filesystem");
@@ -233,6 +235,8 @@ export class Filesystem {
     if (!this.opts.rustic) {
       return;
     }
+    // ensure correct version of rustic is installed locally
+    await install("rustic");
     if (this.opts.rustic.endsWith(".toml")) {
       if (!(await exists(this.opts.rustic))) {
         throw Error(`file not found: ${this.opts.rustic}`);
