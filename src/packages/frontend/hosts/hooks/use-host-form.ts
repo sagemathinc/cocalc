@@ -1,16 +1,22 @@
 import { useEffect, useMemo } from "@cocalc/frontend/app-framework";
 import type { FormInstance } from "antd";
 import type { HostCatalog } from "@cocalc/conat/hub/api/hosts";
-import { getMachineTypeArchitecture } from "@cocalc/util/db-schema/compute-servers";
-import type { HostProvider } from "../types";
-import {
-  formatCpuRamLabel,
-  formatGpuLabel,
-  formatRegionLabel,
-  formatRegionsLabel,
-} from "../utils/format";
+import type { HostProvider, HostRecommendation } from "../types";
 import { buildCatalogSummary } from "../utils/normalize-catalog";
-import { LAMBDA_REGIONS, REGIONS } from "../constants";
+import {
+  getGcpGpuTypeOptions,
+  getGcpImageOptions,
+  getGcpMachineTypeOptions,
+  getGcpRegionOptions,
+  getGcpZoneOptions,
+  getHyperstackFlavorOptions,
+  getHyperstackRegionOptions,
+  getLambdaInstanceTypeOptions,
+  getLambdaRegionOptions,
+  getLambdaRegionsFromCatalog,
+  getNebiusInstanceTypeOptions,
+  getNebiusRegionOptions,
+} from "../providers/registry";
 
 type UseHostFormArgs = {
   form: FormInstance;
@@ -61,62 +67,16 @@ export const useHostForm = ({
   const showDiskFields =
     supportsPersistentStorage && selectedStorageMode !== "ephemeral";
 
-  const hyperstackRegionOptions = catalog?.hyperstack_regions?.length
-    ? catalog.hyperstack_regions.map((r) => ({
-        value: r.name,
-        label: r.name,
-      }))
-    : [];
+  const hyperstackRegionOptions = getHyperstackRegionOptions(catalog);
 
   const lambdaInstanceTypeOptions =
-    selectedProvider === "lambda" && catalog?.lambda_instance_types?.length
-      ? catalog.lambda_instance_types
-          .filter((entry) => !!entry?.name)
-          .map((entry) => {
-            const regionsCount = entry.regions?.length ?? 0;
-            const hasRegions = regionsCount > 0;
-            const cpuRamLabel = formatCpuRamLabel(
-              entry.vcpus,
-              entry.memory_gib,
-            );
-            const gpuLabel = formatGpuLabel(entry.gpus);
-            const regionsLabel = formatRegionsLabel(regionsCount);
-            return {
-              value: entry.name,
-              label: `${entry.name} (${cpuRamLabel}${gpuLabel}${regionsLabel})`,
-              entry,
-              hasRegions,
-              disabled: !hasRegions,
-            };
-          })
-          .sort((a, b) => {
-            if (a.hasRegions !== b.hasRegions) {
-              return a.hasRegions ? -1 : 1;
-            }
-            return a.value.localeCompare(b.value);
-          })
+    selectedProvider === "lambda"
+      ? getLambdaInstanceTypeOptions(catalog)
       : [];
 
   const nebiusInstanceTypeOptions =
-    selectedProvider === "nebius" && catalog?.nebius_instance_types?.length
-      ? catalog.nebius_instance_types
-          .filter((entry) => !!entry?.name)
-          .map((entry) => {
-            const platformLabel = entry.platform_label
-              ? ` · ${entry.platform_label}`
-              : "";
-            const cpuRamLabel = formatCpuRamLabel(
-              entry.vcpus,
-              entry.memory_gib,
-            );
-            const gpuLabel = formatGpuLabel(entry.gpus, entry.gpu_label);
-            return {
-              value: entry.name,
-              label: `${entry.name} (${cpuRamLabel}${gpuLabel}${platformLabel})`,
-              entry,
-            };
-          })
-          .sort((a, b) => a.value.localeCompare(b.value))
+    selectedProvider === "nebius"
+      ? getNebiusInstanceTypeOptions(catalog)
       : [];
 
   const selectedLambdaInstanceType =
@@ -126,152 +86,47 @@ export const useHostForm = ({
         )?.entry
       : undefined;
 
-  const lambdaRegionsFromCatalog = catalog?.lambda_regions?.length
-    ? catalog.lambda_regions.map((r) => r.name).filter(Boolean)
-    : catalog?.lambda_instance_types?.length
-      ? Array.from(
-          new Set(
-            catalog.lambda_instance_types.flatMap(
-              (entry) => entry.regions ?? [],
-            ),
-          ),
-        )
-      : [];
+  const lambdaRegionsFromCatalog = getLambdaRegionsFromCatalog(catalog);
 
   const lambdaRegionOptions =
     selectedProvider === "lambda"
-      ? (selectedLambdaInstanceType?.regions?.length
-          ? selectedLambdaInstanceType.regions
-          : lambdaRegionsFromCatalog.length
-            ? lambdaRegionsFromCatalog
-            : LAMBDA_REGIONS.map((r) => r.value)
-        ).map((name) => ({ value: name, label: name }))
+      ? getLambdaRegionOptions(catalog, selectedLambdaInstanceType)
       : [];
 
-  const nebiusRegionOptions = catalog?.nebius_regions?.length
-    ? catalog.nebius_regions.map((r) => ({ value: r.name, label: r.name }))
-    : [];
+  const nebiusRegionOptions = getNebiusRegionOptions(catalog);
 
   const regionOptions =
-    selectedProvider === "hyperstack" && hyperstackRegionOptions.length
+    selectedProvider === "hyperstack"
       ? hyperstackRegionOptions
       : selectedProvider === "lambda"
         ? lambdaRegionOptions
-        : selectedProvider === "nebius" && nebiusRegionOptions.length
+        : selectedProvider === "nebius"
           ? nebiusRegionOptions
-          : selectedProvider === "gcp" && catalog?.regions?.length
-            ? catalog.regions.map((r) => {
-                const zoneWithMeta = catalog.zones?.find(
-                  (z) => z.region === r.name && (z.location || z.lowC02),
-                );
-                return {
-                  value: r.name,
-                  label: formatRegionLabel(
-                    r.name,
-                    zoneWithMeta?.location,
-                    zoneWithMeta?.lowC02,
-                  ),
-                };
-              })
-            : REGIONS;
+          : getGcpRegionOptions(catalog);
 
   const zoneOptions =
-    selectedProvider === "gcp" && catalog?.regions?.length
-      ? (
-          catalog.regions.find((r) => r.name === selectedRegion)?.zones ?? []
-        ).map((z) => {
-          const meta = catalog.zones?.find((zone) => zone.name === z);
-          return {
-            value: z,
-            label: formatRegionLabel(z, meta?.location, meta?.lowC02),
-          };
-        })
+    selectedProvider === "gcp"
+      ? getGcpZoneOptions(catalog, selectedRegion)
       : [];
 
   const machineTypeOptions =
-    selectedProvider === "gcp" && selectedZone && catalog?.machine_types_by_zone
-      ? (catalog.machine_types_by_zone[selectedZone] ?? []).map((mt) => ({
-          value: mt.name ?? "",
-          label: mt.name ?? "unknown",
-        }))
+    selectedProvider === "gcp"
+      ? getGcpMachineTypeOptions(catalog, selectedZone)
       : [];
 
   const hyperstackFlavorOptions =
-    selectedProvider === "hyperstack" && catalog?.hyperstack_flavors?.length
-      ? catalog.hyperstack_flavors
-          .filter((flavor) => flavor.region_name === selectedRegion)
-          .map((flavor) => {
-            const cpuRamLabel = formatCpuRamLabel(flavor.cpu, flavor.ram);
-            const gpuLabel = formatGpuLabel(
-              flavor.gpu_count,
-              flavor.gpu && flavor.gpu !== "none" ? flavor.gpu : undefined,
-            );
-            const label = `${flavor.name} (${cpuRamLabel}${gpuLabel})`;
-            return { value: flavor.name, label, flavor };
-          })
+    selectedProvider === "hyperstack"
+      ? getHyperstackFlavorOptions(catalog, selectedRegion)
       : [];
 
   const gpuTypeOptions =
-    selectedProvider === "gcp" && selectedZone && catalog?.gpu_types_by_zone
-      ? (catalog.gpu_types_by_zone[selectedZone] ?? []).map((gt) => ({
-          value: gt.name ?? "",
-          label: gt.name ?? "unknown",
-        }))
+    selectedProvider === "gcp"
+      ? getGcpGpuTypeOptions(catalog, selectedZone)
       : [];
 
-  const wantsGpu =
-    selectedProvider === "gcp" &&
-    !!selectedGpuType &&
-    selectedGpuType !== "none";
-
   const imageOptions =
-    selectedProvider === "gcp" && catalog?.images?.length
-      ? [...catalog.images]
-          .filter((img) => {
-            if (!selectedMachineType) {
-              const imgArch = (img.architecture ?? "").toUpperCase();
-              return imgArch ? imgArch === "X86_64" : true;
-            }
-            const arch = getMachineTypeArchitecture(selectedMachineType);
-            const imgArch = (img.architecture ?? "").toUpperCase();
-            if (!imgArch) return true;
-            return arch === "arm64"
-              ? imgArch === "ARM64"
-              : imgArch === "X86_64";
-          })
-          .filter((img) =>
-            wantsGpu ? img.gpuReady === true : img.gpuReady !== true,
-          )
-          .sort((a, b) => {
-            const match = (name: string) => name.match(/ubuntu-.*?(\d{2})(\d{2})/i);
-            const versionCode = (name?: string) => {
-              const m = name ? match(name) : null;
-              return m ? Number(`${m[1]}${m[2]}`) : undefined;
-            };
-            const va = versionCode(a.family ?? a.name ?? "");
-            const vb = versionCode(b.family ?? b.name ?? "");
-            if (va != null && vb != null && va !== vb) {
-              return vb - va;
-            }
-            const ta = Date.parse(a.creationTimestamp ?? "");
-            const tb = Date.parse(b.creationTimestamp ?? "");
-            if (!Number.isFinite(ta) && !Number.isFinite(tb)) return 0;
-            if (!Number.isFinite(ta)) return 1;
-            if (!Number.isFinite(tb)) return -1;
-            return tb - ta;
-          })
-          .map((img) => {
-            const label = img.family
-              ? `${img.family}${img.gpuReady ? " (GPU-ready)" : ""}`
-              : (img.name ?? "unknown");
-            const archSuffix = img.architecture
-              ? ` [${img.architecture.toUpperCase()}]`
-              : "";
-            return {
-              value: img.selfLink ?? img.name ?? "",
-              label: `${label}${archSuffix}`,
-            };
-          })
+    selectedProvider === "gcp"
+      ? getGcpImageOptions(catalog, selectedMachineType, selectedGpuType)
       : [];
 
   const catalogSummary = useMemo(
@@ -369,6 +224,29 @@ export const useHostForm = ({
     form.setFieldsValue({ size: hyperstackFlavorOptions[0].value });
   }, [selectedProvider, hyperstackFlavorOptions, selectedSize, form]);
 
+  const applyRecommendation = (rec: HostRecommendation) => {
+    if (!rec.provider) return;
+    const next: Record<string, any> = { provider: rec.provider };
+    if (rec.provider === "gcp") {
+      if (rec.region) next.region = rec.region;
+      if (rec.zone) next.zone = rec.zone;
+      if (rec.machine_type) next.machine_type = rec.machine_type;
+      if (rec.gpu_type) next.gpu_type = rec.gpu_type;
+      if (rec.source_image) next.source_image = rec.source_image;
+    } else if (rec.provider === "hyperstack") {
+      if (rec.region) next.region = rec.region;
+      if (rec.flavor) next.size = rec.flavor;
+    } else if (rec.provider === "lambda") {
+      if (rec.region) next.region = rec.region;
+      if (rec.machine_type) next.machine_type = rec.machine_type;
+    } else if (rec.provider === "nebius") {
+      if (rec.region) next.region = rec.region;
+      if (rec.machine_type) next.machine_type = rec.machine_type;
+    }
+    if (rec.disk_gb) next.disk = rec.disk_gb;
+    form.setFieldsValue(next);
+  };
+
   return {
     providerCaps,
     supportsPersistentStorage,
@@ -388,5 +266,6 @@ export const useHostForm = ({
     imageOptions,
     selectedLambdaInstanceType,
     catalogSummary,
+    applyRecommendation,
   };
 };
