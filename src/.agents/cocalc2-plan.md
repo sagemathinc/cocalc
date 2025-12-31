@@ -1,4 +1,170 @@
-## Implement Project Hosts (replaces compute servers)
+
+# Add Nebius
+Here’s a concrete plan to add Nebius as a first‑class cloud provider, structured around the codebase you already have and the vendor SDK/docs you dropped into `src/scratch/vendor/nebius`. I’m keeping it grounded in the existing registry‑driven pattern we just introduced.
+
+**Goal**
+Add Nebius with:
+
+- catalog support \(regions \+ images \+ machine types \+ GPU availability\),
+- provisioning \(create/start/stop/delete, runtime refresh\),
+- SSH key injection \(control‑plane key\),
+- persistent vs ephemeral storage modes.
+
+---
+
+## **1\) Core provider plumbing in** **`@cocalc/cloud`**
+
+**Files to add**
+
+- `src/packages/cloud/nebius/client.ts`  
+  Wrap `@nebius/js-sdk` \(instantiate `SDK` with service account credentials\).
+- `src/packages/cloud/nebius/provider.ts`  
+  Implement `CloudProvider` interface for Nebius.
+
+**Provider behavior**
+
+- **createHost\(spec, creds\)**
+  - Create boot disk \(`DiskService.create`\) using public image \(by family or image id\).
+  - Create instance \(`InstanceService.create`\) referencing that boot disk.
+  - Inject control‑plane SSH key via `cloud_init_user_data`.
+  - Record runtime: `instance_id`, `public_ip`, `ssh_user`, `region/zone`.
+- **getInstance\(instance\_id\)**
+  - Use `InstanceService.get`.
+- **start/stop**
+  - Use `InstanceService.start/stop` if available \(or `power_state` update / `resume` if that’s what API exposes\).
+- **delete**
+  - `InstanceService.delete` then delete disks if needed.
+- **resizeDisk**
+  - If Nebius supports online resize: call `DiskService.resize`.
+
+**SSH key injection**
+
+- Nebius supports `cloud_init_user_data` on `InstanceSpec`.  
+  Use something like:
+  ```
+  #cloud-config
+  users:
+    - default
+    - name: ubuntu
+      sudo: ALL=(ALL) NOPASSWD:ALL
+      ssh_authorized_keys:
+        - <control-plane public key>
+  ```
+
+  \(Keep `ssh_user = ubuntu` in runtime\).
+
+**Storage mode**
+
+- **persistent**: create a dedicated data disk \(if Nebius supports\), attach it.
+- **ephemeral**: use only local disk, set `ephemeral` in metadata.
+
+---
+
+## **2\) Add Nebius provider to registry**
+
+**File:** `src/packages/cloud/registry.ts`
+
+- Add `nebius` to `PROVIDERS` with capabilities:
+  - supports\_gpu: true
+  - supports\_persistent: true
+  - persistent\_disk\_growable: true
+  - supports\_stop: true
+
+**File:** `src/packages/cloud/index.ts`
+
+- Export `NebiusProvider` \+ any types needed.
+
+---
+
+## **3\) Catalog support \(server \+ cloud\)**
+
+**Cloud side**
+
+- Add `src/packages/cloud/catalog/nebius.ts`
+  - Use SDK to gather:
+    - **regions** \(maybe only 1 region per project\)
+    - **images** \(public ubuntu images\)
+    - **machine\_types / flavors** \(from Nebius platform service\)
+    - **gpu inventory** \(if exposed\)
+
+**Server side**
+
+- Add in `src/packages/server/cloud/catalog.ts`:
+  - `refreshNebiusCatalog`
+  - update `getCatalogFetchOptions` to support nebius
+  - reuse `upsertCatalog`
+
+**Data shape**
+Normalize to our existing `NormalizedCatalog` format so the frontend can consume it with minimal branching.
+
+---
+
+## **4\) Settings / credentials**
+
+Add site settings for Nebius in `src/packages/util/db-schema/site-settings-extras.ts`:
+
+- `project_hosts_nebius_enabled`
+- `project_hosts_nebius_prefix`
+- `nebius_service_account_json`
+- `nebius_project_id`
+- `nebius_region`
+- `nebius_subnet_id` \(if required by API\)
+
+These must be read in server `provider-context.ts` and passed to `@cocalc/cloud`.
+
+---
+
+## **5\) Frontend wiring**
+
+**Hosts create UI**
+
+- Add provider `"nebius"` to provider dropdown \(gated by `project_hosts_nebius_enabled`\).
+- Use catalog for regions/machine types/images.
+- If region list is only one region for Nebius, render it read‑only.
+
+**Advanced fields**
+
+- Use existing persistent/ephemeral toggle.
+- If persistent: allow disk size; if ephemeral: hide disk size.
+
+---
+
+## **6\) Reconcile \+ work queue**
+
+No special changes needed if Nebius implements `listInstances()` and `getInstance()`.
+Just add Nebius to provider registry \+ `listInstances` implementation.
+
+---
+
+## **7\) Unit tests**
+
+**Packages:** `src/packages/cloud/test`
+
+- Add `nebius.test.ts` mock the SDK response for:
+  - create → returns instance\_id \+ IP
+  - listInstances → returns list
+  - catalog normalization
+
+---
+
+## **Implementation order**
+
+1. Add `@nebius/js-sdk` to `packages/cloud`.
+2. Create provider \+ client wrappers.
+3. Register provider.
+4. Add catalog fetcher \+ normalization.
+5. Add server settings & context mapping.
+6. Wire into frontend provider dropdown.
+7. Add tests.
+
+
+---
+
+# Implement Project Hosts (replaces compute servers)
+
+---
+
+If you want, I can start by adding the new `nebius/` folder in `@cocalc/cloud` and implement the minimal provider surface that can create instances \+ set SSH key \+ list instances \(which will immediately unblock provisioning\).
 
 ### Misc to not forget:
 

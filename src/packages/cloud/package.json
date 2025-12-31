@@ -9,6 +9,7 @@
     "./catalog/*": "./dist/catalog/*.js",
     "./hyperstack/*": "./dist/hyperstack/*.js",
     "./lambda/*": "./dist/lambda/*.js",
+    "./nebius/*": "./dist/nebius/*.js",
     "./gcp": "./dist/gcp.js",
     "./local": "./dist/local.js",
     "./types": "./dist/types.js",

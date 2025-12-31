@@ -9,5 +9,7 @@ export {
 } from "./hyperstack";
 export * as Lambda from "./lambda";
 export { LambdaProvider, type LambdaCreds } from "./lambda";
+export * as Nebius from "./nebius";
+export { NebiusProvider, type NebiusCreds } from "./nebius";
 export * from "./catalog";
 export * from "./registry";

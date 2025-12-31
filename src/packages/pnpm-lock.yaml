@@ -1481,6 +1481,8 @@ importers:
         specifier: ^22.10.10
         version: 22.19.1
 
+  project/build/bundle/bundle: {}
+
   server:
     dependencies:
       '@cocalc/ai':

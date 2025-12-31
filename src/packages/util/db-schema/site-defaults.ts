@@ -41,6 +41,7 @@ export const TAGS = [
   "Cloud",
   "Project Hosts",
   "Hyperstack",
+  "Nebius",
   "Backups",
   "R2",
   "AI LLM",
@@ -128,6 +129,7 @@ export type SiteSettingsKeys =
   | "compute_servers_dns"
   | "compute_servers_hyperstack_enabled"
   | "compute_servers_lambda_enabled"
+  | "project_hosts_nebius_enabled"
   | "cloud_filesystems_enabled"
   | "insecure_test_mode"
   | "samesite_remember_me"
@@ -973,6 +975,14 @@ export const site_settings_conf: SiteSettings = {
     valid: only_booleans,
     to_val: to_bool,
     tags: ["Compute Servers"],
+  },
+  project_hosts_nebius_enabled: {
+    name: "Enable Project Hosts - Nebius Cloud",
+    desc: "Whether or not to include Nebius cloud project hosts. You must also configure credentials below.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["Project Hosts", "Cloud", "Nebius"],
   },
   compute_servers_dns_enabled: {
     name: "Enable Compute Servers - Cloudflare DNS",

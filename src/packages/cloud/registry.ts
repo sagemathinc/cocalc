@@ -2,14 +2,17 @@ import { GcpProvider } from "./gcp";
 import { HyperstackProvider } from "./hyperstack/provider";
 import { LambdaProvider } from "./lambda/provider";
 import { LocalProvider } from "./local";
+import { NebiusProvider } from "./nebius/provider";
 import type { CloudProvider, ProviderId } from "./types";
 import {
   fetchGcpCatalog,
   fetchHyperstackCatalog,
   fetchLambdaCatalog,
+  fetchNebiusCatalog,
   gcpCatalogEntries,
   hyperstackCatalogEntries,
   lambdaCatalogEntries,
+  nebiusCatalogEntries,
   type CatalogEntry,
 } from "./catalog";
 
@@ -60,10 +63,17 @@ const LAMBDA_TTLS: Record<string, number> = {
   images: 60 * 60 * 24 * 7,
 };
 
+const NEBIUS_TTLS: Record<string, number> = {
+  regions: 60 * 60 * 24 * 30,
+  instance_types: 60 * 60 * 24 * 7,
+  images: 60 * 60 * 24 * 7,
+};
+
 const gcpProvider = new GcpProvider();
 const hyperstackProvider = new HyperstackProvider();
 const lambdaProvider = new LambdaProvider();
 const localProvider = new LocalProvider();
+const nebiusProvider = new NebiusProvider();
 
 export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
   gcp: {
@@ -133,7 +143,24 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       persistentStorage: { supported: true, growable: false },
     },
   },
-  nebius: undefined,
+  nebius: {
+    id: "nebius",
+    provider: nebiusProvider,
+    capabilities: {
+      supportsStop: true,
+      supportsDiskType: true,
+      supportsDiskResize: true,
+      supportsCustomImage: true,
+      supportsGpu: true,
+      supportsZones: false,
+      persistentStorage: { supported: true, growable: true },
+    },
+    fetchCatalog: fetchNebiusCatalog,
+    catalog: {
+      ttlSeconds: NEBIUS_TTLS,
+      toEntries: nebiusCatalogEntries,
+    },
+  },
 };
 
 export function getProviderEntry(id: ProviderId): ProviderEntry | undefined {

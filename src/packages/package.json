@@ -57,6 +57,7 @@
       "jws@<3.2.3": ">=3.2.3"
     },
     "onlyBuiltDependencies": [
+      "fs-ext",
       "node-pty"
     ]
   }

@@ -91,6 +91,8 @@ const compute_servers_lambda_enabled = (conf: SiteSettings) =>
   to_bool(conf["compute_servers_lambda_enabled"]);
 const compute_servers_hyperstack_enabled = (conf: SiteSettings) =>
   to_bool(conf["compute_servers_hyperstack_enabled"]);
+const project_hosts_nebius_enabled = (conf: SiteSettings) =>
+  to_bool(conf["project_hosts_nebius_enabled"]);
 
 const jupyter_api_enabled = (conf: SiteSettings) =>
   to_bool(conf.jupyter_api_enabled);
@@ -249,6 +251,13 @@ export type SiteSettingsExtrasKeys =
   | "compute_servers_markup_percentage"
   | "lambda_cloud_api_key"
   | "project_hosts_lambda_prefix"
+  | "nebius_service_account_id"
+  | "nebius_public_key_id"
+  | "nebius_private_key_pem"
+  | "nebius_parent_id"
+  | "nebius_regions"
+  | "nebius_subnet_id"
+  | "project_hosts_nebius_prefix"
   | "hyperstack_api_key"
   | "project_hosts_hyperstack_prefix"
   | "hyperstack_compute_servers_markup_percentage"
@@ -882,6 +891,71 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_trimmed_str,
     show: compute_servers_lambda_enabled,
     tags: ["Project Hosts"],
+    valid: () => true,
+  },
+  nebius_service_account_id: {
+    name: "Project Hosts: Nebius - Service Account ID",
+    desc: "Nebius service account id used for project-host provisioning.",
+    default: "",
+    to_val: to_trimmed_str,
+    show: project_hosts_nebius_enabled,
+    tags: ["Project Hosts", "Cloud", "Nebius"],
+    valid: () => true,
+  },
+  nebius_public_key_id: {
+    name: "Project Hosts: Nebius - Public Key ID",
+    desc: "Nebius public key id for API auth.",
+    default: "",
+    to_val: to_trimmed_str,
+    show: project_hosts_nebius_enabled,
+    tags: ["Project Hosts", "Cloud", "Nebius"],
+    valid: () => true,
+  },
+  nebius_private_key_pem: {
+    name: "Project Hosts: Nebius - Private Key PEM",
+    desc: "Nebius private key in PEM format.",
+    default: "",
+    multiline: 5,
+    password: true,
+    to_val: to_trimmed_str,
+    show: project_hosts_nebius_enabled,
+    tags: ["Project Hosts", "Cloud", "Nebius"],
+    valid: () => true,
+  },
+  nebius_parent_id: {
+    name: "Project Hosts: Nebius - Parent ID",
+    desc: "Nebius parent id (project/tenant) used for resource creation.",
+    default: "",
+    to_val: to_trimmed_str,
+    show: project_hosts_nebius_enabled,
+    tags: ["Project Hosts", "Cloud", "Nebius"],
+    valid: () => true,
+  },
+  nebius_regions: {
+    name: "Project Hosts: Nebius - Regions",
+    desc: "Optional array of allowed Nebius regions (JSON array of strings). Leave empty to allow all catalog regions.",
+    default: "[]",
+    to_val: from_json,
+    show: project_hosts_nebius_enabled,
+    tags: ["Project Hosts", "Cloud", "Nebius"],
+    valid: () => true,
+  },
+  nebius_subnet_id: {
+    name: "Project Hosts: Nebius - Subnet ID",
+    desc: "Nebius subnet id to attach instances to.",
+    default: "",
+    to_val: to_trimmed_str,
+    show: project_hosts_nebius_enabled,
+    tags: ["Project Hosts", "Cloud", "Nebius"],
+    valid: () => true,
+  },
+  project_hosts_nebius_prefix: {
+    name: "Project Hosts: Nebius - Resource Prefix",
+    desc: "Prepend this string to all Nebius resources that are created, e.g., instance names. Keep this short. If the prefix is 'cocalc', then a project host with id 17 will be called 'cocalc-17'.",
+    default: "cocalc-host",
+    to_val: to_trimmed_str,
+    show: project_hosts_nebius_enabled,
+    tags: ["Project Hosts", "Cloud", "Nebius"],
     valid: () => true,
   },
   //   coreweave_kubeconfig: {

@@ -53,3 +53,22 @@ export type CatalogEntry = {
   scope: string;
   payload: any;
 };
+
+export type NebiusInstanceType = {
+  name: string;
+  platform: string;
+  platform_label: string;
+  vcpus?: number;
+  memory_gib?: number;
+  gpus?: number;
+  gpu_label?: string;
+};
+
+export type NebiusImage = {
+  id: string;
+  name?: string | null;
+  family?: string | null;
+  version?: string | null;
+  architecture?: string | null;
+  recommended_platforms?: string[];
+};
