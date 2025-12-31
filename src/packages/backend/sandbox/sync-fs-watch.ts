@@ -23,6 +23,9 @@ import { DatabaseSync as Database } from "node:sqlite";
 import { DiffMatchPatch, compressPatch } from "@cocalc/util/dmp";
 import { tmpNameSync } from "tmp-promise";
 import type { DocCodec } from "@cocalc/sync/patchflow";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("sync-fs-watch");
 
 const dmp = new DiffMatchPatch({
   diffTimeout: 0.5,
@@ -67,6 +70,7 @@ export class SyncFsWatchStore {
 
   constructor(dbPath?: string) {
     this.dbPath = dbPath ?? tmpNameSync({ prefix: "sync-fs-", postfix: ".db" });
+    logger.debug("new SyncFsWatchStore", this.dbPath);
     this.cleanupDb = dbPath == null;
     this.db = new Database(this.dbPath);
     this.init();
