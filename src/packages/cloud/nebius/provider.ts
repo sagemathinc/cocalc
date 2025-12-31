@@ -382,7 +382,7 @@ export class NebiusProvider implements CloudProvider {
     const res = await client.instances.list(
       ListInstancesRequest.create({
         parentId,
-        pageSize: Long.fromNumber(1000),
+        pageSize: Long.fromNumber(999),
         pageToken: "",
       }),
     );
