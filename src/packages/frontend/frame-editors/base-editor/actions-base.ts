@@ -481,15 +481,17 @@ export class BaseEditorActions<
       } else {
         // ask user
         (async () => {
+          this.openAnywaysModalIsOpen = true;
           if (
             !(await this.redux.getActions("page").popconfirm({
               title: `${this.path} was deleted`,
               okText: "Open Anyways",
-              cancelText: "Cancel",
+              cancelText: "Close",
             }))
           ) {
             close();
           }
+          this.openAnywaysModalIsOpen = false;
         })();
       }
     });
@@ -1383,13 +1385,15 @@ export class BaseEditorActions<
     // no-op here
   }
 
+  private openAnywaysModalIsOpen = false;
   async save(explicit: boolean): Promise<void> {
     if (
       this.is_public ||
       !this.store.get("is_loaded") ||
       this._syncstring == null ||
       this._syncstring.get_state() != "ready" ||
-      this.isClosed()
+      this.isClosed() ||
+      this.openAnywaysModalIsOpen
     ) {
       return;
     }

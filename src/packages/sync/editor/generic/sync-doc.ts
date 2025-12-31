@@ -1288,8 +1288,18 @@ export class SyncDoc extends EventEmitter {
     const v = this.patchflowVersions();
     if (v?.length) {
       const mostRecentPatch = this.patchflowSession.getPatch(v[v.length - 1]);
-      if (mostRecentPatch?.meta?.deleted) {
+      if (mostRecentPatch?.meta?.deleted || this.isDeleted) {
         this.emitDeleted();
+      } else {
+        // check if deleted when backend not watching it
+        try {
+          await this.stat();
+        } catch (err) {
+          if (err.code == "ENOENT") {
+            //  we know for sure the file doesn't exist
+            this.emitDeleted();
+          }
+        }
       }
     }
 
