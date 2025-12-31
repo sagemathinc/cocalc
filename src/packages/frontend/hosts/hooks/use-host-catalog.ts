@@ -1,4 +1,4 @@
-import { useEffect, useState } from "@cocalc/frontend/app-framework";
+import { useEffect, useRef, useState } from "@cocalc/frontend/app-framework";
 import type { HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import type { HostProvider } from "../types";
 
@@ -24,6 +24,11 @@ export const useHostCatalog = (
     undefined,
   );
   const [catalogRefreshing, setCatalogRefreshing] = useState(false);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
   useEffect(() => {
     if (!provider) {
@@ -45,13 +50,13 @@ export const useHostCatalog = (
           err?.message ?? "Unable to load cloud catalog (regions/zones).";
         setCatalog(undefined);
         setCatalogError(message);
-        onError?.(message);
+        onErrorRef.current?.(message);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [provider, hub, onError]);
+  }, [provider, hub]);
 
   const refreshCatalog = async (): Promise<boolean> => {
     if (!refreshProvider || catalogRefreshing) return false;
@@ -66,7 +71,7 @@ export const useHostCatalog = (
       }
     } catch (err) {
       console.error(err);
-      onError?.("Failed to update cloud catalog");
+      onErrorRef.current?.("Failed to update cloud catalog");
       success = false;
     } finally {
       setCatalogRefreshing(false);

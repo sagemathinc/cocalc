@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useState } from "@cocalc/frontend/app-framework";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 
 type HubClient = {
@@ -16,9 +21,14 @@ type UseHostsOptions = {
 };
 
 export const useHosts = (hub: HubClient, options: UseHostsOptions = {}) => {
-  const { onError, pollMs = 5000 } = options;
+  const { onError, pollMs = 15_000 } = options;
   const [hosts, setHosts] = useState<Host[]>([]);
   const [canCreateHosts, setCanCreateHosts] = useState<boolean>(true);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
   const refresh = useCallback(async () => {
     const [list, membership] = await Promise.all([
@@ -35,19 +45,19 @@ export const useHosts = (hub: HubClient, options: UseHostsOptions = {}) => {
   useEffect(() => {
     refresh().catch((err) => {
       console.error("failed to load hosts", err);
-      onError?.(err);
+      onErrorRef.current?.(err);
     });
-  }, [refresh, onError]);
+  }, [refresh]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       refresh().catch((err) => {
         console.error("host refresh failed", err);
-        onError?.(err);
+        onErrorRef.current?.(err);
       });
     }, pollMs);
     return () => clearInterval(timer);
-  }, [refresh, pollMs, onError]);
+  }, [refresh, pollMs]);
 
   return { hosts, setHosts, refresh, canCreateHosts };
 };

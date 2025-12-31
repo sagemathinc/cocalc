@@ -43,7 +43,7 @@ const FIELD_LABELS: Record<HostFieldId, string> = {
 };
 
 const inOptions = (value: string | undefined, options?: SelectOption[]) =>
-  !!value && !!options?.some((opt) => opt.value === value);
+  value !== undefined && value !== null && !!options?.some((opt) => opt.value === value);
 
 const firstValue = (options?: SelectOption[]) =>
   options?.find((opt) => !opt.disabled)?.value ?? options?.[0]?.value;
