@@ -251,9 +251,7 @@ export type SiteSettingsExtrasKeys =
   | "compute_servers_markup_percentage"
   | "lambda_cloud_api_key"
   | "project_hosts_lambda_prefix"
-  | "nebius_service_account_id"
-  | "nebius_public_key_id"
-  | "nebius_private_key_pem"
+  | "nebius_credentials_json"
   | "nebius_parent_id"
   | "nebius_regions"
   | "nebius_subnet_id"
@@ -893,43 +891,25 @@ export const EXTRAS: SettingsExtras = {
     tags: ["Project Hosts"],
     valid: () => true,
   },
-  nebius_service_account_id: {
-    name: "Project Hosts: Nebius - Service Account ID",
-    desc: "Nebius service account id used for project-host provisioning.",
+  nebius_credentials_json: {
+    name: "Project Hosts: Nebius - Credentials JSON",
+    desc: "Nebius credentials.json content (subject-credentials). See https://chatgpt.com/s/t_6954b3d283648191aee1aa850c1c4634 or src/packages/cloud/nebius/credentials.md for the exact generation steps.",
     default: "",
     to_val: to_trimmed_str,
-    show: project_hosts_nebius_enabled,
-    tags: ["Project Hosts", "Cloud", "Nebius"],
-    valid: () => true,
-  },
-  nebius_public_key_id: {
-    name: "Project Hosts: Nebius - Public Key ID",
-    desc: "Nebius public key id for API auth.",
-    default: "",
-    to_val: to_trimmed_str,
-    show: project_hosts_nebius_enabled,
-    tags: ["Project Hosts", "Cloud", "Nebius"],
-    valid: () => true,
-  },
-  nebius_private_key_pem: {
-    name: "Project Hosts: Nebius - Private Key PEM",
-    desc: "Nebius private key in PEM format. This is not just some easy thing you can get from the Nebius website.  You have to install and run software locally on your computer -- see http://docs.nebius.com/cli/quickstart",
-    default: "",
-    multiline: 5,
+    multiline: 6,
     password: true,
-    to_val: to_trimmed_str,
     show: project_hosts_nebius_enabled,
     tags: ["Project Hosts", "Cloud", "Nebius"],
-    valid: () => true,
+    valid: (x) => !!x,
   },
   nebius_parent_id: {
     name: "Project Hosts: Nebius - Parent ID",
-    desc: "Nebius parent id (project/tenant) used for resource creation.",
+    desc: "Required Nebius parent id (project/tenant) used for resource creation. To figure this out go to the nebius web console and look at the URL in your browser, which will be of the form https://console.nebius.com/project-e00fnh2xxxx; the string 'project-e00fnh2xxxx' is what to put here.",
     default: "",
     to_val: to_trimmed_str,
     show: project_hosts_nebius_enabled,
     tags: ["Project Hosts", "Cloud", "Nebius"],
-    valid: () => true,
+    valid: (x) => !!x,
   },
   nebius_regions: {
     name: "Project Hosts: Nebius - Regions",
@@ -942,7 +922,7 @@ export const EXTRAS: SettingsExtras = {
   },
   nebius_subnet_id: {
     name: "Project Hosts: Nebius - Subnet ID",
-    desc: "Nebius subnet id to attach instances to.",
+    desc: "Optional Nebius subnet id to attach instances to. Leave empty to use the default network.",
     default: "",
     to_val: to_trimmed_str,
     show: project_hosts_nebius_enabled,

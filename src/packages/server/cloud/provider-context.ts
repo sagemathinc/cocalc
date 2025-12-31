@@ -6,6 +6,7 @@ import type {
   FlavorRegionData,
   Image as HyperstackImage,
 } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import { getNebiusCredentialsFromSettings } from "./nebius-credentials";
 
 export type ProviderContext = {
   id: ProviderId;
@@ -97,33 +98,14 @@ export async function getProviderContext(
       };
     }
     case "nebius": {
-      const {
-        nebius_service_account_id,
-        nebius_public_key_id,
-        nebius_private_key_pem,
-        nebius_parent_id,
-        nebius_subnet_id,
-      } = settings;
-      if (!nebius_service_account_id) {
-        throw new Error("nebius_service_account_id is not configured");
-      }
-      if (!nebius_public_key_id) {
-        throw new Error("nebius_public_key_id is not configured");
-      }
-      if (!nebius_private_key_pem) {
-        throw new Error("nebius_private_key_pem is not configured");
-      }
-      if (!nebius_parent_id) {
-        throw new Error("nebius_parent_id is not configured");
-      }
+      const { nebius_parent_id, nebius_subnet_id } = settings;
+      const creds = getNebiusCredentialsFromSettings(settings);
       return {
         id: providerId,
         entry,
         creds: {
-          serviceAccountId: nebius_service_account_id,
-          publicKeyId: nebius_public_key_id,
-          privateKeyPem: nebius_private_key_pem,
-          parentId: nebius_parent_id,
+          ...creds,
+          parentId: nebius_parent_id || undefined,
           subnetId: nebius_subnet_id,
           sshPublicKey: controlPlanePublicKey,
           prefix,

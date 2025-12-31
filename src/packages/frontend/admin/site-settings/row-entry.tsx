@@ -113,7 +113,7 @@ export function RowEntry({
               ) : undefined}
               {hint}
               <ReadOnly readonly={isReadonly[name]} />
-              {displayed_val != null && (
+              {displayed_val != null && !password && (
                 <span>
                   {" "}
                   {is_valid ? "Interpreted as" : "Invalid:"}{" "}
