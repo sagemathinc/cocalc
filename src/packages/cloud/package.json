@@ -29,6 +29,7 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@google-cloud/compute": "^4.7.0",
+    "@nebius/js-sdk": "^0.1.22",
     "awaiting": "^3.0.0",
     "axios": "^1.13.2"
   }
