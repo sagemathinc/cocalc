@@ -101,6 +101,47 @@ async function getCatalogFetchOptions(providerId: string): Promise<any> {
     const apiKey = await getLambdaApiKey();
     return { apiKey };
   }
+  if (providerId === "nebius") {
+    const settings = await getServerSettings();
+    const {
+      nebius_service_account_id,
+      nebius_public_key_id,
+      nebius_private_key_pem,
+      nebius_parent_id,
+      nebius_regions,
+    } = settings;
+    if (!nebius_service_account_id) {
+      logger.warn(
+        "Nebius catalog refresh skipped: missing nebius_service_account_id",
+      );
+      throw new Error("nebius_service_account_id is not configured");
+    }
+    if (!nebius_public_key_id) {
+      logger.warn(
+        "Nebius catalog refresh skipped: missing nebius_public_key_id",
+      );
+      throw new Error("nebius_public_key_id is not configured");
+    }
+    if (!nebius_private_key_pem) {
+      logger.warn(
+        "Nebius catalog refresh skipped: missing nebius_private_key_pem",
+      );
+      throw new Error("nebius_private_key_pem is not configured");
+    }
+    if (!nebius_parent_id) {
+      logger.warn("Nebius catalog refresh skipped: missing nebius_parent_id");
+      throw new Error("nebius_parent_id is not configured");
+    }
+    return {
+      serviceAccountId: nebius_service_account_id,
+      publicKeyId: nebius_public_key_id,
+      privateKeyPem: nebius_private_key_pem,
+      parentId: nebius_parent_id,
+      regions: Array.isArray(nebius_regions)
+        ? nebius_regions.filter(Boolean)
+        : undefined,
+    };
+  }
   return {};
 }
 

@@ -96,6 +96,41 @@ export async function getProviderContext(
         prefix,
       };
     }
+    case "nebius": {
+      const {
+        nebius_service_account_id,
+        nebius_public_key_id,
+        nebius_private_key_pem,
+        nebius_parent_id,
+        nebius_subnet_id,
+      } = settings;
+      if (!nebius_service_account_id) {
+        throw new Error("nebius_service_account_id is not configured");
+      }
+      if (!nebius_public_key_id) {
+        throw new Error("nebius_public_key_id is not configured");
+      }
+      if (!nebius_private_key_pem) {
+        throw new Error("nebius_private_key_pem is not configured");
+      }
+      if (!nebius_parent_id) {
+        throw new Error("nebius_parent_id is not configured");
+      }
+      return {
+        id: providerId,
+        entry,
+        creds: {
+          serviceAccountId: nebius_service_account_id,
+          publicKeyId: nebius_public_key_id,
+          privateKeyPem: nebius_private_key_pem,
+          parentId: nebius_parent_id,
+          subnetId: nebius_subnet_id,
+          sshPublicKey: controlPlanePublicKey,
+          prefix,
+        },
+        prefix,
+      };
+    }
     case "local":
       return { id: providerId, entry, creds: {} };
     default:
@@ -115,6 +150,8 @@ export async function getProviderPrefix(
       return resolved.project_hosts_hyperstack_prefix ?? "cocalc-host";
     case "lambda":
       return resolved.project_hosts_lambda_prefix ?? "cocalc-host";
+    case "nebius":
+      return resolved.project_hosts_nebius_prefix ?? "cocalc-host";
     default:
       return "cocalc-host";
   }
