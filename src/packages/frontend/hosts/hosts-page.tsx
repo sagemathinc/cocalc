@@ -8,6 +8,7 @@ import { useHostActions } from "./hooks/use-host-actions";
 import { useHostAi } from "./hooks/use-host-ai";
 import { useHostCatalog } from "./hooks/use-host-catalog";
 import { useHostCreate } from "./hooks/use-host-create";
+import { useHostCreateViewModel } from "./hooks/use-host-create-view-model";
 import { useHostFeatureFlags } from "./hooks/use-host-feature-flags";
 import { useHostForm } from "./hooks/use-host-form";
 import { useHostFormValues } from "./hooks/use-host-form-values";
@@ -132,50 +133,54 @@ export const HostsPage: React.FC = () => {
     nebiusRegionOptions,
   });
 
+  const createVm = useHostCreateViewModel({
+    permissions: { isAdmin, canCreateHosts },
+    form: { form, creating, onCreate },
+    provider: {
+      providerOptions,
+      selectedProvider: selectedProvider ?? providerOptions[0]?.value ?? "none",
+      regionOptions,
+      hyperstackFlavorOptions,
+      lambdaInstanceTypeOptions,
+      nebiusInstanceTypeOptions,
+      zoneOptions,
+      machineTypeOptions,
+      imageOptions,
+      gpuTypeOptions,
+      storageModeOptions,
+      supportsPersistentStorage,
+      persistentGrowable,
+      showDiskFields,
+      catalogError,
+    },
+    catalogRefresh: {
+      refreshProviders,
+      refreshProvider,
+      setRefreshProvider,
+      refreshCatalog,
+      catalogRefreshing,
+    },
+    ai: {
+      aiQuestion: aiPrompt,
+      setAiQuestion: setAiPrompt,
+      aiBudget,
+      setAiBudget,
+      aiRegionGroup,
+      setAiRegionGroup,
+      aiLoading,
+      aiError,
+      aiResults,
+      canRecommend: !!catalogSummary,
+      runAiRecommendation,
+      applyRecommendation,
+    },
+  });
 
   return (
     <div className="smc-vfill" style={WRAP_STYLE}>
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <HostCreateCard
-            isAdmin={isAdmin}
-            canCreateHosts={canCreateHosts}
-            form={form}
-            creating={creating}
-            providerOptions={providerOptions}
-            selectedProvider={selectedProvider ?? providerOptions[0]?.value ?? "none"}
-            regionOptions={regionOptions}
-            hyperstackFlavorOptions={hyperstackFlavorOptions}
-            lambdaInstanceTypeOptions={lambdaInstanceTypeOptions}
-            nebiusInstanceTypeOptions={nebiusInstanceTypeOptions}
-            zoneOptions={zoneOptions}
-            machineTypeOptions={machineTypeOptions}
-            imageOptions={imageOptions}
-            gpuTypeOptions={gpuTypeOptions}
-            storageModeOptions={storageModeOptions}
-            supportsPersistentStorage={supportsPersistentStorage}
-            persistentGrowable={persistentGrowable}
-            showDiskFields={showDiskFields}
-            catalogError={catalogError}
-            refreshProviders={refreshProviders}
-            refreshProvider={refreshProvider}
-            setRefreshProvider={setRefreshProvider}
-            refreshCatalog={refreshCatalog}
-            catalogRefreshing={catalogRefreshing}
-            aiQuestion={aiPrompt}
-            setAiQuestion={setAiPrompt}
-            aiBudget={aiBudget}
-            setAiBudget={setAiBudget}
-            aiRegionGroup={aiRegionGroup}
-            setAiRegionGroup={setAiRegionGroup}
-            aiLoading={aiLoading}
-            aiError={aiError}
-            aiResults={aiResults}
-            canRecommend={!!catalogSummary}
-            runAiRecommendation={runAiRecommendation}
-            applyRecommendation={applyRecommendation}
-            onCreate={onCreate}
-          />
+          <HostCreateCard vm={createVm} />
         </Col>
         <Col xs={24} lg={12}>
           <HostList

@@ -1,90 +1,60 @@
 import { Alert, Button, Card, Divider, Select, Space, Typography, message } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import type { FormInstance } from "antd/es/form";
-import type { HostProvider, HostRecommendation } from "../types";
+import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
 import { HostAiAssist } from "./host-ai-assist";
 import { HostCreateForm } from "./host-create-form";
 
 type HostCreateCardProps = {
-  isAdmin: boolean;
-  canCreateHosts: boolean;
-  form: FormInstance;
-  creating: boolean;
-  providerOptions: Array<{ value: HostProvider; label: string }>;
-  selectedProvider: HostProvider;
-  regionOptions: Array<{ value: string; label: string }>;
-  hyperstackFlavorOptions: Array<{ value: string; label: string }>;
-  lambdaInstanceTypeOptions: Array<{ value: string; label: string; disabled?: boolean }>;
-  nebiusInstanceTypeOptions: Array<{ value: string; label: string }>;
-  zoneOptions: Array<{ value: string; label: string }>;
-  machineTypeOptions: Array<{ value: string; label: string }>;
-  imageOptions: Array<{ value: string; label: string }>;
-  gpuTypeOptions: Array<{ value: string; label: string }>;
-  storageModeOptions: Array<{ value: string; label: string }>;
-  supportsPersistentStorage: boolean;
-  persistentGrowable: boolean;
-  showDiskFields: boolean;
-  catalogError?: string;
-  refreshProviders: Array<{ value: HostProvider; label: string }>;
-  refreshProvider: HostProvider;
-  setRefreshProvider: (value: HostProvider) => void;
-  refreshCatalog: () => Promise<boolean>;
-  catalogRefreshing: boolean;
-  aiQuestion: string;
-  setAiQuestion: (value: string) => void;
-  aiBudget?: number;
-  setAiBudget: (value?: number) => void;
-  aiRegionGroup: string;
-  setAiRegionGroup: (value: string) => void;
-  aiLoading: boolean;
-  aiError?: string;
-  aiResults: HostRecommendation[];
-  canRecommend: boolean;
-  runAiRecommendation: () => void;
-  applyRecommendation: (rec: HostRecommendation) => void;
-  onCreate: (vals: any) => Promise<void>;
+  vm: HostCreateViewModel;
 };
 
-export const HostCreateCard: React.FC<HostCreateCardProps> = ({
-  isAdmin,
-  canCreateHosts,
-  form,
-  creating,
-  providerOptions,
-  selectedProvider,
-  regionOptions,
-  hyperstackFlavorOptions,
-  lambdaInstanceTypeOptions,
-  nebiusInstanceTypeOptions,
-  zoneOptions,
-  machineTypeOptions,
-  imageOptions,
-  gpuTypeOptions,
-  storageModeOptions,
-  supportsPersistentStorage,
-  persistentGrowable,
-  showDiskFields,
-  catalogError,
-  refreshProviders,
-  refreshProvider,
-  setRefreshProvider,
-  refreshCatalog,
-  catalogRefreshing,
-  aiQuestion,
-  setAiQuestion,
-  aiBudget,
-  setAiBudget,
-  aiRegionGroup,
-  setAiRegionGroup,
-  aiLoading,
-  aiError,
-  aiResults,
-  canRecommend,
-  runAiRecommendation,
-  applyRecommendation,
-  onCreate,
-}) => {
+export const HostCreateCard: React.FC<HostCreateCardProps> = ({ vm }) => {
+  const { permissions, form, provider, catalogRefresh, ai } = vm;
+  const { isAdmin, canCreateHosts } = permissions;
+  const {
+    form: formInstance,
+    creating,
+    onCreate,
+  } = form;
+  const {
+    providerOptions,
+    selectedProvider,
+    regionOptions,
+    hyperstackFlavorOptions,
+    lambdaInstanceTypeOptions,
+    nebiusInstanceTypeOptions,
+    zoneOptions,
+    machineTypeOptions,
+    imageOptions,
+    gpuTypeOptions,
+    storageModeOptions,
+    supportsPersistentStorage,
+    persistentGrowable,
+    showDiskFields,
+    catalogError,
+  } = provider;
+  const {
+    refreshProviders,
+    refreshProvider,
+    setRefreshProvider,
+    refreshCatalog,
+    catalogRefreshing,
+  } = catalogRefresh;
+  const {
+    aiQuestion,
+    setAiQuestion,
+    aiBudget,
+    setAiBudget,
+    aiRegionGroup,
+    setAiRegionGroup,
+    aiLoading,
+    aiError,
+    aiResults,
+    canRecommend,
+    runAiRecommendation,
+    applyRecommendation,
+  } = ai;
   const refreshCatalogAndNotify = async () => {
     const ok = await refreshCatalog();
     if (ok) {
@@ -144,7 +114,7 @@ export const HostCreateCard: React.FC<HostCreateCardProps> = ({
         applyRecommendation={applyRecommendation}
       />
       <HostCreateForm
-        form={form}
+        form={formInstance}
         canCreateHosts={canCreateHosts}
         providerOptions={providerOptions}
         selectedProvider={selectedProvider}
@@ -170,7 +140,7 @@ export const HostCreateCard: React.FC<HostCreateCardProps> = ({
         </Typography.Text>
         <Button
           type="primary"
-          onClick={() => form.submit()}
+          onClick={() => formInstance.submit()}
           loading={creating}
           disabled={!canCreateHosts}
           block
