@@ -14,7 +14,7 @@ type HostLogEntry = {
   error?: string | null;
 };
 
-type HostDrawerProps = {
+type HostDrawerViewModel = {
   open: boolean;
   host?: Host;
   onClose: () => void;
@@ -22,13 +22,9 @@ type HostDrawerProps = {
   loadingLog: boolean;
 };
 
-export const HostDrawer: React.FC<HostDrawerProps> = ({
-  open,
-  host,
-  onClose,
-  hostLog,
-  loadingLog,
-}) => (
+export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
+  const { open, host, onClose, hostLog, loadingLog } = vm;
+  return (
   <Drawer
     title={
       <Space>
@@ -135,4 +131,5 @@ export const HostDrawer: React.FC<HostDrawerProps> = ({
       </Typography.Text>
     )}
   </Drawer>
-);
+  );
+};

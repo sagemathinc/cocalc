@@ -4,7 +4,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { HostCard } from "./host-card";
 
-type HostListProps = {
+type HostListViewModel = {
   hosts: Host[];
   onStart: (id: string) => void;
   onStop: (id: string) => void;
@@ -12,13 +12,8 @@ type HostListProps = {
   onDetails: (host: Host) => void;
 };
 
-export const HostList: React.FC<HostListProps> = ({
-  hosts,
-  onStart,
-  onStop,
-  onDelete,
-  onDetails,
-}) => {
+export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
+  const { hosts, onStart, onStop, onDelete, onDetails } = vm;
   if (hosts.length === 0) {
     return (
       <Card

@@ -1,37 +1,28 @@
 import { Button, Card, Col, Input, Row, Select, Space, Typography, Alert } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
-import type { HostRecommendation } from "../types";
+import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
 import { REGIONS } from "../constants";
 
 type HostAiAssistProps = {
-  aiQuestion: string;
-  setAiQuestion: (value: string) => void;
-  aiBudget?: number;
-  setAiBudget: (value: number | undefined) => void;
-  aiRegionGroup: string;
-  setAiRegionGroup: (value: string) => void;
-  aiLoading: boolean;
-  aiError?: string;
-  aiResults: HostRecommendation[];
-  canRecommend: boolean;
-  runAiRecommendation: () => void;
-  applyRecommendation: (rec: HostRecommendation) => void;
+  ai: HostCreateViewModel["ai"];
 };
 
-export const HostAiAssist: React.FC<HostAiAssistProps> = ({
-  aiQuestion,
-  setAiQuestion,
-  aiBudget,
-  setAiBudget,
-  aiRegionGroup,
-  setAiRegionGroup,
-  aiLoading,
-  aiError,
-  aiResults,
-  canRecommend,
-  runAiRecommendation,
-  applyRecommendation,
-}) => (
+export const HostAiAssist: React.FC<HostAiAssistProps> = ({ ai }) => {
+  const {
+    aiQuestion,
+    setAiQuestion,
+    aiBudget,
+    setAiBudget,
+    aiRegionGroup,
+    setAiRegionGroup,
+    aiLoading,
+    aiError,
+    aiResults,
+    canRecommend,
+    runAiRecommendation,
+    applyRecommendation,
+  } = ai;
+  return (
   <Card
     size="small"
     title={
@@ -134,4 +125,5 @@ export const HostAiAssist: React.FC<HostAiAssistProps> = ({
       )}
     </Space>
   </Card>
-);
+  );
+};

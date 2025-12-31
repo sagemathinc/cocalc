@@ -18,43 +18,12 @@ export const HostCreateCard: React.FC<HostCreateCardProps> = ({ vm }) => {
     onCreate,
   } = form;
   const {
-    providerOptions,
-    selectedProvider,
-    regionOptions,
-    hyperstackFlavorOptions,
-    lambdaInstanceTypeOptions,
-    nebiusInstanceTypeOptions,
-    zoneOptions,
-    machineTypeOptions,
-    imageOptions,
-    gpuTypeOptions,
-    storageModeOptions,
-    supportsPersistentStorage,
-    persistentGrowable,
-    showDiskFields,
-    catalogError,
-  } = provider;
-  const {
     refreshProviders,
     refreshProvider,
     setRefreshProvider,
     refreshCatalog,
     catalogRefreshing,
   } = catalogRefresh;
-  const {
-    aiQuestion,
-    setAiQuestion,
-    aiBudget,
-    setAiBudget,
-    aiRegionGroup,
-    setAiRegionGroup,
-    aiLoading,
-    aiError,
-    aiResults,
-    canRecommend,
-    runAiRecommendation,
-    applyRecommendation,
-  } = ai;
   const refreshCatalogAndNotify = async () => {
     const ok = await refreshCatalog();
     if (ok) {
@@ -99,38 +68,11 @@ export const HostCreateCard: React.FC<HostCreateCardProps> = ({ vm }) => {
           style={{ marginBottom: 12 }}
         />
       )}
-      <HostAiAssist
-        aiQuestion={aiQuestion}
-        setAiQuestion={setAiQuestion}
-        aiBudget={aiBudget}
-        setAiBudget={setAiBudget}
-        aiRegionGroup={aiRegionGroup}
-        setAiRegionGroup={setAiRegionGroup}
-        aiLoading={aiLoading}
-        aiError={aiError}
-        aiResults={aiResults}
-        canRecommend={canRecommend}
-        runAiRecommendation={runAiRecommendation}
-        applyRecommendation={applyRecommendation}
-      />
+      <HostAiAssist ai={ai} />
       <HostCreateForm
         form={formInstance}
         canCreateHosts={canCreateHosts}
-        providerOptions={providerOptions}
-        selectedProvider={selectedProvider}
-        regionOptions={regionOptions}
-        hyperstackFlavorOptions={hyperstackFlavorOptions}
-        lambdaInstanceTypeOptions={lambdaInstanceTypeOptions}
-        nebiusInstanceTypeOptions={nebiusInstanceTypeOptions}
-        zoneOptions={zoneOptions}
-        machineTypeOptions={machineTypeOptions}
-        imageOptions={imageOptions}
-        gpuTypeOptions={gpuTypeOptions}
-        storageModeOptions={storageModeOptions}
-        supportsPersistentStorage={supportsPersistentStorage}
-        persistentGrowable={persistentGrowable}
-        showDiskFields={showDiskFields}
-        catalogError={catalogError}
+        provider={provider}
         onCreate={onCreate}
       />
       <Divider style={{ margin: "8px 0" }} />

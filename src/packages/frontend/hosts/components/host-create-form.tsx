@@ -1,54 +1,39 @@
 import { Alert, Col, Collapse, Form, Input, Row, Select, Slider } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { FormInstance } from "antd/es/form";
-import type { HostProvider } from "../types";
+import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
 import { DISK_TYPES, GPU_TYPES, SIZES } from "../constants";
 
 type HostCreateFormProps = {
   form: FormInstance;
   canCreateHosts: boolean;
-  providerOptions: Array<{ value: HostProvider; label: string }>;
-  selectedProvider: HostProvider;
-  regionOptions: Array<{ value: string; label: string }>;
-  hyperstackFlavorOptions: Array<{ value: string; label: string }>;
-  lambdaInstanceTypeOptions: Array<{
-    value: string;
-    label: string;
-    disabled?: boolean;
-  }>;
-  nebiusInstanceTypeOptions: Array<{ value: string; label: string }>;
-  zoneOptions: Array<{ value: string; label: string }>;
-  machineTypeOptions: Array<{ value: string; label: string }>;
-  imageOptions: Array<{ value: string; label: string }>;
-  gpuTypeOptions: Array<{ value: string; label: string }>;
-  storageModeOptions: Array<{ value: string; label: string }>;
-  supportsPersistentStorage: boolean;
-  persistentGrowable: boolean;
-  showDiskFields: boolean;
-  catalogError?: string;
+  provider: HostCreateViewModel["provider"];
   onCreate: (vals: any) => Promise<void>;
 };
 
 export const HostCreateForm: React.FC<HostCreateFormProps> = ({
   form,
   canCreateHosts,
-  providerOptions,
-  selectedProvider,
-  regionOptions,
-  hyperstackFlavorOptions,
-  lambdaInstanceTypeOptions,
-  nebiusInstanceTypeOptions,
-  zoneOptions,
-  machineTypeOptions,
-  imageOptions,
-  gpuTypeOptions,
-  storageModeOptions,
-  supportsPersistentStorage,
-  persistentGrowable,
-  showDiskFields,
-  catalogError,
+  provider,
   onCreate,
 }) => {
+  const {
+    providerOptions,
+    selectedProvider,
+    regionOptions,
+    hyperstackFlavorOptions,
+    lambdaInstanceTypeOptions,
+    nebiusInstanceTypeOptions,
+    zoneOptions,
+    machineTypeOptions,
+    imageOptions,
+    gpuTypeOptions,
+    storageModeOptions,
+    supportsPersistentStorage,
+    persistentGrowable,
+    showDiskFields,
+    catalogError,
+  } = provider;
   const regionField = (
     <Form.Item name="region" label="Region" initialValue={regionOptions[0]?.value}>
       <Select options={regionOptions} disabled={selectedProvider === "none"} />

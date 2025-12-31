@@ -175,6 +175,20 @@ export const HostsPage: React.FC = () => {
       applyRecommendation,
     },
   });
+  const hostListVm = {
+    hosts,
+    onStart: (id: string) => setStatus(id, "start"),
+    onStop: (id: string) => setStatus(id, "stop"),
+    onDelete: removeHost,
+    onDetails: openDetails,
+  };
+  const hostDrawerVm = {
+    open: drawerOpen,
+    host: selected,
+    onClose: closeDetails,
+    hostLog,
+    loadingLog,
+  };
 
   return (
     <div className="smc-vfill" style={WRAP_STYLE}>
@@ -183,22 +197,10 @@ export const HostsPage: React.FC = () => {
           <HostCreateCard vm={createVm} />
         </Col>
         <Col xs={24} lg={12}>
-          <HostList
-            hosts={hosts}
-            onStart={(id) => setStatus(id, "start")}
-            onStop={(id) => setStatus(id, "stop")}
-            onDelete={removeHost}
-            onDetails={openDetails}
-          />
+          <HostList vm={hostListVm} />
         </Col>
       </Row>
-      <HostDrawer
-        open={drawerOpen}
-        host={selected}
-        onClose={closeDetails}
-        hostLog={hostLog}
-        loadingLog={loadingLog}
-      />
+      <HostDrawer vm={hostDrawerVm} />
     </div>
   );
 };
