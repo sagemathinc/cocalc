@@ -1,4 +1,11 @@
-import type { HostCatalog } from "@cocalc/conat/hub/api/hosts";
+import type {
+  HostCatalog,
+  HostCatalogEntry,
+  HostCatalogGpuType,
+  HostCatalogMachineType,
+  HostCatalogRegion,
+  HostCatalogZone,
+} from "@cocalc/conat/hub/api/hosts";
 import { getMachineTypeArchitecture } from "@cocalc/util/db-schema/compute-servers";
 import {
   formatCpuRamLabel,
@@ -38,9 +45,30 @@ export type HostFieldOption<T = unknown> = {
 export type HostFieldLabels = Record<HostFieldId, string>;
 export type HostFieldTooltips = Partial<Record<HostFieldId, string>>;
 
-type LambdaInstance = NonNullable<HostCatalog["lambda_instance_types"]>[number];
-type HyperstackFlavor = NonNullable<HostCatalog["hyperstack_flavors"]>[number];
-type NebiusInstance = NonNullable<HostCatalog["nebius_instance_types"]>[number];
+type LambdaInstance = {
+  name: string;
+  vcpus?: number | null;
+  memory_gib?: number | null;
+  gpus?: number | null;
+  regions?: string[];
+};
+type HyperstackFlavor = {
+  name: string;
+  region_name: string;
+  cpu: number;
+  ram: number;
+  gpu: string;
+  gpu_count: number;
+};
+type NebiusInstance = {
+  name: string;
+  platform?: string | null;
+  platform_label?: string | null;
+  vcpus?: number | null;
+  memory_gib?: number | null;
+  gpus?: number | null;
+  gpu_label?: string | null;
+};
 
 export type LambdaInstanceOption = HostFieldOption<LambdaInstance> & {
   entry: LambdaInstance;
@@ -181,6 +209,23 @@ const applyDiskUpdate = (next: Record<string, any>, disk_gb?: number) => {
 
 const limit = <T,>(items: T[], n = 5) => items.slice(0, n);
 
+const getCatalogEntries = (
+  catalog: HostCatalog | undefined,
+  kind: string,
+): HostCatalogEntry[] =>
+  catalog?.entries?.filter((entry) => entry.kind === kind) ?? [];
+
+const getCatalogEntryPayload = <T,>(
+  catalog: HostCatalog | undefined,
+  kind: string,
+  scope = "global",
+): T | undefined => {
+  const entry = getCatalogEntries(catalog, kind).find(
+    (item) => item.scope === scope,
+  );
+  return (entry?.payload as T | undefined) ?? undefined;
+};
+
 const shouldIncludeField = (
   field: HostFieldId,
   caps?: NonNullable<HostCatalog["provider_capabilities"]>[string],
@@ -217,9 +262,19 @@ export const filterFieldSchemaForCaps = (
 export const getGcpRegionOptions = (
   catalog?: HostCatalog,
 ): HostFieldOption[] => {
-  if (!catalog?.regions?.length) return REGIONS;
-  return catalog.regions.map((r) => {
-    const zoneWithMeta = catalog.zones?.find(
+  const regions = getCatalogEntryPayload<HostCatalogRegion[]>(
+    catalog,
+    "regions",
+    "global",
+  );
+  const zones = getCatalogEntryPayload<HostCatalogZone[]>(
+    catalog,
+    "zones",
+    "global",
+  );
+  if (!regions?.length) return REGIONS;
+  return regions.map((r) => {
+    const zoneWithMeta = zones?.find(
       (z) => z.region === r.name && (z.location || z.lowC02),
     );
     return {
@@ -237,11 +292,21 @@ export const getGcpZoneOptions = (
   catalog: HostCatalog | undefined,
   selectedRegion?: string,
 ): HostFieldOption[] => {
-  if (!catalog?.regions?.length || !selectedRegion) return [];
-  const zones = catalog.regions.find((r) => r.name === selectedRegion)?.zones;
+  const regions = getCatalogEntryPayload<HostCatalogRegion[]>(
+    catalog,
+    "regions",
+    "global",
+  );
+  const zonesMeta = getCatalogEntryPayload<HostCatalogZone[]>(
+    catalog,
+    "zones",
+    "global",
+  );
+  if (!regions?.length || !selectedRegion) return [];
+  const zones = regions.find((r) => r.name === selectedRegion)?.zones;
   if (!zones?.length) return [];
   return zones.map((z) => {
-    const meta = catalog.zones?.find((zone) => zone.name === z);
+    const meta = zonesMeta?.find((zone) => zone.name === z);
     return {
       value: z,
       label: formatRegionLabel(z, meta?.location, meta?.lowC02),
@@ -253,8 +318,14 @@ export const getGcpMachineTypeOptions = (
   catalog: HostCatalog | undefined,
   selectedZone?: string,
 ): HostFieldOption[] => {
-  if (!catalog?.machine_types_by_zone || !selectedZone) return [];
-  return (catalog.machine_types_by_zone[selectedZone] ?? []).map((mt) => ({
+  if (!selectedZone) return [];
+  const types = getCatalogEntryPayload<HostCatalogMachineType[]>(
+    catalog,
+    "machine_types",
+    `zone/${selectedZone}`,
+  );
+  if (!types?.length) return [];
+  return types.map((mt) => ({
     value: mt.name ?? "",
     label: mt.name ?? "unknown",
   }));
@@ -264,8 +335,14 @@ export const getGcpGpuTypeOptions = (
   catalog: HostCatalog | undefined,
   selectedZone?: string,
 ): HostFieldOption[] => {
-  if (!catalog?.gpu_types_by_zone || !selectedZone) return [];
-  return (catalog.gpu_types_by_zone[selectedZone] ?? []).map((gt) => ({
+  if (!selectedZone) return [];
+  const types = getCatalogEntryPayload<HostCatalogGpuType[]>(
+    catalog,
+    "gpu_types",
+    `zone/${selectedZone}`,
+  );
+  if (!types?.length) return [];
+  return types.map((gt) => ({
     value: gt.name ?? "",
     label: gt.name ?? "unknown",
   }));
@@ -276,9 +353,23 @@ export const getGcpImageOptions = (
   selectedMachineType?: string,
   selectedGpuType?: string,
 ): HostFieldOption[] => {
-  if (!catalog?.images?.length) return [];
+  const images = getCatalogEntryPayload<
+    {
+      project: string;
+      name?: string | null;
+      family?: string | null;
+      selfLink?: string | null;
+      architecture?: string | null;
+      status?: string | null;
+      deprecated?: any;
+      diskSizeGb?: string | null;
+      creationTimestamp?: string | null;
+      gpuReady?: boolean;
+    }[]
+  >(catalog, "images", "global");
+  if (!images?.length) return [];
   const wantsGpu = !!selectedGpuType && selectedGpuType !== "none";
-  return [...catalog.images]
+  return [...images]
     .filter((img) => {
       if (!selectedMachineType) {
         const imgArch = (img.architecture ?? "").toUpperCase();
@@ -323,13 +414,37 @@ export const getGcpImageOptions = (
 };
 
 const summarizeGcpCatalog = (catalog: HostCatalog) => {
-  const zonesByName = new Map(catalog.zones?.map((z) => [z.name, z]) ?? []);
+  const regions = getCatalogEntryPayload<HostCatalogRegion[]>(
+    catalog,
+    "regions",
+    "global",
+  ) ?? [];
+  const zones = getCatalogEntryPayload<HostCatalogZone[]>(
+    catalog,
+    "zones",
+    "global",
+  ) ?? [];
+  const zonesByName = new Map(zones.map((z) => [z.name, z]));
+  const images =
+    getCatalogEntryPayload<
+      {
+        name?: string | null;
+        family?: string | null;
+        selfLink?: string | null;
+        architecture?: string | null;
+        gpuReady?: boolean;
+      }[]
+    >(catalog, "images", "global") ?? [];
   const regionGroups: Record<string, string[]> = {};
-  const regions = (catalog.regions ?? []).map((r) => {
+  const normalizedRegions = regions.map((r) => {
     const zone = r.zones?.[0];
     const zoneDetails = zone ? zonesByName.get(zone) : undefined;
     const machineTypes = limit(
-      catalog.machine_types_by_zone?.[zone ?? ""] ?? [],
+      getCatalogEntryPayload<HostCatalogMachineType[]>(
+        catalog,
+        "machine_types",
+        `zone/${zone}`,
+      ) ?? [],
       5,
     ).map((m) => ({
       name: m.name ?? undefined,
@@ -337,7 +452,11 @@ const summarizeGcpCatalog = (catalog: HostCatalog) => {
       memoryMb: m.memoryMb ?? undefined,
     }));
     const gpuTypes = limit(
-      catalog.gpu_types_by_zone?.[zone ?? ""] ?? [],
+      getCatalogEntryPayload<HostCatalogGpuType[]>(
+        catalog,
+        "gpu_types",
+        `zone/${zone}`,
+      ) ?? [],
       5,
     ).map((g) => ({
       name: g.name ?? undefined,
@@ -365,21 +484,26 @@ const summarizeGcpCatalog = (catalog: HostCatalog) => {
     regionGroups[group] ??= [];
     regionGroups[group].push(name);
   }
-  const images = limit(catalog.images ?? [], 6).map((img) => ({
+  const imagesSummary = limit(images, 6).map((img) => ({
     name: img.name ?? undefined,
     family: img.family ?? undefined,
     selfLink: img.selfLink ?? undefined,
     architecture: img.architecture ?? undefined,
     gpuReady: img.gpuReady ?? undefined,
   }));
-  return { regions, region_groups: regionGroups, images };
+  return { regions: normalizedRegions, region_groups: regionGroups, images: imagesSummary };
 };
 
 export const getHyperstackRegionOptions = (
   catalog?: HostCatalog,
 ): HostFieldOption[] => {
-  if (!catalog?.hyperstack_regions?.length) return [];
-  return catalog.hyperstack_regions.map((r) => ({
+  const regions = getCatalogEntryPayload<{ name: string; description?: string | null }[]>(
+    catalog,
+    "regions",
+    "global",
+  );
+  if (!regions?.length) return [];
+  return regions.map((r) => ({
     value: r.name,
     label: r.name,
   }));
@@ -389,8 +513,30 @@ export const getHyperstackFlavorOptions = (
   catalog: HostCatalog | undefined,
   selectedRegion?: string,
 ): HyperstackFlavorOption[] => {
-  if (!catalog?.hyperstack_flavors?.length || !selectedRegion) return [];
-  return catalog.hyperstack_flavors
+  if (!selectedRegion) return [];
+  const flavorsPayload = getCatalogEntryPayload<any[]>(
+    catalog,
+    "flavors",
+    "global",
+  );
+  if (!flavorsPayload?.length) return [];
+  const flat: HyperstackFlavor[] = [];
+  for (const entry of flavorsPayload) {
+    const region = entry?.region_name;
+    const flavors = entry?.flavors ?? [];
+    for (const flavor of flavors) {
+      if (!flavor?.name) continue;
+      flat.push({
+        name: flavor.name,
+        region_name: region ?? flavor.region_name,
+        cpu: flavor.cpu,
+        ram: flavor.ram,
+        gpu: flavor.gpu,
+        gpu_count: flavor.gpu_count,
+      });
+    }
+  }
+  return flat
     .filter((flavor) => flavor.region_name === selectedRegion)
     .map((flavor) => {
       const cpuRamLabel = formatCpuRamLabel(flavor.cpu, flavor.ram);
@@ -404,8 +550,16 @@ export const getHyperstackFlavorOptions = (
 };
 
 const summarizeHyperstackCatalog = (catalog: HostCatalog) => ({
-  regions: catalog.hyperstack_regions ?? [],
-  flavors: limit(catalog.hyperstack_flavors ?? [], 10).map((f) => ({
+  regions:
+    getCatalogEntryPayload<{ name: string; description?: string | null }[]>(
+      catalog,
+      "regions",
+      "global",
+    ) ?? [],
+  flavors: limit(
+    getHyperstackFlavorOptions(catalog, undefined).map((opt) => opt.flavor),
+    10,
+  ).map((f) => ({
     name: f.name,
     region: f.region_name,
     cpu: f.cpu,
@@ -418,8 +572,13 @@ const summarizeHyperstackCatalog = (catalog: HostCatalog) => ({
 export const getLambdaInstanceTypeOptions = (
   catalog: HostCatalog | undefined,
 ): LambdaInstanceOption[] => {
-  if (!catalog?.lambda_instance_types?.length) return [];
-  return catalog.lambda_instance_types
+  const instanceTypes = getCatalogEntryPayload<LambdaInstance[]>(
+    catalog,
+    "instance_types",
+    "global",
+  );
+  if (!instanceTypes?.length) return [];
+  return instanceTypes
     .filter((entry) => !!entry?.name)
     .map((entry) => {
       const regionsCount = entry.regions?.length ?? 0;
@@ -458,35 +617,62 @@ export const getLambdaRegionOptions = (
 
 export const getLambdaRegionsFromCatalog = (catalog?: HostCatalog): string[] => {
   if (!catalog) return [];
-  if (catalog.lambda_regions?.length) {
-    return catalog.lambda_regions.map((r) => r.name).filter(Boolean);
+  const regions = getCatalogEntryPayload<{ name?: string }[]>(
+    catalog,
+    "regions",
+    "global",
+  );
+  if (regions?.length) {
+    return regions.map((r) => r.name).filter(Boolean) as string[];
   }
-  if (catalog.lambda_instance_types?.length) {
+  const instanceTypes = getCatalogEntryPayload<LambdaInstance[]>(
+    catalog,
+    "instance_types",
+    "global",
+  );
+  if (instanceTypes?.length) {
     return Array.from(
-      new Set(
-        catalog.lambda_instance_types.flatMap((entry) => entry.regions ?? []),
-      ),
+      new Set(instanceTypes.flatMap((entry) => entry.regions ?? [])),
     );
   }
   return [];
 };
 
 const summarizeLambdaCatalog = (catalog: HostCatalog) => {
-  const lambdaRegions = catalog.lambda_regions?.length
-    ? catalog.lambda_regions
+  const lambdaRegionsPayload = getCatalogEntryPayload<{ name: string }[]>(
+    catalog,
+    "regions",
+    "global",
+  );
+  const lambdaRegions = lambdaRegionsPayload?.length
+    ? lambdaRegionsPayload
     : getLambdaRegionsFromCatalog(catalog).map((name) => ({ name }));
+  const instanceTypes =
+    getCatalogEntryPayload<LambdaInstance[]>(
+      catalog,
+      "instance_types",
+      "global",
+    ) ?? [];
+  const images =
+    getCatalogEntryPayload<
+      {
+        id: string;
+        name?: string | null;
+        family?: string | null;
+        architecture?: string | null;
+        region?: string | null;
+      }[]
+    >(catalog, "images", "global") ?? [];
   return {
     regions: lambdaRegions,
-    instance_types: limit(catalog.lambda_instance_types ?? [], 25).map(
-      (entry) => ({
-        name: entry.name,
-        vcpus: entry.vcpus ?? undefined,
-        memory_gib: entry.memory_gib ?? undefined,
-        gpus: entry.gpus ?? undefined,
-        regions: entry.regions ?? undefined,
-      }),
-    ),
-    images: limit(catalog.lambda_images ?? [], 10).map((img) => ({
+    instance_types: limit(instanceTypes, 25).map((entry) => ({
+      name: entry.name,
+      vcpus: entry.vcpus ?? undefined,
+      memory_gib: entry.memory_gib ?? undefined,
+      gpus: entry.gpus ?? undefined,
+      regions: entry.regions ?? undefined,
+    })),
+    images: limit(images, 10).map((img) => ({
       id: img.id ?? undefined,
       name: img.name ?? undefined,
       family: img.family ?? undefined,
@@ -499,15 +685,25 @@ const summarizeLambdaCatalog = (catalog: HostCatalog) => {
 export const getNebiusRegionOptions = (
   catalog?: HostCatalog,
 ): HostFieldOption[] => {
-  if (!catalog?.nebius_regions?.length) return [];
-  return catalog.nebius_regions.map((r) => ({ value: r.name, label: r.name }));
+  const regions = getCatalogEntryPayload<{ name: string }[]>(
+    catalog,
+    "regions",
+    "global",
+  );
+  if (!regions?.length) return [];
+  return regions.map((r) => ({ value: r.name, label: r.name }));
 };
 
 export const getNebiusInstanceTypeOptions = (
   catalog?: HostCatalog,
 ): NebiusInstanceOption[] => {
-  if (!catalog?.nebius_instance_types?.length) return [];
-  return catalog.nebius_instance_types
+  const instances = getCatalogEntryPayload<NebiusInstance[]>(
+    catalog,
+    "instance_types",
+    "global",
+  );
+  if (!instances?.length) return [];
+  return instances
     .filter((entry) => !!entry?.name)
     .map((entry) => {
       const platformLabel = entry.platform_label
@@ -520,32 +716,316 @@ export const getNebiusInstanceTypeOptions = (
         label: `${entry.name} (${cpuRamLabel}${gpuLabel}${platformLabel})`,
         entry,
       };
-    })
-    .sort((a, b) => a.value.localeCompare(b.value));
+    });
 };
 
 const summarizeNebiusCatalog = (catalog: HostCatalog) => ({
-  regions: catalog.nebius_regions ?? [],
-  instance_types: limit(catalog.nebius_instance_types ?? [], 25).map(
-    (entry) => ({
-      name: entry.name,
-      platform: entry.platform ?? undefined,
-      platform_label: entry.platform_label ?? undefined,
-      vcpus: entry.vcpus ?? undefined,
-      memory_gib: entry.memory_gib ?? undefined,
-      gpus: entry.gpus ?? undefined,
-      gpu_label: entry.gpu_label ?? undefined,
-    }),
-  ),
-  images: limit(catalog.nebius_images ?? [], 10).map((img) => ({
-    id: img.id ?? undefined,
-    name: img.name ?? undefined,
-    family: img.family ?? undefined,
-    version: img.version ?? undefined,
-    architecture: img.architecture ?? undefined,
-    recommended_platforms: img.recommended_platforms ?? undefined,
-  })),
+  regions:
+    getCatalogEntryPayload<{ name: string }[]>(catalog, "regions", "global") ??
+    [],
+  instance_types:
+    getCatalogEntryPayload<NebiusInstance[]>(
+      catalog,
+      "instance_types",
+      "global",
+    ) ?? [],
+  images:
+    getCatalogEntryPayload<
+      {
+        id: string;
+        name?: string | null;
+        family?: string | null;
+        version?: string | null;
+        architecture?: string | null;
+        recommended_platforms?: string[];
+      }[]
+    >(catalog, "images", "global") ?? [],
 });
+
+export const getNebiusImageOptions = (
+  catalog: HostCatalog | undefined,
+): HostFieldOption[] => {
+  const images = getCatalogEntryPayload<
+    {
+      id: string;
+      name?: string | null;
+      family?: string | null;
+      version?: string | null;
+      architecture?: string | null;
+      recommended_platforms?: string[];
+    }[]
+  >(catalog, "images", "global");
+  if (!images?.length) return [];
+  return images.map((img) => ({
+    value: img.id,
+    label: img.name ?? img.family ?? img.id,
+  }));
+};
+
+const getHyperstackStocks = (
+  catalog: HostCatalog | undefined,
+): { region: string; model: string; available: string }[] => {
+  const payload = getCatalogEntryPayload<any[]>(catalog, "stocks", "global");
+  if (!payload?.length) return [];
+  const flat: { region: string; model: string; available: string }[] = [];
+  for (const stock of payload) {
+    const region = stock?.region;
+    const models = stock?.models ?? [];
+    for (const model of models) {
+      flat.push({
+        region,
+        model: model?.model,
+        available: model?.available,
+      });
+    }
+  }
+  return flat;
+};
+
+const getHyperstackImages = (
+  catalog: HostCatalog | undefined,
+): { name: string; region_name: string; typ: string; version: string; size: number }[] => {
+  const payload = getCatalogEntryPayload<any[]>(catalog, "images", "global");
+  if (!payload?.length) return [];
+  const flat: { name: string; region_name: string; typ: string; version: string; size: number }[] = [];
+  for (const entry of payload) {
+    const region = entry?.region_name;
+    const images = entry?.images ?? [];
+    for (const img of images) {
+      if (!img?.name) continue;
+      flat.push({
+        name: img.name,
+        region_name: region ?? img.region_name,
+        typ: img.typ,
+        version: img.version,
+        size: img.size,
+      });
+    }
+  }
+  return flat;
+};
+
+const getHyperstackRegions = (
+  catalog: HostCatalog | undefined,
+): { name: string; description?: string | null }[] =>
+  getCatalogEntryPayload<{ name: string; description?: string | null }[]>(
+    catalog,
+    "regions",
+    "global",
+  ) ?? [];
+
+const getGcpZones = (catalog?: HostCatalog) =>
+  getCatalogEntryPayload<HostCatalogZone[]>(catalog, "zones", "global") ?? [];
+
+const getGcpRegions = (catalog?: HostCatalog) =>
+  getCatalogEntryPayload<HostCatalogRegion[]>(
+    catalog,
+    "regions",
+    "global",
+  ) ?? [];
+
+const getGcpImages = (catalog?: HostCatalog) =>
+  getCatalogEntryPayload<
+    {
+      project: string;
+      name?: string | null;
+      family?: string | null;
+      selfLink?: string | null;
+      architecture?: string | null;
+      status?: string | null;
+      deprecated?: any;
+      diskSizeGb?: string | null;
+      creationTimestamp?: string | null;
+      gpuReady?: boolean;
+    }[]
+  >(catalog, "images", "global") ?? [];
+
+const getLambdaImages = (catalog?: HostCatalog) =>
+  getCatalogEntryPayload<
+    {
+      id: string;
+      name?: string | null;
+      family?: string | null;
+      architecture?: string | null;
+      region?: string | null;
+    }[]
+  >(catalog, "images", "global") ?? [];
+
+export const getHyperstackImagesForRegion = (
+  catalog: HostCatalog | undefined,
+  region?: string,
+): HostFieldOption[] => {
+  if (!region) return [];
+  const images = getHyperstackImages(catalog).filter(
+    (img) => img.region_name === region,
+  );
+  return images.map((img) => ({
+    value: img.name,
+    label: `${img.name} (${img.typ} ${img.version ?? ""})`.trim(),
+  }));
+};
+
+export const getLambdaImageOptions = (
+  catalog: HostCatalog | undefined,
+): HostFieldOption[] => {
+  const images = getLambdaImages(catalog);
+  if (!images?.length) return [];
+  return images.map((img) => ({
+    value: img.id,
+    label: img.family ?? img.name ?? img.id,
+  }));
+};
+
+export const getHyperstackStocksByRegion = (
+  catalog: HostCatalog | undefined,
+): Record<string, { model: string; available: string }[]> => {
+  const stocks = getHyperstackStocks(catalog);
+  const byRegion: Record<string, { model: string; available: string }[]> = {};
+  for (const stock of stocks) {
+    if (!stock.region) continue;
+    byRegion[stock.region] ??= [];
+    byRegion[stock.region].push({
+      model: stock.model,
+      available: stock.available,
+    });
+  }
+  return byRegion;
+};
+
+export const getHyperstackRegionsForSummary = (
+  catalog: HostCatalog | undefined,
+): { name: string; description?: string | null }[] =>
+  getHyperstackRegions(catalog);
+
+export const getNebiusImageSummary = (catalog: HostCatalog) =>
+  getCatalogEntryPayload<
+    {
+      id: string;
+      name?: string | null;
+      family?: string | null;
+      version?: string | null;
+      architecture?: string | null;
+      recommended_platforms?: string[];
+    }[]
+  >(catalog, "images", "global") ?? [];
+
+export const getLambdaRegionsForSummary = (catalog?: HostCatalog) =>
+  getCatalogEntryPayload<{ name: string }[]>(catalog, "regions", "global") ??
+  [];
+
+export const getGcpRegionGroups = (regions: HostCatalogRegion[]) => {
+  const regionGroups: Record<string, string[]> = {};
+  for (const r of regions) {
+    const name = r.name || "";
+    let group = "any";
+    if (name.startsWith("us-west")) group = "us-west";
+    else if (name.startsWith("us-east")) group = "us-east";
+    else if (name.startsWith("europe")) group = "eu-west";
+    else if (name.startsWith("asia")) group = "asia";
+    else if (name.startsWith("australia")) group = "australia";
+    else if (name.startsWith("southamerica")) group = "southamerica";
+    regionGroups[group] ??= [];
+    regionGroups[group].push(name);
+  }
+  return regionGroups;
+};
+
+export const getGcpRegionSummary = (catalog: HostCatalog) => {
+  const regions = getGcpRegions(catalog);
+  const zones = getGcpZones(catalog);
+  const zonesByName = new Map(zones.map((z) => [z.name, z]));
+  return regions.map((r) => {
+    const zone = r.zones?.[0];
+    const zoneDetails = zone ? zonesByName.get(zone) : undefined;
+    const machineTypes = limit(
+      getCatalogEntryPayload<HostCatalogMachineType[]>(
+        catalog,
+        "machine_types",
+        `zone/${zone}`,
+      ) ?? [],
+      5,
+    ).map((m) => ({
+      name: m.name ?? undefined,
+      guestCpus: m.guestCpus ?? undefined,
+      memoryMb: m.memoryMb ?? undefined,
+    }));
+    const gpuTypes = limit(
+      getCatalogEntryPayload<HostCatalogGpuType[]>(
+        catalog,
+        "gpu_types",
+        `zone/${zone}`,
+      ) ?? [],
+      5,
+    ).map((g) => ({
+      name: g.name ?? undefined,
+      description: g.description ?? undefined,
+      maximumCardsPerInstance: g.maximumCardsPerInstance ?? undefined,
+    }));
+    return {
+      name: r.name,
+      location: zoneDetails?.location ?? undefined,
+      lowC02: zoneDetails?.lowC02 ?? undefined,
+      zones: limit(r.zones ?? [], 3),
+      sampleMachineTypes: machineTypes,
+      sampleGpuTypes: gpuTypes,
+    };
+  });
+};
+
+export const summarizeCatalogEntries = (catalog: HostCatalog) => {
+  return {
+    gcp: {
+      regions: getGcpRegionSummary(catalog),
+      region_groups: getGcpRegionGroups(getGcpRegions(catalog)),
+      images: limit(getGcpImages(catalog), 6).map((img) => ({
+        name: img.name ?? undefined,
+        family: img.family ?? undefined,
+        selfLink: img.selfLink ?? undefined,
+        architecture: img.architecture ?? undefined,
+        gpuReady: img.gpuReady ?? undefined,
+      })),
+    },
+    hyperstack: {
+      regions: getHyperstackRegionsForSummary(catalog),
+      flavors: limit(
+        getHyperstackFlavorOptions(catalog, undefined).map((opt) => opt.flavor),
+        10,
+      ).map((f) => ({
+        name: f.name,
+        region: f.region_name,
+        cpu: f.cpu,
+        ram: f.ram,
+        gpu: f.gpu,
+        gpu_count: f.gpu_count,
+      })),
+    },
+    lambda: {
+      regions: getLambdaRegionsForSummary(catalog),
+      instance_types: limit(
+        getCatalogEntryPayload<LambdaInstance[]>(
+          catalog,
+          "instance_types",
+          "global",
+        ) ?? [],
+        25,
+      ).map((entry) => ({
+        name: entry.name,
+        vcpus: entry.vcpus ?? undefined,
+        memory_gib: entry.memory_gib ?? undefined,
+        gpus: entry.gpus ?? undefined,
+        regions: entry.regions ?? undefined,
+      })),
+      images: limit(getLambdaImages(catalog), 10).map((img) => ({
+        id: img.id ?? undefined,
+        name: img.name ?? undefined,
+        family: img.family ?? undefined,
+        architecture: img.architecture ?? undefined,
+        region: img.region ?? undefined,
+      })),
+    },
+    nebius: summarizeNebiusCatalog(catalog),
+  };
+};
 
 export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
   gcp: {
