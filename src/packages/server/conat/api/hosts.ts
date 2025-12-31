@@ -250,21 +250,11 @@ export async function getCatalog({
 
   const catalog: HostCatalog = {
     provider: cloud,
-    regions: [],
-    zones: [],
-    machine_types_by_zone: {},
-    gpu_types_by_zone: {},
-    images: [],
-    hyperstack_regions: [],
-    hyperstack_flavors: [],
-    hyperstack_images: [],
-    hyperstack_stocks: [],
-    lambda_regions: [],
-    lambda_instance_types: [],
-    lambda_images: [],
-    nebius_regions: [],
-    nebius_instance_types: [],
-    nebius_images: [],
+    entries: rows.map((row) => ({
+      kind: row.kind,
+      scope: row.scope,
+      payload: row.payload,
+    })),
     provider_capabilities: Object.fromEntries(
       listServerProviders().map((entry) => [
         entry.id,
@@ -272,78 +262,6 @@ export async function getCatalog({
       ]),
     ),
   };
-
-  for (const row of rows) {
-    if (row.kind === "regions" && row.scope === "global") {
-      if (cloud === "hyperstack") {
-        catalog.hyperstack_regions = row.payload ?? [];
-      } else if (cloud === "lambda") {
-        catalog.lambda_regions = row.payload ?? [];
-      } else if (cloud === "nebius") {
-        catalog.nebius_regions = row.payload ?? [];
-      } else {
-        catalog.regions = row.payload ?? [];
-      }
-    } else if (row.kind === "zones" && row.scope === "global") {
-      catalog.zones = row.payload ?? [];
-    } else if (row.kind === "machine_types" && row.scope?.startsWith("zone/")) {
-      const zone = row.scope.slice("zone/".length);
-      catalog.machine_types_by_zone[zone] = row.payload ?? [];
-    } else if (row.kind === "gpu_types" && row.scope?.startsWith("zone/")) {
-      const zone = row.scope.slice("zone/".length);
-      catalog.gpu_types_by_zone[zone] = row.payload ?? [];
-    } else if (row.kind === "images" && row.scope === "global") {
-      if (cloud === "hyperstack") {
-        catalog.hyperstack_images = row.payload ?? [];
-      } else if (cloud === "lambda") {
-        catalog.lambda_images = row.payload ?? [];
-      } else if (cloud === "nebius") {
-        catalog.nebius_images = row.payload ?? [];
-      } else {
-        catalog.images = row.payload ?? [];
-      }
-    } else if (row.kind === "instance_types" && row.scope === "global") {
-      if (cloud === "nebius") {
-        catalog.nebius_instance_types = row.payload ?? [];
-      } else {
-        catalog.lambda_instance_types = row.payload ?? [];
-      }
-    } else if (row.kind === "flavors" && row.scope === "global") {
-      const payload = row.payload ?? [];
-      const flat: HostCatalog["hyperstack_flavors"] = [];
-      for (const entry of payload) {
-        const region = entry?.region_name;
-        const flavors = entry?.flavors ?? [];
-        for (const flavor of flavors) {
-          if (!flavor?.name) continue;
-          flat.push({
-            name: flavor.name,
-            region_name: region ?? flavor.region_name,
-            cpu: flavor.cpu,
-            ram: flavor.ram,
-            gpu: flavor.gpu,
-            gpu_count: flavor.gpu_count,
-          });
-        }
-      }
-      catalog.hyperstack_flavors = flat;
-    } else if (row.kind === "stocks" && row.scope === "global") {
-      const stocks = row.payload ?? [];
-      const flat: HostCatalog["hyperstack_stocks"] = [];
-      for (const stock of stocks) {
-        const region = stock?.region;
-        const models = stock?.models ?? [];
-        for (const model of models) {
-          flat.push({
-            region,
-            model: model?.model,
-            available: model?.available,
-          });
-        }
-      }
-      catalog.hyperstack_stocks = flat;
-    }
-  }
 
   return catalog;
 }

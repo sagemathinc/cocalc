@@ -52,6 +52,12 @@ export interface HostCatalogGpuType {
   deprecated?: any;
 }
 
+export interface HostCatalogEntry {
+  kind: string;
+  scope: string;
+  payload: any;
+}
+
 export interface HostProviderCapabilities {
   supportsStop: boolean;
   supportsDiskType: boolean;
@@ -77,84 +83,8 @@ export interface HostProviderCapabilities {
 
 export interface HostCatalog {
   provider: string;
-  regions: HostCatalogRegion[];
-  zones: HostCatalogZone[];
-  machine_types_by_zone: Record<string, HostCatalogMachineType[]>;
-  gpu_types_by_zone: Record<string, HostCatalogGpuType[]>;
+  entries: HostCatalogEntry[];
   provider_capabilities?: Record<string, HostProviderCapabilities>;
-  images?: {
-    project: string;
-    name?: string | null;
-    family?: string | null;
-    selfLink?: string | null;
-    architecture?: string | null;
-    status?: string | null;
-    deprecated?: any;
-    diskSizeGb?: string | null;
-    creationTimestamp?: string | null;
-    gpuReady?: boolean;
-  }[];
-  hyperstack_regions?: {
-    name: string;
-    description?: string | null;
-  }[];
-  hyperstack_flavors?: {
-    name: string;
-    region_name: string;
-    cpu: number;
-    ram: number;
-    gpu: string;
-    gpu_count: number;
-  }[];
-  hyperstack_images?: {
-    name: string;
-    region_name: string;
-    typ: string;
-    version: string;
-    size: number;
-  }[];
-  hyperstack_stocks?: {
-    region: string;
-    model: string;
-    available: string;
-  }[];
-  lambda_regions?: {
-    name: string;
-  }[];
-  lambda_instance_types?: {
-    name: string;
-    vcpus?: number | null;
-    memory_gib?: number | null;
-    gpus?: number | null;
-    regions?: string[];
-  }[];
-  lambda_images?: {
-    id: string;
-    name?: string | null;
-    family?: string | null;
-    architecture?: string | null;
-    region?: string | null;
-  }[];
-  nebius_regions?: {
-    name: string;
-  }[];
-  nebius_instance_types?: {
-    name: string;
-    platform?: string | null;
-    platform_label?: string | null;
-    vcpus?: number | null;
-    memory_gib?: number | null;
-    gpus?: number | null;
-    gpu_label?: string | null;
-  }[];
-  nebius_images?: {
-    id: string;
-    name?: string | null;
-    family?: string | null;
-    version?: string | null;
-    architecture?: string | null;
-    recommended_platforms?: string[];
-  }[];
 }
 
 export interface Host {
