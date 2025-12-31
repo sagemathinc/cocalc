@@ -3,6 +3,7 @@ import type { FormInstance } from "antd";
 import type { HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import type { HostProvider, HostRecommendation } from "../types";
 import { buildCatalogSummary } from "../utils/normalize-catalog";
+import { buildRecommendationUpdate } from "../utils/recommendations";
 import {
   getGcpGpuTypeOptions,
   getGcpImageOptions,
@@ -274,25 +275,8 @@ export const useHostForm = ({
   ]);
 
   const applyRecommendation = (rec: HostRecommendation) => {
-    if (!rec.provider) return;
-    const next: Record<string, any> = { provider: rec.provider };
-    if (rec.provider === "gcp") {
-      if (rec.region) next.region = rec.region;
-      if (rec.zone) next.zone = rec.zone;
-      if (rec.machine_type) next.machine_type = rec.machine_type;
-      if (rec.gpu_type) next.gpu_type = rec.gpu_type;
-      if (rec.source_image) next.source_image = rec.source_image;
-    } else if (rec.provider === "hyperstack") {
-      if (rec.region) next.region = rec.region;
-      if (rec.flavor) next.size = rec.flavor;
-    } else if (rec.provider === "lambda") {
-      if (rec.region) next.region = rec.region;
-      if (rec.machine_type) next.machine_type = rec.machine_type;
-    } else if (rec.provider === "nebius") {
-      if (rec.region) next.region = rec.region;
-      if (rec.machine_type) next.machine_type = rec.machine_type;
-    }
-    if (rec.disk_gb) next.disk = rec.disk_gb;
+    const next = buildRecommendationUpdate(rec);
+    if (Object.keys(next).length === 0) return;
     form.setFieldsValue(next);
   };
 
