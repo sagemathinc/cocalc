@@ -1,23 +1,19 @@
 import {
+  Alert,
   Button,
   Card,
   Col,
-  Collapse,
   Divider,
   Drawer,
   Form,
-  Input,
   Row,
   Select,
-  Slider,
   Space,
   Tag,
   Typography,
-  Alert,
   message,
 } from "antd";
 import {
-  CSS,
   React,
   useEffect,
   useMemo,
@@ -30,186 +26,23 @@ import Bootlog from "@cocalc/frontend/project/bootlog";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import { getMachineTypeArchitecture } from "@cocalc/util/db-schema/compute-servers";
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
+import type { HostProvider, HostRecommendation } from "./types";
+import {
+  extractJsonPayload,
+  normalizeRecommendation,
+} from "./utils/recommendations";
+import { HostAiAssist } from "./components/host-ai-assist";
+import { HostCreateForm } from "./components/host-create-form";
+import {
+  LAMBDA_REGIONS,
+  PROVIDERS,
+  REGIONS,
+  SIZES,
+  STATUS_COLOR,
+  WRAP_STYLE,
+} from "./constants";
 
-const WRAP_STYLE: CSS = {
-  padding: "24px",
-  width: "100%",
-  height: "100%",
-  overflow: "auto",
-  boxSizing: "border-box",
-};
 
-const STATUS_COLOR = {
-  stopped: "red",
-  running: "green",
-  provisioning: "blue",
-  starting: "blue",
-  stopping: "orange",
-  deprovisioned: "default",
-  off: "red",
-} as const;
-
-const REGIONS = [
-  { value: "us-west", label: "US West" },
-  { value: "us-east", label: "US East" },
-  { value: "eu-west", label: "EU West" },
-];
-
-const LAMBDA_REGIONS = [
-  "us-west-1",
-  "us-west-2",
-  "us-west-3",
-  "us-east-1",
-  "us-east-2",
-  "us-east-3",
-  "us-south-1",
-  "us-south-2",
-  "us-south-3",
-  "us-midwest-1",
-  "us-midwest-2",
-  "europe-central-1",
-  "europe-central-2",
-  "europe-central-3",
-  "europe-west-1",
-  "europe-west-2",
-  "europe-west-3",
-  "europe-north-1",
-  "europe-south-1",
-  "asia-south-1",
-  "asia-south-2",
-  "asia-south-3",
-  "asia-northeast-1",
-  "asia-northeast-2",
-  "asia-northeast-3",
-  "asia-east-1",
-  "asia-east-2",
-  "asia-east-3",
-  "asia-southeast-1",
-  "asia-southeast-2",
-  "me-west-1",
-].map((name) => ({ value: name, label: name }));
-
-const SIZES = [
-  { value: "small", label: "Small (2 vCPU / 8 GB)" },
-  { value: "medium", label: "Medium (4 vCPU / 16 GB)" },
-  { value: "large", label: "Large (8 vCPU / 32 GB)" },
-  { value: "gpu", label: "GPU (4 vCPU / 24 GB + GPU)" },
-];
-
-const GPU_TYPES = [
-  { value: "none", label: "No GPU" },
-  { value: "l4", label: "NVIDIA L4" },
-  { value: "a10g", label: "NVIDIA A10G" },
-];
-
-type HostProvider = "gcp" | "hyperstack" | "lambda" | "nebius" | "none";
-
-const PROVIDERS: Array<{ value: HostProvider; label: string }> = [
-  { value: "gcp", label: "Google Cloud" },
-  { value: "hyperstack", label: "Hyperstack Cloud" },
-  { value: "lambda", label: "Lambda Cloud" },
-  { value: "nebius", label: "Nebius AI Cloud" },
-  { value: "none", label: "Local (manual setup)" },
-];
-
-const DISK_TYPES = [
-  { value: "balanced", label: "Balanced SSD" },
-  { value: "ssd", label: "SSD" },
-  { value: "standard", label: "Standard (HDD)" },
-];
-
-type HostRecommendation = {
-  title?: string;
-  provider: HostProvider;
-  region?: string;
-  zone?: string;
-  machine_type?: string;
-  flavor?: string;
-  gpu_type?: string;
-  gpu_count?: number;
-  disk_gb?: number;
-  source_image?: string;
-  rationale?: string;
-  est_cost_per_hour?: number;
-};
-
-function extractJsonPayload(reply: string): any | undefined {
-  const trimmed = reply.trim();
-  if (!trimmed) return undefined;
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    // fall through
-  }
-  const fenceMatch = trimmed.match(/```json\s*([\s\S]*?)```/i);
-  if (fenceMatch?.[1]) {
-    try {
-      return JSON.parse(fenceMatch[1].trim());
-    } catch {
-      // fall through
-    }
-  }
-  const arrayMatch = trimmed.match(/\[[\s\S]*\]/);
-  if (arrayMatch?.[0]) {
-    try {
-      return JSON.parse(arrayMatch[0]);
-    } catch {
-      // fall through
-    }
-  }
-  const objectMatch = trimmed.match(/\{[\s\S]*\}/);
-  if (objectMatch?.[0]) {
-    try {
-      return JSON.parse(objectMatch[0]);
-    } catch {
-      // fall through
-    }
-  }
-  return undefined;
-}
-
-function normalizeRecommendation(input: any): HostRecommendation | null {
-  if (!input || typeof input !== "object") return null;
-  const normalizeString = (value: any): string | undefined => {
-    if (typeof value === "string") return value;
-    if (typeof value === "number") return String(value);
-    if (value && typeof value === "object") {
-      if (typeof value.name === "string") return value.name;
-      if (typeof value.id === "string") return value.id;
-    }
-    return undefined;
-  };
-  const provider = normalizeString(input.provider) as HostProvider | undefined;
-  if (
-    !provider ||
-    (provider !== "gcp" &&
-      provider !== "hyperstack" &&
-      provider !== "lambda" &&
-      provider !== "nebius")
-  ) {
-    return null;
-  }
-  return {
-    title: normalizeString(input.title ?? input.name ?? input.label),
-    provider,
-    region: normalizeString(input.region),
-    zone: normalizeString(input.zone),
-    machine_type: normalizeString(input.machine_type ?? input.instance_type),
-    flavor: normalizeString(input.flavor),
-    gpu_type: normalizeString(input.gpu_type),
-    gpu_count:
-      typeof input.gpu_count === "number" ? input.gpu_count : undefined,
-    disk_gb: typeof input.disk_gb === "number" ? input.disk_gb : undefined,
-    source_image: normalizeString(input.source_image),
-    rationale: normalizeString(
-      input.rationale ?? input.reason ?? input.explanation ?? input.summary,
-    ),
-    est_cost_per_hour:
-      typeof input.est_cost_per_hour === "number"
-        ? input.est_cost_per_hour
-        : undefined,
-  };
-}
 
 function imageVersionCode(name: string): number | undefined {
   const match = name.match(/ubuntu-.*?(\d{2})(\d{2})/i);
@@ -1327,365 +1160,59 @@ export const HostsPage: React.FC = () => {
                 style={{ marginBottom: 12 }}
               />
             )}
-            <Card
-              size="small"
-              style={{ marginBottom: 12 }}
-              title={
-                <Space size="small">
-                  <Icon name="magic" /> Ask for a recommendation
-                </Space>
-              }
-            >
-              <Space direction="vertical" style={{ width: "100%" }}>
-                <Input.TextArea
-                  value={aiPrompt}
-                  onChange={(e) => setAiPrompt(e.target.value)}
-                  placeholder="Describe what you want to run and why (e.g., small GPU box for fine-tuning)."
-                  autoSize={{ minRows: 2, maxRows: 4 }}
-                />
-                <Row gutter={8}>
-                  <Col span={12}>
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.1}
-                      value={aiBudget}
-                      onChange={(e) =>
-                        setAiBudget(
-                          e.target.value ? Number(e.target.value) : undefined,
-                        )
-                      }
-                      placeholder="Max $/hour (optional)"
-                    />
-                  </Col>
-                  <Col span={12}>
-                    <Select
-                      value={aiRegionGroup}
-                      onChange={setAiRegionGroup}
-                      options={[
-                        { value: "any", label: "Any region" },
-                        ...REGIONS,
-                      ]}
-                    />
-                  </Col>
-                </Row>
-                <Button
-                  onClick={runAiRecommendation}
-                  loading={aiLoading}
-                  disabled={!catalogSummary}
-                >
-                  Get recommendations
-                </Button>
-                {aiError && <Alert type="error" message={aiError} />}
-                {aiResults.length > 0 && (
-                  <Space
-                    direction="vertical"
-                    style={{ width: "100%" }}
-                    size="small"
-                  >
-                    {aiResults.map((rec, idx) => (
-                      <Card
-                        key={`${rec.provider}-${rec.region}-${idx}`}
-                        size="small"
-                        bodyStyle={{ padding: "10px 12px" }}
-                      >
-                        <Space
-                          direction="vertical"
-                          style={{ width: "100%" }}
-                          size={2}
-                        >
-                          <Space
-                            align="start"
-                            style={{ justifyContent: "space-between" }}
-                          >
-                            <div>
-                              <Typography.Text strong>
-                                {rec.title ?? `Option ${idx + 1}`}
-                              </Typography.Text>
-                              {rec.rationale && (
-                                <div style={{ color: "#888" }}>
-                                  {rec.rationale}
-                                </div>
-                              )}
-                            </div>
-                            <Button
-                              type="link"
-                              size="small"
-                              onClick={() => applyRecommendation(rec)}
-                            >
-                              Apply
-                            </Button>
-                          </Space>
-                          <Space direction="vertical" size={0}>
-                            <Typography.Text type="secondary">
-                              {rec.provider} · {rec.region ?? "any"}
-                            </Typography.Text>
-                            {rec.machine_type && (
-                              <Typography.Text type="secondary">
-                                {rec.machine_type}
-                              </Typography.Text>
-                            )}
-                            {rec.flavor && (
-                              <Typography.Text type="secondary">
-                                {rec.flavor}
-                              </Typography.Text>
-                            )}
-                            {rec.est_cost_per_hour != null && (
-                              <Typography.Text type="secondary">
-                                ~${rec.est_cost_per_hour}/hr
-                              </Typography.Text>
-                            )}
-                          </Space>
-                        </Space>
-                      </Card>
-                    ))}
-                  </Space>
-                )}
-              </Space>
-            </Card>
-            <Form
-              layout="vertical"
-              onFinish={onCreate}
-              disabled={!canCreateHosts}
+            <HostAiAssist
+              aiQuestion={aiPrompt}
+              setAiQuestion={setAiPrompt}
+              aiBudget={aiBudget}
+              setAiBudget={setAiBudget}
+              aiRegionGroup={aiRegionGroup}
+              setAiRegionGroup={setAiRegionGroup}
+              aiLoading={aiLoading}
+              aiError={aiError}
+              aiResults={aiResults}
+              canRecommend={!!catalogSummary}
+              runAiRecommendation={runAiRecommendation}
+              applyRecommendation={applyRecommendation}
+            />
+            <HostCreateForm
               form={form}
+              canCreateHosts={canCreateHosts}
+              providerOptions={providerOptions}
+              selectedProvider={selectedProvider}
+              regionField={regionField}
+              hyperstackFlavorOptions={hyperstackFlavorOptions}
+              lambdaInstanceTypeOptions={lambdaInstanceTypeOptions}
+              nebiusInstanceTypeOptions={nebiusInstanceTypeOptions}
+              zoneOptions={zoneOptions}
+              machineTypeOptions={machineTypeOptions}
+              imageOptions={imageOptions}
+              gpuTypeOptions={gpuTypeOptions}
+              storageModeOptions={storageModeOptions}
+              supportsPersistentStorage={supportsPersistentStorage}
+              persistentGrowable={persistentGrowable}
+              showDiskFields={showDiskFields}
+              catalogError={catalogError}
+              onCreate={onCreate}
+            />
+            <Divider style={{ margin: "8px 0" }} />
+            <Space
+              direction="vertical"
+              style={{ width: "100%" }}
+              size="small"
             >
-              <Form.Item name="name" label="Name" initialValue="My host">
-                <Input placeholder="My host" />
-              </Form.Item>
-              <Form.Item
-                name="provider"
-                label="Provider"
-                initialValue={providerOptions[0]?.value ?? "gcp"}
+              <Typography.Text type="secondary">
+                Cost estimate (placeholder): updates with size/region
+              </Typography.Text>
+              <Button
+                type="primary"
+                onClick={() => form.submit()}
+                loading={creating}
+                disabled={!canCreateHosts}
+                block
               >
-                <Select options={providerOptions} />
-              </Form.Item>
-              {selectedProvider === "lambda" || selectedProvider === "nebius"
-                ? null
-                : regionField}
-              {selectedProvider === "none" && (
-                <Form.Item
-                  name="size"
-                  label="Size"
-                  initialValue={SIZES[0].value}
-                >
-                  <Select options={SIZES} />
-                </Form.Item>
-              )}
-              {selectedProvider === "hyperstack" && (
-                <Form.Item
-                  name="size"
-                  label="Size"
-                  initialValue={hyperstackFlavorOptions[0]?.value}
-                >
-                  <Select options={hyperstackFlavorOptions} />
-                </Form.Item>
-              )}
-              {selectedProvider === "lambda" && (
-                <>
-                  <Form.Item
-                    name="machine_type"
-                    label="Instance type"
-                    initialValue={lambdaInstanceTypeOptions[0]?.value}
-                  >
-                    <Select options={lambdaInstanceTypeOptions} />
-                  </Form.Item>
-                  {regionField}
-                </>
-              )}
-              {selectedProvider === "nebius" && (
-                <>
-                  <Form.Item
-                    name="machine_type"
-                    label="Instance type"
-                    initialValue={nebiusInstanceTypeOptions[0]?.value}
-                  >
-                    <Select options={nebiusInstanceTypeOptions} />
-                  </Form.Item>
-                  {regionField}
-                </>
-              )}
-              {catalogError && selectedProvider === "gcp" && (
-                <Alert
-                  type="warning"
-                  showIcon
-                  style={{ marginBottom: 12 }}
-                  message="Cloud catalog unavailable"
-                  description={catalogError}
-                />
-              )}
-              <Collapse ghost style={{ marginBottom: 8 }}>
-                <Collapse.Panel header="Advanced options" key="adv">
-                  <Row gutter={[12, 12]}>
-                    {selectedProvider === "gcp" && (
-                      <>
-                        <Col span={24}>
-                          <Form.Item
-                            name="zone"
-                            label="Zone"
-                            initialValue={zoneOptions[0]?.value}
-                            tooltip="Zones are derived from the selected region."
-                          >
-                            <Select options={zoneOptions} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={24}>
-                          <Form.Item
-                            name="machine_type"
-                            label="Machine type"
-                            initialValue={machineTypeOptions[0]?.value}
-                          >
-                            <Select options={machineTypeOptions} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={24}>
-                          <Form.Item
-                            name="source_image"
-                            label="Base image"
-                            tooltip="Optional override; leave blank for the default Ubuntu image."
-                          >
-                            <Select
-                              options={[
-                                { value: "", label: "Default (Ubuntu LTS)" },
-                                ...imageOptions,
-                              ]}
-                              showSearch
-                              optionFilterProp="label"
-                              allowClear
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={24}>
-                          <Form.Item
-                            name="gpu_type"
-                            label="GPU"
-                            initialValue="none"
-                          >
-                            <Select
-                              options={[
-                                { value: "none", label: "No GPU" },
-                                ...gpuTypeOptions,
-                              ]}
-                            />
-                          </Form.Item>
-                        </Col>
-                      </>
-                    )}
-                    {selectedProvider !== "gcp" &&
-                      selectedProvider !== "lambda" &&
-                      selectedProvider !== "hyperstack" &&
-                      selectedProvider !== "nebius" && (
-                        <Col span={24}>
-                          <Form.Item
-                            name="gpu"
-                            label="GPU"
-                            initialValue="none"
-                            tooltip="Only needed for GPU workloads."
-                          >
-                            <Select options={GPU_TYPES} />
-                          </Form.Item>
-                        </Col>
-                      )}
-                    {selectedProvider !== "none" && (
-                      <Col span={24}>
-                        <Form.Item
-                          name="storage_mode"
-                          label="Storage mode"
-                          initialValue="persistent"
-                          tooltip={
-                            supportsPersistentStorage
-                              ? persistentGrowable
-                                ? "Ephemeral uses fast local disks; persistent uses a separate growable disk."
-                                : "Ephemeral uses fast local disks; persistent uses a separate fixed-size disk."
-                              : "Only ephemeral storage is available for this provider."
-                          }
-                        >
-                          <Select
-                            options={storageModeOptions}
-                            disabled={!supportsPersistentStorage}
-                          />
-                        </Form.Item>
-                      </Col>
-                    )}
-                    {showDiskFields && (
-                      <>
-                        <Col span={24}>
-                          <Form.Item
-                            name="disk"
-                            label="Disk size (GB)"
-                            initialValue={100}
-                            tooltip={`Disk for storing all projects on this host.  Files are compressed and deduplicated. ${persistentGrowable ? "You can enlarge this disk at any time later." : "This disk CANNOT be enlarged later."}`}
-                          >
-                            <Slider min={50} max={1000} step={50} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={24}>
-                          <Form.Item
-                            name="disk_type"
-                            label="Disk type"
-                            initialValue={DISK_TYPES[0].value}
-                          >
-                            <Select options={DISK_TYPES} />
-                          </Form.Item>
-                        </Col>
-                        <Col span={24}>
-                          <Form.Item
-                            name="boot_disk_gb"
-                            label="Boot disk size (GB)"
-                            initialValue={20}
-                          >
-                            <Slider min={10} max={200} step={5} />
-                          </Form.Item>
-                        </Col>
-                      </>
-                    )}
-                    <Col span={24}>
-                      <Form.Item
-                        name="shared"
-                        label="Shared volume"
-                        tooltip="Optional Btrfs subvolume bind-mounted into projects on this host."
-                        initialValue="none"
-                      >
-                        <Select
-                          options={[
-                            { value: "none", label: "None" },
-                            { value: "rw", label: "Shared volume (rw)" },
-                            { value: "ro", label: "Shared volume (ro)" },
-                          ]}
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={24}>
-                      <Form.Item
-                        name="bucket"
-                        label="Mount bucket (gcsfuse)"
-                        tooltip="Optional bucket to mount via gcsfuse on this host."
-                      >
-                        <Input placeholder="bucket-name (optional)" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </Collapse.Panel>
-              </Collapse>
-              <Divider style={{ margin: "8px 0" }} />
-              <Space
-                direction="vertical"
-                style={{ width: "100%" }}
-                size="small"
-              >
-                <Typography.Text type="secondary">
-                  Cost estimate (placeholder): updates with size/region
-                </Typography.Text>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={creating}
-                  disabled={!canCreateHosts}
-                  block
-                >
-                  Create host
-                </Button>
-              </Space>
-            </Form>
+                Create host
+              </Button>
+            </Space>
           </Card>
         </Col>
         <Col xs={24} lg={12}>
