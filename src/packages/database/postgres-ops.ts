@@ -6,12 +6,12 @@
 import type { CB } from "@cocalc/util/types/database";
 
 import {
-  backupBupCB,
-  backupTableCB,
-  backupTablesCB,
+  backupBup,
+  backupTable,
+  backupTables,
   getBackupTables,
-  restoreTableCB,
-  restoreTablesCB,
+  restoreTable,
+  restoreTables,
   type BackupBupOptions,
   type BackupTableOptions,
   type BackupTables,
@@ -27,28 +27,79 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
   ext: TBase,
 ): TBase {
   return class PostgreSQL extends ext {
-    backup_tables(opts: BackupTablesOptions & { cb: CB }): void {
-      backupTablesCB(this, opts);
+    async backup_tables(
+      opts: BackupTablesOptions & { cb?: CB },
+    ): Promise<void> {
+      const { cb } = opts;
+      try {
+        await backupTables(this, opts);
+        cb?.();
+      } catch (err) {
+        cb?.(err);
+        if (!cb) {
+          throw err;
+        }
+      }
     }
 
-    _backup_table(opts: BackupTableOptions & { cb: CB }): void {
-      backupTableCB(this, opts);
+    async _backup_table(opts: BackupTableOptions & { cb?: CB }): Promise<void> {
+      const { cb } = opts;
+      try {
+        await backupTable(this, opts);
+        cb?.();
+      } catch (err) {
+        cb?.(err);
+        if (!cb) {
+          throw err;
+        }
+      }
     }
 
-    _backup_bup(opts: BackupBupOptions & { cb: CB }): void {
-      backupBupCB(this, opts);
+    async _backup_bup(opts: BackupBupOptions & { cb?: CB }): Promise<void> {
+      const { cb } = opts;
+      try {
+        await backupBup(this, opts);
+        cb?.();
+      } catch (err) {
+        cb?.(err);
+        if (!cb) {
+          throw err;
+        }
+      }
     }
 
     _get_backup_tables(tables: BackupTables): string[] {
       return getBackupTables(tables);
     }
 
-    restore_tables(opts: RestoreTablesOptions & { cb: CB }): void {
-      restoreTablesCB(this, opts);
+    async restore_tables(
+      opts: RestoreTablesOptions & { cb?: CB },
+    ): Promise<void> {
+      const { cb } = opts;
+      try {
+        await restoreTables(this, opts);
+        cb?.();
+      } catch (err) {
+        cb?.(err);
+        if (!cb) {
+          throw err;
+        }
+      }
     }
 
-    _restore_table(opts: RestoreTableOptions & { cb: CB }): void {
-      restoreTableCB(this, opts);
+    async _restore_table(
+      opts: RestoreTableOptions & { cb?: CB },
+    ): Promise<void> {
+      const { cb } = opts;
+      try {
+        await restoreTable(this, opts);
+        cb?.();
+      } catch (err) {
+        cb?.(err);
+        if (!cb) {
+          throw err;
+        }
+      }
     }
   };
 }

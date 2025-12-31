@@ -56,7 +56,9 @@ import type {
 } from "../types";
 
 // Import from relative paths (going up two levels from postgres/blobs/)
-const { expire_time, one_result, all_results } = require("../../postgres-base");
+import { expire_time } from "../utils/expire-time";
+import { one_result } from "../utils/one-result";
+import { all_results } from "../utils/all-results";
 import * as blobs from "./archive";
 
 const COCALC_BLOB_STORE_FALLBACK = "/blobs";
@@ -282,6 +284,10 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
       if (optsWithDefaults.ttl) {
         // saved ttl is finite as is requested one; change in DB if requested is longer
         const z = expire_time(optsWithDefaults.ttl);
+        if (!z) {
+          optsWithDefaults.cb("ttl is invalid");
+          return;
+        }
         if (z > optsWithDefaults.expire) {
           new_expire = z;
           ({ ttl } = optsWithDefaults);
@@ -760,7 +766,11 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
         cb: all_results((err, rows: BlobSizeRow[]) => {
           if (err) {
             dbg(`fail: ${err}`);
-            return optsWithDefaults.cb(err);
+            const blobErr =
+              err instanceof Error || typeof err === "string"
+                ? err
+                : String(err);
+            return optsWithDefaults.cb(blobErr);
           } else {
             const n = rows.length;
             let m = 0;
@@ -1154,7 +1164,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
               query: "SELECT gcloud FROM blobs",
               where: { "id = $::UUID": optsWithDefaults.uuid },
               cb: one_result("gcloud", (err, x) => {
-                gcloud = x;
+                gcloud = typeof x === "string" ? x : undefined;
                 return cb(err);
               }),
             });

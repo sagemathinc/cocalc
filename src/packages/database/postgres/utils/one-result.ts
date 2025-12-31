@@ -4,10 +4,13 @@
  */
 
 import { map_without_undefined_and_null } from "@cocalc/util/misc";
+import type { CB } from "@cocalc/util/types/database";
 
 export type OneResultPattern = string | string[] | undefined;
 
-type OneResultCallback = (err?: unknown, result?: unknown) => void;
+type OneResultCallback<T = unknown> = CB<T>;
+
+type CallbackError = Parameters<CB>[0];
 
 interface OneResultInput {
   rows?: Array<Record<string, unknown>>;
@@ -23,7 +26,7 @@ interface OneResultInput {
 export function one_result(
   pattern?: OneResultPattern | OneResultCallback,
   cb?: OneResultCallback,
-): (err?: unknown, result?: OneResultInput) => void {
+): (err?: CallbackError, result?: OneResultInput) => void {
   if (cb == null && typeof pattern === "function") {
     cb = pattern;
     pattern = undefined;

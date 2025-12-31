@@ -1,17 +1,7 @@
 /*
- * decaffeinate suggestions:
- * DS002: Fix invalid constructor
- * DS102: Remove unnecessary code created because of implicit returns
- * DS104: Avoid inline assignments
- * DS202: Simplify dynamic range loops
- * DS205: Consider reworking code to avoid use of IIFEs
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/main/docs/suggestions.md
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
  */
-//########################################################################
-// This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-// License: MS-RSL – see LICENSE.md for details
-//########################################################################
 
 `\
 User (and project) client queries
@@ -43,16 +33,12 @@ import {
 import { UserQueryQueue } from "./queue";
 import { queryIsCmp, userGetQueryFilter } from "./user-get-query";
 
-// Import from CoffeeScript postgres-base (not yet migrated).
-// Prefer compiled output for Jest, but fall back for runtime/dist usage.
-const base = (() => {
-  try {
-    return require("../dist/postgres-base");
-  } catch (err) {
-    return require("../postgres-base");
-  }
-})();
-const { one_result, all_results, count_result, pg_type, quote_field } = base;
+// Import utility functions from their modules
+import { one_result } from "../postgres/utils/one-result";
+import { all_results } from "../postgres/utils/all-results";
+import { count_result } from "../postgres/utils/count-result";
+import { pg_type } from "../postgres/utils/pg-type";
+import { quote_field } from "../postgres/utils/quote-field";
 
 const { defaults } = misc;
 const { required } = defaults;
@@ -608,9 +594,14 @@ export function extend_PostgreSQL(ext) {
             return cb(err);
           } else {
             const known_project_ids: Record<string, boolean> = {}; // we use this to ensure that each of the given project_ids exists.
-            for (var p of x) {
+            const rows = (x ?? []) as Array<{
+              project_id: string;
+              user?: { group?: string } | null;
+            }>;
+            for (var p of rows) {
               known_project_ids[p.project_id] = true;
-              if (!groups.includes(p.user != null ? p.user.group : undefined)) {
+              const group = p.user?.group;
+              if (!group || !groups.includes(group)) {
                 require_admin = true;
               }
             }
@@ -1012,7 +1003,7 @@ export function extend_PostgreSQL(ext) {
           query: `SELECT * FROM ${r.db_table}`,
           where: this._user_set_query_where(r),
           cb: one_result((err, x) => {
-            r.old_val = x;
+            r.old_val = x as AnyRecord | undefined;
             return cb(err);
           }),
         });
@@ -2088,20 +2079,23 @@ export function extend_PostgreSQL(ext) {
           return cb(err);
         } else {
           let obj;
+          const rows = (x ?? []) as AnyRecord[];
           if (misc.len(json_fields) > 0) {
             // Convert timestamps to Date objects, if **explicitly** specified in the schema
-            for (obj of x) {
+            for (obj of rows) {
               this._user_get_query_json_timestamps(obj, json_fields);
             }
           }
 
           if (!multi) {
-            x = x[0];
+            x = rows[0];
+          } else {
+            x = rows;
           }
           // Fill in default values and remove null's
           this._user_get_query_set_defaults(
             client_query,
-            x,
+            x as AnyRecord | AnyRecord[],
             misc.keys(user_query),
           );
           // Get rid of undefined fields -- that's the default and wastes memory and bandwidth
@@ -2948,20 +2942,22 @@ export function extend_PostgreSQL(ext) {
         cb: one_result("project_id", (err, x) => {
           if (err) {
             return cb(err);
-          } else if (!x) {
+          }
+          const projectId = typeof x === "string" ? x : undefined;
+          if (!projectId) {
             // There is no such syncstring with this id -- fail
             return cb("FATAL: no such syncstring");
           } else if (account_id != null) {
             // Attempt to read or write by a user browser client
             return this._require_project_ids_in_groups(
               account_id,
-              [x],
+              [projectId],
               ["owner", "collaborator"],
               cb,
             );
           } else if (project_id != null) {
             // Attempt to read or write by a *project*
-            if (project_id === x) {
+            if (project_id === projectId) {
               return cb();
             } else {
               return cb(

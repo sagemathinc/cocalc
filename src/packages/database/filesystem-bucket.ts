@@ -3,13 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import * as fs from "fs";
-
-import * as misc from "@cocalc/util/misc";
+import { promises as fs } from "fs";
 import type { CB } from "@cocalc/util/types/database";
-
-const { defaults } = misc;
-const required = defaults.required;
 
 type BucketOptions = {
   name: string;
@@ -18,12 +13,12 @@ type BucketOptions = {
 type WriteOptions = {
   name: string;
   content: Buffer | string;
-  cb: CB;
+  cb?: CB;
 };
 
 type ReadOptions = {
   name: string;
-  cb: CB<Buffer>;
+  cb?: CB<Buffer>;
 };
 
 type DeleteOptions = {
@@ -32,11 +27,11 @@ type DeleteOptions = {
 };
 
 export function filesystem_bucket(opts: BucketOptions): FilesystemBucket {
-  const normalized = defaults(opts, { name: required }) as BucketOptions;
-  if (!normalized.name) {
+  const { name } = opts;
+  if (!name) {
     throw Error("bucket name must be specified");
   }
-  return new FilesystemBucket(normalized.name);
+  return new FilesystemBucket(name);
 }
 
 class FilesystemBucket {
@@ -46,32 +41,44 @@ class FilesystemBucket {
     return `${this.path}/${name}`;
   }
 
-  write(opts: WriteOptions): void {
-    const normalized = defaults(opts, {
-      name: required,
-      content: required,
-      cb: required,
-    }) as WriteOptions;
-    fs.writeFile(
-      this.blob_path(normalized.name),
-      normalized.content,
-      normalized.cb,
-    );
+  async write(opts: WriteOptions): Promise<void> {
+    const { name, content, cb } = opts;
+    try {
+      await fs.writeFile(this.blob_path(name), content);
+      cb?.();
+    } catch (err) {
+      cb?.(err);
+      if (!cb) {
+        throw err;
+      }
+    }
   }
 
-  read(opts: ReadOptions): void {
-    const normalized = defaults(opts, {
-      name: required,
-      cb: required,
-    }) as ReadOptions;
-    fs.readFile(this.blob_path(normalized.name), normalized.cb);
+  async read(opts: ReadOptions): Promise<Buffer> {
+    const { name, cb } = opts;
+    try {
+      const data = await fs.readFile(this.blob_path(name));
+      cb?.(undefined, data);
+      return data;
+    } catch (err) {
+      cb?.(err);
+      if (!cb) {
+        throw err;
+      }
+      return Buffer.alloc(0);
+    }
   }
 
-  delete(opts: DeleteOptions): void {
-    const normalized = defaults(opts, {
-      name: required,
-      cb: undefined,
-    }) as DeleteOptions;
-    fs.unlink(this.blob_path(normalized.name), (err) => normalized.cb?.(err));
+  async delete(opts: DeleteOptions): Promise<void> {
+    const { name, cb } = opts;
+    try {
+      await fs.unlink(this.blob_path(name));
+      cb?.();
+    } catch (err) {
+      cb?.(err);
+      if (!cb) {
+        throw err;
+      }
+    }
   }
 }

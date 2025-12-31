@@ -366,7 +366,7 @@ describe("PostgreSQL Synctable Methods", () => {
         cb?.(undefined, "test_trigger");
       });
       db._query = jest.fn((opts) => {
-        opts.cb?.(undefined, { rows: [] });
+        opts.cb?.(undefined, { rows: [], rowCount: 0, command: "SELECT" });
       });
 
       const st = db.synctable({

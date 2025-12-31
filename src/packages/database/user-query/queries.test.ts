@@ -21,43 +21,16 @@
 
 import { EventEmitter } from "events";
 
+import { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
 import { SCHEMA } from "@cocalc/util/schema";
+
+import { PostgreSQL as BasePostgreSQL } from "../postgres-base";
 
 // Import from TypeScript implementation
 import { extend_PostgreSQL } from "./queries";
 
-// Mock the base PostgreSQL class
-class MockPostgreSQLBase {
-  _dbg(name: string) {
-    return (msg: string = "") => {
-      // Silent by default for tests
-      if (process.env.DEBUG_TESTS) {
-        console.log(`[${name}] ${msg}`);
-      }
-    };
-  }
-
-  _query: any;
-  _primary_keys: any;
-  _json_fields: any;
-  get_account: any;
-  is_admin: any;
-  user_is_in_project_group: any;
-  has_public_path: any;
-  ensure_user_project_upgrades_are_valid: any;
-  projectControl: any;
-  changefeed: any;
-  project_and_user_tracker: any;
-  ensure_connection_to_project: any;
-  concurrent: any;
-  is_heavily_loaded: any;
-  is_standby = false;
-  _changefeeds: any = {};
-  _user_query_queue: any = null;
-}
-
-// Create the extended class
-const PostgreSQL = extend_PostgreSQL(MockPostgreSQLBase);
+const PostgreSQL = extend_PostgreSQL(BasePostgreSQL);
 
 const setSchema = (table: string, schema: any) => {
   const previous = SCHEMA[table];
@@ -74,9 +47,16 @@ const setSchema = (table: string, schema: any) => {
 describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
   let db: any;
 
+  beforeAll(async () => {
+    await initEphemeralDatabase({});
+  }, 15000);
+
+  afterAll(async () => {
+    await testCleanup(db);
+  });
+
   beforeEach(() => {
-    // Create fresh instance for each test
-    db = new PostgreSQL();
+    db = new PostgreSQL({ connect: false, timeout_ms: 0 });
 
     // Reset all mocks
     jest.clearAllMocks();

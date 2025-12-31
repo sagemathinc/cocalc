@@ -181,10 +181,6 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
       this.emit(mesg.channel, JSON.parse(mesg.payload));
     }
 
-    _clear_listening_state() {
-      this._listening = {};
-    }
-
     _stop_listening(
       table: string,
       select: Record<string, string>,

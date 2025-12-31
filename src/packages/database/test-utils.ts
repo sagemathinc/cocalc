@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { db } from "@cocalc/database";
 import getPool from "@cocalc/database/pool";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";

@@ -10,16 +10,7 @@ import * as misc from "@cocalc/util/misc";
 import { sha1 } from "@cocalc/backend/misc_node";
 
 import type { ChangefeedSelect } from "../postgres/types";
-
-// Import quote_field from postgres-base (still CoffeeScript)
-const base = (() => {
-  try {
-    return require("../dist/postgres-base");
-  } catch (err) {
-    return require("../postgres-base");
-  }
-})();
-const { quote_field } = base;
+import { quote_field } from "../postgres/utils/quote-field";
 
 /**
  * Generate a consistent trigger name based on table, select columns, and watch columns

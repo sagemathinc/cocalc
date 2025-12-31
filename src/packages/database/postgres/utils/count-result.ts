@@ -3,7 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-type CountResultCallback = (err?: unknown, count?: number) => void;
+import type { CB } from "@cocalc/util/types/database";
+
+type CountResultCallback = CB<number>;
+
+type CallbackError = Parameters<CB>[0];
 
 /**
  * Returns a function that extracts a COUNT(*) result as a number.
@@ -11,7 +15,7 @@ type CountResultCallback = (err?: unknown, count?: number) => void;
 export function count_result(
   cb?: CountResultCallback,
 ): (
-  err?: unknown,
+  err?: CallbackError,
   result?: { rows?: Array<{ count?: string | number }> },
 ) => void {
   if (cb == null) {

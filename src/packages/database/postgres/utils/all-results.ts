@@ -4,10 +4,13 @@
  */
 
 import { copy } from "@cocalc/util/misc";
+import type { CB } from "@cocalc/util/types/database";
 
 export type AllResultsPattern = string | undefined;
 
-type AllResultsCallback = (err?: unknown, result?: unknown) => void;
+export type AllResultsCallback<T = unknown> = CB<T>;
+
+type CallbackError = Parameters<CB>[0];
 
 /**
  * Returns a function that processes SQL query results.
@@ -17,7 +20,10 @@ type AllResultsCallback = (err?: unknown, result?: unknown) => void;
 export function all_results(
   pattern?: AllResultsPattern | AllResultsCallback,
   cb?: AllResultsCallback,
-): (err?: unknown, result?: { rows?: Array<Record<string, unknown>> }) => void {
+): (
+  err?: CallbackError,
+  result?: { rows?: Array<Record<string, unknown>> },
+) => void {
   if (cb == null && typeof pattern === "function") {
     cb = pattern;
     pattern = undefined;

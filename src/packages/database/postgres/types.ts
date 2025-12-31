@@ -19,6 +19,7 @@ import {
 import type { SyncTable } from "../synctable/synctable";
 import type { Changes } from "./changefeed/changefeed";
 import type { ProjectAndUserTracker } from "./project/project-and-user-tracker";
+import { SSLConfig } from "@cocalc/backend/data";
 
 export type { QueryResult };
 
@@ -71,8 +72,10 @@ export interface SyncstringPatch {
   version?: number;
 }
 
-export interface SyncstringPatchInput
-  extends Omit<SyncstringPatch, "is_snapshot"> {
+export interface SyncstringPatchInput extends Omit<
+  SyncstringPatch,
+  "is_snapshot"
+> {
   is_snapshot?: boolean;
 }
 
@@ -215,7 +218,7 @@ export interface QueryOptions<T = UntypedQueryResult> {
   query?: string;
   set?: { [key: string]: any };
   params?: any[];
-  values?: { [key: string]: any };
+  values?: { [key: string]: any } | Array<{ [key: string]: any }>;
   order_by?: string;
   jsonb_set?: object;
   jsonb_merge?: object;
@@ -224,12 +227,16 @@ export interface QueryOptions<T = UntypedQueryResult> {
   offset?: number;
   limit?: number;
   timeout_s?: number;
-  conflict?: string;
+  pg_params?: { [key: string]: string | number }; // PostgreSQL parameters for SET LOCAL
+  conflict?: string | string[];
+  safety_check?: boolean; // Default: true - prevents UPDATE/DELETE without WHERE
   cb?: CB<QueryRows<T>>;
 }
 
-export interface AsyncQueryOptions<T = UntypedQueryResult>
-  extends Omit<QueryOptions<T>, "cb"> {}
+export interface AsyncQueryOptions<T = UntypedQueryResult> extends Omit<
+  QueryOptions<T>,
+  "cb"
+> {}
 
 export interface UserQueryOptions {
   client_id?: string; // if given, uses to control number of queries at once by one client.
@@ -319,8 +326,15 @@ export interface PostgreSQL extends EventEmitter {
   _dbg(desc: string): Function;
   _database: string;
   _host: string;
+  _port: number;
   _password: string;
+  _ssl: SSLConfig;
   _user: string;
+  _concurrent_queries?: number;
+  _timeout_ms?: number; // Connection timeout for health check queries
+  _timeout_delay_ms?: number; // Delay before timeout enforcement after connect
+  _test_query?: NodeJS.Timeout; // Interval timer for periodic health check queries
+  _stats_cached?: any; // Internal cache for statistics
 
   _primary_key(table: string): string;
   _primary_keys(table: string): string[];
@@ -333,13 +347,24 @@ export interface PostgreSQL extends EventEmitter {
   ): void;
 
   _query(opts: QueryOptions): void;
+  _query_retry_until_success(opts: QueryOptions): void;
 
-  _close_test_query?(): void;
+  // Group 4: Test Query & Health Monitoring
+  _do_test_query(): void;
+  _init_test_query(): void;
+  _close_test_query(): void;
+
+  // Group 6: Query Engine
+  _validate_opts(opts: any): boolean; // Returns false and calls cb if validation fails
+  _count(opts: { table: string; where?: QueryWhere; cb: CB<number> }): void;
+  __do_query(opts: QueryOptions): void; // Internal query execution
 
   user_query(opts: UserQueryOptions): void;
 
   _client(): Client | undefined;
   _clients: Client[] | undefined;
+  _client_index?: number; // Round-robin index for load balancing
+  get_db_query(): Client["query"] | undefined;
 
   is_standby: boolean;
 
@@ -792,7 +817,11 @@ export interface PostgreSQL extends EventEmitter {
 
   projects_that_need_to_be_started(): Promise<string[]>;
 
+  // Group 5: Connection Management
+  connect(opts: { max_time?: number; cb?: CB }): void;
+  disconnect(): void;
   is_connected(): boolean;
+  close(): void;
 
   verify_email_create_token(opts: {
     account_id: string;
@@ -897,20 +926,47 @@ export interface PostgreSQL extends EventEmitter {
     path?: string;
     limit?: number;
     bup?: boolean;
-    cb: CB;
-  }): void;
-  _backup_table(opts: { table: string; path?: string; cb: CB }): void;
-  _backup_bup(opts: { path?: string; cb: CB }): void;
+    cb?: CB;
+  }): Promise<void>;
+  _backup_table(opts: { table: string; path?: string; cb?: CB }): Promise<void>;
+  _backup_bup(opts: { path?: string; cb?: CB }): Promise<void>;
   _get_backup_tables(tables: string[] | "all" | "critical" | string): string[];
   restore_tables(opts: {
     tables?: string[] | "all" | "critical" | string;
     path?: string;
     limit?: number;
-    cb: CB;
-  }): void;
-  _restore_table(opts: { table: string; path?: string; cb: CB }): void;
+    cb?: CB;
+  }): Promise<void>;
+  _restore_table(opts: {
+    table: string;
+    path?: string;
+    cb?: CB;
+  }): Promise<void>;
 
   uncaught_exception(err: any): Promise<void>;
+
+  // Group 1: Database Utilities (postgres/core/util.ts)
+  _debug?: boolean; // Debug mode flag
+  _init_metrics(): void; // Initialize Prometheus metrics
+  query_time_histogram?: any; // Prometheus histogram for query timing
+  concurrent_counter?: any; // Prometheus counter for concurrent queries
+  concurrent(): number; // Get current concurrent query count
+  is_heavily_loaded(): boolean; // Check if database is heavily loaded
+  sha1(...args: any[]): string; // Generate SHA1 hash from arguments
+  sanitize(s: string): string; // Escape string for SQL injection prevention
+  clear_cache(): void; // Clear LRU query cache
+  engine(): string; // Return 'postgresql' identifier
+  _ensure_database_exists(cb: CB): void; // Create database if it doesn't exist
+
+  // Group 2: Schema & Metadata (postgres/schema/)
+  _get_tables(cb: (err?: string | Error, tables?: string[]) => void): void; // Get list of all tables in public schema
+  _get_columns(
+    table: string,
+    cb: (err?: string | Error, columns?: string[]) => void,
+  ): void; // Get list of columns for a specific table
+  _primary_keys(table: string): string[]; // Get array of primary key column names
+  _primary_key(table: string): string; // Get single primary key (throws if composite)
+  update_schema(opts: { cb?: (err?: any) => void }): void; // Sync database schema with SCHEMA definition
 }
 
 // This is an extension of BaseProject in projects/control/base.ts

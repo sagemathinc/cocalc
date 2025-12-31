@@ -29,7 +29,8 @@ import { callback } from "awaiting";
 import { once } from "@cocalc/util/async-utils";
 import { close, copy } from "@cocalc/util/misc";
 
-const { one_result, all_results } = require("../../postgres-base");
+import { one_result } from "../utils/one-result";
+import { all_results } from "../utils/all-results";
 
 import { PostgreSQL, QueryWhere } from "../types";
 
@@ -101,7 +102,7 @@ class ThrottledTableQueue extends EventEmitter {
       this.dbg("enqueue")(`will process queue in ${this.interval_ms}ms...`);
       this.process_timer = setTimeout(
         this.process_queue.bind(this),
-        this.interval_ms
+        this.interval_ms,
       );
     }
     return k;
@@ -134,7 +135,7 @@ class ThrottledTableQueue extends EventEmitter {
           this.db,
           select,
           this.table,
-          where
+          where,
         );
         if (this.state == "closed") return;
         dbg("success", k);
@@ -153,7 +154,7 @@ const throttled_table_queues: { [table: string]: ThrottledTableQueue } = {};
 function throttled_table_queue(
   db: PostgreSQL,
   table: string,
-  interval_ms: number
+  interval_ms: number,
 ): ThrottledTableQueue {
   if (throttled_table_queues[table] != null) {
     return throttled_table_queues[table];
@@ -161,7 +162,7 @@ function throttled_table_queue(
   return (throttled_table_queues[table] = new ThrottledTableQueue(
     db,
     table,
-    interval_ms
+    interval_ms,
   ));
 }
 
@@ -180,7 +181,7 @@ export async function query(opts: QueryOpts): Promise<any> {
     opts.db,
     opts.select,
     opts.table,
-    opts.where
+    opts.where,
   );
 }
 

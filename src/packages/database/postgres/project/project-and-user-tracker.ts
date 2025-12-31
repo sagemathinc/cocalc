@@ -11,7 +11,7 @@ import { PostgreSQL, QueryOptions, QueryResult } from "../types";
 import { getPoolClient } from "@cocalc/database/pool";
 import { ChangeEvent, Changes } from "../changefeed/changefeed";
 
-const { all_results } = require("../../postgres-base");
+import { all_results, type AllResultsCallback } from "../utils/all-results";
 
 type SetOfAccounts = { [account_id: string]: boolean };
 type SetOfProjects = { [project_id: string]: boolean };
@@ -502,7 +502,11 @@ export class ProjectAndUserTracker extends EventEmitter {
   }
 }
 
-function all_query(db: PostgreSQL, opts: QueryOptions, cb: Function): void {
+function all_query(
+  db: PostgreSQL,
+  opts: QueryOptions,
+  cb: AllResultsCallback,
+): void {
   if (opts == null) {
     throw Error("opts must not be null");
   }

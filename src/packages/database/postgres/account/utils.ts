@@ -20,6 +20,9 @@ export function validateOpts(opts: any): boolean {
 
     // Validate lti_id (must be non-empty array of non-empty strings)
     if (k === "lti_id") {
+      if (v == null) {
+        continue;
+      }
       if (!Array.isArray(v) || v.length === 0) {
         throw new Error(`invalid ${k} -- can't be an empty array`);
       }

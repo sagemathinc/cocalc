@@ -24,15 +24,9 @@ import type {
   SyncTableWhereFunction,
 } from "../postgres/types";
 
-// Import from postgres-base (still CoffeeScript)
-const base = (() => {
-  try {
-    return require("../dist/postgres-base");
-  } catch (err) {
-    return require("../postgres-base");
-  }
-})();
-const { pg_type, quote_field } = base;
+// Import utility functions from their modules
+import { pg_type } from "../postgres/utils/pg-type";
+import { quote_field } from "../postgres/utils/quote-field";
 
 type SyncTableRowValue = immutable.Map<string, unknown>;
 type SyncTableValue = immutable.Map<SyncTableKey, SyncTableRowValue>;

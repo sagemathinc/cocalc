@@ -12,7 +12,7 @@ import { map, zipObject } from "lodash";
 
 import { PostgreSQL } from "../types";
 import { EXTENSIONS } from "@cocalc/util/db-schema/stats";
-const { all_results } = require("../../postgres-base");
+import { all_results } from "../utils/all-results";
 
 // some stats queries have to crunch a lot of rows, which could take a bit
 // we give them a couple of minutes each…
@@ -31,6 +31,12 @@ type Data = { [key: string]: number };
 interface RunningProjects {
   free: number;
   member: number;
+}
+
+interface HubServerRow {
+  expire?: Date;
+  host: string;
+  clients: number;
 }
 
 // TODO type this to fit with fields defined in db-schema/stats.ts
@@ -252,8 +258,9 @@ async function _calc_stats({ db, dbg, start_t }): Promise<Stats> {
         } else {
           const now = new Date();
           stats.hub_servers = [];
-          for (let x of hub_servers) {
-            if (x.expire > now) {
+          const servers = hub_servers as HubServerRow[];
+          for (let x of servers) {
+            if (x.expire != null && x.expire > now) {
               delete x.expire;
               stats.hub_servers.push(x);
             }

@@ -1,15 +1,7 @@
 /*
- * decaffeinate suggestions:
- * DS002: Fix invalid constructor
- * DS101: Remove unnecessary use of Array.from
- * DS102: Remove unnecessary code created because of implicit returns
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/main/docs/suggestions.md
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
  */
-//########################################################################
-// This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-// License: MS-RSL – see LICENSE.md for details
-//########################################################################
 
 /*
 PostgreSQL -- implementation of all the queries needed for the backend servers
@@ -22,10 +14,22 @@ LICENSE   : MS-RSL
 */
 
 import { bind_methods } from "@cocalc/util/misc";
+import { required } from "@cocalc/util/opts";
+
 import type { PostgreSQL as PostgreSQLInterface } from "./postgres/types";
 
-import { defaults } from "@cocalc/util/misc";
-const { required } = defaults;
+const normalizeOpts = <T extends Record<string, unknown>>(
+  opts: T | undefined,
+  defaults: T,
+): T => {
+  const normalized = { ...defaults, ...(opts ?? {}) } as T;
+  for (const [key, value] of Object.entries(defaults)) {
+    if (value === required && normalized[key] == null) {
+      throw new Error(`missing required option '${key}'`);
+    }
+  }
+  return normalized;
+};
 
 type PostgreSQLConstructor = new (...args: any[]) => PostgreSQLInterface;
 
@@ -251,7 +255,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async log(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         event: required, // string
         value: required, // object
         cb: undefined,
@@ -270,7 +274,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // dump a range of data from the central_log table
     async get_log(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         start: undefined, // if not given start at beginning of time
         end: undefined, // if not given include everything until now
         log: "central_log", // which table to query
@@ -291,7 +295,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // Return every entry x in central_log in the given period of time for
     // which x.event==event and x.value.account_id == account_id.
     async get_user_log(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         start: undefined,
         end: undefined, // if not given include everything until now
         event: "successful_sign_in",
@@ -307,7 +311,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async log_client_error(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         event: "event",
         error: "error",
         account_id: undefined,
@@ -322,7 +326,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async webapp_error(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: undefined,
         name: undefined,
         message: undefined,
@@ -354,7 +358,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_client_error_log(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         start: undefined, // if not given start at beginning of time
         end: undefined, // if not given include everything until now
         event: undefined,
@@ -369,7 +373,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async set_server_setting(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         name: required,
         value: required,
         readonly: undefined, // boolean. if yes, that value is not controlled via any UI
@@ -388,7 +392,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_server_setting(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         name: required,
         cb: required,
       });
@@ -401,7 +405,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_server_settings_cached(opts) {
-      opts = defaults(opts, { cb: required });
+      opts = normalizeOpts(opts, { cb: required });
       try {
         const result = await get_server_settings_cached();
         return opts.cb(undefined, result);
@@ -411,7 +415,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_site_settings(opts) {
-      opts = defaults(opts, { cb: required }); // (err, settings)
+      opts = normalizeOpts(opts, { cb: required }); // (err, settings)
       try {
         const result = await get_site_settings(this);
         return opts.cb(undefined, result);
@@ -425,7 +429,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async set_passport_settings(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         strategy: required,
         conf: required,
         info: undefined,
@@ -435,7 +439,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_passport_settings(opts) {
-      opts = defaults(opts, { strategy: required });
+      opts = normalizeOpts(opts, { strategy: required });
       return await get_passport_settings(this, opts);
     }
 
@@ -463,7 +467,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     Creating an account using SSO only.
     */
     async create_sso_account(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         first_name: undefined,
         last_name: undefined,
 
@@ -488,7 +492,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async is_admin(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         cb: required,
       });
@@ -501,7 +505,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async user_is_in_group(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         group: required,
         cb: required,
@@ -515,7 +519,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async make_user_admin(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: undefined,
         email_address: undefined,
         cb: required,
@@ -532,7 +536,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async count_accounts_created_by(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         ip_address: required,
         age_s: required,
         cb: required,
@@ -552,7 +556,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // do any sort of cleanup of things associated with the account!  There
     // is no reason to ever use this, except for testing purposes.
     async delete_account(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         cb: required,
       });
@@ -572,7 +576,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // is excluded from user search.
     // TODO: rewritten in packages/server/accounts/delete.ts
     async mark_account_deleted(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: undefined,
         email_address: undefined,
         cb: required,
@@ -586,7 +590,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async account_exists(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         email_address: required,
         cb: required,
       }); // cb(err, account_id or undefined) -- actual account_id if it exists; err = problem with db connection...
@@ -600,7 +604,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // set an account creation action, or return all of them for the given email address
     async account_creation_actions(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         email_address: required,
         action: undefined, // if given, adds this action; if not, returns all non-expired actions
         ttl: 60 * 60 * 24 * 14, // add action with this ttl in seconds (default: 2 weeks)
@@ -615,7 +619,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async account_creation_actions_success(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         cb: required,
       });
@@ -629,7 +633,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // DEPRECATED: use import accountCreationActions from "@cocalc/server/accounts/account-creation-actions"; instead!!!!
     async do_account_creation_actions(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         email_address: required,
         account_id: required,
         cb: required,
@@ -643,7 +647,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async verify_email_create_token(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         cb: undefined,
       });
@@ -656,7 +660,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async verify_email_check_token(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         email_address: required,
         token: required,
         cb: undefined,
@@ -670,7 +674,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async verify_email_get(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         cb: undefined,
       });
@@ -683,7 +687,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async is_verified_email(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         email_address: required,
         cb: required,
       });
@@ -699,7 +703,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     Auxiliary billing related queries
     */
     async get_coupon_history(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         cb: undefined,
       });
@@ -712,7 +716,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async update_coupon_history(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         coupon_history: required,
         cb: undefined,
@@ -729,7 +733,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     Querying for searchable information about accounts.
     */
     async account_ids_to_usernames(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_ids: required,
         cb: required,
       }); // (err, mapping {account_id:{first_name:?, last_name:?}})
@@ -749,7 +753,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_account(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         email_address: undefined,
         account_id: undefined,
         lti_id: undefined,
@@ -769,7 +773,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // check whether or not a user is banned
     async is_banned_user(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         email_address: undefined,
         account_id: undefined,
         cb: required,
@@ -806,7 +810,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // Indicate activity by a user, possibly on a specific project, and
     // then possibly on a specific path in that project.
     async touch(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         project_id: undefined,
         path: undefined,
@@ -825,7 +829,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // Invalidate all outstanding remember me cookies for the given account by
     // deleting them from the remember_me key:value store.
     async invalidate_all_remember_me(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: undefined,
         email_address: undefined,
         cb: undefined,
@@ -848,7 +852,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // work fine, and we don't to flat out sign the client out
     // just because of this.
     async get_remember_me(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         hash: required,
         cache: true,
         cb: required,
@@ -868,7 +872,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async delete_remember_me(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         hash: required,
         cb: undefined,
       });
@@ -891,7 +895,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // Change the password for the given account.
     async change_password(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         password_hash: required,
         invalidate_remember_me: true,
@@ -910,7 +914,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // Reset Password MEANT FOR INTERACTIVE USE -- if password is not given, will prompt for it.
     async reset_password(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         email_address: undefined,
         account_id: undefined,
         password: undefined,
@@ -928,7 +932,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // Change the email address, unless the email_address we're changing to is already taken.
     // If there is a stripe customer ID, we also call the update process to maybe sync the changed email address
     async change_email_address(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         email_address: required,
         stripe: required,
@@ -946,7 +950,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     Password reset
     */
     async set_password_reset(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         email_address: required,
         ttl: required,
         cb: required,
@@ -960,7 +964,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_password_reset(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         id: required,
         cb: required,
       }); // cb(err, true if allowed and false if not)
@@ -973,7 +977,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async delete_password_reset(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         id: required,
         cb: required,
       }); // cb(err, true if allowed and false if not)
@@ -986,7 +990,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async record_password_reset_attempt(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         email_address: required,
         ip_address: required,
         ttl: required,
@@ -1001,7 +1005,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async count_password_reset_attempts(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         email_address: undefined, // must give one of email_address or ip_address
         ip_address: undefined,
         age_s: required, // at most this old
@@ -1025,7 +1029,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     entry per minute.
     */
     async log_file_access(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         account_id: required,
         filename: required,
@@ -1049,7 +1053,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     easily sliceable in any way.  This could be VERY useful for users!
     */
     async get_file_access(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         start: undefined, // start time
         end: undefined, // end time
         project_id: undefined,
@@ -1071,7 +1075,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
       - table also records info about whether or not activity has been seen by users
     */
     async record_file_use(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         path: required,
         account_id: required,
@@ -1087,7 +1091,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_file_use(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         max_age_s: undefined,
         project_id: undefined, // don't specify both project_id and project_ids
         project_ids: undefined,
@@ -1112,7 +1116,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_project(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required, // an array of id's
         columns: PROJECT_COLUMNS,
         cb: required,
@@ -1147,7 +1151,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async add_user_to_project(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         account_id: required,
         group: "collaborator", // see misc.PROJECT_GROUPS above
@@ -1162,7 +1166,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async set_project_status(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         status: required,
         cb: undefined,
@@ -1179,7 +1183,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // Attempts to remove an *owner* via this function will silently fail (change their group first),
     // as will attempts to remove a user not on the project, or to remove from a non-existent project.
     async remove_collaborator_from_project(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         account_id: required,
         cb: undefined,
@@ -1194,7 +1198,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // remove any user, even an owner.
     async remove_user_from_project(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         account_id: required,
         cb: undefined,
@@ -1209,7 +1213,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // Return a list of the account_id's of all collaborators of the given users.
     async get_collaborator_ids(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         cb: required,
       });
@@ -1225,7 +1229,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // get list of project collaborator IDs
     async get_collaborators(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: required,
       });
@@ -1241,7 +1245,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // return list of paths that are public and not disabled in the given project
     async get_public_paths(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: required,
       });
@@ -1257,7 +1261,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async has_public_path(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: required,
       }); // cb(err, has_public_path)
@@ -1270,7 +1274,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async path_is_public(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         path: required,
         cb: required,
@@ -1284,7 +1288,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async filter_public_paths(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         path: required,
         listing: required, // files in path [{name:..., isdir:boolean, ....}, ...]
@@ -1303,7 +1307,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // actually hit the database at most once every 30s (per project, per client).  In particular,
     // once called, it ignores subsequent calls for the same project for 30s.
     async touch_project(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: undefined,
       });
@@ -1319,7 +1323,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async recently_modified_projects(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         max_age_s: required,
         cb: required,
       });
@@ -1332,7 +1336,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_open_unused_projects(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         min_age_days: 30, // project must not have been edited in this much time
         max_age_days: 120, // project must have been edited at most this long ago
         host: required, // hostname of where project is opened
@@ -1348,7 +1352,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // cb(err, true if user is in one of the groups for the project **or an admin**)
     async user_is_in_project_group(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         account_id: undefined,
         groups: ["owner", "collaborator"],
@@ -1373,7 +1377,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // cb(err, true if user is an actual collab; ADMINS do not count)
     async user_is_collaborator(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         account_id: required,
         cache: true,
@@ -1392,7 +1396,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // all id's of projects having anything to do with the given account
     async get_project_ids_with_user(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         is_owner: undefined, // if set to true, only return projects with this owner.
         cb: required,
@@ -1411,7 +1415,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // cb(err, array of account_id's of accounts in non-invited-only groups)
     // TODO: add something about invited users too and show them in UI!
     async get_account_ids_using_project(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: required,
       });
@@ -1430,7 +1434,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // If so, returns timestamp of when.
     // If not, returns 0.
     async when_sent_project_invite(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         to: required, // an email address
         cb: required,
@@ -1445,7 +1449,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // call this to record that we have sent an email invite to the given email address
     async sent_project_invite(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         to: required, // an email address
         error: undefined, // if there was an error set it to this; leave undefined to mean that sending succeeded
@@ -1463,7 +1467,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     Project host, storage location, and state.
     */
     async set_project_host(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         host: required,
         cb: undefined,
@@ -1477,7 +1481,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async unset_project_host(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: undefined,
       });
@@ -1490,7 +1494,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_project_host(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: undefined,
       });
@@ -1503,7 +1507,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async set_project_storage(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         host: required,
         cb: undefined,
@@ -1517,7 +1521,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_project_storage(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: undefined,
       });
@@ -1530,7 +1534,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async update_project_storage_save(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: undefined,
       });
@@ -1543,7 +1547,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async set_project_storage_request(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         action: required, // 'save', 'close', 'open', 'move'
         target: undefined, // needed for 'open' and 'move'
@@ -1558,7 +1562,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_project_storage_request(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: required,
       });
@@ -1571,7 +1575,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async set_project_state(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         state: required,
         time: new Date(),
@@ -1588,7 +1592,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_project_state(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: required,
       });
@@ -1607,7 +1611,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // Returns the total quotas for the project, including any
     // upgrades to the base settings.
     async get_project_quotas(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: required,
       });
@@ -1623,7 +1627,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // applied to the given project.  This only includes project_id's of projects that
     // this user may have upgraded in some way.
     async get_user_project_upgrades(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         cb: required,
       });
@@ -1640,7 +1644,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // the only way the quotas should ever exceed their allotment would be if the
     // user is trying to cheat... *OR* a subscription was canceled or ended.
     async ensure_user_project_upgrades_are_valid(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         fix: true, // if true, will fix projects in database whose quotas exceed the allotted amount; it is the caller's responsibility to actually change them.
         cb: required,
@@ -1660,7 +1664,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     //    (2) their subscription expires
     //    (3) they do NOT touch upgrades on any projects again.
     async ensure_all_user_project_upgrades_are_valid(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         limit: 1, // We only default to 1 at a time, since there is no hurry.
         cb: required,
       });
@@ -1674,7 +1678,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // Return the sum total of all user upgrades to a particular project
     async get_project_upgrades(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: required,
       });
@@ -1688,7 +1692,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // Remove all upgrades to all projects applied by this particular user.
     async remove_all_user_project_upgrades(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         account_id: required,
         projects: undefined, // if given, only remove from projects with id in this array.
         cb: required,
@@ -1705,7 +1709,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     Project settings
     */
     async get_project_settings(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: undefined,
       });
@@ -1718,7 +1722,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async set_project_settings(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         settings: required, // can be any subset of the map
         cb: undefined,
@@ -1732,7 +1736,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_project_extra_env(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         project_id: required,
         cb: undefined,
       });
@@ -1745,7 +1749,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async recent_projects(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         age_m: required, // return results at most this old
         min_age_m: 0, // only returns results at least this old
         pluck: undefined, // if not given, returns list of project_id's; if given (as an array), returns objects with these fields
@@ -1760,7 +1764,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_stats_interval(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         start: required,
         end: required,
         cb: required,
@@ -1777,7 +1781,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // been computed by any of the hubs.  If there is no cached version, compute new one and store
     // in cache for ttl seconds.
     async get_stats(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         ttl_dt: 15, // 15 secs subtracted from ttl to compensate for computation duration when called via a cronjob
         ttl: 5 * 60, // how long cached version lives (in seconds)
         ttl_db: 30, // how long a valid result from a db query is cached in any case
@@ -1788,7 +1792,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_active_student_stats(opts) {
-      opts = defaults(opts, { cb: required });
+      opts = normalizeOpts(opts, { cb: required });
       try {
         const result = await get_active_student_stats(this);
         return opts.cb(undefined, result);
@@ -1801,7 +1805,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     Hub servers
     */
     async register_hub(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         host: required,
         port: required,
         clients: required,
@@ -1817,7 +1821,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     }
 
     async get_hub_servers(opts) {
-      opts = defaults(opts, { cb: required });
+      opts = normalizeOpts(opts, { cb: required });
       try {
         const result = await get_hub_servers(this);
         return opts.cb(undefined, result);
@@ -1832,7 +1836,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
 
     // this is 100% for cc-in-cc dev projects only!
     async insert_random_compute_images(opts) {
-      opts = defaults(opts, { cb: required });
+      opts = normalizeOpts(opts, { cb: required });
       try {
         await insert_random_compute_images(this, opts);
         return opts.cb?.();
@@ -1845,7 +1849,7 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
     // Basically this erases everything from cocalc related to the file edit history
     // of a given file... except ZFS snapshots.
     async delete_syncstring(opts) {
-      opts = defaults(opts, {
+      opts = normalizeOpts(opts, {
         string_id: required,
         cb: required,
       });

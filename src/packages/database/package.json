@@ -37,17 +37,15 @@
   "devDependencies": {
     "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14",
-    "@types/pg": "^8.16.0",
-    "coffeescript": "^2.5.1",
-    "decaffeinate": "^8.1.4"
+    "@types/pg": "^8.16.0"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "../node_modules/.bin/tsc  --build && coffee -c -o dist/ ./",
+    "build": "../node_modules/.bin/tsc  --build",
     "clean": "rm -rf dist",
     "test": "NODE_OPTIONS='--trace-deprecation' pnpm exec jest --forceExit --runInBand --detectOpenHandles",
     "coverage": "pnpm exec jest --coverage --forceExit --runInBand",
-    "depcheck": "pnpx depcheck | grep -Ev '\\.coffee|coffee$'",
+    "depcheck": "pnpx depcheck",
     "prepublishOnly": "pnpm test"
   },
   "repository": {

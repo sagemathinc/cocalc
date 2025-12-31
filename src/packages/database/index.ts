@@ -19,23 +19,20 @@ import {
   PROJECT_COLUMNS,
   PUBLIC_PROJECT_COLUMNS,
 } from "./postgres/project/columns";
-
-const base = require("./postgres-base");
-
+import * as base from "./postgres-base";
 import { extend_PostgreSQL as extendPostgresBlobs } from "./postgres/blobs";
 import { extend_PostgreSQL as extendPostgresUserQueries } from "./user-query/queries";
 import { extend_PostgreSQL as extendPostgresSynctable } from "./synctable/methods";
 
-export const {
-  pg_type,
-  quote_field,
-  expire_time,
-  one_result,
-  all_results,
-  count_result,
-} = base;
+// Export utility functions directly from their modules
+export { pg_type } from "./postgres/utils/pg-type";
+export { quote_field } from "./postgres/utils/quote-field";
+export { expire_time } from "./postgres/utils/expire-time";
+export { one_result } from "./postgres/utils/one-result";
+export { all_results } from "./postgres/utils/all-results";
+export { count_result } from "./postgres/utils/count-result";
 
-// Re-export project columns from their new TypeScript location
+// Export project columns from their TypeScript location
 export { PROJECT_COLUMNS, PUBLIC_PROJECT_COLUMNS };
 
 // Add further functionality to PostgreSQL class -- must be at the bottom of this file.

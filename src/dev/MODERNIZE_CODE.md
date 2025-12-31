@@ -270,7 +270,47 @@ async get_stats(opts?: GetStatsOpts): Promise<Stats> {
 4. Call callback with `cb?.(err)` on error
 5. **Re-throw the error** for async/await callers
 
-### Step 7: Search for Usages and Update Callers
+### Step 7: Replace Broad-Scoped `let` Variables
+
+When modernizing functions and methods, avoid CoffeeScript-era patterns that declare many
+mutable variables at the top of a function. Prefer declaring variables close to their
+usage with `const` or narrow `let` scopes.
+
+**Before (broad-scoped scratch variables):**
+
+```typescript
+let err, fields, values, param, type, v;
+
+if (opts.values) {
+  fields = [];
+  values = [];
+  for (field in opts.values) {
+    param = opts.values[field];
+    // ...
+  }
+}
+```
+
+**After (localized, typed, and scoped):**
+
+```typescript
+if (opts.values) {
+  const fields: string[] = [];
+  const values: string[] = [];
+  for (const rawField in opts.values) {
+    const rawValue = opts.values[rawField];
+    // ...
+  }
+}
+```
+
+**Benefits:**
+
+- Prevents accidental reuse of stale values
+- Improves readability and type inference
+- Reduces side effects during refactors
+
+### Step 8: Search for Usages and Update Callers
 
 After modernizing the method, search for all places that call it and update them to use direct async/await instead of callback wrappers:
 
@@ -320,7 +360,7 @@ const stats = await database.get_stats();
 console.log(stats);
 ```
 
-### Step 8: Update Type Definitions
+### Step 9: Update Type Definitions
 
 Update the method's type signature in the appropriate interface file:
 
@@ -332,7 +372,7 @@ blob_maintenance(opts: BlobMaintenanceOpts): Promise<void>;
 get_stats(opts?: GetStatsOpts): Promise<Stats>;
 ```
 
-### Step 9: Final Verification
+### Step 10: Final Verification
 
 Run final checks to ensure everything works:
 

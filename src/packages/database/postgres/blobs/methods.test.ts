@@ -26,11 +26,19 @@ async function createTempDir(prefix: string): Promise<string> {
 }
 
 function mockBlobStoreFs(bucket: string): () => void {
-  const originalReadFile = fs.readFile;
-  const originalWriteFile = fs.writeFile;
+  const originalReadFile = fs.promises.readFile;
+  const originalWriteFile = fs.promises.writeFile;
+  const originalUnlink = fs.promises.unlink;
   const prefix = "/blobs/";
 
-  const mapPath = (path: fs.PathLike): fs.PathLike => {
+  type ReadWritePath = Parameters<typeof fs.promises.readFile>[0];
+  const mapReadWritePath = (path: ReadWritePath): ReadWritePath => {
+    if (typeof path === "string" && path.startsWith(prefix)) {
+      return join(bucket, path.slice(prefix.length));
+    }
+    return path;
+  };
+  const mapPathLike = (path: fs.PathLike): fs.PathLike => {
     if (typeof path === "string" && path.startsWith(prefix)) {
       return join(bucket, path.slice(prefix.length));
     }
@@ -38,22 +46,30 @@ function mockBlobStoreFs(bucket: string): () => void {
   };
 
   const readSpy = jest
-    .spyOn(fs, "readFile")
-    .mockImplementation((...args: any[]) => {
-      args[0] = mapPath(args[0]);
-      return (originalReadFile as any)(...args);
+    .spyOn(fs.promises, "readFile")
+    .mockImplementation((...args: Parameters<typeof fs.promises.readFile>) => {
+      args[0] = mapReadWritePath(args[0]);
+      return originalReadFile.apply(fs.promises, args);
     });
 
   const writeSpy = jest
-    .spyOn(fs, "writeFile")
-    .mockImplementation((...args: any[]) => {
-      args[0] = mapPath(args[0]);
-      return (originalWriteFile as any)(...args);
+    .spyOn(fs.promises, "writeFile")
+    .mockImplementation((...args: Parameters<typeof fs.promises.writeFile>) => {
+      args[0] = mapReadWritePath(args[0]);
+      return originalWriteFile.apply(fs.promises, args);
+    });
+
+  const unlinkSpy = jest
+    .spyOn(fs.promises, "unlink")
+    .mockImplementation((...args: Parameters<typeof fs.promises.unlink>) => {
+      args[0] = mapPathLike(args[0]);
+      return originalUnlink.apply(fs.promises, args);
     });
 
   return () => {
     readSpy.mockRestore();
     writeSpy.mockRestore();
+    unlinkSpy.mockRestore();
   };
 }
 
