@@ -3,6 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// NOTE: in this file we use {event:'draft', date:time in ms} as
+// primary key into the syncdb whereas in the main thread, we
+// use {event:'chat', date:iso string}. That's fine.
+
 import {
   CSSProperties,
   useCallback,
@@ -135,7 +139,9 @@ export default function ChatInput({
           event: "draft",
           sender_id,
           input,
-          date, // it's a primary key so can't use this to represent when user last edited this; use other date for editing past chats.
+          date,
+          // date is a primary key so can't use iots to represent when
+          // user last edited this; use other date for editing past chats.
           active: Date.now(),
         });
         syncdb.commit();
@@ -179,7 +185,7 @@ export default function ChatInput({
         event: "draft",
         sender_id,
         input,
-        date, // it's a primary key so can't use this to represent when user last edited this; use other date for editing past chats.
+        date,
         active: Date.now(),
       });
       syncdb.commit();

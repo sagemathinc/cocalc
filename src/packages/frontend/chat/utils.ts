@@ -218,3 +218,18 @@ export function toMsString(date): string {
       return `${new Date(date).valueOf()}`;
   }
 }
+
+export function toISOString(date?: Date | string | number): string | undefined {
+  if (typeof date == "number") {
+    return new Date(date).toISOString();
+  }
+  if (typeof date == "string") {
+    return date;
+  }
+  try {
+    return date?.toISOString();
+  } catch {
+    //console.warn("invalid date", date);
+    //return;
+  }
+}

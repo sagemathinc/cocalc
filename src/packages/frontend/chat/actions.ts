@@ -47,7 +47,7 @@ import type {
   MessageHistory,
 } from "./types";
 import type { CodexThreadConfig } from "@cocalc/chat";
-import { getThreadRootDate, toMsString, newest_content } from "./utils";
+import { getThreadRootDate, toISOString, toMsString, newest_content } from "./utils";
 import type { AcpChatContext } from "@cocalc/conat/ai/acp/types";
 import {
   field,
@@ -1353,14 +1353,3 @@ function getLanguageModel(input?: string): false | LanguageModel {
   return false;
 }
 
-function toISOString(date?: Date | string): string | undefined {
-  if (typeof date == "string") {
-    return date;
-  }
-  try {
-    return date?.toISOString();
-  } catch {
-    //console.warn("invalid date", date);
-    //return;
-  }
-}

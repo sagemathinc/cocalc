@@ -200,6 +200,7 @@ export class ChatMessageCache extends EventEmitter {
     const next = produce(this.messages, (draft) => {
       this.threadIndex = produce(this.threadIndex, (threadDraft) => {
         for (const row0 of rows) {
+          if (row0?.event !== "chat") continue;
           if (!row0?.date) continue;
           // SyncDoc.get_one requires only primary key fields so we make an object
           // where that ONLY has those fields and no others.
@@ -216,7 +217,7 @@ export class ChatMessageCache extends EventEmitter {
             this.removeFromThreadIndex(threadDraft, prev, key, draft);
           }
 
-          if (!rec || rec?.event !== "chat") {
+          if (rec?.event !== "chat") {
             draft.delete(key);
             continue;
           }
